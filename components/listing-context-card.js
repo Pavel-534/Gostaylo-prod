@@ -1,0 +1,44 @@
+import { Card, CardContent } from '@/components/ui/card'
+import { MapPin, Calendar } from 'lucide-react'
+import { formatPrice } from '@/lib/currency'
+
+export function ListingContextCard({ listing, checkIn, checkOut, className = '' }) {
+  if (!listing) return null
+
+  const days = checkIn && checkOut
+    ? Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))
+    : 1
+
+  return (
+    <Card className={`overflow-hidden ${className}`}>
+      <div className="flex gap-3 p-3">
+        <img
+          src={listing.images?.[0] || '/placeholder.jpg'}
+          alt={listing.title}
+          className="w-20 h-20 object-cover rounded-lg"
+        />
+        <div className="flex-1 min-w-0">
+          <h4 className="font-semibold text-slate-900 text-sm line-clamp-2">
+            {listing.title}
+          </h4>
+          <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+            <MapPin className="h-3 w-3" />
+            <span>{listing.district}</span>
+          </div>
+          {checkIn && checkOut && (
+            <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+              <Calendar className="h-3 w-3" />
+              <span>
+                {new Date(checkIn).toLocaleDateString('ru-RU')} - 
+                {new Date(checkOut).toLocaleDateString('ru-RU')}
+              </span>
+            </div>
+          )}
+          <div className="mt-2 font-semibold text-teal-600 text-sm">
+            {formatPrice(listing.basePriceThb * days, 'THB')}
+          </div>
+        </div>
+      </div>
+    </Card>
+  )
+}

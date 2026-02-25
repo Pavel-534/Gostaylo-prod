@@ -1,0 +1,475 @@
+// FunnyRent 2.1 Database Schema
+// Global Rental & Services Aggregator
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// User Profiles with Roles & Referral System
+model Profile {
+  id                String   @id @default(uuid())
+  email             String   @unique
+  phone             String?  @unique
+  role              Role     @default(RENTER)
+  verificationStatus VerificationStatus @default(PENDING)
+  isVerified        Boolean  @default(false)
+  verificationDocs  String?
+  telegramId        String?  @unique  // Telegram chat_id for bot integration
+  telegramLinked    Boolean  @default(false)  // Is Telegram bot connected
+  referralCode      String   @unique
+  referredBy        String?  // Referral code of referrer
+  balancePoints     Float    @default(0)
+  balanceUsdt       Float    @default(0)
+  escrowBalance     Float    @default(0)      // Money in escrow (awaiting check-in)
+  availableBalance  Float    @default(0)      // Available for payout
+  preferredCurrency Currency @default(THB)
+  
+  // Profile details
+  firstName         String?
+  lastName          String?
+  avatar            String?
+  language          String   @default("ru") // ru, en
+  
+  // Listing configuration
+  externalCalUrl    String?  // iCal URL for calendar sync
+  blockDates        String[] // Array of blocked dates (YYYY-MM-DD format)
+  minStay           Int      @default(1)
+  maxStay           Int      @default(90)
+  instantBooking    Boolean  @default(false)
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  lastLoginAt       DateTime?
+  
+  // Relations
+  listings          Listing[]
+  bookings          Booking[]
+  commissions       Commission[]
+  referrals         Referral[]       @relation("ReferrerRelation")
+  referredByUser    Referral[]       @relation("ReferredRelation")
+  reviews           Review[]
+  payouts           Payout[]         @relation("PartnerPayouts")
+  
+  @@index([email])
+  @@index([referralCode])
+  @@index([role])
+  @@map("profiles")
+}
+
+// Service Categories
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique // Property, Vehicles, Tours, Yachts
+  slug        String    @unique
+  description String?
+  icon        String?   // Icon name or emoji
+  order       Int       @default(0)
+  active      Boolean   @default(true)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  listings    Listing[]
+  
+  @@index([slug])
+  @@index([active])
+  @@map("categories")
+}
+
+// Rental Listings
+model Listing {
+  id              String        @id @default(uuid())
+  ownerId         String
+  categoryId      String
+  status          ListingStatus @default(PENDING)
+  
+  // Basic Info
+  title           String
+  description     String
+  
+  // Location
+  district        String        // Rawai, Patong, Kata, etc.
+  latitude        Float?
+  longitude       Float?
+  address         String?
+  
+  // Pricing
+  basePriceThb    Float         // Base price in THB
+  commissionRate  Float         @default(15) // Percentage (15%)
+  
+  // Media
+  images          String[]      // Array of image URLs
+  coverImage      String?
+  
+  // Category-specific metadata (JSONB)
+  metadata        Json?         // Flexible field for category-specific data
+  // For Property: { bedrooms: 3, bathrooms: 2, area: 120, amenities: [] }
+  // For Vehicles: { brand: "Honda", model: "PCX", year: 2023, seats: 2 }
+  // For Tours: { duration: "4 hours", groupSize: 10, included: [] }
+  // For Yachts: { length: 45, capacity: 12, crew: true }
+  
+  // Availability
+  available       Boolean       @default(true)
+  minBookingDays  Int           @default(1)
+  maxBookingDays  Int?
+  
+  // Stats
+  views           Int           @default(0)
+  bookingsCount   Int           @default(0)
+  rating          Float         @default(0)
+  reviewsCount    Int           @default(0)
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  publishedAt     DateTime?
+  
+  // Relations
+  owner           Profile       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  category        Category      @relation(fields: [categoryId], references: [id])
+  bookings        Booking[]
+  commissions     Commission[]
+  reviews         Review[]
+  unavailableDates UnavailableDate[]
+  seasonalPrices  SeasonalPrice[]
+  
+  @@index([ownerId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([district])
+  @@index([available])
+  @@index([basePriceThb])
+  @@map("listings")
+}
+
+// Bookings
+model Booking {
+  id              String        @id @default(uuid())
+  listingId       String
+  renterId        String
+  status          BookingStatus @default(PENDING)
+  
+  // Dates
+  checkIn         DateTime
+  checkOut        DateTime
+  
+  // Pricing
+  priceThb        Float
+  currency        Currency
+  pricePaid       Float         // Amount paid in selected currency
+  exchangeRate    Float         // Rate used at booking time
+  
+  // Commission
+  commissionThb   Float
+  commissionPaid  Boolean       @default(false)
+  
+  // Contact
+  guestName       String
+  guestPhone      String
+  guestEmail      String
+  specialRequests String?
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  confirmedAt     DateTime?
+  cancelledAt     DateTime?
+  completedAt     DateTime?
+  
+  // Relations
+  listing         Listing       @relation(fields: [listingId], references: [id])
+  renter          Profile       @relation(fields: [renterId], references: [id])
+  review          Review?
+  payment         Payment?
+  
+  @@index([listingId])
+  @@index([renterId])
+  @@index([status])
+  @@index([checkIn])
+  @@index([checkOut])
+  @@map("bookings")
+}
+
+// Exchange Rates
+model ExchangeRate {
+  id           String   @id @default(uuid())
+  currencyCode Currency @unique
+  rateToThb    Float    // How much 1 unit of currency equals in THB
+  source       String   @default("manual") // manual, api, etc.
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([currencyCode])
+  @@map("exchange_rates")
+}
+
+// Referral System
+model Referral {
+  id              String   @id @default(uuid())
+  referrerId      String
+  referredId      String
+  
+  // Rewards
+  rewardPoints    Float    @default(0)
+  rewardUsdt      Float    @default(0)
+  rewardPaid      Boolean  @default(false)
+  
+  // Tracking
+  firstBookingId  String?  // First booking by referred user
+  
+  createdAt       DateTime @default(now())
+  rewardPaidAt    DateTime?
+  
+  // Relations
+  referrer        Profile  @relation("ReferrerRelation", fields: [referrerId], references: [id])
+  referred        Profile  @relation("ReferredRelation", fields: [referredId], references: [id])
+  
+  @@unique([referrerId, referredId])
+  @@index([referrerId])
+  @@index([referredId])
+  @@map("referrals")
+}
+
+// Commission Tracking
+model Commission {
+  id              String   @id @default(uuid())
+  listingId       String
+  partnerId       String
+  
+  // Amounts
+  amountThb       Float
+  amountUsdt      Float    @default(0)
+  paid            Boolean  @default(false)
+  
+  // Details
+  period          String   // "2025-01", "2025-02"
+  bookingsCount   Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  paidAt          DateTime?
+  
+  // Relations
+  listing         Listing  @relation(fields: [listingId], references: [id])
+  partner         Profile  @relation(fields: [partnerId], references: [id])
+  
+  @@index([partnerId])
+  @@index([listingId])
+  @@index([paid])
+  @@index([period])
+  @@map("commissions")
+}
+
+// Reviews & Ratings
+model Review {
+  id              String   @id @default(uuid())
+  listingId       String
+  bookingId       String   @unique
+  renterId        String
+  
+  // Review Content
+  rating          Int      // 1-5 stars
+  comment         String
+  photos          String[] // Array of photo URLs
+  
+  // Partner Reply
+  partnerReply    String?
+  partnerReplyAt  DateTime?
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  listing         Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  booking         Booking  @relation(fields: [bookingId], references: [id])
+  renter          Profile  @relation(fields: [renterId], references: [id])
+  
+  @@index([listingId])
+  @@index([renterId])
+  @@index([rating])
+  @@index([createdAt])
+  @@map("reviews")
+}
+
+// Payments
+model Payment {
+  id              String        @id @default(uuid())
+  bookingId       String        @unique
+  amount          Float
+  currency        Currency
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  
+  // Payment-specific data
+  txId            String?       // For crypto
+  gatewayRef      String?       // For card/MIR payments
+  metadata        Json?         // Additional payment data
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  completedAt     DateTime?
+  
+  // Relations
+  booking         Booking       @relation(fields: [bookingId], references: [id])
+  
+  @@index([bookingId])
+  @@index([status])
+  @@map("payments")
+}
+
+// Payout Requests
+model Payout {
+  id              String        @id @default(uuid())
+  partnerId       String
+  amount          Float
+  currency        Currency
+  method          PayoutMethod
+  status          PayoutStatus  @default(PENDING)
+  
+  // Payout details
+  walletAddress   String?       // For USDT
+  bankAccount     String?       // For PromptPay
+  
+  // Admin notes
+  notes           String?
+  rejectionReason String?
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  processedAt     DateTime?
+  
+  // Relations
+  partner         Profile       @relation("PartnerPayouts", fields: [partnerId], references: [id])
+  
+  @@index([partnerId])
+  @@index([status])
+  @@map("payouts")
+}
+
+// Unavailable Dates (for calendar sync)
+model UnavailableDate {
+  id              String   @id @default(uuid())
+  listingId       String
+  startDate       DateTime
+  endDate         DateTime
+  source          String   // 'internal' or 'external' (from iCal)
+  reason          String?  // Optional: why blocked
+  
+  createdAt       DateTime @default(now())
+  
+  // Relations
+  listing         Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  @@index([listingId])
+  @@index([startDate])
+  @@map("unavailable_dates")
+}
+
+// Seasonal Prices (Dynamic Pricing Engine)
+model SeasonalPrice {
+  id              String   @id @default(uuid())
+  listingId       String
+  
+  // Date Range
+  startDate       DateTime
+  endDate         DateTime
+  
+  // Season Info
+  label           String   // "Low", "High", "Peak", or custom
+  seasonType      SeasonType @default(NORMAL)
+  
+  // Pricing (overrides base price)
+  priceDaily      Float    // Daily rate for this season
+  priceMonthly    Float?   // Discounted monthly rate (optional)
+  
+  // Metadata
+  description     String?  // e.g., "Christmas & New Year Peak"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  listing         Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  
+  @@index([listingId])
+  @@index([startDate])
+  @@index([endDate])
+  @@map("seasonal_prices")
+}
+
+// Enums
+enum Role {
+  RENTER
+  PARTNER
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum Currency {
+  THB
+  RUB
+  USD
+  USDT
+}
+
+enum ListingStatus {
+  PENDING
+  ACTIVE
+  BOOKED
+  INACTIVE
+  REJECTED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  PAID
+  CANCELLED
+  COMPLETED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD        // Stripe/Omise (Visa, Mastercard, UnionPay)
+  MIR         // Russian MIR cards
+  CRYPTO      // USDT TRC-20
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PayoutMethod {
+  PROMPTPAY   // Thai Bank
+  USDT        // USDT Wallet
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  REJECTED
+}
+
+enum SeasonType {
+  LOW       // Low season (cheaper)
+  NORMAL    // Normal/base price
+  HIGH      // High season
+  PEAK      // Peak season (most expensive)
+}

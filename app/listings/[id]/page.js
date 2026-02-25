@@ -1,0 +1,409 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { 
+  MapPin, Star, ArrowLeft, ChevronLeft, ChevronRight, 
+  Bed, Bath, Square, Calendar, Send, Loader2, User
+} from 'lucide-react'
+import { formatPrice } from '@/lib/currency'
+import { toast } from 'sonner'
+
+export default function ListingDetail({ params }) {
+  const router = useRouter()
+  const [listing, setListing] = useState(null)
+  const [reviews, setReviews] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [bookingModalOpen, setBookingModalOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  
+  // Form state
+  const [guestName, setGuestName] = useState('')
+  const [guestEmail, setGuestEmail] = useState('')
+  const [guestPhone, setGuestPhone] = useState('')
+  const [checkIn, setCheckIn] = useState('')
+  const [checkOut, setCheckOut] = useState('')
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    loadListing()
+    loadReviews()
+  }, [params.id])
+
+  async function loadListing() {
+    try {
+      const res = await fetch(`/api/listings/${params.id}`)
+      const data = await res.json()
+      
+      if (data.success) {
+        setListing(data.data)
+      }
+      setLoading(false)
+    } catch (error) {
+      console.error('Failed to load listing:', error)
+      setLoading(false)
+    }
+  }
+
+  async function loadReviews() {
+    try {
+      const res = await fetch(`/api/listings/${params.id}/reviews`)
+      const data = await res.json()
+      
+      if (data.success) {
+        setReviews(data.data.reviews || [])
+      }
+    } catch (error) {
+      console.error('Failed to load reviews:', error)
+    }
+  }
+
+  async function handleBookingSubmit(e) {
+    e.preventDefault()
+    setSubmitting(true)
+
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          listingId: listing.id,
+          renterId: 'renter-1',
+          checkIn,
+          checkOut,
+          guestName,
+          guestEmail,
+          guestPhone,
+          message,
+        }),
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        toast.success('Запрос на бронирование отправлен!')
+        setBookingModalOpen(false)
+        router.push('/bookings')
+      } else {
+        toast.error(data.error || 'Ошибка при создании запроса')
+      }
+    } catch (error) {
+      console.error('Failed to create booking:', error)
+      toast.error('Ошибка при создании запроса')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-teal-600" />
+      </div>
+    )
+  }
+
+  if (!listing) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <h3 className="text-xl font-semibold mb-2">Объявление не найдено</h3>
+            <p className="text-slate-600 mb-4">Это объявление было удалено или не существует.</p>
+            <Button asChild>
+              <Link href="/">На главную</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % listing.images.length)
+  }
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + listing.images.length) % listing.images.length)
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <div className="bg-white border-b sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-4">
+          <Link href="/" className="inline-flex items-center text-teal-600 hover:text-teal-700 font-medium">
+            <ArrowLeft className="h-5 w-5 mr-1" />
+            Вернуться к поиску
+          </Link>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Image Gallery */}
+        <div className="relative h-96 md:h-[500px] rounded-2xl overflow-hidden mb-8 group">
+          <img
+            src={listing.images[currentImageIndex]}
+            alt={listing.title}
+            className="w-full h-full object-cover"
+          />
+          
+          {listing.images.length > 1 && (
+            <>
+              <button
+                onClick={prevImage}
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+              <button
+                onClick={nextImage}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+              
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+                {listing.images.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentImageIndex(idx)}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      idx === currentImageIndex
+                        ? 'bg-white w-8'
+                        : 'bg-white/50 hover:bg-white/80'
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Title & Info */}
+            <div>
+              <div className="flex items-start justify-between mb-2">
+                <h1 className="text-3xl font-bold text-slate-900">{listing.title}</h1>
+                <Badge className="bg-green-100 text-green-700">
+                  {listing.status === 'ACTIVE' ? 'Доступно' : 'Занято'}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-4 text-slate-600">
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  <span>{listing.district}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                  <span>{listing.rating || 0}</span>
+                  <span className="text-sm">({listing.reviewsCount || 0} отзывов)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Описание</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-slate-700 leading-relaxed">{listing.description}</p>
+              </CardContent>
+            </Card>
+
+            {/* Amenities */}
+            {listing.metadata && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Характеристики</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {listing.metadata.bedrooms && (
+                      <div className="flex items-center gap-2">
+                        <Bed className="h-5 w-5 text-teal-600" />
+                        <span>{listing.metadata.bedrooms} спален</span>
+                      </div>
+                    )}
+                    {listing.metadata.bathrooms && (
+                      <div className="flex items-center gap-2">
+                        <Bath className="h-5 w-5 text-teal-600" />
+                        <span>{listing.metadata.bathrooms} ванных</span>
+                      </div>
+                    )}
+                    {listing.metadata.area && (
+                      <div className="flex items-center gap-2">
+                        <Square className="h-5 w-5 text-teal-600" />
+                        <span>{listing.metadata.area} м²</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Reviews */}
+            {reviews.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Отзывы</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {reviews.map((review) => (
+                    <div key={review.id} className="border-b pb-4 last:border-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`h-4 w-4 ${
+                                i < review.rating
+                                  ? 'fill-amber-400 text-amber-400'
+                                  : 'fill-slate-200 text-slate-200'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="font-semibold">{review.renterName}</span>
+                      </div>
+                      <p className="text-slate-700">{review.comment}</p>
+                      {review.partnerReply && (
+                        <div className="mt-2 ml-6 pl-4 border-l-2 border-teal-200 bg-teal-50 p-3 rounded-r">
+                          <p className="text-sm font-semibold text-teal-900 mb-1">Ответ партнёра</p>
+                          <p className="text-slate-700">{review.partnerReply.text}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Sidebar - Booking Card */}
+          <div>
+            <Card className="sticky top-24">
+              <CardHeader>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-teal-600">
+                    {formatPrice(listing.basePriceThb, 'THB')}
+                  </span>
+                  <span className="text-slate-600">/ день</span>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Dialog open={bookingModalOpen} onOpenChange={setBookingModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="w-full bg-teal-600 hover:bg-teal-700 text-lg py-6">
+                      Забронировать
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Запрос на бронирование</DialogTitle>
+                    </DialogHeader>
+
+                    <form onSubmit={handleBookingSubmit} className="space-y-4 mt-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label>Заезд</Label>
+                          <Input
+                            type="date"
+                            value={checkIn}
+                            onChange={(e) => setCheckIn(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Выезд</Label>
+                          <Input
+                            type="date"
+                            value={checkOut}
+                            onChange={(e) => setCheckOut(e.target.value)}
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Ваше имя</Label>
+                        <Input
+                          value={guestName}
+                          onChange={(e) => setGuestName(e.target.value)}
+                          placeholder="Иван Иванов"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Email</Label>
+                        <Input
+                          type="email"
+                          value={guestEmail}
+                          onChange={(e) => setGuestEmail(e.target.value)}
+                          placeholder="ivan@example.com"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Телефон</Label>
+                        <Input
+                          type="tel"
+                          value={guestPhone}
+                          onChange={(e) => setGuestPhone(e.target.value)}
+                          placeholder="+7 999 123 4567"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Сообщение</Label>
+                        <Textarea
+                          value={message}
+                          onChange={(e) => setMessage(e.target.value)}
+                          placeholder="Расскажите о ваших планах..."
+                          rows={3}
+                        />
+                      </div>
+
+                      <Button
+                        type="submit"
+                        disabled={submitting}
+                        className="w-full bg-teal-600 hover:bg-teal-700"
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Отправка...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-2" />
+                            Отправить запрос
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
