@@ -33,7 +33,9 @@ export default function EditListing({ params }) {
     title: '',
     description: '',
     basePriceThb: '',
+    icalUrl: '',
   })
+  const [syncingCalendar, setSyncingCalendar] = useState(false)
 
   useEffect(() => {
     if (listingId) {
