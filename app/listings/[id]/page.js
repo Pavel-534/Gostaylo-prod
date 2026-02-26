@@ -41,11 +41,43 @@ export default function ListingDetail({ params }) {
 
   async function loadListing() {
     try {
-      const res = await fetch(`/api/listings/${params.id}`)
-      const data = await res.json()
+      // Fetch directly from Supabase (bypasses Kubernetes routing)
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
       
-      if (data.success) {
-        setListing(data.data)
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/listings?id=eq.${params.id}&select=*,categories(id,name,slug,icon)`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      );
+      const data = await res.json();
+      
+      if (data && data.length > 0) {
+        const l = data[0];
+        setListing({
+          id: l.id,
+          ownerId: l.owner_id,
+          categoryId: l.category_id,
+          category: l.categories,
+          status: l.status,
+          title: l.title,
+          description: l.description,
+          district: l.district,
+          address: l.address,
+          basePriceThb: parseFloat(l.base_price_thb),
+          images: l.images || [],
+          coverImage: l.cover_image,
+          metadata: l.metadata || {},
+          available: l.available,
+          isFeatured: l.is_featured,
+          views: l.views || 0,
+          rating: parseFloat(l.rating) || 0,
+          reviewsCount: l.reviews_count || 0
+        });
       }
       setLoading(false)
     } catch (error) {
