@@ -111,29 +111,29 @@ export default function PartnerDashboard() {
   ]
 
   return (
-    <div className="p-4 lg:p-8 space-y-8">
+    <div className="p-4 lg:p-8 space-y-6 lg:space-y-8 max-w-full overflow-hidden">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Панель управления</h1>
-        <p className="text-slate-600 mt-1">
+      <div className="min-w-0">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900">Панель управления</h1>
+        <p className="text-sm lg:text-base text-slate-600 mt-1">
           Добро пожаловать обратно! Вот обзор вашего бизнеса.
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Stats Cards - Stack on mobile */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
         {statCards.map((card) => (
           <Card key={card.title} className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-slate-600">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 lg:p-6">
+              <CardTitle className="text-xs lg:text-sm font-medium text-slate-600">
                 {card.title}
               </CardTitle>
-              <div className={`p-2 rounded-lg ${card.color}`}>
-                <card.icon className="h-4 w-4" />
+              <div className={`p-1.5 lg:p-2 rounded-lg ${card.color}`}>
+                <card.icon className="h-3 w-3 lg:h-4 lg:w-4" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">{card.value}</div>
+            <CardContent className="p-3 lg:p-6 pt-0">
+              <div className="text-lg lg:text-2xl font-bold text-slate-900">{card.value}</div>
               <p className="text-xs text-slate-500 mt-1">{card.change}</p>
             </CardContent>
           </Card>
