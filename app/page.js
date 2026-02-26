@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, MapPin, Calendar, DollarSign, Home, Bike, Map, Anchor, ChevronDown, Menu, User, LogIn } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Search, MapPin, Calendar, DollarSign, Home, Bike, Map, Anchor, ChevronDown, Menu, User, LogIn, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
