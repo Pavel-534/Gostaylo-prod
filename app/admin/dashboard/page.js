@@ -123,21 +123,32 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-1">Панель управления платформой FunnyRent</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-sm lg:text-base text-gray-600 mt-1">Панель управления FunnyRent</p>
         </div>
-        <div className="text-right">
-          <p className="text-sm text-gray-600">Super Admin</p>
-          <p className="text-lg font-semibold text-indigo-600">Павел Б.</p>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={loadDashboardData}
+            className="min-h-[44px] px-4"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Обновить
+          </Button>
+          <div className="text-right hidden sm:block">
+            <p className="text-sm text-gray-600">Super Admin</p>
+            <p className="text-lg font-semibold text-indigo-600">Павел Б.</p>
+          </div>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Stats Cards - Responsive Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
         {/* Total Revenue */}
         <Card className="border-2 border-indigo-100 bg-gradient-to-br from-indigo-50 to-white">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
