@@ -68,25 +68,34 @@ export default function UsersPage() {
   };
 
   // Login as another user (impersonation)
-  const handleLoginAs = (user) => {
+  const handleLoginAs = (targetUser) => {
+    // Save original admin for return
+    const currentUser = localStorage.getItem('funnyrent_user');
+    if (currentUser) {
+      const parsed = JSON.parse(currentUser);
+      if (!parsed.isImpersonated) {
+        localStorage.setItem('funnyrent_original_admin', currentUser);
+      }
+    }
+
     const impersonatedUser = {
-      id: user.id,
-      email: user.email,
-      role: user.role,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      name: user.name,
-      isModerator: user.role === 'MODERATOR',
+      id: targetUser.id,
+      email: targetUser.email,
+      role: targetUser.role,
+      firstName: targetUser.firstName,
+      lastName: targetUser.lastName,
+      name: targetUser.name,
+      isModerator: targetUser.role === 'MODERATOR',
       isImpersonated: true
     };
     
     localStorage.setItem('funnyrent_user', JSON.stringify(impersonatedUser));
-    toast.success(`Вы вошли как ${user.name}`);
+    toast.success(`Вы вошли как ${targetUser.name}`);
     
     // Redirect based on role
-    if (user.role === 'PARTNER') {
+    if (targetUser.role === 'PARTNER') {
       router.push('/partner/dashboard');
-    } else if (user.role === 'RENTER') {
+    } else if (targetUser.role === 'RENTER') {
       router.push('/');
     } else {
       router.push('/admin/dashboard');
