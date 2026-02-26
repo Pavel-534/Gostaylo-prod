@@ -28,16 +28,68 @@ export default function UsersPage() {
 
   const loadUsers = async () => {
     try {
-      const res = await fetch('/api/admin/users');
+      // Direct Supabase call to avoid k8s routing issues
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
+      
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=*&order=created_at.desc`, {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      
       if (res.ok) {
         const data = await res.json();
-        setUsers(data.data);
-        setFilteredUsers(data.data);
+        const formattedUsers = data.map(u => ({
+          id: u.id,
+          email: u.email,
+          name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
+          firstName: u.first_name,
+          lastName: u.last_name,
+          role: u.last_name?.includes('[MODERATOR]') ? 'MODERATOR' : u.role,
+          isVerified: u.is_verified,
+          verificationStatus: u.verification_status,
+          customCommissionRate: u.custom_commission_rate,
+          availableBalance: u.available_balance,
+          phone: u.phone,
+          telegramId: u.telegram_id,
+          createdAt: u.created_at
+        }));
+        setUsers(formattedUsers);
+        setFilteredUsers(formattedUsers);
       }
     } catch (error) {
       console.error('Failed to load users:', error);
+      toast.error('Ошибка загрузки пользователей');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Login as another user (impersonation)
+  const handleLoginAs = (user) => {
+    const impersonatedUser = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      name: user.name,
+      isModerator: user.role === 'MODERATOR',
+      isImpersonated: true
+    };
+    
+    localStorage.setItem('funnyrent_user', JSON.stringify(impersonatedUser));
+    toast.success(`Вы вошли как ${user.name}`);
+    
+    // Redirect based on role
+    if (user.role === 'PARTNER') {
+      router.push('/partner/dashboard');
+    } else if (user.role === 'RENTER') {
+      router.push('/');
+    } else {
+      router.push('/admin/dashboard');
     }
   };
 
