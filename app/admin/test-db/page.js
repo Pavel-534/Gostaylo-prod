@@ -1,6 +1,7 @@
 /**
  * FunnyRent 2.1 - Admin Database Test Page
  * /admin/test-db - Verify Supabase connection
+ * This page bypasses normal admin auth for testing purposes
  */
 
 'use client';
