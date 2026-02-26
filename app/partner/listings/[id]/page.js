@@ -116,25 +116,40 @@ export default function EditListing({ params }) {
     setSaving(true)
     
     try {
-      // Update basic listing info
-      const res = await fetch(`/api/v2/partner/listings/${listingId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
-          basePriceThb: parseFloat(formData.basePriceThb),
-          icalUrl: formData.icalUrl || null,
-        }),
-      })
+      // Update listing via direct Supabase call
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
       
-      const data = await res.json()
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({
+            title: formData.title,
+            description: formData.description,
+            base_price_thb: parseFloat(formData.basePriceThb),
+            ical_url: formData.icalUrl || null,
+            metadata: {
+              ...listing?.metadata,
+              icalUrl: formData.icalUrl || null
+            },
+            updated_at: new Date().toISOString()
+          })
+        }
+      )
       
-      if (data.success) {
+      if (res.ok) {
         toast.success('Объявление обновлено')
         loadListing()
       } else {
-        toast.error(data.error || 'Ошибка при сохранении')
+        const errorData = await res.json()
+        toast.error(errorData.message || 'Ошибка при сохранении')
       }
     } catch (error) {
       console.error('Failed to save listing:', error)
