@@ -5,35 +5,39 @@
 **Super Admin:** Pavel B. (admin-777)
 **Stack:** Next.js 14, Tailwind CSS, Lucide Icons, Supabase PostgreSQL
 
-## Current Status: Stage 16.2 Complete ✅
+## Current Status: Stage 16.3 Complete ✅
 
 ### What Was Completed (Feb 26, 2025) - Latest
 
-#### Telegram Integration LIVE 🚀
-- ✅ Bot configured: @FunnyRent_777_bot
-- ✅ Admin Group: FunnyRent HQ (ID: -1003832026983)
-- ✅ Created `/lib/telegram.js` with full Telegram Bot API integration
-- ✅ Created `/api/v2/telegram/test` for test alerts
-- ✅ Created `/api/v2/telegram/link` for partner account linking
-- ✅ All 3 test alerts sent successfully to Telegram group
+#### Telegram Topic Routing LIVE 🚀
+- ✅ Created 3 Forum Topics in FunnyRent HQ group:
+  - 🏠 **Bookings** (thread_id: 15)
+  - 💰 **Finance** (thread_id: 16)
+  - 🤝 **Partners** (thread_id: 17)
+- ✅ All alerts now route to their respective topics (NOT General)
+- ✅ Updated `notification.service.js` with `sendToAdminTopic()` function
+- ✅ Test alerts sent and verified in each topic
 
-#### Admin Dashboard - Telegram Command Center
-- ✅ Added "Telegram Command Center" section
-- ✅ 3 colorful test buttons:
-  - 🟢 Test Booking Alert → BOOKINGS topic
-  - 🟡 Test Finance Alert → FINANCE topic
-  - 🔵 Test Partner Alert → NEW_PARTNERS topic
-- ✅ Bot/Group info display
+#### MODERATOR Role Implemented
+- ✅ Created via `last_name` marker `[MODERATOR]` (DB enum couldn't be altered)
+- ✅ Login API returns `role: "MODERATOR"` and `isModerator: true`
+- ✅ Admin layout filters menu based on role:
+  - **ADMIN**: Full access (all 9 menu items)
+  - **MODERATOR**: Limited access (Dashboard, Moderation, Categories, Test DB only)
+  - NO access to: Finances, Users, Marketing, Security, Settings
 
-#### Partner Dashboard - Connect Telegram
-- ✅ "Connect Telegram" button in `/partner/settings`
-- ✅ Code generation API for account linking
-- ✅ Instructions for linking process
+#### Demo Accounts Created
+| Email | Role | Name |
+|-------|------|------|
+| admin@funnyrent.com | ADMIN | Pavel B. (Super Admin) |
+| assistant@test.com | MODERATOR | Anna Assistant |
+| partner@funnyrent.com | PARTNER | Ivan Partnerov |
+| partner@test.com | PARTNER | Test Partner |
+| client@test.com | RENTER | John Client |
 
-### Previous Updates (Stage 15.5)
-- ✅ Admin/Partner Navigation Bar
-- ✅ "View on Site" button for partner listings
-- ✅ Monolithic API reduced from 3025 → 227 lines
+### Previous Updates (Stage 16.2)
+- ✅ Telegram Command Center with 3 test buttons
+- ✅ Partner "Connect Telegram" button
 
 ### Database Status (Supabase)
 - ✅ 16 tables created with TEXT IDs
