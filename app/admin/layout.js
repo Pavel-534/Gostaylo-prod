@@ -128,7 +128,7 @@ export default function AdminLayout({ children }) {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div 
@@ -137,19 +137,59 @@ export default function AdminLayout({ children }) {
         />
       )}
 
-      {/* Mobile Header */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-indigo-900 to-purple-900 text-white flex items-center justify-between px-4 z-40 lg:hidden">
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 hover:bg-indigo-700 rounded-lg transition-colors"
-        >
-          <Menu className="w-6 h-6" />
-        </button>
-        <div className="text-center">
-          <h1 className="text-lg font-bold">FunnyRent</h1>
-          <p className="text-xs text-indigo-300">Admin</p>
+      {/* Mobile Top Header - Fixed with proper spacing */}
+      <header className="fixed top-0 left-0 right-0 bg-gradient-to-r from-indigo-900 to-purple-900 text-white z-40 lg:hidden">
+        {/* Impersonation Banner - Mobile */}
+        {isImpersonating && (
+          <div className="bg-amber-500 text-amber-900 px-3 py-2 flex items-center justify-between">
+            <span className="text-xs font-medium truncate flex-1">
+              Вы как: {user?.name}
+            </span>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleReturnToAdmin}
+              className="bg-white text-amber-900 hover:bg-amber-100 h-7 px-2 text-xs ml-2 flex-shrink-0"
+              data-testid="return-to-admin-mobile"
+            >
+              <ArrowLeft className="w-3 h-3 mr-1" />
+              Назад
+            </Button>
+          </div>
+        )}
+        
+        {/* Main Mobile Header */}
+        <div className="h-14 flex items-center justify-between px-3">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 hover:bg-indigo-700 rounded-lg transition-colors"
+            aria-label="Menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          
+          <div className="text-center flex-1 mx-2">
+            <h1 className="text-base font-bold truncate">FunnyRent Admin</h1>
+          </div>
+          
+          {/* Mobile Quick Actions */}
+          <div className="flex items-center gap-1">
+            <Link 
+              href="/"
+              className="p-2 hover:bg-indigo-700 rounded-lg transition-colors"
+              aria-label="На сайт"
+            >
+              <Home className="w-5 h-5" />
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="p-2 hover:bg-red-700 rounded-lg transition-colors text-red-300"
+              aria-label="Выход"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
         </div>
-        <div className="w-10" /> {/* Spacer for balance */}
       </header>
 
       {/* Sidebar */}
