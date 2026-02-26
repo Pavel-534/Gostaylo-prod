@@ -8,8 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Copy, Check, ExternalLink, Bell, Mail, MessageSquare, Shield, Loader2 } from 'lucide-react'
-import { generateLinkingCode } from '@/lib/telegram'
+import { Copy, Check, ExternalLink, Bell, Mail, MessageSquare, Shield, Loader2, Send } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function PartnerSettings() {
