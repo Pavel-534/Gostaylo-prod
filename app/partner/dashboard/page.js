@@ -22,20 +22,53 @@ export default function PartnerDashboard() {
   async function loadData() {
     try {
       const [statsRes, bookingsRes] = await Promise.all([
-        fetch('/api/partner/stats'),
-        fetch('/api/partner/bookings'),
+        fetch('/api/v2/partner/stats'),
+        fetch('/api/v2/bookings'),
       ])
 
       const statsData = await statsRes.json()
       const bookingsData = await bookingsRes.json()
 
-      setStats(statsData.data)
+      setStats(statsData.data || statsData)
       setBookings(bookingsData.data?.slice(0, 5) || [])
       setLoading(false)
     } catch (error) {
       console.error('Failed to load data:', error)
       setLoading(false)
     }
+  }
+
+  async function generateLinkCode() {
+    setGeneratingCode(true)
+    try {
+      const storedUser = localStorage.getItem('funnyrent_user')
+      const user = storedUser ? JSON.parse(storedUser) : { id: 'partner-1' }
+      
+      const res = await fetch('/api/v2/telegram/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      })
+      const data = await res.json()
+      
+      if (data.success) {
+        setLinkCode(data.code)
+        toast.success('Код сгенерирован!')
+      } else {
+        toast.error(data.error || 'Ошибка генерации кода')
+      }
+    } catch (error) {
+      toast.error('Ошибка: ' + error.message)
+    } finally {
+      setGeneratingCode(false)
+    }
+  }
+
+  function copyCode() {
+    navigator.clipboard.writeText(`/link ${linkCode}`)
+    setCopied(true)
+    toast.success('Команда скопирована!')
+    setTimeout(() => setCopied(false), 2000)
   }
 
   if (loading) {
