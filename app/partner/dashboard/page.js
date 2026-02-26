@@ -2,13 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Home, Calendar, DollarSign, Users, TrendingUp, Eye, ArrowUpRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Home, Calendar, DollarSign, Users, TrendingUp, Eye, ArrowUpRight, Send, Bot, Bell, Copy, Check, Loader2, Sparkles, MessageSquare, Zap } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
+import { toast } from 'sonner'
 
 export default function PartnerDashboard() {
   const [stats, setStats] = useState(null)
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [linkCode, setLinkCode] = useState('')
+  const [generatingCode, setGeneratingCode] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     loadData()
