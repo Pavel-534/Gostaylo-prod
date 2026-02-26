@@ -5,94 +5,70 @@
 **Super Admin:** Pavel B. (admin-777)
 **Stack:** Next.js 14, Tailwind CSS, Lucide Icons, Supabase PostgreSQL
 
-## Original Problem Statement
-Build a comprehensive rental platform for Phuket covering:
-- Property rentals (Villas, Condos)
-- Vehicle rentals (Cars, Bikes)
-- Tours & Experiences
-- Yacht rentals
+## Current Status: Stage 15.3 Complete
 
-## User Personas
-1. **Renter** - End user searching and booking rentals
-2. **Partner** - Property/vehicle owner managing listings
-3. **Admin** - Platform administrator managing users, listings, commissions
+### Database Status (Supabase)
+- ✅ 16 tables created with TEXT IDs
+- ✅ 2 users (admin-777, partner-1)
+- ✅ 4 categories (Property, Vehicles, Tours, Yachts)
+- ✅ 4 exchange rates (THB, RUB, USD, USDT)
+- ✅ 2 promo codes (SAVE100, WELCOME10)
+- ✅ 1 active listing (Luxury Villa Ocean View)
 
-## Core Requirements (Static)
-- Multi-category rental marketplace
-- Seasonal pricing with custom rates
-- Promo code system (percentage & fixed discounts)
-- Custom commission rates per partner
-- Blacklist management (wallet, phone, email, IP)
-- Featured listings toggle
-- Multi-currency support (THB, RUB, USD, USDT)
-- Telegram & Email notifications
-- Crypto payment (USDT TRC-20)
-- Partner payout system
-- Referral program
+### v2 API Endpoints (Service-Oriented Architecture)
+| Endpoint | Status |
+|----------|--------|
+| /api/v2/categories | ✅ Working |
+| /api/v2/listings | ✅ Working |
+| /api/v2/listings/[id] | ✅ Working |
+| /api/v2/bookings | ✅ Working |
+| /api/v2/bookings/[id] | ✅ Working |
+| /api/v2/auth/login | ✅ Working |
+| /api/v2/auth/register | ✅ Working |
+| /api/v2/admin/stats | ✅ Working |
+| /api/v2/partner/stats | ✅ Working |
+| /api/v2/partner/listings | ✅ Working |
+| /api/v2/partner/payouts | ✅ Working |
+| /api/v2/promo-codes/validate | ✅ Working |
+| /api/v2/districts | ✅ Working |
+| /api/v2/exchange-rates | ✅ Working |
+| /api/v2/profile | ✅ Working |
 
-## Implementation Progress
+### Service Layer (/app/lib/services/)
+- ✅ pricing.service.js - Seasonal pricing, commission, promo codes
+- ✅ booking.service.js - Availability, booking creation, status
+- ✅ notification.service.js - Telegram, Email dispatcher
+- ✅ payment.service.js - Escrow, crypto, payouts
 
-### Stage 1-14.2 (Previous Agent)
-- [x] Complete UI (Admin, Partner, Renter dashboards)
-- [x] Mock database with all business logic
-- [x] Promo codes, blacklist, seasonal pricing
-- [x] Custom commissions, featured listings
-- [x] Russian language interface
+### Frontend Updates
+- ✅ Homepage uses v2 APIs
+- ✅ /test-db page for database verification
+- ✅ Admin layout uses v2 profile API
 
-### Stage 15.1 - Database Setup (2026-02-26)
-- [x] Supabase project connected
-- [x] SQL migration with 16 tables (TEXT IDs)
-- [x] ENUMs for all statuses
-- [x] Triggers for auto-updated_at, referral codes
-- [x] Seed data (categories, exchange rates, admin, promo codes)
-
-### Stage 15.2 - Service Architecture (2026-02-26)
-- [x] PricingService (seasonal, commission, promo validation)
-- [x] BookingService (availability, creation, status transitions)
-- [x] NotificationService (Telegram, Email dispatcher)
-- [x] PaymentService (escrow, crypto verification, payouts)
-- [x] Modular v2 API routes with Supabase integration
-- [x] Admin stats endpoint working
-
-## Current Database Schema
-- profiles, categories, listings, bookings, payments
-- conversations, messages, seasonal_prices, promo_codes
-- blacklist, payouts, exchange_rates, system_settings
-- referrals, activity_log, telegram_link_codes
-
-## Environment Variables
+## Environment Variables Needed
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://vtzzcdsjwudkaloxhvnw.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
-RESEND_API_KEY=(pending)
-TELEGRAM_BOT_TOKEN=(pending)
+RESEND_API_KEY=         # For real email notifications
+TELEGRAM_BOT_TOKEN=     # For real Telegram bot
 ```
 
 ## P0/P1/P2 Features Remaining
 
 ### P0 (Critical)
-- [ ] Migrate all frontend to v2 APIs
-- [ ] Real email notifications (Resend)
-- [ ] Real Telegram bot integration
+- [ ] Get Resend API key from user
+- [ ] Get Telegram Bot Token from user
+- [ ] Update Partner dashboard to v2 APIs
+- [ ] Update Checkout flow to v2 APIs
 
 ### P1 (Important)
+- [ ] Deprecate old [[...path]]/route.js
 - [ ] Stripe payment integration
-- [ ] Real TRON verification for crypto
+- [ ] Real password hashing (bcrypt)
 - [ ] Row Level Security (RLS)
-- [ ] Password hashing (bcrypt)
 
 ### P2 (Nice to Have)
 - [ ] iCal calendar sync
 - [ ] Google OAuth
 - [ ] Mobile app (React Native)
 
-## Next Tasks
-1. Create remaining v2 routes (bookings, partner, webhooks)
-2. Update frontend components to use v2 APIs
-3. Get Resend API key from user
-4. Get Telegram Bot Token from user
-5. Test full booking flow with real database
-
 ---
-*Last Updated: 2026-02-26*
+*Last Updated: 2026-02-26 - Stage 15.3*
