@@ -305,6 +305,100 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
+      {/* Telegram Command Center */}
+      <Card className="shadow-xl border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <CardHeader className="pb-2 lg:pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <CardTitle className="text-lg lg:text-xl flex items-center gap-2">
+                <Send className="w-5 h-5 text-blue-600" />
+                Telegram Command Center
+              </CardTitle>
+              <CardDescription className="text-xs lg:text-sm">
+                Тестовые уведомления для проверки интеграции
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              {telegramStatus?.configured ? (
+                <span className="flex items-center gap-1 text-sm text-green-600 font-medium">
+                  <CheckCircle className="w-4 h-4" />
+                  Connected
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-sm text-red-600 font-medium">
+                  <XCircle className="w-4 h-4" />
+                  Not configured
+                </span>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 lg:p-6 pt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
+            {/* Test Booking Alert */}
+            <Button
+              onClick={() => sendTestAlert('booking')}
+              disabled={sendingAlert === 'booking'}
+              className="h-auto py-4 flex flex-col items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+              data-testid="test-booking-alert-btn"
+            >
+              {sendingAlert === 'booking' ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : (
+                <Home className="w-6 h-6" />
+              )}
+              <span className="font-semibold">Test Booking Alert</span>
+              <span className="text-xs opacity-80">🏠 BOOKINGS topic</span>
+            </Button>
+
+            {/* Test Finance Alert */}
+            <Button
+              onClick={() => sendTestAlert('finance')}
+              disabled={sendingAlert === 'finance'}
+              className="h-auto py-4 flex flex-col items-center gap-2 bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+              data-testid="test-finance-alert-btn"
+            >
+              {sendingAlert === 'finance' ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : (
+                <Wallet className="w-6 h-6" />
+              )}
+              <span className="font-semibold">Test Finance Alert</span>
+              <span className="text-xs opacity-80">💰 FINANCE topic</span>
+            </Button>
+
+            {/* Test Partner Alert */}
+            <Button
+              onClick={() => sendTestAlert('partner')}
+              disabled={sendingAlert === 'partner'}
+              className="h-auto py-4 flex flex-col items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
+              data-testid="test-partner-alert-btn"
+            >
+              {sendingAlert === 'partner' ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : (
+                <Handshake className="w-6 h-6" />
+              )}
+              <span className="font-semibold">Test Partner Alert</span>
+              <span className="text-xs opacity-80">🤝 NEW_PARTNERS topic</span>
+            </Button>
+          </div>
+
+          {telegramStatus?.bot && (
+            <div className="mt-4 p-3 bg-white/70 rounded-lg border border-blue-200">
+              <p className="text-sm text-gray-700">
+                <strong>Bot:</strong> @{telegramStatus.bot.username} ({telegramStatus.bot.firstName})
+              </p>
+              {telegramStatus.chat && (
+                <p className="text-sm text-gray-700">
+                  <strong>Group:</strong> {telegramStatus.chat.title} (ID: {telegramStatus.chat.id})
+                </p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Activity Feed */}
       <Card className="shadow-xl">
         <CardHeader>
