@@ -332,6 +332,21 @@ export default function UsersPage() {
                       </div>
                     )}
                   </div>
+                  
+                  {/* Login As Button - for Partners and Renters */}
+                  {(user.role === 'PARTNER' || user.role === 'RENTER') && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                      onClick={() => handleLoginAs(user)}
+                      data-testid={`login-as-${user.id}`}
+                    >
+                      <LogIn className="w-4 h-4 mr-1" />
+                      Login as
+                    </Button>
+                  )}
+                  
                   <Select
                     value={user.role}
                     onValueChange={(value) => handleRoleChange(user.id, value)}
