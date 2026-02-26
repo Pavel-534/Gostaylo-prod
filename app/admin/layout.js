@@ -192,14 +192,14 @@ export default function AdminLayout({ children }) {
         </div>
       </header>
 
-      {/* Sidebar */}
-      <aside
-        className={`${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        } ${
-          sidebarOpen ? 'w-64' : 'lg:w-20'
-        } bg-gradient-to-b from-indigo-900 via-indigo-800 to-purple-900 text-white transition-all duration-300 flex flex-col fixed h-screen z-30 lg:w-64`}
-      >
+      {/* Main Content Area */}
+      <div className="flex flex-1">
+        {/* Sidebar */}
+        <aside
+          className={`${
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          } w-64 bg-gradient-to-b from-indigo-900 via-indigo-800 to-purple-900 text-white transition-all duration-300 flex flex-col fixed h-screen z-30`}
+        >
         {/* Logo */}
         <div className="p-4 lg:p-6 border-b border-indigo-700 flex items-center justify-between">
           <div className={`${!sidebarOpen && 'lg:hidden'}`}>
