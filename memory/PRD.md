@@ -5,7 +5,21 @@
 **Super Admin:** Pavel B. (admin-777)
 **Stack:** Next.js 14, Tailwind CSS, Lucide Icons, Supabase PostgreSQL
 
-## Current Status: Stage 15.3 Complete
+## Current Status: Stage 15.4 Complete ✅
+
+### What Was Fixed (Feb 26, 2025)
+1. **Database Connection Restored** - Fixed 502 routing issue by using direct Supabase client
+2. **Mobile UI Complete** - All admin pages are now fully responsive:
+   - Dashboard ✅
+   - Test DB ✅  
+   - Marketing ✅
+   - Security ✅
+   - Categories ✅
+   - Settings ✅
+   - Moderation ✅
+   - Finances ✅
+   - Users ✅
+3. **Sidebar Fixed** - Now starts closed on mobile, closes on navigation
 
 ### Database Status (Supabase)
 - ✅ 16 tables created with TEXT IDs
@@ -14,6 +28,7 @@
 - ✅ 4 exchange rates (THB, RUB, USD, USDT)
 - ✅ 2 promo codes (SAVE100, WELCOME10)
 - ✅ 1 active listing (Luxury Villa Ocean View)
+- ✅ 3 system settings
 
 ### v2 API Endpoints (Service-Oriented Architecture)
 | Endpoint | Status |
@@ -41,9 +56,10 @@
 - ✅ payment.service.js - Escrow, crypto, payouts
 
 ### Frontend Updates
-- ✅ Homepage uses v2 APIs
-- ✅ /test-db page for database verification
-- ✅ Admin layout uses v2 profile API
+- ✅ Homepage uses direct Supabase client (bypasses k8s routing)
+- ✅ /admin/test-db uses direct Supabase client  
+- ✅ Admin layout responsive with hamburger menu
+- ✅ All admin pages mobile-optimized
 
 ## Environment Variables Needed
 ```
