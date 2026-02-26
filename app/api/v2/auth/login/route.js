@@ -42,18 +42,23 @@ export async function POST(request) {
       .eq('id', user.id);
     
     // Transform user for response
+    // Check if this is a MODERATOR (marked in last_name)
+    const isModerator = user.last_name?.includes('[MODERATOR]');
+    const cleanLastName = user.last_name?.replace(' [MODERATOR]', '') || '';
+    
     const userData = {
       id: user.id,
       email: user.email,
-      role: user.role,
+      role: isModerator ? 'MODERATOR' : user.role,
       firstName: user.first_name,
-      lastName: user.last_name,
-      name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+      lastName: cleanLastName,
+      name: `${user.first_name || ''} ${cleanLastName}`.trim(),
       referralCode: user.referral_code,
       isVerified: user.is_verified,
       verificationStatus: user.verification_status,
       preferredCurrency: user.preferred_currency,
-      notificationPreferences: user.notification_preferences
+      notificationPreferences: user.notification_preferences,
+      isModerator
     };
     
     console.log(`[AUTH] User logged in: ${email} (${user.role})`);
