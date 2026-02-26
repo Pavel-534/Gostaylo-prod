@@ -54,17 +54,34 @@ export default function AdminDashboard() {
   const sendTestAlert = async (type) => {
     setSendingAlert(type);
     try {
-      const res = await fetch('/api/v2/telegram/test', {
+      // Direct Telegram API call to avoid k8s routing issues
+      const BOT_TOKEN = '8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM';
+      const GROUP_ID = '-1003832026983';
+      const TOPICS = { booking: 15, finance: 16, partner: 17 };
+      
+      const messages = {
+        booking: `🏠 <b>ТЕСТ BOOKING ALERT</b>\n\n📍 Test Villa\n👤 Test Guest\n📅 01.03 - 07.03.2025\n💰 125,000 THB\n\n✅ Test from Admin Dashboard`,
+        finance: `💰 <b>ТЕСТ FINANCE ALERT</b>\n\n📝 Booking: TEST-${Date.now()}\n💵 3,500 USDT\n🔗 USDT TRC-20\n\n✅ Test from Admin Dashboard`,
+        partner: `🤝 <b>ТЕСТ PARTNER ALERT</b>\n\n👤 New Test Partner\n📧 test@example.com\n\n✅ Test from Admin Dashboard`
+      };
+
+      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type })
+        body: JSON.stringify({
+          chat_id: GROUP_ID,
+          message_thread_id: TOPICS[type],
+          text: messages[type] || messages.booking,
+          parse_mode: 'HTML'
+        })
       });
-      const data = await res.json();
+
+      const result = await response.json();
       
-      if (data.success) {
+      if (result.ok) {
         alert(`✅ ${type.toUpperCase()} alert sent successfully!`);
       } else {
-        alert(`❌ Failed: ${data.error}`);
+        alert(`❌ Failed: ${result.description}`);
       }
     } catch (error) {
       alert(`❌ Error: ${error.message}`);
