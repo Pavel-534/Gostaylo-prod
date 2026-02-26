@@ -209,54 +209,63 @@ export default function AdminDashboard() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         {/* Revenue Trend Chart */}
-        <Card className="shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-xl">Динамика выручки</CardTitle>
-            <CardDescription>Ежемесячный тренд доходов (THB)</CardDescription>
+        <Card className="shadow-xl overflow-hidden">
+          <CardHeader className="pb-2 lg:pb-4">
+            <CardTitle className="text-lg lg:text-xl">Динамика выручки</CardTitle>
+            <CardDescription className="text-xs lg:text-sm">Ежемесячный тренд (THB)</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={stats?.monthlyRevenue || []}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="thb" stroke="#6366f1" strokeWidth={3} name="THB" />
-                <Line type="monotone" dataKey="usdt" stroke="#8b5cf6" strokeWidth={3} name="USDT" />
-              </LineChart>
-            </ResponsiveContainer>
+          <CardContent className="p-2 lg:p-6">
+            <div className="w-full overflow-x-auto">
+              <div className="min-w-[300px]">
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={stats?.monthlyRevenue || []}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Line type="monotone" dataKey="thb" stroke="#6366f1" strokeWidth={2} name="THB" />
+                    <Line type="monotone" dataKey="usdt" stroke="#8b5cf6" strokeWidth={2} name="USDT" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
         {/* Category Distribution */}
-        <Card className="shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-xl">Распределение по категориям</CardTitle>
-            <CardDescription>Что приносит больше дохода?</CardDescription>
+        <Card className="shadow-xl overflow-hidden">
+          <CardHeader className="pb-2 lg:pb-4">
+            <CardTitle className="text-lg lg:text-xl">По категориям</CardTitle>
+            <CardDescription className="text-xs lg:text-sm">Распределение листингов</CardDescription>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={stats?.categoryRevenue || []}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={(entry) => `${entry.category}: ${entry.percentage}%`}
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="revenue"
-                >
-                  {(stats?.categoryRevenue || []).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+          <CardContent className="p-2 lg:p-6">
+            <div className="w-full overflow-x-auto">
+              <div className="min-w-[250px]">
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={stats?.categoryDistribution || []}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={(entry) => entry.name}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {(stats?.categoryDistribution || []).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
