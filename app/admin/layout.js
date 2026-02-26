@@ -104,17 +104,25 @@ export default function AdminLayout({ children }) {
     }
   };
 
-  const menuItems = [
-    { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/admin/moderation', icon: Shield, label: 'Модерация' },
-    { href: '/admin/finances', icon: Wallet, label: 'Финансы' },
-    { href: '/admin/users', icon: Users, label: 'Пользователи' },
-    { href: '/admin/marketing', icon: TrendingUp, label: 'Маркетинг' },
-    { href: '/admin/security', icon: ShieldAlert, label: 'Безопасность' },
-    { href: '/admin/categories', icon: Layers, label: 'Категории' },
-    { href: '/admin/settings', icon: Settings, label: 'Настройки' },
-    { href: '/admin/test-db', icon: Database, label: 'Test DB' },
+  // Menu items with access control
+  // MODERATOR can only access: Dashboard, Moderation, Categories
+  // NO access to: Finances, Users, Marketing, Security, Settings
+  const allMenuItems = [
+    { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard', moderatorAccess: true },
+    { href: '/admin/moderation', icon: Shield, label: 'Модерация', moderatorAccess: true },
+    { href: '/admin/finances', icon: Wallet, label: 'Финансы', moderatorAccess: false },
+    { href: '/admin/users', icon: Users, label: 'Пользователи', moderatorAccess: false },
+    { href: '/admin/marketing', icon: TrendingUp, label: 'Маркетинг', moderatorAccess: false },
+    { href: '/admin/security', icon: ShieldAlert, label: 'Безопасность', moderatorAccess: false },
+    { href: '/admin/categories', icon: Layers, label: 'Категории', moderatorAccess: true },
+    { href: '/admin/settings', icon: Settings, label: 'Настройки', moderatorAccess: false },
+    { href: '/admin/test-db', icon: Database, label: 'Test DB', moderatorAccess: true },
   ];
+
+  // Filter menu based on role
+  const menuItems = user?.isModerator 
+    ? allMenuItems.filter(item => item.moderatorAccess)
+    : allMenuItems;
 
   if (loading) {
     return (
