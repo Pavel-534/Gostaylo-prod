@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Eye, Edit, Trash2, MoreVertical, Grid, List } from 'lucide-react'
+import { Plus, Eye, Edit, Trash2, MoreVertical, Grid, List, ExternalLink } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import {
   DropdownMenu,
@@ -211,6 +211,18 @@ export default function PartnerListings() {
                 </div>
               </CardContent>
               <CardFooter className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1" 
+                  asChild
+                  data-testid={`view-listing-${listing.id}`}
+                >
+                  <Link href={`/listings/${listing.id}`} target="_blank">
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    На сайте
+                  </Link>
+                </Button>
                 <Button variant="outline" size="sm" className="flex-1" asChild>
                   <Link href={`/partner/listings/${listing.id}`}>
                     <Edit className="h-3 w-3 mr-1" />
