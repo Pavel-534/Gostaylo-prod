@@ -16,6 +16,9 @@ import {
   Menu,
   X,
   Database,
+  Home,
+  ExternalLink,
+  UserCog,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
