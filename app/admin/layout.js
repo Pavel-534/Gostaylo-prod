@@ -174,7 +174,9 @@ export default function AdminLayout({ children }) {
         <div className="p-4 lg:p-6 border-b border-indigo-700 flex items-center justify-between">
           <div className={`${!sidebarOpen && 'lg:hidden'}`}>
             <h1 className="text-xl lg:text-2xl font-bold">FunnyRent</h1>
-            <p className="text-xs text-indigo-300 mt-1">Admin Panel</p>
+            <p className="text-xs text-indigo-300 mt-1">
+              {user?.isModerator ? 'Moderator Panel' : 'Admin Panel'}
+            </p>
           </div>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
