@@ -172,12 +172,59 @@ export default function PartnerLayout({ children }) {
 
       {/* Main content */}
       <div className="lg:pl-72">
+        {/* Impersonation Banner - Desktop */}
+        {isImpersonating && (
+          <div className="hidden lg:flex bg-amber-500 text-amber-900 px-4 py-2 items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              <span className="text-sm font-medium">
+                Режим просмотра: <strong>{user?.name}</strong>
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleReturnToAdmin}
+              className="bg-white text-amber-900 hover:bg-amber-100"
+              data-testid="return-to-admin-partner-desktop"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Вернуться в Admin
+            </Button>
+          </div>
+        )}
+
         {/* Mobile header */}
-        <div className="sticky top-0 z-40 lg:hidden flex items-center gap-4 px-4 py-3 bg-white border-b border-slate-200 shadow-sm">
-          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
-            <Menu className="h-5 w-5" />
-          </Button>
-          <h1 className="text-lg font-semibold text-slate-900">FunnyRent Partner</h1>
+        <div className="sticky top-0 z-40 lg:hidden bg-white border-b border-slate-200 shadow-sm">
+          {/* Impersonation Banner - Mobile */}
+          {isImpersonating && (
+            <div className="bg-amber-500 text-amber-900 px-3 py-2 flex items-center justify-between">
+              <span className="text-xs font-medium truncate flex-1">
+                Как: {user?.name}
+              </span>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleReturnToAdmin}
+                className="bg-white text-amber-900 hover:bg-amber-100 h-7 px-2 text-xs ml-2"
+                data-testid="return-to-admin-partner-mobile"
+              >
+                <ArrowLeft className="w-3 h-3 mr-1" />
+                Admin
+              </Button>
+            </div>
+          )}
+          
+          {/* Regular Mobile Header */}
+          <div className="flex items-center justify-between px-3 py-2">
+            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
+              <Menu className="h-5 w-5" />
+            </Button>
+            <h1 className="text-base font-semibold text-slate-900 truncate">Partner</h1>
+            <Button variant="ghost" size="icon" onClick={handleLogout} className="text-red-500">
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         {/* Page content */}
