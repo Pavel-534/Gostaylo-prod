@@ -74,91 +74,85 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Глобальные настройки</h1>
-        <p className="text-gray-600 mt-1">Управление параметрами платформы</p>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Глобальные настройки</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">Управление параметрами платформы</p>
       </div>
 
-      {/* Homepage Hero Content */}
+      {/* Homepage Hero Content - Mobile Responsive */}
       <Card className="shadow-xl border-2 border-indigo-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Home className="w-6 h-6 text-indigo-600" />
-            Контент главной страницы
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Home className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
+            Контент главной
           </CardTitle>
-          <CardDescription>
-            Редактируйте заголовок и подзаголовок Hero-секции на главной
+          <CardDescription className="text-sm">
+            Hero-секция на главной странице
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="p-4 sm:p-6 pt-0 space-y-4 sm:space-y-6">
           <div>
-            <Label htmlFor="heroTitle" className="text-base flex items-center gap-2">
+            <Label htmlFor="heroTitle" className="text-sm sm:text-base flex items-center gap-2">
               <Type className="w-4 h-4" />
-              Заголовок (Hero Title)
+              Заголовок
             </Label>
             <Input
               id="heroTitle"
               value={settings.heroTitle}
               onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })}
               placeholder="Luxury Rentals in Phuket"
-              className="mt-2 text-lg font-semibold"
+              className="mt-2 text-sm sm:text-lg font-semibold"
             />
-            <p className="text-sm text-gray-600 mt-2">
-              Основной заголовок на главной странице
-            </p>
           </div>
 
           <div>
-            <Label htmlFor="heroSubtitle" className="text-base">
-              Подзаголовок (Hero Subtitle)
+            <Label htmlFor="heroSubtitle" className="text-sm sm:text-base">
+              Подзаголовок
             </Label>
             <Input
               id="heroSubtitle"
               value={settings.heroSubtitle}
               onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })}
               placeholder="Villas, Bikes, Yachts & Tours"
-              className="mt-2"
+              className="mt-2 text-sm"
             />
-            <p className="text-sm text-gray-600 mt-2">
-              Краткое описание под заголовком
-            </p>
           </div>
 
-          {/* Preview Box */}
-          <div className="p-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg">
+          {/* Preview Box - Mobile Responsive */}
+          <div className="p-4 sm:p-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg">
             <div className="text-center text-white">
-              <h2 className="text-4xl font-bold mb-3">
+              <h2 className="text-xl sm:text-2xl lg:text-4xl font-bold mb-2 sm:mb-3">
                 {settings.heroTitle || 'Luxury Rentals in Phuket'}
               </h2>
-              <p className="text-xl opacity-90">
+              <p className="text-sm sm:text-base lg:text-xl opacity-90">
                 {settings.heroSubtitle || 'Villas, Bikes, Yachts & Tours'}
               </p>
             </div>
-            <p className="text-center text-indigo-100 text-xs mt-4">
-              👆 Live Preview - Так будет выглядеть на сайте
+            <p className="text-center text-indigo-100 text-xs mt-3 sm:mt-4">
+              👆 Предпросмотр
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Commission Settings */}
+      {/* Commission Settings - Mobile Responsive */}
       <Card className="shadow-xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="w-6 h-6 text-green-600" />
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
             Настройки комиссии
           </CardTitle>
-          <CardDescription>
-            Базовая комиссия для новых партнеров и объявлений
+          <CardDescription className="text-sm">
+            Базовая комиссия для партнеров
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="p-4 sm:p-6 pt-0 space-y-4 sm:space-y-6">
           <div>
-            <Label htmlFor="commission" className="text-base">
-              Комиссия платформы по умолчанию (%)
+            <Label htmlFor="commission" className="text-sm sm:text-base">
+              Комиссия платформы (%)
             </Label>
-            <div className="flex items-center gap-4 mt-3">
+            <div className="flex items-center gap-3 sm:gap-4 mt-2 sm:mt-3">
               <Input
                 id="commission"
                 type="number"
@@ -168,124 +162,81 @@ export default function SettingsPage() {
                 onChange={(e) =>
                   setSettings({ ...settings, defaultCommissionRate: parseFloat(e.target.value) })
                 }
-                className="max-w-xs text-lg font-semibold"
+                className="max-w-[100px] sm:max-w-xs text-base sm:text-lg font-semibold"
               />
-              <span className="text-2xl font-bold text-indigo-600">%</span>
+              <span className="text-xl sm:text-2xl font-bold text-indigo-600">%</span>
             </div>
-            <p className="text-sm text-gray-600 mt-2">
-              Текущая: <strong>{settings.defaultCommissionRate}%</strong> от стоимости бронирования.
-              Партнеры получают {100 - settings.defaultCommissionRate}%.
-            </p>
-          </div>
-
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-900">
-              <strong>ℹ️ Важно:</strong> Изменение комиссии не повлияет на существующие объявления.
-              Каждый партнер может установить свою индивидуальную ставку.
+            <p className="text-xs sm:text-sm text-gray-600 mt-2">
+              Партнеры получают {100 - settings.defaultCommissionRate}%
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Maintenance Mode */}
+      {/* Maintenance Mode - Mobile Responsive */}
       <Card className="shadow-xl border-2 border-orange-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Power className="w-6 h-6 text-orange-600" />
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Power className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
             Режим обслуживания
           </CardTitle>
-          <CardDescription>
-            Временно отключите сайт для всех пользователей (кроме админов)
+          <CardDescription className="text-sm">
+            Отключите сайт для пользователей
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between p-6 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border-2 border-orange-300">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <AlertTriangle className="w-8 h-8 text-orange-600" />
-                <div>
-                  <Label htmlFor="maintenance" className="text-xl font-bold text-gray-900 cursor-pointer">
-                    Maintenance Mode
-                  </Label>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {settings.maintenanceMode
-                      ? '🔴 Сайт ВЫКЛЮЧЕН для пользователей'
-                      : '🟢 Сайт работает нормально'}
-                  </p>
-                </div>
+        <CardContent className="p-4 sm:p-6 pt-0 space-y-4 sm:space-y-6">
+          <div className="flex items-center justify-between p-3 sm:p-4 lg:p-6 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border-2 border-orange-300 gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 flex-shrink-0" />
+              <div className="min-w-0">
+                <Label htmlFor="maintenance" className="text-sm sm:text-base lg:text-xl font-bold text-gray-900 cursor-pointer">
+                  Maintenance
+                </Label>
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                  {settings.maintenanceMode
+                    ? '🔴 Сайт ВЫКЛЮЧЕН'
+                    : '🟢 Работает'}
+                </p>
               </div>
             </div>
             <Switch
               id="maintenance"
               checked={settings.maintenanceMode}
               onCheckedChange={(checked) => setSettings({ ...settings, maintenanceMode: checked })}
-              className="scale-150"
+              className="scale-100 sm:scale-125 lg:scale-150 flex-shrink-0"
             />
           </div>
 
           {settings.maintenanceMode && (
-            <div className="bg-red-50 border-2 border-red-400 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0 mt-1" />
+            <div className="bg-red-50 border-2 border-red-400 rounded-lg p-3 sm:p-4">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold text-red-900 mb-2">⚠️ ВНИМАНИЕ: Режим обслуживания ВКЛЮЧЕН</p>
-                  <p className="text-sm text-red-800">
-                    Все пользователи (кроме админов) видят страницу "We are updating".
-                    Бронирования, платежи и регистрация недоступны.
-                  </p>
-                  <p className="text-xs text-red-700 mt-2">
-                    Не забудьте выключить этот режим после завершения работ!
+                  <p className="font-bold text-red-900 text-sm sm:text-base mb-1 sm:mb-2">⚠️ Режим обслуживания ВКЛЮЧЕН</p>
+                  <p className="text-xs sm:text-sm text-red-800">
+                    Все пользователи видят страницу "We are updating"
                   </p>
                 </div>
               </div>
             </div>
           )}
-
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <p className="text-sm text-gray-700">
-              <strong>Когда использовать:</strong>
-              <br />
-              • Плановое обновление базы данных
-              <br />
-              • Критические изменения в коде
-              <br />
-              • Миграция серверов
-              <br />• Устранение критических багов
-            </p>
-          </div>
         </CardContent>
       </Card>
 
-      {/* Save Button */}
-      <div className="flex justify-end gap-3">
-        <Button variant="outline" size="lg" onClick={() => window.location.reload()}>
+      {/* Save Button - Mobile Responsive */}
+      <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+        <Button variant="outline" size="lg" onClick={() => window.location.reload()} className="w-full sm:w-auto">
           Отменить
         </Button>
         <Button
           size="lg"
           onClick={handleSave}
           disabled={saving}
-          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 px-8"
+          className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 w-full sm:w-auto"
         >
-          {saving ? 'Сохранение...' : '✅ Сохранить все настройки'}
+          {saving ? 'Сохранение...' : '✅ Сохранить'}
         </Button>
       </div>
-
-      {/* Info Card */}
-      <Card className="border-2 border-blue-200 bg-blue-50">
-        <CardContent className="p-6">
-          <div className="flex items-start gap-3">
-            <SettingsIcon className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
-            <div>
-              <p className="font-semibold text-blue-900 mb-1">О настройках</p>
-              <p className="text-sm text-blue-800">
-                Все изменения применяются мгновенно. Логируется каждое действие админа.
-                История изменений доступна в системных логах.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
