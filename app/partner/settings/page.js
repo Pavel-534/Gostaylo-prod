@@ -32,10 +32,31 @@ export default function PartnerSettings() {
     taxId: '',
   })
 
-  function generateCode() {
-    const code = generateLinkingCode()
-    setLinkingCode(code)
-    toast.info('Код сгенерирован! Отправьте его боту.')
+  async function generateCode() {
+    setGeneratingCode(true)
+    try {
+      // Get user from localStorage
+      const storedUser = localStorage.getItem('funnyrent_user')
+      const user = storedUser ? JSON.parse(storedUser) : { id: 'partner-1' }
+      
+      const res = await fetch('/api/v2/telegram/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      })
+      const data = await res.json()
+      
+      if (data.success) {
+        setLinkingCode(data.code)
+        toast.info('Код сгенерирован! Отправьте его боту.')
+      } else {
+        toast.error(data.error || 'Ошибка генерации кода')
+      }
+    } catch (error) {
+      toast.error('Ошибка: ' + error.message)
+    } finally {
+      setGeneratingCode(false)
+    }
   }
 
   function copyCode() {
