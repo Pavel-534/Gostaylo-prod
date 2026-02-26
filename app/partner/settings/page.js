@@ -16,6 +16,7 @@ export default function PartnerSettings() {
   const [telegramLinked, setTelegramLinked] = useState(false)
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [generatingCode, setGeneratingCode] = useState(false)
 
   // Partner settings state
   const [settings, setSettings] = useState({
