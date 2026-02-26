@@ -5,39 +5,34 @@
 **Super Admin:** Pavel B. (admin-777)
 **Stack:** Next.js 14, Tailwind CSS, Lucide Icons, Supabase PostgreSQL
 
-## Current Status: Stage 16.3 Complete ✅
+## Current Status: Stage 17.3 Complete ✅
 
 ### What Was Completed (Feb 26, 2025) - Latest
 
-#### Telegram Topic Routing LIVE 🚀
-- ✅ Created 3 Forum Topics in FunnyRent HQ group:
-  - 🏠 **Bookings** (thread_id: 15)
-  - 💰 **Finance** (thread_id: 16)
-  - 🤝 **Partners** (thread_id: 17)
-- ✅ All alerts now route to their respective topics (NOT General)
-- ✅ Updated `notification.service.js` with `sendToAdminTopic()` function
-- ✅ Test alerts sent and verified in each topic
+#### Partner Command Center
+1. **Telegram Magic Onboarding Block** (`/partner/dashboard`)
+   - ✅ Step 1: Connect Bot - "Get My Link Code" button
+   - ✅ Step 2: Instant Listing - Photo/description bot instructions
+   - ✅ Step 3: Real-time Alerts - Notification types display
+   - ✅ Beautiful gradient UI with NEW badge
 
-#### MODERATOR Role Implemented
-- ✅ Created via `last_name` marker `[MODERATOR]` (DB enum couldn't be altered)
-- ✅ Login API returns `role: "MODERATOR"` and `isModerator: true`
-- ✅ Admin layout filters menu based on role:
-  - **ADMIN**: Full access (all 9 menu items)
-  - **MODERATOR**: Limited access (Dashboard, Moderation, Categories, Test DB only)
-  - NO access to: Finances, Users, Marketing, Security, Settings
+2. **iCal Synchronization UI** (`/partner/listings/[id]`)
+   - ✅ Orange "Sync Calendar (iCal)" section
+   - ✅ URL input field with placeholder
+   - ✅ Tooltip with explanation
+   - ✅ Instructions for Airbnb, Booking.com, VRBO
+   - ✅ Green "sync active" indicator when URL is provided
+   - ✅ Saves to `metadata.icalUrl` in Supabase
 
-#### Demo Accounts Created
-| Email | Role | Name |
-|-------|------|------|
-| admin@funnyrent.com | ADMIN | Pavel B. (Super Admin) |
-| assistant@test.com | MODERATOR | Anna Assistant |
-| partner@funnyrent.com | PARTNER | Ivan Partnerov |
-| partner@test.com | PARTNER | Test Partner |
-| client@test.com | RENTER | John Client |
+3. **Direct Supabase Integration**
+   - ✅ Listing edit page now uses direct Supabase calls
+   - ✅ Bypasses k8s routing issues
+   - ✅ Full CRUD functionality restored
 
-### Previous Updates (Stage 16.2)
-- ✅ Telegram Command Center with 3 test buttons
-- ✅ Partner "Connect Telegram" button
+### Previous Updates (Stage 16.3)
+- ✅ Telegram Topic Routing (15/16/17)
+- ✅ MODERATOR role implementation
+- ✅ Demo accounts created
 
 ### Database Status (Supabase)
 - ✅ 16 tables created with TEXT IDs
