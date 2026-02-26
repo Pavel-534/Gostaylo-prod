@@ -1,5 +1,14 @@
 # FunnyRent 2.1 - Product Requirements Document
 
+## Latest Update: 2026-02-26
+
+### Mobile UI Polish Complete
+- Fixed responsive header in Admin Panel with clear Logout and Home buttons
+- Fixed page layout scaling - headers now fully visible on 390px screens
+- Stats cards stack vertically on mobile
+- Impersonation UI improved with "Return to Admin" button visible in both mobile and desktop
+- Original admin state preserved during impersonation for proper return flow
+
 ## Project Overview
 **Name:** FunnyRent 2.1 - Phuket Super-App for Rentals
 **Super Admin:** Pavel B. (admin-777)
