@@ -5,21 +5,30 @@
 **Super Admin:** Pavel B. (admin-777)
 **Stack:** Next.js 14, Tailwind CSS, Lucide Icons, Supabase PostgreSQL
 
-## Current Status: Stage 15.4 Complete ✅
+## Current Status: Stage 15.5 Complete ✅
 
-### What Was Fixed (Feb 26, 2025)
-1. **Database Connection Restored** - Fixed 502 routing issue by using direct Supabase client
-2. **Mobile UI Complete** - All admin pages are now fully responsive:
-   - Dashboard ✅
-   - Test DB ✅  
-   - Marketing ✅
-   - Security ✅
-   - Categories ✅
-   - Settings ✅
-   - Moderation ✅
-   - Finances ✅
-   - Users ✅
-3. **Sidebar Fixed** - Now starts closed on mobile, closes on navigation
+### What Was Completed (Feb 26, 2025) - Latest
+
+#### 1. Admin/Partner Navigation Bar
+- ✅ Created `/components/role-bar.js` - persistent bar for logged-in admins/partners
+- ✅ Shows on public pages only (not on /admin or /partner dashboards)
+- ✅ "Back to Dashboard" button for quick navigation
+- ✅ Displays user name and logout option
+- ✅ Mobile-responsive design
+- ✅ Purple gradient for ADMIN, Teal gradient for PARTNER
+
+#### 2. Partner Listings - "View on Site" Button
+- ✅ Added "На сайте" button to grid and list views
+- ✅ Opens listing in new tab `/listings/{id}`
+
+#### 3. Code Cleanup - MONOLITH DELETED ✅
+- ✅ Replaced 3025-line monolithic `/api/[[...path]]/route.js` with 227-line redirect/mock file
+- ✅ All old API calls now redirect to v2 or return mock data
+- ✅ Ready for Telegram integration
+
+### Previous Fixes (Stage 15.4)
+- ✅ Database Connection restored (direct Supabase client)
+- ✅ Mobile UI for all admin pages
 
 ### Database Status (Supabase)
 - ✅ 16 tables created with TEXT IDs
