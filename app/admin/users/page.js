@@ -199,42 +199,38 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Управление пользователями</h1>
-        <p className="text-gray-600 mt-1">Все пользователи платформы FunnyRent</p>
+    <div className="space-y-4 lg:space-y-6 max-w-full overflow-hidden">
+      <div className="min-w-0">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 break-words">
+          Управление пользователями
+        </h1>
+        <p className="text-sm lg:text-base text-gray-600 mt-1">Все пользователи платформы</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Stats - Stack on mobile */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-6">
         <Card className="border-2 border-red-100">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Администраторы</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-600">
+          <CardContent className="p-4">
+            <p className="text-xs lg:text-sm text-gray-600">Администраторы</p>
+            <p className="text-2xl lg:text-3xl font-bold text-red-600 mt-1">
               {users.filter((u) => u.role === 'ADMIN').length}
-            </div>
+            </p>
           </CardContent>
         </Card>
         <Card className="border-2 border-indigo-100">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Партнеры</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-indigo-600">
+          <CardContent className="p-4">
+            <p className="text-xs lg:text-sm text-gray-600">Партнеры</p>
+            <p className="text-2xl lg:text-3xl font-bold text-indigo-600 mt-1">
               {users.filter((u) => u.role === 'PARTNER').length}
-            </div>
+            </p>
           </CardContent>
         </Card>
         <Card className="border-2 border-green-100">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Арендаторы</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600">
+          <CardContent className="p-4">
+            <p className="text-xs lg:text-sm text-gray-600">Арендаторы</p>
+            <p className="text-2xl lg:text-3xl font-bold text-green-600 mt-1">
               {users.filter((u) => u.role === 'RENTER').length}
-            </div>
+            </p>
           </CardContent>
         </Card>
       </div>
