@@ -24,10 +24,21 @@ export default function AdminLayout({ children }) {
   const pathname = usePathname();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Start closed on mobile
+
+  // Close sidebar on mobile when route changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  }, [pathname]);
 
   useEffect(() => {
     checkAdminAccess();
+    // Set initial sidebar state based on screen width
+    if (typeof window !== 'undefined') {
+      setSidebarOpen(window.innerWidth >= 1024);
+    }
   }, []);
 
   const checkAdminAccess = async () => {
