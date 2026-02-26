@@ -254,16 +254,13 @@ export default function AdminLayout({ children }) {
         {/* User Info */}
         <div className="p-3 lg:p-4 border-t border-indigo-700">
           <div>
-            <p className="text-sm font-semibold text-white">{user.name}</p>
-            <p className="text-xs text-indigo-300 truncate">{user.email}</p>
+            <p className="text-sm font-semibold text-white truncate">{user?.name}</p>
+            <p className="text-xs text-indigo-300 truncate">{user?.email}</p>
             <Button
               variant="ghost"
               size="sm"
               className="mt-3 w-full text-red-300 hover:text-red-200 hover:bg-red-900/20 min-h-[44px]"
-              onClick={() => {
-                localStorage.removeItem('funnyrent_user');
-                router.push('/');
-              }}
+              onClick={handleLogout}
             >
               <LogOut className="w-4 h-4 mr-2" />
               Выход
@@ -273,45 +270,68 @@ export default function AdminLayout({ children }) {
       </aside>
 
       {/* Main Content */}
-      <main
-        className={`flex-1 transition-all duration-300 pt-20 lg:pt-0 px-3 pb-6 lg:p-8 ${
-          sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'
-        } lg:ml-64`}
-      >
-        {/* Top Action Bar - Desktop */}
-        <div className="hidden lg:flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors">
-              <Home className="w-4 h-4" />
-              <span className="text-sm">На сайт</span>
-            </Link>
-            <span className="text-gray-300">|</span>
-            <Link href="/" target="_blank" className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors">
-              <ExternalLink className="w-4 h-4" />
-              <span className="text-sm">Открыть в новой вкладке</span>
-            </Link>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <UserCog className="w-4 h-4" />
-              <span>{user?.isModerator ? 'Moderator' : 'Admin'}: {user?.name}</span>
+      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 w-full max-w-full overflow-x-hidden">
+        {/* Desktop Top Bar with Impersonation */}
+        <div className="hidden lg:block sticky top-0 bg-white border-b border-gray-200 z-10">
+          {/* Impersonation Banner - Desktop */}
+          {isImpersonating && (
+            <div className="bg-amber-500 text-amber-900 px-6 py-2 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <UserCog className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  Вы просматриваете как: <strong>{user?.name}</strong> ({user?.role})
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={handleReturnToAdmin}
+                className="bg-white text-amber-900 hover:bg-amber-100"
+                data-testid="return-to-admin-desktop"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Вернуться в Admin
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                localStorage.removeItem('funnyrent_user');
-                router.push('/');
-              }}
-              className="text-red-600 border-red-200 hover:bg-red-50"
-            >
-              <LogOut className="w-4 h-4 mr-1" />
-              Выход
-            </Button>
+          )}
+          
+          {/* Normal Top Bar */}
+          <div className="px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link href="/" className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors">
+                <Home className="w-4 h-4" />
+                <span className="text-sm">На сайт</span>
+              </Link>
+              <span className="text-gray-300">|</span>
+              <Link href="/" target="_blank" className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors">
+                <ExternalLink className="w-4 h-4" />
+                <span className="text-sm">Новая вкладка</span>
+              </Link>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <UserCog className="w-4 h-4" />
+                <span>{user?.isModerator ? 'Moderator' : 'Admin'}: {user?.name}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="text-red-600 border-red-200 hover:bg-red-50"
+              >
+                <LogOut className="w-4 h-4 mr-1" />
+                Выход
+              </Button>
+            </div>
           </div>
         </div>
-        {children}
+        
+        {/* Page Content with proper padding */}
+        <div className="p-4 lg:p-8 max-w-full overflow-x-hidden">
+          {children}
+        </div>
       </main>
+      </div>
     </div>
   );
 }
