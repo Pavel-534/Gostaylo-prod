@@ -137,25 +137,27 @@ export default function UsersPage() {
 
   const handleCommissionChange = async (partnerId, customRate) => {
     try {
-      const res = await fetch(`/api/admin/partners/${partnerId}/commission`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ customCommissionRate: customRate === '' ? null : parseFloat(customRate) }),
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
+      
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${partnerId}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          custom_commission_rate: customRate === '' ? null : parseFloat(customRate) 
+        }),
       });
 
       if (res.ok) {
-        toast({
-          title: '✅ Комиссия обновлена',
-          description: customRate ? `Индивидуальная ставка: ${customRate}%` : 'Используется глобальная ставка',
-        });
+        toast.success(customRate ? `Комиссия: ${customRate}%` : 'Используется глобальная ставка');
         loadUsers();
       }
     } catch (error) {
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось обновить комиссию',
-        variant: 'destructive',
-      });
+      toast.error('Не удалось обновить комиссию');
     }
   };
 
