@@ -7,11 +7,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { ArrowLeft, Save, Loader2, Calendar } from 'lucide-react'
+import { ArrowLeft, Save, Loader2, Calendar, Link2, HelpCircle, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 import SeasonalPriceManager from '@/components/seasonal-price-manager'
 import PriceCalendarPreview from '@/components/price-calendar-preview'
 import Link from 'next/link'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export default function EditListing({ params }) {
   const router = useRouter()
