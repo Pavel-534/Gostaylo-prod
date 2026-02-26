@@ -264,107 +264,159 @@ export default function UsersPage() {
       </Card>
 
       {/* Users Table */}
-      <Card className="shadow-xl">
-        <CardHeader>
-          <CardTitle>
+      <Card className="shadow-lg lg:shadow-xl">
+        <CardHeader className="pb-2 lg:pb-4">
+          <CardTitle className="text-base lg:text-lg">
             Пользователи ({filteredUsers.length})
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 lg:p-6">
           <div className="space-y-3">
             {filteredUsers.map((user) => (
               <div
                 key={user.id}
-                className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border-2 border-gray-200 transition-all"
+                className="p-3 lg:p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-all"
               >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                    {user.name?.charAt(0) || user.email.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-semibold text-gray-900">{user.name || 'No name'}</p>
-                      <Badge className={`${getRoleBadge(user.role)} flex items-center gap-1`}>
-                        {getRoleIcon(user.role)}
-                        {user.role}
-                      </Badge>
-                      {user.isVerified && (
-                        <Badge variant="outline" className="bg-green-50 text-green-700">
-                          ✓ Verified
+                {/* Mobile Layout */}
+                <div className="flex flex-col lg:hidden gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                      {user.name?.charAt(0) || user.email.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold text-gray-900 text-sm truncate">{user.name || 'No name'}</p>
+                        <Badge className={`${getRoleBadge(user.role)} text-xs px-1.5 py-0`}>
+                          {user.role}
                         </Badge>
-                      )}
-                    </div>
-                    <div className="flex gap-4 text-sm text-gray-600">
-                      <span className="flex items-center gap-1">
-                        <Mail className="w-4 h-4" />
-                        {user.email}
-                      </span>
-                      {user.createdAt && (
-                        <span className="text-xs text-gray-500">
-                          Joined: {new Date(user.createdAt).toLocaleDateString('ru-RU')}
-                        </span>
-                      )}
-                    </div>
-                    {/* Custom Commission for Partners */}
-                    {user.role === 'PARTNER' && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <span className="text-xs text-gray-600">Комиссия:</span>
-                        <Input
-                          type="number"
-                          placeholder="Глоб."
-                          defaultValue={user.customCommissionRate || ''}
-                          onBlur={(e) => handleCommissionChange(user.id, e.target.value)}
-                          className="w-20 h-7 text-xs"
-                          min="0"
-                          max="100"
-                          step="0.1"
-                        />
-                        <span className="text-xs text-gray-500">
-                          % (пусто = глобальная 15%)
-                        </span>
                       </div>
+                      <p className="text-xs text-gray-500 truncate mt-0.5">{user.email}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Mobile Actions Row */}
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-200">
+                    {(user.role === 'PARTNER' || user.role === 'RENTER') ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 h-8 text-xs flex-1"
+                        onClick={() => handleLoginAs(user)}
+                        data-testid={`login-as-${user.id}-mobile`}
+                      >
+                        <LogIn className="w-3 h-3 mr-1" />
+                        Войти как
+                      </Button>
+                    ) : (
+                      <div className="flex-1" />
                     )}
+                    <Select
+                      value={user.role}
+                      onValueChange={(value) => handleRoleChange(user.id, value)}
+                    >
+                      <SelectTrigger className="w-28 h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="RENTER">Renter</SelectItem>
+                        <SelectItem value="PARTNER">Partner</SelectItem>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right mr-4">
-                    {user.role === 'PARTNER' && (
-                      <div>
-                        <p className="text-sm text-gray-600">Balance</p>
-                        <p className="font-semibold text-indigo-600">
-                          {user.availableBalance?.toLocaleString() || '0'} ₿
-                        </p>
+
+                {/* Desktop Layout */}
+                <div className="hidden lg:flex items-center justify-between">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                      {user.name?.charAt(0) || user.email.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-semibold text-gray-900">{user.name || 'No name'}</p>
+                        <Badge className={`${getRoleBadge(user.role)} flex items-center gap-1`}>
+                          {getRoleIcon(user.role)}
+                          {user.role}
+                        </Badge>
+                        {user.isVerified && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700">
+                            ✓ Verified
+                          </Badge>
+                        )}
                       </div>
-                    )}
+                      <div className="flex gap-4 text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          <Mail className="w-4 h-4" />
+                          {user.email}
+                        </span>
+                        {user.createdAt && (
+                          <span className="text-xs text-gray-500">
+                            Joined: {new Date(user.createdAt).toLocaleDateString('ru-RU')}
+                          </span>
+                        )}
+                      </div>
+                      {/* Custom Commission for Partners */}
+                      {user.role === 'PARTNER' && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className="text-xs text-gray-600">Комиссия:</span>
+                          <Input
+                            type="number"
+                            placeholder="Глоб."
+                            defaultValue={user.customCommissionRate || ''}
+                            onBlur={(e) => handleCommissionChange(user.id, e.target.value)}
+                            className="w-20 h-7 text-xs"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                          />
+                          <span className="text-xs text-gray-500">
+                            % (пусто = глобальная 15%)
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  
-                  {/* Login As Button - for Partners and Renters */}
-                  {(user.role === 'PARTNER' || user.role === 'RENTER') && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
-                      onClick={() => handleLoginAs(user)}
-                      data-testid={`login-as-${user.id}`}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="text-right mr-4">
+                      {user.role === 'PARTNER' && (
+                        <div>
+                          <p className="text-sm text-gray-600">Balance</p>
+                          <p className="font-semibold text-indigo-600">
+                            {user.availableBalance?.toLocaleString() || '0'} ₿
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Login As Button - for Partners and Renters */}
+                    {(user.role === 'PARTNER' || user.role === 'RENTER') && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-indigo-600 border-indigo-200 hover:bg-indigo-50"
+                        onClick={() => handleLoginAs(user)}
+                        data-testid={`login-as-${user.id}`}
+                      >
+                        <LogIn className="w-4 h-4 mr-1" />
+                        Login as
+                      </Button>
+                    )}
+                    
+                    <Select
+                      value={user.role}
+                      onValueChange={(value) => handleRoleChange(user.id, value)}
                     >
-                      <LogIn className="w-4 h-4 mr-1" />
-                      Login as
-                    </Button>
-                  )}
-                  
-                  <Select
-                    value={user.role}
-                    onValueChange={(value) => handleRoleChange(user.id, value)}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="RENTER">Renter</SelectItem>
-                      <SelectItem value="PARTNER">Partner</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="RENTER">Renter</SelectItem>
+                        <SelectItem value="PARTNER">Partner</SelectItem>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             ))}
