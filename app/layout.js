@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import Link from 'next/link'
+import RoleBar from '@/components/role-bar'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 
@@ -14,6 +15,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="ru">
       <body className={inter.className}>
+        <RoleBar />
         {children}
         <Toaster />
         
