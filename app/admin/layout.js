@@ -68,13 +68,16 @@ export default function AdminLayout({ children }) {
       if (res.ok) {
         const data = await res.json();
         if (data && data.length > 0 && data[0].role === 'ADMIN') {
+          // Check if this is a MODERATOR (marked in last_name)
+          const isModerator = data[0].last_name?.includes('[MODERATOR]');
           const adminUser = {
             id: data[0].id,
             email: data[0].email,
-            role: data[0].role,
+            role: isModerator ? 'MODERATOR' : data[0].role,
             firstName: data[0].first_name,
-            lastName: data[0].last_name,
-            name: `${data[0].first_name || ''} ${data[0].last_name || ''}`.trim()
+            lastName: data[0].last_name?.replace(' [MODERATOR]', ''),
+            name: `${data[0].first_name || ''} ${(data[0].last_name || '').replace(' [MODERATOR]', '')}`.trim(),
+            isModerator
           };
           setUser(adminUser);
           // Also store in localStorage
