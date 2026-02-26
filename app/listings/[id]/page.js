@@ -137,31 +137,6 @@ export default function ListingDetail({ params }) {
     }
     setSubmitting(false)
   }
-          checkIn,
-          checkOut,
-          guestName,
-          guestEmail,
-          guestPhone,
-          message,
-        }),
-      })
-
-      const data = await res.json()
-
-      if (data.success) {
-        toast.success('Запрос на бронирование отправлен!')
-        setBookingModalOpen(false)
-        router.push('/bookings')
-      } else {
-        toast.error(data.error || 'Ошибка при создании запроса')
-      }
-    } catch (error) {
-      console.error('Failed to create booking:', error)
-      toast.error('Ошибка при создании запроса')
-    } finally {
-      setSubmitting(false)
-    }
-  }
 
   if (loading) {
     return (
