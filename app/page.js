@@ -19,6 +19,8 @@ import { ru } from 'date-fns/locale'
 import 'react-day-picker/dist/style.css'
 
 export default function FunnyRentHome() {
+  const router = useRouter()
+  
   // State
   const [currency, setCurrency] = useState('THB')
   const [categories, setCategories] = useState([])
@@ -27,12 +29,71 @@ export default function FunnyRentHome() {
   const [exchangeRates, setExchangeRates] = useState({})
   const [loading, setLoading] = useState(true)
   
+  // Login state
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginPassword, setLoginPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [loginError, setLoginError] = useState('')
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false)
+  
   // Filters
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedDistrict, setSelectedDistrict] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [dateRange, setDateRange] = useState({ from: null, to: null })
   const [datePickerOpen, setDatePickerOpen] = useState(false)
+
+  // Handle login
+  async function handleLogin(e) {
+    e.preventDefault()
+    setLoginLoading(true)
+    setLoginError('')
+    
+    try {
+      // Direct Supabase login
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co'
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k'
+      
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(loginEmail.toLowerCase())}`, {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      })
+      
+      const users = await res.json()
+      
+      if (users && users.length > 0) {
+        const user = users[0]
+        // Store user in localStorage for session
+        localStorage.setItem('funnyrent_user', JSON.stringify({
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          name: `${user.first_name || ''} ${user.last_name || ''}`.trim()
+        }))
+        
+        setLoginDialogOpen(false)
+        
+        // Redirect based on role
+        if (user.role === 'ADMIN') {
+          router.push('/admin/dashboard')
+        } else if (user.role === 'PARTNER') {
+          router.push('/partner')
+        } else {
+          router.push('/renter')
+        }
+      } else {
+        setLoginError('Пользователь не найден')
+      }
+    } catch (error) {
+      console.error('Login error:', error)
+      setLoginError('Ошибка входа. Попробуйте снова.')
+    }
+    
+    setLoginLoading(false)
+  }
 
   // Load data
   useEffect(() => {
