@@ -84,13 +84,14 @@ export default function EditListing({ params }) {
     
     try {
       // Update basic listing info
-      const res = await fetch(`/api/partner/listings/${listingId}`, {
+      const res = await fetch(`/api/v2/partner/listings/${listingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,
           basePriceThb: parseFloat(formData.basePriceThb),
+          icalUrl: formData.icalUrl || null,
         }),
       })
       
