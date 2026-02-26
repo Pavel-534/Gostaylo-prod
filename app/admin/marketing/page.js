@@ -101,70 +101,73 @@ export default function MarketingPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header - Mobile Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Маркетинг</h1>
-          <p className="text-gray-600 mt-1">Управление промокодами и акциями</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Маркетинг</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Управление промокодами и акциями</p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
-          <Plus className="w-5 h-5 mr-2" />Создать промокод
+        <Button onClick={() => setShowCreateModal(true)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 w-full sm:w-auto">
+          <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />Создать промокод
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Stats - Mobile Responsive */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 lg:gap-6">
         <Card className="border-2 border-green-100">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-gray-600">Активные</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-bold text-green-600">{activePromos.length}</div></CardContent>
+          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2"><CardTitle className="text-xs sm:text-sm text-gray-600">Активные</CardTitle></CardHeader>
+          <CardContent className="p-2 sm:p-4 pt-0"><div className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600">{activePromos.length}</div></CardContent>
         </Card>
         <Card className="border-2 border-blue-100">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-gray-600">Всего кодов</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-bold text-blue-600">{promoCodes.length}</div></CardContent>
+          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2"><CardTitle className="text-xs sm:text-sm text-gray-600">Всего</CardTitle></CardHeader>
+          <CardContent className="p-2 sm:p-4 pt-0"><div className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600">{promoCodes.length}</div></CardContent>
         </Card>
         <Card className="border-2 border-purple-100">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-gray-600">Использований</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-bold text-purple-600">{totalUsage}</div></CardContent>
+          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2"><CardTitle className="text-xs sm:text-sm text-gray-600">Исп-ний</CardTitle></CardHeader>
+          <CardContent className="p-2 sm:p-4 pt-0"><div className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600">{totalUsage}</div></CardContent>
         </Card>
       </div>
 
-      {/* Table */}
+      {/* Table - Mobile Responsive */}
       <Card className="shadow-xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><TrendingUp className="w-6 h-6 text-indigo-600" />Промокоды</CardTitle>
-          <CardDescription>Коды для скидок и акций</CardDescription>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg"><TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />Промокоды</CardTitle>
+          <CardDescription className="text-sm">Коды для скидок и акций</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+        <CardContent className="p-4 sm:p-6 pt-0">
+          <div className="space-y-3 sm:space-y-4">
             {promoCodes.map((promo) => {
               const isExpired = new Date(promo.expiryDate) < new Date();
               const isLimitReached = promo.usedCount >= promo.usageLimit;
               const isActive = promo.isActive && !isExpired && !isLimitReached;
 
               return (
-                <div key={promo.id} className={`p-6 rounded-xl border-2 transition-all ${
+                <div key={promo.id} className={`p-3 sm:p-4 lg:p-6 rounded-xl border-2 transition-all ${
                   isActive ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300' : 'bg-gray-50 border-gray-300 opacity-60'
                 }`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl ${
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center text-lg sm:text-xl lg:text-2xl flex-shrink-0 ${
                         isActive ? 'bg-gradient-to-br from-indigo-500 to-purple-600' : 'bg-gray-400'
                       }`}>{promo.type === 'PERCENT' ? '📊' : '💰'}</div>
-                      <div>
-                        <h3 className="text-2xl font-bold text-gray-900 font-mono">{promo.code}</h3>
-                        <div className="flex gap-2 mt-2">
-                          <Badge className={isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                            {isActive ? 'Активен' : isExpired ? 'Истёк' : isLimitReached ? 'Лимит исчерпан' : 'Неактивен'}
+                      <div className="min-w-0">
+                        <h3 className="text-base sm:text-lg lg:text-2xl font-bold text-gray-900 font-mono truncate">{promo.code}</h3>
+                        <div className="flex flex-wrap gap-1 sm:gap-2 mt-1 sm:mt-2">
+                          <Badge className={`text-xs ${isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {isActive ? 'Активен' : isExpired ? 'Истёк' : isLimitReached ? 'Лимит' : 'Неактивен'}
                           </Badge>
-                          <Badge variant="outline">{promo.type === 'PERCENT' ? `${promo.value}%` : `${promo.value} ₿`}</Badge>
-                          <Badge variant="outline">{promo.usedCount}/{promo.usageLimit}</Badge>
+                          <Badge variant="outline" className="text-xs">{promo.type === 'PERCENT' ? `${promo.value}%` : `${promo.value} ₿`}</Badge>
+                          <Badge variant="outline" className="text-xs">{promo.usedCount}/{promo.usageLimit}</Badge>
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-600">Истекает:</p>
-                      <p className="font-semibold">{new Date(promo.expiryDate).toLocaleDateString('ru-RU')}</p>
-                      <Button size="sm" variant="destructive" className="mt-3" onClick={() => handleDelete(promo.id, promo.code)}>
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:text-right border-t sm:border-t-0 pt-2 sm:pt-0 mt-1 sm:mt-0">
+                      <div>
+                        <p className="text-xs sm:text-sm text-gray-600">Истекает:</p>
+                        <p className="font-semibold text-sm sm:text-base">{new Date(promo.expiryDate).toLocaleDateString('ru-RU')}</p>
+                      </div>
+                      <Button size="sm" variant="destructive" className="h-8 sm:mt-2" onClick={() => handleDelete(promo.id, promo.code)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>

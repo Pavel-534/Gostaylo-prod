@@ -91,46 +91,46 @@ export default function SecurityPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Безопасность</h1>
-        <p className="text-gray-600 mt-1">Управление чёрным списком</p>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Безопасность</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">Управление чёрным списком</p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Stats - Mobile Responsive */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
         <Card className="border-2 border-red-100 bg-red-50">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-gray-600">Заблокированные кошельки</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-bold text-red-600">{blacklist.wallets.length}</div></CardContent>
+          <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2"><CardTitle className="text-xs sm:text-sm text-gray-600">Кошельки</CardTitle></CardHeader>
+          <CardContent className="p-3 sm:p-4 pt-0"><div className="text-2xl sm:text-3xl font-bold text-red-600">{blacklist.wallets.length}</div></CardContent>
         </Card>
         <Card className="border-2 border-orange-100 bg-orange-50">
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-gray-600">Заблокированные телефоны</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-bold text-orange-600">{blacklist.phones.length}</div></CardContent>
+          <CardHeader className="p-3 sm:p-4 pb-1 sm:pb-2"><CardTitle className="text-xs sm:text-sm text-gray-600">Телефоны</CardTitle></CardHeader>
+          <CardContent className="p-3 sm:p-4 pt-0"><div className="text-2xl sm:text-3xl font-bold text-orange-600">{blacklist.phones.length}</div></CardContent>
         </Card>
       </div>
 
-      {/* Wallets */}
+      {/* Wallets - Mobile Responsive */}
       <Card className="shadow-xl border-2 border-red-200">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <CardTitle className="flex items-center gap-2"><Shield className="w-6 h-6 text-red-600" />Заблокированные кошельки (USDT)</CardTitle>
-              <CardDescription>Эти адреса не могут получать выплаты</CardDescription>
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg"><Shield className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />Кошельки (USDT)</CardTitle>
+              <CardDescription className="text-sm">Заблокированные адреса</CardDescription>
             </div>
-            <Button onClick={() => setShowWalletModal(true)} variant="destructive"><Plus className="w-4 h-4 mr-2" />Добавить</Button>
+            <Button onClick={() => setShowWalletModal(true)} variant="destructive" size="sm" className="w-full sm:w-auto"><Plus className="w-4 h-4 mr-2" />Добавить</Button>
           </div>
         </CardHeader>
-        <CardContent>
-          {blacklist.wallets.length === 0 ? <p className="text-center text-gray-500 py-8">Нет заблокированных кошельков</p> : (
-            <div className="space-y-3">
+        <CardContent className="p-4 sm:p-6 pt-0">
+          {blacklist.wallets.length === 0 ? <p className="text-center text-gray-500 py-6 sm:py-8 text-sm">Нет заблокированных кошельков</p> : (
+            <div className="space-y-2 sm:space-y-3">
               {blacklist.wallets.map((wallet, idx) => (
-                <div key={idx} className="flex items-center justify-between p-4 bg-red-50 rounded-lg border-2 border-red-200">
-                  <div>
-                    <p className="font-mono text-sm font-bold text-gray-900">{wallet.address}</p>
-                    <p className="text-sm text-red-700 mt-1">⚠️ {wallet.reason}</p>
+                <div key={idx} className="flex items-start justify-between gap-2 p-3 sm:p-4 bg-red-50 rounded-lg border-2 border-red-200">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-mono text-xs sm:text-sm font-bold text-gray-900 truncate">{wallet.address}</p>
+                    <p className="text-xs sm:text-sm text-red-700 mt-1 truncate">⚠️ {wallet.reason}</p>
                     <p className="text-xs text-gray-500 mt-1">{new Date(wallet.addedAt).toLocaleDateString('ru-RU')}</p>
                   </div>
-                  <Button size="sm" variant="ghost"><Trash2 className="w-4 h-4 text-red-600" /></Button>
+                  <Button size="sm" variant="ghost" className="flex-shrink-0"><Trash2 className="w-4 h-4 text-red-600" /></Button>
                 </div>
               ))}
             </div>
@@ -138,28 +138,28 @@ export default function SecurityPage() {
         </CardContent>
       </Card>
 
-      {/* Phones */}
+      {/* Phones - Mobile Responsive */}
       <Card className="shadow-xl border-2 border-orange-200">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <CardTitle className="flex items-center gap-2"><AlertTriangle className="w-6 h-6 text-orange-600" />Заблокированные телефоны</CardTitle>
-              <CardDescription>Эти номера не могут регистрироваться</CardDescription>
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg"><AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />Телефоны</CardTitle>
+              <CardDescription className="text-sm">Заблокированные номера</CardDescription>
             </div>
-            <Button onClick={() => setShowPhoneModal(true)} className="bg-orange-600 hover:bg-orange-700"><Plus className="w-4 h-4 mr-2" />Добавить</Button>
+            <Button onClick={() => setShowPhoneModal(true)} className="bg-orange-600 hover:bg-orange-700 w-full sm:w-auto" size="sm"><Plus className="w-4 h-4 mr-2" />Добавить</Button>
           </div>
         </CardHeader>
-        <CardContent>
-          {blacklist.phones.length === 0 ? <p className="text-center text-gray-500 py-8">Нет заблокированных телефонов</p> : (
-            <div className="space-y-3">
+        <CardContent className="p-4 sm:p-6 pt-0">
+          {blacklist.phones.length === 0 ? <p className="text-center text-gray-500 py-6 sm:py-8 text-sm">Нет заблокированных телефонов</p> : (
+            <div className="space-y-2 sm:space-y-3">
               {blacklist.phones.map((phone, idx) => (
-                <div key={idx} className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border-2 border-orange-200">
-                  <div>
-                    <p className="font-semibold text-lg text-gray-900">{phone.number}</p>
-                    <p className="text-sm text-orange-700 mt-1">⚠️ {phone.reason}</p>
+                <div key={idx} className="flex items-start justify-between gap-2 p-3 sm:p-4 bg-orange-50 rounded-lg border-2 border-orange-200">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-base sm:text-lg text-gray-900">{phone.number}</p>
+                    <p className="text-xs sm:text-sm text-orange-700 mt-1 truncate">⚠️ {phone.reason}</p>
                     <p className="text-xs text-gray-500 mt-1">{new Date(phone.addedAt).toLocaleDateString('ru-RU')}</p>
                   </div>
-                  <Button size="sm" variant="ghost"><Trash2 className="w-4 h-4 text-orange-600" /></Button>
+                  <Button size="sm" variant="ghost" className="flex-shrink-0"><Trash2 className="w-4 h-4 text-orange-600" /></Button>
                 </div>
               ))}
             </div>
