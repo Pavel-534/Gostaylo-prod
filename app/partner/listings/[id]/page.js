@@ -46,16 +46,40 @@ export default function EditListing({ params }) {
 
   async function loadListing() {
     try {
-      const res = await fetch(`/api/listings/${listingId}`)
+      // Use direct Supabase call to avoid k8s routing issues
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
+      
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=*`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      )
       const data = await res.json()
       
-      if (data.success && data.data) {
-        setListing(data.data)
+      if (data && data.length > 0) {
+        const l = data[0];
+        setListing({
+          id: l.id,
+          title: l.title,
+          description: l.description,
+          basePriceThb: l.base_price_thb,
+          status: l.status,
+          categoryId: l.category_id,
+          district: l.district,
+          images: l.images || [],
+          metadata: l.metadata || {},
+          icalUrl: l.ical_url || l.metadata?.icalUrl || ''
+        })
         setFormData({
-          title: data.data.title,
-          description: data.data.description,
-          basePriceThb: data.data.basePriceThb.toString(),
-          icalUrl: data.data.icalUrl || data.data.metadata?.icalUrl || '',
+          title: l.title,
+          description: l.description,
+          basePriceThb: l.base_price_thb?.toString() || '',
+          icalUrl: l.ical_url || l.metadata?.icalUrl || '',
         })
       }
       setLoading(false)
@@ -68,12 +92,21 @@ export default function EditListing({ params }) {
 
   async function loadSeasonalPrices() {
     try {
-      const res = await fetch(`/api/listings/${listingId}/seasonal-prices`)
-      const data = await res.json()
+      // Use direct Supabase call
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
       
-      if (data.success) {
-        setSeasonalPrices(data.data || [])
-      }
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/seasonal_prices?listing_id=eq.${listingId}&select=*`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      )
+      const data = await res.json()
+      setSeasonalPrices(data || [])
     } catch (error) {
       console.error('Failed to load seasonal prices:', error)
     }
