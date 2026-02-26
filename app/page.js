@@ -43,10 +43,11 @@ export default function FunnyRentHome() {
 
   async function loadData() {
     try {
+      // Use v2 API endpoints connected to Supabase
       const [categoriesRes, districtsRes, ratesRes] = await Promise.all([
-        fetch('/api/categories'),
-        fetch('/api/districts'),
-        fetch('/api/exchange-rates'),
+        fetch('/api/v2/categories'),
+        fetch('/api/v2/districts'),
+        fetch('/api/v2/exchange-rates'),
       ])
 
       const categoriesData = await categoriesRes.json()
@@ -58,7 +59,7 @@ export default function FunnyRentHome() {
       
       const ratesMap = {}
       ratesData.data?.forEach(r => {
-        ratesMap[r.currencyCode] = r.rateToThb
+        ratesMap[r.code] = r.rateToThb
       })
       setExchangeRates(ratesMap)
       
@@ -83,7 +84,8 @@ export default function FunnyRentHome() {
         params.append('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
       }
 
-      const res = await fetch(`/api/listings?${params}`)
+      // Use v2 API connected to Supabase
+      const res = await fetch(`/api/v2/listings?${params}`)
       const data = await res.json()
       setListings(data.data || [])
     } catch (error) {
