@@ -19,6 +19,7 @@ import {
   Home,
   ExternalLink,
   UserCog,
+  ArrowLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -27,7 +28,9 @@ export default function AdminLayout({ children }) {
   const pathname = usePathname();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false); // Start closed on mobile
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  const [originalAdmin, setOriginalAdmin] = useState(null);
 
   // Close sidebar on mobile when route changes
   useEffect(() => {
@@ -46,19 +49,25 @@ export default function AdminLayout({ children }) {
 
   const checkAdminAccess = async () => {
     try {
-      // First check localStorage for logged in user
       const storedUser = localStorage.getItem('funnyrent_user');
       if (storedUser) {
         const parsed = JSON.parse(storedUser);
         // Allow ADMIN and MODERATOR roles
         if (parsed.role === 'ADMIN' || parsed.role === 'MODERATOR' || parsed.isModerator) {
           setUser(parsed);
+          // Check for impersonation state
+          if (parsed.isImpersonated) {
+            setIsImpersonating(true);
+            const savedAdmin = localStorage.getItem('funnyrent_original_admin');
+            if (savedAdmin) {
+              setOriginalAdmin(JSON.parse(savedAdmin));
+            }
+          }
           setLoading(false);
           return;
         }
       }
       
-      // No valid admin/moderator in localStorage - redirect
       router.push('/');
       return;
       
@@ -68,6 +77,21 @@ export default function AdminLayout({ children }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleReturnToAdmin = () => {
+    if (originalAdmin) {
+      localStorage.setItem('funnyrent_user', JSON.stringify(originalAdmin));
+      localStorage.removeItem('funnyrent_original_admin');
+      setIsImpersonating(false);
+      router.push('/admin/users');
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('funnyrent_user');
+    localStorage.removeItem('funnyrent_original_admin');
+    router.push('/');
   };
 
   // Menu items with access control
