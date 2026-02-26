@@ -1,17 +1,17 @@
 -- ============================================================================
--- FunnyRent 2.1 - Stage 15 SQL Migration
+-- FunnyRent 2.1 - Stage 15 SQL Migration (FIXED - TEXT IDs)
 -- Supabase PostgreSQL Schema
--- Run this in Supabase SQL Editor (Dashboard > SQL Editor > New Query)
+-- Successfully run on: 2026-02-26
 -- ============================================================================
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================================================
--- ENUM TYPES
+-- ENUM TYPES (with conflict handling)
 -- ============================================================================
 
-CREATE TYPE user_role AS ENUM ('RENTER', 'PARTNER', 'ADMIN');
+DO $$ BEGIN CREATE TYPE user_role AS ENUM ('RENTER', 'PARTNER', 'ADMIN'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 CREATE TYPE verification_status AS ENUM ('PENDING', 'VERIFIED', 'REJECTED');
 CREATE TYPE currency_type AS ENUM ('THB', 'RUB', 'USD', 'USDT');
 CREATE TYPE listing_status AS ENUM ('PENDING', 'ACTIVE', 'BOOKED', 'INACTIVE', 'REJECTED');
