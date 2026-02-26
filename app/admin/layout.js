@@ -15,6 +15,7 @@ import {
   LogOut,
   Menu,
   X,
+  Database,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -31,8 +32,8 @@ export default function AdminLayout({ children }) {
 
   const checkAdminAccess = async () => {
     try {
-      // In real app, get from auth session
-      const res = await fetch('/api/profile?userId=admin-777');
+      // Use v2 API connected to Supabase
+      const res = await fetch('/api/v2/profile?userId=admin-777');
       if (res.ok) {
         const data = await res.json();
         if (data.data.role !== 'ADMIN') {
@@ -60,6 +61,7 @@ export default function AdminLayout({ children }) {
     { href: '/admin/security', icon: ShieldAlert, label: 'Безопасность' },
     { href: '/admin/categories', icon: Layers, label: 'Категории' },
     { href: '/admin/settings', icon: Settings, label: 'Настройки' },
+    { href: '/admin/test-db', icon: Database, label: 'Test DB' },
   ];
 
   if (loading) {
