@@ -113,25 +113,25 @@ export default function UsersPage() {
 
   const handleRoleChange = async (userId, newRole) => {
     try {
-      const res = await fetch(`/api/admin/users/${userId}/role`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
+      
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({ role: newRole }),
       });
 
       if (res.ok) {
-        toast({
-          title: '✅ Роль обновлена',
-          description: `Пользователь теперь ${newRole}`,
-        });
+        toast.success(`Роль обновлена на ${newRole}`);
         loadUsers();
       }
     } catch (error) {
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось обновить роль',
-        variant: 'destructive',
-      });
+      toast.error('Не удалось обновить роль');
     }
   };
 
