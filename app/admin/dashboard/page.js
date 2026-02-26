@@ -10,6 +10,8 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [activity, setActivity] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [telegramStatus, setTelegramStatus] = useState(null);
+  const [sendingAlert, setSendingAlert] = useState(null);
 
   useEffect(() => {
     loadDashboardData();
