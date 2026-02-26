@@ -66,11 +66,6 @@ export default function AdminLayout({ children }) {
       setLoading(false);
     }
   };
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Menu items with access control
   // MODERATOR can only access: Dashboard, Moderation, Categories
