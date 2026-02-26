@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { DollarSign, Users, ShoppingBag, TrendingUp, AlertCircle, UserPlus, CreditCard, RefreshCw } from 'lucide-react';
+import { DollarSign, Users, ShoppingBag, TrendingUp, AlertCircle, UserPlus, CreditCard, RefreshCw, Send, Home, Wallet, Handshake, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function AdminDashboard() {
