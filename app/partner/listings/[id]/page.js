@@ -55,6 +55,7 @@ export default function EditListing({ params }) {
           title: data.data.title,
           description: data.data.description,
           basePriceThb: data.data.basePriceThb.toString(),
+          icalUrl: data.data.icalUrl || data.data.metadata?.icalUrl || '',
         })
       }
       setLoading(false)
