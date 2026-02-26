@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { 
   LayoutDashboard, 
   Home, 
@@ -14,7 +14,9 @@ import {
   X, 
   LogOut,
   Users,
-  Star
+  Star,
+  ArrowLeft,
+  Shield
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -35,6 +37,33 @@ const navigation = [
 export default function PartnerLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+  const [user, setUser] = useState(null)
+  const [isImpersonating, setIsImpersonating] = useState(false)
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('funnyrent_user')
+    if (storedUser) {
+      const parsed = JSON.parse(storedUser)
+      setUser(parsed)
+      setIsImpersonating(!!parsed.isImpersonated)
+    }
+  }, [pathname])
+
+  const handleReturnToAdmin = () => {
+    const savedAdmin = localStorage.getItem('funnyrent_original_admin')
+    if (savedAdmin) {
+      localStorage.setItem('funnyrent_user', savedAdmin)
+      localStorage.removeItem('funnyrent_original_admin')
+      router.push('/admin/users')
+    }
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('funnyrent_user')
+    localStorage.removeItem('funnyrent_original_admin')
+    router.push('/')
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
