@@ -271,9 +271,21 @@ export default function PartnerSettings() {
               {!linkingCode ? (
                 <Button
                   onClick={generateCode}
+                  disabled={generatingCode}
                   className="w-full bg-teal-600 hover:bg-teal-700"
+                  data-testid="connect-telegram-btn"
                 >
-                  Сгенерировать код подключения
+                  {generatingCode ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Генерация...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Connect Telegram
+                    </>
+                  )}
                 </Button>
               ) : (
                 <div className="space-y-3">
