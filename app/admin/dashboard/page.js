@@ -15,7 +15,40 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     loadDashboardData();
+    checkTelegramStatus();
   }, []);
+
+  const checkTelegramStatus = async () => {
+    try {
+      const res = await fetch('/api/v2/telegram/test');
+      const data = await res.json();
+      setTelegramStatus(data);
+    } catch (error) {
+      console.error('Failed to check Telegram status:', error);
+    }
+  };
+
+  const sendTestAlert = async (type) => {
+    setSendingAlert(type);
+    try {
+      const res = await fetch('/api/v2/telegram/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        alert(`✅ ${type.toUpperCase()} alert sent successfully!`);
+      } else {
+        alert(`❌ Failed: ${data.error}`);
+      }
+    } catch (error) {
+      alert(`❌ Error: ${error.message}`);
+    } finally {
+      setSendingAlert(null);
+    }
+  };
 
   const loadDashboardData = async () => {
     try {
