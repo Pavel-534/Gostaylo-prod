@@ -140,6 +140,135 @@ export default function PartnerDashboard() {
         ))}
       </div>
 
+      {/* Telegram Magic - Onboarding Block */}
+      <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 shadow-xl overflow-hidden">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Sparkles className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <CardTitle className="text-xl flex items-center gap-2">
+                Telegram Magic
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">NEW</span>
+              </CardTitle>
+              <CardDescription>
+                Управляйте бизнесом прямо из Telegram
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Step 1: Connect Bot */}
+            <div className="bg-white/80 backdrop-blur rounded-xl p-4 border border-blue-100 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>
+                <h3 className="font-semibold text-slate-900">Connect Bot</h3>
+              </div>
+              <p className="text-sm text-slate-600 mb-4">
+                Подключите бота для получения уведомлений о бронированиях
+              </p>
+              
+              {!linkCode ? (
+                <Button 
+                  onClick={generateLinkCode}
+                  disabled={generatingCode}
+                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
+                  data-testid="get-link-code-btn"
+                >
+                  {generatingCode ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Генерация...
+                    </>
+                  ) : (
+                    <>
+                      <Bot className="h-4 w-4 mr-2" />
+                      Get My Link Code
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <div className="bg-slate-100 rounded-lg p-3 font-mono text-center text-lg font-bold text-indigo-600">
+                    {linkCode}
+                  </div>
+                  <Button 
+                    onClick={copyCode}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="h-4 w-4 mr-2 text-green-600" />
+                        Скопировано!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy /link {linkCode}
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-slate-500 text-center">
+                    Отправьте боту <a href="https://t.me/FunnyRent_777_bot" target="_blank" className="text-blue-600 hover:underline">@FunnyRent_777_bot</a>
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Step 2: Instant Listing */}
+            <div className="bg-white/80 backdrop-blur rounded-xl p-4 border border-purple-100 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">2</div>
+                <h3 className="font-semibold text-slate-900">Instant Listing</h3>
+              </div>
+              <p className="text-sm text-slate-600 mb-4">
+                Просто отправьте фото и описание боту — объявление создастся автоматически
+              </p>
+              <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                <div className="flex items-start gap-2">
+                  <MessageSquare className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-purple-800">
+                    <strong>Как это работает:</strong><br/>
+                    1. Отправьте 3-5 фото<br/>
+                    2. Добавьте описание<br/>
+                    3. Укажите цену<br/>
+                    4. Готово! Черновик создан ✨
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 3: Real-time Alerts */}
+            <div className="bg-white/80 backdrop-blur rounded-xl p-4 border border-teal-100 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center text-white font-bold text-sm">3</div>
+                <h3 className="font-semibold text-slate-900">Real-time Alerts</h3>
+              </div>
+              <p className="text-sm text-slate-600 mb-4">
+                Получайте мгновенные уведомления прямо в Telegram
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-200">
+                  <Bell className="h-4 w-4 text-green-600" />
+                  <span className="text-xs text-green-800">Новые бронирования</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <Zap className="h-4 w-4 text-yellow-600" />
+                  <span className="text-xs text-yellow-800">Подтверждения оплаты</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                  <DollarSign className="h-4 w-4 text-blue-600" />
+                  <span className="text-xs text-blue-800">Выплаты и балансы</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Additional Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Performance Card */}
