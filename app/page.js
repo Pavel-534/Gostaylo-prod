@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/currency'
+import { fetchCategories, fetchListings, fetchExchangeRates, fetchDistricts } from '@/lib/client-data'
 import { DayPicker } from 'react-day-picker'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
@@ -43,25 +44,15 @@ export default function FunnyRentHome() {
 
   async function loadData() {
     try {
-      // Use v2 API endpoints connected to Supabase
-      const [categoriesRes, districtsRes, ratesRes] = await Promise.all([
-        fetch('/api/v2/categories'),
-        fetch('/api/v2/districts'),
-        fetch('/api/v2/exchange-rates'),
+      // Fetch directly from Supabase (bypasses Kubernetes routing)
+      const [categoriesData, ratesData] = await Promise.all([
+        fetchCategories(),
+        fetchExchangeRates(),
       ])
 
-      const categoriesData = await categoriesRes.json()
-      const districtsData = await districtsRes.json()
-      const ratesData = await ratesRes.json()
-
-      setCategories(categoriesData.data || [])
-      setDistricts(districtsData.data || [])
-      
-      const ratesMap = {}
-      ratesData.data?.forEach(r => {
-        ratesMap[r.code] = r.rateToThb
-      })
-      setExchangeRates(ratesMap)
+      setCategories(categoriesData)
+      setDistricts(fetchDistricts())
+      setExchangeRates(ratesData)
       
       setLoading(false)
     } catch (error) {
@@ -72,22 +63,12 @@ export default function FunnyRentHome() {
 
   async function loadListings() {
     try {
-      const params = new URLSearchParams()
-      if (selectedCategory !== 'all') params.append('category', selectedCategory)
-      if (selectedDistrict !== 'all') params.append('district', selectedDistrict)
-      
-      // Add date filters for seasonal pricing
-      if (dateRange.from) {
-        params.append('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
-      }
-      if (dateRange.to) {
-        params.append('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
-      }
-
-      // Use v2 API connected to Supabase
-      const res = await fetch(`/api/v2/listings?${params}`)
-      const data = await res.json()
-      setListings(data.data || [])
+      // Fetch directly from Supabase
+      const data = await fetchListings({
+        category: selectedCategory,
+        district: selectedDistrict
+      })
+      setListings(data)
     } catch (error) {
       console.error('Failed to load listings:', error)
     }
