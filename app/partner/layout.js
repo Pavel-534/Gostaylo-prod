@@ -160,11 +160,9 @@ export default function PartnerLayout({ children }) {
           </nav>
 
           <div className="p-4 border-t">
-            <Button variant="outline" className="w-full" asChild>
-              <Link href="/">
-                <LogOut className="h-4 w-4 mr-2" />
-                Выход
-              </Link>
+            <Button variant="outline" className="w-full" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Выход
             </Button>
           </div>
         </div>
