@@ -5,30 +5,35 @@
 **Super Admin:** Pavel B. (admin-777)
 **Stack:** Next.js 14, Tailwind CSS, Lucide Icons, Supabase PostgreSQL
 
-## Current Status: Stage 15.5 Complete ✅
+## Current Status: Stage 16.2 Complete ✅
 
 ### What Was Completed (Feb 26, 2025) - Latest
 
-#### 1. Admin/Partner Navigation Bar
-- ✅ Created `/components/role-bar.js` - persistent bar for logged-in admins/partners
-- ✅ Shows on public pages only (not on /admin or /partner dashboards)
-- ✅ "Back to Dashboard" button for quick navigation
-- ✅ Displays user name and logout option
-- ✅ Mobile-responsive design
-- ✅ Purple gradient for ADMIN, Teal gradient for PARTNER
+#### Telegram Integration LIVE 🚀
+- ✅ Bot configured: @FunnyRent_777_bot
+- ✅ Admin Group: FunnyRent HQ (ID: -1003832026983)
+- ✅ Created `/lib/telegram.js` with full Telegram Bot API integration
+- ✅ Created `/api/v2/telegram/test` for test alerts
+- ✅ Created `/api/v2/telegram/link` for partner account linking
+- ✅ All 3 test alerts sent successfully to Telegram group
 
-#### 2. Partner Listings - "View on Site" Button
-- ✅ Added "На сайте" button to grid and list views
-- ✅ Opens listing in new tab `/listings/{id}`
+#### Admin Dashboard - Telegram Command Center
+- ✅ Added "Telegram Command Center" section
+- ✅ 3 colorful test buttons:
+  - 🟢 Test Booking Alert → BOOKINGS topic
+  - 🟡 Test Finance Alert → FINANCE topic
+  - 🔵 Test Partner Alert → NEW_PARTNERS topic
+- ✅ Bot/Group info display
 
-#### 3. Code Cleanup - MONOLITH DELETED ✅
-- ✅ Replaced 3025-line monolithic `/api/[[...path]]/route.js` with 227-line redirect/mock file
-- ✅ All old API calls now redirect to v2 or return mock data
-- ✅ Ready for Telegram integration
+#### Partner Dashboard - Connect Telegram
+- ✅ "Connect Telegram" button in `/partner/settings`
+- ✅ Code generation API for account linking
+- ✅ Instructions for linking process
 
-### Previous Fixes (Stage 15.4)
-- ✅ Database Connection restored (direct Supabase client)
-- ✅ Mobile UI for all admin pages
+### Previous Updates (Stage 15.5)
+- ✅ Admin/Partner Navigation Bar
+- ✅ "View on Site" button for partner listings
+- ✅ Monolithic API reduced from 3025 → 227 lines
 
 ### Database Status (Supabase)
 - ✅ 16 tables created with TEXT IDs
