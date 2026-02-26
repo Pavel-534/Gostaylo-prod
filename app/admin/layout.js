@@ -214,6 +214,38 @@ export default function AdminLayout({ children }) {
           sidebarOpen ? 'lg:ml-64' : 'lg:ml-20'
         } lg:ml-64`}
       >
+        {/* Top Action Bar - Desktop */}
+        <div className="hidden lg:flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors">
+              <Home className="w-4 h-4" />
+              <span className="text-sm">На сайт</span>
+            </Link>
+            <span className="text-gray-300">|</span>
+            <Link href="/" target="_blank" className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors">
+              <ExternalLink className="w-4 h-4" />
+              <span className="text-sm">Открыть в новой вкладке</span>
+            </Link>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <UserCog className="w-4 h-4" />
+              <span>{user?.isModerator ? 'Moderator' : 'Admin'}: {user?.name}</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                localStorage.removeItem('funnyrent_user');
+                router.push('/');
+              }}
+              className="text-red-600 border-red-200 hover:bg-red-50"
+            >
+              <LogOut className="w-4 h-4 mr-1" />
+              Выход
+            </Button>
+          </div>
+        </div>
         {children}
       </main>
     </div>
