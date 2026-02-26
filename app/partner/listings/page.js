@@ -79,16 +79,16 @@ export default function PartnerListings() {
   }
 
   return (
-    <div className="p-4 lg:p-8 space-y-8">
+    <div className="p-4 lg:p-8 space-y-6 lg:space-y-8 max-w-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Мои листинги</h1>
-          <p className="text-slate-600 mt-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900">Мои листинги</h1>
+          <p className="text-sm lg:text-base text-slate-600 mt-1">
             Управляйте своими предложениями
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <div className="flex items-center gap-1 bg-white border rounded-lg p-1">
             <Button
               variant={viewMode === 'grid' ? 'default' : 'ghost'}
@@ -107,43 +107,43 @@ export default function PartnerListings() {
           </div>
           <Button asChild className="bg-teal-600 hover:bg-teal-700">
             <Link href="/partner/listings/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Добавить листинг
+              <Plus className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Добавить</span>
             </Link>
           </Button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Stats - Stack on mobile */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-slate-900">{listings.length}</div>
-            <p className="text-sm text-slate-600">Всего</p>
+          <CardContent className="p-4 lg:pt-6">
+            <div className="text-xl lg:text-2xl font-bold text-slate-900">{listings.length}</div>
+            <p className="text-xs lg:text-sm text-slate-600">Всего</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">
+          <CardContent className="p-4 lg:pt-6">
+            <div className="text-xl lg:text-2xl font-bold text-green-600">
               {listings.filter(l => l.status === 'ACTIVE').length}
             </div>
-            <p className="text-sm text-slate-600">Активных</p>
+            <p className="text-xs lg:text-sm text-slate-600">Активных</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-slate-900">
+          <CardContent className="p-4 lg:pt-6">
+            <div className="text-xl lg:text-2xl font-bold text-slate-900">
               {listings.reduce((sum, l) => sum + l.views, 0)}
             </div>
-            <p className="text-sm text-slate-600">Просмотров</p>
+            <p className="text-xs lg:text-sm text-slate-600">Просмотров</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-slate-900">
+          <CardContent className="p-4 lg:pt-6">
+            <div className="text-xl lg:text-2xl font-bold text-slate-900">
               {listings.reduce((sum, l) => sum + l.bookingsCount, 0)}
             </div>
-            <p className="text-sm text-slate-600">Бронирований</p>
+            <p className="text-xs lg:text-sm text-slate-600">Бронирований</p>
           </CardContent>
         </Card>
       </div>
