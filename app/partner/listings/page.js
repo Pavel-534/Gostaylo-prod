@@ -282,6 +282,17 @@ export default function PartnerListings() {
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        asChild
+                        data-testid={`view-listing-list-${listing.id}`}
+                      >
+                        <Link href={`/listings/${listing.id}`} target="_blank">
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          На сайте
+                        </Link>
+                      </Button>
                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/partner/listings/${listing.id}/edit`}>
                           <Edit className="h-3 w-3 mr-1" />
