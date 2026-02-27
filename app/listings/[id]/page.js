@@ -12,10 +12,12 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { 
   MapPin, Star, ArrowLeft, ChevronLeft, ChevronRight, 
-  Bed, Bath, Square, Calendar, Send, Loader2, User
+  Bed, Bath, Square, Calendar, Send, Loader2, User,
+  Wifi, Car, Waves, Utensils
 } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
+import { detectLanguage, getUIText, getListingText, supportedLanguages } from '@/lib/translations'
 
 export default function ListingDetail({ params }) {
   const router = useRouter()
@@ -25,6 +27,7 @@ export default function ListingDetail({ params }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [bookingModalOpen, setBookingModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [language, setLanguage] = useState('ru')
   
   // Form state
   const [guestName, setGuestName] = useState('')
@@ -34,7 +37,150 @@ export default function ListingDetail({ params }) {
   const [checkOut, setCheckOut] = useState('')
   const [message, setMessage] = useState('')
 
+  // Localized labels
+  const labels = {
+    ru: {
+      backToSearch: 'Вернуться к поиску',
+      available: 'Доступно',
+      unavailable: 'Занято',
+      reviews: 'отзывов',
+      description: 'Описание',
+      features: 'Характеристики',
+      bedrooms: 'спален',
+      bathrooms: 'ванных',
+      area: 'м²',
+      wifi: 'Wi-Fi',
+      pool: 'Бассейн',
+      parking: 'Парковка',
+      kitchen: 'Кухня',
+      price: 'Цена',
+      perDay: 'в день',
+      bookNow: 'Забронировать',
+      bookingRequest: 'Заявка на бронирование',
+      yourName: 'Ваше имя',
+      email: 'Email',
+      phone: 'Телефон',
+      checkInDate: 'Дата заезда',
+      checkOutDate: 'Дата выезда',
+      messageLabel: 'Сообщение',
+      messagePlaceholder: 'Особые пожелания...',
+      submit: 'Отправить заявку',
+      submitting: 'Отправка...',
+      notFound: 'Объявление не найдено',
+      notFoundDesc: 'Это объявление было удалено или не существует.',
+      goHome: 'На главную',
+      successMsg: 'Заявка отправлена! Ожидайте подтверждения.',
+      errorMsg: 'Ошибка при создании заявки'
+    },
+    en: {
+      backToSearch: 'Back to search',
+      available: 'Available',
+      unavailable: 'Unavailable',
+      reviews: 'reviews',
+      description: 'Description',
+      features: 'Features',
+      bedrooms: 'bedrooms',
+      bathrooms: 'bathrooms',
+      area: 'm²',
+      wifi: 'Wi-Fi',
+      pool: 'Pool',
+      parking: 'Parking',
+      kitchen: 'Kitchen',
+      price: 'Price',
+      perDay: 'per day',
+      bookNow: 'Book Now',
+      bookingRequest: 'Booking Request',
+      yourName: 'Your name',
+      email: 'Email',
+      phone: 'Phone',
+      checkInDate: 'Check-in date',
+      checkOutDate: 'Check-out date',
+      messageLabel: 'Message',
+      messagePlaceholder: 'Special requests...',
+      submit: 'Submit Request',
+      submitting: 'Submitting...',
+      notFound: 'Listing not found',
+      notFoundDesc: 'This listing has been removed or does not exist.',
+      goHome: 'Go Home',
+      successMsg: 'Request submitted! Awaiting confirmation.',
+      errorMsg: 'Error creating request'
+    },
+    zh: {
+      backToSearch: '返回搜索',
+      available: '可预订',
+      unavailable: '已预订',
+      reviews: '条评价',
+      description: '描述',
+      features: '特征',
+      bedrooms: '间卧室',
+      bathrooms: '间浴室',
+      area: '平方米',
+      wifi: '无线网络',
+      pool: '游泳池',
+      parking: '停车场',
+      kitchen: '厨房',
+      price: '价格',
+      perDay: '每天',
+      bookNow: '立即预订',
+      bookingRequest: '预订申请',
+      yourName: '您的姓名',
+      email: '邮箱',
+      phone: '电话',
+      checkInDate: '入住日期',
+      checkOutDate: '退房日期',
+      messageLabel: '留言',
+      messagePlaceholder: '特殊要求...',
+      submit: '提交申请',
+      submitting: '提交中...',
+      notFound: '未找到房源',
+      notFoundDesc: '此房源已被删除或不存在。',
+      goHome: '返回首页',
+      successMsg: '申请已提交！等待确认。',
+      errorMsg: '创建申请时出错'
+    },
+    th: {
+      backToSearch: 'กลับไปค้นหา',
+      available: 'ว่าง',
+      unavailable: 'ไม่ว่าง',
+      reviews: 'รีวิว',
+      description: 'รายละเอียด',
+      features: 'สิ่งอำนวยความสะดวก',
+      bedrooms: 'ห้องนอน',
+      bathrooms: 'ห้องน้ำ',
+      area: 'ตร.ม.',
+      wifi: 'Wi-Fi',
+      pool: 'สระว่ายน้ำ',
+      parking: 'ที่จอดรถ',
+      kitchen: 'ห้องครัว',
+      price: 'ราคา',
+      perDay: 'ต่อวัน',
+      bookNow: 'จองเลย',
+      bookingRequest: 'คำขอจอง',
+      yourName: 'ชื่อของคุณ',
+      email: 'อีเมล',
+      phone: 'โทรศัพท์',
+      checkInDate: 'วันเช็คอิน',
+      checkOutDate: 'วันเช็คเอาท์',
+      messageLabel: 'ข้อความ',
+      messagePlaceholder: 'คำขอพิเศษ...',
+      submit: 'ส่งคำขอ',
+      submitting: 'กำลังส่ง...',
+      notFound: 'ไม่พบรายการ',
+      notFoundDesc: 'รายการนี้ถูกลบหรือไม่มีอยู่',
+      goHome: 'กลับหน้าแรก',
+      successMsg: 'ส่งคำขอแล้ว! รอการยืนยัน',
+      errorMsg: 'เกิดข้อผิดพลาดในการสร้างคำขอ'
+    }
+  }
+
+  // Get current language labels
+  const t = labels[language] || labels.ru
+
   useEffect(() => {
+    // Detect language from localStorage
+    const detectedLang = detectLanguage()
+    setLanguage(detectedLang)
+    
     loadListing()
     loadReviews()
   }, [params.id])
