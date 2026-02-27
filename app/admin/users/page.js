@@ -298,7 +298,7 @@ export default function UsersPage() {
                   
                   {/* Mobile Actions Row */}
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-200">
-                    {(user.role === 'PARTNER' || user.role === 'RENTER') ? (
+                    {(user.role === 'PARTNER' || user.role === 'RENTER' || user.role === 'MODERATOR') ? (
                       <Button
                         size="sm"
                         variant="outline"
