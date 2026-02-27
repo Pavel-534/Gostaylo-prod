@@ -1,13 +1,14 @@
 # FunnyRent 2.1 - Product Requirements Document
 
-## Latest Update: 2026-02-26
+## Latest Update: 2026-02-27
 
-### Mobile UI Polish Complete
-- Fixed responsive header in Admin Panel with clear Logout and Home buttons
-- Fixed page layout scaling - headers now fully visible on 390px screens
-- Stats cards stack vertically on mobile
-- Impersonation UI improved with "Return to Admin" button visible in both mobile and desktop
-- Original admin state preserved during impersonation for proper return flow
+### Stage 19.1: Multi-Language & UX Improvements Complete
+- Added 4-language support system (RU/EN/ZH/TH) via `/lib/translations.js`
+- Admin Categories now has translation editor with tabs for each language
+- Translations stored in localStorage (DB schema unchanged)
+- Date Range Picker already using `mode="range"` for continuous selection
+- MODERATOR role added to user role dropdown
+- Admin top bar visible on all sub-pages
 
 ## Project Overview
 **Name:** FunnyRent 2.1 - Phuket Super-App for Rentals
