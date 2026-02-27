@@ -362,30 +362,22 @@ export default function FunnyRentHome() {
                     </DialogTrigger>
                     <DialogContent className="max-w-md">
                       <DialogHeader>
-                        <DialogTitle>
-                          {language === 'ru' ? 'Выберите даты' : 
-                           language === 'en' ? 'Select dates' :
-                           language === 'zh' ? '选择日期' : 'เลือกวันที่'}
-                        </DialogTitle>
-                        <DialogDescription>
-                          {language === 'ru' ? 'Выберите даты заезда и выезда' : 
-                           language === 'en' ? 'Select check-in and check-out dates' :
-                           language === 'zh' ? '选择入住和退房日期' : 'เลือกวันเข้าพักและออก'}
-                        </DialogDescription>
+                        <DialogTitle>{getUIText('datePickerTitle', language)}</DialogTitle>
+                        <DialogDescription>{getUIText('datePickerDesc', language)}</DialogDescription>
                       </DialogHeader>
                       
                       {/* Selected Range Display */}
                       <div className="bg-teal-50 rounded-lg p-3 text-center">
                         <div className="flex items-center justify-center gap-3">
                           <div className={`flex-1 p-2 rounded ${dateRange.from ? 'bg-teal-600 text-white' : 'bg-white border-2 border-dashed border-teal-300'}`}>
-                            <p className="text-xs opacity-80">{language === 'ru' ? 'Заезд' : 'Start'}</p>
+                            <p className="text-xs opacity-80">{getUIText('checkIn', language)}</p>
                             <p className="font-semibold">
                               {dateRange.from ? format(dateRange.from, 'dd MMM yyyy', { locale: currentLocale }) : '—'}
                             </p>
                           </div>
                           <span className="text-teal-600 font-bold">→</span>
                           <div className={`flex-1 p-2 rounded ${dateRange.to ? 'bg-teal-600 text-white' : 'bg-white border-2 border-dashed border-teal-300'}`}>
-                            <p className="text-xs opacity-80">{language === 'ru' ? 'Выезд' : 'End'}</p>
+                            <p className="text-xs opacity-80">{getUIText('checkOut', language)}</p>
                             <p className="font-semibold">
                               {dateRange.to ? format(dateRange.to, 'dd MMM yyyy', { locale: currentLocale }) : '—'}
                             </p>
