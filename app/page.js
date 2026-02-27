@@ -352,31 +352,58 @@ export default function FunnyRentHome() {
                       <Button variant="outline" className="justify-start text-left font-normal">
                         <Calendar className="mr-2 h-4 w-4" />
                         {dateRange.from && dateRange.to ? (
-                          `${format(dateRange.from, 'dd MMM')} - ${format(dateRange.to, 'dd MMM')}`
+                          `${format(dateRange.from, 'dd MMM', { locale: currentLocale })} - ${format(dateRange.to, 'dd MMM', { locale: currentLocale })}`
+                        ) : dateRange.from ? (
+                          `${format(dateRange.from, 'dd MMM', { locale: currentLocale })} - ...`
                         ) : (
-                          'Выбрать даты'
+                          getUIText('selectDates', language)
                         )}
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-md">
                       <DialogHeader>
-                        <DialogTitle>Выберите даты</DialogTitle>
+                        <DialogTitle>
+                          {language === 'ru' ? 'Выберите даты' : 
+                           language === 'en' ? 'Select dates' :
+                           language === 'zh' ? '选择日期' : 'เลือกวันที่'}
+                        </DialogTitle>
                         <DialogDescription>
-                          Выберите даты заезда и выезда для расчёта сезонной цены
+                          {language === 'ru' ? 'Выберите даты заезда и выезда' : 
+                           language === 'en' ? 'Select check-in and check-out dates' :
+                           language === 'zh' ? '选择入住和退房日期' : 'เลือกวันเข้าพักและออก'}
                         </DialogDescription>
                       </DialogHeader>
+                      
+                      {/* Selected Range Display */}
+                      <div className="bg-teal-50 rounded-lg p-3 text-center">
+                        <div className="flex items-center justify-center gap-3">
+                          <div className={`flex-1 p-2 rounded ${dateRange.from ? 'bg-teal-600 text-white' : 'bg-white border-2 border-dashed border-teal-300'}`}>
+                            <p className="text-xs opacity-80">{language === 'ru' ? 'Заезд' : 'Start'}</p>
+                            <p className="font-semibold">
+                              {dateRange.from ? format(dateRange.from, 'dd MMM yyyy', { locale: currentLocale }) : '—'}
+                            </p>
+                          </div>
+                          <span className="text-teal-600 font-bold">→</span>
+                          <div className={`flex-1 p-2 rounded ${dateRange.to ? 'bg-teal-600 text-white' : 'bg-white border-2 border-dashed border-teal-300'}`}>
+                            <p className="text-xs opacity-80">{language === 'ru' ? 'Выезд' : 'End'}</p>
+                            <p className="font-semibold">
+                              {dateRange.to ? format(dateRange.to, 'dd MMM yyyy', { locale: currentLocale }) : '—'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="flex justify-center py-4">
                         <DayPicker
                           mode="range"
                           selected={dateRange}
                           onSelect={(range) => {
                             setDateRange(range || { from: null, to: null })
-                            if (range?.from && range?.to) {
-                              setDatePickerOpen(false)
-                            }
+                            // DO NOT close until both dates selected - user clicks Apply
                           }}
-                          locale={ru}
+                          locale={currentLocale}
                           disabled={{ before: new Date() }}
+                          numberOfMonths={1}
                           classNames={{
                             months: "flex flex-col sm:flex-row gap-4",
                             month: "space-y-4",
@@ -395,26 +422,28 @@ export default function FunnyRentHome() {
                             day_outside: "text-slate-400 opacity-50",
                             day_disabled: "text-slate-400 opacity-50",
                             day_hidden: "invisible",
+                            day_range_middle: "bg-teal-100 rounded-none",
                           }}
                         />
                       </div>
-                      {dateRange.from && dateRange.to && (
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            onClick={() => setDateRange({ from: null, to: null })}
-                            className="flex-1"
-                          >
-                            Сбросить
-                          </Button>
-                          <Button
-                            onClick={() => setDatePickerOpen(false)}
-                            className="flex-1 bg-teal-600 hover:bg-teal-700"
-                          >
-                            Применить
-                          </Button>
-                        </div>
-                      )}
+                      <DialogFooter className="flex gap-2 sm:gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setDateRange({ from: null, to: null })}
+                          className="flex-1"
+                        >
+                          {language === 'ru' ? 'Сбросить' : 'Clear'}
+                        </Button>
+                        <Button
+                          onClick={() => setDatePickerOpen(false)}
+                          disabled={!dateRange.from || !dateRange.to}
+                          className="flex-1 bg-teal-600 hover:bg-teal-700 disabled:opacity-50"
+                        >
+                          {language === 'ru' ? 'Применить' : 'Apply'} ✓
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                     </DialogContent>
                   </Dialog>
                   
