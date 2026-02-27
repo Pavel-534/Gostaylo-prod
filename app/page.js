@@ -537,8 +537,8 @@ export default function FunnyRentHome() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-3xl font-bold text-slate-900 mb-2">Актуальные предложения</h3>
-              <p className="text-slate-600">Найдено: {filteredListings.length} объектов</p>
+              <h3 className="text-3xl font-bold text-slate-900 mb-2">{getUIText('currentListings', language)}</h3>
+              <p className="text-slate-600">{getUIText('found', language)}: {filteredListings.length} {getUIText('objects', language)}</p>
             </div>
           </div>
 
