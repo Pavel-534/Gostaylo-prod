@@ -392,8 +392,8 @@ export default function UsersPage() {
                       )}
                     </div>
                     
-                    {/* Login As Button - for Partners and Renters */}
-                    {(user.role === 'PARTNER' || user.role === 'RENTER') && (
+                    {/* Login As Button - for Partners, Renters, and Moderators */}
+                    {(user.role === 'PARTNER' || user.role === 'RENTER' || user.role === 'MODERATOR') && (
                       <Button
                         size="sm"
                         variant="outline"
