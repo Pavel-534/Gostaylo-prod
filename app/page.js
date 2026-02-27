@@ -562,8 +562,12 @@ export default function FunnyRentHome() {
                       )}
                     </div>
                     <CardHeader>
-                      <CardTitle className="line-clamp-1 text-lg">{listing.title}</CardTitle>
-                      <CardDescription className="line-clamp-2">{listing.description}</CardDescription>
+                      <CardTitle className="line-clamp-1 text-lg">
+                        {getListingText(listing, 'title', language)}
+                      </CardTitle>
+                      <CardDescription className="line-clamp-2">
+                        {getListingText(listing, 'description', language)}
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
