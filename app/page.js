@@ -322,24 +322,24 @@ export default function FunnyRentHome() {
         <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 to-slate-900/40" />
         <div className="relative container mx-auto px-4 h-full flex flex-col justify-center">
           <div className="max-w-3xl">
-            <h2 className="text-5xl md:text-6xl font-bold text-white mb-4">
-              Роскошная аренда
-              <span className="block text-teal-400">на Пхукете</span>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4">
+              {getUIText('heroTitle', language)}
+              <span className="block text-teal-400">{getUIText('heroTitleHighlight', language)}</span>
             </h2>
-            <p className="text-xl text-slate-200 mb-8">
-              Виллы, яхты, автомобили и туры — всё в одном месте
+            <p className="text-lg sm:text-xl text-slate-200 mb-8">
+              {getUIText('heroSubtitle', language)}
             </p>
 
-            {/* Search Bar */}
-            <Card className="bg-white/95 backdrop-blur-sm shadow-2xl">
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                  <div className="md:col-span-2">
+            {/* Search Bar - Fixed Mobile Alignment */}
+            <Card className="bg-white/95 backdrop-blur-sm shadow-2xl mx-0">
+              <CardContent className="p-4 sm:p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+                  <div className="sm:col-span-2 lg:col-span-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
                       <Input
-                        placeholder="Поиск..."
-                        className="pl-10"
+                        placeholder={getUIText('searchPlaceholder', language)}
+                        className="pl-10 w-full"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
