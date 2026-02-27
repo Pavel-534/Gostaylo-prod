@@ -20,16 +20,23 @@ import {
   Shield,
   Server,
   Wifi,
-  WifiOff
+  WifiOff,
+  Palmtree,
+  Globe,
+  Send,
+  TestTube,
+  ExternalLink
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const TELEGRAM_BOT_TOKEN = '8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM';
+const ADMIN_CHAT_ID = 1303143012;
 
 export default function SystemControlPage() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [webhookStatus, setWebhookStatus] = useState(null);
   const [webhookLoading, setWebhookLoading] = useState(false);
+  const [testingConnection, setTestingConnection] = useState(false);
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,10 +46,10 @@ export default function SystemControlPage() {
 
   async function loadSystemStatus() {
     try {
-      // Load maintenance mode from Supabase
       const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
       const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
       
+      // Load maintenance mode
       const settingsRes = await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.maintenance_mode`, {
         headers: {
           'apikey': SUPABASE_KEY,
@@ -57,7 +64,7 @@ export default function SystemControlPage() {
       // Load webhook status
       await checkWebhookStatus();
       
-      // Load recent activity from activity_log
+      // Load recent activity
       const activityRes = await fetch(`${SUPABASE_URL}/rest/v1/activity_log?order=created_at.desc&limit=10`, {
         headers: {
           'apikey': SUPABASE_KEY,
@@ -80,12 +87,16 @@ export default function SystemControlPage() {
       const data = await res.json();
       
       if (data.ok) {
+        const hasRecentError = data.result.last_error_date && 
+          (Date.now() / 1000 - data.result.last_error_date) < 300; // Error in last 5 minutes
+        
         setWebhookStatus({
           url: data.result.url,
           isActive: !!data.result.url,
+          hasError: hasRecentError,
           pendingUpdates: data.result.pending_update_count || 0,
           lastError: data.result.last_error_message || null,
-          lastErrorDate: data.result.last_error_date ? new Date(data.result.last_error_date * 1000).toISOString() : null
+          lastErrorDate: data.result.last_error_date ? new Date(data.result.last_error_date * 1000) : null
         });
       }
     } catch (error) {
@@ -99,8 +110,7 @@ export default function SystemControlPage() {
       const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
       const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
       
-      // Upsert the setting
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.maintenance_mode`, {
+      await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.maintenance_mode`, {
         method: 'DELETE',
         headers: {
           'apikey': SUPABASE_KEY,
@@ -123,68 +133,123 @@ export default function SystemControlPage() {
       });
       
       setMaintenanceMode(enabled);
-      toast.success(enabled ? '🔴 Maintenance Mode ENABLED' : '🟢 Maintenance Mode DISABLED');
-      
-      // Log activity
-      await logActivity(enabled ? 'MAINTENANCE_ENABLED' : 'MAINTENANCE_DISABLED', 'System maintenance mode toggled');
+      toast.success(enabled ? '🔴 Режим обслуживания ВКЛЮЧЁН' : '🟢 Режим обслуживания ВЫКЛЮЧЕН');
+      await logActivity(enabled ? 'MAINTENANCE_ON' : 'MAINTENANCE_OFF', 'Переключен режим обслуживания');
       
     } catch (error) {
       console.error('Failed to toggle maintenance:', error);
-      toast.error('Failed to update maintenance mode');
+      toast.error('Ошибка обновления режима обслуживания');
     }
   }
 
   async function handleRelinkWebhook() {
     setWebhookLoading(true);
     try {
-      const webhookUrl = `${window.location.origin}/api/webhooks/telegram`;
+      // Get proper webhook URL without double slashes
+      const baseUrl = window.location.origin.replace(/\/$/, '');
+      const webhookUrl = `${baseUrl}/api/webhooks/telegram`;
       
       // Delete existing webhook
       await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/deleteWebhook`);
+      await new Promise(r => setTimeout(r, 1000));
       
-      // Set new webhook
-      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}&drop_pending_updates=true`);
+      // Set new webhook with drop_pending_updates
+      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: webhookUrl,
+          drop_pending_updates: true,
+          allowed_updates: ['message', 'callback_query']
+        })
+      });
       const data = await res.json();
       
       if (data.ok) {
-        toast.success('✅ Telegram Webhook Re-linked!');
+        toast.success('✅ Вебхук успешно переподключён!');
         await checkWebhookStatus();
-        await logActivity('WEBHOOK_RELINKED', `Webhook set to ${webhookUrl}`);
+        await logActivity('WEBHOOK_RELINK', `URL: ${webhookUrl}`);
       } else {
-        toast.error('Failed to set webhook: ' + data.description);
+        toast.error('Ошибка: ' + data.description);
       }
     } catch (error) {
       console.error('Failed to relink webhook:', error);
-      toast.error('Failed to relink webhook');
+      toast.error('Ошибка переподключения вебхука');
     } finally {
       setWebhookLoading(false);
     }
   }
 
-  async function handleSendTestMessage() {
+  async function handleTestConnection() {
+    setTestingConnection(true);
     try {
-      // Get admin chat ID (Pavel)
-      const chatId = 1303143012;
+      // Test 1: Check if Telegram API is reachable
+      const meRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe`);
+      const meData = await meRes.json();
       
+      if (!meData.ok) {
+        toast.error('❌ Telegram API недоступен');
+        return;
+      }
+      
+      // Test 2: Try to send a message
+      const sendRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: ADMIN_CHAT_ID,
+          text: '🔧 <b>Тест подключения</b>\n\nЭто тестовое сообщение из Центра управления.\n\n✅ Бот работает корректно!',
+          parse_mode: 'HTML'
+        })
+      });
+      const sendData = await sendRes.json();
+      
+      if (sendData.ok) {
+        toast.success('✅ Подключение работает! Сообщение отправлено.');
+        await logActivity('CONNECTION_TEST', 'Тест пройден успешно');
+      } else {
+        toast.error('❌ Ошибка отправки: ' + sendData.description);
+      }
+      
+      // Test 3: Check webhook endpoint locally
+      try {
+        const webhookRes = await fetch('/api/webhooks/telegram');
+        const webhookData = await webhookRes.json();
+        if (webhookData.ok) {
+          toast.success('✅ Вебхук endpoint доступен локально');
+        }
+      } catch (e) {
+        toast.warning('⚠️ Вебхук endpoint недоступен локально');
+      }
+      
+    } catch (error) {
+      toast.error('❌ Ошибка теста: ' + error.message);
+    } finally {
+      setTestingConnection(false);
+    }
+  }
+
+  async function handleSendAloha() {
+    try {
       const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chat_id: chatId,
-          text: '🌴 <b>Aloha from FunnyRent!</b>\n\nThis is a test message from the System Control Center.\n\nYour bot is working correctly! 🤖',
+          chat_id: ADMIN_CHAT_ID,
+          text: '🌴 <b>Aloha из FunnyRent!</b>\n\nДобро пожаловать в мир аренды на Пхукете!\n\n📸 <b>Lazy Realtor</b>\nОтправьте фото + описание для создания черновика.\n\nФормат:\n• 📷 Фото объекта\n• 📝 Описание в подписи\n• 💰 Цена: "15000 THB"\n\n🏝 Ваш бот готов к работе!',
           parse_mode: 'HTML'
         })
       });
-      
       const data = await res.json();
+      
       if (data.ok) {
-        toast.success('✅ Test message sent!');
-        await logActivity('BOT_TEST', 'Test message sent to admin');
+        toast.success('🌴 Сообщение "Aloha" отправлено!');
+        await logActivity('ALOHA_SENT', 'Отправлено приветственное сообщение');
       } else {
-        toast.error('Failed to send message: ' + data.description);
+        toast.error('Ошибка: ' + data.description);
       }
     } catch (error) {
-      toast.error('Failed to send test message');
+      toast.error('Ошибка отправки');
     }
   }
 
@@ -208,17 +273,16 @@ export default function SystemControlPage() {
         })
       });
       
-      // Refresh activity list
       loadSystemStatus();
     } catch (error) {
       console.error('Failed to log activity:', error);
     }
   }
 
-  function formatDate(dateStr) {
-    if (!dateStr) return 'N/A';
-    const date = new Date(dateStr);
-    return date.toLocaleString('ru-RU', { 
+  function formatDate(date) {
+    if (!date) return 'Н/Д';
+    const d = date instanceof Date ? date : new Date(date);
+    return d.toLocaleString('ru-RU', { 
       day: '2-digit', 
       month: '2-digit', 
       hour: '2-digit', 
@@ -226,109 +290,112 @@ export default function SystemControlPage() {
     });
   }
 
+  function getStatusBadge() {
+    if (!webhookStatus?.isActive) {
+      return <Badge variant="destructive" className="flex items-center gap-1 text-xs"><WifiOff className="w-3 h-3" /> Офлайн</Badge>;
+    }
+    if (webhookStatus?.hasError) {
+      return <Badge className="bg-amber-500 flex items-center gap-1 text-xs"><AlertTriangle className="w-3 h-3" /> Ошибки</Badge>;
+    }
+    return <Badge className="bg-green-500 flex items-center gap-1 text-xs"><Wifi className="w-3 h-3" /> Онлайн</Badge>;
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Загрузка...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 flex items-center gap-3">
-            <Server className="w-8 h-8 text-teal-600" />
-            System Control Center
-          </h1>
-          <p className="text-slate-600 mt-1">Manage platform operations and integrations</p>
+    <div className="space-y-4 lg:space-y-6 max-w-full overflow-hidden px-1">
+      {/* Header - Mobile Optimized */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <Palmtree className="w-6 h-6 lg:w-8 lg:h-8 text-teal-600 flex-shrink-0" />
+            <h1 className="text-xl lg:text-2xl font-bold text-slate-900 truncate">
+              Центр управления
+            </h1>
+          </div>
+          <p className="text-sm text-slate-600">Управление платформой и интеграциями</p>
         </div>
-        <Badge variant={maintenanceMode ? "destructive" : "default"} className="text-sm px-3 py-1">
-          {maintenanceMode ? '🔴 Maintenance' : '🟢 Online'}
+        <Badge 
+          variant={maintenanceMode ? "destructive" : "default"} 
+          className="self-start sm:self-auto text-xs px-2 py-1 flex-shrink-0"
+        >
+          {maintenanceMode ? '🔴 Обслуживание' : '🟢 Работает'}
         </Badge>
       </div>
 
-      {/* Main Kill Switch */}
-      <Card className={`border-2 ${maintenanceMode ? 'border-red-500 bg-red-50' : 'border-teal-500 bg-teal-50'} shadow-lg`}>
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${maintenanceMode ? 'bg-red-500' : 'bg-teal-500'}`}>
-                <Power className="w-6 h-6 text-white" />
+      {/* Maintenance Mode - Mobile Optimized */}
+      <Card className={`border-2 ${maintenanceMode ? 'border-red-400 bg-red-50' : 'border-teal-400 bg-teal-50'}`}>
+        <CardContent className="p-4 lg:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3 min-w-0">
+              <div className={`w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${maintenanceMode ? 'bg-red-500' : 'bg-teal-500'}`}>
+                <Power className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
               </div>
-              <div>
-                <CardTitle className="text-xl">Maintenance Mode</CardTitle>
-                <CardDescription>Global kill switch for the public site</CardDescription>
+              <div className="min-w-0">
+                <h3 className="font-bold text-base lg:text-lg">Режим обслуживания</h3>
+                <p className="text-xs lg:text-sm text-slate-600">Глобальный выключатель публичного сайта</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <Label htmlFor="maintenance" className={`text-lg font-semibold ${maintenanceMode ? 'text-red-700' : 'text-teal-700'}`}>
-                {maintenanceMode ? 'ENABLED' : 'DISABLED'}
+            <div className="flex items-center gap-3 self-end sm:self-auto flex-shrink-0">
+              <Label className={`text-sm font-bold ${maintenanceMode ? 'text-red-700' : 'text-teal-700'}`}>
+                {maintenanceMode ? 'ВКЛ' : 'ВЫКЛ'}
               </Label>
               <Switch
-                id="maintenance"
                 checked={maintenanceMode}
                 onCheckedChange={handleMaintenanceToggle}
-                className="scale-125"
+                className="scale-110"
               />
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className={`p-4 rounded-lg ${maintenanceMode ? 'bg-red-100' : 'bg-teal-100'}`}>
+          <div className={`mt-4 p-3 rounded-lg text-sm ${maintenanceMode ? 'bg-red-100 text-red-700' : 'bg-teal-100 text-teal-700'}`}>
             <div className="flex items-center gap-2">
-              <AlertTriangle className={`w-5 h-5 ${maintenanceMode ? 'text-red-600' : 'text-teal-600'}`} />
-              <span className={`text-sm font-medium ${maintenanceMode ? 'text-red-700' : 'text-teal-700'}`}>
+              <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <span>
                 {maintenanceMode 
-                  ? 'Public site is DOWN. Only admins can access the platform.'
-                  : 'Platform is fully operational. All users can access the site.'}
+                  ? 'Сайт отключён. Доступ только для администраторов.'
+                  : 'Платформа полностью функциональна. Все пользователи имеют доступ.'}
               </span>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Telegram Webhook Management */}
-      <Card className="border-2 border-slate-200 shadow-lg">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
-                <Bot className="w-6 h-6 text-white" />
+      {/* Telegram Webhook - Mobile Optimized */}
+      <Card className="border-2 border-slate-200">
+        <CardHeader className="p-4 lg:p-6 pb-2 lg:pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Bot className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
               </div>
-              <div>
-                <CardTitle className="text-xl">Telegram Bot Webhook</CardTitle>
-                <CardDescription>Manage bot connectivity and status</CardDescription>
+              <div className="min-w-0">
+                <CardTitle className="text-base lg:text-lg">Вебхук Telegram-бота</CardTitle>
+                <CardDescription className="text-xs lg:text-sm">Подключение и диагностика</CardDescription>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {webhookStatus?.isActive ? (
-                <Badge className="bg-green-500 text-white flex items-center gap-1">
-                  <Wifi className="w-3 h-3" />
-                  Online
-                </Badge>
-              ) : (
-                <Badge variant="destructive" className="flex items-center gap-1">
-                  <WifiOff className="w-3 h-3" />
-                  Offline
-                </Badge>
-              )}
-            </div>
+            {getStatusBadge()}
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Webhook Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-slate-100 p-4 rounded-lg">
-              <Label className="text-xs text-slate-500 uppercase">Webhook URL</Label>
-              <p className="text-sm font-mono mt-1 break-all">
-                {webhookStatus?.url || 'Not configured'}
+        <CardContent className="p-4 lg:p-6 pt-2 space-y-4">
+          {/* Webhook Info - Stacked on Mobile */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="bg-slate-100 p-3 rounded-lg">
+              <Label className="text-xs text-slate-500 uppercase">URL вебхука</Label>
+              <p className="text-xs font-mono mt-1 break-all leading-relaxed">
+                {webhookStatus?.url || 'Не настроен'}
               </p>
             </div>
-            <div className="bg-slate-100 p-4 rounded-lg">
-              <Label className="text-xs text-slate-500 uppercase">Pending Updates</Label>
+            <div className="bg-slate-100 p-3 rounded-lg">
+              <Label className="text-xs text-slate-500 uppercase">Ожидающие обновления</Label>
               <p className="text-2xl font-bold text-slate-900 mt-1">
                 {webhookStatus?.pendingUpdates || 0}
               </p>
@@ -337,94 +404,121 @@ export default function SystemControlPage() {
           
           {/* Error Info */}
           {webhookStatus?.lastError && (
-            <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
-              <div className="flex items-center gap-2 text-amber-700">
-                <AlertTriangle className="w-4 h-4" />
-                <span className="font-medium">Last Error</span>
+            <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+              <div className="flex items-center gap-2 text-amber-700 mb-1">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span className="font-medium text-sm">Последняя ошибка</span>
               </div>
-              <p className="text-sm text-amber-600 mt-1">{webhookStatus.lastError}</p>
+              <p className="text-xs text-amber-600 break-all">{webhookStatus.lastError}</p>
               <p className="text-xs text-amber-500 mt-1">
-                {webhookStatus.lastErrorDate ? `at ${formatDate(webhookStatus.lastErrorDate)}` : ''}
+                {webhookStatus.lastErrorDate ? formatDate(webhookStatus.lastErrorDate) : ''}
               </p>
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex flex-wrap gap-3">
+          {/* Actions - Wrap on Mobile */}
+          <div className="flex flex-wrap gap-2">
             <Button
               onClick={handleRelinkWebhook}
               disabled={webhookLoading}
-              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+              size="sm"
+              className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white text-xs"
             >
               {webhookLoading ? (
-                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
               ) : (
-                <RefreshCw className="w-4 h-4 mr-2" />
+                <RefreshCw className="w-3 h-3 mr-1" />
               )}
-              Re-link Webhook
+              Переподключить
             </Button>
             <Button
-              onClick={handleSendTestMessage}
+              onClick={handleTestConnection}
+              disabled={testingConnection}
+              size="sm"
               variant="outline"
-              className="border-teal-500 text-teal-700 hover:bg-teal-50"
+              className="border-purple-500 text-purple-700 hover:bg-purple-50 text-xs"
             >
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Send Test "Aloha!"
+              {testingConnection ? (
+                <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+              ) : (
+                <TestTube className="w-3 h-3 mr-1" />
+              )}
+              Тест связи
+            </Button>
+            <Button
+              onClick={handleSendAloha}
+              size="sm"
+              variant="outline"
+              className="border-teal-500 text-teal-700 hover:bg-teal-50 text-xs"
+            >
+              <Palmtree className="w-3 h-3 mr-1" />
+              Отправить "Aloha"
             </Button>
             <Button
               onClick={checkWebhookStatus}
+              size="sm"
               variant="outline"
+              className="text-xs"
             >
-              <Activity className="w-4 h-4 mr-2" />
-              Refresh Status
+              <Activity className="w-3 h-3 mr-1" />
+              Обновить
             </Button>
+          </div>
+          
+          {/* Help Text */}
+          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg text-xs text-blue-700">
+            <p className="font-medium mb-1">💡 Диагностика:</p>
+            <ul className="list-disc list-inside space-y-0.5 text-blue-600">
+              <li>502 ошибка = сервер перезапускается (подождите 30 сек)</li>
+              <li>Используйте "Тест связи" для проверки соединения</li>
+              <li>Кнопка "Aloha" отправляет сообщение напрямую</li>
+            </ul>
           </div>
         </CardContent>
       </Card>
 
-      {/* Recent Activity Log */}
-      <Card className="border-2 border-slate-200 shadow-lg">
-        <CardHeader>
+      {/* Recent Activity - Mobile Optimized */}
+      <Card className="border-2 border-slate-200">
+        <CardHeader className="p-4 lg:p-6 pb-2">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-              <Activity className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Activity className="w-5 h-5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-xl">Recent System Activity</CardTitle>
-              <CardDescription>Last 10 system events</CardDescription>
+              <CardTitle className="text-base lg:text-lg">Журнал активности</CardTitle>
+              <CardDescription className="text-xs">Последние 10 событий</CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 lg:p-6 pt-2">
           {recentActivity.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
-              <Clock className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>No recent activity</p>
+            <div className="text-center py-6 text-slate-500">
+              <Clock className="w-10 h-10 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">Нет активности</p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
               {recentActivity.slice(0, 10).map((event, idx) => (
                 <div 
                   key={event.id || idx} 
-                  className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
+                  className="flex items-start sm:items-center justify-between gap-2 p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-2 h-2 rounded-full ${
+                  <div className="flex items-start sm:items-center gap-2 min-w-0">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 mt-1.5 sm:mt-0 ${
                       event.action?.includes('ERROR') ? 'bg-red-500' :
                       event.action?.includes('MAINTENANCE') ? 'bg-amber-500' :
                       'bg-green-500'
                     }`} />
-                    <div>
-                      <span className="font-medium text-sm text-slate-900">
-                        {event.action || 'Unknown Action'}
+                    <div className="min-w-0">
+                      <span className="font-medium text-xs text-slate-900 block truncate">
+                        {event.action || 'Неизвестно'}
                       </span>
-                      <p className="text-xs text-slate-500">{event.details || ''}</p>
+                      <p className="text-xs text-slate-500 truncate">{event.details || ''}</p>
                     </div>
                   </div>
-                  <div className="text-xs text-slate-400 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
+                  <span className="text-xs text-slate-400 flex-shrink-0 whitespace-nowrap">
                     {formatDate(event.created_at)}
-                  </div>
+                  </span>
                 </div>
               ))}
             </div>
@@ -432,46 +526,46 @@ export default function SystemControlPage() {
         </CardContent>
       </Card>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Quick Stats - Mobile Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card className="bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-200">
-          <CardContent className="pt-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-teal-600 font-medium">System Status</p>
-                <p className="text-2xl font-bold text-teal-900">
-                  {maintenanceMode ? 'Maintenance' : 'Operational'}
+                <p className="text-xs text-teal-600 font-medium">Статус системы</p>
+                <p className="text-lg font-bold text-teal-900">
+                  {maintenanceMode ? 'Обслуживание' : 'Работает'}
                 </p>
               </div>
-              <Shield className={`w-10 h-10 ${maintenanceMode ? 'text-amber-500' : 'text-teal-500'}`} />
+              <Shield className={`w-8 h-8 ${maintenanceMode ? 'text-amber-500' : 'text-teal-500'}`} />
             </div>
           </CardContent>
         </Card>
         
         <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-          <CardContent className="pt-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-blue-600 font-medium">Bot Status</p>
-                <p className="text-2xl font-bold text-blue-900">
-                  {webhookStatus?.isActive ? 'Connected' : 'Disconnected'}
+                <p className="text-xs text-blue-600 font-medium">Статус бота</p>
+                <p className="text-lg font-bold text-blue-900">
+                  {webhookStatus?.hasError ? 'Ошибки' : webhookStatus?.isActive ? 'Подключён' : 'Офлайн'}
                 </p>
               </div>
-              <Bot className={`w-10 h-10 ${webhookStatus?.isActive ? 'text-blue-500' : 'text-red-500'}`} />
+              <Bot className={`w-8 h-8 ${webhookStatus?.isActive && !webhookStatus?.hasError ? 'text-blue-500' : 'text-red-500'}`} />
             </div>
           </CardContent>
         </Card>
         
         <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
-          <CardContent className="pt-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-purple-600 font-medium">Pending Updates</p>
-                <p className="text-2xl font-bold text-purple-900">
+                <p className="text-xs text-purple-600 font-medium">В очереди</p>
+                <p className="text-lg font-bold text-purple-900">
                   {webhookStatus?.pendingUpdates || 0}
                 </p>
               </div>
-              <Zap className="w-10 h-10 text-purple-500" />
+              <Zap className="w-8 h-8 text-purple-500" />
             </div>
           </CardContent>
         </Card>
