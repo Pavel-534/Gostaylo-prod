@@ -573,13 +573,13 @@ export default function FunnyRentHome() {
                         </div>
                         {listing.reviewsCount > 0 && (
                           <div className="text-xs text-slate-500">
-                            {listing.reviewsCount} {listing.reviewsCount === 1 ? 'отзыв' : listing.reviewsCount < 5 ? 'отзыва' : 'отзывов'}
+                            {listing.reviewsCount} {getUIText('reviews', language)}
                           </div>
                         )}
                         <div className="flex items-center justify-between">
                           {listing.hasSeasonalPricing && !dateRange.from ? (
                             <div>
-                              <div className="text-sm text-slate-500 mb-1">от</div>
+                              <div className="text-sm text-slate-500 mb-1">{getUIText('priceFrom', language)}</div>
                               <span className="text-2xl font-bold text-teal-600">
                                 {formatPrice(convertPrice(listing.lowestSeasonalPrice), currency)}
                               </span>
@@ -589,18 +589,20 @@ export default function FunnyRentHome() {
                               {formatPrice(convertPrice(listing.currentPrice || listing.basePriceThb), currency)}
                             </span>
                           )}
-                          <span className="text-sm text-slate-500">/день</span>
+                          <span className="text-sm text-slate-500">/{getUIText('pricePerDay', language)}</span>
                         </div>
                         {dateRange.from && dateRange.to && listing.hasSeasonalPricing && (
                           <Badge className="bg-teal-100 text-teal-700 text-xs">
-                            Сезонная цена
+                            {language === 'ru' ? 'Сезонная цена' : 
+                             language === 'en' ? 'Seasonal price' :
+                             language === 'zh' ? '季节价格' : 'ราคาตามฤดูกาล'}
                           </Badge>
                         )}
                       </div>
                     </CardContent>
                     <CardFooter>
                       <Button className="w-full bg-teal-600 hover:bg-teal-700">
-                        Забронировать
+                        {getUIText('bookNow', language)}
                       </Button>
                     </CardFooter>
                   </Card>
