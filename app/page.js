@@ -572,6 +572,17 @@ export default function FunnyRentHome() {
                           <MapPin className="h-4 w-4" />
                           <span>{listing.district}</span>
                         </div>
+                        {/* Bedrooms/Bathrooms - Localized */}
+                        {(listing.bedrooms || listing.bathrooms) && (
+                          <div className="flex items-center gap-3 text-xs text-slate-500">
+                            {listing.bedrooms && (
+                              <span>{listing.bedrooms} {getUIText('bedrooms', language)}</span>
+                            )}
+                            {listing.bathrooms && (
+                              <span>{listing.bathrooms} {getUIText('bathrooms', language)}</span>
+                            )}
+                          </div>
+                        )}
                         {listing.reviewsCount > 0 && (
                           <div className="text-xs text-slate-500">
                             {listing.reviewsCount} {getUIText('reviews', language)}
