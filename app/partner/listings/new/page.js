@@ -185,15 +185,19 @@ export default function NewListing() {
               <div className="space-y-2">
                 <Label htmlFor="category">Категория *</Label>
                 <Select value={formData.categoryId} onValueChange={(v) => handleInputChange('categoryId', v)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Выберите категорию" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.icon} {cat.name}
-                      </SelectItem>
-                    ))}
+                  <SelectContent className="z-50 min-w-[200px]">
+                    {categories.length === 0 ? (
+                      <SelectItem value="loading" disabled>Загрузка...</SelectItem>
+                    ) : (
+                      categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
