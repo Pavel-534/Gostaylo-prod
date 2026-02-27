@@ -288,10 +288,10 @@ export default function FunnyRentHome() {
                       {loginLoading ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Загрузка...
+                          {getUIText('loading', language)}
                         </>
                       ) : (
-                        'Войти'
+                        getUIText('loginButton', language)
                       )}
                     </Button>
                     <div className="relative">
