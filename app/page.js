@@ -614,11 +614,11 @@ export default function FunnyRentHome() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Footer - Fully Localized */}
       <footer className="bg-slate-900 text-white py-12">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+            <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-xl">FR</span>
@@ -626,42 +626,42 @@ export default function FunnyRentHome() {
                 <span className="text-xl font-bold">FunnyRent</span>
               </div>
               <p className="text-slate-400 text-sm">
-                Глобальный агрегатор аренды и услуг на Пхукете
+                {getUIText('footerDesc', language)}
               </p>
             </div>
             
             <div>
-              <h4 className="font-semibold mb-4">Категории</h4>
+              <h4 className="font-semibold mb-4">{getUIText('footerCategories', language)}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
-                <li>Недвижимость</li>
-                <li>Транспорт</li>
-                <li>Туры</li>
-                <li>Яхты</li>
+                <li>{getCategoryName('property', language)}</li>
+                <li>{getCategoryName('vehicles', language)}</li>
+                <li>{getCategoryName('tours', language)}</li>
+                <li>{getCategoryName('yachts', language)}</li>
               </ul>
             </div>
             
             <div>
-              <h4 className="font-semibold mb-4">Компания</h4>
+              <h4 className="font-semibold mb-4">{getUIText('footerCompany', language)}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
-                <li>О нас</li>
-                <li>Партнёрам</li>
-                <li>Контакты</li>
-                <li>Блог</li>
+                <li>{getUIText('aboutUs', language)}</li>
+                <li>{getUIText('careers', language)}</li>
+                <li>{getUIText('contactUs', language)}</li>
+                <li>{getUIText('blog', language)}</li>
               </ul>
             </div>
             
             <div>
-              <h4 className="font-semibold mb-4">Поддержка</h4>
+              <h4 className="font-semibold mb-4">{getUIText('footerSupport', language)}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
-                <li>Помощь</li>
-                <li>Условия</li>
-                <li>Конфиденциальность</li>
+                <li>{getUIText('helpCenter', language)}</li>
+                <li>{getUIText('terms', language)}</li>
+                <li>{getUIText('privacyPolicy', language)}</li>
               </ul>
             </div>
           </div>
           
           <div className="border-t border-slate-800 mt-8 pt-8 text-center text-sm text-slate-400">
-            <p>&copy; 2025 FunnyRent. Все права защищены.</p>
+            <p>&copy; 2025 FunnyRent. {getUIText('allRightsReserved', language)}</p>
           </div>
         </div>
       </footer>
