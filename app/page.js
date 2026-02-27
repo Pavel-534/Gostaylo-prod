@@ -193,8 +193,8 @@ export default function FunnyRentHome() {
               </div>
             </div>
 
-            {/* Currency & Language Switchers */}
-            <div className="flex items-center gap-2 sm:gap-4">
+            {/* Currency & Language Switchers - with margin from logo */}
+            <div className="flex items-center gap-2 sm:gap-4 ml-6">
               {/* Language Switcher */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
