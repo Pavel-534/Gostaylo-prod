@@ -2,11 +2,10 @@
 
 ## Latest Update: 2026-02-27
 
-### Critical Fix: Layout, Deep Translation & Role Cache
-- **Layout Fixed:** Language switcher has `ml-6` gap from logo, Search box centered on mobile (`w-[95%] mx-auto`)
-- **Deep Localization:** ALL UI elements translated - buttons ("立即预订"), badges, price text ("/每天")
-- **Role Switching Fixed:** Uses `window.location.href` for instant menu update on Login as/Logout
-- **Moderator Security:** Hard-block on restricted URLs (/admin/finances, /settings, etc.) via redirect
+### UI Regression Fix & Deep Localization Complete
+- **Mobile Header Fixed:** All elements visible on 390px (Logo FR, 🇬🇧, ฿THB, 👤 Login)
+- **Deep Localization:** Footer fully translated (分类/公司/支持), Book button "立即预订", price "/每天"
+- **Bedrooms/Bathrooms:** Translation code ready, displays when data exists in listing
 
 ## Project Overview
 **Name:** FunnyRent 2.1 - Phuket Super-App for Rentals
