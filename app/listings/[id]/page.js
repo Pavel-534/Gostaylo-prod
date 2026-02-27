@@ -461,52 +461,6 @@ export default function ListingDetail({ params }) {
                 </CardContent>
               </Card>
             )}
-                      <div className="flex items-center gap-2">
-                        <Square className="h-5 w-5 text-teal-600" />
-                        <span>{listing.metadata.area} м²</span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Reviews */}
-            {reviews.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Отзывы</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {reviews.map((review) => (
-                    <div key={review.id} className="border-b pb-4 last:border-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="flex">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-4 w-4 ${
-                                i < review.rating
-                                  ? 'fill-amber-400 text-amber-400'
-                                  : 'fill-slate-200 text-slate-200'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="font-semibold">{review.renterName}</span>
-                      </div>
-                      <p className="text-slate-700">{review.comment}</p>
-                      {review.partnerReply && (
-                        <div className="mt-2 ml-6 pl-4 border-l-2 border-teal-200 bg-teal-50 p-3 rounded-r">
-                          <p className="text-sm font-semibold text-teal-900 mb-1">Ответ партнёра</p>
-                          <p className="text-slate-700">{review.partnerReply.text}</p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            )}
           </div>
 
           {/* Sidebar - Booking Card */}
@@ -517,17 +471,102 @@ export default function ListingDetail({ params }) {
                   <span className="text-3xl font-bold text-teal-600">
                     {formatPrice(listing.basePriceThb, 'THB')}
                   </span>
-                  <span className="text-slate-600">/ день</span>
+                  <span className="text-slate-600">/ {t.perDay}</span>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Dialog open={bookingModalOpen} onOpenChange={setBookingModalOpen}>
                   <DialogTrigger asChild>
                     <Button className="w-full bg-teal-600 hover:bg-teal-700 text-lg py-6">
-                      Забронировать
+                      {t.bookNow}
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>{t.bookingRequest}</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleBookingSubmit} className="space-y-4">
+                      <div>
+                        <Label>{t.yourName}</Label>
+                        <Input
+                          value={guestName}
+                          onChange={(e) => setGuestName(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>{t.email}</Label>
+                        <Input
+                          type="email"
+                          value={guestEmail}
+                          onChange={(e) => setGuestEmail(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>{t.phone}</Label>
+                        <Input
+                          value={guestPhone}
+                          onChange={(e) => setGuestPhone(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>{t.checkInDate}</Label>
+                          <Input
+                            type="date"
+                            value={checkIn}
+                            onChange={(e) => setCheckIn(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label>{t.checkOutDate}</Label>
+                          <Input
+                            type="date"
+                            value={checkOut}
+                            onChange={(e) => setCheckOut(e.target.value)}
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label>{t.messageLabel}</Label>
+                        <Textarea
+                          value={message}
+                          onChange={(e) => setMessage(e.target.value)}
+                          placeholder={t.messagePlaceholder}
+                        />
+                      </div>
+                      <Button
+                        type="submit"
+                        className="w-full bg-teal-600 hover:bg-teal-700"
+                        disabled={submitting}
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            {t.submitting}
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-2" />
+                            {t.submit}
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
                     <DialogHeader>
                       <DialogTitle>Запрос на бронирование</DialogTitle>
                     </DialogHeader>
