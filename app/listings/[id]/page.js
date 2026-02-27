@@ -271,15 +271,15 @@ export default function ListingDetail({ params }) {
       const data = await res.json()
       
       if (res.ok && data.length > 0) {
-        toast.success('Заявка отправлена! Ожидайте подтверждения.')
+        toast.success(t.successMsg)
         setBookingModalOpen(false)
         router.push(`/checkout/${data[0].id}`)
       } else {
-        toast.error('Ошибка при создании заявки')
+        toast.error(t.errorMsg)
       }
     } catch (error) {
       console.error('Booking error:', error)
-      toast.error('Ошибка при создании заявки')
+      toast.error(t.errorMsg)
     }
     setSubmitting(false)
   }
