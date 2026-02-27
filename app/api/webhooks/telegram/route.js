@@ -246,12 +246,15 @@ async function handleTelegramUpdate(update) {
     
     if (!partner) {
       await sendMessage(chatId,
-        `❌ <b>Аккаунт не привязан</b>\n\n` +
-        `Чтобы создавать объявления, привяжите свой аккаунт:\n\n` +
-        `/link ваш@email.com`
+        `❌ <b>Account not linked</b>\n\n` +
+        `To create listings, link your account first:\n\n` +
+        `<code>/link your@email.com</code>`
       );
       return { action: 'photo_not_linked' };
     }
+    
+    // Send processing message
+    await sendMessage(chatId, `🏝 <b>Working on your draft...</b>\n\nProcessing your tropical property... 🌴`);
     
     // Get photo URL
     const photoUrl = await getPhotoUrl(fileId);
@@ -260,21 +263,21 @@ async function handleTelegramUpdate(update) {
     const listing = await createDraftListing(partner.id, caption, fileId, photoUrl);
     
     if (!listing) {
-      await sendMessage(chatId, `❌ Ошибка создания объявления. Попробуйте позже.`);
+      await sendMessage(chatId, `❌ Error creating listing. Please try again later.`);
       return { action: 'photo_create_error' };
     }
     
-    const dashboardUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/partner/listings`;
+    const dashboardUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/partner/listings`;
     
     await sendMessage(chatId,
-      `✅ <b>Черновик создан!</b>\n\n` +
-      `📝 ${listing.title}\n\n` +
-      `Объявление сохранено как черновик.\n` +
-      `Откройте личный кабинет, чтобы:\n` +
-      `• Добавить больше фото\n` +
-      `• Указать точную цену и адрес\n` +
-      `• Опубликовать объявление\n\n` +
-      `🔗 <a href="${dashboardUrl}">Открыть личный кабинет</a>`
+      `✅ <b>Draft Created!</b> 🎉\n\n` +
+      `📝 <b>${listing.title}</b>\n\n` +
+      `Your listing is saved as a draft.\n` +
+      `Open your Dashboard to:\n` +
+      `• Add more photos 📷\n` +
+      `• Set exact price & location 📍\n` +
+      `• Publish when ready 🚀\n\n` +
+      `🔗 <a href="${dashboardUrl}">Open Partner Dashboard</a>`
     );
     
     console.log(`[LAZY REALTOR] Created draft listing ${listing.id} for partner ${partner.email}`);
@@ -284,10 +287,10 @@ async function handleTelegramUpdate(update) {
   // Handle text-only message
   if (text && !photo) {
     await sendMessage(chatId,
-      `📸 <b>Отправьте фото!</b>\n\n` +
-      `Чтобы создать объявление через Lazy Realtor,\n` +
-      `отправьте фото с описанием в подписи.\n\n` +
-      `Или используйте /help для справки.`
+      `📸 <b>Send a photo!</b>\n\n` +
+      `To create a listing with Lazy Realtor,\n` +
+      `send a photo with description in the caption.\n\n` +
+      `Type /help for more info 🌴`
     );
     return { action: 'text_only_hint' };
   }
