@@ -217,37 +217,44 @@ export default function AdminLayout({ children }) {
 
       {/* Main Content Area */}
       <div className="flex flex-1">
-        {/* Sidebar */}
+        {/* Sidebar - Premium Deep Sea Design */}
         <aside
           className={`${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          } w-64 bg-gradient-to-b from-indigo-900 via-indigo-800 to-purple-900 text-white transition-all duration-300 flex flex-col fixed h-screen z-30`}
+          } w-64 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white transition-all duration-300 ease-out flex flex-col fixed h-screen z-50 lg:z-30 shadow-2xl`}
         >
         {/* Logo */}
-        <div className="p-4 lg:p-6 border-b border-indigo-700 flex items-center justify-between">
+        <div className="p-5 border-b border-slate-700/50 flex items-center justify-between">
           <div className={`${!sidebarOpen && 'lg:hidden'}`}>
-            <h1 className="text-xl lg:text-2xl font-bold">FunnyRent</h1>
-            <p className="text-xs text-indigo-300 mt-1">
-              {user?.isModerator ? 'Moderator Panel' : 'Admin Panel'}
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20">
+                <span className="text-white text-sm font-bold">FR</span>
+              </div>
+              <div>
+                <h1 className="text-lg font-bold tracking-tight">FunnyRent</h1>
+                <p className="text-[10px] text-teal-400 font-medium uppercase tracking-wider">
+                  {user?.isModerator ? 'Moderator' : 'Admin Panel'}
+                </p>
+              </div>
+            </div>
           </div>
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-indigo-700 rounded-lg transition-colors hidden lg:block"
+            className="p-2 hover:bg-white/10 rounded-lg transition-all hidden lg:block"
           >
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           {/* Mobile close button */}
           <button
             onClick={() => setSidebarOpen(false)}
-            className="p-2 hover:bg-indigo-700 rounded-lg transition-colors lg:hidden"
+            className="p-2 hover:bg-white/10 rounded-lg transition-all lg:hidden"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-3 lg:p-4 space-y-1 lg:space-y-2 overflow-y-auto">
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -261,28 +268,28 @@ export default function AdminLayout({ children }) {
                     setSidebarOpen(false);
                   }
                 }}
-                className={`flex items-center gap-3 p-3 lg:p-3 rounded-lg transition-all min-h-[48px] ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                   isActive
-                    ? 'bg-white text-indigo-900 shadow-lg'
-                    : 'text-indigo-100 hover:bg-indigo-700 active:bg-indigo-600'
+                    ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg shadow-teal-500/30'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white active:scale-[0.98]'
                 }`}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                <span className="font-medium">{item.label}</span>
+                <Icon className={`w-5 h-5 ${isActive ? '' : 'opacity-70'}`} />
+                <span className="font-medium text-sm">{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
         {/* User Info */}
-        <div className="p-3 lg:p-4 border-t border-indigo-700">
-          <div>
+        <div className="p-4 border-t border-slate-700/50">
+          <div className="bg-slate-800/50 rounded-xl p-3">
             <p className="text-sm font-semibold text-white truncate">{user?.name}</p>
-            <p className="text-xs text-indigo-300 truncate">{user?.email}</p>
+            <p className="text-xs text-slate-400 truncate mt-0.5">{user?.email}</p>
             <Button
               variant="ghost"
               size="sm"
-              className="mt-3 w-full text-red-300 hover:text-red-200 hover:bg-red-900/20 min-h-[44px]"
+              className="mt-3 w-full text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"
               onClick={handleLogout}
             >
               <LogOut className="w-4 h-4 mr-2" />
