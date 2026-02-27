@@ -52,9 +52,26 @@ export default function AdminLayout({ children }) {
       const storedUser = localStorage.getItem('funnyrent_user');
       if (storedUser) {
         const parsed = JSON.parse(storedUser);
+        // Check if user has moderator marker in lastName
+        const isModerator = parsed.isModerator || (parsed.lastName && parsed.lastName.includes('[MODERATOR]'));
+        
         // Allow ADMIN and MODERATOR roles
-        if (parsed.role === 'ADMIN' || parsed.role === 'MODERATOR' || parsed.isModerator) {
-          setUser(parsed);
+        if (parsed.role === 'ADMIN' || parsed.role === 'MODERATOR' || isModerator) {
+          // Update user state with correct isModerator flag
+          const userWithModerator = { ...parsed, isModerator };
+          setUser(userWithModerator);
+          
+          // HARD-BLOCK: If moderator tries to access restricted pages via URL
+          if (isModerator) {
+            const restrictedPaths = ['/admin/finances', '/admin/users', '/admin/marketing', '/admin/security', '/admin/settings'];
+            const currentPath = window.location.pathname;
+            if (restrictedPaths.some(path => currentPath.startsWith(path))) {
+              // Redirect moderator away from restricted pages
+              window.location.href = '/admin/dashboard';
+              return;
+            }
+          }
+          
           // Check for impersonation state
           if (parsed.isImpersonated) {
             setIsImpersonating(true);
