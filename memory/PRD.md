@@ -1,67 +1,68 @@
 # FunnyRent 2.1 - Product Requirements Document
 
-## Latest Update: 2026-02-27 - System Control Center Complete ✅
+## Latest Update: 2026-02-27 - Mobile Optimization & Full Russification ✅
 
-### Admin System Control Center (P0) ✅
-- **NEW Route:** `/admin/system` — centralized system management
-- **Maintenance Mode:** Toggle with kill switch functionality
-- **Telegram Webhook Management:**
-  - Status indicator (Online/Offline)
-  - Re-link Webhook button
-  - Send Test "Aloha!" button
-  - Refresh Status button
-  - Last error display
-  - Pending updates count
-- **Recent Activity Log:** Last 10 system events
-- **Quick Stats:** System Status, Bot Status, Pending Updates
+### Mobile UI Optimization (P0) ✅
+- **System Control Center** теперь полностью responsive
+- Одноколоночный layout для мобильных устройств
+- Toggle и кнопки не выходят за границы экрана
+- `max-w-full` и proper padding на всех элементах
 
-### Global Translations Fix (P0) ✅
-- **Footer:** Removed duplicate Russian footer from layout.js
-- **Single localized footer** per page using getUIText()
-- **Languages:** RU, EN, ZH, TH
+### Full Russification (P0) ✅
+Полная русификация Центра управления:
+- "System Control Center" → "Центр управления"
+- "Maintenance Mode" → "Режим обслуживания"
+- "Global kill switch" → "Глобальный выключатель публичного сайта"
+- "Telegram Bot Webhook" → "Вебхук Telegram-бота"
+- "Platform is fully operational" → "Платформа полностью функциональна"
+- "Online/Offline" → "Онлайн/Офлайн"
+- "Pending updates" → "Ожидающие обновления"
+- "Activity Log" → "Журнал активности"
+- "Test Connection" → "Тест связи"
 
-### Bot Reliability Optimization (P0) ✅
-- **Edge Runtime:** Webhook converted to Edge for better reliability
-- **Direct Supabase API:** No more K8s ingress issues
-- **Bot responds "Aloha!"** to /start command
+### Webhook Diagnostics (P0) ✅
+- **"Тест связи"** кнопка — проверяет соединение с Telegram API
+- **"Отправить Aloha"** — отправляет приветственное сообщение напрямую
+- **💡 Диагностика** блок с советами:
+  - 502 ошибка = сервер перезапускается
+  - Используйте "Тест связи" для проверки
+  - Кнопка "Aloha" отправляет сообщение напрямую
+- Webhook переподключён успешно (0 pending, no errors)
 
 ### UI Polish ✅
-- **Admin Sidebar:** No overlap in top-left corner
-- **Navigation:** System menu item added after Dashboard
-- **Consistent Tropical design** across Admin/Partner
+- 🌴 Palmtree иконка в заголовке
+- Premium Tropical gradient cards
+- Consistent design на Admin и Partner dashboards
+- Mobile-first responsive layout
 
 ## Previous Updates
 
-### Listings Page Data Sync ✅
-- Prices display correctly (not ฿0)
-- Bedrooms/bathrooms from metadata
-- Full localization
+### Admin System Control Center ✅
+- Maintenance Mode kill switch
+- Telegram Webhook Management
+- Recent Activity Log
+- Quick Stats cards
 
-### Listing Creation Fix ✅
-- Direct Supabase insert
-- All required fields populated
+### Global Translations ✅
+- Removed duplicate footer
+- Single localized footer per page
+- Languages: RU, EN, ZH, TH
+
+### Bot Edge Runtime ✅
+- Webhook on Edge Runtime
+- Direct Supabase API calls
+- "Aloha!" response working
 
 ## Working Features
-1. ✅ **Homepage** - Full localization, single footer
-2. ✅ **Listings Page** - Prices, stats, translations
-3. ✅ **Admin System Page** - Maintenance + Webhook control
-4. ✅ **Admin Sidebar** - Clean, no overlap
-5. ✅ **Telegram Bot** - Edge Runtime, "Aloha!" response
-6. ✅ **Partner Dashboard** - Welcome banner, drafts
-
-## API & Pages Status
-| Route | Status |
-|-------|--------|
-| / (Homepage) | ✅ Working |
-| /listings | ✅ Working |
-| /admin/system | ✅ NEW - Control Center |
-| /admin/dashboard | ✅ Working |
-| /partner/* | ✅ Working |
-| /api/webhooks/telegram | ✅ Edge Runtime |
+1. ✅ **System Control Center** — Полная русификация + mobile-first
+2. ✅ **Homepage** — Full localization
+3. ✅ **Listings Page** — Prices, stats, translations
+4. ✅ **Telegram Bot** — Edge Runtime, Aloha working
+5. ✅ **Admin Panel** — Premium design, no overlap
 
 ## Next Priority Tasks
-1. 🔴 **P0: Real Authentication** - bcrypt + sessions
-2. 🟡 **P1: iCal Sync Backend** - Parse/block dates
+1. 🔴 **P0: Real Authentication** — текущий логин MOCK
+2. 🟡 **P1: iCal Sync Backend** — Parse/block dates
 3. 🟡 **P1: Localize 404 pages**
 
 ## Test Credentials
@@ -72,6 +73,6 @@
 
 ## Tech Stack
 - **Framework:** Next.js 14.2.3
-- **Database:** Supabase PostgreSQL
+- **Database:** Supabase PostgreSQL  
 - **Bot:** Telegram Bot API (Edge Runtime)
 - **UI:** Tailwind CSS, Shadcn/UI
