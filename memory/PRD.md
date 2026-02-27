@@ -2,108 +2,89 @@
 
 ## Latest Update: 2026-02-27
 
-### Lazy Realtor (Stage 20.1) Complete ✅
-- **Telegram Webhook:** `/api/webhooks/telegram` - полностью реализован
-- **Partner Account Linking:** Команда `/link email@example.com` связывает Telegram с платформой
-- **Draft Listings via Telegram:** Партнёр отправляет фото + описание → создаётся черновик в БД
-- **Price Extraction:** Автоматическое извлечение цены из текста (15000 THB, 15000 бат)
-- **Regression Test PASSED:** Уведомления в топики 15, 16, 17 работают корректно
+### Global UI Refinement & Premium Tropical Branding Complete ✅
 
-### Logo Redesign & Full Listing Localization (Previous)
-- **Stacked Logo:** "Funny" (black) / "Rent" (teal, offset) - compact 2-line design
-- **Listing Detail 100% Localized:** Title, Description, Features, Amenities, Buttons all translated
-- **Multi-language:** RU, EN, TH, ZH
+**Design System Updates:**
+- **Color Palette:** Deep Sea (#0F172A), Crystal Teal (#14B8A6), Sand (#FDE047)
+- **Admin Panel:** Premium gradient sidebar, teal-highlighted navigation, backdrop-blur top bar
+- **Partner Dashboard:** Tropical welcome banner with palm icon, draft badges, gradient action buttons
+- **Mobile:** Fixed overlap/glitch in admin header, proper z-index layering
+
+**Functional Fixes:**
+- Admin menu mobile overlap: FIXED ✅
+- Telegram bot "Silent Mode": FIXED - Full feedback loop enabled ✅
+- Partner Dashboard drafts: Draft badges with amber highlighting ✅
+
+**Telegram Bot Updates:**
+- Welcome messages with tropical theme 🌴
+- Clear error messages for failed links
+- Processing indicator for photo uploads
+- Success confirmation with dashboard link
+
+## Previous Updates
+
+### Lazy Realtor (Stage 20.1) Complete ✅
+- Telegram Webhook `/api/webhooks/telegram` fully implemented
+- Partner Account Linking via `/link email`
+- Draft Listings from Telegram photos
+- Price Extraction from captions (THB/бат)
+- Regression tests PASSED for Threads 15, 16, 17
 
 ## Project Overview
 **Name:** FunnyRent 2.1 - Phuket Super-App for Rentals
 **Super Admin:** Pavel B. (admin-777)
 **Stack:** Next.js 14, Tailwind CSS, Lucide Icons, Supabase PostgreSQL
-**Telegram Bot:** @FunnyRentBot (Token: 8702569258:...)
+**Telegram Bot:** @FunnyRentBot
 
-## Current Status: Stage 20.1 Complete ✅
-
-### What Was Completed Today (2026-02-27)
-
-#### Lazy Realtor Feature
-1. **Telegram Webhook Handler** (`/api/webhooks/telegram`)
-   - ✅ `/start` - Приветствие и инструкции
-   - ✅ `/help` - Справка по командам
-   - ✅ `/link EMAIL` - Привязка Telegram к аккаунту партнёра
-   - ✅ Photo + Caption → Draft Listing creation
-   
-2. **Draft Listing Creation**
-   - ✅ Парсинг цены из caption (THB/бат/฿)
-   - ✅ Извлечение title из первой строки
-   - ✅ Сохранение telegram_file_id в metadata
-   - ✅ Статус PENDING + is_draft: true в metadata
-   - ✅ available: false до публикации
-   
-3. **Partner Linking**
-   - ✅ Связывание telegram_id с profiles
-   - ✅ telegram_linked: true после успешной привязки
-   - ✅ Проверка роли PARTNER/ADMIN
-
-4. **Telegram Notifications Regression**
-   - ✅ Thread 15 (BOOKINGS) - Работает
-   - ✅ Thread 16 (FINANCE) - Работает
-   - ✅ Thread 17 (NEW_PARTNERS) - Работает
-
-### Database Status (Supabase)
-- ✅ 16 tables created with TEXT IDs
-- ✅ profiles.telegram_id - для связи с Telegram
-- ✅ profiles.telegram_linked - флаг привязки
-- ✅ listings.metadata.is_draft - маркер черновика
-- ✅ listings.metadata.telegram_file_id - ID фото из Telegram
+## Current Status: Premium Tropical UI Complete ✅
 
 ### Telegram Bot Commands
-| Command | Description |
-|---------|-------------|
-| /start | Приветствие и инструкции |
-| /help | Справка по Lazy Realtor |
-| /link EMAIL | Привязать аккаунт партнёра |
-| Photo + Caption | Создать черновик объявления |
+| Command | Description | Response |
+|---------|-------------|----------|
+| /start | Welcome message | Tropical welcome with instructions |
+| /help | Help guide | Commands list and Lazy Realtor info |
+| /link EMAIL | Link account | ✅ Account linked! / ❌ Email not found |
+| Photo + Caption | Create draft | 🏝 Working... → ✅ Draft Created! |
 
-### v2 API Endpoints (Service-Oriented Architecture)
+### Partner Dashboard Features
+- **Welcome Banner:** "Welcome to the Island, [Name]! 🌴"
+- **Telegram Drafts Section:** Shows draft listings with amber badge
+- **Quick Actions:** Premium gradient buttons with hover animations
+- **Stats Cards:** Hover effects with shadow transitions
+
+### Admin Panel Design
+- **Sidebar:** Deep Sea gradient (#0F172A → #0F172A via #1E293B)
+- **Active Menu:** Teal gradient with shadow glow
+- **Top Bar:** Glass-morphism with backdrop blur
+- **Status Badge:** Green dot + "Admin • Pavel B."
+
+## v2 API Endpoints
 | Endpoint | Status |
 |----------|--------|
+| /api/webhooks/telegram | ✅ Lazy Realtor + Notifications |
 | /api/v2/categories | ✅ Working |
 | /api/v2/listings | ✅ Working |
-| /api/v2/listings/[id] | ✅ Working |
 | /api/v2/bookings | ✅ Working |
 | /api/v2/auth/login | ✅ Working (MOCK) |
 | /api/v2/admin/stats | ✅ Working |
 | /api/v2/partner/stats | ✅ Working |
-| /api/webhooks/telegram | ✅ NEW - Lazy Realtor |
-
-### Service Layer (/app/lib/services/)
-- ✅ pricing.service.js - Seasonal pricing, commission, promo codes
-- ✅ booking.service.js - Availability, booking creation, status
-- ✅ notification.service.js - Telegram, Email dispatcher
-- ✅ payment.service.js - Escrow, crypto, payouts
-
-### Localization System
-- **Static UI:** `/app/lib/translations.js` - Central dictionary
-- **Dynamic Content:** Supabase `metadata` JSONB column
-- **Languages:** RU, EN, TH, ZH
-- **Auto-detect:** Browser language preference
 
 ## P0/P1/P2 Features Remaining
 
 ### P0 (Critical - Security)
-- [ ] **Real Authentication** - Current login accepts any password (MOCK)
-- [ ] Implement bcrypt password hashing
-- [ ] Session management strategy
+- [ ] **Real Authentication** - Current login accepts any password
+- [ ] bcrypt password hashing
+- [ ] Session management
 
 ### P1 (Important)
-- [ ] iCal Sync Backend Logic - Parse and block dates
+- [ ] iCal Sync Backend Logic
 - [ ] Localize 404/error pages
-- [ ] Partner dashboard: show draft listings from Telegram
+- [ ] Category selector fixes (dropdown population)
 
 ### P2 (Nice to have)
 - [ ] Stripe payment integration
 - [ ] TRON/USDT verification
 - [ ] Resend email integration
-- [ ] Deprecate old [[...path]]/route.js
 
 ## Test Credentials
 | Role | Email | Password |
@@ -120,10 +101,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
 TELEGRAM_BOT_TOKEN=8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM
 TELEGRAM_ADMIN_GROUP_ID=-1003832026983
-RESEND_API_KEY= (not configured)
 ```
 
-## Architecture Notes
-- **K8s Routing:** Avoid client-side fetch to /api/* - use Supabase client directly
-- **Telegram Webhook:** Registered via setWebhook API
-- **Role System:** ADMIN, PARTNER, RENTER (MODERATOR is ADMIN with frontend restrictions)
+## Design System
+- **Primary:** Crystal Teal #14B8A6
+- **Secondary:** Deep Sea #0F172A
+- **Accent:** Sand #FDE047
+- **Background:** Slate-50 #F8FAFC
+- **Rounded corners:** xl (12px), 2xl (16px)
+- **Shadows:** shadow-lg, shadow-xl with color glow
