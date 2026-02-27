@@ -297,10 +297,10 @@ export default function ListingDetail({ params }) {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="pt-6 text-center">
-            <h3 className="text-xl font-semibold mb-2">Объявление не найдено</h3>
-            <p className="text-slate-600 mb-4">Это объявление было удалено или не существует.</p>
+            <h3 className="text-xl font-semibold mb-2">{t.notFound}</h3>
+            <p className="text-slate-600 mb-4">{t.notFoundDesc}</p>
             <Button asChild>
-              <Link href="/">На главную</Link>
+              <Link href="/">{t.goHome}</Link>
             </Button>
           </CardContent>
         </Card>
