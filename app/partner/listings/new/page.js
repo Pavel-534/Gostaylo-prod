@@ -87,19 +87,63 @@ export default function NewListing() {
     setLoading(true)
 
     try {
-      const res = await fetch('/api/partner/listings', {
+      // Get current user from localStorage
+      const storedUser = localStorage.getItem('funnyrent_user')
+      const user = storedUser ? JSON.parse(storedUser) : null
+      
+      if (!user || !user.id) {
+        toast.error('Необходимо войти в систему')
+        return
+      }
+
+      // Create listing directly via Supabase
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co'
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k'
+      
+      const listingData = {
+        id: `lst-${Date.now().toString(36)}`,
+        owner_id: user.id,
+        category_id: formData.categoryId || '1',
+        status: 'PENDING',
+        title: formData.title,
+        description: formData.description,
+        district: formData.district || 'Phuket',
+        base_price_thb: parseFloat(formData.basePriceThb) || 10000,
+        commission_rate: parseFloat(formData.commissionRate) || 15,
+        images: formData.images || [],
+        cover_image: formData.images?.[0] || null,
+        metadata: {
+          ...formData.metadata,
+          title: {
+            ru: formData.title,
+            en: formData.title,
+            zh: formData.title,
+            th: formData.title
+          }
+        },
+        available: false,
+        is_featured: false,
+        views: 0
+      }
+
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/listings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(listingData)
       })
 
-      const data = await res.json()
-
-      if (data.success) {
+      if (res.ok) {
         toast.success('Листинг успешно создан!')
         router.push('/partner/listings')
       } else {
-        toast.error('Ошибка при создании листинга')
+        const error = await res.json()
+        console.error('Supabase error:', error)
+        toast.error('Ошибка при создании листинга: ' + (error.message || 'Unknown error'))
       }
     } catch (error) {
       console.error('Failed to create listing:', error)
