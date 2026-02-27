@@ -20,6 +20,7 @@ import {
   ExternalLink,
   UserCog,
   ArrowLeft,
+  Server,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
