@@ -323,17 +323,17 @@ export default function FunnyRentHome() {
       <section className="relative h-[600px] bg-cover bg-center" style={{ backgroundImage: 'url(https://images.pexels.com/photos/33607600/pexels-photo-33607600.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940)' }}>
         <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 to-slate-900/40" />
         <div className="relative container mx-auto px-4 h-full flex flex-col justify-center">
-          <div className="max-w-3xl">
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4">
+          <div className="max-w-3xl mx-auto sm:mx-0">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-4 text-center sm:text-left">
               {getUIText('heroTitle', language)}
               <span className="block text-teal-400">{getUIText('heroTitleHighlight', language)}</span>
             </h2>
-            <p className="text-lg sm:text-xl text-slate-200 mb-8">
+            <p className="text-lg sm:text-xl text-slate-200 mb-8 text-center sm:text-left">
               {getUIText('heroSubtitle', language)}
             </p>
 
-            {/* Search Bar - Fixed Mobile Alignment */}
-            <Card className="bg-white/95 backdrop-blur-sm shadow-2xl mx-0">
+            {/* Search Bar - Centered on Mobile */}
+            <Card className="bg-white/95 backdrop-blur-sm shadow-2xl w-[95%] sm:w-full mx-auto sm:mx-0">
               <CardContent className="p-4 sm:p-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                   <div className="sm:col-span-2 lg:col-span-2">
