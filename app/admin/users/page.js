@@ -173,6 +173,7 @@ export default function UsersPage() {
   const getRoleBadge = (role) => {
     const styles = {
       ADMIN: 'bg-red-100 text-red-800 border-red-300',
+      MODERATOR: 'bg-orange-100 text-orange-800 border-orange-300',
       PARTNER: 'bg-indigo-100 text-indigo-800 border-indigo-300',
       RENTER: 'bg-green-100 text-green-800 border-green-300',
     };
