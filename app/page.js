@@ -484,8 +484,12 @@ export default function FunnyRentHome() {
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-slate-900 mb-4">Категории услуг</h3>
-            <p className="text-slate-600">Выберите то, что вам нужно</p>
+            <h3 className="text-3xl font-bold text-slate-900 mb-4">{getUIText('categories', language)}</h3>
+            <p className="text-slate-600">
+              {language === 'ru' ? 'Выберите то, что вам нужно' :
+               language === 'en' ? 'Choose what you need' :
+               language === 'zh' ? '选择您需要的' : 'เลือกสิ่งที่คุณต้องการ'}
+            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
