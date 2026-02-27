@@ -2,12 +2,10 @@
 
 ## Latest Update: 2026-02-27
 
-### Final UI Polish: Branding & Translation Complete
-- **Logo Fixed:** Full "FR FunnyRent" visible on 390px mobile
-- **Currency Fixed:** "฿ THB" fully visible with proper width
-- **Deep Localization:** Title/Description from DB metadata translations ("海景豪华别墅")
-- **Bedrooms/Bathrooms:** "3 间卧室 2 间浴室" - fully localized
-- **Footer:** All sections translated (分类, 公司, 支持)
+### Logo Redesign & Full Listing Localization Complete
+- **Stacked Logo:** "Funny" (black) / "Rent" (teal, offset) - compact 2-line design
+- **Listing Detail 100% Localized:** Title, Description, Features, Amenities, Buttons all translated
+- **Chinese Example:** "海景豪华别墅", "3 间卧室", "立即预订", "返回搜索"
 
 ## Project Overview
 **Name:** FunnyRent 2.1 - Phuket Super-App for Rentals
