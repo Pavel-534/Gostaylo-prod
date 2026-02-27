@@ -455,33 +455,51 @@ export default function PartnerDashboard() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <Card>
+      {/* Quick Actions - Premium Design */}
+      <Card className="border-0 shadow-lg">
         <CardHeader>
-          <CardTitle>Быстрые действия</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="w-5 h-5 text-teal-500" />
+            Быстрые действия
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <a
               href="/partner/listings/new"
-              className="flex items-center justify-between p-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-lg hover:shadow-lg transition-shadow"
+              className="group flex items-center justify-between p-5 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl hover:shadow-xl hover:shadow-teal-500/25 transition-all duration-300 hover:-translate-y-1"
             >
-              <span className="font-medium">Добавить листинг</span>
-              <ArrowUpRight className="h-5 w-5" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Plus className="h-5 w-5" />
+                </div>
+                <span className="font-semibold">Добавить листинг</span>
+              </div>
+              <ArrowUpRight className="h-5 w-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
             </a>
             <a
               href="/partner/bookings"
-              className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:shadow-lg transition-shadow"
+              className="group flex items-center justify-between p-5 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl hover:shadow-xl hover:shadow-slate-500/25 transition-all duration-300 hover:-translate-y-1"
             >
-              <span className="font-medium">Просмотр бронирований</span>
-              <ArrowUpRight className="h-5 w-5" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Calendar className="h-5 w-5" />
+                </div>
+                <span className="font-semibold">Бронирования</span>
+              </div>
+              <ArrowUpRight className="h-5 w-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
             </a>
             <a
               href="/partner/referrals"
-              className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:shadow-lg transition-shadow"
+              className="group flex items-center justify-between p-5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:shadow-xl hover:shadow-amber-500/25 transition-all duration-300 hover:-translate-y-1"
             >
-              <span className="font-medium">Пригласить партнёра</span>
-              <ArrowUpRight className="h-5 w-5" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Users className="h-5 w-5" />
+                </div>
+                <span className="font-semibold">Пригласить</span>
+              </div>
+              <ArrowUpRight className="h-5 w-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
             </a>
           </div>
         </CardContent>
