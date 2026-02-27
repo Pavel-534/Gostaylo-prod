@@ -47,11 +47,27 @@ export default function NewListing() {
 
   async function loadCategories() {
     try {
-      const res = await fetch('/api/categories')
+      // Load directly from Supabase to avoid K8s ingress issues
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co'
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k'
+      
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/categories?select=*&order=name.asc`, {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      })
       const data = await res.json()
-      setCategories(data.data || [])
+      setCategories(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Failed to load categories:', error)
+      // Fallback to hardcoded categories
+      setCategories([
+        { id: '1', name: 'Property', slug: 'property' },
+        { id: '2', name: 'Tours', slug: 'tours' },
+        { id: '3', name: 'Vehicles', slug: 'vehicles' },
+        { id: '4', name: 'Yachts', slug: 'yachts' }
+      ])
     }
   }
 
