@@ -424,14 +424,14 @@ export default function FunnyRentHome() {
                           onClick={() => setDateRange({ from: null, to: null })}
                           className="flex-1"
                         >
-                          {language === 'ru' ? 'Сбросить' : 'Clear'}
+                          {getUIText('clear', language)}
                         </Button>
                         <Button
                           onClick={() => setDatePickerOpen(false)}
                           disabled={!dateRange.from || !dateRange.to}
                           className="flex-1 bg-teal-600 hover:bg-teal-700 disabled:opacity-50"
                         >
-                          {language === 'ru' ? 'Применить' : 'Apply'} ✓
+                          {getUIText('apply', language)} ✓
                         </Button>
                       </DialogFooter>
                     </DialogContent>
