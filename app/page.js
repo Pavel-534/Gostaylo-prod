@@ -517,7 +517,7 @@ export default function FunnyRentHome() {
                     <div className="absolute bottom-4 left-4 right-4">
                       <div className="flex items-center gap-2 text-white">
                         <Icon className="h-6 w-6" />
-                        <h4 className="text-xl font-bold">{cat.name}</h4>
+                        <h4 className="text-xl font-bold">{getCategoryName(cat.slug, language, cat.name)}</h4>
                       </div>
                     </div>
                   </div>
