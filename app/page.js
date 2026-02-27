@@ -552,7 +552,7 @@ export default function FunnyRentHome() {
                       />
                       {listing.isFeatured && (
                         <div className="absolute top-3 left-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
-                          ⭐ Рекомендуем
+                          ⭐ {getUIText('featured', language)}
                         </div>
                       )}
                       {listing.rating > 0 && (
