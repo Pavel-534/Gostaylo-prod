@@ -82,10 +82,12 @@ async function createDraftListing(partnerId, caption, photoFileId, photoUrl) {
   // Extract title from first line or first 50 chars
   const title = caption?.split('\n')[0]?.substring(0, 100) || 'Новый объект из Telegram';
   
+  // Note: Using PENDING status with is_draft=true in metadata
+  // because DRAFT is not in the listing_status enum
   const listingData = {
     owner_id: partnerId,
     category_id: '1', // Default: Property
-    status: 'DRAFT',
+    status: 'PENDING',
     title: title,
     description: caption || '',
     district: 'Phuket',
@@ -97,7 +99,8 @@ async function createDraftListing(partnerId, caption, photoFileId, photoUrl) {
       source: 'TELEGRAM_BOT',
       telegram_file_id: photoFileId,
       telegram_caption: caption,
-      created_via: 'lazy_realtor'
+      created_via: 'lazy_realtor',
+      is_draft: true // Mark as draft for filtering
     },
     available: false, // Will be enabled when published
     is_featured: false,
