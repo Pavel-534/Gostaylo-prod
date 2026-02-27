@@ -2,10 +2,12 @@
 
 ## Latest Update: 2026-02-27
 
-### UI Regression Fix & Deep Localization Complete
-- **Mobile Header Fixed:** All elements visible on 390px (Logo FR, 🇬🇧, ฿THB, 👤 Login)
-- **Deep Localization:** Footer fully translated (分类/公司/支持), Book button "立即预订", price "/每天"
-- **Bedrooms/Bathrooms:** Translation code ready, displays when data exists in listing
+### Final UI Polish: Branding & Translation Complete
+- **Logo Fixed:** Full "FR FunnyRent" visible on 390px mobile
+- **Currency Fixed:** "฿ THB" fully visible with proper width
+- **Deep Localization:** Title/Description from DB metadata translations ("海景豪华别墅")
+- **Bedrooms/Bathrooms:** "3 间卧室 2 间浴室" - fully localized
+- **Footer:** All sections translated (分类, 公司, 支持)
 
 ## Project Overview
 **Name:** FunnyRent 2.1 - Phuket Super-App for Rentals
