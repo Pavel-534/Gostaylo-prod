@@ -178,29 +178,28 @@ export default function FunnyRentHome() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* Header - Fixed Mobile Layout */}
+      {/* Header - Fixed Mobile Layout with Full Branding */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
-        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-2">
-            {/* Logo - Compact on mobile */}
-            <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-lg sm:text-xl">FR</span>
+        <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
+          <div className="flex items-center justify-between">
+            {/* Logo - Always show FunnyRent */}
+            <Link href="/" className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              <div className="w-7 h-7 sm:w-9 sm:h-9 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center shadow-md">
+                <span className="text-white font-bold text-sm sm:text-lg">FR</span>
               </div>
-              <div className="hidden sm:block">
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900">FunnyRent</h1>
-                <p className="text-xs text-teal-600">Phuket Luxury Rentals</p>
+              <div>
+                <h1 className="text-base sm:text-xl font-bold text-slate-900">FunnyRent</h1>
+                <p className="text-[10px] sm:text-xs text-teal-600 hidden sm:block">Phuket Rentals</p>
               </div>
             </Link>
 
-            {/* Right Controls - All visible on mobile */}
-            <div className="flex items-center gap-1 sm:gap-3">
-              {/* Language Switcher - Compact */}
+            {/* Right Controls - Symmetrical sizing */}
+            <div className="flex items-center gap-2">
+              {/* Language Switcher */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="border-teal-200 hover:bg-teal-50 h-8 w-8 sm:w-auto sm:px-2 p-0 sm:p-2">
-                    <span className="text-base sm:text-lg">{supportedLanguages.find(l => l.code === language)?.flag || '🌐'}</span>
-                    <span className="hidden sm:inline text-xs ml-1">{language.toUpperCase()}</span>
+                  <Button variant="outline" size="sm" className="border-teal-200 hover:bg-teal-50 h-8 px-2 min-w-[40px]">
+                    <span className="text-base">{supportedLanguages.find(l => l.code === language)?.flag || '🌐'}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -217,9 +216,9 @@ export default function FunnyRentHome() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Currency Switcher - Hidden on smallest screens */}
+              {/* Currency Switcher - Compact */}
               <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="w-[70px] sm:w-[100px] border-teal-200 focus:ring-teal-500 h-8 text-xs sm:text-sm">
+                <SelectTrigger className="w-[72px] sm:w-[90px] border-teal-200 focus:ring-teal-500 h-8 text-xs px-2">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -230,7 +229,7 @@ export default function FunnyRentHome() {
                 </SelectContent>
               </Select>
 
-              {/* Login Button - Always visible */}
+              {/* Login Button - Same height as others */}
               <Dialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm" className="border-teal-200 hover:bg-teal-50 h-8 w-8 p-0">
