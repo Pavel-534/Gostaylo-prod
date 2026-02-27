@@ -2,13 +2,11 @@
 
 ## Latest Update: 2026-02-27
 
-### Stage 19.1: Multi-Language & UX Improvements Complete
-- Added 4-language support system (RU/EN/ZH/TH) via `/lib/translations.js`
-- Admin Categories now has translation editor with tabs for each language
-- Translations stored in localStorage (DB schema unchanged)
-- Date Range Picker already using `mode="range"` for continuous selection
-- MODERATOR role added to user role dropdown
-- Admin top bar visible on all sub-pages
+### Stage 19.3: Global UX Repair & Auto-Localization Complete
+- **Date Range Picker Fixed:** Calendar stays open until both dates selected, shows visual indicators (Start/End boxes), Apply button for confirmation
+- **Intelligent Localization:** Auto-detects browser language (RU/EN/ZH/TH), Language Switcher with flags added to header
+- **Moderator Account Created:** assistant@funnyrent.com with restricted access (no Finance/Settings)
+- **Category Click Logic:** Now redirects to /listings?category={slug} for filtered view
 
 ## Project Overview
 **Name:** FunnyRent 2.1 - Phuket Super-App for Rentals
