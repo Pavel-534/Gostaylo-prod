@@ -146,28 +146,28 @@ export default function AdminLayout({ children }) {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Mobile Top Header - Fixed with proper spacing */}
-      <header className="fixed top-0 left-0 right-0 bg-gradient-to-r from-indigo-900 to-purple-900 text-white z-40 lg:hidden">
+      {/* Mobile Top Header - Premium Deep Sea Design */}
+      <header className="fixed top-0 left-0 right-0 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white z-30 lg:hidden shadow-lg">
         {/* Impersonation Banner - Mobile */}
         {isImpersonating && (
-          <div className="bg-amber-500 text-amber-900 px-3 py-2 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-amber-400 to-amber-500 text-amber-900 px-3 py-2 flex items-center justify-between">
             <span className="text-xs font-medium truncate flex-1">
-              Вы как: {user?.name}
+              👤 Режим: {user?.name}
             </span>
             <Button
               size="sm"
               variant="secondary"
               onClick={handleReturnToAdmin}
-              className="bg-white text-amber-900 hover:bg-amber-100 h-7 px-2 text-xs ml-2 flex-shrink-0"
+              className="bg-white text-amber-900 hover:bg-amber-100 h-7 px-2 text-xs ml-2 flex-shrink-0 shadow-sm"
               data-testid="return-to-admin-mobile"
             >
               <ArrowLeft className="w-3 h-3 mr-1" />
@@ -177,31 +177,36 @@ export default function AdminLayout({ children }) {
         )}
         
         {/* Main Mobile Header */}
-        <div className="h-14 flex items-center justify-between px-3">
+        <div className="h-14 flex items-center justify-between px-4">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-indigo-700 rounded-lg transition-colors"
+            className="p-2.5 hover:bg-white/10 rounded-xl transition-all active:scale-95"
             aria-label="Menu"
           >
             <Menu className="w-5 h-5" />
           </button>
           
-          <div className="text-center flex-1 mx-2">
-            <h1 className="text-base font-bold truncate">FunnyRent Admin</h1>
+          <div className="text-center flex-1 mx-3">
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-7 h-7 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center shadow-md">
+                <span className="text-white text-xs font-bold">FR</span>
+              </div>
+              <h1 className="text-sm font-bold tracking-tight">FunnyRent Admin</h1>
+            </div>
           </div>
           
           {/* Mobile Quick Actions */}
           <div className="flex items-center gap-1">
             <Link 
               href="/"
-              className="p-2 hover:bg-indigo-700 rounded-lg transition-colors"
+              className="p-2.5 hover:bg-white/10 rounded-xl transition-all active:scale-95"
               aria-label="На сайт"
             >
               <Home className="w-5 h-5" />
             </Link>
             <button
               onClick={handleLogout}
-              className="p-2 hover:bg-red-700 rounded-lg transition-colors text-red-300"
+              className="p-2.5 hover:bg-red-500/20 rounded-xl transition-all active:scale-95 text-red-400"
               aria-label="Выход"
             >
               <LogOut className="w-5 h-5" />
