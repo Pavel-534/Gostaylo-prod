@@ -3,26 +3,32 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Search, MapPin, Calendar, DollarSign, Home, Bike, Map, Anchor, ChevronDown, Menu, User, LogIn, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Search, MapPin, Calendar, DollarSign, Home, Bike, Map, Anchor, ChevronDown, Menu, User, LogIn, Eye, EyeOff, Loader2, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { formatPrice } from '@/lib/currency'
 import { fetchCategories, fetchListings, fetchExchangeRates, fetchDistricts } from '@/lib/client-data'
+import { detectLanguage, setLanguage as saveLanguage, supportedLanguages, getCategoryName, getUIText } from '@/lib/translations'
 import { DayPicker } from 'react-day-picker'
 import { format } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { ru, enUS, zhCN, th } from 'date-fns/locale'
 import 'react-day-picker/dist/style.css'
+
+// Date-fns locales map
+const dateLocales = { ru, en: enUS, zh: zhCN, th }
 
 export default function FunnyRentHome() {
   const router = useRouter()
   
   // State
   const [currency, setCurrency] = useState('THB')
+  const [language, setLanguageState] = useState('ru')
   const [categories, setCategories] = useState([])
   const [listings, setListings] = useState([])
   const [districts, setDistricts] = useState([])
@@ -43,6 +49,21 @@ export default function FunnyRentHome() {
   const [searchQuery, setSearchQuery] = useState('')
   const [dateRange, setDateRange] = useState({ from: null, to: null })
   const [datePickerOpen, setDatePickerOpen] = useState(false)
+
+  // Auto-detect language on mount
+  useEffect(() => {
+    const detected = detectLanguage()
+    setLanguageState(detected)
+  }, [])
+
+  // Language change handler
+  const handleLanguageChange = (lang) => {
+    setLanguageState(lang)
+    saveLanguage(lang)
+  }
+
+  // Get current locale for date-fns
+  const currentLocale = dateLocales[language] || ru
 
   // Handle login
   async function handleLogin(e) {
