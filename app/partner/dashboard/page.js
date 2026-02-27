@@ -30,6 +30,9 @@ export default function PartnerDashboard() {
 
   async function loadData() {
     try {
+      const storedUser = localStorage.getItem('funnyrent_user')
+      const user = storedUser ? JSON.parse(storedUser) : { id: 'partner-1' }
+      
       const [statsRes, bookingsRes] = await Promise.all([
         fetch('/api/v2/partner/stats'),
         fetch('/api/v2/bookings'),
@@ -40,6 +43,27 @@ export default function PartnerDashboard() {
 
       setStats(statsData.data || statsData)
       setBookings(bookingsData.data?.slice(0, 5) || [])
+      
+      // Fetch draft listings created via Telegram
+      try {
+        const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co'
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k'
+        
+        const draftsRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${user.id}&metadata->>is_draft=eq.true&order=created_at.desc&limit=5`,
+          {
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
+          }
+        )
+        const drafts = await draftsRes.json()
+        setDraftListings(Array.isArray(drafts) ? drafts : [])
+      } catch (e) {
+        console.log('No drafts found')
+      }
+      
       setLoading(false)
     } catch (error) {
       console.error('Failed to load data:', error)
