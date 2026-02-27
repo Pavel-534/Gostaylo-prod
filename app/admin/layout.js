@@ -302,21 +302,21 @@ export default function AdminLayout({ children }) {
       {/* Main Content */}
       <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 w-full max-w-full overflow-x-hidden">
         {/* Desktop Top Bar with Impersonation */}
-        <div className="hidden lg:block sticky top-0 bg-white border-b border-gray-200 z-10">
+        <div className="hidden lg:block sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200/50 z-10">
           {/* Impersonation Banner - Desktop */}
           {isImpersonating && (
-            <div className="bg-amber-500 text-amber-900 px-6 py-2 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-amber-400 to-amber-500 text-amber-900 px-6 py-2.5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <UserCog className="w-4 h-4" />
                 <span className="text-sm font-medium">
-                  Вы просматриваете как: <strong>{user?.name}</strong> ({user?.role})
+                  Режим просмотра: <strong>{user?.name}</strong> ({user?.role})
                 </span>
               </div>
               <Button
                 size="sm"
                 variant="secondary"
                 onClick={handleReturnToAdmin}
-                className="bg-white text-amber-900 hover:bg-amber-100"
+                className="bg-white text-amber-900 hover:bg-amber-100 shadow-sm"
                 data-testid="return-to-admin-desktop"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -328,26 +328,28 @@ export default function AdminLayout({ children }) {
           {/* Normal Top Bar */}
           <div className="px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/" className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors">
+              <Link href="/" className="flex items-center gap-2 text-slate-600 hover:text-teal-600 transition-colors">
                 <Home className="w-4 h-4" />
-                <span className="text-sm">На сайт</span>
+                <span className="text-sm font-medium">На сайт</span>
               </Link>
-              <span className="text-gray-300">|</span>
-              <Link href="/" target="_blank" className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 transition-colors">
+              <span className="text-slate-200">|</span>
+              <Link href="/" target="_blank" className="flex items-center gap-2 text-slate-600 hover:text-teal-600 transition-colors">
                 <ExternalLink className="w-4 h-4" />
                 <span className="text-sm">Новая вкладка</span>
               </Link>
             </div>
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <UserCog className="w-4 h-4" />
-                <span>{user?.isModerator ? 'Moderator' : 'Admin'}: {user?.name}</span>
+              <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg">
+                <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
+                <span className="font-medium">{user?.isModerator ? 'Moderator' : 'Admin'}</span>
+                <span className="text-slate-400">•</span>
+                <span>{user?.name}</span>
               </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleLogout}
-                className="text-red-600 border-red-200 hover:bg-red-50"
+                className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
               >
                 <LogOut className="w-4 h-4 mr-1" />
                 Выход
