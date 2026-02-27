@@ -375,9 +375,11 @@ export default function ListingDetail({ params }) {
             {/* Title & Info */}
             <div>
               <div className="flex items-start justify-between mb-2">
-                <h1 className="text-3xl font-bold text-slate-900">{listing.title}</h1>
-                <Badge className="bg-green-100 text-green-700">
-                  {listing.status === 'ACTIVE' ? 'Доступно' : 'Занято'}
+                <h1 className="text-3xl font-bold text-slate-900">
+                  {getListingText(listing, 'title', language)}
+                </h1>
+                <Badge className={listing.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}>
+                  {listing.status === 'ACTIVE' ? t.available : t.unavailable}
                 </Badge>
               </div>
               <div className="flex items-center gap-4 text-slate-600">
@@ -388,7 +390,7 @@ export default function ListingDetail({ params }) {
                 <div className="flex items-center gap-1">
                   <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                   <span>{listing.rating || 0}</span>
-                  <span className="text-sm">({listing.reviewsCount || 0} отзывов)</span>
+                  <span className="text-sm">({listing.reviewsCount || 0} {t.reviews})</span>
                 </div>
               </div>
             </div>
@@ -396,10 +398,12 @@ export default function ListingDetail({ params }) {
             {/* Description */}
             <Card>
               <CardHeader>
-                <CardTitle>Описание</CardTitle>
+                <CardTitle>{t.description}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-slate-700 leading-relaxed">{listing.description}</p>
+                <p className="text-slate-700 leading-relaxed">
+                  {getListingText(listing, 'description', language)}
+                </p>
               </CardContent>
             </Card>
 
@@ -407,23 +411,56 @@ export default function ListingDetail({ params }) {
             {listing.metadata && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Характеристики</CardTitle>
+                  <CardTitle>{t.features}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {listing.metadata.bedrooms && (
                       <div className="flex items-center gap-2">
                         <Bed className="h-5 w-5 text-teal-600" />
-                        <span>{listing.metadata.bedrooms} спален</span>
+                        <span>{listing.metadata.bedrooms} {t.bedrooms}</span>
                       </div>
                     )}
                     {listing.metadata.bathrooms && (
                       <div className="flex items-center gap-2">
                         <Bath className="h-5 w-5 text-teal-600" />
-                        <span>{listing.metadata.bathrooms} ванных</span>
+                        <span>{listing.metadata.bathrooms} {t.bathrooms}</span>
                       </div>
                     )}
                     {listing.metadata.area && (
+                      <div className="flex items-center gap-2">
+                        <Square className="h-5 w-5 text-teal-600" />
+                        <span>{listing.metadata.area} {t.area}</span>
+                      </div>
+                    )}
+                    {listing.metadata.wifi && (
+                      <div className="flex items-center gap-2">
+                        <Wifi className="h-5 w-5 text-teal-600" />
+                        <span>{t.wifi}</span>
+                      </div>
+                    )}
+                    {listing.metadata.pool && (
+                      <div className="flex items-center gap-2">
+                        <Waves className="h-5 w-5 text-teal-600" />
+                        <span>{t.pool}</span>
+                      </div>
+                    )}
+                    {listing.metadata.parking && (
+                      <div className="flex items-center gap-2">
+                        <Car className="h-5 w-5 text-teal-600" />
+                        <span>{t.parking}</span>
+                      </div>
+                    )}
+                    {listing.metadata.kitchen && (
+                      <div className="flex items-center gap-2">
+                        <Utensils className="h-5 w-5 text-teal-600" />
+                        <span>{t.kitchen}</span>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
                       <div className="flex items-center gap-2">
                         <Square className="h-5 w-5 text-teal-600" />
                         <span>{listing.metadata.area} м²</span>
