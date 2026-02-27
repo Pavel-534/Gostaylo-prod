@@ -1,26 +1,42 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
-import { sendMessage } from '@/lib/telegram';
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+// Enable Edge Runtime for better performance and reliability
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM';
+const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
 
 /**
- * FunnyRent 2.1 - Telegram Webhook Handler
+ * FunnyRent 2.1 - Telegram Webhook Handler (Edge Optimized)
  * "Lazy Realtor" Feature - Create draft listings from Telegram
- * 
- * Flow:
- * 1. Partner sends photo + caption to bot
- * 2. Bot identifies partner by chat_id (stored in profiles.telegram_id)
- * 3. Creates DRAFT listing with photo file_id and caption in metadata
- * 4. Sends confirmation with dashboard link
  */
+
+// Send message to Telegram
+async function sendTelegramMessage(chatId, text) {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: text,
+        parse_mode: 'HTML'
+      })
+    });
+    return await res.json();
+  } catch (error) {
+    console.error('[TELEGRAM] Send error:', error);
+    return { ok: false, error: error.message };
+  }
+}
 
 // Get photo file URL from Telegram
 async function getPhotoUrl(fileId) {
   if (!BOT_TOKEN || !fileId) return null;
   
   try {
-    // Get file path from Telegram
     const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
     const data = await response.json();
     
@@ -33,60 +49,41 @@ async function getPhotoUrl(fileId) {
   return null;
 }
 
-// Find partner by telegram chat_id
+// Find partner by telegram chat_id via Supabase REST API
 async function findPartnerByChatId(chatId) {
-  if (!supabaseAdmin) return null;
-  
   const chatIdStr = String(chatId);
   
-  // First check profiles.telegram_id
-  const { data: profile, error } = await supabaseAdmin
-    .from('profiles')
-    .select('id, email, first_name, last_name, role')
-    .eq('telegram_id', chatIdStr)
-    .eq('role', 'PARTNER')
-    .single();
-  
-  if (profile) return profile;
-  
-  // Also check telegram_link_codes for recently linked accounts
-  const { data: linkCode } = await supabaseAdmin
-    .from('telegram_link_codes')
-    .select('user_id')
-    .eq('chat_id', chatIdStr)
-    .eq('used', true)
-    .single();
-  
-  if (linkCode?.user_id) {
-    const { data: linkedProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('id, email, first_name, last_name, role')
-      .eq('id', linkCode.user_id)
-      .eq('role', 'PARTNER')
-      .single();
-    
-    return linkedProfile;
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?telegram_id=eq.${chatIdStr}&role=eq.PARTNER&select=id,email,first_name,last_name,role`,
+      {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      }
+    );
+    const profiles = await res.json();
+    return profiles?.[0] || null;
+  } catch (error) {
+    console.error('[TELEGRAM] Find partner error:', error);
+    return null;
   }
-  
-  return null;
 }
 
-// Create draft listing in database
+// Create draft listing in database via Supabase REST API
 async function createDraftListing(partnerId, caption, photoFileId, photoUrl) {
-  if (!supabaseAdmin) return null;
-  
-  // Parse caption for price (optional)
+  // Parse caption for price
   const priceMatch = caption?.match(/(\d+)\s*(thb|бат|฿)/i);
   const price = priceMatch ? parseInt(priceMatch[1]) : 10000;
   
-  // Extract title from first line or first 50 chars
+  // Extract title from first line
   const title = caption?.split('\n')[0]?.substring(0, 100) || 'Новый объект из Telegram';
   
-  // Note: Using PENDING status with is_draft=true in metadata
-  // because DRAFT is not in the listing_status enum
   const listingData = {
+    id: `lst-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 5)}`,
     owner_id: partnerId,
-    category_id: '1', // Default: Property
+    category_id: '1',
     status: 'PENDING',
     title: title,
     description: caption || '',
@@ -100,26 +97,78 @@ async function createDraftListing(partnerId, caption, photoFileId, photoUrl) {
       telegram_file_id: photoFileId,
       telegram_caption: caption,
       created_via: 'lazy_realtor',
-      is_draft: true // Mark as draft for filtering
+      is_draft: true
     },
-    available: false, // Will be enabled when published
+    available: false,
     is_featured: false,
     views: 0,
     bookings_count: 0
   };
   
-  const { data, error } = await supabaseAdmin
-    .from('listings')
-    .insert(listingData)
-    .select('id, title')
-    .single();
-  
-  if (error) {
-    console.error('[LAZY REALTOR] Error creating listing:', error);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/listings`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(listingData)
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      return data?.[0] || { id: listingData.id, title };
+    }
+    return null;
+  } catch (error) {
+    console.error('[LAZY REALTOR] Create listing error:', error);
     return null;
   }
-  
-  return data;
+}
+
+// Link profile to Telegram
+async function linkProfileToTelegram(email, chatId) {
+  try {
+    // First find the profile
+    const findRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(email)}&select=id,email,role,telegram_id`,
+      {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      }
+    );
+    const profiles = await findRes.json();
+    const profile = profiles?.[0];
+    
+    if (!profile) return { success: false, reason: 'not_found' };
+    if (profile.role !== 'PARTNER' && profile.role !== 'ADMIN') return { success: false, reason: 'wrong_role', role: profile.role };
+    
+    // Update profile with telegram_id
+    const updateRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${profile.id}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          telegram_id: String(chatId),
+          telegram_linked: true
+        })
+      }
+    );
+    
+    return { success: updateRes.ok, email: profile.email };
+  } catch (error) {
+    console.error('[TELEGRAM] Link error:', error);
+    return { success: false, reason: 'error' };
+  }
 }
 
 // Handle incoming Telegram update
@@ -133,16 +182,16 @@ async function handleTelegramUpdate(update) {
   const photo = message.photo;
   const firstName = message.from?.first_name || 'Partner';
   
-  console.log(`[TELEGRAM WEBHOOK] Received from chat ${chatId} (${chatType}):`, text?.substring(0, 50));
+  console.log(`[TELEGRAM WEBHOOK] Chat ${chatId} (${chatType}): ${text?.substring(0, 50)}`);
   
-  // Ignore group messages (only process private messages for Lazy Realtor)
+  // Ignore group messages
   if (chatType !== 'private') {
     return { action: 'ignored', reason: 'group_message' };
   }
   
   // Handle /start command
   if (text.startsWith('/start')) {
-    await sendMessage(chatId, 
+    await sendTelegramMessage(chatId, 
       `🌴 <b>Aloha, ${firstName}!</b>\n\n` +
       `Welcome to <b>FunnyRent</b> — your gateway to the Phuket rental market.\n\n` +
       `📸 <b>Lazy Realtor</b>\n` +
@@ -158,7 +207,7 @@ async function handleTelegramUpdate(update) {
   
   // Handle /help command
   if (text.startsWith('/help')) {
-    await sendMessage(chatId,
+    await sendTelegramMessage(chatId,
       `📖 <b>FunnyRent Bot Help</b>\n\n` +
       `<b>Commands:</b>\n` +
       `🌴 /start — Get started\n` +
@@ -171,11 +220,11 @@ async function handleTelegramUpdate(update) {
     return { action: 'help_command' };
   }
   
-  // Handle /link command - link Telegram to platform account
+  // Handle /link command
   if (text.startsWith('/link')) {
     const email = text.replace('/link', '').trim().toLowerCase();
     if (!email || !email.includes('@')) {
-      await sendMessage(chatId,
+      await sendTelegramMessage(chatId,
         `❌ <b>Invalid email format</b>\n\n` +
         `Please provide your FunnyRent account email.\n\n` +
         `Example: <code>/link partner@example.com</code>`
@@ -183,60 +232,40 @@ async function handleTelegramUpdate(update) {
       return { action: 'link_invalid' };
     }
     
-    // Find profile by email
-    const { data: profile, error } = await supabaseAdmin
-      .from('profiles')
-      .select('id, email, role, telegram_id')
-      .eq('email', email)
-      .single();
+    const result = await linkProfileToTelegram(email, chatId);
     
-    if (!profile) {
-      await sendMessage(chatId, 
-        `❌ <b>Email not found</b>\n\n` +
-        `No account found for: ${email}\n\n` +
-        `Please check your spelling or register at FunnyRent first.`
-      );
-      return { action: 'link_not_found' };
+    if (!result.success) {
+      if (result.reason === 'not_found') {
+        await sendTelegramMessage(chatId, 
+          `❌ <b>Email not found</b>\n\n` +
+          `No account found for: ${email}\n\n` +
+          `Please check your spelling or register at FunnyRent first.`
+        );
+      } else if (result.reason === 'wrong_role') {
+        await sendTelegramMessage(chatId,
+          `❌ <b>Access Denied</b>\n\n` +
+          `Only Partners can use Lazy Realtor.\n` +
+          `Your role: ${result.role}\n\n` +
+          `Contact support to upgrade your account.`
+        );
+      } else {
+        await sendTelegramMessage(chatId, `❌ Connection error. Please try again later.`);
+      }
+      return { action: 'link_failed', reason: result.reason };
     }
     
-    if (profile.role !== 'PARTNER' && profile.role !== 'ADMIN') {
-      await sendMessage(chatId,
-        `❌ <b>Access Denied</b>\n\n` +
-        `Only Partners can use Lazy Realtor.\n` +
-        `Your role: ${profile.role}\n\n` +
-        `Contact support to upgrade your account.`
-      );
-      return { action: 'link_wrong_role' };
-    }
-    
-    // Update profile with telegram_id
-    const { error: updateError } = await supabaseAdmin
-      .from('profiles')
-      .update({ 
-        telegram_id: String(chatId),
-        telegram_linked: true 
-      })
-      .eq('id', profile.id);
-    
-    if (updateError) {
-      console.error('[TELEGRAM] Error linking account:', updateError);
-      await sendMessage(chatId, `❌ Connection error. Please try again later.`);
-      return { action: 'link_error' };
-    }
-    
-    await sendMessage(chatId,
+    await sendTelegramMessage(chatId,
       `✅ <b>Account linked successfully!</b>\n\n` +
-      `📧 Email: ${email}\n` +
+      `📧 Email: ${result.email}\n` +
       `🆔 Telegram ID: ${chatId}\n\n` +
       `🎉 You're ready to send photos!\n` +
       `Just send a photo with description and watch the magic happen ✨`
     );
-    return { action: 'link_success', email };
+    return { action: 'link_success', email: result.email };
   }
   
-  // Handle photo message - Lazy Realtor main feature
+  // Handle photo message - Lazy Realtor
   if (photo && photo.length > 0) {
-    // Get largest photo
     const largestPhoto = photo[photo.length - 1];
     const fileId = largestPhoto.file_id;
     const caption = message.caption || '';
@@ -245,7 +274,7 @@ async function handleTelegramUpdate(update) {
     const partner = await findPartnerByChatId(chatId);
     
     if (!partner) {
-      await sendMessage(chatId,
+      await sendTelegramMessage(chatId,
         `❌ <b>Account not linked</b>\n\n` +
         `To create listings, link your account first:\n\n` +
         `<code>/link your@email.com</code>`
@@ -254,7 +283,7 @@ async function handleTelegramUpdate(update) {
     }
     
     // Send processing message
-    await sendMessage(chatId, `🏝 <b>Working on your draft...</b>\n\nProcessing your tropical property... 🌴`);
+    await sendTelegramMessage(chatId, `🏝 <b>Working on your draft...</b>\n\nProcessing your tropical property... 🌴`);
     
     // Get photo URL
     const photoUrl = await getPhotoUrl(fileId);
@@ -263,13 +292,13 @@ async function handleTelegramUpdate(update) {
     const listing = await createDraftListing(partner.id, caption, fileId, photoUrl);
     
     if (!listing) {
-      await sendMessage(chatId, `❌ Error creating listing. Please try again later.`);
+      await sendTelegramMessage(chatId, `❌ Error creating listing. Please try again later.`);
       return { action: 'photo_create_error' };
     }
     
-    const dashboardUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/partner/listings`;
+    const dashboardUrl = `https://c325362c-1be1-450d-a1ad-cc1fb45ba828.preview.emergentagent.com/partner/listings`;
     
-    await sendMessage(chatId,
+    await sendTelegramMessage(chatId,
       `✅ <b>Draft Created!</b> 🎉\n\n` +
       `📝 <b>${listing.title}</b>\n\n` +
       `Your listing is saved as a draft.\n` +
@@ -280,13 +309,13 @@ async function handleTelegramUpdate(update) {
       `🔗 <a href="${dashboardUrl}">Open Partner Dashboard</a>`
     );
     
-    console.log(`[LAZY REALTOR] Created draft listing ${listing.id} for partner ${partner.email}`);
+    console.log(`[LAZY REALTOR] Created draft ${listing.id} for ${partner.email}`);
     return { action: 'photo_listing_created', listingId: listing.id };
   }
   
   // Handle text-only message
   if (text && !photo) {
-    await sendMessage(chatId,
+    await sendTelegramMessage(chatId,
       `📸 <b>Send a photo!</b>\n\n` +
       `To create a listing with Lazy Realtor,\n` +
       `send a photo with description in the caption.\n\n` +
@@ -307,12 +336,11 @@ export async function POST(request) {
     
     const result = await handleTelegramUpdate(update);
     
-    // Always return 200 to Telegram (acknowledge receipt)
+    // Always return 200 to Telegram
     return NextResponse.json({ ok: true, result });
     
   } catch (error) {
     console.error('[TELEGRAM WEBHOOK] Error:', error);
-    // Still return 200 to prevent Telegram from retrying
     return NextResponse.json({ ok: true, error: error.message });
   }
 }
@@ -322,6 +350,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     service: 'FunnyRent Telegram Webhook',
+    runtime: 'edge',
     features: ['Lazy Realtor', 'Account Linking'],
     commands: ['/start', '/help', '/link EMAIL'],
     webhook_active: !!BOT_TOKEN,
