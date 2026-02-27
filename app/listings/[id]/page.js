@@ -323,7 +323,7 @@ export default function ListingDetail({ params }) {
         <div className="container mx-auto px-4 py-4">
           <Link href="/" className="inline-flex items-center text-teal-600 hover:text-teal-700 font-medium">
             <ArrowLeft className="h-5 w-5 mr-1" />
-            Вернуться к поиску
+            {t.backToSearch}
           </Link>
         </div>
       </div>
