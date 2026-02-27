@@ -100,15 +100,16 @@ export default function AdminLayout({ children }) {
     if (originalAdmin) {
       localStorage.setItem('funnyrent_user', JSON.stringify(originalAdmin));
       localStorage.removeItem('funnyrent_original_admin');
-      setIsImpersonating(false);
-      router.push('/admin/users');
+      // Force full page reload to update all UI state
+      window.location.href = '/admin/users';
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('funnyrent_user');
     localStorage.removeItem('funnyrent_original_admin');
-    router.push('/');
+    // Force full page reload
+    window.location.href = '/';
   };
 
   // Menu items with access control
