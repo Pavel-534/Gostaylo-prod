@@ -217,9 +217,9 @@ export default function FunnyRentHome() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Currency Switcher */}
+              {/* Currency Switcher - Hidden on smallest screens */}
               <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="w-[90px] sm:w-[120px] border-teal-200 focus:ring-teal-500">
+                <SelectTrigger className="w-[70px] sm:w-[100px] border-teal-200 focus:ring-teal-500 h-8 text-xs sm:text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -230,10 +230,11 @@ export default function FunnyRentHome() {
                 </SelectContent>
               </Select>
 
+              {/* Login Button - Always visible */}
               <Dialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="icon" className="border-teal-200 hover:bg-teal-50">
-                    <User className="h-5 w-5 text-teal-600" />
+                  <Button variant="outline" size="sm" className="border-teal-200 hover:bg-teal-50 h-8 w-8 p-0">
+                    <User className="h-4 w-4 text-teal-600" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
