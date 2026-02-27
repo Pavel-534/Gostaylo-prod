@@ -178,18 +178,15 @@ export default function FunnyRentHome() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* Header - Fixed Mobile Layout with Full Branding */}
+      {/* Header - Stacked Logo Design */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
         <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
           <div className="flex items-center justify-between">
-            {/* Logo - Always show FunnyRent */}
-            <Link href="/" className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-              <div className="w-7 h-7 sm:w-9 sm:h-9 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center shadow-md">
-                <span className="text-white font-bold text-sm sm:text-lg">FR</span>
-              </div>
-              <div>
-                <h1 className="text-base sm:text-xl font-bold text-slate-900">FunnyRent</h1>
-                <p className="text-[10px] sm:text-xs text-teal-600 hidden sm:block">Phuket Rentals</p>
+            {/* Stacked Logo: Funny/Rent */}
+            <Link href="/" className="flex-shrink-0">
+              <div className="flex flex-col leading-none">
+                <span className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Funny</span>
+                <span className="text-lg sm:text-xl font-black text-teal-500 tracking-tight ml-3 sm:ml-4 -mt-1">Rent</span>
               </div>
             </Link>
 
