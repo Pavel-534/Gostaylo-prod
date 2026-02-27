@@ -444,8 +444,6 @@ export default function FunnyRentHome() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
-                    </DialogContent>
-                  </Dialog>
                   
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger>
