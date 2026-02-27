@@ -97,6 +97,8 @@ export default function UsersPage() {
       router.push('/partner/dashboard');
     } else if (targetUser.role === 'RENTER') {
       router.push('/');
+    } else if (targetUser.role === 'MODERATOR') {
+      router.push('/admin/dashboard');
     } else {
       router.push('/admin/dashboard');
     }
