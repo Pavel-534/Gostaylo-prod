@@ -143,14 +143,15 @@ async function handleTelegramUpdate(update) {
   // Handle /start command
   if (text.startsWith('/start')) {
     await sendMessage(chatId, 
-      `Привет, ${firstName}! 👋\n\n` +
-      `Это бот FunnyRent для партнёров.\n\n` +
-      `📸 <b>Lazy Realtor</b>: Отправьте фото с описанием, чтобы создать черновик объявления.\n\n` +
-      `Формат:\n` +
-      `• Фото объекта\n` +
-      `• Описание в подписи\n` +
-      `• Укажите цену: "15000 THB" или "15000 бат"\n\n` +
-      `После создания черновика вы сможете отредактировать его в личном кабинете.`
+      `🌴 <b>Aloha, ${firstName}!</b>\n\n` +
+      `Welcome to <b>FunnyRent</b> — your gateway to the Phuket rental market.\n\n` +
+      `📸 <b>Lazy Realtor</b>\n` +
+      `Send a photo + description to create a draft listing instantly!\n\n` +
+      `<b>Format:</b>\n` +
+      `• 📷 Photo of your property\n` +
+      `• 📝 Description in the caption\n` +
+      `• 💰 Price: "15000 THB" or "15000 бат"\n\n` +
+      `Your draft will appear in the Partner Dashboard — edit & publish anytime! 🏝`
     );
     return { action: 'start_command' };
   }
@@ -158,13 +159,14 @@ async function handleTelegramUpdate(update) {
   // Handle /help command
   if (text.startsWith('/help')) {
     await sendMessage(chatId,
-      `📖 <b>Помощь FunnyRent Bot</b>\n\n` +
-      `<b>Команды:</b>\n` +
-      `/start - Начать\n` +
-      `/help - Эта справка\n` +
-      `/link ВАШЕ_ИМЯ@email.com - Привязать аккаунт\n\n` +
+      `📖 <b>FunnyRent Bot Help</b>\n\n` +
+      `<b>Commands:</b>\n` +
+      `🌴 /start — Get started\n` +
+      `❓ /help — This help message\n` +
+      `🔗 /link your@email.com — Link your account\n\n` +
       `<b>Lazy Realtor:</b>\n` +
-      `Отправьте фото + описание чтобы создать черновик объявления.`
+      `Send photo + caption → instant draft listing!\n\n` +
+      `Need help? Contact support via the Dashboard.`
     );
     return { action: 'help_command' };
   }
