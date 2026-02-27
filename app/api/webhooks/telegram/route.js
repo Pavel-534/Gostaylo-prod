@@ -176,8 +176,9 @@ async function handleTelegramUpdate(update) {
     const email = text.replace('/link', '').trim().toLowerCase();
     if (!email || !email.includes('@')) {
       await sendMessage(chatId,
-        `❌ Укажите email вашего аккаунта.\n\n` +
-        `Пример: /link partner@example.com`
+        `❌ <b>Invalid email format</b>\n\n` +
+        `Please provide your FunnyRent account email.\n\n` +
+        `Example: <code>/link partner@example.com</code>`
       );
       return { action: 'link_invalid' };
     }
@@ -191,16 +192,19 @@ async function handleTelegramUpdate(update) {
     
     if (!profile) {
       await sendMessage(chatId, 
-        `❌ Аккаунт с email ${email} не найден.\n\n` +
-        `Убедитесь, что вы зарегистрированы на платформе.`
+        `❌ <b>Email not found</b>\n\n` +
+        `No account found for: ${email}\n\n` +
+        `Please check your spelling or register at FunnyRent first.`
       );
       return { action: 'link_not_found' };
     }
     
     if (profile.role !== 'PARTNER' && profile.role !== 'ADMIN') {
       await sendMessage(chatId,
-        `❌ Только партнёры могут использовать Lazy Realtor.\n\n` +
-        `Ваша роль: ${profile.role}`
+        `❌ <b>Access Denied</b>\n\n` +
+        `Only Partners can use Lazy Realtor.\n` +
+        `Your role: ${profile.role}\n\n` +
+        `Contact support to upgrade your account.`
       );
       return { action: 'link_wrong_role' };
     }
@@ -216,16 +220,16 @@ async function handleTelegramUpdate(update) {
     
     if (updateError) {
       console.error('[TELEGRAM] Error linking account:', updateError);
-      await sendMessage(chatId, `❌ Ошибка привязки аккаунта. Попробуйте позже.`);
+      await sendMessage(chatId, `❌ Connection error. Please try again later.`);
       return { action: 'link_error' };
     }
     
     await sendMessage(chatId,
-      `✅ <b>Аккаунт успешно привязан!</b>\n\n` +
-      `Email: ${email}\n` +
-      `Telegram ID: ${chatId}\n\n` +
-      `Теперь вы можете использовать Lazy Realtor:\n` +
-      `📸 Отправьте фото с описанием, чтобы создать черновик.`
+      `✅ <b>Account linked successfully!</b>\n\n` +
+      `📧 Email: ${email}\n` +
+      `🆔 Telegram ID: ${chatId}\n\n` +
+      `🎉 You're ready to send photos!\n` +
+      `Just send a photo with description and watch the magic happen ✨`
     );
     return { action: 'link_success', email };
   }
