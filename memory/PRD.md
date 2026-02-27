@@ -2,11 +2,11 @@
 
 ## Latest Update: 2026-02-27
 
-### Stage 19.5: Global Localization, UI Alignment & Partner Logic Complete
-- **Full Localization:** Complete dictionary in `/lib/translations.js` - Hero, Search, Categories, Login modal all translate
-- **Mobile UI Fixed:** Search box centered, proper padding on all elements
-- **Commission Management:** Global commission setting in `/admin/settings`, search in users, individual rates
-- **Moderator Controls:** "Login as" button enabled for MODERATOR role
+### Critical Fix: Layout, Deep Translation & Role Cache
+- **Layout Fixed:** Language switcher has `ml-6` gap from logo, Search box centered on mobile (`w-[95%] mx-auto`)
+- **Deep Localization:** ALL UI elements translated - buttons ("立即预订"), badges, price text ("/每天")
+- **Role Switching Fixed:** Uses `window.location.href` for instant menu update on Login as/Logout
+- **Moderator Security:** Hard-block on restricted URLs (/admin/finances, /settings, etc.) via redirect
 
 ## Project Overview
 **Name:** FunnyRent 2.1 - Phuket Super-App for Rentals
