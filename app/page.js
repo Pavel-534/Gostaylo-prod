@@ -502,7 +502,10 @@ export default function FunnyRentHome() {
                 <Card
                   key={cat.id}
                   className="group cursor-pointer overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-teal-500"
-                  onClick={() => setSelectedCategory(cat.slug)}
+                  onClick={() => {
+                    // Redirect to listings page with category filter
+                    router.push(`/listings?category=${cat.slug}`)
+                  }}
                 >
                   <div className="relative h-48 overflow-hidden">
                     <img
