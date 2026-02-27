@@ -238,14 +238,16 @@ export default function FunnyRentHome() {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Вход / Регистрация</DialogTitle>
+                    <DialogTitle>{getUIText('loginTitle', language)}</DialogTitle>
                     <DialogDescription>
-                      Войдите в систему или создайте новый аккаунт
+                      {language === 'ru' ? 'Войдите в систему или создайте новый аккаунт' :
+                       language === 'en' ? 'Sign in or create a new account' :
+                       language === 'zh' ? '登录或创建新账户' : 'เข้าสู่ระบบหรือสร้างบัญชีใหม่'}
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleLogin} className="space-y-4 py-4">
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="email">{getUIText('email', language)}</Label>
                       <Input 
                         id="email" 
                         type="email" 
@@ -256,7 +258,7 @@ export default function FunnyRentHome() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="password">Пароль</Label>
+                      <Label htmlFor="password">{getUIText('password', language)}</Label>
                       <div className="relative">
                         <Input 
                           id="password" 
@@ -276,7 +278,7 @@ export default function FunnyRentHome() {
                       </div>
                     </div>
                     {loginError && (
-                      <p className="text-red-500 text-sm">{loginError}</p>
+                      <p className="text-red-500 text-sm">{getUIText('loginError', language)}</p>
                     )}
                     <Button 
                       type="submit" 
