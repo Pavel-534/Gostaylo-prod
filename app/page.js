@@ -178,29 +178,29 @@ export default function FunnyRentHome() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* Header */}
+      {/* Header - Fixed Mobile Layout */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            {/* Logo */}
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-xl">FR</span>
+        <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            {/* Logo - Compact on mobile */}
+            <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-lg sm:text-xl">FR</span>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900">FunnyRent</h1>
+              <div className="hidden sm:block">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900">FunnyRent</h1>
                 <p className="text-xs text-teal-600">Phuket Luxury Rentals</p>
               </div>
-            </div>
+            </Link>
 
-            {/* Currency & Language Switchers - with margin from logo */}
-            <div className="flex items-center gap-2 sm:gap-4 ml-6">
-              {/* Language Switcher */}
+            {/* Right Controls - All visible on mobile */}
+            <div className="flex items-center gap-1 sm:gap-3">
+              {/* Language Switcher - Compact */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="border-teal-200 hover:bg-teal-50 gap-1 px-2">
-                    <span className="text-lg">{supportedLanguages.find(l => l.code === language)?.flag || '🌐'}</span>
-                    <span className="hidden sm:inline text-xs">{language.toUpperCase()}</span>
+                  <Button variant="outline" size="sm" className="border-teal-200 hover:bg-teal-50 h-8 w-8 sm:w-auto sm:px-2 p-0 sm:p-2">
+                    <span className="text-base sm:text-lg">{supportedLanguages.find(l => l.code === language)?.flag || '🌐'}</span>
+                    <span className="hidden sm:inline text-xs ml-1">{language.toUpperCase()}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
