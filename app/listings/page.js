@@ -3,15 +3,15 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { Home, Bike, Map, Anchor, Search, ArrowLeft, Star, MapPin, Filter, Grid, List, Palmtree } from 'lucide-react'
-import { fetchListings, fetchCategories } from '@/lib/client-data'
+import { Home, Bike, Map, Anchor, Search, ArrowLeft, Star, MapPin, Filter, Grid, List, Palmtree, Bed, Bath } from 'lucide-react'
+import { fetchListings, fetchCategories, fetchExchangeRates } from '@/lib/client-data'
 import { formatPrice } from '@/lib/currency'
-import { getUIText, getCategoryName } from '@/lib/translations'
+import { getUIText, getCategoryName, getListingText } from '@/lib/translations'
 
 export default function ListingsPage() {
   const searchParams = useSearchParams()
@@ -27,6 +27,7 @@ export default function ListingsPage() {
   const [viewMode, setViewMode] = useState('grid')
   const [language, setLanguage] = useState('en')
   const [currency, setCurrency] = useState('THB')
+  const [exchangeRates, setExchangeRates] = useState({ THB: 1, USD: 35.5, RUB: 0.37 })
 
   const districts = ['Patong', 'Kata', 'Karon', 'Kamala', 'Rawai', 'Phuket Town', 'Bang Tao', 'Chalong']
 
@@ -38,7 +39,7 @@ export default function ListingsPage() {
   }
 
   useEffect(() => {
-    // Detect language from browser or localStorage
+    // Detect language from localStorage or browser
     const storedLang = localStorage.getItem('funnyrent_language')
     if (storedLang) {
       setLanguage(storedLang)
@@ -51,21 +52,23 @@ export default function ListingsPage() {
     const storedCurrency = localStorage.getItem('funnyrent_currency')
     if (storedCurrency) setCurrency(storedCurrency)
     
-    loadData()
+    loadInitialData()
   }, [])
 
   useEffect(() => {
     loadListings()
-  }, [selectedCategory, selectedDistrict, sortBy])
+  }, [selectedCategory, selectedDistrict])
 
-  async function loadData() {
+  async function loadInitialData() {
     try {
-      const [listingsData, categoriesData] = await Promise.all([
+      const [listingsData, categoriesData, rates] = await Promise.all([
         fetchListings({ category: categorySlug !== 'all' ? categorySlug : undefined }),
-        fetchCategories()
+        fetchCategories(),
+        fetchExchangeRates()
       ])
       setListings(listingsData)
       setCategories(categoriesData)
+      setExchangeRates(rates)
       setLoading(false)
     } catch (error) {
       console.error('Failed to load data:', error)
@@ -83,9 +86,9 @@ export default function ListingsPage() {
       // Sort listings
       let sorted = [...data]
       if (sortBy === 'price_asc') {
-        sorted.sort((a, b) => a.base_price_thb - b.base_price_thb)
+        sorted.sort((a, b) => (a.basePriceThb || 0) - (b.basePriceThb || 0))
       } else if (sortBy === 'price_desc') {
-        sorted.sort((a, b) => b.base_price_thb - a.base_price_thb)
+        sorted.sort((a, b) => (b.basePriceThb || 0) - (a.basePriceThb || 0))
       } else if (sortBy === 'rating') {
         sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0))
       }
@@ -94,6 +97,12 @@ export default function ListingsPage() {
     } catch (error) {
       console.error('Failed to load listings:', error)
     }
+  }
+
+  function convertPrice(priceThb) {
+    if (currency === 'THB') return priceThb
+    const rate = exchangeRates[currency] || 1
+    return priceThb / rate
   }
 
   const filteredListings = listings.filter(listing => {
@@ -105,9 +114,7 @@ export default function ListingsPage() {
 
   const getCategoryTitle = () => {
     if (selectedCategory === 'all') {
-      return language === 'ru' ? 'Все объявления' :
-             language === 'zh' ? '所有列表' :
-             language === 'th' ? 'รายการทั้งหมด' : 'All Listings'
+      return getUIText('allCategories', language)
     }
     const cat = categories.find(c => c.slug === selectedCategory)
     return cat ? getCategoryName(cat.slug, language, cat.name) : selectedCategory
@@ -142,7 +149,7 @@ export default function ListingsPage() {
               <span className="text-lg font-black text-teal-500 tracking-tight ml-3 -mt-1">Rent</span>
             </Link>
             
-            <div className="w-20" /> {/* Spacer for centering */}
+            <div className="w-20" />
           </div>
         </div>
       </header>
@@ -254,16 +261,14 @@ export default function ListingsPage() {
         </div>
       </section>
 
-      {/* Listings Grid */}
+      {/* Listings Grid - SAME AS HOMEPAGE */}
       <section className="py-8">
         <div className="container mx-auto px-4">
           {filteredListings.length === 0 ? (
             <div className="text-center py-16">
               <Palmtree className="w-16 h-16 text-slate-300 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-slate-700 mb-2">
-                {language === 'ru' ? 'Ничего не найдено' :
-                 language === 'zh' ? '未找到任何内容' :
-                 language === 'th' ? 'ไม่พบสิ่งใด' : 'Nothing found'}
+                {getUIText('noResults', language)}
               </h3>
               <p className="text-slate-500">
                 {language === 'ru' ? 'Попробуйте изменить фильтры' :
@@ -278,84 +283,76 @@ export default function ListingsPage() {
             }>
               {filteredListings.map((listing) => {
                 const Icon = categoryIcons[listing.category?.slug] || Home
-                const title = listing.metadata?.title?.[language] || listing.title
                 
-                return viewMode === 'grid' ? (
+                return (
                   <Link key={listing.id} href={`/listings/${listing.id}`}>
-                    <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-teal-500 h-full">
+                    <Card className={`group overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer h-full ${listing.isFeatured ? 'ring-2 ring-purple-500 shadow-lg shadow-purple-200' : ''}`}>
                       <div className="relative h-48 overflow-hidden">
                         <img
-                          src={listing.cover_image || listing.images?.[0] || 'https://images.pexels.com/photos/1732414/pexels-photo-1732414.jpeg'}
-                          alt={title}
+                          src={listing.images?.[0] || listing.coverImage || 'https://images.pexels.com/photos/1732414/pexels-photo-1732414.jpeg'}
+                          alt={listing.title}
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
-                        <Badge className="absolute top-3 left-3 bg-teal-500">
-                          <Icon className="w-3 h-3 mr-1" />
-                          {getCategoryName(listing.category?.slug, language, listing.category?.name)}
-                        </Badge>
-                        {listing.is_featured && (
-                          <Badge className="absolute top-3 right-3 bg-amber-500">
-                            <Star className="w-3 h-3 mr-1" />
-                            Featured
-                          </Badge>
+                        {listing.isFeatured && (
+                          <div className="absolute top-3 left-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+                            ⭐ {getUIText('featured', language)}
+                          </div>
+                        )}
+                        {listing.rating > 0 && (
+                          <div className="absolute top-3 right-3 bg-teal-600 text-white px-3 py-1 rounded-full text-sm font-semibold shadow-lg">
+                            ⭐ {listing.rating}
+                          </div>
                         )}
                       </div>
-                      <CardContent className="p-4">
-                        <h4 className="font-semibold text-slate-900 mb-1 line-clamp-1">{title}</h4>
-                        <div className="flex items-center text-sm text-slate-500 mb-3">
-                          <MapPin className="w-3 h-3 mr-1" />
-                          {listing.district || 'Phuket'}
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xl font-bold text-teal-600">
-                            {formatPrice(listing.base_price_thb, currency)}
-                          </span>
-                          <span className="text-xs text-slate-400">
-                            {language === 'ru' ? '/ночь' : '/night'}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ) : (
-                  <Link key={listing.id} href={`/listings/${listing.id}`}>
-                    <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-teal-500">
-                      <div className="flex">
-                        <div className="relative w-48 h-36 flex-shrink-0 overflow-hidden">
-                          <img
-                            src={listing.cover_image || listing.images?.[0] || 'https://images.pexels.com/photos/1732414/pexels-photo-1732414.jpeg'}
-                            alt={title}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                          />
-                        </div>
-                        <CardContent className="p-4 flex-1 flex flex-col justify-between">
-                          <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge className="bg-teal-500">
-                                <Icon className="w-3 h-3 mr-1" />
-                                {getCategoryName(listing.category?.slug, language, listing.category?.name)}
-                              </Badge>
-                              {listing.is_featured && (
-                                <Badge className="bg-amber-500">Featured</Badge>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="line-clamp-1 text-lg">
+                          {getListingText(listing, 'title', language)}
+                        </CardTitle>
+                        <CardDescription className="line-clamp-2">
+                          {getListingText(listing, 'description', language)}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <MapPin className="h-4 w-4" />
+                            <span>{listing.district || 'Phuket'}</span>
+                          </div>
+                          {/* Bedrooms/Bathrooms */}
+                          {(listing.bedrooms || listing.bathrooms) && (
+                            <div className="flex items-center gap-3 text-xs text-slate-500">
+                              {listing.bedrooms && (
+                                <span className="flex items-center gap-1">
+                                  <Bed className="w-3 h-3" />
+                                  {listing.bedrooms} {getUIText('bedrooms', language)}
+                                </span>
+                              )}
+                              {listing.bathrooms && (
+                                <span className="flex items-center gap-1">
+                                  <Bath className="w-3 h-3" />
+                                  {listing.bathrooms} {getUIText('bathrooms', language)}
+                                </span>
                               )}
                             </div>
-                            <h4 className="font-semibold text-slate-900 mb-1">{title}</h4>
-                            <div className="flex items-center text-sm text-slate-500">
-                              <MapPin className="w-3 h-3 mr-1" />
-                              {listing.district || 'Phuket'}
+                          )}
+                          {listing.reviewsCount > 0 && (
+                            <div className="text-xs text-slate-500">
+                              {listing.reviewsCount} {getUIText('reviews', language)}
                             </div>
-                          </div>
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-xl font-bold text-teal-600">
-                              {formatPrice(listing.base_price_thb, currency)}
+                          )}
+                          <div className="flex items-center justify-between pt-2">
+                            <span className="text-2xl font-bold text-teal-600">
+                              {formatPrice(convertPrice(listing.basePriceThb || 0), currency)}
                             </span>
-                            <span className="text-xs text-slate-400">
-                              {language === 'ru' ? '/ночь' : '/night'}
-                            </span>
+                            <span className="text-sm text-slate-500">/{getUIText('pricePerDay', language)}</span>
                           </div>
-                        </CardContent>
-                      </div>
+                        </div>
+                      </CardContent>
+                      <CardFooter className="pt-0">
+                        <Button className="w-full bg-teal-600 hover:bg-teal-700">
+                          {getUIText('bookNow', language)}
+                        </Button>
+                      </CardFooter>
                     </Card>
                   </Link>
                 )
@@ -365,16 +362,61 @@ export default function ListingsPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-slate-900 text-white py-8 mt-8">
-        <div className="container mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">FR</span>
+      {/* Footer - Localized */}
+      <footer className="bg-slate-900 text-white py-12 mt-8">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {/* Logo */}
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold">FR</span>
+                </div>
+                <span className="font-bold text-xl">FunnyRent</span>
+              </div>
+              <p className="text-slate-400 text-sm">
+                {getUIText('footerDesc', language)}
+              </p>
             </div>
-            <span className="font-semibold">FunnyRent 2.1</span>
+            
+            {/* Categories */}
+            <div>
+              <h4 className="font-semibold mb-4">{getUIText('footerCategories', language)}</h4>
+              <ul className="space-y-2 text-sm text-slate-400">
+                {categories.map((cat) => (
+                  <li key={cat.id}>
+                    <Link href={`/listings?category=${cat.slug}`} className="hover:text-teal-400 transition">
+                      {getCategoryName(cat.slug, language, cat.name)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            {/* Company */}
+            <div>
+              <h4 className="font-semibold mb-4">{getUIText('footerCompany', language)}</h4>
+              <ul className="space-y-2 text-sm text-slate-400">
+                <li><Link href="#" className="hover:text-teal-400 transition">{getUIText('aboutUs', language)}</Link></li>
+                <li><Link href="#" className="hover:text-teal-400 transition">{getUIText('careers', language)}</Link></li>
+                <li><Link href="#" className="hover:text-teal-400 transition">{getUIText('blog', language)}</Link></li>
+              </ul>
+            </div>
+            
+            {/* Support */}
+            <div>
+              <h4 className="font-semibold mb-4">{getUIText('footerSupport', language)}</h4>
+              <ul className="space-y-2 text-sm text-slate-400">
+                <li><Link href="#" className="hover:text-teal-400 transition">{getUIText('helpCenter', language)}</Link></li>
+                <li><Link href="#" className="hover:text-teal-400 transition">{getUIText('safetyInfo', language)}</Link></li>
+                <li><Link href="#" className="hover:text-teal-400 transition">{getUIText('contactUs', language)}</Link></li>
+              </ul>
+            </div>
           </div>
-          <p className="text-sm text-slate-400">© 2025 FunnyRent. {getUIText('allRightsReserved', language)}</p>
+          
+          <div className="border-t border-slate-700 mt-8 pt-8 text-center text-sm text-slate-400">
+            <p>© 2025 FunnyRent. {getUIText('allRightsReserved', language)}</p>
+          </div>
         </div>
       </footer>
     </div>
