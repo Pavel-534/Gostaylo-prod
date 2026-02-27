@@ -256,6 +256,7 @@ export default function UsersPage() {
               <SelectContent>
                 <SelectItem value="ALL">Все роли</SelectItem>
                 <SelectItem value="ADMIN">Admin</SelectItem>
+                <SelectItem value="MODERATOR">Moderator</SelectItem>
                 <SelectItem value="PARTNER">Partner</SelectItem>
                 <SelectItem value="RENTER">Renter</SelectItem>
               </SelectContent>
