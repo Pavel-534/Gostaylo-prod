@@ -439,23 +439,23 @@ export default function FunnyRentHome() {
                   
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Категория" />
+                      <SelectValue placeholder={getUIText('category', language)} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Все категории</SelectItem>
+                      <SelectItem value="all">{getUIText('allCategories', language)}</SelectItem>
                       {categories.map(cat => (
                         <SelectItem key={cat.id} value={cat.slug}>
-                          {cat.icon} {cat.name}
+                          {cat.icon} {getCategoryName(cat.slug, language, cat.name)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <Select value={selectedDistrict} onValueChange={setSelectedDistrict}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Район" />
+                      <SelectValue placeholder={getUIText('district', language)} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Все районы</SelectItem>
+                      <SelectItem value="all">{getUIText('allDistricts', language)}</SelectItem>
                       {districts.map(district => (
                         <SelectItem key={district} value={district}>
                           {district}
