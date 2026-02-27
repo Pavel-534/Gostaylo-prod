@@ -193,10 +193,33 @@ export default function FunnyRentHome() {
               </div>
             </div>
 
-            {/* Currency Switcher */}
-            <div className="flex items-center gap-4">
+            {/* Currency & Language Switchers */}
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Language Switcher */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="border-teal-200 hover:bg-teal-50 gap-1 px-2">
+                    <span className="text-lg">{supportedLanguages.find(l => l.code === language)?.flag || '🌐'}</span>
+                    <span className="hidden sm:inline text-xs">{language.toUpperCase()}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {supportedLanguages.map((lang) => (
+                    <DropdownMenuItem 
+                      key={lang.code} 
+                      onClick={() => handleLanguageChange(lang.code)}
+                      className={language === lang.code ? 'bg-teal-50' : ''}
+                    >
+                      <span className="text-lg mr-2">{lang.flag}</span>
+                      <span>{lang.name}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Currency Switcher */}
               <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className="w-[120px] border-teal-200 focus:ring-teal-500">
+                <SelectTrigger className="w-[90px] sm:w-[120px] border-teal-200 focus:ring-teal-500">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
