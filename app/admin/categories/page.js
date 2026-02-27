@@ -8,33 +8,74 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Grid3x3, Plus, Eye, EyeOff, Layers } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Grid3x3, Plus, Eye, EyeOff, Layers, Languages, Globe, Edit } from 'lucide-react';
+import { toast } from 'sonner';
+import { categoryTranslations, supportedLanguages } from '@/lib/translations';
 
 export default function CategoriesPage() {
-  const { toast } = useToast();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showTranslateModal, setShowTranslateModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [translations, setTranslations] = useState({
+    ru: '', en: '', zh: '', th: ''
+  });
   const [newCategory, setNewCategory] = useState({
     name: '',
     slug: '',
     icon: '',
   });
 
+  // Local translations storage (since we can't modify DB schema)
+  const [localTranslations, setLocalTranslations] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('funnyrent_category_translations');
+      return stored ? JSON.parse(stored) : categoryTranslations;
+    }
+    return categoryTranslations;
+  });
+
   useEffect(() => {
     loadCategories();
   }, []);
 
+  // Save translations to localStorage
+  const saveTranslations = (newTranslations) => {
+    setLocalTranslations(newTranslations);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('funnyrent_category_translations', JSON.stringify(newTranslations));
+    }
+  };
+
   const loadCategories = async () => {
     try {
-      const res = await fetch('/api/admin/categories');
+      // Direct Supabase call
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
+      
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/categories?select=*&order=order.asc`, {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      
       if (res.ok) {
         const data = await res.json();
-        setCategories(data.data);
+        setCategories(data.map(c => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          icon: c.icon || '📦',
+          isActive: c.is_active,
+          order: c.order
+        })));
       }
     } catch (error) {
       console.error('Failed to load categories:', error);
+      toast.error('Ошибка загрузки категорий');
     } finally {
       setLoading(false);
     }
@@ -42,63 +83,99 @@ export default function CategoriesPage() {
 
   const handleToggle = async (categoryId, currentStatus) => {
     try {
-      const res = await fetch(`/api/admin/categories/${categoryId}/toggle`, {
-        method: 'PUT',
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
+      
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/categories?id=eq.${categoryId}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ is_active: !currentStatus })
       });
 
       if (res.ok) {
-        toast({
-          title: currentStatus ? '❌ Категория выключена' : '✅ Категория включена',
-          description: 'Изменения применены на сайте',
-        });
+        toast.success(currentStatus ? '❌ Категория выключена' : '✅ Категория включена');
         loadCategories();
       }
     } catch (error) {
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось изменить статус категории',
-        variant: 'destructive',
-      });
+      toast.error('Не удалось изменить статус категории');
     }
   };
 
   const handleAddCategory = async () => {
     if (!newCategory.name) {
-      toast({
-        title: 'Ошибка',
-        description: 'Введите название категории',
-        variant: 'destructive',
-      });
+      toast.error('Введите название категории');
       return;
     }
 
     try {
-      const res = await fetch('/api/admin/categories', {
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
+      
+      const slug = newCategory.slug || newCategory.name.toLowerCase().replace(/\s+/g, '-');
+      
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/categories`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
         body: JSON.stringify({
           name: newCategory.name,
-          slug: newCategory.slug || newCategory.name.toLowerCase().replace(/\s+/g, '-'),
+          slug: slug,
           icon: newCategory.icon || '📦',
-        }),
+          is_active: true,
+          order: categories.length + 1
+        })
       });
 
       if (res.ok) {
-        toast({
-          title: '✅ Категория создана',
-          description: `${newCategory.name} добавлена на платформу`,
-        });
+        toast.success(`✅ ${newCategory.name} добавлена`);
         setShowAddModal(false);
         setNewCategory({ name: '', slug: '', icon: '' });
         loadCategories();
       }
     } catch (error) {
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось создать категорию',
-        variant: 'destructive',
-      });
+      toast.error('Не удалось создать категорию');
     }
+  };
+
+  const openTranslateModal = (category) => {
+    setEditingCategory(category);
+    const existing = localTranslations[category.slug?.toLowerCase()] || {};
+    setTranslations({
+      ru: existing.ru || category.name,
+      en: existing.en || category.name,
+      zh: existing.zh || '',
+      th: existing.th || ''
+    });
+    setShowTranslateModal(true);
+  };
+
+  const handleSaveTranslations = () => {
+    if (!editingCategory) return;
+    
+    const slug = editingCategory.slug?.toLowerCase();
+    const newTranslations = {
+      ...localTranslations,
+      [slug]: { ...translations }
+    };
+    
+    saveTranslations(newTranslations);
+    toast.success('✅ Переводы сохранены');
+    setShowTranslateModal(false);
+  };
+
+  // Get translated name
+  const getTranslatedName = (category, lang = 'ru') => {
+    const slug = category.slug?.toLowerCase();
+    const trans = localTranslations[slug];
+    return trans?.[lang] || category.name;
   };
 
   if (loading) {
@@ -110,146 +187,145 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header - Mobile Responsive */}
+    <div className="space-y-4 sm:space-y-6 max-w-full overflow-hidden">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Управление категориями</h1>
           <p className="text-sm sm:text-base text-gray-600 mt-1">
-            Включайте и выключайте разделы сайта
+            Категории с поддержкой 4 языков (RU/EN/ZH/TH)
           </p>
         </div>
         <Button
           onClick={() => setShowAddModal(true)}
           className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold w-full sm:w-auto"
         >
-          <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+          <Plus className="w-4 h-4 mr-2" />
           Добавить
         </Button>
       </div>
 
-      {/* Stats - Mobile Responsive */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-4 lg:gap-6">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <Card className="border-2 border-green-100">
-          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm text-gray-600">Активные</CardTitle>
-          </CardHeader>
-          <CardContent className="p-2 sm:p-4 pt-0">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600">
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-xs sm:text-sm text-gray-600">Активные</p>
+            <p className="text-xl sm:text-2xl font-bold text-green-600">
               {categories.filter((c) => c.isActive).length}
-            </div>
+            </p>
           </CardContent>
         </Card>
         <Card className="border-2 border-red-100">
-          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm text-gray-600">Выключены</CardTitle>
-          </CardHeader>
-          <CardContent className="p-2 sm:p-4 pt-0">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-red-600">
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-xs sm:text-sm text-gray-600">Выключены</p>
+            <p className="text-xl sm:text-2xl font-bold text-red-600">
               {categories.filter((c) => !c.isActive).length}
-            </div>
+            </p>
           </CardContent>
         </Card>
         <Card className="border-2 border-indigo-100">
-          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2">
-            <CardTitle className="text-xs sm:text-sm text-gray-600">Всего</CardTitle>
-          </CardHeader>
-          <CardContent className="p-2 sm:p-4 pt-0">
-            <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-indigo-600">{categories.length}</div>
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-xs sm:text-sm text-gray-600">Всего</p>
+            <p className="text-xl sm:text-2xl font-bold text-indigo-600">{categories.length}</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Categories Grid - Mobile Responsive */}
-      <Card className="shadow-xl">
-        <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <Layers className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
-            Все категории
-          </CardTitle>
-          <CardDescription className="text-sm">
-            Toggle для включения/выключения
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 sm:p-6 pt-0">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
-            {categories.map((category) => (
-              <div
-                key={category.id}
-                className={`p-3 sm:p-4 lg:p-6 rounded-xl border-2 transition-all ${
-                  category.isActive
-                    ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-300 hover:border-green-500'
-                    : 'bg-gradient-to-br from-gray-50 to-slate-50 border-gray-300 hover:border-gray-400 opacity-60'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 min-w-0">
-                    <div
-                      className={`w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center text-xl sm:text-2xl lg:text-3xl flex-shrink-0 ${
-                        category.isActive
-                          ? 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg'
-                          : 'bg-gray-400'
-                      }`}
-                    >
-                      {category.icon}
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 truncate">{category.name}</h3>
-                      <p className="text-xs sm:text-sm text-gray-600 font-mono truncate">/{category.slug}</p>
-                      <div className="flex flex-wrap gap-1 sm:gap-2 mt-1 sm:mt-2">
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${
-                            category.isActive
-                              ? 'bg-green-100 text-green-800 border-green-300'
-                              : 'bg-red-100 text-red-800 border-red-300'
-                          }`}
-                        >
-                          {category.isActive ? (
-                            <><Eye className="w-3 h-3 mr-1" />Активна</>
-                          ) : (
-                            <><EyeOff className="w-3 h-3 mr-1" />Скрыта</>
-                          )}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                  <Switch
-                    checked={category.isActive}
-                    onCheckedChange={() => handleToggle(category.id, category.isActive)}
-                    className="scale-100 sm:scale-125 lg:scale-150 flex-shrink-0"
-                  />
-                </div>
-
-                {!category.isActive && (
-                  <div className="mt-3 p-2 sm:p-3 bg-yellow-50 border border-yellow-300 rounded-lg">
-                    <p className="text-xs text-yellow-800">
-                      ⚠️ Не отображается
-                    </p>
-                  </div>
-                )}
-              </div>
+      {/* Language Support Banner */}
+      <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <CardContent className="p-4 flex items-center gap-3">
+          <Globe className="w-8 h-8 text-blue-600 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-blue-900">Мультиязычная поддержка</p>
+            <p className="text-sm text-blue-700">
+              Нажмите на кнопку 🌐 чтобы редактировать переводы для каждой категории
+            </p>
+          </div>
+          <div className="flex gap-1">
+            {supportedLanguages.map(lang => (
+              <span key={lang.code} className="text-lg" title={lang.name}>{lang.flag}</span>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Info Card */}
-      <Card className="border-2 border-blue-200 bg-blue-50">
-        <CardContent className="p-6">
-          <div className="flex items-start gap-3">
-            <Grid3x3 className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
-            <div>
-              <p className="font-semibold text-blue-900 mb-1">Как работают категории?</p>
-              <p className="text-sm text-blue-800">
-                • <strong>Активная категория:</strong> Видна везде (главная, навигация, поиск, wizard)
-                <br />
-                • <strong>Выключенная категория:</strong> Скрыта от пользователей, но объявления сохраняются
-                <br />
-                • <strong>Добавление:</strong> Создавайте новые ниши (Fishing, Sales, Events и т.д.)
-                <br />• <strong>Slug:</strong> Используется в URL (например, /category/fishing)
-              </p>
-            </div>
+      {/* Categories Grid */}
+      <Card className="shadow-xl">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Layers className="w-5 h-5 text-indigo-600" />
+            Все категории
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6 pt-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+            {categories.map((category) => (
+              <div
+                key={category.id}
+                className={`p-3 sm:p-4 rounded-xl border-2 transition-all ${
+                  category.isActive
+                    ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-300'
+                    : 'bg-gray-50 border-gray-300 opacity-60'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-xl sm:text-2xl flex-shrink-0 ${
+                      category.isActive
+                        ? 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg'
+                        : 'bg-gray-400'
+                    }`}>
+                      {category.icon === 'Home' ? '🏠' : 
+                       category.icon === 'Car' ? '🚗' : 
+                       category.icon === 'Map' ? '🗺️' : 
+                       category.icon === 'Anchor' ? '⚓' : category.icon}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm sm:text-base font-bold text-gray-900 truncate">
+                        {category.name}
+                      </h3>
+                      <p className="text-xs text-gray-500 font-mono">/{category.slug}</p>
+                      
+                      {/* Mini translations preview */}
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        {supportedLanguages.map(lang => {
+                          const trans = localTranslations[category.slug?.toLowerCase()];
+                          const hasTranslation = trans?.[lang.code];
+                          return (
+                            <span 
+                              key={lang.code} 
+                              className={`text-xs px-1 rounded ${hasTranslation ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}
+                              title={hasTranslation || 'Не переведено'}
+                            >
+                              {lang.flag}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Translate button */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openTranslateModal(category)}
+                      className="h-8 w-8 p-0"
+                      title="Редактировать переводы"
+                    >
+                      <Languages className="w-4 h-4" />
+                    </Button>
+                    
+                    {/* Toggle switch */}
+                    <Switch
+                      checked={category.isActive}
+                      onCheckedChange={() => handleToggle(category.id, category.isActive)}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -258,16 +334,15 @@ export default function CategoriesPage() {
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-2xl">Создать новую категорию</DialogTitle>
+            <DialogTitle>Создать категорию</DialogTitle>
             <DialogDescription>
-              Добавьте новый раздел для платформы (например, Fishing, Sales, Events)
+              Добавьте новый раздел для платформы
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="name">Название *</Label>
+              <Label>Название *</Label>
               <Input
-                id="name"
                 placeholder="Fishing"
                 value={newCategory.name}
                 onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
@@ -275,35 +350,86 @@ export default function CategoriesPage() {
               />
             </div>
             <div>
-              <Label htmlFor="slug">Slug (для URL)</Label>
+              <Label>Slug (для URL)</Label>
               <Input
-                id="slug"
-                placeholder="fishing (auto-generated if empty)"
+                placeholder="fishing"
                 value={newCategory.slug}
                 onChange={(e) => setNewCategory({ ...newCategory, slug: e.target.value })}
                 className="mt-2"
               />
-              <p className="text-xs text-gray-500 mt-1">Будет использоваться в URL: /category/fishing</p>
             </div>
             <div>
-              <Label htmlFor="icon">Icon (Emoji)</Label>
+              <Label>Icon (Emoji)</Label>
               <Input
-                id="icon"
                 placeholder="🎣"
                 value={newCategory.icon}
                 onChange={(e) => setNewCategory({ ...newCategory, icon: e.target.value })}
                 className="mt-2 text-2xl"
                 maxLength={2}
               />
-              <p className="text-xs text-gray-500 mt-1">Используйте emoji (например: 🎣 🛒 🎪)</p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddModal(false)}>
+            <Button variant="outline" onClick={() => setShowAddModal(false)}>Отмена</Button>
+            <Button onClick={handleAddCategory} className="bg-indigo-600 hover:bg-indigo-700">
+              ✅ Создать
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Translation Modal */}
+      <Dialog open={showTranslateModal} onOpenChange={setShowTranslateModal}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="w-5 h-5" />
+              Переводы: {editingCategory?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Введите название категории на каждом языке
+            </DialogDescription>
+          </DialogHeader>
+          
+          <Tabs defaultValue="ru" className="mt-4">
+            <TabsList className="grid grid-cols-4 w-full">
+              {supportedLanguages.map(lang => (
+                <TabsTrigger key={lang.code} value={lang.code} className="text-sm">
+                  {lang.flag} {lang.code.toUpperCase()}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            
+            {supportedLanguages.map(lang => (
+              <TabsContent key={lang.code} value={lang.code} className="mt-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <span>{lang.flag}</span>
+                    {lang.name}
+                  </Label>
+                  <Input
+                    value={translations[lang.code]}
+                    onChange={(e) => setTranslations({ ...translations, [lang.code]: e.target.value })}
+                    placeholder={`Название на ${lang.name}`}
+                    className="text-lg"
+                  />
+                  <p className="text-xs text-gray-500">
+                    {lang.code === 'ru' && 'Основной язык платформы'}
+                    {lang.code === 'en' && 'For international users'}
+                    {lang.code === 'zh' && '中文翻译'}
+                    {lang.code === 'th' && 'สำหรับผู้ใช้ภาษาไทย'}
+                  </p>
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
+
+          <DialogFooter className="mt-6">
+            <Button variant="outline" onClick={() => setShowTranslateModal(false)}>
               Отмена
             </Button>
-            <Button onClick={handleAddCategory} className="bg-indigo-600 hover:bg-indigo-700">
-              ✅ Создать категорию
+            <Button onClick={handleSaveTranslations} className="bg-indigo-600 hover:bg-indigo-700">
+              💾 Сохранить переводы
             </Button>
           </DialogFooter>
         </DialogContent>
