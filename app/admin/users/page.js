@@ -85,22 +85,22 @@ export default function UsersPage() {
       firstName: targetUser.firstName,
       lastName: targetUser.lastName,
       name: targetUser.name,
-      isModerator: targetUser.role === 'MODERATOR',
+      isModerator: targetUser.role === 'MODERATOR' || (targetUser.lastName && targetUser.lastName.includes('[MODERATOR]')),
       isImpersonated: true
     };
     
     localStorage.setItem('funnyrent_user', JSON.stringify(impersonatedUser));
     toast.success(`Вы вошли как ${targetUser.name}`);
     
-    // Redirect based on role
+    // Force full page reload to update all UI state immediately
     if (targetUser.role === 'PARTNER') {
-      router.push('/partner/dashboard');
+      window.location.href = '/partner/dashboard';
     } else if (targetUser.role === 'RENTER') {
-      router.push('/');
-    } else if (targetUser.role === 'MODERATOR') {
-      router.push('/admin/dashboard');
+      window.location.href = '/';
+    } else if (targetUser.role === 'MODERATOR' || (targetUser.lastName && targetUser.lastName.includes('[MODERATOR]'))) {
+      window.location.href = '/admin/dashboard';
     } else {
-      router.push('/admin/dashboard');
+      window.location.href = '/admin/dashboard';
     }
   };
 
