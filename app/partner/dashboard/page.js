@@ -145,28 +145,91 @@ export default function PartnerDashboard() {
 
   return (
     <div className="p-4 lg:p-8 space-y-6 lg:space-y-8 max-w-full overflow-hidden">
-      {/* Header */}
-      <div className="min-w-0">
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900">Панель управления</h1>
-        <p className="text-sm lg:text-base text-slate-600 mt-1">
-          Добро пожаловать обратно! Вот обзор вашего бизнеса.
-        </p>
+      {/* Welcome Banner - Premium Tropical */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-teal-900 text-white p-6 lg:p-8 shadow-2xl">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-500/10 rounded-full blur-2xl -ml-24 -mb-24"></div>
+        <div className="relative z-10">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <Palmtree className="w-8 h-8 text-teal-400" />
+                <span className="text-teal-400 text-sm font-medium uppercase tracking-wider">Partner Portal</span>
+              </div>
+              <h1 className="text-2xl lg:text-3xl font-bold mb-2">
+                Welcome to the Island, {userName}! 🌴
+              </h1>
+              <p className="text-slate-300 text-sm lg:text-base max-w-xl">
+                Your business starts here. Manage listings, track bookings, and grow your rental empire in Phuket.
+              </p>
+            </div>
+            <div className="hidden lg:flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2">
+              <div className="w-2 h-2 bg-teal-400 rounded-full animate-pulse"></div>
+              <span className="text-sm">Online</span>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Telegram Drafts Alert */}
+      {draftListings.length > 0 && (
+        <Card className="border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-yellow-50 shadow-lg">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileEdit className="w-5 h-5 text-amber-600" />
+                <CardTitle className="text-lg text-amber-900">
+                  Telegram Drafts
+                  <Badge className="ml-2 bg-amber-500 text-white">{draftListings.length}</Badge>
+                </CardTitle>
+              </div>
+              <a href="/partner/listings" className="text-sm text-amber-700 hover:text-amber-900 font-medium flex items-center gap-1">
+                View All <ArrowUpRight className="w-4 h-4" />
+              </a>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <div className="space-y-2">
+              {draftListings.slice(0, 3).map((draft) => (
+                <div key={draft.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-amber-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center overflow-hidden">
+                      {draft.cover_image ? (
+                        <img src={draft.cover_image} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <Home className="w-6 h-6 text-amber-600" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-slate-900 text-sm">{draft.title}</p>
+                      <p className="text-xs text-slate-500">via Telegram • {formatPrice(parseFloat(draft.base_price_thb), 'THB')}</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="border-amber-400 text-amber-700">
+                    <FileEdit className="w-3 h-3 mr-1" />
+                    Draft
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards - Stack on mobile */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
         {statCards.map((card) => (
-          <Card key={card.title} className="hover:shadow-lg transition-shadow">
+          <Card key={card.title} className="hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 border-0 shadow-md">
             <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 lg:p-6">
               <CardTitle className="text-xs lg:text-sm font-medium text-slate-600">
                 {card.title}
               </CardTitle>
-              <div className={`p-1.5 lg:p-2 rounded-lg ${card.color}`}>
-                <card.icon className="h-3 w-3 lg:h-4 lg:w-4" />
+              <div className={`p-2 lg:p-2.5 rounded-xl ${card.color}`}>
+                <card.icon className="h-4 w-4 lg:h-5 lg:w-5" />
               </div>
             </CardHeader>
             <CardContent className="p-3 lg:p-6 pt-0">
-              <div className="text-lg lg:text-2xl font-bold text-slate-900">{card.value}</div>
+              <div className="text-xl lg:text-2xl font-bold text-slate-900">{card.value}</div>
               <p className="text-xs text-slate-500 mt-1">{card.change}</p>
             </CardContent>
           </Card>
