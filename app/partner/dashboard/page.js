@@ -3,20 +3,29 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Home, Calendar, DollarSign, Users, TrendingUp, Eye, ArrowUpRight, Send, Bot, Bell, Copy, Check, Loader2, Sparkles, MessageSquare, Zap } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Home, Calendar, DollarSign, Users, TrendingUp, Eye, ArrowUpRight, Send, Bot, Bell, Copy, Check, Loader2, Sparkles, MessageSquare, Zap, Palmtree, FileEdit, Plus } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
 
 export default function PartnerDashboard() {
   const [stats, setStats] = useState(null)
   const [bookings, setBookings] = useState([])
+  const [draftListings, setDraftListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [linkCode, setLinkCode] = useState('')
   const [generatingCode, setGeneratingCode] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [userName, setUserName] = useState('')
 
   useEffect(() => {
     loadData()
+    // Get user name from localStorage
+    const storedUser = localStorage.getItem('funnyrent_user')
+    if (storedUser) {
+      const user = JSON.parse(storedUser)
+      setUserName(user.name || user.email?.split('@')[0] || 'Partner')
+    }
   }, [])
 
   async function loadData() {
