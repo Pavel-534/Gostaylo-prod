@@ -2,11 +2,11 @@
 
 ## Latest Update: 2026-02-27
 
-### Stage 19.3: Global UX Repair & Auto-Localization Complete
-- **Date Range Picker Fixed:** Calendar stays open until both dates selected, shows visual indicators (Start/End boxes), Apply button for confirmation
-- **Intelligent Localization:** Auto-detects browser language (RU/EN/ZH/TH), Language Switcher with flags added to header
-- **Moderator Account Created:** assistant@funnyrent.com with restricted access (no Finance/Settings)
-- **Category Click Logic:** Now redirects to /listings?category={slug} for filtered view
+### Stage 19.5: Global Localization, UI Alignment & Partner Logic Complete
+- **Full Localization:** Complete dictionary in `/lib/translations.js` - Hero, Search, Categories, Login modal all translate
+- **Mobile UI Fixed:** Search box centered, proper padding on all elements
+- **Commission Management:** Global commission setting in `/admin/settings`, search in users, individual rates
+- **Moderator Controls:** "Login as" button enabled for MODERATOR role
 
 ## Project Overview
 **Name:** FunnyRent 2.1 - Phuket Super-App for Rentals
