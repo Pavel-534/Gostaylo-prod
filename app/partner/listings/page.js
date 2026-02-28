@@ -179,7 +179,7 @@ export default function PartnerListings() {
         <Card>
           <CardContent className="p-4 lg:pt-6">
             <div className="text-xl lg:text-2xl font-bold text-slate-900">
-              {listings.reduce((sum, l) => sum + l.bookingsCount, 0)}
+              {listings.reduce((sum, l) => sum + (l.bookingsCount || 0), 0)}
             </div>
             <p className="text-xs lg:text-sm text-slate-600">Бронирований</p>
           </CardContent>
