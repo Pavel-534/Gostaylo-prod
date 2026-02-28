@@ -1,76 +1,72 @@
 # FunnyRent 2.1 - Product Requirements Document
 
-## Latest Update: 2026-02-28 - Database Migration & UX Refactoring Complete ✅
+## Latest Update: 2026-02-28 - Supabase Storage & Image Compression Complete ✅
 
-### Critical Fixes Applied
+### Professional Media Pipeline (P0) ✅
 
-#### 1. Database Fix (P0) ✅
-- **Problem**: `sync_settings` column didn't exist in `listings` table
-- **Solution**: Store sync_settings inside `metadata` JSONB field
-- All services updated: iCal API, Calendar Sync Manager, New Listing form
-- Verified: Listings create successfully with metadata.sync_settings
+#### Supabase Storage
+- **Bucket Created**: `listing-images` with public access
+- **File Size Limit**: 10MB
+- **Allowed Types**: image/jpeg, image/png, image/webp, image/gif
+- **Public URL Format**: `https://vtzzcdsjwudkaloxhvnw.supabase.co/storage/v1/object/public/listing-images/{path}`
 
-#### 2. Moderation Sync (P0) ✅
-- Admin Moderation panel now shows ALL PENDING listings
-- Direct Supabase queries (bypasses K8s ingress issues)
-- Approve/Reject functions work correctly
-- Featured toggle integrated
+#### Client-Side Image Compression
+- **Library**: `browser-image-compression`
+- **Max Width/Height**: 1920px
+- **Quality**: 80%
+- **Output Format**: WebP (for better compression)
+- **Max Compressed Size**: 1MB
 
-#### 3. Partner Edit Interface Overhaul (P1) ✅
-- **Mobile-First Design** with sticky header
-- **Media Management**: 
-  - Real file upload with progress bar
-  - "Set as Cover" button per image
-  - "Delete" button per image  
-  - Cover badge on selected image
-- **iCal Manager**: Clear input + "+" button, platform dropdown
-- **Seasonal Pricing**: Placeholder ready for implementation
-
-#### 4. Listing Creation Final Flow (P0) ✅
-- Success redirect only after confirmed DB insert
-- Real file selection with Progress Bar
-- "Save as Draft" creates with metadata.is_draft: true
-
-### Data Schema (Updated)
+#### Upload Service (`/app/lib/services/image-upload.service.js`)
 ```javascript
-// listings.metadata structure
-{
-  "is_draft": boolean,           // True = Draft status
-  "created_via": string,         // "partner_dashboard" | "telegram"
-  "sync_settings": [             // Moved from separate column
-    {
-      "id": string,
-      "url": string,
-      "source": "Airbnb" | "Booking.com" | "VRBO" | "Google",
-      "enabled": boolean
-    }
-  ]
-}
+// Features:
+- compressImage(file, onProgress)     // Client-side compression
+- uploadToStorage(file, listingId)    // Supabase Storage upload
+- deleteFromStorage(fileUrl)          // Delete from storage
+- processAndUploadImages(files, id)   // Full pipeline with progress
 ```
+
+#### Upload Flow
+```
+1. User selects files
+2. Validate type & size (max 10MB)
+3. Compress (max 1920px, 80% quality, WebP)
+4. Upload to Supabase Storage
+5. Save public URL to listings.images array
+```
+
+### Database Schema Notes
+- `sync_settings` stored in `metadata.sync_settings` (JSONB)
+- Images stored as URL strings (not base64/data URLs)
+- Draft status tracked via `metadata.is_draft`
 
 ---
 
 ## Working Features Summary
 
-### Partner Portal
-- ✅ Create listing (3-step flow with progress)
-- ✅ Save as Draft
-- ✅ Edit listing (Media + iCal + Basic info)
-- ✅ View listings with DRAFT/PENDING/ACTIVE badges
-- ✅ Real file upload with visual progress
+### Storage & Media
+- ✅ Supabase Storage bucket (`listing-images`)
+- ✅ Client-side image compression
+- ✅ Progress bar during upload
+- ✅ Delete images from storage
 
-### Admin Panel  
-- ✅ Moderation panel (PENDING listings)
-- ✅ Approve/Reject listings
+### Partner Portal
+- ✅ Create listing (3-step flow)
+- ✅ Save as Draft
+- ✅ Edit listing with media management
+- ✅ Real file upload to cloud
+
+### Admin Panel
+- ✅ Moderation (PENDING listings)
+- ✅ Approve/Reject
 - ✅ Featured toggle
 - ✅ System Control Center
-- ✅ iCal Global Sync controls
 
 ### Core Features
-- ✅ Supabase Auth (Login/Logout/SignUp)
-- ✅ Route protection
+- ✅ Supabase Auth
 - ✅ Telegram Bot v4.0
 - ✅ Multi-language (RU/EN/ZH/TH)
+- ✅ iCal Sync Engine
 
 ## Test Credentials
 | Role | Email | Password |
@@ -81,20 +77,22 @@
 ## Tech Stack
 - **Framework:** Next.js 14.2.3 (App Router)
 - **Database:** Supabase PostgreSQL
+- **Storage:** Supabase Storage
 - **Auth:** Supabase Auth
 - **Bot:** Telegram Bot API (Edge Runtime)
 - **UI:** Tailwind CSS, Shadcn/UI
+- **Image Processing:** browser-image-compression
 
 ## Next Priority Tasks
 ### Upcoming
 - **P1: Stripe Integration** — Payment processing
-- **P1: Supabase Storage** — Real cloud file uploads
-- **P2: Seasonal Pricing UI** — Calendar-based price management
+- **P1: Seasonal Pricing Calendar** — Price per date range
+- **P2: Email Notifications** — Resend integration
 
 ### Future/Backlog
 - TRON/USDT Verification
-- Resend Email Integration
-- Background Sync Worker (cron)
+- Background iCal Sync (cron)
+- Advanced Analytics
 
 ## Code Architecture
 ```
@@ -102,15 +100,20 @@
 ├── app/
 │   ├── partner/
 │   │   ├── listings/
-│   │   │   ├── new/page.js       # 3-step creation
-│   │   │   ├── [id]/page.js      # Edit with media controls
-│   │   │   └── page.js           # List with DRAFT support
+│   │   │   ├── new/page.js           # 3-step creation + storage upload
+│   │   │   ├── [id]/page.js          # Edit + media management
+│   │   │   └── page.js               # List with DRAFT support
 │   ├── admin/
-│   │   ├── moderation/page.js    # PENDING listings
-│   │   └── system/page.js        # Control center
-│   └── api/ical/sync/route.js    # Uses metadata.sync_settings
+│   │   ├── moderation/page.js        # PENDING listings
+│   │   └── system/page.js            # Control center + iCal sync
+│   └── api/
+│       └── ical/sync/route.js        # iCal API
 ├── components/
-│   └── calendar-sync-manager.jsx # Multi-source iCal
-└── lib/
-    └── auth.js                   # Supabase Auth
+│   └── calendar-sync-manager.jsx     # Multi-source iCal
+├── lib/
+│   ├── services/
+│   │   ├── image-upload.service.js   # NEW: Compression + Storage
+│   │   └── ical-sync.service.js      # iCal parsing
+│   └── auth.js                       # Supabase Auth
+└── package.json                      # + browser-image-compression
 ```
