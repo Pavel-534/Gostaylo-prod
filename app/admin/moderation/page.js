@@ -313,7 +313,7 @@ export default function ModerationPage() {
                 >
                   <div className="relative h-48 bg-gray-200">
                     <img
-                      src={listing.images[0]}
+                      src={listing.images?.[0] || listing.cover_image || '/placeholder.jpg'}
                       alt={listing.title}
                       className="w-full h-full object-cover"
                     />
