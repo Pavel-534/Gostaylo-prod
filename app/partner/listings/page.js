@@ -97,6 +97,7 @@ export default function PartnerListings() {
   const statusColors = {
     ACTIVE: 'bg-green-100 text-green-700',
     PENDING: 'bg-yellow-100 text-yellow-700',
+    DRAFT: 'bg-slate-100 text-slate-600 border border-slate-300',
     INACTIVE: 'bg-slate-100 text-slate-700',
     BOOKED: 'bg-blue-100 text-blue-700',
   }
@@ -104,6 +105,7 @@ export default function PartnerListings() {
   const statusLabels = {
     ACTIVE: 'Активный',
     PENDING: 'На модерации',
+    DRAFT: 'Черновик',
     INACTIVE: 'Неактивный',
     BOOKED: 'Забронирован',
   }
