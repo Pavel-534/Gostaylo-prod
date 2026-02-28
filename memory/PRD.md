@@ -1,73 +1,76 @@
 # FunnyRent 2.1 - Product Requirements Document
 
-## Latest Update: 2026-02-28 - Production-Ready Listing Creation Complete ✅
+## Latest Update: 2026-02-28 - Database Migration & UX Refactoring Complete ✅
 
-### Stage 24.2 - Listing Creation & Advanced UX ✅
+### Critical Fixes Applied
 
-**Features Implemented:**
+#### 1. Database Fix (P0) ✅
+- **Problem**: `sync_settings` column didn't exist in `listings` table
+- **Solution**: Store sync_settings inside `metadata` JSONB field
+- All services updated: iCal API, Calendar Sync Manager, New Listing form
+- Verified: Listings create successfully with metadata.sync_settings
 
-1. **Real Media Engine with Progress Bar**
-   - Real `<input type="file" multiple>` for image upload
-   - Visual progress bar (0-100%) during upload
-   - File validation (image types, 10MB max)
-   - Preview with "Cover" badge on first image
-   - Remove button per image
+#### 2. Moderation Sync (P0) ✅
+- Admin Moderation panel now shows ALL PENDING listings
+- Direct Supabase queries (bypasses K8s ingress issues)
+- Approve/Reject functions work correctly
+- Featured toggle integrated
 
-2. **Listing Persistence & Visibility**
-   - Fixed `owner_id` linking to logged-in partner
-   - **"Save as Draft"** button — saves with `metadata.is_draft: true`
-   - **"Create Listing"** button — saves with `status: PENDING`
-   - Listings appear IMMEDIATELY in "Мои листинги" table
-   - Draft badge with dashed border styling
+#### 3. Partner Edit Interface Overhaul (P1) ✅
+- **Mobile-First Design** with sticky header
+- **Media Management**: 
+  - Real file upload with progress bar
+  - "Set as Cover" button per image
+  - "Delete" button per image  
+  - Cover badge on selected image
+- **iCal Manager**: Clear input + "+" button, platform dropdown
+- **Seasonal Pricing**: Placeholder ready for implementation
 
-3. **Multi-Source iCal Manager (in New Listing flow)**
-   - Add multiple iCal URLs (Airbnb, Booking, VRBO)
-   - Auto-detect platform from URL
-   - Status badges (Pending/Synced)
-   - Remove button per source
-   - Help instructions for finding iCal links
+#### 4. Listing Creation Final Flow (P0) ✅
+- Success redirect only after confirmed DB insert
+- Real file selection with Progress Bar
+- "Save as Draft" creates with metadata.is_draft: true
 
-4. **Category Selector Fix**
-   - z-index: 100 for proper dropdown layering
-   - min-width: 300px for readability
-   - Position: popper with sideOffset
-
-### Technical Implementation
-
+### Data Schema (Updated)
+```javascript
+// listings.metadata structure
+{
+  "is_draft": boolean,           // True = Draft status
+  "created_via": string,         // "partner_dashboard" | "telegram"
+  "sync_settings": [             // Moved from separate column
+    {
+      "id": string,
+      "url": string,
+      "source": "Airbnb" | "Booking.com" | "VRBO" | "Google",
+      "enabled": boolean
+    }
+  ]
+}
 ```
-/app/app/partner/listings/new/page.js
-├── Step 1: Basic Info (Category, Title, Description, District, Price)
-├── Step 2: Category-specific fields + iCal Manager
-└── Step 3: Media Upload with Progress Bar
-    ├── Real file input (hidden, triggered by button)
-    ├── Progress simulation with visual bar
-    ├── Image preview grid with cover badge
-    └── Two submit buttons:
-        ├── "Сохранить черновик" → is_draft: true
-        └── "Создать листинг" → status: PENDING
-```
-
-### Database Notes
-- `DRAFT` status not in DB enum — using `metadata.is_draft` workaround
-- `getEffectiveStatus()` helper function checks metadata
-- Draft listings have `available: false`
 
 ---
 
-## Previous Completed Work
+## Working Features Summary
 
-### Stage 23 - iCal Sync Engine ✅
-- Multi-source calendar sync
-- BLOCKED_BY_ICAL bookings
-- Admin global sync controls
+### Partner Portal
+- ✅ Create listing (3-step flow with progress)
+- ✅ Save as Draft
+- ✅ Edit listing (Media + iCal + Basic info)
+- ✅ View listings with DRAFT/PENDING/ACTIVE badges
+- ✅ Real file upload with visual progress
 
-### Telegram Webhook v4.0 ✅
-- Immediate response pattern
-- Fire-and-forget processing
+### Admin Panel  
+- ✅ Moderation panel (PENDING listings)
+- ✅ Approve/Reject listings
+- ✅ Featured toggle
+- ✅ System Control Center
+- ✅ iCal Global Sync controls
 
-### Supabase Auth ✅
-- Login/logout/signup/password change
-- Route protection
+### Core Features
+- ✅ Supabase Auth (Login/Logout/SignUp)
+- ✅ Route protection
+- ✅ Telegram Bot v4.0
+- ✅ Multi-language (RU/EN/ZH/TH)
 
 ## Test Credentials
 | Role | Email | Password |
@@ -85,13 +88,13 @@
 ## Next Priority Tasks
 ### Upcoming
 - **P1: Stripe Integration** — Payment processing
-- **P1: Add DRAFT to DB enum** — Proper database migration
-- **P1: Supabase Storage** — Real file uploads to cloud
+- **P1: Supabase Storage** — Real cloud file uploads
+- **P2: Seasonal Pricing UI** — Calendar-based price management
 
 ### Future/Backlog
-- **P1: TRON/USDT Verification**
-- **P1: Resend Email Integration
-- **P1: Background Sync Worker (cron)
+- TRON/USDT Verification
+- Resend Email Integration
+- Background Sync Worker (cron)
 
 ## Code Architecture
 ```
@@ -99,14 +102,15 @@
 ├── app/
 │   ├── partner/
 │   │   ├── listings/
-│   │   │   ├── new/page.js          # 3-step creation flow
-│   │   │   ├── page.js              # Listings table with DRAFT support
-│   │   │   └── [id]/page.js         # Edit listing
-│   ├── api/ical/sync/route.js       # iCal API
-│   └── admin/system/page.js         # Control Center
+│   │   │   ├── new/page.js       # 3-step creation
+│   │   │   ├── [id]/page.js      # Edit with media controls
+│   │   │   └── page.js           # List with DRAFT support
+│   ├── admin/
+│   │   ├── moderation/page.js    # PENDING listings
+│   │   └── system/page.js        # Control center
+│   └── api/ical/sync/route.js    # Uses metadata.sync_settings
 ├── components/
-│   └── calendar-sync-manager.jsx    # Multi-source iCal UI
+│   └── calendar-sync-manager.jsx # Multi-source iCal
 └── lib/
-    ├── services/ical-sync.service.js
-    └── auth.js
+    └── auth.js                   # Supabase Auth
 ```
