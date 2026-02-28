@@ -103,6 +103,14 @@ export default function EditListing({ params }) {
     try {
       const coverImage = formData.images[formData.coverIndex] || formData.images[0] || null
       
+      // First get current metadata to preserve other fields
+      const getRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=metadata`,
+        { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
+      )
+      const getData = await getRes.json()
+      const currentMetadata = getData?.[0]?.metadata || {}
+      
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`,
         {
@@ -119,6 +127,10 @@ export default function EditListing({ params }) {
             district: formData.district,
             images: formData.images,
             cover_image: coverImage,
+            metadata: {
+              ...currentMetadata,
+              seasonal_pricing: seasons
+            },
             updated_at: new Date().toISOString()
           })
         }
