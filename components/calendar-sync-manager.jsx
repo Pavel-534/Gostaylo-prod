@@ -74,14 +74,15 @@ export default function CalendarSyncManager({ listingId, onSync }) {
   async function loadSyncSettings() {
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=metadata,sync_settings`,
+        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=metadata`,
         { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
       )
       const data = await res.json()
       const listing = data?.[0]
       
       if (listing) {
-        let syncSettings = listing.sync_settings || []
+        // Get sync_settings from metadata
+        let syncSettings = listing.metadata?.sync_settings || []
         
         // Add legacy URL if present and not already in sources
         const legacyUrl = listing.metadata?.icalUrl
