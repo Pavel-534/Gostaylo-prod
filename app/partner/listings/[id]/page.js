@@ -124,7 +124,7 @@ export default function EditListing({ params }) {
     }
   }
 
-  // File upload handler
+  // File upload with compression and Supabase Storage
   async function handleFileSelect(e) {
     const files = Array.from(e.target.files || [])
     if (files.length === 0) return
@@ -133,50 +133,37 @@ export default function EditListing({ params }) {
     setUploadProgress(0)
     
     const newImages = [...formData.images]
-    let processed = 0
     
-    for (const file of files) {
-      if (!file.type.startsWith('image/')) {
-        toast.error(`${file.name} не является изображением`)
-        continue
+    try {
+      // Dynamically import the image upload service
+      const { processAndUploadImages } = await import('@/lib/services/image-upload.service')
+      
+      // Process and upload images with compression
+      const uploadedUrls = await processAndUploadImages(files, listingId, (progress) => {
+        setUploadProgress(progress)
+      })
+      
+      // Add new URLs to images array
+      for (const url of uploadedUrls) {
+        newImages.push(url)
       }
       
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name} слишком большой (макс. 10MB)`)
-        continue
+      setFormData({ ...formData, images: newImages })
+      
+      if (uploadedUrls.length > 0) {
+        toast.success(`✅ Загружено ${uploadedUrls.length} фото (сжато и оптимизировано)`)
       }
       
-      try {
-        // Simulate upload progress
-        for (let p = 0; p <= 100; p += 25) {
-          await new Promise(resolve => setTimeout(resolve, 50))
-          setUploadProgress(Math.round((processed / files.length) * 100 + (p / files.length)))
-        }
-        
-        // Convert to data URL
-        const reader = new FileReader()
-        const dataUrl = await new Promise((resolve) => {
-          reader.onload = () => resolve(reader.result)
-          reader.readAsDataURL(file)
-        })
-        
-        newImages.push(dataUrl)
-        processed++
-        setUploadProgress(Math.round((processed / files.length) * 100))
-        
-      } catch (error) {
-        console.error('Upload error:', error)
-        toast.error(`Ошибка загрузки: ${file.name}`)
+      if (uploadedUrls.length < files.length) {
+        toast.warning(`⚠️ ${files.length - uploadedUrls.length} файлов не удалось загрузить`)
       }
+      
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast.error('Ошибка загрузки изображений')
     }
     
-    setFormData({ ...formData, images: newImages })
     setUploading(false)
-    
-    if (newImages.length > formData.images.length) {
-      toast.success(`✅ Загружено ${newImages.length - formData.images.length} фото`)
-    }
-    
     setTimeout(() => setUploadProgress(0), 1500)
     
     if (fileInputRef.current) {
