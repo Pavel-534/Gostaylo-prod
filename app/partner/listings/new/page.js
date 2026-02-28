@@ -261,6 +261,13 @@ export default function NewListing() {
           ...formData.metadata,
           created_via: 'partner_dashboard',
           is_draft: asDraft,  // Track draft status in metadata
+          sync_settings: icalSources.map(s => ({  // Store in metadata instead of separate column
+            id: s.id,
+            url: s.url,
+            source: s.source,
+            enabled: true,
+            added_at: new Date().toISOString()
+          })),
           title_translations: {
             ru: formData.title,
             en: formData.title,
@@ -268,13 +275,6 @@ export default function NewListing() {
             th: formData.title
           }
         },
-        sync_settings: icalSources.map(s => ({
-          id: s.id,
-          url: s.url,
-          source: s.source,
-          enabled: true,
-          added_at: new Date().toISOString()
-        })),
         available: !asDraft,  // Drafts are not available
         is_featured: false,
         views: 0,
