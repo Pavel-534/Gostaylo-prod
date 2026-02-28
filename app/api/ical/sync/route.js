@@ -246,9 +246,9 @@ export async function POST(request) {
     
     // Sync single listing
     if (action === 'sync' && listingId) {
-      // Get listing sync settings
+      // Get listing sync settings from metadata
       const listingRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=id,metadata,sync_settings`,
+        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=id,metadata`,
         { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
       );
       const listings = await listingRes.json();
@@ -258,8 +258,8 @@ export async function POST(request) {
         return NextResponse.json({ success: false, error: 'Listing not found' });
       }
       
-      // Use provided sources or get from listing
-      let syncSources = sources || listing.sync_settings || [];
+      // Use provided sources or get from metadata.sync_settings
+      let syncSources = sources || listing.metadata?.sync_settings || [];
       
       // Add legacy icalUrl if present
       const legacyUrl = listing.metadata?.icalUrl;
