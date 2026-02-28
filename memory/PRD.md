@@ -1,78 +1,107 @@
 # FunnyRent 2.1 - Product Requirements Document
 
-## Latest Update: 2026-02-28 - Supabase Storage & Image Compression Complete ✅
+## Latest Update: 2026-02-28 - Stage 24.4 P0 Bug Fixes Complete ✅
 
-### Professional Media Pipeline (P0) ✅
+### Stage 24.4 Changes (2026-02-28)
 
-#### Supabase Storage
-- **Bucket Created**: `listing-images` with public access
-- **File Size Limit**: 10MB
-- **Allowed Types**: image/jpeg, image/png, image/webp, image/gif
-- **Public URL Format**: `https://vtzzcdsjwudkaloxhvnw.supabase.co/storage/v1/object/public/listing-images/{path}`
+#### Admin Moderation Page (P0) ✅
+- Fixed crash caused by `toLocaleString` on null dates
+- Added null protection for partner.name, partner.email fields
+- Translated buttons: "Approve" → "Одобрить", "Reject" → "Отклонить"
+- "Просмотр" button already in Russian
 
-#### Client-Side Image Compression
-- **Library**: `browser-image-compression`
-- **Max Width/Height**: 1920px
-- **Quality**: 80%
-- **Output Format**: WebP (for better compression)
-- **Max Compressed Size**: 1MB
+#### Listing Edit Page (P0) ✅
+- Full Seasonal Pricing UI implemented with:
+  - Name field for season
+  - Start/End date pickers
+  - Price multiplier input
+  - Preview of calculated price
+  - "Добавить" button
+  - Display of existing seasons with delete option
+- Seasons stored in `metadata.seasonal_pricing` array
 
-#### Upload Service (`/app/lib/services/image-upload.service.js`)
-```javascript
-// Features:
-- compressImage(file, onProgress)     // Client-side compression
-- uploadToStorage(file, listingId)    // Supabase Storage upload
-- deleteFromStorage(fileUrl)          // Delete from storage
-- processAndUploadImages(files, id)   // Full pipeline with progress
-```
+#### iCal CalendarSyncManager (P0) ✅
+- Fixed API calls from `http://localhost:3000` to relative `/api` paths
+- URL input field and "+" button work correctly
+- Platform auto-detection (Airbnb, Booking, VRBO, Google)
 
-#### Upload Flow
-```
-1. User selects files
-2. Validate type & size (max 10MB)
-3. Compress (max 1920px, 80% quality, WebP)
-4. Upload to Supabase Storage
-5. Save public URL to listings.images array
-```
-
-### Database Schema Notes
-- `sync_settings` stored in `metadata.sync_settings` (JSONB)
-- Images stored as URL strings (not base64/data URLs)
-- Draft status tracked via `metadata.is_draft`
+#### Photo Management (P0) ✅
+- Increased limit from 10 to 30 photos on both:
+  - `/partner/listings/new` (new listing)
+  - `/partner/listings/[id]` (edit listing)
+- Fixed progress bar formula for accurate upload progress
 
 ---
 
-## Working Features Summary
+## Professional Media Pipeline ✅
+
+### Supabase Storage
+- **Bucket**: `listing-images` with public access
+- **File Size Limit**: 10MB
+- **Allowed Types**: image/jpeg, image/png, image/webp, image/gif
+- **Max Compressed Size**: 1MB after client-side compression
+
+### Client-Side Image Compression
+- **Library**: `browser-image-compression`
+- **Max Width/Height**: 1920px
+- **Quality**: 80%
+- **Output Format**: WebP
+
+### Upload Flow
+```
+1. User selects files → 2. Validate type & size (max 10MB)
+3. Compress (max 1920px, 80%, WebP) → 4. Upload to Supabase Storage
+5. Save public URL to listings.images array
+```
+
+---
+
+## Database Schema Notes
+- `sync_settings` → stored in `metadata.sync_settings` (JSONB)
+- `seasonal_pricing` → stored in `metadata.seasonal_pricing` (JSONB array)
+- `is_draft` → stored in `metadata.is_draft` (boolean)
+- Images → URL strings (not base64)
+
+---
+
+## Working Features
 
 ### Storage & Media
 - ✅ Supabase Storage bucket (`listing-images`)
 - ✅ Client-side image compression
-- ✅ Progress bar during upload
+- ✅ Progress bar during upload (fixed formula)
 - ✅ Delete images from storage
+- ✅ Photo limit: 30
 
 ### Partner Portal
 - ✅ Create listing (3-step flow)
 - ✅ Save as Draft
 - ✅ Edit listing with media management
 - ✅ Real file upload to cloud
+- ✅ iCal sync management
+- ✅ Seasonal pricing management
 
 ### Admin Panel
-- ✅ Moderation (PENDING listings)
-- ✅ Approve/Reject
-- ✅ Featured toggle
+- ✅ Moderation (PENDING listings) - no crashes
+- ✅ Approve/Reject with Russian buttons
+- ✅ Featured toggle (is_featured)
 - ✅ System Control Center
 
 ### Core Features
-- ✅ Supabase Auth
-- ✅ Telegram Bot v4.0
+- ✅ Supabase Auth (login, signup, logout)
+- ✅ Telegram Bot v4.0 (fire-and-forget)
 - ✅ Multi-language (RU/EN/ZH/TH)
 - ✅ iCal Sync Engine
+
+---
 
 ## Test Credentials
 | Role | Email | Password |
 |------|-------|----------|
 | Admin | admin@funnyrent.com | ChangeMe2025! |
 | Partner | partner@test.com | ChangeMe2025! |
+
+---
 
 ## Tech Stack
 - **Framework:** Next.js 14.2.3 (App Router)
@@ -83,37 +112,46 @@
 - **UI:** Tailwind CSS, Shadcn/UI
 - **Image Processing:** browser-image-compression
 
-## Next Priority Tasks
-### Upcoming
-- **P1: Stripe Integration** — Payment processing
-- **P1: Seasonal Pricing Calendar** — Price per date range
-- **P2: Email Notifications** — Resend integration
+---
 
-### Future/Backlog
+## Next Priority Tasks
+
+### Upcoming (P1)
+- **Stripe Integration** — Real payment processing
+- **Email Notifications** — Resend integration
+- **is_featured verification** — Ensure toggle doesn't remove from queue
+
+### Future/Backlog (P2+)
 - TRON/USDT Verification
 - Background iCal Sync (cron)
 - Advanced Analytics
+- 404/Error page translations
+- Proper DB migration for sync_settings column
+
+---
 
 ## Code Architecture
 ```
 /app/
 ├── app/
+│   ├── api/
+│   │   ├── ical/sync/route.js        # iCal synchronization
+│   │   └── webhooks/telegram/route.js # Telegram (fire-and-forget)
+│   ├── admin/
+│   │   ├── moderation/page.js        # ✅ Fixed P0 crash
+│   │   └── system/page.js            # System controls
 │   ├── partner/
 │   │   ├── listings/
-│   │   │   ├── new/page.js           # 3-step creation + storage upload
-│   │   │   ├── [id]/page.js          # Edit + media management
-│   │   │   └── page.js               # List with DRAFT support
-│   ├── admin/
-│   │   ├── moderation/page.js        # PENDING listings
-│   │   └── system/page.js            # Control center + iCal sync
-│   └── api/
-│       └── ical/sync/route.js        # iCal API
+│   │   │   ├── new/page.js           # ✅ 30 photo limit
+│   │   │   └── [id]/page.js          # ✅ Seasonal pricing UI
 ├── components/
-│   └── calendar-sync-manager.jsx     # Multi-source iCal
+│   └── calendar-sync-manager.jsx     # ✅ Fixed API paths
 ├── lib/
-│   ├── services/
-│   │   ├── image-upload.service.js   # NEW: Compression + Storage
-│   │   └── ical-sync.service.js      # iCal parsing
-│   └── auth.js                       # Supabase Auth
-└── package.json                      # + browser-image-compression
+│   └── services/
+│       └── image-upload.service.js   # ✅ Fixed progress formula
 ```
+
+---
+
+## Preview URL
+https://c325362c-1be1-450d-a1ad-cc1fb45ba828.preview.emergentagent.com
