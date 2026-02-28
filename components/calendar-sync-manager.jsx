@@ -276,7 +276,7 @@ export default function CalendarSyncManager({ listingId, onSync }) {
     setSyncing(true)
     
     try {
-      const res = await fetch('http://localhost:3000/api/ical/sync', {
+      const res = await fetch('/api/ical/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'sync', listingId })
