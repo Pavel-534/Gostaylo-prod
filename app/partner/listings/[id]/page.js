@@ -11,6 +11,7 @@ import { ArrowLeft, Save, Loader2, Calendar, Link2, HelpCircle, ExternalLink } f
 import { toast } from 'sonner'
 import SeasonalPriceManager from '@/components/seasonal-price-manager'
 import PriceCalendarPreview from '@/components/price-calendar-preview'
+import CalendarSyncManager from '@/components/calendar-sync-manager'
 import Link from 'next/link'
 import {
   Tooltip,
