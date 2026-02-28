@@ -1,253 +1,219 @@
 import { NextResponse } from 'next/server';
 
 /**
- * FunnyRent 2.1 - Telegram Webhook v3.0
- * CRITICAL FIX: Synchronous inline processing to avoid 502
+ * FunnyRent 2.1 - Telegram Webhook v4.0
  * 
- * Strategy: Parse message → Send response to Telegram → Return 200 OK
- * All in one synchronous flow, no background promises
+ * CRITICAL FIX: Return 200 IMMEDIATELY, then fire-and-forget all processing
+ * The key insight: We DON'T await any external calls before returning
  */
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM';
+const BOT_TOKEN = '8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM';
 const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
 
-// POST - Telegram Webhook
+// Helper: Fire-and-forget fetch (no await)
+function fireAndForget(url, options) {
+  fetch(url, options).catch(() => {});
+}
+
+// Helper: Send Telegram message (fire-and-forget)
+function sendTelegram(chatId, text) {
+  fireAndForget(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
+  });
+}
+
+// POST handler - IMMEDIATE RESPONSE
 export async function POST(request) {
+  // Step 1: Parse body (minimal, fast)
   let update;
-  
   try {
     update = await request.json();
-  } catch (e) {
+  } catch {
     return NextResponse.json({ ok: true });
   }
 
-  const message = update.message;
-  if (!message) {
+  // Step 2: Extract basics
+  const message = update?.message;
+  if (!message || message.chat?.type !== 'private') {
     return NextResponse.json({ ok: true });
   }
 
   const chatId = message.chat.id;
-  const chatType = message.chat.type;
   const text = message.text || message.caption || '';
-  const photo = message.photo;
   const firstName = message.from?.first_name || 'User';
+  const photo = message.photo;
 
-  // Ignore group messages
-  if (chatType !== 'private') {
+  // Step 3: Handle commands with FIRE-AND-FORGET (no await!)
+  
+  if (text.startsWith('/start')) {
+    sendTelegram(chatId,
+      `🌴 <b>Aloha, ${firstName}!</b>\n\n` +
+      `Добро пожаловать в <b>FunnyRent</b>!\n\n` +
+      `📸 <b>Lazy Realtor</b>\n` +
+      `Отправьте фото + описание для черновика.\n\n` +
+      `Команды: /help, /link email`
+    );
     return NextResponse.json({ ok: true });
   }
 
-  try {
-    // Handle /start - INLINE, no background
-    if (text.startsWith('/start')) {
-      await sendTelegramMessage(chatId, 
-        `🌴 <b>Aloha, ${firstName}!</b>\n\n` +
-        `Добро пожаловать в <b>FunnyRent</b> — ваш путь к аренде на Пхукете.\n\n` +
-        `📸 <b>Lazy Realtor</b>\n` +
-        `Отправьте фото + описание для создания черновика!\n\n` +
-        `<b>Формат:</b>\n` +
-        `• 📷 Фото объекта\n` +
-        `• 📝 Описание в подписи\n` +
-        `• 💰 Цена: "15000 THB"\n\n` +
-        `🏝 Черновик появится в личном кабинете!`
-      );
-      return NextResponse.json({ ok: true });
-    }
-
-    // Handle /help - INLINE
-    if (text.startsWith('/help')) {
-      await sendTelegramMessage(chatId,
-        `📖 <b>Помощь FunnyRent Bot</b>\n\n` +
-        `<b>Команды:</b>\n` +
-        `🌴 /start — Начать\n` +
-        `❓ /help — Эта справка\n` +
-        `🔗 /link email@example.com — Привязать аккаунт\n\n` +
-        `<b>Lazy Realtor:</b>\n` +
-        `Отправьте фото + описание → мгновенный черновик!`
-      );
-      return NextResponse.json({ ok: true });
-    }
-
-    // Handle /link - INLINE
-    if (text.startsWith('/link')) {
-      const email = text.replace('/link', '').trim().toLowerCase();
-      
-      if (!email || !email.includes('@')) {
-        await sendTelegramMessage(chatId,
-          `❌ <b>Неверный формат email</b>\n\n` +
-          `Пример: <code>/link partner@example.com</code>`
-        );
-        return NextResponse.json({ ok: true });
-      }
-
-      // Find profile in Supabase
-      const profileRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(email)}&select=id,email,role`,
-        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-      );
-      const profiles = await profileRes.json();
-      const profile = profiles?.[0];
-
-      if (!profile) {
-        await sendTelegramMessage(chatId, `❌ <b>Email не найден</b>\n\nАккаунт с ${email} не существует.`);
-        return NextResponse.json({ ok: true });
-      }
-
-      if (profile.role !== 'PARTNER' && profile.role !== 'ADMIN') {
-        await sendTelegramMessage(chatId, `❌ <b>Доступ запрещён</b>\n\nТолько партнёры могут использовать Lazy Realtor.`);
-        return NextResponse.json({ ok: true });
-      }
-
-      // Update profile with telegram_id
-      await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?id=eq.${profile.id}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ telegram_id: String(chatId), telegram_linked: true })
-        }
-      );
-
-      await sendTelegramMessage(chatId,
-        `✅ <b>Аккаунт привязан!</b>\n\n` +
-        `📧 Email: ${email}\n` +
-        `🆔 Telegram: ${chatId}\n\n` +
-        `🎉 Теперь отправляйте фото для создания черновиков!`
-      );
-      return NextResponse.json({ ok: true });
-    }
-
-    // Handle photo (Lazy Realtor) - INLINE
-    if (photo && photo.length > 0) {
-      // Check if user is linked partner
-      const partnerRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?telegram_id=eq.${chatId}&select=id,email,role`,
-        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-      );
-      const partners = await partnerRes.json();
-      const partner = partners?.[0];
-
-      if (!partner || (partner.role !== 'PARTNER' && partner.role !== 'ADMIN')) {
-        await sendTelegramMessage(chatId, `❌ <b>Аккаунт не привязан</b>\n\nИспользуйте: <code>/link ваш@email.com</code>`);
-        return NextResponse.json({ ok: true });
-      }
-
-      // Notify user we're creating
-      await sendTelegramMessage(chatId, `🏝 <b>Создаём черновик...</b>`);
-
-      const caption = message.caption || '';
-      const fileId = photo[photo.length - 1].file_id;
-
-      // Get photo URL from Telegram
-      let photoUrl = null;
-      try {
-        const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
-        const fileData = await fileRes.json();
-        if (fileData.ok) {
-          photoUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileData.result.file_path}`;
-        }
-      } catch (e) {
-        // Continue without photo URL
-      }
-
-      // Parse price from caption
-      const priceMatch = caption.match(/(\d+)\s*(thb|бат|฿)/i);
-      const price = priceMatch ? parseInt(priceMatch[1]) : 10000;
-      const title = caption.split('\n')[0]?.substring(0, 100) || 'Объект из Telegram';
-
-      // Create listing in Supabase
-      const listingRes = await fetch(`${SUPABASE_URL}/rest/v1/listings`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify({
-          id: `lst-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 5)}`,
-          owner_id: partner.id,
-          category_id: '1',
-          status: 'PENDING',
-          title: title,
-          description: caption,
-          district: 'Phuket',
-          base_price_thb: price,
-          commission_rate: 15,
-          images: photoUrl ? [photoUrl] : [],
-          cover_image: photoUrl,
-          metadata: { source: 'TELEGRAM_BOT', telegram_file_id: fileId, is_draft: true },
-          available: false,
-          is_featured: false,
-          views: 0
-        })
-      });
-
-      if (listingRes.ok) {
-        await sendTelegramMessage(chatId,
-          `✅ <b>Черновик создан!</b> 🎉\n\n` +
-          `📝 <b>${title}</b>\n` +
-          `💰 ${price.toLocaleString()} THB\n\n` +
-          `Откройте личный кабинет для редактирования и публикации.`
-        );
-      } else {
-        await sendTelegramMessage(chatId, `❌ Ошибка создания. Попробуйте позже.`);
-      }
-      return NextResponse.json({ ok: true });
-    }
-
-    // Text only without photo
-    if (text && !photo) {
-      await sendTelegramMessage(chatId,
-        `📸 <b>Отправьте фото!</b>\n\n` +
-        `Для создания черновика нужно фото с описанием.\n\n` +
-        `Используйте /help для справки.`
-      );
-    }
-
-  } catch (error) {
-    console.error('[TELEGRAM WEBHOOK] Error:', error.message);
-    // Still return 200 to prevent Telegram retries
+  if (text.startsWith('/help')) {
+    sendTelegram(chatId,
+      `📖 <b>Помощь FunnyRent</b>\n\n` +
+      `/start — Начать\n` +
+      `/help — Справка\n` +
+      `/link email — Привязать аккаунт\n\n` +
+      `Отправьте фото → черновик!`
+    );
+    return NextResponse.json({ ok: true });
   }
 
+  if (text.startsWith('/link')) {
+    const email = text.replace('/link', '').trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      sendTelegram(chatId, `❌ Формат: <code>/link your@email.com</code>`);
+      return NextResponse.json({ ok: true });
+    }
+    // Fire-and-forget: link account async
+    handleLinkAccount(chatId, email);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (photo && photo.length > 0) {
+    // Fire-and-forget: create draft async
+    handlePhotoUpload(chatId, message);
+    return NextResponse.json({ ok: true });
+  }
+
+  if (text && !photo) {
+    sendTelegram(chatId, `📸 Отправьте фото для создания черновика!\n\n/help — справка`);
+  }
+
+  // Always return 200 immediately
   return NextResponse.json({ ok: true });
 }
 
-// Send message to Telegram - synchronous helper
-async function sendTelegramMessage(chatId, text) {
+// Async handler: Link account (runs in background)
+async function handleLinkAccount(chatId, email) {
   try {
-    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: text,
-        parse_mode: 'HTML'
-      })
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(email)}&select=id,role`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+    );
+    const profiles = await res.json();
+    const profile = profiles?.[0];
+
+    if (!profile) {
+      sendTelegram(chatId, `❌ Email ${email} не найден`);
+      return;
+    }
+    if (profile.role !== 'PARTNER' && profile.role !== 'ADMIN') {
+      sendTelegram(chatId, `❌ Только партнёры могут использовать бота`);
+      return;
+    }
+
+    await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${profile.id}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ telegram_id: String(chatId), telegram_linked: true })
     });
-    return res.ok;
+
+    sendTelegram(chatId, `✅ Аккаунт привязан!\n\nТеперь отправляйте фото!`);
   } catch (e) {
-    console.error('[TELEGRAM] Send error:', e.message);
-    return false;
+    sendTelegram(chatId, `❌ Ошибка привязки`);
   }
 }
 
-// GET - Status check endpoint
+// Async handler: Photo upload (runs in background)
+async function handlePhotoUpload(chatId, message) {
+  try {
+    // Check if linked
+    const partnerRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?telegram_id=eq.${chatId}&select=id,role`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+    );
+    const partners = await partnerRes.json();
+    const partner = partners?.[0];
+
+    if (!partner || (partner.role !== 'PARTNER' && partner.role !== 'ADMIN')) {
+      sendTelegram(chatId, `❌ Сначала привяжите аккаунт: /link email`);
+      return;
+    }
+
+    sendTelegram(chatId, `🏝 Создаём черновик...`);
+
+    const photo = message.photo;
+    const caption = message.caption || '';
+    const fileId = photo[photo.length - 1].file_id;
+
+    // Get photo URL
+    let photoUrl = null;
+    try {
+      const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
+      const fileData = await fileRes.json();
+      if (fileData.ok) {
+        photoUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileData.result.file_path}`;
+      }
+    } catch {}
+
+    // Parse price
+    const priceMatch = caption.match(/(\d+)\s*(thb|бат|฿)/i);
+    const price = priceMatch ? parseInt(priceMatch[1]) : 10000;
+    const title = caption.split('\n')[0]?.substring(0, 100) || 'Объект из Telegram';
+
+    // Create listing
+    const listingRes = await fetch(`${SUPABASE_URL}/rest/v1/listings`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        id: `lst-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 5)}`,
+        owner_id: partner.id,
+        category_id: '1',
+        status: 'PENDING',
+        title,
+        description: caption,
+        district: 'Phuket',
+        base_price_thb: price,
+        commission_rate: 15,
+        images: photoUrl ? [photoUrl] : [],
+        cover_image: photoUrl,
+        metadata: { source: 'TELEGRAM_BOT', is_draft: true },
+        available: false,
+        is_featured: false,
+        views: 0
+      })
+    });
+
+    if (listingRes.ok) {
+      sendTelegram(chatId, `✅ Черновик создан!\n\n📝 ${title}\n💰 ${price.toLocaleString()} THB`);
+    } else {
+      sendTelegram(chatId, `❌ Ошибка создания черновика`);
+    }
+  } catch (e) {
+    sendTelegram(chatId, `❌ Ошибка обработки фото`);
+  }
+}
+
+// GET - Status check
 export async function GET() {
   return NextResponse.json({
     ok: true,
     service: 'FunnyRent Telegram Webhook',
-    runtime: 'edge',
-    version: '3.0',
-    features: ['Lazy Realtor', 'Account Linking', 'Synchronous Processing'],
+    version: '4.0',
+    pattern: 'immediate-response-fire-and-forget',
     timestamp: new Date().toISOString()
   });
 }
