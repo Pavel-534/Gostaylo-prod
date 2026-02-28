@@ -351,7 +351,7 @@ export default function PartnerListings() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </CardContent>
         </Card>
