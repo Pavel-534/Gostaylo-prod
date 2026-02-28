@@ -233,6 +233,31 @@ export default function EditListing({ params }) {
     toast.success('Обложка установлена')
   }
 
+  // Seasonal pricing functions
+  function addSeason() {
+    if (!newSeason.name || !newSeason.startDate || !newSeason.endDate) {
+      toast.error('Заполните все поля сезона')
+      return
+    }
+    
+    const season = {
+      id: `season-${Date.now()}`,
+      name: newSeason.name,
+      startDate: newSeason.startDate,
+      endDate: newSeason.endDate,
+      priceMultiplier: parseFloat(newSeason.priceMultiplier) || 1.0
+    }
+    
+    setSeasons([...seasons, season])
+    setNewSeason({ name: '', startDate: '', endDate: '', priceMultiplier: 1.0 })
+    toast.success('Сезон добавлен')
+  }
+  
+  function removeSeason(id) {
+    setSeasons(seasons.filter(s => s.id !== id))
+    toast.success('Сезон удалён')
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
