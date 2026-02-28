@@ -276,14 +276,14 @@ export default function ModerationPage() {
                       className="bg-green-600 hover:bg-green-700"
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      Approve
+                      Одобрить
                     </Button>
                     <Button
                       onClick={() => handleRejectPartner(partner.id)}
                       variant="destructive"
                     >
                       <XCircle className="w-4 h-4 mr-2" />
-                      Reject
+                      Отклонить
                     </Button>
                   </div>
                 </div>
