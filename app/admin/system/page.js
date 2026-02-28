@@ -133,6 +133,87 @@ export default function SystemControlPage() {
     }
   }
 
+  async function loadIcalSyncStatus() {
+    try {
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
+      
+      // Get sync status
+      const statusRes = await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.ical_sync_status`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      const statusData = await statusRes.json();
+      if (statusData?.[0]?.value) {
+        setIcalSyncStatus(statusData[0].value);
+      }
+      
+      // Get sync settings
+      const settingsRes = await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.ical_sync_settings`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      const settingsData = await settingsRes.json();
+      if (settingsData?.[0]?.value?.frequency) {
+        setIcalSyncFrequency(settingsData[0].value.frequency);
+      }
+    } catch (error) {
+      console.error('Failed to load iCal sync status:', error);
+    }
+  }
+
+  async function handleGlobalIcalSync() {
+    setIcalSyncing(true);
+    try {
+      const res = await fetch('http://localhost:3000/api/ical/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sync-all' })
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        toast.success(`✅ Синхронизировано ${data.listingsSynced} объявлений`);
+        await loadIcalSyncStatus();
+        await logActivity('ICAL_GLOBAL_SYNC', `Синхронизировано ${data.listingsSynced} объявлений`);
+      } else {
+        toast.error(`Ошибка: ${data.error}`);
+      }
+    } catch (error) {
+      toast.error('Ошибка глобальной синхронизации');
+    }
+    setIcalSyncing(false);
+  }
+
+  async function handleIcalFrequencyChange(frequency) {
+    const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
+    
+    try {
+      // Upsert settings
+      await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.ical_sync_settings`, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      });
+      
+      await fetch(`${SUPABASE_URL}/rest/v1/system_settings`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          key: 'ical_sync_settings',
+          value: { frequency, enabled: true }
+        })
+      });
+      
+      setIcalSyncFrequency(frequency);
+      toast.success(`Частота синхронизации: ${frequency}`);
+    } catch (error) {
+      toast.error('Ошибка сохранения настроек');
+    }
+  }
+
   async function handleMaintenanceToggle(enabled) {
     try {
       const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
