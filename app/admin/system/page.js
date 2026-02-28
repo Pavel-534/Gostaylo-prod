@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { 
   Power, 
   Bot, 
@@ -25,7 +26,11 @@ import {
   Globe,
   Send,
   TestTube,
-  ExternalLink
+  ExternalLink,
+  Lock,
+  Eye,
+  EyeOff,
+  Key
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -39,6 +44,12 @@ export default function SystemControlPage() {
   const [testingConnection, setTestingConnection] = useState(false);
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Security section state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
     loadSystemStatus();
