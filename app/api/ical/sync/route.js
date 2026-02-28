@@ -294,20 +294,20 @@ export async function POST(request) {
     // Sync all listings (admin)
     if (action === 'sync-all') {
       const listingsRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?select=id,metadata,sync_settings&status=eq.ACTIVE`,
+        `${SUPABASE_URL}/rest/v1/listings?select=id,metadata&status=eq.ACTIVE`,
         { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
       );
       const listings = await listingsRes.json() || [];
       
       const listingsWithICal = listings.filter(l => 
-        (l.sync_settings?.length > 0) || l.metadata?.icalUrl
+        (l.metadata?.sync_settings?.length > 0) || l.metadata?.icalUrl
       );
       
       let successCount = 0, errorCount = 0;
       
       for (const listing of listingsWithICal) {
         try {
-          let syncSources = listing.sync_settings || [];
+          let syncSources = listing.metadata?.sync_settings || [];
           const legacyUrl = listing.metadata?.icalUrl;
           if (legacyUrl && !syncSources.find(s => s.url === legacyUrl)) {
             syncSources.push({ id: 'legacy', url: legacyUrl, source: detectSource(legacyUrl), enabled: true });
