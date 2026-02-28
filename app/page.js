@@ -35,9 +35,11 @@ export default function FunnyRentHome() {
   const [exchangeRates, setExchangeRates] = useState({})
   const [loading, setLoading] = useState(true)
   
-  // Login state
+  // Login/Register state
+  const [authMode, setAuthMode] = useState('login') // 'login' or 'register'
   const [loginEmail, setLoginEmail] = useState('')
   const [loginPassword, setLoginPassword] = useState('')
+  const [registerName, setRegisterName] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
   const [loginError, setLoginError] = useState('')
