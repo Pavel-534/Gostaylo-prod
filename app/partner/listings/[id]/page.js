@@ -43,6 +43,15 @@ export default function EditListing({ params }) {
     images: [],
     coverIndex: 0
   })
+  
+  // Seasonal pricing state
+  const [seasons, setSeasons] = useState([])
+  const [newSeason, setNewSeason] = useState({
+    name: '',
+    startDate: '',
+    endDate: '',
+    priceMultiplier: 1.0
+  })
 
   useEffect(() => {
     if (listingId) {
