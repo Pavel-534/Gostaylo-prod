@@ -1,97 +1,105 @@
 # FunnyRent 2.1 - Product Requirements Document
 
-## Latest Update: 2026-02-28 - Stage 24.4 P0 Bug Fixes Complete ✅
+## Latest Update: 2026-02-28 - Stage 25.2 Complete ✅
 
-### Stage 24.4 Changes (2026-02-28)
+### Stage 25.2 Changes (2026-02-28)
 
-#### Admin Moderation Page (P0) ✅
-- Fixed crash caused by `toLocaleString` on null dates
-- Added null protection for partner.name, partner.email fields
-- Translated buttons: "Approve" → "Одобрить", "Reject" → "Отклонить"
-- "Просмотр" button already in Russian
+#### Admin Moderation Redesign (P0) ✅
+- **Photo Carousel**: Implemented Embla Carousel for swipeable photo gallery
+- **Mobile-First Design**: Responsive layout with proper spacing and touch-friendly buttons
+- **Info Grid**: 2x2 grid showing Цена, Комиссия, Дата создания, Рекомендуем
+- **Premium UI**: Gradient backgrounds, card shadows, modern typography
 
-#### Listing Edit Page (P0) ✅
-- Full Seasonal Pricing UI implemented with:
-  - Name field for season
-  - Start/End date pickers
-  - Price multiplier input
-  - Preview of calculated price
-  - "Добавить" button
-  - Display of existing seasons with delete option
-- Seasons stored in `metadata.seasonal_pricing` array
+#### Chat System Activation (P0) ✅
+- **New API Endpoints**:
+  - `POST/GET /api/v2/conversations` - Create/List conversations
+  - `GET/PATCH /api/v2/conversations/[id]` - Get/Update conversation
+  - `POST/GET /api/v2/messages` - Send/Get messages
+- **Admin Messages Page**: `/admin/messages` with conversation list and chat UI
+- **Partner Messages**: Updated `/partner/messages/[id]` with Read Receipts
 
-#### iCal CalendarSyncManager (P0) ✅
-- Fixed API calls from `http://localhost:3000` to relative `/api` paths
-- URL input field and "+" button work correctly
-- Platform auto-detection (Airbnb, Booking, VRBO, Google)
+#### Read Receipts (NEW) ✅
+- `is_read` boolean field in messages table
+- Single checkmark (✓) = Sent
+- Double checkmark (✓✓ blue) = Read
+- Auto-mark as read when conversation is opened
 
-#### Photo Management (P0) ✅
-- Increased limit from 10 to 30 photos on both:
-  - `/partner/listings/new` (new listing)
-  - `/partner/listings/[id]` (edit listing)
-- Fixed progress bar formula for accurate upload progress
+#### Reject Flow (P0) ✅
+- **Modal with Reason**: Textarea + quick reason badges
+- **Quick Reasons**: Некачественные фото, Неполное описание, Неверная цена, Дубликат
+- **Multi-Channel Notifications**:
+  1. Creates conversation in `conversations` table
+  2. Creates message with type='REJECTION' in `messages` table
+  3. Sends Telegram notification if partner has `telegram_id`
+  4. Shows admin alert if no telegram_id
+- **Status Update**: Sets `metadata.is_rejected: true`
 
----
-
-## Professional Media Pipeline ✅
-
-### Supabase Storage
-- **Bucket**: `listing-images` with public access
-- **File Size Limit**: 10MB
-- **Allowed Types**: image/jpeg, image/png, image/webp, image/gif
-- **Max Compressed Size**: 1MB after client-side compression
-
-### Client-Side Image Compression
-- **Library**: `browser-image-compression`
-- **Max Width/Height**: 1920px
-- **Quality**: 80%
-- **Output Format**: WebP
-
-### Upload Flow
-```
-1. User selects files → 2. Validate type & size (max 10MB)
-3. Compress (max 1920px, 80%, WebP) → 4. Upload to Supabase Storage
-5. Save public URL to listings.images array
-```
+#### Message Owner Feature (NEW) ✅
+- "Написать владельцу" button in moderation modal
+- Opens message modal with textarea
+- Creates conversation and sends message to internal chat
 
 ---
 
-## Database Schema Notes
-- `sync_settings` → stored in `metadata.sync_settings` (JSONB)
-- `seasonal_pricing` → stored in `metadata.seasonal_pricing` (JSONB array)
-- `is_draft` → stored in `metadata.is_draft` (boolean)
-- Images → URL strings (not base64)
+## Database Migration Required ⚠️
+
+**File**: `/app/database/migration_stage_25.sql`
+
+Execute in Supabase Dashboard → SQL Editor:
+
+```sql
+-- Key changes:
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS sync_settings JSONB DEFAULT '{}';
+ALTER TABLE listings ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS telegram_id TEXT;
+
+CREATE TABLE IF NOT EXISTS conversations (...);
+CREATE TABLE IF NOT EXISTS messages (...);
+```
+
+---
+
+## Previous Stage 24.4 Changes (2026-02-28)
+- Fixed Admin Moderation crash (null dates)
+- Added Seasonal Pricing UI
+- Fixed iCal CalendarSyncManager API paths
+- Increased photo limit to 30
+- Fixed progress bar formula
 
 ---
 
 ## Working Features
 
-### Storage & Media
-- ✅ Supabase Storage bucket (`listing-images`)
-- ✅ Client-side image compression
-- ✅ Progress bar during upload (fixed formula)
-- ✅ Delete images from storage
-- ✅ Photo limit: 30
+### Moderation System ✅
+- Premium mobile-first design
+- Photo carousel with navigation
+- Approve/Reject workflow
+- Featured toggle (is_featured)
+- Quick reject reasons
+- Multi-channel notifications
+- Admin ↔ Partner messaging
 
-### Partner Portal
-- ✅ Create listing (3-step flow)
-- ✅ Save as Draft
-- ✅ Edit listing with media management
-- ✅ Real file upload to cloud
-- ✅ iCal sync management
-- ✅ Seasonal pricing management
+### Chat System ✅
+- Conversations list
+- Real-time messages
+- Read receipts (✓ / ✓✓)
+- Admin messages page
+- Partner messages page
+- Rejection messages with special styling
 
-### Admin Panel
-- ✅ Moderation (PENDING listings) - no crashes
-- ✅ Approve/Reject with Russian buttons
-- ✅ Featured toggle (is_featured)
-- ✅ System Control Center
+### Storage & Media ✅
+- Supabase Storage bucket
+- Client-side image compression
+- Photo limit: 30
+- Progress bar during upload
 
-### Core Features
-- ✅ Supabase Auth (login, signup, logout)
-- ✅ Telegram Bot v4.0 (fire-and-forget)
-- ✅ Multi-language (RU/EN/ZH/TH)
-- ✅ iCal Sync Engine
+### Partner Portal ✅
+- Create/Edit listings
+- Save as Draft
+- Media management
+- iCal sync
+- Seasonal pricing
+- Messages with admin feedback
 
 ---
 
@@ -108,9 +116,30 @@
 - **Database:** Supabase PostgreSQL
 - **Storage:** Supabase Storage
 - **Auth:** Supabase Auth
-- **Bot:** Telegram Bot API (Edge Runtime)
-- **UI:** Tailwind CSS, Shadcn/UI
+- **Bot:** Telegram Bot API
+- **UI:** Tailwind CSS, Shadcn/UI, Embla Carousel
 - **Image Processing:** browser-image-compression
+
+---
+
+## Code Architecture
+```
+/app/
+├── app/
+│   ├── api/v2/
+│   │   ├── conversations/          # NEW - Chat API
+│   │   │   ├── route.js
+│   │   │   └── [id]/route.js
+│   │   └── messages/route.js       # NEW - Messages API
+│   ├── admin/
+│   │   ├── moderation/page.js      # REWRITTEN - Carousel + Reject flow
+│   │   ├── messages/page.js        # NEW - Admin chat UI
+│   │   └── layout.js               # UPDATED - Added Messages link
+│   └── partner/
+│       └── messages/[id]/page.js   # UPDATED - Read Receipts
+├── database/
+│   └── migration_stage_25.sql      # NEW - SQL migration script
+```
 
 ---
 
@@ -119,37 +148,13 @@
 ### Upcoming (P1)
 - **Stripe Integration** — Real payment processing
 - **Email Notifications** — Resend integration
-- **is_featured verification** — Ensure toggle doesn't remove from queue
+- **Background iCal Sync** — Cron job for auto-sync
 
 ### Future/Backlog (P2+)
 - TRON/USDT Verification
-- Background iCal Sync (cron)
 - Advanced Analytics
 - 404/Error page translations
-- Proper DB migration for sync_settings column
-
----
-
-## Code Architecture
-```
-/app/
-├── app/
-│   ├── api/
-│   │   ├── ical/sync/route.js        # iCal synchronization
-│   │   └── webhooks/telegram/route.js # Telegram (fire-and-forget)
-│   ├── admin/
-│   │   ├── moderation/page.js        # ✅ Fixed P0 crash
-│   │   └── system/page.js            # System controls
-│   ├── partner/
-│   │   ├── listings/
-│   │   │   ├── new/page.js           # ✅ 30 photo limit
-│   │   │   └── [id]/page.js          # ✅ Seasonal pricing UI
-├── components/
-│   └── calendar-sync-manager.jsx     # ✅ Fixed API paths
-├── lib/
-│   └── services/
-│       └── image-upload.service.js   # ✅ Fixed progress formula
-```
+- Move Supabase service key to env variables
 
 ---
 
