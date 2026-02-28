@@ -108,6 +108,50 @@ export default function FunnyRentHome() {
     setLoginLoading(false)
   }
 
+  // Handle registration
+  async function handleRegister(e) {
+    e.preventDefault()
+    setLoginLoading(true)
+    setLoginError('')
+    
+    if (loginPassword.length < 8) {
+      setLoginError(language === 'ru' ? 'Пароль должен быть минимум 8 символов' : 'Password must be at least 8 characters')
+      setLoginLoading(false)
+      return
+    }
+    
+    try {
+      const { signUp } = await import('@/lib/auth')
+      const result = await signUp(loginEmail.toLowerCase(), loginPassword, registerName)
+      
+      if (!result.success) {
+        if (result.error.includes('already registered')) {
+          setLoginError(language === 'ru' ? 'Этот email уже зарегистрирован' : 'This email is already registered')
+        } else {
+          setLoginError(result.error)
+        }
+        setLoginLoading(false)
+        return
+      }
+      
+      setLoginDialogOpen(false)
+      // Show success message
+      const { toast } = await import('sonner')
+      toast.success(language === 'ru' ? 'Регистрация успешна! Войдите с вашими данными.' : 'Registration successful! Please login.')
+      
+      // Switch to login mode
+      setAuthMode('login')
+      setRegisterName('')
+      setLoginPassword('')
+      
+    } catch (error) {
+      console.error('Registration error:', error)
+      setLoginError(language === 'ru' ? 'Ошибка регистрации. Попробуйте снова.' : 'Registration error. Try again.')
+    }
+    
+    setLoginLoading(false)
+  }
+
   // Load data
   useEffect(() => {
     loadData()
