@@ -722,7 +722,7 @@ export default function NewListing() {
                 Фотографии
               </CardTitle>
               <CardDescription>
-                Загрузите изображения вашего объекта (минимум 1, макс. 10)
+                Загрузите изображения вашего объекта (минимум 1, макс. 30)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
