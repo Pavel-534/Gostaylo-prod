@@ -290,11 +290,13 @@ export default function PartnerListings() {
         <Card>
           <CardContent className="p-0">
             <div className="divide-y">
-              {listings.map((listing) => (
+              {listings.map((listing) => {
+                const effectiveStatus = getEffectiveStatus(listing)
+                return (
                 <div key={listing.id} className="p-4 hover:bg-slate-50 transition-colors">
                   <div className="flex items-center gap-4">
                     <img
-                      src={listing.images[0] || '/placeholder.jpg'}
+                      src={listing.images?.[0] || listing.cover_image || '/placeholder.jpg'}
                       alt={listing.title}
                       className="w-24 h-24 object-cover rounded-lg"
                     />
@@ -304,20 +306,20 @@ export default function PartnerListings() {
                           <h3 className="font-semibold text-slate-900">{listing.title}</h3>
                           <p className="text-sm text-slate-600 mt-1">{listing.district}</p>
                         </div>
-                        <Badge className={statusColors[listing.status]}>
-                          {statusLabels[listing.status]}
+                        <Badge className={statusColors[effectiveStatus]}>
+                          {statusLabels[effectiveStatus]}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-6 mt-3 text-sm">
                         <span className="text-slate-600">
-                          {formatPrice(listing.basePriceThb, 'THB')}/день
+                          {formatPrice(listing.base_price_thb, 'THB')}/день
                         </span>
                         <span className="flex items-center gap-1 text-slate-600">
                           <Eye className="h-3 w-3" />
-                          {listing.views}
+                          {listing.views || 0}
                         </span>
                         <span className="text-slate-600">
-                          {listing.bookingsCount} бронирований
+                          {listing.bookingsCount || 0} бронирований
                         </span>
                       </div>
                     </div>
