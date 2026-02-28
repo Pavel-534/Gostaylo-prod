@@ -778,7 +778,7 @@ export default function NewListing() {
                 ))}
 
                 {/* Upload Button */}
-                {formData.images.length < 10 && (
+                {formData.images.length < 30 && (
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
