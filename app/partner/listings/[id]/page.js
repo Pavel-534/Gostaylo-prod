@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { 
   ArrowLeft, Save, Loader2, Calendar, X, Upload, Star, 
-  Trash2, Image as ImageIcon, FileImage, AlertCircle, CheckCircle2
+  Trash2, Image as ImageIcon, FileImage, AlertCircle, CheckCircle2, Plus
 } from 'lucide-react'
 import { toast } from 'sonner'
 import CalendarSyncManager from '@/components/calendar-sync-manager'
