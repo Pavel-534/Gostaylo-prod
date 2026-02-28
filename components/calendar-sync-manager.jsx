@@ -122,6 +122,15 @@ export default function CalendarSyncManager({ listingId, onSync }) {
   
   async function saveSyncSettings(newSources) {
     try {
+      // First get current metadata
+      const getRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=metadata`,
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      )
+      const getData = await getRes.json()
+      const currentMetadata = getData?.[0]?.metadata || {}
+      
+      // Update with new sync_settings
       await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`, {
         method: 'PATCH',
         headers: {
@@ -129,7 +138,12 @@ export default function CalendarSyncManager({ listingId, onSync }) {
           'Authorization': `Bearer ${SUPABASE_KEY}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ sync_settings: newSources })
+        body: JSON.stringify({ 
+          metadata: { 
+            ...currentMetadata, 
+            sync_settings: newSources 
+          } 
+        })
       })
     } catch (error) {
       console.error('Failed to save sync settings:', error)
