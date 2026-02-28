@@ -209,16 +209,18 @@ export default function PartnerListings() {
         </Card>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {listings.map((listing) => (
+          {listings.map((listing) => {
+            const effectiveStatus = getEffectiveStatus(listing)
+            return (
             <Card key={listing.id} className="overflow-hidden hover:shadow-lg transition-shadow">
               <div className="relative h-48">
                 <img
-                  src={listing.images[0] || '/placeholder.jpg'}
+                  src={listing.images?.[0] || listing.cover_image || '/placeholder.jpg'}
                   alt={listing.title}
                   className="w-full h-full object-cover"
                 />
-                <Badge className={`absolute top-3 right-3 ${statusColors[listing.status]}`}>
-                  {statusLabels[listing.status]}
+                <Badge className={`absolute top-3 right-3 ${statusColors[effectiveStatus]}`}>
+                  {statusLabels[effectiveStatus]}
                 </Badge>
               </div>
               <CardHeader>
@@ -231,20 +233,20 @@ export default function PartnerListings() {
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-600">Цена</span>
                   <span className="font-semibold text-slate-900">
-                    {formatPrice(listing.basePriceThb, 'THB')}/день
+                    {formatPrice(listing.base_price_thb, 'THB')}/день
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-600">Комиссия</span>
-                  <span className="text-red-600">{listing.commissionRate}%</span>
+                  <span className="text-red-600">{listing.commission_rate}%</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-1 text-slate-600">
                     <Eye className="h-3 w-3" />
-                    {listing.views}
+                    {listing.views || 0}
                   </span>
                   <span className="text-slate-600">
-                    {listing.bookingsCount} бронирований
+                    {listing.bookingsCount || 0} бронирований
                   </span>
                 </div>
               </CardContent>
