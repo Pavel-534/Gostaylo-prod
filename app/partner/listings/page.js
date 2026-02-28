@@ -97,7 +97,7 @@ export default function PartnerListings() {
   const statusColors = {
     ACTIVE: 'bg-green-100 text-green-700',
     PENDING: 'bg-yellow-100 text-yellow-700',
-    DRAFT: 'bg-slate-100 text-slate-600 border border-slate-300',
+    DRAFT: 'bg-slate-100 text-slate-600 border border-dashed border-slate-400',
     INACTIVE: 'bg-slate-100 text-slate-700',
     BOOKED: 'bg-blue-100 text-blue-700',
   }
@@ -108,6 +108,12 @@ export default function PartnerListings() {
     DRAFT: 'Черновик',
     INACTIVE: 'Неактивный',
     BOOKED: 'Забронирован',
+  }
+  
+  // Helper to get effective status (check metadata.is_draft)
+  function getEffectiveStatus(listing) {
+    if (listing.metadata?.is_draft) return 'DRAFT'
+    return listing.status
   }
 
   return (
