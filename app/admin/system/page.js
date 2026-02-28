@@ -613,6 +613,119 @@ export default function SystemControlPage() {
         </CardContent>
       </Card>
 
+      {/* iCal Sync Engine - Admin Control */}
+      <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50">
+        <CardHeader className="p-4 lg:p-6 pb-2 lg:pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                <Calendar className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
+              </div>
+              <div className="min-w-0">
+                <CardTitle className="text-base lg:text-lg">iCal Синхронизация</CardTitle>
+                <CardDescription className="text-xs lg:text-sm">Глобальная синхронизация календарей</CardDescription>
+              </div>
+            </div>
+            <Badge className={icalSyncStatus?.error_count > 0 
+              ? 'bg-amber-100 text-amber-700' 
+              : 'bg-green-100 text-green-700'}>
+              {icalSyncStatus?.error_count > 0 ? 'Есть ошибки' : 'Работает'}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 lg:p-6 pt-2 space-y-4">
+          {/* Status Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white rounded-lg p-3 border border-orange-200 text-center">
+              <div className="text-2xl font-bold text-orange-600">
+                {icalSyncStatus?.listings_synced || 0}
+              </div>
+              <div className="text-xs text-slate-500">Объявлений</div>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-green-200 text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {icalSyncStatus?.success_count || 0}
+              </div>
+              <div className="text-xs text-slate-500">Успешно</div>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-red-200 text-center">
+              <div className="text-2xl font-bold text-red-600">
+                {icalSyncStatus?.error_count || 0}
+              </div>
+              <div className="text-xs text-slate-500">Ошибок</div>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-slate-200 text-center">
+              <div className="text-sm font-medium text-slate-700">
+                {icalSyncStatus?.last_sync 
+                  ? new Date(icalSyncStatus.last_sync).toLocaleString('ru-RU', { 
+                      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' 
+                    })
+                  : 'Никогда'}
+              </div>
+              <div className="text-xs text-slate-500">Последняя синхр.</div>
+            </div>
+          </div>
+          
+          {/* Frequency Setting */}
+          <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-orange-200">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-orange-500" />
+              <span className="text-sm font-medium">Частота синхронизации</span>
+            </div>
+            <Select value={icalSyncFrequency} onValueChange={handleIcalFrequencyChange}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="15m">15 минут</SelectItem>
+                <SelectItem value="30m">30 минут</SelectItem>
+                <SelectItem value="1h">1 час</SelectItem>
+                <SelectItem value="2h">2 часа</SelectItem>
+                <SelectItem value="6h">6 часов</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Actions */}
+          <div className="flex gap-2">
+            <Button
+              onClick={handleGlobalIcalSync}
+              disabled={icalSyncing}
+              className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
+            >
+              {icalSyncing ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Синхронизация...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Синхронизировать все
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={loadIcalSyncStatus}
+              variant="outline"
+              className="border-orange-300"
+            >
+              <Activity className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          {/* Info */}
+          <div className="bg-orange-50 border border-orange-200 p-3 rounded-lg text-xs text-orange-700">
+            <p className="font-medium mb-1">📅 О синхронизации:</p>
+            <ul className="list-disc list-inside space-y-0.5 text-orange-600">
+              <li>Импортирует занятые даты из Airbnb, Booking.com, VRBO</li>
+              <li>Создаёт блокировки в календаре объявлений</li>
+              <li>Автоматически удаляет устаревшие блокировки</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Recent Activity - Mobile Optimized */}
       <Card className="border-2 border-slate-200">
         <CardHeader className="p-4 lg:p-6 pb-2">
