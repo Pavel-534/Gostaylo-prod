@@ -317,22 +317,22 @@ export default function ModerationPage() {
                   </div>
                   <div className="p-4">
                     <h3 className="font-bold text-lg text-gray-900 mb-1">{listing.title}</h3>
-                    <p className="text-sm text-gray-600 mb-3">{listing.ownerName}</p>
+                    <p className="text-sm text-gray-600 mb-3">{listing.owner_id}</p>
                     <div className="flex items-center justify-between mb-3">
                       <span className="font-semibold text-indigo-600">
-                        {listing.basePriceThb.toLocaleString()} ₿/день
+                        {(listing.base_price_thb || 0).toLocaleString()} ₿/день
                       </span>
-                      <Badge variant="outline">Комиссия: {listing.commissionRate}%</Badge>
+                      <Badge variant="outline">Комиссия: {listing.commission_rate || 15}%</Badge>
                     </div>
                     {/* Featured Toggle */}
                     <div className="flex items-center justify-between mb-3 p-2 bg-purple-50 rounded-lg border border-purple-200">
                       <div className="flex items-center gap-2">
-                        <Star className={`w-4 h-4 ${listing.isFeatured ? 'text-purple-600 fill-purple-600' : 'text-gray-400'}`} />
+                        <Star className={`w-4 h-4 ${listing.is_featured ? 'text-purple-600 fill-purple-600' : 'text-gray-400'}`} />
                         <span className="text-sm font-medium text-gray-700">Рекомендуем</span>
                       </div>
                       <Switch
-                        checked={listing.isFeatured || false}
-                        onCheckedChange={() => handleToggleFeatured(listing.id, listing.isFeatured)}
+                        checked={listing.is_featured || false}
+                        onCheckedChange={() => handleToggleFeatured(listing.id, listing.is_featured)}
                       />
                     </div>
                     <Button
