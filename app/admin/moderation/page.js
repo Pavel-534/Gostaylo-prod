@@ -238,14 +238,14 @@ export default function ModerationPage() {
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
                         <span className="text-lg font-bold text-indigo-600">
-                          {partner.name.charAt(0)}
+                          {(partner.name || 'P').charAt(0)}
                         </span>
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900">{partner.name}</p>
+                        <p className="font-semibold text-gray-900">{partner.name || 'Без имени'}</p>
                         <p className="text-sm text-gray-600 flex items-center gap-2">
                           <Mail className="w-4 h-4" />
-                          {partner.email}
+                          {partner.email || '-'}
                         </p>
                       </div>
                     </div>
