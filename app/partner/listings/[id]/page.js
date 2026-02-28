@@ -83,6 +83,11 @@ export default function EditListing({ params }) {
           images: images,
           coverIndex: coverIndex >= 0 ? coverIndex : 0
         })
+        
+        // Load seasonal pricing from metadata
+        if (l.metadata?.seasonal_pricing) {
+          setSeasons(l.metadata.seasonal_pricing)
+        }
       }
       setLoading(false)
     } catch (error) {
