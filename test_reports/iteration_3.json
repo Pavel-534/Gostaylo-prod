@@ -1,0 +1,129 @@
+{
+  "summary": "FunnyRent 2.1 P0 Bug Fixes Verification - All reported bugs have been fixed and verified working",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "Various /api/* routes returning 502",
+        "issue": "Known K8s ingress routing issue for some API routes",
+        "priority": "LOW",
+        "note": "Pre-existing from previous iterations, not related to current bug fixes"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    {
+      "test": "Moderation page /admin/moderation loads without crash",
+      "result": "SUCCESS - Page loads correctly, shows 'Модерация' header",
+      "bug_fixed": "toLocaleString crash on null dates",
+      "verified": true
+    },
+    {
+      "test": "Listing modal in moderation shows date correctly",
+      "result": "SUCCESS - Shows '28 февраля 2026 г.' or 'Не указана' for null",
+      "bug_fixed": "Date handling with null check",
+      "verified": true
+    },
+    {
+      "test": "'Просмотр' button text in Russian",
+      "result": "SUCCESS - Found 6 'Просмотр' buttons",
+      "bug_fixed": "Button text localization",
+      "verified": true
+    },
+    {
+      "test": "'Одобрить' (Approve) button in modal",
+      "result": "SUCCESS - Button found and functional",
+      "verified": true
+    },
+    {
+      "test": "'Отклонить' (Reject) button in modal",
+      "result": "SUCCESS - Button found and functional",
+      "verified": true
+    },
+    {
+      "test": "Featured toggle 'Рекомендуем' in moderation",
+      "result": "SUCCESS - Found 6 toggles, state=checked for first listing",
+      "verified": true
+    },
+    {
+      "test": "Partner edit listing page loads",
+      "result": "SUCCESS - /partner/listings/[id] page loads",
+      "verified": true
+    },
+    {
+      "test": "Seasonal prices form on edit page",
+      "result": "SUCCESS - 'Сезонные цены' section with date inputs, name field, and 'Добавить' button found",
+      "bug_fixed": "Missing seasonal pricing UI",
+      "verified": true
+    },
+    {
+      "test": "iCal CalendarSyncManager on edit page",
+      "result": "SUCCESS - 'Синхронизация календаря' section with URL input, platform dropdown, and '+' button found",
+      "bug_fixed": "Missing iCal input and add button",
+      "verified": true
+    },
+    {
+      "test": "Photo limit 30 on edit page",
+      "result": "SUCCESS - Shows '2 из 30' (2 of 30)",
+      "bug_fixed": "Photo limit increased from 10 to 30",
+      "verified": true
+    },
+    {
+      "test": "Photo limit 30 on new listing page",
+      "result": "SUCCESS - Shows '(минимум 1, макс. 30)'",
+      "bug_fixed": "Photo limit increased from 10 to 30",
+      "verified": true
+    },
+    {
+      "test": "Progress bar formula in image upload service",
+      "result": "SUCCESS - Code review confirms correct formula: fileContribution = 100/total, progress calculated proportionally",
+      "bug_fixed": "Incorrect progress bar calculation",
+      "verified": true
+    }
+  ],
+  "test_report_links": [
+    "/app/test_reports/iteration_3.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (No backend changes, Supabase direct calls)",
+    "frontend": "100% (All 7 P0 bugs verified fixed)"
+  },
+  "test_credentials": {
+    "admin": "admin@funnyrent.com / ChangeMe2025!",
+    "partner": "partner@test.com / ChangeMe2025!"
+  },
+  "seed_data_creation": "None - used existing Supabase data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All P0 bugs from the bug report have been fixed: 1) Moderation page no longer crashes on null dates - proper null check added, 2) Listing edit page has full seasonal pricing UI with form fields, 3) CalendarSyncManager shows iCal URL input and '+' button, 4) Photo limit is now 30 on both edit and new listing pages, 5) Progress bar formula is correct in image-upload.service.js, 6) Featured toggle works in moderation, 7) All buttons are in Russian.",
+  "bugs_verified_fixed": {
+    "P0_moderation_crash": {
+      "description": "toLocaleString crash on null dates in moderation page",
+      "status": "FIXED",
+      "fix_details": "Added null check: selectedListing.created_at ? toLocaleDateString() : 'Не указана'"
+    },
+    "P0_listing_edit_ui": {
+      "description": "Broken UI for listing edit (iCal, seasonal prices)",
+      "status": "FIXED",
+      "fix_details": "Full seasonal pricing form added with date inputs and multiplier; CalendarSyncManager has URL input, platform dropdown, and '+' button"
+    },
+    "P0_progress_bar": {
+      "description": "Incorrect progress bar calculation during photo upload",
+      "status": "FIXED",
+      "fix_details": "Progress formula now correctly calculates: fileContribution = 100/total, with proportional compression and upload phases"
+    },
+    "P0_photo_limit": {
+      "description": "Photo limit was 10, should be 30",
+      "status": "FIXED",
+      "fix_details": "Both edit page and new listing page show 'макс. 30' / 'из 30'"
+    }
+  }
+}
