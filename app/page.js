@@ -72,45 +72,35 @@ export default function FunnyRentHome() {
     setLoginError('')
     
     try {
-      // Direct Supabase login
-      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co'
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k'
+      // Real Supabase Auth login
+      const { signIn } = await import('@/lib/auth')
+      const result = await signIn(loginEmail.toLowerCase(), loginPassword)
       
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(loginEmail.toLowerCase())}`, {
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        }
-      })
-      
-      const users = await res.json()
-      
-      if (users && users.length > 0) {
-        const user = users[0]
-        // Store user in localStorage for session
-        localStorage.setItem('funnyrent_user', JSON.stringify({
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          name: `${user.first_name || ''} ${user.last_name || ''}`.trim()
-        }))
-        
-        setLoginDialogOpen(false)
-        
-        // Redirect based on role
-        if (user.role === 'ADMIN') {
-          router.push('/admin/dashboard')
-        } else if (user.role === 'PARTNER') {
-          router.push('/partner')
+      if (!result.success) {
+        // Show user-friendly error message
+        if (result.error.includes('Invalid login')) {
+          setLoginError(language === 'ru' ? 'Неверный email или пароль' : 'Invalid email or password')
         } else {
-          router.push('/renter')
+          setLoginError(result.error)
         }
+        setLoginLoading(false)
+        return
+      }
+      
+      setLoginDialogOpen(false)
+      
+      // Redirect based on role
+      const user = result.user
+      if (user.role === 'ADMIN') {
+        router.push('/admin/dashboard')
+      } else if (user.role === 'PARTNER') {
+        router.push('/partner/dashboard')
       } else {
-        setLoginError('Пользователь не найден')
+        router.push('/renter')
       }
     } catch (error) {
       console.error('Login error:', error)
-      setLoginError('Ошибка входа. Попробуйте снова.')
+      setLoginError(language === 'ru' ? 'Ошибка входа. Попробуйте снова.' : 'Login error. Try again.')
     }
     
     setLoginLoading(false)
