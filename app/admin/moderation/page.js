@@ -347,7 +347,7 @@ export default function ModerationPage() {
                       className="w-full"
                     >
                       <Eye className="w-4 h-4 mr-2" />
-                      Quick View
+                      Просмотр
                     </Button>
                   </div>
                 </div>
@@ -368,7 +368,7 @@ export default function ModerationPage() {
             <div className="space-y-4">
               {/* Images */}
               <div className="grid grid-cols-2 gap-2">
-                {selectedListing.images.map((img, idx) => (
+                {(selectedListing.images || []).map((img, idx) => (
                   <img
                     key={idx}
                     src={img}
@@ -382,32 +382,43 @@ export default function ModerationPage() {
               <div className="space-y-3">
                 <div>
                   <p className="text-sm text-gray-600">Название</p>
-                  <p className="font-semibold text-lg">{selectedListing.title}</p>
+                  <p className="font-semibold text-lg">{selectedListing.title || 'Без названия'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Описание</p>
-                  <p className="text-gray-900">{selectedListing.description}</p>
+                  <p className="text-gray-900">{selectedListing.description || 'Нет описания'}</p>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Цена</p>
                     <p className="font-bold text-indigo-600">
-                      {selectedListing.basePriceThb.toLocaleString()} ₿
+                      {(selectedListing.base_price_thb || 0).toLocaleString()} ₿
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Комиссия</p>
-                    <p className="font-bold text-purple-600">{selectedListing.commissionRate}%</p>
+                    <p className="font-bold text-purple-600">{selectedListing.commission_rate || 15}%</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Район</p>
-                    <p className="font-semibold">{selectedListing.district}</p>
+                    <p className="font-semibold">{selectedListing.district || 'Не указан'}</p>
                   </div>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Владелец</p>
-                  <p className="font-semibold">{selectedListing.ownerName}</p>
-                  <p className="text-sm text-gray-500">{selectedListing.ownerEmail}</p>
+                  <p className="font-semibold">{selectedListing.owner_id || 'Неизвестен'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Дата создания</p>
+                  <p className="font-semibold">
+                    {selectedListing.created_at 
+                      ? new Date(selectedListing.created_at).toLocaleDateString('ru-RU', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric'
+                        })
+                      : 'Не указана'}
+                  </p>
                 </div>
               </div>
 
