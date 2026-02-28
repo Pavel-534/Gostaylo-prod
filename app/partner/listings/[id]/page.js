@@ -254,81 +254,14 @@ export default function EditListing({ params }) {
           </CardContent>
         </Card>
 
-        {/* iCal Calendar Sync Section */}
-        <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Link2 className="h-5 w-5 text-orange-600" />
-              Sync Calendar (iCal)
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button className="ml-1">
-                      <HelpCircle className="h-4 w-4 text-slate-400 hover:text-slate-600" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p className="text-sm">
-                      Вставьте iCal ссылку из Airbnb или Booking.com, чтобы автоматически блокировать занятые даты и предотвратить двойные бронирования.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="icalUrl" className="flex items-center gap-2">
-                iCal URL
-                <span className="text-xs text-slate-500">(Airbnb, Booking.com, VRBO)</span>
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  id="icalUrl"
-                  type="url"
-                  placeholder="https://www.airbnb.com/calendar/ical/123456.ics"
-                  value={formData.icalUrl}
-                  onChange={(e) => setFormData({ ...formData, icalUrl: e.target.value })}
-                  className="flex-1"
-                  data-testid="ical-url-input"
-                />
-                {formData.icalUrl && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => window.open(formData.icalUrl, '_blank')}
-                    title="Открыть iCal"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-              <p className="text-xs text-slate-600">
-                💡 <strong>Как найти iCal ссылку:</strong>
-              </p>
-              <ul className="text-xs text-slate-500 space-y-1 ml-4">
-                <li>• <strong>Airbnb:</strong> Calendar → Availability → Export Calendar</li>
-                <li>• <strong>Booking.com:</strong> Property → Rates & Availability → Sync Calendars</li>
-                <li>• <strong>VRBO:</strong> Calendar → iCal Settings → Export URL</li>
-              </ul>
-            </div>
-
-            {formData.icalUrl && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-green-800 font-medium">
-                    Календарь будет синхронизирован автоматически
-                  </span>
-                </div>
-                <p className="text-xs text-green-600 mt-1 ml-4">
-                  Занятые даты из внешних платформ будут блокироваться в FunnyRent
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* iCal Calendar Sync Section - Multi-Source */}
+        <CalendarSyncManager 
+          listingId={listingId}
+          onSync={() => {
+            // Refresh calendar preview after sync
+            loadSeasonalPrices()
+          }}
+        />
 
         {/* Seasonal Pricing Section */}
         <div className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-lg p-6">
