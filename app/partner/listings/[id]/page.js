@@ -171,7 +171,19 @@ export default function EditListing({ params }) {
     }
   }
 
-  function removeImage(index) {
+  async function removeImage(index) {
+    const imageUrl = formData.images[index]
+    
+    // Try to delete from Supabase Storage if it's a storage URL
+    if (typeof imageUrl === 'string' && imageUrl.includes('supabase.co/storage')) {
+      try {
+        const { deleteFromStorage } = await import('@/lib/services/image-upload.service')
+        await deleteFromStorage(imageUrl)
+      } catch (error) {
+        console.error('Failed to delete from storage:', error)
+      }
+    }
+    
     const newImages = formData.images.filter((_, i) => i !== index)
     let newCoverIndex = formData.coverIndex
     
