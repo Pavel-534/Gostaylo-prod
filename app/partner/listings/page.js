@@ -284,7 +284,7 @@ export default function PartnerListings() {
                 </DropdownMenu>
               </CardFooter>
             </Card>
-          ))}
+          )})}
         </div>
       ) : (
         <Card>
