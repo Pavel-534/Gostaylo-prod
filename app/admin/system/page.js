@@ -30,9 +30,18 @@ import {
   Lock,
   Eye,
   EyeOff,
-  Key
+  Key,
+  Calendar,
+  Link2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const TELEGRAM_BOT_TOKEN = '8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM';
 const ADMIN_CHAT_ID = 1303143012;
