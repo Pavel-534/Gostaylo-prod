@@ -264,6 +264,33 @@ export default function SystemControlPage() {
     }
   }
 
+  async function handlePasswordChange() {
+    if (newPassword !== confirmPassword || newPassword.length < 8) {
+      toast.error('Проверьте правильность пароля');
+      return;
+    }
+    
+    setChangingPassword(true);
+    try {
+      const { updatePassword } = await import('@/lib/auth');
+      const result = await updatePassword(newPassword);
+      
+      if (result.success) {
+        toast.success('✅ Пароль успешно обновлён!');
+        setNewPassword('');
+        setConfirmPassword('');
+        await logActivity('PASSWORD_CHANGE', 'Пароль администратора обновлён');
+      } else {
+        toast.error('❌ Ошибка: ' + (result.error || 'Не удалось обновить пароль'));
+      }
+    } catch (error) {
+      console.error('Password change error:', error);
+      toast.error('❌ Ошибка обновления пароля');
+    } finally {
+      setChangingPassword(false);
+    }
+  }
+
   async function logActivity(action, details) {
     try {
       const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
