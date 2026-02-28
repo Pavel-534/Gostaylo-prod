@@ -537,6 +537,92 @@ export default function SystemControlPage() {
         </CardContent>
       </Card>
 
+      {/* Security Section - Password Change */}
+      <Card className="border-2 border-slate-200">
+        <CardHeader className="p-4 lg:p-6 pb-2 lg:pb-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Key className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
+            </div>
+            <div className="min-w-0">
+              <CardTitle className="text-base lg:text-lg">Безопасность</CardTitle>
+              <CardDescription className="text-xs lg:text-sm">Управление паролем администратора</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 lg:p-6 pt-2 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-password" className="text-sm font-medium">
+                Новый пароль
+              </Label>
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="Минимум 8 символов"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password" className="text-sm font-medium">
+                Подтвердите пароль
+              </Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                placeholder="Повторите пароль"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          {newPassword && confirmPassword && newPassword !== confirmPassword && (
+            <div className="bg-red-50 border border-red-200 p-3 rounded-lg text-sm text-red-700 flex items-center gap-2">
+              <XCircle className="w-4 h-4 flex-shrink-0" />
+              <span>Пароли не совпадают</span>
+            </div>
+          )}
+          
+          <Button
+            onClick={handlePasswordChange}
+            disabled={changingPassword || !newPassword || newPassword !== confirmPassword || newPassword.length < 8}
+            className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+          >
+            {changingPassword ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                Обновление...
+              </>
+            ) : (
+              <>
+                <Lock className="w-4 h-4 mr-2" />
+                Обновить пароль
+              </>
+            )}
+          </Button>
+          
+          <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg text-xs text-amber-700">
+            <p className="font-medium mb-1">⚠️ Требования к паролю:</p>
+            <ul className="list-disc list-inside space-y-0.5 text-amber-600">
+              <li>Минимум 8 символов</li>
+              <li>После смены потребуется повторный вход</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Quick Stats - Mobile Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card className="bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-200">
