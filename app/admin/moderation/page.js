@@ -20,19 +20,27 @@ export default function ModerationPage() {
     loadData();
   }, []);
 
+  const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
+
   const loadData = async () => {
     try {
-      const [partnersRes, listingsRes] = await Promise.all([
-        fetch('/api/admin/pending-verifications'),
-        fetch('/api/admin/pending-listings'),
-      ]);
-
-      if (partnersRes.ok && listingsRes.ok) {
-        const partnersData = await partnersRes.json();
-        const listingsData = await listingsRes.json();
-        setPartners(partnersData.data);
-        setListings(listingsData.data);
-      }
+      // Load PENDING listings directly from Supabase
+      const listingsRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/listings?status=eq.PENDING&order=created_at.desc`,
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      );
+      const listingsData = await listingsRes.json();
+      setListings(Array.isArray(listingsData) ? listingsData : []);
+      
+      // Load partners pending verification
+      const partnersRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/profiles?role=eq.PARTNER&verified=eq.false&select=*`,
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      );
+      const partnersData = await partnersRes.json();
+      setPartners(Array.isArray(partnersData) ? partnersData : []);
+      
     } catch (error) {
       console.error('Failed to load moderation data:', error);
     } finally {
