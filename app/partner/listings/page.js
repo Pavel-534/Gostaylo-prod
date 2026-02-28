@@ -36,9 +36,30 @@ export default function PartnerListings() {
 
   async function loadListings() {
     try {
-      const res = await fetch('/api/partner/listings')
+      // Get current user
+      const storedUser = localStorage.getItem('funnyrent_user')
+      const user = storedUser ? JSON.parse(storedUser) : null
+      
+      if (!user || !user.id) {
+        setLoading(false)
+        return
+      }
+      
+      // Load directly from Supabase to avoid K8s ingress issues
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co'
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k'
+      
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${user.id}&order=created_at.desc`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      )
       const data = await res.json()
-      setListings(data.data || [])
+      setListings(Array.isArray(data) ? data : [])
       setLoading(false)
     } catch (error) {
       console.error('Failed to load listings:', error)
@@ -48,7 +69,16 @@ export default function PartnerListings() {
 
   async function deleteListing(id) {
     try {
-      await fetch(`/api/partner/listings/${id}`, { method: 'DELETE' })
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co'
+      const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I'
+      
+      await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+        }
+      })
       setListings(listings.filter(l => l.id !== id))
       setDeleteId(null)
     } catch (error) {
