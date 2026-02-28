@@ -165,8 +165,8 @@ export default function CalendarSyncManager({ listingId, onSync }) {
     setAddingSource(true)
     
     try {
-      // Test the URL first
-      const testRes = await fetch('http://localhost:3000/api/ical/sync', {
+      // Test the URL first - use relative path for client-side
+      const testRes = await fetch('/api/ical/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'parse', url: newUrl })
