@@ -338,7 +338,7 @@ export default function EditListing({ params }) {
                 </div>
                 <div>
                   <CardTitle className="text-base lg:text-lg">Фотографии</CardTitle>
-                  <CardDescription className="text-xs">{formData.images.length} из 10</CardDescription>
+                  <CardDescription className="text-xs">{formData.images.length} из 30</CardDescription>
                 </div>
               </div>
             </div>
