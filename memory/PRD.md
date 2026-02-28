@@ -1,83 +1,73 @@
 # FunnyRent 2.1 - Product Requirements Document
 
-## Latest Update: 2026-02-28 - Multi-Source iCal Sync Engine Complete ✅
+## Latest Update: 2026-02-28 - Production-Ready Listing Creation Complete ✅
 
-### iCal Sync Engine (Stage 23) ✅
+### Stage 24.2 - Listing Creation & Advanced UX ✅
+
 **Features Implemented:**
 
-1. **iCal Parser Service** (`/app/lib/services/ical-sync.service.js`)
-   - Parse .ics files (VEVENT extraction)
-   - Support for date-only and datetime formats
-   - Timezone handling (Asia/Bangkok UTC+7)
-   - Auto-detection of source platform (Airbnb, Booking.com, VRBO, Google)
+1. **Real Media Engine with Progress Bar**
+   - Real `<input type="file" multiple>` for image upload
+   - Visual progress bar (0-100%) during upload
+   - File validation (image types, 10MB max)
+   - Preview with "Cover" badge on first image
+   - Remove button per image
 
-2. **API Endpoint** (`/app/app/api/ical/sync/route.js`)
-   - `POST /api/ical/sync` - Sync single listing or global sync
-   - `GET /api/ical/sync` - Get sync status and settings
-   - Actions: `parse`, `sync`, `sync-all`
+2. **Listing Persistence & Visibility**
+   - Fixed `owner_id` linking to logged-in partner
+   - **"Save as Draft"** button — saves with `metadata.is_draft: true`
+   - **"Create Listing"** button — saves with `status: PENDING`
+   - Listings appear IMMEDIATELY in "Мои листинги" table
+   - Draft badge with dashed border styling
 
-3. **Partner UI** - Calendar Sync Manager (`/app/components/calendar-sync-manager.jsx`)
-   - Multi-source support (add/remove multiple iCal URLs)
-   - Platform auto-detection
-   - Real-time sync status per source
-   - "Sync Now" button per source or all at once
-   - Blocked dates summary view
-   - Help instructions for each platform
+3. **Multi-Source iCal Manager (in New Listing flow)**
+   - Add multiple iCal URLs (Airbnb, Booking, VRBO)
+   - Auto-detect platform from URL
+   - Status badges (Pending/Synced)
+   - Remove button per source
+   - Help instructions for finding iCal links
 
-4. **Admin UI** - System Control Center (`/app/app/admin/system/page.js`)
-   - Global sync statistics (listings, success, errors)
-   - Frequency setting (15m, 30m, 1h, 2h, 6h)
-   - "Sync All" button for manual global sync
-   - Last sync timestamp
+4. **Category Selector Fix**
+   - z-index: 100 for proper dropdown layering
+   - min-width: 300px for readability
+   - Position: popper with sideOffset
 
-### Database Schema Updates
-- `listings.sync_settings` - JSONB array of iCal sources
-- `bookings.status` - Added 'BLOCKED_BY_ICAL' value
-- `bookings.metadata` - Stores ical_source, ical_uid, ical_url
-- `system_settings` - Keys: ical_sync_status, ical_sync_settings
+### Technical Implementation
 
-### Technical Architecture
 ```
-┌─────────────────┐     ┌──────────────────┐
-│  Partner UI     │────▶│  API Endpoint    │
-│  (Add iCal)     │     │  /api/ical/sync  │
-└─────────────────┘     └────────┬─────────┘
-                                 │
-                        ┌────────▼─────────┐
-                        │  iCal Service    │
-                        │  - Fetch .ics    │
-                        │  - Parse events  │
-                        │  - Create blocks │
-                        └────────┬─────────┘
-                                 │
-                        ┌────────▼─────────┐
-                        │  Supabase        │
-                        │  - bookings      │
-                        │  - listings      │
-                        └──────────────────┘
+/app/app/partner/listings/new/page.js
+├── Step 1: Basic Info (Category, Title, Description, District, Price)
+├── Step 2: Category-specific fields + iCal Manager
+└── Step 3: Media Upload with Progress Bar
+    ├── Real file input (hidden, triggered by button)
+    ├── Progress simulation with visual bar
+    ├── Image preview grid with cover badge
+    └── Two submit buttons:
+        ├── "Сохранить черновик" → is_draft: true
+        └── "Создать листинг" → status: PENDING
 ```
 
-### Conflict Management
-- Each VEVENT creates a `BLOCKED_BY_ICAL` booking
-- Stores: check_in, check_out, ical_uid, ical_source
-- Cleanup: Removes blocks no longer in iCal feed
-- Updates: Changes dates if event moved
+### Database Notes
+- `DRAFT` status not in DB enum — using `metadata.is_draft` workaround
+- `getEffectiveStatus()` helper function checks metadata
+- Draft listings have `available: false`
 
 ---
 
 ## Previous Completed Work
 
+### Stage 23 - iCal Sync Engine ✅
+- Multi-source calendar sync
+- BLOCKED_BY_ICAL bookings
+- Admin global sync controls
+
 ### Telegram Webhook v4.0 ✅
-- Immediate response pattern (25ms)
+- Immediate response pattern
 - Fire-and-forget processing
 
 ### Supabase Auth ✅
 - Login/logout/signup/password change
 - Route protection
-
-### Public Registration ✅
-- Login/SignUp tabs
-- Creates RENTER users
 
 ## Test Credentials
 | Role | Email | Password |
@@ -95,26 +85,28 @@
 ## Next Priority Tasks
 ### Upcoming
 - **P1: Stripe Integration** — Payment processing
-- **P1: Localize 404 pages** — Error pages translation
+- **P1: Add DRAFT to DB enum** — Proper database migration
+- **P1: Supabase Storage** — Real file uploads to cloud
 
 ### Future/Backlog
-- **P1: TRON/USDT Verification** — Blockchain verification
-- **P1: Resend Integration** — Email notifications
-- **P1: Background Sync Worker** — Automated periodic sync
+- **P1: TRON/USDT Verification**
+- **P1: Resend Email Integration
+- **P1: Background Sync Worker (cron)
 
 ## Code Architecture
 ```
 /app/
 ├── app/
-│   ├── api/
-│   │   ├── ical/sync/route.js         # iCal Sync API
-│   │   └── webhooks/telegram/route.js # Telegram webhook
-│   ├── admin/system/page.js           # System Control Center
-│   └── partner/listings/[id]/page.js  # Listing edit + Calendar Sync
+│   ├── partner/
+│   │   ├── listings/
+│   │   │   ├── new/page.js          # 3-step creation flow
+│   │   │   ├── page.js              # Listings table with DRAFT support
+│   │   │   └── [id]/page.js         # Edit listing
+│   ├── api/ical/sync/route.js       # iCal API
+│   └── admin/system/page.js         # Control Center
 ├── components/
-│   └── calendar-sync-manager.jsx      # Multi-source iCal UI
-├── lib/
-│   ├── services/ical-sync.service.js  # iCal parser & sync logic
-│   └── auth.js                        # Supabase Auth helpers
-└── .env                               # Configuration
+│   └── calendar-sync-manager.jsx    # Multi-source iCal UI
+└── lib/
+    ├── services/ical-sync.service.js
+    └── auth.js
 ```
