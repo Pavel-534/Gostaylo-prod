@@ -170,11 +170,6 @@ export default function ModerationPage() {
       });
     }
   };
-        description: 'Не удалось отклонить объявление',
-        variant: 'destructive',
-      });
-    }
-  };
 
   const handleToggleFeatured = async (listingId, currentStatus) => {
     try {
