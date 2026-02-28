@@ -172,11 +172,17 @@ export default function ModerationPage() {
   };
 
   const handleToggleFeatured = async (listingId, currentStatus) => {
+    const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
+    
     try {
-      const res = await fetch(`/api/admin/listings/${listingId}/featured`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isFeatured: !currentStatus }),
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`, {
+        method: 'PATCH',
+        headers: { 
+          'apikey': SUPABASE_SERVICE_KEY, 
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ is_featured: !currentStatus }),
       });
 
       if (res.ok) {
