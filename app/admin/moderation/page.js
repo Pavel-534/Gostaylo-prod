@@ -95,11 +95,21 @@ export default function ModerationPage() {
   };
 
   const handleApproveListing = async (listingId) => {
+    const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
+    
     try {
-      const res = await fetch(`/api/admin/listings/${listingId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'ACTIVE' }),
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`, {
+        method: 'PATCH',
+        headers: { 
+          'apikey': SUPABASE_SERVICE_KEY, 
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          status: 'ACTIVE',
+          available: true,
+          moderated_at: new Date().toISOString()
+        }),
       });
 
       if (res.ok) {
@@ -120,17 +130,34 @@ export default function ModerationPage() {
   };
 
   const handleRejectListing = async (listingId) => {
+    const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
+    
     try {
-      const res = await fetch(`/api/admin/listings/${listingId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'DRAFT' }),
+      // Get current metadata first
+      const getRes = await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=metadata`, {
+        headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` }
+      });
+      const getData = await getRes.json();
+      const currentMetadata = getData?.[0]?.metadata || {};
+      
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`, {
+        method: 'PATCH',
+        headers: { 
+          'apikey': SUPABASE_SERVICE_KEY, 
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          status: 'PENDING',  // Keep as PENDING but mark as rejected in metadata
+          available: false,
+          metadata: { ...currentMetadata, is_rejected: true, rejected_at: new Date().toISOString() }
+        }),
       });
 
       if (res.ok) {
         toast({
           title: 'Объявление отклонено',
-          description: 'Статус изменен на Draft',
+          description: 'Требуются доработки',
         });
         setSelectedListing(null);
         loadData();
@@ -138,6 +165,11 @@ export default function ModerationPage() {
     } catch (error) {
       toast({
         title: 'Ошибка',
+        description: 'Не удалось отклонить объявление',
+        variant: 'destructive',
+      });
+    }
+  };
         description: 'Не удалось отклонить объявление',
         variant: 'destructive',
       });
