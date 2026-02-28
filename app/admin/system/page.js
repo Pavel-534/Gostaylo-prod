@@ -50,6 +50,11 @@ export default function SystemControlPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  
+  // iCal Sync state
+  const [icalSyncStatus, setIcalSyncStatus] = useState(null);
+  const [icalSyncFrequency, setIcalSyncFrequency] = useState('1h');
+  const [icalSyncing, setIcalSyncing] = useState(false);
 
   useEffect(() => {
     loadSystemStatus();
