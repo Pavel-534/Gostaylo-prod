@@ -249,7 +249,7 @@ export default function NewListing() {
         id: listingId,
         owner_id: user.id,  // Link to logged-in partner
         category_id: formData.categoryId || '1',
-        status: asDraft ? 'DRAFT' : 'PENDING',
+        status: 'PENDING',  // Use PENDING for both (DRAFT not in DB enum yet)
         title: formData.title,
         description: formData.description,
         district: formData.district || 'Phuket',
@@ -260,6 +260,7 @@ export default function NewListing() {
         metadata: {
           ...formData.metadata,
           created_via: 'partner_dashboard',
+          is_draft: asDraft,  // Track draft status in metadata
           title_translations: {
             ru: formData.title,
             en: formData.title,
@@ -274,7 +275,7 @@ export default function NewListing() {
           enabled: true,
           added_at: new Date().toISOString()
         })),
-        available: false,
+        available: !asDraft,  // Drafts are not available
         is_featured: false,
         views: 0,
         created_at: new Date().toISOString(),
