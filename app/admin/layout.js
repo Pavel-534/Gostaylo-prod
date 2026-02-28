@@ -21,6 +21,7 @@ import {
   UserCog,
   ArrowLeft,
   Server,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
