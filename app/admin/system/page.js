@@ -99,6 +99,9 @@ export default function SystemControlPage() {
       const activityData = await activityRes.json();
       setRecentActivity(Array.isArray(activityData) ? activityData : []);
       
+      // Load iCal sync status
+      await loadIcalSyncStatus();
+      
     } catch (error) {
       console.error('Failed to load system status:', error);
     } finally {
