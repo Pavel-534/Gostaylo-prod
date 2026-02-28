@@ -121,6 +121,7 @@ export default function AdminLayout({ children }) {
     { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard', moderatorAccess: true },
     { href: '/admin/system', icon: Server, label: 'System', moderatorAccess: false },
     { href: '/admin/moderation', icon: Shield, label: 'Модерация', moderatorAccess: true },
+    { href: '/admin/messages', icon: MessageSquare, label: 'Сообщения', moderatorAccess: true },
     { href: '/admin/finances', icon: Wallet, label: 'Финансы', moderatorAccess: false },
     { href: '/admin/users', icon: Users, label: 'Пользователи', moderatorAccess: false },
     { href: '/admin/marketing', icon: TrendingUp, label: 'Маркетинг', moderatorAccess: false },
