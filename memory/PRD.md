@@ -1,69 +1,61 @@
 # FunnyRent 2.1 - Product Requirements Document
 
-## Latest Update: 2026-03-01 - iCal UI Fix & Manual Sync Complete ✅
+## Latest Update: 2026-03-01 - UI Cleanup Complete ✅
 
-### Changes (2026-03-01)
+### UI Cleanup Changes (2026-03-01)
 
-#### CalendarSyncManager UI Overhaul ✅
-- **Input Field**: Proper input for iCal URL with placeholder
-- **Platform Dropdown**: Select from Airbnb, Booking.com, VRBO, Google Calendar, Custom
-- **Auto-Sync Toggle**: Switch to enable/disable automatic sync
-- **"Синхронизировать все" Button**: Syncs all sources at once
-- **Source List**: Shows added calendars with platform badges, sync status, event count
-- **Remove/Sync Buttons**: Per-source actions
+#### Moderation Modal Fixes ✅
+- **Single Close Button**: Hidden default Shadcn button via `[&>button]:hidden`, custom X button at z-20
+- **Carousel Arrows**: Positioned at left-4/right-14 with z-10, no overlap with close button
+- **Featured Toggle**: Replaced text "нажмите" with functional Switch component
+- **Clean Layout**: Info grid shows Цена, Комиссия, Дата, Рекомендуем with Switch
 
-#### Database Integration ✅
-- Now reads/writes to `sync_settings` JSONB column (not metadata)
-- Structure: `{ sources: [], auto_sync: boolean, sync_interval_hours: number, last_sync: timestamp }`
-- Backward compatible - falls back to metadata.sync_settings for migration
-
-#### Admin Panel - Manual Sync ✅
-- `/admin/system` page has "iCal Синхронизация" section
-- "Синхронизировать все" button triggers global sync of all listings
-- Shows stats: listings synced, success count, error count, last sync time
-- Frequency selector: 15m, 30m, 1h, 2h, 6h
-
-#### API Updates ✅
-- Changed from Edge Runtime to Node.js Runtime (for longer timeout)
-- `POST /api/ical/sync` with action: 'sync-all' syncs all ACTIVE listings
-- Updates sync_settings.last_sync on each listing
-- Records global status in system_settings table
+#### Partner Edit Page Fixes ✅
+- **Mobile Responsive Seasonal Pricing**: Grid layout with 2-column date inputs
+- **Improved Form Padding**: Better spacing on mobile devices
+- **Save Redirect**: After save, redirects to `/partner/listings` with success toast
 
 ---
 
-## Previous Stage 25.2 Changes (2026-02-28)
-- Admin Moderation redesign with Photo Carousel
-- Chat System activation (conversations + messages tables)
+## Previous Changes
+
+### iCal UI & Manual Sync (2026-03-01) ✅
+- CalendarSyncManager with URL input + Platform dropdown
+- Admin Panel manual sync button
+- Node.js runtime for longer operations
+
+### Stage 25.2 (2026-02-28) ✅
+- Moderation Photo Carousel
+- Chat System (conversations + messages)
 - Reject Flow with Telegram notifications
-- Read Receipts (✓ / ✓✓)
+- Read Receipts
 
 ---
 
 ## Working Features
 
-### iCal Synchronization ✅
-- Add multiple iCal sources per listing
-- Platform auto-detection (Airbnb, Booking, VRBO, Google)
-- Manual sync per listing or global sync
-- Auto-sync toggle (for future background job)
-- Creates BLOCKED_BY_ICAL bookings for busy dates
-- Removes outdated blocks automatically
-
 ### Moderation System ✅
+- Single close button in modal
 - Photo carousel for mobile
+- Featured toggle with Switch
 - Approve/Reject with feedback
 - Telegram notifications
 - Admin ↔ Partner messaging
 
-### Chat System ✅
-- conversations + messages tables
-- Read receipts
-- Admin and Partner chat UIs
+### iCal Synchronization ✅
+- Add multiple sources per listing
+- Platform dropdown (Airbnb, Booking, VRBO, Google, Custom)
+- Manual sync per listing
+- Global sync from Admin Panel
+- Auto-sync toggle
 
-### Storage & Media ✅
-- Supabase Storage
-- Client-side compression
-- Photo limit: 30
+### Partner Portal ✅
+- Create/Edit listings
+- Mobile-responsive forms
+- Save as Draft
+- Redirect after save
+- Seasonal pricing management
+- iCal sync management
 
 ---
 
@@ -89,17 +81,18 @@
 ```
 /app/
 ├── components/
-│   └── calendar-sync-manager.jsx   # REWRITTEN - New iCal UI
+│   ├── ui/                         # Shadcn components
+│   │   ├── switch.jsx              # Used for Featured toggle
+│   │   └── carousel.jsx            # Used in moderation modal
+│   └── calendar-sync-manager.jsx   # iCal UI
 ├── app/
-│   ├── api/
-│   │   └── ical/sync/route.js      # UPDATED - Node.js runtime, sync-all
 │   ├── admin/
-│   │   ├── system/page.js          # UPDATED - Relative API paths
-│   │   ├── moderation/page.js      # Carousel + Reject flow
-│   │   └── messages/page.js        # Admin chat
+│   │   ├── moderation/page.js      # UI cleanup applied
+│   │   ├── messages/page.js
+│   │   └── system/page.js
 │   └── partner/
-│       ├── listings/[id]/page.js   # Uses CalendarSyncManager
-│       └── messages/[id]/page.js   # Partner chat with receipts
+│       ├── listings/[id]/page.js   # Mobile-responsive, redirect
+│       └── messages/[id]/page.js
 ```
 
 ---
@@ -112,9 +105,17 @@
 - **Resend Integration** — Email notifications
 
 ### Future/Backlog (P2+)
+- Move Supabase service key to environment variables
+- Add VisuallyHidden DialogTitle for accessibility
 - TRON/USDT Verification
 - Advanced Analytics
-- 404/Error translations
+
+---
+
+## Testing Summary
+- **iteration_5.json**: UI Cleanup - 100% success (6/6 tests)
+- **iteration_4.json**: iCal UI - All tests passed
+- **iteration_3.json**: Stage 25.2 - All tests passed
 
 ---
 
