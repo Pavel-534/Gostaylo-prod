@@ -246,9 +246,9 @@ export async function POST(request) {
     
     // Sync single listing
     if (action === 'sync' && listingId) {
-      // Get listing sync settings from metadata
+      // Get listing sync settings from both sync_settings column and metadata (for migration)
       const listingRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=id,metadata`,
+        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=id,sync_settings,metadata`,
         { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
       );
       const listings = await listingRes.json();
@@ -258,8 +258,8 @@ export async function POST(request) {
         return NextResponse.json({ success: false, error: 'Listing not found' });
       }
       
-      // Use provided sources or get from metadata.sync_settings
-      let syncSources = sources || listing.metadata?.sync_settings || [];
+      // Prefer sync_settings column, fallback to provided sources or metadata.sync_settings
+      let syncSources = sources || listing.sync_settings?.sources || listing.metadata?.sync_settings || [];
       
       // Add legacy icalUrl if present
       const legacyUrl = listing.metadata?.icalUrl;
@@ -268,14 +268,20 @@ export async function POST(request) {
       }
       
       const results = [];
+      let totalEventsProcessed = 0;
+      
       for (const source of syncSources) {
         if (source.enabled !== false) {
           const result = await syncSource(listingId, source);
-          results.push({ sourceId: source.id, source: source.source, ...result });
+          results.push({ sourceId: source.id, source: source.source || source.platform, ...result });
+          if (result.eventsProcessed) totalEventsProcessed += result.eventsProcessed;
         }
       }
       
-      // Update listing metadata
+      // Update listing sync_settings and metadata
+      const currentSyncSettings = listing.sync_settings || { sources: syncSources };
+      currentSyncSettings.last_sync = new Date().toISOString();
+      
       await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`, {
         method: 'PATCH',
         headers: {
@@ -284,11 +290,12 @@ export async function POST(request) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          sync_settings: currentSyncSettings,
           metadata: { ...listing.metadata, last_ical_sync: new Date().toISOString() }
         })
       });
       
-      return NextResponse.json({ success: true, listingId, results });
+      return NextResponse.json({ success: true, listingId, results, eventsProcessed: totalEventsProcessed });
     }
     
     // Sync all listings (admin)
