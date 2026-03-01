@@ -1,6 +1,30 @@
 # FunnyRent 2.1 - Product Requirements Document
 
-## Latest Update: 2026-03-01 - UI Cleanup Complete ✅
+## Latest Update: 2026-03-01 - Pricing Integration Complete ✅
+
+### Pricing Service Integration (2026-03-01)
+
+#### pricing.service.js Refactored ✅
+- **Fixed Data Source**: Now reads seasonal pricing from `listings.metadata.seasonal_pricing` (JSONB)
+- **Removed Broken Query**: No longer queries non-existent `seasonal_prices` table
+- **New Method**: Added `calculateBookingPriceSync()` for client-side real-time calculation
+- **Multiplier System**: Uses `priceMultiplier` (e.g., 1.3 = +30%, 0.8 = -20%)
+- **Season Summary**: Returns breakdown by season type for UI display
+
+#### Listing Detail Page Updated ✅
+- **Real-time Price Calculation**: Calculates total when dates are selected
+- **Price Breakdown UI**: Shows detailed breakdown in booking modal
+- **Season-aware**: Displays which nights fall into which seasons
+- **Total Display**: Submit button shows calculated total
+- **Date Validation**: Check-out date min is tied to check-in
+
+#### Tests Passed ✅
+- Base price calculation (5 nights × ฿35,000 = ฿175,000)
+- High season multiplier (5 nights × 1.3 = ฿227,500)
+- Mixed seasons (3 High + 2 Low = ฿192,500)
+- Invalid date range handling
+
+---
 
 ### UI Cleanup Changes (2026-03-01)
 
@@ -33,6 +57,12 @@
 ---
 
 ## Working Features
+
+### Pricing System ✅
+- Seasonal pricing stored in `listings.metadata.seasonal_pricing`
+- Real-time price calculation in booking form
+- Price breakdown by season in booking modal
+- Calculated total sent to booking (not base price)
 
 ### Moderation System ✅
 - Single close button in modal
@@ -80,12 +110,16 @@
 ## Code Architecture
 ```
 /app/
+├── lib/
+│   └── services/
+│       └── pricing.service.js     # Refactored - uses metadata
 ├── components/
 │   ├── ui/                         # Shadcn components
 │   │   ├── switch.jsx              # Used for Featured toggle
 │   │   └── carousel.jsx            # Used in moderation modal
 │   └── calendar-sync-manager.jsx   # iCal UI
 ├── app/
+│   ├── listings/[id]/page.js       # Price breakdown in modal
 │   ├── admin/
 │   │   ├── moderation/page.js      # UI cleanup applied
 │   │   ├── messages/page.js
@@ -103,6 +137,7 @@
 - **Background iCal Sync** — Vercel Cron or external service
 - **Stripe Integration** — Payment processing
 - **Resend Integration** — Email notifications
+- **Real-time Chat** — Supabase Realtime for instant messages
 
 ### Future/Backlog (P2+)
 - Move Supabase service key to environment variables
@@ -113,6 +148,7 @@
 ---
 
 ## Testing Summary
+- **Pricing Tests (2026-03-01)**: 4/4 passed (base, high season, mixed, invalid)
 - **iteration_5.json**: UI Cleanup - 100% success (6/6 tests)
 - **iteration_4.json**: iCal UI - All tests passed
 - **iteration_3.json**: Stage 25.2 - All tests passed
