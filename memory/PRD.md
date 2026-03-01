@@ -1,105 +1,69 @@
 # FunnyRent 2.1 - Product Requirements Document
 
-## Latest Update: 2026-02-28 - Stage 25.2 Complete ✅
+## Latest Update: 2026-03-01 - iCal UI Fix & Manual Sync Complete ✅
 
-### Stage 25.2 Changes (2026-02-28)
+### Changes (2026-03-01)
 
-#### Admin Moderation Redesign (P0) ✅
-- **Photo Carousel**: Implemented Embla Carousel for swipeable photo gallery
-- **Mobile-First Design**: Responsive layout with proper spacing and touch-friendly buttons
-- **Info Grid**: 2x2 grid showing Цена, Комиссия, Дата создания, Рекомендуем
-- **Premium UI**: Gradient backgrounds, card shadows, modern typography
+#### CalendarSyncManager UI Overhaul ✅
+- **Input Field**: Proper input for iCal URL with placeholder
+- **Platform Dropdown**: Select from Airbnb, Booking.com, VRBO, Google Calendar, Custom
+- **Auto-Sync Toggle**: Switch to enable/disable automatic sync
+- **"Синхронизировать все" Button**: Syncs all sources at once
+- **Source List**: Shows added calendars with platform badges, sync status, event count
+- **Remove/Sync Buttons**: Per-source actions
 
-#### Chat System Activation (P0) ✅
-- **New API Endpoints**:
-  - `POST/GET /api/v2/conversations` - Create/List conversations
-  - `GET/PATCH /api/v2/conversations/[id]` - Get/Update conversation
-  - `POST/GET /api/v2/messages` - Send/Get messages
-- **Admin Messages Page**: `/admin/messages` with conversation list and chat UI
-- **Partner Messages**: Updated `/partner/messages/[id]` with Read Receipts
+#### Database Integration ✅
+- Now reads/writes to `sync_settings` JSONB column (not metadata)
+- Structure: `{ sources: [], auto_sync: boolean, sync_interval_hours: number, last_sync: timestamp }`
+- Backward compatible - falls back to metadata.sync_settings for migration
 
-#### Read Receipts (NEW) ✅
-- `is_read` boolean field in messages table
-- Single checkmark (✓) = Sent
-- Double checkmark (✓✓ blue) = Read
-- Auto-mark as read when conversation is opened
+#### Admin Panel - Manual Sync ✅
+- `/admin/system` page has "iCal Синхронизация" section
+- "Синхронизировать все" button triggers global sync of all listings
+- Shows stats: listings synced, success count, error count, last sync time
+- Frequency selector: 15m, 30m, 1h, 2h, 6h
 
-#### Reject Flow (P0) ✅
-- **Modal with Reason**: Textarea + quick reason badges
-- **Quick Reasons**: Некачественные фото, Неполное описание, Неверная цена, Дубликат
-- **Multi-Channel Notifications**:
-  1. Creates conversation in `conversations` table
-  2. Creates message with type='REJECTION' in `messages` table
-  3. Sends Telegram notification if partner has `telegram_id`
-  4. Shows admin alert if no telegram_id
-- **Status Update**: Sets `metadata.is_rejected: true`
-
-#### Message Owner Feature (NEW) ✅
-- "Написать владельцу" button in moderation modal
-- Opens message modal with textarea
-- Creates conversation and sends message to internal chat
+#### API Updates ✅
+- Changed from Edge Runtime to Node.js Runtime (for longer timeout)
+- `POST /api/ical/sync` with action: 'sync-all' syncs all ACTIVE listings
+- Updates sync_settings.last_sync on each listing
+- Records global status in system_settings table
 
 ---
 
-## Database Migration Required ⚠️
-
-**File**: `/app/database/migration_stage_25.sql`
-
-Execute in Supabase Dashboard → SQL Editor:
-
-```sql
--- Key changes:
-ALTER TABLE listings ADD COLUMN IF NOT EXISTS sync_settings JSONB DEFAULT '{}';
-ALTER TABLE listings ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
-ALTER TABLE profiles ADD COLUMN IF NOT EXISTS telegram_id TEXT;
-
-CREATE TABLE IF NOT EXISTS conversations (...);
-CREATE TABLE IF NOT EXISTS messages (...);
-```
-
----
-
-## Previous Stage 24.4 Changes (2026-02-28)
-- Fixed Admin Moderation crash (null dates)
-- Added Seasonal Pricing UI
-- Fixed iCal CalendarSyncManager API paths
-- Increased photo limit to 30
-- Fixed progress bar formula
+## Previous Stage 25.2 Changes (2026-02-28)
+- Admin Moderation redesign with Photo Carousel
+- Chat System activation (conversations + messages tables)
+- Reject Flow with Telegram notifications
+- Read Receipts (✓ / ✓✓)
 
 ---
 
 ## Working Features
 
+### iCal Synchronization ✅
+- Add multiple iCal sources per listing
+- Platform auto-detection (Airbnb, Booking, VRBO, Google)
+- Manual sync per listing or global sync
+- Auto-sync toggle (for future background job)
+- Creates BLOCKED_BY_ICAL bookings for busy dates
+- Removes outdated blocks automatically
+
 ### Moderation System ✅
-- Premium mobile-first design
-- Photo carousel with navigation
-- Approve/Reject workflow
-- Featured toggle (is_featured)
-- Quick reject reasons
-- Multi-channel notifications
+- Photo carousel for mobile
+- Approve/Reject with feedback
+- Telegram notifications
 - Admin ↔ Partner messaging
 
 ### Chat System ✅
-- Conversations list
-- Real-time messages
-- Read receipts (✓ / ✓✓)
-- Admin messages page
-- Partner messages page
-- Rejection messages with special styling
+- conversations + messages tables
+- Read receipts
+- Admin and Partner chat UIs
 
 ### Storage & Media ✅
-- Supabase Storage bucket
-- Client-side image compression
+- Supabase Storage
+- Client-side compression
 - Photo limit: 30
-- Progress bar during upload
-
-### Partner Portal ✅
-- Create/Edit listings
-- Save as Draft
-- Media management
-- iCal sync
-- Seasonal pricing
-- Messages with admin feedback
 
 ---
 
@@ -118,27 +82,24 @@ CREATE TABLE IF NOT EXISTS messages (...);
 - **Auth:** Supabase Auth
 - **Bot:** Telegram Bot API
 - **UI:** Tailwind CSS, Shadcn/UI, Embla Carousel
-- **Image Processing:** browser-image-compression
 
 ---
 
 ## Code Architecture
 ```
 /app/
+├── components/
+│   └── calendar-sync-manager.jsx   # REWRITTEN - New iCal UI
 ├── app/
-│   ├── api/v2/
-│   │   ├── conversations/          # NEW - Chat API
-│   │   │   ├── route.js
-│   │   │   └── [id]/route.js
-│   │   └── messages/route.js       # NEW - Messages API
+│   ├── api/
+│   │   └── ical/sync/route.js      # UPDATED - Node.js runtime, sync-all
 │   ├── admin/
-│   │   ├── moderation/page.js      # REWRITTEN - Carousel + Reject flow
-│   │   ├── messages/page.js        # NEW - Admin chat UI
-│   │   └── layout.js               # UPDATED - Added Messages link
+│   │   ├── system/page.js          # UPDATED - Relative API paths
+│   │   ├── moderation/page.js      # Carousel + Reject flow
+│   │   └── messages/page.js        # Admin chat
 │   └── partner/
-│       └── messages/[id]/page.js   # UPDATED - Read Receipts
-├── database/
-│   └── migration_stage_25.sql      # NEW - SQL migration script
+│       ├── listings/[id]/page.js   # Uses CalendarSyncManager
+│       └── messages/[id]/page.js   # Partner chat with receipts
 ```
 
 ---
@@ -146,15 +107,14 @@ CREATE TABLE IF NOT EXISTS messages (...);
 ## Next Priority Tasks
 
 ### Upcoming (P1)
-- **Stripe Integration** — Real payment processing
-- **Email Notifications** — Resend integration
-- **Background iCal Sync** — Cron job for auto-sync
+- **Background iCal Sync** — Vercel Cron or external service
+- **Stripe Integration** — Payment processing
+- **Resend Integration** — Email notifications
 
 ### Future/Backlog (P2+)
 - TRON/USDT Verification
 - Advanced Analytics
-- 404/Error page translations
-- Move Supabase service key to env variables
+- 404/Error translations
 
 ---
 
