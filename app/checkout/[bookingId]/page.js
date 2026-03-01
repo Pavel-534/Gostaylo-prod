@@ -172,7 +172,7 @@ export default function CheckoutPage({ params }) {
         await new Promise(resolve => setTimeout(resolve, 500))
         
         // Now confirm payment in our system
-        const res = await fetch(`/api/bookings/${params.bookingId}/payment/confirm`, {
+        const res = await fetch(`/api/v2/bookings/${params.bookingId}/payment/confirm`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
