@@ -236,7 +236,7 @@ export default function CheckoutPage({ params }) {
 
   async function handleCheckInConfirm() {
     try {
-      const res = await fetch(`/api/bookings/${params.bookingId}/check-in/confirm`, {
+      const res = await fetch(`/api/v2/bookings/${params.bookingId}/check-in/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       })
