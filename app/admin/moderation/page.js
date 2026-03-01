@@ -560,7 +560,7 @@ export default function ModerationPage() {
 
       {/* Detailed View Modal - Mobile First Design */}
       <Dialog open={!!selectedListing} onOpenChange={() => setSelectedListing(null)}>
-        <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto p-0 gap-0">
+        <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto p-0 gap-0 [&>button]:hidden">
           {selectedListing && (
             <>
               {/* Image Carousel */}
@@ -580,10 +580,10 @@ export default function ModerationPage() {
                         </CarouselItem>
                       ))}
                     </CarouselContent>
-                    <CarouselPrevious className="left-2 bg-white/80 hover:bg-white" />
-                    <CarouselNext className="right-2 bg-white/80 hover:bg-white" />
+                    <CarouselPrevious className="left-4 bg-white/90 hover:bg-white z-10" />
+                    <CarouselNext className="right-14 bg-white/90 hover:bg-white z-10" />
                     {/* Photo counter */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-sm px-3 py-1 rounded-full">
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-sm px-3 py-1 rounded-full z-10">
                       {selectedListing.images.length} фото
                     </div>
                   </Carousel>
@@ -593,11 +593,11 @@ export default function ModerationPage() {
                   </div>
                 )}
                 
-                {/* Close button */}
+                {/* Close button - single, clear button */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute top-2 right-2 bg-white/80 hover:bg-white rounded-full"
+                  className="absolute top-3 right-3 bg-white/90 hover:bg-white rounded-full z-20 shadow-lg"
                   onClick={() => setSelectedListing(null)}
                 >
                   <X className="h-5 w-5" />
