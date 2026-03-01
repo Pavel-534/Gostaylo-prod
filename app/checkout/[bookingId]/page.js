@@ -71,7 +71,7 @@ export default function CheckoutPage({ params }) {
 
   async function loadPaymentStatus() {
     try {
-      const res = await fetch(`/api/bookings/${params.bookingId}/payment-status`)
+      const res = await fetch(`/api/v2/bookings/${params.bookingId}/payment-status`)
       const data = await res.json()
       
       if (data.success) {
