@@ -251,10 +251,10 @@ export default function PartnerMessages({ params }) {
 
   function getMessageTypeIcon(msg) {
     if (msg.type === 'REJECTION') {
-      return <AlertTriangle className="h-4 w-4 text-red-500" />
+      return <AlertTriangle className='h-4 w-4 text-red-500" />
     }
     if (msg.sender_role === 'ADMIN') {
-      return <Shield className="h-4 w-4 text-indigo-500" />
+      return <Shield className='h-4 w-4 text-indigo-500" />
     }
     return null
   }
@@ -264,9 +264,9 @@ export default function PartnerMessages({ params }) {
     if (msg.sender_id !== user?.id) return null
     
     return msg.is_read ? (
-      <CheckCheck className="h-3 w-3 text-blue-500" />
+      <CheckCheck className='h-3 w-3 text-blue-500" />
     ) : (
-      <Check className="h-3 w-3 text-slate-400" />
+      <Check className='h-3 w-3 text-slate-400" />
     )
   }
 
@@ -297,14 +297,14 @@ export default function PartnerMessages({ params }) {
 
   if (conversations.length === 0) {
     return (
-      <div className="p-4 lg:p-8">
-        <div className="flex flex-col items-center justify-center h-96">
-          <MessageSquare className="h-16 w-16 text-slate-300 mb-4" />
-          <div className="text-center">
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">
+      <div className='p-4 lg:p-8">
+        <div className='flex flex-col items-center justify-center h-96">
+          <MessageSquare className='h-16 w-16 text-slate-300 mb-4" />
+          <div className='text-center">
+            <h3 className='text-xl font-semibold text-slate-900 mb-2">
               Нет сообщений
             </h3>
-            <p className="text-slate-600">
+            <p className='text-slate-600">
               Когда клиенты или администраторы напишут вам, диалоги появятся здесь
             </p>
           </div>
@@ -314,17 +314,17 @@ export default function PartnerMessages({ params }) {
   }
 
   return (
-    <div className="h-screen flex flex-col lg:flex-row bg-slate-50">
+    <div className='h-screen flex flex-col lg:flex-row bg-slate-50">
       {/* Conversations Sidebar */}
       <div className={`w-full lg:w-80 bg-white border-r flex-shrink-0 ${
         conversationId ? 'hidden lg:flex' : 'flex'
       } flex-col`}>
-        <div className="p-4 border-b bg-gradient-to-r from-teal-500 to-cyan-500">
-          <h2 className="text-xl font-bold text-white">Сообщения</h2>
-          <p className="text-teal-100 text-sm">{conversations.length} диалогов</p>
+        <div className='p-4 border-b bg-gradient-to-r from-teal-500 to-cyan-500">
+          <h2 className='text-xl font-bold text-white">Сообщения</h2>
+          <p className='text-teal-100 text-sm">{conversations.length} диалогов</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className='flex-1 overflow-y-auto">
           {conversations.map((conv) => {
             const isActive = conv.id === conversationId
             const unread = conv.unreadCount || 0
@@ -340,29 +340,29 @@ export default function PartnerMessages({ params }) {
                     : 'hover:bg-slate-50'
                 }`}
               >
-                <div className="flex gap-3">
+                <div className='flex gap-3">
                   {conv.listing?.images?.[0] ? (
                     <img
                       src={conv.listing.images[0]}
                       alt={conv.listing.title}
-                      className="w-12 h-12 rounded-lg object-cover"
+                      className='w-12 h-12 rounded-lg object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-lg bg-slate-200 flex items-center justify-center">
+                    <div className='w-12 h-12 rounded-lg bg-slate-200 flex items-center justify-center">
                       {isAdminChat ? (
-                        <Shield className="h-6 w-6 text-indigo-500" />
+                        <Shield className='h-6 w-6 text-indigo-500" />
                       ) : (
-                        <Building2 className="h-6 w-6 text-slate-400" />
+                        <Building2 className='h-6 w-6 text-slate-400" />
                       )}
                     </div>
                   )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-sm text-slate-900 truncate">
+                  <div className='flex-1 min-w-0">
+                    <div className='flex items-start justify-between mb-1">
+                      <div className='flex items-center gap-2">
+                        <p className='font-semibold text-sm text-slate-900 truncate">
                           {isAdminChat ? (
-                            <span className="flex items-center gap-1">
-                              <Shield className="h-3 w-3 text-indigo-500" />
+                            <span className='flex items-center gap-1">
+                              <Shield className='h-3 w-3 text-indigo-500" />
                               {conv.admin_name || 'Администратор'}
                             </span>
                           ) : (
@@ -371,19 +371,19 @@ export default function PartnerMessages({ params }) {
                         </p>
                       </div>
                       {unread > 0 && (
-                        <Badge className="bg-red-500 text-white ml-2 shrink-0">
+                        <Badge className='bg-red-500 text-white ml-2 shrink-0">
                           {unread}
                         </Badge>
                       )}
                     </div>
                     {conv.listing?.title && (
-                      <p className="text-xs text-slate-600 truncate mb-1">
+                      <p className='text-xs text-slate-600 truncate mb-1">
                         {conv.listing.title}
                       </p>
                     )}
-                    <p className="text-xs text-slate-500 truncate flex items-center gap-1">
+                    <p className='text-xs text-slate-500 truncate flex items-center gap-1">
                       {conv.lastMessage?.type === 'REJECTION' && (
-                        <AlertTriangle className="h-3 w-3 text-red-500" />
+                        <AlertTriangle className='h-3 w-3 text-red-500" />
                       )}
                       {conv.lastMessage?.message || 'Новое сообщение'}
                     </p>
@@ -397,30 +397,30 @@ export default function PartnerMessages({ params }) {
 
       {/* Chat Window */}
       {conversationId && selectedConv ? (
-        <div className="flex-1 flex flex-col">
+        <div className='flex-1 flex flex-col">
           {/* Chat Header */}
-          <div className="bg-white border-b p-4">
-            <div className="flex items-center gap-3">
+          <div className='bg-white border-b p-4">
+            <div className='flex items-center gap-3">
               <Button
                 variant="ghost"
                 size="icon"
-                className="lg:hidden"
+                className='lg:hidden"
                 onClick={() => router.push('/partner/messages')}
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className='h-5 w-5" />
               </Button>
-              <div className="flex-1">
-                <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+              <div className='flex-1">
+                <h3 className='font-semibold text-slate-900 flex items-center gap-2">
                   {selectedConv.admin_id ? (
                     <>
-                      <Shield className="h-4 w-4 text-indigo-500" />
+                      <Shield className='h-4 w-4 text-indigo-500" />
                       {selectedConv.admin_name || 'Администратор FunnyRent'}
                     </>
                   ) : (
                     selectedConv.renter_name || 'Клиент'
                   )}
                 </h3>
-                <p className="text-sm text-slate-600">
+                <p className='text-sm text-slate-600">
                   {listing?.title || selectedConv.type}
                 </p>
               </div>
@@ -429,23 +429,23 @@ export default function PartnerMessages({ params }) {
 
           {/* Listing Context Card (if exists) */}
           {listing && (
-            <div className="bg-white border-b p-4">
-              <div className="flex gap-3 p-3 bg-slate-50 rounded-lg">
+            <div className='bg-white border-b p-4">
+              <div className='flex gap-3 p-3 bg-slate-50 rounded-lg">
                 {listing.images?.[0] ? (
                   <img 
                     src={listing.images[0]} 
                     alt={listing.title}
-                    className="w-16 h-16 rounded-lg object-cover"
+                    className='w-16 h-16 rounded-lg object-cover"
                   />
                 ) : (
-                  <div className="w-16 h-16 bg-slate-200 rounded-lg flex items-center justify-center">
-                    <Building2 className="h-8 w-8 text-slate-400" />
+                  <div className='w-16 h-16 bg-slate-200 rounded-lg flex items-center justify-center">
+                    <Building2 className='h-8 w-8 text-slate-400" />
                   </div>
                 )}
                 <div>
-                  <p className="font-medium text-slate-900">{listing.title}</p>
-                  <p className="text-sm text-slate-600">{listing.district}</p>
-                  <p className="text-sm font-semibold text-teal-600">
+                  <p className='font-medium text-slate-900">{listing.title}</p>
+                  <p className='text-sm text-slate-600">{listing.district}</p>
+                  <p className='text-sm font-semibold text-teal-600">
                     ฿{listing.base_price_thb?.toLocaleString()}/день
                   </p>
                 </div>
@@ -454,7 +454,7 @@ export default function PartnerMessages({ params }) {
           )}
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+          <div className='flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
             {messages.map((msg) => {
               if (msg.type === 'BOOKING_REQUEST') {
                 return (
@@ -480,7 +480,7 @@ export default function PartnerMessages({ params }) {
                   key={msg.id}
                   className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}
                 >
-                  <Avatar className="w-8 h-8 flex-shrink-0">
+                  <Avatar className='w-8 h-8 flex-shrink-0">
                     <AvatarFallback className={
                       isOwn 
                         ? 'bg-teal-100 text-teal-700' 
@@ -489,7 +489,7 @@ export default function PartnerMessages({ params }) {
                           : 'bg-slate-200'
                     }>
                       {isAdmin ? (
-                        <Shield className="h-4 w-4" />
+                        <Shield className='h-4 w-4" />
                       ) : (
                         msg.sender_name?.[0]?.toUpperCase() || 'U'
                       )}
@@ -498,8 +498,8 @@ export default function PartnerMessages({ params }) {
                   <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-md`}>
                     {/* Sender name for non-own messages */}
                     {!isOwn && (
-                      <span className="text-xs text-slate-500 mb-1 flex items-center gap-1">
-                        {isAdmin && <Shield className="h-3 w-3 text-indigo-500" />}
+                      <span className='text-xs text-slate-500 mb-1 flex items-center gap-1">
+                        {isAdmin && <Shield className='h-3 w-3 text-indigo-500" />}
                         {msg.sender_name || 'Пользователь'}
                       </span>
                     )}
@@ -515,17 +515,17 @@ export default function PartnerMessages({ params }) {
                       }`}
                     >
                       {isRejection && (
-                        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-red-200">
-                          <AlertTriangle className="h-4 w-4 text-red-500" />
-                          <span className="font-semibold text-sm">Объявление отклонено</span>
+                        <div className='flex items-center gap-2 mb-2 pb-2 border-b border-red-200">
+                          <AlertTriangle className='h-4 w-4 text-red-500" />
+                          <span className='font-semibold text-sm">Объявление отклонено</span>
                         </div>
                       )}
-                      <p className="text-sm whitespace-pre-wrap break-words">
+                      <p className='text-sm whitespace-pre-wrap break-words">
                         {msg.message}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      <span className="text-xs text-slate-500">
+                    <div className='flex items-center gap-1 mt-1">
+                      <span className='text-xs text-slate-500">
                         {msg.created_at && formatDistanceToNow(new Date(msg.created_at), {
                           addSuffix: true,
                           locale: ru,
@@ -541,37 +541,37 @@ export default function PartnerMessages({ params }) {
           </div>
 
           {/* Message Input */}
-          <div className="bg-white border-t p-4">
-            <form onSubmit={sendMessage} className="flex gap-2">
+          <div className='bg-white border-t p-4">
+            <form onSubmit={sendMessage} className='flex gap-2">
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Напишите сообщение..."
-                className="flex-1"
+                className='flex-1"
                 disabled={sending}
               />
               <Button
                 type="submit"
                 disabled={!newMessage.trim() || sending}
-                className="bg-teal-600 hover:bg-teal-700 flex-shrink-0"
+                className='bg-teal-600 hover:bg-teal-700 flex-shrink-0"
               >
                 {sending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className='h-4 w-4 animate-spin" />
                 ) : (
-                  <Send className="h-4 w-4" />
+                  <Send className='h-4 w-4" />
                 )}
               </Button>
             </form>
           </div>
         </div>
       ) : (
-        <div className="flex-1 hidden lg:flex items-center justify-center bg-slate-50">
-          <div className="text-center">
-            <MessageSquare className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">
+        <div className='flex-1 hidden lg:flex items-center justify-center bg-slate-50">
+          <div className='text-center">
+            <MessageSquare className='h-16 w-16 text-slate-300 mx-auto mb-4" />
+            <h3 className='text-xl font-semibold text-slate-900 mb-2">
               Выберите диалог
             </h3>
-            <p className="text-slate-600">
+            <p className='text-slate-600">
               Выберите диалог из списка слева
             </p>
           </div>
