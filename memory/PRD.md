@@ -1,8 +1,30 @@
 # FunnyRent 2.1 - Product Requirements Document
 
-## Latest Update: 2026-03-01 - Checkout Redirect Fix Complete ✅
+## Latest Update: 2026-03-01 - Booking Submission Fix Complete ✅
 
-### Checkout Page Fixes (2026-03-01)
+### Booking Form Fix (2026-03-01)
+
+#### Problem Solved
+- **"Error creating request"**: The booking form showed an error toast instead of creating the booking.
+- **Root Cause**: The code was trying to insert a `metadata` column that doesn't exist in the `bookings` table.
+- **Supabase Error**: `PGRST204 - Could not find the 'metadata' column of 'bookings' in the schema cache`
+
+#### Solution ✅
+- Removed the `metadata` field from the booking insert request in `/app/listings/[id]/page.js`
+- Added detailed console logging for debugging future issues
+
+#### Full Flow Now Working ✅
+1. User fills booking form (name, email, phone, dates)
+2. Price breakdown calculates automatically
+3. Submit button shows calculated total
+4. Booking saved to Supabase with correct `price_thb`
+5. User redirected to `/checkout/[booking_id]`
+6. Checkout page loads booking from Supabase
+7. Payment options displayed with 15% service fee
+
+---
+
+### Checkout Page Fixes (2026-03-01) ✅
 
 #### Problem Solved
 - **"Redirect Deadlock"**: After booking creation, users were redirected to `/checkout/[id]` but saw "Бронирование недоступно" (Booking not found) error.
