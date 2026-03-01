@@ -292,6 +292,9 @@ export default function ListingDetail({ params }) {
     setSubmitting(true)
 
     try {
+      // Calculate final price - use calculated total if available, otherwise base price
+      const finalPrice = priceCalc ? priceCalc.totalPrice : listing.basePriceThb
+      
       // Create booking directly in Supabase
       const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
       const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
@@ -310,11 +313,16 @@ export default function ListingDetail({ params }) {
           status: 'PENDING',
           check_in: checkIn,
           check_out: checkOut,
-          price_thb: listing.basePriceThb,
+          price_thb: finalPrice,
           guest_name: guestName,
           guest_email: guestEmail,
           guest_phone: guestPhone,
-          special_requests: message
+          special_requests: message,
+          metadata: priceCalc ? {
+            nights: priceCalc.nights,
+            avgNightlyRate: priceCalc.averageNightlyRate,
+            seasonSummary: priceCalc.seasonSummary
+          } : null
         })
       })
       
