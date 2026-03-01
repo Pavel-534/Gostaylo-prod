@@ -24,6 +24,7 @@ const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 const TELEGRAM_BOT_TOKEN = '8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM'
 
 export default function ModerationPage() {
+  const router = useRouter()
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('listings')
   const [pendingListings, setPendingListings] = useState([])
