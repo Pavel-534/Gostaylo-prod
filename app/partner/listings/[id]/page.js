@@ -138,7 +138,8 @@ export default function EditListing({ params }) {
       
       if (res.ok) {
         toast.success('✅ Объявление сохранено!')
-        loadListing()
+        // Redirect to listings page after save
+        router.push('/partner/listings')
       } else {
         toast.error('Ошибка при сохранении')
       }
