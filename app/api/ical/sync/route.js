@@ -301,20 +301,25 @@ export async function POST(request) {
     // Sync all listings (admin)
     if (action === 'sync-all') {
       const listingsRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?select=id,metadata&status=eq.ACTIVE`,
+        `${SUPABASE_URL}/rest/v1/listings?select=id,sync_settings,metadata&status=eq.ACTIVE`,
         { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
       );
       const listings = await listingsRes.json() || [];
       
+      // Filter listings that have iCal sources (in sync_settings column or metadata)
       const listingsWithICal = listings.filter(l => 
-        (l.metadata?.sync_settings?.length > 0) || l.metadata?.icalUrl
+        (l.sync_settings?.sources?.length > 0) ||
+        (l.sync_settings?.auto_sync) ||
+        (l.metadata?.sync_settings?.length > 0) || 
+        l.metadata?.icalUrl
       );
       
-      let successCount = 0, errorCount = 0;
+      let successCount = 0, errorCount = 0, totalEvents = 0;
       
       for (const listing of listingsWithICal) {
         try {
-          let syncSources = listing.metadata?.sync_settings || [];
+          // Prefer sync_settings column
+          let syncSources = listing.sync_settings?.sources || listing.metadata?.sync_settings || [];
           const legacyUrl = listing.metadata?.icalUrl;
           if (legacyUrl && !syncSources.find(s => s.url === legacyUrl)) {
             syncSources.push({ id: 'legacy', url: legacyUrl, source: detectSource(legacyUrl), enabled: true });
@@ -322,9 +327,25 @@ export async function POST(request) {
           
           for (const source of syncSources) {
             if (source.enabled !== false) {
-              await syncSource(listing.id, source);
+              const result = await syncSource(listing.id, source);
+              if (result.eventsProcessed) totalEvents += result.eventsProcessed;
             }
           }
+          
+          // Update listing last_sync
+          const currentSyncSettings = listing.sync_settings || { sources: syncSources };
+          currentSyncSettings.last_sync = new Date().toISOString();
+          
+          await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listing.id}`, {
+            method: 'PATCH',
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ sync_settings: currentSyncSettings })
+          });
+          
           successCount++;
         } catch {
           errorCount++;
@@ -332,28 +353,47 @@ export async function POST(request) {
       }
       
       // Update global status
-      await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.ical_sync_status`, {
+      const statusUpdate = {
+        value: {
+          last_sync: new Date().toISOString(),
+          listings_synced: listingsWithICal.length,
+          success_count: successCount,
+          error_count: errorCount,
+          events_processed: totalEvents
+        }
+      };
+      
+      // Try to update, if not exists - create
+      const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.ical_sync_status`, {
         method: 'PATCH',
         headers: {
           'apikey': SUPABASE_KEY,
           'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
         },
-        body: JSON.stringify({
-          value: {
-            last_sync: new Date().toISOString(),
-            listings_synced: listingsWithICal.length,
-            success_count: successCount,
-            error_count: errorCount
-          }
-        })
+        body: JSON.stringify(statusUpdate)
       });
+      
+      if (!updateRes.ok) {
+        // Create if not exists
+        await fetch(`${SUPABASE_URL}/rest/v1/system_settings`, {
+          method: 'POST',
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ key: 'ical_sync_status', ...statusUpdate })
+        });
+      }
       
       return NextResponse.json({
         success: true,
         listingsSynced: listingsWithICal.length,
         successCount,
-        errorCount
+        errorCount,
+        eventsProcessed: totalEvents
       });
     }
     
