@@ -7,7 +7,6 @@ export default function PartnerMessagesIndex() {
   const router = useRouter()
 
   useEffect(() => {
-    // Redirect to first conversation or show empty state
     async function loadFirstConversation() {
       try {
         const res = await fetch('/api/conversations?userId=partner-1&role=PARTNER')
@@ -22,7 +21,7 @@ export default function PartnerMessagesIndex() {
     }
     
     loadFirstConversation()
-  }, [])
+  }, [router])
 
   return (
     <div className="p-4 lg:p-8">
