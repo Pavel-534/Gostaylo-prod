@@ -319,12 +319,9 @@ export default function ListingDetail({ params }) {
         guest_name: guestName,
         guest_email: guestEmail,
         guest_phone: guestPhone,
-        special_requests: message || null,
-        metadata: priceCalc ? {
-          nights: priceCalc.nights,
-          avgNightlyRate: priceCalc.averageNightlyRate,
-          seasonSummary: priceCalc.seasonSummary
-        } : null
+        special_requests: message || null
+        // Note: metadata stored in special_requests if needed, 
+        // or add metadata column to bookings table
       }
       
       console.log('[BOOKING] Request body:', JSON.stringify(requestBody, null, 2))
