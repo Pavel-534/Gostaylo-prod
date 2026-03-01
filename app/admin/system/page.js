@@ -163,7 +163,7 @@ export default function SystemControlPage() {
   async function handleGlobalIcalSync() {
     setIcalSyncing(true);
     try {
-      const res = await fetch('http://localhost:3000/api/ical/sync', {
+      const res = await fetch('/api/ical/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'sync-all' })
@@ -171,13 +171,14 @@ export default function SystemControlPage() {
       const data = await res.json();
       
       if (data.success) {
-        toast.success(`✅ Синхронизировано ${data.listingsSynced} объявлений`);
+        toast.success(`✅ Синхронизировано ${data.listingsSynced || 0} объявлений, ${data.eventsProcessed || 0} событий`);
         await loadIcalSyncStatus();
-        await logActivity('ICAL_GLOBAL_SYNC', `Синхронизировано ${data.listingsSynced} объявлений`);
+        await logActivity('ICAL_GLOBAL_SYNC', `Синхронизировано ${data.listingsSynced || 0} объявлений`);
       } else {
         toast.error(`Ошибка: ${data.error}`);
       }
     } catch (error) {
+      console.error('Global sync error:', error);
       toast.error('Ошибка глобальной синхронизации');
     }
     setIcalSyncing(false);
