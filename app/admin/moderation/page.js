@@ -659,22 +659,21 @@ export default function ModerationPage() {
                     </p>
                   </div>
                   
-                  <div 
-                    className={`rounded-xl p-3 md:p-4 cursor-pointer transition-all ${
-                      selectedListing.is_featured 
-                        ? 'bg-gradient-to-br from-amber-50 to-amber-100 ring-2 ring-amber-400' 
-                        : 'bg-gradient-to-br from-slate-50 to-slate-100 hover:from-amber-50 hover:to-amber-100'
-                    }`}
-                    onClick={() => handleToggleFeatured(selectedListing.id, selectedListing.is_featured)}
-                  >
-                    <div className="flex items-center gap-2 text-amber-600 mb-1">
-                      <Sparkles className="h-4 w-4" />
-                      <span className="text-xs font-medium">Рекомендуем</span>
+                  <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-3 md:p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 text-amber-600">
+                        <Sparkles className="h-4 w-4" />
+                        <span className="text-xs font-medium">Рекомендуем</span>
+                      </div>
+                      <Switch
+                        checked={selectedListing.is_featured || false}
+                        onCheckedChange={() => handleToggleFeatured(selectedListing.id, selectedListing.is_featured)}
+                        className="data-[state=checked]:bg-amber-500"
+                      />
                     </div>
-                    <p className="text-sm md:text-base font-bold text-amber-700">
-                      {selectedListing.is_featured ? 'Да' : 'Нет'}
+                    <p className="text-sm font-bold text-amber-700">
+                      {selectedListing.is_featured ? 'В рекомендациях' : 'Не в рекомендациях'}
                     </p>
-                    <p className="text-xs text-amber-600">нажмите</p>
                   </div>
                 </div>
 
