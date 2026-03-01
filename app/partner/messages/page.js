@@ -24,11 +24,11 @@ export default function PartnerMessagesIndex() {
   }, [router])
 
   return (
-    <div className="p-4 lg:p-8">
-      <div className="flex flex-col items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mb-4"></div>
-        <p className="text-slate-600">Загрузка сообщений...</p>
+    <div className='p-4 lg:p-8'>
+      <div className='flex flex-col items-center justify-center h-96'>
+        <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mb-4'></div>
+        <p className='text-slate-600'>Загрузка сообщений...</p>
       </div>
     </div>
-  )
+  );
 }
