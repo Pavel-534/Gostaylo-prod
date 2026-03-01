@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
@@ -8,12 +8,12 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { Home, Bike, Map, Anchor, Search, ArrowLeft, Star, MapPin, Filter, Grid, List, Palmtree, Bed, Bath } from 'lucide-react'
+import { Home, Bike, Map, Anchor, Search, ArrowLeft, Star, MapPin, Filter, Grid, List, Palmtree, Bed, Bath, Loader2 } from 'lucide-react'
 import { fetchListings, fetchCategories, fetchExchangeRates } from '@/lib/client-data'
 import { formatPrice } from '@/lib/currency'
 import { getUIText, getCategoryName, getListingText } from '@/lib/translations'
 
-export default function ListingsPage() {
+function ListingsContent() {
   const searchParams = useSearchParams()
   const categorySlug = searchParams.get('category') || 'all'
   
