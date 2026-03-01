@@ -576,6 +576,7 @@ export default function ListingDetail({ params }) {
                             type="date"
                             value={checkIn}
                             onChange={(e) => setCheckIn(e.target.value)}
+                            min={new Date().toISOString().split('T')[0]}
                             required
                           />
                         </div>
@@ -585,10 +586,56 @@ export default function ListingDetail({ params }) {
                             type="date"
                             value={checkOut}
                             onChange={(e) => setCheckOut(e.target.value)}
+                            min={checkIn || new Date().toISOString().split('T')[0]}
                             required
                           />
                         </div>
                       </div>
+                      
+                      {/* Price Breakdown Section */}
+                      {priceCalc ? (
+                        <div className='bg-gradient-to-br from-teal-50 to-cyan-50 rounded-lg p-4 border border-teal-200'>
+                          <div className='flex items-center gap-2 mb-3'>
+                            <Calculator className='h-4 w-4 text-teal-600' />
+                            <span className='font-medium text-teal-800'>{t.priceBreakdown}</span>
+                          </div>
+                          
+                          {/* Season breakdown */}
+                          <div className='space-y-2 mb-3'>
+                            {Object.entries(priceCalc.seasonSummary).map(([season, data]) => (
+                              <div key={season} className='flex justify-between text-sm'>
+                                <span className='text-slate-600'>
+                                  {season === 'Base' ? t.basePrice : season} × {data.nights} {data.nights === 1 ? t.night : t.nights}
+                                </span>
+                                <span className='font-medium'>฿{data.subtotal.toLocaleString()}</span>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <Separator className='my-2' />
+                          
+                          {/* Total */}
+                          <div className='flex justify-between items-center'>
+                            <div>
+                              <span className='font-bold text-teal-800'>{t.total}</span>
+                              <p className='text-xs text-slate-500'>
+                                ฿{priceCalc.averageNightlyRate.toLocaleString()} {t.avgPerNight}
+                              </p>
+                            </div>
+                            <span className='text-2xl font-bold text-teal-600'>
+                              ฿{priceCalc.totalPrice.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className='bg-slate-50 rounded-lg p-4 border border-slate-200'>
+                          <div className='flex items-center gap-2 text-slate-500'>
+                            <Info className='h-4 w-4' />
+                            <span className='text-sm'>{t.selectDates}</span>
+                          </div>
+                        </div>
+                      )}
+                      
                       <div>
                         <Label>{t.messageLabel}</Label>
                         <Textarea
@@ -598,19 +645,19 @@ export default function ListingDetail({ params }) {
                         />
                       </div>
                       <Button
-                        type="submit"
-                        className="w-full bg-teal-600 hover:bg-teal-700"
-                        disabled={submitting}
+                        type='submit'
+                        className='w-full bg-teal-600 hover:bg-teal-700'
+                        disabled={submitting || !priceCalc}
                       >
                         {submitting ? (
                           <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            <Loader2 className='h-4 w-4 mr-2 animate-spin' />
                             {t.submitting}
                           </>
                         ) : (
                           <>
-                            <Send className="h-4 w-4 mr-2" />
-                            {t.submit}
+                            <Send className='h-4 w-4 mr-2' />
+                            {t.submit} {priceCalc && `(฿${priceCalc.totalPrice.toLocaleString()})`}
                           </>
                         )}
                       </Button>
