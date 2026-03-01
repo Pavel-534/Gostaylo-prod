@@ -548,52 +548,60 @@ export default function EditListing({ params }) {
             )}
             
             {/* Add new season form */}
-            <div className="bg-white/80 rounded-lg p-4 border border-teal-200">
+            <div className="bg-white/80 rounded-lg p-3 sm:p-4 border border-teal-200">
               <Label className="text-sm font-medium mb-3 block">Добавить сезон</Label>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="space-y-3">
                 <Input
                   placeholder="Название (напр. Высокий сезон)"
                   value={newSeason.name}
                   onChange={(e) => setNewSeason({ ...newSeason, name: e.target.value })}
-                  className="md:col-span-2"
+                  className="w-full"
                 />
-                <Input
-                  type="date"
-                  value={newSeason.startDate}
-                  onChange={(e) => setNewSeason({ ...newSeason, startDate: e.target.value })}
-                  className="text-sm"
-                />
-                <Input
-                  type="date"
-                  value={newSeason.endDate}
-                  onChange={(e) => setNewSeason({ ...newSeason, endDate: e.target.value })}
-                  className="text-sm"
-                />
-              </div>
-              <div className="flex items-center gap-3 mt-3">
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-slate-500">Множитель цены:</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    min="0.5"
-                    max="3"
-                    value={newSeason.priceMultiplier}
-                    onChange={(e) => setNewSeason({ ...newSeason, priceMultiplier: e.target.value })}
-                    className="w-20 text-center"
-                  />
-                  <span className="text-xs text-slate-500">
-                    = ฿{Math.round(parseFloat(formData.basePriceThb || 0) * (parseFloat(newSeason.priceMultiplier) || 1))}
-                  </span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs text-slate-500 mb-1 block">Начало</Label>
+                    <Input
+                      type="date"
+                      value={newSeason.startDate}
+                      onChange={(e) => setNewSeason({ ...newSeason, startDate: e.target.value })}
+                      className="w-full text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500 mb-1 block">Конец</Label>
+                    <Input
+                      type="date"
+                      value={newSeason.endDate}
+                      onChange={(e) => setNewSeason({ ...newSeason, endDate: e.target.value })}
+                      className="w-full text-sm"
+                    />
+                  </div>
                 </div>
-                <Button
-                  onClick={addSeason}
-                  className="bg-teal-600 hover:bg-teal-700 ml-auto"
-                  size="sm"
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Добавить
-                </Button>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex items-center gap-2 flex-1">
+                    <Label className="text-xs text-slate-500 whitespace-nowrap">Множитель:</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0.5"
+                      max="3"
+                      value={newSeason.priceMultiplier}
+                      onChange={(e) => setNewSeason({ ...newSeason, priceMultiplier: e.target.value })}
+                      className="w-20 text-center"
+                    />
+                    <span className="text-xs text-slate-500 whitespace-nowrap">
+                      = ฿{Math.round(parseFloat(formData.basePriceThb || 0) * (parseFloat(newSeason.priceMultiplier) || 1))}
+                    </span>
+                  </div>
+                  <Button
+                    onClick={addSeason}
+                    className="bg-teal-600 hover:bg-teal-700 w-full sm:w-auto"
+                    size="sm"
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Добавить
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
