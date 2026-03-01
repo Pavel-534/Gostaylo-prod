@@ -272,21 +272,21 @@ export default function PartnerMessages({ params }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+      <div className='flex items-center justify-center h-screen'>
+        <div className='h-8 w-8 animate-spin rounded-full border-b-2 border-teal-600'></div>
       </div>
-    )
+    );
   }
 
   if (!user) {
     return (
-      <div className="p-4 lg:p-8">
-        <div className="flex flex-col items-center justify-center h-96">
-          <div className="text-center">
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">
+      <div className='p-4 lg:p-8'>
+        <div className='flex flex-col items-center justify-center h-96'>
+          <div className='text-center'>
+            <h3 className='text-xl font-semibold text-slate-900 mb-2'>
               Требуется авторизация
             </h3>
-            <p className="text-slate-600">
+            <p className='text-slate-600'>
               Войдите в систему для просмотра сообщений
             </p>
           </div>
