@@ -43,7 +43,7 @@ export default function CheckoutPage({ params }) {
 
     setPromoLoading(true)
     try {
-      const res = await fetch('/api/promo-codes/validate', {
+      const res = await fetch('/api/v2/promo-codes/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
