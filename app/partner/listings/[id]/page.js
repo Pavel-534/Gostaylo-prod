@@ -519,28 +519,30 @@ export default function EditListing({ params }) {
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Активные сезоны ({seasons.length})</Label>
                 {seasons.map((season) => (
-                  <div key={season.id} className="bg-white rounded-lg p-3 border border-slate-200 flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-900">{season.name}</p>
-                      <p className="text-xs text-slate-500">
-                        {new Date(season.startDate).toLocaleDateString('ru-RU')} — {new Date(season.endDate).toLocaleDateString('ru-RU')}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge className={season.priceMultiplier > 1 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}>
-                        {season.priceMultiplier > 1 ? '+' : ''}{Math.round((season.priceMultiplier - 1) * 100)}%
-                      </Badge>
-                      <span className="font-bold text-teal-600">
-                        ฿{Math.round(parseFloat(formData.basePriceThb || 0) * season.priceMultiplier)}
-                      </span>
+                  <div key={season.id} className="bg-white rounded-lg p-3 border border-slate-200">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-900 truncate">{season.name}</p>
+                        <p className="text-xs text-slate-500">
+                          {new Date(season.startDate).toLocaleDateString('ru-RU')} — {new Date(season.endDate).toLocaleDateString('ru-RU')}
+                        </p>
+                      </div>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => removeSeason(season.id)}
-                        className="text-red-500 hover:text-red-600 hover:bg-red-50 h-8 w-8"
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50 h-8 w-8 flex-shrink-0"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Badge className={season.priceMultiplier > 1 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}>
+                        {season.priceMultiplier > 1 ? '+' : ''}{Math.round((season.priceMultiplier - 1) * 100)}%
+                      </Badge>
+                      <span className="font-bold text-teal-600 text-lg">
+                        ฿{Math.round(parseFloat(formData.basePriceThb || 0) * season.priceMultiplier)}
+                      </span>
                     </div>
                   </div>
                 ))}
