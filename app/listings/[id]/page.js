@@ -295,9 +295,39 @@ export default function ListingDetail({ params }) {
       // Calculate final price - use calculated total if available, otherwise base price
       const finalPrice = priceCalc ? priceCalc.totalPrice : listing.basePriceThb
       
+      // Debug logging
+      console.log('[BOOKING] Submitting with data:', {
+        listing_id: listing.id,
+        partner_id: listing.ownerId,
+        price_thb: finalPrice,
+        check_in: checkIn,
+        check_out: checkOut,
+        guest_name: guestName
+      })
+      
       // Create booking directly in Supabase
       const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
       const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
+      
+      const requestBody = {
+        listing_id: listing.id,
+        partner_id: listing.ownerId,
+        status: 'PENDING',
+        check_in: checkIn,
+        check_out: checkOut,
+        price_thb: finalPrice,
+        guest_name: guestName,
+        guest_email: guestEmail,
+        guest_phone: guestPhone,
+        special_requests: message || null,
+        metadata: priceCalc ? {
+          nights: priceCalc.nights,
+          avgNightlyRate: priceCalc.averageNightlyRate,
+          seasonSummary: priceCalc.seasonSummary
+        } : null
+      }
+      
+      console.log('[BOOKING] Request body:', JSON.stringify(requestBody, null, 2))
       
       const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
         method: 'POST',
@@ -307,37 +337,27 @@ export default function ListingDetail({ params }) {
           'Authorization': `Bearer ${SUPABASE_KEY}`,
           'Prefer': 'return=representation'
         },
-        body: JSON.stringify({
-          listing_id: listing.id,
-          partner_id: listing.ownerId,
-          status: 'PENDING',
-          check_in: checkIn,
-          check_out: checkOut,
-          price_thb: finalPrice,
-          guest_name: guestName,
-          guest_email: guestEmail,
-          guest_phone: guestPhone,
-          special_requests: message,
-          metadata: priceCalc ? {
-            nights: priceCalc.nights,
-            avgNightlyRate: priceCalc.averageNightlyRate,
-            seasonSummary: priceCalc.seasonSummary
-          } : null
-        })
+        body: JSON.stringify(requestBody)
       })
       
       const data = await res.json()
       
-      if (res.ok && data.length > 0) {
+      console.log('[BOOKING] Response status:', res.status)
+      console.log('[BOOKING] Response data:', JSON.stringify(data, null, 2))
+      
+      if (res.ok && Array.isArray(data) && data.length > 0) {
         toast.success(t.successMsg)
         setBookingModalOpen(false)
         router.push(`/checkout/${data[0].id}`)
       } else {
-        toast.error(t.errorMsg)
+        // Log detailed error
+        const errorMsg = data?.message || data?.error || data?.hint || JSON.stringify(data)
+        console.error('[BOOKING] Error details:', errorMsg)
+        toast.error(`${t.errorMsg}: ${errorMsg}`)
       }
     } catch (error) {
-      console.error('Booking error:', error)
-      toast.error(t.errorMsg)
+      console.error('[BOOKING] Exception:', error)
+      toast.error(`${t.errorMsg}: ${error.message}`)
     }
     setSubmitting(false)
   }
