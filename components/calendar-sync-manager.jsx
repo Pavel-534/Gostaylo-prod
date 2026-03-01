@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { 
   Link2, Plus, Trash2, RefreshCw, CheckCircle2, XCircle, 
-  AlertCircle, ExternalLink, Calendar, HelpCircle, Clock
+  AlertCircle, ExternalLink, Calendar, Clock, Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -18,50 +19,49 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 
 const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I'
 
-const ICAL_SOURCES = [
-  { value: 'Airbnb', label: 'Airbnb', color: 'bg-red-100 text-red-700' },
-  { value: 'Booking.com', label: 'Booking.com', color: 'bg-blue-100 text-blue-700' },
-  { value: 'VRBO', label: 'VRBO', color: 'bg-purple-100 text-purple-700' },
-  { value: 'Google Calendar', label: 'Google Calendar', color: 'bg-green-100 text-green-700' },
-  { value: 'Other', label: 'Other', color: 'bg-slate-100 text-slate-700' }
+const PLATFORMS = [
+  { value: 'Airbnb', label: 'Airbnb', color: 'bg-red-100 text-red-700 border-red-200' },
+  { value: 'Booking.com', label: 'Booking.com', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { value: 'VRBO', label: 'VRBO', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  { value: 'Google Calendar', label: 'Google Calendar', color: 'bg-green-100 text-green-700 border-green-200' },
+  { value: 'Custom', label: 'Другой', color: 'bg-slate-100 text-slate-700 border-slate-200' }
 ]
 
-function detectSource(url) {
-  if (!url) return 'Other'
+function detectPlatform(url) {
+  if (!url) return 'Custom'
   const lowerUrl = url.toLowerCase()
   if (lowerUrl.includes('airbnb')) return 'Airbnb'
   if (lowerUrl.includes('booking.com')) return 'Booking.com'
   if (lowerUrl.includes('vrbo') || lowerUrl.includes('homeaway')) return 'VRBO'
-  if (lowerUrl.includes('google.com')) return 'Google Calendar'
-  return 'Other'
+  if (lowerUrl.includes('google.com') || lowerUrl.includes('calendar.google')) return 'Google Calendar'
+  return 'Custom'
 }
 
-function getSourceBadge(source) {
-  const config = ICAL_SOURCES.find(s => s.value === source) || ICAL_SOURCES[4]
-  return <Badge className={config.color}>{config.label}</Badge>
+function getPlatformBadge(platform) {
+  const config = PLATFORMS.find(p => p.value === platform) || PLATFORMS[4]
+  return <Badge className={`${config.color} border`}>{config.label}</Badge>
 }
 
 export default function CalendarSyncManager({ listingId, onSync }) {
-  const [sources, setSources] = useState([])
+  const [syncSettings, setSyncSettings] = useState({
+    sources: [],
+    auto_sync: false,
+    sync_interval_hours: 24,
+    last_sync: null
+  })
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [syncingSourceId, setSyncingSourceId] = useState(null)
-  const [lastSync, setLastSync] = useState(null)
   const [blockedDates, setBlockedDates] = useState([])
   
   // New source form
   const [newUrl, setNewUrl] = useState('')
-  const [newSource, setNewSource] = useState('')
+  const [newPlatform, setNewPlatform] = useState('')
   const [addingSource, setAddingSource] = useState(false)
   
   useEffect(() => {
@@ -74,31 +74,33 @@ export default function CalendarSyncManager({ listingId, onSync }) {
   async function loadSyncSettings() {
     try {
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=metadata`,
+        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=sync_settings,metadata`,
         { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
       )
       const data = await res.json()
       const listing = data?.[0]
       
       if (listing) {
-        // Get sync_settings from metadata
-        let syncSettings = listing.metadata?.sync_settings || []
+        // Prefer sync_settings column, fallback to metadata.sync_settings
+        let settings = listing.sync_settings || {}
         
-        // Add legacy URL if present and not already in sources
-        const legacyUrl = listing.metadata?.icalUrl
-        if (legacyUrl && !syncSettings.find(s => s.url === legacyUrl)) {
-          syncSettings.push({
-            id: 'legacy',
-            url: legacyUrl,
-            source: detectSource(legacyUrl),
-            enabled: true,
-            last_sync: listing.metadata?.last_ical_sync,
-            status: 'unknown'
-          })
+        // Migration: if sync_settings is empty but metadata has data, use metadata
+        if ((!settings.sources || settings.sources.length === 0) && listing.metadata?.sync_settings) {
+          settings = {
+            sources: listing.metadata.sync_settings,
+            auto_sync: listing.metadata.auto_sync || false,
+            sync_interval_hours: listing.metadata.sync_interval_hours || 24,
+            last_sync: listing.metadata.last_ical_sync
+          }
         }
         
-        setSources(syncSettings)
-        setLastSync(listing.metadata?.last_ical_sync)
+        // Ensure structure
+        setSyncSettings({
+          sources: settings.sources || [],
+          auto_sync: settings.auto_sync || false,
+          sync_interval_hours: settings.sync_interval_hours || 24,
+          last_sync: settings.last_sync || null
+        })
       }
       setLoading(false)
     } catch (error) {
@@ -120,18 +122,10 @@ export default function CalendarSyncManager({ listingId, onSync }) {
     }
   }
   
-  async function saveSyncSettings(newSources) {
+  async function saveSyncSettings(newSettings) {
+    setSaving(true)
     try {
-      // First get current metadata
-      const getRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=metadata`,
-        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-      )
-      const getData = await getRes.json()
-      const currentMetadata = getData?.[0]?.metadata || {}
-      
-      // Update with new sync_settings
-      await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`, {
         method: 'PATCH',
         headers: {
           'apikey': SUPABASE_KEY,
@@ -139,33 +133,46 @@ export default function CalendarSyncManager({ listingId, onSync }) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
-          metadata: { 
-            ...currentMetadata, 
-            sync_settings: newSources 
-          } 
+          sync_settings: newSettings,
+          updated_at: new Date().toISOString()
         })
       })
+      
+      if (res.ok) {
+        setSyncSettings(newSettings)
+        toast.success('Настройки сохранены')
+      } else {
+        toast.error('Ошибка сохранения')
+      }
     } catch (error) {
       console.error('Failed to save sync settings:', error)
+      toast.error('Ошибка сохранения')
+    } finally {
+      setSaving(false)
     }
   }
   
   async function handleAddSource() {
-    if (!newUrl) {
+    if (!newUrl.trim()) {
       toast.error('Введите URL календаря')
       return
     }
     
-    // Validate URL
     if (!newUrl.startsWith('http')) {
       toast.error('URL должен начинаться с http:// или https://')
+      return
+    }
+    
+    // Check for duplicates
+    if (syncSettings.sources.some(s => s.url === newUrl)) {
+      toast.error('Этот URL уже добавлен')
       return
     }
     
     setAddingSource(true)
     
     try {
-      // Test the URL first - use relative path for client-side
+      // Test the URL first
       const testRes = await fetch('/api/ical/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -174,57 +181,57 @@ export default function CalendarSyncManager({ listingId, onSync }) {
       const testData = await testRes.json()
       
       if (!testData.success) {
-        toast.error(`Ошибка: ${testData.error}`)
+        toast.error(`Ошибка: ${testData.error || 'Не удалось загрузить календарь'}`)
         setAddingSource(false)
         return
       }
       
-      const detectedSource = newSource || testData.source || detectSource(newUrl)
+      const platform = newPlatform || detectPlatform(newUrl)
       
-      const newSourceConfig = {
+      const newSource = {
         id: `src-${Date.now().toString(36)}`,
         url: newUrl,
-        source: detectedSource,
+        platform: platform,
         enabled: true,
         added_at: new Date().toISOString(),
-        status: 'pending'
+        status: 'active',
+        last_sync: null,
+        events_count: testData.futureEvents || 0
       }
       
-      const updatedSources = [...sources, newSourceConfig]
-      setSources(updatedSources)
-      await saveSyncSettings(updatedSources)
+      const newSettings = {
+        ...syncSettings,
+        sources: [...syncSettings.sources, newSource]
+      }
       
-      toast.success(`✅ Добавлен ${detectedSource} (${testData.futureEvents} событий)`)
+      await saveSyncSettings(newSettings)
       
+      toast.success(`✅ Добавлен ${platform} (${testData.futureEvents || 0} событий)`)
       setNewUrl('')
-      setNewSource('')
-      
-      // Trigger sync
-      handleSyncSource(newSourceConfig)
-      
+      setNewPlatform('')
     } catch (error) {
-      toast.error('Ошибка проверки URL')
+      console.error('Failed to add source:', error)
+      toast.error('Ошибка при добавлении')
+    } finally {
+      setAddingSource(false)
     }
-    
-    setAddingSource(false)
   }
   
   async function handleRemoveSource(sourceId) {
-    const updatedSources = sources.filter(s => s.id !== sourceId)
-    setSources(updatedSources)
-    await saveSyncSettings(updatedSources)
-    
-    // Remove blocked dates from this source
-    const sourceBlocks = blockedDates.filter(b => b.metadata?.ical_source_id === sourceId)
-    for (const block of sourceBlocks) {
-      await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${block.id}`, {
-        method: 'DELETE',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-      })
+    const newSettings = {
+      ...syncSettings,
+      sources: syncSettings.sources.filter(s => s.id !== sourceId)
     }
-    
+    await saveSyncSettings(newSettings)
     toast.success('Источник удалён')
-    loadBlockedDates()
+  }
+  
+  async function handleToggleAutoSync(checked) {
+    const newSettings = {
+      ...syncSettings,
+      auto_sync: checked
+    }
+    await saveSyncSettings(newSettings)
   }
   
   async function handleSyncSource(source) {
@@ -243,246 +250,240 @@ export default function CalendarSyncManager({ listingId, onSync }) {
       const data = await res.json()
       
       if (data.success) {
-        const result = data.results?.[0]
-        toast.success(`✅ Синхронизировано: +${result?.eventsCreated || 0} / -${result?.eventsRemoved || 0}`)
-        
-        // Update source status
-        const updatedSources = sources.map(s => 
-          s.id === source.id 
-            ? { ...s, last_sync: new Date().toISOString(), status: 'success' }
-            : s
-        )
-        setSources(updatedSources)
-        await saveSyncSettings(updatedSources)
-        
+        // Update source with new sync info
+        const newSettings = {
+          ...syncSettings,
+          sources: syncSettings.sources.map(s => 
+            s.id === source.id 
+              ? { ...s, last_sync: new Date().toISOString(), status: 'active', events_count: data.eventsProcessed || 0 }
+              : s
+          ),
+          last_sync: new Date().toISOString()
+        }
+        await saveSyncSettings(newSettings)
         loadBlockedDates()
+        toast.success(`Синхронизировано: ${data.eventsProcessed || 0} событий`)
         if (onSync) onSync()
       } else {
-        toast.error(`Ошибка: ${data.error}`)
-        
-        const updatedSources = sources.map(s => 
-          s.id === source.id ? { ...s, status: 'error', error: data.error } : s
-        )
-        setSources(updatedSources)
+        toast.error(data.error || 'Ошибка синхронизации')
       }
     } catch (error) {
+      console.error('Sync error:', error)
       toast.error('Ошибка синхронизации')
+    } finally {
+      setSyncingSourceId(null)
     }
-    
-    setSyncingSourceId(null)
   }
   
   async function handleSyncAll() {
+    if (syncSettings.sources.length === 0) {
+      toast.error('Нет источников для синхронизации')
+      return
+    }
+    
     setSyncing(true)
     
     try {
       const res = await fetch('/api/ical/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'sync', listingId })
+        body: JSON.stringify({ 
+          action: 'sync', 
+          listingId,
+          sources: syncSettings.sources.filter(s => s.enabled)
+        })
       })
       const data = await res.json()
       
       if (data.success) {
-        const totalCreated = data.results?.reduce((sum, r) => sum + (r.eventsCreated || 0), 0) || 0
-        const totalRemoved = data.results?.reduce((sum, r) => sum + (r.eventsRemoved || 0), 0) || 0
-        
-        toast.success(`✅ Все источники синхронизированы: +${totalCreated} / -${totalRemoved}`)
-        
-        setLastSync(new Date().toISOString())
-        loadSyncSettings()
+        const newSettings = {
+          ...syncSettings,
+          last_sync: new Date().toISOString()
+        }
+        await saveSyncSettings(newSettings)
         loadBlockedDates()
+        toast.success(`Синхронизировано: ${data.eventsProcessed || 0} событий`)
         if (onSync) onSync()
       } else {
-        toast.error(`Ошибка: ${data.error}`)
+        toast.error(data.error || 'Ошибка синхронизации')
       }
     } catch (error) {
+      console.error('Sync all error:', error)
       toast.error('Ошибка синхронизации')
+    } finally {
+      setSyncing(false)
     }
-    
-    setSyncing(false)
   }
-  
-  function formatDate(dateStr) {
-    if (!dateStr) return '-'
-    return new Date(dateStr).toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    })
-  }
-  
-  function formatDateTime(dateStr) {
-    if (!dateStr) return 'Никогда'
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-  
+
   if (loading) {
     return (
-      <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50">
-        <CardContent className="p-8 flex justify-center">
-          <RefreshCw className="h-6 w-6 animate-spin text-orange-500" />
+      <Card className="border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50">
+        <CardContent className="p-8 flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
         </CardContent>
       </Card>
     )
   }
-  
+
   return (
-    <Card className="border-2 border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50">
-      <CardHeader>
+    <Card className="border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50">
+      <CardHeader className="pb-2 lg:pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center">
-              <Link2 className="h-5 w-5 text-white" />
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center">
+              <Calendar className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-lg">Синхронизация календаря</CardTitle>
-              <CardDescription>
-                Импорт занятых дат из внешних платформ
+              <CardTitle className="text-base lg:text-lg">iCal Синхронизация</CardTitle>
+              <CardDescription className="text-xs">
+                Импорт календарей с Airbnb, Booking и др.
               </CardDescription>
             </div>
           </div>
           
-          {sources.length > 0 && (
+          {/* Sync All Button */}
+          {syncSettings.sources.length > 0 && (
             <Button
-              variant="outline"
-              size="sm"
               onClick={handleSyncAll}
               disabled={syncing}
-              className="border-orange-300 hover:bg-orange-100"
+              variant="outline"
+              size="sm"
+              className="border-indigo-300 text-indigo-600 hover:bg-indigo-100"
             >
               {syncing ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
               ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCw className="h-4 w-4 mr-1" />
               )}
-              Синхронизировать всё
+              Синхронизировать все
             </Button>
           )}
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-6">
-        {/* Add New Source */}
-        <div className="bg-white/80 rounded-lg p-4 border border-orange-200">
-          <Label className="text-sm font-medium mb-3 block">Добавить источник</Label>
-          <div className="flex gap-2">
+      <CardContent className="space-y-4">
+        {/* Add New Source Form */}
+        <div className="bg-white rounded-xl p-4 border border-indigo-200 space-y-3">
+          <Label className="text-sm font-medium text-slate-700">Добавить календарь</Label>
+          
+          <div className="flex flex-col sm:flex-row gap-2">
             <div className="flex-1">
               <Input
-                type="url"
                 placeholder="https://www.airbnb.com/calendar/ical/..."
                 value={newUrl}
-                onChange={(e) => {
-                  setNewUrl(e.target.value)
-                  if (e.target.value) {
-                    setNewSource(detectSource(e.target.value))
-                  }
-                }}
-                className="bg-white"
-                data-testid="ical-url-input"
+                onChange={(e) => setNewUrl(e.target.value)}
+                className="w-full"
               />
             </div>
-            <Select value={newSource} onValueChange={setNewSource}>
-              <SelectTrigger className="w-40 bg-white">
+            
+            <Select value={newPlatform} onValueChange={setNewPlatform}>
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="Платформа" />
               </SelectTrigger>
               <SelectContent>
-                {ICAL_SOURCES.map(s => (
-                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                {PLATFORMS.map(p => (
+                  <SelectItem key={p.value} value={p.value}>
+                    {p.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            
             <Button
               onClick={handleAddSource}
-              disabled={addingSource || !newUrl}
-              className="bg-orange-500 hover:bg-orange-600"
+              disabled={addingSource || !newUrl.trim()}
+              className="bg-indigo-600 hover:bg-indigo-700 whitespace-nowrap"
             >
               {addingSource ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Plus className="h-4 w-4" />
+                <>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Добавить
+                </>
               )}
             </Button>
           </div>
           
-          <div className="mt-3 text-xs text-slate-600 space-y-1">
-            <p className="font-medium">💡 Как найти iCal ссылку:</p>
-            <ul className="space-y-0.5 ml-4 text-slate-500">
-              <li>• <b>Airbnb:</b> Календарь → Доступность → Экспорт</li>
-              <li>• <b>Booking.com:</b> Объект → Цены → Синхронизация календарей</li>
-              <li>• <b>VRBO:</b> Календарь → iCal → Экспорт URL</li>
-            </ul>
-          </div>
+          <p className="text-xs text-slate-500">
+            Найдите ссылку iCal в настройках календаря вашей платформы
+          </p>
         </div>
         
         {/* Sources List */}
-        {sources.length > 0 ? (
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Подключённые источники ({sources.length})</Label>
+        {syncSettings.sources.length > 0 ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-slate-700">
+                Подключённые календари ({syncSettings.sources.length})
+              </Label>
+              
+              {/* Auto Sync Toggle */}
+              <div className="flex items-center gap-2">
+                <Label htmlFor="auto-sync" className="text-xs text-slate-600">
+                  Авто-синхронизация
+                </Label>
+                <Switch
+                  id="auto-sync"
+                  checked={syncSettings.auto_sync}
+                  onCheckedChange={handleToggleAutoSync}
+                  disabled={saving}
+                />
+              </div>
+            </div>
             
-            {sources.map((source) => (
+            {syncSettings.sources.map((source) => (
               <div
                 key={source.id}
-                className="bg-white rounded-lg p-4 border border-slate-200 flex items-center gap-4"
+                className="bg-white rounded-lg p-3 border border-slate-200 flex items-center gap-3"
               >
-                <div className="flex-shrink-0">
-                  {source.status === 'success' ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  ) : source.status === 'error' ? (
-                    <XCircle className="h-5 w-5 text-red-500" />
-                  ) : (
-                    <AlertCircle className="h-5 w-5 text-amber-500" />
-                  )}
-                </div>
-                
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    {getSourceBadge(source.source)}
-                    <span className="text-xs text-slate-500 truncate">
-                      {source.url?.substring(0, 50)}...
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {formatDateTime(source.last_sync)}
-                    </span>
+                    {getPlatformBadge(source.platform)}
+                    {source.status === 'active' && (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    )}
                     {source.status === 'error' && (
-                      <span className="text-red-500">{source.error}</span>
+                      <XCircle className="h-4 w-4 text-red-500" />
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 truncate" title={source.url}>
+                    {source.url}
+                  </p>
+                  <div className="flex items-center gap-3 mt-1">
+                    {source.last_sync && (
+                      <span className="text-xs text-slate-400 flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {new Date(source.last_sync).toLocaleDateString('ru-RU')}
+                      </span>
+                    )}
+                    {source.events_count > 0 && (
+                      <span className="text-xs text-slate-400">
+                        {source.events_count} событий
+                      </span>
                     )}
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => window.open(source.url, '_blank')}
-                    title="Открыть URL"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
+                <div className="flex items-center gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleSyncSource(source)}
                     disabled={syncingSourceId === source.id}
-                    title="Синхронизировать"
+                    className="h-8 w-8 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100"
                   >
-                    <RefreshCw className={`h-4 w-4 ${syncingSourceId === source.id ? 'animate-spin' : ''}`} />
+                    {syncingSourceId === source.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => handleRemoveSource(source.id)}
-                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                    title="Удалить"
+                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -491,36 +492,34 @@ export default function CalendarSyncManager({ listingId, onSync }) {
             ))}
           </div>
         ) : (
-          <div className="text-center py-6 text-slate-500">
-            <Calendar className="h-12 w-12 mx-auto mb-3 text-orange-300" />
-            <p>Нет подключённых календарей</p>
-            <p className="text-sm">Добавьте iCal ссылку для автоматической блокировки дат</p>
+          <div className="bg-white/60 rounded-lg p-6 text-center">
+            <Link2 className="h-10 w-10 mx-auto mb-2 text-indigo-300" />
+            <p className="text-sm text-slate-600">Нет подключённых календарей</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Добавьте iCal ссылку для автоматической блокировки дат
+            </p>
           </div>
         )}
         
         {/* Blocked Dates Summary */}
         {blockedDates.length > 0 && (
-          <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-            <Label className="text-sm font-medium text-red-800 mb-3 block">
-              Заблокированные даты ({blockedDates.length})
-            </Label>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {blockedDates.slice(0, 10).map((block) => (
-                <div key={block.id} className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-red-400 rounded-full"></div>
-                    <span className="text-slate-700">
-                      {formatDate(block.check_in)} — {formatDate(block.check_out)}
-                    </span>
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                    {block.metadata?.ical_source || 'iCal'}
-                  </Badge>
-                </div>
+          <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <span className="text-sm font-medium text-amber-800">
+                Заблокировано дат: {blockedDates.length}
+              </span>
+            </div>
+            <div className="space-y-1">
+              {blockedDates.slice(0, 3).map((block) => (
+                <p key={block.id} className="text-xs text-amber-700">
+                  {new Date(block.check_in).toLocaleDateString('ru-RU')} — {new Date(block.check_out).toLocaleDateString('ru-RU')}
+                  {block.guest_name && ` (${block.guest_name})`}
+                </p>
               ))}
-              {blockedDates.length > 10 && (
-                <p className="text-xs text-slate-500 text-center pt-2">
-                  ... и ещё {blockedDates.length - 10} дат
+              {blockedDates.length > 3 && (
+                <p className="text-xs text-amber-600">
+                  ... и ещё {blockedDates.length - 3}
                 </p>
               )}
             </div>
@@ -528,10 +527,10 @@ export default function CalendarSyncManager({ listingId, onSync }) {
         )}
         
         {/* Last Sync Info */}
-        {lastSync && (
-          <div className="text-xs text-slate-500 text-center">
-            Последняя синхронизация: {formatDateTime(lastSync)}
-          </div>
+        {syncSettings.last_sync && (
+          <p className="text-xs text-slate-500 text-center">
+            Последняя синхронизация: {new Date(syncSettings.last_sync).toLocaleString('ru-RU')}
+          </p>
         )}
       </CardContent>
     </Card>
