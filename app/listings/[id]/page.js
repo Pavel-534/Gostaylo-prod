@@ -271,7 +271,8 @@ export default function ListingDetail({ params }) {
           isFeatured: l.is_featured,
           views: l.views || 0,
           rating: parseFloat(l.rating) || 0,
-          reviewsCount: l.reviews_count || 0
+          reviewsCount: l.reviews_count || 0,
+          seasonalPricing: l.metadata?.seasonal_pricing || []
         });
       }
       setLoading(false)
