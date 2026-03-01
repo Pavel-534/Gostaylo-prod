@@ -71,19 +71,80 @@ export default function CheckoutPage({ params }) {
 
   async function loadPaymentStatus() {
     try {
-      const res = await fetch(`/api/v2/bookings/${params.bookingId}/payment-status`)
-      const data = await res.json()
+      // Fetch directly from Supabase to bypass Kubernetes routing issues
+      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
+      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
       
-      if (data.success) {
-        setBooking(data.data.booking)
-        setListing(data.data.listing)
-        setPayment(data.data.payment)
-        
-        if (data.data.payment?.status === 'COMPLETED') {
-          setPaymentSuccess(true)
+      // Fetch booking
+      const bookingRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/bookings?id=eq.${params.bookingId}&select=*`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
         }
+      );
+      const bookings = await bookingRes.json();
+      
+      if (!bookings || bookings.length === 0) {
+        setLoading(false);
+        return;
       }
-      setLoading(false)
+      
+      const b = bookings[0];
+      
+      // Fetch listing info
+      const listingRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/listings?id=eq.${b.listing_id}&select=id,title,district,images,cover_image,base_price_thb`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      );
+      const listings = await listingRes.json();
+      const l = listings?.[0] || null;
+      
+      // Transform booking data
+      setBooking({
+        id: b.id,
+        status: b.status,
+        checkIn: b.check_in,
+        checkOut: b.check_out,
+        priceThb: parseFloat(b.price_thb),
+        currency: b.currency || 'THB',
+        guestName: b.guest_name,
+        guestEmail: b.guest_email,
+        guestPhone: b.guest_phone,
+        specialRequests: b.special_requests,
+        createdAt: b.created_at,
+        metadata: b.metadata
+      });
+      
+      if (l) {
+        setListing({
+          id: l.id,
+          title: l.title,
+          district: l.district,
+          coverImage: l.cover_image || l.images?.[0],
+          basePriceThb: parseFloat(l.base_price_thb)
+        });
+      }
+      
+      // Check if already paid
+      if (b.status === 'CONFIRMED') {
+        setPayment({
+          id: `pay-${b.id}`,
+          status: 'COMPLETED',
+          method: 'CARD',
+          amount: b.price_thb
+        });
+        setPaymentSuccess(true);
+      }
+      
+      setLoading(false);
     } catch (error) {
       console.error('Failed to load payment status:', error)
       setLoading(false)
