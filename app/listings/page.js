@@ -422,3 +422,21 @@ function ListingsContent() {
     </div>
   )
 }
+
+// Loading fallback
+function ListingsLoading() {
+  return (
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
+    </div>
+  )
+}
+
+// Main export with Suspense boundary
+export default function ListingsPage() {
+  return (
+    <Suspense fallback={<ListingsLoading />}>
+      <ListingsContent />
+    </Suspense>
+  )
+}
