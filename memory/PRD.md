@@ -1,28 +1,43 @@
 # FunnyRent 2.1 - Product Requirements Document
 
-## Latest Update: 2026-03-01 - Pricing Integration Complete ✅
+## Latest Update: 2026-03-01 - Checkout Redirect Fix Complete ✅
 
-### Pricing Service Integration (2026-03-01)
+### Checkout Page Fixes (2026-03-01)
 
-#### pricing.service.js Refactored ✅
-- **Fixed Data Source**: Now reads seasonal pricing from `listings.metadata.seasonal_pricing` (JSONB)
-- **Removed Broken Query**: No longer queries non-existent `seasonal_prices` table
-- **New Method**: Added `calculateBookingPriceSync()` for client-side real-time calculation
-- **Multiplier System**: Uses `priceMultiplier` (e.g., 1.3 = +30%, 0.8 = -20%)
-- **Season Summary**: Returns breakdown by season type for UI display
+#### Problem Solved
+- **"Redirect Deadlock"**: After booking creation, users were redirected to `/checkout/[id]` but saw "Бронирование недоступно" (Booking not found) error.
+- **Root Cause**: Kubernetes ingress/proxy was returning 502 errors for API routes like `/api/v2/bookings/[id]/payment-status`.
 
-#### Listing Detail Page Updated ✅
-- **Real-time Price Calculation**: Calculates total when dates are selected
-- **Price Breakdown UI**: Shows detailed breakdown in booking modal
-- **Season-aware**: Displays which nights fall into which seasons
-- **Total Display**: Submit button shows calculated total
-- **Date Validation**: Check-out date min is tied to check-in
+#### Solution Implemented ✅
+- Modified `loadPaymentStatus()` in `/app/checkout/[bookingId]/page.js` to fetch booking data directly from Supabase REST API, bypassing the internal API routes.
+- This mirrors the approach used in the listing detail page, which already works correctly.
 
-#### Tests Passed ✅
-- Base price calculation (5 nights × ฿35,000 = ฿175,000)
-- High season multiplier (5 nights × 1.3 = ฿227,500)
-- Mixed seasons (3 High + 2 Low = ฿192,500)
-- Invalid date range handling
+#### New API Endpoints Created ✅
+- `GET /api/v2/bookings/[id]/payment-status` — Returns booking + listing info
+- `POST /api/v2/bookings/[id]/payment/initiate` — Initiate payment (CARD/MIR/CRYPTO)
+- `POST /api/v2/bookings/[id]/payment/confirm` — Confirm payment
+- `POST /api/v2/bookings/[id]/check-in/confirm` — Confirm check-in, release funds
+
+#### Checkout Page Features ✅
+- Payment methods: Bank card, MIR, USDT (TRC-20)
+- Order summary with dates and calculated total
+- 15% service fee automatically calculated
+- Promo code input with validation
+- "Оплатить" button shows total price
+
+---
+
+### Pricing Integration (2026-03-01) ✅
+
+#### pricing.service.js Refactored
+- Reads seasonal pricing from `listings.metadata.seasonal_pricing` (JSONB)
+- New method: `calculateBookingPriceSync()` for client-side calculation
+- Uses `priceMultiplier` (e.g., 1.3 = +30%)
+
+#### Listing Detail Page
+- Real-time price calculation when dates selected
+- Price breakdown UI in booking modal
+- Submit button shows calculated total
 
 ---
 
