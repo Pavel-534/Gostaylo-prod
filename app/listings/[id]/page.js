@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,14 +10,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Separator } from '@/components/ui/separator'
 import { 
   MapPin, Star, ArrowLeft, ChevronLeft, ChevronRight, 
   Bed, Bath, Square, Calendar, Send, Loader2, User,
-  Wifi, Car, Waves, Utensils
+  Wifi, Car, Waves, Utensils, Info, Calculator
 } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
 import { detectLanguage, getUIText, getListingText, supportedLanguages } from '@/lib/translations'
+import { PricingService } from '@/lib/services/pricing.service'
 
 export default function ListingDetail({ params }) {
   const router = useRouter()
@@ -36,6 +38,9 @@ export default function ListingDetail({ params }) {
   const [checkIn, setCheckIn] = useState('')
   const [checkOut, setCheckOut] = useState('')
   const [message, setMessage] = useState('')
+  
+  // Price calculation state
+  const [priceCalc, setPriceCalc] = useState(null)
 
   // Localized labels
   const labels = {
