@@ -75,7 +75,14 @@ export default function ListingDetail({ params }) {
       notFoundDesc: 'Это объявление было удалено или не существует.',
       goHome: 'На главную',
       successMsg: 'Заявка отправлена! Ожидайте подтверждения.',
-      errorMsg: 'Ошибка при создании заявки'
+      errorMsg: 'Ошибка при создании заявки',
+      priceBreakdown: 'Расчёт стоимости',
+      nights: 'ночей',
+      night: 'ночь',
+      total: 'Итого',
+      basePrice: 'Базовая цена',
+      selectDates: 'Выберите даты для расчёта',
+      avgPerNight: 'в среднем за ночь'
     },
     en: {
       backToSearch: 'Back to search',
@@ -108,7 +115,14 @@ export default function ListingDetail({ params }) {
       notFoundDesc: 'This listing has been removed or does not exist.',
       goHome: 'Go Home',
       successMsg: 'Request submitted! Awaiting confirmation.',
-      errorMsg: 'Error creating request'
+      errorMsg: 'Error creating request',
+      priceBreakdown: 'Price Breakdown',
+      nights: 'nights',
+      night: 'night',
+      total: 'Total',
+      basePrice: 'Base price',
+      selectDates: 'Select dates to calculate',
+      avgPerNight: 'avg per night'
     },
     zh: {
       backToSearch: '返回搜索',
@@ -141,7 +155,14 @@ export default function ListingDetail({ params }) {
       notFoundDesc: '此房源已被删除或不存在。',
       goHome: '返回首页',
       successMsg: '申请已提交！等待确认。',
-      errorMsg: '创建申请时出错'
+      errorMsg: '创建申请时出错',
+      priceBreakdown: '价格明细',
+      nights: '晚',
+      night: '晚',
+      total: '总计',
+      basePrice: '基础价格',
+      selectDates: '选择日期计算',
+      avgPerNight: '平均每晚'
     },
     th: {
       backToSearch: 'กลับไปค้นหา',
@@ -174,12 +195,35 @@ export default function ListingDetail({ params }) {
       notFoundDesc: 'รายการนี้ถูกลบหรือไม่มีอยู่',
       goHome: 'กลับหน้าแรก',
       successMsg: 'ส่งคำขอแล้ว! รอการยืนยัน',
-      errorMsg: 'เกิดข้อผิดพลาดในการสร้างคำขอ'
+      errorMsg: 'เกิดข้อผิดพลาดในการสร้างคำขอ',
+      priceBreakdown: 'รายละเอียดราคา',
+      nights: 'คืน',
+      night: 'คืน',
+      total: 'รวม',
+      basePrice: 'ราคาพื้นฐาน',
+      selectDates: 'เลือกวันที่เพื่อคำนวณ',
+      avgPerNight: 'เฉลี่ยต่อคืน'
     }
   }
 
   // Get current language labels
   const t = labels[language] || labels.ru
+  
+  // Calculate price when dates change
+  useEffect(() => {
+    if (listing && checkIn && checkOut) {
+      const seasonalPricing = listing.metadata?.seasonal_pricing || []
+      const result = PricingService.calculateBookingPriceSync(
+        listing.basePriceThb,
+        checkIn,
+        checkOut,
+        seasonalPricing
+      )
+      setPriceCalc(result.error ? null : result)
+    } else {
+      setPriceCalc(null)
+    }
+  }, [listing, checkIn, checkOut])
 
   useEffect(() => {
     // Detect language from localStorage
