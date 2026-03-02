@@ -9,6 +9,37 @@
 
 ---
 
+## Latest Update: 2026-03-02 - Nervous System Phase ✅
+
+### Notification System Activated (2026-03-02)
+
+#### NotificationService v2.0
+- **Telegram Topics**: BOOKINGS (15), FINANCE (16), NEW_PARTNERS (17)
+- **Resend Email**: Ready for integration (falls back to mock if no API key)
+- **Escrow Message**: Included in all payment-related notifications
+
+#### Telegram Webhook v5.0
+- **Runtime**: Node.js (more stable than Edge)
+- **Pattern**: Immediate Response + Fire-and-Forget
+- **Commands**: /start, /help, /link email, /status
+- **Lazy Realtor**: Photo → Draft listing
+
+#### Event Types Supported
+- NEW_BOOKING_REQUEST → Guest + Partner + Admin Topic
+- BOOKING_CONFIRMED → Guest + Admin Topic
+- PAYMENT_SUCCESS → Guest + Partner + Admin Topic (with Escrow message)
+- CHECK_IN_CONFIRMED → Partner + Admin Topic
+- LISTING_APPROVED/REJECTED → Partner
+- PARTNER_VERIFIED/REJECTED → Partner + Admin Topic
+
+### ARCHITECTURAL_PASSPORT.md Updated
+- Added Critical Routes section (webhook)
+- Added Notification System section
+- Added Price Unification formula
+- Added Escrow message documentation
+
+---
+
 ## Latest Update: 2026-03-02 - Unified Pricing & Mobile UI Fix ✅
 
 ### Pricing Unification (2026-03-02)
