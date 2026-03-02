@@ -123,10 +123,14 @@ export default function ListingDetail({ params }) {
       priceBreakdown: 'Price Breakdown',
       nights: 'nights',
       night: 'night',
-      total: 'Total',
+      total: 'Total to Pay',
       basePrice: 'Base price',
       selectDates: 'Select dates to calculate',
-      avgPerNight: 'avg per night'
+      avgPerNight: 'avg per night',
+      rental: 'Rental cost',
+      serviceFee: 'Service fee',
+      discount: 'Discount',
+      deal: 'Deal!'
     },
     zh: {
       backToSearch: '返回搜索',
