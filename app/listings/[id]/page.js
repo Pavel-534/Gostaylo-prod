@@ -596,30 +596,34 @@ export default function ListingDetail({ params }) {
               <CardContent className="space-y-4">
                 <Dialog open={bookingModalOpen} onOpenChange={setBookingModalOpen}>
                   <DialogTrigger asChild>
-                    <Button className="w-full bg-teal-600 hover:bg-teal-700 text-lg py-6">
+                    <Button className='w-full bg-teal-600 hover:bg-teal-700 text-lg py-6' data-testid='book-now-btn'>
                       {t.bookNow}
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-md">
+                  <DialogContent className='max-w-md max-h-[90vh] overflow-y-auto'>
                     <DialogHeader>
                       <DialogTitle>{t.bookingRequest}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleBookingSubmit} className="space-y-4">
+                    <form onSubmit={handleBookingSubmit} className='space-y-4 pb-4'>
                       <div>
                         <Label>{t.yourName}</Label>
                         <Input
                           value={guestName}
                           onChange={(e) => setGuestName(e.target.value)}
                           required
+                          className='h-12'
+                          data-testid='guest-name-input'
                         />
                       </div>
                       <div>
                         <Label>{t.email}</Label>
                         <Input
-                          type="email"
+                          type='email'
                           value={guestEmail}
                           onChange={(e) => setGuestEmail(e.target.value)}
                           required
+                          className='h-12'
+                          data-testid='guest-email-input'
                         />
                       </div>
                       <div>
@@ -628,63 +632,99 @@ export default function ListingDetail({ params }) {
                           value={guestPhone}
                           onChange={(e) => setGuestPhone(e.target.value)}
                           required
+                          className='h-12'
+                          data-testid='guest-phone-input'
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className='grid grid-cols-2 gap-3'>
                         <div>
                           <Label>{t.checkInDate}</Label>
                           <Input
-                            type="date"
+                            type='date'
                             value={checkIn}
                             onChange={(e) => setCheckIn(e.target.value)}
                             min={new Date().toISOString().split('T')[0]}
                             required
+                            className='h-12'
+                            data-testid='check-in-input'
                           />
                         </div>
                         <div>
                           <Label>{t.checkOutDate}</Label>
                           <Input
-                            type="date"
+                            type='date'
                             value={checkOut}
                             onChange={(e) => setCheckOut(e.target.value)}
                             min={checkIn || new Date().toISOString().split('T')[0]}
                             required
+                            className='h-12'
+                            data-testid='check-out-input'
                           />
                         </div>
                       </div>
                       
-                      {/* Price Breakdown Section */}
+                      {/* Price Breakdown Section with Service Fee */}
                       {priceCalc ? (
-                        <div className='bg-gradient-to-br from-teal-50 to-cyan-50 rounded-lg p-4 border border-teal-200'>
+                        <div className='bg-gradient-to-br from-teal-50 to-cyan-50 rounded-lg p-4 border border-teal-200' data-testid='price-breakdown'>
                           <div className='flex items-center gap-2 mb-3'>
                             <Calculator className='h-4 w-4 text-teal-600' />
                             <span className='font-medium text-teal-800'>{t.priceBreakdown}</span>
+                            {priceCalc.isDiscount && (
+                              <Badge className='bg-green-500 text-white text-xs'>{t.deal}</Badge>
+                            )}
                           </div>
                           
-                          {/* Season breakdown */}
+                          {/* Rental cost with discount display */}
                           <div className='space-y-2 mb-3'>
-                            {Object.entries(priceCalc.seasonSummary).map(([season, data]) => (
-                              <div key={season} className='flex justify-between text-sm'>
-                                <span className='text-slate-600'>
-                                  {season === 'Base' ? t.basePrice : season} × {data.nights} {data.nights === 1 ? t.night : t.nights}
-                                </span>
-                                <span className='font-medium'>฿{data.subtotal.toLocaleString()}</span>
+                            <div className='flex justify-between text-sm'>
+                              <span className='text-slate-600'>
+                                {t.rental} ({priceCalc.nights} {priceCalc.nights === 1 ? t.night : t.nights})
+                              </span>
+                              <div className='text-right'>
+                                {priceCalc.isDiscount ? (
+                                  <>
+                                    <span className='text-slate-400 line-through text-xs mr-2'>
+                                      ฿{priceCalc.baseTotalWithoutSeasonal.toLocaleString()}
+                                    </span>
+                                    <span className='font-medium text-green-600'>
+                                      ฿{priceCalc.totalPrice.toLocaleString()}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className='font-medium'>฿{priceCalc.totalPrice.toLocaleString()}</span>
+                                )}
                               </div>
-                            ))}
+                            </div>
+                            
+                            {/* Show discount amount if applicable */}
+                            {priceCalc.isDiscount && priceCalc.discountAmount > 0 && (
+                              <div className='flex justify-between text-sm text-green-600'>
+                                <span className='flex items-center gap-1'>
+                                  🎉 {t.discount}
+                                </span>
+                                <span className='font-medium'>-฿{priceCalc.discountAmount.toLocaleString()}</span>
+                              </div>
+                            )}
+                            
+                            {/* Service fee (15%) */}
+                            <div className='flex justify-between text-sm'>
+                              <span className='text-slate-600'>{t.serviceFee} (15%)</span>
+                              <span className='font-medium'>฿{priceCalc.serviceFee.toLocaleString()}</span>
+                            </div>
                           </div>
                           
-                          <Separator className='my-2' />
+                          <Separator className='my-3' />
                           
-                          {/* Total */}
+                          {/* Grand Total - matches checkout page */}
                           <div className='flex justify-between items-center'>
                             <div>
                               <span className='font-bold text-teal-800'>{t.total}</span>
                               <p className='text-xs text-slate-500'>
-                                ฿{priceCalc.averageNightlyRate.toLocaleString()} {t.avgPerNight}
+                                ฿{Math.round(priceCalc.grandTotal / priceCalc.nights).toLocaleString()} {t.avgPerNight}
                               </p>
                             </div>
-                            <span className='text-2xl font-bold text-teal-600'>
-                              ฿{priceCalc.totalPrice.toLocaleString()}
+                            <span className='text-2xl font-bold text-teal-600' data-testid='grand-total'>
+                              ฿{priceCalc.grandTotal.toLocaleString()}
                             </span>
                           </div>
                         </div>
@@ -703,12 +743,14 @@ export default function ListingDetail({ params }) {
                           value={message}
                           onChange={(e) => setMessage(e.target.value)}
                           placeholder={t.messagePlaceholder}
+                          className='min-h-[80px]'
                         />
                       </div>
                       <Button
                         type='submit'
-                        className='w-full bg-teal-600 hover:bg-teal-700'
+                        className='w-full bg-teal-600 hover:bg-teal-700 h-12 text-base'
                         disabled={submitting || !priceCalc}
+                        data-testid='submit-booking-btn'
                       >
                         {submitting ? (
                           <>
@@ -718,7 +760,7 @@ export default function ListingDetail({ params }) {
                         ) : (
                           <>
                             <Send className='h-4 w-4 mr-2' />
-                            {t.submit} {priceCalc && `(฿${priceCalc.totalPrice.toLocaleString()})`}
+                            {t.submit} {priceCalc && `(฿${priceCalc.grandTotal.toLocaleString()})`}
                           </>
                         )}
                       </Button>
