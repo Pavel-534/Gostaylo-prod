@@ -286,34 +286,124 @@ for each night in booking:
 ### 3.4 Commission Formula
 
 ```
-serviceFee = priceThb * (commissionRate / 100)
+serviceFee = priceThb * (SERVICE_FEE_RATE)  // 15% = 0.15
 totalWithFee = priceThb + serviceFee
-partnerEarnings = priceThb - commissionThb
+grandTotal = totalWithFee  // This is shown in booking modal AND checkout
+partnerEarnings = priceThb - (priceThb * commissionRate)
 ```
 
-Default commission: **15%**
+Default service fee: **15%**
+
+### 3.5 Price Unification (CRITICAL)
+
+**The booking modal and checkout page MUST show identical totals:**
+
+```javascript
+// In listing detail page - booking modal
+const serviceFee = Math.round(rentalTotal * 0.15);
+const grandTotal = rentalTotal + serviceFee;  // ← This MUST match checkout
+
+// In checkout page
+const serviceFee = priceThb * 0.15;
+const total = priceThb + serviceFee;  // ← Same value
+```
+
+**Display format:**
+```
+Rental cost (X nights):     ฿Y
+Service fee (15%):          ฿Z
+─────────────────────────────
+Total to Pay:               ฿(Y+Z)
+```
 
 ---
 
-## 4. Checkout Flow
+## 4. Notification System
 
-### 4.1 Flow Diagram
+### 4.1 Architecture
+
+```
+NotificationService (lib/services/notification.service.js)
+    │
+    ├── sendEmail(to, subject, text, html)  → Resend API
+    │
+    ├── sendTelegram(chatId, message)       → Telegram Bot API
+    │
+    └── sendToAdminTopic(topic, message)    → Telegram Topics
+                │
+                ├── BOOKINGS (thread 15)
+                ├── FINANCE (thread 16)
+                └── NEW_PARTNERS (thread 17)
+```
+
+### 4.2 Event Dispatch
+
+```javascript
+import { NotificationService, NotificationEvents } from '@/lib/services/notification.service';
+
+// Dispatch notification
+await NotificationService.dispatch(NotificationEvents.NEW_BOOKING_REQUEST, {
+  booking,
+  partner,
+  listing,
+  guest
+});
+```
+
+### 4.3 Notification Events
+
+| Event | Recipients | Channels |
+|-------|------------|----------|
+| NEW_BOOKING_REQUEST | Guest, Partner, Admin | Email, Telegram, Topic:BOOKINGS |
+| BOOKING_CONFIRMED | Guest, Admin | Email, Topic:BOOKINGS |
+| PAYMENT_SUCCESS | Guest, Partner, Admin | Email, Telegram, Topic:FINANCE |
+| CHECK_IN_CONFIRMED | Partner, Admin | Email, Telegram, Topic:FINANCE |
+| LISTING_APPROVED | Partner | Email, Telegram |
+| LISTING_REJECTED | Partner | Email, Telegram |
+| PARTNER_VERIFIED | Partner, Admin | Email, Topic:NEW_PARTNERS |
+
+### 4.4 Email Templates
+
+All emails include:
+- HTML version with inline CSS
+- Plain text fallback
+- FunnyRent footer
+- Escrow security message (for payments)
+
+### 4.5 Environment Variables
+
+```bash
+TELEGRAM_BOT_TOKEN=8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM
+TELEGRAM_ADMIN_GROUP_ID=-1003832026983
+RESEND_API_KEY=re_xxx  # Optional - falls back to mock
+SENDER_EMAIL=FunnyRent <noreply@funnyrent.com>
+```
+
+---
+
+## 5. Checkout Flow
+
+### 5.1 Flow Diagram
 
 ```
 [Listing Detail] → [Booking Form] → [Supabase INSERT] → [Redirect /checkout/{id}]
-                                          ↓
-                              [Direct Supabase REST fetch]
-                                          ↓
-                              [Payment Method Selection]
-                                          ↓
-                    [CARD/MIR: Mock Gateway] | [CRYPTO: USDT TRC-20]
-                                          ↓
-                              [Confirm → Update Status]
-                                          ↓
-                              [Check-in → Release Funds]
+                        ↓                                       ↓
+                 [Price + 15% Fee]                    [Direct Supabase REST fetch]
+                        ↓                                       ↓
+                 [grandTotal shown]                   [Same grandTotal displayed]
+                                                              ↓
+                                              [Payment Method Selection]
+                                                              ↓
+                                [CARD/MIR: Mock Gateway] | [CRYPTO: USDT TRC-20]
+                                                              ↓
+                                              [Confirm → Update Status]
+                                                              ↓
+                                              [NotificationService.dispatch()]
+                                                              ↓
+                                              [Check-in → Release Funds]
 ```
 
-### 4.2 Critical Implementation Detail
+### 5.2 Critical Implementation Detail
 
 **PROBLEM:** Kubernetes ingress returns 502 for some API routes.
 
@@ -335,7 +425,7 @@ const res = await fetch(
 )
 ```
 
-### 4.3 Booking Creation Request
+### 5.3 Booking Creation Request
 
 ```javascript
 // CORRECT request body for /rest/v1/bookings INSERT
