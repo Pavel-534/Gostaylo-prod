@@ -211,10 +211,14 @@ export default function ListingDetail({ params }) {
       priceBreakdown: 'รายละเอียดราคา',
       nights: 'คืน',
       night: 'คืน',
-      total: 'รวม',
+      total: 'ยอดชำระ',
       basePrice: 'ราคาพื้นฐาน',
       selectDates: 'เลือกวันที่เพื่อคำนวณ',
-      avgPerNight: 'เฉลี่ยต่อคืน'
+      avgPerNight: 'เฉลี่ยต่อคืน',
+      rental: 'ค่าเช่า',
+      serviceFee: 'ค่าบริการ',
+      discount: 'ส่วนลด',
+      deal: 'คุ้มค่า!'
     }
   }
 
