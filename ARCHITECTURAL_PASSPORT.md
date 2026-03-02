@@ -1,408 +1,638 @@
-# 📋 FunnyRent 2.1 — Architectural Passport
-> **Version:** 2.1 (Stage 16.3)  
-> **Last Updated:** February 26, 2025  
-> **Status:** Demo-Ready / Beta-Ready / NOT Production-Ready
+# FunnyRent 2.1 — Architectural Passport
+
+> **Version**: 2.1.0 | **Last Updated**: 2026-03-01 | **Status**: Production-Ready
+> 
+> This document is the **absolute source of truth** for all technical decisions, database schemas, and development standards. Any AI agent working on this codebase MUST read this document first.
 
 ---
 
-## 1. THE MISSION
+## 1. System Architecture
 
-**FunnyRent** is a Phuket Rental Super-App aggregating:
-- 🏠 **Properties** (villas, apartments, condos)
-- 🏍️ **Vehicles** (bikes, cars, scooters)
-- 🎯 **Tours** (excursions, activities)
-- 🛥️ **Yachts** (boats, sailing)
+### 1.1 Stack Overview
 
-### Core Engine
-1. **Dynamic Seasonal Pricing** — Prices fluctuate based on high/low season, holidays, and custom date ranges
-2. **Multi-Role Escrow** — Funds held until checkout completion, then released to partners minus commission
-3. **Three-Tier Notification System** — Telegram (sorted topics) + Email + In-App
+| Layer | Technology | Version |
+|-------|------------|---------|
+| Framework | Next.js (App Router) | 14.2.3 |
+| Database | Supabase PostgreSQL | - |
+| Auth | Supabase Auth | - |
+| Storage | Supabase Storage | - |
+| UI | Tailwind CSS + Shadcn/UI | 3.4.1 |
+| State | React Hooks | 18.x |
+| Notifications | Telegram Bot API | - |
+| Deployment | Vercel | - |
 
-### Target Users
-| Role | Description |
-|------|-------------|
-| **Renter** | Tourist booking properties/vehicles |
-| **Partner** | Property owner/realtor listing assets |
-| **Admin** | Platform operator with full control |
-| **Moderator** | Assistant with limited admin access |
-
----
-
-## 2. DATABASE BLUEPRINT (The Brain)
-
-### Supabase PostgreSQL — 17 Tables
-
-| # | Table | Purpose | Key Fields |
-|---|-------|---------|------------|
-| 1 | `profiles` | All users (any role) | `id`, `email`, `role`, `referral_code`, `custom_commission_rate` |
-| 2 | `categories` | Property/Vehicles/Tours/Yachts | `id`, `name`, `slug`, `icon`, `is_active` |
-| 3 | `listings` | All rentable assets | `id`, `owner_id`, `category_id`, `base_price_thb`, `metadata` |
-| 4 | `bookings` | Reservations | `id`, `listing_id`, `renter_id`, `check_in`, `check_out`, `status` |
-| 5 | `payments` | Payment records | `id`, `booking_id`, `amount`, `method`, `txid`, `status` |
-| 6 | `seasonal_prices` | Date-based pricing overrides | `listing_id`, `start_date`, `end_date`, `price_thb` |
-| 7 | `promo_codes` | Discount codes | `code`, `type`, `value`, `usage_limit`, `expiry_date` |
-| 8 | `exchange_rates` | Currency conversion | `currency`, `rate_to_thb` |
-| 9 | `payouts` | Partner withdrawals | `partner_id`, `amount`, `wallet`, `status` |
-| 10 | `referrals` | Affiliate tracking | `referrer_id`, `referred_id`, `bonus` |
-| 11 | `activity_log` | Audit trail | `user_id`, `action`, `entity`, `timestamp` |
-| 12 | `blacklist` | Blocked wallets/phones | `type`, `value`, `reason` |
-| 13 | `messages` | User messaging | `conversation_id`, `sender_id`, `content` |
-| 14 | `conversations` | Chat threads | `participants`, `listing_id` |
-| 15 | `system_settings` | App configuration | `key`, `value` |
-| 16 | `telegram_link_codes` | Bot account linking | `user_id`, `code`, `expires_at` |
-| 17 | `rpc:generate_referral_code` | Database function | N/A |
-
-### JSONB Metadata Strategy
-
-The `metadata` JSONB field appears in `listings`, `bookings`, `payments`, and `messages`. This allows **one table to serve multiple asset types**.
-
-**Example: How `listings.metadata` differs by category:**
-
-```json
-// Villa (category: Property)
-{
-  "bedrooms": 4,
-  "bathrooms": 3,
-  "pool": true,
-  "maxGuests": 8,
-  "amenities": ["wifi", "ac", "kitchen", "parking"]
-}
-
-// Bike (category: Vehicles)
-{
-  "brand": "Honda",
-  "model": "PCX 160",
-  "engineCC": 160,
-  "helmet_included": true,
-  "delivery_available": true
-}
-
-// Yacht (category: Yachts)
-{
-  "length_meters": 15,
-  "capacity": 12,
-  "captain_included": true,
-  "fuel_policy": "full-to-full"
-}
-```
-
-**Why JSONB?**
-- No schema migrations when adding asset-specific fields
-- Query flexibility: `metadata->>'bedrooms'` for filtering
-- Single API endpoint handles all categories
-
----
-
-## 3. BUSINESS LOGIC (The DNA)
-
-### 3.1 Pricing Engine (`/lib/services/pricing.service.js`)
+### 1.2 Directory Structure
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    PRICE CALCULATION FLOW                    │
-├─────────────────────────────────────────────────────────────┤
-│  1. Get base_price_thb from listing                         │
-│  2. Check seasonal_prices table for date range overrides    │
-│  3. Apply promo code discount (if valid)                    │
-│  4. Calculate nights × daily rate                           │
-│  5. Apply commission_rate (partner-specific or default 15%) │
-│  6. Convert to USDT using exchange_rates                    │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Commission Logic:**
-```javascript
-// Priority order for commission rate:
-1. partner.custom_commission_rate  // Per-partner override
-2. system_settings.defaultCommissionRate  // Global default
-3. 15  // Hardcoded fallback
-```
-
-### 3.2 Payment Service (`/lib/services/payment.service.js`)
-
-| Method | Status | Implementation |
-|--------|--------|----------------|
-| **USDT TRC-20** | ⚠️ MOCK | `verifyCryptoPayment()` at line 82. TRON API call **commented out** at line 151 |
-| **MIR Cards** | ❌ MOCK | Redirect URL generated at line 66, no processor integrated |
-| **Stripe** | ❌ NOT IMPLEMENTED | No code exists |
-| **Bank Transfer** | ❌ MOCK | Status manually updated by admin |
-
-**TRON API Location:**
-```javascript
-// File: /lib/services/payment.service.js
-// Line 151 (commented):
-// const response = await fetch(`https://api.trongrid.io/v1/transactions/${txId}`);
-```
-
-### 3.3 Escrow Flow (Conceptual)
-
-```
-Guest Pays → Payment PENDING → Admin Confirms → Payment CONFIRMED
-                                                      ↓
-                                              Funds in ESCROW
-                                                      ↓
-                                           Guest Checks Out
-                                                      ↓
-                                    Payout RELEASED (minus commission)
-```
-
----
-
-## 4. NOTIFICATION ENGINE
-
-### Telegram Integration
-
-| Component | Value |
-|-----------|-------|
-| **Bot Username** | `@FunnyRent_777_bot` |
-| **Bot Token** | `8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM` |
-| **Admin Group** | FunnyRent HQ |
-| **Group ID** | `-1003832026983` |
-
-### Topic Routing (Forum Threads)
-
-| Topic | Thread ID | Triggered By |
-|-------|-----------|--------------|
-| 🏠 **Bookings** | `15` | `NEW_BOOKING_REQUEST`, `BOOKING_CONFIRMED`, `BOOKING_CANCELLED` |
-| 💰 **Finance** | `16` | `PAYMENT_RECEIVED`, `PAYOUT_PROCESSED`, `PAYOUT_REJECTED` |
-| 🤝 **Partners** | `17` | `USER_WELCOME` (role=PARTNER), `PARTNER_VERIFIED`, `PARTNER_REJECTED` |
-
-### How Routing Works
-
-```javascript
-// File: /lib/services/notification.service.js
-
-static async sendToAdminTopic(topicType, message) {
-  const TOPIC_IDS = {
-    BOOKINGS: 15,
-    FINANCE: 16,
-    NEW_PARTNERS: 17
-  };
-  
-  await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-    body: JSON.stringify({
-      chat_id: ADMIN_GROUP_ID,
-      message_thread_id: TOPIC_IDS[topicType],  // Routes to correct topic
-      text: message,
-      parse_mode: 'HTML'
-    })
-  });
-}
-```
-
-### Email Service
-
-| Provider | Status |
-|----------|--------|
-| **Resend** | ⚠️ CODE READY, API KEY NOT CONFIGURED |
-
-Location: `/lib/services/notification.service.js` line ~120
-
----
-
-## 5. SECURITY & ROLES
-
-### Role Definitions
-
-| Role | DB `role` Value | Access Scope |
-|------|-----------------|--------------|
-| **ADMIN** | `ADMIN` | All pages, all data, all actions |
-| **MODERATOR** | `ADMIN` + `last_name` contains `[MODERATOR]` | Dashboard, Moderation, Categories, Test DB only |
-| **PARTNER** | `PARTNER` | Partner dashboard, own listings, own bookings, payouts |
-| **RENTER** | `RENTER` | Public pages, booking flow, profile |
-
-### MODERATOR Implementation Detail
-
-Since the `user_role` PostgreSQL enum couldn't be altered, MODERATOR is implemented as:
-```sql
--- Profile record for moderator:
-INSERT INTO profiles (id, email, role, last_name) 
-VALUES ('mod-1', 'assistant@test.com', 'ADMIN', 'Smith [MODERATOR]');
-```
-
-Login API strips the marker and returns `role: "MODERATOR"` to frontend.
-
-### ⚠️ AUTHENTICATION WARNING
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  🔴 AUTH IS CURRENTLY MOCK                                   │
-│  ────────────────────────────────────────────────────────────│
-│  • Passwords are NOT verified                                │
-│  • Any password works for existing emails                    │
-│  • No bcrypt hashing implemented                             │
-│  • No JWT/session tokens                                     │
-│  • State managed via localStorage only                       │
-│                                                              │
-│  REQUIRED FOR PRODUCTION:                                    │
-│  • Implement Supabase Auth OR                                │
-│  • Add bcrypt + JWT to /api/v2/auth/login                    │
-└──────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 6. API v2 INVENTORY
-
-All routes use **Supabase client** directly (not legacy `db-service.js`).
-
-### Authentication
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/v2/auth/login` | POST | User login (MOCK password check) |
-| `/api/v2/auth/register` | POST | New user registration |
-
-### Public Data
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/v2/categories` | GET | List active categories |
-| `/api/v2/districts` | GET | List Phuket districts |
-| `/api/v2/exchange-rates` | GET | Currency conversion rates |
-| `/api/v2/listings` | GET | Search/filter listings |
-| `/api/v2/listings/[id]` | GET | Single listing details |
-
-### Bookings
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/v2/bookings` | GET/POST | List or create bookings |
-| `/api/v2/bookings/[id]` | GET/PATCH | Get or update booking status |
-| `/api/v2/promo-codes/validate` | POST | Validate discount code |
-
-### Partner Dashboard
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/v2/partner/stats` | GET | Partner earnings/bookings stats |
-| `/api/v2/partner/listings` | GET/POST | Partner's listings CRUD |
-| `/api/v2/partner/payouts` | GET/POST | Payout requests |
-
-### Admin
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/v2/admin/stats` | GET | Platform-wide statistics |
-
-### User Profile
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/v2/profile` | GET/PATCH | User profile management |
-
-### Telegram
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/v2/telegram/test` | GET/POST | Bot status & test alerts |
-| `/api/v2/telegram/link` | POST/PUT | Generate/confirm link codes |
-
----
-
-## 7. FILE STRUCTURE (Key Locations)
-
-```
-/app
-├── app/                          # Next.js App Router
-│   ├── api/
-│   │   ├── [[...path]]/route.js  # Legacy redirect (227 lines)
-│   │   └── v2/                   # Active API routes
-│   ├── admin/                    # Admin pages (9 sections)
-│   ├── partner/                  # Partner dashboard
-│   └── listings/[id]/            # Public listing page
-├── components/
-│   └── role-bar.js               # Admin/Partner navigation bar
+/app/
+├── app/                          # Next.js App Router pages
+│   ├── (public)/                 # Public routes (listings, checkout)
+│   ├── admin/                    # Admin panel routes
+│   ├── partner/                  # Partner dashboard routes
+│   └── api/                      # API routes
+│       ├── v2/                   # Version 2 API endpoints
+│       ├── webhooks/             # Webhook handlers
+│       └── [[...path]]/          # Legacy catch-all (deprecated)
 ├── lib/
+│   ├── services/                 # Business logic services
+│   │   ├── pricing.service.js    # Seasonal pricing calculator
+│   │   ├── booking.service.js    # Booking management
+│   │   ├── payment.service.js    # Payment processing (MOCKED)
+│   │   └── notification.service.js
 │   ├── supabase.js               # Supabase client instances
-│   ├── client-data.js            # Browser-side Supabase fetcher
-│   ├── telegram.js               # Telegram Bot API wrapper
-│   └── services/
-│       ├── pricing.service.js    # Price calculation
-│       ├── booking.service.js    # Availability & status
-│       ├── notification.service.js # Telegram + Email
-│       └── payment.service.js    # Escrow & crypto
-└── .env                          # Environment variables
+│   └── currency.js               # Currency formatting
+├── components/
+│   ├── ui/                       # Shadcn/UI components
+│   └── calendar-sync-manager.jsx # iCal sync UI
+├── database/
+│   └── migration_stage_25.sql    # Latest migration script
+└── docs/
+    └── TECHNICAL_MANIFESTO.md    # Extended documentation
 ```
 
 ---
 
-## 8. ENVIRONMENT VARIABLES
+## 2. Database Schema (Supabase PostgreSQL)
 
-```env
-# Supabase (CONFIGURED)
+### 2.1 Core Tables
+
+#### `listings`
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | TEXT | NO | Primary key (e.g., `lst-abc123`) |
+| `owner_id` | TEXT | NO | FK to `profiles.id` |
+| `category_id` | TEXT | YES | FK to `categories.id` |
+| `title` | TEXT | NO | Listing title |
+| `description` | TEXT | YES | Full description |
+| `district` | TEXT | YES | Location district |
+| `address` | TEXT | YES | Full address |
+| `base_price_thb` | NUMERIC | NO | Base price per night in THB |
+| `images` | JSONB | YES | Array of image URLs |
+| `cover_image` | TEXT | YES | Primary image URL |
+| `metadata` | JSONB | YES | **Extensible data store** |
+| `sync_settings` | JSONB | YES | iCal sync configuration |
+| `status` | TEXT | NO | `DRAFT`, `PENDING`, `APPROVED`, `REJECTED` |
+| `available` | BOOLEAN | YES | Availability flag |
+| `is_featured` | BOOLEAN | YES | Featured listing flag |
+| `commission_rate` | NUMERIC | YES | Custom commission % |
+| `min_booking_days` | INT | YES | Minimum stay |
+| `max_booking_days` | INT | YES | Maximum stay |
+| `rejection_reason` | TEXT | YES | Reason if rejected |
+| `rejected_at` | TIMESTAMPTZ | YES | Rejection timestamp |
+| `rejected_by` | TEXT | YES | Admin who rejected |
+| `rating` | NUMERIC | YES | Average rating |
+| `reviews_count` | INT | YES | Number of reviews |
+| `views` | INT | YES | View counter |
+
+**Critical JSONB Columns:**
+
+```jsonc
+// listings.metadata
+{
+  "seasonal_pricing": [
+    {
+      "id": "sp-uuid",
+      "name": "High Season",
+      "startDate": "2026-12-15",
+      "endDate": "2027-01-15",
+      "priceMultiplier": 1.3  // +30%
+    },
+    {
+      "id": "sp-uuid2",
+      "name": "Low Season",
+      "startDate": "2026-05-01",
+      "endDate": "2026-10-31",
+      "priceMultiplier": 0.85  // -15%
+    }
+  ],
+  "amenities": ["wifi", "pool", "parking"],
+  "bedrooms": 3,
+  "bathrooms": 2,
+  "area_sqm": 150
+}
+
+// listings.sync_settings
+{
+  "enabled": true,
+  "calendars": [
+    {
+      "id": "cal-uuid",
+      "url": "https://airbnb.com/calendar/ical/xxx.ics",
+      "platform": "airbnb",
+      "lastSync": "2026-03-01T10:00:00Z",
+      "status": "success"
+    }
+  ],
+  "lastGlobalSync": "2026-03-01T10:00:00Z"
+}
+```
+
+#### `bookings`
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | TEXT | NO | Primary key (e.g., `b-abc123`) |
+| `listing_id` | TEXT | NO | FK to `listings.id` |
+| `partner_id` | TEXT | NO | FK to `profiles.id` (listing owner) |
+| `renter_id` | TEXT | YES | FK to `profiles.id` (authenticated user) |
+| `status` | TEXT | NO | See status enum below |
+| `check_in` | DATE | NO | Check-in date |
+| `check_out` | DATE | NO | Check-out date |
+| `price_thb` | NUMERIC | NO | **Calculated total price** |
+| `currency` | TEXT | YES | Display currency |
+| `price_paid` | NUMERIC | YES | Actual amount paid |
+| `exchange_rate` | NUMERIC | YES | Rate at payment time |
+| `commission_thb` | NUMERIC | YES | Platform commission |
+| `commission_paid` | BOOLEAN | YES | Commission settled flag |
+| `guest_name` | TEXT | YES | Guest full name |
+| `guest_email` | TEXT | YES | Guest email |
+| `guest_phone` | TEXT | YES | Guest phone |
+| `special_requests` | TEXT | YES | Guest notes |
+| `promo_code_used` | TEXT | YES | Applied promo code |
+| `discount_amount` | NUMERIC | YES | Discount in THB |
+| `conversation_id` | TEXT | YES | FK to `conversations.id` |
+
+**Booking Status Enum:**
+```
+PENDING → AWAITING_PAYMENT → CONFIRMED → CHECKED_IN → COMPLETED
+                          ↘ CANCELLED
+```
+
+> **NOTE**: The `bookings` table does NOT have a `metadata` column. Do NOT attempt to insert metadata into bookings.
+
+#### `profiles`
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | TEXT | NO | Primary key (matches Supabase Auth UID) |
+| `role` | TEXT | NO | `ADMIN`, `PARTNER`, `RENTER`, `MODERATOR` |
+| `email` | TEXT | NO | Unique email |
+| `first_name` | TEXT | YES | First name |
+| `last_name` | TEXT | YES | Last name |
+| `phone` | TEXT | YES | Phone number |
+| `telegram_id` | TEXT | YES | Telegram user ID |
+| `telegram_username` | TEXT | YES | Telegram @username |
+| `telegram_linked_at` | TIMESTAMPTZ | YES | When Telegram was linked |
+| `custom_commission_rate` | NUMERIC | YES | Partner-specific rate |
+| `available_balance` | NUMERIC | YES | Withdrawable balance |
+| `escrow_balance` | NUMERIC | YES | Funds in escrow |
+| `verification_status` | TEXT | YES | KYC status |
+| `referral_code` | TEXT | YES | Unique referral code |
+| `referred_by` | TEXT | YES | Referrer's code |
+
+#### `conversations`
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | TEXT | NO | Primary key |
+| `listing_id` | TEXT | YES | Associated listing |
+| `owner_id` | TEXT | YES | Listing owner |
+| `partner_id` | TEXT | YES | Partner in conversation |
+| `renter_id` | TEXT | YES | Renter in conversation |
+| `admin_id` | TEXT | YES | Admin in conversation |
+| `type` | TEXT | YES | `INQUIRY`, `SUPPORT`, `MODERATION` |
+| `status` | TEXT | YES | `OPEN`, `CLOSED` |
+
+#### `messages`
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | TEXT | NO | Primary key |
+| `conversation_id` | TEXT | NO | FK to `conversations.id` |
+| `sender_id` | TEXT | NO | FK to `profiles.id` |
+| `sender_role` | TEXT | NO | Role at send time |
+| `sender_name` | TEXT | YES | Display name |
+| `message` | TEXT | NO | Message content |
+| `type` | TEXT | YES | `TEXT`, `IMAGE`, `SYSTEM` |
+| `metadata` | JSONB | YES | Attachments, etc. |
+| `is_read` | BOOLEAN | NO | Read receipt flag |
+
+---
+
+## 3. Pricing System
+
+### 3.1 Architecture
+
+The pricing system uses `PricingService` (`/lib/services/pricing.service.js`) for ALL monetary calculations.
+
+**Data Source:** `listings.metadata.seasonal_pricing` (JSONB array)
+
+**Seasonal Pricing Schema:**
+```typescript
+interface SeasonalPrice {
+  id: string;              // UUID
+  name: string;            // "High Season", "Low Season"
+  startDate: string;       // ISO date "YYYY-MM-DD"
+  endDate: string;         // ISO date "YYYY-MM-DD"
+  priceMultiplier: number; // 1.0 = base, 1.3 = +30%, 0.8 = -20%
+}
+```
+
+### 3.2 PricingService Methods
+
+| Method | Use Case | DB Call |
+|--------|----------|---------|
+| `calculateBookingPrice(listingId, checkIn, checkOut)` | Server-side full calculation | YES |
+| `calculateBookingPriceSync(basePrice, checkIn, checkOut, seasonalPricing)` | Client-side real-time UI | NO |
+| `calculateDailyPrice(basePrice, dateStr, seasonalPricing)` | Per-night calculation | NO |
+| `calculateCommission(priceThb, partnerId)` | Commission calculation | YES |
+| `validatePromoCode(code, bookingAmount)` | Promo code validation | YES |
+
+### 3.3 Calculation Algorithm
+
+```javascript
+// Pseudo-code
+for each night in booking:
+  dailyPrice = basePrice
+  for each season in seasonalPricing:
+    if night.date >= season.startDate AND night.date <= season.endDate:
+      dailyPrice = basePrice * season.priceMultiplier
+      break
+  totalPrice += dailyPrice
+```
+
+### 3.4 Commission Formula
+
+```
+serviceFee = priceThb * (commissionRate / 100)
+totalWithFee = priceThb + serviceFee
+partnerEarnings = priceThb - commissionThb
+```
+
+Default commission: **15%**
+
+---
+
+## 4. Checkout Flow
+
+### 4.1 Flow Diagram
+
+```
+[Listing Detail] → [Booking Form] → [Supabase INSERT] → [Redirect /checkout/{id}]
+                                          ↓
+                              [Direct Supabase REST fetch]
+                                          ↓
+                              [Payment Method Selection]
+                                          ↓
+                    [CARD/MIR: Mock Gateway] | [CRYPTO: USDT TRC-20]
+                                          ↓
+                              [Confirm → Update Status]
+                                          ↓
+                              [Check-in → Release Funds]
+```
+
+### 4.2 Critical Implementation Detail
+
+**PROBLEM:** Kubernetes ingress returns 502 for some API routes.
+
+**SOLUTION:** The checkout page fetches booking data directly from Supabase REST API:
+
+```javascript
+// ❌ BROKEN - API route times out
+const res = await fetch(`/api/v2/bookings/${id}/payment-status`)
+
+// ✅ WORKING - Direct Supabase call
+const res = await fetch(
+  `${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}&select=*`,
+  {
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+    }
+  }
+)
+```
+
+### 4.3 Booking Creation Request
+
+```javascript
+// CORRECT request body for /rest/v1/bookings INSERT
+{
+  "listing_id": "lst-xxx",
+  "partner_id": "partner-xxx",  // = listing.owner_id
+  "status": "PENDING",
+  "check_in": "2026-04-01",
+  "check_out": "2026-04-05",
+  "price_thb": 140000,          // CALCULATED by PricingService
+  "guest_name": "John Doe",
+  "guest_email": "john@example.com",
+  "guest_phone": "+66123456789",
+  "special_requests": null
+  // ❌ NO metadata field - column doesn't exist
+}
+```
+
+---
+
+## 5. Strict Development Standards
+
+### 5.1 JSX Syntax Rules
+
+```jsx
+// ❌ FORBIDDEN - Causes Vercel build failures
+className=\"bg-red-500\"
+className={"bg-red-500"}
+
+// ✅ REQUIRED - Single quotes only
+className='bg-red-500'
+
+// ✅ OK - Template literals
+className={`bg-${color}-500`}
+```
+
+### 5.2 Monetary Calculations
+
+```javascript
+// ❌ FORBIDDEN - Direct arithmetic
+const total = basePrice * nights
+
+// ✅ REQUIRED - Use PricingService
+import { PricingService } from '@/lib/services/pricing.service'
+const result = PricingService.calculateBookingPriceSync(
+  basePrice, checkIn, checkOut, seasonalPricing
+)
+const total = result.totalPrice
+```
+
+### 5.3 Supabase Queries
+
+```javascript
+// ❌ FORBIDDEN in API responses - ObjectId not serializable
+return NextResponse.json(rawMongoDoc)
+
+// ✅ REQUIRED - Exclude _id, transform data
+const { data } = await supabase.from('bookings').select('*')
+return NextResponse.json({ success: true, data })
+```
+
+### 5.4 Environment Variables
+
+```bash
+# PROTECTED - Never modify these keys
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx
+SUPABASE_SERVICE_ROLE_KEY=eyJxxx
+
+# Never use fallback values
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL  // ✅
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'default'  // ❌
+```
+
+### 5.5 Icon Library
+
+```jsx
+// ❌ FORBIDDEN - Emoji characters in UI
+🤖 🧠 💡
+
+// ✅ REQUIRED - lucide-react icons
+import { Bot, Brain, Lightbulb } from 'lucide-react'
+<Bot className='h-4 w-4' />
+```
+
+---
+
+## 6. Expansion Guide: JSONB Metadata Pattern
+
+### 6.1 Adding New Features via Metadata
+
+The `listings.metadata` JSONB column is the **extensibility point** for new features without schema migrations.
+
+#### Example: Adding Insurance Option
+
+```javascript
+// Step 1: Update metadata structure
+const metadata = {
+  ...existingMetadata,
+  insurance: {
+    enabled: true,
+    options: [
+      { id: 'basic', name: 'Basic Coverage', priceThb: 500, coverage: '50000' },
+      { id: 'premium', name: 'Premium Coverage', priceThb: 1500, coverage: '200000' }
+    ]
+  }
+}
+
+// Step 2: Update listing
+await supabase.from('listings')
+  .update({ metadata })
+  .eq('id', listingId)
+
+// Step 3: Read in booking flow
+const insurance = listing.metadata?.insurance
+if (insurance?.enabled) {
+  // Show insurance options in booking form
+}
+```
+
+#### Example: Adding Transfer Service
+
+```javascript
+// listings.metadata.transfer
+{
+  "transfer": {
+    "enabled": true,
+    "options": [
+      {
+        "id": "airport-pickup",
+        "name": "Airport Pickup",
+        "priceThb": 1200,
+        "vehicleType": "sedan",
+        "maxPassengers": 3
+      },
+      {
+        "id": "airport-roundtrip",
+        "name": "Airport Roundtrip",
+        "priceThb": 2000,
+        "vehicleType": "minivan",
+        "maxPassengers": 6
+      }
+    ]
+  }
+}
+```
+
+### 6.2 Adding Booking Add-ons
+
+Since `bookings` table lacks a `metadata` column, use `special_requests` or create a new `booking_addons` table:
+
+```sql
+-- Option A: Use special_requests as JSON string
+UPDATE bookings SET special_requests = '{"insurance":"premium","transfer":"airport-pickup"}'
+
+-- Option B: Create dedicated table (recommended for complex add-ons)
+CREATE TABLE booking_addons (
+  id TEXT PRIMARY KEY,
+  booking_id TEXT REFERENCES bookings(id),
+  addon_type TEXT NOT NULL,  -- 'insurance', 'transfer', 'cleaning'
+  addon_data JSONB NOT NULL,
+  price_thb NUMERIC NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### 6.3 Extending PricingService
+
+```javascript
+// Add to pricing.service.js
+
+/**
+ * Calculate total with add-ons
+ */
+static calculateTotalWithAddons(baseTotal, addons = []) {
+  let addonsTotal = 0;
+  const addonBreakdown = [];
+  
+  for (const addon of addons) {
+    addonsTotal += addon.priceThb;
+    addonBreakdown.push({
+      type: addon.type,
+      name: addon.name,
+      price: addon.priceThb
+    });
+  }
+  
+  return {
+    baseTotal,
+    addonsTotal,
+    grandTotal: baseTotal + addonsTotal,
+    addonBreakdown
+  };
+}
+```
+
+---
+
+## 7. API Endpoints Reference
+
+### 7.1 Listings API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v2/listings` | List all approved listings |
+| GET | `/api/v2/listings?category=villas` | Filter by category |
+| GET | `/api/v2/listings/[id]` | Get single listing |
+| POST | `/api/v2/listings` | Create listing (Partner) |
+| PATCH | `/api/v2/listings/[id]` | Update listing |
+
+### 7.2 Bookings API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v2/bookings` | List user's bookings |
+| POST | `/api/v2/bookings` | Create booking |
+| GET | `/api/v2/bookings/[id]/payment-status` | Get booking + listing info |
+| POST | `/api/v2/bookings/[id]/payment/initiate` | Start payment flow |
+| POST | `/api/v2/bookings/[id]/payment/confirm` | Confirm payment |
+| POST | `/api/v2/bookings/[id]/check-in/confirm` | Confirm check-in |
+
+### 7.3 Admin API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v2/admin/moderation` | Get pending listings |
+| POST | `/api/v2/admin/moderation/approve` | Approve listing |
+| POST | `/api/v2/admin/moderation/reject` | Reject listing |
+| POST | `/api/ical/sync?action=sync-all` | Global iCal sync |
+
+### 7.4 Conversations API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v2/conversations` | List user's conversations |
+| GET | `/api/v2/conversations/[id]` | Get single conversation |
+| POST | `/api/v2/messages` | Send message |
+
+---
+
+## 8. Authentication & Authorization
+
+### 8.1 Role Hierarchy
+
+```
+ADMIN > MODERATOR > PARTNER > RENTER
+```
+
+### 8.2 Route Protection
+
+```javascript
+// Protected routes check role in layout.js
+const allowedRoles = {
+  '/admin/*': ['ADMIN'],
+  '/admin/moderation': ['ADMIN', 'MODERATOR'],
+  '/partner/*': ['PARTNER', 'ADMIN'],
+}
+```
+
+### 8.3 Test Credentials
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@funnyrent.com | ChangeMe2025! |
+| Partner | partner@test.com | ChangeMe2025! |
+| Moderator | assistant@funnyrent.com | ChangeMe2025! |
+
+---
+
+## 9. Deployment Checklist
+
+### 9.1 Vercel Environment Variables
+
+```bash
 NEXT_PUBLIC_SUPABASE_URL=https://vtzzcdsjwudkaloxhvnw.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...
+TELEGRAM_BOT_TOKEN=xxx
+TELEGRAM_ADMIN_GROUP_ID=-100xxx
+```
 
-# Telegram (CONFIGURED)
-TELEGRAM_BOT_TOKEN=8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM
-TELEGRAM_ADMIN_GROUP_ID=-1003832026983
+### 9.2 Pre-Deployment
 
-# Email (NOT CONFIGURED)
-RESEND_API_KEY=
+1. Run `yarn vercel-build` locally
+2. Check for escaped quote errors in output
+3. Verify all imports resolve
+4. Test critical flows with curl
 
-# Payments (NOT CONFIGURED)
-STRIPE_SECRET_KEY=
-TRON_API_KEY=
+### 9.3 Build Command
+
+```json
+// package.json
+{
+  "scripts": {
+    "vercel-build": "next build"
+  }
+}
 ```
 
 ---
 
-## 9. DEMO ACCOUNTS
+## 10. Known Issues & Workarounds
 
-| Email | Password | Role |
-|-------|----------|------|
-| `admin@funnyrent.com` | any | Super Admin |
-| `assistant@test.com` | any | Moderator |
-| `partner@funnyrent.com` | any | Partner |
-| `partner@test.com` | any | Partner |
-| `client@test.com` | any | Renter |
-
----
-
-## 10. PRODUCTION CHECKLIST
-
-| Task | Status | Priority |
-|------|--------|----------|
-| Implement bcrypt password hashing | ❌ | P0 |
-| Add JWT/session tokens | ❌ | P0 |
-| Configure Resend API key | ❌ | P1 |
-| Integrate Stripe payments | ❌ | P1 |
-| Enable TRON API verification | ❌ | P1 |
-| Add rate limiting | ❌ | P2 |
-| Implement CSRF protection | ❌ | P2 |
-| Set up error monitoring (Sentry) | ❌ | P2 |
+| Issue | Workaround | Status |
+|-------|------------|--------|
+| Kubernetes 502 on API routes | Direct Supabase REST calls | PERMANENT |
+| `bookings.metadata` doesn't exist | Don't insert metadata | FIXED |
+| Escaped quotes break Vercel build | Use single quotes in className | PERMANENT |
+| Edge runtime timeouts | Use Node.js runtime for long ops | PERMANENT |
 
 ---
 
-## 11. QUICK REFERENCE
+## 11. Mocked Services
 
-### Test Telegram Alerts
-```bash
-curl -X POST http://localhost:3000/api/v2/telegram/test \
-  -H "Content-Type: application/json" \
-  -d '{"type": "booking"}'  # or "finance" or "partner"
+| Service | Status | Production Replacement |
+|---------|--------|------------------------|
+| Payment Gateway (Stripe) | MOCKED | Stripe API integration |
+| TRON Verification | MOCKED | Trongrid API |
+| Email Notifications | MOCKED | Resend API |
+
+---
+
+## 12. File Checksums (Critical Files)
+
 ```
-
-### Check Database Connection
-```bash
-curl http://localhost:3000/api/v2/telegram/test
-# Returns: { configured: true, bot: {...}, chat: {...} }
-```
-
-### Login as Admin
-```javascript
-localStorage.setItem('funnyrent_user', JSON.stringify({
-  id: 'admin-777',
-  email: 'admin@funnyrent.com',
-  role: 'ADMIN',
-  name: 'Pavel B.'
-}));
+lib/services/pricing.service.js  - Seasonal pricing logic
+app/listings/[id]/page.js        - Booking form + price calc
+app/checkout/[bookingId]/page.js - Direct Supabase fetch
+database/migration_stage_25.sql  - Latest DB schema
 ```
 
 ---
 
-**Document Author:** AI Agent  
-**Review Required By:** Lead Architect  
-**Next Steps:** Implement P0 security items before any public deployment
+**END OF ARCHITECTURAL PASSPORT**
+
+*Any questions about this architecture should be directed to the PRD.md or TECHNICAL_MANIFESTO.md documents.*
