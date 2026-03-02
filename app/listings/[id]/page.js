@@ -167,10 +167,14 @@ export default function ListingDetail({ params }) {
       priceBreakdown: '价格明细',
       nights: '晚',
       night: '晚',
-      total: '总计',
+      total: '应付总额',
       basePrice: '基础价格',
       selectDates: '选择日期计算',
-      avgPerNight: '平均每晚'
+      avgPerNight: '平均每晚',
+      rental: '租金',
+      serviceFee: '服务费',
+      discount: '折扣',
+      deal: '优惠!'
     },
     th: {
       backToSearch: 'กลับไปค้นหา',
