@@ -391,9 +391,11 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     service: 'FunnyRent Telegram Webhook',
-    version: '5.0',
+    version: '5.1',
     runtime: 'nodejs',
-    pattern: 'immediate-response-fire-and-forget',
+    pattern: 'immediate-response-async-processing',
+    commands: ['/start', '/help', '/link <email>', '/status'],
+    features: ['Lazy Realtor (photo → draft)'],
     timestamp: new Date().toISOString()
   });
 }
