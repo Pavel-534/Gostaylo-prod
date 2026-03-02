@@ -165,7 +165,7 @@ export async function POST(request) {
 async function handleStatusCheck(chatId) {
   try {
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?telegram_id=eq.${chatId}&select=id,email,first_name,role`,
+      `${SUPABASE_URL}/rest/v1/profiles?telegram_id=eq.${chatId}&select=id,email,first_name,last_name,role`,
       {
         headers: {
           'apikey': SUPABASE_SERVICE_KEY,
@@ -179,31 +179,32 @@ async function handleStatusCheck(chatId) {
     if (profile) {
       sendTelegram(chatId,
         `✅ <b>Аккаунт привязан</b>\n\n` +
-        `👤 ${profile.first_name || 'N/A'}\n` +
-        `📧 ${profile.email}\n` +
-        `🏷 ${profile.role}\n\n` +
+        `👤 <b>Имя:</b> ${profile.first_name || ''} ${profile.last_name || ''}\n` +
+        `📧 <b>Email:</b> ${profile.email}\n` +
+        `🏷 <b>Роль:</b> ${profile.role}\n\n` +
         `📸 Отправляйте фото для создания черновиков!`
       );
     } else {
       sendTelegram(chatId,
         `❌ <b>Аккаунт не привязан</b>\n\n` +
-        `Используйте команду:\n<code>/link your@email.com</code>`
+        `Чтобы использовать бота, привяжите аккаунт партнёра:\n\n` +
+        `<code>/link ваш@email.com</code>`
       );
     }
   } catch (e) {
     console.error('[STATUS CHECK ERROR]', e);
-    sendTelegram(chatId, `❌ Ошибка проверки статуса`);
+    sendTelegram(chatId, `❌ Ошибка проверки статуса. Попробуйте позже.`);
   }
 }
 
 /**
  * Async: Link Telegram to Partner account
  */
-async function handleLinkAccount(chatId, email, firstName) {
+async function handleLinkAccount(chatId, email, firstName, username) {
   try {
     // Find profile by email
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(email)}&select=id,role,first_name`,
+      `${SUPABASE_URL}/rest/v1/profiles?email=eq.${encodeURIComponent(email)}&select=id,role,first_name,last_name`,
       {
         headers: {
           'apikey': SUPABASE_SERVICE_KEY,
@@ -215,17 +216,24 @@ async function handleLinkAccount(chatId, email, firstName) {
     const profile = profiles?.[0];
 
     if (!profile) {
-      sendTelegram(chatId, `❌ Email <b>${email}</b> не найден в системе`);
+      sendTelegram(chatId, 
+        `❌ <b>Email не найден</b>\n\n` +
+        `Аккаунт <b>${email}</b> не зарегистрирован в системе.\n\n` +
+        `Убедитесь, что вы используете email, указанный при регистрации партнёра.`
+      );
       return;
     }
 
-    if (profile.role !== 'PARTNER' && profile.role !== 'ADMIN') {
-      sendTelegram(chatId, `❌ Только партнёры и админы могут использовать бота`);
+    if (profile.role !== 'PARTNER' && profile.role !== 'ADMIN' && profile.role !== 'MODERATOR') {
+      sendTelegram(chatId, 
+        `❌ <b>Доступ ограничен</b>\n\n` +
+        `Telegram-бот доступен только для партнёров, модераторов и администраторов.`
+      );
       return;
     }
 
     // Update profile with Telegram ID
-    await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${profile.id}`, {
+    const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${profile.id}`, {
       method: 'PATCH',
       headers: {
         'apikey': SUPABASE_SERVICE_KEY,
@@ -234,31 +242,37 @@ async function handleLinkAccount(chatId, email, firstName) {
       },
       body: JSON.stringify({
         telegram_id: String(chatId),
-        telegram_username: firstName,
+        telegram_username: username || firstName,
         telegram_linked_at: new Date().toISOString()
       })
     });
 
-    sendTelegram(chatId,
-      `✅ <b>Аккаунт привязан!</b>\n\n` +
-      `👤 ${profile.first_name || email}\n` +
-      `🏷 ${profile.role}\n\n` +
-      `📸 Теперь отправляйте фото для создания черновиков!`
-    );
+    if (updateRes.ok) {
+      sendTelegram(chatId,
+        `✅ <b>Аккаунт успешно привязан!</b>\n\n` +
+        `👤 <b>Имя:</b> ${profile.first_name || ''} ${profile.last_name || ''}\n` +
+        `📧 <b>Email:</b> ${email}\n` +
+        `🏷 <b>Роль:</b> ${profile.role}\n\n` +
+        `📸 <b>Lazy Realtor активирован!</b>\n` +
+        `Отправьте фото с описанием для создания черновика.`
+      );
+    } else {
+      throw new Error('Update failed');
+    }
   } catch (e) {
     console.error('[LINK ERROR]', e);
-    sendTelegram(chatId, `❌ Ошибка привязки аккаунта`);
+    sendTelegram(chatId, `❌ Ошибка привязки аккаунта. Попробуйте позже.`);
   }
 }
 
 /**
- * Async: Process photo and create listing draft
+ * Async: Process photo and create listing draft (Lazy Realtor)
  */
-async function handlePhotoUpload(chatId, message) {
+async function handlePhotoUpload(chatId, message, firstName) {
   try {
     // Check if user is linked
     const partnerRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?telegram_id=eq.${chatId}&select=id,role,first_name`,
+      `${SUPABASE_URL}/rest/v1/profiles?telegram_id=eq.${chatId}&select=id,role,first_name,last_name`,
       {
         headers: {
           'apikey': SUPABASE_SERVICE_KEY,
@@ -271,14 +285,15 @@ async function handlePhotoUpload(chatId, message) {
 
     if (!partner || (partner.role !== 'PARTNER' && partner.role !== 'ADMIN')) {
       sendTelegram(chatId,
-        `❌ <b>Сначала привяжите аккаунт</b>\n\n` +
-        `Используйте: <code>/link your@email.com</code>`
+        `❌ <b>Аккаунт не привязан</b>\n\n` +
+        `Чтобы использовать Lazy Realtor, сначала привяжите аккаунт:\n\n` +
+        `<code>/link ваш@email.com</code>`
       );
       return;
     }
 
-    // Notify user we're processing
-    sendTelegram(chatId, `🏝 <b>Создаём черновик...</b>`);
+    // Immediate confirmation
+    sendTelegram(chatId, `🏝 <b>Создаём черновик...</b>\n\nПодождите несколько секунд.`);
 
     const photo = message.photo;
     const caption = message.caption || '';
@@ -289,17 +304,23 @@ async function handlePhotoUpload(chatId, message) {
     try {
       const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
       const fileData = await fileRes.json();
-      if (fileData.ok) {
+      if (fileData.ok && fileData.result?.file_path) {
         photoUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileData.result.file_path}`;
       }
-    } catch {}
+    } catch (e) {
+      console.error('[GET FILE ERROR]', e);
+    }
 
-    // Parse price from caption (e.g., "25000 thb" or "฿25000")
-    const priceMatch = caption.match(/(\d+)\s*(thb|бат|฿|baht)/i);
-    const price = priceMatch ? parseInt(priceMatch[1]) : 10000;
+    // Parse price from caption (e.g., "25000 thb", "฿25000", "25000 бат")
+    const priceMatch = caption.match(/(\d[\d\s]*)\s*(thb|бат|฿|baht)/i);
+    const price = priceMatch ? parseInt(priceMatch[1].replace(/\s/g, '')) : 10000;
 
-    // Extract title (first line of caption)
-    const title = caption.split('\n')[0]?.substring(0, 100) || 'Объект из Telegram';
+    // Extract title (first line of caption, max 100 chars)
+    const lines = caption.split('\n').filter(l => l.trim());
+    const title = lines[0]?.substring(0, 100) || `Объект от ${firstName}`;
+    
+    // Description is everything after the first line
+    const description = lines.slice(1).join('\n') || caption || 'Создано через Telegram Lazy Realtor';
 
     // Create listing draft
     const listingId = `lst-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 5)}`;
@@ -318,16 +339,17 @@ async function handlePhotoUpload(chatId, message) {
         category_id: '1',
         status: 'DRAFT',
         title,
-        description: caption || 'Создано через Telegram',
+        description,
         district: 'Phuket',
         base_price_thb: price,
         commission_rate: 15,
         images: photoUrl ? [photoUrl] : [],
         cover_image: photoUrl,
         metadata: {
-          source: 'TELEGRAM_BOT',
+          source: 'TELEGRAM_LAZY_REALTOR',
           is_draft: true,
           telegram_chat_id: chatId,
+          created_by: partner.first_name || firstName,
           created_at: new Date().toISOString()
         },
         available: false,
@@ -337,20 +359,27 @@ async function handlePhotoUpload(chatId, message) {
     });
 
     if (listingRes.ok) {
+      const created = await listingRes.json();
       sendTelegram(chatId,
         `✅ <b>Черновик создан!</b>\n\n` +
-        `📝 ${title}\n` +
-        `💰 ${price.toLocaleString()} THB\n\n` +
-        `✏️ Отредактируйте в личном кабинете и отправьте на модерацию.`
+        `📝 <b>Название:</b> ${title}\n` +
+        `💰 <b>Цена:</b> ฿${price.toLocaleString()} / ночь\n` +
+        `📸 <b>Фото:</b> ${photoUrl ? '✓' : '✗'}\n\n` +
+        `🔗 <b>ID:</b> <code>${listingId}</code>\n\n` +
+        `✏️ Отредактируйте в личном кабинете и отправьте на модерацию.\n\n` +
+        `📸 Отправьте ещё фото для следующего объекта!`
       );
     } else {
       const error = await listingRes.text();
       console.error('[LISTING CREATE ERROR]', error);
-      sendTelegram(chatId, `❌ Ошибка создания черновика`);
+      sendTelegram(chatId, 
+        `❌ <b>Ошибка создания черновика</b>\n\n` +
+        `Попробуйте ещё раз или обратитесь в поддержку.`
+      );
     }
   } catch (e) {
     console.error('[PHOTO UPLOAD ERROR]', e);
-    sendTelegram(chatId, `❌ Ошибка обработки фото`);
+    sendTelegram(chatId, `❌ Ошибка обработки фото. Попробуйте ещё раз.`);
   }
 }
 
