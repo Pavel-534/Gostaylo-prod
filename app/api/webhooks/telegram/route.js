@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Telegram Webhook v5.2
+ * FunnyRent 2.1 - Telegram Webhook v5.4
  * 
  * CRITICAL ROUTE - Must be PUBLIC (no auth required)
  * 
@@ -9,7 +9,7 @@
  * Commands: /start, /help, /link <email>, /status
  * Feature: Lazy Realtor (photo → draft listing)
  * 
- * DB Column: base_price_thb (verified against Supabase schema)
+ * DB Column: base_price_thb (verified against live Supabase schema 2026-03-02)
  */
 
 import { NextResponse } from 'next/server';
@@ -23,8 +23,11 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8702569258:AAFuj-Ob9otOVf6K
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
 
+// Production URL for links
+const APP_URL = 'https://funnyrent.vercel.app';
+
 /**
- * Send Telegram message (async)
+ * Send Telegram message (async with error handling)
  */
 async function sendTelegram(chatId, text, options = {}) {
   try {
@@ -35,14 +38,39 @@ async function sendTelegram(chatId, text, options = {}) {
         chat_id: chatId,
         text,
         parse_mode: 'HTML',
+        disable_web_page_preview: true,
         ...options
       })
     });
-    return response.ok;
+    const result = await response.json();
+    if (!result.ok) {
+      console.error('[TELEGRAM API ERROR]', result.description);
+    }
+    return result.ok;
   } catch (e) {
     console.error('[TELEGRAM SEND ERROR]', e.message);
     return false;
   }
+}
+
+/**
+ * Extract email from /link command using regex
+ * Handles: "/link pavel@mail.ru", "/link  pavel@mail.ru  ", "/link@bot pavel@mail.ru"
+ */
+function extractEmailFromLinkCommand(text) {
+  // Remove the command part and any bot mention
+  const cleanText = text.replace(/^\/link(@\w+)?\s*/i, '').trim();
+  
+  // Match email pattern
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  
+  if (emailRegex.test(cleanText)) {
+    return cleanText.toLowerCase();
+  }
+  
+  // Try to find email anywhere in the remaining text
+  const emailMatch = cleanText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  return emailMatch ? emailMatch[0].toLowerCase() : null;
 }
 
 /**
@@ -74,7 +102,7 @@ export async function POST(request) {
     const username = message.from?.username || '';
     const photo = message.photo;
     
-    console.log(`[WEBHOOK v5.2] Chat: ${chatId}, User: ${firstName}, Text: ${text?.substring(0, 50)}`);
+    console.log(`[WEBHOOK v5.4] Chat: ${chatId}, User: ${firstName}, Text: ${text?.substring(0, 50)}`);
     
     // =====================
     // COMMAND HANDLERS
@@ -87,7 +115,8 @@ export async function POST(request) {
         '1. <b>Привязка:</b> <code>/link email@test.com</code>\n' +
         '2. <b>Статус:</b> <code>/status</code>\n' +
         '3. <b>Lazy Realtor:</b> Отправьте фото с описанием (например: "Вилла на Раваи, 25000 THB") для создания черновика.\n' +
-        '4. <b>Помощь:</b> <code>/help</code>'
+        '4. <b>Помощь:</b> <code>/help</code>\n\n' +
+        `🌐 <b>Личный кабинет:</b> ${APP_URL}`
       );
       return NextResponse.json({ ok: true });
     }
@@ -113,17 +142,22 @@ export async function POST(request) {
       return NextResponse.json({ ok: true });
     }
     
-    // /link <email>
+    // /link <email> - with improved email extraction
     if (text.startsWith('/link')) {
-      const email = text.replace('/link', '').trim().toLowerCase();
-      if (!email || !email.includes('@')) {
+      const email = extractEmailFromLinkCommand(text);
+      
+      if (!email) {
         await sendTelegram(chatId,
-          '❌ <b>Неверный формат</b>\n\n' +
+          '❌ <b>Неверный формат email</b>\n\n' +
           'Используйте: <code>/link ваш@email.com</code>\n\n' +
-          'Пример: <code>/link partner@funnyrent.com</code>'
+          'Примеры:\n' +
+          '• <code>/link pavel@mail.ru</code>\n' +
+          '• <code>/link partner@funnyrent.com</code>'
         );
         return NextResponse.json({ ok: true });
       }
+      
+      console.log(`[LINK] Extracted email: ${email}`);
       await handleLinkAccount(chatId, email, firstName, username);
       return NextResponse.json({ ok: true });
     }
@@ -181,7 +215,8 @@ async function handleStatusCheck(chatId) {
         `👤 <b>Имя:</b> ${profile.first_name || ''} ${profile.last_name || ''}\n` +
         `📧 <b>Email:</b> ${profile.email}\n` +
         `🏷 <b>Роль:</b> ${profile.role}\n\n` +
-        '📸 Отправляйте фото для создания черновиков!'
+        '📸 Отправляйте фото для создания черновиков!\n\n' +
+        `🌐 <b>Личный кабинет:</b> ${APP_URL}`
       );
     } else {
       await sendTelegram(chatId,
@@ -253,7 +288,8 @@ async function handleLinkAccount(chatId, email, firstName, username) {
         `📧 <b>Email:</b> ${email}\n` +
         `🏷 <b>Роль:</b> ${profile.role}\n\n` +
         '📸 <b>Lazy Realtor активирован!</b>\n' +
-        'Отправьте фото с описанием для создания черновика.'
+        'Отправьте фото с описанием для создания черновика.\n\n' +
+        `🌐 <b>Личный кабинет:</b> ${APP_URL}`
       );
     } else {
       throw new Error('Update failed');
@@ -266,7 +302,9 @@ async function handleLinkAccount(chatId, email, firstName, username) {
 
 /**
  * Process photo and create listing draft (Lazy Realtor)
- * DB Column: base_price_thb (confirmed in Supabase schema)
+ * 
+ * IMPORTANT: Uses base_price_thb column (verified 2026-03-02)
+ * The column "base_price" does NOT exist in the DB schema.
  */
 async function handlePhotoUpload(chatId, message, firstName) {
   try {
@@ -292,7 +330,7 @@ async function handlePhotoUpload(chatId, message, firstName) {
       return;
     }
 
-    // Immediate confirmation
+    // Send immediate confirmation
     await sendTelegram(chatId, '🏝 <b>Создаём черновик...</b>\n\nПодождите несколько секунд.');
 
     const photo = message.photo;
@@ -306,12 +344,13 @@ async function handlePhotoUpload(chatId, message, firstName) {
       const fileData = await fileRes.json();
       if (fileData.ok && fileData.result?.file_path) {
         photoUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileData.result.file_path}`;
+        console.log(`[LAZY REALTOR] Photo URL: ${photoUrl}`);
       }
     } catch (e) {
       console.error('[GET FILE ERROR]', e);
     }
 
-    // Parse price from caption (e.g., "25000 thb", "฿25000", "25000 бат")
+    // Parse price from caption (e.g., "25000 thb", "฿25000", "25000 бат", "25 000 thb")
     const priceMatch = caption.match(/(\d[\d\s]*)\s*(thb|бат|฿|baht)/i);
     const price = priceMatch ? parseInt(priceMatch[1].replace(/\s/g, '')) : 10000;
 
@@ -322,10 +361,13 @@ async function handlePhotoUpload(chatId, message, firstName) {
     // Description is everything after the first line
     const description = lines.slice(1).join('\n') || caption || 'Создано через Telegram Lazy Realtor';
 
-    // Create listing draft
+    // Create listing draft with unique ID
     const listingId = `lst-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 5)}`;
     
-    // IMPORTANT: Use base_price_thb (confirmed column name in Supabase)
+    console.log(`[LAZY REALTOR] Creating draft: ${listingId}, Title: ${title}, Price: ${price}`);
+    
+    // Create the listing in Supabase
+    // CRITICAL: Column is base_price_thb (NOT base_price)
     const listingRes = await fetch(`${SUPABASE_URL}/rest/v1/listings`, {
       method: 'POST',
       headers: {
@@ -342,14 +384,14 @@ async function handlePhotoUpload(chatId, message, firstName) {
         title,
         description,
         district: 'Phuket',
-        base_price_thb: price,  // Correct column name (verified in DB)
+        base_price_thb: price,  // CORRECT column name (verified in live DB)
         commission_rate: 15,
         images: photoUrl ? [photoUrl] : [],
         cover_image: photoUrl,
         metadata: {
           source: 'TELEGRAM_LAZY_REALTOR',
           is_draft: true,
-          telegram_chat_id: chatId,
+          telegram_chat_id: String(chatId),
           created_by: partner.first_name || firstName,
           created_at: new Date().toISOString()
         },
@@ -359,22 +401,28 @@ async function handlePhotoUpload(chatId, message, firstName) {
       })
     });
 
+    // Wait for Supabase response and send success confirmation
     if (listingRes.ok) {
+      const created = await listingRes.json();
+      console.log(`[LAZY REALTOR] Created successfully: ${created?.[0]?.id || listingId}`);
+      
+      // SUCCESS CONFIRMATION with website link
       await sendTelegram(chatId,
-        '✅ <b>Черновик создан!</b>\n\n' +
+        '✅ <b>Черновик успешно создан!</b>\n\n' +
         `📝 <b>Название:</b> ${title}\n` +
         `💰 <b>Цена:</b> ฿${price.toLocaleString()} / ночь\n` +
-        `📸 <b>Фото:</b> ${photoUrl ? '✓' : '✗'}\n\n` +
-        `🔗 <b>ID:</b> <code>${listingId}</code>\n\n` +
-        '✏️ Отредактируйте в личном кабинете и отправьте на модерацию.\n\n' +
+        `📸 <b>Фото:</b> ${photoUrl ? '✓ Загружено' : '✗ Не удалось загрузить'}\n\n` +
+        `🔗 <b>Отредактируйте его в Личном Кабинете:</b>\n${APP_URL}\n\n` +
         '📸 Отправьте ещё фото для следующего объекта!'
       );
     } else {
-      const error = await listingRes.text();
-      console.error('[LISTING CREATE ERROR]', error);
+      const errorText = await listingRes.text();
+      console.error('[LISTING CREATE ERROR]', errorText);
+      
       await sendTelegram(chatId,
         '❌ <b>Ошибка создания черновика</b>\n\n' +
-        'Попробуйте ещё раз или обратитесь в поддержку.'
+        'Попробуйте ещё раз или обратитесь в поддержку.\n\n' +
+        `📧 support@funnyrent.com`
       );
     }
   } catch (e) {
@@ -391,12 +439,13 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     service: 'FunnyRent Telegram Webhook',
-    version: '5.2',
+    version: '5.4',
     runtime: 'nodejs',
     pattern: 'immediate-response-async-processing',
     commands: ['/start', '/help', '/link <email>', '/status'],
     features: ['Lazy Realtor (photo → draft)'],
     db_column: 'base_price_thb',
+    app_url: APP_URL,
     timestamp: new Date().toISOString()
   });
 }
