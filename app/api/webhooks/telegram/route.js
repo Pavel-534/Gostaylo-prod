@@ -1,10 +1,13 @@
 /**
- * FunnyRent 2.1 - Telegram Webhook v5.0
+ * FunnyRent 2.1 - Telegram Webhook v5.1
  * 
  * CRITICAL ROUTE - Must be PUBLIC (no auth required)
  * 
  * Pattern: Immediate Response + Fire-and-Forget
  * Runtime: Node.js (more stable than Edge for production)
+ * 
+ * Commands: /start, /help, /link <email>, /status
+ * Feature: Lazy Realtor (photo → draft listing)
  */
 
 import { NextResponse } from 'next/server';
@@ -19,26 +22,32 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vtzzcdsjwu
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
 
 /**
- * Fire-and-forget fetch (no await, non-blocking)
+ * Send Telegram message with retry
  */
-function fireAndForget(url, options) {
-  fetch(url, options).catch(err => console.error('[FIRE&FORGET ERROR]', err.message));
+async function sendTelegramAsync(chatId, text, options = {}) {
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text,
+        parse_mode: 'HTML',
+        ...options
+      })
+    });
+    return response.ok;
+  } catch (e) {
+    console.error('[TELEGRAM SEND ERROR]', e.message);
+    return false;
+  }
 }
 
 /**
- * Send Telegram message (fire-and-forget)
+ * Fire-and-forget Telegram send (non-blocking)
  */
 function sendTelegram(chatId, text, options = {}) {
-  fireAndForget(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text,
-      parse_mode: 'HTML',
-      ...options
-    })
-  });
+  sendTelegramAsync(chatId, text, options).catch(() => {});
 }
 
 /**
@@ -57,7 +66,6 @@ export async function POST(request) {
   // Step 2: Extract message basics
   const message = update?.message;
   if (!message) {
-    // Could be callback_query, edited_message, etc.
     return NextResponse.json({ ok: true });
   }
 
@@ -69,40 +77,53 @@ export async function POST(request) {
   const chatId = message.chat.id;
   const text = message.text || message.caption || '';
   const firstName = message.from?.first_name || 'User';
+  const username = message.from?.username || '';
   const photo = message.photo;
 
-  // Step 3: Handle commands (return 200 immediately, process async)
+  console.log(`[WEBHOOK] Chat: ${chatId}, User: ${firstName}, Text: ${text?.substring(0, 50)}`);
+
+  // Step 3: Handle commands
   
   if (text.startsWith('/start')) {
     sendTelegram(chatId,
       `🌴 <b>Aloha, ${firstName}!</b>\n\n` +
-      `Добро пожаловать в <b>FunnyRent</b>!\n\n` +
+      `Добро пожаловать в <b>FunnyRent</b> — платформу для аренды недвижимости на Пхукете!\n\n` +
       `📸 <b>Lazy Realtor</b>\n` +
-      `Отправьте фото + описание для черновика.\n\n` +
+      `Отправьте фото + описание → получите черновик объявления.\n\n` +
       `📋 <b>Команды:</b>\n` +
-      `/help — Справка\n` +
+      `/help — Подробная справка\n` +
       `/link email — Привязать аккаунт\n` +
-      `/status — Статус привязки`
+      `/status — Проверить привязку`
     );
     return NextResponse.json({ ok: true });
   }
 
   if (text.startsWith('/help')) {
     sendTelegram(chatId,
-      `📖 <b>Помощь FunnyRent</b>\n\n` +
-      `<b>Команды:</b>\n` +
-      `/start — Начать работу\n` +
+      `📖 <b>FunnyRent Bot — Справка</b>\n\n` +
+      `<b>🔗 Привязка аккаунта:</b>\n` +
+      `1. Зарегистрируйтесь как партнёр на сайте\n` +
+      `2. Отправьте: <code>/link ваш@email.com</code>\n` +
+      `3. Готово! Теперь доступен Lazy Realtor\n\n` +
+      `<b>📸 Lazy Realtor:</b>\n` +
+      `Быстрое создание черновика объявления:\n` +
+      `1. Отправьте <b>фото</b> объекта\n` +
+      `2. Добавьте <b>описание</b> в подписи:\n` +
+      `   • Первая строка = название\n` +
+      `   • Цена: <code>25000 thb</code> или <code>฿25000</code>\n` +
+      `3. Бот создаст черновик автоматически\n` +
+      `4. Отредактируйте в личном кабинете\n\n` +
+      `<b>📋 Все команды:</b>\n` +
+      `/start — Приветствие\n` +
       `/help — Эта справка\n` +
-      `/link email — Привязать аккаунт партнёра\n` +
-      `/status — Проверить привязку\n\n` +
-      `<b>Lazy Realtor:</b>\n` +
-      `Отправьте фото с описанием → автоматический черновик объявления!`
+      `/link email — Привязать аккаунт\n` +
+      `/status — Статус привязки\n\n` +
+      `❓ Вопросы? Напишите в поддержку.`
     );
     return NextResponse.json({ ok: true });
   }
 
   if (text.startsWith('/status')) {
-    // Fire-and-forget status check
     handleStatusCheck(chatId);
     return NextResponse.json({ ok: true });
   }
@@ -110,29 +131,31 @@ export async function POST(request) {
   if (text.startsWith('/link')) {
     const email = text.replace('/link', '').trim().toLowerCase();
     if (!email || !email.includes('@')) {
-      sendTelegram(chatId, `❌ Формат: <code>/link your@email.com</code>`);
+      sendTelegram(chatId, 
+        `❌ <b>Неверный формат</b>\n\n` +
+        `Используйте: <code>/link ваш@email.com</code>\n\n` +
+        `Пример: <code>/link partner@funnyrent.com</code>`
+      );
       return NextResponse.json({ ok: true });
     }
-    // Fire-and-forget account linking
-    handleLinkAccount(chatId, email, firstName);
+    handleLinkAccount(chatId, email, firstName, username);
     return NextResponse.json({ ok: true });
   }
 
   if (photo && photo.length > 0) {
-    // Fire-and-forget photo processing
-    handlePhotoUpload(chatId, message);
+    handlePhotoUpload(chatId, message, firstName);
     return NextResponse.json({ ok: true });
   }
 
   // Default response for text without command
   if (text && !text.startsWith('/')) {
     sendTelegram(chatId,
-      `📸 Отправьте <b>фото</b> с описанием для создания черновика!\n\n` +
+      `📸 Отправьте <b>фото с описанием</b> для создания черновика!\n\n` +
+      `💡 <b>Совет:</b> добавьте цену в подписи (например: <code>35000 thb</code>)\n\n` +
       `/help — справка по командам`
     );
   }
 
-  // Always return 200 immediately
   return NextResponse.json({ ok: true });
 }
 
