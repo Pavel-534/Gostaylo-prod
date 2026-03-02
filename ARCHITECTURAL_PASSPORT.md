@@ -1,8 +1,43 @@
 # FunnyRent 2.1 — Architectural Passport
 
-> **Version**: 2.1.0 | **Last Updated**: 2026-03-01 | **Status**: Production-Ready
+> **Version**: 2.1.1 | **Last Updated**: 2026-03-02 | **Status**: Production-Ready
 > 
 > This document is the **absolute source of truth** for all technical decisions, database schemas, and development standards. Any AI agent working on this codebase MUST read this document first.
+
+---
+
+## 0. Critical Routes & Services
+
+### 0.1 CRITICAL: Telegram Webhook
+```
+Route: /api/webhooks/telegram
+Status: PUBLIC (no auth required)
+Runtime: nodejs
+Pattern: Immediate Response + Fire-and-Forget
+```
+
+**This route MUST:**
+- Return 200 OK immediately (within 100ms)
+- Process all logic asynchronously (fire-and-forget)
+- Never await external API calls before returning
+- Be excluded from any auth middleware
+
+### 0.2 Notification Topics (Telegram)
+| Topic | Thread ID | Purpose |
+|-------|-----------|---------|
+| BOOKINGS | 15 | New bookings, confirmations |
+| FINANCE | 16 | Payments, payouts |
+| NEW_PARTNERS | 17 | Partner registrations |
+
+### 0.3 Escrow Security Message
+```
+🔒 Ваши средства защищены системой Эскроу FunnyRent и выплачиваются 
+владельцу только после подтверждения заселения.
+```
+**This message MUST appear in:**
+- Payment confirmation emails
+- Booking confirmation pages
+- Payment success notifications
 
 ---
 
@@ -18,7 +53,7 @@
 | Storage | Supabase Storage | - |
 | UI | Tailwind CSS + Shadcn/UI | 3.4.1 |
 | State | React Hooks | 18.x |
-| Notifications | Telegram Bot API | - |
+| Notifications | Telegram Bot API + Resend | - |
 | Deployment | Vercel | - |
 
 ### 1.2 Directory Structure
@@ -31,14 +66,15 @@
 │   ├── partner/                  # Partner dashboard routes
 │   └── api/                      # API routes
 │       ├── v2/                   # Version 2 API endpoints
-│       ├── webhooks/             # Webhook handlers
+│       ├── webhooks/             # Webhook handlers (CRITICAL)
+│       │   └── telegram/         # Telegram bot webhook
 │       └── [[...path]]/          # Legacy catch-all (deprecated)
 ├── lib/
 │   ├── services/                 # Business logic services
 │   │   ├── pricing.service.js    # Seasonal pricing calculator
 │   │   ├── booking.service.js    # Booking management
 │   │   ├── payment.service.js    # Payment processing (MOCKED)
-│   │   └── notification.service.js
+│   │   └── notification.service.js # Telegram + Email dispatcher
 │   ├── supabase.js               # Supabase client instances
 │   └── currency.js               # Currency formatting
 ├── components/
