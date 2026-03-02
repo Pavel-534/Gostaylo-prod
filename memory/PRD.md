@@ -1,5 +1,14 @@
 # FunnyRent 2.1 - Product Requirements Document
 
+## Documentation
+
+### Source of Truth Documents
+1. **`/app/ARCHITECTURAL_PASSPORT.md`** — Complete technical reference (DB schema, APIs, standards)
+2. **`/app/memory/PRD.md`** — Product requirements and changelog
+3. **`/app/docs/TECHNICAL_MANIFESTO.md`** — Extended technical documentation
+
+---
+
 ## Latest Update: 2026-03-01 - Booking Submission Fix Complete ✅
 
 ### Booking Form Fix (2026-03-01)
