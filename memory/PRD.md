@@ -9,6 +9,35 @@
 
 ---
 
+## Latest Update: 2026-03-02 - Unified Pricing & Mobile UI Fix ✅
+
+### Pricing Unification (2026-03-02)
+
+#### Problem Solved
+- **Price Mismatch**: Booking modal showed ฿175,000 but checkout showed ฿201,250 (+15% fee)
+- **User Surprise**: Hidden service fee was frustrating for users
+
+#### Solution ✅
+- Booking modal now includes 15% service fee in the price breakdown
+- "Total to Pay" in modal matches checkout page exactly
+- Smart discount display shows strikethrough for low season pricing
+
+#### Price Breakdown Display
+```
+Rental cost (5 nights):     ฿175,000
+Service fee (15%):          ฿26,250
+─────────────────────────────────────
+Total to Pay:               ฿201,250
+```
+
+### Mobile Responsiveness (2026-03-02) ✅
+- Modal: `max-h-[90vh] overflow-y-auto`
+- Touch-friendly inputs: `h-12` height
+- 2-column date layout on mobile
+- Scrollable price breakdown section
+
+---
+
 ## Latest Update: 2026-03-01 - Booking Submission Fix Complete ✅
 
 ### Booking Form Fix (2026-03-01)
