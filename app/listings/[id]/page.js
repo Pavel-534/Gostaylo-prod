@@ -225,7 +225,10 @@ export default function ListingDetail({ params }) {
   // Get current language labels
   const t = labels[language] || labels.ru
   
-  // Calculate price when dates change
+  // Service fee rate (15%)
+  const SERVICE_FEE_RATE = 0.15
+  
+  // Calculate price when dates change - includes service fee
   useEffect(() => {
     if (listing && checkIn && checkOut) {
       const seasonalPricing = listing.metadata?.seasonal_pricing || []
@@ -235,7 +238,32 @@ export default function ListingDetail({ params }) {
         checkOut,
         seasonalPricing
       )
-      setPriceCalc(result.error ? null : result)
+      
+      if (!result.error) {
+        // Calculate base price without seasonal adjustments for comparison
+        const baseTotalWithoutSeasonal = listing.basePriceThb * result.nights
+        
+        // Calculate service fee
+        const serviceFee = Math.round(result.totalPrice * SERVICE_FEE_RATE)
+        const grandTotal = result.totalPrice + serviceFee
+        
+        // Determine if this is a discount (seasonal price < base price)
+        const isDiscount = result.totalPrice < baseTotalWithoutSeasonal
+        const discountAmount = isDiscount ? baseTotalWithoutSeasonal - result.totalPrice : 0
+        const surchargeAmount = !isDiscount ? result.totalPrice - baseTotalWithoutSeasonal : 0
+        
+        setPriceCalc({
+          ...result,
+          baseTotalWithoutSeasonal,
+          serviceFee,
+          grandTotal,
+          isDiscount,
+          discountAmount,
+          surchargeAmount
+        })
+      } else {
+        setPriceCalc(null)
+      }
     } else {
       setPriceCalc(null)
     }
