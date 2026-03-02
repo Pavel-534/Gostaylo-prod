@@ -79,10 +79,14 @@ export default function ListingDetail({ params }) {
       priceBreakdown: 'Расчёт стоимости',
       nights: 'ночей',
       night: 'ночь',
-      total: 'Итого',
+      total: 'Итого к оплате',
       basePrice: 'Базовая цена',
       selectDates: 'Выберите даты для расчёта',
-      avgPerNight: 'в среднем за ночь'
+      avgPerNight: 'в среднем за ночь',
+      rental: 'Стоимость аренды',
+      serviceFee: 'Сервисный сбор',
+      discount: 'Скидка',
+      deal: 'Выгодно!'
     },
     en: {
       backToSearch: 'Back to search',
