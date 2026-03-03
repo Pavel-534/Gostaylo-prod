@@ -10,9 +10,10 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, CreditCard, Wallet, Loader2, CheckCircle2, Copy, QrCode, ExternalLink, AlertCircle } from 'lucide-react'
+import { ArrowLeft, CreditCard, Wallet, Loader2, CheckCircle2, Copy, ExternalLink, AlertCircle, Smartphone } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
+import { QRCodeSVG } from 'qrcode.react'
 
 // Official FunnyRent USDT TRC-20 Wallet Address
 const FUNNYRENT_WALLET = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
@@ -606,7 +607,7 @@ export default function CheckoutPage({ params }) {
           </div>
         </div>
 
-        {/* Crypto Payment Modal - USDT TRC-20 */}
+        {/* Crypto Payment Modal - USDT TRC-20 with QR Code */}
         <Dialog open={cryptoModalOpen} onOpenChange={setCryptoModalOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -627,6 +628,23 @@ export default function CheckoutPage({ params }) {
                   Отправляйте <strong>только USDT</strong> через сеть <strong>TRC-20 (Tron)</strong>. 
                   Перевод других токенов или через другие сети приведёт к потере средств.
                 </p>
+              </div>
+
+              {/* QR Code Section */}
+              <div className="flex flex-col items-center">
+                <div className="bg-white p-4 rounded-xl border-2 border-slate-200 shadow-sm">
+                  <QRCodeSVG 
+                    value={FUNNYRENT_WALLET}
+                    size={180}
+                    level="H"
+                    includeMargin={true}
+                    data-testid="wallet-qr-code"
+                  />
+                </div>
+                <div className="mt-3 flex items-center gap-2 text-slate-600">
+                  <Smartphone className="h-4 w-4" />
+                  <span className="text-sm">Сканируйте кошельком (TRC-20)</span>
+                </div>
               </div>
 
               {/* Wallet Address with Copy */}
@@ -722,6 +740,8 @@ export default function CheckoutPage({ params }) {
                     ? 'bg-green-50 border-green-200' 
                     : liveVerification.status === 'PENDING'
                     ? 'bg-yellow-50 border-yellow-200'
+                    : liveVerification.status === 'UNDERPAID'
+                    ? 'bg-orange-50 border-orange-200'
                     : 'bg-red-50 border-red-200'
                 }`}>
                   <div className="flex items-center gap-2 mb-2">
@@ -735,9 +755,10 @@ export default function CheckoutPage({ params }) {
                     <span className={`font-semibold ${
                       liveVerification.success ? 'text-green-800' 
                       : liveVerification.status === 'PENDING' ? 'text-yellow-800'
+                      : liveVerification.status === 'UNDERPAID' ? 'text-orange-800'
                       : 'text-red-800'
                     }`}>
-                      {liveVerification.badge?.label || liveVerification.status}
+                      {liveVerification.badge?.labelRu || liveVerification.badge?.label || liveVerification.status}
                     </span>
                   </div>
                   {liveVerification.data && (
@@ -746,6 +767,26 @@ export default function CheckoutPage({ params }) {
                       <p>Кому: <code className="text-xs">{liveVerification.data.to}</code></p>
                       {liveVerification.data.amount > 0 && (
                         <p>Сумма: <strong>{liveVerification.data.amount} {liveVerification.data.token}</strong></p>
+                      )}
+                      {/* Amount Verification Details */}
+                      {liveVerification.amountVerification && (
+                        <div className={`mt-2 p-2 rounded ${
+                          liveVerification.amountVerification.sufficient ? 'bg-green-100' : 'bg-red-100'
+                        }`}>
+                          <p className="text-xs font-medium">
+                            Получено: {liveVerification.amountVerification.received} USDT
+                          </p>
+                          {liveVerification.amountVerification.expected && (
+                            <p className="text-xs">
+                              Ожидалось: {liveVerification.amountVerification.expected} USDT
+                            </p>
+                          )}
+                          {liveVerification.amountVerification.difference !== 0 && (
+                            <p className={`text-xs ${liveVerification.amountVerification.difference > 0 ? 'text-green-700' : 'text-red-700'}`}>
+                              Разница: {liveVerification.amountVerification.difference > 0 ? '+' : ''}{liveVerification.amountVerification.difference} USDT
+                            </p>
+                          )}
+                        </div>
                       )}
                       {!liveVerification.data.isCorrectWallet && (
                         <p className="text-orange-600 font-medium">⚠️ Неверный адрес получателя!</p>

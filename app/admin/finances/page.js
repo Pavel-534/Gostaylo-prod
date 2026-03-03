@@ -33,7 +33,10 @@ const STATUS_CONFIG = {
   PENDING: { label: 'Ожидает', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   VERIFYING: { label: 'Проверка', color: 'bg-blue-100 text-blue-800', icon: Loader2 },
   CONFIRMED: { label: 'Подтверждён', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+  COMPLETED: { label: 'Завершён', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   FAILED: { label: 'Ошибка', color: 'bg-red-100 text-red-800', icon: XCircle },
+  UNDERPAID: { label: 'Недоплата', color: 'bg-orange-100 text-orange-800', icon: AlertCircle },
+  INVALID_RECIPIENT: { label: 'Неверный получатель', color: 'bg-red-100 text-red-800', icon: XCircle },
   REFUNDED: { label: 'Возврат', color: 'bg-gray-100 text-gray-800', icon: RefreshCw }
 }
 
@@ -87,7 +90,7 @@ export default function FinancePage() {
     }
   }
 
-  async function handleVerifyTron(txid) {
+  async function handleVerifyTron(txid, expectedAmountThb = null) {
     setVerifying(true)
     setVerificationResult(null)
 
@@ -95,7 +98,10 @@ export default function FinancePage() {
       const res = await fetch('/api/v2/payments/verify-tron', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ txid })
+        body: JSON.stringify({ 
+          txid,
+          expectedAmountThb: expectedAmountThb ? parseFloat(expectedAmountThb) * 1.15 : null  // Include 15% service fee
+        })
       })
 
       const data = await res.json()
@@ -105,6 +111,10 @@ export default function FinancePage() {
         toast({ title: '✅ Транзакция подтверждена', description: `Сумма: ${data.data?.amount} ${data.data?.token}` })
       } else if (data.status === 'PENDING') {
         toast({ title: '⏳ Ожидает подтверждения', description: 'Транзакция ещё не подтверждена сетью' })
+      } else if (data.status === 'UNDERPAID') {
+        toast({ title: '⚠️ Недоплата', description: `Получено меньше ожидаемого`, variant: 'warning' })
+      } else if (data.status === 'INVALID_RECIPIENT') {
+        toast({ title: '❌ Неверный получатель', description: 'Транзакция отправлена на другой кошелёк', variant: 'destructive' })
       } else {
         toast({ title: 'Ошибка верификации', description: data.error || data.status, variant: 'destructive' })
       }
@@ -451,7 +461,7 @@ export default function FinancePage() {
                 </Card>
 
                 {/* TXID Info for Crypto */}
-                {selectedPayment.payment_method === 'USDT_TRC20' && selectedPayment.txid && (
+                {(selectedPayment.payment_method === 'USDT_TRC20' || selectedPayment.payment_method === 'CRYPTO') && selectedPayment.txid && (
                   <Card>
                     <CardContent className="p-4 space-y-3">
                       <h4 className="font-semibold flex items-center gap-2">
@@ -469,7 +479,7 @@ export default function FinancePage() {
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
-                          onClick={() => handleVerifyTron(selectedPayment.txid)}
+                          onClick={() => handleVerifyTron(selectedPayment.txid, selectedPayment.booking?.price_thb)}
                           disabled={verifying}
                           className="flex-1"
                           data-testid="live-verify-btn"
@@ -497,13 +507,15 @@ export default function FinancePage() {
                         </Button>
                       </div>
 
-                      {/* Verification Result */}
+                      {/* Verification Result with Amount Comparison */}
                       {verificationResult && (
                         <div className={`rounded-lg p-4 border ${
                           verificationResult.success 
                             ? 'bg-green-50 border-green-200' 
                             : verificationResult.status === 'PENDING'
                             ? 'bg-yellow-50 border-yellow-200'
+                            : verificationResult.status === 'UNDERPAID'
+                            ? 'bg-orange-50 border-orange-200'
                             : 'bg-red-50 border-red-200'
                         }`}>
                           <div className="flex items-center gap-2 mb-2">
@@ -511,34 +523,77 @@ export default function FinancePage() {
                               <CheckCircle className="h-5 w-5 text-green-600" />
                             ) : verificationResult.status === 'PENDING' ? (
                               <Clock className="h-5 w-5 text-yellow-600" />
+                            ) : verificationResult.status === 'UNDERPAID' ? (
+                              <AlertCircle className="h-5 w-5 text-orange-600" />
                             ) : (
                               <AlertCircle className="h-5 w-5 text-red-600" />
                             )}
                             <span className={`font-semibold ${
                               verificationResult.success ? 'text-green-800' 
                               : verificationResult.status === 'PENDING' ? 'text-yellow-800'
+                              : verificationResult.status === 'UNDERPAID' ? 'text-orange-800'
                               : 'text-red-800'
                             }`}>
-                              {verificationResult.badge?.label || verificationResult.status}
+                              {verificationResult.badge?.labelRu || verificationResult.badge?.label || verificationResult.status}
                             </span>
                           </div>
+                          
                           {verificationResult.data && (
                             <div className="text-sm space-y-1">
                               <p><span className="text-slate-500">От:</span> <code className="text-xs">{verificationResult.data.from}</code></p>
                               <p><span className="text-slate-500">Кому:</span> <code className="text-xs">{verificationResult.data.to}</code></p>
-                              {verificationResult.data.amount > 0 && (
-                                <p><span className="text-slate-500">Сумма:</span> <strong>{verificationResult.data.amount} {verificationResult.data.token}</strong></p>
-                              )}
-                              <p>
-                                <span className="text-slate-500">Кошелёк верный:</span> 
-                                {verificationResult.data.isCorrectWallet ? (
-                                  <span className="text-green-600 font-medium ml-1">✓ Да</span>
-                                ) : (
-                                  <span className="text-red-600 font-medium ml-1">✗ Нет</span>
-                                )}
-                              </p>
                             </div>
                           )}
+
+                          {/* Amount Comparison Table */}
+                          {verificationResult.amountVerification && (
+                            <div className="mt-3 bg-white rounded-lg p-3 border">
+                              <h5 className="text-xs font-semibold text-slate-600 mb-2">Верификация суммы</h5>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div className="bg-slate-50 p-2 rounded">
+                                  <p className="text-xs text-slate-500">Получено</p>
+                                  <p className="font-bold text-slate-900">
+                                    {verificationResult.amountVerification.received || 0} USDT
+                                  </p>
+                                </div>
+                                <div className="bg-slate-50 p-2 rounded">
+                                  <p className="text-xs text-slate-500">Ожидалось</p>
+                                  <p className="font-bold text-slate-900">
+                                    {verificationResult.amountVerification.expected || '—'} USDT
+                                  </p>
+                                </div>
+                              </div>
+                              {verificationResult.amountVerification.difference !== undefined && (
+                                <div className={`mt-2 p-2 rounded text-center ${
+                                  verificationResult.amountVerification.sufficient 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : 'bg-red-100 text-red-800'
+                                }`}>
+                                  <span className="font-medium">
+                                    {verificationResult.amountVerification.sufficient 
+                                      ? '✓ Сумма достаточна' 
+                                      : `⚠ Недоплата: ${Math.abs(verificationResult.amountVerification.difference)} USDT`
+                                    }
+                                  </span>
+                                  <span className="text-xs ml-2">
+                                    ({verificationResult.amountVerification.percentage}%)
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="mt-2">
+                            <p className="text-sm">
+                              <span className="text-slate-500">Кошелёк верный:</span> 
+                              {verificationResult.data?.isCorrectWallet ? (
+                                <span className="text-green-600 font-medium ml-1">✓ Да</span>
+                              ) : (
+                                <span className="text-red-600 font-medium ml-1">✗ Нет</span>
+                              )}
+                            </p>
+                          </div>
+                          
                           {verificationResult.error && (
                             <p className="text-sm text-red-600 mt-2">{verificationResult.error}</p>
                           )}

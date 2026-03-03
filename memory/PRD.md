@@ -9,6 +9,40 @@
 
 ---
 
+## Latest Update: 2026-03-03 - Stage 29.7 Payment UX & Security Upgrade ✅
+
+### QR Code Integration (UX)
+- **Library:** `qrcode.react` v4.2.0 installed
+- **Location:** Crypto Modal in `/app/checkout/[bookingId]/page.js`
+- **Data:** Encodes `TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5`
+- **UI:** Central QR code with "Scan with your Wallet App (TRC-20)" label
+
+### Full Amount Verification (SECURITY) - ACTIVE
+- **Service:** `/lib/services/tron.service.js` v2.0
+- **Logic:** Fetches actual amount from TronScan API
+- **Validation:**
+  - `UNDERPAID` if Blockchain Amount < Booking Amount (with 2% tolerance)
+  - `INVALID_RECIPIENT` if addresses don't match
+  - `SUCCESS` if all checks pass
+- **Admin UI:** Shows Received vs Expected amount in Finance Dashboard
+
+### New Status Badges
+- `UNDERPAID` - Orange badge for insufficient payment
+- `INVALID_RECIPIENT` - Red badge for wrong wallet
+- Amount comparison table in verification results
+
+### Files Modified
+- `/app/lib/services/tron.service.js` → Full amount verification
+- `/app/app/api/v2/payments/verify-tron/route.js` → Amount params
+- `/app/app/checkout/[bookingId]/page.js` → QR Code + amount UI
+- `/app/app/admin/finances/page.js` → Amount comparison display
+
+### Known Issues
+- **Preview API 502:** Intermittent proxy timeouts on preview environment
+- All APIs work correctly on localhost:3000
+
+---
+
 ## Latest Update: 2026-03-03 - Stage 29.6 Finance Hub & Live Verification ✅
 
 ### USDT Payment Integration (LIVE)
