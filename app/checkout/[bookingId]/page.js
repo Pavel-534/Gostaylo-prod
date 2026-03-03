@@ -531,28 +531,47 @@ export default function CheckoutPage({ params }) {
         <Dialog open={cryptoModalOpen} onOpenChange={setCryptoModalOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Оплата криптовалютой (USDT TRC-20)</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <Wallet className="h-5 w-5 text-amber-600" />
+                Оплата криптовалютой (USDT TRC-20)
+              </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-6">
+              {/* Network Info */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg font-bold text-amber-800">⚠️ Важно!</span>
+                </div>
+                <p className="text-sm text-amber-700">
+                  Отправляйте <strong>только USDT</strong> через сеть <strong>TRC-20 (Tron)</strong>. 
+                  Перевод других токенов или через другие сети может привести к потере средств.
+                </p>
+              </div>
+
               {/* Wallet Address */}
               <div>
-                <Label className="text-base font-semibold mb-2 block">Адрес кошелька</Label>
+                <Label className="text-base font-semibold mb-2 block">
+                  Адрес кошелька (TRC-20)
+                </Label>
                 <div className="flex items-center gap-2">
                   <Input
-                    value={payment?.metadata?.walletAddress || ''}
+                    value={payment?.metadata?.walletAddress || 'TWd4WrZ9wn84f5x1hZhL4DHvk738ns5jwb'}
                     readOnly
-                    className="font-mono text-sm"
+                    className="font-mono text-sm bg-slate-50"
                   />
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => copyToClipboard(payment?.metadata?.walletAddress)}
+                    onClick={() => copyToClipboard(payment?.metadata?.walletAddress || 'TWd4WrZ9wn84f5x1hZhL4DHvk738ns5jwb')}
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">Сеть: TRC-20 (Tron)</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant="outline" className="text-xs">Сеть: TRC-20</Badge>
+                  <Badge variant="outline" className="text-xs">Токен: USDT</Badge>
+                </div>
               </div>
 
               {/* Amount */}

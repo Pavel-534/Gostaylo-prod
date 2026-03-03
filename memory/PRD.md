@@ -9,6 +9,44 @@
 
 ---
 
+## Latest Update: 2026-03-03 - Stage 29 Unified Ecosystem ✅
+
+### Partner Onboarding Flow
+- **"Become a Partner" Button:** `/profile` page for RENTERs with CTA
+- **Application Form:** Phone*, Social Link, Experience*, Portfolio
+- **Admin Moderation:** `/admin/moderation` Partners tab filters `metadata.partner_status = 'PENDING'`
+- **Approval Flow:** Sets `role = 'PARTNER'`, sends email notification
+- **Telegram Alert:** Notification to Admin Group (Thread 17) on new applications
+
+### Dashboard Mode Toggle (Airbnb-style)
+- **For Partners:** "Путешествую" / "Сдаю жильё" toggle in profile
+- **Redirects:** To `/my-bookings` or `/partner/dashboard`
+- **Stored in:** `profile.metadata.dashboard_mode`
+
+### Smart Chat Security
+- **Pattern Detector:** `/components/chat-safety.js`
+- **Detects:** Phone numbers, @telegram handles, URLs, WhatsApp mentions
+- **SafetyBanner:** Shows warning without blocking (escrow reminder)
+
+### USDT Payment (TRC-20) Stub
+- **Enhanced Modal:** Network warning, copy wallet address
+- **Wallet:** `TWd4WrZ9wn84f5x1hZhL4DHvk738ns5jwb`
+- **TXID Field:** Saved to payments table for admin verification
+
+### Additional Email Templates
+- `partnerApproved`: Sent when admin approves partner
+- `bookingStatusChange`: Sent on CONFIRMED/CANCELLED/PAID
+
+### Files Created/Modified
+- `/app/app/profile/page.js` → NEW: User profile with partner CTA
+- `/app/components/chat-safety.js` → NEW: Pattern detector + SafetyBanner
+- `/app/app/api/notifications/partner-approved/route.js` → NEW: Email trigger
+- `/app/lib/services/email.service.js` → Added 2 new templates
+- `/app/app/admin/moderation/page.js` → Partner approval with email
+- `/app/app/checkout/[bookingId]/page.js` → USDT TRC-20 enhanced
+
+---
+
 ## Latest Update: 2026-03-03 - Stage 28 Visual Perfection & Resend ✅
 
 ### Header & User Identity

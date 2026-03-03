@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Send, Loader2, ArrowLeft, Image as ImageIcon, Smile, Home } from 'lucide-react'
+import { Send, Loader2, ArrowLeft, Image as ImageIcon, Smile, Home, Shield } from 'lucide-react'
 import { ListingContextCard } from '@/components/listing-context-card'
 import { BookingRequestCard, SystemMessage } from '@/components/booking-request-card'
+import { detectUnsafePatterns, SafetyBanner, RiskIndicator } from '@/components/chat-safety'
 import { formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -26,6 +27,8 @@ export default function RenterMessages({ params }) {
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [safetyWarningShown, setSafetyWarningShown] = useState(false)
+  const [detectedPatterns, setDetectedPatterns] = useState([])
 
   const renterId = 'renter-1'
   const conversationId = params?.id
@@ -43,6 +46,22 @@ export default function RenterMessages({ params }) {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Check for unsafe patterns in messages
+  useEffect(() => {
+    if (messages.length > 0) {
+      const allPatterns = []
+      messages.forEach(msg => {
+        const result = detectUnsafePatterns(msg.message || msg.content)
+        if (result.hasRisk) {
+          allPatterns.push(...result.patterns)
+        }
+      })
+      if (allPatterns.length > 0 && !safetyWarningShown) {
+        setDetectedPatterns(allPatterns)
+      }
+    }
+  }, [messages, safetyWarningShown])
 
   async function loadConversations() {
     try {
@@ -251,6 +270,13 @@ export default function RenterMessages({ params }) {
                 </CardContent>
               </Card>
             )}
+
+            {/* Safety Warning Banner */}
+            <SafetyBanner 
+              patterns={detectedPatterns} 
+              onDismiss={() => setSafetyWarningShown(true)}
+              lang="ru"
+            />
 
             <Card>
               <div className="h-[500px] overflow-y-auto p-4 space-y-4">

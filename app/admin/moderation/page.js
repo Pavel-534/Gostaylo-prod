@@ -65,13 +65,18 @@ export default function ModerationPage() {
       })
       setPendingListings(filteredListings)
 
-      // Load pending partners
+      // Load pending partners (users with metadata.partner_status = PENDING)
+      // Since role_status column doesn't exist, we query all profiles and filter client-side
       const partnersRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?role=eq.PARTNER&is_verified=eq.false&select=*`,
+        `${SUPABASE_URL}/rest/v1/profiles?select=*&order=updated_at.desc`,
         { headers }
       )
-      const partners = await partnersRes.json()
-      setPendingPartners(partners || [])
+      const allProfiles = await partnersRes.json()
+      // Filter for pending partner applications (stored in metadata)
+      const pendingPartnersList = Array.isArray(allProfiles) 
+        ? allProfiles.filter(p => p.metadata?.partner_status === 'PENDING')
+        : []
+      setPendingPartners(pendingPartnersList)
     } catch (error) {
       console.error('Error loading data:', error)
       toast({ title: 'Ошибка', description: 'Не удалось загрузить данные', variant: 'destructive' })
@@ -288,7 +293,19 @@ export default function ModerationPage() {
   }
 
   async function handleApprovePartner(partnerId) {
+    setProcessing(true)
     try {
+      // Get partner data first
+      const partnerRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${partnerId}&select=*`, {
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+        }
+      })
+      const partners = await partnerRes.json()
+      const partner = partners?.[0]
+      
+      // Update profile: role = PARTNER, store approval in metadata
       const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${partnerId}`, {
         method: 'PATCH',
         headers: {
@@ -296,21 +313,101 @@ export default function ModerationPage() {
           'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ is_verified: true })
+        body: JSON.stringify({ 
+          role: 'PARTNER',
+          is_verified: true,
+          metadata: {
+            ...(partner?.metadata || {}),
+            partner_status: 'APPROVED',
+            partner_approved_at: new Date().toISOString()
+          },
+          updated_at: new Date().toISOString()
+        })
       })
 
       if (res.ok) {
-        toast({ title: 'Партнёр верифицирован' })
+        toast({ title: 'Партнёр одобрен!', description: 'Email уведомление отправлено' })
         loadData()
+        
+        // Send email notification via API
+        if (partner?.email) {
+          await fetch('/api/notifications/partner-approved', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              partnerId, 
+              email: partner.email,
+              name: partner.first_name || partner.name
+            })
+          }).catch(e => console.log('Email API error:', e))
+        }
+        
+        // Send Telegram notification
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: '-1003832026983',
+            message_thread_id: 17,
+            text: `✅ <b>ПАРТНЁР ОДОБРЕН</b>\n\n` +
+              `👤 ${partner?.first_name || ''} ${partner?.last_name || ''}\n` +
+              `📧 ${partner?.email}\n` +
+              `📞 ${partner?.phone || 'N/A'}\n\n` +
+              `<i>Теперь может размещать объекты</i>`,
+            parse_mode: 'HTML'
+          })
+        })
       }
     } catch (error) {
+      console.error('Error approving partner:', error)
       toast({ title: 'Ошибка', variant: 'destructive' })
+    } finally {
+      setProcessing(false)
     }
   }
 
-  async function handleRejectPartner(partnerId) {
-    // For now, just remove from pending
-    toast({ title: 'Функция в разработке', description: 'Используйте внутреннюю связь' })
+  async function handleRejectPartner(partnerId, reason = 'Не соответствует требованиям') {
+    setProcessing(true)
+    try {
+      // Get partner data
+      const partnerRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${partnerId}&select=*`, {
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+        }
+      })
+      const partners = await partnerRes.json()
+      const partner = partners?.[0]
+      
+      // Update profile: store rejection in metadata
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${partnerId}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          metadata: {
+            ...(partner?.metadata || {}),
+            partner_status: 'REJECTED',
+            partner_rejected_at: new Date().toISOString(),
+            rejection_reason: reason
+          },
+          updated_at: new Date().toISOString()
+        })
+      })
+
+      if (res.ok) {
+        toast({ title: 'Заявка отклонена' })
+        loadData()
+      }
+    } catch (error) {
+      console.error('Error rejecting partner:', error)
+      toast({ title: 'Ошибка', variant: 'destructive' })
+    } finally {
+      setProcessing(false)
+    }
   }
 
   async function openMessageModal() {
