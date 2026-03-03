@@ -9,6 +9,40 @@
 
 ---
 
+## Latest Update: 2026-03-03 - Stage 30 Realtime Chat & Finance Precision ✅
+
+### Supabase Realtime Chat
+- **Hook:** `/hooks/use-realtime-chat.js` с useRealtimeMessages, usePresence
+- **Features:**
+  - Instant message sync via postgres_changes
+  - Online/Offline status indicator
+  - Notification sound for new messages
+  - Presence tracking
+
+### Finance Precision
+- **Tolerance:** Changed to 0.5% (strict) in `tron.service.js`
+- **USDT in Telegram:** Alerts now show amount in USDT (Thread 16)
+- **New Topic:** MESSAGES (Thread 18) for chat notifications
+
+### PWA Support
+- **Manifest:** `/public/manifest.json` created
+- **Icons:** Placeholder structure in `/public/icons/`
+- **Meta tags:** apple-mobile-web-app support in layout.js
+
+### Notification Bridge
+- **NEW_MESSAGE handler:** Routes to dedicated MESSAGES topic (Thread 18)
+- **Template:** "💬 New message from [Name] regarding [Listing Title]"
+
+### Files Created/Modified
+- `/app/hooks/use-realtime-chat.js` → NEW: Realtime hooks
+- `/app/public/manifest.json` → NEW: PWA manifest
+- `/app/app/layout.js` → Updated with PWA meta tags
+- `/app/app/renter/messages/[id]/page.js` → Realtime + Online status
+- `/app/app/partner/messages/[id]/page.js` → Realtime + Online status
+- `/app/lib/services/notification.service.js` → MESSAGES topic, USDT display
+
+---
+
 ## Latest Update: 2026-03-03 - Stage 29.7 Payment UX & Security Upgrade ✅
 
 ### QR Code Integration (UX)

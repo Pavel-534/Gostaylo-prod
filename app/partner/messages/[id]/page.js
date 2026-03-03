@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,12 +10,13 @@ import { Badge } from '@/components/ui/badge'
 import { 
   Send, Loader2, ArrowLeft, Image as ImageIcon, 
   Check, CheckCheck, AlertTriangle, MessageSquare,
-  Building2, Shield
+  Building2, Shield, Wifi, WifiOff
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useRealtimeMessages, usePresence, playNotificationSound } from '@/hooks/use-realtime-chat'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I'
@@ -34,6 +35,22 @@ export default function PartnerMessages({ params }) {
   const [sending, setSending] = useState(false)
 
   const conversationId = params?.id
+
+  // Realtime message subscription
+  const handleNewRealtimeMessage = useCallback((newMsg) => {
+    // Only add if from other user
+    if (newMsg.sender_id !== user?.id) {
+      setMessages(prev => {
+        if (prev.some(m => m.id === newMsg.id)) return prev;
+        return [...prev, newMsg];
+      });
+      playNotificationSound();
+      toast.info('💬 Новое сообщение от гостя');
+    }
+  }, [user]);
+
+  const { isConnected } = useRealtimeMessages(conversationId, handleNewRealtimeMessage);
+  const { isOnline: renterOnline } = usePresence(conversationId, user?.id);
 
   useEffect(() => {
     checkAuth()
@@ -394,12 +411,23 @@ export default function PartnerMessages({ params }) {
                       {selectedConv.admin_name || 'Администратор FunnyRent'}
                     </>
                   ) : (
-                    selectedConv.renter_name || 'Клиент'
+                    <>
+                      {selectedConv.renter_name || 'Клиент'}
+                      {/* Online status */}
+                      <span className={`w-2 h-2 rounded-full ${renterOnline ? 'bg-green-500' : 'bg-slate-300'}`} />
+                    </>
                   )}
                 </h3>
-                <p className='text-sm text-slate-600'>
-                  {listing?.title || selectedConv.type}
-                </p>
+                <div className='flex items-center gap-2'>
+                  <p className='text-sm text-slate-600'>
+                    {listing?.title || selectedConv.type}
+                  </p>
+                  {/* Realtime connection */}
+                  <span className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}>
+                    {isConnected ? <Wifi className='h-3 w-3' /> : <WifiOff className='h-3 w-3' />}
+                    {isConnected ? 'Live' : 'Connecting'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

@@ -1,16 +1,17 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Send, Loader2, ArrowLeft, Image as ImageIcon, Smile, Home, Shield } from 'lucide-react'
+import { Send, Loader2, ArrowLeft, Image as ImageIcon, Smile, Home, Shield, Wifi, WifiOff } from 'lucide-react'
 import { ListingContextCard } from '@/components/listing-context-card'
 import { BookingRequestCard, SystemMessage } from '@/components/booking-request-card'
 import { detectUnsafePatterns, SafetyBanner, RiskIndicator } from '@/components/chat-safety'
+import { useRealtimeMessages, usePresence, playNotificationSound } from '@/hooks/use-realtime-chat'
 import { formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -32,6 +33,22 @@ export default function RenterMessages({ params }) {
 
   const renterId = 'renter-1'
   const conversationId = params?.id
+
+  // Realtime message subscription
+  const handleNewRealtimeMessage = useCallback((newMsg) => {
+    // Only add if from other user (avoid duplicates from own sends)
+    if (newMsg.sender_id !== renterId) {
+      setMessages(prev => {
+        if (prev.some(m => m.id === newMsg.id)) return prev;
+        return [...prev, newMsg];
+      });
+      playNotificationSound();
+      toast.info('💬 Новое сообщение');
+    }
+  }, [renterId]);
+
+  const { isConnected } = useRealtimeMessages(conversationId, handleNewRealtimeMessage);
+  const { isOnline: partnerOnline } = usePresence(conversationId, renterId);
 
   useEffect(() => {
     loadConversations()
@@ -237,10 +254,38 @@ export default function RenterMessages({ params }) {
           </div>
         ) : (
           <div className="space-y-6">
-            <Button variant="ghost" onClick={() => router.push('/renter/messages')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Все диалоги
-            </Button>
+            <div className="flex items-center justify-between">
+              <Button variant="ghost" onClick={() => router.push('/renter/messages')}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Все диалоги
+              </Button>
+              
+              {/* Connection Status */}
+              <div className="flex items-center gap-3">
+                {/* Partner Online Status */}
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${partnerOnline ? 'bg-green-500' : 'bg-slate-300'}`} />
+                  <span className="text-xs text-slate-600">
+                    {partnerOnline ? 'Online' : 'Offline'}
+                  </span>
+                </div>
+                
+                {/* Realtime Connection */}
+                <div className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}>
+                  {isConnected ? (
+                    <>
+                      <Wifi className="h-3 w-3" />
+                      <span>Live</span>
+                    </>
+                  ) : (
+                    <>
+                      <WifiOff className="h-3 w-3" />
+                      <span>Connecting...</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
 
             <ListingContextCard listing={listing} />
 
