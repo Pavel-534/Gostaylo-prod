@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Send, Loader2, ArrowLeft, Image as ImageIcon, Smile, Home, Shield, Wifi, WifiOff } from 'lucide-react'
+import { Send, Loader2, ArrowLeft, Image as ImageIcon, Smile, Home, Shield, Wifi, WifiOff, CreditCard } from 'lucide-react'
 import { ListingContextCard } from '@/components/listing-context-card'
 import { BookingRequestCard, SystemMessage } from '@/components/booking-request-card'
 import { detectUnsafePatterns, SafetyBanner, RiskIndicator } from '@/components/chat-safety'
+import { InvoiceCard } from '@/components/chat-invoice'
 import { useRealtimeMessages, usePresence, playNotificationSound } from '@/hooks/use-realtime-chat'
 import { formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
@@ -30,6 +31,8 @@ export default function RenterMessages({ params }) {
   const [sending, setSending] = useState(false)
   const [safetyWarningShown, setSafetyWarningShown] = useState(false)
   const [detectedPatterns, setDetectedPatterns] = useState([])
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false)
+  const [selectedInvoice, setSelectedInvoice] = useState(null)
 
   const renterId = 'renter-1'
   const conversationId = params?.id
@@ -165,6 +168,15 @@ export default function RenterMessages({ params }) {
       loadMessages(conversationId)
       loadConversations()
     }, 500)
+  }
+
+  // Handle invoice payment - redirect to payment page
+  function handlePayInvoice(invoice) {
+    if (invoice?.booking_id) {
+      router.push(`/checkout/${invoice.booking_id}`)
+    } else {
+      toast.error('Не удалось найти бронирование для оплаты')
+    }
   }
 
   if (loading) {
@@ -341,8 +353,24 @@ export default function RenterMessages({ params }) {
                     return <SystemMessage key={msg.id} message={msg} />
                   }
 
-                  const isOwn = msg.senderId === renterId
-                  const isPartner = msg.senderRole === 'PARTNER'
+                  // Render Invoice Card from partner
+                  const isInvoice = msg.type === 'INVOICE' || msg.metadata?.invoice
+                  if (isInvoice && msg.metadata?.invoice) {
+                    const isOwn = msg.senderId === renterId || msg.sender_id === renterId
+                    return (
+                      <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                        <InvoiceCard
+                          invoice={msg.metadata.invoice}
+                          isOwn={isOwn}
+                          paymentMethod={msg.metadata.invoice.payment_method}
+                          onPay={handlePayInvoice}
+                        />
+                      </div>
+                    )
+                  }
+
+                  const isOwn = msg.senderId === renterId || msg.sender_id === renterId
+                  const isPartner = msg.senderRole === 'PARTNER' || msg.sender_role === 'PARTNER'
 
                   return (
                     <div

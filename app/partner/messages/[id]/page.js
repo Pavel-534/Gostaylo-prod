@@ -505,6 +505,20 @@ export default function PartnerMessages({ params }) {
               const isOwn = msg.sender_id === user?.id
               const isAdmin = msg.sender_role === 'ADMIN'
               const isRejection = msg.type === 'REJECTION'
+              const isInvoice = msg.type === 'INVOICE'
+
+              // Render Invoice Card
+              if (isInvoice && msg.metadata?.invoice) {
+                return (
+                  <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                    <InvoiceCard
+                      invoice={msg.metadata.invoice}
+                      isOwn={isOwn}
+                      paymentMethod={msg.metadata.invoice.payment_method}
+                    />
+                  </div>
+                )
+              }
 
               return (
                 <div
@@ -573,6 +587,23 @@ export default function PartnerMessages({ params }) {
           {/* Message Input */}
           <div className='bg-white border-t p-4'>
             <form onSubmit={sendMessage} className='flex gap-2'>
+              {/* Send Invoice Button */}
+              <SendInvoiceDialog
+                booking={booking}
+                listing={listing}
+                onSend={handleSendInvoice}
+                trigger={
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='icon'
+                    className='flex-shrink-0 border-amber-300 hover:bg-amber-50'
+                    data-testid='send-invoice-btn'
+                  >
+                    <Receipt className='h-4 w-4 text-amber-600' />
+                  </Button>
+                }
+              />
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
