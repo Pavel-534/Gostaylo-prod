@@ -31,6 +31,8 @@
   1. Welcome Email (New Registration)
   2. Booking Requested (To Renter)
   3. New Lead Alert (To Partner/Admin)
+- **Booking Integration:** ✅ Emails triggered on booking creation
+- **Note:** Domain verification required at resend.com/domains for production
 
 ### Technical Improvements
 - **Tailwind Config:** Centralized Teal/Azure colors in `/app/tailwind.config.js`
