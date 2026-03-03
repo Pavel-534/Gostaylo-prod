@@ -9,9 +9,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { ArrowLeft, CreditCard, Wallet, Loader2, CheckCircle2, Copy, QrCode } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { ArrowLeft, CreditCard, Wallet, Loader2, CheckCircle2, Copy, QrCode, ExternalLink, AlertCircle } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
+
+// Official FunnyRent USDT TRC-20 Wallet Address
+const FUNNYRENT_WALLET = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
 
 export default function CheckoutPage({ params }) {
   const router = useRouter()
@@ -27,6 +31,8 @@ export default function CheckoutPage({ params }) {
   const [verificationStep, setVerificationStep] = useState(0) // 0: not started, 1: received, 2: verifying, 3: verified
   const [confirmations, setConfirmations] = useState(0)
   const [verifying, setVerifying] = useState(false)
+  const [txidSubmitted, setTxidSubmitted] = useState(false)
+  const [liveVerification, setLiveVerification] = useState(null)
   const [promoCode, setPromoCode] = useState('')
   const [promoDiscount, setPromoDiscount] = useState(null)
   const [promoLoading, setPromoLoading] = useState(false)
@@ -317,6 +323,79 @@ export default function CheckoutPage({ params }) {
     toast.success('Скопировано!')
   }
 
+  // Verify TXID via TronScan API
+  async function handleVerifyTxid() {
+    if (!txId.trim() || txId.length < 60) {
+      toast.error('TXID должен быть не менее 64 символов')
+      return
+    }
+
+    setVerifying(true)
+    setLiveVerification(null)
+
+    try {
+      const res = await fetch('/api/v2/payments/verify-tron', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ txid: txId })
+      })
+
+      const data = await res.json()
+      setLiveVerification(data)
+
+      if (data.success) {
+        toast.success('✅ Транзакция найдена и подтверждена!')
+      } else if (data.status === 'PENDING') {
+        toast.info('⏳ Транзакция ожидает подтверждения')
+      } else if (data.status === 'NOT_FOUND') {
+        toast.warning('Транзакция не найдена на блокчейне')
+      } else {
+        toast.error(data.error || 'Ошибка верификации')
+      }
+    } catch (error) {
+      console.error('Verification error:', error)
+      toast.error('Ошибка при проверке транзакции')
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  // Submit TXID to admin for verification
+  async function handleSubmitTxid() {
+    if (!txId.trim() || txId.length < 60) {
+      toast.error('TXID должен быть не менее 64 символов')
+      return
+    }
+
+    setVerifying(true)
+
+    try {
+      const res = await fetch('/api/v2/payments/submit-txid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: params.bookingId,
+          txid: txId,
+          paymentMethod: 'USDT_TRC20'
+        })
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        toast.success('✅ TXID отправлен на проверку!')
+        setTxidSubmitted(true)
+      } else {
+        toast.error(data.error || 'Ошибка при отправке TXID')
+      }
+    } catch (error) {
+      console.error('Submit TXID error:', error)
+      toast.error('Ошибка при отправке TXID')
+    } finally {
+      setVerifying(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -527,9 +606,9 @@ export default function CheckoutPage({ params }) {
           </div>
         </div>
 
-        {/* Crypto Payment Modal */}
+        {/* Crypto Payment Modal - USDT TRC-20 */}
         <Dialog open={cryptoModalOpen} onOpenChange={setCryptoModalOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-amber-600" />
@@ -538,48 +617,53 @@ export default function CheckoutPage({ params }) {
             </DialogHeader>
 
             <div className="space-y-6">
-              {/* Network Info */}
+              {/* Network Warning */}
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg font-bold text-amber-800">⚠️ Важно!</span>
+                  <AlertCircle className="h-5 w-5 text-amber-600" />
+                  <span className="text-lg font-bold text-amber-800">Важно!</span>
                 </div>
                 <p className="text-sm text-amber-700">
                   Отправляйте <strong>только USDT</strong> через сеть <strong>TRC-20 (Tron)</strong>. 
-                  Перевод других токенов или через другие сети может привести к потере средств.
+                  Перевод других токенов или через другие сети приведёт к потере средств.
                 </p>
               </div>
 
-              {/* Wallet Address */}
+              {/* Wallet Address with Copy */}
               <div>
                 <Label className="text-base font-semibold mb-2 block">
-                  Адрес кошелька (TRC-20)
+                  Адрес кошелька FunnyRent (TRC-20)
                 </Label>
                 <div className="flex items-center gap-2">
                   <Input
-                    value={payment?.metadata?.walletAddress || 'TWd4WrZ9wn84f5x1hZhL4DHvk738ns5jwb'}
+                    value={FUNNYRENT_WALLET}
                     readOnly
                     className="font-mono text-sm bg-slate-50"
+                    data-testid="usdt-wallet-address"
                   />
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => copyToClipboard(payment?.metadata?.walletAddress || 'TWd4WrZ9wn84f5x1hZhL4DHvk738ns5jwb')}
+                    onClick={() => copyToClipboard(FUNNYRENT_WALLET)}
+                    data-testid="copy-wallet-btn"
+                    className="flex items-center gap-1"
                   >
                     <Copy className="h-4 w-4" />
+                    Copy
                   </Button>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge variant="outline" className="text-xs">Сеть: TRC-20</Badge>
-                  <Badge variant="outline" className="text-xs">Токен: USDT</Badge>
+                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">Сеть: TRC-20</Badge>
+                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700">Токен: USDT</Badge>
                 </div>
               </div>
 
-              {/* Amount */}
+              {/* Amount to Pay */}
               <div>
                 <Label className="text-base font-semibold mb-2 block">Сумма к оплате</Label>
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <p className="text-2xl font-bold text-amber-900">
-                    {payment?.metadata?.amount} USDT
+                  <p className="text-2xl font-bold text-amber-900" data-testid="usdt-amount">
+                    {payment?.metadata?.amount || Math.ceil(totalWithFee / 35.5 * 100) / 100} USDT
                   </p>
                   <p className="text-sm text-amber-700 mt-1">
                     ≈ {formatPrice(totalWithFee, 'THB')}
@@ -587,97 +671,95 @@ export default function CheckoutPage({ params }) {
                 </div>
               </div>
 
-              {/* QR Code Placeholder */}
-              <div className="bg-slate-100 rounded-lg p-6 text-center">
-                <QrCode className="h-32 w-32 text-slate-400 mx-auto mb-2" />
-                <p className="text-sm text-slate-600">QR-код для сканирования</p>
-                <p className="text-xs text-slate-500">(Mock placeholder)</p>
-              </div>
-
-              {/* Live Status Tracker */}
-              {verificationStep > 0 && (
-                <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 space-y-4">
-                  <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-                    <Loader2 className={`h-5 w-5 ${verificationStep < 3 ? 'animate-spin text-teal-600' : 'hidden'}`} />
-                    {verificationStep === 3 && <CheckCircle2 className="h-5 w-5 text-green-600" />}
-                    Статус верификации
-                  </h3>
-                  
-                  {/* Progress Steps */}
-                  <div className="space-y-3">
-                    {/* Step 1: TXID Received */}
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        verificationStep >= 1 ? 'bg-green-100 text-green-600' : 'bg-slate-200 text-slate-400'
-                      }`}>
-                        {verificationStep >= 1 ? '✓' : '1'}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-slate-900">TXID получен</p>
-                        <p className="text-xs text-slate-500">Транзакция найдена в блокчейне</p>
-                      </div>
-                      {verificationStep === 1 && (
-                        <Loader2 className="h-4 w-4 animate-spin text-teal-600" />
-                      )}
+              {/* TXID Submitted Success State */}
+              {txidSubmitted && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-green-900">TXID отправлен на проверку!</p>
+                      <p className="text-sm text-green-700 mt-1">
+                        Платёж проходит верификацию. Администратор проверит транзакцию и подтвердит оплату.
+                      </p>
+                      <p className="text-xs text-green-600 mt-2 font-mono break-all">
+                        TXID: {txId}
+                      </p>
                     </div>
-                    
-                    {/* Step 2: Confirming */}
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        verificationStep >= 2 ? 'bg-green-100 text-green-600' : 'bg-slate-200 text-slate-400'
-                      }`}>
-                        {verificationStep >= 3 ? '✓' : verificationStep === 2 ? confirmations : '2'}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-slate-900">
-                          Подтверждения: {confirmations}/19
-                        </p>
-                        <p className="text-xs text-slate-500">Ожидаем подтверждения от сети</p>
-                        {verificationStep === 2 && (
-                          <div className="mt-2 w-full bg-slate-200 rounded-full h-2">
-                            <div 
-                              className="bg-teal-600 h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${(confirmations / 19) * 100}%` }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                      {verificationStep === 2 && (
-                        <Loader2 className="h-4 w-4 animate-spin text-teal-600" />
-                      )}
-                    </div>
-                    
-                    {/* Step 3: Verifying Amount */}
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        verificationStep >= 3 ? 'bg-green-100 text-green-600' : 'bg-slate-200 text-slate-400'
-                      }`}>
-                        {verificationStep >= 3 ? '✓' : '3'}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-slate-900">Проверка суммы</p>
-                        <p className="text-xs text-slate-500">Верификация полученной суммы</p>
-                      </div>
-                    </div>
-                    
-                    {/* Step 4: Success */}
-                    {verificationStep === 3 && (
-                      <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg p-3">
-                        <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0" />
-                        <div>
-                          <p className="font-semibold text-green-900">Платёж подтверждён!</p>
-                          <p className="text-xs text-green-700">
-                            Средства зачислены в эскроу. Будут переведены партнёру после check-in.
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                  </div>
+                  <div className="mt-4 flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      className="flex-1"
+                    >
+                      <a 
+                        href={`https://tronscan.org/#/transaction/${txId}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-1"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        View on TronScan
+                      </a>
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="flex-1 bg-teal-600 hover:bg-teal-700"
+                      onClick={() => setCryptoModalOpen(false)}
+                    >
+                      Закрыть
+                    </Button>
                   </div>
                 </div>
               )}
 
-              {/* Transaction ID Input */}
-              {verificationStep === 0 && (
+              {/* Live Verification Result */}
+              {liveVerification && !txidSubmitted && (
+                <div className={`rounded-lg p-4 border ${
+                  liveVerification.success 
+                    ? 'bg-green-50 border-green-200' 
+                    : liveVerification.status === 'PENDING'
+                    ? 'bg-yellow-50 border-yellow-200'
+                    : 'bg-red-50 border-red-200'
+                }`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    {liveVerification.success ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    ) : liveVerification.status === 'PENDING' ? (
+                      <Loader2 className="h-5 w-5 text-yellow-600 animate-spin" />
+                    ) : (
+                      <AlertCircle className="h-5 w-5 text-red-600" />
+                    )}
+                    <span className={`font-semibold ${
+                      liveVerification.success ? 'text-green-800' 
+                      : liveVerification.status === 'PENDING' ? 'text-yellow-800'
+                      : 'text-red-800'
+                    }`}>
+                      {liveVerification.badge?.label || liveVerification.status}
+                    </span>
+                  </div>
+                  {liveVerification.data && (
+                    <div className="text-sm space-y-1">
+                      <p>От: <code className="text-xs">{liveVerification.data.from}</code></p>
+                      <p>Кому: <code className="text-xs">{liveVerification.data.to}</code></p>
+                      {liveVerification.data.amount > 0 && (
+                        <p>Сумма: <strong>{liveVerification.data.amount} {liveVerification.data.token}</strong></p>
+                      )}
+                      {!liveVerification.data.isCorrectWallet && (
+                        <p className="text-orange-600 font-medium">⚠️ Неверный адрес получателя!</p>
+                      )}
+                    </div>
+                  )}
+                  {liveVerification.error && (
+                    <p className="text-sm text-red-600">{liveVerification.error}</p>
+                  )}
+                </div>
+              )}
+
+              {/* TXID Input Form */}
+              {!txidSubmitted && (
                 <>
                   <div>
                     <Label htmlFor="txid" className="text-base font-semibold mb-2 block">
@@ -686,30 +768,49 @@ export default function CheckoutPage({ params }) {
                     <Input
                       id="txid"
                       value={txId}
-                      onChange={(e) => setTxId(e.target.value)}
-                      placeholder="Вставьте TXID вашей транзакции"
-                      className="font-mono"
+                      onChange={(e) => {
+                        setTxId(e.target.value);
+                        setLiveVerification(null);
+                      }}
+                      placeholder="Вставьте TXID вашей транзакции (64 символа)"
+                      className="font-mono text-sm"
+                      data-testid="txid-input"
                     />
                     <p className="text-xs text-slate-500 mt-1">
                       После отправки USDT вставьте сюда Transaction ID для подтверждения
                     </p>
                   </div>
 
-                  {/* Confirm Button */}
-                  <Button
-                    onClick={() => handleConfirmPayment(txId)}
-                    disabled={!txId.trim() || verifying}
-                    className="w-full bg-teal-600 hover:bg-teal-700"
-                  >
-                    {verifying ? (
-                      <>
-                        <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                        Проверка транзакции...
-                      </>
-                    ) : (
-                      'Подтвердить оплату'
-                    )}
-                  </Button>
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={handleVerifyTxid}
+                      disabled={!txId.trim() || txId.length < 60 || verifying}
+                      className="flex-1"
+                      data-testid="verify-txid-btn"
+                    >
+                      {verifying ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Проверка...
+                        </>
+                      ) : (
+                        <>
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Проверить на TronScan
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={handleSubmitTxid}
+                      disabled={!txId.trim() || txId.length < 60 || verifying}
+                      className="flex-1 bg-teal-600 hover:bg-teal-700"
+                      data-testid="submit-txid-btn"
+                    >
+                      Отправить TXID
+                    </Button>
+                  </div>
                 </>
               )}
             </div>

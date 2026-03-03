@@ -9,6 +9,51 @@
 
 ---
 
+## Latest Update: 2026-03-03 - Stage 29.6 Finance Hub & Live Verification ✅
+
+### USDT Payment Integration (LIVE)
+- **Official Wallet:** `TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5`
+- **Network:** TRC-20 (TRON)
+- **Checkout Modal:** Updated with correct wallet, copy button, amount in USDT
+- **TXID Submit:** `/api/v2/payments/submit-txid` API for user TXID submission
+
+### TronScan Live Verification
+- **API Service:** `/lib/services/tron.service.js`
+- **Endpoint:** `/api/v2/payments/verify-tron?txid=[TXID]`
+- **Checks:** Transaction confirmation, recipient wallet match, USDT token validation
+- **Status Badges:** SUCCESS, PENDING, NOT_FOUND, WRONG_WALLET, WRONG_TOKEN
+
+### Finance Dashboard (Admin)
+- **Location:** `/admin/finances`
+- **Features:**
+  - Pending payments counter with red badge
+  - Filter tabs: All, Pending, Crypto, MIR, Card, Confirmed
+  - Payment cards with method icons, status badges
+  - "View on TronScan" button for crypto payments
+  - Live verification with real-time status display
+  - Confirm/Reject actions with notifications
+
+### Scalable Payments Table
+- **Schema:** `payments` table with `method` ENUM (CRYPTO, CARD, MIR)
+- **Fields:** booking_id, amount, currency, method, status, tx_id, metadata
+
+### Telegram Finance Alerts (Thread 16)
+- **New Event:** `PAYMENT_SUBMITTED` - triggers when user submits TXID
+- **Template:** "💰 NEW [USDT TRC-20] PAYMENT! Listing: [Title], Amount: [Price], TXID: [Value]"
+- **Partner Alert:** "Оплата на проверке" notification
+
+### Files Created/Modified
+- `/app/lib/services/tron.service.js` → NEW: TronScan verification
+- `/app/lib/services/payment.service.js` → UPDATED: submitTxid, countPending
+- `/app/app/api/v2/payments/route.js` → NEW: Payments list API
+- `/app/app/api/v2/payments/submit-txid/route.js` → NEW: TXID submit
+- `/app/app/api/v2/payments/verify-tron/route.js` → NEW: Live verification
+- `/app/app/admin/finances/page.js` → UPDATED: Finance dashboard
+- `/app/app/checkout/[bookingId]/page.js` → UPDATED: Crypto modal
+- `/app/app/api/v2/bookings/[id]/payment/initiate/route.js` → UPDATED: Wallet
+
+---
+
 ## Latest Update: 2026-03-03 - Stage 29 Unified Ecosystem ✅
 
 ### Partner Onboarding Flow

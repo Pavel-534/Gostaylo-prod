@@ -1,326 +1,620 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { AlertCircle, DollarSign, TrendingUp, Wallet, CreditCard, AlertTriangle, CheckCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { useToast } from '@/hooks/use-toast'
+import { 
+  Wallet, CreditCard, QrCode, CheckCircle, XCircle, Loader2, 
+  ExternalLink, RefreshCw, Clock, DollarSign, AlertCircle, Eye
+} from 'lucide-react'
 
-export default function FinancesPage() {
-  const { toast } = useToast();
-  const [payouts, setPayouts] = useState([]);
-  const [settings, setSettings] = useState({ defaultCommissionRate: 15 });
-  const [selectedPayout, setSelectedPayout] = useState(null);
-  const [transactionId, setTransactionId] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co'
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I'
+
+// Payment method config
+const PAYMENT_METHODS = {
+  CRYPTO: { label: 'Crypto (USDT)', icon: Wallet, color: 'amber' },
+  USDT_TRC20: { label: 'Crypto (USDT)', icon: Wallet, color: 'amber' },
+  CARD: { label: 'Card (Visa/MC)', icon: CreditCard, color: 'blue' },
+  CARD_INTL: { label: 'Card (Visa/MC)', icon: CreditCard, color: 'blue' },
+  MIR: { label: 'МИР', icon: CreditCard, color: 'green' },
+  CARD_RU: { label: 'МИР', icon: CreditCard, color: 'green' },
+  THAI_QR: { label: 'Thai QR', icon: QrCode, color: 'purple' }
+}
+
+// Status badge config
+const STATUS_CONFIG = {
+  PENDING: { label: 'Ожидает', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
+  VERIFYING: { label: 'Проверка', color: 'bg-blue-100 text-blue-800', icon: Loader2 },
+  CONFIRMED: { label: 'Подтверждён', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+  FAILED: { label: 'Ошибка', color: 'bg-red-100 text-red-800', icon: XCircle },
+  REFUNDED: { label: 'Возврат', color: 'bg-gray-100 text-gray-800', icon: RefreshCw }
+}
+
+export default function FinancePage() {
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(true)
+  const [payments, setPayments] = useState([])
+  const [pendingCount, setPendingCount] = useState(0)
+  const [activeFilter, setActiveFilter] = useState('all')
+  const [selectedPayment, setSelectedPayment] = useState(null)
+  const [verificationResult, setVerificationResult] = useState(null)
+  const [verifying, setVerifying] = useState(false)
+  const [processing, setProcessing] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const [showRejectModal, setShowRejectModal] = useState(false)
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadPayments()
+  }, [activeFilter])
 
-  const loadData = async () => {
+  async function loadPayments() {
+    setLoading(true)
     try {
-      const res = await fetch('/api/admin/payout-requests?status=PENDING');
-      if (res.ok) {
-        const data = await res.json();
-        setPayouts(data.data);
+      // Build query params
+      let url = '/api/v2/payments?'
+      if (activeFilter !== 'all') {
+        if (['PENDING', 'CONFIRMED', 'FAILED'].includes(activeFilter)) {
+          url += `status=${activeFilter}&`
+        } else {
+          url += `paymentMethod=${activeFilter}&`
+        }
       }
-    } catch (error) {
-      console.error('Failed to load payouts:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleMarkAsPaid = async () => {
-    if (!selectedPayout) return;
+      const res = await fetch(url)
+      const data = await res.json()
 
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/admin/payouts/${selectedPayout.id}/process`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transactionId }),
-      });
-
-      if (res.ok) {
-        toast({
-          title: '✅ Выплата обработана',
-          description: `Уведомление отправлено партнеру. TX: ${transactionId || 'auto'}`,
-        });
-        setSelectedPayout(null);
-        setTransactionId('');
-        loadData();
+      if (data.success) {
+        setPayments(data.payments || [])
       }
+
+      // Get pending count
+      const countRes = await fetch('/api/v2/payments?count=pending')
+      const countData = await countRes.json()
+      setPendingCount(countData.count || 0)
+
     } catch (error) {
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось обработать выплату',
-        variant: 'destructive',
-      });
+      console.error('Error loading payments:', error)
+      toast({ title: 'Ошибка', description: 'Не удалось загрузить платежи', variant: 'destructive' })
     } finally {
-      setSaving(false);
+      setLoading(false)
     }
-  };
-
-  const handleUpdateSettings = async () => {
-    setSaving(true);
-    try {
-      const res = await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
-      });
-
-      if (res.ok) {
-        toast({
-          title: '✅ Настройки сохранены',
-          description: 'Комиссия платформы обновлена',
-        });
-      }
-    } catch (error) {
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось сохранить настройки',
-        variant: 'destructive',
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const getMethodIcon = (method) => {
-    return method === 'bank' ? '🏦' : '💎';
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    );
   }
 
+  async function handleVerifyTron(txid) {
+    setVerifying(true)
+    setVerificationResult(null)
+
+    try {
+      const res = await fetch('/api/v2/payments/verify-tron', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ txid })
+      })
+
+      const data = await res.json()
+      setVerificationResult(data)
+
+      if (data.success) {
+        toast({ title: '✅ Транзакция подтверждена', description: `Сумма: ${data.data?.amount} ${data.data?.token}` })
+      } else if (data.status === 'PENDING') {
+        toast({ title: '⏳ Ожидает подтверждения', description: 'Транзакция ещё не подтверждена сетью' })
+      } else {
+        toast({ title: 'Ошибка верификации', description: data.error || data.status, variant: 'destructive' })
+      }
+    } catch (error) {
+      console.error('Verify error:', error)
+      toast({ title: 'Ошибка', description: 'Не удалось проверить транзакцию', variant: 'destructive' })
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  async function handleConfirmPayment(paymentId) {
+    setProcessing(true)
+    try {
+      const res = await fetch('/api/v2/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'confirm',
+          paymentId,
+          verificationData: verificationResult?.data || {}
+        })
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        toast({ title: '✅ Платёж подтверждён', description: 'Уведомления отправлены партнёру и гостю' })
+        setSelectedPayment(null)
+        loadPayments()
+      } else {
+        toast({ title: 'Ошибка', description: data.error, variant: 'destructive' })
+      }
+    } catch (error) {
+      console.error('Confirm error:', error)
+      toast({ title: 'Ошибка', description: 'Не удалось подтвердить платёж', variant: 'destructive' })
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  async function handleRejectPayment(paymentId) {
+    if (!rejectReason.trim()) {
+      toast({ title: 'Ошибка', description: 'Укажите причину отклонения', variant: 'destructive' })
+      return
+    }
+
+    setProcessing(true)
+    try {
+      const res = await fetch('/api/v2/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'reject',
+          paymentId,
+          reason: rejectReason
+        })
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        toast({ title: 'Платёж отклонён' })
+        setShowRejectModal(false)
+        setSelectedPayment(null)
+        setRejectReason('')
+        loadPayments()
+      } else {
+        toast({ title: 'Ошибка', description: data.error, variant: 'destructive' })
+      }
+    } catch (error) {
+      console.error('Reject error:', error)
+      toast({ title: 'Ошибка', variant: 'destructive' })
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  const pendingPayments = payments.filter(p => p.status === 'PENDING' || p.status === 'VERIFYING')
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Финансы</h1>
-        <p className="text-gray-600 mt-1">Управление выплатами и комиссиями платформы</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 flex items-center gap-2">
+              <DollarSign className="h-8 w-8 text-teal-600" />
+              Финансы
+            </h1>
+            <p className="text-slate-600 mt-1">Управление платежами и верификация</p>
+          </div>
+          <Button onClick={loadPayments} variant="outline" size="sm">
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Обновить
+          </Button>
+        </div>
 
-      {/* Platform Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border-2 border-green-100 bg-gradient-to-br from-green-50 to-white">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Заработано комиссии</CardTitle>
-            <TrendingUp className="w-5 h-5 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-900">187,500 ₿</div>
-            <p className="text-xs text-gray-600 mt-1">Всего за всё время</p>
-          </CardContent>
-        </Card>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">
+          <Card className={`bg-white/80 backdrop-blur ${pendingCount > 0 ? 'border-red-300 ring-2 ring-red-200' : ''}`}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${pendingCount > 0 ? 'bg-red-100' : 'bg-yellow-100'}`}>
+                  <Clock className={`h-5 w-5 ${pendingCount > 0 ? 'text-red-600' : 'text-yellow-600'}`} />
+                </div>
+                <div>
+                  <p className={`text-2xl font-bold ${pendingCount > 0 ? 'text-red-600' : 'text-yellow-600'}`}>
+                    {pendingCount}
+                  </p>
+                  <p className="text-xs text-slate-600">Ожидают</p>
+                </div>
+                {pendingCount > 0 && (
+                  <span className="ml-auto flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  </span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-2 border-blue-100 bg-gradient-to-br from-blue-50 to-white">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">В эскроу</CardTitle>
-            <Wallet className="w-5 h-5 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-900">245,000 ₿</div>
-            <p className="text-xs text-gray-600 mt-1">Ожидают check-in</p>
-          </CardContent>
-        </Card>
+          <Card className="bg-white/80 backdrop-blur">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-green-600">
+                    {payments.filter(p => p.status === 'CONFIRMED').length}
+                  </p>
+                  <p className="text-xs text-slate-600">Подтверждено</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card className="border-2 border-purple-100 bg-gradient-to-br from-purple-50 to-white">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Pending выплаты</CardTitle>
-            <CreditCard className="w-5 h-5 text-purple-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-900">{payouts.length}</div>
-            <p className="text-xs text-gray-600 mt-1">Требуют обработки</p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="bg-white/80 backdrop-blur">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                  <Wallet className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-amber-600">
+                    {payments.filter(p => p.payment_method === 'USDT_TRC20').length}
+                  </p>
+                  <p className="text-xs text-slate-600">Crypto</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Payout Management */}
-      <Card className="shadow-xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Запросы на выплату
-            <Badge variant="destructive">{payouts.length}</Badge>
-          </CardTitle>
-          <CardDescription>
-            Проверьте детали перед обработкой. Будьте внимательны с двойными выплатами!
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {payouts.length === 0 ? (
-            <div className="text-center py-12">
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <p className="text-xl font-semibold text-gray-900">Все выплаты обработаны!</p>
-              <p className="text-gray-600">Нет pending запросов</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {payouts.map((payout) => (
-                <div
-                  key={payout.id}
-                  className="flex items-center justify-between p-6 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border-2 border-purple-200 hover:border-purple-400 transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center text-3xl">
-                      {getMethodIcon(payout.method)}
-                    </div>
-                    <div>
-                      <p className="font-bold text-xl text-gray-900">
-                        {payout.metadata?.partnerName || 'Partner'}
-                      </p>
-                      <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
-                        <span className="font-mono bg-white px-2 py-1 rounded">
-                          {payout.destination}
-                        </span>
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Requested: {new Date(payout.requestedAt).toLocaleDateString('ru-RU')}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-bold text-purple-900 mb-1">
-                      {payout.amount.toLocaleString('ru-RU')} {payout.currency}
-                    </div>
-                    <Badge className="mb-3">
-                      {payout.method === 'bank' ? 'Bank Transfer' : 'USDT Crypto'}
-                    </Badge>
-                    <br />
-                    <Button
-                      onClick={() => setSelectedPayout(payout)}
-                      className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6"
+          <Card className="bg-white/80 backdrop-blur">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <CreditCard className="h-5 w-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {payments.filter(p => p.payment_method === 'CARD_INTL' || p.payment_method === 'CARD_RU').length}
+                  </p>
+                  <p className="text-xs text-slate-600">Cards</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filter Tabs */}
+        <Tabs value={activeFilter} onValueChange={setActiveFilter} className="space-y-4">
+          <TabsList className="bg-white/80 backdrop-blur p-1 flex-wrap h-auto gap-1">
+            <TabsTrigger value="all" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
+              Все
+            </TabsTrigger>
+            <TabsTrigger value="PENDING" className="data-[state=active]:bg-yellow-600 data-[state=active]:text-white relative">
+              Ожидают
+              {pendingCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
+                  {pendingCount}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="CRYPTO" className="data-[state=active]:bg-amber-600 data-[state=active]:text-white">
+              <Wallet className="h-4 w-4 mr-1" />
+              Crypto
+            </TabsTrigger>
+            <TabsTrigger value="MIR" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
+              МИР
+            </TabsTrigger>
+            <TabsTrigger value="CARD" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+              <CreditCard className="h-4 w-4 mr-1" />
+              Card
+            </TabsTrigger>
+            <TabsTrigger value="CONFIRMED" className="data-[state=active]:bg-green-600 data-[state=active]:text-white">
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Confirmed
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value={activeFilter} className="space-y-4">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+              </div>
+            ) : payments.length === 0 ? (
+              <Card className="bg-white/80 backdrop-blur">
+                <CardContent className="p-8 text-center">
+                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-900">Нет платежей</h3>
+                  <p className="text-slate-600">Платежи с выбранным фильтром не найдены</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {payments.map((payment) => {
+                  const methodConfig = PAYMENT_METHODS[payment.payment_method] || PAYMENT_METHODS.CARD_INTL
+                  const statusConfig = STATUS_CONFIG[payment.status] || STATUS_CONFIG.PENDING
+                  const StatusIcon = statusConfig.icon
+                  const MethodIcon = methodConfig.icon
+
+                  return (
+                    <Card 
+                      key={payment.id} 
+                      className={`bg-white/90 backdrop-blur hover:shadow-lg transition-shadow cursor-pointer ${
+                        payment.status === 'PENDING' ? 'border-l-4 border-l-yellow-500' : ''
+                      }`}
+                      onClick={() => setSelectedPayment(payment)}
+                      data-testid={`payment-card-${payment.id}`}
                     >
-                      <DollarSign className="w-4 h-4 mr-2" />
-                      Mark as Paid
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between flex-wrap gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center bg-${methodConfig.color}-100`}>
+                              <MethodIcon className={`h-5 w-5 text-${methodConfig.color}-600`} />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-slate-900">
+                                {payment.booking?.listing?.title || 'Объект'}
+                              </p>
+                              <p className="text-sm text-slate-600">
+                                {payment.booking?.guest_name || 'Гость'} • {methodConfig.label}
+                              </p>
+                              {payment.txid && (
+                                <p className="text-xs text-slate-500 font-mono truncate max-w-[200px]">
+                                  TXID: {payment.txid.substring(0, 20)}...
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <p className="font-bold text-lg text-slate-900">
+                                ฿{payment.amount?.toLocaleString() || 0}
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {new Date(payment.created_at).toLocaleDateString('ru-RU')}
+                              </p>
+                            </div>
+
+                            <Badge className={`${statusConfig.color} flex items-center gap-1`}>
+                              <StatusIcon className={`h-3 w-3 ${payment.status === 'VERIFYING' ? 'animate-spin' : ''}`} />
+                              {statusConfig.label}
+                            </Badge>
+
+                            {payment.payment_method === 'USDT_TRC20' && payment.txid && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  window.open(`https://tronscan.org/#/transaction/${payment.txid}`, '_blank')
+                                }}
+                                data-testid={`tronscan-btn-${payment.id}`}
+                              >
+                                <ExternalLink className="h-4 w-4 mr-1" />
+                                TronScan
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Payment Detail Modal */}
+      <Dialog open={!!selectedPayment} onOpenChange={() => {
+        setSelectedPayment(null)
+        setVerificationResult(null)
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {selectedPayment && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Eye className="h-5 w-5 text-indigo-600" />
+                  Детали платежа
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                {/* Status Badge */}
+                <div className="flex items-center justify-between">
+                  <Badge className={STATUS_CONFIG[selectedPayment.status]?.color || 'bg-gray-100'}>
+                    {STATUS_CONFIG[selectedPayment.status]?.label || selectedPayment.status}
+                  </Badge>
+                  <Badge variant="outline">
+                    {PAYMENT_METHODS[selectedPayment.payment_method]?.label || selectedPayment.payment_method}
+                  </Badge>
+                </div>
+
+                {/* Booking Info */}
+                <Card>
+                  <CardContent className="p-4 space-y-2">
+                    <h4 className="font-semibold">Бронирование</h4>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-slate-500">Объект</p>
+                        <p className="font-medium">{selectedPayment.booking?.listing?.title || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500">Гость</p>
+                        <p className="font-medium">{selectedPayment.booking?.guest_name || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500">Email</p>
+                        <p className="font-medium">{selectedPayment.booking?.guest_email || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-500">Сумма</p>
+                        <p className="font-bold text-teal-600">฿{selectedPayment.amount?.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* TXID Info for Crypto */}
+                {selectedPayment.payment_method === 'USDT_TRC20' && selectedPayment.txid && (
+                  <Card>
+                    <CardContent className="p-4 space-y-3">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <Wallet className="h-4 w-4 text-amber-600" />
+                        Crypto Transaction
+                      </h4>
+                      <div>
+                        <p className="text-xs text-slate-500 mb-1">TXID</p>
+                        <code className="text-xs bg-slate-100 p-2 rounded block break-all">
+                          {selectedPayment.txid}
+                        </code>
+                      </div>
+
+                      {/* TronScan Verify Button */}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => handleVerifyTron(selectedPayment.txid)}
+                          disabled={verifying}
+                          className="flex-1"
+                          data-testid="live-verify-btn"
+                        >
+                          {verifying ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                          )}
+                          Live Verify
+                        </Button>
+                        <Button
+                          variant="outline"
+                          asChild
+                          className="flex-1"
+                        >
+                          <a 
+                            href={`https://tronscan.org/#/transaction/${selectedPayment.txid}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            View on TronScan
+                          </a>
+                        </Button>
+                      </div>
+
+                      {/* Verification Result */}
+                      {verificationResult && (
+                        <div className={`rounded-lg p-4 border ${
+                          verificationResult.success 
+                            ? 'bg-green-50 border-green-200' 
+                            : verificationResult.status === 'PENDING'
+                            ? 'bg-yellow-50 border-yellow-200'
+                            : 'bg-red-50 border-red-200'
+                        }`}>
+                          <div className="flex items-center gap-2 mb-2">
+                            {verificationResult.success ? (
+                              <CheckCircle className="h-5 w-5 text-green-600" />
+                            ) : verificationResult.status === 'PENDING' ? (
+                              <Clock className="h-5 w-5 text-yellow-600" />
+                            ) : (
+                              <AlertCircle className="h-5 w-5 text-red-600" />
+                            )}
+                            <span className={`font-semibold ${
+                              verificationResult.success ? 'text-green-800' 
+                              : verificationResult.status === 'PENDING' ? 'text-yellow-800'
+                              : 'text-red-800'
+                            }`}>
+                              {verificationResult.badge?.label || verificationResult.status}
+                            </span>
+                          </div>
+                          {verificationResult.data && (
+                            <div className="text-sm space-y-1">
+                              <p><span className="text-slate-500">От:</span> <code className="text-xs">{verificationResult.data.from}</code></p>
+                              <p><span className="text-slate-500">Кому:</span> <code className="text-xs">{verificationResult.data.to}</code></p>
+                              {verificationResult.data.amount > 0 && (
+                                <p><span className="text-slate-500">Сумма:</span> <strong>{verificationResult.data.amount} {verificationResult.data.token}</strong></p>
+                              )}
+                              <p>
+                                <span className="text-slate-500">Кошелёк верный:</span> 
+                                {verificationResult.data.isCorrectWallet ? (
+                                  <span className="text-green-600 font-medium ml-1">✓ Да</span>
+                                ) : (
+                                  <span className="text-red-600 font-medium ml-1">✗ Нет</span>
+                                )}
+                              </p>
+                            </div>
+                          )}
+                          {verificationResult.error && (
+                            <p className="text-sm text-red-600 mt-2">{verificationResult.error}</p>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Admin Actions */}
+                {selectedPayment.status === 'PENDING' && (
+                  <div className="flex gap-3 pt-4 border-t">
+                    <Button
+                      onClick={() => handleConfirmPayment(selectedPayment.id)}
+                      disabled={processing}
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                      data-testid="confirm-payment-btn"
+                    >
+                      {processing ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                      )}
+                      Подтвердить
+                    </Button>
+                    <Button
+                      onClick={() => setShowRejectModal(true)}
+                      variant="destructive"
+                      disabled={processing}
+                      className="flex-1"
+                      data-testid="reject-payment-btn"
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Отклонить
                     </Button>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Commission Settings */}
-      <Card className="shadow-xl">
-        <CardHeader>
-          <CardTitle>Настройки комиссии</CardTitle>
-          <CardDescription>Глобальные параметры платформы</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="commission">Комиссия платформы по умолчанию (%)</Label>
-              <div className="flex gap-3 mt-2">
-                <Input
-                  id="commission"
-                  type="number"
-                  value={settings.defaultCommissionRate}
-                  onChange={(e) =>
-                    setSettings({ ...settings, defaultCommissionRate: parseFloat(e.target.value) })
-                  }
-                  className="max-w-xs"
-                />
-                <Button onClick={handleUpdateSettings} disabled={saving}>
-                  {saving ? 'Сохранение...' : 'Сохранить'}
-                </Button>
+                )}
               </div>
-              <p className="text-sm text-gray-600 mt-2">
-                Текущая: {settings.defaultCommissionRate}% от стоимости бронирования
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
-      {/* Confirmation Modal */}
-      <Dialog open={!!selectedPayout} onOpenChange={() => setSelectedPayout(null)}>
-        <DialogContent className="max-w-lg">
+      {/* Reject Modal */}
+      <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-2xl flex items-center gap-2">
-              <AlertTriangle className="w-6 h-6 text-orange-500" />
-              Подтверждение выплаты
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <XCircle className="h-5 w-5" />
+              Отклонить платёж
             </DialogTitle>
-            <DialogDescription className="text-base">
-              Это действие нельзя отменить. Убедитесь, что средства были отправлены.
+            <DialogDescription>
+              Укажите причину отклонения платежа
             </DialogDescription>
           </DialogHeader>
-          {selectedPayout && (
-            <div className="space-y-4 py-4">
-              <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4">
-                <p className="font-semibold text-lg text-gray-900 mb-2">
-                  Вы уверены, что отправили:
-                </p>
-                <div className="space-y-1 text-gray-700">
-                  <p>
-                    <span className="font-bold text-2xl text-purple-600">
-                      {selectedPayout.amount.toLocaleString('ru-RU')} {selectedPayout.currency}
-                    </span>
-                  </p>
-                  <p className="text-sm">
-                    <strong>Кому:</strong> {selectedPayout.metadata?.partnerName}
-                  </p>
-                  <p className="text-sm">
-                    <strong>Куда:</strong> {selectedPayout.destination}
-                  </p>
-                  <p className="text-sm">
-                    <strong>Метод:</strong> {selectedPayout.method === 'bank' ? '🏦 Bank Transfer' : '💎 USDT'}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="txId">Transaction ID (опционально)</Label>
-                <Input
-                  id="txId"
-                  placeholder="TX-123456789 или номер платежа"
-                  value={transactionId}
-                  onChange={(e) => setTransactionId(e.target.value)}
-                  className="mt-2"
-                />
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded p-3">
-                <p className="text-sm text-blue-900">
-                  <strong>📬 После подтверждения:</strong>
-                  <br />
-                  Партнер получит уведомление на Email и в Telegram о том, что выплата обработана.
-                </p>
-              </div>
-            </div>
-          )}
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setSelectedPayout(null)}
-              disabled={saving}
-            >
+          <Textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="Причина отклонения..."
+            className="min-h-[100px]"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRejectModal(false)}>
               Отмена
             </Button>
             <Button
-              onClick={handleMarkAsPaid}
-              disabled={saving}
-              className="bg-green-600 hover:bg-green-700"
+              variant="destructive"
+              onClick={() => handleRejectPayment(selectedPayment?.id)}
+              disabled={processing || !rejectReason.trim()}
             >
-              {saving ? 'Обработка...' : '✅ Подтвердить выплату'}
+              {processing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Отклонить
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  );
+  )
 }

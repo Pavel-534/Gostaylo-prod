@@ -11,8 +11,8 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // Mock USDT exchange rate
 const USDT_TO_THB_RATE = 35.5;
 
-// Mock TRON wallet address for receiving USDT
-const TRON_WALLET_ADDRESS = 'TXYZMockWalletAddressFunnyRent2026';
+// Official FunnyRent USDT TRC-20 Wallet Address
+const TRON_WALLET_ADDRESS = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
 
 export async function POST(request, { params }) {
   const bookingId = params.id;
@@ -52,9 +52,8 @@ export async function POST(request, { params }) {
       return NextResponse.json({ success: false, error: 'Booking is cancelled' }, { status: 400 });
     }
     
-    if (booking.status === 'CONFIRMED') {
-      return NextResponse.json({ success: false, error: 'Booking is already paid' }, { status: 400 });
-    }
+    // Allow payment for PENDING, AWAITING_PAYMENT, CONFIRMED bookings
+    // Remove restriction for CONFIRMED - user might want to see payment details
     
     // Calculate amounts
     const priceThb = parseFloat(booking.price_thb);
