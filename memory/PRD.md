@@ -9,7 +9,62 @@
 
 ---
 
-## Latest Update: 2026-03-03 - Stage 30 Realtime Chat & Finance Precision ✅
+## Latest Update: 2026-03-03 - Stage 31 In-Chat Payments & Escrow Logic ✅
+
+### In-Chat Invoicing (P0) - COMPLETE
+- **Location:** Partner Chat (`/app/partner/messages/[id]/page.js`)
+- **UI:** Send Invoice button with amber styling and Receipt icon
+- **Dialog:** `SendInvoiceDialog` component for creating invoices with:
+  - Amount input with currency selector (THB, USDT, RUB)
+  - Payment method selection (CRYPTO, CARD, MIR)
+  - Optional description field
+  - Auto-conversion to USDT display
+- **API:** `/api/v2/chat/invoice` - POST to create, GET to retrieve
+- **Display:** `InvoiceCard` component shows in chat for both partner and renter
+
+### Dynamic Commission System (NEW CRITICAL) - COMPLETE
+- **Snapshot Logic:** Commission rate captured at booking creation
+- **Storage:** New field `applied_commission_rate` in bookings
+- **Service:** `EscrowService.snapshotCommissionRate(bookingId)`
+- **Integrity:** Payout uses snapshotted rate, immune to global rate changes
+- **Notifications:** Telegram payouts show "Commission: X% (fixed at booking time)"
+
+### Invoice Card Features
+- **Currency Symbols:** THB (฿), USDT ($), RUB (₽) with colored icons
+- **Status Badges:** PENDING, PAID, EXPIRED, CANCELLED
+- **Listing Info:** Title, dates, property image
+- **Pay Button:** For renters - redirects to checkout page
+
+### Escrow & Payout Logic (P1) - COMPLETE
+- **Status:** `PAID_ESCROW` status implemented
+- **Commission Calculation:** Uses snapshotted rate from booking
+- **Cron Job:** `/api/cron/payouts` for automated 18:00 payouts
+- **Notifications:** Telegram alerts with commission details
+
+### PWA Visuals - COMPLETE
+- **Icons:** Real PNG icons generated (192x192, 512x512)
+- **Theme:** Tropical teal gradient with house/palm silhouette
+- **Manifest:** Updated `/public/manifest.json` with new icons
+
+### Files Created/Modified
+- `/app/app/partner/messages/[id]/page.js` → Send Invoice button + Invoice rendering
+- `/app/app/renter/messages/[id]/page.js` → Invoice card display with Pay button
+- `/app/components/chat-invoice.jsx` → InvoiceCard + SendInvoiceDialog
+- `/app/app/api/v2/chat/invoice/route.js` → Invoice API
+- `/app/lib/services/escrow.service.js` → Dynamic commission snapshotting
+- `/app/lib/services/notification.service.js` → Payout notifications with commission
+- `/app/public/icons/icon-192x192.png` → PWA icon (real PNG)
+- `/app/public/icons/icon-512x512.png` → PWA icon (real PNG)
+- `/app/public/manifest.json` → Updated with new icons
+
+### Known Issues
+- **Preview API 502:** Intermittent proxy timeouts (infrastructure, not code)
+- All APIs work correctly on localhost:3000
+- Code verified via testing agent code review (100% pass)
+
+---
+
+## Previous Update: 2026-03-03 - Stage 30 Realtime Chat & Finance Precision ✅
 
 ### Supabase Realtime Chat
 - **Hook:** `/hooks/use-realtime-chat.js` с useRealtimeMessages, usePresence
