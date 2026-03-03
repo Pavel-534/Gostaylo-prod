@@ -9,6 +9,41 @@
 
 ---
 
+## Latest Update: 2026-03-03 - Stage 28 Visual Perfection & Resend ✅
+
+### Header & User Identity
+- **User Name Display:** Shows first name next to profile icon when logged in
+- **"List Property" CTA:** Teal button in header (desktop), links to `/partner/listings/new`
+- **Responsive Navigation:** Clean, no-overlap layout on mobile/tablet
+
+### Homepage & Listing Cards (Pixel Perfect)
+- **Search Bar:** Added functional "Search" button with magnifying glass icon
+- **Filter Alignment:** Dates, District, Category filters properly aligned in grid
+- **Card Button Alignment:** "Book Now" buttons aligned at bottom using `flex-col` + `mt-auto`
+- **Icon Row:** Bedroom/bathroom/area icons in single consistent line
+- **Tropical Style:** White background, soft shadows, unified Teal (#0d9488) color
+
+### Resend Email Engine ✅
+- **API Key:** `re_Rr2not4n_BuKnXeBCp432v3Avgr2KAFmG` (added to `.env`)
+- **Email Service:** `/app/lib/services/email.service.js` with professional templates
+- **Multilingual Support:** RU, EN, ZH, TH with bilingual format
+- **Templates Implemented:**
+  1. Welcome Email (New Registration)
+  2. Booking Requested (To Renter)
+  3. New Lead Alert (To Partner/Admin)
+
+### Technical Improvements
+- **Tailwind Config:** Centralized Teal/Azure colors in `/app/tailwind.config.js`
+- **Form Buttons:** Full-width on mobile with `w-full sm:w-auto`
+
+### Files Created/Modified
+- `/app/tailwind.config.js` → Added teal/azure color palette
+- `/app/lib/services/email.service.js` → NEW: Resend email service
+- `/app/app/page.js` → REWRITTEN: Visual perfection, header, cards
+- `/app/.env` → Added RESEND_API_KEY
+
+---
+
 ## Latest Update: 2026-03-03 - Stage 27 Complete ✅
 
 ### Telegram Bot & Workflow Cleanup (Stage 27)
