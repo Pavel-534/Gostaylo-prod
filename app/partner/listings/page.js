@@ -5,8 +5,9 @@ import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Eye, Edit, Trash2, MoreVertical, Grid, List, ExternalLink } from 'lucide-react'
+import { Plus, Eye, Edit, Trash2, MoreVertical, Grid, List, ExternalLink, Send, Loader2, AlertCircle } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
+import { useToast } from '@/hooks/use-toast'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,12 +24,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+
+const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co'
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k'
+const STORAGE_BUCKET = 'listings'
+const TELEGRAM_BOT_TOKEN = '8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM'
+const TELEGRAM_ADMIN_GROUP_ID = '-1003832026983'
+const TOPIC_ID_NEW_PARTNERS = 17  // For moderation requests
 
 export default function PartnerListings() {
+  const { toast } = useToast()
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState('grid')
   const [deleteId, setDeleteId] = useState(null)
+  const [publishingId, setPublishingId] = useState(null)
 
   useEffect(() => {
     loadListings()
@@ -44,10 +61,6 @@ export default function PartnerListings() {
         setLoading(false)
         return
       }
-      
-      // Load directly from Supabase to avoid K8s ingress issues
-      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co'
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k'
       
       const res = await fetch(
         `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${user.id}&order=created_at.desc`,
@@ -67,12 +80,124 @@ export default function PartnerListings() {
     }
   }
 
+  /**
+   * Check if a listing is a draft that can be published
+   */
+  function isDraft(listing) {
+    return listing.status === 'INACTIVE' && listing.metadata?.is_draft === true
+  }
+
+  /**
+   * Check if draft can be published (has price and images)
+   */
+  function canPublishDraft(listing) {
+    const hasPrice = listing.base_price_thb > 0
+    const hasImages = listing.images && listing.images.length > 0
+    return hasPrice && hasImages
+  }
+
+  /**
+   * Get validation error message for draft
+   */
+  function getDraftValidationError(listing) {
+    const errors = []
+    if (!listing.base_price_thb || listing.base_price_thb <= 0) {
+      errors.push('Укажите цену')
+    }
+    if (!listing.images || listing.images.length === 0) {
+      errors.push('Добавьте фото')
+    }
+    return errors.join(', ')
+  }
+
+  /**
+   * Publish draft listing - Send to Admin moderation
+   */
+  async function publishDraft(listing) {
+    if (!canPublishDraft(listing)) {
+      toast({
+        title: 'Невозможно опубликовать',
+        description: getDraftValidationError(listing),
+        variant: 'destructive'
+      })
+      return
+    }
+
+    setPublishingId(listing.id)
+
+    try {
+      // 1. Update listing: status = PENDING, remove is_draft flag
+      const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listing.id}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          status: 'PENDING',
+          metadata: {
+            ...(listing.metadata || {}),
+            is_draft: false,
+            needs_review: true,
+            submitted_at: new Date().toISOString()
+          },
+          updated_at: new Date().toISOString()
+        })
+      })
+
+      if (!updateRes.ok) {
+        throw new Error('Failed to update listing')
+      }
+
+      // 2. Send notification to Admin Group (Thread 17 - NEW_PARTNERS for moderation)
+      const adminMessage = `🔔 <b>НОВАЯ ЗАЯВКА НА МОДЕРАЦИЮ</b>\n\n` +
+        `📝 <b>ID:</b> ${listing.id}\n` +
+        `🏠 <b>Название:</b> ${listing.title || 'Без названия'}\n` +
+        `💰 <b>Цена:</b> ฿${listing.base_price_thb?.toLocaleString() || 0}/день\n` +
+        `📸 <b>Фото:</b> ${listing.images?.length || 0}\n` +
+        `📍 <b>Район:</b> ${listing.district || 'Не указан'}\n\n` +
+        `<i>Листинг готов к проверке</i>`
+
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_ADMIN_GROUP_ID,
+          message_thread_id: TOPIC_ID_NEW_PARTNERS,
+          text: adminMessage,
+          parse_mode: 'HTML'
+        })
+      })
+
+      // 3. Update local state
+      setListings(prev => prev.map(l => 
+        l.id === listing.id 
+          ? { ...l, status: 'PENDING', metadata: { ...l.metadata, is_draft: false } }
+          : l
+      ))
+
+      // 4. Show success toast
+      toast({
+        title: 'Отправлено на модерацию',
+        description: 'Администратор проверит ваш листинг в ближайшее время',
+      })
+
+    } catch (error) {
+      console.error('Failed to publish draft:', error)
+      toast({
+        title: 'Ошибка публикации',
+        description: 'Попробуйте ещё раз',
+        variant: 'destructive'
+      })
+    } finally {
+      setPublishingId(null)
+    }
+  }
+
   async function deleteListing(id) {
     try {
-      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co'
-      const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I'
-      const STORAGE_BUCKET = 'listings'
-      
       // Find listing to get images for cleanup
       const listingToDelete = listings.find(l => l.id === id)
       
@@ -110,8 +235,18 @@ export default function PartnerListings() {
       })
       setListings(listings.filter(l => l.id !== id))
       setDeleteId(null)
+      
+      toast({
+        title: 'Удалено',
+        description: 'Листинг успешно удалён',
+      })
     } catch (error) {
       console.error('Failed to delete listing:', error)
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось удалить листинг',
+        variant: 'destructive'
+      })
     }
   }
 
@@ -283,38 +418,84 @@ export default function PartnerListings() {
                   </span>
                 </div>
               </CardContent>
-              <CardFooter className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1" 
-                  asChild
-                  data-testid={`view-listing-${listing.id}`}
-                >
-                  <Link href={`/listings/${listing.id}`} target="_blank">
-                    <ExternalLink className="h-3 w-3 mr-1" />
-                    На сайте
-                  </Link>
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1" asChild>
-                  <Link href={`/partner/listings/${listing.id}`}>
-                    <Edit className="h-3 w-3 mr-1" />
-                    Редактировать
-                  </Link>
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setDeleteId(listing.id)}>
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Удалить
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+              <CardFooter className="flex flex-col gap-2">
+                {/* PUBLISH DRAFT BUTTON - Only for drafts */}
+                {isDraft(listing) && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="w-full">
+                          <Button 
+                            onClick={() => publishDraft(listing)}
+                            disabled={!canPublishDraft(listing) || publishingId === listing.id}
+                            className={`w-full ${canPublishDraft(listing) 
+                              ? 'bg-teal-600 hover:bg-teal-700' 
+                              : 'bg-slate-300 cursor-not-allowed'}`}
+                            size="sm"
+                            data-testid={`publish-draft-${listing.id}`}
+                          >
+                            {publishingId === listing.id ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Публикация...
+                              </>
+                            ) : !canPublishDraft(listing) ? (
+                              <>
+                                <AlertCircle className="h-4 w-4 mr-2" />
+                                Заполните данные
+                              </>
+                            ) : (
+                              <>
+                                <Send className="h-4 w-4 mr-2" />
+                                Отправить на модерацию
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </TooltipTrigger>
+                      {!canPublishDraft(listing) && (
+                        <TooltipContent>
+                          <p>{getDraftValidationError(listing)}</p>
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+                
+                {/* Standard action buttons */}
+                <div className="flex gap-2 w-full">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1" 
+                    asChild
+                    data-testid={`view-listing-${listing.id}`}
+                  >
+                    <Link href={`/listings/${listing.id}`} target="_blank">
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      На сайте
+                    </Link>
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1" asChild>
+                    <Link href={`/partner/listings/${listing.id}`}>
+                      <Edit className="h-3 w-3 mr-1" />
+                      Редактировать
+                    </Link>
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setDeleteId(listing.id)}>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Удалить
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </CardFooter>
             </Card>
           )})}
@@ -356,31 +537,63 @@ export default function PartnerListings() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        asChild
-                        data-testid={`view-listing-list-${listing.id}`}
-                      >
-                        <Link href={`/listings/${listing.id}`} target="_blank">
-                          <ExternalLink className="h-3 w-3 mr-1" />
-                          На сайте
-                        </Link>
-                      </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/partner/listings/${listing.id}/edit`}>
-                          <Edit className="h-3 w-3 mr-1" />
-                          Редактировать
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setDeleteId(listing.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <div className="flex flex-col gap-2">
+                      {/* PUBLISH DRAFT BUTTON - Only for drafts (List view) */}
+                      {isDraft(listing) && (
+                        <Button 
+                          onClick={() => publishDraft(listing)}
+                          disabled={!canPublishDraft(listing) || publishingId === listing.id}
+                          className={`${canPublishDraft(listing) 
+                            ? 'bg-teal-600 hover:bg-teal-700' 
+                            : 'bg-slate-300 cursor-not-allowed'}`}
+                          size="sm"
+                          data-testid={`publish-draft-list-${listing.id}`}
+                        >
+                          {publishingId === listing.id ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Публикация...
+                            </>
+                          ) : !canPublishDraft(listing) ? (
+                            <>
+                              <AlertCircle className="h-4 w-4 mr-2" />
+                              Заполните
+                            </>
+                          ) : (
+                            <>
+                              <Send className="h-4 w-4 mr-2" />
+                              На модерацию
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          asChild
+                          data-testid={`view-listing-list-${listing.id}`}
+                        >
+                          <Link href={`/listings/${listing.id}`} target="_blank">
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            На сайте
+                          </Link>
+                        </Button>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/partner/listings/${listing.id}/edit`}>
+                            <Edit className="h-3 w-3 mr-1" />
+                            Редактировать
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDeleteId(listing.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -33,11 +33,29 @@
 - Column name: `base_price_thb` (not `base_price`)
 - Status enum: PENDING, ACTIVE, BOOKED, INACTIVE, REJECTED
 
+#### Task 5: "Publish Draft" Button ✅ (LAZY REALTOR COMPLETE)
+- **Button Location:** Partner Dashboard, appears only for draft listings
+- **Validation:** Disabled if `base_price_thb <= 0` OR `images` array empty
+- **Transition:** `status: INACTIVE → PENDING`, `metadata.is_draft: true → false`
+- **Admin Notification:** Telegram to Group Thread 17 (NEW_PARTNERS)
+- **UI Feedback:** Toast: "Отправлено на модерацию"
+
+### Full "Lazy Realtor" Flow ✅
+```
+1. Partner sends photo + caption to Telegram Bot
+2. Bot creates listing: status=INACTIVE, is_draft=true (NOT visible to Admin)
+3. Partner edits draft in Dashboard (add price, photos if needed)
+4. Partner clicks "Отправить на модерацию" button
+5. System: status→PENDING, is_draft→false, Telegram notification sent
+6. Admin sees listing in Moderation queue
+7. Admin approves → status=ACTIVE (live on site)
+```
+
 ### Files Modified
 - `/app/app/api/webhooks/telegram/route.js` → v6.2
 - `/app/app/admin/moderation/page.js` → Draft filtering
 - `/app/app/api/v2/listings/[id]/route.js` → Storage cleanup
-- `/app/app/partner/listings/page.js` → Storage cleanup + status handling
+- `/app/app/partner/listings/page.js` → Publish Draft button + Storage cleanup
 
 ---
 
