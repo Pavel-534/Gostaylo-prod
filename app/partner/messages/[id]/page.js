@@ -10,13 +10,14 @@ import { Badge } from '@/components/ui/badge'
 import { 
   Send, Loader2, ArrowLeft, Image as ImageIcon, 
   Check, CheckCheck, AlertTriangle, MessageSquare,
-  Building2, Shield, Wifi, WifiOff
+  Building2, Shield, Wifi, WifiOff, Receipt
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRealtimeMessages, usePresence, playNotificationSound } from '@/hooks/use-realtime-chat'
+import { SendInvoiceDialog, InvoiceCard } from '@/components/chat-invoice'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I'
@@ -30,6 +31,7 @@ export default function PartnerMessages({ params }) {
   const [selectedConv, setSelectedConv] = useState(null)
   const [messages, setMessages] = useState([])
   const [listing, setListing] = useState(null)
+  const [booking, setBooking] = useState(null)
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
@@ -247,6 +249,45 @@ export default function PartnerMessages({ params }) {
       toast.error('Ошибка отправки')
     } finally {
       setSending(false)
+    }
+  }
+
+  // Send Invoice function
+  async function handleSendInvoice(invoiceData) {
+    if (!selectedConv || !user) return
+
+    try {
+      const res = await fetch('/api/v2/chat/invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConv.id,
+          senderId: user.id,
+          senderName: user.profile?.name || user.email || 'Partner',
+          amount: invoiceData.amount,
+          currency: invoiceData.currency,
+          paymentMethod: invoiceData.paymentMethod,
+          description: invoiceData.description,
+          bookingId: booking?.id,
+          listingId: listing?.id,
+          listingTitle: listing?.title,
+          checkIn: booking?.check_in,
+          checkOut: booking?.check_out
+        })
+      })
+
+      const data = await res.json()
+
+      if (data.success) {
+        setMessages(prev => [...prev, data.message])
+        toast.success('Счёт отправлен!')
+        scrollToBottom()
+      } else {
+        toast.error(data.error || 'Ошибка при отправке счёта')
+      }
+    } catch (error) {
+      console.error('Send invoice error:', error)
+      toast.error('Ошибка при отправке счёта')
     }
   }
 
