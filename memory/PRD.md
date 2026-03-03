@@ -55,7 +55,17 @@
 - `/app/app/api/webhooks/telegram/route.js` → v6.2
 - `/app/app/admin/moderation/page.js` → Draft filtering
 - `/app/app/api/v2/listings/[id]/route.js` → Storage cleanup
-- `/app/app/partner/listings/page.js` → Publish Draft button + Storage cleanup
+- `/app/app/partner/listings/page.js` → **REWRITTEN** - Mobile-first responsive UI
+- `/app/app/partner/listings/new/page.js` → Mobile-optimized form buttons
+
+### Mobile UI Overhaul (Partner Dashboard)
+- **Container:** `max-w-full overflow-x-hidden` - no horizontal scrolling
+- **Stats:** 2x2 grid on mobile (compact)
+- **Listing Cards:** Image + Info on left, clickable card navigates to edit
+- **Action Buttons:** Always visible row below card content
+- **Publish Button:** Prominent teal "Опубликовать" for ANY `INACTIVE` listing
+- **Form Buttons:** Full-width on mobile (`w-full sm:w-auto`)
+- **FAB:** Removed (replaced with header "Добавить" button)
 
 ---
 

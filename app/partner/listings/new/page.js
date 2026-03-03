@@ -305,16 +305,16 @@ export default function NewListing() {
   const isStep3Valid = formData.images.length > 0
 
   return (
-    <div className="p-4 lg:p-8 max-w-4xl mx-auto space-y-8">
+    <div className='p-4 lg:p-8 max-w-4xl mx-auto space-y-6 overflow-x-hidden'>
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
+      <div className='flex items-center gap-3'>
+        <Button variant='outline' size='icon' className='flex-shrink-0' onClick={() => router.back()}>
+          <ArrowLeft className='h-4 w-4' />
         </Button>
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Добавить новый листинг</h1>
-          <p className="text-slate-600 text-sm mt-1">
-            Заполните информацию о вашем предложении
+        <div className='min-w-0'>
+          <h1 className='text-lg sm:text-2xl lg:text-3xl font-bold text-slate-900'>Новый листинг</h1>
+          <p className='text-slate-600 text-xs sm:text-sm mt-0.5 truncate'>
+            Заполните информацию
           </p>
         </div>
       </div>
@@ -813,35 +813,36 @@ export default function NewListing() {
           </Card>
         )}
 
-        {/* Navigation & Submit Buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        {/* Navigation & Submit Buttons - Mobile optimized */}
+        <div className='flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4'>
           {step > 1 ? (
             <Button
-              type="button"
-              variant="outline"
+              type='button'
+              variant='outline'
               onClick={() => setStep(step - 1)}
+              className='order-2 sm:order-1'
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
+              <ArrowLeft className='h-4 w-4 mr-2' />
               Назад
             </Button>
           ) : (
-            <div />
+            <div className='hidden sm:block' />
           )}
           
-          <div className="flex gap-3">
+          <div className='flex flex-col sm:flex-row gap-2 sm:gap-3 order-1 sm:order-2 w-full sm:w-auto'>
             {step === 3 && (
               <Button
-                type="button"
-                variant="outline"
+                type='button'
+                variant='outline'
                 onClick={() => handleSubmit(true)}
                 disabled={savingDraft || loading || !isStep1Valid}
-                className="border-amber-300 text-amber-700 hover:bg-amber-50"
-                data-testid="save-draft-button"
+                className='w-full sm:w-auto border-amber-300 text-amber-700 hover:bg-amber-50'
+                data-testid='save-draft-button'
               >
                 {savingDraft ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className='h-4 w-4 mr-2 animate-spin' />
                 ) : (
-                  <Save className="h-4 w-4 mr-2" />
+                  <Save className='h-4 w-4 mr-2' />
                 )}
                 Сохранить черновик
               </Button>
@@ -849,29 +850,29 @@ export default function NewListing() {
             
             {step < 3 ? (
               <Button
-                type="button"
+                type='button'
                 onClick={() => setStep(step + 1)}
                 disabled={step === 1 && !isStep1Valid}
-                className="bg-teal-600 hover:bg-teal-700"
+                className='w-full sm:w-auto bg-teal-600 hover:bg-teal-700'
               >
                 Далее
-                <ArrowRight className="h-4 w-4 ml-2" />
+                <ArrowRight className='h-4 w-4 ml-2' />
               </Button>
             ) : (
               <Button
-                type="submit"
+                type='submit'
                 disabled={loading || savingDraft || !isStep3Valid}
-                className="bg-teal-600 hover:bg-teal-700"
-                data-testid="create-listing-button"
+                className='w-full sm:w-auto bg-teal-600 hover:bg-teal-700'
+                data-testid='create-listing-button'
               >
                 {loading ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className='h-4 w-4 mr-2 animate-spin' />
                     Создание...
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    <CheckCircle2 className='h-4 w-4 mr-2' />
                     Создать листинг
                   </>
                 )}
