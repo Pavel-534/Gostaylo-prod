@@ -9,6 +9,38 @@
 
 ---
 
+## Latest Update: 2026-03-03 - Stage 27 Complete ✅
+
+### Telegram Bot & Workflow Cleanup (Stage 27)
+
+#### Task 1: Draft Isolation ✅
+- **Bot creates listings** with `status='INACTIVE'` + `metadata.is_draft=true`
+- **Admin moderation** filters out listings where `metadata.is_draft=true`
+- **Rationale**: `DRAFT` is not a valid enum value, so we use INACTIVE + metadata flag
+
+#### Task 2: Storage Auto-Cleanup ✅
+- **DELETE /api/v2/listings/[id]** now cleans up Supabase Storage files
+- **Partner dashboard delete** also cleans up storage
+- Files in `listings` bucket are deleted when listing is removed
+
+#### Task 3: Advanced Price Parsing ✅
+- Handles currency markers (THB, бат, ฿, baht)
+- Picks MAX number > 1000 (ignores bedroom/bathroom counts)
+- Filters out distance/time patterns (до 300м, через 5 минут)
+- Test: "3 bedrooms, 5000 THB" → 5000 ✅
+
+#### Task 4: DB Schema Compliance ✅
+- Column name: `base_price_thb` (not `base_price`)
+- Status enum: PENDING, ACTIVE, BOOKED, INACTIVE, REJECTED
+
+### Files Modified
+- `/app/app/api/webhooks/telegram/route.js` → v6.2
+- `/app/app/admin/moderation/page.js` → Draft filtering
+- `/app/app/api/v2/listings/[id]/route.js` → Storage cleanup
+- `/app/app/partner/listings/page.js` → Storage cleanup + status handling
+
+---
+
 ## Latest Update: 2026-03-02 - Nervous System Phase ✅
 
 ### Notification System Activated (2026-03-02)

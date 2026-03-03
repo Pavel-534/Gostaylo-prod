@@ -1,12 +1,13 @@
 /**
- * FunnyRent 2.1 - Telegram Webhook v6.0 (Stage 27)
+ * FunnyRent 2.1 - Telegram Webhook v6.2 (Stage 27 FINAL)
  * 
  * CRITICAL ROUTE - Must be PUBLIC (no auth required)
  * 
- * NEW FEATURES:
+ * FEATURES:
  * - Advanced price extraction (markers, max number, ignore patterns)
  * - Supabase Storage upload (permanent URLs)
- * - Draft isolation (status = 'DRAFT', metadata.is_draft = true)
+ * - Draft isolation: Uses status='INACTIVE' + metadata.is_draft=true
+ *   (INACTIVE is valid enum value; DRAFT is not in the enum)
  * 
  * Runtime: Node.js
  * DB Column: base_price_thb
@@ -424,7 +425,9 @@ async function handleLinkAccount(chatId, email, firstName, username) {
 
 /**
  * Process photo and create listing DRAFT
- * Status: 'DRAFT' (NOT visible to Admin until Partner publishes)
+ * Uses: status='INACTIVE' + metadata.is_draft=true
+ * (INACTIVE is a valid enum value; DRAFT is NOT in the enum)
+ * Admin panel will filter out metadata.is_draft=true
  */
 async function handlePhotoUpload(chatId, message, firstName) {
   try {
@@ -472,8 +475,9 @@ async function handlePhotoUpload(chatId, message, firstName) {
 
     console.log(`[LAZY REALTOR] Creating DRAFT: ${listingId}, Price: ${price}, Photo: ${photoUrl ? 'yes' : 'no'}`);
 
-    // Create listing with status = 'DRAFT'
-    // This will NOT appear in Admin panel until Partner clicks "Publish"
+    // Create listing with status = 'INACTIVE' (valid enum) + metadata.is_draft = true
+    // This combination means "draft" - not visible in Admin panel
+    // Admin panel filters: status=PENDING AND metadata.is_draft IS NOT true
     const listingRes = await fetch(`${SUPABASE_URL}/rest/v1/listings`, {
       method: 'POST',
       headers: {
@@ -486,7 +490,7 @@ async function handlePhotoUpload(chatId, message, firstName) {
         id: listingId,
         owner_id: partner.id,
         category_id: '1',
-        status: 'DRAFT',  // CRITICAL: Draft status, not visible to admin
+        status: 'INACTIVE',  // Valid enum value (DRAFT is not in enum)
         title,
         description,
         district: 'Phuket',
@@ -544,7 +548,7 @@ export async function GET() {
     features: [
       'Advanced price extraction',
       'Supabase Storage upload',
-      'Draft isolation (status=DRAFT)',
+      'Draft isolation (INACTIVE + metadata.is_draft)',
       '/start, /help, /link, /status'
     ],
     db_column: 'base_price_thb',

@@ -71,7 +71,36 @@ export default function PartnerListings() {
     try {
       const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co'
       const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I'
+      const STORAGE_BUCKET = 'listings'
       
+      // Find listing to get images for cleanup
+      const listingToDelete = listings.find(l => l.id === id)
+      
+      // 1. Clean up storage files first
+      if (listingToDelete?.images?.length > 0) {
+        const filePaths = listingToDelete.images
+          .filter(url => url && url.includes(`/storage/v1/object/public/${STORAGE_BUCKET}/`))
+          .map(url => {
+            const match = url.match(new RegExp(`/${STORAGE_BUCKET}/(.+)$`))
+            return match ? match[1] : null
+          })
+          .filter(Boolean)
+        
+        if (filePaths.length > 0) {
+          // Delete from storage
+          await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}`, {
+            method: 'DELETE',
+            headers: {
+              'apikey': SUPABASE_SERVICE_KEY,
+              'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ prefixes: filePaths })
+          })
+        }
+      }
+      
+      // 2. Delete listing from database
       await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${id}`, {
         method: 'DELETE',
         headers: {
@@ -99,6 +128,7 @@ export default function PartnerListings() {
     PENDING: 'bg-yellow-100 text-yellow-700',
     DRAFT: 'bg-slate-100 text-slate-600 border border-dashed border-slate-400',
     INACTIVE: 'bg-slate-100 text-slate-700',
+    REJECTED: 'bg-red-100 text-red-700',
     BOOKED: 'bg-blue-100 text-blue-700',
   }
 
@@ -107,13 +137,16 @@ export default function PartnerListings() {
     PENDING: 'На модерации',
     DRAFT: 'Черновик',
     INACTIVE: 'Неактивный',
+    REJECTED: 'Отклонён',
     BOOKED: 'Забронирован',
   }
   
   // Helper to get effective status (check metadata.is_draft)
+  // If metadata.is_draft = true, show as draft regardless of DB status
   function getEffectiveStatus(listing) {
-    if (listing.metadata?.is_draft) return 'DRAFT'
-    return listing.status
+    if (listing.metadata?.is_draft === true) return 'DRAFT'
+    // Return the actual status (should be uppercase from DB)
+    return listing.status || 'DRAFT'
   }
 
   return (

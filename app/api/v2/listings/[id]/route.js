@@ -2,11 +2,50 @@
  * FunnyRent 2.1 - Single Listing API (v2)
  * GET /api/v2/listings/[id] - Get listing details
  * PUT /api/v2/listings/[id] - Update listing
- * DELETE /api/v2/listings/[id] - Delete listing
+ * DELETE /api/v2/listings/[id] - Delete listing + cleanup storage
  */
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+
+const STORAGE_BUCKET = 'listings';
+
+/**
+ * Delete files from Supabase Storage for a listing
+ */
+async function cleanupListingStorage(listingId, images) {
+  if (!images || images.length === 0) return;
+  
+  try {
+    // Extract file paths from URLs
+    // URLs look like: https://xxx.supabase.co/storage/v1/object/public/listings/lst-xxx/123456.jpg
+    const filePaths = images
+      .filter(url => url && url.includes(`/storage/v1/object/public/${STORAGE_BUCKET}/`))
+      .map(url => {
+        const match = url.match(new RegExp(`/${STORAGE_BUCKET}/(.+)$`));
+        return match ? match[1] : null;
+      })
+      .filter(Boolean);
+    
+    if (filePaths.length > 0) {
+      console.log(`[STORAGE CLEANUP] Deleting ${filePaths.length} files for listing ${listingId}`);
+      
+      const { error } = await supabaseAdmin
+        .storage
+        .from(STORAGE_BUCKET)
+        .remove(filePaths);
+      
+      if (error) {
+        console.error('[STORAGE CLEANUP ERROR]', error);
+      } else {
+        console.log(`[STORAGE CLEANUP] Successfully deleted files for ${listingId}`);
+      }
+    }
+  } catch (e) {
+    console.error('[STORAGE CLEANUP ERROR]', e);
+    // Don't throw - listing deletion should still proceed
+  }
+}
 
 export async function GET(request, { params }) {
   try {
@@ -142,6 +181,28 @@ export async function DELETE(request, { params }) {
   try {
     const { id } = params;
     
+    // 1. First, get listing to retrieve image URLs for cleanup
+    const { data: listing, error: fetchError } = await supabaseAdmin
+      .from('listings')
+      .select('id, images, cover_image')
+      .eq('id', id)
+      .single();
+    
+    if (fetchError) {
+      console.error('[LISTING DELETE] Listing not found:', id);
+      return NextResponse.json({ success: false, error: 'Listing not found' }, { status: 404 });
+    }
+    
+    // 2. Clean up storage files (async, don't block deletion)
+    const allImages = [...(listing.images || [])];
+    if (listing.cover_image && !allImages.includes(listing.cover_image)) {
+      allImages.push(listing.cover_image);
+    }
+    
+    // Run cleanup in background (don't await to speed up response)
+    cleanupListingStorage(id, allImages);
+    
+    // 3. Delete the listing from database
     const { error } = await supabaseAdmin
       .from('listings')
       .delete()
@@ -151,7 +212,11 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
     
-    return NextResponse.json({ success: true, message: 'Listing deleted' });
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Listing deleted',
+      storageCleanup: allImages.length > 0 ? 'initiated' : 'no_files'
+    });
     
   } catch (error) {
     console.error('[LISTING DELETE ERROR]', error);

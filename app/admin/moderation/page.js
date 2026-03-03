@@ -50,13 +50,20 @@ export default function ModerationPage() {
     }
 
     try {
-      // Load pending listings
+      // Load pending listings (only PENDING, exclude drafts)
+      // Draft listings have metadata->is_draft = true, filter them out
       const listingsRes = await fetch(
         `${SUPABASE_URL}/rest/v1/listings?status=eq.PENDING&order=created_at.desc&select=*`,
         { headers }
       )
-      const listings = await listingsRes.json()
-      setPendingListings(listings || [])
+      const rawListings = await listingsRes.json()
+      
+      // Filter out draft listings (metadata.is_draft = true)
+      const filteredListings = (rawListings || []).filter(listing => {
+        const isDraft = listing.metadata?.is_draft === true
+        return !isDraft
+      })
+      setPendingListings(filteredListings)
 
       // Load pending partners
       const partnersRes = await fetch(
@@ -84,7 +91,7 @@ export default function ModerationPage() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
-          status: 'ACTIVE',
+          status: 'ACTIVE',  // Valid enum value (uppercase)
           available: true,
           updated_at: new Date().toISOString()
         })
@@ -127,7 +134,7 @@ export default function ModerationPage() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          status: 'PENDING', // Keep as PENDING but mark rejected in metadata
+          status: 'REJECTED',  // Valid enum value (uppercase)
           available: false,
           rejection_reason: rejectReason,
           rejected_at: new Date().toISOString(),
