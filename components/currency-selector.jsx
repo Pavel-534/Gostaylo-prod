@@ -19,10 +19,11 @@ import { ChevronDown, Check } from 'lucide-react';
 const CURRENCIES = [
   { code: 'THB', symbol: '฿', name: 'Thai Baht', flag: '🇹🇭' },
   { code: 'USD', symbol: '$', name: 'US Dollar', flag: '🇺🇸' },
-  { code: 'RUB', symbol: '₽', name: 'Russian Ruble', flag: '🇷🇺' },
-  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan', flag: '🇨🇳' },
   { code: 'EUR', symbol: '€', name: 'Euro', flag: '🇪🇺' },
   { code: 'GBP', symbol: '£', name: 'British Pound', flag: '🇬🇧' },
+  { code: 'RUB', symbol: '₽', name: 'Russian Ruble', flag: '🇷🇺' },
+  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan', flag: '🇨🇳' },
+  { code: 'USDT', symbol: '₮', name: 'Tether', flag: '💎' },
 ];
 
 const STORAGE_KEY = 'funnyrent_currency';
