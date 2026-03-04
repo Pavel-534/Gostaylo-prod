@@ -4,6 +4,8 @@
  * GET /api/v2/forex?convert=1000&from=THB&to=RUB - Convert amount
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { ForexService } from '@/lib/services/forex.service';
 import { GeoService } from '@/lib/services/geo.service';

@@ -4,6 +4,8 @@
  * GET /api/v2/payments/pending-count - Count pending payments for badge
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { PaymentService, PaymentStatus, PaymentMethod } from '@/lib/services/payment.service';
 

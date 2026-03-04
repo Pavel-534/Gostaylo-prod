@@ -3,6 +3,8 @@
  * GET /api/v2/geo - Detect user's location and recommended currency
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { GeoService } from '@/lib/services/geo.service';
 import { ForexService, SUPPORTED_CURRENCIES } from '@/lib/services/forex.service';

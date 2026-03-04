@@ -3,6 +3,8 @@
  * GET /api/v2/partner/stats - Partner dashboard statistics
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { PaymentService } from '@/lib/services/payment.service';

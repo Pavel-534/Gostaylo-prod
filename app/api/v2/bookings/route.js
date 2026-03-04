@@ -4,6 +4,8 @@
  * POST /api/v2/bookings - Create booking
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { BookingService } from '@/lib/services/booking.service';
 import { NotificationService, NotificationEvents } from '@/lib/services/notification.service';

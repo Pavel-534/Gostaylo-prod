@@ -4,6 +4,8 @@
  * POST /api/v2/push/send - Send push notification (admin only)
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { PushService } from '@/lib/services/push.service';
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';

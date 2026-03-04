@@ -3,6 +3,8 @@
  * GET /api/v2/profile - Get user profile
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 

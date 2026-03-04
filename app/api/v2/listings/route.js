@@ -4,6 +4,8 @@
  * POST /api/v2/listings - Create new listing
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 

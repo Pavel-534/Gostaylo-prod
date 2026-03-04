@@ -13,7 +13,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('NEXT_PUBLIC_BASE_URL', 'https://c325362c-1be1-450d-a1ad-cc1fb45ba828.preview.emergentagent.com')
+BASE_URL = 'http://localhost:3000'  # Use localhost for testing since preview has 502 errors
 CRON_SECRET = "funnyrent-cron-2026"
 
 # FunnyRate markup is 3.5%
