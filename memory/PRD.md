@@ -9,7 +9,63 @@
 
 ---
 
-## Latest Update: 2026-03-04 - Stage 33.2.1 Global Navigation & Access Repair ✅
+## Latest Update: 2026-03-04 - Stage 33.2.2 Sidebar Restoration (ARCHITECTURAL_PASSPORT Compliance) ✅
+
+### Emergency Fix: Global Navigation Sidebar Restored (P0) - COMPLETE
+- **Issue:** Main navigation sidebar was accidentally removed during UniversalHeader refactor
+- **Fix:** Restored full sidebar functionality per ARCHITECTURAL_PASSPORT.md
+
+### AppSidebar Component (`/app/components/app-sidebar.jsx`) - RESTORED
+- **Trigger:** Burger menu (☰) in UniversalHeader
+- **Tech:** shadcn Sheet component with slide-in animation
+- **Role-based Navigation:**
+
+**GUEST (not logged in):**
+- My Bookings, Messages, Browse, Home
+- "Sign in to access your dashboard" prompt
+
+**ADMIN (full control):**
+- Dashboard (Overview & Stats)
+- Users (Manage all users)
+- Partner Applications (PENDING_PARTNER moderation) - `NEW` badge
+- Listing Moderation (PENDING listings)
+- All Bookings (Reservations overview)
+- Messages (TG Thread 18 Bridge)
+- Finance Hub (3.5% Markup • 0.5% Tolerance) - `LIVE` badge
+- System Settings (TG Bot • Webhooks • Commission)
+- System Status (DB • Webhooks • APIs) - Green pulse indicator
+- Home (Back to main site)
+- **SWITCH PANEL:** Admin / Partner quick toggle buttons
+
+**PARTNER:**
+- Dashboard (Your overview)
+- My Listings (ACTIVE + INACTIVE drafts)
+- My Bookings (Reservations)
+- Chat (Guest messages)
+- Earnings (Revenue & Escrow)
+- Home (Back to main site)
+
+### UniversalHeader Updates (`/app/components/universal-header.jsx`)
+- Added Currency Selector integration
+- "Add Listing" CTA button for partners/admins (visible on non-homepage)
+- Removed duplicate header from homepage
+
+### Homepage Cleanup (`/app/app/page.js`)
+- Removed duplicate header (was causing two headers)
+- Login dialog kept on homepage, triggered by sidebar "Login/Register" button
+
+### Testing Results - 100% PASS (iteration_12.json)
+- All 7 features verified:
+  - UniversalHeader renders correctly
+  - AppSidebar opens on burger menu click
+  - GUEST/ADMIN/PARTNER navigation verified
+  - Admin Dashboard loads with both sidebars
+  - No duplicate headers on homepage
+- ARCHITECTURAL_PASSPORT compliance verified
+
+---
+
+## Previous Update: 2026-03-04 - Stage 33.2.1 Global Navigation & Access Repair ✅
 
 ### Universal Header (P0) - COMPLETE
 - **Component:** `/app/components/universal-header.jsx`
@@ -30,11 +86,7 @@
 ### Data Rendering Fix (P1) - COMPLETE
 - **Issue:** Partner Bookings showed "Invalid Date" and "฿0"
 - **Cause:** API returns snake_case (`check_in`, `price_thb`) but code expected camelCase
-- **Fix:** Added fallback handling for both formats:
-  ```js
-  const checkIn = booking.checkIn || booking.check_in;
-  const priceThb = booking.priceThb || booking.price_thb || 0;
-  ```
+- **Fix:** Added fallback handling for both formats
 - **Safe Date Formatting:** Try/catch wrapper prevents Invalid Date errors
 
 ### Testing Results - 100% PASS
