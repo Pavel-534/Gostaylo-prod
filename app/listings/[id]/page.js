@@ -20,9 +20,12 @@ import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
 import { detectLanguage, getUIText, getListingText, supportedLanguages } from '@/lib/translations'
 import { PricingService } from '@/lib/services/pricing.service'
+import { ReviewsSection } from '@/components/reviews-section'
+import { useAuth } from '@/contexts/auth-context'
 
 export default function ListingDetail({ params }) {
   const router = useRouter()
+  const { user, openLoginModal } = useAuth()
   const [listing, setListing] = useState(null)
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
@@ -32,6 +35,9 @@ export default function ListingDetail({ params }) {
   const [language, setLanguage] = useState('ru')
   const [currency, setCurrency] = useState('THB')
   const [exchangeRates, setExchangeRates] = useState({})
+  
+  // Blocked dates for calendar grey-out
+  const [blockedDates, setBlockedDates] = useState([])
   
   // Form state
   const [guestName, setGuestName] = useState('')
@@ -43,6 +49,30 @@ export default function ListingDetail({ params }) {
   
   // Price calculation state
   const [priceCalc, setPriceCalc] = useState(null)
+
+  // Load blocked dates for calendar
+  useEffect(() => {
+    if (params?.id) {
+      loadBlockedDates()
+    }
+  }, [params?.id])
+
+  async function loadBlockedDates() {
+    try {
+      const res = await fetch(`/api/v2/listings/${params.id}/availability`)
+      const data = await res.json()
+      if (data.success) {
+        setBlockedDates(data.data.blockedDates || [])
+      }
+    } catch (error) {
+      console.error('Failed to load availability:', error)
+    }
+  }
+
+  // Check if date is blocked
+  function isDateBlocked(dateStr) {
+    return blockedDates.includes(dateStr)
+  }
 
   // Load currency preference and listen for changes
   useEffect(() => {
@@ -586,6 +616,9 @@ export default function ListingDetail({ params }) {
                 </CardContent>
               </Card>
             )}
+
+            {/* Reviews Section */}
+            <ReviewsSection listingId={params?.id} language={language} />
           </div>
 
           {/* Sidebar - Booking Card */}
@@ -648,7 +681,14 @@ export default function ListingDetail({ params }) {
                           <Input
                             type='date'
                             value={checkIn}
-                            onChange={(e) => setCheckIn(e.target.value)}
+                            onChange={(e) => {
+                              const newDate = e.target.value
+                              if (isDateBlocked(newDate)) {
+                                toast.error(language === 'ru' ? 'Эта дата уже занята' : 'This date is not available')
+                                return
+                              }
+                              setCheckIn(newDate)
+                            }}
                             min={new Date().toISOString().split('T')[0]}
                             required
                             className='h-12'
@@ -660,7 +700,24 @@ export default function ListingDetail({ params }) {
                           <Input
                             type='date'
                             value={checkOut}
-                            onChange={(e) => setCheckOut(e.target.value)}
+                            onChange={(e) => {
+                              const newDate = e.target.value
+                              // Check all dates between checkIn and newDate
+                              if (checkIn) {
+                                const start = new Date(checkIn)
+                                const end = new Date(newDate)
+                                let current = new Date(start)
+                                while (current < end) {
+                                  const dateStr = current.toISOString().split('T')[0]
+                                  if (isDateBlocked(dateStr)) {
+                                    toast.error(language === 'ru' ? 'Некоторые даты в этом диапазоне уже заняты' : 'Some dates in this range are not available')
+                                    return
+                                  }
+                                  current.setDate(current.getDate() + 1)
+                                }
+                              }
+                              setCheckOut(newDate)
+                            }}
                             min={checkIn || new Date().toISOString().split('T')[0]}
                             required
                             className='h-12'
@@ -668,6 +725,16 @@ export default function ListingDetail({ params }) {
                           />
                         </div>
                       </div>
+                      
+                      {/* Blocked dates info */}
+                      {blockedDates.length > 0 && (
+                        <p className='text-xs text-amber-600 flex items-center gap-1'>
+                          <Info className='h-3 w-3' />
+                          {language === 'ru' 
+                            ? 'Некоторые даты недоступны для бронирования'
+                            : 'Some dates are not available for booking'}
+                        </p>
+                      )}
                       
                       {/* Price Breakdown Section with Service Fee */}
                       {priceCalc ? (

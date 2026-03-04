@@ -17,12 +17,13 @@ import {
   Menu, Home, Users, Building2, Calendar, MessageSquare, 
   CreditCard, Settings, Shield, Store, BarChart3,
   Wallet, UserCheck, ChevronRight, DollarSign, 
-  Power, Bot, Globe, FileCheck, ListChecks
+  Power, Bot, Globe, FileCheck, ListChecks, Star
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/contexts/auth-context';
 
 // Admin navigation items - Full Control Panel per ARCHITECTURAL_PASSPORT
 const ADMIN_NAV = [
@@ -99,10 +100,10 @@ const PARTNER_NAV = [
     description: 'Резервации'
   },
   { 
-    label: 'Рефералы', 
-    href: '/partner/referrals', 
-    icon: Users,
-    description: 'Реферальная программа'
+    label: 'Отзывы', 
+    href: '/partner/reviews', 
+    icon: Star,
+    description: 'Управление отзывами'
   },
   { 
     label: 'Сообщения', 
@@ -148,27 +149,52 @@ const RENTER_NAV = [
 
 export function AppSidebar() {
   const [open, setOpen] = useState(false);
-  const [user, setUser] = useState(null);
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
-
+  
+  // Get auth context
+  let authContext = null;
+  try {
+    authContext = useAuth();
+  } catch (e) {
+    // Context not available, fallback to localStorage
+  }
+  
+  const [user, setUser] = useState(authContext?.user || null);
+  
   useEffect(() => {
     setMounted(true);
-    loadUser();
-  }, [pathname]);
-
-  function loadUser() {
-    const storedUser = localStorage.getItem('funnyrent_user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        setUser(null);
+    // Load user from localStorage as fallback
+    if (!authContext) {
+      const storedUser = localStorage.getItem('funnyrent_user');
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {
+          setUser(null);
+        }
       }
     } else {
-      setUser(null);
+      setUser(authContext.user);
     }
-  }
+    
+    // Listen for auth changes
+    const handleAuthChange = (e) => {
+      setUser(e.detail);
+    };
+    window.addEventListener('auth-change', handleAuthChange);
+    return () => window.removeEventListener('auth-change', handleAuthChange);
+  }, [pathname, authContext?.user]);
+
+  const handleLoginClick = () => {
+    setOpen(false);
+    if (authContext?.openLoginModal) {
+      authContext.openLoginModal();
+    } else {
+      // Fallback - redirect to home with login param
+      window.location.href = '/?login=true';
+    }
+  };
 
   if (!mounted) return null;
 
@@ -326,11 +352,12 @@ export function AppSidebar() {
           {!user && (
             <div className='px-4 py-6 text-center'>
               <p className='text-slate-600 mb-3'>Sign in to access your dashboard</p>
-              <Link href='/?login=true' onClick={() => setOpen(false)}>
-                <Button className='bg-teal-600 hover:bg-teal-700'>
-                  Login / Register
-                </Button>
-              </Link>
+              <Button 
+                className='bg-teal-600 hover:bg-teal-700'
+                onClick={handleLoginClick}
+              >
+                Login / Register
+              </Button>
             </div>
           )}
 

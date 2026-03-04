@@ -1,260 +1,281 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Star, MessageSquare, Loader2, TrendingUp, Award, Clock } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
+import { Star, MessageSquare, CheckCircle2, Loader2, Reply } from 'lucide-react'
 import { toast } from 'sonner'
 
-export default function PartnerReviews() {
+// Star rating display
+function StarRating({ rating }) {
+  return (
+    <div className='flex items-center gap-0.5'>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          className={`h-4 w-4 ${
+            star <= rating
+              ? 'fill-amber-400 text-amber-400'
+              : 'fill-slate-200 text-slate-200'
+          }`}
+        />
+      ))}
+    </div>
+  )
+}
+
+export default function PartnerReviewsPage() {
+  const router = useRouter()
   const [reviews, setReviews] = useState([])
-  const [stats, setStats] = useState({})
+  const [stats, setStats] = useState({ total: 0, averageRating: 0 })
   const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(null)
+  
+  // Reply state
   const [replyingTo, setReplyingTo] = useState(null)
   const [replyText, setReplyText] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+  const [submittingReply, setSubmittingReply] = useState(false)
 
   useEffect(() => {
-    loadReviews()
+    const stored = localStorage.getItem('funnyrent_user')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      setUser(parsed)
+      loadReviews(parsed.id)
+    }
   }, [])
 
-  async function loadReviews() {
+  async function loadReviews(partnerId) {
     try {
-      const res = await fetch('/api/partner/reviews?partnerId=partner-1')
+      const res = await fetch(`/api/v2/reviews?partner_id=${partnerId}`)
       const data = await res.json()
       
       if (data.success) {
         setReviews(data.data.reviews)
         setStats(data.data.stats)
       }
-      setLoading(false)
     } catch (error) {
       console.error('Failed to load reviews:', error)
+    } finally {
       setLoading(false)
     }
   }
 
-  async function handleReplySubmit(reviewId) {
+  async function handleSubmitReply() {
     if (!replyText.trim()) {
       toast.error('Введите текст ответа')
       return
     }
 
-    setSubmitting(true)
-
+    setSubmittingReply(true)
     try {
-      const res = await fetch(`/api/reviews/${reviewId}/reply`, {
-        method: 'POST',
+      const res = await fetch(`/api/v2/reviews/${replyingTo}/reply`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          replyText: replyText.trim(),
-          partnerId: 'partner-1',
-        }),
+          partnerId: user.id,
+          reply: replyText.trim()
+        })
       })
 
       const data = await res.json()
-
+      
       if (data.success) {
-        toast.success('Ответ опубликован!')
+        toast.success('Ответ отправлен!')
         setReplyingTo(null)
         setReplyText('')
-        loadReviews() // Reload to get updated data
+        loadReviews(user.id) // Reload reviews
       } else {
-        toast.error(data.error || 'Ошибка при публикации ответа')
+        toast.error(data.error || 'Не удалось отправить ответ')
       }
     } catch (error) {
-      console.error('Failed to reply:', error)
-      toast.error('Ошибка при публикации ответа')
+      toast.error('Ошибка при отправке ответа')
     } finally {
-      setSubmitting(false)
+      setSubmittingReply(false)
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-12 w-12 animate-spin text-teal-600" />
-      </div>
-    )
+  const formatDate = (dateStr) => {
+    return new Date(dateStr).toLocaleDateString('ru-RU', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
   }
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Отзывы</h1>
-        <p className="text-slate-600">Управляйте репутацией ваших объявлений</p>
+    <div className='p-6'>
+      <div className='mb-6'>
+        <h1 className='text-2xl font-bold text-slate-900'>Отзывы</h1>
+        <p className='text-slate-600 mt-1'>Управление отзывами гостей о ваших объектах</p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Stats */}
+      <div className='grid grid-cols-1 md:grid-cols-3 gap-4 mb-6'>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Средний рейтинг</CardTitle>
-            <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-teal-600">
-              {stats.averageRating || 0}
+          <CardContent className='pt-6'>
+            <div className='text-center'>
+              <p className='text-3xl font-bold text-slate-900'>{stats.total}</p>
+              <p className='text-sm text-slate-600'>Всего отзывов</p>
             </div>
-            <p className="text-xs text-slate-500 mt-1">из 5 звёзд</p>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Всего отзывов</CardTitle>
-            <Award className="h-4 w-4 text-teal-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.totalReviews || 0}</div>
-            <p className="text-xs text-slate-500 mt-1">по всем объявлениям</p>
+          <CardContent className='pt-6'>
+            <div className='text-center'>
+              <div className='flex items-center justify-center gap-2'>
+                <p className='text-3xl font-bold text-amber-500'>{stats.averageRating.toFixed(1)}</p>
+                <Star className='h-6 w-6 fill-amber-400 text-amber-400' />
+              </div>
+              <p className='text-sm text-slate-600'>Средняя оценка</p>
+            </div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ожидают ответа</CardTitle>
-            <Clock className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-orange-600">
-              {stats.reviewsWithoutReply || 0}
+          <CardContent className='pt-6'>
+            <div className='text-center'>
+              <p className='text-3xl font-bold text-teal-600'>
+                {reviews.filter(r => !r.partnerReply).length}
+              </p>
+              <p className='text-sm text-slate-600'>Без ответа</p>
             </div>
-            <p className="text-xs text-slate-500 mt-1">требуют внимания</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Reviews List */}
-      {reviews.length === 0 ? (
+      {loading ? (
+        <div className='py-12 text-center text-slate-500'>
+          <Loader2 className='h-8 w-8 animate-spin mx-auto mb-2' />
+          Загрузка отзывов...
+        </div>
+      ) : reviews.length === 0 ? (
         <Card>
-          <CardContent className="py-16 text-center">
-            <Star className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">Пока нет отзывов</h3>
-            <p className="text-slate-600">Отзывы появятся после завершения бронирований</p>
+          <CardContent className='py-12 text-center'>
+            <Star className='h-12 w-12 text-slate-300 mx-auto mb-4' />
+            <p className='text-slate-500'>Пока нет отзывов</p>
+            <p className='text-sm text-slate-400 mt-1'>Отзывы появятся после первых бронирований</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className='space-y-4'>
           {reviews.map((review) => (
-            <Card key={review.id} className={!review.partnerReply ? 'border-orange-200 bg-orange-50/30' : ''}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-5 w-5 ${
-                              i < review.rating
-                                ? 'fill-amber-400 text-amber-400'
-                                : 'fill-slate-200 text-slate-200'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="font-semibold text-slate-900">{review.renterName}</span>
-                      {!review.partnerReply && (
-                        <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">
-                          Нужен ответ
-                        </Badge>
-                      )}
-                    </div>
-                    <CardDescription className="text-sm">
-                      {review.listingTitle} • {new Date(review.createdAt).toLocaleDateString('ru-RU', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </CardDescription>
+            <Card key={review.id}>
+              <CardContent className='pt-6'>
+                <div className='flex items-start gap-4'>
+                  {/* Avatar */}
+                  <div className='w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0'>
+                    <span className='text-teal-700 font-semibold text-lg'>
+                      {review.reviewerInitial}
+                    </span>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Review Text */}
-                <p className="text-slate-700 leading-relaxed">{review.comment}</p>
-
-                {/* Review Photos */}
-                {review.photos && review.photos.length > 0 && (
-                  <div className="flex gap-2 flex-wrap">
-                    {review.photos.map((photo, idx) => (
-                      <img
-                        key={idx}
-                        src={photo}
-                        alt={`Review photo ${idx + 1}`}
-                        className="w-20 h-20 object-cover rounded-lg"
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {/* Partner Reply Section */}
-                {review.partnerReply ? (
-                  <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <MessageSquare className="h-4 w-4 text-teal-600" />
-                      <span className="font-semibold text-teal-900">Ваш ответ</span>
-                      <span className="text-sm text-slate-500">
-                        {new Date(review.partnerReply.createdAt).toLocaleDateString('ru-RU')}
-                      </span>
-                    </div>
-                    <p className="text-slate-700">{review.partnerReply.text}</p>
-                  </div>
-                ) : (
-                  <div className="border-t pt-4">
-                    {replyingTo === review.id ? (
-                      <div className="space-y-3">
-                        <Textarea
-                          value={replyText}
-                          onChange={(e) => setReplyText(e.target.value)}
-                          placeholder="Напишите ответ на отзыв..."
-                          rows={3}
-                          className="resize-none"
-                        />
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => handleReplySubmit(review.id)}
-                            disabled={submitting || !replyText.trim()}
-                            className="bg-teal-600 hover:bg-teal-700"
-                          >
-                            {submitting ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Публикация...
-                              </>
-                            ) : (
-                              'Опубликовать ответ'
-                            )}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setReplyingTo(null)
-                              setReplyText('')
-                            }}
-                            disabled={submitting}
-                          >
-                            Отмена
-                          </Button>
+                  
+                  <div className='flex-1 min-w-0'>
+                    {/* Header */}
+                    <div className='flex items-start justify-between gap-2 flex-wrap'>
+                      <div>
+                        <div className='flex items-center gap-2'>
+                          <span className='font-medium text-slate-900'>
+                            {review.reviewerName}
+                          </span>
+                          {review.isVerifiedBooking && (
+                            <Badge variant='outline' className='text-xs text-green-700 border-green-300 bg-green-50'>
+                              <CheckCircle2 className='h-3 w-3 mr-1' />
+                              Подтверждено
+                            </Badge>
+                          )}
+                        </div>
+                        <div className='flex items-center gap-2 mt-1'>
+                          <StarRating rating={review.rating} />
+                          <span className='text-sm text-slate-500'>
+                            {formatDate(review.createdAt)}
+                          </span>
                         </div>
                       </div>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        onClick={() => setReplyingTo(review.id)}
-                        className="w-full border-teal-300 text-teal-700 hover:bg-teal-50"
-                      >
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Ответить на отзыв
-                      </Button>
+                      
+                      {/* Reply Button */}
+                      {!review.partnerReply && (
+                        <Dialog open={replyingTo === review.id} onOpenChange={(open) => {
+                          if (open) {
+                            setReplyingTo(review.id)
+                            setReplyText('')
+                          } else {
+                            setReplyingTo(null)
+                          }
+                        }}>
+                          <DialogTrigger asChild>
+                            <Button variant='outline' size='sm'>
+                              <Reply className='h-4 w-4 mr-1' />
+                              Ответить
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Ответ на отзыв</DialogTitle>
+                            </DialogHeader>
+                            <div className='py-4'>
+                              <div className='bg-slate-50 rounded-lg p-3 mb-4'>
+                                <div className='flex items-center gap-2 mb-1'>
+                                  <span className='font-medium text-sm'>{review.reviewerName}</span>
+                                  <StarRating rating={review.rating} />
+                                </div>
+                                <p className='text-sm text-slate-600'>{review.comment}</p>
+                              </div>
+                              <Textarea
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                placeholder='Напишите ваш ответ...'
+                                rows={4}
+                              />
+                            </div>
+                            <DialogFooter>
+                              <Button
+                                variant='outline'
+                                onClick={() => setReplyingTo(null)}
+                              >
+                                Отмена
+                              </Button>
+                              <Button
+                                onClick={handleSubmitReply}
+                                disabled={submittingReply || !replyText.trim()}
+                                className='bg-teal-600 hover:bg-teal-700'
+                              >
+                                {submittingReply ? (
+                                  <><Loader2 className='h-4 w-4 mr-2 animate-spin' /> Отправка...</>
+                                ) : (
+                                  'Отправить ответ'
+                                )}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                    </div>
+                    
+                    {/* Comment */}
+                    {review.comment && (
+                      <p className='mt-3 text-slate-700'>{review.comment}</p>
+                    )}
+                    
+                    {/* Partner Reply */}
+                    {review.partnerReply && (
+                      <div className='mt-4 pl-4 border-l-2 border-teal-200 bg-teal-50/50 rounded-r-lg py-3 pr-3'>
+                        <div className='flex items-center gap-2 mb-1'>
+                          <MessageSquare className='h-4 w-4 text-teal-600' />
+                          <span className='text-sm font-medium text-teal-700'>Ваш ответ</span>
+                          <span className='text-xs text-slate-500'>
+                            {review.partnerReplyAt && formatDate(review.partnerReplyAt)}
+                          </span>
+                        </div>
+                        <p className='text-sm text-slate-700'>{review.partnerReply}</p>
+                      </div>
                     )}
                   </div>
-                )}
+                </div>
               </CardContent>
             </Card>
           ))}

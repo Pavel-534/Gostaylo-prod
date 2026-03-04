@@ -7,6 +7,7 @@
  * - Currency selector
  * - Admin Dashboard button (for ADMIN role only)
  * - Current user info
+ * - Global Auth Modal integration
  */
 
 'use client';
@@ -16,7 +17,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
   Home, Shield, Settings, Store, User, LogOut, 
-  ChevronDown, Plus, Globe
+  ChevronDown, Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { AppSidebar } from '@/components/app-sidebar';
 import { CurrencySelector } from '@/components/currency-selector';
+import { useAuth } from '@/contexts/auth-context';
 
 // Supported languages
 const LANGUAGES = [
@@ -38,16 +40,17 @@ const LANGUAGES = [
 ];
 
 export function UniversalHeader() {
-  const [user, setUser] = useState(null);
   const [mounted, setMounted] = useState(false);
   const [currency, setCurrency] = useState('THB');
   const [language, setLanguage] = useState('ru');
   const pathname = usePathname();
   const router = useRouter();
+  
+  // Use global auth context
+  const { user, logout, openLoginModal, isAdmin, isPartner } = useAuth();
 
   useEffect(() => {
     setMounted(true);
-    loadUser();
     
     // Load currency preference
     const savedCurrency = localStorage.getItem('funnyrent_currency');
@@ -56,32 +59,7 @@ export function UniversalHeader() {
     // Load language preference
     const savedLang = localStorage.getItem('funnyrent_language');
     if (savedLang) setLanguage(savedLang);
-    
-    // Listen for auth changes
-    const handleStorage = () => loadUser();
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
   }, [pathname]);
-
-  function loadUser() {
-    const storedUser = localStorage.getItem('funnyrent_user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        setUser(null);
-      }
-    } else {
-      setUser(null);
-    }
-  }
-
-  function handleLogout() {
-    localStorage.removeItem('funnyrent_user');
-    localStorage.removeItem('funnyrent_auth_token');
-    setUser(null);
-    router.push('/');
-  }
 
   function handleLanguageChange(langCode) {
     setLanguage(langCode);
@@ -93,8 +71,6 @@ export function UniversalHeader() {
   // Don't render on server
   if (!mounted) return null;
 
-  const isAdmin = user?.role === 'ADMIN';
-  const isPartner = user?.role === 'PARTNER';
   const isOnAdminPage = pathname?.startsWith('/admin');
   const isOnPartnerPage = pathname?.startsWith('/partner');
   const isOnDashboard = pathname?.startsWith('/dashboard');
@@ -295,18 +271,20 @@ export function UniversalHeader() {
                   </DropdownMenuItem>
                   
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className='text-red-600 cursor-pointer'>
+                  <DropdownMenuItem onClick={logout} className='text-red-600 cursor-pointer'>
                     <LogOut className='h-4 w-4 mr-2' />
                     Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link href='/?login=true'>
-                <Button size='sm' className='bg-teal-600 hover:bg-teal-700'>
-                  Login
-                </Button>
-              </Link>
+              <Button 
+                size='sm' 
+                className='bg-teal-600 hover:bg-teal-700'
+                onClick={openLoginModal}
+              >
+                Login
+              </Button>
             )}
           </div>
         </div>

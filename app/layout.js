@@ -3,6 +3,7 @@ import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { UniversalHeader } from '@/components/universal-header'
 import { MainContent } from '@/components/main-content'
+import { AuthProvider } from '@/contexts/auth-context'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 
@@ -30,9 +31,11 @@ export default function RootLayout({ children }) {
         <meta name="theme-color" content="#0d9488" />
       </head>
       <body className={inter.className}>
-        <UniversalHeader />
-        <MainContent>{children}</MainContent>
-        <Toaster />
+        <AuthProvider>
+          <UniversalHeader />
+          <MainContent>{children}</MainContent>
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   )
