@@ -9,7 +9,43 @@
 
 ---
 
-## Latest Update: 2026-03-04 - Stage 33.1 Security Alignment & Navigation Fix ✅
+## Latest Update: 2026-03-04 - Stage 33.2.1 Global Navigation & Access Repair ✅
+
+### Universal Header (P0) - COMPLETE
+- **Component:** `/app/components/universal-header.jsx`
+- **Features:**
+  - Home icon (teal gradient square) - always visible, leads to landing page
+  - Login button (for non-authenticated users)
+  - User dropdown (for authenticated users) with role-based navigation
+  - Admin Dashboard button (for ADMIN role) - visible everywhere
+  - Partner button (for PARTNER & ADMIN roles)
+  - My Bookings button (for all authenticated users)
+- **Styling:** Fixed position, white background with backdrop-blur, z-index 100
+
+### Route Repair (P0) - COMPLETE
+- **Renter Dashboard:** `/dashboard/renter` now loads correctly (was 404)
+- **Dashboard shows:** Stats cards (Total Bookings, Active Trips, Pending, Completed)
+- **Quick Actions:** My Bookings, Messages, Favorites links
+
+### Data Rendering Fix (P1) - COMPLETE
+- **Issue:** Partner Bookings showed "Invalid Date" and "฿0"
+- **Cause:** API returns snake_case (`check_in`, `price_thb`) but code expected camelCase
+- **Fix:** Added fallback handling for both formats:
+  ```js
+  const checkIn = booking.checkIn || booking.check_in;
+  const priceThb = booking.priceThb || booking.price_thb || 0;
+  ```
+- **Safe Date Formatting:** Try/catch wrapper prevents Invalid Date errors
+
+### Testing Results - 100% PASS
+- Universal Header with Home icon verified on all pages
+- Renter Dashboard loads correctly (no 404)
+- Partner Bookings - no Invalid Date, no NaN values
+- Login flow works (partner credentials tested)
+
+---
+
+## Previous Update: 2026-03-04 - Stage 33.1 Security Alignment & Navigation Fix ✅
 
 ### RLS Alignment (P0) - COMPLETE
 - **SQL Script v2:** `/app/database/rls_policies_v2.sql` with `::text` casting
