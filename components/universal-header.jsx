@@ -82,14 +82,19 @@ export function UniversalHeader() {
   // Don't render on admin pages - Admin Layout has its own navigation
   if (isOnAdminPage) return null;
 
+  // On partner pages with desktop sidebar, hide burger menu (only on lg screens)
+  const showBurgerMenu = !isOnPartnerPage;
+
   return (
     <div className='fixed top-0 left-0 right-0 z-[100] bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm'>
       <div className='container mx-auto px-4'>
         <div className='flex items-center justify-between h-12'>
           {/* Left - Burger Menu + Home */}
           <div className='flex items-center gap-2'>
-            {/* Burger Menu */}
-            <AppSidebar />
+            {/* Burger Menu - always on mobile, hidden on desktop for partner pages */}
+            <div className={isOnPartnerPage ? 'lg:hidden' : ''}>
+              <AppSidebar />
+            </div>
             
             {/* Home Icon */}
             <Link href='/' className='flex items-center gap-2 hover:opacity-80 transition-opacity'>

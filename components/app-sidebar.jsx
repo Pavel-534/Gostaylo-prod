@@ -78,37 +78,49 @@ const ADMIN_NAV = [
   },
 ];
 
-// Partner navigation items - Based on Stage 29-30
+// Partner navigation items - Full Partner Portal menu
 const PARTNER_NAV = [
   { 
-    label: 'Dashboard', 
+    label: 'Панель управления', 
     href: '/partner/dashboard', 
     icon: BarChart3,
-    description: 'Your overview'
+    description: 'Ваш обзор'
   },
   { 
-    label: 'My Listings', 
+    label: 'Мои листинги', 
     href: '/partner/listings', 
     icon: Building2,
-    description: 'ACTIVE + INACTIVE (drafts)'
+    description: 'ACTIVE + INACTIVE'
   },
   { 
-    label: 'My Bookings', 
+    label: 'Бронирования', 
     href: '/partner/bookings', 
     icon: Calendar,
-    description: 'Reservations'
+    description: 'Резервации'
   },
   { 
-    label: 'Chat', 
+    label: 'Рефералы', 
+    href: '/partner/referrals', 
+    icon: Users,
+    description: 'Реферальная программа'
+  },
+  { 
+    label: 'Сообщения', 
     href: '/partner/messages', 
     icon: MessageSquare,
-    description: 'Guest messages'
+    description: 'Чат с гостями'
   },
   { 
-    label: 'Earnings', 
+    label: 'Финансы', 
     href: '/partner/finances', 
     icon: Wallet,
-    description: 'Revenue & Escrow'
+    description: 'Доход & Escrow'
+  },
+  { 
+    label: 'Настройки', 
+    href: '/partner/settings', 
+    icon: Settings,
+    description: 'Профиль партнёра'
   },
 ];
 
@@ -197,7 +209,7 @@ export function AppSidebar() {
           <Menu className='h-5 w-5 text-slate-700' />
         </Button>
       </SheetTrigger>
-      <SheetContent side='left' className='w-[300px] p-0'>
+      <SheetContent side='left' className='w-full sm:w-[320px] p-0 border-r-0 sm:border-r'>
         <SheetHeader className='p-4 border-b bg-gradient-to-r from-slate-50 to-white'>
           <div className='flex items-center gap-3'>
             <div className='w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-lg flex items-center justify-center'>
