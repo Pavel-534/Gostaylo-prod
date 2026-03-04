@@ -9,63 +9,64 @@
 
 ---
 
-## Latest Update: 2026-03-04 - Stage 33.2.2 Sidebar Restoration (ARCHITECTURAL_PASSPORT Compliance) ✅
+## Latest Update: 2026-03-04 - Stage 33.2.3 Trust Engine & Calendar Blocking ✅
 
-### Emergency Fix: Global Navigation Sidebar Restored (P0) - COMPLETE
-- **Issue:** Main navigation sidebar was accidentally removed during UniversalHeader refactor
-- **Fix:** Restored full sidebar functionality per ARCHITECTURAL_PASSPORT.md
+### 1. GLOBAL AUTH CONTEXT (P0) - COMPLETE
+- **Component:** `/app/contexts/auth-context.jsx`
+- **Features:**
+  - Global authentication state via React Context
+  - `useAuth()` hook returns: user, isAuthenticated, isAdmin, isPartner, openLoginModal, logout
+  - Login modal opens **instantly** from any page without redirect
+  - Form has Вход/Регистрация tabs
+- **Integration:**
+  - `UniversalHeader` uses `openLoginModal()` for Login button
+  - `AppSidebar` uses `handleLoginClick()` for Login/Register button
+- **Testing:** PASS - Modal opens instantly from header
 
-### AppSidebar Component (`/app/components/app-sidebar.jsx`) - RESTORED
-- **Trigger:** Burger menu (☰) in UniversalHeader
-- **Tech:** shadcn Sheet component with slide-in animation
-- **Role-based Navigation:**
+### 2. CALENDAR GREY-OUT (P0) - COMPLETE
+- **API:** `/api/v2/listings/[id]/availability`
+  - Returns `blockedDates[]` array for dates with bookings
+  - Filters by statuses: `PENDING`, `CONFIRMED`, `COMPLETED`
+  - Note: `CHECKED_IN` removed (not in BookingStatus enum)
+- **Frontend:** `/app/app/listings/[id]/page.js`
+  - Date inputs validate against `blockedDates`
+  - Shows toast error "Эта дата уже занята" if blocked date selected
+  - Shows warning "Некоторые даты недоступны для бронирования" if blocked dates exist
+- **Testing:** PASS - API returns blocked dates correctly
 
-**GUEST (not logged in):**
-- My Bookings, Messages, Browse, Home
-- "Sign in to access your dashboard" prompt
+### 3. REVIEW SYSTEM (P0) - COMPLETE
+- **APIs:**
+  - `GET /api/v2/reviews?listing_id=xxx` - Get reviews for listing
+  - `GET /api/v2/reviews?partner_id=xxx` - Get reviews for partner's listings
+  - `POST /api/v2/reviews` - Create review (requires CHECKED_IN/COMPLETED booking)
+  - `PUT /api/v2/reviews/[id]/reply` - Partner adds reply (one official reply)
+- **Components:**
+  - `/app/components/reviews-section.jsx` - Public reviews on listing page
+    - StarRating display with amber fill
+    - "Verified booking" badge (green)
+    - Partner reply section (teal border)
+    - Empty state: "No reviews yet"
+  - `/app/app/partner/reviews/page.js` - Partner reviews management
+    - Stats cards: Всего отзывов, Средняя оценка, Без ответа
+    - Reply dialog with Textarea
+- **Privacy:** Reviewer name format: "Pavel S." (First name + Last initial)
+- **Database:** SQL ready at `/app/database/reviews_table.sql` (pending execution)
+- **Testing:** PASS - UI renders correctly, API returns empty gracefully
 
-**ADMIN (full control):**
-- Dashboard (Overview & Stats)
-- Users (Manage all users)
-- Partner Applications (PENDING_PARTNER moderation) - `NEW` badge
-- Listing Moderation (PENDING listings)
-- All Bookings (Reservations overview)
-- Messages (TG Thread 18 Bridge)
-- Finance Hub (3.5% Markup • 0.5% Tolerance) - `LIVE` badge
-- System Settings (TG Bot • Webhooks • Commission)
-- System Status (DB • Webhooks • APIs) - Green pulse indicator
-- Home (Back to main site)
-- **SWITCH PANEL:** Admin / Partner quick toggle buttons
+### 4. SIDEBAR REFINEMENT - COMPLETE
+- **Partner Nav updated** in `/app/components/app-sidebar.jsx`:
+  - Added "Отзывы" (⭐) - Управление отзывами
+  - Links to `/partner/reviews`
+- **Testing:** PASS - Отзывы visible in sidebar
 
-**PARTNER:**
-- Dashboard (Your overview)
-- My Listings (ACTIVE + INACTIVE drafts)
-- My Bookings (Reservations)
-- Chat (Guest messages)
-- Earnings (Revenue & Escrow)
-- Home (Back to main site)
-
-### UniversalHeader Updates (`/app/components/universal-header.jsx`)
-- Added Currency Selector integration
-- "Add Listing" CTA button for partners/admins (visible on non-homepage)
-- Removed duplicate header from homepage
-
-### Homepage Cleanup (`/app/app/page.js`)
-- Removed duplicate header (was causing two headers)
-- Login dialog kept on homepage, triggered by sidebar "Login/Register" button
-
-### Testing Results - 100% PASS (iteration_12.json)
-- All 7 features verified:
-  - UniversalHeader renders correctly
-  - AppSidebar opens on burger menu click
-  - GUEST/ADMIN/PARTNER navigation verified
-  - Admin Dashboard loads with both sidebars
-  - No duplicate headers on homepage
-- ARCHITECTURAL_PASSPORT compliance verified
+### Testing Results - 100% PASS (iteration_13.json)
+- Backend: 100% (3/3 APIs)
+- Frontend: 100% (8/8 features)
+- Fixed: Availability API removed invalid CHECKED_IN status
 
 ---
 
-## Previous Update: 2026-03-04 - Stage 33.2.1 Global Navigation & Access Repair ✅
+## Previous Update: 2026-03-04 - Stage 33.2.2 Sidebar Restoration ✅
 
 ### Universal Header (P0) - COMPLETE
 - **Component:** `/app/components/universal-header.jsx`
