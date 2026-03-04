@@ -55,6 +55,13 @@ function ListingsContent() {
     loadInitialData()
   }, [])
 
+  // Listen for currency changes from header
+  useEffect(() => {
+    const handleCurrencyChange = (e) => setCurrency(e.detail)
+    window.addEventListener('currency-change', handleCurrencyChange)
+    return () => window.removeEventListener('currency-change', handleCurrencyChange)
+  }, [])
+
   useEffect(() => {
     loadListings()
   }, [selectedCategory, selectedDistrict])

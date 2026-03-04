@@ -30,6 +30,8 @@ export default function ListingDetail({ params }) {
   const [bookingModalOpen, setBookingModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [language, setLanguage] = useState('ru')
+  const [currency, setCurrency] = useState('THB')
+  const [exchangeRates, setExchangeRates] = useState({})
   
   // Form state
   const [guestName, setGuestName] = useState('')
@@ -41,6 +43,38 @@ export default function ListingDetail({ params }) {
   
   // Price calculation state
   const [priceCalc, setPriceCalc] = useState(null)
+
+  // Load currency preference and listen for changes
+  useEffect(() => {
+    // Load saved currency
+    const savedCurrency = localStorage.getItem('funnyrent_currency')
+    if (savedCurrency) setCurrency(savedCurrency)
+
+    // Load exchange rates
+    async function loadRates() {
+      try {
+        const { fetchExchangeRates } = await import('@/lib/client-data')
+        const rates = await fetchExchangeRates()
+        setExchangeRates(rates)
+      } catch (e) {
+        console.error('Failed to load exchange rates:', e)
+      }
+    }
+    loadRates()
+
+    // Listen for currency changes
+    const handleCurrencyChange = (e) => setCurrency(e.detail)
+    window.addEventListener('currency-change', handleCurrencyChange)
+    return () => window.removeEventListener('currency-change', handleCurrencyChange)
+  }, [])
+
+  // Price conversion function
+  function convertPrice(priceThb) {
+    if (!priceThb) return 0
+    if (currency === 'THB') return priceThb
+    const rate = exchangeRates[currency]
+    return rate ? priceThb / rate : priceThb
+  }
 
   // Localized labels
   const labels = {
@@ -560,7 +594,7 @@ export default function ListingDetail({ params }) {
               <CardHeader>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-bold text-teal-600">
-                    {formatPrice(listing.basePriceThb, 'THB')}
+                    {formatPrice(convertPrice(listing.basePriceThb), currency)}
                   </span>
                   <span className="text-slate-600">/ {t.perDay}</span>
                 </div>
@@ -656,14 +690,14 @@ export default function ListingDetail({ params }) {
                                 {priceCalc.isDiscount ? (
                                   <>
                                     <span className='text-slate-400 line-through text-xs mr-2'>
-                                      ฿{priceCalc.baseTotalWithoutSeasonal.toLocaleString()}
+                                      {formatPrice(convertPrice(priceCalc.baseTotalWithoutSeasonal), currency)}
                                     </span>
                                     <span className='font-medium text-green-600'>
-                                      ฿{priceCalc.totalPrice.toLocaleString()}
+                                      {formatPrice(convertPrice(priceCalc.totalPrice), currency)}
                                     </span>
                                   </>
                                 ) : (
-                                  <span className='font-medium'>฿{priceCalc.totalPrice.toLocaleString()}</span>
+                                  <span className='font-medium'>{formatPrice(convertPrice(priceCalc.totalPrice), currency)}</span>
                                 )}
                               </div>
                             </div>
@@ -674,14 +708,14 @@ export default function ListingDetail({ params }) {
                                 <span className='flex items-center gap-1'>
                                   🎉 {t.discount}
                                 </span>
-                                <span className='font-medium'>-฿{priceCalc.discountAmount.toLocaleString()}</span>
+                                <span className='font-medium'>-{formatPrice(convertPrice(priceCalc.discountAmount), currency)}</span>
                               </div>
                             )}
                             
                             {/* Service fee (15%) */}
                             <div className='flex justify-between text-sm'>
                               <span className='text-slate-600'>{t.serviceFee} (15%)</span>
-                              <span className='font-medium'>฿{priceCalc.serviceFee.toLocaleString()}</span>
+                              <span className='font-medium'>{formatPrice(convertPrice(priceCalc.serviceFee), currency)}</span>
                             </div>
                           </div>
                           
@@ -692,11 +726,11 @@ export default function ListingDetail({ params }) {
                             <div>
                               <span className='font-bold text-teal-800'>{t.total}</span>
                               <p className='text-xs text-slate-500'>
-                                ฿{Math.round(priceCalc.grandTotal / priceCalc.nights).toLocaleString()} {t.avgPerNight}
+                                {formatPrice(convertPrice(Math.round(priceCalc.grandTotal / priceCalc.nights)), currency)} {t.avgPerNight}
                               </p>
                             </div>
                             <span className='text-2xl font-bold text-teal-600' data-testid='grand-total'>
-                              ฿{priceCalc.grandTotal.toLocaleString()}
+                              {formatPrice(convertPrice(priceCalc.grandTotal), currency)}
                             </span>
                           </div>
                         </div>
