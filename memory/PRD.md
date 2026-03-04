@@ -9,7 +9,43 @@
 
 ---
 
-## Latest Update: 2026-03-04 - Stage 32.1 Stability & Live Business Test ✅
+## Latest Update: 2026-03-04 - Stage 32.2 Security & Automation ✅
+
+### Supabase RLS (P0) - THE SHIELD - READY
+- **SQL Script:** `/app/database/rls_policies.sql` created
+- **Tables Protected:** listings, bookings, payments, messages, conversations, profiles
+- **Rules:**
+  - Users see only their own records (`user_id` or `owner_id` = auth.uid())
+  - ACTIVE listings visible to all (public catalog)
+  - Admin role has FULL access (via `is_admin()` helper function)
+- **Status:** Ready for manual application in Supabase SQL Editor
+
+### Vercel Cron Jobs (P0) - THE BRAIN - CONFIGURED
+- **File:** `/app/vercel.json` created
+- **Trigger 1 (Check-in Prompt):** `0 7 * * *` (14:00 Bangkok)
+  - Push notification: "🏝 Have you checked in? Confirm arrival in the app!"
+- **Trigger 2 (Auto-Payout):** `0 11 * * *` (18:00 Bangkok)
+  - Release funds for bookings > 24h after check-in
+- **Security:** Both cron APIs support:
+  - `x-vercel-cron` header (Vercel automatic)
+  - `x-cron-secret` header (manual trigger)
+  - `Authorization: Bearer {secret}` (API clients)
+
+### Currency Selector (P1) - UX - COMPLETE
+- **Component:** `/app/components/currency-selector.jsx`
+- **Location:** Header (next to Language switcher)
+- **Currencies:** THB 🇹🇭, USD 🇺🇸, RUB 🇷🇺, CNY 🇨🇳, EUR 🇪🇺, GBP 🇬🇧
+- **Persistence:** localStorage key `funnyrent_currency`
+- **Broadcast:** Custom event `currency-change` for cross-component sync
+
+### Testing Results - 100% PASS
+- **Backend:** 11/11 pytest tests passed
+- **Frontend:** Currency selector, homepage, listings all working
+- **Bug Fixed:** checkin-reminder cron enum (PAID_ESCROW → PAID/CONFIRMED)
+
+---
+
+## Previous Update: 2026-03-04 - Stage 32.1 Stability & Live Business Test ✅
 
 ### Infrastructure Fixes (P0) - COMPLETE
 - **DYNAMIC_SERVER_USAGE:** Added `export const dynamic = 'force-dynamic'` to:
