@@ -9,62 +9,68 @@
 
 ---
 
-## Latest Update: 2026-03-03 - Stage 31 In-Chat Payments & Escrow Logic ✅
+## Latest Update: 2026-03-04 - Stage 32 Escrow 24H & Dynamic Forex Engine ✅
 
-### In-Chat Invoicing (P0) - COMPLETE
-- **Location:** Partner Chat (`/app/partner/messages/[id]/page.js`)
-- **UI:** Send Invoice button with amber styling and Receipt icon
-- **Dialog:** `SendInvoiceDialog` component for creating invoices with:
-  - Amount input with currency selector (THB, USDT, RUB)
-  - Payment method selection (CRYPTO, CARD, MIR)
-  - Optional description field
-  - Auto-conversion to USDT display
-- **API:** `/api/v2/chat/invoice` - POST to create, GET to retrieve
-- **Display:** `InvoiceCard` component shows in chat for both partner and renter
+### 24H Escrow Rule (P0) - COMPLETE
+- **New Logic:** Payouts released at **18:00 LOCAL TIME ON DAY AFTER CHECK-IN**
+- **Buffer:** 24h window protects guests from no-shows
+- **Status:** New `THAWED` status between `PAID_ESCROW` and `COMPLETED`
+- **Admin Notification:** Thread 16 receives alerts when payouts are "Thawed"
+- **API:** `/api/cron/payouts?secret=funnyrent-cron-2026` (GET for status, POST for processing)
 
-### Dynamic Commission System (NEW CRITICAL) - COMPLETE
-- **Snapshot Logic:** Commission rate captured at booking creation
-- **Storage:** New field `applied_commission_rate` in bookings
-- **Service:** `EscrowService.snapshotCommissionRate(bookingId)`
-- **Integrity:** Payout uses snapshotted rate, immune to global rate changes
-- **Notifications:** Telegram payouts show "Commission: X% (fixed at booking time)"
+### Dynamic Forex Engine (P0) - COMPLETE
+- **Base Currency:** THB in all database records
+- **FunnyRate Formula:** Display Price = Market Rate × 1.035 (hidden 3.5% markup)
+- **Provider:** ExchangeRate-API (key: `9098becb6ccc3ca934ab5884`)
+- **Caching:** 1-hour in-memory cache with fallback rates
+- **API:** `/api/v2/forex` - GET rates, ?convert=X&from=THB&to=USD for conversion
+- **12 Supported Currencies:** THB, USD, RUB, CNY, EUR, GBP, AUD, SGD, JPY, KRW, INR, USDT
 
-### Invoice Card Features
-- **Currency Symbols:** THB (฿), USDT ($), RUB (₽) with colored icons
-- **Status Badges:** PENDING, PAID, EXPIRED, CANCELLED
-- **Listing Info:** Title, dates, property image
-- **Pay Button:** For renters - redirects to checkout page
+### Geo-Detection & Auto-Currency (P0) - COMPLETE
+- **Provider:** ip-api.com (free tier)
+- **Country Mapping:** 30+ countries to preferred currencies
+- **API:** `/api/v2/geo` - Detects location and recommends currency
+- **Hook:** `use-currency.js` - React hook for currency context
+- **Fallback:** USD for unknown locations
 
-### Escrow & Payout Logic (P1) - COMPLETE
-- **Status:** `PAID_ESCROW` status implemented
-- **Commission Calculation:** Uses snapshotted rate from booking
-- **Cron Job:** `/api/cron/payouts` for automated 18:00 payouts
-- **Notifications:** Telegram alerts with commission details
+### Firebase Push Notifications (P1) - COMPLETE
+- **Project:** funnyrent-push
+- **Service:** Firebase Cloud Messaging (FCM)
+- **Templates:** NEW_MESSAGE, BOOKING_REQUEST, BOOKING_CONFIRMED, PAYMENT_RECEIVED, CHECKIN_REMINDER, PAYOUT_READY
+- **Check-in Reminder:** Automatic push at 14:00 on check-in day
+- **API:** `/api/v2/push` - Register tokens, send notifications
+- **Cron:** `/api/cron/checkin-reminder` - 14:00 daily
 
-### PWA Visuals - COMPLETE
-- **Icons:** Real PNG icons generated (192x192, 512x512)
-- **Theme:** Tropical teal gradient with house/palm silhouette
-- **Manifest:** Updated `/public/manifest.json` with new icons
+### Booking Actions in Chat - COMPLETE
+- **Component:** `/components/booking-actions.jsx`
+- **Features:** Quick Approve/Reject buttons for partners
+- **Dialog:** Reject with reason (sent to guest)
+- **Inline:** Compact version for chat messages
 
-### Files Created/Modified
-- `/app/app/partner/messages/[id]/page.js` → Send Invoice button + Invoice rendering
-- `/app/app/renter/messages/[id]/page.js` → Invoice card display with Pay button
-- `/app/components/chat-invoice.jsx` → InvoiceCard + SendInvoiceDialog
-- `/app/app/api/v2/chat/invoice/route.js` → Invoice API
-- `/app/lib/services/escrow.service.js` → Dynamic commission snapshotting
-- `/app/lib/services/notification.service.js` → Payout notifications with commission
-- `/app/public/icons/icon-192x192.png` → PWA icon (real PNG)
-- `/app/public/icons/icon-512x512.png` → PWA icon (real PNG)
-- `/app/public/manifest.json` → Updated with new icons
+### Files Created
+- `/app/lib/services/forex.service.js` → Exchange rate service with FunnyRate
+- `/app/lib/services/geo.service.js` → IP-based geo detection
+- `/app/lib/services/push.service.js` → Firebase FCM integration
+- `/app/hooks/use-currency.js` → React currency context hook
+- `/app/app/api/v2/forex/route.js` → Forex API endpoint
+- `/app/app/api/v2/geo/route.js` → Geo detection API
+- `/app/app/api/v2/push/route.js` → Push notification API
+- `/app/app/api/cron/checkin-reminder/route.js` → Check-in reminder cron
+- `/app/components/booking-actions.jsx` → Approve/Reject booking UI
 
-### Known Issues
-- **Preview API 502:** Intermittent proxy timeouts (infrastructure, not code)
-- All APIs work correctly on localhost:3000
-- Code verified via testing agent code review (100% pass)
+### Files Modified
+- `/app/lib/services/escrow.service.js` → Added 24H rule (ESCROW_THAW_DAYS = 1)
+- `/app/lib/services/notification.service.js` → New events for thaw/payout/reminder
+- `/app/app/api/cron/payouts/route.js` → Updated with 24H logic + admin notifications
+- `/app/.env` → Added EXCHANGE_API_KEY, CRON_SECRET
+
+### Testing Results
+- **Backend:** 100% (11/11 tests passed)
+- **Features Verified:** Forex conversion, FunnyRate markup, Geo detection, Push templates, 24H cron
 
 ---
 
-## Previous Update: 2026-03-03 - Stage 30 Realtime Chat & Finance Precision ✅
+## Previous Update: 2026-03-03 - Stage 31 In-Chat Payments & Escrow Logic ✅
 
 ### Supabase Realtime Chat
 - **Hook:** `/hooks/use-realtime-chat.js` с useRealtimeMessages, usePresence
