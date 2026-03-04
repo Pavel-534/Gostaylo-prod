@@ -336,64 +336,36 @@ export default function ListingDetail({ params }) {
     setSubmitting(true)
 
     try {
-      // Calculate final price - use calculated total if available, otherwise base price
-      const finalPrice = priceCalc ? priceCalc.totalPrice : listing.basePriceThb
+      // Calculate final price with service fee
+      const basePrice = priceCalc ? priceCalc.totalPrice : listing.basePriceThb
+      const serviceFee = Math.round(basePrice * SERVICE_FEE_RATE)
+      const finalPrice = basePrice + serviceFee
       
-      // Debug logging
-      console.log('[BOOKING] Submitting with data:', {
-        listing_id: listing.id,
-        partner_id: listing.ownerId,
-        price_thb: finalPrice,
-        check_in: checkIn,
-        check_out: checkOut,
-        guest_name: guestName
-      })
-      
-      // Create booking directly in Supabase
-      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
-      
-      const requestBody = {
-        listing_id: listing.id,
-        partner_id: listing.ownerId,
-        status: 'PENDING',
-        check_in: checkIn,
-        check_out: checkOut,
-        price_thb: finalPrice,
-        guest_name: guestName,
-        guest_email: guestEmail,
-        guest_phone: guestPhone,
-        special_requests: message || null
-        // Note: metadata stored in special_requests if needed, 
-        // or add metadata column to bookings table
-      }
-      
-      console.log('[BOOKING] Request body:', JSON.stringify(requestBody, null, 2))
-      
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
+      // Use API route instead of direct Supabase call (bypasses RLS)
+      const res = await fetch('/api/v2/bookings', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(requestBody)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          listingId: listing.id,
+          checkIn: checkIn,
+          checkOut: checkOut,
+          guestName: guestName,
+          guestEmail: guestEmail,
+          guestPhone: guestPhone,
+          specialRequests: message || null,
+          currency: 'THB'
+        })
       })
       
       const data = await res.json()
       
-      console.log('[BOOKING] Response status:', res.status)
-      console.log('[BOOKING] Response data:', JSON.stringify(data, null, 2))
-      
-      if (res.ok && Array.isArray(data) && data.length > 0) {
+      if (data.success && data.booking) {
         toast.success(t.successMsg)
         setBookingModalOpen(false)
-        router.push(`/checkout/${data[0].id}`)
+        router.push(`/checkout/${data.booking.id}`)
       } else {
-        // Log detailed error
-        const errorMsg = data?.message || data?.error || data?.hint || JSON.stringify(data)
-        console.error('[BOOKING] Error details:', errorMsg)
+        const errorMsg = data?.error || 'Unknown error'
+        console.error('[BOOKING] Error:', errorMsg)
         toast.error(`${t.errorMsg}: ${errorMsg}`)
       }
     } catch (error) {

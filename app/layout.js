@@ -3,6 +3,7 @@ import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import Link from 'next/link'
 import RoleBar from '@/components/role-bar'
+import { AdminHeaderBar } from '@/components/admin-header-bar'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 
@@ -30,6 +31,7 @@ export default function RootLayout({ children }) {
         <meta name="theme-color" content="#0d9488" />
       </head>
       <body className={inter.className}>
+        <AdminHeaderBar />
         <RoleBar />
         {children}
         <Toaster />

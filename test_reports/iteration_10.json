@@ -1,0 +1,128 @@
+{
+  "summary": "Stage 33.1 Testing Complete - Fixed booking availability logic bug, verified all dashboard pages (admin, partner, renter), currency selector, and RLS v2 SQL script. 9/9 backend tests passed.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    {
+      "test": "Homepage loads correctly",
+      "result": "PASS - Categories, search, currency selector all visible",
+      "verified": true
+    },
+    {
+      "test": "Currency selector dropdown works",
+      "result": "PASS - All 6 currencies (THB, USD, RUB, CNY, EUR, GBP) available with flags",
+      "verified": true
+    },
+    {
+      "test": "Currency selection persists to localStorage",
+      "result": "PASS - localStorage.getItem('funnyrent_currency') returns selected currency",
+      "verified": true
+    },
+    {
+      "test": "Booking API POST creates booking",
+      "result": "PASS - Booking created with guest info, price calculation, commission",
+      "verified": true
+    },
+    {
+      "test": "Booking API GET lists bookings",
+      "result": "PASS - Filter by listingId, partnerId, renterId working",
+      "verified": true
+    },
+    {
+      "test": "Admin stats API returns data",
+      "result": "PASS - Users, listings, bookings, revenue stats returned",
+      "verified": true
+    },
+    {
+      "test": "Partner stats API returns data",
+      "result": "PASS - Partner listings, bookings, balance returned",
+      "verified": true
+    },
+    {
+      "test": "Admin Dashboard page loads",
+      "result": "PASS - Full sidebar, stats cards, charts, Telegram Command Center visible",
+      "verified": true
+    },
+    {
+      "test": "Partner Dashboard page loads",
+      "result": "PASS - Stats cards, quick actions, Add Listing button visible",
+      "verified": true
+    },
+    {
+      "test": "Renter Dashboard page loads",
+      "result": "PASS - My Dashboard with stats, Recent Bookings, quick actions visible",
+      "verified": true
+    },
+    {
+      "test": "Admin Role Bar shows for admin users",
+      "result": "PASS - Green top bar with 'Admin Panel' button and user info",
+      "verified": true
+    },
+    {
+      "test": "RLS v2 SQL script exists",
+      "result": "PASS - /app/database/rls_policies_v2.sql with ::text casting",
+      "verified": true
+    }
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_stage331.py",
+    "/app/test_reports/pytest/stage331_results.xml"
+  ],
+  "action_items": [
+    "Apply RLS v2 SQL script in Supabase SQL Editor to fix TEXT ID casting issues"
+  ],
+  "critical_code_review_comments": [
+    "AdminHeaderBar component uses Supabase auth for role check (secure) while RoleBar uses localStorage (faster UX)",
+    "Dashboard router redirects based on Supabase auth role, not localStorage"
+  ],
+  "updated_files": [
+    "/app/lib/services/booking.service.js - Fixed availability check logic and guest ID handling"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 pytest tests passed)",
+    "frontend": "100% (All dashboard pages, currency selector working)"
+  },
+  "test_credentials": {
+    "admin": "admin@funnyrent.com / ChangeMe2025!",
+    "partner": "partner@test.com / ChangeMe2025!",
+    "renter": "test-renter@funnyrent.com / ChangeMe2025!"
+  },
+  "seed_data_creation": "Created 2 test bookings via API",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Stage 33.1 fully verified. Booking API now works with null renter_id for guest bookings. Fixed availability check logic (was using OR instead of AND for date overlap). Dashboard routes: /admin for admins, /dashboard/partner for partners, /dashboard/renter for renters. Currency selector saves to localStorage with key 'funnyrent_currency'. RLS v2 script at /app/database/rls_policies_v2.sql needs manual application in Supabase SQL Editor.",
+  "bug_fixes_applied": [
+    {
+      "file": "/app/lib/services/booking.service.js",
+      "issue": "Availability check using wrong logic - OR condition matching all bookings",
+      "fix": "Changed .or(`check_in.lte.${checkOut},check_out.gte.${checkIn}`) to .lt('check_in', checkOut).gt('check_out', checkIn)",
+      "reason": "Correct overlap detection requires both conditions to be true (AND), not either (OR)"
+    },
+    {
+      "file": "/app/lib/services/booking.service.js",
+      "issue": "Guest ID fallback violating foreign key constraint",
+      "fix": "Changed `guest-${Date.now()}-...` fallback to `null` for anonymous bookings",
+      "reason": "renter_id has FK to profiles.id, so generated guest IDs fail. null is allowed for guest bookings."
+    }
+  ],
+  "features_verified": {
+    "homepage_loads": true,
+    "currency_selector_works": true,
+    "booking_api_create": true,
+    "booking_api_list": true,
+    "admin_stats_api": true,
+    "partner_stats_api": true,
+    "admin_dashboard_page": true,
+    "partner_dashboard_page": true,
+    "renter_dashboard_page": true,
+    "admin_role_bar": true,
+    "rls_v2_script_exists": true
+  }
+}
