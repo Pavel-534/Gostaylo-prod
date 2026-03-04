@@ -158,7 +158,7 @@ export default function FunnyRentHome() {
       
       setCurrentUser(result.user)
       setLoginDialogOpen(false)
-      router.push('/renter/dashboard')
+      router.push('/dashboard/renter')
     } catch (error) {
       setLoginError(error.message)
     } finally {
