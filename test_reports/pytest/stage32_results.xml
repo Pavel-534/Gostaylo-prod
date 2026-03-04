@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="19" skipped="0" tests="19" time="2.983" timestamp="2026-03-04T01:33:08.881084+00:00" hostname="agent-env-c325362c-1be1-450d-a1ad-cc1fb45ba828"><testcase classname="backend.tests.test_stage32_apis.TestForexAPI" name="test_forex_get_all_rates" time="0.337"><failure message="AssertionError: Expected 200, got 502: The preview environment is not responding. It may be starting up.&#10;  &#10;assert 502 == 200&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:30: in test_forex_get_all_rates
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+E   AssertionError: Expected 200, got 502: The preview environment is not responding. It may be starting up.
+E     
+E   assert 502 == 200
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestForexAPI" name="test_forex_conversion_thb_to_usd" time="0.182"><failure message="AssertionError: Expected 200, got 502&#10;assert 502 == 200&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:62: in test_forex_conversion_thb_to_usd
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+E   AssertionError: Expected 200, got 502
+E   assert 502 == 200
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestForexAPI" name="test_forex_conversion_thb_to_rub" time="0.159"><failure message="AssertionError: Expected 200, got 502&#10;assert 502 == 200&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:96: in test_forex_conversion_thb_to_rub
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+E   AssertionError: Expected 200, got 502
+E   assert 502 == 200
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestForexAPI" name="test_forex_conversion_thb_to_cny" time="0.111"><failure message="AssertionError: Expected 200, got 502&#10;assert 502 == 200&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:119: in test_forex_conversion_thb_to_cny
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+E   AssertionError: Expected 200, got 502
+E   assert 502 == 200
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestForexAPI" name="test_forex_auto_detect_currency" time="0.145"><failure message="AssertionError: Expected 200, got 502&#10;assert 502 == 200&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:141: in test_forex_auto_detect_currency
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+E   AssertionError: Expected 200, got 502
+E   assert 502 == 200
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestGeoAPI" name="test_geo_detect_location" time="0.152"><failure message="AssertionError: Expected 200, got 502&#10;assert 502 == 200&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:156: in test_geo_detect_location
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+E   AssertionError: Expected 200, got 502
+E   assert 502 == 200
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestGeoAPI" name="test_geo_returns_fallback_on_error" time="0.125"><failure message="AssertionError: Expected 200 even on detection failure, got 502&#10;assert 502 == 200&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:181: in test_geo_returns_fallback_on_error
+    assert response.status_code == 200, f"Expected 200 even on detection failure, got {response.status_code}"
+E   AssertionError: Expected 200 even on detection failure, got 502
+E   assert 502 == 200
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestPushAPI" name="test_push_get_template_list" time="0.118"><failure message="AssertionError: Expected 200, got 502&#10;assert 502 == 200&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:197: in test_push_get_template_list
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+E   AssertionError: Expected 200, got 502
+E   assert 502 == 200
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestPushAPI" name="test_push_register_requires_params" time="0.100"><failure message="AssertionError: Expected 400 for missing params, got 502&#10;assert 502 == 400&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:234: in test_push_register_requires_params
+    assert response.status_code == 400, f"Expected 400 for missing params, got {response.status_code}"
+E   AssertionError: Expected 400 for missing params, got 502
+E   assert 502 == 400
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestPushAPI" name="test_push_test_action_requires_token" time="0.143"><failure message="AssertionError: Expected 400 for missing token, got 502&#10;assert 502 == 400&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:251: in test_push_test_action_requires_token
+    assert response.status_code == 400, f"Expected 400 for missing token, got {response.status_code}"
+E   AssertionError: Expected 400 for missing token, got 502
+E   assert 502 == 400
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestPushAPI" name="test_push_invalid_action" time="0.108"><failure message="AssertionError: Expected 400 for invalid action, got 502&#10;assert 502 == 400&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:266: in test_push_invalid_action
+    assert response.status_code == 400, f"Expected 400 for invalid action, got {response.status_code}"
+E   AssertionError: Expected 400 for invalid action, got 502
+E   assert 502 == 400
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestPayoutCronAPI" name="test_payout_cron_unauthorized_without_secret" time="0.108"><failure message="AssertionError: Expected 401 without secret, got 502&#10;assert 502 == 401&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:281: in test_payout_cron_unauthorized_without_secret
+    assert response.status_code == 401, f"Expected 401 without secret, got {response.status_code}"
+E   AssertionError: Expected 401 without secret, got 502
+E   assert 502 == 401
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestPayoutCronAPI" name="test_payout_cron_status_with_secret" time="0.137"><failure message="AssertionError: Expected 200, got 502: The preview environment is not responding. It may be starting up.&#10;  &#10;assert 502 == 200&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:297: in test_payout_cron_status_with_secret
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+E   AssertionError: Expected 200, got 502: The preview environment is not responding. It may be starting up.
+E     
+E   assert 502 == 200
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestPayoutCronAPI" name="test_payout_cron_post_unauthorized" time="0.118"><failure message="AssertionError: Expected 401 without secret, got 502&#10;assert 502 == 401&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:323: in test_payout_cron_post_unauthorized
+    assert response.status_code == 401, f"Expected 401 without secret, got {response.status_code}"
+E   AssertionError: Expected 401 without secret, got 502
+E   assert 502 == 401
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestPayoutCronAPI" name="test_payout_cron_preview_thaw" time="0.116"><failure message="AssertionError: Expected 200, got 502&#10;assert 502 == 200&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:335: in test_payout_cron_preview_thaw
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+E   AssertionError: Expected 200, got 502
+E   assert 502 == 200
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestCheckInReminderCronAPI" name="test_checkin_cron_unauthorized_without_secret" time="0.154"><failure message="AssertionError: Expected 401 without secret, got 502&#10;assert 502 == 401&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:350: in test_checkin_cron_unauthorized_without_secret
+    assert response.status_code == 401, f"Expected 401 without secret, got {response.status_code}"
+E   AssertionError: Expected 401 without secret, got 502
+E   assert 502 == 401
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestCheckInReminderCronAPI" name="test_checkin_cron_status_with_secret" time="0.123"><failure message="AssertionError: Expected 200, got 502: The preview environment is not responding. It may be starting up.&#10;  &#10;assert 502 == 200&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:365: in test_checkin_cron_status_with_secret
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+E   AssertionError: Expected 200, got 502: The preview environment is not responding. It may be starting up.
+E     
+E   assert 502 == 200
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestCheckInReminderCronAPI" name="test_checkin_cron_post_unauthorized" time="0.117"><failure message="AssertionError: Expected 401 without secret, got 502&#10;assert 502 == 401&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:381: in test_checkin_cron_post_unauthorized
+    assert response.status_code == 401, f"Expected 401 without secret, got {response.status_code}"
+E   AssertionError: Expected 401 without secret, got 502
+E   assert 502 == 401
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_stage32_apis.TestIntegration" name="test_forex_and_geo_integration" time="0.165"><failure message="assert 502 == 200&#10; +  where 502 = &lt;Response [502]&gt;.status_code">backend/tests/test_stage32_apis.py:393: in test_forex_and_geo_integration
+    assert geo_response.status_code == 200
+E   assert 502 == 200
+E    +  where 502 = &lt;Response [502]&gt;.status_code</failure></testcase></testsuite></testsuites>
