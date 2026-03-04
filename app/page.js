@@ -76,6 +76,20 @@ export default function FunnyRentHome() {
     setLanguageState(detected)
   }, [])
 
+  // Listen for currency changes from UniversalHeader
+  useEffect(() => {
+    // Load initial currency
+    const savedCurrency = localStorage.getItem('funnyrent_currency')
+    if (savedCurrency) setCurrency(savedCurrency)
+
+    // Listen for changes from CurrencySelector in header
+    const handleCurrencyChange = (e) => {
+      setCurrency(e.detail)
+    }
+    window.addEventListener('currency-change', handleCurrencyChange)
+    return () => window.removeEventListener('currency-change', handleCurrencyChange)
+  }, [])
+
   const handleLanguageChange = (lang) => {
     setLanguageState(lang)
     saveLanguage(lang)
