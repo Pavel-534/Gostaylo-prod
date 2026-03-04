@@ -9,7 +9,38 @@
 
 ---
 
-## Latest Update: 2026-03-04 - Stage 32 Escrow 24H & Dynamic Forex Engine ✅
+## Latest Update: 2026-03-04 - Stage 32.1 Stability & Live Business Test ✅
+
+### Infrastructure Fixes (P0) - COMPLETE
+- **DYNAMIC_SERVER_USAGE:** Added `export const dynamic = 'force-dynamic'` to:
+  - `/api/v2/profile/route.js`
+  - `/api/v2/partner/stats/route.js`
+  - `/api/v2/geo/route.js`
+  - `/api/v2/forex/route.js`
+  - `/api/v2/push/route.js`
+  - `/api/v2/bookings/route.js`
+  - `/api/v2/listings/route.js`
+  - `/api/v2/payments/route.js`
+- **API Timeouts:** All external APIs (ExchangeRate-API, TronScan, ip-api.com) have 10s timeouts with fallbacks
+
+### Live Business Test Results - 100% PASS
+- **Forex API:** THB→RUB (25,432.02₽), THB→USD ($326.65), THB→CNY (¥2,249.05)
+- **FunnyRate 3.5%:** Mathematically verified (funnyRate = marketRate × 1.035)
+- **Geo API:** Currency recommendation working
+- **24H Escrow Rule:** Cron returns "Payouts released at 18:00, 24 hours after check-in"
+- **PWA:** manifest.json and icons (192x192, 512x512) accessible
+- **Homepage:** 5 listings with "Book Now" buttons displayed
+- **Booking Form:** Price breakdown shows rental + 15% service fee
+
+### UX Polish - COMPLETE
+- **Listing Cards:** Book Now buttons aligned
+- **Price Display:** ฿35,000/per day format
+- **Icons:** Beds/baths/area aligned in card grid
+- **Featured Badge:** Gradient purple-pink styling
+
+---
+
+## Previous Update: 2026-03-04 - Stage 32 Escrow 24H & Dynamic Forex Engine ✅
 
 ### 24H Escrow Rule (P0) - COMPLETE
 - **New Logic:** Payouts released at **18:00 LOCAL TIME ON DAY AFTER CHECK-IN**
