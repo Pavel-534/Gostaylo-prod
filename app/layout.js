@@ -1,9 +1,7 @@
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
-import Link from 'next/link'
-import RoleBar from '@/components/role-bar'
-import { AdminHeaderBar } from '@/components/admin-header-bar'
+import { UniversalHeader } from '@/components/universal-header'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 
@@ -31,9 +29,10 @@ export default function RootLayout({ children }) {
         <meta name="theme-color" content="#0d9488" />
       </head>
       <body className={inter.className}>
-        <AdminHeaderBar />
-        <RoleBar />
-        {children}
+        <UniversalHeader />
+        <div className="pt-12">
+          {children}
+        </div>
         <Toaster />
       </body>
     </html>

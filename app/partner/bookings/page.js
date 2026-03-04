@@ -206,50 +206,74 @@ export default function PartnerBookings() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredBookings.map((booking) => (
+                  {filteredBookings.map((booking) => {
+                    // Handle both camelCase and snake_case from API
+                    const guestName = booking.guestName || booking.guest_name || 'N/A';
+                    const guestPhone = booking.guestPhone || booking.guest_phone || '-';
+                    const guestEmail = booking.guestEmail || booking.guest_email || '-';
+                    const checkIn = booking.checkIn || booking.check_in;
+                    const checkOut = booking.checkOut || booking.check_out;
+                    const priceThb = booking.priceThb || booking.price_thb || 0;
+                    const pricePaid = booking.pricePaid || booking.price_paid || 0;
+                    const commissionThb = booking.commissionThb || booking.commission_thb || 0;
+                    const currency = booking.currency || 'THB';
+                    const listingTitle = booking.listing?.title || booking.listings?.title || 'N/A';
+                    const listingDistrict = booking.listing?.district || booking.listings?.district || '-';
+                    
+                    // Safe date formatting
+                    const formatDate = (dateStr) => {
+                      if (!dateStr) return 'N/A';
+                      try {
+                        return new Date(dateStr).toLocaleDateString('ru-RU');
+                      } catch {
+                        return dateStr;
+                      }
+                    };
+
+                    return (
                     <TableRow key={booking.id}>
                       <TableCell>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-slate-400" />
                             <span className="font-medium text-slate-900">
-                              {booking.guestName}
+                              {guestName}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 text-sm text-slate-600">
                             <Phone className="h-3 w-3" />
-                            {booking.guestPhone}
+                            {guestPhone}
                           </div>
                           <div className="flex items-center gap-2 text-sm text-slate-600">
                             <Mail className="h-3 w-3" />
-                            {booking.guestEmail}
+                            {guestEmail}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="max-w-xs">
                           <p className="font-medium text-slate-900 truncate">
-                            {booking.listing?.title}
+                            {listingTitle}
                           </p>
                           <p className="text-sm text-slate-500">
-                            {booking.listing?.district}
+                            {listingDistrict}
                           </p>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1 text-sm">
-                          <div>Заезд: {new Date(booking.checkIn).toLocaleDateString('ru-RU')}</div>
-                          <div>Выезд: {new Date(booking.checkOut).toLocaleDateString('ru-RU')}</div>
+                          <div>Заезд: {formatDate(checkIn)}</div>
+                          <div>Выезд: {formatDate(checkOut)}</div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
                           <div className="font-semibold text-slate-900">
-                            {formatPrice(booking.priceThb, 'THB')}
+                            {formatPrice(priceThb, 'THB')}
                           </div>
                           <div className="text-xs text-slate-500">
-                            {booking.currency !== 'THB' && (
-                              <span>({formatPrice(booking.pricePaid, booking.currency)})</span>
+                            {currency !== 'THB' && pricePaid > 0 && (
+                              <span>({formatPrice(pricePaid, currency)})</span>
                             )}
                           </div>
                         </div>
@@ -257,7 +281,7 @@ export default function PartnerBookings() {
                       <TableCell>
                         <div className="space-y-1">
                           <div className="font-medium text-red-600">
-                            -{formatPrice(booking.commissionThb, 'THB')}
+                            -{formatPrice(commissionThb, 'THB')}
                           </div>
                           <div className="text-xs text-slate-500">
                             ({booking.listing?.commissionRate || 15}%)
@@ -308,7 +332,8 @@ export default function PartnerBookings() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
