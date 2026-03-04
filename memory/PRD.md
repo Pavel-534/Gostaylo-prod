@@ -9,7 +9,36 @@
 
 ---
 
-## Latest Update: 2026-03-04 - Stage 32.2 Security & Automation ✅
+## Latest Update: 2026-03-04 - Stage 33.1 Security Alignment & Navigation Fix ✅
+
+### RLS Alignment (P0) - COMPLETE
+- **SQL Script v2:** `/app/database/rls_policies_v2.sql` with `::text` casting
+- **Issue:** `auth.uid()` returns UUID, IDs stored as TEXT
+- **Fix:** All comparisons now use `auth.uid()::text`
+- **Helper Functions:** `is_admin()`, `current_user_id()` with TEXT casting
+- **Status:** Ready for manual application in Supabase SQL Editor
+
+### Navigation & Roles - COMPLETE
+- **Admin Header Bar:** `/app/components/admin-header-bar.jsx` - Persistent purple bar for ADMIN role
+- **Dashboard Router:** `/app/app/dashboard/page.js` - Redirects to role-specific dashboard
+- **Partner Dashboard:** `/app/app/dashboard/partner/page.js` - Stats, listings, bookings
+- **Renter Dashboard:** `/app/app/dashboard/renter/page.js` - Bookings, messages, favorites
+- **Admin Dashboard:** `/app/app/admin/page.js` - Full stats, quick actions, system health
+
+### Booking Flow Fix - COMPLETE
+- **Issue:** Direct Supabase REST calls with anon key blocked by RLS
+- **Fix:** Booking form now uses `/api/v2/bookings` API route (uses service key)
+- **Bug Fixed:** Availability check logic (changed OR to AND for date overlap)
+- **Guest Bookings:** `renter_id` set to null for anonymous bookings
+
+### Testing Results - 100% PASS
+- **Backend:** 9/9 pytest tests passed
+- **Frontend:** All dashboards, currency selector working
+- **Bug Fixes:** Availability check logic, guest ID handling
+
+---
+
+## Previous Update: 2026-03-04 - Stage 32.2 Security & Automation ✅
 
 ### Supabase RLS (P0) - THE SHIELD - READY
 - **SQL Script:** `/app/database/rls_policies.sql` created
