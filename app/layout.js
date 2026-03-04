@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { UniversalHeader } from '@/components/universal-header'
+import { MainContent } from '@/components/main-content'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 
@@ -30,9 +31,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className={inter.className}>
         <UniversalHeader />
-        <div className="pt-12">
-          {children}
-        </div>
+        <MainContent>{children}</MainContent>
         <Toaster />
       </body>
     </html>

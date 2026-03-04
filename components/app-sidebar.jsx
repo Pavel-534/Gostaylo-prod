@@ -314,7 +314,7 @@ export function AppSidebar() {
           {!user && (
             <div className='px-4 py-6 text-center'>
               <p className='text-slate-600 mb-3'>Sign in to access your dashboard</p>
-              <Link href='/' onClick={() => setOpen(false)}>
+              <Link href='/?login=true' onClick={() => setOpen(false)}>
                 <Button className='bg-teal-600 hover:bg-teal-700'>
                   Login / Register
                 </Button>

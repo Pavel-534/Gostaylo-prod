@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, MapPin, Calendar, Home, Bike, Map, Anchor, User, Eye, EyeOff, Loader2, BedDouble, Bath, Maximize, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,6 +25,7 @@ const dateLocales = { ru, en: enUS, zh: zhCN, th }
 
 export default function FunnyRentHome() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   
   // State
   const [currency, setCurrency] = useState('THB')
@@ -61,7 +62,14 @@ export default function FunnyRentHome() {
         setCurrentUser(JSON.parse(stored))
       } catch (e) {}
     }
-  }, [])
+    
+    // Auto-open login dialog if ?login=true in URL
+    if (searchParams?.get('login') === 'true') {
+      setLoginDialogOpen(true)
+      // Clean up URL without causing page reload
+      window.history.replaceState({}, '', '/')
+    }
+  }, [searchParams])
 
   useEffect(() => {
     const detected = detectLanguage()

@@ -79,6 +79,9 @@ export function UniversalHeader() {
   const isOnDashboard = pathname?.startsWith('/dashboard');
   const isHomePage = pathname === '/';
 
+  // Don't render on admin pages - Admin Layout has its own navigation
+  if (isOnAdminPage) return null;
+
   return (
     <div className='fixed top-0 left-0 right-0 z-[100] bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm'>
       <div className='container mx-auto px-4'>
@@ -252,7 +255,7 @@ export function UniversalHeader() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link href='/'>
+              <Link href='/?login=true'>
                 <Button size='sm' className='bg-teal-600 hover:bg-teal-700'>
                   Login
                 </Button>
