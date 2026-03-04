@@ -1,0 +1,103 @@
+{
+  "summary": "Stage 33.2.1 Testing Complete - Global Navigation & Sidebar Restoration verified. All 7 features tested and passed. UniversalHeader renders correctly with burger menu, home icon, currency selector, and login button. AppSidebar opens properly and shows role-appropriate navigation for GUEST, ADMIN, and PARTNER users. Admin Dashboard loads correctly with both global navigation header and local admin sidebar. Homepage has no duplicate headers.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    {
+      "test": "UniversalHeader renders correctly with burger menu",
+      "result": "PASS - Burger menu with data-testid='sidebar-trigger' found",
+      "verified": true
+    },
+    {
+      "test": "UniversalHeader has home icon",
+      "result": "PASS - Home icon with teal gradient square visible",
+      "verified": true
+    },
+    {
+      "test": "UniversalHeader has currency selector",
+      "result": "PASS - THB currency selector with Thai flag visible",
+      "verified": true
+    },
+    {
+      "test": "UniversalHeader has login button for GUEST",
+      "result": "PASS - Teal Login button visible for non-authenticated users",
+      "verified": true
+    },
+    {
+      "test": "AppSidebar opens when clicking burger menu",
+      "result": "PASS - Sheet dialog opens on burger menu click",
+      "verified": true
+    },
+    {
+      "test": "AppSidebar shows correct navigation for GUEST user",
+      "result": "PASS - Shows My Bookings, Messages, Browse, Home, Login/Register prompt",
+      "verified": true
+    },
+    {
+      "test": "AppSidebar shows correct navigation for ADMIN user",
+      "result": "PASS - Shows Dashboard, Users, Partner Applications (NEW), Listing Moderation, All Bookings, Messages, Finance Hub (LIVE), System Settings, System Status, Home",
+      "verified": true
+    },
+    {
+      "test": "AppSidebar shows correct navigation for PARTNER user",
+      "result": "PASS - Shows Dashboard, My Listings, My Bookings, Chat, Earnings, Home",
+      "verified": true
+    },
+    {
+      "test": "Admin Dashboard page loads correctly with sidebar",
+      "result": "PASS - Admin layout sidebar (dark theme) and UniversalHeader (light theme) both visible and functional",
+      "verified": true
+    },
+    {
+      "test": "Homepage has no duplicate headers",
+      "result": "PASS - Single fixed header (UniversalHeader), no admin sidebar on homepage",
+      "verified": true
+    },
+    {
+      "test": "ADMIN header shows Admin/Partner/My Bookings buttons",
+      "result": "PASS - Role-based quick nav buttons visible in header center for admin users",
+      "verified": true
+    },
+    {
+      "test": "ADMIN sidebar has Switch Panel (Admin/Partner toggle)",
+      "result": "PASS - Quick panel switch buttons visible in sidebar for admin users",
+      "verified": true
+    }
+  ],
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "AppSidebar properly uses shadcn Sheet component with data-testid='sidebar-trigger' for burger menu",
+    "Role-based navigation filtering implemented correctly in getNavItems() function",
+    "Admin users correctly see both UniversalHeader (global nav) and Admin Layout sidebar (local nav)",
+    "Finance Hub correctly shows '3.5% Markup • 0.5% Tolerance' per ARCHITECTURAL_PASSPORT",
+    "Messages correctly references 'TG Thread 18 Bridge' per ARCHITECTURAL_PASSPORT",
+    "System Settings correctly shows 'TG Bot • Webhooks • Commission' per ARCHITECTURAL_PASSPORT"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend only testing)",
+    "frontend": "100% (All 7 features verified)"
+  },
+  "test_credentials": {
+    "admin": "admin@funnyrent.com / ChangeMe2025!",
+    "partner": "partner@test.com / ChangeMe2025!"
+  },
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Stage 33.2.1 Global Navigation & Sidebar Restoration fully verified. UniversalHeader shows in all pages with burger menu, home icon (teal gradient), currency selector, and Login button for guests / user dropdown for authenticated users. AppSidebar uses shadcn Sheet component and shows role-appropriate navigation. Admin pages have TWO sidebars working together: 1) AppSidebar from UniversalHeader (global quick nav), 2) Admin Layout sidebar (dark theme, local navigation). No duplicate headers issue - homepage has single fixed header. Login button in header navigates to '/' but does NOT auto-trigger login dialog (login dialog controlled by separate state on homepage).",
+  "architectural_passport_compliance": {
+    "system_settings": "✅ Shows TG Bot, Webhooks, Commission in admin sidebar",
+    "finance_hub": "✅ Shows 3.5% Markup, 0.5% Tolerance with LIVE badge",
+    "messages": "✅ Shows TG Thread 18 Bridge reference",
+    "admin_moderation": "✅ Partner Applications (PENDING_PARTNER) and Listing Moderation (PENDING) both visible"
+  }
+}
