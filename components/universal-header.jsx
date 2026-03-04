@@ -3,6 +3,7 @@
  * Shows on ALL pages with:
  * - Burger menu (sidebar trigger)
  * - Home icon (always visible)
+ * - Language selector
  * - Currency selector
  * - Admin Dashboard button (for ADMIN role only)
  * - Current user info
@@ -15,7 +16,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
   Home, Shield, Settings, Store, User, LogOut, 
-  ChevronDown, Plus
+  ChevronDown, Plus, Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,10 +29,19 @@ import {
 import { AppSidebar } from '@/components/app-sidebar';
 import { CurrencySelector } from '@/components/currency-selector';
 
+// Supported languages
+const LANGUAGES = [
+  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'th', name: 'ไทย', flag: '🇹🇭' },
+  { code: 'zh', name: '中文', flag: '🇨🇳' },
+];
+
 export function UniversalHeader() {
   const [user, setUser] = useState(null);
   const [mounted, setMounted] = useState(false);
   const [currency, setCurrency] = useState('THB');
+  const [language, setLanguage] = useState('ru');
   const pathname = usePathname();
   const router = useRouter();
 
@@ -42,6 +52,10 @@ export function UniversalHeader() {
     // Load currency preference
     const savedCurrency = localStorage.getItem('funnyrent_currency');
     if (savedCurrency) setCurrency(savedCurrency);
+    
+    // Load language preference
+    const savedLang = localStorage.getItem('funnyrent_language');
+    if (savedLang) setLanguage(savedLang);
     
     // Listen for auth changes
     const handleStorage = () => loadUser();
@@ -67,6 +81,13 @@ export function UniversalHeader() {
     localStorage.removeItem('funnyrent_auth_token');
     setUser(null);
     router.push('/');
+  }
+
+  function handleLanguageChange(langCode) {
+    setLanguage(langCode);
+    localStorage.setItem('funnyrent_language', langCode);
+    // Dispatch event for other components to react
+    window.dispatchEvent(new CustomEvent('languageChange', { detail: langCode }));
   }
 
   // Don't render on server
@@ -151,7 +172,7 @@ export function UniversalHeader() {
           )}
 
           {/* Right - Currency + User Menu */}
-          <div className='flex items-center gap-2'>
+          <div className='flex items-center gap-1.5 sm:gap-2'>
             {/* List Property CTA - Desktop only, for partners/admins */}
             {(isAdmin || isPartner) && !isHomePage && (
               <Button 
@@ -165,6 +186,27 @@ export function UniversalHeader() {
                 </Link>
               </Button>
             )}
+
+            {/* Language Selector */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant='outline' size='sm' className='h-8 w-8 p-0 border-slate-200'>
+                  <span className='text-base'>{LANGUAGES.find(l => l.code === language)?.flag || '🌐'}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align='end' className='min-w-[140px]'>
+                {LANGUAGES.map((lang) => (
+                  <DropdownMenuItem 
+                    key={lang.code} 
+                    onClick={() => handleLanguageChange(lang.code)}
+                    className={`cursor-pointer ${language === lang.code ? 'bg-teal-50' : ''}`}
+                  >
+                    <span className='text-base mr-2'>{lang.flag}</span>
+                    <span className='text-sm'>{lang.name}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Currency Selector */}
             <CurrencySelector 
