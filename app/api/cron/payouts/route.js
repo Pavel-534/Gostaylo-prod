@@ -6,14 +6,17 @@
  * Called at 18:00 local time to process payouts for bookings
  * where check-in was YESTERDAY (24h protection buffer)
  * 
+ * Vercel Cron: Runs at 11:00 UTC (18:00 Bangkok)
  * Requires CRON_SECRET header for security
  */
+
+export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { EscrowService } from '@/lib/services/escrow.service';
 import { NotificationService } from '@/lib/services/notification.service';
 
-// Simple security - in production use proper cron authentication
+// Security - check Vercel cron header or custom secret
 const CRON_SECRET = process.env.CRON_SECRET || 'funnyrent-cron-2026';
 
 // Telegram admin topic for payout notifications
@@ -23,9 +26,12 @@ const FINANCE_TOPIC_ID = 16;
 
 export async function POST(request) {
   try {
-    // Verify cron secret
+    // Verify cron secret (supports Vercel cron header)
+    const vercelCron = request.headers.get('x-vercel-cron');
     const authHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization');
-    if (authHeader !== CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+    
+    // Allow if Vercel cron header is present OR valid secret
+    if (!vercelCron && authHeader !== CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }

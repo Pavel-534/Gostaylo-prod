@@ -1,0 +1,144 @@
+{
+  "summary": "Stage 32.2 Testing Complete - Currency Selector, Cron APIs with Vercel support, RLS SQL script, and vercel.json all verified. 11/11 backend tests passed, frontend currency selector working with localStorage persistence.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/cron/checkin-reminder",
+        "issue": "Fixed: Was using PAID_ESCROW status which doesn't exist in booking_status enum. Changed to ['PAID', 'CONFIRMED']",
+        "priority": "LOW",
+        "status": "FIXED"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    {
+      "test": "Currency Selector dropdown opens with all 6 currencies",
+      "result": "PASS - THB, USD, RUB, CNY, EUR, GBP all available with flags",
+      "verified": true
+    },
+    {
+      "test": "Currency selection changes button display",
+      "result": "PASS - Button updates to show selected currency flag and symbol",
+      "verified": true
+    },
+    {
+      "test": "Currency selection persists to localStorage",
+      "result": "PASS - localStorage.getItem('funnyrent_currency') returns selected currency code",
+      "verified": true
+    },
+    {
+      "test": "Payout cron accepts x-vercel-cron header",
+      "result": "PASS - Returns success:true with 24H Rule message",
+      "verified": true
+    },
+    {
+      "test": "Payout cron accepts x-cron-secret header",
+      "result": "PASS - Returns success:true",
+      "verified": true
+    },
+    {
+      "test": "Payout cron accepts Bearer token authorization",
+      "result": "PASS - Returns success:true",
+      "verified": true
+    },
+    {
+      "test": "Payout cron rejects unauthorized requests",
+      "result": "PASS - Returns 401 Unauthorized",
+      "verified": true
+    },
+    {
+      "test": "Payout cron GET status endpoint",
+      "result": "PASS - Returns 24H rule status, readyForPayout, upcomingThaw",
+      "verified": true
+    },
+    {
+      "test": "Checkin-reminder cron accepts x-vercel-cron header",
+      "result": "PASS - Returns success:true",
+      "verified": true
+    },
+    {
+      "test": "Checkin-reminder cron accepts x-cron-secret header",
+      "result": "PASS - Returns success:true",
+      "verified": true
+    },
+    {
+      "test": "Checkin-reminder cron rejects unauthorized",
+      "result": "PASS - Returns 401 Unauthorized",
+      "verified": true
+    },
+    {
+      "test": "Checkin-reminder cron GET status endpoint",
+      "result": "PASS - Returns todayCheckIns count and scheduledTime",
+      "verified": true
+    },
+    {
+      "test": "RLS policies SQL script exists",
+      "result": "PASS - /app/database/rls_policies.sql (7134 bytes)",
+      "verified": true
+    },
+    {
+      "test": "vercel.json with cron schedules exists",
+      "result": "PASS - /app/vercel.json with checkin-reminder at 07:00 UTC and payouts at 11:00 UTC",
+      "verified": true
+    },
+    {
+      "test": "Homepage loads with listings and currency selector",
+      "result": "PASS - 5 listings with Book Now buttons, currency selector in header",
+      "verified": true
+    }
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_stage322_cron.py",
+    "/app/test_reports/pytest/stage322_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "RLS SQL script needs to be manually applied in Supabase SQL Editor - the script is ready but not auto-applied"
+  ],
+  "updated_files": [
+    "/app/app/api/cron/checkin-reminder/route.js - Fixed invalid PAID_ESCROW status enum",
+    "/app/backend/tests/test_stage322_cron.py - Created cron API tests"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 pytest tests passed)",
+    "frontend": "100% (Currency selector, homepage, listings all working)"
+  },
+  "test_credentials": {
+    "admin": "admin@funnyrent.com / ChangeMe2025!",
+    "cron_secret": "funnyrent-cron-2026"
+  },
+  "seed_data_creation": "None - tested API responses directly",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Stage 32.2 fully verified. Currency Selector component integrated in header with 6 currencies (THB, USD, RUB, CNY, EUR, GBP), flags, and localStorage persistence via 'funnyrent_currency' key. Cron APIs support Vercel cron header (x-vercel-cron), x-cron-secret header, and Bearer token auth. vercel.json configured for 07:00 UTC (checkin-reminder) and 11:00 UTC (payouts). RLS SQL script at /app/database/rls_policies.sql needs manual application in Supabase.",
+  "features_verified": {
+    "currency_selector_dropdown": true,
+    "currency_selector_persistence": true,
+    "currency_selector_flags": true,
+    "payout_cron_vercel_header": true,
+    "payout_cron_secret_header": true,
+    "payout_cron_bearer_auth": true,
+    "payout_cron_unauthorized_check": true,
+    "checkin_cron_vercel_header": true,
+    "checkin_cron_secret_header": true,
+    "checkin_cron_unauthorized_check": true,
+    "rls_sql_script_created": true,
+    "vercel_json_cron_config": true,
+    "homepage_with_currency_selector": true,
+    "homepage_listings_display": true
+  },
+  "bug_fixes_applied": [
+    {
+      "file": "/app/app/api/cron/checkin-reminder/route.js",
+      "issue": "Line 49 and 132: PAID_ESCROW is not a valid booking_status enum value",
+      "fix": "Changed .in('status', ['PAID', 'PAID_ESCROW', 'CONFIRMED']) to .in('status', ['PAID', 'CONFIRMED'])",
+      "reason": "The booking_status enum only contains: PENDING, CONFIRMED, PAID, CANCELLED, COMPLETED, REFUNDED"
+    }
+  ]
+}

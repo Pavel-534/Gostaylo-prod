@@ -15,6 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { formatPrice } from '@/lib/currency'
 import { fetchCategories, fetchListings, fetchExchangeRates, fetchDistricts } from '@/lib/client-data'
 import { detectLanguage, setLanguage as saveLanguage, supportedLanguages, getCategoryName, getUIText, getListingText } from '@/lib/translations'
+import { CurrencySelector } from '@/components/currency-selector'
 import { DayPicker } from 'react-day-picker'
 import { format } from 'date-fns'
 import { ru, enUS, zhCN, th } from 'date-fns/locale'
@@ -269,18 +270,11 @@ export default function FunnyRentHome() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* Currency Switcher */}
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger className='w-[68px] sm:w-[80px] border-teal-200 focus:ring-teal-500 h-8 text-xs px-2'>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='THB'>฿ THB</SelectItem>
-                  <SelectItem value='RUB'>₽ RUB</SelectItem>
-                  <SelectItem value='USD'>$ USD</SelectItem>
-                  <SelectItem value='USDT'>₮ USDT</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Currency Switcher - New Component */}
+              <CurrencySelector 
+                value={currency} 
+                onChange={setCurrency}
+              />
 
               {/* User Menu / Login */}
               {currentUser ? (

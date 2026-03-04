@@ -4,7 +4,11 @@
  * 
  * Called at 14:00 on check-in day to send push notification
  * asking guests to "Confirm Arrival"
+ * 
+ * Vercel Cron: Runs at 07:00 UTC (14:00 Bangkok)
  */
+
+export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
@@ -15,9 +19,11 @@ const CRON_SECRET = process.env.CRON_SECRET || 'funnyrent-cron-2026';
 
 export async function POST(request) {
   try {
-    // Verify cron secret
+    // Verify cron secret (supports Vercel cron header)
+    const vercelCron = request.headers.get('x-vercel-cron');
     const authHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization');
-    if (authHeader !== CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+    
+    if (!vercelCron && authHeader !== CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -40,7 +46,7 @@ export async function POST(request) {
         listing:listings(id, title)
       `)
       .eq('check_in', today)
-      .in('status', ['PAID', 'PAID_ESCROW', 'CONFIRMED']);
+      .in('status', ['PAID', 'CONFIRMED']);
 
     if (error) {
       console.error('[CRON CHECK-IN] Query error:', error);
@@ -123,7 +129,7 @@ export async function GET(request) {
       listing:listings(id, title)
     `)
     .eq('check_in', today)
-    .in('status', ['PAID', 'PAID_ESCROW', 'CONFIRMED']);
+    .in('status', ['PAID', 'CONFIRMED']);
 
   return NextResponse.json({
     success: true,
