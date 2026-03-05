@@ -77,7 +77,7 @@ export default function ListingDetail({ params }) {
   // Load currency preference and listen for changes
   useEffect(() => {
     // Load saved currency
-    const savedCurrency = localStorage.getItem('funnyrent_currency')
+    const savedCurrency = localStorage.getItem('gostaylo_currency')
     if (savedCurrency) setCurrency(savedCurrency)
 
     // Load exchange rates

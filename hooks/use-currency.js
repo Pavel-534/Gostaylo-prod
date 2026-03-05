@@ -33,7 +33,7 @@ export function CurrencyProvider({ children }) {
     const init = async () => {
       try {
         // Check localStorage for saved preference
-        const savedCurrency = localStorage.getItem('funnyrent_currency');
+        const savedCurrency = localStorage.getItem('gostaylo_currency');
         
         if (savedCurrency && CURRENCIES[savedCurrency]) {
           setCurrency(savedCurrency);
@@ -69,7 +69,7 @@ export function CurrencyProvider({ children }) {
   const changeCurrency = useCallback((newCurrency) => {
     if (CURRENCIES[newCurrency]) {
       setCurrency(newCurrency);
-      localStorage.setItem('funnyrent_currency', newCurrency);
+      localStorage.setItem('gostaylo_currency', newCurrency);
     }
   }, []);
 
@@ -141,7 +141,7 @@ export function useAutoDetectCurrency() {
   useEffect(() => {
     const detect = async () => {
       try {
-        const saved = localStorage.getItem('funnyrent_currency');
+        const saved = localStorage.getItem('gostaylo_currency');
         if (saved) {
           setCurrency(saved);
           setLoading(false);
@@ -153,7 +153,7 @@ export function useAutoDetectCurrency() {
         
         if (data.success && data.currency?.code) {
           setCurrency(data.currency.code);
-          localStorage.setItem('funnyrent_currency', data.currency.code);
+          localStorage.setItem('gostaylo_currency', data.currency.code);
         }
       } catch (e) {
         console.error('[GEO] Detection failed:', e);

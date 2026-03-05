@@ -213,7 +213,7 @@ export default function NewListing() {
 
     try {
       // Get current user
-      const storedUser = localStorage.getItem('funnyrent_user')
+      const storedUser = localStorage.getItem('gostaylo_user')
       const user = storedUser ? JSON.parse(storedUser) : null
       
       if (!user || !user.id) {

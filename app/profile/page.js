@@ -46,7 +46,7 @@ export default function ProfilePage() {
 
   async function loadUser() {
     try {
-      const stored = localStorage.getItem('funnyrent_user')
+      const stored = localStorage.getItem('gostaylo_user')
       if (!stored) {
         router.push('/')
         return
@@ -129,7 +129,7 @@ export default function ProfilePage() {
       const updated = await res.json()
       if (updated && updated[0]) {
         setUser(updated[0])
-        localStorage.setItem('funnyrent_user', JSON.stringify({
+        localStorage.setItem('gostaylo_user', JSON.stringify({
           ...user,
           metadata: { ...user.metadata, partner_status: 'PENDING' },
           phone: partnerForm.phone
@@ -206,7 +206,7 @@ export default function ProfilePage() {
 
   // Logout
   function handleLogout() {
-    localStorage.removeItem('funnyrent_user')
+    localStorage.removeItem('gostaylo_user')
     router.push('/')
   }
 

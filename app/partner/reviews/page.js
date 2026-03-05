@@ -41,7 +41,7 @@ export default function PartnerReviewsPage() {
   const [submittingReply, setSubmittingReply] = useState(false)
 
   useEffect(() => {
-    const stored = localStorage.getItem('funnyrent_user')
+    const stored = localStorage.getItem('gostaylo_user')
     if (stored) {
       const parsed = JSON.parse(stored)
       setUser(parsed)

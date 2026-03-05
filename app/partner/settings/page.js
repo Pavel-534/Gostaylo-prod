@@ -36,7 +36,7 @@ export default function PartnerSettings() {
     setGeneratingCode(true)
     try {
       // Get user from localStorage
-      const storedUser = localStorage.getItem('funnyrent_user')
+      const storedUser = localStorage.getItem('gostaylo_user')
       const user = storedUser ? JSON.parse(storedUser) : { id: 'partner-1' }
       
       const res = await fetch('/api/v2/telegram/link', {

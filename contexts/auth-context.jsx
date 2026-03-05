@@ -34,7 +34,7 @@ export function AuthProvider({ children }) {
 
   // Load user on mount
   useEffect(() => {
-    const stored = localStorage.getItem('funnyrent_user');
+    const stored = localStorage.getItem('gostaylo_user');
     if (stored) {
       try {
         setUser(JSON.parse(stored));
@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
 
     // Listen for storage changes (logout from another tab)
     const handleStorage = (e) => {
-      if (e.key === 'funnyrent_user') {
+      if (e.key === 'gostaylo_user') {
         if (e.newValue) {
           try {
             setUser(JSON.parse(e.newValue));
@@ -91,7 +91,7 @@ export function AuthProvider({ children }) {
       }
 
       setUser(result.user);
-      localStorage.setItem('funnyrent_user', JSON.stringify(result.user));
+      localStorage.setItem('gostaylo_user', JSON.stringify(result.user));
       closeLoginModal();
       
       // Dispatch event for other components
@@ -124,7 +124,7 @@ export function AuthProvider({ children }) {
       }
 
       setUser(result.user);
-      localStorage.setItem('funnyrent_user', JSON.stringify(result.user));
+      localStorage.setItem('gostaylo_user', JSON.stringify(result.user));
       closeLoginModal();
       
       // Dispatch event for other components
@@ -139,8 +139,8 @@ export function AuthProvider({ children }) {
 
   // Logout handler
   const logout = useCallback(() => {
-    localStorage.removeItem('funnyrent_user');
-    localStorage.removeItem('funnyrent_auth_token');
+    localStorage.removeItem('gostaylo_user');
+    localStorage.removeItem('gostaylo_auth_token');
     setUser(null);
     window.dispatchEvent(new CustomEvent('auth-change', { detail: null }));
     router.push('/');
@@ -149,7 +149,7 @@ export function AuthProvider({ children }) {
   // Update user (after profile changes)
   const updateUser = useCallback((updatedUser) => {
     setUser(updatedUser);
-    localStorage.setItem('funnyrent_user', JSON.stringify(updatedUser));
+    localStorage.setItem('gostaylo_user', JSON.stringify(updatedUser));
     window.dispatchEvent(new CustomEvent('auth-change', { detail: updatedUser }));
   }, []);
 
@@ -179,7 +179,7 @@ export function AuthProvider({ children }) {
             </DialogTitle>
             <DialogDescription>
               {authMode === 'login' 
-                ? 'Войдите в свой аккаунт FunnyRent'
+                ? 'Войдите в свой аккаунт Gostaylo'
                 : 'Создайте новый аккаунт'}
             </DialogDescription>
           </DialogHeader>

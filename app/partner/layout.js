@@ -39,7 +39,7 @@ export default function PartnerLayout({ children }) {
   const [isImpersonating, setIsImpersonating] = useState(false)
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('funnyrent_user')
+    const storedUser = localStorage.getItem('gostaylo_user')
     if (storedUser) {
       const parsed = JSON.parse(storedUser)
       setUser(parsed)
@@ -50,14 +50,14 @@ export default function PartnerLayout({ children }) {
   const handleReturnToAdmin = () => {
     const savedAdmin = localStorage.getItem('funnyrent_original_admin')
     if (savedAdmin) {
-      localStorage.setItem('funnyrent_user', savedAdmin)
+      localStorage.setItem('gostaylo_user', savedAdmin)
       localStorage.removeItem('funnyrent_original_admin')
       router.push('/admin/users')
     }
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('funnyrent_user')
+    localStorage.removeItem('gostaylo_user')
     localStorage.removeItem('funnyrent_original_admin')
     router.push('/')
   }
@@ -73,10 +73,10 @@ export default function PartnerLayout({ children }) {
           <div className="flex items-center justify-between p-4 border-b">
             <Link href="/" className="flex items-center gap-2">
               <div className="w-9 h-9 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center shadow-md">
-                <span className="text-white font-bold">FR</span>
+                <span className="text-white font-bold">GS</span>
               </div>
               <div>
-                <h1 className="text-lg font-bold text-slate-900">FunnyRent</h1>
+                <h1 className="text-lg font-bold text-slate-900">Gostaylo</h1>
                 <p className="text-xs text-teal-600">Partner Portal</p>
               </div>
             </Link>

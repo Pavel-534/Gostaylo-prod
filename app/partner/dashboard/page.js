@@ -21,7 +21,7 @@ export default function PartnerDashboard() {
   useEffect(() => {
     loadData()
     // Get user name from localStorage
-    const storedUser = localStorage.getItem('funnyrent_user')
+    const storedUser = localStorage.getItem('gostaylo_user')
     if (storedUser) {
       const user = JSON.parse(storedUser)
       setUserName(user.name || user.email?.split('@')[0] || 'Partner')
@@ -30,7 +30,7 @@ export default function PartnerDashboard() {
 
   async function loadData() {
     try {
-      const storedUser = localStorage.getItem('funnyrent_user')
+      const storedUser = localStorage.getItem('gostaylo_user')
       const user = storedUser ? JSON.parse(storedUser) : { id: 'partner-1' }
       
       const [statsRes, bookingsRes] = await Promise.all([
@@ -74,7 +74,7 @@ export default function PartnerDashboard() {
   async function generateLinkCode() {
     setGeneratingCode(true)
     try {
-      const storedUser = localStorage.getItem('funnyrent_user')
+      const storedUser = localStorage.getItem('gostaylo_user')
       const user = storedUser ? JSON.parse(storedUser) : { id: 'partner-1' }
       
       const res = await fetch('/api/v2/telegram/link', {

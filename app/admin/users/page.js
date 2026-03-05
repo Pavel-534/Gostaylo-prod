@@ -70,7 +70,7 @@ export default function UsersPage() {
   // Login as another user (impersonation)
   const handleLoginAs = (targetUser) => {
     // Save original admin for return
-    const currentUser = localStorage.getItem('funnyrent_user');
+    const currentUser = localStorage.getItem('gostaylo_user');
     if (currentUser) {
       const parsed = JSON.parse(currentUser);
       if (!parsed.isImpersonated) {
@@ -89,7 +89,7 @@ export default function UsersPage() {
       isImpersonated: true
     };
     
-    localStorage.setItem('funnyrent_user', JSON.stringify(impersonatedUser));
+    localStorage.setItem('gostaylo_user', JSON.stringify(impersonatedUser));
     toast.success(`Вы вошли как ${targetUser.name}`);
     
     // Force full page reload to update all UI state immediately

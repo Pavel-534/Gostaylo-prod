@@ -26,7 +26,7 @@ const CURRENCIES = [
   { code: 'USDT', symbol: '₮', name: 'Tether', flag: '💎' },
 ];
 
-const STORAGE_KEY = 'funnyrent_currency';
+const STORAGE_KEY = 'gostaylo_currency';
 
 export function CurrencySelector({ 
   value, 

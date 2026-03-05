@@ -166,7 +166,7 @@ export function AppSidebar() {
     setMounted(true);
     // Load user from localStorage as fallback
     if (!authContext) {
-      const storedUser = localStorage.getItem('funnyrent_user');
+      const storedUser = localStorage.getItem('gostaylo_user');
       if (storedUser) {
         try {
           setUser(JSON.parse(storedUser));
@@ -242,7 +242,7 @@ export function AppSidebar() {
               <Home className='h-5 w-5 text-white' />
             </div>
             <div>
-              <SheetTitle className='text-left'>FunnyRent</SheetTitle>
+              <SheetTitle className='text-left'>Gostaylo</SheetTitle>
               <p className='text-xs text-slate-500'>{currentSection}</p>
             </div>
           </div>

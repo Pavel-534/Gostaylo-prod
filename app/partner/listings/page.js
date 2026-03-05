@@ -42,7 +42,7 @@ export default function PartnerListings() {
 
   async function loadListings() {
     try {
-      const storedUser = localStorage.getItem('funnyrent_user')
+      const storedUser = localStorage.getItem('gostaylo_user')
       const user = storedUser ? JSON.parse(storedUser) : null
       
       if (!user || !user.id) {

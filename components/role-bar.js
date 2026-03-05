@@ -17,7 +17,7 @@ export default function RoleBar() {
 
   useEffect(() => {
     // Check localStorage for logged in user
-    const storedUser = localStorage.getItem('funnyrent_user');
+    const storedUser = localStorage.getItem('gostaylo_user');
     if (storedUser) {
       try {
         const parsed = JSON.parse(storedUser);
@@ -47,7 +47,7 @@ export default function RoleBar() {
   const Icon = isAdmin ? Shield : Store;
 
   const handleLogout = () => {
-    localStorage.removeItem('funnyrent_user');
+    localStorage.removeItem('gostaylo_user');
     setUser(null);
     window.location.reload();
   };

@@ -56,7 +56,7 @@ export default function FunnyRentHome() {
 
   // Check for logged in user
   useEffect(() => {
-    const stored = localStorage.getItem('funnyrent_user')
+    const stored = localStorage.getItem('gostaylo_user')
     if (stored) {
       try {
         setCurrentUser(JSON.parse(stored))
@@ -79,7 +79,7 @@ export default function FunnyRentHome() {
   // Listen for currency changes from UniversalHeader
   useEffect(() => {
     // Load initial currency
-    const savedCurrency = localStorage.getItem('funnyrent_currency')
+    const savedCurrency = localStorage.getItem('gostaylo_currency')
     if (savedCurrency) setCurrency(savedCurrency)
 
     // Listen for changes from CurrencySelector in header
@@ -168,7 +168,7 @@ export default function FunnyRentHome() {
 
   // Handle logout
   function handleLogout() {
-    localStorage.removeItem('funnyrent_user')
+    localStorage.removeItem('gostaylo_user')
     setCurrentUser(null)
     router.push('/')
   }

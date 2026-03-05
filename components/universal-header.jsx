@@ -53,7 +53,7 @@ export function UniversalHeader() {
     setMounted(true);
     
     // Load currency preference
-    const savedCurrency = localStorage.getItem('funnyrent_currency');
+    const savedCurrency = localStorage.getItem('gostaylo_currency');
     if (savedCurrency) setCurrency(savedCurrency);
     
     // Load language preference
@@ -98,7 +98,7 @@ export function UniversalHeader() {
               <div className='w-8 h-8 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-lg flex items-center justify-center'>
                 <Home className='h-4 w-4 text-white' />
               </div>
-              <span className='font-bold text-slate-800 hidden sm:inline'>FunnyRent</span>
+              <span className='font-bold text-slate-800 hidden sm:inline'>Gostaylo</span>
             </Link>
           </div>
 

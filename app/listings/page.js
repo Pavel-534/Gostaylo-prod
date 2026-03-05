@@ -49,7 +49,7 @@ function ListingsContent() {
       setLanguage(supported.includes(browserLang) ? browserLang : 'en')
     }
     
-    const storedCurrency = localStorage.getItem('funnyrent_currency')
+    const storedCurrency = localStorage.getItem('gostaylo_currency')
     if (storedCurrency) setCurrency(storedCurrency)
     
     loadInitialData()
