@@ -1,12 +1,12 @@
--- FunnyRent 2.1 - Reviews Table Migration
--- Stage 33.2.3 - Trust Engine & Review System
+-- Gostaylo - Reviews Table Migration
+-- Production Ready - Uses profiles table with TEXT ID
 
 -- Create reviews table
 CREATE TABLE IF NOT EXISTS public.reviews (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES public.users(id),
-  listing_id TEXT NOT NULL REFERENCES public.listings(id),
-  booking_id TEXT REFERENCES public.bookings(id),
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  user_id TEXT NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  listing_id TEXT NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
+  booking_id TEXT REFERENCES public.bookings(id) ON DELETE SET NULL,
   rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
   comment TEXT,
   partner_reply TEXT,
@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS public.reviews (
 CREATE INDEX IF NOT EXISTS idx_reviews_listing_id ON public.reviews(listing_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_user_id ON public.reviews(user_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_booking_id ON public.reviews(booking_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_rating ON public.reviews(rating);
 
 -- Enable RLS
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
@@ -47,4 +48,4 @@ GRANT SELECT ON public.reviews TO anon, authenticated;
 GRANT INSERT ON public.reviews TO authenticated;
 GRANT UPDATE ON public.reviews TO authenticated;
 
-COMMENT ON TABLE public.reviews IS 'Guest reviews for listings with partner replies';
+COMMENT ON TABLE public.reviews IS 'Guest reviews for listings with partner replies - Gostaylo Production';

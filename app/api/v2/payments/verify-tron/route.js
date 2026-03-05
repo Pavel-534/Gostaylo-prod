@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - TRON Transaction Verification API v2.0
+ * Gostaylo - TRON Transaction Verification API v2.0
  * POST /api/v2/payments/verify-tron
  * GET /api/v2/payments/verify-tron?txid=[TXID]&expectedAmount=[USDT]
  * 
@@ -7,8 +7,10 @@
  */
 
 import { NextResponse } from 'next/server';
-import { verifyTronTransaction, verifyTransactionWithBooking, getStatusBadge, FUNNYRENT_WALLET, thbToUsdt } from '@/lib/services/tron.service';
+import { verifyTronTransaction, verifyTransactionWithBooking, getStatusBadge, GOSTAYLO_WALLET, thbToUsdt } from '@/lib/services/tron.service';
 import { supabaseAdmin } from '@/lib/supabase';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(request) {
   try {
@@ -71,7 +73,7 @@ export async function POST(request) {
       badge,
       data: result.data,
       error: result.error,
-      expectedWallet: FUNNYRENT_WALLET,
+      expectedWallet: GOSTAYLO_WALLET,
       amountVerification: result.data ? {
         received: result.data.amount,
         expected: result.data.expectedAmount,

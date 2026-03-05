@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Reviews API
+ * Gostaylo - Reviews API
  * GET /api/v2/reviews?listing_id=xxx - Get reviews for a listing
  * POST /api/v2/reviews - Create a new review (requires CHECKED_IN or COMPLETED booking)
  */
@@ -10,11 +10,10 @@ import { supabaseAdmin } from '@/lib/supabase';
 export const dynamic = 'force-dynamic';
 
 // Format user name: "Pavel S." (First name + Last initial)
-function formatReviewerName(fullName) {
-  if (!fullName) return 'Guest';
-  const parts = fullName.trim().split(' ');
-  if (parts.length === 1) return parts[0];
-  return `${parts[0]} ${parts[1][0]}.`;
+function formatReviewerName(firstName, lastName) {
+  if (!firstName) return 'Guest';
+  if (!lastName) return firstName;
+  return `${firstName} ${lastName[0]}.`;
 }
 
 export async function GET(request) {
@@ -27,7 +26,7 @@ export async function GET(request) {
       .from('reviews')
       .select(`
         *,
-        users:user_id (name, email),
+        profiles:user_id (first_name, last_name, email),
         bookings:booking_id (id, check_in, check_out)
       `)
       .order('created_at', { ascending: false });
@@ -75,8 +74,8 @@ export async function GET(request) {
       id: review.id,
       rating: review.rating,
       comment: review.comment,
-      reviewerName: formatReviewerName(review.users?.name),
-      reviewerInitial: review.users?.name?.[0]?.toUpperCase() || 'G',
+      reviewerName: formatReviewerName(review.profiles?.first_name, review.profiles?.last_name),
+      reviewerInitial: review.profiles?.first_name?.[0]?.toUpperCase() || 'G',
       createdAt: review.created_at,
       partnerReply: review.partner_reply,
       partnerReplyAt: review.partner_reply_at,

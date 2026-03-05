@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Partner Review Reply API
+ * Gostaylo - Partner Review Reply API
  * PUT /api/v2/reviews/[id]/reply - Add partner reply to a review
  */
 

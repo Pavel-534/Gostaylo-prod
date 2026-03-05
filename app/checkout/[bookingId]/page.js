@@ -662,7 +662,7 @@ export default function CheckoutPage({ params }) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => copyToClipboard(FUNNYRENT_WALLET)}
+                    onClick={() => copyToClipboard(GOSTAYLO_WALLET)}
                     data-testid="copy-wallet-btn"
                     className="flex items-center gap-1"
                   >

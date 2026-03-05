@@ -9,44 +9,46 @@
 
 ---
 
-## Latest Update: 2026-03-05 - Production Migration to Gostaylo.com ✅
+## Latest Update: 2026-03-05 - Production Activation Phase P1 ✅
 
-### FULL BRAND MIGRATION (P0) - COMPLETE
-- **Branding:**
-  - "FunnyRent" → "Gostaylo" across entire codebase (123+ files updated)
-  - localStorage keys: `funnyrent_user` → `gostaylo_user`
-  - localStorage keys: `funnyrent_language` → `gostaylo_language`
-  - Email addresses: `@funnyrent.com` → `@gostaylo.com`
-  - Telegram bot references: `@FunnyRentBot` → `@GostayloBot`
-  - All notification templates updated
-  - All email templates updated
-  
-- **Configuration:**
-  - `NEXT_PUBLIC_SITE_URL=https://www.gostaylo.com`
-  - `NEXT_PUBLIC_BASE_URL=https://www.gostaylo.com`
-  - CORS origins updated
-  - Email sender: `booking@gostaylo.com`
+### FINAL PRODUCTION ACTIVATION (P1) - COMPLETE
 
-- **Assets:**
-  - New OG-image generated (`/app/public/og-image.png`)
-  - manifest.json updated for PWA
+#### 1. EMAIL SYSTEM LIVE SWITCH ✅
+- `notification.service.js` - Resend SDK integration verified
+- `email.service.js` - SENDER_EMAIL set to `booking@gostaylo.com`
+- RESEND_API_KEY properly initialized from environment
+- All email templates use Gostaylo branding
 
-- **Testing:** PASS
-  - Homepage loads with "Gostaylo" branding ✅
-  - Footer shows "© 2025 Gostaylo" ✅
-  - Login modal shows "Войдите в свой аккаунт Gostaylo" ✅
-  - Authentication works with existing Supabase users ✅
-  - localStorage keys work correctly ✅
+#### 2. CRYPTO PAYMENT CALLBACK (USDT/TRON) ✅
+- `GOSTAYLO_WALLET` export added to `tron.service.js`
+- `payment.service.js` updated to use `GOSTAYLO_WALLET`
+- `verify-tron/route.js` updated with correct wallet reference
+- `checkout/[bookingId]/page.js` uses `GOSTAYLO_WALLET`
+- All payment verification targets `https://www.gostaylo.com`
 
-### REMAINING P1 TASKS (Next Steps)
-1. **Resend Email Activation:** Domain `gostaylo.com` needs verification in Resend dashboard
-2. **Telegram Bot:** Update bot username to `@GostayloBot` (requires BotFather)
-3. **Webhook URLs:** Update callback URLs in Stripe/TRON dashboards
-4. **Database Update:** Existing user emails in Supabase still use `@funnyrent.com`
+#### 3. TELEGRAM BOT SYNC ✅
+- `APP_URL = 'https://www.gostaylo.com'` in telegram webhook
+- All "View Booking" links point to gostaylo.com
+- Bot references updated to `@GostayloBot`
+
+#### 4. REVIEWS SYSTEM FIX ✅
+- `reviews_table.sql` - Fixed to use `profiles` table (not `users`)
+- ID type: `TEXT` (matching profiles.id)
+- Added `ON DELETE CASCADE` for referential integrity
+- API routes updated to join with `profiles` table
+
+#### 5. FILES UPDATED
+- `/app/database/reviews_table.sql` - Production ready SQL
+- `/app/lib/services/tron.service.js` - GOSTAYLO_WALLET
+- `/app/lib/services/payment.service.js` - GOSTAYLO_WALLET
+- `/app/lib/services/email.service.js` - Production comments
+- `/app/app/api/v2/payments/verify-tron/route.js` - GOSTAYLO_WALLET
+- `/app/app/api/v2/reviews/route.js` - profiles table join
+- `/app/app/checkout/[bookingId]/page.js` - GOSTAYLO_WALLET
 
 ---
 
-## Previous Update: 2026-03-04 - Stage 33.2.3 Trust Engine & Calendar Blocking ✅
+### Previous: Brand Migration (P0) - COMPLETE
 
 ### 1. GLOBAL AUTH CONTEXT (P0) - COMPLETE
 - **Component:** `/app/contexts/auth-context.jsx`
