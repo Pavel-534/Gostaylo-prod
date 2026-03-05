@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, MapPin, Calendar, Home, Bike, Map, Anchor, User, Eye, EyeOff, Loader2, BedDouble, Bath, Maximize, Plus } from 'lucide-react'
@@ -23,7 +23,8 @@ import 'react-day-picker/dist/style.css'
 
 const dateLocales = { ru, en: enUS, zh: zhCN, th }
 
-export default function GostayloHome() {
+// Wrapper component to handle searchParams with Suspense
+function HomeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -678,5 +679,26 @@ export default function GostayloHome() {
         </div>
       </footer>
     </div>
+  )
+}
+
+// Loading fallback for Suspense
+function HomeLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-900">
+      <div className="text-center">
+        <Loader2 className="h-12 w-12 animate-spin text-teal-500 mx-auto mb-4" />
+        <p className="text-white text-lg">Loading Gostaylo...</p>
+      </div>
+    </div>
+  )
+}
+
+// Main export with Suspense boundary
+export default function GostayloHome() {
+  return (
+    <Suspense fallback={<HomeLoading />}>
+      <HomeContent />
+    </Suspense>
   )
 }
