@@ -1,10 +1,10 @@
 const nextConfig = {
-  output: 'standalone',
+  // Remove 'standalone' for Vercel deployment
+  // output: 'standalone',
   images: {
     unoptimized: true,
   },
   experimental: {
-    // Remove if not using Server Components
     serverComponentsExternalPackages: ['mongodb'],
   },
   webpack(config, { dev }) {
