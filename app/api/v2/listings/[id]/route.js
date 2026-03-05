@@ -6,6 +6,7 @@
  */
 
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
 
 const STORAGE_BUCKET = 'listings';

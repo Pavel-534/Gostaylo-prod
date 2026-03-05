@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { PricingService } from '@/lib/services/pricing.service';
 
 export async function POST(request) {

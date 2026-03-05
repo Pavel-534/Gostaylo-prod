@@ -5,6 +5,7 @@
  */
 
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { BookingService } from '@/lib/services/booking.service';
 import { NotificationService, NotificationEvents } from '@/lib/services/notification.service';
 import { supabaseAdmin } from '@/lib/supabase';

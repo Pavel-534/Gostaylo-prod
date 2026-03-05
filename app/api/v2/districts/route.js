@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 
 // Phuket districts (static data)
 const DISTRICTS = [

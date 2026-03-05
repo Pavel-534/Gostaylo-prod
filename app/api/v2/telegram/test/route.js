@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { sendTestAlert, getBotInfo, getChatInfo, initializeTopics } from '@/lib/telegram';
 
 export async function POST(request) {

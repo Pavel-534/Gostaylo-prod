@@ -6,6 +6,7 @@
  */
 
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { PaymentService, PaymentMethod } from '@/lib/services/payment.service';
 
 export async function POST(request) {
