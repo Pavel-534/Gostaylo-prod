@@ -1,15 +1,21 @@
 /**
- * FunnyRent 2.1 - Auth API (v2)
+ * Gostaylo - Auth API (v2)
  * POST /api/v2/auth/login - User login
  */
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request) {
+  console.log('[API] /api/v2/auth/login - POST request received');
+  
   try {
     const body = await request.json();
     const { email, password } = body;
+    
+    console.log('[API] Login attempt for email:', email);
     
     if (!email) {
       return NextResponse.json({ 
@@ -72,4 +78,14 @@ export async function POST(request) {
     console.error('[AUTH LOGIN ERROR]', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
+}
+
+// GET handler for health check
+export async function GET() {
+  return NextResponse.json({ 
+    status: 'ok',
+    endpoint: '/api/v2/auth/login',
+    method: 'POST required',
+    timestamp: new Date().toISOString()
+  });
 }

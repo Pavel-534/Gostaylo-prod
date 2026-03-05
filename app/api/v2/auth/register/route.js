@@ -8,10 +8,16 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { NotificationService, NotificationEvents } from '@/lib/services/notification.service';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request) {
+  console.log('[API] /api/v2/auth/register - POST request received');
+  
   try {
     const body = await request.json();
     const { email, password, firstName, lastName, phone, role = 'RENTER', referredBy } = body;
+    
+    console.log('[API] Register attempt for email:', email);
     
     if (!email) {
       return NextResponse.json({ 
@@ -108,4 +114,14 @@ export async function POST(request) {
     console.error('[AUTH REGISTER ERROR]', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
+}
+
+// GET handler for health check
+export async function GET() {
+  return NextResponse.json({ 
+    status: 'ok',
+    endpoint: '/api/v2/auth/register',
+    method: 'POST required',
+    timestamp: new Date().toISOString()
+  });
 }
