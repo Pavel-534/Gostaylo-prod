@@ -131,7 +131,7 @@ export function GostayloHomeContent() {
       } else if (user.role === 'PARTNER') {
         router.push('/partner/dashboard')
       } else {
-        router.push('/renter/dashboard')
+        router.push('/dashboard/renter')
       }
     } catch (error) {
       setLoginError(error.message)
