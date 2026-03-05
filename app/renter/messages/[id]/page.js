@@ -193,9 +193,9 @@ export default function RenterMessages({ params }) {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold">FR</span>
+              <span className="text-white font-bold">GS</span>
             </div>
-            <span className="font-bold text-slate-900">FunnyRent</span>
+            <span className="font-bold text-slate-900">Gostaylo</span>
           </Link>
           <Button asChild variant="ghost">
             <Link href="/">

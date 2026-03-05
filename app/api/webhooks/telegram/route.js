@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Telegram Webhook v6.2 (Stage 27 FINAL)
+ * Gostaylo - Telegram Webhook v6.2 (Stage 27 FINAL)
  * 
  * CRITICAL ROUTE - Must be PUBLIC (no auth required)
  * 
@@ -22,7 +22,7 @@ export const dynamic = 'force-dynamic';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
-const APP_URL = 'https://funnyrent.vercel.app';
+const APP_URL = 'https://www.gostaylo.com';
 const STORAGE_BUCKET = 'listings';
 
 /**
@@ -262,7 +262,7 @@ export async function POST(request) {
     // /help
     if (text.startsWith('/help')) {
       await sendTelegram(chatId,
-        '📖 <b>Инструкция FunnyRent</b>\n\n' +
+        '📖 <b>Инструкция Gostaylo</b>\n\n' +
         '1. <b>Привязка:</b> <code>/link email@test.com</code>\n' +
         '2. <b>Статус:</b> <code>/status</code>\n' +
         '3. <b>Lazy Realtor:</b> Отправьте фото с описанием (например: "Вилла на Раваи, 25000 THB")\n' +
@@ -277,7 +277,7 @@ export async function POST(request) {
     if (text.startsWith('/start')) {
       await sendTelegram(chatId,
         `🌴 <b>Aloha, ${firstName}!</b>\n\n` +
-        'Добро пожаловать в <b>FunnyRent</b>!\n\n' +
+        'Добро пожаловать в <b>Gostaylo</b>!\n\n' +
         '📸 <b>Lazy Realtor</b>\n' +
         'Отправьте фото + описание → получите черновик.\n\n' +
         '📋 <b>Команды:</b>\n' +
@@ -541,7 +541,7 @@ async function handlePhotoUpload(chatId, message, firstName) {
 export async function GET() {
   return NextResponse.json({
     ok: true,
-    service: 'FunnyRent Telegram Webhook',
+    service: 'Gostaylo Telegram Webhook',
     version: '6.0',
     stage: 27,
     runtime: 'nodejs',

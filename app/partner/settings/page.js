@@ -21,7 +21,7 @@ export default function PartnerSettings() {
   // Partner settings state
   const [settings, setSettings] = useState({
     agencyName: 'Иван Партнёров',
-    email: 'partner@funnyrent.com',
+    email: 'partner@gostaylo.com',
     phone: '+7 999 123 4567',
     notifyTelegram: true,
     notifyEmail: true,
@@ -262,7 +262,7 @@ export default function PartnerSettings() {
                 <h4 className="font-semibold text-slate-900 mb-2">Как подключить?</h4>
                 <ol className="text-sm text-slate-700 space-y-1 list-decimal list-inside">
                   <li>Нажмите "Сгенерировать код"</li>
-                  <li>Откройте бот @FunnyRentBot в Telegram</li>
+                  <li>Откройте бот @GostayloBot в Telegram</li>
                   <li>Отправьте команду /link с вашим кодом</li>
                   <li>Готово! Уведомления настроены</li>
                 </ol>
@@ -308,7 +308,7 @@ export default function PartnerSettings() {
                     variant="outline"
                     className="w-full"
                   >
-                    <a href="https://t.me/FunnyRentBot" target="_blank" rel="noopener noreferrer">
+                    <a href="https://t.me/GostayloBot" target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Открыть бот в Telegram
                     </a>
@@ -387,7 +387,7 @@ export default function PartnerSettings() {
 
           {telegramLinked && (
             <Button asChild className="w-full bg-teal-600 hover:bg-teal-700">
-              <a href="https://t.me/FunnyRentBot" target="_blank" rel="noopener noreferrer">
+              <a href="https://t.me/GostayloBot" target="_blank" rel="noopener noreferrer">
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Открыть бот и создать объявление
               </a>

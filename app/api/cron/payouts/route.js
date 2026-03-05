@@ -17,7 +17,7 @@ import { EscrowService } from '@/lib/services/escrow.service';
 import { NotificationService } from '@/lib/services/notification.service';
 
 // Security - check Vercel cron header or custom secret
-const CRON_SECRET = process.env.CRON_SECRET || 'funnyrent-cron-2026';
+const CRON_SECRET = process.env.CRON_SECRET || 'gostaylo-cron-2026';
 
 // Telegram admin topic for payout notifications
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;

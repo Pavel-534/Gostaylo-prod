@@ -15,7 +15,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { PushService } from '@/lib/services/push.service';
 import { NotificationService } from '@/lib/services/notification.service';
 
-const CRON_SECRET = process.env.CRON_SECRET || 'funnyrent-cron-2026';
+const CRON_SECRET = process.env.CRON_SECRET || 'gostaylo-cron-2026';
 
 export async function POST(request) {
   try {

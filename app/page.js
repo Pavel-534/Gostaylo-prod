@@ -23,7 +23,7 @@ import 'react-day-picker/dist/style.css'
 
 const dateLocales = { ru, en: enUS, zh: zhCN, th }
 
-export default function FunnyRentHome() {
+export default function GostayloHome() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -638,8 +638,8 @@ export default function FunnyRentHome() {
           <div className='grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8'>
             <div className='col-span-2 md:col-span-1'>
               <div className='flex flex-col leading-none mb-4'>
-                <span className='text-xl font-black text-white tracking-tight'>Funny</span>
-                <span className='text-xl font-black text-teal-400 tracking-tight ml-4 -mt-1'>Rent</span>
+                <span className='text-xl font-black text-white tracking-tight'>Go</span>
+                <span className='text-xl font-black text-teal-400 tracking-tight ml-4 -mt-1'>staylo</span>
               </div>
               <p className='text-slate-400 text-sm'>{getUIText('footerDesc', language)}</p>
             </div>
@@ -673,7 +673,7 @@ export default function FunnyRentHome() {
           </div>
           
           <div className='border-t border-slate-800 mt-8 pt-6 text-center text-sm text-slate-400'>
-            <p>© 2025 FunnyRent. {getUIText('allRightsReserved', language)}</p>
+            <p>© 2025 Gostaylo. {getUIText('allRightsReserved', language)}</p>
           </div>
         </div>
       </footer>

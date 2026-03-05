@@ -1,4 +1,4 @@
-# FunnyRent 2.1 - Product Requirements Document
+# Gostaylo - Product Requirements Document
 
 ## Documentation
 
@@ -9,7 +9,44 @@
 
 ---
 
-## Latest Update: 2026-03-04 - Stage 33.2.3 Trust Engine & Calendar Blocking ✅
+## Latest Update: 2026-03-05 - Production Migration to Gostaylo.com ✅
+
+### FULL BRAND MIGRATION (P0) - COMPLETE
+- **Branding:**
+  - "FunnyRent" → "Gostaylo" across entire codebase (123+ files updated)
+  - localStorage keys: `funnyrent_user` → `gostaylo_user`
+  - localStorage keys: `funnyrent_language` → `gostaylo_language`
+  - Email addresses: `@funnyrent.com` → `@gostaylo.com`
+  - Telegram bot references: `@FunnyRentBot` → `@GostayloBot`
+  - All notification templates updated
+  - All email templates updated
+  
+- **Configuration:**
+  - `NEXT_PUBLIC_SITE_URL=https://www.gostaylo.com`
+  - `NEXT_PUBLIC_BASE_URL=https://www.gostaylo.com`
+  - CORS origins updated
+  - Email sender: `booking@gostaylo.com`
+
+- **Assets:**
+  - New OG-image generated (`/app/public/og-image.png`)
+  - manifest.json updated for PWA
+
+- **Testing:** PASS
+  - Homepage loads with "Gostaylo" branding ✅
+  - Footer shows "© 2025 Gostaylo" ✅
+  - Login modal shows "Войдите в свой аккаунт Gostaylo" ✅
+  - Authentication works with existing Supabase users ✅
+  - localStorage keys work correctly ✅
+
+### REMAINING P1 TASKS (Next Steps)
+1. **Resend Email Activation:** Domain `gostaylo.com` needs verification in Resend dashboard
+2. **Telegram Bot:** Update bot username to `@GostayloBot` (requires BotFather)
+3. **Webhook URLs:** Update callback URLs in Stripe/TRON dashboards
+4. **Database Update:** Existing user emails in Supabase still use `@funnyrent.com`
+
+---
+
+## Previous Update: 2026-03-04 - Stage 33.2.3 Trust Engine & Calendar Blocking ✅
 
 ### 1. GLOBAL AUTH CONTEXT (P0) - COMPLETE
 - **Component:** `/app/contexts/auth-context.jsx`

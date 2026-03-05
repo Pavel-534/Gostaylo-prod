@@ -78,7 +78,7 @@ export async function POST(request) {
       }
 
       const result = await PushService.sendPush(token, 'NEW_MESSAGE', {
-        sender: 'FunnyRent Test',
+        sender: 'Gostaylo Test',
         link: '/'
       });
       
@@ -104,7 +104,7 @@ export async function GET(request) {
   return NextResponse.json({
     success: true,
     service: 'Firebase Cloud Messaging',
-    project: 'funnyrent-push',
+    project: 'gostaylo-push',
     templates: [
       'NEW_MESSAGE',
       'BOOKING_REQUEST',

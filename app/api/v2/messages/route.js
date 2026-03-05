@@ -79,7 +79,7 @@ export async function POST(request) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               chat_id: recipientTelegramId,
-              text: `📬 <b>Новое сообщение от ${senderName}</b>\n\n${message.substring(0, 500)}${message.length > 500 ? '...' : ''}\n\n<i>Ответьте в личном кабинете FunnyRent</i>`,
+              text: `📬 <b>Новое сообщение от ${senderName}</b>\n\n${message.substring(0, 500)}${message.length > 500 ? '...' : ''}\n\n<i>Ответьте в личном кабинете Gostaylo</i>`,
               parse_mode: 'HTML'
             })
           }

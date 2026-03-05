@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Admin/Partner Navigation Bar
+ * Gostaylo - Admin/Partner Navigation Bar
  * Shows a persistent bar at the top for logged-in ADMIN or PARTNER users
  */
 

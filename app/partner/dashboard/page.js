@@ -308,7 +308,7 @@ export default function PartnerDashboard() {
                     )}
                   </Button>
                   <p className="text-xs text-slate-500 text-center">
-                    Отправьте боту <a href="https://t.me/FunnyRent_777_bot" target="_blank" className="text-blue-600 hover:underline">@FunnyRent_777_bot</a>
+                    Отправьте боту <a href="https://t.me/Gostaylo_bot" target="_blank" className="text-blue-600 hover:underline">@Gostaylo_bot</a>
                   </p>
                 </div>
               )}

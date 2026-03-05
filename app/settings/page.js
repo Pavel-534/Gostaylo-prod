@@ -304,7 +304,7 @@ export default function SettingsPage() {
                         </p>
                         <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
                           <li>Скопируйте код выше</li>
-                          <li>Откройте бот @FunnyRentBot в Telegram</li>
+                          <li>Откройте бот @GostayloBot в Telegram</li>
                           <li>Отправьте команду /start</li>
                           <li>Отправьте ваш код привязки</li>
                         </ol>
@@ -313,12 +313,12 @@ export default function SettingsPage() {
                           className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-5 mt-2"
                         >
                           <a
-                            href="https://t.me/FunnyRentBot"
+                            href="https://t.me/GostayloBot"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center justify-center gap-2"
                           >
-                            Открыть @FunnyRentBot
+                            Открыть @GostayloBot
                             <ExternalLink className="w-4 h-4" />
                           </a>
                         </Button>

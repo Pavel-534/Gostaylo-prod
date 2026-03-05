@@ -77,7 +77,7 @@ export default function AdminLayout({ children }) {
           // Check for impersonation state
           if (parsed.isImpersonated) {
             setIsImpersonating(true);
-            const savedAdmin = localStorage.getItem('funnyrent_original_admin');
+            const savedAdmin = localStorage.getItem('gostaylo_original_admin');
             if (savedAdmin) {
               setOriginalAdmin(JSON.parse(savedAdmin));
             }
@@ -101,7 +101,7 @@ export default function AdminLayout({ children }) {
   const handleReturnToAdmin = () => {
     if (originalAdmin) {
       localStorage.setItem('gostaylo_user', JSON.stringify(originalAdmin));
-      localStorage.removeItem('funnyrent_original_admin');
+      localStorage.removeItem('gostaylo_original_admin');
       // Force full page reload to update all UI state
       window.location.href = '/admin/users';
     }
@@ -109,7 +109,7 @@ export default function AdminLayout({ children }) {
 
   const handleLogout = () => {
     localStorage.removeItem('gostaylo_user');
-    localStorage.removeItem('funnyrent_original_admin');
+    localStorage.removeItem('gostaylo_original_admin');
     // Force full page reload
     window.location.href = '/';
   };

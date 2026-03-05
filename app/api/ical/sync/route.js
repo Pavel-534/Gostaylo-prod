@@ -117,7 +117,7 @@ async function fetchICal(url) {
   try {
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: { 'User-Agent': 'FunnyRent/2.1', 'Accept': 'text/calendar, */*' }
+      headers: { 'User-Agent': 'Gostaylo/2.1', 'Accept': 'text/calendar, */*' }
     });
     clearTimeout(timeout);
     
@@ -426,7 +426,7 @@ export async function GET() {
     
     return NextResponse.json({
       ok: true,
-      service: 'FunnyRent iCal Sync',
+      service: 'Gostaylo iCal Sync',
       status,
       settings
     });

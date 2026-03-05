@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - In-Chat Invoice Component
+ * Gostaylo - In-Chat Invoice Component
  * Rich card for sending/receiving payment requests in chat
  */
 

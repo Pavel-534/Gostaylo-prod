@@ -346,7 +346,7 @@ export default function SystemControlPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: ADMIN_CHAT_ID,
-          text: '🌴 <b>Aloha из FunnyRent!</b>\n\nДобро пожаловать в мир аренды на Пхукете!\n\n📸 <b>Lazy Realtor</b>\nОтправьте фото + описание для создания черновика.\n\nФормат:\n• 📷 Фото объекта\n• 📝 Описание в подписи\n• 💰 Цена: "15000 THB"\n\n🏝 Ваш бот готов к работе!',
+          text: '🌴 <b>Aloha из Gostaylo!</b>\n\nДобро пожаловать в мир аренды на Пхукете!\n\n📸 <b>Lazy Realtor</b>\nОтправьте фото + описание для создания черновика.\n\nФормат:\n• 📷 Фото объекта\n• 📝 Описание в подписи\n• 💰 Цена: "15000 THB"\n\n🏝 Ваш бот готов к работе!',
           parse_mode: 'HTML'
         })
       });
@@ -406,7 +406,7 @@ export default function SystemControlPage() {
           action: action,
           details: details,
           ip_address: 'admin-panel',
-          user_agent: 'FunnyRent Admin'
+          user_agent: 'Gostaylo Admin'
         })
       });
       

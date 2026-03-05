@@ -15,8 +15,8 @@ import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
 import { QRCodeSVG } from 'qrcode.react'
 
-// Official FunnyRent USDT TRC-20 Wallet Address
-const FUNNYRENT_WALLET = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
+// Official Gostaylo USDT TRC-20 Wallet Address
+const GOSTAYLO_WALLET = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
 
 export default function CheckoutPage({ params }) {
   const router = useRouter()
@@ -634,7 +634,7 @@ export default function CheckoutPage({ params }) {
               <div className="flex flex-col items-center">
                 <div className="bg-white p-4 rounded-xl border-2 border-slate-200 shadow-sm">
                   <QRCodeSVG 
-                    value={FUNNYRENT_WALLET}
+                    value={GOSTAYLO_WALLET}
                     size={180}
                     level="H"
                     includeMargin={true}
@@ -650,11 +650,11 @@ export default function CheckoutPage({ params }) {
               {/* Wallet Address with Copy */}
               <div>
                 <Label className="text-base font-semibold mb-2 block">
-                  Адрес кошелька FunnyRent (TRC-20)
+                  Адрес кошелька Gostaylo (TRC-20)
                 </Label>
                 <div className="flex items-center gap-2">
                   <Input
-                    value={FUNNYRENT_WALLET}
+                    value={GOSTAYLO_WALLET}
                     readOnly
                     className="font-mono text-sm bg-slate-50"
                     data-testid="usdt-wallet-address"

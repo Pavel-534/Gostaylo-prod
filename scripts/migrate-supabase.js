@@ -141,7 +141,7 @@ async function seedData() {
     console.log('  👤 Creating admin user (Pavel B.)...');
     const admin = {
       id: 'admin-777',
-      email: 'admin@funnyrent.com',
+      email: 'admin@gostaylo.com',
       role: 'ADMIN',
       is_verified: true,
       verification_status: 'VERIFIED',

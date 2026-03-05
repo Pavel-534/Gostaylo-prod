@@ -72,12 +72,12 @@ export function SafetyBanner({ patterns = [], onDismiss, lang = 'ru' }) {
   const texts = {
     ru: {
       title: 'Безопасность превыше всего',
-      body: 'Мы обнаружили контактные данные в сообщении. Всегда оплачивайте через FunnyRent для защиты ваших средств. Избегайте прямых переводов незнакомым людям.',
+      body: 'Мы обнаружили контактные данные в сообщении. Всегда оплачивайте через Gostaylo для защиты ваших средств. Избегайте прямых переводов незнакомым людям.',
       dismiss: 'Понятно'
     },
     en: {
       title: 'Safety First',
-      body: 'We detected contact information in the message. Always pay through FunnyRent to protect your funds. Avoid direct transfers to strangers.',
+      body: 'We detected contact information in the message. Always pay through Gostaylo to protect your funds. Avoid direct transfers to strangers.',
       dismiss: 'Got it'
     }
   }

@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Universal Navigation Header
+ * Gostaylo - Universal Navigation Header
  * Shows on ALL pages with:
  * - Burger menu (sidebar trigger)
  * - Home icon (always visible)
@@ -57,13 +57,13 @@ export function UniversalHeader() {
     if (savedCurrency) setCurrency(savedCurrency);
     
     // Load language preference
-    const savedLang = localStorage.getItem('funnyrent_language');
+    const savedLang = localStorage.getItem('gostaylo_language');
     if (savedLang) setLanguage(savedLang);
   }, [pathname]);
 
   function handleLanguageChange(langCode) {
     setLanguage(langCode);
-    localStorage.setItem('funnyrent_language', langCode);
+    localStorage.setItem('gostaylo_language', langCode);
     // Dispatch event for other components to react
     window.dispatchEvent(new CustomEvent('languageChange', { detail: langCode }));
   }

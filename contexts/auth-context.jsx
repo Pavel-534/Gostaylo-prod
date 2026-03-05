@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Global Auth Context
+ * Gostaylo - Global Auth Context
  * Provides authentication state across the entire app
  * Allows opening login modal from anywhere without page redirects
  */

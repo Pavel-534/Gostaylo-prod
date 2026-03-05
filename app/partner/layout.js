@@ -48,17 +48,17 @@ export default function PartnerLayout({ children }) {
   }, [pathname])
 
   const handleReturnToAdmin = () => {
-    const savedAdmin = localStorage.getItem('funnyrent_original_admin')
+    const savedAdmin = localStorage.getItem('gostaylo_original_admin')
     if (savedAdmin) {
       localStorage.setItem('gostaylo_user', savedAdmin)
-      localStorage.removeItem('funnyrent_original_admin')
+      localStorage.removeItem('gostaylo_original_admin')
       router.push('/admin/users')
     }
   }
 
   const handleLogout = () => {
     localStorage.removeItem('gostaylo_user')
-    localStorage.removeItem('funnyrent_original_admin')
+    localStorage.removeItem('gostaylo_original_admin')
     router.push('/')
   }
 

@@ -36,8 +36,8 @@ export default function AdminDashboard() {
         // Fallback - show as configured if we have env vars
         setTelegramStatus({ 
           configured: true, 
-          bot: { username: 'FunnyRent_777_bot', firstName: 'FunnyRent_Admin' },
-          chat: { title: 'FunnyRent HQ', id: '-1003832026983' }
+          bot: { username: 'Gostaylo_bot', firstName: 'Gostaylo_Admin' },
+          chat: { title: 'Gostaylo HQ', id: '-1003832026983' }
         });
       }
     } catch (error) {
@@ -45,8 +45,8 @@ export default function AdminDashboard() {
       // Fallback - assume configured
       setTelegramStatus({ 
         configured: true, 
-        bot: { username: 'FunnyRent_777_bot', firstName: 'FunnyRent_Admin' },
-        chat: { title: 'FunnyRent HQ', id: '-1003832026983' }
+        bot: { username: 'Gostaylo_bot', firstName: 'Gostaylo_Admin' },
+        chat: { title: 'Gostaylo HQ', id: '-1003832026983' }
       });
     }
   };
@@ -203,7 +203,7 @@ export default function AdminDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-sm lg:text-base text-gray-600 mt-1">Панель управления FunnyRent</p>
+          <p className="text-sm lg:text-base text-gray-600 mt-1">Панель управления Gostaylo</p>
         </div>
         <div className="flex items-center gap-2">
           <Button 

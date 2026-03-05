@@ -449,7 +449,7 @@ export default function PartnerMessages({ params }) {
                   {selectedConv.admin_id ? (
                     <>
                       <Shield className='h-4 w-4 text-indigo-500' />
-                      {selectedConv.admin_name || 'Администратор FunnyRent'}
+                      {selectedConv.admin_name || 'Администратор Gostaylo'}
                     </>
                   ) : (
                     <>

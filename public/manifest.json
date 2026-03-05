@@ -1,7 +1,7 @@
 {
-  "name": "FunnyRent - Luxury Rentals Phuket",
-  "short_name": "FunnyRent",
-  "description": "Premium property rentals in Phuket, Thailand. Find villas, apartments, and houses with secure escrow payments.",
+  "name": "Gostaylo - Premium Global Rentals",
+  "short_name": "Gostaylo",
+  "description": "Premium villas, yachts, transport and tours worldwide. Book your perfect stay with Gostaylo.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

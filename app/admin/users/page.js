@@ -74,7 +74,7 @@ export default function UsersPage() {
     if (currentUser) {
       const parsed = JSON.parse(currentUser);
       if (!parsed.isImpersonated) {
-        localStorage.setItem('funnyrent_original_admin', currentUser);
+        localStorage.setItem('gostaylo_original_admin', currentUser);
       }
     }
 

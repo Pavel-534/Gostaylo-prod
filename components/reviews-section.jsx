@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Public Reviews Section
+ * Gostaylo - Public Reviews Section
  * Displays reviews on listing detail page
  * - Star ratings
  * - Verified booking badge

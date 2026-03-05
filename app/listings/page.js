@@ -40,7 +40,7 @@ function ListingsContent() {
 
   useEffect(() => {
     // Detect language from localStorage or browser
-    const storedLang = localStorage.getItem('funnyrent_language')
+    const storedLang = localStorage.getItem('gostaylo_language')
     if (storedLang) {
       setLanguage(storedLang)
     } else {
@@ -379,7 +379,7 @@ function ListingsContent() {
                 <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold">FR</span>
                 </div>
-                <span className="font-bold text-xl">FunnyRent</span>
+                <span className="font-bold text-xl">Gostaylo</span>
               </div>
               <p className="text-slate-400 text-sm">
                 {getUIText('footerDesc', language)}
@@ -422,7 +422,7 @@ function ListingsContent() {
           </div>
           
           <div className="border-t border-slate-700 mt-8 pt-8 text-center text-sm text-slate-400">
-            <p>© 2025 FunnyRent. {getUIText('allRightsReserved', language)}</p>
+            <p>© 2025 Gostaylo. {getUIText('allRightsReserved', language)}</p>
           </div>
         </div>
       </footer>

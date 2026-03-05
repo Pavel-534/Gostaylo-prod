@@ -156,7 +156,7 @@ export default function AdminMessagesPage() {
         conversation_id: selectedConv.id,
         sender_id: 'admin',
         sender_role: 'ADMIN',
-        sender_name: 'Администратор FunnyRent',
+        sender_name: 'Администратор Gostaylo',
         message: newMessage,
         type: 'TEXT',
         is_read: false,

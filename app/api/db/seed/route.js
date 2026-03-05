@@ -81,7 +81,7 @@ export async function POST() {
   // 3. Seed Admin User
   const admin = {
     id: 'admin-777',
-    email: 'admin@funnyrent.com',
+    email: 'admin@gostaylo.com',
     role: 'ADMIN',
     is_verified: true,
     verification_status: 'VERIFIED',
@@ -98,7 +98,7 @@ export async function POST() {
   // 4. Seed Partner User
   const partner = {
     id: 'partner-1',
-    email: 'partner@funnyrent.com',
+    email: 'partner@gostaylo.com',
     role: 'PARTNER',
     is_verified: true,
     verification_status: 'VERIFIED',

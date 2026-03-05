@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - App Sidebar Navigation
+ * Gostaylo - App Sidebar Navigation
  * Based on ARCHITECTURAL_PASSPORT.md requirements:
  * - System Settings (TG Bot, Webhooks, Maintenance, Commission)
  * - Finance Hub (3.5% Markup, 0.5% Tolerance)

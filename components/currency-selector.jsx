@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Currency Selector Component
+ * Gostaylo - Currency Selector Component
  * Dropdown to manually change currency (overrides auto-detection)
  */
 

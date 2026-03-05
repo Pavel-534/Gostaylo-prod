@@ -31,7 +31,7 @@ export default function CategoriesPage() {
   // Local translations storage (since we can't modify DB schema)
   const [localTranslations, setLocalTranslations] = useState(() => {
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('funnyrent_category_translations');
+      const stored = localStorage.getItem('gostaylo_category_translations');
       return stored ? JSON.parse(stored) : categoryTranslations;
     }
     return categoryTranslations;
@@ -45,7 +45,7 @@ export default function CategoriesPage() {
   const saveTranslations = (newTranslations) => {
     setLocalTranslations(newTranslations);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('funnyrent_category_translations', JSON.stringify(newTranslations));
+      localStorage.setItem('gostaylo_category_translations', JSON.stringify(newTranslations));
     }
   };
 

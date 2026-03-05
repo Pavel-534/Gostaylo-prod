@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Admin Header Bar
+ * Gostaylo - Admin Header Bar
  * Persistent "Back to Admin" navigation for ADMIN role
  * Shows on all pages when logged in as Admin
  */

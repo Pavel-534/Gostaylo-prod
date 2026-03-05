@@ -46,7 +46,7 @@ export default function PartnerReferrals() {
   }
 
   function shareReferralLink() {
-    const link = `https://funnyrent.com?ref=${data?.referralCode}`
+    const link = `https://gostaylo.com?ref=${data?.referralCode}`
     navigator.clipboard.writeText(link)
     toast.success('Ссылка скопирована в буфер обмена!')
   }
@@ -149,7 +149,7 @@ export default function PartnerReferrals() {
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Input
-              value={`https://funnyrent.com?ref=${data?.referralCode}`}
+              value={`https://gostaylo.com?ref=${data?.referralCode}`}
               readOnly
               className="bg-white/20 border-white/30 text-white placeholder:text-teal-100"
             />

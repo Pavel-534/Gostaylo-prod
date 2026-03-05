@@ -18,7 +18,7 @@ module.exports = {
     },
     extend: {
       colors: {
-        // FunnyRent Brand Colors - Tropical Luxury
+        // Gostaylo Brand Colors - Modern Travel
         teal: {
           50: '#f0fdfa',
           100: '#ccfbf1',

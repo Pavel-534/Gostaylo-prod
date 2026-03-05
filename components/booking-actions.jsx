@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Booking Actions in Chat
+ * Gostaylo - Booking Actions in Chat
  * Quick Approve/Reject buttons for partners to handle booking requests
  */
 

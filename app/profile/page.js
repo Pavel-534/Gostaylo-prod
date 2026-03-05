@@ -325,7 +325,7 @@ export default function ProfilePage() {
             <CardHeader>
               <CardTitle className='flex items-center gap-2 text-teal-800'>
                 <Briefcase className='h-5 w-5' />
-                Станьте партнёром FunnyRent
+                Станьте партнёром Gostaylo
               </CardTitle>
               <CardDescription>
                 Сдавайте свою недвижимость и получайте доход. Присоединяйтесь к нашей сети владельцев на Пхукете.
@@ -426,7 +426,7 @@ export default function ProfilePage() {
               <div>
                 <h3 className='font-medium text-slate-700 text-sm'>Безопасность</h3>
                 <p className='text-xs text-slate-500 mt-1'>
-                  Всегда оплачивайте через FunnyRent для защиты ваших средств.
+                  Всегда оплачивайте через Gostaylo для защиты ваших средств.
                   Не переводите деньги напрямую незнакомым лицам.
                 </p>
               </div>

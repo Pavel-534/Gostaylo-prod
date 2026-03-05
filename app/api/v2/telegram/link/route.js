@@ -42,9 +42,9 @@ export async function POST(request) {
     return NextResponse.json({ 
       success: true, 
       code,
-      botUsername: 'FunnyRentBot', // Replace with actual bot username
+      botUsername: 'GostayloBot', // Replace with actual bot username
       expiresIn: '15 minutes',
-      instruction: `Отправьте этот код боту @FunnyRentBot: /link ${code}`
+      instruction: `Отправьте этот код боту @GostayloBot: /link ${code}`
     });
 
   } catch (error) {
