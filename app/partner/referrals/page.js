@@ -17,6 +17,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
+// Base URL for referral links
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
+
 export default function PartnerReferrals() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -46,7 +49,7 @@ export default function PartnerReferrals() {
   }
 
   function shareReferralLink() {
-    const link = `https://gostaylo.com?ref=${data?.referralCode}`
+    const link = `${BASE_URL}?ref=${data?.referralCode}`
     navigator.clipboard.writeText(link)
     toast.success('Ссылка скопирована в буфер обмена!')
   }
@@ -149,7 +152,7 @@ export default function PartnerReferrals() {
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Input
-              value={`https://gostaylo.com?ref=${data?.referralCode}`}
+              value={`${BASE_URL}?ref=${data?.referralCode}`}
               readOnly
               className="bg-white/20 border-white/30 text-white placeholder:text-teal-100"
             />
