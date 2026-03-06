@@ -11,7 +11,10 @@ import { NotificationService, NotificationEvents } from '@/lib/services/notifica
 export const dynamic = 'force-dynamic';
 
 export async function POST(request) {
-  console.log('[API] /api/v2/auth/register - POST request received');
+  console.log('[API] ====== REGISTER REQUEST START ======');
+  console.log('[API] Timestamp:', new Date().toISOString());
+  console.log('[API] Request URL:', request.url);
+  console.log('[API] Request method:', request.method);
   
   // CRITICAL: Check if supabaseAdmin is initialized
   if (!supabaseAdmin) {
@@ -23,8 +26,22 @@ export async function POST(request) {
     }, { status: 500 });
   }
   
+  console.log('[API] supabaseAdmin: INITIALIZED');
+  
+  let body;
   try {
-    const body = await request.json();
+    body = await request.json();
+    console.log('[API] Request body parsed:', JSON.stringify(body, null, 2));
+  } catch (parseError) {
+    console.error('[API] Failed to parse request body:', parseError.message);
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Invalid request body',
+      debug: parseError.message
+    }, { status: 400 });
+  }
+  
+  try {
     const { email, password, firstName, lastName, phone, role = 'RENTER', referredBy } = body;
     
     console.log('[API] Register attempt for email:', email);
