@@ -11,11 +11,22 @@ export const dynamic = 'force-dynamic';
 export async function POST(request) {
   console.log('[API] /api/v2/auth/login - POST request received');
   
+  // CRITICAL: Check if supabaseAdmin is initialized
+  if (!supabaseAdmin) {
+    console.error('[FATAL] supabaseAdmin is NULL - SUPABASE_SERVICE_ROLE_KEY missing from environment!');
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Database connection not configured. Contact support.',
+      debug: 'supabaseAdmin is null - check SUPABASE_SERVICE_ROLE_KEY env var'
+    }, { status: 500 });
+  }
+  
   try {
     const body = await request.json();
     const { email, password } = body;
     
     console.log('[API] Login attempt for email:', email);
+    console.log('[API] supabaseAdmin status:', supabaseAdmin ? 'OK' : 'NULL');
     
     if (!email) {
       return NextResponse.json({ 

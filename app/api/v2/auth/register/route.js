@@ -13,11 +13,22 @@ export const dynamic = 'force-dynamic';
 export async function POST(request) {
   console.log('[API] /api/v2/auth/register - POST request received');
   
+  // CRITICAL: Check if supabaseAdmin is initialized
+  if (!supabaseAdmin) {
+    console.error('[FATAL] supabaseAdmin is NULL - SUPABASE_SERVICE_ROLE_KEY missing from environment!');
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Database connection not configured. Contact support.',
+      debug: 'supabaseAdmin is null - check SUPABASE_SERVICE_ROLE_KEY env var'
+    }, { status: 500 });
+  }
+  
   try {
     const body = await request.json();
     const { email, password, firstName, lastName, phone, role = 'RENTER', referredBy } = body;
     
     console.log('[API] Register attempt for email:', email);
+    console.log('[API] supabaseAdmin status:', supabaseAdmin ? 'OK' : 'NULL');
     
     if (!email) {
       return NextResponse.json({ 
@@ -63,36 +74,55 @@ export async function POST(request) {
       .single();
     
     if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      console.error('[DB INSERT ERROR]', error.code, error.message, error.details, error.hint);
+      return NextResponse.json({ 
+        success: false, 
+        error: error.message,
+        code: error.code,
+        hint: error.hint 
+      }, { status: 500 });
     }
     
-    // If referred, create referral record
+    console.log('[API] User created successfully:', user?.id);
+    
+    // If referred, create referral record (non-blocking)
     if (referredBy) {
-      const { data: referrer } = await supabaseAdmin
-        .from('profiles')
-        .select('id')
-        .eq('referral_code', referredBy)
-        .single();
-      
-      if (referrer) {
-        await supabaseAdmin
-          .from('referrals')
-          .insert({
-            referrer_id: referrer.id,
-            referred_id: user.id
-          });
+      try {
+        const { data: referrer } = await supabaseAdmin
+          .from('profiles')
+          .select('id')
+          .eq('referral_code', referredBy)
+          .single();
+        
+        if (referrer) {
+          await supabaseAdmin
+            .from('referrals')
+            .insert({
+              referrer_id: referrer.id,
+              referred_id: user.id
+            });
+        }
+      } catch (refErr) {
+        console.error('[REFERRAL ERROR]', refErr.message);
+        // Non-blocking - continue with registration
       }
     }
     
-    // Send welcome notification
-    await NotificationService.dispatch(NotificationEvents.USER_WELCOME, {
-      user: {
-        id: user.id,
-        email: user.email,
-        first_name: user.first_name,
-        referral_code: user.referral_code
-      }
-    });
+    // Send welcome notification (NON-BLOCKING - don't fail registration if email fails)
+    try {
+      await NotificationService.dispatch(NotificationEvents.USER_WELCOME, {
+        user: {
+          id: user.id,
+          email: user.email,
+          first_name: user.first_name,
+          referral_code: user.referral_code
+        }
+      });
+      console.log('[API] Welcome notification sent');
+    } catch (notifError) {
+      console.error('[NOTIFICATION ERROR] Welcome email failed:', notifError.message);
+      // Don't fail registration because of notification error
+    }
     
     console.log(`[AUTH] New user registered: ${email} (${user.role}) - Referral: ${user.referral_code}`);
     
