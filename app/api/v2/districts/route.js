@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Districts API (v2)
+ * Gostaylo - Districts API (v2)
  * GET /api/v2/districts - Get Phuket districts
  */
 

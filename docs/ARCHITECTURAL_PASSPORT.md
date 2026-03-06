@@ -1,4 +1,4 @@
-# FunnyRent 2.1 — Architectural Passport
+# Gostaylo — Architectural Passport
 
 > **Version**: 2.1.1 | **Last Updated**: 2026-03-02 | **Status**: Production-Ready
 > 
@@ -31,7 +31,7 @@ Pattern: Immediate Response + Fire-and-Forget
 
 ### 0.3 Escrow Security Message
 ```
-🔒 Ваши средства защищены системой Эскроу FunnyRent и выплачиваются 
+🔒 Ваши средства защищены системой Эскроу Gostaylo и выплачиваются 
 владельцу только после подтверждения заселения.
 ```
 **This message MUST appear in:**
@@ -367,7 +367,7 @@ await NotificationService.dispatch(NotificationEvents.NEW_BOOKING_REQUEST, {
 All emails include:
 - HTML version with inline CSS
 - Plain text fallback
-- FunnyRent footer
+- Gostaylo footer
 - Escrow security message (for payments)
 
 ### 4.5 Environment Variables
@@ -376,7 +376,7 @@ All emails include:
 TELEGRAM_BOT_TOKEN=8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM
 TELEGRAM_ADMIN_GROUP_ID=-1003832026983
 RESEND_API_KEY=re_xxx  # Optional - falls back to mock
-SENDER_EMAIL=FunnyRent <noreply@funnyrent.com>
+SENDER_EMAIL=Gostaylo <noreply@funnyrent.com>
 ```
 
 ---

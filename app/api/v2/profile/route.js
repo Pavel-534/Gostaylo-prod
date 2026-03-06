@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Profile API (v2)
+ * Gostaylo - Profile API (v2)
  * GET /api/v2/profile - Get user profile
  */
 

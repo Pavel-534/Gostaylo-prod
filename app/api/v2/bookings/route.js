@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Bookings API (v2)
+ * Gostaylo - Bookings API (v2)
  * GET /api/v2/bookings - List bookings
  * POST /api/v2/bookings - Create booking
  */

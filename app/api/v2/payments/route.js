@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Payments Admin API
+ * Gostaylo - Payments Admin API
  * GET /api/v2/payments - List payments with filters
  * GET /api/v2/payments/pending-count - Count pending payments for badge
  */

@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Telegram Link API
+ * Gostaylo - Telegram Link API
  * POST /api/v2/telegram/link - Generate link code for partner
  * PUT /api/v2/telegram/link - Confirm link with chat_id
  */

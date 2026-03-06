@@ -1,7 +1,7 @@
-# FunnyRent 2.1 - Global Rental & Services Aggregator
+# Gostaylo - Global Rental & Services Aggregator
 
 ## 🌴 Overview
-FunnyRent 2.1 is a premium rental and services aggregator platform for Phuket, Thailand. Built with Next.js 14, Prisma ORM, and designed for Supabase PostgreSQL.
+Gostaylo is a premium rental and services aggregator platform for Phuket, Thailand. Built with Next.js 14, Prisma ORM, and designed for Supabase PostgreSQL.
 
 ## 🎯 Features
 - **Multi-Category Rentals**: Property, Vehicles, Tours, Yachts

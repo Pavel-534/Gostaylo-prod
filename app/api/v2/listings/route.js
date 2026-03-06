@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Listings API (v2)
+ * Gostaylo - Listings API (v2)
  * GET /api/v2/listings - Search/filter listings
  * POST /api/v2/listings - Create new listing
  */

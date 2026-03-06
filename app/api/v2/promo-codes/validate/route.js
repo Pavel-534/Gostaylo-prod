@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Promo Code Validation API (v2)
+ * Gostaylo - Promo Code Validation API (v2)
  * POST /api/v2/promo-codes/validate - Validate a promo code
  */
 

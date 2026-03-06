@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Database Migration & Seeding Script
+ * Gostaylo - Database Migration & Seeding Script
  * Run with: node scripts/migrate-supabase.js
  */
 
@@ -224,7 +224,7 @@ async function verifyTables() {
 }
 
 async function main() {
-  console.log('🚀 FunnyRent 2.1 - Supabase Migration Script\n');
+  console.log('🚀 Gostaylo - Supabase Migration Script\n');
   
   // Test connection
   const connected = await testConnection();

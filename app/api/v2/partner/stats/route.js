@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Partner Stats API (v2)
+ * Gostaylo - Partner Stats API (v2)
  * GET /api/v2/partner/stats - Partner dashboard statistics
  */
 

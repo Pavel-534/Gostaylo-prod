@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 /**
- * FunnyRent 2.1 - iCal Sync API Endpoint
+ * Gostaylo - iCal Sync API Endpoint
  * 
  * Routes:
  * - POST /api/ical/sync - Sync a specific listing

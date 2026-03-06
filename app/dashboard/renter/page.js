@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Renter Dashboard
+ * Gostaylo - Renter Dashboard
  * Quick overview for renters/guests
  */
 

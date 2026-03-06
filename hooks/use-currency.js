@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Currency Hook
+ * Gostaylo - Currency Hook
  * Auto-detect user's currency and provide conversion utilities
  */
 

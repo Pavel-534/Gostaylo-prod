@@ -627,7 +627,7 @@ test_plan:
         -comment: "Stage 11 - USER_WELCOME notification dispatched on new user registration with welcome email"
         -working: true
         -agent: "testing"
-        -comment: "✅ PASS - POST /api/auth/register successfully creates new user and dispatches USER_WELCOME notification. Console logs show '🔔 [NOTIFICATION DISPATCHER] Event: USER_WELCOME' and '[MOCK EMAIL] To: newuser@test.com Subject: 🎉 Добро пожаловать в FunnyRent!' Email notification system working correctly."
+        -comment: "✅ PASS - POST /api/auth/register successfully creates new user and dispatches USER_WELCOME notification. Console logs show '🔔 [NOTIFICATION DISPATCHER] Event: USER_WELCOME' and '[MOCK EMAIL] To: newuser@test.com Subject: 🎉 Добро пожаловать в Gostaylo!' Email notification system working correctly."
 
   - task: "Booking Creation Notification Dispatch (Stage 11 Notifications)"
     implemented: true
@@ -901,13 +901,13 @@ frontend:
     status_history:
         -working: "NA"
         -agent: "main"
-        -comment: "Added global footer with FunnyRent branding, 'Связаться с поддержкой' link to https://t.me, and copyright notice. Dark slate design."
+        -comment: "Added global footer with Gostaylo branding, 'Связаться с поддержкой' link to https://t.me, and copyright notice. Dark slate design."
         -working: "NA"
         -agent: "testing"
         -comment: "Unable to test footer due to homepage navigation issues (ERR_ABORTED). Will need retesting when homepage is accessible."
         -working: true
         -agent: "testing"
-        -comment: "✅ WORKING PERFECTLY: Global footer fully functional and visible. Footer contains FunnyRent 2.1 branding with teal gradient logo, 'Связаться с поддержкой' link (with 💬 emoji) correctly pointing to https://t.me with target='_blank', and proper copyright notice '© 2025 FunnyRent. Все права защищены'. Dark slate design renders beautifully across all pages."
+        -comment: "✅ WORKING PERFECTLY: Global footer fully functional and visible. Footer contains Gostaylo branding with teal gradient logo, 'Связаться с поддержкой' link (with 💬 emoji) correctly pointing to https://t.me with target='_blank', and proper copyright notice '© 2025 Gostaylo. Все права защищены'. Dark slate design renders beautifully across all pages."
 
   - task: "Chat Cross-sell Banner (P2)"
     implemented: true
@@ -943,17 +943,17 @@ test_plan:
 
 agent_communication:
     -agent: "testing"
-    -message: "Completed comprehensive backend API testing for FunnyRent 2.1. Fixed critical regex bug in query parameter handling. All 9 backend endpoints now working at 100% success rate. Ready for summary and completion."
+    -message: "Completed comprehensive backend API testing for Gostaylo. Fixed critical regex bug in query parameter handling. All 9 backend endpoints now working at 100% success rate. Ready for summary and completion."
     -agent: "testing"
     -message: "Partner Dashboard API testing completed with 100% success rate. Tested 7 new partner endpoints: stats, listings, bookings, referrals, create listing, update booking status, delete listing. All endpoints working correctly with proper data validation, commission calculations (15%), earnings calculations, and referral rewards. Total: 16 backend endpoints tested successfully."
     -agent: "testing"
-    -message: "FunnyRent 2.1 Stage 3 messaging & booking endpoints testing completed with 100% success rate. Tested 4 new endpoints: GET /conversations (with filtering), GET /conversations/:id/messages, POST /bookings (updated with conversation creation), POST /messages. All endpoints working correctly with proper conversation management, message handling, unread counters, and booking integration. Total: 20 backend endpoints tested successfully."
+    -message: "Gostaylo Stage 3 messaging & booking endpoints testing completed with 100% success rate. Tested 4 new endpoints: GET /conversations (with filtering), GET /conversations/:id/messages, POST /bookings (updated with conversation creation), POST /messages. All endpoints working correctly with proper conversation management, message handling, unread counters, and booking integration. Total: 20 backend endpoints tested successfully."
     -agent: "main"
     -message: "Stage 9 implementation completed. Need to test POST /api/webhooks/crypto/confirm endpoint with scenarios: (1) Valid TXID with correct amount → should update Booking to PAID, Payment to COMPLETED, send chat message. (2) Valid TXID with insufficient amount → should return ERROR_INSUFFICIENT_FUNDS. Use mock bookingId from mockDB (e.g., 'b2'). Required fields: txid, bookingId, expectedAmount, targetWallet."
     -agent: "testing"
     -message: "Stage 9 crypto verification webhook testing completed with 100% success rate. Tested comprehensive scenarios: GET health check, POST success (TXID validation + payment confirmation), POST error handling (missing fields), internal API integration (/api/bookings/:id/payment/confirm), system message creation, and booking status updates. Webhook successfully processes crypto payments: booking b2 updated from PENDING → CONFIRMED → PAID, payment status COMPLETED, system message sent to chat. All validation and error handling working correctly. Total: 21 backend endpoints tested successfully."
     -agent: "testing"
-    -message: "FunnyRent 2.1 Stage 9 Frontend Testing completed. CRITICAL ISSUES FOUND: (1) Chat page has syntax error preventing loading - 'Expected unicode escape' at line 135:1 in /app/renter/messages/[id]/page.js. (2) Crypto payment option not visible on checkout page /checkout/b2, blocking crypto flow testing. SUCCESSES: (1) Admin panel working perfectly with crypto payments tab and manual override functionality. (2) iCal URL field fully implemented and functional in partner listing form with proper labeling and calendar icon. REQUIRES IMMEDIATE FIX: Chat page syntax error is blocking entire chat functionality."
+    -message: "Gostaylo Stage 9 Frontend Testing completed. CRITICAL ISSUES FOUND: (1) Chat page has syntax error preventing loading - 'Expected unicode escape' at line 135:1 in /app/renter/messages/[id]/page.js. (2) Crypto payment option not visible on checkout page /checkout/b2, blocking crypto flow testing. SUCCESSES: (1) Admin panel working perfectly with crypto payments tab and manual override functionality. (2) iCal URL field fully implemented and functional in partner listing form with proper labeling and calendar icon. REQUIRES IMMEDIATE FIX: Chat page syntax error is blocking entire chat functionality."
     -agent: "testing"
     -message: "🎉 STAGE 9 RETRY TESTING - COMPLETE SUCCESS! All critical issues from previous testing have been FIXED and verified: ✅ Crypto checkout flow fully working (modal opens, Live Status Tracker implemented with 4 verification steps) ✅ Chat page syntax errors completely resolved (no more red error screens) ✅ Admin panel crypto payments tab functional ✅ iCal URL field working in listing form ✅ Footer support link operational across all pages. ALL 5 TEST FLOWS PASSED. Application is production-ready for Stage 9 deployment."
     -agent: "testing"
@@ -972,7 +972,7 @@ agent_communication:
 
 ## 📊 PROJECT STATUS SUMMARY
 
-**Project:** FunnyRent 2.1 - Luxury Rental Platform for Phuket
+**Project:** Gostaylo - Luxury Rental Platform for Phuket
 **Stage Completed:** Stage 14.2 - Final Marketing & Business Growth Integration
 **Completion Date:** February 25, 2026
 **Overall Progress:** 100% (Stage 14.2 Complete, All Features Tested & Working)

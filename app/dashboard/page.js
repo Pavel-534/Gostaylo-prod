@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Dashboard Router
+ * Gostaylo - Dashboard Router
  * Redirects to appropriate dashboard based on user role
  */
 

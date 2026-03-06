@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Single Booking API (v2)
+ * Gostaylo - Single Booking API (v2)
  * GET /api/v2/bookings/[id] - Get booking details
  * PUT /api/v2/bookings/[id] - Update booking status
  */

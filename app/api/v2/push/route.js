@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Push Notifications API
+ * Gostaylo - Push Notifications API
  * POST /api/v2/push/register - Register FCM token
  * POST /api/v2/push/send - Send push notification (admin only)
  */

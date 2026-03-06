@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Partner Listings API (v2)
+ * Gostaylo - Partner Listings API (v2)
  * GET /api/v2/partner/listings - Get partner's listings
  * POST /api/v2/partner/listings - Create new listing
  */

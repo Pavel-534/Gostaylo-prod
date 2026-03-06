@@ -1,4 +1,4 @@
-# FunnyRent 2.1 — Technical Manifesto & Architectural Passport
+# Gostaylo — Technical Manifesto & Architectural Passport
 
 > **Document Version:** 2.1.0  
 > **Last Updated:** March 1, 2026  
@@ -25,7 +25,7 @@
 
 ## 1. Executive Summary
 
-**FunnyRent 2.1** is a multi-tenant vacation rental super-app designed for the Thai market (Phuket focus). The platform connects property partners with renters, supporting listings for villas, bikes, boats, and experiences.
+**Gostaylo** is a multi-tenant vacation rental super-app designed for the Thai market (Phuket focus). The platform connects property partners with renters, supporting listings for villas, bikes, boats, and experiences.
 
 ### Key Capabilities
 - 🏠 Multi-category listings with seasonal pricing
@@ -89,7 +89,7 @@
 | **Authentication** | Supabase Auth | JWT-based auth |
 | **File Storage** | Supabase Storage | Listing images (bucket: `listing-images`) |
 | **Image Compression** | browser-image-compression | Client-side optimization |
-| **Bot Platform** | Telegram Bot API | @FunnyRent_777_bot |
+| **Bot Platform** | Telegram Bot API | @Gostaylo_777_bot |
 | **Email (Planned)** | Resend | Transactional emails |
 
 ### 2.4 Environment Variables
@@ -404,7 +404,7 @@ class PaymentService {
 
 | Property | Value |
 |----------|-------|
-| **Bot Name** | FunnyRent_777_bot |
+| **Bot Name** | Gostaylo_777_bot |
 | **Bot Token** | `8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM` |
 | **Admin Group ID** | `-1003832026983` |
 | **Webhook URL** | `/api/webhooks/telegram` |
@@ -416,7 +416,7 @@ class PaymentService {
 |---------|-------------|--------|
 | `/start` | Welcome message + feature overview | All |
 | `/help` | Command list and usage guide | All |
-| `/link <email>` | Link Telegram to FunnyRent account | All |
+| `/link <email>` | Link Telegram to Gostaylo account | All |
 | Photo upload | Create draft listing (Lazy Realtor) | Linked Partners |
 
 ### 6.3 Webhook Architecture (v4.0 - Fire-and-Forget)
@@ -437,7 +437,7 @@ export async function POST(request) {
 ### 6.4 Admin Group Topics
 
 ```
-FunnyRent HQ Group (-1003832026983)
+Gostaylo HQ Group (-1003832026983)
 ├── General (default)
 ├── 📅 Bookings (Thread 15)
 │   └── New booking requests, confirmations, cancellations
@@ -686,10 +686,10 @@ curl -X POST "https://api.telegram.org/bot8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-
 
 ### Final Recommendation
 
-> **FunnyRent 2.1 is architecturally sound and feature-rich.** The codebase demonstrates clean separation of concerns with a well-designed service layer. The platform is suitable for soft launch with manual payment processing, with a clear path to full automation via Stripe integration.
+> **Gostaylo is architecturally sound and feature-rich.** The codebase demonstrates clean separation of concerns with a well-designed service layer. The platform is suitable for soft launch with manual payment processing, with a clear path to full automation via Stripe integration.
 
 ---
 
-**Document Maintainer:** FunnyRent Engineering Team  
+**Document Maintainer:** Gostaylo Engineering Team  
 **Next Review Date:** April 1, 2026  
 **Classification:** Internal Technical Reference

@@ -132,7 +132,7 @@ export async function GET(request) {
     badge,
     data: result.data,
     error: result.error,
-    expectedWallet: FUNNYRENT_WALLET,
+    expectedWallet: GOSTAYLO_WALLET,
     amountVerification: result.data ? {
       received: result.data.amount,
       expected: result.data.expectedAmount,

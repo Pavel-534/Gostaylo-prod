@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Categories API (v2)
+ * Gostaylo - Categories API (v2)
  * GET /api/v2/categories - Get all active categories
  */
 

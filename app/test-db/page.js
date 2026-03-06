@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Database Test Page (Public)
+ * Gostaylo - Database Test Page (Public)
  * /test-db - Verify Supabase connection (No Auth Required)
  */
 

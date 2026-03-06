@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Geo Detection API
+ * Gostaylo - Geo Detection API
  * GET /api/v2/geo - Detect user's location and recommended currency
  */
 

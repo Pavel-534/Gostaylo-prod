@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Admin Dashboard
+ * Gostaylo - Admin Dashboard
  * Main admin panel page
  */
 

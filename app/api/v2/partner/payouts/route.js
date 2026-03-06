@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Partner Payouts API (v2)
+ * Gostaylo - Partner Payouts API (v2)
  * GET /api/v2/partner/payouts - Get partner's payout history
  * POST /api/v2/partner/payouts - Request payout
  */

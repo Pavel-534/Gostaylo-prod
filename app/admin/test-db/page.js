@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Admin Database Test Page
+ * Gostaylo - Admin Database Test Page
  * /admin/test-db - Verify Supabase connection
  * Uses direct Supabase client (bypasses Kubernetes routing)
  */

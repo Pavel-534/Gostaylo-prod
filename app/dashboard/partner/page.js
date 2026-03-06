@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Partner Dashboard
+ * Gostaylo - Partner Dashboard
  * Quick overview for partners
  */
 

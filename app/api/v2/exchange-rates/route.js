@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Exchange Rates API (v2)
+ * Gostaylo - Exchange Rates API (v2)
  * GET /api/v2/exchange-rates - Get currency rates from Supabase
  * POST /api/v2/exchange-rates - Add/update currency rate (Admin only)
  */

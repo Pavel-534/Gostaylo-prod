@@ -1,4 +1,4 @@
-# FunnyRent 2.1 - Implementation Summary
+# Gostaylo - Implementation Summary
 
 ## ✅ Completed Tasks
 
@@ -114,7 +114,7 @@
 ```
 ┌─────────────────────────────────────────────────────────┐
 │ Header (Sticky)                                          │
-│ - FunnyRent Logo                                        │
+│ - Gostaylo Logo                                        │
 │ - Currency Switcher (THB/RUB/USD/USDT)                 │
 │ - Auth Button (Login/Register Modal)                   │
 └─────────────────────────────────────────────────────────┘

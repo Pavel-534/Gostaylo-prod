@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Check-in Reminder Cron Job
+ * Gostaylo - Check-in Reminder Cron Job
  * POST /api/cron/checkin-reminder
  * 
  * Called at 14:00 on check-in day to send push notification

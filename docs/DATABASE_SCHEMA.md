@@ -1,4 +1,4 @@
-# FunnyRent 2.1 - Database Schema Documentation
+# Gostaylo - Database Schema Documentation
 
 ## 📋 Table of Contents
 1. [Overview](#overview)

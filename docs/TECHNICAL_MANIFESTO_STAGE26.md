@@ -1,4 +1,4 @@
-# FunnyRent 2.1 — Technical Manifesto (Stage 26)
+# Gostaylo — Technical Manifesto (Stage 26)
 
 > **Generated**: 2026-03-02T15:01:00Z | **Webhook Version**: 5.4 | **Status**: OPERATIONAL
 
@@ -93,7 +93,7 @@ export const dynamic = 'force-dynamic';
 ```json
 {
   "ok": true,
-  "service": "FunnyRent Telegram Webhook",
+  "service": "Gostaylo Telegram Webhook",
   "version": "5.4",
   "runtime": "nodejs",
   "pattern": "immediate-response-async-processing",

@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Payment TXID Submit API
+ * Gostaylo - Payment TXID Submit API
  * POST /api/v2/payments/submit-txid
  * 
  * Submits a TXID for crypto payment verification

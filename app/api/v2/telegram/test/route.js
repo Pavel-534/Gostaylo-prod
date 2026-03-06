@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Telegram Test API
+ * Gostaylo - Telegram Test API
  * POST /api/v2/telegram/test - Send test alerts to admin group
  */
 

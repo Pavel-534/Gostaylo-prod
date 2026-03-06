@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Forex API
+ * Gostaylo - Forex API
  * GET /api/v2/forex - Get exchange rates
  * GET /api/v2/forex?convert=1000&from=THB&to=RUB - Convert amount
  */

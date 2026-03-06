@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Supabase Realtime Chat Hook
+ * Gostaylo - Supabase Realtime Chat Hook
  * Provides instant message sync using Supabase Realtime
  */
 

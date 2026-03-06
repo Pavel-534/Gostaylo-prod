@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Admin Stats API (v2)
+ * Gostaylo - Admin Stats API (v2)
  * GET /api/v2/admin/stats - Dashboard statistics
  */
 

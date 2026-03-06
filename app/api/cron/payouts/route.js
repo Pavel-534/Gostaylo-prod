@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Payout Cron Job API
+ * Gostaylo - Payout Cron Job API
  * POST /api/cron/payouts
  * 
  * 24H ESCROW RULE:

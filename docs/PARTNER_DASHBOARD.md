@@ -1,4 +1,4 @@
-# FunnyRent 2.1 - Stage 2: Partner Dashboard
+# Gostaylo - Stage 2: Partner Dashboard
 
 ## ✅ Implementation Complete
 
@@ -159,7 +159,7 @@ Professional Partner Dashboard for managing listings, bookings, commissions, and
 **Sidebar Navigation:**
 ```
 ┌─────────────────────────┐
-│ [FR] FunnyRent         │
+│ [FR] Gostaylo         │
 │     Partner Portal      │
 ├─────────────────────────┤
 │ 👤 Иван Партнёров      │

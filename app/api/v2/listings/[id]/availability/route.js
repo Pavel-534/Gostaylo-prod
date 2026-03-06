@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Booking Availability API
+ * Gostaylo - Booking Availability API
  * GET /api/v2/listings/[id]/availability
  * Returns booked dates for a specific listing
  */

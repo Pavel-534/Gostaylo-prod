@@ -1,5 +1,5 @@
 /**
- * FunnyRent 2.1 - Chat Invoice API
+ * Gostaylo - Chat Invoice API
  * POST /api/v2/chat/invoice
  * 
  * Creates an invoice message in chat
