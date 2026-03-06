@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I'
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 
 const headers = {

@@ -43,7 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const TELEGRAM_BOT_TOKEN = '8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM';
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_CHAT_ID = 1303143012;
 
 export default function SystemControlPage() {
@@ -71,8 +71,8 @@ export default function SystemControlPage() {
 
   async function loadSystemStatus() {
     try {
-      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
       // Load maintenance mode
       const settingsRes = await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.maintenance_mode`, {
@@ -135,8 +135,8 @@ export default function SystemControlPage() {
 
   async function loadIcalSyncStatus() {
     try {
-      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
       // Get sync status
       const statusRes = await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.ical_sync_status`, {
@@ -185,8 +185,8 @@ export default function SystemControlPage() {
   }
 
   async function handleIcalFrequencyChange(frequency) {
-    const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
+    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     
     try {
       // Upsert settings
@@ -217,8 +217,8 @@ export default function SystemControlPage() {
 
   async function handleMaintenanceToggle(enabled) {
     try {
-      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
       await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.maintenance_mode`, {
         method: 'DELETE',
@@ -392,8 +392,8 @@ export default function SystemControlPage() {
 
   async function logActivity(action, details) {
     try {
-      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
       await fetch(`${SUPABASE_URL}/rest/v1/activity_log`, {
         method: 'POST',

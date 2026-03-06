@@ -17,8 +17,8 @@ import {
   Home, Plane, Settings, LogOut, Star
 } from 'lucide-react'
 
-const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co'
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I'
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -144,7 +144,7 @@ export default function ProfilePage() {
       })
       
       // Send Telegram notification to admin
-      await fetch(`https://api.telegram.org/bot8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM/sendMessage`, {
+      await fetch(`https://api.telegram.org/${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -52,8 +52,8 @@ export default function CategoriesPage() {
   const loadCategories = async () => {
     try {
       // Direct Supabase call
-      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
       const res = await fetch(`${SUPABASE_URL}/rest/v1/categories?select=*&order=order.asc`, {
         headers: {
@@ -83,8 +83,8 @@ export default function CategoriesPage() {
 
   const handleToggle = async (categoryId, currentStatus) => {
     try {
-      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
       const res = await fetch(`${SUPABASE_URL}/rest/v1/categories?id=eq.${categoryId}`, {
         method: 'PATCH',
@@ -112,8 +112,8 @@ export default function CategoriesPage() {
     }
 
     try {
-      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I';
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
       const slug = newCategory.slug || newCategory.name.toLowerCase().replace(/\s+/g, '-');
       

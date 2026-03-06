@@ -55,7 +55,7 @@ export default function AdminDashboard() {
     setSendingAlert(type);
     try {
       // Direct Telegram API call to avoid k8s routing issues
-      const BOT_TOKEN = '8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM';
+      const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
       const GROUP_ID = '-1003832026983';
       const TOPICS = { booking: 15, finance: 16, partner: 17 };
       
@@ -93,8 +93,8 @@ export default function AdminDashboard() {
   const loadDashboardData = async () => {
     try {
       // Direct Supabase calls (bypass Kubernetes routing)
-      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
       const headers = {
         'apikey': SUPABASE_KEY,

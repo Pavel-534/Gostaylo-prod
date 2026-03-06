@@ -19,9 +19,9 @@ import {
   MessageSquare, Send, ChevronLeft, ChevronRight, X, Sparkles
 } from 'lucide-react'
 
-const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co'
-const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjAyOTEzNSwiZXhwIjoyMDg3NjA1MTM1fQ.KqUyt_yX_Ts45MyOKtZ532-UXbgU9WVvwOtnN94zG8I'
-const TELEGRAM_BOT_TOKEN = '8702569258:AAFuj-Ob9otOVf6KiABQSiiWC0-8_KvkFqM'
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 
 export default function ModerationPage() {
   const router = useRouter()

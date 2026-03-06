@@ -79,8 +79,8 @@ export default function CheckoutPage({ params }) {
   async function loadPaymentStatus() {
     try {
       // Fetch directly from Supabase to bypass Kubernetes routing issues
-      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
       // Fetch booking
       const bookingRes = await fetch(

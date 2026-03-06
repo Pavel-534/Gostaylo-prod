@@ -25,8 +25,8 @@ export default function TestDbPage() {
     setLoading(true);
     try {
       // Fetch directly from Supabase REST API (bypasses Kubernetes routing)
-      const SUPABASE_URL = 'https://vtzzcdsjwudkaloxhvnw.supabase.co';
-      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0enpjZHNqd3Vka2Fsb3hodm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwMjkxMzUsImV4cCI6MjA4NzYwNTEzNX0.vSrBY_n8_KqAi0yzN-g9LZqTkbbjloSakXq5o_28r4k';
+      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
       const headers = {
         'apikey': SUPABASE_KEY,
