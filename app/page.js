@@ -2,6 +2,9 @@ import { Suspense } from 'react';
 import { GostayloHomeContent } from '@/components/GostayloHomeContent';
 import { Loader2 } from 'lucide-react';
 
+// Force dynamic rendering - fetch data from Supabase on every request
+export const dynamic = 'force-dynamic';
+
 // Loading fallback for Suspense
 function HomeLoading() {
   return (
