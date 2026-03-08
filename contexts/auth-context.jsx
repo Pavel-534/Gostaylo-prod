@@ -97,6 +97,11 @@ export function AuthProvider({ children }) {
       // Dispatch event for other components
       window.dispatchEvent(new CustomEvent('auth-change', { detail: result.user }));
       
+      // RBAC: Redirect based on API response
+      if (result.redirectTo) {
+        router.push(result.redirectTo);
+      }
+      
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {
@@ -129,6 +134,11 @@ export function AuthProvider({ children }) {
       
       // Dispatch event for other components
       window.dispatchEvent(new CustomEvent('auth-change', { detail: result.user }));
+      
+      // Redirect to home for new users
+      if (result.redirectTo) {
+        router.push(result.redirectTo);
+      }
       
     } catch (err) {
       setError(err.message || 'Registration failed');

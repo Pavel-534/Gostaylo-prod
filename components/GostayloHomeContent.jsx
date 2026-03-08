@@ -113,11 +113,7 @@ export function GostayloHomeContent() {
       const result = await signIn(loginEmail.toLowerCase(), loginPassword)
       
       if (!result.success) {
-        if (result.error.includes('Invalid login')) {
-          setLoginError(language === 'ru' ? 'Неверный email или пароль' : 'Invalid email or password')
-        } else {
-          setLoginError(result.error)
-        }
+        setLoginError(language === 'ru' ? 'Неверный email или пароль' : 'Invalid email or password')
         setLoginLoading(false)
         return
       }
@@ -125,14 +121,8 @@ export function GostayloHomeContent() {
       setCurrentUser(result.user)
       setLoginDialogOpen(false)
       
-      const user = result.user
-      if (user.role === 'ADMIN') {
-        router.push('/admin/dashboard')
-      } else if (user.role === 'PARTNER') {
-        router.push('/partner/dashboard')
-      } else {
-        router.push('/dashboard/renter')
-      }
+      // Use redirectTo from API response (RBAC)
+      router.push(result.redirectTo || '/')
     } catch (error) {
       setLoginError(error.message)
     } finally {
@@ -163,7 +153,9 @@ export function GostayloHomeContent() {
       
       setCurrentUser(result.user)
       setLoginDialogOpen(false)
-      router.push('/dashboard/renter')
+      
+      // Use redirectTo from API response
+      router.push(result.redirectTo || '/')
     } catch (error) {
       setLoginError(error.message)
     } finally {

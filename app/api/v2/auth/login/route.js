@@ -1,72 +1,154 @@
 /**
- * Gostaylo - Auth API (v2)
- * POST /api/v2/auth/login - User login
+ * Gostaylo - Auth Login API (v2)
+ * POST /api/v2/auth/login
+ * 
+ * Security: bcrypt password verification
+ * RBAC: Role-based redirect destinations
  */
 
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcryptjs';
 
 export const dynamic = 'force-dynamic';
 
+// RBAC redirect destinations
+const ROLE_REDIRECTS = {
+  'ADMIN': '/admin/dashboard',
+  'MODERATOR': '/admin/moderation',
+  'PARTNER': '/partner/dashboard',
+  'RENTER': '/',
+  'USER': '/'
+};
+
 export async function POST(request) {
-  console.log('[API] /api/v2/auth/login - POST request received');
+  const timestamp = new Date().toISOString();
+  console.log(`[LOGIN] ====== START ${timestamp} ======`);
   
-  // CRITICAL: Check if supabaseAdmin is initialized
-  if (!supabaseAdmin) {
-    console.error('[FATAL] supabaseAdmin is NULL - SUPABASE_SERVICE_ROLE_KEY missing from environment!');
+  // 1. Check env vars
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!url || !serviceKey) {
     return NextResponse.json({ 
       success: false, 
-      error: 'Database connection not configured. Contact support.',
-      debug: 'supabaseAdmin is null - check SUPABASE_SERVICE_ROLE_KEY env var'
+      error: 'Database not configured'
     }, { status: 500 });
   }
   
+  // 2. Create Supabase client
+  const supabase = createClient(url, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+  
+  // 3. Parse body
+  let body;
   try {
-    const body = await request.json();
-    const { email, password } = body;
-    
-    console.log('[API] Login attempt for email:', email);
-    console.log('[API] supabaseAdmin status:', supabaseAdmin ? 'OK' : 'NULL');
-    
-    if (!email) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Email is required' 
-      }, { status: 400 });
-    }
-    
-    // Find user by email
-    const { data: user, error } = await supabaseAdmin
+    body = await request.json();
+  } catch (e) {
+    return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+  }
+  
+  const { email, password } = body;
+  
+  // 4. Validation
+  if (!email) {
+    return NextResponse.json({ success: false, error: 'Email is required' }, { status: 400 });
+  }
+  
+  if (!password) {
+    return NextResponse.json({ success: false, error: 'Password is required' }, { status: 400 });
+  }
+  
+  console.log('[LOGIN] Attempt for:', email);
+  
+  // 5. Find user by email (try exact match first, then lowercase)
+  let user = null;
+  let error = null;
+  
+  // Try exact email first
+  const exactResult = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('email', email)
+    .single();
+  
+  if (exactResult.data) {
+    user = exactResult.data;
+  } else {
+    // Try lowercase
+    const lowerResult = await supabase
       .from('profiles')
       .select('*')
       .eq('email', email.toLowerCase())
       .single();
     
-    if (error || !user) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'User not found' 
-      }, { status: 404 });
+    user = lowerResult.data;
+    error = lowerResult.error;
+  }
+  
+  if (!user) {
+    console.log('[LOGIN] User not found:', email);
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Invalid email or password' 
+    }, { status: 401 });
+  }
+  
+  console.log('[LOGIN] User found:', user.id, user.role);
+  
+  // 6. Verify password with bcrypt
+  let passwordValid = false;
+  
+  if (user.password_hash) {
+    // Check if it's a bcrypt hash (starts with $2)
+    if (user.password_hash.startsWith('$2')) {
+      passwordValid = await bcrypt.compare(password, user.password_hash);
+    } 
+    // Legacy: plain text comparison (for migration)
+    else if (user.password_hash === password || user.password_hash === `hashed_${password}`) {
+      passwordValid = true;
+      // Upgrade to bcrypt hash
+      const newHash = await bcrypt.hash(password, 10);
+      await supabase
+        .from('profiles')
+        .update({ password_hash: newHash })
+        .eq('id', user.id);
+      console.log('[LOGIN] Password upgraded to bcrypt');
     }
-    
-    // In production: verify password hash
-    // For now: mock authentication
-    
-    // Update last login
-    await supabaseAdmin
-      .from('profiles')
-      .update({ last_login_at: new Date().toISOString() })
-      .eq('id', user.id);
-    
-    // Transform user for response
-    // Check if this is a MODERATOR (marked in last_name)
-    const isModerator = user.last_name?.includes('[MODERATOR]');
-    const cleanLastName = user.last_name?.replace(' [MODERATOR]', '') || '';
-    
-    const userData = {
+  }
+  
+  if (!passwordValid) {
+    console.log('[LOGIN] Invalid password for:', email);
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Invalid email or password' 
+    }, { status: 401 });
+  }
+  
+  // 7. Update last login
+  await supabase
+    .from('profiles')
+    .update({ last_login_at: new Date().toISOString() })
+    .eq('id', user.id);
+  
+  // 8. Determine role (check for moderator flag in last_name)
+  const isModerator = user.last_name?.includes('[MODERATOR]');
+  const effectiveRole = isModerator ? 'MODERATOR' : user.role;
+  const cleanLastName = user.last_name?.replace(' [MODERATOR]', '') || '';
+  
+  // 9. Get redirect destination based on role
+  const redirectTo = ROLE_REDIRECTS[effectiveRole] || '/';
+  
+  console.log(`[LOGIN] Success: ${email} (${effectiveRole}) -> ${redirectTo}`);
+  
+  // 10. Return user data with redirect
+  return NextResponse.json({ 
+    success: true, 
+    user: {
       id: user.id,
       email: user.email,
-      role: isModerator ? 'MODERATOR' : user.role,
+      role: effectiveRole,
       firstName: user.first_name,
       lastName: cleanLastName,
       name: `${user.first_name || ''} ${cleanLastName}`.trim(),
@@ -76,27 +158,16 @@ export async function POST(request) {
       preferredCurrency: user.preferred_currency,
       notificationPreferences: user.notification_preferences,
       isModerator
-    };
-    
-    console.log(`[AUTH] User logged in: ${email} (${user.role})`);
-    
-    return NextResponse.json({ 
-      success: true, 
-      user: userData
-    });
-    
-  } catch (error) {
-    console.error('[AUTH LOGIN ERROR]', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-  }
+    },
+    redirectTo
+  });
 }
 
-// GET handler for health check
 export async function GET() {
   return NextResponse.json({ 
     status: 'ok',
     endpoint: '/api/v2/auth/login',
-    method: 'POST required',
+    method: 'POST',
     timestamp: new Date().toISOString()
   });
 }
