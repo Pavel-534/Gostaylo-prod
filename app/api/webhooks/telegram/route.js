@@ -1,19 +1,20 @@
 /**
- * Gostaylo - Telegram Webhook v6.2 (Stage 27 FINAL)
+ * Gostaylo - Telegram Webhook v7.0 (PRODUCTION)
  * 
  * CRITICAL ROUTE - Must be PUBLIC (no auth required)
  * 
  * FEATURES:
  * - Advanced price extraction (markers, max number, ignore patterns)
  * - Supabase Storage upload (permanent URLs)
+ * - Server-side image compression via Sharp (1920px max, WebP)
  * - Draft isolation: Uses status='INACTIVE' + metadata.is_draft=true
- *   (INACTIVE is valid enum value; DRAFT is not in the enum)
  * 
  * Runtime: Node.js
  * DB Column: base_price_thb
  */
 
 import { NextResponse } from 'next/server';
+import sharp from 'sharp';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -24,6 +25,14 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.gostaylo.com';
 const STORAGE_BUCKET = 'listings';
+
+// Image compression settings
+const IMAGE_CONFIG = {
+  maxWidth: 1920,
+  maxHeight: 1920,
+  quality: 80,
+  format: 'webp'
+};
 
 /**
  * Send Telegram message
@@ -122,86 +131,134 @@ function extractPrice(text) {
 }
 
 /**
+ * Compress image using Sharp
+ * - Max 1920px
+ * - WebP format
+ * - 80% quality
+ */
+async function compressImage(inputBuffer) {
+  try {
+    const startSize = inputBuffer.byteLength;
+    
+    const compressed = await sharp(Buffer.from(inputBuffer))
+      .resize(IMAGE_CONFIG.maxWidth, IMAGE_CONFIG.maxHeight, {
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .webp({ quality: IMAGE_CONFIG.quality })
+      .toBuffer();
+    
+    const endSize = compressed.byteLength;
+    const ratio = ((1 - endSize / startSize) * 100).toFixed(1);
+    
+    console.log(`[COMPRESS] ${(startSize/1024).toFixed(1)}KB → ${(endSize/1024).toFixed(1)}KB (-${ratio}%)`);
+    
+    return compressed;
+  } catch (e) {
+    console.error('[COMPRESS ERROR]', e.message);
+    // Return original if compression fails
+    return Buffer.from(inputBuffer);
+  }
+}
+
+/**
  * Download file from Telegram and upload to Supabase Storage
  * Returns the public URL or null
  */
 async function uploadPhotoToStorage(fileId, listingId) {
   try {
+    console.log(`[STORAGE] Starting upload for fileId: ${fileId}, listingId: ${listingId}`);
+    
+    // Validate environment
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+      console.error('[STORAGE] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+      return null;
+    }
+    
     // 1. Get file path from Telegram
     const fileRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
     const fileData = await fileRes.json();
     
+    console.log(`[STORAGE] Telegram getFile response:`, JSON.stringify(fileData));
+    
     if (!fileData.ok || !fileData.result?.file_path) {
-      console.error('[STORAGE] Failed to get file path from Telegram');
+      console.error('[STORAGE] Failed to get file path from Telegram:', fileData.description || 'unknown');
       return null;
     }
     
     const telegramFileUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileData.result.file_path}`;
+    console.log(`[STORAGE] Downloading from: ${telegramFileUrl.replace(BOT_TOKEN, 'BOT_TOKEN')}`);
     
     // 2. Download the file
     const downloadRes = await fetch(telegramFileUrl);
     if (!downloadRes.ok) {
-      console.error('[STORAGE] Failed to download from Telegram');
+      console.error(`[STORAGE] Failed to download from Telegram: ${downloadRes.status} ${downloadRes.statusText}`);
       return null;
     }
     
-    const fileBuffer = await downloadRes.arrayBuffer();
-    const contentType = downloadRes.headers.get('content-type') || 'image/jpeg';
+    const rawBuffer = await downloadRes.arrayBuffer();
+    console.log(`[STORAGE] Downloaded ${(rawBuffer.byteLength / 1024).toFixed(1)}KB`);
     
-    // 3. Generate unique filename
-    const ext = fileData.result.file_path.split('.').pop() || 'jpg';
-    const fileName = `${listingId}/${Date.now()}.${ext}`;
+    // 3. Compress image
+    const compressedBuffer = await compressImage(rawBuffer);
     
-    // 4. Upload to Supabase Storage
-    const uploadRes = await fetch(
-      `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${fileName}`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': contentType,
-          'x-upsert': 'true'
-        },
-        body: fileBuffer
-      }
-    );
+    // 4. Generate unique filename (always .webp after compression)
+    const fileName = `${listingId}/${Date.now()}.webp`;
+    
+    // 5. Upload to Supabase Storage
+    const uploadUrl = `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${fileName}`;
+    console.log(`[STORAGE] Uploading to: ${uploadUrl}`);
+    
+    const uploadRes = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'image/webp',
+        'x-upsert': 'true'
+      },
+      body: compressedBuffer
+    });
+    
+    const uploadResponseText = await uploadRes.text();
+    console.log(`[STORAGE] Upload response: ${uploadRes.status} - ${uploadResponseText}`);
     
     if (!uploadRes.ok) {
-      const error = await uploadRes.text();
-      console.error('[STORAGE] Upload failed:', error);
-      
       // Try to create bucket if it doesn't exist
-      if (error.includes('not found') || error.includes('Bucket')) {
+      if (uploadResponseText.includes('not found') || uploadResponseText.includes('Bucket') || uploadResponseText.includes('bucket')) {
+        console.log('[STORAGE] Bucket may not exist, attempting to create...');
         await createStorageBucket();
+        
         // Retry upload
-        const retryRes = await fetch(
-          `${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${fileName}`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-              'Content-Type': contentType,
-              'x-upsert': 'true'
-            },
-            body: fileBuffer
-          }
-        );
+        const retryRes = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+            'Content-Type': 'image/webp',
+            'x-upsert': 'true'
+          },
+          body: compressedBuffer
+        });
+        
+        const retryText = await retryRes.text();
+        console.log(`[STORAGE] Retry upload response: ${retryRes.status} - ${retryText}`);
+        
         if (!retryRes.ok) {
           console.error('[STORAGE] Retry upload failed');
           return null;
         }
       } else {
+        console.error('[STORAGE] Upload failed with error:', uploadResponseText);
         return null;
       }
     }
     
-    // 5. Return public URL
+    // 6. Return public URL
     const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${fileName}`;
-    console.log(`[STORAGE] Uploaded: ${publicUrl}`);
+    console.log(`[STORAGE] SUCCESS! Public URL: ${publicUrl}`);
     return publicUrl;
     
   } catch (e) {
-    console.error('[STORAGE ERROR]', e);
+    console.error('[STORAGE ERROR]', e.message, e.stack);
     return null;
   }
 }
@@ -542,17 +599,20 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     service: 'Gostaylo Telegram Webhook',
-    version: '6.0',
-    stage: 27,
+    version: '7.0',
+    stage: 28,
     runtime: 'nodejs',
     features: [
       'Advanced price extraction',
       'Supabase Storage upload',
+      'Server-side image compression (Sharp)',
+      'WebP conversion (1920px, 80% quality)',
       'Draft isolation (INACTIVE + metadata.is_draft)',
       '/start, /help, /link, /status'
     ],
     db_column: 'base_price_thb',
     storage_bucket: STORAGE_BUCKET,
+    image_config: IMAGE_CONFIG,
     timestamp: new Date().toISOString()
   });
 }
