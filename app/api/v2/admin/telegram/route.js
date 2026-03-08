@@ -158,12 +158,12 @@ export async function POST(request) {
     }
     
     if (action === 'testMessage') {
-      const chatId = body.chatId || process.env.TELEGRAM_ADMIN_CHAT_ID;
+      const chatId = body.chatId || process.env.TELEGRAM_ADMIN_GROUP_ID;
       
       if (!chatId) {
         return NextResponse.json({ 
           success: false, 
-          error: 'TELEGRAM_ADMIN_CHAT_ID not configured' 
+          error: 'TELEGRAM_ADMIN_GROUP_ID not configured' 
         }, { status: 400 });
       }
       

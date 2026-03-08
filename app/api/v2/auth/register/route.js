@@ -111,7 +111,7 @@ async function sendVerificationEmail(user, token) {
 // Send Telegram notification
 async function sendTelegramNotification(user) {
   const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-  const CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
+  const CHAT_ID = process.env.TELEGRAM_ADMIN_GROUP_ID;
   
   if (!BOT_TOKEN || !CHAT_ID) {
     console.log('[TELEGRAM] Not configured, skipping');
