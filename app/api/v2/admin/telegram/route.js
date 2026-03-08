@@ -1,7 +1,7 @@
 /**
  * Gostaylo - Telegram Admin API
- * POST /api/v2/admin/telegram - Set webhook
- * GET /api/v2/admin/telegram - Test connection & get info
+ * GET /api/v2/admin/telegram - Get status & auto-setup webhook
+ * POST /api/v2/admin/telegram - Manual actions (setWebhook, deleteWebhook, testMessage)
  */
 
 import { NextResponse } from 'next/server';
@@ -12,43 +12,102 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
 const WEBHOOK_URL = `${BASE_URL}/api/webhooks/telegram`;
 
+// Auto-setup webhook if not configured
+async function ensureWebhookConfigured() {
+  if (!BOT_TOKEN) return { success: false, error: 'No bot token' };
+  
+  try {
+    // Check current webhook
+    const infoResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo`);
+    const infoData = await infoResponse.json();
+    
+    if (infoData.ok) {
+      const currentUrl = infoData.result.url;
+      
+      // If webhook is not set or points to wrong URL, update it
+      if (!currentUrl || !currentUrl.includes('gostaylo.com')) {
+        console.log('[TELEGRAM] Auto-setting webhook to:', WEBHOOK_URL);
+        
+        const setResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: WEBHOOK_URL,
+            allowed_updates: ['message', 'callback_query']
+          })
+        });
+        
+        const setData = await setResponse.json();
+        console.log('[TELEGRAM] Webhook auto-setup result:', setData.ok ? 'SUCCESS' : setData.description);
+        
+        return { 
+          success: setData.ok, 
+          autoConfigured: true, 
+          message: setData.ok ? 'Webhook auto-configured' : setData.description 
+        };
+      }
+      
+      return { success: true, autoConfigured: false, currentUrl };
+    }
+    
+    return { success: false, error: infoData.description };
+  } catch (error) {
+    console.error('[TELEGRAM] Auto-setup error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 export async function GET() {
   if (!BOT_TOKEN) {
     return NextResponse.json({ 
       success: false, 
-      error: 'TELEGRAM_BOT_TOKEN not configured' 
+      error: 'TELEGRAM_BOT_TOKEN not configured',
+      configured: false
     }, { status: 500 });
   }
   
   try {
+    // Auto-setup webhook on every GET request
+    const autoSetup = await ensureWebhookConfigured();
+    
     // Get bot info
     const meResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getMe`);
     const meData = await meResponse.json();
     
-    // Get webhook info
+    // Get webhook info (fresh after potential auto-setup)
     const webhookResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getWebhookInfo`);
     const webhookData = await webhookResponse.json();
     
+    const webhookOk = webhookData.ok && 
+                      webhookData.result.url && 
+                      webhookData.result.url.includes('gostaylo.com');
+    
     return NextResponse.json({
       success: true,
+      configured: true,
       bot: meData.ok ? {
         id: meData.result.id,
         username: meData.result.username,
-        firstName: meData.result.first_name
+        firstName: meData.result.first_name,
+        link: `https://t.me/${meData.result.username}`
       } : null,
       webhook: webhookData.ok ? {
         url: webhookData.result.url,
-        hasCustomCertificate: webhookData.result.has_custom_certificate,
+        active: webhookOk,
         pendingUpdateCount: webhookData.result.pending_update_count,
-        lastErrorDate: webhookData.result.last_error_date,
+        lastErrorDate: webhookData.result.last_error_date 
+          ? new Date(webhookData.result.last_error_date * 1000).toISOString() 
+          : null,
         lastErrorMessage: webhookData.result.last_error_message
       } : null,
+      autoSetup,
       expectedWebhookUrl: WEBHOOK_URL
     });
   } catch (error) {
     return NextResponse.json({ 
       success: false, 
-      error: error.message 
+      error: error.message,
+      configured: !!BOT_TOKEN
     }, { status: 500 });
   }
 }
@@ -70,7 +129,6 @@ export async function POST(request) {
   
   try {
     if (action === 'setWebhook') {
-      // Set webhook to current domain
       const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -84,7 +142,7 @@ export async function POST(request) {
       
       return NextResponse.json({
         success: data.ok,
-        message: data.description || (data.ok ? 'Webhook set successfully' : 'Failed to set webhook'),
+        message: data.description || (data.ok ? 'Webhook set successfully' : 'Failed'),
         webhookUrl: WEBHOOK_URL
       });
     }
@@ -105,7 +163,7 @@ export async function POST(request) {
       if (!chatId) {
         return NextResponse.json({ 
           success: false, 
-          error: 'Chat ID not provided' 
+          error: 'TELEGRAM_ADMIN_CHAT_ID not configured' 
         }, { status: 400 });
       }
       
@@ -114,8 +172,8 @@ export async function POST(request) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: chatId,
-          text: '✅ Тест подключения Gostaylo успешен!',
-          parse_mode: 'HTML'
+          text: `✅ *Тест подключения Gostaylo*\n\n🌐 Домен: ${BASE_URL}\n⏰ Время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Bangkok' })}`,
+          parse_mode: 'Markdown'
         })
       });
       
@@ -123,20 +181,14 @@ export async function POST(request) {
       
       return NextResponse.json({
         success: data.ok,
-        message: data.ok ? 'Test message sent' : (data.description || 'Failed to send message'),
+        message: data.ok ? 'Test message sent!' : (data.description || 'Failed'),
         chatId
       });
     }
     
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Unknown action' 
-    }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });
     
   } catch (error) {
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message 
-    }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

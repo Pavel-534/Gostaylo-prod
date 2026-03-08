@@ -2,7 +2,7 @@
  * Gostaylo - Email Verification API
  * GET /api/v2/auth/verify?token=xxx
  * 
- * Verifies email, sets session cookie, redirects with success message
+ * Verifies email, sets session cookie, redirects with success
  */
 
 import { NextResponse } from 'next/server';
@@ -55,19 +55,18 @@ export async function GET(request) {
     auth: { autoRefreshToken: false, persistSession: false }
   });
   
-  // Update user verification status
+  // Update user verification status - ONLY use columns that exist!
   console.log('[VERIFY] Updating user:', userId);
   
   const { data: user, error } = await supabase
     .from('profiles')
     .update({
       is_verified: true,
-      verification_status: 'VERIFIED',
-      email_verified_at: new Date().toISOString()
+      verification_status: 'VERIFIED'
     })
     .eq('id', userId)
     .eq('email', email.toLowerCase())
-    .select('*')
+    .select('id, email, role, first_name, last_name, referral_code, preferred_currency')
     .single();
   
   if (error) {
