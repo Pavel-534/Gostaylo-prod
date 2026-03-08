@@ -19,6 +19,7 @@ import { CurrencySelector } from '@/components/currency-selector'
 import { DayPicker } from 'react-day-picker'
 import { format } from 'date-fns'
 import { ru, enUS, zhCN, th } from 'date-fns/locale'
+import { toast } from 'sonner'
 import 'react-day-picker/dist/style.css'
 
 const dateLocales = { ru, en: enUS, zh: zhCN, th }
@@ -304,6 +305,7 @@ export function GostayloHomeContent() {
                   placeholder={language === 'ru' ? 'Ваше имя' : 'Your name'}
                   value={registerName}
                   onChange={(e) => setRegisterName(e.target.value)}
+                  autoComplete='name'
                   required
                 />
               </div>
@@ -316,12 +318,26 @@ export function GostayloHomeContent() {
                 type='email' 
                 placeholder='your@email.com'
                 value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
+                onChange={(e) => setLoginEmail(e.target.value.toLowerCase())}
+                autoFocus
+                inputMode='email'
+                autoComplete='username'
                 required
               />
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='password'>{getUIText('password', language)}</Label>
+              <div className='flex justify-between items-center'>
+                <Label htmlFor='password'>{getUIText('password', language)}</Label>
+                {authMode === 'login' && (
+                  <button
+                    type='button'
+                    onClick={() => toast.info(language === 'ru' ? 'Функция восстановления пароля скоро будет доступна' : 'Password reset coming soon')}
+                    className='text-xs text-teal-600 hover:text-teal-700 hover:underline'
+                  >
+                    {language === 'ru' ? 'Забыли пароль?' : 'Forgot password?'}
+                  </button>
+                )}
+              </div>
               <div className='relative'>
                 <Input 
                   id='password' 
@@ -330,8 +346,9 @@ export function GostayloHomeContent() {
                   value={loginPassword}
                   onChange={(e) => setLoginPassword(e.target.value)}
                   className='pr-10'
+                  autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
                   required
-                  minLength={authMode === 'register' ? 8 : undefined}
+                  minLength={authMode === 'register' ? 6 : undefined}
                 />
                 <button
                   type='button'
@@ -341,6 +358,9 @@ export function GostayloHomeContent() {
                   {showPassword ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
                 </button>
               </div>
+              {authMode === 'register' && (
+                <p className='text-xs text-slate-500'>{language === 'ru' ? 'Минимум 6 символов' : 'Minimum 6 characters'}</p>
+              )}
             </div>
             {loginError && (
               <p className='text-red-500 text-sm'>{loginError}</p>

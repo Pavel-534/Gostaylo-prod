@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { signIn, signUp } from '@/lib/auth';
+import { toast } from 'sonner';
 
 const AuthContext = createContext(null);
 
@@ -230,6 +231,7 @@ export function AuthProvider({ children }) {
                   placeholder='Ваше имя'
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  autoComplete='name'
                   required
                 />
               </div>
@@ -242,13 +244,27 @@ export function AuthProvider({ children }) {
                 type='email' 
                 placeholder='your@email.com'
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value.toLowerCase())}
+                autoFocus
+                inputMode='email'
+                autoComplete='username'
                 required
               />
             </div>
             
             <div className='space-y-2'>
-              <Label htmlFor='auth-password'>Пароль</Label>
+              <div className='flex justify-between items-center'>
+                <Label htmlFor='auth-password'>Пароль</Label>
+                {authMode === 'login' && (
+                  <button
+                    type='button'
+                    onClick={() => toast.info('Функция восстановления пароля скоро будет доступна')}
+                    className='text-xs text-teal-600 hover:text-teal-700 hover:underline'
+                  >
+                    Забыли пароль?
+                  </button>
+                )}
+              </div>
               <div className='relative'>
                 <Input 
                   id='auth-password' 
@@ -257,8 +273,9 @@ export function AuthProvider({ children }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className='pr-10'
+                  autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
                   required
-                  minLength={authMode === 'register' ? 8 : undefined}
+                  minLength={authMode === 'register' ? 6 : undefined}
                 />
                 <button
                   type='button'
@@ -268,6 +285,9 @@ export function AuthProvider({ children }) {
                   {showPassword ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
                 </button>
               </div>
+              {authMode === 'register' && (
+                <p className='text-xs text-slate-500'>Минимум 6 символов</p>
+              )}
             </div>
             
             {error && (
