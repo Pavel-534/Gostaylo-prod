@@ -43,8 +43,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const ADMIN_CHAT_ID = 1303143012;
+// Admin Chat ID for test messages
+const ADMIN_CHAT_ID = process.env.NEXT_PUBLIC_ADMIN_CHAT_ID || '1303143012';
 
 export default function SystemControlPage() {
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -111,20 +111,29 @@ export default function SystemControlPage() {
 
   async function checkWebhookStatus() {
     try {
-      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo`);
+      // Use our server API instead of direct Telegram calls
+      const res = await fetch('/api/v2/admin/telegram');
       const data = await res.json();
       
-      if (data.ok) {
-        const hasRecentError = data.result.last_error_date && 
-          (Date.now() / 1000 - data.result.last_error_date) < 300; // Error in last 5 minutes
+      if (data.success && data.webhook) {
+        const hasRecentError = data.webhook.lastErrorDate && 
+          (Date.now() - new Date(data.webhook.lastErrorDate).getTime()) < 300000; // Error in last 5 minutes
         
         setWebhookStatus({
-          url: data.result.url,
-          isActive: !!data.result.url,
+          url: data.webhook.url,
+          isActive: data.webhook.active,
           hasError: hasRecentError,
-          pendingUpdates: data.result.pending_update_count || 0,
-          lastError: data.result.last_error_message || null,
-          lastErrorDate: data.result.last_error_date ? new Date(data.result.last_error_date * 1000) : null
+          pendingUpdates: data.webhook.pendingUpdateCount || 0,
+          lastError: data.webhook.lastErrorMessage || null,
+          lastErrorDate: data.webhook.lastErrorDate ? new Date(data.webhook.lastErrorDate) : null,
+          botUsername: data.bot?.username,
+          botLink: data.bot?.link
+        });
+      } else {
+        setWebhookStatus({ 
+          isActive: false, 
+          error: data.error || 'Failed to get status',
+          url: null
         });
       }
     } catch (error) {
@@ -255,32 +264,20 @@ export default function SystemControlPage() {
   async function handleRelinkWebhook() {
     setWebhookLoading(true);
     try {
-      // Get proper webhook URL without double slashes
-      const baseUrl = window.location.origin.replace(/\/$/, '');
-      const webhookUrl = `${baseUrl}/api/webhooks/telegram`;
-      
-      // Delete existing webhook
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/deleteWebhook`);
-      await new Promise(r => setTimeout(r, 1000));
-      
-      // Set new webhook with drop_pending_updates
-      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook`, {
+      // Use our server API to set webhook
+      const res = await fetch('/api/v2/admin/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: webhookUrl,
-          drop_pending_updates: true,
-          allowed_updates: ['message', 'callback_query']
-        })
+        body: JSON.stringify({ action: 'setWebhook' })
       });
       const data = await res.json();
       
-      if (data.ok) {
+      if (data.success) {
         toast.success('✅ Вебхук успешно переподключён!');
         await checkWebhookStatus();
-        await logActivity('WEBHOOK_RELINK', `URL: ${webhookUrl}`);
+        await logActivity('WEBHOOK_RELINK', `URL: ${data.webhookUrl}`);
       } else {
-        toast.error('Ошибка: ' + data.description);
+        toast.error('Ошибка: ' + (data.message || data.error));
       }
     } catch (error) {
       console.error('Failed to relink webhook:', error);
@@ -293,43 +290,20 @@ export default function SystemControlPage() {
   async function handleTestConnection() {
     setTestingConnection(true);
     try {
-      // Test 1: Check if Telegram API is reachable
-      const meRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe`);
-      const meData = await meRes.json();
-      
-      if (!meData.ok) {
-        toast.error('❌ Telegram API недоступен');
-        return;
-      }
-      
-      // Test 2: Try to send a message
-      const sendRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      // Use our server API to test connection
+      const res = await fetch('/api/v2/admin/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: ADMIN_CHAT_ID,
-          text: '🔧 <b>Тест подключения</b>\n\nЭто тестовое сообщение из Центра управления.\n\n✅ Бот работает корректно!',
-          parse_mode: 'HTML'
-        })
+        body: JSON.stringify({ action: 'testMessage' })
       });
-      const sendData = await sendRes.json();
+      const data = await res.json();
       
-      if (sendData.ok) {
+      if (data.success) {
         toast.success('✅ Подключение работает! Сообщение отправлено.');
         await logActivity('CONNECTION_TEST', 'Тест пройден успешно');
+        await checkWebhookStatus();
       } else {
-        toast.error('❌ Ошибка отправки: ' + sendData.description);
-      }
-      
-      // Test 3: Check webhook endpoint locally
-      try {
-        const webhookRes = await fetch('/api/webhooks/telegram');
-        const webhookData = await webhookRes.json();
-        if (webhookData.ok) {
-          toast.success('✅ Вебхук endpoint доступен локально');
-        }
-      } catch (e) {
-        toast.warning('⚠️ Вебхук endpoint недоступен локально');
+        toast.error('❌ Ошибка: ' + (data.message || data.error));
       }
       
     } catch (error) {
@@ -341,22 +315,19 @@ export default function SystemControlPage() {
 
   async function handleSendAloha() {
     try {
-      const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      // Use our server API to send message
+      const res = await fetch('/api/v2/admin/telegram', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: ADMIN_CHAT_ID,
-          text: '🌴 <b>Aloha из Gostaylo!</b>\n\nДобро пожаловать в мир аренды на Пхукете!\n\n📸 <b>Lazy Realtor</b>\nОтправьте фото + описание для создания черновика.\n\nФормат:\n• 📷 Фото объекта\n• 📝 Описание в подписи\n• 💰 Цена: "15000 THB"\n\n🏝 Ваш бот готов к работе!',
-          parse_mode: 'HTML'
-        })
+        body: JSON.stringify({ action: 'testMessage' })
       });
       const data = await res.json();
       
-      if (data.ok) {
-        toast.success('🌴 Сообщение "Aloha" отправлено!');
-        await logActivity('ALOHA_SENT', 'Отправлено приветственное сообщение');
+      if (data.success) {
+        toast.success('🌴 Сообщение отправлено!');
+        await logActivity('ALOHA_SENT', 'Отправлено тестовое сообщение');
       } else {
-        toast.error('Ошибка: ' + data.description);
+        toast.error('Ошибка: ' + (data.message || data.error));
       }
     } catch (error) {
       toast.error('Ошибка отправки');
