@@ -69,11 +69,39 @@ export function GostayloHomeContent() {
       // Auto-open login dialog if ?login=true in URL
       if (searchParams?.get('login') === 'true') {
         setLoginDialogOpen(true)
-        // Clean up URL without causing page reload
+        window.history.replaceState({}, '', '/')
+      }
+      
+      // Show verification success toast
+      if (searchParams?.get('verified') === 'success') {
+        toast.success(language === 'ru' ? 'Email подтверждён! Вы вошли в систему.' : 'Email verified! You are now logged in.')
+        window.history.replaceState({}, '', '/')
+        // Reload user from cookie
+        fetch('/api/v2/auth/me', { credentials: 'include' })
+          .then(r => r.json())
+          .then(data => {
+            if (data.success && data.user) {
+              setCurrentUser(data.user)
+              localStorage.setItem('gostaylo_user', JSON.stringify(data.user))
+            }
+          })
+      }
+      
+      // Show auth error
+      const authError = searchParams?.get('auth_error')
+      if (authError) {
+        const errorMessages = {
+          'missing_token': 'Отсутствует токен верификации',
+          'invalid_or_expired_token': 'Ссылка устарела или недействительна',
+          'invalid_token_type': 'Неверный тип токена',
+          'verification_failed': 'Ошибка верификации',
+          'user_not_found': 'Пользователь не найден'
+        }
+        toast.error(errorMessages[authError] || 'Ошибка авторизации')
         window.history.replaceState({}, '', '/')
       }
     }
-  }, [searchParams])
+  }, [searchParams, language])
 
   useEffect(() => {
     const detected = detectLanguage()

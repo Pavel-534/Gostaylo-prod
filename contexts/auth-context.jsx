@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   
   // Form state
-  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register' | 'verification_pending'
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'register' | 'verification_pending' | 'forgot_password'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -32,6 +32,7 @@ export function AuthProvider({ children }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [verificationEmail, setVerificationEmail] = useState('');
+  const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
 
   // Load user on mount (from cookie session)
   useEffect(() => {
@@ -158,6 +159,34 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Forgot password handler
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/v2/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.toLowerCase().trim() })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setForgotPasswordSent(true);
+        toast.success('Письмо отправлено! Проверьте почту.');
+      } else {
+        setError(result.error || 'Не удалось отправить письмо');
+      }
+    } catch (err) {
+      setError('Ошибка сервера');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Logout handler
   const logout = useCallback(async () => {
     await signOut();
@@ -221,6 +250,81 @@ export function AuthProvider({ children }) {
                   Вернуться ко входу
                 </Button>
               </div>
+            </>
+          ) : authMode === 'forgot_password' ? (
+            // Forgot Password Screen
+            <>
+              <DialogHeader>
+                <DialogTitle>Восстановление пароля</DialogTitle>
+                <DialogDescription>
+                  Введите email для получения ссылки на сброс пароля
+                </DialogDescription>
+              </DialogHeader>
+              
+              {forgotPasswordSent ? (
+                <div className='py-6 text-center space-y-4'>
+                  <div className='w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center'>
+                    <CheckCircle className='h-8 w-8 text-green-600' />
+                  </div>
+                  <p className='text-slate-600'>
+                    Письмо отправлено на<br />
+                    <strong className='text-slate-900'>{email}</strong>
+                  </p>
+                  <p className='text-sm text-slate-500'>
+                    Проверьте почту и перейдите по ссылке для сброса пароля
+                  </p>
+                  <Button
+                    variant='outline'
+                    onClick={() => { setAuthMode('login'); setForgotPasswordSent(false); }}
+                  >
+                    Вернуться ко входу
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className='space-y-4'>
+                  <div className='space-y-2'>
+                    <Label htmlFor='forgot-email'>Email</Label>
+                    <Input 
+                      id='forgot-email' 
+                      type='email' 
+                      placeholder='your@email.com'
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value.toLowerCase())}
+                      autoFocus
+                      inputMode='email'
+                      autoComplete='username'
+                      required
+                    />
+                  </div>
+                  
+                  {error && (
+                    <p className='text-red-500 text-sm'>{error}</p>
+                  )}
+                  
+                  <Button 
+                    type='submit' 
+                    className='w-full bg-teal-600 hover:bg-teal-700'
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                        Отправка...
+                      </>
+                    ) : (
+                      'Отправить ссылку'
+                    )}
+                  </Button>
+                  
+                  <button
+                    type='button'
+                    onClick={() => setAuthMode('login')}
+                    className='w-full text-sm text-slate-500 hover:text-slate-700'
+                  >
+                    Вернуться ко входу
+                  </button>
+                </form>
+              )}
             </>
           ) : (
             // Login / Register Form
@@ -298,7 +402,7 @@ export function AuthProvider({ children }) {
                     {authMode === 'login' && (
                       <button
                         type='button'
-                        onClick={() => toast.info('Функция восстановления пароля скоро будет доступна')}
+                        onClick={() => { setAuthMode('forgot_password'); setError(''); setForgotPasswordSent(false); }}
                         className='text-xs text-teal-600 hover:text-teal-700 hover:underline'
                       >
                         Забыли пароль?

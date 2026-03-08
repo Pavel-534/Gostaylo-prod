@@ -1,6 +1,8 @@
 /**
  * Gostaylo - Email Verification API
  * GET /api/v2/auth/verify?token=xxx
+ * 
+ * Verifies email, sets session cookie, redirects with success message
  */
 
 import { NextResponse } from 'next/server';
@@ -13,39 +15,48 @@ const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-prod
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
 
 export async function GET(request) {
+  console.log('[VERIFY] ====== START ======');
+  
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
   
   if (!token) {
-    return NextResponse.redirect(`${BASE_URL}/?error=missing_token`);
+    console.log('[VERIFY] Missing token');
+    return NextResponse.redirect(`${BASE_URL}/?auth_error=missing_token`);
   }
   
   // Verify JWT token
   let decoded;
   try {
     decoded = jwt.verify(token, JWT_SECRET);
+    console.log('[VERIFY] Token decoded:', decoded.userId, decoded.email);
   } catch (error) {
     console.error('[VERIFY] Invalid token:', error.message);
-    return NextResponse.redirect(`${BASE_URL}/?error=invalid_token`);
+    return NextResponse.redirect(`${BASE_URL}/?auth_error=invalid_or_expired_token`);
   }
   
   if (decoded.type !== 'email_verification') {
-    return NextResponse.redirect(`${BASE_URL}/?error=invalid_token_type`);
+    console.error('[VERIFY] Wrong token type:', decoded.type);
+    return NextResponse.redirect(`${BASE_URL}/?auth_error=invalid_token_type`);
   }
   
   const { userId, email } = decoded;
   
-  // Update user in database
+  // Get Supabase client
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!url || !serviceKey) {
-    return NextResponse.redirect(`${BASE_URL}/?error=db_error`);
+    console.error('[VERIFY] Missing DB config');
+    return NextResponse.redirect(`${BASE_URL}/?auth_error=server_error`);
   }
   
   const supabase = createClient(url, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false }
   });
+  
+  // Update user verification status
+  console.log('[VERIFY] Updating user:', userId);
   
   const { data: user, error } = await supabase
     .from('profiles')
@@ -55,17 +66,47 @@ export async function GET(request) {
       email_verified_at: new Date().toISOString()
     })
     .eq('id', userId)
-    .eq('email', email)
-    .select()
+    .eq('email', email.toLowerCase())
+    .select('*')
     .single();
   
-  if (error || !user) {
-    console.error('[VERIFY] DB Error:', error);
-    return NextResponse.redirect(`${BASE_URL}/?error=verification_failed`);
+  if (error) {
+    console.error('[VERIFY] DB Error:', error.message, error.code);
+    return NextResponse.redirect(`${BASE_URL}/?auth_error=verification_failed`);
   }
   
-  console.log('[VERIFY] Email verified for:', email);
+  if (!user) {
+    console.error('[VERIFY] User not found');
+    return NextResponse.redirect(`${BASE_URL}/?auth_error=user_not_found`);
+  }
   
-  // Redirect to success page
-  return NextResponse.redirect(`${BASE_URL}/?verified=true`);
+  console.log('[VERIFY] SUCCESS! User verified:', user.email);
+  
+  // Generate session JWT (30 days)
+  const sessionToken = jwt.sign(
+    {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      firstName: user.first_name
+    },
+    JWT_SECRET,
+    { expiresIn: '30d' }
+  );
+  
+  // Create redirect response with success message
+  const response = NextResponse.redirect(`${BASE_URL}/?verified=success`);
+  
+  // Set HttpOnly session cookie (auto-login)
+  response.cookies.set('gostaylo_session', sessionToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 30, // 30 days
+    path: '/'
+  });
+  
+  console.log('[VERIFY] Session cookie set, redirecting...');
+  
+  return response;
 }
