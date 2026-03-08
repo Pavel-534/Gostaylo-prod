@@ -2,27 +2,44 @@
  * Gostaylo - Auth Register API (v2)
  * POST /api/v2/auth/register
  * 
- * Security: bcrypt password hashing
- * Notifications: Welcome email (Resend) + Telegram admin alert
+ * Security: bcrypt + JWT + Email verification
  */
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 export const dynamic = 'force-dynamic';
 
-// Send welcome email via Resend (non-blocking)
-async function sendWelcomeEmail(user) {
+const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
+
+// Generate verification token
+function generateVerificationToken(userId, email) {
+  return jwt.sign(
+    { userId, email, type: 'email_verification' },
+    JWT_SECRET,
+    { expiresIn: '24h' }
+  );
+}
+
+// Send verification email via Resend
+async function sendVerificationEmail(user, token) {
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
   const EMAIL_FROM = process.env.EMAIL_FROM || 'Gostaylo <booking@gostaylo.com>';
   
   if (!RESEND_API_KEY) {
-    console.log('[EMAIL] RESEND_API_KEY not configured, skipping welcome email');
-    return false;
+    console.error('[EMAIL] RESEND_API_KEY not configured');
+    return { success: false, error: 'Email service not configured' };
   }
   
+  const verifyUrl = `${BASE_URL}/api/v2/auth/verify?token=${token}`;
+  
   try {
+    console.log('[EMAIL] Sending verification to:', user.email);
+    console.log('[EMAIL] From:', EMAIL_FROM);
+    
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -32,7 +49,7 @@ async function sendWelcomeEmail(user) {
       body: JSON.stringify({
         from: EMAIL_FROM,
         to: user.email,
-        subject: 'Добро пожаловать в Gostaylo! 🏠',
+        subject: 'Подтвердите ваш email - Gostaylo',
         html: `
           <!DOCTYPE html>
           <html>
@@ -48,30 +65,21 @@ async function sendWelcomeEmail(user) {
                     <tr>
                       <td style="background:linear-gradient(135deg,#0d9488 0%,#0f766e 100%);padding:32px;text-align:center;">
                         <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;">Gostaylo</h1>
-                        <p style="margin:16px 0 0;color:#ccfbf1;font-size:14px;">Premium Rentals Worldwide</p>
                       </td>
                     </tr>
                     <tr>
                       <td style="padding:32px;">
                         <h2 style="margin:0 0 16px;color:#0f172a;font-size:24px;">
-                          Привет${user.first_name ? `, ${user.first_name}` : ''}! 👋
+                          Подтвердите ваш email
                         </h2>
                         <p style="margin:0 0 24px;color:#475569;font-size:16px;line-height:1.6;">
-                          Добро пожаловать в Gostaylo — вашу платформу для аренды премиальной недвижимости по всему миру.
+                          Привет${user.first_name ? `, ${user.first_name}` : ''}! Для завершения регистрации нажмите кнопку ниже:
                         </p>
-                        <p style="margin:0 0 24px;color:#475569;font-size:16px;line-height:1.6;">
-                          Ваш реферальный код: <strong style="color:#0d9488;">${user.referral_code}</strong><br>
-                          Приглашайте друзей и получайте бонусы!
-                        </p>
-                        <a href="https://www.gostaylo.com" style="display:inline-block;background:#0d9488;color:#ffffff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">
-                          Начать поиск
+                        <a href="${verifyUrl}" style="display:inline-block;background:#0d9488;color:#ffffff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px;">
+                          Подтвердить email
                         </a>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="background:#f8fafc;padding:24px 32px;text-align:center;">
-                        <p style="margin:0;color:#64748b;font-size:14px;">
-                          © ${new Date().getFullYear()} Gostaylo. Все права защищены.
+                        <p style="margin:24px 0 0;color:#94a3b8;font-size:14px;">
+                          Ссылка действительна 24 часа. Если вы не регистрировались на Gostaylo, просто проигнорируйте это письмо.
                         </p>
                       </td>
                     </tr>
@@ -85,39 +93,35 @@ async function sendWelcomeEmail(user) {
       })
     });
     
+    const result = await response.json();
+    
     if (response.ok) {
-      console.log('[EMAIL] Welcome email sent to:', user.email);
-      return true;
+      console.log('[EMAIL] Verification email sent:', result.id);
+      return { success: true };
     } else {
-      const error = await response.text();
-      console.error('[EMAIL] Resend error:', error);
-      return false;
+      console.error('[EMAIL] Resend error:', JSON.stringify(result));
+      return { success: false, error: result.message || 'Email send failed' };
     }
   } catch (error) {
-    console.error('[EMAIL] Failed to send welcome email:', error.message);
-    return false;
+    console.error('[EMAIL] Exception:', error.message);
+    return { success: false, error: error.message };
   }
 }
 
-// Send Telegram notification to admin (non-blocking)
+// Send Telegram notification
 async function sendTelegramNotification(user) {
   const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
   const CHAT_ID = process.env.TELEGRAM_ADMIN_CHAT_ID;
   
   if (!BOT_TOKEN || !CHAT_ID) {
-    console.log('[TELEGRAM] Bot token or chat ID not configured, skipping notification');
+    console.log('[TELEGRAM] Not configured, skipping');
     return false;
   }
   
   try {
-    const message = `🆕 *Новая регистрация на Gostaylo*
-
-👤 *Имя:* ${user.first_name || 'Не указано'}
-📧 *Email:* ${user.email}
-🎫 *Реферальный код:* \`${user.referral_code}\`
-🕐 *Время:* ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Bangkok' })}`;
-
-    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    const message = `🆕 *Новая регистрация*\n\n👤 ${user.first_name || 'Аноним'}\n📧 ${user.email}\n🎫 \`${user.referral_code}\``;
+    
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -126,42 +130,28 @@ async function sendTelegramNotification(user) {
         parse_mode: 'Markdown'
       })
     });
-    
-    if (response.ok) {
-      console.log('[TELEGRAM] Admin notification sent');
-      return true;
-    } else {
-      const error = await response.text();
-      console.error('[TELEGRAM] Error:', error);
-      return false;
-    }
+    console.log('[TELEGRAM] Notification sent');
+    return true;
   } catch (error) {
-    console.error('[TELEGRAM] Failed to send notification:', error.message);
+    console.error('[TELEGRAM] Error:', error.message);
     return false;
   }
 }
 
 export async function POST(request) {
-  const timestamp = new Date().toISOString();
-  console.log(`[REGISTER] ====== START ${timestamp} ======`);
+  console.log('[REGISTER] ====== START ======');
   
-  // 1. Check env vars
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!url || !serviceKey) {
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Database not configured'
-    }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Database not configured' }, { status: 500 });
   }
   
-  // 2. Create Supabase client
   const supabase = createClient(url, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false }
   });
   
-  // 3. Parse body
   let body;
   try {
     body = await request.json();
@@ -171,7 +161,6 @@ export async function POST(request) {
   
   const { email, password, firstName, lastName, phone, referredBy } = body;
   
-  // 4. Validation
   if (!email) {
     return NextResponse.json({ success: false, error: 'Email is required' }, { status: 400 });
   }
@@ -182,7 +171,7 @@ export async function POST(request) {
   
   const normalizedEmail = email.toLowerCase().trim();
   
-  // 5. Check existing user
+  // Check existing
   const { data: existing } = await supabase
     .from('profiles')
     .select('id')
@@ -193,14 +182,14 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Email already registered' }, { status: 400 });
   }
   
-  // 6. Hash password with bcrypt (10 rounds)
+  // Hash password
   const passwordHash = await bcrypt.hash(password, 10);
   
-  // 7. Generate IDs
+  // Generate IDs
   const profileId = `user-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`;
   const refCode = `GS${Math.floor(10000 + Math.random() * 90000)}`;
   
-  // 8. Insert user
+  // Insert user (NOT verified yet)
   const { data: user, error } = await supabase
     .from('profiles')
     .insert({
@@ -213,8 +202,8 @@ export async function POST(request) {
       phone: phone?.trim() || null,
       referral_code: refCode,
       referred_by: referredBy || null,
-      is_verified: true,
-      verification_status: 'VERIFIED',
+      is_verified: false,
+      verification_status: 'PENDING',
       preferred_currency: 'THB',
       language: 'ru'
     })
@@ -223,16 +212,21 @@ export async function POST(request) {
   
   if (error) {
     console.error('[REGISTER] DB Error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message,
-      code: error.code
-    }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
   
   console.log('[REGISTER] User created:', user.id);
   
-  // 9. Handle referral (non-blocking)
+  // Generate verification token
+  const verificationToken = generateVerificationToken(user.id, user.email);
+  
+  // Send verification email
+  const emailResult = await sendVerificationEmail(user, verificationToken);
+  
+  // Send Telegram notification (non-blocking)
+  sendTelegramNotification(user).catch(() => {});
+  
+  // Handle referral
   if (referredBy) {
     try {
       const { data: referrer } = await supabase
@@ -246,35 +240,23 @@ export async function POST(request) {
           referrer_id: referrer.id,
           referred_id: user.id
         });
-        console.log('[REGISTER] Referral recorded');
       }
-    } catch (refErr) {
-      console.error('[REGISTER] Referral error:', refErr.message);
-    }
+    } catch (e) {}
   }
   
-  // 10. Send notifications (NON-BLOCKING - registration succeeds even if these fail)
-  // Fire and forget - don't await
-  Promise.all([
-    sendWelcomeEmail(user),
-    sendTelegramNotification(user)
-  ]).catch(err => {
-    console.error('[REGISTER] Notification error:', err.message);
-  });
-  
-  // 11. Return success
   return NextResponse.json({ 
-    success: true, 
+    success: true,
+    requiresVerification: true,
+    emailSent: emailResult.success,
+    emailError: emailResult.error || null,
     user: {
       id: user.id,
       email: user.email,
       role: user.role,
       firstName: user.first_name,
-      lastName: user.last_name,
-      referralCode: user.referral_code,
-      isVerified: true
-    },
-    redirectTo: '/'
+      isVerified: false,
+      verificationStatus: 'PENDING'
+    }
   });
 }
 
@@ -282,7 +264,6 @@ export async function GET() {
   return NextResponse.json({ 
     status: 'ok',
     endpoint: '/api/v2/auth/register',
-    method: 'POST',
     timestamp: new Date().toISOString()
   });
 }

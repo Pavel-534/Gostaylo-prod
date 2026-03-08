@@ -2,17 +2,18 @@
  * Gostaylo - Auth Login API (v2)
  * POST /api/v2/auth/login
  * 
- * Security: bcrypt password verification
- * RBAC: Role-based redirect destinations
+ * Security: bcrypt + JWT HttpOnly Cookie (30 days)
  */
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 export const dynamic = 'force-dynamic';
 
-// RBAC redirect destinations
+const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
+
 const ROLE_REDIRECTS = {
   'ADMIN': '/admin/dashboard',
   'MODERATOR': '/admin/moderation',
@@ -22,26 +23,19 @@ const ROLE_REDIRECTS = {
 };
 
 export async function POST(request) {
-  const timestamp = new Date().toISOString();
-  console.log(`[LOGIN] ====== START ${timestamp} ======`);
+  console.log('[LOGIN] ====== START ======');
   
-  // 1. Check env vars
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!url || !serviceKey) {
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Database not configured'
-    }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Database not configured' }, { status: 500 });
   }
   
-  // 2. Create Supabase client
   const supabase = createClient(url, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false }
   });
   
-  // 3. Parse body
   let body;
   try {
     body = await request.json();
@@ -51,123 +45,122 @@ export async function POST(request) {
   
   const { email, password } = body;
   
-  // 4. Validation
-  if (!email) {
-    return NextResponse.json({ success: false, error: 'Email is required' }, { status: 400 });
+  if (!email || !password) {
+    return NextResponse.json({ success: false, error: 'Email and password required' }, { status: 400 });
   }
   
-  if (!password) {
-    return NextResponse.json({ success: false, error: 'Password is required' }, { status: 400 });
-  }
+  const normalizedEmail = email.toLowerCase().trim();
+  console.log('[LOGIN] Attempt:', normalizedEmail);
   
-  console.log('[LOGIN] Attempt for:', email);
-  
-  // 5. Find user by email (try exact match first, then lowercase)
+  // Find user (try exact then lowercase)
   let user = null;
-  let error = null;
   
-  // Try exact email first
-  const exactResult = await supabase
+  const { data: exactUser } = await supabase
     .from('profiles')
     .select('*')
     .eq('email', email)
     .single();
   
-  if (exactResult.data) {
-    user = exactResult.data;
+  if (exactUser) {
+    user = exactUser;
   } else {
-    // Try lowercase
-    const lowerResult = await supabase
+    const { data: lowerUser } = await supabase
       .from('profiles')
       .select('*')
-      .eq('email', email.toLowerCase())
+      .eq('email', normalizedEmail)
       .single();
-    
-    user = lowerResult.data;
-    error = lowerResult.error;
+    user = lowerUser;
   }
   
   if (!user) {
-    console.log('[LOGIN] User not found:', email);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Invalid email or password' 
-    }, { status: 401 });
+    console.log('[LOGIN] User not found');
+    return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 401 });
   }
   
-  console.log('[LOGIN] User found:', user.id, user.role);
-  
-  // 6. Verify password with bcrypt
+  // Verify password
   let passwordValid = false;
   
   if (user.password_hash) {
-    // Check if it's a bcrypt hash (starts with $2)
     if (user.password_hash.startsWith('$2')) {
       passwordValid = await bcrypt.compare(password, user.password_hash);
-    } 
-    // Legacy: plain text comparison (for migration)
-    else if (user.password_hash === password || user.password_hash === `hashed_${password}`) {
+    } else if (user.password_hash === password || user.password_hash === `hashed_${password}`) {
       passwordValid = true;
-      // Upgrade to bcrypt hash
+      // Upgrade to bcrypt
       const newHash = await bcrypt.hash(password, 10);
-      await supabase
-        .from('profiles')
-        .update({ password_hash: newHash })
-        .eq('id', user.id);
+      await supabase.from('profiles').update({ password_hash: newHash }).eq('id', user.id);
       console.log('[LOGIN] Password upgraded to bcrypt');
     }
   }
   
   if (!passwordValid) {
-    console.log('[LOGIN] Invalid password for:', email);
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Invalid email or password' 
-    }, { status: 401 });
+    console.log('[LOGIN] Invalid password');
+    return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 401 });
   }
   
-  // 7. Update last login
-  await supabase
-    .from('profiles')
-    .update({ last_login_at: new Date().toISOString() })
-    .eq('id', user.id);
+  // Check verification status
+  if (!user.is_verified && user.role !== 'ADMIN') {
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Please verify your email first',
+      requiresVerification: true,
+      email: user.email
+    }, { status: 403 });
+  }
   
-  // 8. Determine role (check for moderator flag in last_name)
-  const isModerator = user.last_name?.includes('[MODERATOR]');
-  const effectiveRole = isModerator ? 'MODERATOR' : user.role;
-  const cleanLastName = user.last_name?.replace(' [MODERATOR]', '') || '';
+  // Update last login
+  await supabase.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('id', user.id);
   
-  // 9. Get redirect destination based on role
+  // Generate JWT token (30 days)
+  const token = jwt.sign(
+    {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      firstName: user.first_name
+    },
+    JWT_SECRET,
+    { expiresIn: '30d' }
+  );
+  
+  // Determine redirect
+  const effectiveRole = user.last_name?.includes('[MODERATOR]') ? 'MODERATOR' : user.role;
   const redirectTo = ROLE_REDIRECTS[effectiveRole] || '/';
   
-  console.log(`[LOGIN] Success: ${email} (${effectiveRole}) -> ${redirectTo}`);
+  console.log(`[LOGIN] Success: ${user.email} (${effectiveRole})`);
   
-  // 10. Return user data with redirect
-  return NextResponse.json({ 
+  // Create response with HttpOnly cookie
+  const response = NextResponse.json({ 
     success: true, 
     user: {
       id: user.id,
       email: user.email,
       role: effectiveRole,
       firstName: user.first_name,
-      lastName: cleanLastName,
-      name: `${user.first_name || ''} ${cleanLastName}`.trim(),
+      lastName: user.last_name?.replace(' [MODERATOR]', '') || '',
+      name: `${user.first_name || ''} ${user.last_name?.replace(' [MODERATOR]', '') || ''}`.trim(),
       referralCode: user.referral_code,
       isVerified: user.is_verified,
-      verificationStatus: user.verification_status,
-      preferredCurrency: user.preferred_currency,
-      notificationPreferences: user.notification_preferences,
-      isModerator
+      preferredCurrency: user.preferred_currency
     },
     redirectTo
   });
+  
+  // Set HttpOnly cookie (30 days)
+  response.cookies.set('gostaylo_session', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 60 * 60 * 24 * 30, // 30 days
+    path: '/'
+  });
+  
+  return response;
 }
 
 export async function GET() {
   return NextResponse.json({ 
     status: 'ok',
     endpoint: '/api/v2/auth/login',
-    method: 'POST',
     timestamp: new Date().toISOString()
   });
 }

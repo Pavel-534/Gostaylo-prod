@@ -111,18 +111,22 @@ export function GostayloHomeContent() {
     
     try {
       const { signIn } = await import('@/lib/auth')
-      const result = await signIn(loginEmail.toLowerCase(), loginPassword)
+      const result = await signIn(loginEmail.toLowerCase().trim(), loginPassword)
+      
+      if (result.requiresVerification) {
+        setLoginError(language === 'ru' ? 'Пожалуйста, подтвердите email' : 'Please verify your email first')
+        setLoginLoading(false)
+        return
+      }
       
       if (!result.success) {
-        setLoginError(language === 'ru' ? 'Неверный email или пароль' : 'Invalid email or password')
+        setLoginError(result.error || (language === 'ru' ? 'Неверный email или пароль' : 'Invalid email or password'))
         setLoginLoading(false)
         return
       }
       
       setCurrentUser(result.user)
       setLoginDialogOpen(false)
-      
-      // Use redirectTo from API response (RBAC)
       router.push(result.redirectTo || '/')
     } catch (error) {
       setLoginError(error.message)
@@ -140,9 +144,9 @@ export function GostayloHomeContent() {
     try {
       const { signUp } = await import('@/lib/auth')
       const result = await signUp({
-        email: loginEmail.toLowerCase(),
+        email: loginEmail.toLowerCase().trim(),
         password: loginPassword,
-        name: registerName,
+        name: registerName.trim(),
         role: 'RENTER'
       })
       
@@ -152,10 +156,17 @@ export function GostayloHomeContent() {
         return
       }
       
+      // Show verification message
+      if (result.requiresVerification) {
+        toast.success(language === 'ru' 
+          ? 'Проверьте почту для подтверждения аккаунта!' 
+          : 'Check your email to verify your account!')
+        setLoginDialogOpen(false)
+        return
+      }
+      
       setCurrentUser(result.user)
       setLoginDialogOpen(false)
-      
-      // Use redirectTo from API response
       router.push(result.redirectTo || '/')
     } catch (error) {
       setLoginError(error.message)
