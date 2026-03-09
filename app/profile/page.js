@@ -37,18 +37,21 @@ export default function ProfilePage() {
   const [applyingPartner, setApplyingPartner] = useState(false)
   
   // Dashboard Mode (for partners)
-  const [dashboardMode, setDashboardMode] = useState('traveling') // 'traveling' | 'hosting'
+  const [dashboardMode, setDashboardMode] = useState('traveling')
+  
+  // Check if user has pending partner application - MUST be at top level
+  const [isPendingPartner, setIsPendingPartner] = useState(false)
 
   useEffect(() => {
     if (!authLoading) {
       if (isAuthenticated && authUser) {
         setUser(authUser)
-        setDashboardMode(authUser.metadata?.dashboard_mode || 'traveling')
+        setDashboardMode('traveling')
         setPartnerForm({
           phone: authUser.phone || '',
-          socialLink: authUser.metadata?.social_link || '',
-          experience: authUser.metadata?.experience || '',
-          portfolio: authUser.metadata?.portfolio || ''
+          socialLink: '',
+          experience: '',
+          portfolio: ''
         })
         setLoading(false)
       } else {
@@ -107,16 +110,12 @@ export default function ProfilePage() {
         throw new Error(result.error || 'Failed to submit application')
       }
       
-      // Update local user state
-      setUser(prev => ({
-        ...prev,
-        verification_status: 'PENDING_PARTNER',
-        phone: partnerForm.phone
-      }))
+      // Update local pending state
+      setIsPendingPartner(true)
       
       // Update auth context user via event
       window.dispatchEvent(new CustomEvent('auth-change', { 
-        detail: { ...user, verification_status: 'PENDING_PARTNER' } 
+        detail: { ...user } 
       }))
       
       // Mark as applied for success page
@@ -139,36 +138,43 @@ export default function ProfilePage() {
     }
   }
 
-  // Toggle Dashboard Mode (for partners)
-  async function toggleDashboardMode(mode) {
+  // Toggle Dashboard Mode (for partners) - just navigation
+  function toggleDashboardMode(mode) {
     setDashboardMode(mode)
     
-    try {
-      await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          metadata: {
-            ...(user.metadata || {}),
-            dashboard_mode: mode
-          }
-        })
-      })
-      
-      // Navigate to appropriate dashboard
-      if (mode === 'hosting') {
-        router.push('/partner/dashboard')
-      } else {
-        router.push('/my-bookings')
-      }
-    } catch (error) {
-      console.error('Failed to toggle mode:', error)
+    // Navigate to appropriate dashboard
+    if (mode === 'hosting') {
+      router.push('/partner/dashboard')
+    } else {
+      router.push('/my-bookings')
     }
   }
+
+  // Check for pending partner application
+  useEffect(() => {
+    async function checkPendingApplication() {
+      if (user && user.role !== 'PARTNER') {
+        try {
+          const res = await fetch(`/api/v2/partner/application-status`, {
+            credentials: 'include'
+          })
+          const result = await res.json()
+          if (result.success && result.status === 'PENDING') {
+            setIsPendingPartner(true)
+          } else {
+            setIsPendingPartner(false)
+          }
+        } catch (e) {
+          // If API fails, check verification_status as fallback
+          setIsPendingPartner(user.verification_status === 'PENDING')
+        }
+      }
+    }
+    if (user) checkPendingApplication()
+  }, [user])
+  
+  const isPartner = user?.role === 'PARTNER'
+  const isRenter = user?.role === 'RENTER' && !isPendingPartner
 
   // Logout
   function handleLogout() {
@@ -187,33 +193,6 @@ export default function ProfilePage() {
   if (!user) {
     return null
   }
-
-  const isPartner = user.role === 'PARTNER'
-  
-  // Check if user has pending partner application
-  const [isPendingPartner, setIsPendingPartner] = useState(false)
-  
-  useEffect(() => {
-    async function checkPendingApplication() {
-      if (user && user.role !== 'PARTNER') {
-        try {
-          const res = await fetch(`/api/v2/partner/application-status`, {
-            credentials: 'include'
-          })
-          const result = await res.json()
-          if (result.success && result.status === 'PENDING') {
-            setIsPendingPartner(true)
-          }
-        } catch (e) {
-          // If API fails, check verification_status as fallback
-          setIsPendingPartner(user.verification_status === 'PENDING')
-        }
-      }
-    }
-    if (user) checkPendingApplication()
-  }, [user])
-  
-  const isRenter = user.role === 'RENTER' && !isPendingPartner
 
   return (
     <div className='min-h-screen bg-slate-50'>

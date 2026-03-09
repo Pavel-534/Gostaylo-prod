@@ -150,12 +150,11 @@ export async function POST(request) {
     console.log('[PARTNER-APPLY] New application inserted');
   }
   
-  // Update profile phone and verification_status
+  // Update profile phone only (verification_status is enum - don't modify)
   const { error: profileError } = await supabase
     .from('profiles')
     .update({
       phone: phone,
-      verification_status: 'PENDING',
       updated_at: new Date().toISOString()
     })
     .eq('id', userId);

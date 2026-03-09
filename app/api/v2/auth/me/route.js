@@ -75,7 +75,7 @@ export async function GET() {
       preferredCurrency: user.preferred_currency,
       preferred_currency: user.preferred_currency,
       telegram_id: user.telegram_id,
-      metadata: user.metadata || {},
+      email_verified_at: user.email_verified_at,
       created_at: user.created_at
     }
   });

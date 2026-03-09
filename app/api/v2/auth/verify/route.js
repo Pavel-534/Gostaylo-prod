@@ -55,14 +55,15 @@ export async function GET(request) {
     auth: { autoRefreshToken: false, persistSession: false }
   });
   
-  // Update user verification status - ONLY use columns that exist!
+  // Update user verification status
   console.log('[VERIFY] Updating user:', userId);
   
   const { data: user, error } = await supabase
     .from('profiles')
     .update({
       is_verified: true,
-      verification_status: 'VERIFIED'
+      verification_status: 'VERIFIED',
+      email_verified_at: new Date().toISOString()
     })
     .eq('id', userId)
     .eq('email', email.toLowerCase())

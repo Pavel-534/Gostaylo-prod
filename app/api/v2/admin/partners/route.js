@@ -299,19 +299,8 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: appError.message }, { status: 500 });
     }
     
-    // Update profiles table - reset verification_status
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .update({
-        verification_status: null,
-        updated_at: now
-      })
-      .eq('id', userId);
-    
-    if (profileError) {
-      console.error('[ADMIN-PARTNERS] Profile update error:', profileError);
-      // Non-blocking
-    }
+    // Note: Don't modify verification_status on rejection - it's an enum
+    // The partner_applications table already tracks the rejection
     
     // Send rejection notifications
     const emailHtml = `
