@@ -44,12 +44,22 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - Email + Telegram notifications on decision
 - Tracks reviewer ID and timestamp
 
-### Calendar & Availability (✅ NEW - 2026-03-09)
+### Calendar & Availability (✅ COMPLETE & POLISHED - 2026-03-09)
 - **Manual Blocking:** Partners can block dates via `/api/v2/partner/listings/[id]/calendar`
 - **iCal Import:** Sync from Airbnb/Booking.com calendars
 - **iCal Export:** Generate unique feed for each listing `/api/v2/listings/[id]/ical`
 - **Availability Check:** `/api/v2/listings/[id]/availability` checks both manual blocks + iCal blocks
-- **Admin Dashboard:** `/admin/system/ical` with sync history and error filter
+- **Admin Dashboard:** `/admin/system/ical` with:
+  - Stats cards (Total/Success/Errors for last 24h)
+  - Sync All button with auto-refresh
+  - Last sync result display
+  - Link to detailed logs page
+- **Detailed Logs Page:** `/admin/system/ical/logs` with:
+  - Table: Timestamp, Listing Name, Status, Events, Error
+  - Errors-only filter
+  - CSV export
+  - Search by listing/URL/error
+- **Telegram Alert:** Auto-sends alert to admin if >5 sync errors
 - **Cron Job:** `/api/cron/ical-sync` with timeout safety (55s max)
 
 ### Listing Management (✅ COMPLETE)
