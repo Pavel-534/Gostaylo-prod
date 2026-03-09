@@ -22,12 +22,8 @@ import {
 } from '@/components/ui/alert-dialog'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const STORAGE_BUCKET = 'listings'
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
-const TELEGRAM_ADMIN_GROUP_ID = '-1003832026983'
-const TOPIC_ID_NEW_PARTNERS = 17
 
 export default function PartnerListings() {
   const router = useRouter()
@@ -53,18 +49,42 @@ export default function PartnerListings() {
     try {
       console.log('[LISTINGS] Loading listings for user:', userId)
       
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${userId}&order=created_at.desc`,
-        {
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
-          }
-        }
-      )
-      const data = await res.json()
-      console.log('[LISTINGS] Loaded:', Array.isArray(data) ? data.length : 0, 'listings')
-      setListings(Array.isArray(data) ? data : [])
+      // Use API route that has server-side access
+      const res = await fetch(`/api/v2/partner/listings?partnerId=${userId}`, {
+        credentials: 'include'
+      })
+      
+      const result = await res.json()
+      console.log('[LISTINGS] API response:', result)
+      
+      if (result.success && result.data) {
+        // Transform API response to match expected format
+        const transformedListings = result.data.map(l => ({
+          id: l.id,
+          title: l.title,
+          status: l.status,
+          district: l.district,
+          base_price_thb: l.basePriceThb,
+          commission_rate: l.commissionRate,
+          images: l.images || [],
+          cover_image: l.coverImage,
+          available: l.available,
+          is_featured: l.isFeatured,
+          views: l.views || 0,
+          bookings_count: l.bookingsCount || 0,
+          rating: l.rating || 0,
+          category: l.category,
+          created_at: l.createdAt,
+          updated_at: l.updatedAt,
+          metadata: l.metadata || {}
+        }))
+        setListings(transformedListings)
+        console.log('[LISTINGS] Loaded:', transformedListings.length, 'listings')
+      } else {
+        console.error('[LISTINGS] API error:', result.error)
+        setListings([])
+      }
+      
       setLoading(false)
     } catch (error) {
       console.error('Failed to load listings:', error)

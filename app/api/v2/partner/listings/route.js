@@ -39,16 +39,19 @@ export async function GET(request) {
       title: l.title,
       status: l.status,
       district: l.district,
-      basePriceThb: parseFloat(l.base_price_thb),
-      commissionRate: parseFloat(l.commission_rate),
+      basePriceThb: parseFloat(l.base_price_thb) || 0,
+      commissionRate: parseFloat(l.commission_rate) || 15,
       images: l.images || [],
+      coverImage: l.cover_image,
       available: l.available,
       isFeatured: l.is_featured,
       views: l.views || 0,
       bookingsCount: l.bookings_count || 0,
       rating: parseFloat(l.rating) || 0,
       category: l.categories,
-      createdAt: l.created_at
+      metadata: l.metadata || {},
+      createdAt: l.created_at,
+      updatedAt: l.updated_at
     }));
     
     return NextResponse.json({ 
