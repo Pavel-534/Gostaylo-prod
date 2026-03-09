@@ -1,0 +1,111 @@
+/**
+ * Gostaylo - File Upload API
+ * POST /api/v2/upload - Upload file to Supabase Storage
+ * 
+ * Supports: verification documents, avatars, etc.
+ */
+
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
+import jwt from 'jsonwebtoken';
+
+export const dynamic = 'force-dynamic';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
+}
+
+function verifyAuth() {
+  const cookieStore = cookies();
+  const session = cookieStore.get('gostaylo_session');
+  if (!session?.value) return null;
+  
+  try {
+    return jwt.verify(session.value, JWT_SECRET);
+  } catch {
+    return null;
+  }
+}
+
+export async function POST(request) {
+  const auth = verifyAuth();
+  if (!auth) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+  
+  try {
+    const formData = await request.formData();
+    const file = formData.get('file');
+    const bucket = formData.get('bucket') || 'verification_documents';
+    const folder = formData.get('folder') || auth.userId;
+    
+    if (!file) {
+      return NextResponse.json({ success: false, error: 'No file provided' }, { status: 400 });
+    }
+    
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Файл слишком большой (макс. 10MB)' 
+      }, { status: 400 });
+    }
+    
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Неподдерживаемый формат файла. Используйте JPG, PNG, WebP или PDF' 
+      }, { status: 400 });
+    }
+    
+    // Generate unique filename
+    const ext = file.name.split('.').pop();
+    const timestamp = Date.now();
+    const filename = `${folder}/${timestamp}.${ext}`;
+    
+    const supabase = getSupabase();
+    
+    // Convert File to Buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .upload(filename, buffer, {
+        contentType: file.type,
+        upsert: false
+      });
+    
+    if (error) {
+      console.error('[UPLOAD] Error:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+    
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(filename);
+    
+    console.log(`[UPLOAD] File uploaded: ${filename}`);
+    
+    return NextResponse.json({
+      success: true,
+      path: data.path,
+      url: urlData.publicUrl,
+      filename: filename
+    });
+    
+  } catch (error) {
+    console.error('[UPLOAD] Error:', error);
+    return NextResponse.json({ success: false, error: 'Upload failed' }, { status: 500 });
+  }
+}

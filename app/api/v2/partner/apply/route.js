@@ -49,7 +49,7 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
   }
   
-  const { phone, socialLink, experience, portfolio } = body;
+  const { phone, socialLink, experience, portfolio, verificationDocUrl } = body;
   
   // Validate required fields
   if (!phone || !experience) {
