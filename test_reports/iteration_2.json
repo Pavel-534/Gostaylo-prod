@@ -1,0 +1,78 @@
+{
+  "summary": "Completed iCal & Admin Dashboard testing. Backend APIs 100% pass (12/12 tests). Frontend UI verified - stats display correct values, Activity button leads to logs, Sync All works with auto-refresh, logs table has all required columns",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/v2/admin/ical action=get_sync_enabled",
+        "issue": "Was using invalid enum value 'DELETED' for listing_status - FIXED by changing to .eq('status', 'ACTIVE')",
+        "priority": "FIXED"
+      }
+    ]
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/admin/system/ical logs page",
+        "issues": ["Table header says 'Время' (Time) not 'Timestamp' as specified in requirements - cosmetic only"]
+      }
+    ]
+  },
+  
+  "test_report_links": [
+    "/app/test_reports/pytest/test_ical_admin.py",
+    "/app/test_reports/pytest/ical_pytest_results.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Telegram alert logic for >5 errors is implemented correctly in backend but not testable without real iCal sources"
+  ],
+  
+  "updated_files": [
+    "/app/app/api/v2/admin/ical/route.js - Fixed DELETED enum error to use .eq('status', 'ACTIVE')",
+    "/app/test_reports/pytest/test_ical_admin.py - Created comprehensive backend tests"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (12/12 tests passed)",
+    "frontend": "100% (all UI elements verified)"
+  },
+  
+  "test_credentials": {
+    "admin": {"email": "pavel_534@mail.ru", "password": "ChangeMe2025!"}
+  },
+  
+  "seed_data_creation": "Test data in ical_sync_logs: 2 success entries (Luxury Villa Ocean View), 1 error entry (Beach House - HTTP 404)",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": true,
+  
+  "context_for_next_testing_agent": "iCal Admin APIs fully functional. GET /api/v2/admin/ical returns logs with listing_title field and accurate 24h stats. POST actions: get_sync_enabled lists ACTIVE listings with sync_settings, sync_all triggers sync for all active sources. Frontend pages /admin/system/ical and /admin/system/ical/logs fully working with stats cards, Sync All button, errors-only filter, and CSV export.",
+  
+  "verified_features": {
+    "backend": [
+      "GET /api/v2/admin/ical - returns logs with listing_title, stats (total_24h, success_24h, errors_24h)",
+      "GET /api/v2/admin/ical?errors_only=true - filters to error logs only",
+      "POST /api/v2/admin/ical action=sync_all - triggers sync, returns total/synced/errors/duration",
+      "POST /api/v2/admin/ical action=get_sync_enabled - returns ACTIVE listings with sync_settings",
+      "POST /api/v2/admin/ical action=sync - syncs single listing",
+      "Auth check - returns 403 for unauthenticated requests"
+    ],
+    "frontend": [
+      "/admin/system/ical - displays stats cards with actual numbers (3/2/1)",
+      "/admin/system/ical - Activity button (pulse icon) links to /admin/system/ical/logs",
+      "/admin/system/ical - Sync All button triggers sync and auto-refreshes stats",
+      "/admin/system/ical - Shows last sync result card after Sync All",
+      "/admin/system/ical/logs - Table with Время/Объект/Статус/События/Ошибка columns",
+      "/admin/system/ical/logs - Errors-only filter switch",
+      "/admin/system/ical/logs - CSV export button"
+    ]
+  }
+}

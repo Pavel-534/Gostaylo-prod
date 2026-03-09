@@ -243,7 +243,7 @@ export async function POST(request) {
       .from('listings')
       .select('id, title, owner_id, sync_settings')
       .not('sync_settings', 'is', null)
-      .neq('status', 'DELETED');
+      .eq('status', 'ACTIVE');
     
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -306,7 +306,7 @@ export async function POST(request) {
       .from('listings')
       .select('id, title, sync_settings')
       .not('sync_settings', 'is', null)
-      .neq('status', 'DELETED');
+      .eq('status', 'ACTIVE');
     
     const toSync = (listings || []).filter(l => l.sync_settings?.sources?.length > 0);
     
