@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,8 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { 
   Loader2, RefreshCw, AlertCircle, CheckCircle, 
-  Calendar, ArrowLeft, Filter, Clock, ExternalLink
+  Calendar, ArrowLeft, Filter, Clock, ExternalLink,
+  Activity, Play, List
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -17,11 +18,13 @@ import Link from 'next/link'
 export default function AdminICalPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [syncing, setSyncing] = useState(false)
   const [logs, setLogs] = useState([])
   const [stats, setStats] = useState({ total_24h: 0, success_24h: 0, errors_24h: 0 })
   const [errorsOnly, setErrorsOnly] = useState(false)
   const [listings, setListings] = useState([])
   const [user, setUser] = useState(null)
+  const [lastSyncResult, setLastSyncResult] = useState(null)
 
   useEffect(() => {
     const stored = localStorage.getItem('gostaylo_user')
@@ -44,10 +47,10 @@ export default function AdminICalPage() {
     }
   }, [errorsOnly, user])
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     await Promise.all([loadLogs(), loadListings()])
     setLoading(false)
-  }
+  }, [])
 
   async function loadLogs() {
     try {
@@ -82,6 +85,43 @@ export default function AdminICalPage() {
     }
   }
 
+  async function triggerSyncAll() {
+    setSyncing(true)
+    setLastSyncResult(null)
+    
+    try {
+      const res = await fetch('/api/v2/admin/ical', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'sync_all' })
+      })
+      const result = await res.json()
+      
+      if (result.success) {
+        setLastSyncResult(result)
+        
+        // Show appropriate toast based on results
+        if (result.errors > 0) {
+          toast.warning(`Синхронизация завершена: ${result.synced} успешно, ${result.errors} ошибок`)
+        } else if (result.synced > 0) {
+          toast.success(`Синхронизация завершена: ${result.synced} источников обработано`)
+        } else {
+          toast.info('Нет источников для синхронизации')
+        }
+        
+        // Auto-refresh stats after sync
+        await loadLogs()
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (error) {
+      toast.error(error.message || 'Ошибка синхронизации')
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   async function triggerSync(listingId) {
     try {
       const res = await fetch('/api/v2/admin/ical', {
@@ -94,6 +134,7 @@ export default function AdminICalPage() {
       
       if (result.success) {
         toast.success('Синхронизация запущена')
+        // Auto-refresh after 2 seconds
         setTimeout(loadLogs, 2000)
       } else {
         throw new Error(result.error)
@@ -130,13 +171,28 @@ export default function AdminICalPage() {
                 История синхронизации и управление
               </p>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => loadData()}
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Logs Page Button */}
+              <Button 
+                variant="outline" 
+                size="sm"
+                asChild
+                title="Подробные логи"
+              >
+                <Link href="/admin/system/ical/logs">
+                  <Activity className="h-4 w-4" />
+                </Link>
+              </Button>
+              {/* Refresh Button */}
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => loadData()}
+                title="Обновить"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -170,12 +226,70 @@ export default function AdminICalPage() {
           </Card>
         </div>
 
+        {/* Last Sync Result */}
+        {lastSyncResult && (
+          <Card className={lastSyncResult.errors > 0 ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}>
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {lastSyncResult.errors > 0 ? (
+                    <AlertCircle className="h-5 w-5 text-amber-600" />
+                  ) : (
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  )}
+                  <div>
+                    <p className="font-medium text-slate-900">Последняя синхронизация</p>
+                    <p className="text-sm text-slate-600">
+                      Обработано: {lastSyncResult.synced}, Ошибок: {lastSyncResult.errors}, 
+                      Пропущено: {lastSyncResult.skipped || 0}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500">
+                  {lastSyncResult.duration}мс
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Sync All Button */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Глобальная синхронизация</CardTitle>
+                <CardDescription>
+                  Синхронизировать все активные календари
+                </CardDescription>
+              </div>
+              <Button 
+                onClick={triggerSyncAll}
+                disabled={syncing}
+                className="bg-teal-600 hover:bg-teal-700"
+              >
+                {syncing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Синхронизация...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Sync All
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
+
         {/* Listings with Sync Enabled */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Объекты с синхронизацией</CardTitle>
             <CardDescription>
-              Листинги с настроенными внешними календарями
+              Листинги с настроенными внешними календарями ({listings.length})
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -184,7 +298,7 @@ export default function AdminICalPage() {
                 Нет объектов с настроенной синхронизацией
               </p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
                 {listings.map(listing => (
                   <div 
                     key={listing.id}
@@ -194,6 +308,11 @@ export default function AdminICalPage() {
                       <p className="text-sm font-medium truncate">{listing.title}</p>
                       <p className="text-xs text-slate-500">
                         {listing.sync_settings?.sources?.length || 0} источников
+                        {listing.sync_settings?.last_sync && (
+                          <span className="ml-2">
+                            • Посл. синхр: {new Date(listing.sync_settings.last_sync).toLocaleDateString('ru-RU')}
+                          </span>
+                        )}
                       </p>
                     </div>
                     <Button
@@ -211,24 +330,31 @@ export default function AdminICalPage() {
           </CardContent>
         </Card>
 
-        {/* Sync Logs */}
+        {/* Recent Logs Preview */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base">История синхронизации</CardTitle>
-                <CardDescription>Последние 50 записей</CardDescription>
+                <CardTitle className="text-base">Последние записи</CardTitle>
+                <CardDescription>5 последних синхронизаций</CardDescription>
               </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  id="errors-only"
-                  checked={errorsOnly}
-                  onCheckedChange={setErrorsOnly}
-                />
-                <Label htmlFor="errors-only" className="text-sm cursor-pointer">
-                  <Filter className="h-4 w-4 inline mr-1" />
-                  Только ошибки
-                </Label>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="errors-only"
+                    checked={errorsOnly}
+                    onCheckedChange={setErrorsOnly}
+                  />
+                  <Label htmlFor="errors-only" className="text-sm cursor-pointer">
+                    Только ошибки
+                  </Label>
+                </div>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/admin/system/ical/logs">
+                    <List className="h-4 w-4 mr-1" />
+                    Все логи
+                  </Link>
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -238,8 +364,8 @@ export default function AdminICalPage() {
                 {errorsOnly ? 'Ошибок не найдено' : 'История пуста'}
               </p>
             ) : (
-              <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                {logs.map(log => (
+              <div className="space-y-2">
+                {logs.slice(0, 5).map(log => (
                   <div 
                     key={log.id}
                     className={`p-3 rounded-lg ${
@@ -265,9 +391,11 @@ export default function AdminICalPage() {
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 mt-1 truncate" title={log.source_url}>
-                          {log.source_url?.slice(0, 50)}...
-                        </p>
+                        {log.listing_title && (
+                          <p className="text-sm font-medium text-slate-700 mt-1">
+                            {log.listing_title}
+                          </p>
+                        )}
                         {log.error_message && (
                           <p className="text-xs text-red-600 mt-1">
                             {log.error_message}
