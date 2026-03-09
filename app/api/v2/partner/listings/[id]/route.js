@@ -197,12 +197,13 @@ export async function PATCH(request, { params }) {
 
 /**
  * DELETE /api/v2/partner/listings/[id]
- * Delete a listing and its images
+ * Soft delete a listing (set status to 'DELETED')
+ * Keeps message history intact
  */
 export async function DELETE(request, { params }) {
   const listingId = params.id;
   
-  console.log('[PARTNER-LISTING] DELETE listing:', listingId);
+  console.log('[PARTNER-LISTING] SOFT DELETE listing:', listingId);
   
   // Verify JWT
   const cookieStore = cookies();
@@ -233,10 +234,10 @@ export async function DELETE(request, { params }) {
     auth: { autoRefreshToken: false, persistSession: false }
   });
   
-  // First get listing to check ownership and get images
+  // First get listing to check ownership
   const { data: listing } = await supabase
     .from('listings')
-    .select('owner_id, images')
+    .select('owner_id, images, status')
     .eq('id', listingId)
     .single();
   
@@ -248,36 +249,30 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
   }
   
-  // Delete images from storage
-  if (listing.images && listing.images.length > 0) {
-    const STORAGE_BUCKET = 'listings';
-    
-    for (const imageUrl of listing.images) {
-      try {
-        const match = imageUrl.match(/\/storage\/v1\/object\/public\/listings\/(.+)$/);
-        if (match) {
-          const filePath = match[1];
-          await supabase.storage.from(STORAGE_BUCKET).remove([filePath]);
-          console.log('[PARTNER-LISTING] Deleted image:', filePath);
-        }
-      } catch (e) {
-        console.error('[PARTNER-LISTING] Failed to delete image:', e.message);
-      }
-    }
-  }
-  
-  // Delete listing
+  // SOFT DELETE: Update status to 'DELETED' instead of physical deletion
   const { error } = await supabase
     .from('listings')
-    .delete()
+    .update({
+      status: 'DELETED',
+      available: false,
+      metadata: {
+        deleted_at: new Date().toISOString(),
+        deleted_by: userId,
+        previous_status: listing.status
+      },
+      updated_at: new Date().toISOString()
+    })
     .eq('id', listingId);
   
   if (error) {
-    console.error('[PARTNER-LISTING] Delete error:', error);
+    console.error('[PARTNER-LISTING] Soft delete error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
   
-  console.log('[PARTNER-LISTING] Deleted successfully');
+  console.log('[PARTNER-LISTING] Soft deleted successfully');
   
-  return NextResponse.json({ success: true });
+  // Note: Images are kept in storage for potential restoration
+  // They will be cleaned up by the cleanup-drafts cron if needed
+  
+  return NextResponse.json({ success: true, softDeleted: true });
 }

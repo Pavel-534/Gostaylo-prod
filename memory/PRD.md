@@ -18,84 +18,139 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 ## Core Features
 
 ### Authentication (✅ COMPLETE)
-- JWT-based custom auth with HttpOnly cookies (30-day expiry)
-- Password hashing with bcrypt (auto-upgrade from plain text)
-- Email verification flow via Resend
+- JWT-based custom auth with HttpOnly cookies
+- Password hashing with bcrypt
+- Email verification flow
 - Forgot password flow
 - Role-based access control (ADMIN, PARTNER, RENTER, MODERATOR)
-- Session persistence across routes
 
-### Telegram Bot Integration (✅ COMPLETE)
-- Lazy Realtor: Send photo + description → Create draft listing
-- Account linking via `/link email@example.com`
-- Status check via `/status`
-- Server-side image compression with Sharp (1920px, WebP, 80% quality)
-- Webhook: `/api/webhooks/telegram` v7.0
+### Partner Application Flow (✅ COMPLETE - 2026-03-09)
+- Mobile-optimized form with scroll-into-view
+- Server-side API `/api/v2/partner/apply`
+- Status set to PENDING_PARTNER
+- Telegram notification to admin
+- Redirect to success page
 
-### Partner Dashboard (✅ COMPLETE)
-- View all own listings including drafts
-- Admin can view partner dashboard as Super-Partner
-- Edit drafts with full form
-- Publish drafts to moderation
-- Delete listings with storage cleanup
-- Mobile-optimized UI
+### Admin Partner Management (✅ COMPLETE - 2026-03-09)
+- Dashboard at `/admin/partners`
+- List all PENDING_PARTNER applications
+- Approve → role: PARTNER, status: VERIFIED
+- Reject → status: REJECTED with reason
+- Email + Telegram notifications on decision
 
-### Partner Application Form (✅ COMPLETE - 2026-03-09)
-- Mobile keyboard handling with scroll-into-view
-- Portfolio field: optional, auto-prepends https://
-- Loading spinner on submit button
-- Redirect to success page after submission
-- Telegram notification with full details
-- Profile status set to PENDING_PARTNER
+### Listing Management (✅ COMPLETE)
+- Create via Telegram bot with photo compression
+- Edit/publish drafts in Partner Dashboard
+- **Soft Delete** (status: 'DELETED') to preserve message history
+- Listings filtered to exclude DELETED status
 
-### Draft Cleanup Cron (✅ COMPLETE)
-- Automatic cleanup of abandoned drafts older than 30 days
-- Deletes both DB records and Storage files
-- Runs daily at 03:00 UTC
+### Access Control (✅ COMPLETE - 2026-03-09)
+- Partner pages restricted to PARTNER/ADMIN/MODERATOR roles
+- Access denied page with "Стать партнёром" CTA
+- Only verified partners can add listings
 
 ## Recent Changes (2026-03-09)
 
-### Partner Application Form UX Improvements
-- Fixed mobile keyboard covering submit button (scroll-into-view)
-- Portfolio field now accepts any text, auto-prepends https://
-- Added loading spinner on submit
-- Created `/partner-application-success` page with clear messaging
-- Added `send_partner_application` action to Telegram admin API
-- Profile status set to `verification_status: 'PENDING_PARTNER'`
+### 1. Soft Delete for Listings
+- DELETE endpoint now sets `status: 'DELETED'` instead of physical delete
+- Preserves conversation/message history (FK constraint fix)
+- Listings filtered to exclude DELETED in queries
+
+### 2. Partner Application Form Fix
+- Created server-side API `/api/v2/partner/apply`
+- Proper error handling and validation
+- Telegram notification with full details
+- Redirect to success page
+
+### 3. Admin Partner Management UI
+- New page `/admin/partners`
+- List pending applications with user details
+- Approve/Reject with notifications (Email + Telegram)
+- Menu item added to admin sidebar
+
+### 4. Access Control
+- Partner layout checks user role
+- Shows "Доступ ограничен" for non-partners
+- Links to become a partner
 
 ## API Endpoints
 
 ### Auth
-- `POST /api/v2/auth/login` - Login
-- `POST /api/v2/auth/register` - Register
-- `GET /api/v2/auth/verify` - Verify email
-- `GET /api/v2/auth/me` - Current user
-- `POST /api/v2/auth/logout` - Logout
+- `POST /api/v2/auth/login`
+- `POST /api/v2/auth/register`
+- `GET /api/v2/auth/verify`
+- `GET /api/v2/auth/me`
+- `POST /api/v2/auth/logout`
 
 ### Partner
-- `GET /api/v2/partner/listings` - Get all partner's listings
-- `GET/PATCH/DELETE /api/v2/partner/listings/[id]` - Single listing CRUD
+- `POST /api/v2/partner/apply` - Submit partner application
+- `GET /api/v2/partner/listings` - Get all listings (excludes DELETED)
+- `GET/PATCH/DELETE /api/v2/partner/listings/[id]` - Single listing CRUD (DELETE = soft delete)
 
 ### Admin
+- `GET/POST /api/v2/admin/partners` - List/approve/reject partner applications
 - `GET/POST /api/v2/admin/telegram` - Telegram management
-  - Actions: setWebhook, deleteWebhook, testMessage, send_moderation_notification, send_partner_application
 
 ### Webhooks
-- `GET/POST /api/webhooks/telegram` - Telegram bot webhook v7.0
+- `GET/POST /api/webhooks/telegram` - Bot webhook v7.0
 
 ### Cron
 - `GET/POST /api/cron/cleanup-drafts` - Draft garbage collection
 
+## Pages
+
+### Partner Pages (Protected)
+- `/partner/dashboard` - Overview
+- `/partner/listings` - Manage listings
+- `/partner/listings/[id]` - Edit listing
+- `/partner/bookings` - Manage bookings
+
+### Admin Pages (Protected)
+- `/admin/dashboard` - Overview
+- `/admin/partners` - Partner applications
+- `/admin/moderation` - Listing moderation
+- `/admin/users` - User management
+
+### Public Pages
+- `/` - Homepage
+- `/listings` - Browse listings
+- `/profile` - User profile + partner application
+- `/partner-application-success` - Application submitted
+
+## User Roles
+
+| Role | Access |
+|------|--------|
+| RENTER | Browse, book, profile |
+| PARTNER | + Partner dashboard, listings |
+| MODERATOR | + Moderation, categories |
+| ADMIN | Full access |
+
+## Status Values
+
+### User verification_status
+- `null/RENTER` - Regular user
+- `PENDING_PARTNER` - Applied for partnership
+- `VERIFIED` - Approved partner
+- `REJECTED` - Application rejected
+
+### Listing status
+- `INACTIVE` - Draft (is_draft: true)
+- `PENDING` - Awaiting moderation
+- `ACTIVE` - Published
+- `DELETED` - Soft deleted
+
 ## Upcoming Tasks
 
-### P1 - Payments
+### P1 - Complete Workflows
+- [ ] Renter booking flow (browse → book → pay)
+- [ ] Partner booking management
+- [ ] Messaging between renter/partner
+
+### P2 - Payments
 - [ ] Stripe integration
 - [ ] MIR card support
-- [ ] Full TRON TXID verification
-
-### P2 - Admin
-- [ ] Partner application approval UI in admin panel
-- [ ] Add `email_verified_at` column migration
+- [ ] Full TRON verification
 
 ### Future
 - [ ] Partner analytics dashboard
@@ -103,6 +158,3 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 
 ## Test Credentials
 - **Admin:** pavel_534@mail.ru / ChangeMe2025!
-
-## New Pages
-- `/partner-application-success` - Success page after partner application submission

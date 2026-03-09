@@ -37,6 +37,7 @@ export default function PartnerLayout({ children }) {
   const router = useRouter()
   const [user, setUser] = useState(null)
   const [isImpersonating, setIsImpersonating] = useState(false)
+  const [accessDenied, setAccessDenied] = useState(false)
 
   useEffect(() => {
     const storedUser = localStorage.getItem('gostaylo_user')
@@ -44,8 +45,41 @@ export default function PartnerLayout({ children }) {
       const parsed = JSON.parse(storedUser)
       setUser(parsed)
       setIsImpersonating(!!parsed.isImpersonated)
+      
+      // Check if user has partner access (PARTNER, ADMIN, or MODERATOR)
+      const hasAccess = ['PARTNER', 'ADMIN', 'MODERATOR'].includes(parsed.role)
+      if (!hasAccess) {
+        setAccessDenied(true)
+      }
+    } else {
+      // No user - will need to login
+      setAccessDenied(true)
     }
   }, [pathname])
+
+  // Show access denied message
+  if (accessDenied) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <Shield className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-slate-900 mb-2">Доступ ограничен</h1>
+          <p className="text-slate-500 mb-6">
+            Эта страница доступна только партнёрам Gostaylo
+          </p>
+          <div className="space-y-2">
+            <Button asChild className="bg-teal-600 hover:bg-teal-700">
+              <Link href="/profile">Стать партнёром</Link>
+            </Button>
+            <br />
+            <Button variant="ghost" asChild>
+              <Link href="/">На главную</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const handleReturnToAdmin = () => {
     const savedAdmin = localStorage.getItem('gostaylo_original_admin')

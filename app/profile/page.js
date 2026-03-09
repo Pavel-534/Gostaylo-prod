@@ -102,74 +102,41 @@ export default function ProfilePage() {
     setApplyingPartner(true)
     
     try {
-      // Normalize portfolio URL - auto-prepend https:// if needed
-      let portfolio = partnerForm.portfolio?.trim() || ''
-      if (portfolio && !portfolio.startsWith('http://') && !portfolio.startsWith('https://')) {
-        portfolio = 'https://' + portfolio
-      }
-      
-      // Update profile with PENDING_PARTNER status
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
+      // Use server API instead of direct Supabase call
+      const res = await fetch('/api/v2/partner/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           phone: partnerForm.phone,
-          verification_status: 'PENDING_PARTNER',
-          metadata: {
-            ...(user.metadata || {}),
-            partner_status: 'PENDING',
-            social_link: partnerForm.socialLink,
-            experience: partnerForm.experience,
-            portfolio: portfolio,
-            partner_applied_at: new Date().toISOString()
-          },
-          updated_at: new Date().toISOString()
+          socialLink: partnerForm.socialLink || '',
+          experience: partnerForm.experience,
+          portfolio: partnerForm.portfolio || ''
         })
       })
       
-      if (!res.ok) throw new Error('Failed to submit application')
+      const result = await res.json()
       
-      const updated = await res.json()
-      if (updated && updated[0]) {
-        setUser(updated[0])
-        localStorage.setItem('gostaylo_user', JSON.stringify({
-          ...user,
-          verification_status: 'PENDING_PARTNER',
-          metadata: { ...user.metadata, partner_status: 'PENDING' },
-          phone: partnerForm.phone
-        }))
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || 'Failed to submit application')
       }
+      
+      // Update local user state
+      setUser(prev => ({
+        ...prev,
+        verification_status: 'PENDING_PARTNER',
+        phone: partnerForm.phone
+      }))
+      
+      localStorage.setItem('gostaylo_user', JSON.stringify({
+        ...user,
+        verification_status: 'PENDING_PARTNER',
+        metadata: { ...user.metadata, partner_status: 'PENDING' },
+        phone: partnerForm.phone
+      }))
       
       // Mark as applied for success page
       localStorage.setItem('gostaylo_partner_applied', 'true')
-      
-      // Send detailed Telegram notification to admin
-      try {
-        await fetch('/api/v2/admin/telegram', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            action: 'send_partner_application',
-            application: {
-              userId: user.id,
-              email: user.email,
-              firstName: user.first_name || user.name || '',
-              phone: partnerForm.phone,
-              socialLink: partnerForm.socialLink || 'Не указано',
-              experience: partnerForm.experience,
-              portfolio: portfolio || 'Не указано'
-            }
-          })
-        })
-      } catch (telegramError) {
-        console.log('Telegram notification failed (non-blocking):', telegramError.message)
-      }
       
       setShowPartnerModal(false)
       
@@ -180,7 +147,7 @@ export default function ProfilePage() {
       console.error('Failed to submit partner application:', error)
       toast({
         title: 'Ошибка',
-        description: 'Не удалось отправить заявку. Попробуйте ещё раз.',
+        description: error.message || 'Не удалось отправить заявку. Попробуйте ещё раз.',
         variant: 'destructive'
       })
     } finally {

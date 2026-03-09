@@ -27,6 +27,7 @@ export async function GET(request) {
         categories (id, name, slug, icon)
       `)
       .eq('owner_id', partnerId)
+      .neq('status', 'DELETED')
       .order('created_at', { ascending: false });
     
     if (error) {
