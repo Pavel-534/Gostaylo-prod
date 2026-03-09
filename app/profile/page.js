@@ -491,7 +491,10 @@ export default function ProfilePage() {
                 {verificationDocUrl ? (
                   <div className='space-y-2'>
                     <CheckCircle className='h-8 w-8 text-green-500 mx-auto' />
-                    <p className='text-sm text-green-600'>Документ загружен</p>
+                    <p className='text-sm text-green-600 font-medium'>Документ загружен</p>
+                    <p className='text-xs text-slate-400 break-all px-2'>
+                      {verificationDocUrl.split('/').pop()?.slice(0, 30)}...
+                    </p>
                     <Button
                       type='button'
                       variant='outline'
@@ -504,13 +507,13 @@ export default function ProfilePage() {
                 ) : uploadingDoc ? (
                   <div className='space-y-2'>
                     <Loader2 className='h-8 w-8 animate-spin text-teal-600 mx-auto' />
-                    <p className='text-sm text-slate-500'>Загрузка...</p>
+                    <p className='text-sm text-slate-500'>Сжатие и загрузка...</p>
                   </div>
                 ) : (
                   <label className='cursor-pointer block'>
                     <input
                       type='file'
-                      accept='image/*,.pdf'
+                      accept='image/jpeg,image/png,image/webp,application/pdf'
                       className='hidden'
                       onChange={async (e) => {
                         const file = e.target.files?.[0]
@@ -518,8 +521,35 @@ export default function ProfilePage() {
                         
                         setUploadingDoc(true)
                         try {
+                          let fileToUpload = file
+                          
+                          // Compress image files (not PDFs)
+                          if (file.type.startsWith('image/')) {
+                            const imageCompression = (await import('browser-image-compression')).default
+                            
+                            const options = {
+                              maxSizeMB: 1,
+                              maxWidthOrHeight: 1200,
+                              useWebWorker: true,
+                              initialQuality: 0.8
+                            }
+                            
+                            try {
+                              fileToUpload = await imageCompression(file, options)
+                              console.log('Compressed:', file.size, '->', fileToUpload.size)
+                            } catch (compressErr) {
+                              console.error('Compression error:', compressErr)
+                              // Continue with original file if compression fails
+                            }
+                          }
+                          
+                          // Check size after compression (Vercel limit)
+                          if (fileToUpload.size > 4 * 1024 * 1024) {
+                            throw new Error('Файл слишком большой. Попробуйте файл меньшего размера.')
+                          }
+                          
                           const formData = new FormData()
-                          formData.append('file', file)
+                          formData.append('file', fileToUpload)
                           formData.append('bucket', 'verification_documents')
                           
                           const res = await fetch('/api/v2/upload', {
@@ -529,26 +559,34 @@ export default function ProfilePage() {
                           })
                           
                           const result = await res.json()
-                          if (result.success) {
-                            setVerificationDocUrl(result.url)
-                            toast({ title: 'Документ загружен' })
-                          } else {
-                            throw new Error(result.error)
+                          
+                          if (!res.ok || !result.success) {
+                            throw new Error(result.error || 'Upload failed. Try a smaller file.')
                           }
+                          
+                          setVerificationDocUrl(result.url)
+                          toast({ 
+                            title: 'Документ загружен',
+                            description: 'Файл успешно сохранён'
+                          })
                         } catch (err) {
+                          console.error('Upload error:', err)
                           toast({
                             title: 'Ошибка загрузки',
-                            description: err.message,
+                            description: err.message || 'Upload failed. Try a smaller file.',
                             variant: 'destructive'
                           })
+                          setVerificationDocUrl(null)
                         } finally {
                           setUploadingDoc(false)
+                          // Reset file input
+                          e.target.value = ''
                         }
                       }}
                     />
                     <Shield className='h-8 w-8 text-slate-400 mx-auto mb-2' />
                     <p className='text-sm text-slate-600'>Нажмите для загрузки</p>
-                    <p className='text-xs text-slate-400 mt-1'>JPG, PNG или PDF до 10MB</p>
+                    <p className='text-xs text-slate-400 mt-1'>JPG, PNG или PDF (до 4MB)</p>
                   </label>
                 )}
               </div>

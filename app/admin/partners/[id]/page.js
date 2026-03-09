@@ -304,37 +304,67 @@ export default function PartnerApplicationDetailPage() {
           <CardContent>
             {application.verification_doc_url ? (
               <div className="space-y-3">
-                <a 
-                  href={application.verification_doc_url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="block"
-                >
-                  {application.verification_doc_url.match(/\.(jpg|jpeg|png|webp)$/i) ? (
-                    <img 
-                      src={application.verification_doc_url} 
-                      alt="Verification document"
-                      className="max-w-full h-auto max-h-64 rounded-lg border"
-                    />
-                  ) : (
-                    <div className="flex items-center gap-2 p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition">
-                      <FileText className="h-8 w-8 text-slate-400" />
-                      <div>
-                        <p className="text-sm font-medium text-slate-700">PDF документ</p>
-                        <p className="text-xs text-slate-500">Нажмите для просмотра</p>
+                {/* Thumbnail or Preview */}
+                {application.verification_doc_url.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? (
+                  <a 
+                    href={application.verification_doc_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block group"
+                  >
+                    <div className="relative overflow-hidden rounded-lg border bg-slate-100">
+                      <img 
+                        src={application.verification_doc_url} 
+                        alt="Verification document"
+                        className="w-full h-auto max-h-72 object-contain group-hover:scale-105 transition-transform duration-200"
+                        onError={(e) => {
+                          e.target.onerror = null
+                          e.target.src = '/placeholder.jpg'
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <ExternalLink className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
                       </div>
-                      <ExternalLink className="h-4 w-4 text-slate-400 ml-auto" />
                     </div>
-                  )}
-                </a>
-                <p className="text-xs text-slate-500">
-                  Нажмите на документ для просмотра в полном размере
-                </p>
+                  </a>
+                ) : (
+                  <a 
+                    href={application.verification_doc_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition border"
+                  >
+                    <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                      <FileText className="h-6 w-6 text-red-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-slate-700">PDF документ</p>
+                      <p className="text-xs text-slate-500">Нажмите для открытия</p>
+                    </div>
+                    <ExternalLink className="h-4 w-4 text-slate-400" />
+                  </a>
+                )}
+                
+                {/* Direct link */}
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <LinkIcon className="h-3 w-3" />
+                  <a 
+                    href={application.verification_doc_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="truncate hover:text-teal-600 transition-colors"
+                  >
+                    {application.verification_doc_url.split('/').pop()?.slice(0, 40)}
+                  </a>
+                </div>
               </div>
             ) : (
-              <div className="text-center py-6">
-                <Shield className="h-12 w-12 text-slate-300 mx-auto mb-2" />
+              <div className="text-center py-6 border-2 border-dashed rounded-lg">
+                <Shield className="h-10 w-10 text-slate-300 mx-auto mb-2" />
                 <p className="text-sm text-slate-500">Документ не загружен</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Пользователь не прикрепил ID/паспорт
+                </p>
               </div>
             )}
           </CardContent>
