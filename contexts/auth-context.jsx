@@ -93,7 +93,16 @@ export function AuthProvider({ children }) {
     setError('');
 
     try {
-      const result = await signIn(email.toLowerCase().trim(), password);
+      // If user is already on a protected page (like /partner/listings), 
+      // stay there after login instead of redirecting to role-based default
+      const currentPath = window.location.pathname;
+      const stayOnCurrentPage = currentPath.startsWith('/partner/') || 
+                                currentPath.startsWith('/admin/') ||
+                                currentPath.startsWith('/renter/');
+      
+      const customRedirect = stayOnCurrentPage ? currentPath : null;
+      
+      const result = await signIn(email.toLowerCase().trim(), password, customRedirect);
       
       if (result.requiresVerification) {
         setVerificationEmail(result.email || email);
@@ -113,7 +122,10 @@ export function AuthProvider({ children }) {
       
       window.dispatchEvent(new CustomEvent('auth-change', { detail: result.user }));
       
-      if (result.redirectTo) {
+      // If staying on current page, just refresh the page state
+      if (stayOnCurrentPage) {
+        router.refresh();
+      } else if (result.redirectTo) {
         router.push(result.redirectTo);
       }
       
@@ -207,8 +219,11 @@ export function AuthProvider({ children }) {
     loading,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'ADMIN',
-    isPartner: user?.role === 'PARTNER',
+    isPartner: user?.role === 'PARTNER' || user?.role === 'ADMIN', // Admin is also a super-partner
+    isModerator: user?.role === 'MODERATOR',
     isRenter: user?.role === 'RENTER' || !user?.role,
+    // Helper: can user access partner features?
+    canAccessPartner: user?.role === 'PARTNER' || user?.role === 'ADMIN' || user?.role === 'MODERATOR',
     openLoginModal,
     closeLoginModal,
     logout,

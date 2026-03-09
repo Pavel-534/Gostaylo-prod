@@ -43,7 +43,7 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
   }
   
-  const { email, password } = body;
+  const { email, password, redirectTo: requestedRedirect } = body;
   
   if (!email || !password) {
     return NextResponse.json({ success: false, error: 'Email and password required' }, { status: 400 });
@@ -124,9 +124,10 @@ export async function POST(request) {
   
   // Determine redirect
   const effectiveRole = user.last_name?.includes('[MODERATOR]') ? 'MODERATOR' : user.role;
-  const redirectTo = ROLE_REDIRECTS[effectiveRole] || '/';
+  // Use requested redirect if provided, otherwise use role-based redirect
+  const redirectTo = requestedRedirect || ROLE_REDIRECTS[effectiveRole] || '/';
   
-  console.log(`[LOGIN] Success: ${user.email} (${effectiveRole})`);
+  console.log(`[LOGIN] Success: ${user.email} (${effectiveRole}) -> ${redirectTo}`);
   
   // Create response with HttpOnly cookie
   const response = NextResponse.json({ 
@@ -146,12 +147,15 @@ export async function POST(request) {
   });
   
   // Set HttpOnly cookie (30 days)
+  // SameSite=Lax allows the cookie to be sent with top-level navigations
+  // This is important for links from Telegram opening in browser
   response.cookies.set('gostaylo_session', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: true, // Always secure for HTTPS
     sameSite: 'lax',
     maxAge: 60 * 60 * 24 * 30, // 30 days
-    path: '/'
+    path: '/',
+    // Don't set domain - let browser use the default (current domain)
   });
   
   return response;

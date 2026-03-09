@@ -6,9 +6,10 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Eye, Edit, Trash2, Send, Loader2, AlertCircle, ExternalLink, ChevronRight } from 'lucide-react'
+import { Plus, Eye, Edit, Trash2, Send, Loader2, AlertCircle, ExternalLink, ChevronRight, LogIn } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/contexts/auth-context'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,27 +32,29 @@ const TOPIC_ID_NEW_PARTNERS = 17
 export default function PartnerListings() {
   const router = useRouter()
   const { toast } = useToast()
+  const { user, loading: authLoading, isAuthenticated, canAccessPartner, openLoginModal } = useAuth()
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [deleteId, setDeleteId] = useState(null)
   const [publishingId, setPublishingId] = useState(null)
 
   useEffect(() => {
-    loadListings()
-  }, [])
-
-  async function loadListings() {
-    try {
-      const storedUser = localStorage.getItem('gostaylo_user')
-      const user = storedUser ? JSON.parse(storedUser) : null
-      
-      if (!user || !user.id) {
+    // Wait for auth to load before fetching listings
+    if (!authLoading) {
+      if (isAuthenticated && user?.id) {
+        loadListings(user.id)
+      } else {
         setLoading(false)
-        return
       }
+    }
+  }, [authLoading, isAuthenticated, user?.id])
+
+  async function loadListings(userId) {
+    try {
+      console.log('[LISTINGS] Loading listings for user:', userId)
       
       const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${user.id}&order=created_at.desc`,
+        `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${userId}&order=created_at.desc`,
         {
           headers: {
             'apikey': SUPABASE_KEY,
@@ -60,6 +63,7 @@ export default function PartnerListings() {
         }
       )
       const data = await res.json()
+      console.log('[LISTINGS] Loaded:', Array.isArray(data) ? data.length : 0, 'listings')
       setListings(Array.isArray(data) ? data : [])
       setLoading(false)
     } catch (error) {
@@ -238,10 +242,33 @@ export default function PartnerListings() {
     bookings: listings.reduce((sum, l) => sum + (l.bookingsCount || 0), 0),
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className='flex items-center justify-center min-h-[60vh]'>
         <Loader2 className='h-8 w-8 animate-spin text-teal-600' />
+      </div>
+    )
+  }
+
+  // Not authenticated - show login prompt
+  if (!isAuthenticated) {
+    return (
+      <div className='flex flex-col items-center justify-center min-h-[60vh] px-4'>
+        <div className='w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4'>
+          <LogIn className='h-8 w-8 text-slate-400' />
+        </div>
+        <h2 className='text-xl font-semibold text-slate-900 mb-2'>Войдите в систему</h2>
+        <p className='text-slate-500 text-center mb-6'>
+          Для просмотра ваших листингов необходимо авторизоваться
+        </p>
+        <Button
+          onClick={() => openLoginModal('login')}
+          className='bg-teal-600 hover:bg-teal-700'
+          data-testid='login-prompt-btn'
+        >
+          <LogIn className='h-4 w-4 mr-2' />
+          Войти
+        </Button>
       </div>
     )
   }
