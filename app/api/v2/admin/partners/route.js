@@ -105,10 +105,11 @@ export async function GET(request) {
     auth: { autoRefreshToken: false, persistSession: false }
   });
   
-  const { data: applications, error } = await supabase
+  // Query users with PENDING status that have PARTNER_APPLICATION in rejection_reason
+  const { data: allPending, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('verification_status', 'PENDING_PARTNER')
+    .eq('verification_status', 'PENDING')
     .order('created_at', { ascending: false });
   
   if (error) {
@@ -116,10 +117,39 @@ export async function GET(request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
   
+  // Filter to only partner applications
+  const applications = (allPending || []).filter(app => {
+    try {
+      if (app.rejection_reason && app.rejection_reason.startsWith('{')) {
+        const data = JSON.parse(app.rejection_reason);
+        return data.type === 'PARTNER_APPLICATION';
+      }
+    } catch (e) {}
+    return false;
+  });
+  
+  // Parse application data from rejection_reason field
+  const processedApps = applications.map(app => {
+    let appData = {};
+    try {
+      appData = JSON.parse(app.rejection_reason);
+    } catch (e) {}
+    
+    return {
+      ...app,
+      metadata: {
+        social_link: appData.social_link || '',
+        experience: appData.experience || '',
+        portfolio: appData.portfolio || '',
+        partner_applied_at: appData.applied_at || app.updated_at
+      }
+    };
+  });
+  
   return NextResponse.json({
     success: true,
-    applications: applications || [],
-    count: applications?.length || 0
+    applications: processedApps,
+    count: processedApps.length
   });
 }
 
@@ -170,12 +200,7 @@ export async function POST(request) {
       .update({
         role: 'PARTNER',
         verification_status: 'VERIFIED',
-        metadata: {
-          ...(user.metadata || {}),
-          partner_status: 'APPROVED',
-          partner_approved_at: new Date().toISOString(),
-          approved_by: auth.userId
-        },
+        rejection_reason: null, // Clear the application data
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
@@ -221,18 +246,14 @@ export async function POST(request) {
   }
   
   if (action === 'reject') {
-    // Update status back to RENTER
+    const rejectionReason = reason || 'Заявка не соответствует требованиям';
+    
+    // Update status to REJECTED
     const { error: updateError } = await supabase
       .from('profiles')
       .update({
         verification_status: 'REJECTED',
-        metadata: {
-          ...(user.metadata || {}),
-          partner_status: 'REJECTED',
-          partner_rejected_at: new Date().toISOString(),
-          rejection_reason: reason || 'Заявка не соответствует требованиям',
-          rejected_by: auth.userId
-        },
+        rejection_reason: rejectionReason, // Store actual rejection reason
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
@@ -243,8 +264,6 @@ export async function POST(request) {
     }
     
     // Send rejection notifications
-    const rejectionReason = reason || 'Заявка не соответствует требованиям';
-    
     const emailHtml = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #64748b;">Заявка на партнёрство</h1>

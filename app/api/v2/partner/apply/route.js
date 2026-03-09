@@ -97,20 +97,22 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Заявка уже подана' }, { status: 400 });
   }
   
-  // Update profile
+  // Update profile with partner application data
+  // Store application data in rejection_reason as JSON with type identifier
+  const applicationData = JSON.stringify({
+    type: 'PARTNER_APPLICATION',
+    social_link: socialLink || '',
+    experience: experience,
+    portfolio: normalizedPortfolio,
+    applied_at: new Date().toISOString()
+  });
+  
   const { data: updated, error: updateError } = await supabase
     .from('profiles')
     .update({
       phone: phone,
-      verification_status: 'PENDING_PARTNER',
-      metadata: {
-        ...(currentUser.metadata || {}),
-        partner_status: 'PENDING',
-        social_link: socialLink || '',
-        experience: experience,
-        portfolio: normalizedPortfolio,
-        partner_applied_at: new Date().toISOString()
-      },
+      verification_status: 'PENDING', // Using standard PENDING value
+      rejection_reason: applicationData, // Store app data with type marker
       updated_at: new Date().toISOString()
     })
     .eq('id', userId)
@@ -134,7 +136,7 @@ export async function POST(request) {
       const message = `🤝 <b>НОВАЯ ЗАЯВКА НА ПАРТНЁРСТВО</b>\n\n` +
         `👤 <b>ID:</b> <code>${userId}</code>\n` +
         `📧 <b>Email:</b> ${currentUser.email}\n` +
-        `👤 <b>Имя:</b> ${currentUser.first_name || currentUser.name || 'Не указано'}\n` +
+        `👤 <b>Имя:</b> ${currentUser.first_name || 'Не указано'}\n` +
         `📞 <b>Телефон:</b> ${phone}\n` +
         `💬 <b>Соцсети:</b> ${socialLink || 'Не указано'}\n` +
         `🔗 <b>Портфолио:</b> ${normalizedPortfolio || 'Не указано'}\n\n` +
@@ -164,6 +166,7 @@ export async function POST(request) {
   return NextResponse.json({
     success: true,
     message: 'Заявка отправлена',
+    redirectTo: '/partner-application-success',
     user: {
       id: updated.id,
       email: updated.email,

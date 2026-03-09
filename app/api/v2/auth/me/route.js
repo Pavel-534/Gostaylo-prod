@@ -62,10 +62,21 @@ export async function GET() {
       role: effectiveRole,
       firstName: user.first_name,
       lastName: user.last_name?.replace(' [MODERATOR]', '') || '',
+      first_name: user.first_name,
+      last_name: user.last_name?.replace(' [MODERATOR]', '') || '',
       name: `${user.first_name || ''} ${user.last_name?.replace(' [MODERATOR]', '') || ''}`.trim(),
+      phone: user.phone,
       referralCode: user.referral_code,
+      referral_code: user.referral_code,
       isVerified: user.is_verified,
-      preferredCurrency: user.preferred_currency
+      is_verified: user.is_verified,
+      verification_status: user.verification_status,
+      rejection_reason: user.rejection_reason,
+      preferredCurrency: user.preferred_currency,
+      preferred_currency: user.preferred_currency,
+      telegram_id: user.telegram_id,
+      metadata: user.metadata || {},
+      created_at: user.created_at
     }
   });
 }

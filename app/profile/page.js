@@ -11,18 +11,17 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/contexts/auth-context'
 import { 
   User, Mail, Phone, Building2, Loader2, CheckCircle, Clock, 
   Briefcase, Link as LinkIcon, MessageSquare, ArrowRight, Shield, 
   Home, Plane, Settings, LogOut, Star
 } from 'lucide-react'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
 export default function ProfilePage() {
   const router = useRouter()
   const { toast } = useToast()
+  const { user: authUser, loading: authLoading, isAuthenticated, openLoginModal } = useAuth()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -41,50 +40,23 @@ export default function ProfilePage() {
   const [dashboardMode, setDashboardMode] = useState('traveling') // 'traveling' | 'hosting'
 
   useEffect(() => {
-    loadUser()
-  }, [])
-
-  async function loadUser() {
-    try {
-      const stored = localStorage.getItem('gostaylo_user')
-      if (!stored) {
-        router.push('/')
-        return
-      }
-      
-      const userData = JSON.parse(stored)
-      
-      // Fetch fresh profile data
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?id=eq.${userData.id}&select=*`,
-        {
-          headers: {
-            'apikey': SUPABASE_SERVICE_KEY,
-            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-          }
-        }
-      )
-      const profiles = await res.json()
-      
-      if (profiles && profiles[0]) {
-        const profile = profiles[0]
-        setUser(profile)
-        setDashboardMode(profile.metadata?.dashboard_mode || 'traveling')
+    if (!authLoading) {
+      if (isAuthenticated && authUser) {
+        setUser(authUser)
+        setDashboardMode(authUser.metadata?.dashboard_mode || 'traveling')
         setPartnerForm({
-          phone: profile.phone || '',
-          socialLink: profile.metadata?.social_link || '',
-          experience: profile.metadata?.experience || '',
-          portfolio: profile.metadata?.portfolio || ''
+          phone: authUser.phone || '',
+          socialLink: authUser.metadata?.social_link || '',
+          experience: authUser.metadata?.experience || '',
+          portfolio: authUser.metadata?.portfolio || ''
         })
+        setLoading(false)
       } else {
-        setUser(userData)
+        // Not authenticated - redirect to home
+        router.push('/')
       }
-    } catch (error) {
-      console.error('Failed to load user:', error)
-    } finally {
-      setLoading(false)
     }
-  }
+  }, [authLoading, isAuthenticated, authUser])
 
   // Submit Partner Application
   async function submitPartnerApplication(e) {
@@ -117,6 +89,20 @@ export default function ProfilePage() {
       
       const result = await res.json()
       
+      // Handle authentication error
+      if (res.status === 401) {
+        toast({
+          title: 'Сессия истекла',
+          description: 'Пожалуйста, войдите в систему снова',
+          variant: 'destructive'
+        })
+        setShowPartnerModal(false)
+        // Clear local storage and trigger re-login
+        localStorage.removeItem('gostaylo_user')
+        window.location.reload()
+        return
+      }
+      
       if (!res.ok || !result.success) {
         throw new Error(result.error || 'Failed to submit application')
       }
@@ -128,11 +114,9 @@ export default function ProfilePage() {
         phone: partnerForm.phone
       }))
       
-      localStorage.setItem('gostaylo_user', JSON.stringify({
-        ...user,
-        verification_status: 'PENDING_PARTNER',
-        metadata: { ...user.metadata, partner_status: 'PENDING' },
-        phone: partnerForm.phone
+      // Update auth context user via event
+      window.dispatchEvent(new CustomEvent('auth-change', { 
+        detail: { ...user, verification_status: 'PENDING_PARTNER' } 
       }))
       
       // Mark as applied for success page
@@ -141,7 +125,7 @@ export default function ProfilePage() {
       setShowPartnerModal(false)
       
       // Redirect to success page
-      router.push('/partner-application-success')
+      router.push(result.redirectTo || '/partner-application-success')
       
     } catch (error) {
       console.error('Failed to submit partner application:', error)
@@ -205,7 +189,17 @@ export default function ProfilePage() {
   }
 
   const isPartner = user.role === 'PARTNER'
-  const isPendingPartner = user.metadata?.partner_status === 'PENDING' || user.verification_status === 'PENDING_PARTNER'
+  
+  // Check if user has pending partner application
+  // App data stored in rejection_reason as JSON with type=PARTNER_APPLICATION
+  let isPendingPartner = false
+  try {
+    if (user.verification_status === 'PENDING' && user.rejection_reason) {
+      const appData = JSON.parse(user.rejection_reason)
+      isPendingPartner = appData.type === 'PARTNER_APPLICATION'
+    }
+  } catch (e) {}
+  
   const isRenter = user.role === 'RENTER' && !isPendingPartner
 
   return (
