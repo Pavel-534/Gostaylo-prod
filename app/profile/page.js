@@ -35,6 +35,8 @@ export default function ProfilePage() {
     portfolio: ''
   })
   const [applyingPartner, setApplyingPartner] = useState(false)
+  const [uploadingDoc, setUploadingDoc] = useState(false)
+  const [verificationDocUrl, setVerificationDocUrl] = useState(null)
   
   // Dashboard Mode (for partners)
   const [dashboardMode, setDashboardMode] = useState('traveling')
@@ -86,7 +88,8 @@ export default function ProfilePage() {
           phone: partnerForm.phone,
           socialLink: partnerForm.socialLink || '',
           experience: partnerForm.experience,
-          portfolio: partnerForm.portfolio || ''
+          portfolio: partnerForm.portfolio || '',
+          verificationDocUrl: verificationDocUrl || ''
         })
       })
       
@@ -476,6 +479,81 @@ export default function ProfilePage() {
               />
               <p className='text-xs text-slate-500'>
                 Ссылка на ваш профиль на Airbnb, Booking или сайт с объектами
+              </p>
+            </div>
+            
+            {/* KYC Document Upload */}
+            <div className='space-y-2'>
+              <Label htmlFor='verificationDoc'>
+                Документ (паспорт/ID) <span className='text-slate-400 text-xs font-normal'>(рекомендуется)</span>
+              </Label>
+              <div className='border-2 border-dashed rounded-lg p-4 text-center'>
+                {verificationDocUrl ? (
+                  <div className='space-y-2'>
+                    <CheckCircle className='h-8 w-8 text-green-500 mx-auto' />
+                    <p className='text-sm text-green-600'>Документ загружен</p>
+                    <Button
+                      type='button'
+                      variant='outline'
+                      size='sm'
+                      onClick={() => setVerificationDocUrl(null)}
+                    >
+                      Удалить
+                    </Button>
+                  </div>
+                ) : uploadingDoc ? (
+                  <div className='space-y-2'>
+                    <Loader2 className='h-8 w-8 animate-spin text-teal-600 mx-auto' />
+                    <p className='text-sm text-slate-500'>Загрузка...</p>
+                  </div>
+                ) : (
+                  <label className='cursor-pointer block'>
+                    <input
+                      type='file'
+                      accept='image/*,.pdf'
+                      className='hidden'
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        
+                        setUploadingDoc(true)
+                        try {
+                          const formData = new FormData()
+                          formData.append('file', file)
+                          formData.append('bucket', 'verification_documents')
+                          
+                          const res = await fetch('/api/v2/upload', {
+                            method: 'POST',
+                            credentials: 'include',
+                            body: formData
+                          })
+                          
+                          const result = await res.json()
+                          if (result.success) {
+                            setVerificationDocUrl(result.url)
+                            toast({ title: 'Документ загружен' })
+                          } else {
+                            throw new Error(result.error)
+                          }
+                        } catch (err) {
+                          toast({
+                            title: 'Ошибка загрузки',
+                            description: err.message,
+                            variant: 'destructive'
+                          })
+                        } finally {
+                          setUploadingDoc(false)
+                        }
+                      }}
+                    />
+                    <Shield className='h-8 w-8 text-slate-400 mx-auto mb-2' />
+                    <p className='text-sm text-slate-600'>Нажмите для загрузки</p>
+                    <p className='text-xs text-slate-400 mt-1'>JPG, PNG или PDF до 10MB</p>
+                  </label>
+                )}
+              </div>
+              <p className='text-xs text-slate-500'>
+                Ускоряет проверку заявки. Документ виден только администратору.
               </p>
             </div>
             

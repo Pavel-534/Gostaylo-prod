@@ -114,6 +114,7 @@ export async function POST(request) {
           social_link: socialLink || null,
           experience,
           portfolio: normalizedPortfolio,
+          verification_doc_url: verificationDocUrl || null,
           status: 'PENDING',
           rejection_reason: null,
           reviewed_by: null,
@@ -139,6 +140,7 @@ export async function POST(request) {
         social_link: socialLink || null,
         experience,
         portfolio: normalizedPortfolio,
+        verification_doc_url: verificationDocUrl || null,
         status: 'PENDING'
       });
     

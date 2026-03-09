@@ -9,7 +9,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Frontend:** Next.js 14 (App Router)
 - **Backend:** Next.js API Routes + Supabase
 - **Database:** PostgreSQL via Supabase
-- **Storage:** Supabase Storage
+- **Storage:** Supabase Storage (buckets: listings, verification_documents)
 - **Auth:** Custom JWT-based (HttpOnly cookies) + bcrypt
 - **Email:** Resend
 - **Notifications:** Telegram Bot
@@ -24,28 +24,40 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - Forgot password flow
 - Role-based access control (ADMIN, PARTNER, RENTER, MODERATOR)
 
-### Partner Application Flow (✅ COMPLETE & MIGRATED - 2026-03-09)
+### Partner Application Flow (✅ COMPLETE & ENHANCED - 2026-03-09)
 - **NEW:** Uses dedicated `partner_applications` table (migrated from JSON in profiles)
+- **NEW:** KYC Document upload (ID/Passport) to Supabase Storage
 - Mobile-optimized form with scroll-into-view
 - Server-side API `/api/v2/partner/apply`
 - Application status check via `/api/v2/partner/application-status`
+- Document upload via `/api/v2/upload`
 - Telegram notification to admin
 - Redirect to success page
 - Supports resubmission after rejection
 
 ### Admin Partner Management (✅ COMPLETE - 2026-03-09)
 - Dashboard at `/admin/partners`
+- Detail page `/admin/partners/[id]` with KYC document preview
 - Lists applications from `partner_applications` table
 - Approve → role: PARTNER, app status: APPROVED
 - Reject → app status: REJECTED with reason
 - Email + Telegram notifications on decision
 - Tracks reviewer ID and timestamp
 
+### Calendar & Availability (✅ NEW - 2026-03-09)
+- **Manual Blocking:** Partners can block dates via `/api/v2/partner/listings/[id]/calendar`
+- **iCal Import:** Sync from Airbnb/Booking.com calendars
+- **iCal Export:** Generate unique feed for each listing `/api/v2/listings/[id]/ical`
+- **Availability Check:** `/api/v2/listings/[id]/availability` checks both manual blocks + iCal blocks
+- **Admin Dashboard:** `/admin/system/ical` with sync history and error filter
+- **Cron Job:** `/api/cron/ical-sync` with timeout safety (55s max)
+
 ### Listing Management (✅ COMPLETE)
 - Create via Telegram bot with photo compression
 - Edit/publish drafts in Partner Dashboard
 - **Soft Delete** (status: 'DELETED') to preserve message history
 - Listings filtered to exclude DELETED status
+- **Availability Calendar** component for manual date blocking
 
 ### Access Control (✅ COMPLETE - 2026-03-09)
 - Partner pages restricted to PARTNER/ADMIN/MODERATOR roles
@@ -154,11 +166,34 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 | social_link | TEXT | Telegram/WhatsApp |
 | experience | TEXT | Rental experience description |
 | portfolio | TEXT | Link to Airbnb/Booking profile |
+| verification_doc_url | TEXT | URL to KYC document in Storage |
 | status | TEXT | PENDING/APPROVED/REJECTED |
 | rejection_reason | TEXT | Reason if rejected |
 | reviewed_by | TEXT | Admin who reviewed |
 | reviewed_at | TIMESTAMPTZ | Review timestamp |
 | created_at | TIMESTAMPTZ | Application submission time |
+
+### calendar_blocks (NEW - 2026-03-09)
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| listing_id | TEXT | FK to listings.id |
+| start_date | DATE | Block start |
+| end_date | DATE | Block end |
+| reason | TEXT | Block reason |
+| source | TEXT | 'manual' or iCal URL |
+| created_at | TIMESTAMPTZ | When created |
+
+### ical_sync_logs (NEW - 2026-03-09)
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| listing_id | TEXT | FK to listings.id |
+| source_url | TEXT | iCal source URL |
+| status | TEXT | 'success' or 'error' |
+| events_count | INT | Number of events synced |
+| error_message | TEXT | Error details if failed |
+| synced_at | TIMESTAMPTZ | Sync timestamp |
 
 ## Status Values
 
@@ -182,13 +217,16 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 ### P0 - Immediate (System Stability)
 - [x] Partner application flow migrated to dedicated table ✅
 - [x] email_verified_at field enabled ✅
-- [ ] Clean up old rejection_reason JSON workaround in profiles table (optional, low priority)
+- [x] Calendar & Availability system ✅
+- [x] KYC document upload ✅
+- [x] iCal sync with logging ✅
+- [x] Availability check API ✅
 
 ### P1 - Complete Core Workflows
 - [ ] Renter booking flow (browse → book → pay)
-- [ ] Partner booking management
+- [ ] Partner booking management (accept/decline requests)
 - [ ] Messaging between renter/partner
-- [ ] Calendar availability system
+- [ ] Booking confirmation emails
 
 ### P2 - Payments
 - [ ] Stripe integration

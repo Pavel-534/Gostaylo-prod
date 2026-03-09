@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import CalendarSyncManager from '@/components/calendar-sync-manager'
+import AvailabilityCalendar from '@/components/availability-calendar'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 
@@ -581,6 +582,12 @@ export default function EditListing({ params }) {
         <CalendarSyncManager 
           listingId={listingId}
           onSync={() => {}}
+        />
+
+        {/* Manual Availability Calendar */}
+        <AvailabilityCalendar 
+          listingId={listingId}
+          syncErrors={[]}
         />
 
         {/* Seasonal Pricing Section */}

@@ -293,6 +293,53 @@ export default function PartnerApplicationDetailPage() {
           </CardContent>
         </Card>
 
+        {/* Verification Document */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Shield className="h-4 w-4 text-teal-600" />
+              Документ для верификации
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {application.verification_doc_url ? (
+              <div className="space-y-3">
+                <a 
+                  href={application.verification_doc_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  {application.verification_doc_url.match(/\.(jpg|jpeg|png|webp)$/i) ? (
+                    <img 
+                      src={application.verification_doc_url} 
+                      alt="Verification document"
+                      className="max-w-full h-auto max-h-64 rounded-lg border"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition">
+                      <FileText className="h-8 w-8 text-slate-400" />
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">PDF документ</p>
+                        <p className="text-xs text-slate-500">Нажмите для просмотра</p>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-slate-400 ml-auto" />
+                    </div>
+                  )}
+                </a>
+                <p className="text-xs text-slate-500">
+                  Нажмите на документ для просмотра в полном размере
+                </p>
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <Shield className="h-12 w-12 text-slate-300 mx-auto mb-2" />
+                <p className="text-sm text-slate-500">Документ не загружен</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Application Meta */}
         <Card>
           <CardContent className="pt-6">
@@ -306,22 +353,7 @@ export default function PartnerApplicationDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Future: Documents section placeholder */}
-        {/* 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4 text-teal-600" />
-              Документы
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-500 text-center py-4">
-              Документы не загружены
-            </p>
-          </CardContent>
-        </Card>
-        */}
+        {/* Removed placeholder comment */}
 
         {/* Actions - Fixed at bottom on mobile */}
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 sm:relative sm:border-0 sm:p-0 sm:pt-4 sm:bg-transparent">

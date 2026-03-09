@@ -140,6 +140,7 @@ export async function GET(request) {
     avatar: app.profiles?.avatar,
     phone: app.phone,
     user_created_at: app.profiles?.created_at,
+    verification_doc_url: app.verification_doc_url,
     metadata: {
       social_link: app.social_link || '',
       experience: app.experience || '',
