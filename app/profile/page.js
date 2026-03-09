@@ -102,6 +102,13 @@ export default function ProfilePage() {
     setApplyingPartner(true)
     
     try {
+      // Normalize portfolio URL - auto-prepend https:// if needed
+      let portfolio = partnerForm.portfolio?.trim() || ''
+      if (portfolio && !portfolio.startsWith('http://') && !portfolio.startsWith('https://')) {
+        portfolio = 'https://' + portfolio
+      }
+      
+      // Update profile with PENDING_PARTNER status
       const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}`, {
         method: 'PATCH',
         headers: {
@@ -112,12 +119,13 @@ export default function ProfilePage() {
         },
         body: JSON.stringify({
           phone: partnerForm.phone,
+          verification_status: 'PENDING_PARTNER',
           metadata: {
             ...(user.metadata || {}),
             partner_status: 'PENDING',
             social_link: partnerForm.socialLink,
             experience: partnerForm.experience,
-            portfolio: partnerForm.portfolio,
+            portfolio: portfolio,
             partner_applied_at: new Date().toISOString()
           },
           updated_at: new Date().toISOString()
@@ -131,41 +139,48 @@ export default function ProfilePage() {
         setUser(updated[0])
         localStorage.setItem('gostaylo_user', JSON.stringify({
           ...user,
+          verification_status: 'PENDING_PARTNER',
           metadata: { ...user.metadata, partner_status: 'PENDING' },
           phone: partnerForm.phone
         }))
       }
       
+      // Mark as applied for success page
+      localStorage.setItem('gostaylo_partner_applied', 'true')
+      
+      // Send detailed Telegram notification to admin
+      try {
+        await fetch('/api/v2/admin/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            action: 'send_partner_application',
+            application: {
+              userId: user.id,
+              email: user.email,
+              firstName: user.first_name || user.name || '',
+              phone: partnerForm.phone,
+              socialLink: partnerForm.socialLink || 'Не указано',
+              experience: partnerForm.experience,
+              portfolio: portfolio || 'Не указано'
+            }
+          })
+        })
+      } catch (telegramError) {
+        console.log('Telegram notification failed (non-blocking):', telegramError.message)
+      }
+      
       setShowPartnerModal(false)
       
-      toast({
-        title: 'Заявка отправлена!',
-        description: 'Мы рассмотрим вашу заявку в течение 24 часов'
-      })
-      
-      // Send Telegram notification to admin
-      await fetch(`https://api.telegram.org/${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: '-1003832026983',
-          message_thread_id: 17, // NEW_PARTNERS topic
-          text: `🤝 <b>НОВАЯ ЗАЯВКА НА ПАРТНЁРСТВО</b>\n\n` +
-            `👤 <b>ID:</b> ${user.id}\n` +
-            `📧 <b>Email:</b> ${user.email}\n` +
-            `📞 <b>Телефон:</b> ${partnerForm.phone}\n` +
-            `💬 <b>Соцсети:</b> ${partnerForm.socialLink || 'N/A'}\n` +
-            `📝 <b>Опыт:</b> ${partnerForm.experience.slice(0, 100)}...\n\n` +
-            `<i>Ожидает модерации</i>`,
-          parse_mode: 'HTML'
-        })
-      })
+      // Redirect to success page
+      router.push('/partner-application-success')
       
     } catch (error) {
       console.error('Failed to submit partner application:', error)
       toast({
         title: 'Ошибка',
-        description: 'Не удалось отправить заявку',
+        description: 'Не удалось отправить заявку. Попробуйте ещё раз.',
         variant: 'destructive'
       })
     } finally {
@@ -223,7 +238,7 @@ export default function ProfilePage() {
   }
 
   const isPartner = user.role === 'PARTNER'
-  const isPendingPartner = user.metadata?.partner_status === 'PENDING'
+  const isPendingPartner = user.metadata?.partner_status === 'PENDING' || user.verification_status === 'PENDING_PARTNER'
   const isRenter = user.role === 'RENTER' && !isPendingPartner
 
   return (
@@ -435,17 +450,17 @@ export default function ProfilePage() {
         </Card>
       </div>
 
-      {/* Partner Application Modal */}
+      {/* Partner Application Modal - Mobile Optimized */}
       <Dialog open={showPartnerModal} onOpenChange={setShowPartnerModal}>
-        <DialogContent className='max-w-md'>
-          <DialogHeader>
+        <DialogContent className='max-w-md max-h-[90vh] overflow-y-auto'>
+          <DialogHeader className='sticky top-0 bg-white pb-2 z-10'>
             <DialogTitle>Заявка на партнёрство</DialogTitle>
             <DialogDescription>
               Расскажите о себе и своей недвижимости
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={submitPartnerApplication} className='space-y-4'>
+          <form onSubmit={submitPartnerApplication} className='space-y-4 pb-4'>
             <div className='space-y-2'>
               <Label htmlFor='phone'>
                 Телефон <span className='text-red-500'>*</span>
@@ -456,7 +471,9 @@ export default function ProfilePage() {
                 placeholder='+66 XX XXX XXXX'
                 value={partnerForm.phone}
                 onChange={(e) => setPartnerForm({ ...partnerForm, phone: e.target.value })}
+                onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
                 required
+                className='text-base'
               />
             </div>
             
@@ -470,6 +487,8 @@ export default function ProfilePage() {
                 placeholder='@username или ссылка'
                 value={partnerForm.socialLink}
                 onChange={(e) => setPartnerForm({ ...partnerForm, socialLink: e.target.value })}
+                onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                className='text-base'
               />
             </div>
             
@@ -482,40 +501,59 @@ export default function ProfilePage() {
                 placeholder='Расскажите о вашем опыте: сколько объектов, какие типы недвижимости, как давно сдаёте...'
                 value={partnerForm.experience}
                 onChange={(e) => setPartnerForm({ ...partnerForm, experience: e.target.value })}
+                onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
                 rows={3}
                 required
+                className='text-base resize-none'
               />
             </div>
             
             <div className='space-y-2'>
               <Label htmlFor='portfolio'>
-                Ссылка на портфолио (необязательно)
+                Ссылка на портфолио <span className='text-slate-400 text-xs font-normal'>(необязательно)</span>
               </Label>
               <Input
                 id='portfolio'
-                type='url'
-                placeholder='https://...'
+                type='text'
+                placeholder='airbnb.com/users/... или booking.com/...'
                 value={partnerForm.portfolio}
                 onChange={(e) => setPartnerForm({ ...partnerForm, portfolio: e.target.value })}
+                onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                className='text-base'
               />
+              <p className='text-xs text-slate-500'>
+                Ссылка на ваш профиль на Airbnb, Booking или сайт с объектами
+              </p>
             </div>
             
-            <DialogFooter className='pt-4'>
-              <Button type='button' variant='outline' onClick={() => setShowPartnerModal(false)}>
-                Отмена
-              </Button>
-              <Button 
-                type='submit' 
-                className='bg-teal-600 hover:bg-teal-700'
-                disabled={applyingPartner}
-              >
-                {applyingPartner ? (
-                  <><Loader2 className='h-4 w-4 mr-2 animate-spin' /> Отправка...</>
-                ) : (
-                  'Отправить заявку'
-                )}
-              </Button>
-            </DialogFooter>
+            {/* Sticky Footer for Mobile */}
+            <div className='sticky bottom-0 bg-white pt-4 pb-2 border-t mt-4 -mx-6 px-6'>
+              <div className='flex gap-3'>
+                <Button 
+                  type='button' 
+                  variant='outline' 
+                  onClick={() => setShowPartnerModal(false)}
+                  className='flex-1'
+                  disabled={applyingPartner}
+                >
+                  Отмена
+                </Button>
+                <Button 
+                  type='submit' 
+                  className='flex-1 bg-teal-600 hover:bg-teal-700'
+                  disabled={applyingPartner}
+                >
+                  {applyingPartner ? (
+                    <>
+                      <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                      Отправка...
+                    </>
+                  ) : (
+                    'Отправить заявку'
+                  )}
+                </Button>
+              </div>
+            </div>
           </form>
         </DialogContent>
       </Dialog>

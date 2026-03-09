@@ -32,50 +32,36 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - Server-side image compression with Sharp (1920px, WebP, 80% quality)
 - Webhook: `/api/webhooks/telegram` v7.0
 
-### Partner Dashboard (✅ COMPLETE - 2026-03-09)
+### Partner Dashboard (✅ COMPLETE)
 - View all own listings including drafts
 - Admin can view partner dashboard as Super-Partner
-- Edit drafts with full form (title, description, price, district, photos)
-- Publish drafts to moderation (changes status to PENDING)
-- Delete listings (removes DB record + Storage images)
+- Edit drafts with full form
+- Publish drafts to moderation
+- Delete listings with storage cleanup
 - Mobile-optimized UI
-- API: `/api/v2/partner/listings` and `/api/v2/partner/listings/[id]`
 
-### Draft Editing (✅ COMPLETE - 2026-03-09)
-- Dedicated edit page `/partner/listings/[id]`
-- Loads drafts with INACTIVE status + is_draft metadata
-- Photo upload with compression
-- Seasonal pricing configuration
-- "Publish" button sends to moderation with Telegram notification
-- Mobile-responsive with fixed footer buttons
+### Partner Application Form (✅ COMPLETE - 2026-03-09)
+- Mobile keyboard handling with scroll-into-view
+- Portfolio field: optional, auto-prepends https://
+- Loading spinner on submit button
+- Redirect to success page after submission
+- Telegram notification with full details
+- Profile status set to PENDING_PARTNER
 
-### Admin Panel (✅ COMPLETE)
-- User management
-- Listing moderation (approve/reject)
-- System settings
-- Telegram webhook management
-- Moderation notifications via Telegram
-
-### Draft Cleanup Cron (✅ COMPLETE - 2026-03-09)
+### Draft Cleanup Cron (✅ COMPLETE)
 - Automatic cleanup of abandoned drafts older than 30 days
 - Deletes both DB records and Storage files
 - Runs daily at 03:00 UTC
-- Endpoint: `/api/cron/cleanup-drafts`
 
 ## Recent Changes (2026-03-09)
 
-### Session 1 - Photo Upload Fix
-- Added Sharp for server-side image compression
-- WebP format, 1920px max, 80% quality
-- Photos now upload successfully via Telegram
-
-### Session 2 - Draft Editing & UI Fixes
-- Created `/api/v2/partner/listings/[id]` API (GET/PATCH/DELETE)
-- Fixed edit page to use server-side API (bypasses RLS)
-- Added authentication check with login prompt
-- Publish button now properly updates status to PENDING
-- Delete function uses server API with storage cleanup
-- Mobile UI optimized - all buttons visible
+### Partner Application Form UX Improvements
+- Fixed mobile keyboard covering submit button (scroll-into-view)
+- Portfolio field now accepts any text, auto-prepends https://
+- Added loading spinner on submit
+- Created `/partner-application-success` page with clear messaging
+- Added `send_partner_application` action to Telegram admin API
+- Profile status set to `verification_status: 'PENDING_PARTNER'`
 
 ## API Endpoints
 
@@ -85,18 +71,14 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - `GET /api/v2/auth/verify` - Verify email
 - `GET /api/v2/auth/me` - Current user
 - `POST /api/v2/auth/logout` - Logout
-- `POST /api/v2/auth/forgot-password` - Forgot password
-- `POST /api/v2/auth/reset-password` - Reset password
 
 ### Partner
 - `GET /api/v2/partner/listings` - Get all partner's listings
-- `GET /api/v2/partner/listings/[id]` - Get single listing
-- `PATCH /api/v2/partner/listings/[id]` - Update listing
-- `DELETE /api/v2/partner/listings/[id]` - Delete listing + images
+- `GET/PATCH/DELETE /api/v2/partner/listings/[id]` - Single listing CRUD
 
 ### Admin
 - `GET/POST /api/v2/admin/telegram` - Telegram management
-  - Actions: setWebhook, deleteWebhook, testMessage, send_moderation_notification
+  - Actions: setWebhook, deleteWebhook, testMessage, send_moderation_notification, send_partner_application
 
 ### Webhooks
 - `GET/POST /api/webhooks/telegram` - Telegram bot webhook v7.0
@@ -111,14 +93,16 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - [ ] MIR card support
 - [ ] Full TRON TXID verification
 
-### P2 - Database
+### P2 - Admin
+- [ ] Partner application approval UI in admin panel
 - [ ] Add `email_verified_at` column migration
-- [ ] Fix `exchange_rates` enum to TEXT
 
 ### Future
 - [ ] Partner analytics dashboard
 - [ ] Mobile app (React Native)
-- [ ] View as User (Admin impersonation)
 
 ## Test Credentials
 - **Admin:** pavel_534@mail.ru / ChangeMe2025!
+
+## New Pages
+- `/partner-application-success` - Success page after partner application submission
