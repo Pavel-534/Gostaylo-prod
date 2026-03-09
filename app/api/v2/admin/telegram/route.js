@@ -186,6 +186,50 @@ export async function POST(request) {
       });
     }
     
+    if (action === 'send_moderation_notification') {
+      const chatId = process.env.TELEGRAM_ADMIN_GROUP_ID;
+      const TOPIC_ID = 17; // Topic for new partners
+      
+      if (!chatId) {
+        return NextResponse.json({ 
+          success: false, 
+          error: 'TELEGRAM_ADMIN_GROUP_ID not configured' 
+        }, { status: 400 });
+      }
+      
+      const listing = body.listing;
+      if (!listing) {
+        return NextResponse.json({ success: false, error: 'No listing data' }, { status: 400 });
+      }
+      
+      const message = `🔔 <b>НОВАЯ ЗАЯВКА НА МОДЕРАЦИЮ</b>\n\n` +
+        `📝 <b>ID:</b> ${listing.id}\n` +
+        `🏠 <b>Название:</b> ${listing.title || 'Без названия'}\n` +
+        `💰 <b>Цена:</b> ฿${listing.base_price_thb?.toLocaleString() || 0}/день\n` +
+        `📸 <b>Фото:</b> ${listing.images_count || 0}\n` +
+        `📍 <b>Район:</b> ${listing.district || 'Не указан'}\n\n` +
+        `<i>Листинг готов к проверке</i>\n\n` +
+        `<a href="${BASE_URL}/admin/moderation">Открыть модерацию</a>`;
+      
+      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          message_thread_id: TOPIC_ID,
+          text: message,
+          parse_mode: 'HTML'
+        })
+      });
+      
+      const data = await response.json();
+      
+      return NextResponse.json({
+        success: data.ok,
+        message: data.ok ? 'Notification sent' : (data.description || 'Failed')
+      });
+    }
+    
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 });
     
   } catch (error) {

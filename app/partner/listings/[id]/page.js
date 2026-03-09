@@ -11,24 +11,25 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { 
   ArrowLeft, Save, Loader2, Calendar, X, Upload, Star, 
-  Trash2, Image as ImageIcon, FileImage, AlertCircle, CheckCircle2, Plus
+  Trash2, Image as ImageIcon, FileImage, AlertCircle, CheckCircle2, Plus, Send
 } from 'lucide-react'
 import { toast } from 'sonner'
 import CalendarSyncManager from '@/components/calendar-sync-manager'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/auth-context'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_ANON_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 export default function EditListing({ params }) {
   const router = useRouter()
+  const { user, loading: authLoading, isAuthenticated } = useAuth()
   const listingId = params?.id
   const fileInputRef = useRef(null)
   
   const [listing, setListing] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [publishing, setPublishing] = useState(false)
   
   // Upload state
   const [uploading, setUploading] = useState(false)
@@ -54,31 +55,48 @@ export default function EditListing({ params }) {
   })
 
   useEffect(() => {
-    if (listingId) {
-      loadListing()
+    if (!authLoading && listingId) {
+      if (isAuthenticated) {
+        loadListing()
+      } else {
+        setLoading(false)
+      }
     }
-  }, [listingId])
+  }, [authLoading, isAuthenticated, listingId])
+
+  // Listen for auth changes
+  useEffect(() => {
+    const handleAuthChange = () => {
+      if (user?.id && listingId && !listing) {
+        loadListing()
+      }
+    }
+    window.addEventListener('auth-change', handleAuthChange)
+    return () => window.removeEventListener('auth-change', handleAuthChange)
+  }, [user, listingId, listing])
 
   async function loadListing() {
     try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=*`,
-        { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } }
-      )
-      const data = await res.json()
+      // Use server API that bypasses RLS
+      const res = await fetch(`/api/v2/partner/listings/${listingId}`, {
+        credentials: 'include'
+      })
+      const result = await res.json()
       
-      if (data && data.length > 0) {
-        const l = data[0]
+      console.log('[EDIT] API response:', result)
+      
+      if (result.success && result.listing) {
+        const l = result.listing
         setListing(l)
         
         // Find cover index
         const images = l.images || []
-        const coverIndex = l.cover_image ? images.findIndex(img => img === l.cover_image) : 0
+        const coverIndex = l.coverImage ? images.findIndex(img => img === l.coverImage) : 0
         
         setFormData({
           title: l.title || '',
           description: l.description || '',
-          basePriceThb: l.base_price_thb?.toString() || '',
+          basePriceThb: l.basePriceThb?.toString() || '',
           district: l.district || '',
           images: images,
           coverIndex: coverIndex >= 0 ? coverIndex : 0
@@ -88,6 +106,8 @@ export default function EditListing({ params }) {
         if (l.metadata?.seasonal_pricing) {
           setSeasons(l.metadata.seasonal_pricing)
         }
+      } else {
+        console.error('[EDIT] Failed to load:', result.error)
       }
       setLoading(false)
     } catch (error) {
@@ -103,51 +123,85 @@ export default function EditListing({ params }) {
     try {
       const coverImage = formData.images[formData.coverIndex] || formData.images[0] || null
       
-      // First get current metadata to preserve other fields
-      const getRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=metadata`,
-        { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
-      )
-      const getData = await getRes.json()
-      const currentMetadata = getData?.[0]?.metadata || {}
+      const res = await fetch(`/api/v2/partner/listings/${listingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          basePriceThb: parseFloat(formData.basePriceThb) || 0,
+          district: formData.district,
+          images: formData.images,
+          coverImage: coverImage,
+          metadata: {
+            seasonal_pricing: seasons
+          }
+        })
+      })
       
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`,
-        {
-          method: 'PATCH',
-          headers: {
-            'apikey': SUPABASE_SERVICE_KEY,
-            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            title: formData.title,
-            description: formData.description,
-            base_price_thb: parseFloat(formData.basePriceThb),
-            district: formData.district,
-            images: formData.images,
-            cover_image: coverImage,
-            metadata: {
-              ...currentMetadata,
-              seasonal_pricing: seasons
-            },
-            updated_at: new Date().toISOString()
-          })
-        }
-      )
+      const result = await res.json()
       
-      if (res.ok) {
+      if (result.success) {
         toast.success('✅ Объявление сохранено!')
-        // Redirect to listings page after save
         router.push('/partner/listings')
       } else {
-        toast.error('Ошибка при сохранении')
+        toast.error(result.error || 'Ошибка при сохранении')
       }
     } catch (error) {
       console.error('Failed to save listing:', error)
       toast.error('Ошибка при сохранении')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handlePublish() {
+    // Validate required fields
+    if (!formData.title || !formData.basePriceThb || formData.images.length === 0) {
+      toast.error('Заполните название, цену и добавьте фото')
+      return
+    }
+    
+    setPublishing(true)
+    
+    try {
+      const coverImage = formData.images[formData.coverIndex] || formData.images[0] || null
+      
+      // Save and change status to PENDING
+      const res = await fetch(`/api/v2/partner/listings/${listingId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: formData.title,
+          description: formData.description,
+          basePriceThb: parseFloat(formData.basePriceThb) || 0,
+          district: formData.district,
+          images: formData.images,
+          coverImage: coverImage,
+          status: 'PENDING',
+          metadata: {
+            is_draft: false,
+            seasonal_pricing: seasons,
+            published_at: new Date().toISOString()
+          }
+        })
+      })
+      
+      const result = await res.json()
+      
+      if (result.success) {
+        toast.success('🚀 Объявление отправлено на модерацию!')
+        router.push('/partner/listings')
+      } else {
+        toast.error(result.error || 'Ошибка при публикации')
+      }
+    } catch (error) {
+      console.error('Failed to publish:', error)
+      toast.error('Ошибка при публикации')
+    } finally {
+      setPublishing(false)
     }
   }
 
@@ -178,7 +232,7 @@ export default function EditListing({ params }) {
       setFormData({ ...formData, images: newImages })
       
       if (uploadedUrls.length > 0) {
-        toast.success(`✅ Загружено ${uploadedUrls.length} фото (сжато и оптимизировано)`)
+        toast.success(`✅ Загружено ${uploadedUrls.length} фото`)
       }
       
       if (uploadedUrls.length < files.length) {
@@ -259,7 +313,11 @@ export default function EditListing({ params }) {
     toast.success('Сезон удалён')
   }
 
-  if (loading) {
+  // Check if can publish
+  const canPublish = formData.title && formData.basePriceThb && formData.images.length > 0
+  const isDraft = listing?.metadata?.is_draft
+
+  if (loading || authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
@@ -267,11 +325,38 @@ export default function EditListing({ params }) {
     )
   }
 
+  // Not authenticated - show login prompt
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+          <AlertCircle className="h-8 w-8 text-slate-400" />
+        </div>
+        <h2 className="text-xl font-semibold text-slate-900 mb-2">Войдите в систему</h2>
+        <p className="text-slate-500 text-center mb-6">
+          Для редактирования листинга необходимо авторизоваться
+        </p>
+        <Button
+          onClick={() => {
+            // Use auth context openLoginModal if available
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('open-login-modal', { detail: { mode: 'login' } }))
+            }
+          }}
+          className="bg-teal-600 hover:bg-teal-700"
+        >
+          Войти
+        </Button>
+      </div>
+    )
+  }
+
   if (!listing) {
     return (
       <div className="p-8 text-center">
-        <p className="text-slate-600">Объявление не найдено</p>
-        <Button asChild className="mt-4">
+        <AlertCircle className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+        <p className="text-slate-600 mb-4">Объявление не найдено</p>
+        <Button asChild className="bg-teal-600 hover:bg-teal-700">
           <Link href="/partner/listings">Вернуться к списку</Link>
         </Button>
       </div>
@@ -284,43 +369,48 @@ export default function EditListing({ params }) {
     INACTIVE: 'bg-slate-100 text-slate-700',
   }
 
-  const isDraft = listing.metadata?.is_draft
-
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 pb-24 lg:pb-8">
       {/* Header */}
       <div className="bg-white border-b sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-3 lg:py-4">
-          <div className="flex items-center gap-3 lg:gap-4">
-            <Button variant="ghost" size="icon" onClick={() => router.back()}>
+        <div className="container mx-auto px-3 py-3 lg:px-4 lg:py-4">
+          <div className="flex items-center gap-2 lg:gap-4">
+            <Button variant="ghost" size="icon" onClick={() => router.back()} className="shrink-0">
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg lg:text-2xl font-bold text-slate-900 truncate">
-                Редактирование
+              <h1 className="text-base lg:text-2xl font-bold text-slate-900 truncate">
+                {isDraft ? 'Заполнить черновик' : 'Редактирование'}
               </h1>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs text-slate-500 truncate">{listingId}</span>
-                <Badge className={isDraft ? 'bg-slate-100 text-slate-600 border-dashed border' : statusColors[listing.status]}>
-                  {isDraft ? 'Черновик' : listing.status === 'ACTIVE' ? 'Активный' : 'На модерации'}
+                <Badge className={`text-xs ${isDraft ? 'bg-amber-100 text-amber-700 border-amber-300' : statusColors[listing.status]}`}>
+                  {isDraft ? '📝 Черновик' : listing.status === 'ACTIVE' ? 'Активный' : listing.status === 'PENDING' ? 'На модерации' : 'Неактивный'}
                 </Badge>
               </div>
             </div>
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-teal-600 hover:bg-teal-700"
-              size="sm"
-            >
-              {saving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <>
-                  <Save className="h-4 w-4 lg:mr-2" />
-                  <span className="hidden lg:inline">Сохранить</span>
-                </>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                onClick={handleSave}
+                disabled={saving || publishing}
+                variant="outline"
+                size="sm"
+                className="hidden lg:flex"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Сохранить
+              </Button>
+              {isDraft && (
+                <Button
+                  onClick={handlePublish}
+                  disabled={!canPublish || saving || publishing}
+                  className="bg-teal-600 hover:bg-teal-700"
+                  size="sm"
+                >
+                  {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 lg:mr-2" />}
+                  <span className="hidden lg:inline">Опубликовать</span>
+                </Button>
               )}
-            </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -610,28 +700,49 @@ export default function EditListing({ params }) {
         </Card>
 
         {/* Action Buttons - Mobile Fixed Footer */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t p-4 z-50">
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full bg-teal-600 hover:bg-teal-700"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Сохранение...
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                Сохранить изменения
-              </>
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t p-3 z-50 safe-area-pb">
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSave}
+              disabled={saving || publishing}
+              variant="outline"
+              className="flex-1"
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Сохранить
+                </>
+              )}
+            </Button>
+            {isDraft && (
+              <Button
+                onClick={handlePublish}
+                disabled={!canPublish || saving || publishing}
+                className="flex-1 bg-teal-600 hover:bg-teal-700"
+              >
+                {publishing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" />
+                    Опубликовать
+                  </>
+                )}
+              </Button>
             )}
-          </Button>
+          </div>
+          {isDraft && !canPublish && (
+            <p className="text-xs text-amber-600 mt-2 text-center">
+              Добавьте название, цену и фото для публикации
+            </p>
+          )}
         </div>
         
         {/* Spacer for fixed footer on mobile */}
-        <div className="lg:hidden h-20" />
+        <div className="lg:hidden h-24" />
       </div>
     </div>
   )

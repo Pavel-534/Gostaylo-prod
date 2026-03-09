@@ -23,26 +23,38 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - Email verification flow via Resend
 - Forgot password flow
 - Role-based access control (ADMIN, PARTNER, RENTER, MODERATOR)
+- Session persistence across routes
 
 ### Telegram Bot Integration (✅ COMPLETE)
 - Lazy Realtor: Send photo + description → Create draft listing
 - Account linking via `/link email@example.com`
 - Status check via `/status`
 - Server-side image compression with Sharp (1920px, WebP, 80% quality)
-- Webhook: `/api/webhooks/telegram`
+- Webhook: `/api/webhooks/telegram` v7.0
 
 ### Partner Dashboard (✅ COMPLETE - 2026-03-09)
 - View all own listings including drafts
 - Admin can view partner dashboard as Super-Partner
-- Publish drafts to moderation
-- Edit/delete listings
-- API: `/api/v2/partner/listings`
+- Edit drafts with full form (title, description, price, district, photos)
+- Publish drafts to moderation (changes status to PENDING)
+- Delete listings (removes DB record + Storage images)
+- Mobile-optimized UI
+- API: `/api/v2/partner/listings` and `/api/v2/partner/listings/[id]`
+
+### Draft Editing (✅ COMPLETE - 2026-03-09)
+- Dedicated edit page `/partner/listings/[id]`
+- Loads drafts with INACTIVE status + is_draft metadata
+- Photo upload with compression
+- Seasonal pricing configuration
+- "Publish" button sends to moderation with Telegram notification
+- Mobile-responsive with fixed footer buttons
 
 ### Admin Panel (✅ COMPLETE)
 - User management
 - Listing moderation (approve/reject)
 - System settings
 - Telegram webhook management
+- Moderation notifications via Telegram
 
 ### Draft Cleanup Cron (✅ COMPLETE - 2026-03-09)
 - Automatic cleanup of abandoned drafts older than 30 days
@@ -52,32 +64,18 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 
 ## Recent Changes (2026-03-09)
 
-### P0 - Photo Upload Fix
+### Session 1 - Photo Upload Fix
 - Added Sharp for server-side image compression
 - WebP format, 1920px max, 80% quality
-- Detailed logging in webhook
-- Photos now upload successfully
+- Photos now upload successfully via Telegram
 
-### P1 - Partner Dashboard for Admin
-- Fixed API to use server-side Supabase client
-- Admin can now see all their listings
-- Drafts visible with metadata
-
-### Session Improvements
-- JWT cookie: `secure: true`, `sameSite: 'lax'`, `path: '/'`
-- Login preserves current page for protected routes
-- Auth context includes `canAccessPartner` flag
-
-## Database Schema
-
-### Key Tables
-- `profiles`: User data (id, email, password_hash, role, telegram_id, is_verified)
-- `listings`: Property listings (id, owner_id, status, title, images, metadata)
-- `bookings`: Rental bookings
-- `messages`: Internal messaging
-
-### Missing Columns (TODO)
-- `profiles.email_verified_at` - needs migration
+### Session 2 - Draft Editing & UI Fixes
+- Created `/api/v2/partner/listings/[id]` API (GET/PATCH/DELETE)
+- Fixed edit page to use server-side API (bypasses RLS)
+- Added authentication check with login prompt
+- Publish button now properly updates status to PENDING
+- Delete function uses server API with storage cleanup
+- Mobile UI optimized - all buttons visible
 
 ## API Endpoints
 
@@ -91,13 +89,20 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - `POST /api/v2/auth/reset-password` - Reset password
 
 ### Partner
-- `GET /api/v2/partner/listings` - Get partner's listings
+- `GET /api/v2/partner/listings` - Get all partner's listings
+- `GET /api/v2/partner/listings/[id]` - Get single listing
+- `PATCH /api/v2/partner/listings/[id]` - Update listing
+- `DELETE /api/v2/partner/listings/[id]` - Delete listing + images
+
+### Admin
+- `GET/POST /api/v2/admin/telegram` - Telegram management
+  - Actions: setWebhook, deleteWebhook, testMessage, send_moderation_notification
 
 ### Webhooks
-- `POST /api/webhooks/telegram` - Telegram bot webhook
+- `GET/POST /api/webhooks/telegram` - Telegram bot webhook v7.0
 
 ### Cron
-- `POST /api/cron/cleanup-drafts` - Draft garbage collection
+- `GET/POST /api/cron/cleanup-drafts` - Draft garbage collection
 
 ## Upcoming Tasks
 
@@ -113,23 +118,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 ### Future
 - [ ] Partner analytics dashboard
 - [ ] Mobile app (React Native)
+- [ ] View as User (Admin impersonation)
 
 ## Test Credentials
 - **Admin:** pavel_534@mail.ru / ChangeMe2025!
-
-## File Structure
-```
-/app/
-├── app/
-│   ├── api/
-│   │   ├── v2/auth/          # Auth routes
-│   │   ├── v2/partner/       # Partner routes
-│   │   ├── webhooks/telegram/ # Telegram webhook
-│   │   └── cron/             # Cron jobs
-│   ├── partner/              # Partner dashboard
-│   └── admin/                # Admin panel
-├── components/
-├── contexts/auth-context.jsx
-├── lib/auth.js
-└── memory/PRD.md
-```

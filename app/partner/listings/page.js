@@ -23,7 +23,6 @@ import {
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const STORAGE_BUCKET = 'listings'
 
 export default function PartnerListings() {
   const router = useRouter()
@@ -126,48 +125,44 @@ export default function PartnerListings() {
     setPublishingId(listing.id)
 
     try {
-      // Update status to PENDING
-      const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listing.id}`, {
+      // Update via server API
+      const updateRes = await fetch(`/api/v2/partner/listings/${listing.id}`, {
         method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           status: 'PENDING',
           metadata: {
-            ...(listing.metadata || {}),
             is_draft: false,
             needs_review: true,
             submitted_at: new Date().toISOString()
-          },
-          updated_at: new Date().toISOString()
+          }
         })
       })
 
-      if (!updateRes.ok) throw new Error('Failed to update listing')
+      const result = await updateRes.json()
+      if (!result.success) throw new Error(result.error || 'Failed to update listing')
 
-      // Send Telegram notification
-      const adminMessage = `🔔 <b>НОВАЯ ЗАЯВКА НА МОДЕРАЦИЮ</b>\n\n` +
-        `📝 <b>ID:</b> ${listing.id}\n` +
-        `🏠 <b>Название:</b> ${listing.title || 'Без названия'}\n` +
-        `💰 <b>Цена:</b> ฿${listing.base_price_thb?.toLocaleString() || 0}/день\n` +
-        `📸 <b>Фото:</b> ${listing.images?.length || 0}\n` +
-        `📍 <b>Район:</b> ${listing.district || 'Не указан'}\n\n` +
-        `<i>Листинг готов к проверке</i>`
-
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_ADMIN_GROUP_ID,
-          message_thread_id: TOPIC_ID_NEW_PARTNERS,
-          text: adminMessage,
-          parse_mode: 'HTML'
+      // Send Telegram notification (optional - don't block on failure)
+      try {
+        await fetch('/api/v2/admin/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            action: 'send_moderation_notification',
+            listing: {
+              id: listing.id,
+              title: listing.title,
+              base_price_thb: listing.base_price_thb,
+              images_count: listing.images?.length || 0,
+              district: listing.district
+            }
+          })
         })
-      })
+      } catch (e) {
+        console.log('Telegram notification failed (non-blocking):', e.message)
+      }
 
       // Update local state
       setListings(prev => prev.map(l => 
@@ -195,44 +190,21 @@ export default function PartnerListings() {
   // Delete listing with storage cleanup
   async function deleteListing(id) {
     try {
-      const listingToDelete = listings.find(l => l.id === id)
-      
-      // Clean up storage
-      if (listingToDelete?.images?.length > 0) {
-        const filePaths = listingToDelete.images
-          .filter(url => url && url.includes(`/storage/v1/object/public/${STORAGE_BUCKET}/`))
-          .map(url => {
-            const match = url.match(new RegExp(`/${STORAGE_BUCKET}/(.+)$`))
-            return match ? match[1] : null
-          })
-          .filter(Boolean)
-        
-        if (filePaths.length > 0) {
-          await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}`, {
-            method: 'DELETE',
-            headers: {
-              'apikey': SUPABASE_SERVICE_KEY,
-              'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ prefixes: filePaths })
-          })
-        }
-      }
-      
-      // Delete from DB
-      await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${id}`, {
+      // Use server API for deletion (handles storage cleanup too)
+      const res = await fetch(`/api/v2/partner/listings/${id}`, {
         method: 'DELETE',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-        }
+        credentials: 'include'
       })
       
-      setListings(listings.filter(l => l.id !== id))
-      setDeleteId(null)
+      const result = await res.json()
       
-      toast({ title: 'Удалено', description: 'Листинг успешно удалён' })
+      if (result.success) {
+        setListings(listings.filter(l => l.id !== id))
+        setDeleteId(null)
+        toast({ title: 'Удалено', description: 'Листинг успешно удалён' })
+      } else {
+        throw new Error(result.error || 'Failed to delete')
+      }
     } catch (error) {
       console.error('Failed to delete:', error)
       toast({ title: 'Ошибка', description: 'Не удалось удалить', variant: 'destructive' })
