@@ -200,96 +200,94 @@ export default function AdminPartnersPage() {
         ) : (
           <div className="space-y-4">
             {applications.map(app => (
-              <Card key={app.id} className="overflow-hidden">
-                <CardContent className="p-6">
-                  <div className="flex flex-col lg:flex-row lg:items-start gap-6">
-                    {/* User Info */}
-                    <div className="flex-1 space-y-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
-                          <User className="h-6 w-6 text-teal-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-slate-900">
-                            {app.first_name || app.name || 'Без имени'}
-                          </h3>
-                          <p className="text-sm text-slate-500">{app.email}</p>
-                        </div>
-                        <Badge className="ml-auto bg-amber-100 text-amber-700">
-                          <Clock className="h-3 w-3 mr-1" />
-                          Ожидает
-                        </Badge>
+              <Card 
+                key={app.id} 
+                className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => router.push(`/admin/partners/${app.application_id}`)}
+              >
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col gap-4">
+                    {/* Header: Avatar + Name + Badge */}
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <User className="h-5 w-5 sm:h-6 sm:w-6 text-teal-600" />
                       </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                        <div className="flex items-center gap-2 text-slate-600">
-                          <Phone className="h-4 w-4" />
-                          <span>{app.phone || 'Не указан'}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-600">
-                          <Mail className="h-4 w-4" />
-                          <span>{app.metadata?.social_link || 'Не указано'}</span>
-                        </div>
-                        {app.metadata?.portfolio && (
-                          <div className="flex items-center gap-2 text-slate-600 col-span-2">
-                            <LinkIcon className="h-4 w-4" />
-                            <a 
-                              href={app.metadata.portfolio} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-teal-600 hover:underline flex items-center gap-1"
-                            >
-                              {app.metadata.portfolio}
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Experience */}
-                      <div className="bg-slate-50 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <FileText className="h-4 w-4 text-slate-500" />
-                          <span className="text-sm font-medium text-slate-700">Опыт</span>
-                        </div>
-                        <p className="text-sm text-slate-600 whitespace-pre-wrap">
-                          {app.metadata?.experience || 'Не указан'}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-slate-900 text-sm sm:text-base">
+                          {app.first_name || app.name || 'Без имени'}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-slate-500 truncate">
+                          {app.email}
                         </p>
                       </div>
+                      <Badge className="bg-amber-100 text-amber-700 text-xs flex-shrink-0">
+                        <Clock className="h-3 w-3 mr-1" />
+                        <span className="hidden sm:inline">Ожидает</span>
+                      </Badge>
+                    </div>
 
-                      <p className="text-xs text-slate-400">
-                        Заявка подана: {new Date(app.metadata?.partner_applied_at || app.created_at).toLocaleString('ru-RU')}
+                    {/* Contact Info - Compact on mobile */}
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs sm:text-sm text-slate-600">
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate">{app.phone || 'Нет'}</span>
+                      </div>
+                      {app.metadata?.social_link && (
+                        <div className="flex items-center gap-1.5">
+                          <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+                          <span className="truncate max-w-[120px] sm:max-w-none">{app.metadata.social_link}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Experience Preview */}
+                    <div className="bg-slate-50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <FileText className="h-3.5 w-3.5 text-slate-500" />
+                        <span className="text-xs font-medium text-slate-700">Опыт</span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-600 line-clamp-2">
+                        {app.metadata?.experience || 'Не указан'}
                       </p>
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex flex-row lg:flex-col gap-2 lg:w-40">
-                      <Button
-                        onClick={() => approvePartner(app.id)}
-                        disabled={processingId === app.id}
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                      >
-                        {processingId === app.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <>
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Одобрить
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setRejectingUser(app)
-                          setShowRejectModal(true)
-                        }}
-                        disabled={processingId === app.id}
-                        variant="outline"
-                        className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Отклонить
-                      </Button>
+                    {/* Footer: Date + Actions */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <p className="text-xs text-slate-400">
+                        {new Date(app.metadata?.partner_applied_at || app.created_at).toLocaleString('ru-RU')}
+                      </p>
+                      
+                      {/* Actions */}
+                      <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          onClick={() => approvePartner(app.id)}
+                          disabled={processingId === app.id}
+                          size="sm"
+                          className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700 h-9"
+                        >
+                          {processingId === app.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <CheckCircle className="h-4 w-4 sm:mr-1" />
+                              <span className="hidden sm:inline">Одобрить</span>
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          onClick={() => {
+                            setRejectingUser(app)
+                            setShowRejectModal(true)
+                          }}
+                          disabled={processingId === app.id}
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 sm:flex-none text-red-600 border-red-200 hover:bg-red-50 h-9"
+                        >
+                          <XCircle className="h-4 w-4 sm:mr-1" />
+                          <span className="hidden sm:inline">Отклонить</span>
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
