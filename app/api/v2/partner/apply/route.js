@@ -3,7 +3,8 @@
  * POST /api/v2/partner/apply
  * 
  * Handles partner application submission
- * Sets verification_status to 'PENDING_PARTNER'
+ * Inserts data into partner_applications table
+ * Sets profile verification_status to 'PENDING'
  * Sends Telegram notification to admin
  */
 
@@ -59,7 +60,7 @@ export async function POST(request) {
   }
   
   // Normalize portfolio URL
-  let normalizedPortfolio = portfolio?.trim() || '';
+  let normalizedPortfolio = portfolio?.trim() || null;
   if (normalizedPortfolio && !normalizedPortfolio.startsWith('http://') && !normalizedPortfolio.startsWith('https://')) {
     normalizedPortfolio = 'https://' + normalizedPortfolio;
   }
@@ -88,40 +89,80 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
   }
   
-  // Check if already applied or is partner
+  // Check if already a partner
   if (currentUser.role === 'PARTNER') {
     return NextResponse.json({ success: false, error: 'Вы уже партнёр' }, { status: 400 });
   }
   
-  if (currentUser.verification_status === 'PENDING_PARTNER') {
-    return NextResponse.json({ success: false, error: 'Заявка уже подана' }, { status: 400 });
+  // Check if application already exists
+  const { data: existingApp } = await supabase
+    .from('partner_applications')
+    .select('id, status')
+    .eq('user_id', userId)
+    .single();
+  
+  if (existingApp) {
+    if (existingApp.status === 'PENDING') {
+      return NextResponse.json({ success: false, error: 'Заявка уже подана и ожидает рассмотрения' }, { status: 400 });
+    }
+    // If rejected, allow to resubmit by updating existing record
+    if (existingApp.status === 'REJECTED') {
+      const { error: updateAppError } = await supabase
+        .from('partner_applications')
+        .update({
+          phone,
+          social_link: socialLink || null,
+          experience,
+          portfolio: normalizedPortfolio,
+          status: 'PENDING',
+          rejection_reason: null,
+          reviewed_by: null,
+          reviewed_at: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingApp.id);
+      
+      if (updateAppError) {
+        console.error('[PARTNER-APPLY] Update error:', updateAppError);
+        return NextResponse.json({ success: false, error: 'Failed to resubmit application' }, { status: 500 });
+      }
+      
+      console.log('[PARTNER-APPLY] Resubmitted application');
+    }
+  } else {
+    // Insert new application
+    const { error: insertError } = await supabase
+      .from('partner_applications')
+      .insert({
+        user_id: userId,
+        phone,
+        social_link: socialLink || null,
+        experience,
+        portfolio: normalizedPortfolio,
+        status: 'PENDING'
+      });
+    
+    if (insertError) {
+      console.error('[PARTNER-APPLY] Insert error:', insertError);
+      return NextResponse.json({ success: false, error: 'Failed to submit application' }, { status: 500 });
+    }
+    
+    console.log('[PARTNER-APPLY] New application inserted');
   }
   
-  // Update profile with partner application data
-  // Store application data in rejection_reason as JSON with type identifier
-  const applicationData = JSON.stringify({
-    type: 'PARTNER_APPLICATION',
-    social_link: socialLink || '',
-    experience: experience,
-    portfolio: normalizedPortfolio,
-    applied_at: new Date().toISOString()
-  });
-  
-  const { data: updated, error: updateError } = await supabase
+  // Update profile phone and verification_status
+  const { error: profileError } = await supabase
     .from('profiles')
     .update({
       phone: phone,
-      verification_status: 'PENDING', // Using standard PENDING value
-      rejection_reason: applicationData, // Store app data with type marker
+      verification_status: 'PENDING',
       updated_at: new Date().toISOString()
     })
-    .eq('id', userId)
-    .select()
-    .single();
+    .eq('id', userId);
   
-  if (updateError) {
-    console.error('[PARTNER-APPLY] Update error:', updateError);
-    return NextResponse.json({ success: false, error: 'Failed to submit application' }, { status: 500 });
+  if (profileError) {
+    console.error('[PARTNER-APPLY] Profile update error:', profileError);
+    // Non-blocking - application is already saved
   }
   
   console.log('[PARTNER-APPLY] Profile updated, sending Telegram notification...');
@@ -149,7 +190,7 @@ export async function POST(request) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: ADMIN_GROUP_ID,
-          message_thread_id: 17, // NEW_PARTNERS topic
+          message_thread_id: 17,
           text: message,
           parse_mode: 'HTML'
         })
@@ -166,12 +207,6 @@ export async function POST(request) {
   return NextResponse.json({
     success: true,
     message: 'Заявка отправлена',
-    redirectTo: '/partner-application-success',
-    user: {
-      id: updated.id,
-      email: updated.email,
-      role: updated.role,
-      verification_status: updated.verification_status
-    }
+    redirectTo: '/partner-application-success'
   });
 }

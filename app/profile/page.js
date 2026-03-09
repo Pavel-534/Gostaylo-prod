@@ -191,14 +191,27 @@ export default function ProfilePage() {
   const isPartner = user.role === 'PARTNER'
   
   // Check if user has pending partner application
-  // App data stored in rejection_reason as JSON with type=PARTNER_APPLICATION
-  let isPendingPartner = false
-  try {
-    if (user.verification_status === 'PENDING' && user.rejection_reason) {
-      const appData = JSON.parse(user.rejection_reason)
-      isPendingPartner = appData.type === 'PARTNER_APPLICATION'
+  const [isPendingPartner, setIsPendingPartner] = useState(false)
+  
+  useEffect(() => {
+    async function checkPendingApplication() {
+      if (user && user.role !== 'PARTNER') {
+        try {
+          const res = await fetch(`/api/v2/partner/application-status`, {
+            credentials: 'include'
+          })
+          const result = await res.json()
+          if (result.success && result.status === 'PENDING') {
+            setIsPendingPartner(true)
+          }
+        } catch (e) {
+          // If API fails, check verification_status as fallback
+          setIsPendingPartner(user.verification_status === 'PENDING')
+        }
+      }
     }
-  } catch (e) {}
+    if (user) checkPendingApplication()
+  }, [user])
   
   const isRenter = user.role === 'RENTER' && !isPendingPartner
 

@@ -2,6 +2,8 @@
  * Gostaylo - Admin Partners Management API
  * GET /api/v2/admin/partners - List pending partner applications
  * POST /api/v2/admin/partners - Approve or reject applications
+ * 
+ * Uses partner_applications table
  */
 
 import { NextResponse } from 'next/server';
@@ -13,7 +15,6 @@ export const dynamic = 'force-dynamic';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const ADMIN_GROUP_ID = process.env.TELEGRAM_ADMIN_GROUP_ID;
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.gostaylo.com';
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
@@ -90,7 +91,7 @@ async function sendTelegramToUser(telegramId, message) {
 }
 
 /**
- * GET - List pending partner applications
+ * GET - List pending partner applications from partner_applications table
  */
 export async function GET(request) {
   const auth = verifyAdmin(request);
@@ -105,11 +106,22 @@ export async function GET(request) {
     auth: { autoRefreshToken: false, persistSession: false }
   });
   
-  // Query users with PENDING status that have PARTNER_APPLICATION in rejection_reason
-  const { data: allPending, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('verification_status', 'PENDING')
+  // Fetch pending applications with user profile data
+  const { data: applications, error } = await supabase
+    .from('partner_applications')
+    .select(`
+      *,
+      profiles:user_id (
+        id,
+        email,
+        first_name,
+        last_name,
+        telegram_id,
+        avatar,
+        created_at
+      )
+    `)
+    .eq('status', 'PENDING')
     .order('created_at', { ascending: false });
   
   if (error) {
@@ -117,34 +129,26 @@ export async function GET(request) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
   
-  // Filter to only partner applications
-  const applications = (allPending || []).filter(app => {
-    try {
-      if (app.rejection_reason && app.rejection_reason.startsWith('{')) {
-        const data = JSON.parse(app.rejection_reason);
-        return data.type === 'PARTNER_APPLICATION';
-      }
-    } catch (e) {}
-    return false;
-  });
-  
-  // Parse application data from rejection_reason field
-  const processedApps = applications.map(app => {
-    let appData = {};
-    try {
-      appData = JSON.parse(app.rejection_reason);
-    } catch (e) {}
-    
-    return {
-      ...app,
-      metadata: {
-        social_link: appData.social_link || '',
-        experience: appData.experience || '',
-        portfolio: appData.portfolio || '',
-        partner_applied_at: appData.applied_at || app.updated_at
-      }
-    };
-  });
+  // Transform data for frontend
+  const processedApps = (applications || []).map(app => ({
+    id: app.profiles?.id || app.user_id,
+    application_id: app.id,
+    email: app.profiles?.email,
+    first_name: app.profiles?.first_name,
+    last_name: app.profiles?.last_name,
+    telegram_id: app.profiles?.telegram_id,
+    avatar: app.profiles?.avatar,
+    phone: app.phone,
+    user_created_at: app.profiles?.created_at,
+    metadata: {
+      social_link: app.social_link || '',
+      experience: app.experience || '',
+      portfolio: app.portfolio || '',
+      partner_applied_at: app.created_at
+    },
+    created_at: app.created_at,
+    updated_at: app.updated_at
+  }));
   
   return NextResponse.json({
     success: true,
@@ -155,6 +159,7 @@ export async function GET(request) {
 
 /**
  * POST - Approve or reject partner application
+ * Updates both partner_applications and profiles tables
  */
 export async function POST(request) {
   const auth = verifyAdmin(request);
@@ -182,7 +187,7 @@ export async function POST(request) {
     auth: { autoRefreshToken: false, persistSession: false }
   });
   
-  // Get user data first
+  // Get user profile
   const { data: user, error: fetchError } = await supabase
     .from('profiles')
     .select('*')
@@ -193,21 +198,50 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
   }
   
+  // Get application
+  const { data: application } = await supabase
+    .from('partner_applications')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'PENDING')
+    .single();
+  
+  if (!application) {
+    return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 });
+  }
+  
+  const now = new Date().toISOString();
+  
   if (action === 'approve') {
-    // Update to PARTNER role
-    const { error: updateError } = await supabase
+    // Update partner_applications table
+    const { error: appError } = await supabase
+      .from('partner_applications')
+      .update({
+        status: 'APPROVED',
+        reviewed_by: auth.userId,
+        reviewed_at: now,
+        updated_at: now
+      })
+      .eq('id', application.id);
+    
+    if (appError) {
+      console.error('[ADMIN-PARTNERS] App update error:', appError);
+      return NextResponse.json({ success: false, error: appError.message }, { status: 500 });
+    }
+    
+    // Update profiles table - change role to PARTNER
+    const { error: profileError } = await supabase
       .from('profiles')
       .update({
         role: 'PARTNER',
         verification_status: 'VERIFIED',
-        rejection_reason: null, // Clear the application data
-        updated_at: new Date().toISOString()
+        updated_at: now
       })
       .eq('id', userId);
     
-    if (updateError) {
-      console.error('[ADMIN-PARTNERS] Approve error:', updateError);
-      return NextResponse.json({ success: false, error: updateError.message }, { status: 500 });
+    if (profileError) {
+      console.error('[ADMIN-PARTNERS] Profile update error:', profileError);
+      return NextResponse.json({ success: false, error: profileError.message }, { status: 500 });
     }
     
     // Send approval notifications
@@ -248,19 +282,35 @@ export async function POST(request) {
   if (action === 'reject') {
     const rejectionReason = reason || 'Заявка не соответствует требованиям';
     
-    // Update status to REJECTED
-    const { error: updateError } = await supabase
+    // Update partner_applications table
+    const { error: appError } = await supabase
+      .from('partner_applications')
+      .update({
+        status: 'REJECTED',
+        rejection_reason: rejectionReason,
+        reviewed_by: auth.userId,
+        reviewed_at: now,
+        updated_at: now
+      })
+      .eq('id', application.id);
+    
+    if (appError) {
+      console.error('[ADMIN-PARTNERS] App update error:', appError);
+      return NextResponse.json({ success: false, error: appError.message }, { status: 500 });
+    }
+    
+    // Update profiles table - reset verification_status
+    const { error: profileError } = await supabase
       .from('profiles')
       .update({
-        verification_status: 'REJECTED',
-        rejection_reason: rejectionReason, // Store actual rejection reason
-        updated_at: new Date().toISOString()
+        verification_status: null,
+        updated_at: now
       })
       .eq('id', userId);
     
-    if (updateError) {
-      console.error('[ADMIN-PARTNERS] Reject error:', updateError);
-      return NextResponse.json({ success: false, error: updateError.message }, { status: 500 });
+    if (profileError) {
+      console.error('[ADMIN-PARTNERS] Profile update error:', profileError);
+      // Non-blocking
     }
     
     // Send rejection notifications
