@@ -323,32 +323,37 @@ export default function PartnerApplicationDetailPage() {
         </Card>
         */}
 
-        {/* Actions */}
-        <div className="flex gap-3 pt-4">
-          <Button
-            onClick={approvePartner}
-            disabled={processing}
-            className="flex-1 bg-green-600 hover:bg-green-700 h-12"
-          >
-            {processing ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <>
-                <CheckCircle className="h-5 w-5 mr-2" />
-                Одобрить партнёра
-              </>
-            )}
-          </Button>
-          <Button
-            onClick={() => setShowRejectModal(true)}
-            disabled={processing}
-            variant="outline"
-            className="flex-1 text-red-600 border-red-200 hover:bg-red-50 h-12"
-          >
-            <XCircle className="h-5 w-5 mr-2" />
-            Отклонить
-          </Button>
+        {/* Actions - Fixed at bottom on mobile */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 sm:relative sm:border-0 sm:p-0 sm:pt-4 sm:bg-transparent">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 max-w-2xl mx-auto">
+            <Button
+              onClick={approvePartner}
+              disabled={processing}
+              className="w-full sm:flex-1 bg-green-600 hover:bg-green-700 h-11 sm:h-12"
+            >
+              {processing ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                  Одобрить партнёра
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={() => setShowRejectModal(true)}
+              disabled={processing}
+              variant="outline"
+              className="w-full sm:flex-1 text-red-600 border-red-200 hover:bg-red-50 h-11 sm:h-12"
+            >
+              <XCircle className="h-5 w-5 mr-2" />
+              Отклонить
+            </Button>
+          </div>
         </div>
+        
+        {/* Spacer for fixed bottom buttons on mobile */}
+        <div className="h-28 sm:hidden"></div>
       </div>
 
       {/* Reject Modal */}
