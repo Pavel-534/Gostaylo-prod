@@ -296,6 +296,14 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - Added Chinese (🇨🇳 ZH) to language selector
 - Fixed active states highlighting in Bottom Nav
 
+### 8. Profile Page Critical Bug Fix (2026-03-10)
+- **Issue:** `/profile` page crashed with "client-side exception" for authenticated partner users
+- **Root Cause:** Missing `Star` icon import in `lucide-react` imports
+- **Star icon usage:** Line 726 in Welcome Partner Modal - rendered only for partners after approval
+- **Fix:** Added `Star` to imports at line 18: `import { ...Star } from 'lucide-react'`
+- **Tested:** Partner user `86boa@mail.ru` can now access `/profile` without errors
+- **File:** `/app/app/profile/page.js`
+
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql`
 - **Important:** RLS uses `auth.uid()` from Supabase Auth, but app uses custom JWT auth
@@ -305,6 +313,8 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 ## Test Credentials
 - **Admin:** pavel_534@mail.ru / ChangeMe2025!
 - **Partner (Test):** kyc_test_user@test.com / ChangeMe2025! (telegram_id: 888777666)
+- **Partner (Production):** 86boa@mail.ru / az123456 (used for bug reproduction)
 
 ## Test Reports
 - `/app/test_reports/iteration_1.json` - Partner application flow tests (13/13 passed)
+- `/app/test_reports/iteration_3.json` - Profile page bug fix verification (100% frontend pass)
