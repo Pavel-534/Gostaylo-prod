@@ -589,9 +589,12 @@ async function handleLinkAccount(chatId, email, firstName, username) {
  */
 async function handlePhotoUpload(chatId, message, firstName) {
   try {
-    // Check if user is linked
+    // Check if user is linked - telegram_id is stored as string
+    const chatIdStr = String(chatId);
+    console.log(`[LAZY REALTOR] Looking up partner with telegram_id=${chatIdStr}`);
+    
     const partnerRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?telegram_id=eq.${chatId}&select=id,role,first_name,last_name`,
+      `${SUPABASE_URL}/rest/v1/profiles?telegram_id=eq.${chatIdStr}&select=id,role,first_name,last_name,email`,
       {
         headers: {
           'apikey': SUPABASE_SERVICE_KEY,
@@ -601,11 +604,24 @@ async function handlePhotoUpload(chatId, message, firstName) {
     );
     const partners = await partnerRes.json();
     const partner = partners?.[0];
+    
+    console.log(`[LAZY REALTOR] Partner lookup result:`, partner ? { id: partner.id, email: partner.email, role: partner.role } : 'NOT FOUND');
 
-    if (!partner || !['PARTNER', 'ADMIN'].includes(partner.role)) {
+    if (!partner) {
       await sendTelegram(chatId,
-        '❌ <b>Сначала привяжите аккаунт</b>\n\n' +
-        '<code>/link ваш@email.com</code>'
+        '❌ <b>Telegram не привязан</b>\n\n' +
+        'Сначала привяжите аккаунт:\n' +
+        '<code>/link ваш@email.com</code>\n\n' +
+        'Или перейдите в профиль на сайте и нажмите "Привязать Telegram".'
+      );
+      return;
+    }
+    
+    if (!['PARTNER', 'ADMIN'].includes(partner.role)) {
+      await sendTelegram(chatId,
+        '❌ <b>Недостаточно прав</b>\n\n' +
+        'Создавать объекты могут только партнёры.\n' +
+        'Подайте заявку на партнёрство в профиле на сайте.'
       );
       return;
     }
@@ -631,7 +647,7 @@ async function handlePhotoUpload(chatId, message, firstName) {
     const title = lines[0]?.substring(0, 100) || `Объект от ${firstName}`;
     const description = lines.slice(1).join('\n') || caption || 'Создано через Telegram';
 
-    console.log(`[LAZY REALTOR] Creating DRAFT: ${listingId}, Price: ${price}, Photo: ${photoUrl ? 'yes' : 'no'}`);
+    console.log(`[LAZY REALTOR] Creating DRAFT: ${listingId}, owner_id: ${partner.id}, Price: ${price}, Photo: ${photoUrl ? 'yes' : 'no'}`);
 
     // Create listing with status = 'INACTIVE' (valid enum) + metadata.is_draft = true
     // This combination means "draft" - not visible in Admin panel
