@@ -412,7 +412,7 @@ function ProfileContent() {
                 <Button 
                   className='bg-blue-600 hover:bg-blue-700 px-6'
                   onClick={() => {
-                    const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'FunnyRent_777_bot'
+                    const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'GostayloBot'
                     window.open(`https://t.me/${botName}?start=link_${user.id}`, '_blank')
                   }}
                 >

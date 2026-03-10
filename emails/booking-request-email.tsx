@@ -59,7 +59,7 @@ export default function BookingRequestEmail({
             <div style={logoBox}>
               <Text style={logoText}>FR</Text>
             </div>
-            <Heading style={mainHeading}>FunnyRent</Heading>
+            <Heading style={mainHeading}>Gostaylo</Heading>
           </Section>
 
           {/* Main Heading */}
@@ -144,7 +144,7 @@ export default function BookingRequestEmail({
 
           <Text style={footer}>
             С уважением,<br />
-            Команда <strong>FunnyRent</strong>
+            Команда <strong>Gostaylo</strong>
           </Text>
         </Container>
       </Body>

@@ -151,9 +151,11 @@ function ListingsContent() {
               </Button>
             </Link>
             
-            <Link href="/" className="flex flex-col leading-none">
-              <span className="text-lg font-black text-slate-900 tracking-tight">Funny</span>
-              <span className="text-lg font-black text-teal-500 tracking-tight ml-3 -mt-1">Rent</span>
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">G</span>
+              </div>
+              <span className="text-lg font-bold text-slate-900 tracking-tight">Gostaylo</span>
             </Link>
             
             <div className="w-20" />

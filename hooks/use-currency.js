@@ -73,14 +73,14 @@ export function CurrencyProvider({ children }) {
     }
   }, []);
 
-  // Convert THB to user's currency (with FunnyRate markup already applied on server)
+  // Convert THB to user's currency (with GostayloRate markup already applied on server)
   const convert = useCallback((amountThb) => {
     if (!rates || currency === 'THB') return amountThb;
     
     const rate = rates[currency];
     if (!rate) return amountThb;
     
-    // Apply 3.5% markup (FunnyRate)
+    // Apply 3.5% markup (GostayloRate)
     const funnyRate = rate * 1.035;
     return Math.round(amountThb * funnyRate * 100) / 100;
   }, [rates, currency]);

@@ -78,12 +78,9 @@ export function UniversalHeader() {
           {/* Left - Logo */}
           <Link href='/' className='flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0'>
             <div className='w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-sm'>
-              <svg className='w-4 h-4 sm:w-5 sm:h-5 text-white' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5'>
-                <path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' />
-                <polyline points='9 22 9 12 15 12 15 22' />
-              </svg>
+              <span className='text-white font-bold text-sm sm:text-base'>G</span>
             </div>
-            <span className='font-bold text-lg sm:text-xl text-slate-800 tracking-tight hidden xs:inline'>Gostaylo</span>
+            <span className='font-bold text-lg sm:text-xl text-slate-800 tracking-tight'>Gostaylo</span>
           </Link>
 
           {/* Right - Controls */}

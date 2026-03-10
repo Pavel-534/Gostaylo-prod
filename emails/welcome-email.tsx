@@ -26,7 +26,7 @@ export default function WelcomeEmail({
   return (
     <Html>
       <Head />
-      <Preview>Добро пожаловать в FunnyRent! 🏝️</Preview>
+      <Preview>Добро пожаловать в Gostaylo! 🏝️</Preview>
       <Body style={main}>
         <Container style={container}>
           {/* Logo Section */}
@@ -34,7 +34,7 @@ export default function WelcomeEmail({
             <div style={logoBox}>
               <Text style={logoText}>FR</Text>
             </div>
-            <Heading style={mainHeading}>FunnyRent</Heading>
+            <Heading style={mainHeading}>Gostaylo</Heading>
           </Section>
 
           {/* Welcome Message */}
@@ -45,7 +45,7 @@ export default function WelcomeEmail({
           </Text>
 
           <Text style={text}>
-            Спасибо за регистрацию в <strong>FunnyRent</strong> — вашем надёжном партнёре для роскошной аренды на Пхукете. 
+            Спасибо за регистрацию в <strong>Gostaylo</strong> — вашем надёжном партнёре для роскошной аренды на Пхукете. 
             Виллы, яхты, транспорт и экскурсии — всё в одном месте!
           </Text>
 
@@ -70,7 +70,7 @@ export default function WelcomeEmail({
           {/* Footer */}
           <Text style={footer}>
             С уважением,<br />
-            Команда <strong>FunnyRent</strong>
+            Команда <strong>Gostaylo</strong>
           </Text>
 
           <Text style={footerSmall}>

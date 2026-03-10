@@ -56,7 +56,7 @@ export default function PaymentSuccessEmail({
             <div style={logoBox}>
               <Text style={logoText}>FR</Text>
             </div>
-            <Heading style={mainHeading}>FunnyRent</Heading>
+            <Heading style={mainHeading}>Gostaylo</Heading>
           </Section>
 
           {/* Success Badge */}
@@ -163,7 +163,7 @@ export default function PaymentSuccessEmail({
 
           <Text style={footer}>
             Желаем вам прекрасного отдыха на Пхукете! 🌴<br />
-            Команда <strong>FunnyRent</strong>
+            Команда <strong>Gostaylo</strong>
           </Text>
 
           <Text style={footerSmall}>

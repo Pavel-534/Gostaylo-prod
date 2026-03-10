@@ -30,7 +30,7 @@ export default function PartnerVerifiedEmail({ partnerName, loginUrl }) {
             </Text>
 
             <Text style={text}>
-              Отличные новости! Администратор FunnyRent одобрил вашу заявку.
+              Отличные новости! Администратор Gostaylo одобрил вашу заявку.
               Теперь вы официальный партнер платформы!
             </Text>
 
