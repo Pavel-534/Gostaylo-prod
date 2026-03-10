@@ -268,6 +268,18 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - Changed to `in('status', ['ACTIVE', 'INACTIVE', 'PENDING', 'REJECTED'])`
 - **File:** `/app/app/api/v2/partner/listings/route.js`
 
+### 4. Profile Page Suspense Fix (2026-03-10)
+- Added Suspense wrapper for `useSearchParams()` to fix Vercel prerendering error
+- Renamed main component to `ProfileContent`, wrapped in `<Suspense>` with loading fallback
+- **File:** `/app/app/profile/page.js`
+
+### 5. Settings Page Cleanup (2026-03-10)
+- Removed redundant Telegram linking blocks (mock code)
+- Settings page now loads real user data from localStorage
+- Telegram status syncs with profile connection state
+- Simplified notification toggles
+- **File:** `/app/app/partner/settings/page.js`
+
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql`
 - **Important:** RLS uses `auth.uid()` from Supabase Auth, but app uses custom JWT auth

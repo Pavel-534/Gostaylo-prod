@@ -8,83 +8,112 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Copy, Check, ExternalLink, Bell, Mail, MessageSquare, Shield, Loader2, Send } from 'lucide-react'
+import { Check, ExternalLink, Bell, Mail, MessageSquare, Shield, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function PartnerSettings() {
-  const [linkingCode, setLinkingCode] = useState('')
-  const [telegramLinked, setTelegramLinked] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [generatingCode, setGeneratingCode] = useState(false)
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
-  // Partner settings state
+  // Settings state - loaded from user profile
   const [settings, setSettings] = useState({
-    agencyName: 'Иван Партнёров',
-    email: 'partner@gostaylo.com',
-    phone: '+7 999 123 4567',
+    agencyName: '',
+    email: '',
+    phone: '',
     notifyTelegram: true,
     notifyEmail: true,
     notifyNewBooking: true,
     notifyNewMessage: true,
     notifyStatusChange: true,
-    verificationStatus: 'VERIFIED',
-    taxId: '',
   })
 
-  async function generateCode() {
-    setGeneratingCode(true)
+  // Telegram connection status
+  const [telegramLinked, setTelegramLinked] = useState(false)
+  const [telegramUsername, setTelegramUsername] = useState('')
+
+  // Load user data on mount
+  useEffect(() => {
+    const storedUser = localStorage.getItem('gostaylo_user')
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser)
+        setUser(parsed)
+        
+        // Set settings from user profile
+        setSettings(prev => ({
+          ...prev,
+          agencyName: `${parsed.firstName || ''} ${parsed.lastName || ''}`.trim() || parsed.name || '',
+          email: parsed.email || '',
+          phone: parsed.phone || '',
+          notifyTelegram: parsed.notificationPreferences?.telegram ?? true,
+          notifyEmail: parsed.notificationPreferences?.email ?? true,
+        }))
+        
+        // Check Telegram connection status
+        if (parsed.telegramId || parsed.telegram_id) {
+          setTelegramLinked(true)
+          setTelegramUsername(parsed.telegramUsername || parsed.telegram_username || '')
+        }
+      } catch (e) {
+        console.error('Failed to parse user:', e)
+      }
+    }
+    setLoading(false)
+  }, [])
+
+  async function handleSaveSettings() {
+    if (!user?.id) {
+      toast.error('Пользователь не авторизован')
+      return
+    }
+
+    setSaving(true)
     try {
-      // Get user from localStorage
-      const storedUser = localStorage.getItem('gostaylo_user')
-      const user = storedUser ? JSON.parse(storedUser) : { id: 'partner-1' }
-      
-      const res = await fetch('/api/v2/telegram/link', {
-        method: 'POST',
+      const res = await fetch('/api/v2/auth/me', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
+        credentials: 'include',
+        body: JSON.stringify({
+          phone: settings.phone,
+          notification_preferences: {
+            telegram: settings.notifyTelegram,
+            email: settings.notifyEmail,
+          }
+        })
       })
-      const data = await res.json()
       
-      if (data.success) {
-        setLinkingCode(data.code)
-        toast.info('Код сгенерирован! Отправьте его боту.')
+      if (res.ok) {
+        toast.success('Настройки сохранены!')
+        
+        // Update localStorage
+        const updatedUser = {
+          ...user,
+          phone: settings.phone,
+          notificationPreferences: {
+            telegram: settings.notifyTelegram,
+            email: settings.notifyEmail,
+          }
+        }
+        localStorage.setItem('gostaylo_user', JSON.stringify(updatedUser))
+        setUser(updatedUser)
       } else {
-        toast.error(data.error || 'Ошибка генерации кода')
+        const data = await res.json()
+        toast.error(data.error || 'Ошибка сохранения')
       }
     } catch (error) {
       toast.error('Ошибка: ' + error.message)
     } finally {
-      setGeneratingCode(false)
+      setSaving(false)
     }
   }
 
-  function copyCode() {
-    navigator.clipboard.writeText(linkingCode)
-    setCopied(true)
-    toast.success('Код скопирован!')
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  function handleSaveSettings() {
-    setLoading(true)
-    // Mock save
-    setTimeout(() => {
-      setLoading(false)
-      toast.success('Настройки сохранены!')
-    }, 1000)
-  }
-
-  const verificationColors = {
-    PENDING: 'bg-yellow-100 text-yellow-700',
-    VERIFIED: 'bg-green-100 text-green-700',
-    REJECTED: 'bg-red-100 text-red-700',
-  }
-
-  const verificationLabels = {
-    PENDING: 'На модерации',
-    VERIFIED: 'Подтверждён',
-    REJECTED: 'Отклонён',
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+      </div>
+    )
   }
 
   return (
@@ -114,15 +143,17 @@ export default function PartnerSettings() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={settings.email}
-                onChange={(e) => setSettings({ ...settings, email: e.target.value })}
+                disabled
+                className="bg-slate-50"
               />
+              <p className="text-xs text-slate-500">Email нельзя изменить</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Телефон</Label>
@@ -130,268 +161,63 @@ export default function PartnerSettings() {
                 id="phone"
                 value={settings.phone}
                 onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
+                placeholder="+66 XXX XXX XXXX"
               />
             </div>
           </div>
-
-          <div className="flex items-center justify-between pt-4 border-t">
-            <div>
-              <p className="font-medium text-slate-900">Статус верификации</p>
-              <p className="text-sm text-slate-600">Проверка личности и документов</p>
-            </div>
-            <Badge className={verificationColors[settings.verificationStatus]}>
-              <Shield className="h-3 w-3 mr-1" />
-              {verificationLabels[settings.verificationStatus]}
-            </Badge>
-          </div>
         </CardContent>
       </Card>
 
-      {/* KYC Verification */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-teal-600" />
-            Верификация партнёра (KYC)
-          </CardTitle>
-          <CardDescription>
-            Подтвердите личность для получения значка "Verified Partner"
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {settings.verificationStatus === 'VERIFIED' ? (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="bg-green-600 rounded-full p-2">
-                  <Check className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="font-semibold text-green-900 text-lg">Вы верифицированы!</p>
-                  <p className="text-sm text-green-700">Значок "Verified" отображается на всех ваших объявлениях</p>
-                </div>
-              </div>
-              <Badge className="bg-teal-600 text-white">
-                <Shield className="h-3 w-3 mr-1" />
-                Verified Partner
-              </Badge>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <h4 className="font-semibold text-amber-900 mb-2">Почему это важно?</h4>
-                <ul className="text-sm text-amber-800 space-y-1 list-disc list-inside">
-                  <li>Ваши объявления получат приоритет в поиске</li>
-                  <li>Значок "Verified" повышает доверие арендаторов</li>
-                  <li>Доступ к расширенным функциям платформы</li>
-                </ul>
-              </div>
-
-              <div className="space-y-3">
-                <Label>Загрузите документы</Label>
-                <p className="text-sm text-slate-600">
-                  Паспорт, водительские права или бизнес-лицензия
-                </p>
-                
-                <div className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-teal-400 transition cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/*,.pdf"
-                    className="hidden"
-                    id="kyc-upload"
-                    onChange={(e) => {
-                      if (e.target.files?.[0]) {
-                        toast.success('Документ загружен (mock)')
-                      }
-                    }}
-                  />
-                  <label htmlFor="kyc-upload" className="cursor-pointer">
-                    <Shield className="h-12 w-12 text-slate-400 mx-auto mb-3" />
-                    <p className="font-medium text-slate-900 mb-1">Нажмите для загрузки</p>
-                    <p className="text-sm text-slate-500">PNG, JPG или PDF до 10MB</p>
-                  </label>
-                </div>
-
-                <Button
-                  className="w-full bg-teal-600 hover:bg-teal-700"
-                  onClick={() => {
-                    toast.success('Документы отправлены на проверку!')
-                    setSettings({ ...settings, verificationStatus: 'PENDING' })
-                  }}
-                >
-                  Отправить на проверку
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Telegram Integration */}
+      {/* Telegram Status */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-teal-600" />
-            Telegram уведомления
+            Telegram
           </CardTitle>
           <CardDescription>
-            Получайте важные уведомления в Telegram
+            Статус подключения к Telegram боту
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           {telegramLinked ? (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Check className="h-5 w-5 text-green-600" />
-                <span className="font-semibold text-green-900">Telegram подключён</span>
+              <div className="flex items-center gap-3">
+                <div className="bg-green-600 rounded-full p-2">
+                  <Check className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="font-semibold text-green-900">Telegram подключён</p>
+                  {telegramUsername && (
+                    <p className="text-sm text-green-700">@{telegramUsername}</p>
+                  )}
+                </div>
               </div>
-              <p className="text-sm text-green-700">
-                Вы будете получать уведомления о новых бронированиях и сообщениях
+              <p className="text-sm text-green-700 mt-3">
+                Вы получаете уведомления о бронированиях и сообщениях через Telegram.
               </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3 border-red-200 text-red-600 hover:bg-red-50"
-                onClick={() => setTelegramLinked(false)}
-              >
-                Отключить
-              </Button>
+              <p className="text-xs text-slate-500 mt-2">
+                Для отключения перейдите в <a href="/profile" className="text-teal-600 hover:underline">профиль</a>
+              </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-slate-900 mb-2">Как подключить?</h4>
-                <ol className="text-sm text-slate-700 space-y-1 list-decimal list-inside">
-                  <li>Нажмите "Сгенерировать код"</li>
-                  <li>Откройте бот @GostayloBot в Telegram</li>
-                  <li>Отправьте команду /link с вашим кодом</li>
-                  <li>Готово! Уведомления настроены</li>
-                </ol>
-              </div>
-
-              {!linkingCode ? (
-                <Button
-                  onClick={generateCode}
-                  disabled={generatingCode}
-                  className="w-full bg-teal-600 hover:bg-teal-700"
-                  data-testid="connect-telegram-btn"
-                >
-                  {generatingCode ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Генерация...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4 mr-2" />
-                      Connect Telegram
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <Input
-                      value={linkingCode}
-                      readOnly
-                      className="font-mono text-2xl text-center"
-                    />
-                    <Button
-                      onClick={copyCode}
-                      variant="outline"
-                      className="flex-shrink-0"
-                    >
-                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="w-full"
-                  >
-                    <a href="https://t.me/GostayloBot" target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Открыть бот в Telegram
-                    </a>
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setTelegramLinked(true)
-                      toast.success('Telegram подключён! (mock)')
-                    }}
-                    className="w-full bg-green-600 hover:bg-green-700"
-                  >
-                    Я отправил код ✓
-                  </Button>
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-slate-300 rounded-full p-2">
+                  <MessageSquare className="h-5 w-5 text-slate-600" />
                 </div>
-              )}
+                <div>
+                  <p className="font-semibold text-slate-900">Telegram не подключён</p>
+                  <p className="text-sm text-slate-600">Подключите для получения уведомлений</p>
+                </div>
+              </div>
+              <Button asChild className="mt-4 bg-teal-600 hover:bg-teal-700">
+                <a href="/profile">
+                  Подключить в профиле
+                  <ExternalLink className="h-4 w-4 ml-2" />
+                </a>
+              </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Telegram Bot for Listings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-teal-600" />
-            Telegram Bot - Создание объявлений
-          </CardTitle>
-          <CardDescription>
-            Публикуйте объявления прямо из Telegram
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${telegramLinked ? 'bg-green-500' : 'bg-slate-300'} animate-pulse`}></div>
-              <div>
-                <p className="font-semibold text-slate-900">Статус бота</p>
-                <p className="text-sm text-slate-600">
-                  {telegramLinked ? 'Подключён и готов к работе' : 'Не подключён'}
-                </p>
-              </div>
-            </div>
-            <Badge className={telegramLinked ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'}>
-              {telegramLinked ? 'Connected' : 'Not Connected'}
-            </Badge>
-          </div>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-              📱 Как создать объявление через бот?
-            </h4>
-            <div className="space-y-3 text-sm text-slate-700">
-              <p className="font-medium">Формат сообщения:</p>
-              <div className="bg-white p-3 rounded border border-blue-200 font-mono text-xs">
-                Amazing villa with pool and garden.<br/>
-                Price: 15000<br/>
-                District: Rawai
-              </div>
-              <div className="space-y-1 mt-3">
-                <p className="font-medium">Правила:</p>
-                <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>Первая строка = заголовок объявления</li>
-                  <li><code className="bg-white px-1">Price: [число]</code> - цена в THB</li>
-                  <li><code className="bg-white px-1">District: [название]</code> - район Пхукета</li>
-                  <li>Прикрепите фото (опционально)</li>
-                </ul>
-              </div>
-              <div className="bg-amber-50 p-2 rounded border border-amber-200 mt-3">
-                <p className="text-xs text-amber-800">
-                  ⚠️ Объявления создаются со статусом <strong>PENDING</strong> (черновик). 
-                  Подтвердите их в панели управления перед публикацией.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {telegramLinked && (
-            <Button asChild className="w-full bg-teal-600 hover:bg-teal-700">
-              <a href="https://t.me/GostayloBot" target="_blank" rel="noopener noreferrer">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Открыть бот и создать объявление
-              </a>
-            </Button>
           )}
         </CardContent>
       </Card>
@@ -498,10 +324,10 @@ export default function PartnerSettings() {
       <div className="flex justify-end">
         <Button
           onClick={handleSaveSettings}
-          disabled={loading}
+          disabled={saving}
           className="bg-teal-600 hover:bg-teal-700"
         >
-          {loading ? (
+          {saving ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               Сохранение...
