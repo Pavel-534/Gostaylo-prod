@@ -312,9 +312,10 @@ export async function POST(request) {
     const text = message.text || message.caption || '';
     const firstName = message.from?.first_name || 'User';
     const username = message.from?.username || '';
+    const telegramUserId = message.from?.id; // Telegram user ID
     const photo = message.photo;
     
-    console.log(`[WEBHOOK v6.0] Chat: ${chatId}, User: ${firstName}, Text: ${text?.substring(0, 50)}`);
+    console.log(`[WEBHOOK v6.0] Chat: ${chatId}, User: ${firstName}, TelegramId: ${telegramUserId}, Text: ${text?.substring(0, 50)}`);
     
     // /help
     if (text.startsWith('/help')) {
@@ -337,8 +338,8 @@ export async function POST(request) {
       
       if (deepLinkMatch) {
         const userId = deepLinkMatch[1];
-        // Auto-link account using user ID
-        await handleDeepLink(chatId, userId, firstName, username, telegramId.toString());
+        // Auto-link account using user ID and chat_id
+        await handleDeepLink(chatId, userId, firstName, username, telegramUserId);
         return NextResponse.json({ ok: true });
       }
       
@@ -442,6 +443,8 @@ async function handleStatusCheck(chatId) {
  * Handle Deep Link - Link Telegram via user ID (from profile page)
  */
 async function handleDeepLink(chatId, userId, firstName, username, telegramId) {
+  console.log(`[DEEP LINK] Attempt: userId=${userId}, telegramId=${telegramId}, chatId=${chatId}`);
+  
   try {
     // Find user by ID
     const res = await fetch(
@@ -456,16 +459,19 @@ async function handleDeepLink(chatId, userId, firstName, username, telegramId) {
     const profiles = await res.json();
     const profile = profiles?.[0];
 
+    console.log(`[DEEP LINK] Profile found:`, profile ? profile.email : 'NOT FOUND');
+
     if (!profile) {
       await sendTelegram(chatId, 
         '❌ <b>Ошибка привязки</b>\n\n' +
-        'Пользователь не найден. Попробуйте ещё раз с профиля.'
+        'Пользователь не найден. Попробуйте ещё раз с профиля.\n\n' +
+        `<i>ID: ${userId}</i>`
       );
       return;
     }
 
     // Check if already linked to another Telegram
-    if (profile.telegram_id && profile.telegram_id !== telegramId) {
+    if (profile.telegram_id && profile.telegram_id !== chatId.toString()) {
       await sendTelegram(chatId, 
         '❌ <b>Аккаунт уже привязан</b>\n\n' +
         'Этот аккаунт уже связан с другим Telegram.\n' +
@@ -474,20 +480,27 @@ async function handleDeepLink(chatId, userId, firstName, username, telegramId) {
       return;
     }
 
-    // Update profile with Telegram ID
-    await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${profile.id}`, {
+    // Update profile with Telegram chat_id
+    const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${profile.id}`, {
       method: 'PATCH',
       headers: {
         'apikey': SUPABASE_SERVICE_KEY,
         'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
       },
       body: JSON.stringify({
-        telegram_id: telegramId,
+        telegram_id: chatId.toString(),
         telegram_username: username || firstName,
         telegram_linked_at: new Date().toISOString()
       })
     });
+
+    if (!updateRes.ok) {
+      const errText = await updateRes.text();
+      console.error('[DEEP LINK] Update failed:', errText);
+      throw new Error('DB update failed');
+    }
 
     const roleLabel = {
       'ADMIN': 'Администратор',
@@ -497,17 +510,21 @@ async function handleDeepLink(chatId, userId, firstName, username, telegramId) {
     }[profile.role] || profile.role;
 
     await sendTelegram(chatId,
-      '✅ <b>Telegram привязан!</b>\n\n' +
+      '✅ <b>Успешно!</b>\n\n' +
+      '<b>Telegram привязан к вашему аккаунту:</b>\n\n' +
       `👤 ${profile.first_name || ''} ${profile.last_name || ''}\n` +
       `📧 ${profile.email}\n` +
       `🏷 ${roleLabel}\n\n` +
-      'Теперь вы будете получать уведомления о бронированиях и важных событиях.'
+      '🔔 Теперь вы будете получать уведомления о бронированиях и важных событиях.'
     );
     
-    console.log(`[TELEGRAM] Deep link success: ${profile.email} -> ${telegramId}`);
+    console.log(`[TELEGRAM] Deep link SUCCESS: ${profile.email} -> ${chatId}`);
   } catch (e) {
     console.error('[DEEP LINK ERROR]', e);
-    await sendTelegram(chatId, '⚠️ Ошибка привязки. Попробуйте позже.');
+    await sendTelegram(chatId, 
+      '⚠️ <b>Ошибка привязки</b>\n\n' +
+      'Произошла техническая ошибка. Попробуйте позже или обратитесь в поддержку.'
+    );
   }
 }
 

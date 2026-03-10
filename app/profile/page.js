@@ -401,6 +401,36 @@ export default function ProfilePage() {
           </Card>
         )}
 
+        {/* Telegram Link Card - Prominent if not linked */}
+        {!user?.telegram_id && (
+          <Card className='mb-6 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50'>
+            <CardContent className='pt-6 pb-6'>
+              <div className='text-center'>
+                <div className='w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4'>
+                  <MessageSquare className='h-8 w-8 text-blue-600' />
+                </div>
+                <h3 className='text-lg font-semibold text-slate-900 mb-2'>
+                  Оставайтесь на связи!
+                </h3>
+                <p className='text-sm text-slate-600 mb-4 max-w-sm mx-auto'>
+                  Привяжите Telegram, чтобы получать уведомления о бронированиях 
+                  и важных событиях мгновенно.
+                </p>
+                <Button 
+                  className='bg-blue-600 hover:bg-blue-700 px-6'
+                  onClick={() => {
+                    const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'FunnyRent_777_bot'
+                    window.open(`https://t.me/${botName}?start=link_${user.id}`, '_blank')
+                  }}
+                >
+                  <MessageSquare className='h-4 w-4 mr-2' />
+                  Привязать Telegram
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Quick Actions */}
         <Card className='mb-6'>
           <CardHeader>
@@ -425,29 +455,16 @@ export default function ProfilePage() {
                 Панель партнёра
               </Button>
             )}
-            {/* Telegram Link Button */}
-            {!user?.telegram_id ? (
-              <Button 
-                variant='outline' 
-                className='w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50'
-                onClick={() => {
-                  // Deep link with user ID for linking
-                  window.open(`https://t.me/Gostaylo_bot?start=link_${user.id}`, '_blank')
-                }}
-              >
-                <MessageSquare className='h-4 w-4 mr-2' />
-                Привязать Telegram
-              </Button>
-            ) : (
-              <Button 
-                variant='outline' 
-                className='w-full justify-start text-green-600'
-                disabled
-              >
-                <CheckCircle className='h-4 w-4 mr-2' />
-                Telegram привязан
-              </Button>
-            )}
+            {/* Telegram Status in Quick Actions */}
+            {user?.telegram_id ? (
+              <div className='flex items-center justify-between p-2 rounded-md bg-green-50 border border-green-200'>
+                <div className='flex items-center gap-2'>
+                  <MessageSquare className='h-4 w-4 text-green-600' />
+                  <span className='text-sm text-green-700'>Telegram привязан</span>
+                </div>
+                <CheckCircle className='h-4 w-4 text-green-600' />
+              </div>
+            ) : null}
             <Button 
               variant='outline' 
               className='w-full justify-start'
