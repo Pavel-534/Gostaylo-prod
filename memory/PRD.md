@@ -280,6 +280,22 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - Simplified notification toggles
 - **File:** `/app/app/partner/settings/page.js`
 
+### 6. Navigation Overhaul (2026-03-10)
+- **Header**: Clean & minimal - Logo, Language, Currency, Avatar/Login
+- **User Dropdown**: Profile, My Bookings, Favorites, Partner Dashboard, Logout
+- **Mobile Bottom Nav**: Home, Search, Messages, Profile with active states
+- **Partner Sidebar**: Professional sidebar with collapsible drawer on mobile
+- **Breadcrumbs**: Desktop & mobile navigation trail
+- **Languages**: RU, EN, ZH, TH
+- Removed all "Hosting/Traveling" toggles from Profile
+- **Files:** `/app/components/universal-header.jsx`, `/app/components/mobile-bottom-nav.jsx`, `/app/app/partner/layout.js`, `/app/components/main-content.jsx`
+
+### 7. Stabilization Fixes (2026-03-10)
+- Fixed Profile page crash on Bottom Nav click (null checks for openLoginModal, searchParams)
+- Fixed Header mobile layout (reduced gaps from gap-4 to gap-1, smaller elements)
+- Added Chinese (🇨🇳 ZH) to language selector
+- Fixed active states highlighting in Bottom Nav
+
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql`
 - **Important:** RLS uses `auth.uid()` from Supabase Auth, but app uses custom JWT auth

@@ -72,8 +72,8 @@ function ProfileContent() {
         setLoading(false)
       } else {
         // Not authenticated - check if login=true param exists
-        const loginParam = searchParams.get('login')
-        if (loginParam === 'true') {
+        const loginParam = searchParams?.get('login')
+        if (loginParam === 'true' && openLoginModal) {
           openLoginModal('login')
         } else {
           // Redirect to home if not trying to login
@@ -81,7 +81,7 @@ function ProfileContent() {
         }
       }
     }
-  }, [authLoading, isAuthenticated, authUser, searchParams])
+  }, [authLoading, isAuthenticated, authUser, searchParams, openLoginModal, router])
 
   // Submit Partner Application
   async function submitPartnerApplication(e) {

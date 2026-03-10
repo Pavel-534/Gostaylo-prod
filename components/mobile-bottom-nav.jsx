@@ -26,22 +26,21 @@ const NAV_ITEMS = [
     href: '/listings', 
     icon: Search, 
     label: 'Поиск',
-    activeExact: false 
+    activeMatches: ['/listings', '/search']
   },
   { 
     href: '/renter/messages', 
     icon: MessageCircle, 
     label: 'Сообщения',
-    activeExact: false,
+    activeMatches: ['/renter/messages', '/messages'],
     requiresAuth: true
   },
   { 
     href: '/profile', 
     icon: User, 
     label: 'Профиль',
-    activeExact: false,
-    requiresAuth: true,
-    fallbackHref: '/?login=true'
+    activeMatches: ['/profile', '/my-bookings', '/favorites', '/settings'],
+    requiresAuth: true
   },
 ];
 
@@ -65,15 +64,24 @@ export function MobileBottomNav() {
   const handleNavClick = (item, e) => {
     if (item.requiresAuth && !user) {
       e.preventDefault();
-      openLoginModal('login');
+      if (openLoginModal) {
+        openLoginModal('login');
+      }
     }
   };
 
   const isActive = (item) => {
+    if (!pathname) return false;
+    
     if (item.activeExact) {
       return pathname === item.href;
     }
-    return pathname?.startsWith(item.href);
+    
+    if (item.activeMatches) {
+      return item.activeMatches.some(match => pathname === match || pathname.startsWith(match + '/'));
+    }
+    
+    return pathname.startsWith(item.href);
   };
 
   return (

@@ -33,6 +33,7 @@ import { useAuth } from '@/contexts/auth-context';
 const LANGUAGES = [
   { code: 'ru', name: 'Русский', flag: '🇷🇺' },
   { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'zh', name: '中文', flag: '🇨🇳' },
   { code: 'th', name: 'ไทย', flag: '🇹🇭' },
 ];
 
@@ -72,26 +73,26 @@ export function UniversalHeader() {
 
   return (
     <header className='fixed top-0 left-0 right-0 z-[100] bg-white border-b border-slate-200'>
-      <div className='container mx-auto px-4'>
+      <div className='container mx-auto px-3 sm:px-4'>
         <div className='flex items-center justify-between h-14'>
           {/* Left - Logo */}
-          <Link href='/' className='flex items-center gap-2.5 hover:opacity-80 transition-opacity'>
-            <div className='w-9 h-9 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-sm'>
-              <svg className='w-5 h-5 text-white' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5'>
+          <Link href='/' className='flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0'>
+            <div className='w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-sm'>
+              <svg className='w-4 h-4 sm:w-5 sm:h-5 text-white' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5'>
                 <path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' />
                 <polyline points='9 22 9 12 15 12 15 22' />
               </svg>
             </div>
-            <span className='font-bold text-xl text-slate-800 tracking-tight'>Gostaylo</span>
+            <span className='font-bold text-lg sm:text-xl text-slate-800 tracking-tight hidden xs:inline'>Gostaylo</span>
           </Link>
 
           {/* Right - Controls */}
-          <div className='flex items-center gap-2'>
+          <div className='flex items-center gap-1 sm:gap-2'>
             {/* Language Selector */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant='ghost' size='sm' className='h-9 w-9 p-0 rounded-full hover:bg-slate-100'>
-                  <span className='text-lg'>{LANGUAGES.find(l => l.code === language)?.flag || '🌐'}</span>
+                <Button variant='ghost' size='sm' className='h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-full hover:bg-slate-100'>
+                  <span className='text-base sm:text-lg'>{LANGUAGES.find(l => l.code === language)?.flag || '🌐'}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align='end' className='min-w-[140px]'>
@@ -115,15 +116,15 @@ export function UniversalHeader() {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant='ghost' size='sm' className='flex items-center gap-2 h-9 px-2 rounded-full hover:bg-slate-100 border border-slate-200'>
-                    <Avatar className='h-7 w-7'>
+                  <Button variant='ghost' size='sm' className='flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-1.5 sm:px-2 rounded-full hover:bg-slate-100 border border-slate-200'>
+                    <Avatar className='h-6 w-6 sm:h-7 sm:w-7'>
                       <AvatarFallback className={`text-xs font-semibold text-white ${
                         isAdmin ? 'bg-indigo-600' : isPartner ? 'bg-teal-600' : 'bg-slate-500'
                       }`}>
                         {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
-                    <ChevronDown className='h-3.5 w-3.5 text-slate-500' />
+                    <ChevronDown className='h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-500' />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align='end' className='w-60'>
