@@ -304,6 +304,21 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Tested:** Partner user `86boa@mail.ru` can now access `/profile` without errors
 - **File:** `/app/app/profile/page.js`
 
+### 9. ESLint Configuration for Import Safety (2026-03-10)
+- **Added ESLint** with `eslint-plugin-unused-imports` to catch missing imports
+- **Critical rule:** `no-undef` catches undefined variables (like missing icon imports)
+- **Scripts:** `yarn lint` and `yarn lint:fix` added to package.json
+- **Config file:** `/app/eslint.config.mjs`
+- **Purpose:** Prevent future "client-side exception" bugs caused by missing imports
+
+### 10. Navigation Overhaul Complete (2026-03-10)
+- **Header:** Clean & minimal with Logo, Language, Currency, Avatar/Login
+- **Mobile Bottom Nav:** Home, Search, Messages, Profile with active state highlighting
+- **Partner Sidebar:** Professional collapsible drawer with all business navigation
+- **Breadcrumbs:** Desktop and mobile navigation trail
+- **Sync verified:** Header links match Mobile Nav destinations
+- **Testing:** All components work correctly on desktop and mobile
+
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql`
 - **Important:** RLS uses `auth.uid()` from Supabase Auth, but app uses custom JWT auth
