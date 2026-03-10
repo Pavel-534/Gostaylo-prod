@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { UniversalHeader } from '@/components/universal-header'
+import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { MainContent } from '@/components/main-content'
 import { AuthProvider } from '@/contexts/auth-context'
 
@@ -69,6 +70,7 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <UniversalHeader />
           <MainContent>{children}</MainContent>
+          <MobileBottomNav />
           <Toaster />
         </AuthProvider>
       </body>

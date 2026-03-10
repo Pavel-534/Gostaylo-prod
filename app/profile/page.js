@@ -14,8 +14,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/auth-context'
 import { 
   User, Mail, Phone, Building2, Loader2, CheckCircle, Clock, 
-  Briefcase, Link as LinkIcon, MessageSquare, ArrowRight, Shield, 
-  Home, Plane, Settings, LogOut, Star
+  Briefcase, Link as LinkIcon, MessageSquare, ArrowRight, Shield
 } from 'lucide-react'
 
 // Main export with Suspense wrapper for useSearchParams
@@ -52,9 +51,6 @@ function ProfileContent() {
   const [uploadingDoc, setUploadingDoc] = useState(false)
   const [verificationDocUrl, setVerificationDocUrl] = useState(null)
   
-  // Dashboard Mode (for partners)
-  const [dashboardMode, setDashboardMode] = useState('traveling')
-  
   // Partner application status
   const [isPendingPartner, setIsPendingPartner] = useState(false)
   const [isRejectedPartner, setIsRejectedPartner] = useState(false)
@@ -67,7 +63,6 @@ function ProfileContent() {
     if (!authLoading) {
       if (isAuthenticated && authUser) {
         setUser(authUser)
-        setDashboardMode('traveling')
         setPartnerForm({
           phone: authUser.phone || '',
           socialLink: '',
@@ -163,18 +158,6 @@ function ProfileContent() {
       })
     } finally {
       setApplyingPartner(false)
-    }
-  }
-
-  // Toggle Dashboard Mode (for partners) - just navigation
-  function toggleDashboardMode(mode) {
-    setDashboardMode(mode)
-    
-    // Navigate to appropriate dashboard
-    if (mode === 'hosting') {
-      router.push('/partner/dashboard')
-    } else {
-      router.push('/my-bookings')
     }
   }
 
@@ -303,35 +286,25 @@ function ProfileContent() {
           </CardContent>
         </Card>
 
-        {/* Partner Mode Toggle (for approved partners) */}
+        {/* Partner Dashboard Link (for approved partners) */}
         {isPartner && (
-          <Card className='mb-6 border-teal-200 bg-teal-50/50'>
-            <CardHeader className='pb-3'>
-              <CardTitle className='text-base flex items-center gap-2'>
-                <Star className='h-4 w-4 text-teal-600' />
-                Режим панели
-              </CardTitle>
-              <CardDescription>
-                Переключайтесь между режимами арендатора и хозяина
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className='grid grid-cols-2 gap-3'>
-                <Button
-                  variant={dashboardMode === 'traveling' ? 'default' : 'outline'}
-                  className={dashboardMode === 'traveling' ? 'bg-teal-600 hover:bg-teal-700' : ''}
-                  onClick={() => toggleDashboardMode('traveling')}
+          <Card className='mb-6 border-teal-200 bg-gradient-to-br from-teal-50 to-white'>
+            <CardContent className='pt-6'>
+              <div className='flex items-center justify-between'>
+                <div className='flex items-center gap-3'>
+                  <div className='h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center'>
+                    <Briefcase className='h-5 w-5 text-teal-600' />
+                  </div>
+                  <div>
+                    <p className='font-semibold text-slate-900'>Панель партнёра</p>
+                    <p className='text-sm text-slate-500'>Управляйте объявлениями и бронированиями</p>
+                  </div>
+                </div>
+                <Button 
+                  className='bg-teal-600 hover:bg-teal-700'
+                  onClick={() => router.push('/partner/dashboard')}
                 >
-                  <Plane className='h-4 w-4 mr-2' />
-                  Путешествую
-                </Button>
-                <Button
-                  variant={dashboardMode === 'hosting' ? 'default' : 'outline'}
-                  className={dashboardMode === 'hosting' ? 'bg-teal-600 hover:bg-teal-700' : ''}
-                  onClick={() => toggleDashboardMode('hosting')}
-                >
-                  <Home className='h-4 w-4 mr-2' />
-                  Сдаю жильё
+                  Открыть
                 </Button>
               </div>
             </CardContent>

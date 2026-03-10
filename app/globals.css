@@ -139,3 +139,23 @@ code {
     @apply bg-background text-foreground;
     }
 }
+
+/* Safe area for mobile bottom navigation (iPhone notch/home indicator) */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Ensure main content doesn't get hidden behind fixed elements */
+@layer utilities {
+  .pt-header {
+    padding-top: 3.5rem; /* h-14 = 56px */
+  }
+  .pb-bottom-nav {
+    padding-bottom: 4rem; /* h-16 = 64px */
+  }
+  @screen md {
+    .pb-bottom-nav {
+      padding-bottom: 0;
+    }
+  }
+}
