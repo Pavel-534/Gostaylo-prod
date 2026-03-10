@@ -247,7 +247,7 @@ export function AuthProvider({ children }) {
       {children}
       
       <Dialog open={loginModalOpen} onOpenChange={setLoginModalOpen}>
-        <DialogContent className='sm:max-w-md max-h-[90vh] overflow-y-auto'>
+        <DialogContent className='sm:max-w-md max-h-[85vh] sm:max-h-[90vh] overflow-y-auto flex flex-col'>
           {authMode === 'verification_pending' ? (
             // Verification Pending Screen
             <>
@@ -308,7 +308,7 @@ export function AuthProvider({ children }) {
                   </Button>
                 </div>
               ) : (
-                <form onSubmit={handleForgotPassword} className='space-y-4'>
+                <form onSubmit={handleForgotPassword} className='space-y-4 pb-6 sm:pb-0'>
                   <div className='space-y-2'>
                     <Label htmlFor='forgot-email'>Email</Label>
                     <Input 
@@ -317,6 +317,7 @@ export function AuthProvider({ children }) {
                       placeholder='your@email.com'
                       value={email}
                       onChange={(e) => setEmail(e.target.value.toLowerCase())}
+                      onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
                       autoFocus
                       inputMode='email'
                       autoComplete='username'
@@ -392,7 +393,7 @@ export function AuthProvider({ children }) {
                 </button>
               </div>
               
-              <form onSubmit={authMode === 'login' ? handleLogin : handleRegister} className='space-y-3'>
+              <form onSubmit={authMode === 'login' ? handleLogin : handleRegister} className='space-y-3 pb-24 sm:pb-4'>
                 {authMode === 'register' && (
                   <div className='space-y-1.5'>
                     <Label htmlFor='auth-name' className='text-sm'>Имя</Label>
@@ -402,6 +403,7 @@ export function AuthProvider({ children }) {
                       placeholder='Ваше имя'
                       value={name}
                       onChange={(e) => setName(e.target.value)}
+                      onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
                       autoComplete='name'
                       className='h-10'
                       required
@@ -417,6 +419,7 @@ export function AuthProvider({ children }) {
                     placeholder='your@email.com'
                     value={email}
                     onChange={(e) => setEmail(e.target.value.toLowerCase())}
+                    onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
                     autoFocus
                     inputMode='email'
                     autoComplete='username'
@@ -446,6 +449,7 @@ export function AuthProvider({ children }) {
                       placeholder='••••••••'
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
                       className='pr-10 h-10'
                       autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
                       enterKeyHint='done'
