@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Search, MapPin, Calendar, Home, Bike, Map, Anchor, User, Eye, EyeOff, Loader2, BedDouble, Bath, Maximize, Plus } from 'lucide-react'
+import { Search, MapPin, Calendar, Home, Bike, Map, Anchor, User, Loader2, BedDouble, Bath, Maximize, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,6 +16,7 @@ import { formatPrice } from '@/lib/currency'
 import { fetchCategories, fetchListings, fetchExchangeRates, fetchDistricts } from '@/lib/client-data'
 import { detectLanguage, setLanguage as saveLanguage, supportedLanguages, getCategoryName, getUIText, getListingText } from '@/lib/translations'
 import { CurrencySelector } from '@/components/currency-selector'
+import { useAuth } from '@/contexts/auth-context'
 import { DayPicker } from 'react-day-picker'
 import { format } from 'date-fns'
 import { ru, enUS, zhCN, th } from 'date-fns/locale'
@@ -27,6 +28,7 @@ const dateLocales = { ru, en: enUS, zh: zhCN, th }
 export function GostayloHomeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { user: authUser, openLoginModal } = useAuth()
   
   // State
   const [currency, setCurrency] = useState('THB')
@@ -38,16 +40,6 @@ export function GostayloHomeContent() {
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState(null)
   
-  // Login/Register state
-  const [authMode, setAuthMode] = useState('login')
-  const [loginEmail, setLoginEmail] = useState('')
-  const [loginPassword, setLoginPassword] = useState('')
-  const [registerName, setRegisterName] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [loginLoading, setLoginLoading] = useState(false)
-  const [loginError, setLoginError] = useState('')
-  const [loginDialogOpen, setLoginDialogOpen] = useState(false)
-  
   // Filters
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedDistrict, setSelectedDistrict] = useState('all')
@@ -55,53 +47,60 @@ export function GostayloHomeContent() {
   const [dateRange, setDateRange] = useState({ from: null, to: null })
   const [datePickerOpen, setDatePickerOpen] = useState(false)
 
-  // Check for logged in user - all browser APIs in useEffect
+  // Sync user from auth context
   useEffect(() => {
-    // Safe localStorage access
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('gostaylo_user')
-      if (stored) {
-        try {
-          setCurrentUser(JSON.parse(stored))
-        } catch (e) {}
-      }
-      
-      // Auto-open login dialog if ?login=true in URL
-      if (searchParams?.get('login') === 'true') {
-        setLoginDialogOpen(true)
-        window.history.replaceState({}, '', '/')
-      }
-      
-      // Show verification success toast
-      if (searchParams?.get('verified') === 'success') {
-        toast.success(language === 'ru' ? 'Email подтверждён! Вы вошли в систему.' : 'Email verified! You are now logged in.')
-        window.history.replaceState({}, '', '/')
-        // Reload user from cookie
-        fetch('/api/v2/auth/me', { credentials: 'include' })
-          .then(r => r.json())
-          .then(data => {
-            if (data.success && data.user) {
-              setCurrentUser(data.user)
-              localStorage.setItem('gostaylo_user', JSON.stringify(data.user))
-            }
-          })
-      }
-      
-      // Show auth error
-      const authError = searchParams?.get('auth_error')
-      if (authError) {
-        const errorMessages = {
-          'missing_token': 'Отсутствует токен верификации',
-          'invalid_or_expired_token': 'Ссылка устарела или недействительна',
-          'invalid_token_type': 'Неверный тип токена',
-          'verification_failed': 'Ошибка верификации',
-          'user_not_found': 'Пользователь не найден'
+    if (authUser) {
+      setCurrentUser(authUser)
+    } else {
+      // Check localStorage as fallback
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('gostaylo_user')
+        if (stored) {
+          try {
+            setCurrentUser(JSON.parse(stored))
+          } catch (e) {}
         }
-        toast.error(errorMessages[authError] || 'Ошибка авторизации')
-        window.history.replaceState({}, '', '/')
       }
     }
-  }, [searchParams, language])
+  }, [authUser])
+  
+  // Handle URL params (login, verification, errors)
+  useEffect(() => {
+    // Auto-open login dialog if ?login=true in URL
+    if (searchParams?.get('login') === 'true') {
+      openLoginModal?.('login')
+      window.history.replaceState({}, '', '/')
+    }
+      
+    // Show verification success toast
+    if (searchParams?.get('verified') === 'success') {
+      toast.success(language === 'ru' ? 'Email подтверждён! Вы вошли в систему.' : 'Email verified! You are now logged in.')
+      window.history.replaceState({}, '', '/')
+      // Reload user from cookie
+      fetch('/api/v2/auth/me', { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && data.user) {
+            setCurrentUser(data.user)
+            localStorage.setItem('gostaylo_user', JSON.stringify(data.user))
+          }
+        })
+    }
+    
+    // Show auth error
+    const authError = searchParams?.get('auth_error')
+    if (authError) {
+      const errorMessages = {
+        'missing_token': 'Отсутствует токен верификации',
+        'invalid_or_expired_token': 'Ссылка устарела или недействительна',
+        'invalid_token_type': 'Неверный тип токена',
+        'verification_failed': 'Ошибка верификации',
+        'user_not_found': 'Пользователь не найден'
+      }
+      toast.error(errorMessages[authError] || 'Ошибка авторизации')
+      window.history.replaceState({}, '', '/')
+    }
+  }, [searchParams, language, openLoginModal])
 
   useEffect(() => {
     const detected = detectLanguage()
@@ -131,79 +130,7 @@ export function GostayloHomeContent() {
 
   const currentLocale = dateLocales[language] || ru
 
-  // Handle login
-  async function handleLogin(e) {
-    e.preventDefault()
-    setLoginLoading(true)
-    setLoginError('')
-    
-    try {
-      const { signIn } = await import('@/lib/auth')
-      const result = await signIn(loginEmail.toLowerCase().trim(), loginPassword)
-      
-      if (result.requiresVerification) {
-        setLoginError(language === 'ru' ? 'Пожалуйста, подтвердите email' : 'Please verify your email first')
-        setLoginLoading(false)
-        return
-      }
-      
-      if (!result.success) {
-        setLoginError(result.error || (language === 'ru' ? 'Неверный email или пароль' : 'Invalid email or password'))
-        setLoginLoading(false)
-        return
-      }
-      
-      setCurrentUser(result.user)
-      setLoginDialogOpen(false)
-      router.push(result.redirectTo || '/')
-    } catch (error) {
-      setLoginError(error.message)
-    } finally {
-      setLoginLoading(false)
-    }
-  }
-
-  // Handle registration
-  async function handleRegister(e) {
-    e.preventDefault()
-    setLoginLoading(true)
-    setLoginError('')
-    
-    try {
-      const { signUp } = await import('@/lib/auth')
-      const result = await signUp({
-        email: loginEmail.toLowerCase().trim(),
-        password: loginPassword,
-        name: registerName.trim(),
-        role: 'RENTER'
-      })
-      
-      if (!result.success) {
-        setLoginError(result.error)
-        setLoginLoading(false)
-        return
-      }
-      
-      // Show verification message
-      if (result.requiresVerification) {
-        toast.success(language === 'ru' 
-          ? 'Проверьте почту для подтверждения аккаунта!' 
-          : 'Check your email to verify your account!')
-        setLoginDialogOpen(false)
-        return
-      }
-      
-      setCurrentUser(result.user)
-      setLoginDialogOpen(false)
-      router.push(result.redirectTo || '/')
-    } catch (error) {
-      setLoginError(error.message)
-    } finally {
-      setLoginLoading(false)
-    }
-  }
-
-  // Handle logout
+  // Handle logout  
   function handleLogout() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('gostaylo_user')
@@ -286,148 +213,10 @@ export function GostayloHomeContent() {
 
   return (
     <div className='min-h-screen bg-white'>
-      {/* Login Dialog - rendered globally but visible only when triggered */}
-      <Dialog open={loginDialogOpen} onOpenChange={(open) => {
-        setLoginDialogOpen(open)
-        if (!open) {
-          setLoginError('')
-          setAuthMode('login')
-        }
-      }}>
-        <DialogContent className='sm:max-w-md'>
-          <DialogHeader>
-            <DialogTitle>
-              {authMode === 'login' 
-                ? getUIText('loginTitle', language)
-                : (language === 'ru' ? 'Регистрация' : 'Sign Up')}
-            </DialogTitle>
-            <DialogDescription>
-              {authMode === 'login'
-                ? (language === 'ru' ? 'Войдите в систему' : 'Sign in to your account')
-                : (language === 'ru' ? 'Создайте аккаунт' : 'Create your account')}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {/* Auth Tabs */}
-          <div className='flex border-b mb-4'>
-            <button
-              type='button'
-              onClick={() => { setAuthMode('login'); setLoginError('') }}
-              className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
-                authMode === 'login' 
-                  ? 'border-teal-600 text-teal-600' 
-                  : 'border-transparent text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              {language === 'ru' ? 'Вход' : 'Login'}
-            </button>
-            <button
-              type='button'
-              onClick={() => { setAuthMode('register'); setLoginError('') }}
-              className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
-                authMode === 'register' 
-                  ? 'border-teal-600 text-teal-600' 
-                  : 'border-transparent text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              {language === 'ru' ? 'Регистрация' : 'Sign Up'}
-            </button>
-          </div>
-          
-          <form onSubmit={authMode === 'login' ? handleLogin : handleRegister} className='space-y-4'>
-            {authMode === 'register' && (
-              <div className='space-y-2'>
-                <Label htmlFor='name'>{language === 'ru' ? 'Имя' : 'Name'}</Label>
-                <Input 
-                  id='name' 
-                  type='text' 
-                  placeholder={language === 'ru' ? 'Ваше имя' : 'Your name'}
-                  value={registerName}
-                  onChange={(e) => setRegisterName(e.target.value)}
-                  autoComplete='name'
-                  required
-                />
-              </div>
-            )}
-            
-            <div className='space-y-2'>
-              <Label htmlFor='email'>{getUIText('email', language)}</Label>
-              <Input 
-                id='email' 
-                type='email' 
-                placeholder='your@email.com'
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value.toLowerCase())}
-                autoFocus
-                inputMode='email'
-                autoComplete='username'
-                required
-              />
-            </div>
-            <div className='space-y-2'>
-              <div className='flex justify-between items-center'>
-                <Label htmlFor='password'>{getUIText('password', language)}</Label>
-                {authMode === 'login' && (
-                  <button
-                    type='button'
-                    onClick={() => toast.info(language === 'ru' ? 'Функция восстановления пароля скоро будет доступна' : 'Password reset coming soon')}
-                    className='text-xs text-teal-600 hover:text-teal-700 hover:underline'
-                  >
-                    {language === 'ru' ? 'Забыли пароль?' : 'Forgot password?'}
-                  </button>
-                )}
-              </div>
-              <div className='relative'>
-                <Input 
-                  id='password' 
-                  type={showPassword ? 'text' : 'password'} 
-                  placeholder='••••••••'
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  className='pr-10'
-                  autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
-                  required
-                  minLength={authMode === 'register' ? 6 : undefined}
-                />
-                <button
-                  type='button'
-                  onClick={() => setShowPassword(!showPassword)}
-                  className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600'
-                >
-                  {showPassword ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
-                </button>
-              </div>
-              {authMode === 'register' && (
-                <p className='text-xs text-slate-500'>{language === 'ru' ? 'Минимум 6 символов' : 'Minimum 6 characters'}</p>
-              )}
-            </div>
-            {loginError && (
-              <p className='text-red-500 text-sm'>{loginError}</p>
-            )}
-            <Button 
-              type='submit' 
-              className='w-full bg-teal-600 hover:bg-teal-700'
-              disabled={loginLoading}
-            >
-              {loginLoading ? (
-                <>
-                  <Loader2 className='h-4 w-4 mr-2 animate-spin' />
-                  {getUIText('loading', language)}
-                </>
-              ) : (
-                authMode === 'login' 
-                  ? getUIText('loginButton', language)
-                  : (language === 'ru' ? 'Создать аккаунт' : 'Create Account')
-              )}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Hero Section */}
-      <section className='relative h-[550px] sm:h-[600px] bg-cover bg-center' style={{ backgroundImage: 'url(https://images.pexels.com/photos/33607600/pexels-photo-33607600.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940)' }}>
+      {/* Hero Section - pt-14 accounts for fixed header */}
+      <section className='relative pt-14 min-h-[550px] sm:min-h-[600px] bg-cover bg-center' style={{ backgroundImage: 'url(https://images.pexels.com/photos/33607600/pexels-photo-33607600.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940)' }}>
         <div className='absolute inset-0 bg-gradient-to-r from-slate-900/80 to-slate-900/40' />
-        <div className='relative container mx-auto px-4 h-full flex flex-col justify-center'>
+        <div className='relative container mx-auto px-4 min-h-[480px] sm:min-h-[530px] flex flex-col justify-center'>
           <div className='max-w-3xl mx-auto sm:mx-0'>
             <h1 className='text-3xl sm:text-5xl md:text-6xl font-bold text-white mb-4 text-center sm:text-left'>
               {getUIText('heroTitle', language)}

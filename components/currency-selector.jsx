@@ -60,10 +60,9 @@ export function CurrencySelector({
 
   if (!mounted) {
     return (
-      <Button variant="outline" size="sm" className={`h-9 ${className}`}>
-        <span className="mr-1">฿</span>
-        <span>THB</span>
-        <ChevronDown className="ml-1 h-3 w-3" />
+      <Button variant="outline" size="sm" className={`h-8 px-2 ${className}`}>
+        <span className="text-sm">฿</span>
+        <ChevronDown className="ml-0.5 h-3 w-3" />
       </Button>
     );
   }
@@ -74,20 +73,15 @@ export function CurrencySelector({
         <Button 
           variant="outline" 
           size="sm" 
-          className={`h-9 font-medium ${className}`}
+          className={`h-8 px-2 font-medium ${className}`}
           data-testid="currency-selector"
         >
-          <span className="mr-1.5 text-base">{currentCurrency.flag}</span>
+          <span className="text-sm mr-1">{currentCurrency.flag}</span>
+          <span className="font-semibold text-sm">{currentCurrency.symbol}</span>
           {!compact && (
-            <>
-              <span className="font-semibold">{currentCurrency.symbol}</span>
-              <span className="ml-1 text-slate-600">{currentCurrency.code}</span>
-            </>
+            <span className="ml-0.5 text-slate-600 text-xs">{currentCurrency.code}</span>
           )}
-          {compact && (
-            <span className="font-semibold">{currentCurrency.symbol}</span>
-          )}
-          <ChevronDown className="ml-1 h-3 w-3 text-slate-400" />
+          <ChevronDown className="ml-0.5 h-3 w-3 text-slate-400" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">

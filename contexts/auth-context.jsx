@@ -71,8 +71,10 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  const openLoginModal = useCallback((mode = 'login') => {
-    setAuthMode(mode);
+  const openLoginModal = useCallback((mode) => {
+    // Handle case when called from onClick (event passed as first arg)
+    const actualMode = (typeof mode === 'string') ? mode : 'login';
+    setAuthMode(actualMode);
     setEmail('');
     setPassword('');
     setName('');
@@ -245,7 +247,7 @@ export function AuthProvider({ children }) {
       {children}
       
       <Dialog open={loginModalOpen} onOpenChange={setLoginModalOpen}>
-        <DialogContent className='sm:max-w-md'>
+        <DialogContent className='sm:max-w-md max-h-[90vh] overflow-y-auto'>
           {authMode === 'verification_pending' ? (
             // Verification Pending Screen
             <>
@@ -354,24 +356,24 @@ export function AuthProvider({ children }) {
           ) : (
             // Login / Register Form
             <>
-              <DialogHeader>
-                <DialogTitle>
+              <DialogHeader className='pb-2'>
+                <DialogTitle className='text-lg'>
                   {authMode === 'login' ? 'Вход в систему' : 'Регистрация'}
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription className='text-sm'>
                   {authMode === 'login' 
                     ? 'Войдите в свой аккаунт Gostaylo'
                     : 'Создайте новый аккаунт'}
                 </DialogDescription>
               </DialogHeader>
               
-              <div className='flex border-b mb-4'>
+              <div className='flex border-b mb-3'>
                 <button
                   type='button'
                   onClick={() => { setAuthMode('login'); setError(''); }}
-                  className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  className={`flex-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                     authMode === 'login' 
-                      ? 'border-teal-600 text-teal-600' 
+                      ? 'border-teal-600 text-teal-600 bg-teal-50/50' 
                       : 'border-transparent text-slate-500 hover:text-slate-700'
                   }`}
                 >
@@ -380,9 +382,9 @@ export function AuthProvider({ children }) {
                 <button
                   type='button'
                   onClick={() => { setAuthMode('register'); setError(''); }}
-                  className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  className={`flex-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                     authMode === 'register' 
-                      ? 'border-teal-600 text-teal-600' 
+                      ? 'border-teal-600 text-teal-600 bg-teal-50/50' 
                       : 'border-transparent text-slate-500 hover:text-slate-700'
                   }`}
                 >
@@ -390,10 +392,10 @@ export function AuthProvider({ children }) {
                 </button>
               </div>
               
-              <form onSubmit={authMode === 'login' ? handleLogin : handleRegister} className='space-y-4'>
+              <form onSubmit={authMode === 'login' ? handleLogin : handleRegister} className='space-y-3'>
                 {authMode === 'register' && (
-                  <div className='space-y-2'>
-                    <Label htmlFor='auth-name'>Имя</Label>
+                  <div className='space-y-1.5'>
+                    <Label htmlFor='auth-name' className='text-sm'>Имя</Label>
                     <Input 
                       id='auth-name' 
                       type='text' 
@@ -401,13 +403,14 @@ export function AuthProvider({ children }) {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       autoComplete='name'
+                      className='h-10'
                       required
                     />
                   </div>
                 )}
                 
-                <div className='space-y-2'>
-                  <Label htmlFor='auth-email'>Email</Label>
+                <div className='space-y-1.5'>
+                  <Label htmlFor='auth-email' className='text-sm'>Email</Label>
                   <Input 
                     id='auth-email' 
                     type='email' 
@@ -417,13 +420,15 @@ export function AuthProvider({ children }) {
                     autoFocus
                     inputMode='email'
                     autoComplete='username'
+                    className='h-10'
+                    enterKeyHint='next'
                     required
                   />
                 </div>
                 
-                <div className='space-y-2'>
+                <div className='space-y-1.5'>
                   <div className='flex justify-between items-center'>
-                    <Label htmlFor='auth-password'>Пароль</Label>
+                    <Label htmlFor='auth-password' className='text-sm'>Пароль</Label>
                     {authMode === 'login' && (
                       <button
                         type='button'
@@ -441,8 +446,9 @@ export function AuthProvider({ children }) {
                       placeholder='••••••••'
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className='pr-10'
+                      className='pr-10 h-10'
                       autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+                      enterKeyHint='done'
                       required
                       minLength={authMode === 'register' ? 6 : undefined}
                     />
@@ -465,7 +471,7 @@ export function AuthProvider({ children }) {
                 
                 <Button 
                   type='submit' 
-                  className='w-full bg-teal-600 hover:bg-teal-700'
+                  className='w-full bg-teal-600 hover:bg-teal-700 h-11 text-base font-medium'
                   disabled={submitting}
                 >
                   {submitting ? (

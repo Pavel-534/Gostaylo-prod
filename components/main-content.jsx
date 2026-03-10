@@ -17,7 +17,10 @@ export function MainContent({ children }) {
   // Partner pages have their own layout (sidebar handles header)
   const isPartnerPage = pathname?.startsWith('/partner');
   
-  if (isAdminPage || isPartnerPage) {
+  // Home page handles its own header spacing in Hero section
+  const isHomePage = pathname === '/';
+  
+  if (isAdminPage || isPartnerPage || isHomePage) {
     return <>{children}</>;
   }
   
