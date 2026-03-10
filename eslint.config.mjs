@@ -2,7 +2,6 @@
  * ESLint configuration for Gostaylo
  * Catches missing imports, undefined variables, and unused imports
  */
-import globals from "globals";
 import unusedImports from "eslint-plugin-unused-imports";
 
 export default [
@@ -27,9 +26,34 @@ export default [
       ecmaVersion: 2024,
       sourceType: "module",
       globals: {
-        ...globals.browser,
-        ...globals.node,
         React: "readonly",
+        process: "readonly",
+        console: "readonly",
+        window: "readonly",
+        document: "readonly",
+        localStorage: "readonly",
+        sessionStorage: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        fetch: "readonly",
+        FormData: "readonly",
+        File: "readonly",
+        Blob: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly",
+        Headers: "readonly",
+        Request: "readonly",
+        Response: "readonly",
+        CustomEvent: "readonly",
+        Event: "readonly",
+        Image: "readonly",
+        module: "readonly",
+        require: "readonly",
+        __dirname: "readonly",
+        __filename: "readonly",
+        Buffer: "readonly",
       },
       parserOptions: {
         ecmaFeatures: {
