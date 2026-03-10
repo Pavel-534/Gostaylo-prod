@@ -14,7 +14,8 @@ import {
   Users,
   Star,
   ArrowLeft,
-  Shield
+  Shield,
+  LogIn
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -38,6 +39,7 @@ export default function PartnerLayout({ children }) {
   const [user, setUser] = useState(null)
   const [isImpersonating, setIsImpersonating] = useState(false)
   const [accessDenied, setAccessDenied] = useState(false)
+  const [isNotLoggedIn, setIsNotLoggedIn] = useState(false)
 
   useEffect(() => {
     const storedUser = localStorage.getItem('gostaylo_user')
@@ -50,29 +52,59 @@ export default function PartnerLayout({ children }) {
       const hasAccess = ['PARTNER', 'ADMIN', 'MODERATOR'].includes(parsed.role)
       if (!hasAccess) {
         setAccessDenied(true)
+        setIsNotLoggedIn(false)
       }
     } else {
       // No user - will need to login
       setAccessDenied(true)
+      setIsNotLoggedIn(true)
     }
   }, [pathname])
+
+  // Handle login redirect with callback URL
+  const handleLoginRedirect = () => {
+    // Store current path for redirect after login
+    sessionStorage.setItem('gostaylo_redirect_after_login', pathname)
+    router.push('/profile?login=true')
+  }
 
   // Show access denied message
   if (accessDenied) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="text-center">
+        <div className="text-center max-w-md">
           <Shield className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-slate-900 mb-2">Доступ ограничен</h1>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">
+            {isNotLoggedIn ? 'Требуется авторизация' : 'Доступ ограничен'}
+          </h1>
           <p className="text-slate-500 mb-6">
-            Эта страница доступна только партнёрам Gostaylo
+            {isNotLoggedIn 
+              ? 'Войдите в аккаунт, чтобы просмотреть эту страницу' 
+              : 'Эта страница доступна только партнёрам Gostaylo'}
           </p>
-          <div className="space-y-2">
-            <Button asChild className="bg-teal-600 hover:bg-teal-700">
-              <Link href="/profile">Стать партнёром</Link>
-            </Button>
-            <br />
-            <Button variant="ghost" asChild>
+          <div className="space-y-3">
+            {isNotLoggedIn ? (
+              <>
+                <Button 
+                  onClick={handleLoginRedirect}
+                  className="bg-teal-600 hover:bg-teal-700 w-full"
+                  data-testid="access-denied-login-btn"
+                >
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Войти в аккаунт
+                </Button>
+                <p className="text-xs text-slate-400">
+                  После входа вы будете перенаправлены обратно
+                </p>
+              </>
+            ) : (
+              <Button asChild className="bg-teal-600 hover:bg-teal-700 w-full">
+                <Link href="/profile" data-testid="access-denied-become-partner-btn">
+                  Стать партнёром
+                </Link>
+              </Button>
+            )}
+            <Button variant="ghost" asChild className="w-full">
               <Link href="/">На главную</Link>
             </Button>
           </div>

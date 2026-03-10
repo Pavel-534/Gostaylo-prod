@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,6 +20,7 @@ import {
 
 export default function ProfilePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const { user: authUser, loading: authLoading, isAuthenticated, openLoginModal } = useAuth()
   const [user, setUser] = useState(null)
@@ -62,11 +63,17 @@ export default function ProfilePage() {
         })
         setLoading(false)
       } else {
-        // Not authenticated - redirect to home
-        router.push('/')
+        // Not authenticated - check if login=true param exists
+        const loginParam = searchParams.get('login')
+        if (loginParam === 'true') {
+          openLoginModal('login')
+        } else {
+          // Redirect to home if not trying to login
+          router.push('/')
+        }
       }
     }
-  }, [authLoading, isAuthenticated, authUser])
+  }, [authLoading, isAuthenticated, authUser, searchParams])
 
   // Submit Partner Application
   async function submitPartnerApplication(e) {

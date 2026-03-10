@@ -647,7 +647,10 @@ async function handlePhotoUpload(chatId, message, firstName) {
     const title = lines[0]?.substring(0, 100) || `Объект от ${firstName}`;
     const description = lines.slice(1).join('\n') || caption || 'Создано через Telegram';
 
-    console.log(`[LAZY REALTOR] Creating DRAFT: ${listingId}, owner_id: ${partner.id}, Price: ${price}, Photo: ${photoUrl ? 'yes' : 'no'}`);
+    console.log(`[LAZY REALTOR] Creating DRAFT: ${listingId}`);
+    console.log(`[LAZY REALTOR] owner_id will be: "${partner.id}" (type: ${typeof partner.id})`);
+    console.log(`[LAZY REALTOR] partner email: ${partner.email}, role: ${partner.role}`);
+    console.log(`[LAZY REALTOR] Price: ${price}, Photo: ${photoUrl ? 'yes' : 'no'}`);
 
     // Create listing with status = 'INACTIVE' (valid enum) + metadata.is_draft = true
     // This combination means "draft" - not visible in Admin panel

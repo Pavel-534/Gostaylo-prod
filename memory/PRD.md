@@ -220,7 +220,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - `INACTIVE` - Draft (is_draft: true)
 - `PENDING` - Awaiting moderation
 - `ACTIVE` - Published
-- `DELETED` - Soft deleted
+- `REJECTED` - Rejected by moderator
 
 ## Upcoming Tasks
 
@@ -231,6 +231,8 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - [x] KYC document upload ✅
 - [x] iCal sync with logging ✅
 - [x] Availability check API ✅
+- [x] Telegram bot owner_id fix ✅ (2026-03-10)
+- [x] Access Denied page UX improvement ✅ (2026-03-10)
 
 ### P1 - Complete Core Workflows
 - [ ] Renter booking flow (browse → book → pay)
@@ -247,8 +249,34 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - [ ] Partner analytics dashboard
 - [ ] Mobile app (React Native)
 
+## Recent Changes (2026-03-10)
+
+### 1. Telegram Bot - Owner ID Fix
+- **Issue:** Bot was assigning incorrect `owner_id` to listings created from photos
+- **Root Cause:** Not a bug - the bot code was correct. The test user had role `RENTER` instead of `PARTNER`
+- **Verification:** Created test listing with correct UUID (`user-mmj8cn2l-qb8`) via Telegram bot
+- **Files:** `/app/app/api/webhooks/telegram/route.js` - added detailed logging for debugging
+
+### 2. Access Denied Page Improvements
+- Added "Login" button with icon for unauthenticated users
+- Different messaging: "Требуется авторизация" vs "Доступ ограничен"
+- Implemented redirect flow: saves URL to sessionStorage → redirects to `/profile?login=true` → opens login modal → redirects back after login
+- **Files:** `/app/app/partner/layout.js`, `/app/contexts/auth-context.jsx`, `/app/app/profile/page.js`
+
+### 3. Partner Listings API Fix
+- Fixed `neq('status', 'DELETED')` query error (DELETED not in enum)
+- Changed to `in('status', ['ACTIVE', 'INACTIVE', 'PENDING', 'REJECTED'])`
+- **File:** `/app/app/api/v2/partner/listings/route.js`
+
+## RLS Policy Notes
+- RLS policies are defined in `/app/database/rls_policies.sql`
+- **Important:** RLS uses `auth.uid()` from Supabase Auth, but app uses custom JWT auth
+- Backend APIs use `SUPABASE_SERVICE_ROLE_KEY` which bypasses RLS
+- Authorization is handled at API level via `owner_id` filtering
+
 ## Test Credentials
 - **Admin:** pavel_534@mail.ru / ChangeMe2025!
+- **Partner (Test):** kyc_test_user@test.com / ChangeMe2025! (telegram_id: 888777666)
 
 ## Test Reports
 - `/app/test_reports/iteration_1.json` - Partner application flow tests (13/13 passed)

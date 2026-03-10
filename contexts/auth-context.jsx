@@ -93,6 +93,9 @@ export function AuthProvider({ children }) {
     setError('');
 
     try {
+      // Check if there's a saved redirect URL from Access Denied page
+      const savedRedirect = sessionStorage.getItem('gostaylo_redirect_after_login');
+      
       // If user is already on a protected page (like /partner/listings), 
       // stay there after login instead of redirecting to role-based default
       const currentPath = window.location.pathname;
@@ -100,7 +103,7 @@ export function AuthProvider({ children }) {
                                 currentPath.startsWith('/admin/') ||
                                 currentPath.startsWith('/renter/');
       
-      const customRedirect = stayOnCurrentPage ? currentPath : null;
+      const customRedirect = savedRedirect || (stayOnCurrentPage ? currentPath : null);
       
       const result = await signIn(email.toLowerCase().trim(), password, customRedirect);
       
@@ -120,10 +123,17 @@ export function AuthProvider({ children }) {
       setUser(result.user);
       closeLoginModal();
       
+      // Clear saved redirect URL after successful login
+      if (savedRedirect) {
+        sessionStorage.removeItem('gostaylo_redirect_after_login');
+      }
+      
       window.dispatchEvent(new CustomEvent('auth-change', { detail: result.user }));
       
-      // If staying on current page, just refresh the page state
-      if (stayOnCurrentPage) {
+      // Redirect priority: savedRedirect > stayOnCurrentPage > result.redirectTo
+      if (savedRedirect) {
+        router.push(savedRedirect);
+      } else if (stayOnCurrentPage) {
         router.refresh();
       } else if (result.redirectTo) {
         router.push(result.redirectTo);

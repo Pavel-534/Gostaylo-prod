@@ -20,6 +20,8 @@ export async function GET(request) {
       }, { status: 400 });
     }
     
+    // Filter by valid statuses (exclude deleted via NOT IN)
+    // Note: DELETED may not exist in enum, so we filter by allowed statuses
     const { data: listings, error } = await supabaseAdmin
       .from('listings')
       .select(`
@@ -27,7 +29,7 @@ export async function GET(request) {
         categories (id, name, slug, icon)
       `)
       .eq('owner_id', partnerId)
-      .neq('status', 'DELETED')
+      .in('status', ['ACTIVE', 'INACTIVE', 'PENDING', 'REJECTED'])
       .order('created_at', { ascending: false });
     
     if (error) {
