@@ -330,8 +330,19 @@ export async function POST(request) {
       return NextResponse.json({ ok: true });
     }
     
-    // /start
+    // /start (with deep link support)
     if (text.startsWith('/start')) {
+      // Check for deep link parameter: /start link_<user_id>
+      const deepLinkMatch = text.match(/^\/start\s+link_([a-zA-Z0-9-]+)$/);
+      
+      if (deepLinkMatch) {
+        const userId = deepLinkMatch[1];
+        // Auto-link account using user ID
+        await handleDeepLink(chatId, userId, firstName, username, telegramId.toString());
+        return NextResponse.json({ ok: true });
+      }
+      
+      // Regular /start command
       await sendTelegram(chatId,
         `🌴 <b>Aloha, ${firstName}!</b>\n\n` +
         'Добро пожаловать в <b>Gostaylo</b>!\n\n' +
@@ -424,6 +435,79 @@ async function handleStatusCheck(chatId) {
   } catch (e) {
     console.error('[STATUS ERROR]', e);
     await sendTelegram(chatId, '⚠️ Ошибка проверки статуса.');
+  }
+}
+
+/**
+ * Handle Deep Link - Link Telegram via user ID (from profile page)
+ */
+async function handleDeepLink(chatId, userId, firstName, username, telegramId) {
+  try {
+    // Find user by ID
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,email,role,first_name,last_name,telegram_id`,
+      {
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+        }
+      }
+    );
+    const profiles = await res.json();
+    const profile = profiles?.[0];
+
+    if (!profile) {
+      await sendTelegram(chatId, 
+        '❌ <b>Ошибка привязки</b>\n\n' +
+        'Пользователь не найден. Попробуйте ещё раз с профиля.'
+      );
+      return;
+    }
+
+    // Check if already linked to another Telegram
+    if (profile.telegram_id && profile.telegram_id !== telegramId) {
+      await sendTelegram(chatId, 
+        '❌ <b>Аккаунт уже привязан</b>\n\n' +
+        'Этот аккаунт уже связан с другим Telegram.\n' +
+        'Обратитесь в поддержку для смены привязки.'
+      );
+      return;
+    }
+
+    // Update profile with Telegram ID
+    await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${profile.id}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_SERVICE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        telegram_id: telegramId,
+        telegram_username: username || firstName,
+        telegram_linked_at: new Date().toISOString()
+      })
+    });
+
+    const roleLabel = {
+      'ADMIN': 'Администратор',
+      'PARTNER': 'Партнёр',
+      'RENTER': 'Арендатор',
+      'MODERATOR': 'Модератор'
+    }[profile.role] || profile.role;
+
+    await sendTelegram(chatId,
+      '✅ <b>Telegram привязан!</b>\n\n' +
+      `👤 ${profile.first_name || ''} ${profile.last_name || ''}\n` +
+      `📧 ${profile.email}\n` +
+      `🏷 ${roleLabel}\n\n` +
+      'Теперь вы будете получать уведомления о бронированиях и важных событиях.'
+    );
+    
+    console.log(`[TELEGRAM] Deep link success: ${profile.email} -> ${telegramId}`);
+  } catch (e) {
+    console.error('[DEEP LINK ERROR]', e);
+    await sendTelegram(chatId, '⚠️ Ошибка привязки. Попробуйте позже.');
   }
 }
 

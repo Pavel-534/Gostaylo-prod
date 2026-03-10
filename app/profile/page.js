@@ -41,8 +41,13 @@ export default function ProfilePage() {
   // Dashboard Mode (for partners)
   const [dashboardMode, setDashboardMode] = useState('traveling')
   
-  // Check if user has pending partner application - MUST be at top level
+  // Partner application status
   const [isPendingPartner, setIsPendingPartner] = useState(false)
+  const [isRejectedPartner, setIsRejectedPartner] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
+  
+  // Welcome celebration for new partners
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false)
 
   useEffect(() => {
     if (!authLoading) {
@@ -153,7 +158,7 @@ export default function ProfilePage() {
     }
   }
 
-  // Check for pending partner application
+  // Check for pending/rejected partner application
   useEffect(() => {
     async function checkPendingApplication() {
       if (user && user.role !== 'PARTNER') {
@@ -162,22 +167,45 @@ export default function ProfilePage() {
             credentials: 'include'
           })
           const result = await res.json()
-          if (result.success && result.status === 'PENDING') {
-            setIsPendingPartner(true)
-          } else {
-            setIsPendingPartner(false)
+          if (result.success) {
+            if (result.status === 'PENDING') {
+              setIsPendingPartner(true)
+              setIsRejectedPartner(false)
+            } else if (result.status === 'REJECTED') {
+              setIsRejectedPartner(true)
+              setRejectionReason(result.rejectionReason || 'Заявка не соответствует требованиям')
+              setIsPendingPartner(false)
+            } else {
+              setIsPendingPartner(false)
+              setIsRejectedPartner(false)
+            }
           }
         } catch (e) {
-          // If API fails, check verification_status as fallback
-          setIsPendingPartner(user.verification_status === 'PENDING')
+          setIsPendingPartner(false)
+          setIsRejectedPartner(false)
         }
       }
     }
     if (user) checkPendingApplication()
   }, [user])
   
+  // Check if user just became a partner (show welcome modal)
+  useEffect(() => {
+    if (user?.role === 'PARTNER') {
+      const welcomeShown = localStorage.getItem('gostaylo_partner_welcome_shown')
+      const wasApplying = localStorage.getItem('gostaylo_partner_applied')
+      
+      if (wasApplying && !welcomeShown) {
+        // User just got approved!
+        setShowWelcomeModal(true)
+        localStorage.setItem('gostaylo_partner_welcome_shown', 'true')
+        localStorage.removeItem('gostaylo_partner_applied')
+      }
+    }
+  }, [user])
+  
   const isPartner = user?.role === 'PARTNER'
-  const isRenter = user?.role === 'RENTER' && !isPendingPartner
+  const isRenter = user?.role === 'RENTER' && !isPendingPartner && !isRejectedPartner
 
   // Logout
   function handleLogout() {
@@ -346,6 +374,33 @@ export default function ProfilePage() {
           </Card>
         )}
 
+        {/* Rejected Partner Status */}
+        {isRejectedPartner && (
+          <Card className='mb-6 border-red-200 bg-red-50'>
+            <CardContent className='pt-6'>
+              <div className='flex items-start gap-3'>
+                <Shield className='h-5 w-5 text-red-600 mt-0.5' />
+                <div className='flex-1'>
+                  <h3 className='font-medium text-red-800'>Заявка отклонена</h3>
+                  <p className='text-sm text-red-700 mt-1'>
+                    {rejectionReason}
+                  </p>
+                  <Button
+                    onClick={() => {
+                      setVerificationDocUrl(null)
+                      setShowPartnerModal(true)
+                    }}
+                    className='mt-3 bg-red-600 hover:bg-red-700'
+                    size='sm'
+                  >
+                    Подать заявку повторно
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Quick Actions */}
         <Card className='mb-6'>
           <CardHeader>
@@ -368,6 +423,29 @@ export default function ProfilePage() {
               >
                 <Building2 className='h-4 w-4 mr-2 text-slate-500' />
                 Панель партнёра
+              </Button>
+            )}
+            {/* Telegram Link Button */}
+            {!user?.telegram_id ? (
+              <Button 
+                variant='outline' 
+                className='w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50'
+                onClick={() => {
+                  // Deep link with user ID for linking
+                  window.open(`https://t.me/Gostaylo_bot?start=link_${user.id}`, '_blank')
+                }}
+              >
+                <MessageSquare className='h-4 w-4 mr-2' />
+                Привязать Telegram
+              </Button>
+            ) : (
+              <Button 
+                variant='outline' 
+                className='w-full justify-start text-green-600'
+                disabled
+              >
+                <CheckCircle className='h-4 w-4 mr-2' />
+                Telegram привязан
               </Button>
             )}
             <Button 
@@ -624,6 +702,51 @@ export default function ProfilePage() {
               </div>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Welcome Partner Celebration Modal */}
+      <Dialog open={showWelcomeModal} onOpenChange={setShowWelcomeModal}>
+        <DialogContent className='sm:max-w-md'>
+          <div className='text-center py-6'>
+            {/* Confetti/Celebration Icon */}
+            <div className='relative mx-auto mb-4'>
+              <div className='w-20 h-20 bg-gradient-to-br from-teal-400 to-teal-600 rounded-full flex items-center justify-center mx-auto animate-bounce'>
+                <Star className='h-10 w-10 text-white' />
+              </div>
+              <div className='absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full animate-ping' />
+              <div className='absolute -bottom-1 -left-3 w-4 h-4 bg-pink-400 rounded-full animate-ping' style={{animationDelay: '0.3s'}} />
+              <div className='absolute top-0 -left-4 w-3 h-3 bg-blue-400 rounded-full animate-ping' style={{animationDelay: '0.5s'}} />
+            </div>
+            
+            <h2 className='text-2xl font-bold text-slate-900 mb-2'>
+              Добро пожаловать в партнёры!
+            </h2>
+            <p className='text-slate-600 mb-6'>
+              Ваша заявка одобрена. Теперь вы можете добавлять свои объекты 
+              и получать бронирования через Gostaylo.
+            </p>
+            
+            <div className='space-y-3'>
+              <Button 
+                className='w-full bg-teal-600 hover:bg-teal-700'
+                onClick={() => {
+                  setShowWelcomeModal(false)
+                  router.push('/partner/dashboard')
+                }}
+              >
+                <Building2 className='h-4 w-4 mr-2' />
+                Перейти в панель партнёра
+              </Button>
+              <Button 
+                variant='outline'
+                className='w-full'
+                onClick={() => setShowWelcomeModal(false)}
+              >
+                Остаться на странице
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
