@@ -139,9 +139,12 @@ export async function POST(request) {
       firstName: user.first_name,
       lastName: user.last_name?.replace(' [MODERATOR]', '') || '',
       name: `${user.first_name || ''} ${user.last_name?.replace(' [MODERATOR]', '') || ''}`.trim(),
+      phone: user.phone || null,
       referralCode: user.referral_code,
       isVerified: user.is_verified,
-      preferredCurrency: user.preferred_currency
+      preferredCurrency: user.preferred_currency,
+      telegram_id: user.telegram_id || null,
+      telegram_username: user.telegram_username || null
     },
     redirectTo
   });
