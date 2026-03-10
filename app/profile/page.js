@@ -14,7 +14,8 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/auth-context'
 import { 
   User, Mail, Phone, Building2, Loader2, CheckCircle, Clock, 
-  Briefcase, Link as LinkIcon, MessageSquare, ArrowRight, Shield
+  Briefcase, Link as LinkIcon, MessageSquare, ArrowRight, Shield,
+  Plane, Settings, LogOut
 } from 'lucide-react'
 
 // Main export with Suspense wrapper for useSearchParams
