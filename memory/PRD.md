@@ -406,6 +406,27 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Tested:** Backend 100% (7/7), Frontend 100%
 - **Test Report:** `/app/test_reports/iteration_9.json`
 
+### 17. Calendar Architecture Overhaul (2026-03-11)
+- **Unified Component:** `BookingDateRangePicker` in `/app/components/booking-date-picker.jsx`
+  - Uses react-day-picker v9 with standard CSS + custom teal accent color
+  - Mode: `range` for check-in/check-out selection
+  - Navigation: `< >` arrows at top-right of calendar header
+  - Disabled dates: Past dates + blockedDates from availability API
+  - Auto-close: Popover closes after full range selected
+- **GostayloHomeContent.jsx:** Replaced direct DayPicker import with `BookingDateRangePicker`
+  - Removed manual CSS import (`react-day-picker/dist/style.css`)
+  - Removed Dialog wrapper - now uses Popover
+- **Availability API Integration:**
+  - Includes `PENDING`, `CONFIRMED`, `PAID` bookings
+  - Includes `calendar_blocks` (manual + iCal)
+  - Returns ISO date strings for 12 months
+- **UI Improvements:**
+  - Removed amber text warnings ("X dates unavailable")
+  - Uses standard disabled styling (gray, 50% opacity, not-allowed cursor)
+  - Teal accent color (`#0d9488`) for selected dates
+- **Tested:** Backend 100%, Frontend 100%
+- **Test Report:** `/app/test_reports/iteration_10.json`
+
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql`
 - **Important:** RLS uses `auth.uid()` from Supabase Auth, but app uses custom JWT auth
@@ -422,3 +443,4 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - `/app/test_reports/iteration_3.json` - Profile page bug fix verification (100% frontend pass)
 - `/app/test_reports/iteration_8.json` - Booking flow 400 error fixes (7/7 passed)
 - `/app/test_reports/iteration_9.json` - Calendar blocked dates UI/UX sync (7/7 passed)
+- `/app/test_reports/iteration_10.json` - Calendar architecture overhaul (7/7 passed)
