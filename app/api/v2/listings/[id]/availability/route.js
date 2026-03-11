@@ -45,14 +45,70 @@ export async function GET(request, { params }) {
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
   
-  if (!startDate || !endDate) {
+  const supabase = getSupabase();
+  
+  // Check if listing exists
+  const { data: listing, error: listingError } = await supabase
+    .from('listings')
+    .select('id, status, available, min_booking_days, max_booking_days')
+    .eq('id', listingId)
+    .single();
+  
+  if (listingError || !listing) {
     return NextResponse.json({ 
       success: false, 
-      error: 'Start and end dates required' 
-    }, { status: 400 });
+      error: 'Listing not found' 
+    }, { status: 404 });
   }
   
-  // Validate date format
+  // If no dates provided, return all blocked dates for calendar display
+  if (!startDate || !endDate) {
+    // Get next 12 months of blocked dates for calendar grey-out
+    const today = new Date();
+    const futureDate = new Date();
+    futureDate.setMonth(futureDate.getMonth() + 12);
+    
+    const rangeStart = today.toISOString().split('T')[0];
+    const rangeEnd = futureDate.toISOString().split('T')[0];
+    
+    // Get all calendar blocks
+    const { data: blocks } = await supabase
+      .from('calendar_blocks')
+      .select('start_date, end_date')
+      .eq('listing_id', listingId)
+      .gte('end_date', rangeStart)
+      .lte('start_date', rangeEnd);
+    
+    // Get confirmed/pending bookings
+    const { data: bookings } = await supabase
+      .from('bookings')
+      .select('check_in, check_out, status')
+      .eq('listing_id', listingId)
+      .in('status', ['CONFIRMED', 'PAID', 'CHECKED_IN'])
+      .gte('check_out', rangeStart)
+      .lte('check_in', rangeEnd);
+    
+    // Collect all blocked dates
+    const blockedDatesSet = new Set();
+    
+    (blocks || []).forEach(block => {
+      getDatesInRange(block.start_date, block.end_date).forEach(d => blockedDatesSet.add(d));
+    });
+    
+    (bookings || []).forEach(booking => {
+      getDatesInRange(booking.check_in, booking.check_out).forEach(d => blockedDatesSet.add(d));
+    });
+    
+    return NextResponse.json({
+      success: true,
+      data: {
+        blockedDates: Array.from(blockedDatesSet).sort(),
+        listingActive: listing.status === 'ACTIVE'
+      }
+    });
+  }
+  
+  // Validate date format for specific range check
   const startParsed = new Date(startDate);
   const endParsed = new Date(endDate);
   
@@ -68,22 +124,6 @@ export async function GET(request, { params }) {
       success: false, 
       error: 'Start date must be before end date' 
     }, { status: 400 });
-  }
-  
-  const supabase = getSupabase();
-  
-  // Check if listing exists and is active
-  const { data: listing, error: listingError } = await supabase
-    .from('listings')
-    .select('id, status, available, min_booking_days, max_booking_days')
-    .eq('id', listingId)
-    .single();
-  
-  if (listingError || !listing) {
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Listing not found' 
-    }, { status: 404 });
   }
   
   if (listing.status !== 'ACTIVE') {
