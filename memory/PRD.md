@@ -374,6 +374,22 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Availability Persistence:** PENDING bookings block dates for other requests
 - **Tested:** Backend 100% (9/9), Frontend 100%
 
+### 15. Booking Flow 400 Error Fixes (2026-03-11)
+- **Availability API Fix:** `/api/v2/listings/[id]/availability` now works without `startDate`/`endDate` query params
+  - Returns all blocked dates for the next 12 months for calendar grey-out
+  - Previously returned 400 error when params were missing
+- **Commission "Bread Logic" Fix:** Booking creation now permanently saves commission rate at request time
+  - `commission_rate` column stores the rate (personal or system) at booking creation
+  - `partner_earnings_thb` column stores pre-calculated partner earnings
+  - Rate is locked and cannot change after booking is created
+- **Checkout RLS Fix:** `/app/checkout/[bookingId]/page.js` now uses API route instead of direct Supabase REST call
+  - Previously used `anon_key` which was blocked by RLS
+  - Now uses `/api/v2/bookings/[id]` which uses service role via BookingService
+  - Fixed "Бронирование не найдено" error on checkout page
+- **Dynamic Commission Label:** Service fee label on checkout page now shows real rate (was hardcoded to 15%)
+- **Tested:** Backend 100% (7/7), Frontend 100% - All 3 critical bugs verified fixed
+- **Test Report:** `/app/test_reports/iteration_8.json`
+
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql`
 - **Important:** RLS uses `auth.uid()` from Supabase Auth, but app uses custom JWT auth
@@ -388,3 +404,4 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 ## Test Reports
 - `/app/test_reports/iteration_1.json` - Partner application flow tests (13/13 passed)
 - `/app/test_reports/iteration_3.json` - Profile page bug fix verification (100% frontend pass)
+- `/app/test_reports/iteration_8.json` - Booking flow 400 error fixes (7/7 passed)
