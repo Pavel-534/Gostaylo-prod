@@ -22,7 +22,7 @@ import { detectLanguage, getUIText, getListingText, supportedLanguages } from '@
 import { PricingService } from '@/lib/services/pricing.service'
 import { ReviewsSection } from '@/components/reviews-section'
 import { useAuth } from '@/contexts/auth-context'
-import { BookingDatePicker, hasBlockedDateInRange } from '@/components/booking-date-picker'
+import { BookingDateRangePicker, hasBlockedDateInRange } from '@/components/booking-date-picker'
 
 export default function ListingDetail({ params }) {
   const router = useRouter()
@@ -48,18 +48,21 @@ export default function ListingDetail({ params }) {
   const [guestName, setGuestName] = useState('')
   const [guestEmail, setGuestEmail] = useState('')
   const [guestPhone, setGuestPhone] = useState('')
-  const [checkIn, setCheckIn] = useState('')
-  const [checkOut, setCheckOut] = useState('')
+  const [dateRange, setDateRange] = useState({ from: null, to: null })
   const [message, setMessage] = useState('')
+  
+  // Derived values for API calls (backwards compatible)
+  const checkIn = dateRange.from ? dateRange.from.toISOString().split('T')[0] : ''
+  const checkOut = dateRange.to ? dateRange.to.toISOString().split('T')[0] : ''
   
   // Price calculation state
   const [priceCalc, setPriceCalc] = useState(null)
   
   // Check if selected dates have any blocked dates in range
   const hasDateConflict = useMemo(() => {
-    if (!checkIn || !checkOut || !blockedDates.length) return false
-    return hasBlockedDateInRange(checkIn, checkOut, blockedDates)
-  }, [checkIn, checkOut, blockedDates])
+    if (!dateRange.from || !dateRange.to || !blockedDates.length) return false
+    return hasBlockedDateInRange(dateRange.from, dateRange.to, blockedDates)
+  }, [dateRange, blockedDates])
 
   // Auto-fill form from user profile when logged in
   useEffect(() => {
@@ -724,32 +727,17 @@ export default function ListingDetail({ params }) {
                           data-testid='guest-phone-input'
                         />
                       </div>
-                      <div className='grid grid-cols-2 gap-3'>
-                        <div>
-                          <Label>{t.checkInDate}</Label>
-                          <BookingDatePicker
-                            value={checkIn}
-                            onChange={setCheckIn}
-                            blockedDates={blockedDates}
-                            minDate={new Date()}
-                            placeholder={language === 'ru' ? 'Дата заезда' : 'Check-in'}
-                            language={language}
-                            data-testid='check-in-input'
-                          />
-                        </div>
-                        <div>
-                          <Label>{t.checkOutDate}</Label>
-                          <BookingDatePicker
-                            value={checkOut}
-                            onChange={setCheckOut}
-                            blockedDates={blockedDates}
-                            minDate={checkIn ? new Date(checkIn) : new Date()}
-                            placeholder={language === 'ru' ? 'Дата выезда' : 'Check-out'}
-                            language={language}
-                            disabled={!checkIn}
-                            data-testid='check-out-input'
-                          />
-                        </div>
+                      {/* Unified Date Range Picker */}
+                      <div>
+                        <Label>{language === 'ru' ? 'Даты проживания' : 'Stay dates'}</Label>
+                        <BookingDateRangePicker
+                          value={dateRange}
+                          onChange={setDateRange}
+                          blockedDates={blockedDates}
+                          language={language}
+                          placeholder={language === 'ru' ? 'Заезд — Выезд' : 'Check-in — Check-out'}
+                          data-testid='booking-date-range'
+                        />
                       </div>
                       
                       {/* Date conflict warning */}
@@ -762,16 +750,6 @@ export default function ListingDetail({ params }) {
                               : 'Selected range contains unavailable dates. Please choose different dates.'}
                           </p>
                         </div>
-                      )}
-                      
-                      {/* Blocked dates info */}
-                      {blockedDates.length > 0 && !hasDateConflict && (
-                        <p className='text-xs text-amber-600 flex items-center gap-1'>
-                          <Info className='h-3 w-3' />
-                          {language === 'ru' 
-                            ? 'Некоторые даты недоступны для бронирования'
-                            : 'Some dates are not available for booking'}
-                        </p>
                       )}
                       
                       {/* Price Breakdown Section with Service Fee */}
@@ -860,7 +838,7 @@ export default function ListingDetail({ params }) {
                       <Button
                         type='submit'
                         className='w-full bg-teal-600 hover:bg-teal-700 h-12 text-base disabled:opacity-50 disabled:cursor-not-allowed'
-                        disabled={submitting || !priceCalc || hasDateConflict || !checkIn || !checkOut}
+                        disabled={submitting || !priceCalc || hasDateConflict || !dateRange.from || !dateRange.to}
                         data-testid='submit-booking-btn'
                       >
                         {submitting ? (
@@ -872,6 +850,11 @@ export default function ListingDetail({ params }) {
                           <>
                             <AlertTriangle className='h-4 w-4 mr-2' />
                             {language === 'ru' ? 'Выберите другие даты' : 'Select different dates'}
+                          </>
+                        ) : !dateRange.from || !dateRange.to ? (
+                          <>
+                            <Calendar className='h-4 w-4 mr-2' />
+                            {language === 'ru' ? 'Выберите даты' : 'Select dates'}
                           </>
                         ) : (
                           <>

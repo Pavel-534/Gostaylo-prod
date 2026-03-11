@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -17,13 +16,8 @@ import { fetchCategories, fetchListings, fetchExchangeRates, fetchDistricts } fr
 import { detectLanguage, setLanguage as saveLanguage, supportedLanguages, getCategoryName, getUIText, getListingText } from '@/lib/translations'
 import { CurrencySelector } from '@/components/currency-selector'
 import { useAuth } from '@/contexts/auth-context'
-import { DayPicker } from 'react-day-picker'
-import { format } from 'date-fns'
-import { ru, enUS, zhCN, th } from 'date-fns/locale'
+import { BookingDateRangePicker } from '@/components/booking-date-picker'
 import { toast } from 'sonner'
-import 'react-day-picker/dist/style.css'
-
-const dateLocales = { ru, en: enUS, zh: zhCN, th }
 
 export function GostayloHomeContent() {
   const router = useRouter()
@@ -45,7 +39,6 @@ export function GostayloHomeContent() {
   const [selectedDistrict, setSelectedDistrict] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [dateRange, setDateRange] = useState({ from: null, to: null })
-  const [datePickerOpen, setDatePickerOpen] = useState(false)
 
   // Sync user from auth context
   useEffect(() => {
@@ -58,7 +51,9 @@ export function GostayloHomeContent() {
         if (stored) {
           try {
             setCurrentUser(JSON.parse(stored))
-          } catch (e) {}
+          } catch {
+            // Invalid JSON, ignore
+          }
         }
       }
     }
@@ -127,8 +122,6 @@ export function GostayloHomeContent() {
     setLanguageState(lang)
     saveLanguage(lang)
   }
-
-  const currentLocale = dateLocales[language] || ru
 
   // Handle logout  
   function handleLogout() {
@@ -244,47 +237,15 @@ export function GostayloHomeContent() {
                     </div>
                   </div>
                   
-                  {/* Date Range */}
-                  <Dialog open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant='outline' className='h-10 justify-start text-left font-normal'>
-                        <Calendar className='mr-2 h-4 w-4 text-slate-400' />
-                        <span className='truncate text-sm'>
-                          {dateRange.from && dateRange.to 
-                            ? `${format(dateRange.from, 'dd MMM', { locale: currentLocale })} - ${format(dateRange.to, 'dd MMM', { locale: currentLocale })}`
-                            : getUIText('selectDates', language)}
-                        </span>
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className='max-w-md'>
-                      <DialogHeader>
-                        <DialogTitle>{getUIText('datePickerTitle', language)}</DialogTitle>
-                      </DialogHeader>
-                      <div className='flex justify-center py-4'>
-                        <DayPicker
-                          mode='range'
-                          selected={dateRange}
-                          onSelect={(range) => setDateRange(range || { from: null, to: null })}
-                          locale={currentLocale}
-                          disabled={{ before: new Date() }}
-                          numberOfMonths={1}
-                          classNames={{
-                            day_selected: 'bg-teal-600 text-white hover:bg-teal-700',
-                            day_today: 'bg-slate-100',
-                            day_range_middle: 'bg-teal-100',
-                          }}
-                        />
-                      </div>
-                      <DialogFooter className='flex gap-2'>
-                        <Button variant='outline' onClick={() => setDateRange({ from: null, to: null })} className='flex-1'>
-                          {getUIText('clear', language)}
-                        </Button>
-                        <Button onClick={() => setDatePickerOpen(false)} className='flex-1 bg-teal-600 hover:bg-teal-700'>
-                          {getUIText('apply', language)}
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                  {/* Date Range - Unified BookingDateRangePicker */}
+                  <BookingDateRangePicker
+                    value={dateRange}
+                    onChange={setDateRange}
+                    blockedDates={[]}
+                    language={language}
+                    placeholder={getUIText('selectDates', language)}
+                    data-testid="home-date-picker"
+                  />
                   
                   {/* Category */}
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
