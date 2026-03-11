@@ -92,9 +92,14 @@ export async function POST(request) {
       .single();
     
     if (listing) {
-      // Send notification to partner
+      // Send notification to partner with commission details
       await NotificationService.dispatch(NotificationEvents.NEW_BOOKING_REQUEST, {
-        booking: result.booking,
+        booking: {
+          ...result.booking,
+          commission_rate: result.commission?.commissionRate,
+          commission_thb: result.commission?.commissionThb,
+          partner_earnings_thb: result.commission?.partnerEarnings
+        },
         partner: listing.owner,
         listing: { title: listing.title, district: listing.district }
       });
@@ -102,7 +107,7 @@ export async function POST(request) {
     
     console.log(`[BOOKING] New booking created: ${result.booking.id} for listing ${listingId}`);
     
-    return NextResponse.json({ success: true, data: result.booking });
+    return NextResponse.json({ success: true, booking: result.booking });
     
   } catch (error) {
     console.error('[BOOKINGS POST ERROR]', error);
