@@ -79,12 +79,13 @@ export async function GET(request, { params }) {
       .gte('end_date', rangeStart)
       .lte('start_date', rangeEnd);
     
-    // Get confirmed/pending bookings
+    // Get all bookings that should block dates (including PENDING)
+    // Valid booking_status enum values: PENDING, CONFIRMED, PAID, CANCELLED, COMPLETED, REFUNDED
     const { data: bookings } = await supabase
       .from('bookings')
       .select('check_in, check_out, status')
       .eq('listing_id', listingId)
-      .in('status', ['CONFIRMED', 'PAID', 'CHECKED_IN'])
+      .in('status', ['PENDING', 'CONFIRMED', 'PAID'])
       .gte('check_out', rangeStart)
       .lte('check_in', rangeEnd);
     
@@ -171,12 +172,13 @@ export async function GET(request, { params }) {
     }, { status: 500 });
   }
   
-  // Get existing bookings that overlap
+  // Get existing bookings that overlap (including PENDING)
+  // Valid booking_status enum values: PENDING, CONFIRMED, PAID, CANCELLED, COMPLETED, REFUNDED
   const { data: bookings, error: bookingsError } = await supabase
     .from('bookings')
     .select('check_in, check_out, status')
     .eq('listing_id', listingId)
-    .in('status', ['CONFIRMED', 'PAID', 'CHECKED_IN', 'PENDING'])
+    .in('status', ['PENDING', 'CONFIRMED', 'PAID'])
     .or(`check_in.lte.${endDate},check_out.gte.${startDate}`);
   
   if (bookingsError) {

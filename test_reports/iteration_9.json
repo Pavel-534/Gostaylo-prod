@@ -1,0 +1,112 @@
+{
+  "summary": "Blocked Dates Calendar Fix Verified - All features working correctly. Availability API returns 28 blocked dates including PENDING bookings (April 1-5, 20-25). BookingDatePicker component correctly disables blocked dates and shows warning indicators.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "test_report_links": [
+    "/app/test_reports/pytest/test_blocked_dates_v9.py",
+    "/app/test_reports/pytest/blocked_dates_v9_results.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [],
+  
+  "updated_files": [
+    "/app/test_reports/pytest/test_blocked_dates_v9.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (7/7 tests passed)",
+    "frontend": "100% (all calendar features verified)"
+  },
+  
+  "test_credentials": {
+    "test_listing": "lst-test-final-1772285152",
+    "blocked_dates_april": "1-5 (PENDING), 20-25 (PENDING)",
+    "available_dates_tested": "April 15-17",
+    "total_blocked_dates": 28
+  },
+  
+  "seed_data_creation": "Created test booking for April 15-17 during testing",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Blocked dates feature fully verified. Availability API returns blocked dates from both calendar_blocks and bookings tables. PENDING status now included in query (lines 82-90 of route.js). Frontend BookingDatePicker correctly receives blockedDates array and disables those dates in calendar.",
+  
+  "verified_features": {
+    "1_availability_api_blocked_dates": {
+      "status": "PASS",
+      "test": "GET /api/v2/listings/{id}/availability returns blockedDates array",
+      "evidence": "Returns 28 blocked dates for test listing",
+      "blocked_dates_april": ["2026-04-01 to 2026-04-05", "2026-04-20 to 2026-04-25"]
+    },
+    "2_pending_status_included": {
+      "status": "PASS",
+      "test": "PENDING booking dates included in blocked dates",
+      "evidence": "April 1-5 blocked by PENDING booking b-d2179ba7",
+      "fix_applied": "Added PENDING to status filter in availability route (line 88)"
+    },
+    "3_calendar_ui_blocked_indicator": {
+      "status": "PASS",
+      "test": "Calendar shows '28 dates unavailable' indicator",
+      "evidence": "Screenshot shows indicator at bottom of calendar popover"
+    },
+    "4_blocked_dates_disabled": {
+      "status": "PASS",
+      "test": "Blocked dates cannot be selected in calendar",
+      "evidence": "Clicking April 1 returns 'disabled' status"
+    },
+    "5_available_dates_selectable": {
+      "status": "PASS",
+      "test": "Available dates (April 15-17) can be selected",
+      "evidence": "Price breakdown shows correctly for 2 nights"
+    },
+    "6_price_calculation": {
+      "status": "PASS",
+      "test": "Price breakdown shows rental cost + service fee",
+      "evidence": "2 nights x ฿35,000 = ฿70,000 + 5% service fee = ฿73,500"
+    },
+    "7_booking_creation": {
+      "status": "PASS",
+      "test": "Booking creation succeeds for available dates",
+      "evidence": "POST /api/v2/bookings returns success with booking ID"
+    }
+  },
+  
+  "api_test_results": {
+    "availability_no_params": {
+      "endpoint": "GET /api/v2/listings/lst-test-final-1772285152/availability",
+      "response": {"success": true, "data": {"blockedDates": "28 dates", "listingActive": true}},
+      "status": 200
+    },
+    "availability_blocked_range": {
+      "endpoint": "GET /api/v2/listings/lst-test-final-1772285152/availability?startDate=2026-04-01&endDate=2026-04-05",
+      "response": {"success": true, "available": false, "reason": "Эти даты уже забронированы", "details": {"bookings": 1}},
+      "status": 200
+    },
+    "availability_available_range": {
+      "endpoint": "GET /api/v2/listings/lst-test-final-1772285152/availability?startDate=2026-04-15&endDate=2026-04-17",
+      "response": {"success": true, "available": true},
+      "status": 200
+    }
+  },
+  
+  "ui_verification": {
+    "booking_modal_warning": "Shows 'Some dates are not available for booking'",
+    "calendar_indicator": "Shows '28 dates unavailable' at bottom of calendar",
+    "past_dates_disabled": "March 1-10 grayed out (past dates)",
+    "submit_button": "Enabled when valid dates selected, shows total price"
+  }
+}

@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator'
 import { 
   MapPin, Star, ArrowLeft, ChevronLeft, ChevronRight, 
   Bed, Bath, Square, Calendar, Send, Loader2, User,
-  Wifi, Car, Waves, Utensils, Info, Calculator
+  Wifi, Car, Waves, Utensils, Info, Calculator, AlertTriangle
 } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
@@ -22,6 +22,7 @@ import { detectLanguage, getUIText, getListingText, supportedLanguages } from '@
 import { PricingService } from '@/lib/services/pricing.service'
 import { ReviewsSection } from '@/components/reviews-section'
 import { useAuth } from '@/contexts/auth-context'
+import { BookingDatePicker, hasBlockedDateInRange } from '@/components/booking-date-picker'
 
 export default function ListingDetail({ params }) {
   const router = useRouter()
@@ -53,6 +54,12 @@ export default function ListingDetail({ params }) {
   
   // Price calculation state
   const [priceCalc, setPriceCalc] = useState(null)
+  
+  // Check if selected dates have any blocked dates in range
+  const hasDateConflict = useMemo(() => {
+    if (!checkIn || !checkOut || !blockedDates.length) return false
+    return hasBlockedDateInRange(checkIn, checkOut, blockedDates)
+  }, [checkIn, checkOut, blockedDates])
 
   // Auto-fill form from user profile when logged in
   useEffect(() => {
@@ -720,56 +727,45 @@ export default function ListingDetail({ params }) {
                       <div className='grid grid-cols-2 gap-3'>
                         <div>
                           <Label>{t.checkInDate}</Label>
-                          <Input
-                            type='date'
+                          <BookingDatePicker
                             value={checkIn}
-                            onChange={(e) => {
-                              const newDate = e.target.value
-                              if (isDateBlocked(newDate)) {
-                                toast.error(language === 'ru' ? 'Эта дата уже занята' : 'This date is not available')
-                                return
-                              }
-                              setCheckIn(newDate)
-                            }}
-                            min={new Date().toISOString().split('T')[0]}
-                            required
-                            className='h-12'
+                            onChange={setCheckIn}
+                            blockedDates={blockedDates}
+                            minDate={new Date()}
+                            placeholder={language === 'ru' ? 'Дата заезда' : 'Check-in'}
+                            language={language}
                             data-testid='check-in-input'
                           />
                         </div>
                         <div>
                           <Label>{t.checkOutDate}</Label>
-                          <Input
-                            type='date'
+                          <BookingDatePicker
                             value={checkOut}
-                            onChange={(e) => {
-                              const newDate = e.target.value
-                              // Check all dates between checkIn and newDate
-                              if (checkIn) {
-                                const start = new Date(checkIn)
-                                const end = new Date(newDate)
-                                let current = new Date(start)
-                                while (current < end) {
-                                  const dateStr = current.toISOString().split('T')[0]
-                                  if (isDateBlocked(dateStr)) {
-                                    toast.error(language === 'ru' ? 'Некоторые даты в этом диапазоне уже заняты' : 'Some dates in this range are not available')
-                                    return
-                                  }
-                                  current.setDate(current.getDate() + 1)
-                                }
-                              }
-                              setCheckOut(newDate)
-                            }}
-                            min={checkIn || new Date().toISOString().split('T')[0]}
-                            required
-                            className='h-12'
+                            onChange={setCheckOut}
+                            blockedDates={blockedDates}
+                            minDate={checkIn ? new Date(checkIn) : new Date()}
+                            placeholder={language === 'ru' ? 'Дата выезда' : 'Check-out'}
+                            language={language}
+                            disabled={!checkIn}
                             data-testid='check-out-input'
                           />
                         </div>
                       </div>
                       
+                      {/* Date conflict warning */}
+                      {hasDateConflict && (
+                        <div className='bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2'>
+                          <AlertTriangle className='h-4 w-4 text-red-600 flex-shrink-0' />
+                          <p className='text-sm text-red-700'>
+                            {language === 'ru' 
+                              ? 'Выбранный диапазон содержит занятые даты. Пожалуйста, выберите другие даты.'
+                              : 'Selected range contains unavailable dates. Please choose different dates.'}
+                          </p>
+                        </div>
+                      )}
+                      
                       {/* Blocked dates info */}
-                      {blockedDates.length > 0 && (
+                      {blockedDates.length > 0 && !hasDateConflict && (
                         <p className='text-xs text-amber-600 flex items-center gap-1'>
                           <Info className='h-3 w-3' />
                           {language === 'ru' 
@@ -863,14 +859,19 @@ export default function ListingDetail({ params }) {
                       </div>
                       <Button
                         type='submit'
-                        className='w-full bg-teal-600 hover:bg-teal-700 h-12 text-base'
-                        disabled={submitting || !priceCalc}
+                        className='w-full bg-teal-600 hover:bg-teal-700 h-12 text-base disabled:opacity-50 disabled:cursor-not-allowed'
+                        disabled={submitting || !priceCalc || hasDateConflict || !checkIn || !checkOut}
                         data-testid='submit-booking-btn'
                       >
                         {submitting ? (
                           <>
                             <Loader2 className='h-4 w-4 mr-2 animate-spin' />
                             {t.submitting}
+                          </>
+                        ) : hasDateConflict ? (
+                          <>
+                            <AlertTriangle className='h-4 w-4 mr-2' />
+                            {language === 'ru' ? 'Выберите другие даты' : 'Select different dates'}
                           </>
                         ) : (
                           <>
