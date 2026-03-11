@@ -319,6 +319,24 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Sync verified:** Header links match Mobile Nav destinations
 - **Testing:** All components work correctly on desktop and mobile
 
+### 11. Phase 1: Finance Core & Admin Empowerment (2026-03-11)
+- **Admin Settings API:** `/api/admin/settings` - GET/PUT for system settings
+  - Fixed: Uses direct REST API to bypass Supabase SDK caching
+  - Commission saved to `system_settings` table (key: 'general')
+- **Commission API:** `/api/v2/commission` - GET effective commission rate
+  - Supports `partnerId` query param for personal rates
+  - Returns: systemRate, personalRate, effectiveRate, partnerEarningsPercent
+- **Admin User Management:**
+  - User cards in `/admin/users` are now clickable
+  - New detail page: `/admin/users/[id]`
+  - Shows: profile info, role management, KYC documents, listings
+  - Personal commission % field for Partners
+- **KYC Display:** Partner verification documents visible on user detail page
+- **useCommission Hook:** `/hooks/use-commission.js` for client-side commission fetching
+- **Bug Fixes:**
+  - Fixed `use(params)` → `useParams()` in user detail page
+  - Fixed Supabase SDK caching in settings API
+
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql`
 - **Important:** RLS uses `auth.uid()` from Supabase Auth, but app uses custom JWT auth
