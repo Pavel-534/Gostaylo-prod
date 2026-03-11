@@ -1,0 +1,128 @@
+{
+  "summary": "Mobile Calendar UX Testing - Critical Bug Found: useIsMobile hook not working, Popover shown instead of Drawer on mobile viewport",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "BookingDateRangePicker",
+        "issue": "useIsMobile() hook returns false on mobile viewport (375px), causing Popover to render instead of Drawer",
+        "selector": "[data-testid='booking-date-range']",
+        "priority": "HIGH",
+        "evidence": "Browser reports windowWidth=375, isMobileByWidth=true, isMobileByMql=true, but component renders Popover with 'bg-popover' classes instead of Drawer",
+        "file": "/app/components/booking-date-picker.jsx",
+        "lines": "26-37"
+      },
+      {
+        "component": "BookingDateRangePicker",
+        "issue": "Calendar closes after FIRST date selection (should stay open until BOTH dates selected)",
+        "selector": "button.rdp-day_button",
+        "priority": "HIGH",
+        "evidence": "First click sets from=to (same date), calendar immediately closes, user must reopen to select end date",
+        "root_cause": "Since Drawer is not used, Popover's default close-on-click behavior takes over"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Booking Modal",
+        "issues": ["Minor: Console warning 'Missing Description or aria-describedby for DialogContent'"]
+      }
+    ]
+  },
+  
+  "test_report_links": [
+    "/app/test_reports/iteration_11.json"
+  ],
+  
+  "action_items": [
+    "FIX CRITICAL: useIsMobile hook in /app/components/booking-date-picker.jsx is not returning true on mobile. The hook initializes to false and never updates. Consider using the shared hook from /app/hooks/use-mobile.jsx or fix the SSR hydration issue.",
+    "Verify that when isMobile=true, the Drawer component renders (with vaul-drawer attributes)",
+    "Test that Drawer stays open after first date click and shows hint message",
+    "Test that Drawer auto-closes after second (different) date is selected"
+  ],
+  
+  "critical_code_review_comments": [
+    "useIsMobile hook in booking-date-picker.jsx initializes state to false, causing wrong branch on first render. This is a React SSR/hydration issue - the component conditionally renders Drawer vs Popover based on isMobile, but isMobile is false until useEffect runs.",
+    "The hook at line 27 `useState(false)` should either: (1) use a loading/skeleton state until mobile detection completes, (2) default to mobile-first approach, or (3) use CSS media queries instead of JS detection",
+    "There's a shared useIsMobile hook at /app/hooks/use-mobile.jsx that uses matchMedia - consider using that consistently"
+  ],
+  
+  "updated_files": [],
+  
+  "success_rate": {
+    "backend": "N/A - frontend only testing",
+    "frontend": "60% - Date selection and price breakdown work, but mobile Drawer UX completely broken"
+  },
+  
+  "test_credentials": {
+    "test_listing": "lst-test-final-1772285152",
+    "test_viewport": "375x667"
+  },
+  
+  "seed_data_creation": "",
+  
+  "retest_needed": true,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Critical bug: useIsMobile hook not working. When testing mobile drawer behavior, first verify that vaul-drawer attributes appear in DOM. Current state: Popover is rendered even on mobile viewport. The hint message and stay-open behavior cannot be tested until Drawer renders.",
+  
+  "verified_features": {
+    "button_format_with_nights": {
+      "status": "PASS",
+      "test": "Button shows '6 Apr — 8 Apr (2 nights)' format",
+      "evidence": "Screenshot shows correct format after date range selection"
+    },
+    "price_breakdown": {
+      "status": "PASS",
+      "test": "Price breakdown calculates correctly",
+      "evidence": "2 nights × ฿35,000 = ฿70,000 + 5% service fee (฿3,500) = ฿73,500"
+    },
+    "blocked_dates_april": {
+      "status": "PASS",
+      "test": "April blocked dates (1-5, 20-24) are disabled",
+      "evidence": "Blocked dates found: ['1','2','3','4','5','15','16','17','20','21','22','23','24','25']"
+    },
+    "cell_size_touch_friendly": {
+      "status": "PASS",
+      "test": "Calendar cell size is adequate for touch (>40px)",
+      "evidence": "Cell size measured at 42x42px"
+    },
+    "mobile_drawer_opens": {
+      "status": "FAIL",
+      "test": "Mobile should open Drawer from bottom instead of Popover",
+      "evidence": "Popover detected (bg-popover classes), no vaul-drawer attributes found",
+      "root_cause": "useIsMobile() returns false on mobile viewport"
+    },
+    "drawer_stays_open_after_first_date": {
+      "status": "FAIL",
+      "test": "Calendar should stay open after first date selection",
+      "evidence": "Calendar closes immediately after first click",
+      "root_cause": "Popover is used instead of Drawer, Popover closes on selection"
+    },
+    "hint_message_displayed": {
+      "status": "UNTESTABLE",
+      "test": "Hint '✓ Check-in selected. Now select check-out date' should show",
+      "evidence": "Cannot test - Drawer component not rendered",
+      "root_cause": "useIsMobile() returns false"
+    }
+  },
+  
+  "rca_of_the_issue": {
+    "issue": "Mobile Drawer not rendering, Popover shown instead",
+    "root_cause": "useIsMobile hook at line 26-37 of booking-date-picker.jsx initializes state to false. The useEffect updates it to true after hydration, but by then React has already rendered the Popover branch. The conditional `if (isMobile)` at line 176 evaluates to false on initial render.",
+    "reproduction_steps": [
+      "1. Set viewport to 375x667 (mobile)",
+      "2. Navigate to /listings/lst-test-final-1772285152",
+      "3. Click 'Book Now' to open modal",
+      "4. Click date picker button",
+      "5. Observe: Popover opens (floating card style) instead of Drawer (bottom sheet)"
+    ],
+    "fix_suggestion": "Use CSS media queries with display:none/block to conditionally render, or implement a loading state until isMobile is determined, or use the shared hook from /app/hooks/use-mobile.jsx with proper handling of undefined initial state"
+  }
+}

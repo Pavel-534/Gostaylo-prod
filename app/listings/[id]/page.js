@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -111,7 +111,9 @@ export default function ListingDetail({ params }) {
 
   async function loadBlockedDates() {
     try {
-      const res = await fetch(`/api/v2/listings/${params.id}/availability`)
+      const res = await fetch(`/api/v2/listings/${params.id}/availability`, {
+        cache: 'no-store'
+      })
       const data = await res.json()
       if (data.success) {
         setBlockedDates(data.data.blockedDates || [])
@@ -120,6 +122,14 @@ export default function ListingDetail({ params }) {
       console.error('Failed to load availability:', error)
     }
   }
+  
+  // Refresh availability data (called after successful booking)
+  const refreshAvailability = useCallback(async () => {
+    await loadBlockedDates()
+    // Reset date selection
+    setDateRange({ from: null, to: null })
+    setPriceCalc(null)
+  }, [params?.id])
 
   // Check if date is blocked
   function isDateBlocked(dateStr) {
@@ -477,6 +487,8 @@ export default function ListingDetail({ params }) {
       
       if (data.success && data.booking) {
         toast.success(t.successMsg)
+        // INSTANT DATA INVALIDATION: refresh blocked dates so calendar updates
+        await refreshAvailability()
         setBookingModalOpen(false)
         router.push(`/checkout/${data.booking.id}`)
       } else {
@@ -736,6 +748,7 @@ export default function ListingDetail({ params }) {
                           blockedDates={blockedDates}
                           language={language}
                           placeholder={language === 'ru' ? 'Заезд — Выезд' : 'Check-in — Check-out'}
+                          onRefreshAvailability={refreshAvailability}
                           data-testid='booking-date-range'
                         />
                       </div>
