@@ -331,11 +331,27 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
   - New detail page: `/admin/users/[id]`
   - Shows: profile info, role management, KYC documents, listings
   - Personal commission % field for Partners
+  - Identity verification with Approve/Decline buttons
+- **Admin Users API:** `/api/admin/users` - PATCH for profile updates (uses service role key)
 - **KYC Display:** Partner verification documents visible on user detail page
 - **useCommission Hook:** `/hooks/use-commission.js` for client-side commission fetching
-- **Bug Fixes:**
-  - Fixed `use(params)` → `useParams()` in user detail page
-  - Fixed Supabase SDK caching in settings API
+
+### 12. Phase 2: Renter Booking Flow (2026-03-11)
+- **Availability API:** `/api/v2/listings/{id}/availability` returns blocked dates
+- **Booking Creation:** POST `/api/v2/bookings`
+  - Saves: listing_id, partner_id, check_in, check_out, price_thb
+  - Calculates commission using partner's custom rate or system rate
+  - Status: PENDING (awaiting partner confirmation)
+  - Stores: guest_name, guest_email, guest_phone, special_requests
+- **Price Calculator:** Shows rental + 15% service fee + discount (if applicable)
+- **Telegram Notifications:** Partner receives message with:
+  - Dates, Total Price, Commission Rate, Partner's Net Income
+  - Guest's special_requests message
+  - Inline buttons: [Approve] [Decline]
+- **Callback Handler:** `/api/telegram/booking-callback` processes Approve/Decline
+- **Tested:** 
+  - Backend: 8/8 tests passed
+  - Frontend: Complete flow verified (Playwright)
 
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql`
