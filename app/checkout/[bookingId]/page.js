@@ -78,41 +78,20 @@ export default function CheckoutPage({ params }) {
 
   async function loadPaymentStatus() {
     try {
-      // Fetch directly from Supabase to bypass Kubernetes routing issues
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      // Use API route with service role to bypass RLS issues
+      const bookingRes = await fetch(`/api/v2/bookings/${params.bookingId}`, {
+        cache: 'no-store'
+      });
+      const bookingData = await bookingRes.json();
       
-      // Fetch booking
-      const bookingRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/bookings?id=eq.${params.bookingId}&select=*`,
-        {
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
-          }
-        }
-      );
-      const bookings = await bookingRes.json();
-      
-      if (!bookings || bookings.length === 0) {
+      if (!bookingData.success || !bookingData.data) {
+        console.error('[CHECKOUT] Booking not found:', bookingData.error);
         setLoading(false);
         return;
       }
       
-      const b = bookings[0];
-      
-      // Fetch listing info
-      const listingRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?id=eq.${b.listing_id}&select=id,title,district,images,cover_image,base_price_thb`,
-        {
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
-          }
-        }
-      );
-      const listings = await listingRes.json();
-      const l = listings?.[0] || null;
+      const b = bookingData.data;
+      const l = b.listings;
       
       // Transform booking data
       setBooking({
@@ -127,7 +106,9 @@ export default function CheckoutPage({ params }) {
         guestPhone: b.guest_phone,
         specialRequests: b.special_requests,
         createdAt: b.created_at,
-        metadata: b.metadata
+        metadata: b.metadata,
+        commissionRate: parseFloat(b.commission_rate) || 15,
+        partnerEarningsThb: parseFloat(b.partner_earnings_thb) || 0
       });
       
       if (l) {
@@ -141,7 +122,7 @@ export default function CheckoutPage({ params }) {
       }
       
       // Check if already paid
-      if (b.status === 'CONFIRMED') {
+      if (b.status === 'CONFIRMED' || b.status === 'PAID') {
         setPayment({
           id: `pay-${b.id}`,
           status: 'COMPLETED',
@@ -445,7 +426,7 @@ export default function CheckoutPage({ params }) {
     )
   }
 
-  const commissionRate = 15 // Mock - should come from listing
+  const commissionRate = booking?.commissionRate || 15 // Use real rate from booking
   const discountAmount = promoDiscount?.discountAmount || 0
   const priceAfterDiscount = booking.priceThb - discountAmount
   const serviceFee = priceAfterDiscount * (commissionRate / 100)
@@ -594,7 +575,7 @@ export default function CheckoutPage({ params }) {
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">Сервисный сбор (15%)</span>
+                    <span className="text-slate-600">Сервисный сбор ({commissionRate}%)</span>
                     <span className="font-medium">{formatPrice(serviceFee, 'THB')}</span>
                   </div>
                   <div className="flex justify-between text-lg font-bold border-t pt-2">

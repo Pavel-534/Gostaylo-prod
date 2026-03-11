@@ -1,0 +1,120 @@
+{
+  "summary": "Bug Fixes Verified - All 3 critical bugs fixed. Local tests pass (7/7). Preview environment has intermittent 502 errors (infrastructure issue, not code).",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "CheckoutPage",
+        "issue": "Service fee label was hardcoded to show '15%' instead of dynamic rate - FIXED",
+        "selector": "line 578",
+        "priority": "LOW",
+        "status": "FIXED"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "test_report_links": [
+    "/app/test_reports/pytest/test_bug_fixes_v8.py",
+    "/app/test_reports/pytest/bug_fixes_v8_results.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Preview environment (phuket-superapp-1.preview.emergentagent.com) is returning 502 errors intermittently - this is an infrastructure issue, not code"
+  ],
+  
+  "updated_files": [
+    "/app/test_reports/pytest/test_bug_fixes_v8.py",
+    "/app/app/checkout/[bookingId]/page.js"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (7/7 tests passed)",
+    "frontend": "100% (E2E flow verified locally)"
+  },
+  
+  "test_credentials": {
+    "test_listing": "lst-test-final-1772285152",
+    "test_dates": "March 13-16, 2026 (available)",
+    "created_bookings": ["b-63a682f9", "b-2d75720a", "b-41fe5454"]
+  },
+  
+  "seed_data_creation": "Created 3 test bookings during testing",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "All 3 bug fixes verified: 1) Availability API returns blocked dates without date params, 2) Booking creation saves commission_rate (5%) and partner_earnings_thb, 3) Checkout page loads booking data via API route. Preview environment has 502 issues - test locally.",
+  
+  "verified_features": {
+    "1_availability_api_no_params": {
+      "status": "PASS",
+      "test": "GET /api/v2/listings/{id}/availability returns blockedDates without requiring date params",
+      "evidence": "Returns {success: true, data: {blockedDates: [], listingActive: true}}",
+      "was_bug": "Previously returned 400 error without date params"
+    },
+    "2_booking_commission_fields": {
+      "status": "PASS",
+      "test": "POST /api/v2/bookings saves commission_rate and partner_earnings_thb",
+      "evidence": "Booking b-63a682f9 created with commission_rate: 5, partner_earnings_thb: 99750",
+      "calculation": "price_thb: 105000, commission: 5%, partner gets 95% = 99750"
+    },
+    "3_checkout_api_route": {
+      "status": "PASS",
+      "test": "GET /api/v2/bookings/{id} returns booking data for checkout page",
+      "evidence": "API returns full booking with listings relation, no 'Booking not found' error",
+      "was_bug": "Previously used anon_key with RLS issues"
+    },
+    "4_e2e_booking_flow": {
+      "status": "PASS",
+      "test": "Full booking flow: listing page -> modal -> submit -> checkout",
+      "evidence": "Successfully created booking b-41fe5454 and redirected to checkout page",
+      "ui_verified": "Service fee shows real rate (5%) in booking modal"
+    }
+  },
+  
+  "api_test_results": {
+    "availability_no_params": {
+      "endpoint": "GET /api/v2/listings/lst-test-final-1772285152/availability",
+      "response": {"success": true, "data": {"blockedDates": [], "listingActive": true}},
+      "status": 200
+    },
+    "availability_with_dates": {
+      "endpoint": "GET /api/v2/listings/lst-test-final-1772285152/availability?startDate=2026-03-13&endDate=2026-03-16",
+      "response": {"success": true, "available": true},
+      "status": 200
+    },
+    "booking_create": {
+      "endpoint": "POST /api/v2/bookings",
+      "response": {"success": true, "booking": {"commission_rate": 5, "partner_earnings_thb": 99750}},
+      "status": 200
+    },
+    "booking_get": {
+      "endpoint": "GET /api/v2/bookings/b-63a682f9",
+      "response": {"success": true, "data": {"commission_rate": 5, "partner_earnings_thb": 99750}},
+      "status": 200
+    },
+    "commission_api": {
+      "endpoint": "GET /api/v2/commission?partnerId=partner-1",
+      "response": {"success": true, "data": {"effectiveRate": 5, "partnerEarningsPercent": 95}},
+      "status": 200
+    }
+  },
+  
+  "minor_fix_applied": {
+    "file": "/app/app/checkout/[bookingId]/page.js",
+    "line": 578,
+    "before": "Сервисный сбор (15%)",
+    "after": "Сервисный сбор ({commissionRate}%)",
+    "reason": "Label was hardcoded to 15% but calculation used real rate (5%)"
+  }
+}
