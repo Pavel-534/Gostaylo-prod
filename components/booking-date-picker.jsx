@@ -22,12 +22,14 @@ import {
 
 const locales = { ru, en: enUS, zh: zhCN, th }
 
-// Hook to detect mobile viewport
+// Hook to detect mobile - returns null during SSR, then true/false after hydration
 function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState(false)
+  const [isMobile, setIsMobile] = React.useState(null) // null = loading/SSR
   
   React.useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
     checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
@@ -172,8 +174,11 @@ export function BookingDateRangePicker({
     />
   )
 
+  // While detecting mobile (SSR/initial render), show Popover as default
+  // After hydration, show Drawer on mobile, Popover on desktop
+  
   // Mobile: Use Drawer (bottom sheet)
-  if (isMobile) {
+  if (isMobile === true) {
     return (
       <Drawer open={open} onOpenChange={setOpen}>
         <div onClick={() => setOpen(true)}>
@@ -225,13 +230,21 @@ export function BookingDateRangePicker({
     )
   }
 
-  // Desktop: Use Popover
+  // Desktop (or SSR/loading): Use Popover
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>
         {TriggerButton}
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-4" align="start" sideOffset={4}>
+      <PopoverContent 
+        className="w-auto p-4" 
+        align="start" 
+        sideOffset={4}
+        onInteractOutside={(e) => {
+          // Don't close on calendar interactions
+          e.preventDefault()
+        }}
+      >
         {/* Selection hint for desktop - show when first date selected */}
         {value?.from && (!value?.to || isSameDay(value.from, value.to)) && (
           <div className="mb-3 text-center text-sm text-teal-600 bg-teal-50 rounded-lg py-2 px-3">

@@ -427,6 +427,23 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Tested:** Backend 100%, Frontend 100%
 - **Test Report:** `/app/test_reports/iteration_10.json`
 
+### 18. Mobile Calendar UX Overhaul (2026-03-11)
+- **Mobile Drawer:** On mobile (<768px), date picker opens as bottom-sheet Drawer instead of Popover
+  - Uses `vaul` Drawer component from shadcn/ui
+  - Takes 85% of screen height
+  - Smooth slide-up animation
+- **Seamless Range Selection:** Calendar stays open until BOTH dates are selected
+  - Checks `isSameDay(from, to)` to prevent premature close
+  - Shows hint message: "✓ Check-in selected. Now select check-out date"
+  - Auto-closes only when from !== to
+- **useIsMobile Hook Fix:** Changed `useState(false)` to `useState(null)` to prevent SSR hydration mismatch
+  - Returns `null` during SSR, `true/false` after client hydration
+  - Drawer renders only when `isMobile === true`
+- **Cell Size:** Increased to 2.5rem base for better touch targets
+- **Instant Data Invalidation:** After booking, `refreshAvailability()` is called to update blocked dates
+- **Tested:** Frontend verified - drawer stays open, range selection works
+- **Test Report:** `/app/test_reports/iteration_11.json`
+
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql`
 - **Important:** RLS uses `auth.uid()` from Supabase Auth, but app uses custom JWT auth
@@ -444,3 +461,4 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - `/app/test_reports/iteration_8.json` - Booking flow 400 error fixes (7/7 passed)
 - `/app/test_reports/iteration_9.json` - Calendar blocked dates UI/UX sync (7/7 passed)
 - `/app/test_reports/iteration_10.json` - Calendar architecture overhaul (7/7 passed)
+- `/app/test_reports/iteration_11.json` - Mobile calendar UX (Drawer + seamless range selection)
