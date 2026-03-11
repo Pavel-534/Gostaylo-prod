@@ -347,11 +347,21 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Telegram Notifications:** Partner receives message with:
   - Dates, Total Price, Commission Rate, Partner's Net Income
   - Guest's special_requests message
-  - Inline buttons: [Approve] [Decline]
+  - Inline buttons: [✅ Подтвердить] [❌ Отклонить]
 - **Callback Handler:** `/api/telegram/booking-callback` processes Approve/Decline
-- **Tested:** 
-  - Backend: 8/8 tests passed
-  - Frontend: Complete flow verified (Playwright)
+
+### 13. Admin Moderation Fix (2026-03-11)
+- **Bug Fixed:** Pending listings now appear in moderation (was using client-side service key)
+- **New API:** `/api/admin/moderation` - GET/PATCH with service role key
+- **UI Improvements:**
+  - Removed "Партнёры" tab (already exists at /admin/partners)
+  - Owner profile link added to each listing
+  - Commission rate display (personal or system)
+  - Reject button requires mandatory reason
+- **Telegram Notifications:**
+  - Admin receives notification when listing submitted
+  - Partner receives notification on Approve/Reject
+- **Tested:** Backend 100% (4/4), Frontend 100% (6/6 features)
 
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql`
