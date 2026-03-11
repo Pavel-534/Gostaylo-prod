@@ -12,8 +12,8 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   ArrowLeft, User, Mail, Phone, Shield, Calendar, Building2, 
-  DollarSign, FileText, Image, CheckCircle, XCircle, Clock,
-  LogIn, ExternalLink, AlertTriangle, Percent
+  DollarSign, FileText, Image as ImageIcon, CheckCircle, XCircle, Clock,
+  LogIn, ExternalLink, AlertTriangle, Percent, Send
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -26,6 +26,7 @@ export default function UserDetailPage() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [systemCommission, setSystemCommission] = useState(15);
   const [customCommission, setCustomCommission] = useState('');
 
@@ -132,32 +133,30 @@ export default function UserDetailPage() {
   const handleSaveCommission = async () => {
     setSaving(true);
     try {
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
       const newRate = customCommission === '' ? null : parseFloat(customCommission);
 
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
+      const res = await fetch('/api/admin/users', {
         method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({ custom_commission_rate: newRate }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId,
+          updates: { custom_commission_rate: newRate }
+        }),
       });
 
-      if (res.ok) {
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
         toast.success(customCommission 
           ? `Персональная комиссия установлена: ${customCommission}%`
           : 'Используется системная комиссия'
         );
         setUser(prev => ({ ...prev, customCommissionRate: newRate }));
       } else {
-        throw new Error('Failed to update');
+        throw new Error(data.error || 'Failed to update');
       }
     } catch (error) {
+      console.error('Save commission error:', error);
       toast.error('Не удалось сохранить комиссию');
     } finally {
       setSaving(false);
@@ -166,23 +165,22 @@ export default function UserDetailPage() {
 
   const handleRoleChange = async (newRole) => {
     try {
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
+      const res = await fetch('/api/admin/users', {
         method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify({ role: newRole }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId,
+          updates: { role: newRole }
+        }),
       });
 
-      if (res.ok) {
+      const data = await res.json();
+
+      if (res.ok && data.success) {
         toast.success(`Роль изменена на ${newRole}`);
         setUser(prev => ({ ...prev, role: newRole }));
+      } else {
+        throw new Error(data.error || 'Failed to update');
       }
     } catch (error) {
       toast.error('Не удалось изменить роль');
@@ -216,6 +214,48 @@ export default function UserDetailPage() {
     } else {
       window.location.href = '/';
     }
+  };
+
+  const handleVerifyIdentity = async (newStatus) => {
+    setVerifying(true);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId,
+          updates: { 
+            is_verified: newStatus === 'APPROVED',
+            verification_status: newStatus
+          }
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        toast.success(newStatus === 'APPROVED' ? 'Личность подтверждена!' : 'Статус обновлён');
+        setUser(prev => ({ 
+          ...prev, 
+          isVerified: newStatus === 'APPROVED',
+          verificationStatus: newStatus 
+        }));
+      } else {
+        throw new Error(data.error || 'Failed to update');
+      }
+    } catch (error) {
+      toast.error('Не удалось обновить статус верификации');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // Helper to format Telegram link correctly
+  const getTelegramLink = (username) => {
+    if (!username) return null;
+    // Remove @ if present
+    const cleanUsername = username.startsWith('@') ? username.slice(1) : username;
+    return `https://t.me/${cleanUsername}`;
   };
 
   const getRoleBadge = (role) => {
@@ -265,17 +305,22 @@ export default function UserDetailPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => router.push('/admin/users')}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Назад
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">Профиль пользователя</h1>
+      {/* Header - Mobile Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => router.push('/admin/users')}>
+            <ArrowLeft className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Назад</span>
+          </Button>
+          <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Профиль пользователя</h1>
         </div>
         {(user.role === 'PARTNER' || user.role === 'RENTER') && (
-          <Button onClick={handleLoginAs} variant="outline" className="text-indigo-600">
+          <Button 
+            onClick={handleLoginAs} 
+            variant="outline" 
+            size="sm"
+            className="text-indigo-600 w-full sm:w-auto sm:ml-auto"
+          >
             <LogIn className="w-4 h-4 mr-2" />
             Войти как этот пользователь
           </Button>
@@ -329,14 +374,20 @@ export default function UserDetailPage() {
                   <p className="flex items-center gap-2">
                     {user.telegramUsername ? (
                       <a 
-                        href={`https://t.me/${user.telegramUsername}`} 
+                        href={getTelegramLink(user.telegramUsername)} 
                         target="_blank"
-                        className="text-indigo-600 hover:underline"
+                        rel="noopener noreferrer"
+                        className="text-indigo-600 hover:underline flex items-center gap-1"
                       >
-                        @{user.telegramUsername}
+                        <Send className="w-3 h-3" />
+                        @{user.telegramUsername.replace('@', '')}
+                        <ExternalLink className="w-3 h-3 opacity-50" />
                       </a>
                     ) : user.telegramId ? (
-                      <span className="text-green-600">ID: {user.telegramId}</span>
+                      <span className="text-green-600 flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        Привязан (ID: {user.telegramId})
+                      </span>
                     ) : (
                       <span className="text-gray-400">Не привязан</span>
                     )}
@@ -368,6 +419,132 @@ export default function UserDetailPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Identity Verification Card */}
+          <Card className={`border-2 ${
+            user.verificationStatus === 'APPROVED' ? 'border-green-200' : 
+            user.verificationStatus === 'PENDING' ? 'border-yellow-200' : 'border-gray-200'
+          }`}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-blue-600" />
+                Верификация личности
+              </CardTitle>
+              <CardDescription>
+                Проверка документов пользователя
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Current Status */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
+                <span className="text-sm font-medium">Текущий статус:</span>
+                {user.verificationStatus === 'APPROVED' ? (
+                  <Badge className="bg-green-100 text-green-800">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Верифицирован
+                  </Badge>
+                ) : user.verificationStatus === 'PENDING' ? (
+                  <Badge className="bg-yellow-100 text-yellow-800">
+                    <Clock className="w-3 h-3 mr-1" />
+                    На проверке
+                  </Badge>
+                ) : user.verificationStatus === 'REJECTED' ? (
+                  <Badge className="bg-red-100 text-red-800">
+                    <XCircle className="w-3 h-3 mr-1" />
+                    Отклонён
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-gray-600">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Ожидает верификации
+                  </Badge>
+                )}
+              </div>
+
+              {/* Verification Documents Preview */}
+              {(kycDocs.length > 0 || user.verificationDocUrl) && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-gray-500">Загруженные документы</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {kycDocs[0]?.document_url && (
+                      <a 
+                        href={kycDocs[0].document_url} 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                      >
+                        <img 
+                          src={kycDocs[0].document_url} 
+                          alt="Документ"
+                          className="w-24 h-16 object-cover"
+                        />
+                      </a>
+                    )}
+                    {kycDocs[0]?.selfie_url && (
+                      <a 
+                        href={kycDocs[0].selfie_url} 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                      >
+                        <img 
+                          src={kycDocs[0].selfie_url} 
+                          alt="Селфи"
+                          className="w-24 h-16 object-cover"
+                        />
+                      </a>
+                    )}
+                    {user.verificationDocUrl && !kycDocs[0]?.document_url && (
+                      <a 
+                        href={user.verificationDocUrl} 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+                      >
+                        <img 
+                          src={user.verificationDocUrl} 
+                          alt="Документ"
+                          className="w-24 h-16 object-cover"
+                        />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              {user.verificationStatus !== 'APPROVED' && (
+                <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                  <Button 
+                    onClick={() => handleVerifyIdentity('APPROVED')}
+                    disabled={verifying}
+                    className="bg-green-600 hover:bg-green-700 flex-1"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    {verifying ? 'Обработка...' : 'Подтвердить личность'}
+                  </Button>
+                  {user.verificationStatus !== 'REJECTED' && (
+                    <Button 
+                      onClick={() => handleVerifyIdentity('REJECTED')}
+                      disabled={verifying}
+                      variant="outline"
+                      className="text-red-600 border-red-200 hover:bg-red-50 flex-1 sm:flex-none"
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Отклонить
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {user.verificationStatus === 'APPROVED' && (
+                <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="text-sm text-green-800">Личность пользователя подтверждена администратором</span>
+                </div>
+              )}
             </CardContent>
           </Card>
 
