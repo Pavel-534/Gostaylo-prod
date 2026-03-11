@@ -39,6 +39,7 @@ export default function ListingDetail({ params }) {
   
   // Blocked dates for calendar grey-out
   const [blockedDates, setBlockedDates] = useState([])
+  const [availabilityLoading, setAvailabilityLoading] = useState(true)
   
   // Commission rate state
   const [commissionRate, setCommissionRate] = useState(15)
@@ -110,6 +111,7 @@ export default function ListingDetail({ params }) {
   }, [params?.id])
 
   async function loadBlockedDates() {
+    setAvailabilityLoading(true)
     try {
       const res = await fetch(`/api/v2/listings/${params.id}/availability`, {
         cache: 'no-store'
@@ -117,9 +119,12 @@ export default function ListingDetail({ params }) {
       const data = await res.json()
       if (data.success) {
         setBlockedDates(data.data.blockedDates || [])
+        console.log('[AVAILABILITY] Loaded blocked dates:', data.data.blockedDates?.length || 0)
       }
     } catch (error) {
       console.error('Failed to load availability:', error)
+    } finally {
+      setAvailabilityLoading(false)
     }
   }
   
@@ -462,6 +467,23 @@ export default function ListingDetail({ params }) {
     setSubmitting(true)
 
     try {
+      // REAL-TIME AVAILABILITY CHECK before submitting
+      // This catches any bookings made by other users after page load
+      const availCheck = await fetch(`/api/v2/listings/${listing.id}/availability?startDate=${checkIn}&endDate=${checkOut}`, {
+        cache: 'no-store'
+      })
+      const availData = await availCheck.json()
+      
+      if (!availData.success || !availData.available) {
+        toast.error(language === 'ru' 
+          ? 'Эти даты уже заняты. Пожалуйста, выберите другие даты.' 
+          : 'These dates are no longer available. Please select different dates.')
+        // Refresh blocked dates to update calendar
+        await refreshAvailability()
+        setSubmitting(false)
+        return
+      }
+      
       // Calculate final price with service fee
       const basePrice = priceCalc ? priceCalc.totalPrice : listing.basePriceThb
       const serviceFee = Math.round(basePrice * SERVICE_FEE_RATE)
@@ -749,8 +771,15 @@ export default function ListingDetail({ params }) {
                           language={language}
                           placeholder={language === 'ru' ? 'Заезд — Выезд' : 'Check-in — Check-out'}
                           onRefreshAvailability={refreshAvailability}
+                          disabled={availabilityLoading}
                           data-testid='booking-date-range'
                         />
+                        {availabilityLoading && (
+                          <p className='text-xs text-slate-500 mt-1 flex items-center gap-1'>
+                            <Loader2 className='h-3 w-3 animate-spin' />
+                            {language === 'ru' ? 'Загрузка доступности...' : 'Loading availability...'}
+                          </p>
+                        )}
                       </div>
                       
                       {/* Date conflict warning */}
@@ -851,7 +880,7 @@ export default function ListingDetail({ params }) {
                       <Button
                         type='submit'
                         className='w-full bg-teal-600 hover:bg-teal-700 h-12 text-base disabled:opacity-50 disabled:cursor-not-allowed'
-                        disabled={submitting || !priceCalc || hasDateConflict || !dateRange.from || !dateRange.to}
+                        disabled={submitting || !priceCalc || hasDateConflict || !dateRange.from || !dateRange.to || availabilityLoading}
                         data-testid='submit-booking-btn'
                       >
                         {submitting ? (

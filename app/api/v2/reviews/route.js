@@ -145,8 +145,8 @@ export async function POST(request) {
         }, { status: 404 });
       }
 
-      // Check booking status - only CHECKED_IN or COMPLETED can leave reviews
-      if (!['CHECKED_IN', 'COMPLETED'].includes(booking.status)) {
+      // Check booking status - only COMPLETED can leave reviews
+      if (!['COMPLETED'].includes(booking.status)) {
         return NextResponse.json({ 
           success: false, 
           error: 'You can only leave a review after check-in or completion' 

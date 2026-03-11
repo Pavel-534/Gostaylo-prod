@@ -83,11 +83,12 @@ export async function GET(request, { params }) {
   }
   
   // Get confirmed bookings
+  // Valid booking_status enum values: PENDING, CONFIRMED, PAID, CANCELLED, COMPLETED, REFUNDED
   const { data: bookings } = await supabase
     .from('bookings')
     .select('id, check_in, check_out, guest_name, status')
     .eq('listing_id', listingId)
-    .in('status', ['CONFIRMED', 'PAID', 'CHECKED_IN'])
+    .in('status', ['CONFIRMED', 'PAID', 'COMPLETED'])
     .gte('check_out', new Date().toISOString().split('T')[0]);
   
   // Get manual blocks

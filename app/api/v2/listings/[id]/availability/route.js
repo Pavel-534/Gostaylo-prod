@@ -81,13 +81,19 @@ export async function GET(request, { params }) {
     
     // Get all bookings that should block dates (including PENDING)
     // Valid booking_status enum values: PENDING, CONFIRMED, PAID, CANCELLED, COMPLETED, REFUNDED
-    const { data: bookings } = await supabase
+    const { data: bookings, error: bookingsError } = await supabase
       .from('bookings')
       .select('check_in, check_out, status')
       .eq('listing_id', listingId)
       .in('status', ['PENDING', 'CONFIRMED', 'PAID'])
       .gte('check_out', rangeStart)
       .lte('check_in', rangeEnd);
+    
+    console.log('[AVAILABILITY] Fetch params:', { listingId, rangeStart, rangeEnd });
+    console.log('[AVAILABILITY] Bookings found:', bookings?.length, bookings);
+    if (bookingsError) {
+      console.error('[AVAILABILITY] Bookings error:', bookingsError);
+    }
     
     // Collect all blocked dates
     const blockedDatesSet = new Set();
