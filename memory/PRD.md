@@ -360,8 +360,19 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
   - Reject button requires mandatory reason
 - **Telegram Notifications:**
   - Admin receives notification when listing submitted
-  - Partner receives notification on Approve/Reject
+  - Partner receives notification on Approve/Reject with edit link
 - **Tested:** Backend 100% (4/4), Frontend 100% (6/6 features)
+
+### 14. Booking Flow Critical Fixes (2026-03-11)
+- **Auto-fill Form:** Guest name, email, phone pre-filled from user profile
+- **Real Commission Rate:** Uses `useCommission()` hook instead of hardcoded 15%
+- **Telegram Callbacks:** `handleCallbackQuery` in webhook processes Approve/Decline
+  - Updates booking status: PENDING → CONFIRMED or CANCELLED
+  - Edits original Telegram message with confirmation
+  - Shows partner earnings in THB
+- **Reject Edit Link:** Moderation reject includes `/partner/listings/[id]/edit` link
+- **Availability Persistence:** PENDING bookings block dates for other requests
+- **Tested:** Backend 100% (9/9), Frontend 100%
 
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql`
