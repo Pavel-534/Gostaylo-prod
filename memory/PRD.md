@@ -390,6 +390,22 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Tested:** Backend 100% (7/7), Frontend 100% - All 3 critical bugs verified fixed
 - **Test Report:** `/app/test_reports/iteration_8.json`
 
+### 16. Calendar Blocked Dates UI/UX Sync Fix (2026-03-11)
+- **Root Cause:** Availability API was NOT including `PENDING` status in booking query - only `CONFIRMED`, `PAID` were checked
+- **Fix Applied:** Added `PENDING` to status filter in `/api/v2/listings/[id]/availability/route.js` (lines 82-90)
+- **BookingDatePicker Component:** New component `/app/components/booking-date-picker.jsx`
+  - Uses shadcn Calendar with react-day-picker
+  - Accepts `blockedDates` array and disables those dates
+  - Shows indicator "X дат недоступны" at bottom of calendar
+  - Uses `isSameDay` from date-fns for accurate date comparison
+- **UX Improvements:**
+  - Blocked dates are grayed out and unclickable
+  - Warning appears if selected range contains blocked dates
+  - Submit button disabled if date conflict detected
+- **Validation Logic:** `hasBlockedDateInRange` function checks if any day in selected range is blocked
+- **Tested:** Backend 100% (7/7), Frontend 100%
+- **Test Report:** `/app/test_reports/iteration_9.json`
+
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql`
 - **Important:** RLS uses `auth.uid()` from Supabase Auth, but app uses custom JWT auth
@@ -405,3 +421,4 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - `/app/test_reports/iteration_1.json` - Partner application flow tests (13/13 passed)
 - `/app/test_reports/iteration_3.json` - Profile page bug fix verification (100% frontend pass)
 - `/app/test_reports/iteration_8.json` - Booking flow 400 error fixes (7/7 passed)
+- `/app/test_reports/iteration_9.json` - Calendar blocked dates UI/UX sync (7/7 passed)
