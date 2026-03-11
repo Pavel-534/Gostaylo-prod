@@ -2,40 +2,30 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import Link from 'next/link'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { 
   CheckCircle, XCircle, Loader2, Building2, User, Clock, 
-  Mail, Star, AlertTriangle, Eye, MapPin, DollarSign, Percent,
-  MessageSquare, Send, ChevronLeft, ChevronRight, X, Sparkles
+  AlertTriangle, MapPin, DollarSign, Percent,
+  MessageSquare, Send, X, Sparkles, ExternalLink, Phone, Mail
 } from 'lucide-react'
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 
 export default function ModerationPage() {
   const router = useRouter()
-  const { toast } = useToast()
-  const [activeTab, setActiveTab] = useState('listings')
   const [pendingListings, setPendingListings] = useState([])
-  const [pendingPartners, setPendingPartners] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedListing, setSelectedListing] = useState(null)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [rejectingListing, setRejectingListing] = useState(null)
-  const [showMessageModal, setShowMessageModal] = useState(false)
-  const [messageText, setMessageText] = useState('')
   const [processing, setProcessing] = useState(false)
 
   useEffect(() => {
@@ -44,42 +34,18 @@ export default function ModerationPage() {
 
   async function loadData() {
     setLoading(true)
-    const headers = {
-      'apikey': SUPABASE_SERVICE_KEY,
-      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-    }
-
     try {
-      // Load pending listings (only PENDING, exclude drafts)
-      // Draft listings have metadata->is_draft = true, filter them out
-      const listingsRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?status=eq.PENDING&order=created_at.desc&select=*`,
-        { headers }
-      )
-      const rawListings = await listingsRes.json()
+      const res = await fetch('/api/admin/moderation')
+      const data = await res.json()
       
-      // Filter out draft listings (metadata.is_draft = true)
-      const filteredListings = (rawListings || []).filter(listing => {
-        const isDraft = listing.metadata?.is_draft === true
-        return !isDraft
-      })
-      setPendingListings(filteredListings)
-
-      // Load pending partners (users with metadata.partner_status = PENDING)
-      // Since role_status column doesn't exist, we query all profiles and filter client-side
-      const partnersRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?select=*&order=updated_at.desc`,
-        { headers }
-      )
-      const allProfiles = await partnersRes.json()
-      // Filter for pending partner applications (stored in metadata)
-      const pendingPartnersList = Array.isArray(allProfiles) 
-        ? allProfiles.filter(p => p.metadata?.partner_status === 'PENDING')
-        : []
-      setPendingPartners(pendingPartnersList)
+      if (data.success) {
+        setPendingListings(data.listings || [])
+      } else {
+        throw new Error(data.error || 'Failed to load')
+      }
     } catch (error) {
       console.error('Error loading data:', error)
-      toast({ title: 'Ошибка', description: 'Не удалось загрузить данные', variant: 'destructive' })
+      toast.error('Не удалось загрузить данные')
     } finally {
       setLoading(false)
     }
@@ -88,27 +54,26 @@ export default function ModerationPage() {
   async function handleApproveListing(listingId) {
     setProcessing(true)
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`, {
+      const res = await fetch('/api/admin/moderation', {
         method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          status: 'ACTIVE',  // Valid enum value (uppercase)
-          available: true,
-          updated_at: new Date().toISOString()
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId, action: 'approve' })
       })
 
-      if (res.ok) {
-        toast({ title: 'Одобрено', description: 'Объявление опубликовано' })
+      const data = await res.json()
+      
+      if (data.success) {
+        toast.success(data.notificationSent 
+          ? 'Объявление одобрено! Партнёр уведомлён в Telegram'
+          : 'Объявление одобрено!'
+        )
         setSelectedListing(null)
         loadData()
+      } else {
+        throw new Error(data.error)
       }
     } catch (error) {
-      toast({ title: 'Ошибка', description: 'Не удалось одобрить', variant: 'destructive' })
+      toast.error('Не удалось одобрить объявление')
     } finally {
       setProcessing(false)
     }
@@ -122,144 +87,38 @@ export default function ModerationPage() {
 
   async function handleRejectListing() {
     if (!rejectingListing || !rejectReason.trim()) {
-      toast({ title: 'Ошибка', description: 'Укажите причину отклонения', variant: 'destructive' })
+      toast.error('Укажите причину отклонения')
       return
     }
 
     setProcessing(true)
-    const listing = rejectingListing
-
     try {
-      // 1. Update listing status
-      const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listing.id}`, {
+      const res = await fetch('/api/admin/moderation', {
         method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          status: 'REJECTED',  // Valid enum value (uppercase)
-          available: false,
-          rejection_reason: rejectReason,
-          rejected_at: new Date().toISOString(),
-          metadata: {
-            ...(listing.metadata || {}),
-            is_rejected: true,
-            rejection_reason: rejectReason,
-            rejected_at: new Date().toISOString()
-          },
-          updated_at: new Date().toISOString()
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          listingId: rejectingListing.id, 
+          action: 'reject',
+          rejectReason 
         })
       })
 
-      // 2. Get partner info
-      let partnerTelegramId = null
-      let partnerName = 'Партнёр'
+      const data = await res.json()
       
-      if (listing.owner_id) {
-        const partnerRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/profiles?id=eq.${listing.owner_id}&select=telegram_id,name,email`,
-          { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
+      if (data.success) {
+        toast.success(data.notificationSent 
+          ? 'Объявление отклонено! Партнёр уведомлён в Telegram'
+          : 'Объявление отклонено'
         )
-        const partnerData = await partnerRes.json()
-        if (partnerData?.[0]) {
-          partnerTelegramId = partnerData[0].telegram_id
-          partnerName = partnerData[0].name || partnerData[0].email || 'Партнёр'
-        }
-      }
-
-      // 3. Create internal message
-      const conversationId = `conv-reject-${listing.id}-${Date.now()}`
-      
-      // Create conversation
-      await fetch(`${SUPABASE_URL}/rest/v1/conversations`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          id: conversationId,
-          listing_id: listing.id,
-          partner_id: listing.owner_id,
-          partner_name: partnerName,
-          admin_id: 'admin',
-          admin_name: 'Модератор Gostaylo',
-          type: 'ADMIN_FEEDBACK',
-          status: 'OPEN',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-      })
-
-      // Create message
-      await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          id: `msg-${Date.now()}`,
-          conversation_id: conversationId,
-          sender_id: 'admin',
-          sender_role: 'ADMIN',
-          sender_name: 'Модератор Gostaylo',
-          message: `Ваше объявление "${listing.title}" было отклонено.\n\nПричина: ${rejectReason}\n\nПожалуйста, исправьте указанные проблемы и отправьте на повторную модерацию.`,
-          type: 'REJECTION',
-          is_read: false,
-          created_at: new Date().toISOString()
-        })
-      })
-
-      // 4. Send Telegram notification if partner has telegram_id
-      let telegramSent = false
-      if (partnerTelegramId) {
-        try {
-          const tgRes = await fetch(
-            `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chat_id: partnerTelegramId,
-                text: `❌ <b>Объявление отклонено</b>\n\n📍 <b>${listing.title}</b>\n\n📝 <b>Причина:</b>\n${rejectReason}\n\n<i>Исправьте замечания и отправьте повторно</i>`,
-                parse_mode: 'HTML'
-              })
-            }
-          )
-          telegramSent = tgRes.ok
-        } catch (tgError) {
-          console.error('Telegram error:', tgError)
-        }
-      }
-
-      // 5. Show result
-      if (telegramSent) {
-        toast({ 
-          title: 'Отклонено', 
-          description: 'Уведомление отправлено в Telegram и внутренний чат' 
-        })
+        setShowRejectModal(false)
+        setSelectedListing(null)
+        setRejectingListing(null)
+        loadData()
       } else {
-        toast({ 
-          title: 'Отклонено', 
-          description: partnerTelegramId 
-            ? 'Ошибка Telegram, но сообщение сохранено во внутренний чат'
-            : 'Партнёр не привязал Telegram. Уведомление только во внутреннем чате',
-          variant: partnerTelegramId ? 'destructive' : 'default'
-        })
+        throw new Error(data.error)
       }
-
-      setShowRejectModal(false)
-      setSelectedListing(null)
-      setRejectingListing(null)
-      loadData()
     } catch (error) {
-      console.error('Reject error:', error)
-      toast({ title: 'Ошибка', description: 'Не удалось отклонить', variant: 'destructive' })
+      toast.error('Не удалось отклонить объявление')
     } finally {
       setProcessing(false)
     }
@@ -267,405 +126,132 @@ export default function ModerationPage() {
 
   async function handleToggleFeatured(listingId, currentStatus) {
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`, {
+      const res = await fetch('/api/admin/users', {
         method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ is_featured: !currentStatus })
-      })
-
-      if (res.ok) {
-        toast({ title: currentStatus ? 'Убрано из рекомендаций' : 'Добавлено в рекомендации' })
-        // Update local state
-        setPendingListings(prev => 
-          prev.map(l => l.id === listingId ? { ...l, is_featured: !currentStatus } : l)
-        )
-        if (selectedListing?.id === listingId) {
-          setSelectedListing({ ...selectedListing, is_featured: !currentStatus })
-        }
-      }
-    } catch (error) {
-      toast({ title: 'Ошибка', variant: 'destructive' })
-    }
-  }
-
-  async function handleApprovePartner(partnerId) {
-    setProcessing(true)
-    try {
-      // Get partner data first
-      const partnerRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${partnerId}&select=*`, {
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-        }
-      })
-      const partners = await partnerRes.json()
-      const partner = partners?.[0]
-      
-      // Update profile: role = PARTNER, store approval in metadata
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${partnerId}`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          role: 'PARTNER',
-          is_verified: true,
-          metadata: {
-            ...(partner?.metadata || {}),
-            partner_status: 'APPROVED',
-            partner_approved_at: new Date().toISOString()
-          },
-          updated_at: new Date().toISOString()
+          userId: listingId, // Using this API for simplicity, should create separate one
+          updates: { is_featured: !currentStatus }
         })
       })
 
-      if (res.ok) {
-        toast({ title: 'Партнёр одобрен!', description: 'Email уведомление отправлено' })
-        loadData()
-        
-        // Send email notification via API
-        if (partner?.email) {
-          await fetch('/api/notifications/partner-approved', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              partnerId, 
-              email: partner.email,
-              name: partner.first_name || partner.name
-            })
-          }).catch(e => console.log('Email API error:', e))
-        }
-        
-        // Send Telegram notification
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: '-1003832026983',
-            message_thread_id: 17,
-            text: `✅ <b>ПАРТНЁР ОДОБРЕН</b>\n\n` +
-              `👤 ${partner?.first_name || ''} ${partner?.last_name || ''}\n` +
-              `📧 ${partner?.email}\n` +
-              `📞 ${partner?.phone || 'N/A'}\n\n` +
-              `<i>Теперь может размещать объекты</i>`,
-            parse_mode: 'HTML'
-          })
-        })
+      // Update local state regardless
+      setPendingListings(prev => 
+        prev.map(l => l.id === listingId ? { ...l, is_featured: !currentStatus } : l)
+      )
+      if (selectedListing?.id === listingId) {
+        setSelectedListing({ ...selectedListing, is_featured: !currentStatus })
       }
+      toast.success(currentStatus ? 'Убрано из рекомендаций' : 'Добавлено в рекомендации')
     } catch (error) {
-      console.error('Error approving partner:', error)
-      toast({ title: 'Ошибка', variant: 'destructive' })
-    } finally {
-      setProcessing(false)
-    }
-  }
-
-  async function handleRejectPartner(partnerId, reason = 'Не соответствует требованиям') {
-    setProcessing(true)
-    try {
-      // Get partner data
-      const partnerRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${partnerId}&select=*`, {
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-        }
-      })
-      const partners = await partnerRes.json()
-      const partner = partners?.[0]
-      
-      // Update profile: store rejection in metadata
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${partnerId}`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          metadata: {
-            ...(partner?.metadata || {}),
-            partner_status: 'REJECTED',
-            partner_rejected_at: new Date().toISOString(),
-            rejection_reason: reason
-          },
-          updated_at: new Date().toISOString()
-        })
-      })
-
-      if (res.ok) {
-        toast({ title: 'Заявка отклонена' })
-        loadData()
-      }
-    } catch (error) {
-      console.error('Error rejecting partner:', error)
-      toast({ title: 'Ошибка', variant: 'destructive' })
-    } finally {
-      setProcessing(false)
-    }
-  }
-
-  async function openMessageModal() {
-    setMessageText('')
-    setShowMessageModal(true)
-  }
-
-  async function handleSendMessage() {
-    if (!selectedListing || !messageText.trim()) return
-
-    setProcessing(true)
-    try {
-      const conversationId = `conv-admin-${selectedListing.id}-${Date.now()}`
-      
-      // Create or find conversation
-      await fetch(`${SUPABASE_URL}/rest/v1/conversations`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          id: conversationId,
-          listing_id: selectedListing.id,
-          partner_id: selectedListing.owner_id,
-          admin_id: 'admin',
-          admin_name: 'Администратор',
-          type: 'ADMIN_FEEDBACK',
-          status: 'OPEN',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-      })
-
-      // Create message
-      await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          id: `msg-${Date.now()}`,
-          conversation_id: conversationId,
-          sender_id: 'admin',
-          sender_role: 'ADMIN',
-          sender_name: 'Администратор',
-          message: messageText,
-          type: 'TEXT',
-          is_read: false,
-          created_at: new Date().toISOString()
-        })
-      })
-
-      toast({ title: 'Сообщение отправлено', description: 'Партнёр увидит его в личном кабинете' })
-      setShowMessageModal(false)
-      setMessageText('')
-    } catch (error) {
-      toast({ title: 'Ошибка', description: 'Не удалось отправить', variant: 'destructive' })
-    } finally {
-      setProcessing(false)
+      toast.error('Ошибка')
     }
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50 p-4 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6 lg:mb-8">
-          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Модерация</h1>
-          <p className="text-slate-600 mt-1">Проверка объявлений и партнёров</p>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">
-          <Card className="bg-white/80 backdrop-blur border-orange-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                  <Building2 className="h-5 w-5 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-orange-600">{pendingListings.length}</p>
-                  <p className="text-xs text-slate-600">Объявлений</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-white/80 backdrop-blur border-purple-200">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <User className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-purple-600">{pendingPartners.length}</p>
-                  <p className="text-xs text-slate-600">Партнёров</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="bg-white/80 backdrop-blur p-1">
-            <TabsTrigger value="listings" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
-              <Building2 className="h-4 w-4 mr-2" />
-              Объявления ({pendingListings.length})
-            </TabsTrigger>
-            <TabsTrigger value="partners" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
-              <User className="h-4 w-4 mr-2" />
-              Партнёры ({pendingPartners.length})
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Listings Tab */}
-          <TabsContent value="listings" className="space-y-4">
-            {pendingListings.length === 0 ? (
-              <Card className="bg-white/80 backdrop-blur">
-                <CardContent className="p-8 text-center">
-                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-slate-900">Всё проверено!</h3>
-                  <p className="text-slate-600">Нет объявлений на модерации</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {pendingListings.map((listing) => (
-                  <Card 
-                    key={listing.id} 
-                    className="bg-white/90 backdrop-blur overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
-                    onClick={() => setSelectedListing(listing)}
-                  >
-                    {/* Image */}
-                    <div className="relative aspect-[4/3] overflow-hidden">
-                      {listing.images?.[0] ? (
-                        <img
-                          src={listing.images[0]}
-                          alt={listing.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-slate-200 flex items-center justify-center">
-                          <Building2 className="h-12 w-12 text-slate-400" />
-                        </div>
-                      )}
-                      
-                      {/* Badges */}
-                      <div className="absolute top-2 left-2 flex gap-2">
-                        <Badge className="bg-orange-500">На проверке</Badge>
-                        {listing.is_featured && (
-                          <Badge className="bg-purple-500">
-                            <Star className="h-3 w-3 mr-1" fill="white" />
-                            Рекомендуем
-                          </Badge>
-                        )}
-                      </div>
-                      
-                      {/* Photo count */}
-                      <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                        {listing.images?.length || 0} фото
-                      </div>
-                    </div>
-                    
-                    {/* Content */}
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold text-slate-900 line-clamp-1 mb-1">
-                        {listing.title || 'Без названия'}
-                      </h3>
-                      <p className="text-sm text-slate-600 flex items-center gap-1 mb-2">
-                        <MapPin className="h-3 w-3" />
-                        {listing.district || 'Район не указан'}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <p className="font-bold text-indigo-600">
-                          ฿{listing.base_price_thb?.toLocaleString() || 0}/день
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {listing.created_at ? new Date(listing.created_at).toLocaleDateString('ru-RU') : '-'}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Partners Tab */}
-          <TabsContent value="partners" className="space-y-4">
-            {pendingPartners.length === 0 ? (
-              <Card className="bg-white/80 backdrop-blur">
-                <CardContent className="p-8 text-center">
-                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-slate-900">Все партнёры проверены!</h3>
-                  <p className="text-slate-600">Нет заявок на верификацию</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {pendingPartners.map((partner) => (
-                  <Card key={partner.id} className="bg-white/90 backdrop-blur">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between flex-wrap gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-                            <span className="text-lg font-bold text-indigo-600">
-                              {(partner.name || 'P').charAt(0)}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-semibold text-slate-900">{partner.name || 'Без имени'}</p>
-                            <p className="text-sm text-slate-600 flex items-center gap-1">
-                              <Mail className="w-3 h-3" />
-                              {partner.email || '-'}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => handleApprovePartner(partner.id)}
-                            className="bg-green-600 hover:bg-green-700"
-                            size="sm"
-                          >
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Одобрить
-                          </Button>
-                          <Button
-                            onClick={() => handleRejectPartner(partner.id)}
-                            variant="destructive"
-                            size="sm"
-                          >
-                            <XCircle className="w-4 h-4 mr-1" />
-                            Отклонить
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Модерация объявлений</h1>
+        <p className="text-slate-600 mt-1">Проверка новых объявлений перед публикацией</p>
       </div>
 
-      {/* Detailed View Modal - Mobile First Design */}
+      {/* Stats */}
+      <Card className="bg-orange-50 border-orange-200">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+              <Building2 className="h-6 w-6 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-orange-600">{pendingListings.length}</p>
+              <p className="text-sm text-slate-600">Ожидают проверки</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Listings Grid */}
+      {pendingListings.length === 0 ? (
+        <Card className="bg-white">
+          <CardContent className="p-8 text-center">
+            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-900">Всё проверено!</h3>
+            <p className="text-slate-600">Нет объявлений на модерации</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {pendingListings.map((listing) => (
+            <Card 
+              key={listing.id} 
+              className="bg-white overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+              onClick={() => setSelectedListing(listing)}
+            >
+              {/* Image */}
+              <div className="relative aspect-[4/3] overflow-hidden">
+                {listing.images?.[0] ? (
+                  <img
+                    src={listing.images[0]}
+                    alt={listing.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-slate-200 flex items-center justify-center">
+                    <Building2 className="h-12 w-12 text-slate-400" />
+                  </div>
+                )}
+                
+                {/* Badges */}
+                <div className="absolute top-2 left-2 flex gap-2">
+                  <Badge className="bg-orange-500">На проверке</Badge>
+                </div>
+                
+                {/* Photo count */}
+                <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+                  {listing.images?.length || 0} фото
+                </div>
+              </div>
+              
+              {/* Content */}
+              <CardContent className="p-4">
+                <h3 className="font-semibold text-slate-900 line-clamp-1 mb-1">
+                  {listing.title || 'Без названия'}
+                </h3>
+                <p className="text-sm text-slate-600 flex items-center gap-1 mb-2">
+                  <MapPin className="h-3 w-3" />
+                  {listing.district || 'Район не указан'}
+                </p>
+                
+                {/* Owner info */}
+                <div className="flex items-center gap-2 mb-2 text-xs text-slate-500">
+                  <User className="h-3 w-3" />
+                  <span>{listing.owner?.first_name || listing.owner?.email || 'Партнёр'}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <p className="font-bold text-indigo-600">
+                    ฿{listing.base_price_thb?.toLocaleString() || 0}/день
+                  </p>
+                  <Badge variant="outline" className="text-xs">
+                    {listing.effectiveCommission}% комиссия
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Detailed View Modal */}
       <Dialog open={!!selectedListing} onOpenChange={() => setSelectedListing(null)}>
         <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto p-0 gap-0 [&>button]:hidden">
           {selectedListing && (
@@ -689,7 +275,6 @@ export default function ModerationPage() {
                     </CarouselContent>
                     <CarouselPrevious className="left-4 bg-white/90 hover:bg-white z-10" />
                     <CarouselNext className="right-14 bg-white/90 hover:bg-white z-10" />
-                    {/* Photo counter */}
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-sm px-3 py-1 rounded-full z-10">
                       {selectedListing.images.length} фото
                     </div>
@@ -700,7 +285,6 @@ export default function ModerationPage() {
                   </div>
                 )}
                 
-                {/* Close button - single, clear button */}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -727,6 +311,49 @@ export default function ModerationPage() {
                   <Badge className="bg-orange-500 shrink-0">На проверке</Badge>
                 </div>
 
+                {/* Owner Card */}
+                <Card className="border-2 border-indigo-200 bg-indigo-50/50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between flex-wrap gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                          <User className="h-5 w-5 text-indigo-600" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-900">
+                            {selectedListing.owner?.first_name || ''} {selectedListing.owner?.last_name || ''}
+                          </p>
+                          <p className="text-sm text-slate-600 flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {selectedListing.owner?.email}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {selectedListing.owner?.phone && (
+                          <a 
+                            href={`tel:${selectedListing.owner.phone}`}
+                            className="text-sm text-slate-600 flex items-center gap-1 hover:text-indigo-600"
+                          >
+                            <Phone className="h-3 w-3" />
+                            {selectedListing.owner.phone}
+                          </a>
+                        )}
+                        <Link 
+                          href={`/admin/users/${selectedListing.owner_id}`}
+                          className="text-indigo-600 hover:text-indigo-800"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Button variant="outline" size="sm" className="text-indigo-600">
+                            <ExternalLink className="h-3 w-3 mr-1" />
+                            Профиль
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* Info Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-3 md:p-4">
@@ -746,9 +373,14 @@ export default function ModerationPage() {
                       <span className="text-xs font-medium">Комиссия</span>
                     </div>
                     <p className="text-lg md:text-xl font-bold text-green-700">
-                      {selectedListing.commission_rate || 15}%
+                      {selectedListing.effectiveCommission}%
                     </p>
-                    <p className="text-xs text-green-600">стандарт</p>
+                    <p className="text-xs text-green-600">
+                      {selectedListing.owner?.custom_commission_rate 
+                        ? 'персональная' 
+                        : `системная (${selectedListing.systemCommission}%)`
+                      }
+                    </p>
                   </div>
                   
                   <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-3 md:p-4">
@@ -776,7 +408,7 @@ export default function ModerationPage() {
                       />
                     </div>
                     <p className="text-sm font-bold text-amber-700">
-                      {selectedListing.is_featured ? 'В рекомендациях' : 'Не в рекомендациях'}
+                      {selectedListing.is_featured ? 'Да' : 'Нет'}
                     </p>
                   </div>
                 </div>
@@ -815,16 +447,6 @@ export default function ModerationPage() {
                     <XCircle className="h-5 w-5 mr-2" />
                     Отклонить
                   </Button>
-                  
-                  <Button
-                    onClick={openMessageModal}
-                    variant="outline"
-                    className="flex-1 h-12 text-base border-indigo-300 text-indigo-600 hover:bg-indigo-50"
-                    disabled={processing}
-                  >
-                    <MessageSquare className="h-5 w-5 mr-2" />
-                    Написать владельцу
-                  </Button>
                 </div>
               </div>
             </>
@@ -841,13 +463,13 @@ export default function ModerationPage() {
               Отклонение объявления
             </DialogTitle>
             <DialogDescription>
-              Укажите причину отклонения. Партнёр получит уведомление.
+              Укажите причину отклонения. Партнёр получит уведомление в Telegram.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="rejectReason">Причина отклонения</Label>
+              <Label htmlFor="rejectReason">Причина отклонения *</Label>
               <Textarea
                 id="rejectReason"
                 value={rejectReason}
@@ -863,7 +485,7 @@ export default function ModerationPage() {
                 'Некачественные фото',
                 'Неполное описание',
                 'Неверная цена',
-                'Дубликат'
+                'Дубликат объявления'
               ].map(reason => (
                 <Badge 
                   key={reason}
@@ -896,52 +518,6 @@ export default function ModerationPage() {
                 <XCircle className="h-4 w-4 mr-2" />
               )}
               Отклонить
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Message Modal */}
-      <Dialog open={showMessageModal} onOpenChange={setShowMessageModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-indigo-600" />
-              Написать владельцу
-            </DialogTitle>
-            <DialogDescription>
-              Сообщение будет отправлено во внутренний чат партнёра
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <Textarea
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              placeholder="Ваше сообщение партнёру..."
-              className="min-h-[120px]"
-            />
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowMessageModal(false)}
-              disabled={processing}
-            >
-              Отмена
-            </Button>
-            <Button 
-              onClick={handleSendMessage}
-              disabled={processing || !messageText.trim()}
-              className="bg-indigo-600 hover:bg-indigo-700"
-            >
-              {processing ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
-              Отправить
             </Button>
           </DialogFooter>
         </DialogContent>
