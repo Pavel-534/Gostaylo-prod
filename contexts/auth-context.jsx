@@ -371,7 +371,12 @@ export function AuthProvider({ children }) {
               <div className='flex border-b mb-3 flex-shrink-0'>
                 <button
                   type='button'
-                  onClick={() => { setAuthMode('login'); setError(''); }}
+                  onClick={() => { 
+                    setAuthMode('login'); 
+                    setError(''); 
+                    // Focus email field after mode switch
+                    setTimeout(() => document.getElementById('auth-email')?.focus(), 100);
+                  }}
                   className={`flex-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                     authMode === 'login' 
                       ? 'border-teal-600 text-teal-600 bg-teal-50/50' 
@@ -382,7 +387,12 @@ export function AuthProvider({ children }) {
                 </button>
                 <button
                   type='button'
-                  onClick={() => { setAuthMode('register'); setError(''); }}
+                  onClick={() => { 
+                    setAuthMode('register'); 
+                    setError(''); 
+                    // Focus name field after mode switch
+                    setTimeout(() => document.getElementById('auth-name')?.focus(), 100);
+                  }}
                   className={`flex-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                     authMode === 'register' 
                       ? 'border-teal-600 text-teal-600 bg-teal-50/50' 
@@ -394,7 +404,7 @@ export function AuthProvider({ children }) {
               </div>
               
               <form onSubmit={authMode === 'login' ? handleLogin : handleRegister} className='flex flex-col flex-1 min-h-0 overflow-hidden'>
-                <div className='space-y-3 flex-1 overflow-y-auto pb-2 -mx-1 px-1'>
+                <div className='space-y-3 flex-1 overflow-y-auto pb-2'>
                   {authMode === 'register' && (
                     <div className='space-y-1.5'>
                       <Label htmlFor='auth-name' className='text-sm'>Имя</Label>
