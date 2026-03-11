@@ -302,6 +302,12 @@ export async function POST(request) {
   
   try {
     const update = await request.json();
+    
+    // Handle callback_query (inline button clicks)
+    if (update?.callback_query) {
+      return handleCallbackQuery(update.callback_query);
+    }
+    
     const message = update?.message;
     
     if (!message || message.chat?.type !== 'private') {
@@ -711,6 +717,157 @@ async function handlePhotoUpload(chatId, message, firstName) {
     await sendTelegram(chatId, '⚠️ Ошибка обработки фото.');
   }
 }
+
+
+/**
+ * Handle callback_query (inline button clicks)
+ * For booking approve/decline buttons
+ */
+async function handleCallbackQuery(callbackQuery) {
+  const { id: callbackId, data, from, message } = callbackQuery;
+  const chatId = message?.chat?.id;
+
+  try {
+    // Parse callback data: approve_booking_xxx or decline_booking_xxx
+    const match = data?.match(/^(approve|decline)_booking_(.+)$/);
+    if (!match) {
+      await answerCallback(callbackId, 'Неизвестная команда');
+      return NextResponse.json({ ok: true });
+    }
+
+    const action = match[1];
+    const bookingId = match[2];
+
+    // Verify booking exists and belongs to this partner
+    const bookingRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${bookingId}&select=*,listing:listings(title,owner_id),partner:profiles!bookings_partner_id_fkey(telegram_id,first_name)`,
+      {
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+        }
+      }
+    );
+    const bookings = await bookingRes.json();
+    const booking = bookings?.[0];
+
+    if (!booking) {
+      await answerCallback(callbackId, 'Бронирование не найдено');
+      return NextResponse.json({ ok: true });
+    }
+
+    // Verify telegram user owns this booking
+    if (booking.partner?.telegram_id?.toString() !== from?.id?.toString()) {
+      await answerCallback(callbackId, 'У вас нет прав на это действие');
+      return NextResponse.json({ ok: true });
+    }
+
+    // Check if already processed
+    if (booking.status !== 'PENDING') {
+      await answerCallback(callbackId, `Бронирование уже обработано (${booking.status})`);
+      return NextResponse.json({ ok: true });
+    }
+
+    // Process action
+    const newStatus = action === 'approve' ? 'CONFIRMED' : 'CANCELLED';
+    const timestamp = new Date().toISOString();
+
+    const updateData = {
+      status: newStatus,
+      updated_at: timestamp,
+      ...(action === 'approve' ? { confirmed_at: timestamp } : { cancelled_at: timestamp })
+    };
+
+    const updateRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${bookingId}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      }
+    );
+
+    if (!updateRes.ok) {
+      await answerCallback(callbackId, 'Ошибка обновления');
+      return NextResponse.json({ ok: true });
+    }
+
+    // Answer callback with success message
+    const successMessage = action === 'approve' 
+      ? '✅ Бронирование подтверждено!' 
+      : '❌ Бронирование отклонено';
+    await answerCallback(callbackId, successMessage);
+
+    // Update the original Telegram message
+    const partnerEarnings = (booking.price_thb || 0) - (booking.commission_thb || 0);
+    const updatedText = action === 'approve'
+      ? `✅ <b>БРОНИРОВАНИЕ ПОДТВЕРЖДЕНО</b>\n\n` +
+        `📍 ${booking.listing?.title || 'Объект'}\n` +
+        `👤 ${booking.guest_name}\n` +
+        `📅 ${booking.check_in} → ${booking.check_out}\n` +
+        `💵 Ваш доход: ฿${partnerEarnings.toLocaleString()}\n\n` +
+        `Гость получит уведомление о подтверждении.`
+      : `❌ <b>БРОНИРОВАНИЕ ОТКЛОНЕНО</b>\n\n` +
+        `📍 ${booking.listing?.title || 'Объект'}\n` +
+        `👤 ${booking.guest_name}\n` +
+        `📅 ${booking.check_in} → ${booking.check_out}\n\n` +
+        `Гость получит уведомление об отклонении.`;
+
+    await editTelegramMessage(chatId, message.message_id, updatedText);
+
+    console.log(`[BOOKING CALLBACK] ${action} booking ${bookingId} by user ${from?.id}`);
+    return NextResponse.json({ ok: true });
+
+  } catch (error) {
+    console.error('[CALLBACK ERROR]', error);
+    await answerCallback(callbackId, 'Ошибка обработки');
+    return NextResponse.json({ ok: true });
+  }
+}
+
+/**
+ * Answer callback query (popup notification)
+ */
+async function answerCallback(callbackId, text) {
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        callback_query_id: callbackId,
+        text,
+        show_alert: true
+      })
+    });
+  } catch (e) {
+    console.error('[answerCallback ERROR]', e);
+  }
+}
+
+/**
+ * Edit existing Telegram message
+ */
+async function editTelegramMessage(chatId, messageId, text) {
+  try {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/editMessageText`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        message_id: messageId,
+        text,
+        parse_mode: 'HTML'
+      })
+    });
+  } catch (e) {
+    console.error('[editTelegramMessage ERROR]', e);
+  }
+}
+
 
 /**
  * GET /api/webhooks/telegram - Health check

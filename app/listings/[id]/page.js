@@ -39,6 +39,10 @@ export default function ListingDetail({ params }) {
   // Blocked dates for calendar grey-out
   const [blockedDates, setBlockedDates] = useState([])
   
+  // Commission rate state
+  const [commissionRate, setCommissionRate] = useState(15)
+  const [commissionLoading, setCommissionLoading] = useState(true)
+  
   // Form state
   const [guestName, setGuestName] = useState('')
   const [guestEmail, setGuestEmail] = useState('')
@@ -49,6 +53,44 @@ export default function ListingDetail({ params }) {
   
   // Price calculation state
   const [priceCalc, setPriceCalc] = useState(null)
+
+  // Auto-fill form from user profile when logged in
+  useEffect(() => {
+    if (user) {
+      if (!guestName && (user.firstName || user.name)) {
+        setGuestName(user.firstName || user.name || '')
+      }
+      if (!guestEmail && user.email) {
+        setGuestEmail(user.email)
+      }
+      if (!guestPhone && user.phone) {
+        setGuestPhone(user.phone)
+      }
+    }
+  }, [user])
+
+  // Load commission rate from API
+  useEffect(() => {
+    if (listing?.ownerId) {
+      loadCommission(listing.ownerId)
+    }
+  }, [listing?.ownerId])
+
+  async function loadCommission(partnerId) {
+    try {
+      const res = await fetch(`/api/v2/commission?partnerId=${partnerId}`)
+      const data = await res.json()
+      if (data.success) {
+        // Service fee shown to renter (different from partner commission)
+        // For now use 5% service fee to renter, commission to partner is separate
+        setCommissionRate(data.data.effectiveRate || 15)
+      }
+    } catch (error) {
+      console.error('Failed to load commission:', error)
+    } finally {
+      setCommissionLoading(false)
+    }
+  }
 
   // Load blocked dates for calendar
   useEffect(() => {
@@ -289,8 +331,8 @@ export default function ListingDetail({ params }) {
   // Get current language labels
   const t = labels[language] || labels.ru
   
-  // Service fee rate (15%)
-  const SERVICE_FEE_RATE = 0.15
+  // Service fee rate - loaded from API (default 15%)
+  const SERVICE_FEE_RATE = commissionRate / 100
   
   // Calculate price when dates change - includes service fee
   useEffect(() => {
@@ -779,9 +821,9 @@ export default function ListingDetail({ params }) {
                               </div>
                             )}
                             
-                            {/* Service fee (15%) */}
+                            {/* Service fee (real rate from API) */}
                             <div className='flex justify-between text-sm'>
-                              <span className='text-slate-600'>{t.serviceFee} (15%)</span>
+                              <span className='text-slate-600'>{t.serviceFee} ({commissionRate}%)</span>
                               <span className='font-medium'>{formatPrice(convertPrice(priceCalc.serviceFee), currency)}</span>
                             </div>
                           </div>
