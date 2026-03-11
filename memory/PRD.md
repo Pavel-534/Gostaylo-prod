@@ -444,6 +444,22 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Tested:** Frontend verified - drawer stays open, range selection works
 - **Test Report:** `/app/test_reports/iteration_11.json`
 
+### 19. Visual Date Blocking Sync Fix (2026-03-11)
+- **Root Cause:** `CHECKED_IN` enum value used in queries but doesn't exist in `booking_status` enum
+  - Valid enum values: `PENDING`, `CONFIRMED`, `PAID`, `CANCELLED`, `COMPLETED`, `REFUNDED`
+  - Queries failed silently, returning empty bookings array
+- **Files Fixed:**
+  - `/app/app/api/v2/listings/[id]/availability/route.js` - Removed CHECKED_IN
+  - `/app/app/api/v2/listings/[id]/ical/route.js` - Changed CHECKED_IN to COMPLETED
+  - `/app/app/api/v2/reviews/route.js` - Changed CHECKED_IN to COMPLETED
+- **Additional Improvements:**
+  - Added `availabilityLoading` state to disable date picker during fetch
+  - Added real-time availability check before booking submission
+  - Added console logging for debugging: `[AVAILABILITY] Loaded blocked dates: X`
+- **Verification:** API now returns correct blocked dates, calendar disables them
+- **Tested:** Backend 100% (11/11), Frontend 100%
+- **Test Report:** `/app/test_reports/iteration_12.json`
+
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql`
 - **Important:** RLS uses `auth.uid()` from Supabase Auth, but app uses custom JWT auth
@@ -462,3 +478,4 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - `/app/test_reports/iteration_9.json` - Calendar blocked dates UI/UX sync (7/7 passed)
 - `/app/test_reports/iteration_10.json` - Calendar architecture overhaul (7/7 passed)
 - `/app/test_reports/iteration_11.json` - Mobile calendar UX (Drawer + seamless range selection)
+- `/app/test_reports/iteration_12.json` - Visual date blocking sync fix (11/11 passed)
