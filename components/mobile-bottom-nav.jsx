@@ -85,7 +85,7 @@ export function MobileBottomNav() {
   };
 
   return (
-    <nav className='md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-white border-t border-slate-200 safe-area-pb'>
+    <nav className='md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 safe-area-pb'>
       <div className='flex items-center justify-around h-16 px-2'>
         {NAV_ITEMS.map((item) => {
           const active = isActive(item);

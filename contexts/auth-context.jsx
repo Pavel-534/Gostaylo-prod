@@ -357,7 +357,7 @@ export function AuthProvider({ children }) {
           ) : (
             // Login / Register Form
             <>
-              <DialogHeader className='pb-2'>
+              <DialogHeader className='pb-2 flex-shrink-0'>
                 <DialogTitle className='text-lg'>
                   {authMode === 'login' ? 'Вход в систему' : 'Регистрация'}
                 </DialogTitle>
@@ -368,7 +368,7 @@ export function AuthProvider({ children }) {
                 </DialogDescription>
               </DialogHeader>
               
-              <div className='flex border-b mb-3'>
+              <div className='flex border-b mb-3 flex-shrink-0'>
                 <button
                   type='button'
                   onClick={() => { setAuthMode('login'); setError(''); }}
@@ -393,100 +393,105 @@ export function AuthProvider({ children }) {
                 </button>
               </div>
               
-              <form onSubmit={authMode === 'login' ? handleLogin : handleRegister} className='space-y-3 pb-24 sm:pb-4'>
-                {authMode === 'register' && (
+              <form onSubmit={authMode === 'login' ? handleLogin : handleRegister} className='flex flex-col flex-1 min-h-0 overflow-hidden'>
+                <div className='space-y-3 flex-1 overflow-y-auto pb-2 -mx-1 px-1'>
+                  {authMode === 'register' && (
+                    <div className='space-y-1.5'>
+                      <Label htmlFor='auth-name' className='text-sm'>Имя</Label>
+                      <Input 
+                        id='auth-name' 
+                        type='text' 
+                        placeholder='Ваше имя'
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
+                        autoComplete='name'
+                        className='h-11 text-base'
+                        required
+                      />
+                    </div>
+                  )}
+                  
                   <div className='space-y-1.5'>
-                    <Label htmlFor='auth-name' className='text-sm'>Имя</Label>
+                    <Label htmlFor='auth-email' className='text-sm'>Email</Label>
                     <Input 
-                      id='auth-name' 
-                      type='text' 
-                      placeholder='Ваше имя'
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      id='auth-email' 
+                      type='email' 
+                      placeholder='your@email.com'
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value.toLowerCase())}
                       onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
-                      autoComplete='name'
-                      className='h-10'
+                      autoFocus
+                      inputMode='email'
+                      autoComplete='username'
+                      className='h-11 text-base'
+                      enterKeyHint='next'
                       required
                     />
                   </div>
-                )}
-                
-                <div className='space-y-1.5'>
-                  <Label htmlFor='auth-email' className='text-sm'>Email</Label>
-                  <Input 
-                    id='auth-email' 
-                    type='email' 
-                    placeholder='your@email.com'
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value.toLowerCase())}
-                    onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
-                    autoFocus
-                    inputMode='email'
-                    autoComplete='username'
-                    className='h-10'
-                    enterKeyHint='next'
-                    required
-                  />
-                </div>
-                
-                <div className='space-y-1.5'>
-                  <div className='flex justify-between items-center'>
-                    <Label htmlFor='auth-password' className='text-sm'>Пароль</Label>
-                    {authMode === 'login' && (
+                  
+                  <div className='space-y-1.5'>
+                    <div className='flex justify-between items-center'>
+                      <Label htmlFor='auth-password' className='text-sm'>Пароль</Label>
+                      {authMode === 'login' && (
+                        <button
+                          type='button'
+                          onClick={() => { setAuthMode('forgot_password'); setError(''); setForgotPasswordSent(false); }}
+                          className='text-xs text-teal-600 hover:text-teal-700 hover:underline'
+                        >
+                          Забыли пароль?
+                        </button>
+                      )}
+                    </div>
+                    <div className='relative'>
+                      <Input 
+                        id='auth-password' 
+                        type={showPassword ? 'text' : 'password'} 
+                        placeholder='••••••••'
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
+                        className='pr-10 h-11 text-base'
+                        autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+                        enterKeyHint='done'
+                        required
+                        minLength={authMode === 'register' ? 6 : undefined}
+                      />
                       <button
                         type='button'
-                        onClick={() => { setAuthMode('forgot_password'); setError(''); setForgotPasswordSent(false); }}
-                        className='text-xs text-teal-600 hover:text-teal-700 hover:underline'
+                        onClick={() => setShowPassword(!showPassword)}
+                        className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600'
                       >
-                        Забыли пароль?
+                        {showPassword ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
                       </button>
+                    </div>
+                    {authMode === 'register' && (
+                      <p className='text-xs text-slate-500'>Минимум 6 символов</p>
                     )}
                   </div>
-                  <div className='relative'>
-                    <Input 
-                      id='auth-password' 
-                      type={showPassword ? 'text' : 'password'} 
-                      placeholder='••••••••'
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
-                      className='pr-10 h-10'
-                      autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
-                      enterKeyHint='done'
-                      required
-                      minLength={authMode === 'register' ? 6 : undefined}
-                    />
-                    <button
-                      type='button'
-                      onClick={() => setShowPassword(!showPassword)}
-                      className='absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600'
-                    >
-                      {showPassword ? <EyeOff className='h-4 w-4' /> : <Eye className='h-4 w-4' />}
-                    </button>
-                  </div>
-                  {authMode === 'register' && (
-                    <p className='text-xs text-slate-500'>Минимум 6 символов</p>
+                  
+                  {error && (
+                    <p className='text-red-500 text-sm'>{error}</p>
                   )}
                 </div>
                 
-                {error && (
-                  <p className='text-red-500 text-sm'>{error}</p>
-                )}
-                
-                <Button 
-                  type='submit' 
-                  className='w-full bg-teal-600 hover:bg-teal-700 h-11 text-base font-medium'
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className='h-4 w-4 mr-2 animate-spin' />
-                      Загрузка...
-                    </>
-                  ) : (
-                    authMode === 'login' ? 'Войти' : 'Создать аккаунт'
-                  )}
-                </Button>
+                {/* Fixed button at bottom - always visible */}
+                <div className='flex-shrink-0 pt-3 border-t border-slate-100 mt-2'>
+                  <Button 
+                    type='submit' 
+                    className='w-full bg-teal-600 hover:bg-teal-700 h-12 text-base font-medium'
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                        Загрузка...
+                      </>
+                    ) : (
+                      authMode === 'login' ? 'Войти' : 'Создать аккаунт'
+                    )}
+                  </Button>
+                </div>
               </form>
             </>
           )}
