@@ -478,6 +478,28 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Tested:** Backend 100% (16/16), Frontend 100%
 - **Test Report:** `/app/test_reports/iteration_13.json`
 
+### 21. Interval/Night-Based Booking Logic (2026-03-12)
+- **Core Concept:** We book NIGHTS, not days (Booking.com style)
+  - Booking April 1-5 (4 nights) blocks nights 1, 2, 3, 4
+  - April 5 (check-out) is AVAILABLE for next guest's check-in
+  - Enables back-to-back bookings without "dead zones"
+- **API Changes (`/api/v2/listings/[id]/availability/route.js`):**
+  - `getBlockedNights(checkIn, checkOut)` returns dates from checkIn to checkOut-1
+  - Returns `blockedNights` array (renamed from blockedDates)
+  - Meta includes `logic: 'night-based'` for frontend identification
+- **Frontend Changes (`booking-date-picker.jsx`):**
+  - `isDateDisabled()` checks only blockedNightsSet
+  - `hasBlockedNightInRange()` validates range (check_in to check_out-1)
+  - Removed "X dates unavailable" warning
+- **Listing Page Changes:**
+  - Uses `blockedNights` state variable
+  - Price breakdown shows "nights" count
+- **Verified:**
+  - April 5-7 available (back-to-back after April 1-5 booking)
+  - April 4-6 not available (conflicts with night 4)
+- **Tested:** Backend 100% (14/14), Frontend 100% (8/8)
+- **Test Report:** `/app/test_reports/iteration_14.json`
+
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql`
 - **Important:** RLS uses `auth.uid()` from Supabase Auth, but app uses custom JWT auth
@@ -498,3 +520,4 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - `/app/test_reports/iteration_11.json` - Mobile calendar UX (Drawer + seamless range selection)
 - `/app/test_reports/iteration_12.json` - Visual date blocking sync fix (11/11 passed)
 - `/app/test_reports/iteration_13.json` - Server-First Calendar Architecture (16/16 passed)
+- `/app/test_reports/iteration_14.json` - Night-Based Booking Logic (14/14 backend, 8/8 frontend)
