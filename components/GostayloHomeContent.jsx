@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Search, MapPin, Calendar, Home, Bike, Map, Anchor, User, Loader2, BedDouble, Bath, Maximize, Plus } from 'lucide-react'
+import { Search, MapPin, Home, Bike, Map, Anchor, User, Loader2, BedDouble, Bath, Maximize, Plus, Users, CalendarIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { formatPrice } from '@/lib/currency'
 import { fetchCategories, fetchListings, fetchExchangeRates, fetchDistricts } from '@/lib/client-data'
 import { detectLanguage, setLanguage as saveLanguage, supportedLanguages, getCategoryName, getUIText, getListingText } from '@/lib/translations'
@@ -18,9 +19,7 @@ import { CurrencySelector } from '@/components/currency-selector'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 import { DayPicker } from 'react-day-picker'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon } from 'lucide-react'
-import { format, differenceInDays, isSameDay } from 'date-fns'
+import { format, isSameDay } from 'date-fns'
 import { ru, enUS } from 'date-fns/locale'
 
 export function GostayloHomeContent() {
@@ -38,11 +37,12 @@ export function GostayloHomeContent() {
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState(null)
   
-  // Filters
+  // Search Filters (URL Bridge compatible)
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedDistrict, setSelectedDistrict] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [dateRange, setDateRange] = useState({ from: null, to: null })
+  const [guests, setGuests] = useState('1')
 
   // Sync user from auth context
   useEffect(() => {
@@ -197,16 +197,50 @@ export function GostayloHomeContent() {
     return true
   })
 
-  // Handle search
-  function handleSearch() {
-    if (typeof window !== 'undefined') {
-      // Scroll to listings section
-      const listingsSection = document.getElementById('listings-section')
-      if (listingsSection) {
-        listingsSection.scrollIntoView({ behavior: 'smooth' })
-      }
+  /**
+   * URL Bridge Search Handler
+   * Navigates to /listings with all search params in URL
+   * This allows other components to consume search state
+   */
+  const handleSearch = useCallback(() => {
+    // Build URL query params
+    const params = new URLSearchParams()
+    
+    // Add search query
+    if (searchQuery.trim()) {
+      params.set('q', searchQuery.trim())
     }
-  }
+    
+    // Add location/district
+    if (selectedDistrict && selectedDistrict !== 'all') {
+      params.set('location', selectedDistrict)
+    }
+    
+    // Add category
+    if (selectedCategory && selectedCategory !== 'all') {
+      params.set('category', selectedCategory)
+    }
+    
+    // Add dates (YYYY-MM-DD format for API compatibility)
+    if (dateRange.from) {
+      params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
+    }
+    if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
+      params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
+    }
+    
+    // Add guests
+    if (guests && guests !== '1') {
+      params.set('guests', guests)
+    }
+    
+    // Navigate to listings page with params
+    const queryString = params.toString()
+    const url = queryString ? `/listings?${queryString}` : '/listings'
+    
+    console.log('[SEARCH] Navigating to:', url)
+    router.push(url)
+  }, [searchQuery, selectedDistrict, selectedCategory, dateRange, guests, router])
 
   return (
     <div className='min-h-screen bg-white'>
@@ -223,10 +257,10 @@ export function GostayloHomeContent() {
               {getUIText('heroSubtitle', language)}
             </p>
 
-            {/* Search Bar */}
+            {/* Search Bar - URL Bridge */}
             <Card className='bg-white shadow-2xl w-full'>
               <CardContent className='p-4 sm:p-6'>
-                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3'>
+                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3'>
                   {/* Search Input */}
                   <div className='sm:col-span-2'>
                     <div className='relative'>
@@ -237,29 +271,30 @@ export function GostayloHomeContent() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                        data-testid="search-input"
                       />
                     </div>
                   </div>
                   
-                  {/* Date Range - Simple Picker for Search */}
+                  {/* Date Range Picker */}
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button 
                         variant="outline" 
                         className="h-10 w-full justify-start text-left font-normal"
-                        data-testid="home-date-picker"
+                        data-testid="search-date-picker"
                       >
                         <CalendarIcon className="mr-2 h-4 w-4 text-slate-500" />
                         {dateRange.from ? (
                           dateRange.to && !isSameDay(dateRange.from, dateRange.to) ? (
-                            <span>
+                            <span className="text-sm">
                               {format(dateRange.from, 'd MMM', { locale: language === 'ru' ? ru : enUS })} — {format(dateRange.to, 'd MMM', { locale: language === 'ru' ? ru : enUS })}
                             </span>
                           ) : (
-                            <span>{format(dateRange.from, 'd MMM', { locale: language === 'ru' ? ru : enUS })} — ...</span>
+                            <span className="text-sm">{format(dateRange.from, 'd MMM', { locale: language === 'ru' ? ru : enUS })} — ...</span>
                           )
                         ) : (
-                          <span className="text-muted-foreground">{getUIText('selectDates', language)}</span>
+                          <span className="text-muted-foreground text-sm">{getUIText('selectDates', language)}</span>
                         )}
                       </Button>
                     </PopoverTrigger>
@@ -271,28 +306,15 @@ export function GostayloHomeContent() {
                         locale={language === 'ru' ? ru : enUS}
                         numberOfMonths={1}
                         disabled={{ before: new Date() }}
+                        className="rounded-md"
                       />
                     </PopoverContent>
                   </Popover>
                   
-                  {/* Category */}
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className='h-10'>
-                      <SelectValue placeholder={getUIText('category', language)} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value='all'>{getUIText('allCategories', language)}</SelectItem>
-                      {categories.map(cat => (
-                        <SelectItem key={cat.id} value={cat.slug}>
-                          {cat.icon} {getCategoryName(cat.slug, language, cat.name)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* District */}
+                  {/* District/Location */}
                   <Select value={selectedDistrict} onValueChange={setSelectedDistrict}>
-                    <SelectTrigger className='h-10'>
+                    <SelectTrigger className='h-10' data-testid="search-district">
+                      <MapPin className="h-4 w-4 mr-2 text-slate-400" />
                       <SelectValue placeholder={getUIText('district', language)} />
                     </SelectTrigger>
                     <SelectContent>
@@ -302,11 +324,27 @@ export function GostayloHomeContent() {
                       ))}
                     </SelectContent>
                   </Select>
+                  
+                  {/* Guests */}
+                  <Select value={guests} onValueChange={setGuests}>
+                    <SelectTrigger className='h-10' data-testid="search-guests">
+                      <Users className="h-4 w-4 mr-2 text-slate-400" />
+                      <SelectValue placeholder={language === 'ru' ? 'Гости' : 'Guests'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 10, 12].map(num => (
+                        <SelectItem key={num} value={String(num)}>
+                          {num} {language === 'ru' ? (num === 1 ? 'гость' : num < 5 ? 'гостя' : 'гостей') : (num === 1 ? 'guest' : 'guests')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
 
                   {/* Search Button */}
                   <Button 
                     onClick={handleSearch}
                     className='h-10 bg-teal-600 hover:bg-teal-700'
+                    data-testid="search-button"
                   >
                     <Search className='h-4 w-4 mr-2' />
                     {language === 'ru' ? 'Найти' : 'Search'}
