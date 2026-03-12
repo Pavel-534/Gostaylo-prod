@@ -521,3 +521,33 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - `/app/test_reports/iteration_12.json` - Visual date blocking sync fix (11/11 passed)
 - `/app/test_reports/iteration_13.json` - Server-First Calendar Architecture (16/16 passed)
 - `/app/test_reports/iteration_14.json` - Night-Based Booking Logic (14/14 backend, 8/8 frontend)
+- `/app/test_reports/iteration_15.json` - Visual Calendar Blocking (7/7 frontend - all verified)
+
+### 22. Visual Calendar Blocking - Night-Based UI (2026-03-12)
+- **P0 Fix:** Calendar now VISUALLY blocks unavailable dates (World-Class UX)
+- **Hard Blocking Implementation:**
+  - `BlockingDayButton` component with `pointer-events: none` + `opacity: 0.5` for blocked nights
+  - `aria-disabled="true"` and `disabled={true}` attributes
+  - Line-through text decoration for visual clarity
+  - Past dates also hard-blocked
+- **Checkout Day Visual ("Split Visual"):**
+  - `NightBasedDayContent` component shows diagonal gradient split
+  - Teal dot indicator (w-2 h-2 bg-teal-500) in top-right corner
+  - Ring highlight for checkout days (`ring-1 ring-teal-300`)
+  - These days ARE clickable as new check-in dates
+- **Zero-Toast Policy:**
+  - No more "Dates not available" error toasts
+  - UI prevents invalid selections via CSS pointer-events
+  - UX is prevention-first, not error-first
+- **Teal Color Scheme:**
+  - Range start/end: `bg-teal-600 text-white`
+  - Range middle: `bg-teal-100 text-teal-900`
+  - Hover: `bg-teal-50 text-teal-700`
+  - Today: `ring-2 ring-teal-400`
+- **React Context Pattern:**
+  - `BlockedNightsContext` passes data to DayButton without re-render issues
+  - Clean separation of concerns
+- **Files Modified:**
+  - `/app/components/booking-date-picker.jsx` - Full rewrite with custom DayPicker
+- **Tested:** Frontend 100% (7/7 features verified)
+- **Test Report:** `/app/test_reports/iteration_15.json`
