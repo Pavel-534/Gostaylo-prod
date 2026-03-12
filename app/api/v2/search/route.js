@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Search API (v2)
+ * Gostaylo - Search API (v2) - STAGE 2: Smart Filtering
  * GET /api/v2/search - Search listings with availability filter
  * 
  * Query Parameters:
@@ -13,26 +13,19 @@
  * - maxPrice: Maximum price filter
  * - limit: Results limit (default: 50)
  * 
- * Response Structure:
- * {
- *   success: true,
- *   data: {
- *     listings: [...],
- *     filters: { applied filters },
- *     meta: { total, available, filtered }
- *   }
- * }
+ * STAGE 2 Features:
+ * - CalendarService integration for real availability filtering
+ * - Capacity (max_guests) filtering
+ * - Pricing calculation for selected dates
  * 
- * @created 2026-03-12
- * @stage Stage 1 - Shell (CalendarService integration pending)
+ * @updated 2026-03-12
  */
 
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-// TODO: Stage 2 - Uncomment when ready for availability filtering
-// import { CalendarService } from '@/lib/services/calendar.service';
+import { CalendarService } from '@/lib/services/calendar.service';
 
 export async function GET(request) {
   try {
@@ -40,20 +33,20 @@ export async function GET(request) {
     
     // Parse all search parameters
     const filters = {
-      q: searchParams.get('q'),                    // Text search
-      location: searchParams.get('location'),       // District
-      category: searchParams.get('category'),       // Category slug
-      checkIn: searchParams.get('checkIn'),         // YYYY-MM-DD
-      checkOut: searchParams.get('checkOut'),       // YYYY-MM-DD
+      q: searchParams.get('q'),
+      location: searchParams.get('location'),
+      category: searchParams.get('category'),
+      checkIn: searchParams.get('checkIn'),
+      checkOut: searchParams.get('checkOut'),
       guests: parseInt(searchParams.get('guests')) || null,
       minPrice: parseFloat(searchParams.get('minPrice')) || null,
       maxPrice: parseFloat(searchParams.get('maxPrice')) || null,
       limit: parseInt(searchParams.get('limit')) || 50
     };
     
-    console.log('[SEARCH API] Received filters:', filters);
+    console.log('[SEARCH API] Filters:', JSON.stringify(filters));
     
-    // Build base query
+    // Build base query - ONLY ACTIVE listings
     let query = supabaseAdmin
       .from('listings')
       .select(`
@@ -97,47 +90,56 @@ export async function GET(request) {
       query = query.lte('base_price_thb', filters.maxPrice);
     }
     
-    // TODO: Apply guests capacity filter
-    // if (filters.guests) {
-    //   query = query.gte('metadata->max_guests', filters.guests);
-    // }
-    
     // Execute query
     const { data: listings, error } = await query;
     
     if (error) {
       console.error('[SEARCH API] Query error:', error);
-      return NextResponse.json({ 
-        success: false, 
-        error: error.message 
-      }, { status: 500 });
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
     
     // =====================================================
-    // STAGE 2: AVAILABILITY FILTERING (Currently Shell)
-    // This will filter listings based on calendar availability
+    // STAGE 2: AVAILABILITY & CAPACITY FILTERING
     // =====================================================
-    let availableListings = listings;
-    let filteredOutCount = 0;
+    let availableListings = [];
+    let filteredOutByAvailability = 0;
+    let filteredOutByCapacity = 0;
+    const hasDateFilter = !!(filters.checkIn && filters.checkOut);
     
-    if (filters.checkIn && filters.checkOut) {
-      // TODO: Stage 2 - Implement CalendarService filtering
-      // availableListings = [];
-      // for (const listing of listings) {
-      //   const availability = await CalendarService.checkAvailability(
-      //     listing.id, 
-      //     filters.checkIn, 
-      //     filters.checkOut
-      //   );
-      //   if (availability.available) {
-      //     availableListings.push(listing);
-      //   } else {
-      //     filteredOutCount++;
-      //   }
-      // }
+    for (const listing of listings) {
+      // --- CAPACITY FILTER ---
+      if (filters.guests) {
+        const maxGuests = listing.metadata?.max_guests || listing.metadata?.guests || 10;
+        if (maxGuests < filters.guests) {
+          filteredOutByCapacity++;
+          continue;
+        }
+      }
       
-      console.log(`[SEARCH API] Date filter requested: ${filters.checkIn} → ${filters.checkOut}`);
-      console.log('[SEARCH API] Stage 1: Availability filtering NOT YET IMPLEMENTED');
+      // --- AVAILABILITY FILTER ---
+      if (hasDateFilter) {
+        try {
+          const availability = await CalendarService.checkAvailability(
+            listing.id,
+            filters.checkIn,
+            filters.checkOut
+          );
+          
+          if (!availability.available) {
+            filteredOutByAvailability++;
+            console.log(`[SEARCH API] Listing ${listing.id} filtered out - unavailable for ${filters.checkIn} to ${filters.checkOut}`);
+            continue;
+          }
+          
+          // Add pricing info for available listings
+          listing._pricing = availability.pricing;
+        } catch (err) {
+          console.error(`[SEARCH API] Error checking availability for ${listing.id}:`, err);
+          // Include listing if availability check fails (graceful degradation)
+        }
+      }
+      
+      availableListings.push(listing);
     }
     
     // Transform for frontend
@@ -163,8 +165,8 @@ export async function GET(request) {
       reviewsCount: l.reviews_count || 0,
       createdAt: l.created_at,
       owner: l.owner,
-      // Stage 2: Add pricing info when dates provided
-      // pricing: filters.checkIn && filters.checkOut ? await calculatePricing(l, filters) : null
+      // Stage 2: Pricing for selected date range
+      pricing: l._pricing || null
     }));
     
     return NextResponse.json({ 
@@ -175,28 +177,23 @@ export async function GET(request) {
           applied: Object.fromEntries(
             Object.entries(filters).filter(([_, v]) => v !== null && v !== undefined)
           ),
-          hasDateFilter: !!(filters.checkIn && filters.checkOut)
+          hasDateFilter
         },
         meta: {
           total: listings.length,
           available: transformed.length,
-          filteredOut: filteredOutCount,
-          // Stage 2 indicator
-          availabilityFiltered: false,
-          stage: 'shell'
+          filteredOutByAvailability,
+          filteredOutByCapacity,
+          availabilityFiltered: hasDateFilter,
+          stage: 'smart'
         }
       }
     }, {
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
-      }
+      headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
     });
     
   } catch (error) {
     console.error('[SEARCH API] Error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message 
-    }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
