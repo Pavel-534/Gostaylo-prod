@@ -16,8 +16,12 @@ import { fetchCategories, fetchListings, fetchExchangeRates, fetchDistricts } fr
 import { detectLanguage, setLanguage as saveLanguage, supportedLanguages, getCategoryName, getUIText, getListingText } from '@/lib/translations'
 import { CurrencySelector } from '@/components/currency-selector'
 import { useAuth } from '@/contexts/auth-context'
-import { BookingDateRangePicker } from '@/components/booking-date-picker'
 import { toast } from 'sonner'
+import { DayPicker } from 'react-day-picker'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { CalendarIcon } from 'lucide-react'
+import { format, differenceInDays, isSameDay } from 'date-fns'
+import { ru, enUS } from 'date-fns/locale'
 
 export function GostayloHomeContent() {
   const router = useRouter()
@@ -237,15 +241,39 @@ export function GostayloHomeContent() {
                     </div>
                   </div>
                   
-                  {/* Date Range - Unified BookingDateRangePicker */}
-                  <BookingDateRangePicker
-                    value={dateRange}
-                    onChange={setDateRange}
-                    blockedDates={[]}
-                    language={language}
-                    placeholder={getUIText('selectDates', language)}
-                    data-testid="home-date-picker"
-                  />
+                  {/* Date Range - Simple Picker for Search */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        className="h-10 w-full justify-start text-left font-normal"
+                        data-testid="home-date-picker"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 text-slate-500" />
+                        {dateRange.from ? (
+                          dateRange.to && !isSameDay(dateRange.from, dateRange.to) ? (
+                            <span>
+                              {format(dateRange.from, 'd MMM', { locale: language === 'ru' ? ru : enUS })} — {format(dateRange.to, 'd MMM', { locale: language === 'ru' ? ru : enUS })}
+                            </span>
+                          ) : (
+                            <span>{format(dateRange.from, 'd MMM', { locale: language === 'ru' ? ru : enUS })} — ...</span>
+                          )
+                        ) : (
+                          <span className="text-muted-foreground">{getUIText('selectDates', language)}</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-4" align="start">
+                      <DayPicker
+                        mode="range"
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        locale={language === 'ru' ? ru : enUS}
+                        numberOfMonths={1}
+                        disabled={{ before: new Date() }}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   
                   {/* Category */}
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>

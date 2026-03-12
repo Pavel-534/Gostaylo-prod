@@ -37,10 +37,6 @@ export default function ListingDetail({ params }) {
   const [currency, setCurrency] = useState('THB')
   const [exchangeRates, setExchangeRates] = useState({})
   
-  // Blocked NIGHTS for calendar (night-based booking logic)
-  const [blockedNights, setBlockedNights] = useState([])
-  const [availabilityLoading, setAvailabilityLoading] = useState(true)
-  
   // Commission rate state
   const [commissionRate, setCommissionRate] = useState(15)
   const [commissionLoading, setCommissionLoading] = useState(true)
@@ -105,45 +101,13 @@ export default function ListingDetail({ params }) {
     }
   }
 
-  // Load blocked NIGHTS for calendar (night-based logic)
-  useEffect(() => {
-    if (params?.id) {
-      loadBlockedNights()
-    }
-  }, [params?.id])
-
-  async function loadBlockedNights() {
-    setAvailabilityLoading(true)
-    try {
-      const res = await fetch(`/api/v2/listings/${params.id}/availability`, {
-        cache: 'no-store'
-      })
-      const data = await res.json()
-      if (data.success) {
-        // API returns blockedNights (dates where you cannot START a stay)
-        setBlockedNights(data.data.blockedNights || [])
-        console.log('[AVAILABILITY] Loaded blocked nights:', data.data.blockedNights?.length || 0, 
-          'Logic:', data.data.meta?.logic)
-      }
-    } catch (error) {
-      console.error('Failed to load availability:', error)
-    } finally {
-      setAvailabilityLoading(false)
-    }
-  }
-  
-  // Refresh availability data (called after successful booking)
-  const refreshAvailability = useCallback(async () => {
-    await loadBlockedNights()
-    // Reset date selection
+  // Refresh calendar after booking - trigger refetch in GostayloCalendar
+  const [calendarKey, setCalendarKey] = useState(0)
+  const refreshCalendar = useCallback(() => {
+    setCalendarKey(prev => prev + 1)
     setDateRange({ from: null, to: null })
     setPriceCalc(null)
-  }, [params?.id])
-
-  // Check if a night is blocked
-  function isNightBlocked(dateStr) {
-    return blockedNights.includes(dateStr)
-  }
+  }, [])
 
   // Load currency preference and listen for changes
   useEffect(() => {
@@ -471,22 +435,8 @@ export default function ListingDetail({ params }) {
     setSubmitting(true)
 
     try {
-      // REAL-TIME AVAILABILITY CHECK before submitting
-      // This catches any bookings made by other users after page load
-      const availCheck = await fetch(`/api/v2/listings/${listing.id}/availability?startDate=${checkIn}&endDate=${checkOut}`, {
-        cache: 'no-store'
-      })
-      const availData = await availCheck.json()
-      
-      if (!availData.success || !availData.available) {
-        toast.error(language === 'ru' 
-          ? 'Эти даты уже заняты. Пожалуйста, выберите другие даты.' 
-          : 'These dates are no longer available. Please select different dates.')
-        // Refresh blocked dates to update calendar
-        await refreshAvailability()
-        setSubmitting(false)
-        return
-      }
+      // NOTE: Server-side validation in POST /api/v2/bookings now handles double-booking prevention
+      // No need for client-side availability check here
       
       // Calculate final price with service fee
       const basePrice = priceCalc ? priceCalc.totalPrice : listing.basePriceThb
@@ -514,13 +464,27 @@ export default function ListingDetail({ params }) {
       if (data.success && data.booking) {
         toast.success(t.successMsg)
         // INSTANT DATA INVALIDATION: refresh blocked dates so calendar updates
-        await refreshAvailability()
+        await refreshCalendar()
         setBookingModalOpen(false)
         router.push(`/checkout/${data.booking.id}`)
       } else {
-        const errorMsg = data?.error || 'Unknown error'
-        console.error('[BOOKING] Error:', errorMsg)
-        toast.error(`${t.errorMsg}: ${errorMsg}`)
+        // Handle 409 Conflict - dates were just taken
+        if (res.status === 409 || data.code === 'DATES_CONFLICT') {
+          toast.error(language === 'ru' 
+            ? '😔 К сожалению, эти даты только что забронировал другой пользователь. Пожалуйста, выберите другие даты.' 
+            : '😔 Sorry, these dates were JUST taken by another user. Please select different dates.')
+          // Clear selection and refresh calendar
+          setDateRange({ from: null, to: null })
+          await refreshCalendar()
+        } else if (data.code === 'MIN_STAY_VIOLATION') {
+          toast.error(language === 'ru' 
+            ? `Минимальный срок проживания: ${data.minStay} ${data.minStay === 1 ? 'ночь' : data.minStay < 5 ? 'ночи' : 'ночей'}` 
+            : data.error)
+        } else {
+          const errorMsg = data?.error || 'Unknown error'
+          console.error('[BOOKING] Error:', errorMsg)
+          toast.error(`${t.errorMsg}: ${errorMsg}`)
+        }
       }
     } catch (error) {
       console.error('[BOOKING] Exception:', error)
@@ -769,6 +733,7 @@ export default function ListingDetail({ params }) {
                       <div>
                         <Label>{language === 'ru' ? 'Даты проживания' : 'Stay dates'}</Label>
                         <GostayloCalendar
+                          key={calendarKey}
                           listingId={listing?.id}
                           value={dateRange}
                           onChange={setDateRange}
@@ -782,7 +747,7 @@ export default function ListingDetail({ params }) {
                                 totalPrice: pricing.totalPrice,
                                 serviceFee,
                                 grandTotal: pricing.totalPrice + serviceFee,
-                                baseTotalWithoutSeasonal: pricing.totalPrice, // Will be overwritten if seasonal
+                                baseTotalWithoutSeasonal: pricing.totalPrice,
                                 isDiscount: false,
                                 discountAmount: 0
                               })
@@ -880,7 +845,7 @@ export default function ListingDetail({ params }) {
                       <Button
                         type='submit'
                         className='w-full bg-teal-600 hover:bg-teal-700 h-12 text-base disabled:opacity-50 disabled:cursor-not-allowed'
-                        disabled={submitting || !priceCalc || hasDateConflict || !dateRange.from || !dateRange.to || availabilityLoading}
+                        disabled={submitting || !priceCalc || hasDateConflict || !dateRange.from || !dateRange.to}
                         data-testid='submit-booking-btn'
                       >
                         {submitting ? (
