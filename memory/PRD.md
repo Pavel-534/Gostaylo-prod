@@ -524,6 +524,17 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - `/app/test_reports/iteration_15.json` - Visual Calendar Blocking (7/7 frontend - all verified)
 - `/app/test_reports/iteration_16.json` - Search Context Inheritance (5/5 frontend - all verified)
 
+### 24. Search Architecture Cleanup (2026-03-12)
+- **Sterilization:** Legacy search code marked deprecated, new architecture documented
+- **Deprecated:**
+  - `GET /api/v2/listings` → Use `/api/v2/search` instead (with CalendarService)
+  - `fetchListings()` in client-data.js → Kept for Home page, deprecated for search
+- **Active (Primary Search Flow):**
+  - `/api/v2/search` - Smart search with availability filtering
+  - `/app/app/listings/page.js` - Uses new Search API
+  - `CalendarService` - Single source of truth for availability
+- **Report:** `/app/docs/SEARCH_CLEANUP_REPORT.md`
+
 ### 22. Visual Calendar Blocking - Night-Based UI (2026-03-12)
 - **P0 Fix:** Calendar now VISUALLY blocks unavailable dates (World-Class UX)
 - **Hard Blocking Implementation:**

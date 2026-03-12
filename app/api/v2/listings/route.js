@@ -1,7 +1,10 @@
 /**
  * Gostaylo - Listings API (v2)
- * GET /api/v2/listings - Search/filter listings
- * POST /api/v2/listings - Create new listing
+ * 
+ * GET /api/v2/listings - DEPRECATED! Use /api/v2/search instead
+ * POST /api/v2/listings - Create new listing (ACTIVE)
+ * 
+ * @deprecated GET method - migrate to /api/v2/search for availability filtering
  */
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +12,13 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+/**
+ * @deprecated Use /api/v2/search instead
+ * This endpoint does NOT support availability filtering
+ */
 export async function GET(request) {
+  console.warn('[DEPRECATED] GET /api/v2/listings called - use /api/v2/search for availability filtering');
+  
   try {
     const { searchParams } = new URL(request.url);
     
