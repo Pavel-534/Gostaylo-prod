@@ -460,6 +460,24 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Tested:** Backend 100% (11/11), Frontend 100%
 - **Test Report:** `/app/test_reports/iteration_12.json`
 
+### 20. Server-First Calendar Architecture (2026-03-12)
+- **Complete API Rewrite:** `/app/app/api/v2/listings/[id]/availability/route.js`
+  - Single source of truth for availability
+  - Returns sorted ISO dates (YYYY-MM-DD) for next 365 days
+  - Sources: `calendar_blocks` (iCal, manual) + `bookings` (PENDING, CONFIRMED, PAID)
+  - `getDatesInRange()` excludes check_out day (allows back-to-back bookings)
+  - Returns meta: `{ rangeStart, rangeEnd, totalBlocked, sources: { calendarBlocks, bookings } }`
+- **BookingDateRangePicker Rewrite:**
+  - `CalendarSkeleton` component shown while `isLoading=true`
+  - Strict disabled dates via `blockedDateSet.has(dateStr)`
+  - Range selection stays open until both dates selected and different
+  - No auto-submit or auto-redirect
+- **Listing Page Updates:**
+  - Submit button disabled if `!dateRange.from || !dateRange.to || hasDateConflict || availabilityLoading`
+  - Real-time availability check before submission (catches concurrent bookings)
+- **Tested:** Backend 100% (16/16), Frontend 100%
+- **Test Report:** `/app/test_reports/iteration_13.json`
+
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql`
 - **Important:** RLS uses `auth.uid()` from Supabase Auth, but app uses custom JWT auth
@@ -479,3 +497,4 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - `/app/test_reports/iteration_10.json` - Calendar architecture overhaul (7/7 passed)
 - `/app/test_reports/iteration_11.json` - Mobile calendar UX (Drawer + seamless range selection)
 - `/app/test_reports/iteration_12.json` - Visual date blocking sync fix (11/11 passed)
+- `/app/test_reports/iteration_13.json` - Server-First Calendar Architecture (16/16 passed)
