@@ -23,8 +23,11 @@ import {
 
 const locales = { ru, en: enUS, zh: zhCN, th }
 
-// Context for blocked nights data
-const BlockedNightsContext = React.createContext({ blockedNightsSet: new Set() })
+// Context for calendar state
+const CalendarContext = React.createContext({ 
+  blockedNightsSet: new Set(),
+  isSelectingCheckout: false // true when check-in is selected, waiting for check-out
+})
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState(null)
@@ -38,12 +41,15 @@ function useIsMobile() {
 }
 
 /**
- * Clean Day Button - Hard Blocking via CSS
- * Blocked nights: opacity-30, pointer-events: none
- * No dots, no rings, no gradients - just clean professional blocking
+ * Smart Day Button - Dynamic Enable/Disable based on selection state
+ * 
+ * KEY LOGIC (Booking.com style):
+ * - When selecting CHECK-IN: blocked nights are disabled
+ * - When selecting CHECK-OUT: ALL future dates are enabled (even blocked nights)
+ *   Because checkout happens at 12:00, you can checkout on a day where a new guest checks in at 14:00
  */
-function CleanDayButton({ className, day, modifiers, ...props }) {
-  const { blockedNightsSet } = React.useContext(BlockedNightsContext)
+function SmartDayButton({ className, day, modifiers, ...props }) {
+  const { blockedNightsSet, isSelectingCheckout, checkInDate } = React.useContext(CalendarContext)
   const defaultClassNames = getDefaultClassNames()
   const ref = React.useRef(null)
 
@@ -56,8 +62,27 @@ function CleanDayButton({ className, day, modifiers, ...props }) {
   const isPast = isBefore(startOfDay(day.date), startOfDay(new Date()))
   const isToday = isSameDay(day.date, new Date())
   
-  // Hard blocking: blocked night OR past date
-  const isDisabled = isBlockedNight || isPast
+  // SMART DISABLE LOGIC:
+  // - Past dates: always disabled
+  // - When selecting CHECK-IN: disable blocked nights
+  // - When selecting CHECK-OUT: enable ALL dates after check-in (even blocked ones!)
+  let isDisabled = isPast
+  
+  if (!isPast) {
+    if (isSelectingCheckout) {
+      // Selecting checkout: only disable dates before or equal to check-in
+      if (checkInDate && !isBefore(checkInDate, day.date)) {
+        isDisabled = true
+      }
+      // Blocked nights are ENABLED for checkout!
+    } else {
+      // Selecting check-in: disable blocked nights
+      isDisabled = isBlockedNight
+    }
+  }
+
+  // Visual indicator: blocked but clickable for checkout
+  const isBlockedButClickable = isBlockedNight && isSelectingCheckout && !isPast
 
   return (
     <Button
@@ -66,6 +91,7 @@ function CleanDayButton({ className, day, modifiers, ...props }) {
       size="icon"
       data-day={dateStr}
       data-blocked={isBlockedNight}
+      data-blocked-clickable={isBlockedButClickable}
       data-range-start={modifiers.range_start}
       data-range-end={modifiers.range_end}
       data-range-middle={modifiers.range_middle}
@@ -78,8 +104,10 @@ function CleanDayButton({ className, day, modifiers, ...props }) {
         "data-[range-start=true]:bg-teal-600 data-[range-start=true]:text-white data-[range-start=true]:rounded-l-md data-[range-start=true]:rounded-r-none",
         "data-[range-end=true]:bg-teal-600 data-[range-end=true]:text-white data-[range-end=true]:rounded-r-md data-[range-end=true]:rounded-l-none",
         "data-[range-middle=true]:bg-teal-50 data-[range-middle=true]:text-teal-900 data-[range-middle=true]:rounded-none",
-        // HARD BLOCKING - opacity-30 + no clicks
+        // HARD BLOCKING for check-in - opacity-30 + no clicks
         isDisabled && "opacity-30 pointer-events-none cursor-not-allowed text-slate-400",
+        // Blocked but clickable for checkout - subtle indicator
+        isBlockedButClickable && "opacity-70 text-slate-600",
         // Available days hover
         !isDisabled && "hover:bg-slate-100",
         defaultClassNames.day,
@@ -124,13 +152,13 @@ function CalendarSkeleton() {
 }
 
 /**
- * Interval-Based Date Range Picker (Airbnb/Booking.com style)
+ * World-Class Date Range Picker (Booking.com style)
  * 
  * CORE LOGIC:
- * - We book NIGHTS, not days
+ * - We book NIGHTS (14:00 today → 12:00 tomorrow)
  * - blockedNights = dates where you cannot START a stay
- * - Check-out day of Guest A = available Check-in for Guest B
- * - A date is disabled ONLY if its NIGHT is blocked
+ * - Check-out day: even if blocked, it's clickable as checkout
+ * - Example: if night of 16th is blocked, you CAN checkout on 16th at 12:00
  */
 export function BookingDateRangePicker({
   value = { from: null, to: null },
@@ -150,13 +178,21 @@ export function BookingDateRangePicker({
   // O(1) lookup for blocked nights
   const blockedNightsSet = React.useMemo(() => new Set(blockedDates), [blockedDates])
 
-  // Disabled check: only if the NIGHT starting on this date is blocked
+  // Are we selecting check-out? (check-in already selected)
+  const isSelectingCheckout = value?.from && (!value?.to || isSameDay(value.from, value.to))
+
+  // Disabled check for DayPicker's built-in disabled prop (used for navigation)
   const isDateDisabled = React.useCallback((date) => {
     const d = startOfDay(date)
     const today = startOfDay(new Date())
     if (isBefore(d, today)) return true
+    
+    // When selecting checkout, don't disable anything (let SmartDayButton handle it)
+    if (isSelectingCheckout) return false
+    
+    // When selecting check-in, disable blocked nights
     return blockedNightsSet.has(format(d, 'yyyy-MM-dd'))
-  }, [blockedNightsSet])
+  }, [blockedNightsSet, isSelectingCheckout])
 
   // Handle range selection with validation
   const handleSelect = React.useCallback((range) => {
@@ -165,29 +201,43 @@ export function BookingDateRangePicker({
       return
     }
 
-    // Validate check-in date
-    if (range.from && isDateDisabled(range.from)) return
+    // Selecting check-in
+    if (range.from && !range.to) {
+      // Check-in date must not be a blocked night
+      const fromStr = format(range.from, 'yyyy-MM-dd')
+      if (blockedNightsSet.has(fromStr)) {
+        return // Can't start stay on blocked night
+      }
+      onChange({ from: range.from, to: null })
+      return
+    }
 
-    // Validate range - check all nights between check-in and check-out
-    if (range.from && range.to && !isSameDay(range.from, range.to)) {
+    // Selecting check-out
+    if (range.from && range.to) {
+      // For checkout, we check NIGHTS from check-in to check-out - 1
+      // The checkout day itself doesn't need to be free (guest leaves at 12:00)
       let current = startOfDay(range.from)
-      const end = startOfDay(range.to)
-      while (current < end) {
+      const lastNight = startOfDay(addDays(range.to, -1)) // Last night of stay
+      
+      while (current <= lastNight) {
         if (blockedNightsSet.has(format(current, 'yyyy-MM-dd'))) {
+          // A night in the stay is blocked - can't book
+          // Reset to just check-in
           onChange({ from: range.from, to: null })
           return
         }
         current = addDays(current, 1)
       }
+      
+      // Valid range!
+      onChange(range)
+      
+      // Close after complete selection
+      if (!isSameDay(range.from, range.to)) {
+        setTimeout(() => setOpen(false), 150)
+      }
     }
-
-    onChange(range)
-
-    // Close after complete selection
-    if (range.from && range.to && !isSameDay(range.from, range.to)) {
-      setTimeout(() => setOpen(false), 150)
-    }
-  }, [onChange, isDateDisabled, blockedNightsSet])
+  }, [onChange, blockedNightsSet])
 
   // Display text
   const displayText = React.useMemo(() => {
@@ -227,11 +277,15 @@ export function BookingDateRangePicker({
     </Button>
   )
 
-  // Calendar with clean styles
+  // Calendar with smart enable/disable
   const CalendarContent = isLoading ? (
     <CalendarSkeleton />
   ) : (
-    <BlockedNightsContext.Provider value={{ blockedNightsSet }}>
+    <CalendarContext.Provider value={{ 
+      blockedNightsSet, 
+      isSelectingCheckout,
+      checkInDate: value?.from 
+    }}>
       <DayPicker
         mode="range"
         selected={value}
@@ -262,19 +316,17 @@ export function BookingDateRangePicker({
           range_start: cn("bg-teal-600 text-white rounded-l-md rounded-r-none", defaultClassNames.range_start),
           range_middle: cn("bg-teal-50 rounded-none", defaultClassNames.range_middle),
           range_end: cn("bg-teal-600 text-white rounded-r-md rounded-l-none", defaultClassNames.range_end),
-          // Today - no ring, handled in DayButton
           today: cn("", defaultClassNames.today),
           outside: cn("text-muted-foreground opacity-30", defaultClassNames.outside),
-          // Disabled handled by DayButton
           disabled: cn("", defaultClassNames.disabled),
           hidden: cn("invisible", defaultClassNames.hidden),
         }}
         components={{
           Chevron: ChevronComponent,
-          DayButton: CleanDayButton,
+          DayButton: SmartDayButton,
         }}
       />
-    </BlockedNightsContext.Provider>
+    </CalendarContext.Provider>
   )
 
   // Selection hint
@@ -347,8 +399,12 @@ export function hasBlockedNightInRange(checkIn, checkOut, blockedNights) {
   const start = startOfDay(typeof checkIn === 'string' ? parseISO(checkIn) : checkIn)
   const end = startOfDay(typeof checkOut === 'string' ? parseISO(checkOut) : checkOut)
   const blockedSet = new Set(blockedNights)
+  
+  // Check nights from check-in to check-out - 1
+  // The checkout day itself is NOT a night of the stay
   let current = start
-  while (current < end) {
+  const lastNight = addDays(end, -1)
+  while (current <= lastNight) {
     if (blockedSet.has(format(current, 'yyyy-MM-dd'))) return true
     current = addDays(current, 1)
   }
