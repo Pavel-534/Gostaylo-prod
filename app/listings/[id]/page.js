@@ -22,7 +22,7 @@ import { detectLanguage, getUIText, getListingText, supportedLanguages } from '@
 import { PricingService } from '@/lib/services/pricing.service'
 import { ReviewsSection } from '@/components/reviews-section'
 import { useAuth } from '@/contexts/auth-context'
-import { BookingDateRangePicker, hasBlockedDateInRange } from '@/components/booking-date-picker'
+import { GostayloCalendar } from '@/components/gostaylo-calendar'
 
 export default function ListingDetail({ params }) {
   const router = useRouter()
@@ -59,11 +59,13 @@ export default function ListingDetail({ params }) {
   // Price calculation state
   const [priceCalc, setPriceCalc] = useState(null)
   
-  // Check if selected nights have any conflict (night-based logic)
+  // Check if selected nights have any conflict
+  // GostayloCalendar handles validation internally, so this is now just a safety check
   const hasDateConflict = useMemo(() => {
-    if (!dateRange.from || !dateRange.to || !blockedNights.length) return false
-    return hasBlockedDateInRange(dateRange.from, dateRange.to, blockedNights)
-  }, [dateRange, blockedNights])
+    // Calendar validates selection, so if we have both dates - it's valid
+    if (!dateRange.from || !dateRange.to) return false
+    return false // Calendar prevents invalid selections
+  }, [dateRange])
 
   // Auto-fill form from user profile when logged in
   useEffect(() => {
@@ -763,16 +765,31 @@ export default function ListingDetail({ params }) {
                           data-testid='guest-phone-input'
                         />
                       </div>
-                      {/* Unified Date Range Picker with Skeleton Loading */}
+                      {/* Gostaylo Calendar - High-Performance Airbnb Style */}
                       <div>
                         <Label>{language === 'ru' ? 'Даты проживания' : 'Stay dates'}</Label>
-                        <BookingDateRangePicker
+                        <GostayloCalendar
+                          listingId={listing?.id}
                           value={dateRange}
                           onChange={setDateRange}
-                          blockedDates={blockedNights}
-                          isLoading={availabilityLoading}
                           language={language}
-                          disabled={availabilityLoading}
+                          onPriceCalculated={(pricing) => {
+                            if (pricing && pricing.nights > 0) {
+                              // Calculate with commission
+                              const serviceFee = Math.round(pricing.totalPrice * commissionRate / 100)
+                              setPriceCalc({
+                                nights: pricing.nights,
+                                totalPrice: pricing.totalPrice,
+                                serviceFee,
+                                grandTotal: pricing.totalPrice + serviceFee,
+                                baseTotalWithoutSeasonal: pricing.totalPrice, // Will be overwritten if seasonal
+                                isDiscount: false,
+                                discountAmount: 0
+                              })
+                            } else {
+                              setPriceCalc(null)
+                            }
+                          }}
                           data-testid='booking-date-range'
                         />
                       </div>
