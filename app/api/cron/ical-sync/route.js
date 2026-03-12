@@ -1,4 +1,7 @@
 /**
+ * @deprecated DEPRECATED: This cron job will be replaced by new CalendarService
+ * The sync logic will be consolidated into /lib/services/calendar.service.js
+ * 
  * Gostaylo - iCal Sync Cron Job
  * GET/POST /api/cron/ical-sync
  * 

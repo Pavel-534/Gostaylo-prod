@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 
 /**
+ * @deprecated DEPRECATED: This endpoint will be replaced by /api/v2/calendar
+ * Use the new unified calendar API for better performance and consistency.
+ * 
  * Gostaylo - iCal Sync API Endpoint
  * 
  * Routes:

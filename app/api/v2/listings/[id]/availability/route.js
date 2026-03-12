@@ -1,6 +1,9 @@
 /**
  * Gostaylo - Listing Availability API (Interval/Night-Based Model)
  * 
+ * @note This endpoint will be ENHANCED (not deprecated) to become /api/v2/calendar
+ * Current logic is correct and will be preserved.
+ * 
  * CORE CONCEPT: We book NIGHTS, not days.
  * - A booking from March 14 to March 16 means 2 NIGHTS (14th and 15th)
  * - The check_out day (16th) is AVAILABLE for the next guest to check IN
