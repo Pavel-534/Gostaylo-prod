@@ -23,7 +23,6 @@ import {
 
 const locales = { ru, en: enUS, zh: zhCN, th }
 
-// Hook to detect mobile - returns null during SSR
 function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState(null)
   
@@ -43,19 +42,16 @@ function useIsMobile() {
 function CalendarSkeleton() {
   return (
     <div className="p-3 space-y-4">
-      {/* Month header */}
       <div className="flex items-center justify-between px-1">
         <Skeleton className="h-5 w-5 rounded" />
         <Skeleton className="h-5 w-24" />
         <Skeleton className="h-5 w-5 rounded" />
       </div>
-      {/* Day names */}
       <div className="grid grid-cols-7 gap-1">
         {[...Array(7)].map((_, i) => (
           <Skeleton key={i} className="h-8 w-8 mx-auto" />
         ))}
       </div>
-      {/* Calendar grid */}
       {[...Array(5)].map((_, row) => (
         <div key={row} className="grid grid-cols-7 gap-1">
           {[...Array(7)].map((_, col) => (
@@ -68,20 +64,19 @@ function CalendarSkeleton() {
 }
 
 /**
- * Server-First Date Range Picker
+ * Night-Based Date Range Picker (Booking.com style)
  * 
- * Features:
- * - Skeleton loading state while fetching blockedDates
- * - Strict disabled dates from API (grey, unclickable)
- * - Single session range selection (drawer stays open until both dates selected)
- * - Mobile: Drawer (bottom sheet)
- * - Desktop: Popover
- * - NO auto-submit or auto-redirect
+ * CORE CONCEPT:
+ * - We book NIGHTS, not days
+ * - blockedNights array contains dates where you cannot START a stay
+ * - A check-out day is CLICKABLE as the next guest's check-in day
+ * - Calendar disables only dates in blockedNights array
+ * - No "X dates unavailable" warning - purely disabled prop handling
  */
 export function BookingDateRangePicker({
   value = { from: null, to: null },
   onChange,
-  blockedDates = [],
+  blockedDates = [], // Array of blocked NIGHTS (dates where you cannot start a stay)
   isLoading = false,
   language = "ru",
   className,
@@ -93,19 +88,19 @@ export function BookingDateRangePicker({
   const isMobile = useIsMobile()
   const locale = locales[language] || locales.ru
   
-  // Memoize blocked dates for performance
-  const blockedDateSet = React.useMemo(() => {
+  // Set of blocked nights for O(1) lookup
+  const blockedNightsSet = React.useMemo(() => {
     return new Set(blockedDates)
   }, [blockedDates])
   
-  const blockedDateObjects = React.useMemo(() => {
-    return blockedDates.map(d => {
-      try { return startOfDay(parseISO(d)) }
-      catch { return null }
-    }).filter(Boolean)
-  }, [blockedDates])
-  
-  // Strict disabled date checker
+  /**
+   * Night-based disabled check:
+   * A date is disabled if:
+   * 1. It's in the past (before today)
+   * 2. The NIGHT starting on this date is blocked (date is in blockedNights)
+   * 
+   * Check-out days are NOT in blockedNights, so they remain clickable
+   */
   const isDateDisabled = React.useCallback((date) => {
     const d = startOfDay(date)
     const today = startOfDay(new Date())
@@ -113,32 +108,39 @@ export function BookingDateRangePicker({
     // Past dates always disabled
     if (isBefore(d, today)) return true
     
-    // Check against blocked dates from API
+    // Check if this NIGHT is blocked
     const dateStr = format(d, 'yyyy-MM-dd')
-    return blockedDateSet.has(dateStr)
-  }, [blockedDateSet])
+    return blockedNightsSet.has(dateStr)
+  }, [blockedNightsSet])
   
-  // Handle range selection - stay open until both dates selected
+  /**
+   * Handle range selection
+   * For night-based logic:
+   * - User clicks check-in date (must not be blocked)
+   * - User clicks check-out date (the night OF check-out is NOT booked)
+   * - We check all NIGHTS between check-in and check-out - 1
+   */
   const handleSelect = React.useCallback((range) => {
     if (!range) {
       onChange({ from: null, to: null })
       return
     }
     
-    // If clicking a disabled date, ignore
-    if (range.from && isDateDisabled(range.from)) return
-    if (range.to && isDateDisabled(range.to)) {
-      onChange({ from: range.from, to: null })
+    // Check-in date must not be a blocked night
+    if (range.from && isDateDisabled(range.from)) {
       return
     }
     
-    // Check if any date in range is blocked (only if both dates selected)
+    // If both dates selected and different, validate the range
     if (range.from && range.to && !isSameDay(range.from, range.to)) {
+      // Check all NIGHTS in the stay (check_in to check_out - 1)
       let current = startOfDay(range.from)
       const end = startOfDay(range.to)
+      
       while (current < end) {
-        if (isDateDisabled(current)) {
-          // Range contains blocked date - reset to first date only
+        const dateStr = format(current, 'yyyy-MM-dd')
+        if (blockedNightsSet.has(dateStr)) {
+          // A night in range is blocked - reset to first date only
           onChange({ from: range.from, to: null })
           return
         }
@@ -148,13 +150,13 @@ export function BookingDateRangePicker({
     
     onChange(range)
     
-    // Close ONLY when both dates are selected AND different
+    // Close when both dates selected and different
     if (range.from && range.to && !isSameDay(range.from, range.to)) {
       setTimeout(() => setOpen(false), 200)
     }
-  }, [onChange, isDateDisabled])
+  }, [onChange, isDateDisabled, blockedNightsSet])
   
-  // Format display text
+  // Format display text (shows NIGHTS count)
   const displayText = React.useMemo(() => {
     if (isLoading) {
       return language === 'ru' ? 'Загрузка...' : 'Loading...'
@@ -165,10 +167,12 @@ export function BookingDateRangePicker({
     if (!value.to || isSameDay(value.from, value.to)) {
       return `${format(value.from, 'd MMM', { locale })} — ...`
     }
+    
     const nights = differenceInDays(value.to, value.from)
     const nightsText = language === 'ru' 
       ? `${nights} ${nights === 1 ? 'ночь' : nights < 5 ? 'ночи' : 'ночей'}`
       : `${nights} night${nights > 1 ? 's' : ''}`
+    
     return `${format(value.from, 'd MMM', { locale })} — ${format(value.to, 'd MMM', { locale })} (${nightsText})`
   }, [value, locale, language, isLoading])
 
@@ -194,7 +198,7 @@ export function BookingDateRangePicker({
     </Button>
   )
 
-  // Calendar content with loading state
+  // Calendar content
   const CalendarContent = isLoading ? (
     <CalendarSkeleton />
   ) : (
@@ -214,16 +218,16 @@ export function BookingDateRangePicker({
     />
   )
 
-  // Selection hint
+  // Selection hint (first date selected)
   const SelectionHint = value?.from && (!value?.to || isSameDay(value.from, value.to)) && !isLoading ? (
     <div className="mb-3 text-center text-sm text-teal-600 bg-teal-50 rounded-lg py-2 px-3">
       {language === 'ru' 
         ? '✓ Заезд выбран. Выберите дату выезда'
-        : '✓ Check-in selected. Now select check-out'}
+        : '✓ Check-in selected. Select check-out date'}
     </div>
   ) : null
 
-  // Selected range display (mobile only)
+  // Range display (mobile)
   const RangeDisplay = value?.from && value?.to && !isSameDay(value.from, value.to) ? (
     <div className="mt-4 text-center">
       <div className="inline-flex items-center gap-2 bg-slate-100 rounded-lg px-4 py-2">
@@ -287,15 +291,21 @@ export function BookingDateRangePicker({
 }
 
 /**
- * Check if a date range contains any blocked date
+ * Check if a date range has any blocked NIGHTS
+ * For stay check_in to check_out, checks nights from check_in to check_out - 1
+ * 
+ * Example: Stay from 14 to 16 (2 nights)
+ * Checks: 14 and 15 (the nights you're sleeping)
+ * Does NOT check 16 (check-out day, not a night you're booking)
  */
-export function hasBlockedDateInRange(startDate, endDate, blockedDates) {
-  if (!startDate || !endDate || !blockedDates.length) return false
+export function hasBlockedNightInRange(checkIn, checkOut, blockedNights) {
+  if (!checkIn || !checkOut || !blockedNights.length) return false
   
-  const start = startOfDay(typeof startDate === 'string' ? parseISO(startDate) : startDate)
-  const end = startOfDay(typeof endDate === 'string' ? parseISO(endDate) : endDate)
-  const blockedSet = new Set(blockedDates)
+  const start = startOfDay(typeof checkIn === 'string' ? parseISO(checkIn) : checkIn)
+  const end = startOfDay(typeof checkOut === 'string' ? parseISO(checkOut) : checkOut)
+  const blockedSet = new Set(blockedNights)
   
+  // Check all nights from check_in to check_out - 1
   let current = start
   while (current < end) {
     const dateStr = format(current, 'yyyy-MM-dd')
@@ -305,5 +315,8 @@ export function hasBlockedDateInRange(startDate, endDate, blockedDates) {
   
   return false
 }
+
+// Backwards compatibility alias
+export const hasBlockedDateInRange = hasBlockedNightInRange
 
 export default BookingDateRangePicker

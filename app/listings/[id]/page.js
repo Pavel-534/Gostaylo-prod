@@ -37,8 +37,8 @@ export default function ListingDetail({ params }) {
   const [currency, setCurrency] = useState('THB')
   const [exchangeRates, setExchangeRates] = useState({})
   
-  // Blocked dates for calendar grey-out
-  const [blockedDates, setBlockedDates] = useState([])
+  // Blocked NIGHTS for calendar (night-based booking logic)
+  const [blockedNights, setBlockedNights] = useState([])
   const [availabilityLoading, setAvailabilityLoading] = useState(true)
   
   // Commission rate state
@@ -59,11 +59,11 @@ export default function ListingDetail({ params }) {
   // Price calculation state
   const [priceCalc, setPriceCalc] = useState(null)
   
-  // Check if selected dates have any blocked dates in range
+  // Check if selected nights have any conflict (night-based logic)
   const hasDateConflict = useMemo(() => {
-    if (!dateRange.from || !dateRange.to || !blockedDates.length) return false
-    return hasBlockedDateInRange(dateRange.from, dateRange.to, blockedDates)
-  }, [dateRange, blockedDates])
+    if (!dateRange.from || !dateRange.to || !blockedNights.length) return false
+    return hasBlockedDateInRange(dateRange.from, dateRange.to, blockedNights)
+  }, [dateRange, blockedNights])
 
   // Auto-fill form from user profile when logged in
   useEffect(() => {
@@ -103,14 +103,14 @@ export default function ListingDetail({ params }) {
     }
   }
 
-  // Load blocked dates for calendar
+  // Load blocked NIGHTS for calendar (night-based logic)
   useEffect(() => {
     if (params?.id) {
-      loadBlockedDates()
+      loadBlockedNights()
     }
   }, [params?.id])
 
-  async function loadBlockedDates() {
+  async function loadBlockedNights() {
     setAvailabilityLoading(true)
     try {
       const res = await fetch(`/api/v2/listings/${params.id}/availability`, {
@@ -118,8 +118,10 @@ export default function ListingDetail({ params }) {
       })
       const data = await res.json()
       if (data.success) {
-        setBlockedDates(data.data.blockedDates || [])
-        console.log('[AVAILABILITY] Loaded blocked dates:', data.data.blockedDates?.length || 0)
+        // API returns blockedNights (dates where you cannot START a stay)
+        setBlockedNights(data.data.blockedNights || [])
+        console.log('[AVAILABILITY] Loaded blocked nights:', data.data.blockedNights?.length || 0, 
+          'Logic:', data.data.meta?.logic)
       }
     } catch (error) {
       console.error('Failed to load availability:', error)
@@ -130,15 +132,15 @@ export default function ListingDetail({ params }) {
   
   // Refresh availability data (called after successful booking)
   const refreshAvailability = useCallback(async () => {
-    await loadBlockedDates()
+    await loadBlockedNights()
     // Reset date selection
     setDateRange({ from: null, to: null })
     setPriceCalc(null)
   }, [params?.id])
 
-  // Check if date is blocked
-  function isDateBlocked(dateStr) {
-    return blockedDates.includes(dateStr)
+  // Check if a night is blocked
+  function isNightBlocked(dateStr) {
+    return blockedNights.includes(dateStr)
   }
 
   // Load currency preference and listen for changes
@@ -767,25 +769,13 @@ export default function ListingDetail({ params }) {
                         <BookingDateRangePicker
                           value={dateRange}
                           onChange={setDateRange}
-                          blockedDates={blockedDates}
+                          blockedDates={blockedNights}
                           isLoading={availabilityLoading}
                           language={language}
                           disabled={availabilityLoading}
                           data-testid='booking-date-range'
                         />
                       </div>
-                      
-                      {/* Date conflict warning */}
-                      {hasDateConflict && (
-                        <div className='bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2'>
-                          <AlertTriangle className='h-4 w-4 text-red-600 flex-shrink-0' />
-                          <p className='text-sm text-red-700'>
-                            {language === 'ru' 
-                              ? 'Выбранный диапазон содержит занятые даты. Пожалуйста, выберите другие даты.'
-                              : 'Selected range contains unavailable dates. Please choose different dates.'}
-                          </p>
-                        </div>
-                      )}
                       
                       {/* Price Breakdown Section with Service Fee */}
                       {priceCalc ? (
