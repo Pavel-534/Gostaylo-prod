@@ -239,7 +239,13 @@ export function GostayloCalendar({
   const [calendarData, setCalendarData] = React.useState(new Map())
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState(null)
-  const [currentMonth, setCurrentMonth] = React.useState(new Date())
+  // Initialize currentMonth from value.from if provided (for URL params)
+  const [currentMonth, setCurrentMonth] = React.useState(() => {
+    if (value?.from) {
+      return startOfMonth(value.from)
+    }
+    return new Date()
+  })
   const [open, setOpen] = React.useState(false)
   
   const isMobile = useIsMobile()

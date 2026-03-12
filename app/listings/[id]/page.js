@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -24,8 +24,10 @@ import { ReviewsSection } from '@/components/reviews-section'
 import { useAuth } from '@/contexts/auth-context'
 import { GostayloCalendar } from '@/components/gostaylo-calendar'
 
-export default function ListingDetail({ params }) {
+// Inner component that uses useSearchParams (requires Suspense wrapper)
+function ListingDetailContent({ params }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, openLoginModal } = useAuth()
   const [listing, setListing] = useState(null)
   const [reviews, setReviews] = useState([])
@@ -47,6 +49,44 @@ export default function ListingDetail({ params }) {
   const [guestPhone, setGuestPhone] = useState('')
   const [dateRange, setDateRange] = useState({ from: null, to: null })
   const [message, setMessage] = useState('')
+  const [datesInitialized, setDatesInitialized] = useState(false)
+  
+  // Initialize dates from URL params (once on mount) 
+  // Use window.location directly to avoid searchParams timing issues
+  useEffect(() => {
+    if (datesInitialized) return
+    
+    // Get params from URL directly
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const checkInParam = urlParams.get('checkIn')
+      const checkOutParam = urlParams.get('checkOut')
+      
+      if (checkInParam && checkOutParam) {
+        try {
+          const from = new Date(checkInParam + 'T00:00:00')
+          const to = new Date(checkOutParam + 'T00:00:00')
+          // Validate dates are in the future
+          const today = new Date()
+          today.setHours(0, 0, 0, 0)
+          if (from >= today && to > from) {
+            console.log('[Context Inheritance] Pre-populating dates from URL:', { checkInParam, checkOutParam, from: from.toISOString(), to: to.toISOString() })
+            setDateRange({ from, to })
+          } else {
+            console.log('[Context Inheritance] Dates invalid (past or wrong order):', { from, to, today })
+          }
+        } catch (e) {
+          console.error('[Context Inheritance] Invalid date params:', e)
+        }
+      } else {
+        console.log('[Context Inheritance] No date params in URL')
+      }
+    }
+    setDatesInitialized(true)
+  }, [datesInitialized])
+  
+  // Read search params from URL for display purposes
+  const initialGuests = searchParams.get('guests')
   
   // Derived values for API calls (backwards compatible)
   const checkIn = dateRange.from ? dateRange.from.toISOString().split('T')[0] : ''
@@ -879,5 +919,18 @@ export default function ListingDetail({ params }) {
         </div>
       </div>
     </div>
+  )
+}
+
+// Main export with Suspense wrapper (required for useSearchParams)
+export default function ListingDetail({ params }) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-teal-600" />
+      </div>
+    }>
+      <ListingDetailContent params={params} />
+    </Suspense>
   )
 }
