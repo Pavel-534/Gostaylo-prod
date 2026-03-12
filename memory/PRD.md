@@ -597,3 +597,37 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Tested:** Frontend 100% (5/5 features verified)
 - **Test Report:** `/app/test_reports/iteration_16.json`
 
+### 25. Search Engine Stage 3: Smart Home Page & Premium Mobile UI (2026-03-12)
+- **P0 Feature:** Home page now uses unified `/api/v2/search` API with live updates
+- **API Enhancements (`/api/v2/search/route.js`):**
+  - Category filter support (default: all categories)
+  - In-memory caching (60s TTL) for home page requests
+  - `stage: 'smart-v3'` identifier in meta
+  - Cache bypass when date filters applied
+- **Home Page Unification (`GostayloHomeContent.jsx`):**
+  - Switched from `fetchListings()` to `/api/v2/search?limit=12&featured=true`
+  - Live updates: listings refresh automatically when dates/location/guests change
+  - Debounced API calls (500ms) to prevent excessive requests
+  - Title changes: "Top Properties" → "Available Properties" when dates selected
+  - Subtitle shows dates in teal: "6 properties • 20 Mar — 25 Mar"
+- **Premium Mobile Search (Bottom Sheet / Drawer):**
+  - Replaced Popovers with Vertical Drawer on mobile
+  - Date Drawer: 12 months vertical scroll, sticky month headers
+  - Location Drawer: 2-column grid of Phuket districts
+  - Guests Drawer: 5-column number grid
+  - **Live Counter:** Button shows "Show X options" updating in real-time
+- **Monolithic Search Bar:**
+  - Desktop: `rounded-full` single element with internal dividers
+  - Mobile: Compact 3-button + search icon layout
+  - All icons in `teal-600`
+  - Badge shows nights count: "5н."
+- **Calendar Polish:**
+  - Today's date: **Bold only** (no rings/circles) - Airbnb style
+  - Range selection with teal colors
+  - Clean vertical scroll in mobile drawer
+- **Context Inheritance:** Dates passed to listing detail via URL params
+- **Files Modified:**
+  - `/app/app/api/v2/search/route.js` - Caching, category support
+  - `/app/components/GostayloHomeContent.jsx` - Complete rewrite with drawers
+- **Tested:** Screenshot verification (Desktop + Mobile + Live Counter)
+
