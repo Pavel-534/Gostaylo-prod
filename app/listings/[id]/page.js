@@ -761,25 +761,18 @@ export default function ListingDetail({ params }) {
                           data-testid='guest-phone-input'
                         />
                       </div>
-                      {/* Unified Date Range Picker */}
+                      {/* Unified Date Range Picker with Skeleton Loading */}
                       <div>
                         <Label>{language === 'ru' ? 'Даты проживания' : 'Stay dates'}</Label>
                         <BookingDateRangePicker
                           value={dateRange}
                           onChange={setDateRange}
                           blockedDates={blockedDates}
+                          isLoading={availabilityLoading}
                           language={language}
-                          placeholder={language === 'ru' ? 'Заезд — Выезд' : 'Check-in — Check-out'}
-                          onRefreshAvailability={refreshAvailability}
                           disabled={availabilityLoading}
                           data-testid='booking-date-range'
                         />
-                        {availabilityLoading && (
-                          <p className='text-xs text-slate-500 mt-1 flex items-center gap-1'>
-                            <Loader2 className='h-3 w-3 animate-spin' />
-                            {language === 'ru' ? 'Загрузка доступности...' : 'Loading availability...'}
-                          </p>
-                        )}
                       </div>
                       
                       {/* Date conflict warning */}

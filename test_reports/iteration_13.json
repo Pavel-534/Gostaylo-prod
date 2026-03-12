@@ -1,0 +1,110 @@
+{
+  "summary": "Server-First Calendar Architecture verification COMPLETE. Backend API returns 24 blocked dates with meta info. Frontend correctly loads blocked dates, shows skeleton loading, disables blocked dates in calendar, and enables submit only when valid dates selected.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Booking Modal",
+        "issues": ["Console warning: Missing `Description` or `aria-describedby` for DialogContent - accessibility improvement recommended"]
+      }
+    ]
+  },
+  
+  "test_report_links": [
+    "/app/test_reports/pytest/test_availability_api_v13.py",
+    "/app/test_reports/pytest/availability_api_v13_results.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "API correctly excludes check_out date from blocked dates (allowing back-to-back bookings)",
+    "getDatesInRange function correctly handles inclusive/exclusive end dates based on booking vs calendar_blocks",
+    "BookingDateRangePicker component properly shows skeleton loading while isLoading=true",
+    "hasBlockedDateInRange utility function properly checks for conflicts in date ranges"
+  ],
+  
+  "updated_files": [
+    "/app/test_reports/pytest/test_availability_api_v13.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% - 16/16 tests passed",
+    "frontend": "100% - All 8 verification points passed"
+  },
+  
+  "test_credentials": {
+    "test_listing": "lst-test-final-1772285152",
+    "expected_blocked_dates": 24,
+    "actual_blocked_dates": 24
+  },
+  
+  "seed_data_creation": "None - used existing test data",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Server-First availability API fully verified. API returns sorted ISO date array with meta info including sources (calendarBlocks, bookings counts). Calendar correctly shows 24 blocked dates as disabled. Submit button properly disabled until valid dates selected and no date conflicts.",
+  
+  "verified_features": {
+    "availability_api_returns_sorted_iso_dates": {
+      "status": "PASS",
+      "evidence": "API returns array like ['2026-04-01', '2026-04-02', ...] sorted alphabetically"
+    },
+    "api_includes_pending_confirmed_paid_bookings": {
+      "status": "PASS",
+      "evidence": "API queries with .in('status', ['PENDING', 'CONFIRMED', 'PAID']) - verified in code"
+    },
+    "api_returns_24_blocked_dates": {
+      "status": "PASS",
+      "evidence": "meta.totalBlocked = 24, array length = 24"
+    },
+    "api_includes_meta_with_sources": {
+      "status": "PASS",
+      "evidence": "meta.sources = {calendarBlocks: 0, bookings: 7}"
+    },
+    "skeleton_loading_while_fetching": {
+      "status": "PASS",
+      "evidence": "BookingDateRangePicker shows CalendarSkeleton component when isLoading=true"
+    },
+    "calendar_disables_blocked_dates": {
+      "status": "PASS",
+      "evidence": "Days 1-4, 15-16, 20-24 detected as disabled in April calendar via JS evaluation"
+    },
+    "range_selection_keeps_drawer_open": {
+      "status": "PASS",
+      "evidence": "Calendar/popover stays open after first date selection (data-state='open' visible)"
+    },
+    "submit_disabled_until_valid_dates": {
+      "status": "PASS",
+      "evidence": "Button shows 'Select dates' and is_disabled=true until both dates selected without conflicts"
+    },
+    "submit_enabled_after_valid_selection": {
+      "status": "PASS",
+      "evidence": "After selecting March 15-17, button shows 'Submit Request (฿73,500)' and is_disabled=false"
+    },
+    "real_time_availability_check": {
+      "status": "PASS",
+      "evidence": "Code at /app/app/listings/[id]/page.js lines 470-486 calls availability API before submitting"
+    },
+    "price_breakdown_displayed": {
+      "status": "PASS",
+      "evidence": "Price Breakdown shows: Rental (2 nights) ฿70,000, Service fee (5%) ฿3,500, Total ฿73,500"
+    }
+  },
+  
+  "console_output_highlights": [
+    "[AVAILABILITY] Loaded blocked dates: 24",
+    "Blocked days detected: [1, 2, 3, 4, 15, 16, 20, 21, 22, 23, 24]",
+    "Submit button enabled after valid dates: True",
+    "Price breakdown visible: True"
+  ]
+}
