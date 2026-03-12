@@ -522,6 +522,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - `/app/test_reports/iteration_13.json` - Server-First Calendar Architecture (16/16 passed)
 - `/app/test_reports/iteration_14.json` - Night-Based Booking Logic (14/14 backend, 8/8 frontend)
 - `/app/test_reports/iteration_15.json` - Visual Calendar Blocking (7/7 frontend - all verified)
+- `/app/test_reports/iteration_16.json` - Search Context Inheritance (5/5 frontend - all verified)
 
 ### 22. Visual Calendar Blocking - Night-Based UI (2026-03-12)
 - **P0 Fix:** Calendar now VISUALLY blocks unavailable dates (World-Class UX)
@@ -551,3 +552,37 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
   - `/app/components/booking-date-picker.jsx` - Full rewrite with custom DayPicker
 - **Tested:** Frontend 100% (7/7 features verified)
 - **Test Report:** `/app/test_reports/iteration_15.json`
+
+### 23. Search Engine Refactor - Stage 2: Context Inheritance (2026-03-12)
+- **P0 Feature:** Dates from search seamlessly carry to booking calendar
+- **URL Bridge Implementation:**
+  - `/app/app/listings/page.js` - `getListingUrl()` adds checkIn, checkOut, guests to listing card links
+  - Date picker on search results page syncs with URL params
+  - Filter badges display active search criteria (dates, guests)
+- **Context Inheritance:**
+  - `/app/app/listings/[id]/page.js` - reads URL params via `window.location.search`
+  - useEffect initializes `dateRange` state from URL params (with date validation)
+  - Only future dates are accepted (past dates trigger console warning but don't break)
+  - `datesInitialized` flag prevents re-initialization
+- **GostayloCalendar Auto-Initialize:**
+  - `/app/components/gostaylo-calendar.jsx` - `currentMonth` initializes from `value.from` if provided
+  - Calendar shows `SELECTED_RANGE` state immediately when dates passed from URL
+  - `displayText` shows formatted range: "20 Jun — 25 Jun (5 nights)"
+- **Instant Price Display:**
+  - Price breakdown appears immediately when calendar has dates
+  - useEffect triggers `onPriceCalculated` as soon as `calendarData` loads
+  - Shows: Rental cost, Service fee (%), Grand Total
+  - Submit button shows total: "Submit Request (฿25,750)"
+- **User Flow:**
+  1. User selects dates on Home page → `/listings?checkIn=2026-06-20&checkOut=2026-06-25&guests=2`
+  2. Listings page shows filtered results with active filter badges
+  3. User clicks listing → `/listings/[id]?checkIn=2026-06-20&checkOut=2026-06-25&guests=2`
+  4. Detail page calendar pre-populates with dates, price shows immediately
+  5. User fills name/email/phone → Submit with calculated total
+- **Files Modified:**
+  - `/app/app/listings/page.js` - getListingUrl(), filter display
+  - `/app/app/listings/[id]/page.js` - useSearchParams, dateRange initialization, Suspense wrapper
+  - `/app/components/gostaylo-calendar.jsx` - currentMonth from value.from
+- **Tested:** Frontend 100% (5/5 features verified)
+- **Test Report:** `/app/test_reports/iteration_16.json`
+
