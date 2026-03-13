@@ -1,9 +1,17 @@
 'use client'
 
+/**
+ * GostayloHomeContent - Home Page with Unified Calendar
+ * 
+ * REFACTORED: Removed react-day-picker, using SearchCalendar component
+ * 
+ * @updated 2026-03-13
+ */
+
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Search, MapPin, Home, Bike, Map, Anchor, Loader2, BedDouble, Bath, Users, CalendarIcon, X } from 'lucide-react'
+import { Search, MapPin, Home, Bike, Map, Anchor, Loader2, BedDouble, Bath, Users, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -14,8 +22,9 @@ import { fetchCategories, fetchExchangeRates, fetchDistricts } from '@/lib/clien
 import { detectLanguage, getCategoryName, getUIText, getListingText } from '@/lib/translations'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
-import { DayPicker } from 'react-day-picker'
-import { format, isSameDay, differenceInDays, addMonths } from 'date-fns'
+import { SearchCalendar } from '@/components/search-calendar'
+import { ListingGridSkeleton } from '@/components/listing-card-skeleton'
+import { format, isSameDay, differenceInDays } from 'date-fns'
 import { ru, enUS } from 'date-fns/locale'
 
 // Phuket districts
@@ -36,13 +45,7 @@ function useDebounce(value, delay) {
 
 // Media query hook
 function useMediaQuery(query) {
-  const getMatches = (query) => {
-    if (typeof window !== 'undefined') {
-      return window.matchMedia(query).matches
-    }
-    return false
-  }
-
+  const getMatches = (q) => typeof window !== 'undefined' ? window.matchMedia(q).matches : false
   const [matches, setMatches] = useState(() => getMatches(query))
   
   useEffect(() => {
@@ -78,13 +81,11 @@ export function GostayloHomeContent() {
   const [dateRange, setDateRange] = useState({ from: null, to: null })
   const [guests, setGuests] = useState('2')
   
-  // Drawer states
-  const [dateDrawerOpen, setDateDrawerOpen] = useState(false)
+  // Drawer states (mobile)
   const [locationDrawerOpen, setLocationDrawerOpen] = useState(false)
   const [guestsDrawerOpen, setGuestsDrawerOpen] = useState(false)
   
   // Temp states for drawers
-  const [tempDateRange, setTempDateRange] = useState({ from: null, to: null })
   const [tempDistrict, setTempDistrict] = useState('all')
   const [tempGuests, setTempGuests] = useState('2')
   
@@ -223,14 +224,7 @@ export function GostayloHomeContent() {
     }
   }, [])
 
-  // Drawer open effects
-  useEffect(() => {
-    if (dateDrawerOpen) {
-      setTempDateRange(dateRange)
-      fetchLiveCount(dateRange, selectedDistrict, guests)
-    }
-  }, [dateDrawerOpen, dateRange, selectedDistrict, guests, fetchLiveCount])
-
+  // Drawer effects for live count
   useEffect(() => {
     if (locationDrawerOpen) {
       setTempDistrict(selectedDistrict)
@@ -245,16 +239,9 @@ export function GostayloHomeContent() {
     }
   }, [guestsDrawerOpen, dateRange, selectedDistrict, guests, fetchLiveCount])
 
-  // Temp value change effects for live count
-  const debouncedTempDateRange = useDebounce(tempDateRange, 300)
+  // Debounced temp values for live count
   const debouncedTempDistrict = useDebounce(tempDistrict, 300)
   const debouncedTempGuests = useDebounce(tempGuests, 300)
-
-  useEffect(() => {
-    if (dateDrawerOpen && debouncedTempDateRange.from && debouncedTempDateRange.to) {
-      fetchLiveCount(debouncedTempDateRange, selectedDistrict, guests)
-    }
-  }, [dateDrawerOpen, debouncedTempDateRange, selectedDistrict, guests, fetchLiveCount])
 
   useEffect(() => {
     if (locationDrawerOpen) {
@@ -290,20 +277,9 @@ export function GostayloHomeContent() {
   }, [searchQuery, selectedDistrict, dateRange, guests, router])
 
   const nights = dateRange.from && dateRange.to ? differenceInDays(dateRange.to, dateRange.from) : 0
-  const tempNights = tempDateRange.from && tempDateRange.to ? differenceInDays(tempDateRange.to, tempDateRange.from) : 0
   const locale = language === 'ru' ? ru : enUS
 
-  // Calendar months for vertical scroll
-  const calendarMonths = useMemo(() => 
-    Array.from({ length: 12 }, (_, i) => addMonths(new Date(), i)), 
-  [])
-
   // Drawer confirm handlers
-  const confirmDateRange = useCallback(() => {
-    setDateRange(tempDateRange)
-    setDateDrawerOpen(false)
-  }, [tempDateRange])
-
   const confirmDistrict = useCallback(() => {
     setSelectedDistrict(tempDistrict)
     setLocationDrawerOpen(false)
@@ -314,11 +290,19 @@ export function GostayloHomeContent() {
     setGuestsDrawerOpen(false)
   }, [tempGuests])
 
-  // Button text for drawer
+  // Drawer button text
   const drawerButtonText = useMemo(() => {
     const count = liveCount !== null ? liveCount : ''
     return `${language === 'ru' ? 'Показать' : 'Show'} ${count} ${language === 'ru' ? 'вариантов' : 'options'}`
   }, [liveCount, language])
+
+  // Handle calendar date change with live count update
+  const handleDateChange = useCallback((newRange) => {
+    setDateRange(newRange)
+    if (newRange.from && newRange.to) {
+      fetchLiveCount(newRange, selectedDistrict, guests)
+    }
+  }, [selectedDistrict, guests, fetchLiveCount])
 
   return (
     <div className='min-h-screen bg-white'>
@@ -352,47 +336,17 @@ export function GostayloHomeContent() {
                   />
                 </div>
                 
-                {/* Date Picker */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button 
-                      className={`flex items-center gap-2 px-4 py-3 text-left flex-1 min-w-0 border-r border-slate-200 hover:bg-slate-50 transition-colors ${dateRange.from ? 'text-slate-900' : 'text-slate-500'}`}
-                      data-testid="search-date-picker"
-                    >
-                      <CalendarIcon className="h-4 w-4 text-teal-600 flex-shrink-0" />
-                      <span className="text-sm truncate">
-                        {dateRange.from ? (
-                          dateRange.to && !isSameDay(dateRange.from, dateRange.to)
-                            ? `${format(dateRange.from, 'd MMM', { locale })} — ${format(dateRange.to, 'd MMM', { locale })}`
-                            : `${format(dateRange.from, 'd MMM', { locale })} — ...`
-                        ) : (language === 'ru' ? 'Даты' : 'Dates')}
-                      </span>
-                      {nights > 0 && <Badge variant="secondary" className="ml-auto bg-teal-100 text-teal-700 text-xs">{nights} н.</Badge>}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-4" align="start">
-                    <DayPicker
-                      mode="range"
-                      selected={dateRange}
-                      onSelect={setDateRange}
-                      locale={locale}
-                      numberOfMonths={2}
-                      disabled={{ before: new Date() }}
-                      modifiersStyles={{ today: { fontWeight: 'bold' } }}
-                      classNames={{
-                        day_selected: 'bg-teal-600 text-white',
-                        day_range_middle: 'bg-teal-100 text-teal-900',
-                      }}
-                    />
-                    {dateRange.from && (
-                      <div className="flex justify-end mt-2">
-                        <Button variant="ghost" size="sm" onClick={() => setDateRange({ from: null, to: null })} className="text-slate-500">
-                          <X className="h-3 w-3 mr-1" />{language === 'ru' ? 'Сбросить' : 'Clear'}
-                        </Button>
-                      </div>
-                    )}
-                  </PopoverContent>
-                </Popover>
+                {/* Date Picker - Using SearchCalendar */}
+                <div className='border-r border-slate-200'>
+                  <SearchCalendar
+                    value={dateRange}
+                    onChange={handleDateChange}
+                    locale={language}
+                    placeholder={language === 'ru' ? 'Даты' : 'Dates'}
+                    liveCount={liveCount}
+                    countLoading={countLoading}
+                  />
+                </div>
                 
                 {/* Location */}
                 <Popover>
@@ -438,10 +392,19 @@ export function GostayloHomeContent() {
               
               {/* Mobile */}
               <div className='md:hidden flex items-center p-1'>
-                <button onClick={() => setDateDrawerOpen(true)} className='flex-1 flex items-center justify-center gap-2 py-3 border-r border-slate-200' data-testid="mobile-date-trigger">
-                  <CalendarIcon className='h-4 w-4 text-teal-600' />
-                  <span className='text-xs text-slate-700'>{dateRange.from && dateRange.to ? `${nights}н.` : (language === 'ru' ? 'Даты' : 'Dates')}</span>
-                </button>
+                {/* Mobile Date - Using SearchCalendar with built-in drawer */}
+                <div className='flex-1 border-r border-slate-200'>
+                  <SearchCalendar
+                    value={dateRange}
+                    onChange={handleDateChange}
+                    locale={language}
+                    placeholder={nights > 0 ? `${nights}н.` : (language === 'ru' ? 'Даты' : 'Dates')}
+                    liveCount={liveCount}
+                    countLoading={countLoading}
+                    className="justify-center py-3"
+                  />
+                </div>
+                
                 <button onClick={() => setLocationDrawerOpen(true)} className='flex-1 flex items-center justify-center gap-2 py-3 border-r border-slate-200' data-testid="mobile-location-trigger">
                   <MapPin className='h-4 w-4 text-teal-600' />
                   <span className='text-xs text-slate-700 truncate max-w-[60px]'>{selectedDistrict === 'all' ? (language === 'ru' ? 'Район' : 'Area') : selectedDistrict}</span>
@@ -459,51 +422,6 @@ export function GostayloHomeContent() {
         </div>
       </section>
       
-      {/* Mobile Date Drawer */}
-      <Drawer open={dateDrawerOpen} onOpenChange={setDateDrawerOpen}>
-        <DrawerContent className="h-[85vh] max-h-[85vh]">
-          <DrawerHeader className="border-b pb-4">
-            <div className="flex items-center justify-between">
-              <DrawerTitle className="text-lg">{language === 'ru' ? 'Выберите даты' : 'Select dates'}</DrawerTitle>
-              <DrawerClose asChild><Button variant="ghost" size="icon"><X className="h-5 w-5" /></Button></DrawerClose>
-            </div>
-            {tempNights > 0 && (
-              <p className="text-sm text-teal-600 font-medium mt-1">
-                {format(tempDateRange.from, 'd MMM', { locale })} — {format(tempDateRange.to, 'd MMM', { locale })} ({tempNights} {language === 'ru' ? 'ночей' : 'nights'})
-              </p>
-            )}
-          </DrawerHeader>
-          <div className="flex-1 overflow-y-auto px-4 pb-4">
-            {calendarMonths.map((month, idx) => (
-              <div key={idx} className="mb-6">
-                <h3 className="text-center font-semibold text-slate-900 mb-3 sticky top-0 bg-white py-2">{format(month, 'LLLL yyyy', { locale })}</h3>
-                <DayPicker
-                  mode="range"
-                  month={month}
-                  selected={tempDateRange}
-                  onSelect={setTempDateRange}
-                  locale={locale}
-                  disabled={{ before: new Date() }}
-                  hideNavigation
-                  modifiersStyles={{ today: { fontWeight: 'bold' } }}
-                  classNames={{ day_selected: 'bg-teal-600 text-white', day_range_middle: 'bg-teal-100 text-teal-900' }}
-                  className="mx-auto"
-                />
-              </div>
-            ))}
-          </div>
-          <DrawerFooter className="border-t pt-4">
-            <div className="flex gap-3">
-              <Button variant="outline" className="flex-1" onClick={() => setTempDateRange({ from: null, to: null })}>{language === 'ru' ? 'Сбросить' : 'Clear'}</Button>
-              <Button className="flex-1 bg-teal-600 hover:bg-teal-700" onClick={confirmDateRange} disabled={!tempDateRange.from || !tempDateRange.to} data-testid="drawer-confirm-dates">
-                {countLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                {drawerButtonText}
-              </Button>
-            </div>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-
       {/* Mobile Location Drawer */}
       <Drawer open={locationDrawerOpen} onOpenChange={setLocationDrawerOpen}>
         <DrawerContent className="h-[70vh] max-h-[70vh]">
@@ -526,7 +444,7 @@ export function GostayloHomeContent() {
             </div>
           </div>
           <DrawerFooter className="border-t pt-4">
-            <Button className="w-full bg-teal-600 hover:bg-teal-700" onClick={confirmDistrict} data-testid="drawer-confirm-location">
+            <Button className="w-full h-11 bg-teal-600 hover:bg-teal-700" onClick={confirmDistrict} data-testid="drawer-confirm-location">
               {countLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               {drawerButtonText}
             </Button>
@@ -551,7 +469,7 @@ export function GostayloHomeContent() {
             </div>
           </div>
           <DrawerFooter className="border-t pt-4">
-            <Button className="w-full bg-teal-600 hover:bg-teal-700" onClick={confirmGuests} data-testid="drawer-confirm-guests">
+            <Button className="w-full h-11 bg-teal-600 hover:bg-teal-700" onClick={confirmGuests} data-testid="drawer-confirm-guests">
               {countLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               {drawerButtonText}
             </Button>
@@ -607,8 +525,9 @@ export function GostayloHomeContent() {
             {listingsLoading && <Loader2 className='h-5 w-5 animate-spin text-teal-600' />}
           </div>
 
+          {/* Skeleton Loading */}
           {loading ? (
-            <div className='text-center py-12'><Loader2 className='h-10 w-10 animate-spin text-teal-600 mx-auto' /></div>
+            <ListingGridSkeleton count={8} />
           ) : listings.length === 0 ? (
             <div className='text-center py-12'><p className='text-slate-600'>{language === 'ru' ? 'Ничего не найдено' : 'No results'}</p></div>
           ) : (

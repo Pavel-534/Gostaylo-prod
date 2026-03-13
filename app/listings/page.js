@@ -21,11 +21,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Search, ArrowLeft, MapPin, Loader2, CalendarIcon, Users, X, AlertCircle, RefreshCw } from 'lucide-react'
+import { Search, ArrowLeft, MapPin, Loader2, Users, X, AlertCircle, RefreshCw, CalendarIcon } from 'lucide-react'
 import { fetchExchangeRates } from '@/lib/client-data'
 import { GostayloListingCard } from '@/components/gostaylo-listing-card'
-import { DayPicker } from 'react-day-picker'
+import { ListingGridSkeleton } from '@/components/listing-card-skeleton'
+import { SearchCalendar } from '@/components/search-calendar'
 import { format, parseISO, isSameDay, differenceInDays } from 'date-fns'
 import { ru, enUS } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -444,47 +444,14 @@ function ListingsContent() {
               />
             </div>
 
-            {/* Date Picker */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left font-normal h-9" data-testid="listings-date-picker">
-                  <CalendarIcon className="mr-2 h-4 w-4 text-teal-600" />
-                  {dateRange.from ? (
-                    dateRange.to && !isSameDay(dateRange.from, dateRange.to) ? (
-                      <span className="text-sm truncate">
-                        {format(dateRange.from, 'd MMM', { locale })} — {format(dateRange.to, 'd MMM', { locale })}
-                      </span>
-                    ) : (
-                      <span className="text-sm">{format(dateRange.from, 'd MMM', { locale })} — ...</span>
-                    )
-                  ) : (
-                    <span className="text-muted-foreground text-sm">{language === 'ru' ? 'Даты' : 'Dates'}</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-4" align="start">
-                <DayPicker
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  locale={locale}
-                  numberOfMonths={2}
-                  disabled={{ before: new Date() }}
-                  modifiersStyles={{ today: { fontWeight: 'bold' } }}
-                  classNames={{
-                    day_selected: 'bg-teal-600 text-white',
-                    day_range_middle: 'bg-teal-100 text-teal-900',
-                  }}
-                />
-                {dateRange.from && (
-                  <div className="flex justify-end mt-2">
-                    <Button variant="ghost" size="sm" onClick={clearDates} className="text-slate-500">
-                      <X className="h-3 w-3 mr-1" />{language === 'ru' ? 'Сбросить' : 'Clear'}
-                    </Button>
-                  </div>
-                )}
-              </PopoverContent>
-            </Popover>
+            {/* Date Picker - Using SearchCalendar */}
+            <SearchCalendar
+              value={dateRange}
+              onChange={setDateRange}
+              locale={language}
+              placeholder={language === 'ru' ? 'Даты' : 'Dates'}
+              className="h-9 border rounded-md justify-start px-3"
+            />
 
             {/* District */}
             <Select value={selectedDistrict} onValueChange={setSelectedDistrict}>
@@ -533,12 +500,9 @@ function ListingsContent() {
           </div>
         )}
 
-        {/* Loading State */}
+        {/* Skeleton Loading State */}
         {loading && !error ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-teal-600 mb-4" />
-            <p className="text-slate-500">{language === 'ru' ? 'Поиск...' : 'Searching...'}</p>
-          </div>
+          <ListingGridSkeleton count={8} />
         ) : !error && listings.length === 0 ? (
           /* Empty State */
           <div className="text-center py-20">

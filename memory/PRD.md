@@ -705,3 +705,39 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
   - `/app/app/listings/page.js` - Complete optimization rewrite
 - **Tested:** Screenshot verification (debounce, transitions, URL sync)
 
+### 29. Calendar Unification, Skeleton Loading & Code Cleanup (2026-03-13)
+- **P0 Critical Fix:** Replaced legacy react-day-picker with unified SearchCalendar
+- **SearchCalendar Component (`/app/components/search-calendar.jsx`):**
+  - Desktop: Popover with 2-month view, navigation arrows
+  - Mobile: Vertical scroll Drawer with 12 months
+  - Clean month headers (no duplicate titles)
+  - Today's date: Bold only, no rings
+  - Teal-600 selection colors
+  - Live counter on confirm button
+- **Skeleton Loading (`/app/components/listing-card-skeleton.jsx`):**
+  - `ListingCardSkeleton` - Matches GostayloListingCard layout exactly
+  - `ListingGridSkeleton` - 8-card grid for initial load
+  - Pulsing gray placeholders with animation
+  - Image block + title + specs + price + button
+- **Booking Logic Utility (`/app/lib/utils/booking-logic.js`):**
+  - `calculateNights()` - DRY night calculation
+  - `calculateTotalPrice()` - With commission, service fee
+  - `formatDateRange()` - Localized date formatting
+  - `formatBookingPrice()` - Currency conversion
+  - `getNightsLabel()` - Russian pluralization
+  - `buildBookingUrl()` - Context inheritance URL builder
+  - `validateDateRange()` - Input validation
+  - `calculatePriceBreakdown()` - Full breakdown object
+- **Legacy Code Purged:**
+  - Removed DayPicker from `GostayloHomeContent.jsx` 
+  - Removed DayPicker from `/app/listings/page.js`
+  - Kept DayPicker only in admin `seasonal-price-manager.js`
+- **Files Created:**
+  - `/app/components/search-calendar.jsx`
+  - `/app/components/listing-card-skeleton.jsx`
+  - `/app/lib/utils/booking-logic.js`
+- **Files Modified:**
+  - `/app/components/GostayloHomeContent.jsx`
+  - `/app/app/listings/page.js`
+- **Tested:** Screenshot verification (Desktop calendar, Mobile home, Skeleton loading)
+
