@@ -14,6 +14,19 @@ export const dynamic = 'force-dynamic'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+/**
+ * Get seasonal price for a specific date
+ */
+function getSeasonalPriceForDate(seasonalPrices, listingId, date) {
+  const dateObj = parseISO(date)
+  const seasonal = seasonalPrices.find(sp => 
+    sp.listing_id === listingId &&
+    dateObj >= parseISO(sp.start_date) &&
+    dateObj <= parseISO(sp.end_date)
+  )
+  return seasonal?.price_daily || null
+}
+
 function generateMockStats() {
   const today = new Date()
   
@@ -106,6 +119,26 @@ export async function GET(request) {
       
       const allBookings = Array.isArray(bookings) ? bookings : []
       
+      // Fetch seasonal prices for potential revenue calculation
+      let seasonalPrices = []
+      try {
+        const listingIds = listings.map(l => l.id)
+        const seasonalRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/seasonal_prices?listing_id=in.(${listingIds.join(',')})&end_date=gte.${todayStr}&select=*`,
+          {
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
+          }
+        )
+        seasonalPrices = await seasonalRes.json()
+        if (!Array.isArray(seasonalPrices)) seasonalPrices = []
+        console.log(`[STATS] Found ${seasonalPrices.length} seasonal prices`)
+      } catch (e) {
+        console.log('[STATS] No seasonal prices:', e.message)
+      }
+      
       // Calculate stats
       const confirmedStatuses = ['CONFIRMED', 'PAID', 'COMPLETED']
       const pendingStatuses = ['PENDING']
@@ -189,11 +222,43 @@ export async function GET(request) {
         trend.push({ day: dayStr, revenue: dayRevenue })
       }
       
+      // Calculate potential revenue (next 30 days, available dates only)
+      let potentialRevenue = 0
+      const next30Days = format(addDays(today, 30), 'yyyy-MM-dd')
+      
+      for (const listing of listings) {
+        const basePrice = parseFloat(listing.base_price_thb) || 0
+        
+        // Generate all dates for next 30 days
+        for (let i = 0; i < 30; i++) {
+          const date = format(addDays(today, i), 'yyyy-MM-dd')
+          
+          // Check if date is booked
+          const isBooked = confirmedBookings.some(b => {
+            const checkIn = parseISO(b.check_in)
+            const checkOut = parseISO(b.check_out)
+            const currentDate = parseISO(date)
+            return b.listing_id === listing.id && 
+                   currentDate >= checkIn && 
+                   currentDate < checkOut
+          })
+          
+          // If available, add price to potential revenue
+          if (!isBooked) {
+            const seasonalPrice = getSeasonalPriceForDate(seasonalPrices, listing.id, date)
+            const dailyPrice = seasonalPrice || basePrice
+            // Assume 85% commission (partner earnings)
+            potentialRevenue += dailyPrice * 0.85
+          }
+        }
+      }
+      
       const stats = {
         revenue: {
           confirmed: Math.round(confirmedRevenue),
           pending: Math.round(pendingRevenue),
           total: Math.round(confirmedRevenue + pendingRevenue),
+          potential: Math.round(potentialRevenue),
           trend
         },
         occupancy: {

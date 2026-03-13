@@ -25,7 +25,12 @@ function getSeasonalPrice(seasonalPrices, listingId, date) {
     dateObj >= parseISO(sp.start_date) &&
     dateObj <= parseISO(sp.end_date)
   )
-  return seasonal?.price_daily || null
+  return seasonal ? {
+    price: seasonal.price_daily,
+    minStay: seasonal.min_stay || 1,
+    seasonType: seasonal.season_type,
+    label: seasonal.label
+  } : null
 }
 
 /**
@@ -99,10 +104,13 @@ function processCalendarData(listings, bookings, blocks, seasonalPrices, startDa
         }
       } else {
         // Available - get seasonal price if exists
-        const seasonalPrice = getSeasonalPrice(seasonalPrices, listing.id, date)
+        const seasonalData = getSeasonalPrice(seasonalPrices, listing.id, date)
         availability[date] = {
           status: 'AVAILABLE',
-          priceThb: seasonalPrice || listing.base_price_thb
+          priceThb: seasonalData?.price || listing.base_price_thb,
+          minStay: seasonalData?.minStay || 1,
+          seasonType: seasonalData?.seasonType,
+          label: seasonalData?.label
         }
       }
     })
@@ -201,11 +209,11 @@ export async function GET(request) {
         )
         const bookings = await bookingsRes.json()
         
-        // Fetch blocks (availability_blocks table)
+        // Fetch blocks (calendar_blocks table)
         let blocks = []
         try {
           const blocksRes = await fetch(
-            `${SUPABASE_URL}/rest/v1/availability_blocks?listing_id=in.(${listingIds.join(',')})&end_date=gte.${startDate}&start_date=lte.${endDate}&select=id,listing_id,start_date,end_date,reason,type`,
+            `${SUPABASE_URL}/rest/v1/calendar_blocks?listing_id=in.(${listingIds.join(',')})&end_date=gte.${startDate}&start_date=lte.${endDate}&select=id,listing_id,start_date,end_date,reason,type`,
             {
               headers: {
                 'apikey': SUPABASE_KEY,
@@ -216,7 +224,7 @@ export async function GET(request) {
           blocks = await blocksRes.json()
           if (!Array.isArray(blocks)) blocks = []
         } catch (e) {
-          console.log('[CALENDAR] No availability_blocks table or error:', e.message)
+          console.log('[CALENDAR] No calendar_blocks table or error:', e.message)
         }
         
         // Fetch seasonal prices

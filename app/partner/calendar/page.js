@@ -19,7 +19,7 @@ import { ru } from 'date-fns/locale'
 import { 
   Calendar, ChevronLeft, ChevronRight, Loader2, AlertCircle,
   Plus, Lock, User, Phone, Mail, X, Check, Home, Anchor, Bike, Car,
-  CalendarDays, ArrowRight, RefreshCw, ZoomIn, ZoomOut
+  CalendarDays, ArrowRight, RefreshCw, ZoomIn, ZoomOut, DollarSign, Tag
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -44,6 +44,7 @@ import {
 } from '@/components/ui/select'
 import { useAuth } from '@/contexts/auth-context'
 import { usePartnerCalendar, useCreateBlock, useCreateManualBooking } from '@/lib/hooks/use-partner-calendar'
+import { useUpsertSeasonalPrice } from '@/lib/hooks/use-seasonal-prices'
 import { formatPrice } from '@/lib/currency'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
@@ -110,9 +111,14 @@ export default function MasterCalendar() {
   // Modal state
   const [actionModal, setActionModal] = useState({
     open: false,
-    type: null, // 'block' | 'booking'
+    type: null, // 'block' | 'booking' | 'select'
     listing: null,
     date: null
+  })
+  
+  // Seasonal Price Manager modal state
+  const [priceModal, setPriceModal] = useState({
+    open: false
   })
   
   // Form state
@@ -129,6 +135,17 @@ export default function MasterCalendar() {
     guestEmail: '',
     priceThb: '',
     notes: ''
+  })
+  
+  // Seasonal Price form state
+  const [priceForm, setPriceForm] = useState({
+    listingId: 'all',
+    startDate: format(new Date(), 'yyyy-MM-dd'),
+    endDate: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
+    priceDaily: '',
+    seasonType: 'BASE',
+    label: '',
+    minStay: 1
   })
   
   // Calculate end date
@@ -152,6 +169,7 @@ export default function MasterCalendar() {
   
   const createBlockMutation = useCreateBlock()
   const createBookingMutation = useCreateManualBooking()
+  const upsertSeasonalPriceMutation = useUpsertSeasonalPrice()
   
   // Navigation handlers
   const goToToday = useCallback(() => {
@@ -227,6 +245,53 @@ export default function MasterCalendar() {
     })
     
     setActionModal({ open: false, type: null, listing: null, date: null })
+  }
+  
+  // Seasonal Price submit handler
+  const handlePriceSubmit = async () => {
+    if (!priceForm.priceDaily || !priceForm.startDate || !priceForm.endDate) {
+      return
+    }
+    
+    // If "all" listings, apply to each listing
+    if (priceForm.listingId === 'all') {
+      const listingsToUpdate = calendarData?.listings || []
+      for (const item of listingsToUpdate) {
+        await upsertSeasonalPriceMutation.mutateAsync({
+          listingId: item.listing.id,
+          startDate: priceForm.startDate,
+          endDate: priceForm.endDate,
+          priceDaily: parseFloat(priceForm.priceDaily),
+          seasonType: priceForm.seasonType,
+          label: priceForm.label || null,
+          minStay: parseInt(priceForm.minStay) || 1,
+          partnerId: partnerId
+        })
+      }
+    } else {
+      await upsertSeasonalPriceMutation.mutateAsync({
+        listingId: priceForm.listingId,
+        startDate: priceForm.startDate,
+        endDate: priceForm.endDate,
+        priceDaily: parseFloat(priceForm.priceDaily),
+        seasonType: priceForm.seasonType,
+        label: priceForm.label || null,
+        minStay: parseInt(priceForm.minStay) || 1,
+        partnerId: partnerId
+      })
+    }
+    
+    setPriceModal({ open: false })
+    // Reset form
+    setPriceForm({
+      listingId: 'all',
+      startDate: format(new Date(), 'yyyy-MM-dd'),
+      endDate: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
+      priceDaily: '',
+      seasonType: 'BASE',
+      label: '',
+      minStay: 1
+    })
   }
   
   // Loading state
@@ -323,6 +388,16 @@ export default function MasterCalendar() {
           <Button 
             variant="outline" 
             size="sm"
+            onClick={() => setPriceModal({ open: true })}
+            className="bg-teal-600 text-white hover:bg-teal-700 border-0"
+          >
+            <DollarSign className="h-4 w-4 mr-1" />
+            Установить цены
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            size="sm"
             onClick={goToToday}
             className="text-teal-600 border-teal-200 hover:bg-teal-50"
           >
@@ -374,7 +449,7 @@ export default function MasterCalendar() {
       </div>
       
       {/* Legend */}
-      <div className="flex items-center gap-4 mb-4 text-xs">
+      <div className="flex items-center gap-4 mb-4 text-xs flex-wrap">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded bg-teal-500"></div>
           <span className="text-slate-600">Подтверждено</span>
@@ -390,6 +465,19 @@ export default function MasterCalendar() {
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded border-2 border-dashed border-teal-400"></div>
           <span className="text-slate-600">Check-in/out</span>
+        </div>
+        <div className="h-4 w-px bg-slate-300"></div>
+        <div className="flex items-center gap-1.5">
+          <span className="font-bold text-teal-600">฿</span>
+          <span className="text-slate-600">Высокий сезон</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-slate-400">฿</span>
+          <span className="text-slate-600">Низкий сезон</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-slate-500">฿</span>
+          <span className="text-slate-600">Базовая цена</span>
         </div>
       </div>
       
@@ -517,6 +605,33 @@ export default function MasterCalendar() {
                             <Lock className="h-3 w-3 text-slate-500" />
                           )
                         }
+                      } else if (cellData.status === 'AVAILABLE') {
+                        // PHASE 4.1: Show price for available dates
+                        const price = cellData.priceThb || item.listing.basePriceThb
+                        const basePrice = item.listing.basePriceThb
+                        const isHighSeason = price > basePrice
+                        const isLowSeason = price < basePrice
+                        const minStay = cellData.minStay || 1
+                        
+                        // Price styling based on season
+                        const priceColor = isHighSeason 
+                          ? 'text-teal-600 font-bold' 
+                          : isLowSeason 
+                          ? 'text-slate-400' 
+                          : 'text-slate-500'
+                        
+                        content = (
+                          <div className="flex flex-col items-center justify-center gap-0.5">
+                            <span className={cn("text-[10px] leading-tight", priceColor)}>
+                              ฿{Math.round(price)}
+                            </span>
+                            {minStay > 1 && viewMode !== 'compact' && (
+                              <span className="text-[8px] text-slate-400 leading-none">
+                                min {minStay}
+                              </span>
+                            )}
+                          </div>
+                        )
                       }
                       
                       return (
@@ -796,6 +911,157 @@ export default function MasterCalendar() {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Seasonal Price Manager Modal */}
+      <Dialog 
+        open={priceModal.open} 
+        onOpenChange={(open) => setPriceModal({ open })}
+      >
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-teal-600" />
+              Управление сезонными ценами
+            </DialogTitle>
+            <DialogDescription>
+              Установите цены для выбранного периода. Система автоматически разрешит конфликты дат.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            {/* Listing Selection */}
+            <div>
+              <Label>Объект</Label>
+              <Select 
+                value={priceForm.listingId} 
+                onValueChange={(v) => setPriceForm(prev => ({ ...prev, listingId: v }))}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все объекты</SelectItem>
+                  {listings.map((item) => (
+                    <SelectItem key={item.listing.id} value={item.listing.id}>
+                      {item.listing.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Date Range */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Начало периода</Label>
+                <Input 
+                  type="date" 
+                  value={priceForm.startDate}
+                  onChange={(e) => setPriceForm(prev => ({ ...prev, startDate: e.target.value }))}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Конец периода</Label>
+                <Input 
+                  type="date" 
+                  value={priceForm.endDate}
+                  min={priceForm.startDate}
+                  onChange={(e) => setPriceForm(prev => ({ ...prev, endDate: e.target.value }))}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            
+            {/* Price and Season Type */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Цена (THB/день) *</Label>
+                <Input 
+                  type="number"
+                  value={priceForm.priceDaily}
+                  onChange={(e) => setPriceForm(prev => ({ ...prev, priceDaily: e.target.value }))}
+                  placeholder="3500"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label>Тип сезона</Label>
+                <Select 
+                  value={priceForm.seasonType} 
+                  onValueChange={(v) => setPriceForm(prev => ({ ...prev, seasonType: v }))}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BASE">Базовый</SelectItem>
+                    <SelectItem value="LOW">Низкий сезон</SelectItem>
+                    <SelectItem value="HIGH">Высокий сезон</SelectItem>
+                    <SelectItem value="PEAK">Пиковый сезон</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {/* Min Stay */}
+            <div>
+              <Label>Минимум ночей</Label>
+              <Input 
+                type="number"
+                min="1"
+                value={priceForm.minStay}
+                onChange={(e) => setPriceForm(prev => ({ ...prev, minStay: e.target.value }))}
+                placeholder="1"
+                className="mt-1"
+              />
+              <p className="text-xs text-slate-500 mt-1">
+                Гости должны забронировать минимум указанное количество ночей
+              </p>
+            </div>
+            
+            {/* Label */}
+            <div>
+              <Label>Название (необязательно)</Label>
+              <Input 
+                value={priceForm.label}
+                onChange={(e) => setPriceForm(prev => ({ ...prev, label: e.target.value }))}
+                placeholder="Новый год, Рождество..."
+                className="mt-1"
+              />
+            </div>
+            
+            {/* Info Box */}
+            <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 text-sm text-teal-900">
+              <p className="font-medium mb-1">🔧 Автоматическое разрешение конфликтов</p>
+              <p className="text-xs text-teal-700">
+                Если выбранный период пересекается с существующими ценами, система автоматически разделит или обрежет старые диапазоны. Перекрытий не будет.
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setPriceModal({ open: false })}
+            >
+              Отмена
+            </Button>
+            <Button 
+              onClick={handlePriceSubmit}
+              disabled={upsertSeasonalPriceMutation.isPending || !priceForm.priceDaily}
+              className="bg-teal-600 hover:bg-teal-700"
+            >
+              {upsertSeasonalPriceMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Check className="h-4 w-4 mr-2" />
+              )}
+              Применить
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
