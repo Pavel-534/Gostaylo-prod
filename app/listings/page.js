@@ -18,8 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Search, ArrowLeft, MapPin, Loader2, CalendarIcon, Users, X } from 'lucide-react'
-import { formatPrice } from '@/lib/currency'
 import { fetchExchangeRates } from '@/lib/client-data'
+import { GostayloListingCard } from '@/components/gostaylo-listing-card'
 import { DayPicker } from 'react-day-picker'
 import { format, parseISO, isSameDay, differenceInDays } from 'date-fns'
 import { ru, enUS } from 'date-fns/locale'
@@ -356,24 +356,15 @@ function ListingsContent() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {/* 
-              =========================================================
-              PLACEHOLDER: GostayloListingCard will be inserted here
-              Each listing comes from /api/v2/search with:
-              - id, title, description, district, basePriceThb
-              - images, coverImage
-              - rating, reviewsCount
-              - isFeatured
-              - pricing (if dates selected): { totalPrice, nights, perNight }
-              - metadata: { bedrooms, bathrooms, area, max_guests }
-              =========================================================
-            */}
             {listings.map(listing => (
               <GostayloListingCard 
                 key={listing.id} 
                 listing={listing}
-                href={getListingUrl(listing)}
-                nights={nights}
+                initialDates={{
+                  checkIn: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : null,
+                  checkOut: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : null
+                }}
+                guests={guests}
                 language={language}
                 currency={currency}
                 exchangeRates={exchangeRates}
@@ -383,56 +374,6 @@ function ListingsContent() {
         )}
       </div>
     </div>
-  )
-}
-
-/**
- * Placeholder component - Will be replaced with full implementation
- * Temporary inline card to prevent build errors
- */
-function GostayloListingCard({ listing, href, nights, language, currency, exchangeRates }) {
-  return (
-    <Link href={href} data-testid={`listing-card-${listing.id}`}>
-      <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow border hover:border-teal-400">
-        {/* Image */}
-        <div className="relative aspect-[4/3]">
-          <img
-            src={listing.coverImage || listing.images?.[0] || '/placeholder.jpg'}
-            alt={listing.title}
-            className="w-full h-full object-cover"
-          />
-          {listing.isFeatured && (
-            <span className="absolute top-2 left-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs px-2 py-1 rounded-full font-medium">
-              ⭐ TOP
-            </span>
-          )}
-          {listing.rating > 0 && (
-            <span className="absolute top-2 right-2 bg-teal-600 text-white text-xs px-2 py-1 rounded-full font-medium">
-              ⭐ {listing.rating.toFixed(1)}
-            </span>
-          )}
-        </div>
-        
-        {/* Content */}
-        <div className="p-3">
-          <h3 className="font-semibold text-slate-900 line-clamp-1 text-sm">{listing.title}</h3>
-          <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
-            <MapPin className="h-3 w-3" />
-            <span>{listing.district || 'Phuket'}</span>
-          </div>
-          
-          {/* Price */}
-          <div className="mt-2 flex items-baseline justify-between">
-            <span className="text-lg font-bold text-teal-600">
-              {formatPrice(listing.pricing?.totalPrice || listing.basePriceThb, currency, exchangeRates)}
-            </span>
-            <span className="text-xs text-slate-400">
-              /{listing.pricing ? `${nights}н.` : (language === 'ru' ? 'ночь' : 'night')}
-            </span>
-          </div>
-        </div>
-      </div>
-    </Link>
   )
 }
 

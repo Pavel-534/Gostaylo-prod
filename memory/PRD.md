@@ -631,3 +631,38 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
   - `/app/components/GostayloHomeContent.jsx` - Complete rewrite with drawers
 - **Tested:** Screenshot verification (Desktop + Mobile + Live Counter)
 
+### 26. Listings Page Sterilization (2026-03-12)
+- **Cleanup:** Removed all legacy frontend filtering code
+- **Deleted:**
+  - `sortedListings` local sorting function
+  - `sortBy`, `viewMode` states
+  - `categories`, `categoryIcons` frontend handling
+  - Inline Card JSX (~70 lines)
+- **Preserved:** API fetch, URL sync, Context Inheritance
+- **Result:** 478 → 309 lines (-35%)
+- **Report:** `/app/docs/LISTINGS_STERILIZATION_REPORT.md`
+
+### 27. GostayloListingCard Component (2026-03-13)
+- **P0 Feature:** Premium Airbnb-style listing card component
+- **Component:** `/app/components/gostaylo-listing-card.jsx`
+- **UI Elements:**
+  - Image carousel with navigation arrows (show on hover) and dot indicators
+  - Favorite heart button (toggle with rose fill animation)
+  - TOP badge (amber-orange gradient) for featured listings
+  - Title + Property Type + District
+  - Specs row: Bedrooms | Bathrooms | Max Guests | Area
+  - Star rating with review count
+  - Location with MapPin icon
+- **Live Pricing Logic:**
+  - When dates provided: Shows `Total Price / X nights`
+  - Shows per-night breakdown below
+  - `Available` badge when dates filtered
+  - Without dates: Shows `Price / night`
+- **Context Inheritance:**
+  - Builds detail URL with checkIn, checkOut, guests params
+  - Click navigates with full search context preserved
+- **Variants:**
+  - `GostayloListingCard` - Full card for grid views
+  - `GostayloListingCardCompact` - Horizontal layout for lists
+- **Tested:** Screenshot verification (carousel, favorite, hover states)
+
