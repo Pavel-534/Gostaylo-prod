@@ -159,3 +159,10 @@ code {
     }
   }
 }
+
+/* Premium Shimmer Effect for Skeletons */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
