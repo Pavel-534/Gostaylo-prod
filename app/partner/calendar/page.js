@@ -80,6 +80,28 @@ export default function MasterCalendar() {
   const scrollContainerRef = useRef(null)
   const todayRef = useRef(null)
   
+  // Get partner ID (from auth or localStorage dev mode)
+  const [partnerId, setPartnerId] = useState(null)
+  
+  useEffect(() => {
+    // First try auth user
+    if (user?.id) {
+      setPartnerId(user.id)
+      return
+    }
+    
+    // Fall back to localStorage (dev mode)
+    const stored = localStorage.getItem('gostaylo_user')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        if (parsed?.id) {
+          setPartnerId(parsed.id)
+        }
+      } catch (e) {}
+    }
+  }, [user])
+  
   // View state
   const [viewMode, setViewMode] = useState('normal') // compact, normal, wide
   const [daysToShow, setDaysToShow] = useState(30)
@@ -122,10 +144,10 @@ export default function MasterCalendar() {
     isError, 
     error,
     refetch 
-  } = usePartnerCalendar(user?.id, {
+  } = usePartnerCalendar(partnerId, {
     startDate,
     endDate,
-    enabled: !!user?.id
+    enabled: !!partnerId
   })
   
   const createBlockMutation = useCreateBlock()
@@ -183,7 +205,7 @@ export default function MasterCalendar() {
       endDate: blockForm.endDate || actionModal.date,
       reason: blockForm.reason,
       type: blockForm.type,
-      partnerId: user?.id
+      partnerId: partnerId
     })
     
     setActionModal({ open: false, type: null, listing: null, date: null })
@@ -201,14 +223,14 @@ export default function MasterCalendar() {
       guestEmail: bookingForm.guestEmail,
       priceThb: bookingForm.priceThb ? parseFloat(bookingForm.priceThb) : undefined,
       notes: bookingForm.notes,
-      partnerId: user?.id
+      partnerId: partnerId
     })
     
     setActionModal({ open: false, type: null, listing: null, date: null })
   }
   
   // Loading state
-  if (authLoading || isLoading) {
+  if (authLoading || (isLoading && partnerId)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
@@ -219,8 +241,8 @@ export default function MasterCalendar() {
     )
   }
   
-  // Not authenticated
-  if (!isAuthenticated || !user?.id) {
+  // Not authenticated - but allow if partnerId is set (dev mode)
+  if (!partnerId) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
         <Calendar className="h-12 w-12 text-slate-300 mb-4" />
@@ -228,9 +250,20 @@ export default function MasterCalendar() {
         <p className="text-slate-500 text-center mb-6">
           Войдите в систему для просмотра календаря
         </p>
-        <Button asChild className="bg-teal-600 hover:bg-teal-700">
-          <Link href="/profile?login=true">Войти</Link>
-        </Button>
+        <div className="flex gap-3">
+          <Button asChild className="bg-teal-600 hover:bg-teal-700">
+            <Link href="/profile?login=true">Войти</Link>
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => {
+              // Enable dev mode
+              window.location.href = '/partner/calendar?devMode=true'
+            }}
+          >
+            Dev Mode
+          </Button>
+        </div>
       </div>
     )
   }

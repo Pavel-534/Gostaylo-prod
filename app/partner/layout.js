@@ -116,6 +116,16 @@ export default function PartnerLayout({ children }) {
   const [isImpersonating, setIsImpersonating] = useState(false)
   const [accessDenied, setAccessDenied] = useState(false)
   const [isNotLoggedIn, setIsNotLoggedIn] = useState(false)
+  const [devMode, setDevMode] = useState(false)
+
+  // DEVELOPER MODE: Test partner data for preview environments
+  const DEV_PARTNER = {
+    id: 'partner-dev-001',
+    email: '86boa@mail.ru',
+    name: 'Тестовый Партнёр',
+    role: 'PARTNER',
+    isDevMode: true
+  }
 
   // Close sidebar on mobile when route changes
   useEffect(() => {
@@ -126,12 +136,33 @@ export default function PartnerLayout({ children }) {
 
   // Check access and load user
   useEffect(() => {
+    // Check for dev mode flag in URL or localStorage
+    const urlParams = new URLSearchParams(window.location.search)
+    const isDevModeEnabled = urlParams.get('devMode') === 'true' || 
+                             localStorage.getItem('gostaylo_dev_mode') === 'true'
+    
+    if (isDevModeEnabled) {
+      console.log('[DEV MODE] Auto-injecting test partner session')
+      setDevMode(true)
+      setUser(DEV_PARTNER)
+      localStorage.setItem('gostaylo_user', JSON.stringify(DEV_PARTNER))
+      localStorage.setItem('gostaylo_dev_mode', 'true')
+      setLoading(false)
+      
+      // Set initial sidebar state
+      if (typeof window !== 'undefined') {
+        setSidebarOpen(window.innerWidth >= 1024)
+      }
+      return
+    }
+    
     const storedUser = localStorage.getItem('gostaylo_user')
     if (storedUser) {
       try {
         const parsed = JSON.parse(storedUser)
         setUser(parsed)
         setIsImpersonating(!!parsed.isImpersonated)
+        setDevMode(!!parsed.isDevMode)
         
         // Check if user has partner access
         const hasAccess = ['PARTNER', 'ADMIN', 'MODERATOR'].includes(parsed.role)
@@ -264,6 +295,17 @@ export default function PartnerLayout({ children }) {
     <QueryClientProvider client={queryClient}>
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Toaster position="top-right" richColors />
+      
+      {/* DEV MODE Banner */}
+      {devMode && (
+        <div className="fixed top-0 left-0 right-0 bg-purple-600 text-white px-4 py-1 text-center text-xs font-medium z-50">
+          🔧 DEV MODE: Тестовый партнёр ({user?.email}) • <button onClick={() => {
+            localStorage.removeItem('gostaylo_dev_mode')
+            localStorage.removeItem('gostaylo_user')
+            window.location.href = '/'
+          }} className="underline hover:no-underline">Выйти</button>
+        </div>
+      )}
       
       {/* Mobile Overlay */}
       {sidebarOpen && (
