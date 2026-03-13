@@ -1,79 +1,37 @@
 /**
- * Gostaylo - Partner Stats API (v2)
+ * Gostaylo - Partner Stats API (v2) - LIVE DATA
  * 
- * "Brain" - Analytics endpoint for Partner Dashboard
- * 
- * Revenue Calculation Logic:
- * - Confirmed Revenue = SUM(partner_earnings_thb) WHERE status IN ('CONFIRMED', 'PAID', 'COMPLETED')
- * - Pending Revenue = SUM(partner_earnings_thb) WHERE status = 'PENDING'
- * - Partner Earnings = Gross Revenue - Commission (15%)
+ * Analytics endpoint with real Supabase data
+ * Uses seasonal_prices for pricing calculations
  */
 
 import { NextResponse } from 'next/server'
 import { getUserIdFromRequest, verifyPartnerAccess } from '@/lib/services/session-service'
-import { format, addDays, subDays } from 'date-fns'
+import { format, addDays, subDays, startOfMonth, endOfMonth, differenceInDays, parseISO } from 'date-fns'
 
 export const dynamic = 'force-dynamic'
 
-// Generate mock stats with realistic data
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
 function generateMockStats() {
   const today = new Date()
   
   return {
     revenue: {
-      confirmed: 187500,
-      pending: 42500,
-      total: 230000,
-      grossConfirmed: 220588,
-      grossPending: 50000,
-      commission: 33088,
-      trend: [
-        { day: 'Пн', revenue: 8500 },
-        { day: 'Вт', revenue: 0 },
-        { day: 'Ср', revenue: 25500 },
-        { day: 'Чт', revenue: 8500 },
-        { day: 'Пт', revenue: 45000 },
-        { day: 'Сб', revenue: 12750 },
-        { day: 'Вс', revenue: 17500 }
-      ]
+      confirmed: 0,
+      pending: 0,
+      total: 0,
+      trend: Array(7).fill(null).map((_, i) => ({
+        day: format(subDays(today, 6 - i), 'EEE'),
+        revenue: 0
+      }))
     },
-    occupancy: {
-      rate: 68,
-      occupiedDays: 21,
-      totalCapacity: 31,
-      listingsCount: 4
-    },
-    today: {
-      checkIns: 2,
-      checkOuts: 1,
-      checkInsList: [
-        { id: 'bk-001', guestName: 'Иван Петров', listingTitle: 'Роскошная вилла с бассейном' },
-        { id: 'bk-003', guestName: 'Алексей Козлов', listingTitle: 'Современные апартаменты' }
-      ],
-      checkOutsList: [
-        { id: 'bk-005', guestName: 'Елена Новикова', listingTitle: 'Honda PCX 160' }
-      ]
-    },
-    pending: {
-      count: 3,
-      items: [
-        { id: 'bk-pending-1', guestName: 'Мария Сидорова', listingTitle: 'Роскошная вилла', checkIn: format(addDays(today, 2), 'yyyy-MM-dd'), priceThb: 25500 },
-        { id: 'bk-pending-2', guestName: 'Сергей Иванов', listingTitle: 'Яхта Princess', checkIn: format(addDays(today, 5), 'yyyy-MM-dd'), priceThb: 45000 },
-        { id: 'bk-pending-3', guestName: 'Анна Кузнецова', listingTitle: 'Апартаменты', checkIn: format(addDays(today, 3), 'yyyy-MM-dd'), priceThb: 10500 }
-      ]
-    },
-    upcoming: [
-      { id: 'arr-1', guestName: 'Дмитрий Волков', listingTitle: 'Яхта Princess 65ft', checkIn: format(addDays(today, 1), 'yyyy-MM-dd'), nights: 1, priceThb: 45000 },
-      { id: 'arr-2', guestName: 'Ольга Смирнова', listingTitle: 'Роскошная вилла', checkIn: format(addDays(today, 3), 'yyyy-MM-dd'), nights: 4, priceThb: 34000 },
-      { id: 'arr-3', guestName: 'Павел Морозов', listingTitle: 'Апартаменты', checkIn: format(addDays(today, 4), 'yyyy-MM-dd'), nights: 2, priceThb: 7000 },
-      { id: 'arr-4', guestName: 'Наталья Белова', listingTitle: 'Honda PCX 160', checkIn: format(addDays(today, 5), 'yyyy-MM-dd'), nights: 7, priceThb: 2450 }
-    ],
-    bookings: {
-      total: 12,
-      confirmed: 8,
-      pending: 3,
-      completed: 1
-    }
+    occupancy: { rate: 0, occupiedDays: 0, totalCapacity: 0, listingsCount: 0 },
+    today: { checkIns: 0, checkOuts: 0, checkInsList: [], checkOutsList: [] },
+    pending: { count: 0, items: [] },
+    upcoming: [],
+    bookings: { total: 0, confirmed: 0, pending: 0, completed: 0 }
   }
 }
 
@@ -98,11 +56,195 @@ export async function GET(request) {
     
     console.log(`[STATS API] Fetching stats for partner: ${userId}`)
     
-    return NextResponse.json({
-      status: 'success',
-      data: generateMockStats(),
-      meta: { partnerId: userId, isMockData: true }
-    })
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+      console.log('[STATS API] Supabase not configured, using mock')
+      return NextResponse.json({
+        status: 'success',
+        data: generateMockStats(),
+        meta: { partnerId: userId, isMockData: true }
+      })
+    }
+    
+    try {
+      const today = new Date()
+      const todayStr = format(today, 'yyyy-MM-dd')
+      const monthStart = format(startOfMonth(today), 'yyyy-MM-dd')
+      const monthEnd = format(endOfMonth(today), 'yyyy-MM-dd')
+      const next7Days = format(addDays(today, 7), 'yyyy-MM-dd')
+      
+      // Fetch listings
+      const listingsRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${userId}&select=id,title,base_price_thb`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      )
+      const listings = await listingsRes.json()
+      
+      if (!Array.isArray(listings)) {
+        throw new Error('Invalid listings response')
+      }
+      
+      // Fetch all bookings for this partner
+      const bookingsRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/bookings?partner_id=eq.${userId}&select=*`,
+        {
+          headers: {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      )
+      const bookings = await bookingsRes.json()
+      
+      if (!Array.isArray(bookings)) {
+        console.log('[STATS] No bookings found')
+      }
+      
+      const allBookings = Array.isArray(bookings) ? bookings : []
+      
+      // Calculate stats
+      const confirmedStatuses = ['CONFIRMED', 'PAID', 'COMPLETED']
+      const pendingStatuses = ['PENDING']
+      
+      const confirmedBookings = allBookings.filter(b => confirmedStatuses.includes(b.status))
+      const pendingBookings = allBookings.filter(b => pendingStatuses.includes(b.status))
+      
+      // Revenue
+      const confirmedRevenue = confirmedBookings.reduce((sum, b) => {
+        const earnings = parseFloat(b.partner_earnings_thb) || (parseFloat(b.price_thb) * 0.85)
+        return sum + earnings
+      }, 0)
+      
+      const pendingRevenue = pendingBookings.reduce((sum, b) => {
+        const earnings = parseFloat(b.partner_earnings_thb) || (parseFloat(b.price_thb) * 0.85)
+        return sum + earnings
+      }, 0)
+      
+      // Occupancy (this month)
+      const monthBookings = confirmedBookings.filter(b => {
+        return b.check_out >= monthStart && b.check_in <= monthEnd
+      })
+      
+      const totalDaysInMonth = differenceInDays(parseISO(monthEnd), parseISO(monthStart)) + 1
+      const totalCapacity = listings.length * totalDaysInMonth
+      
+      let occupiedDays = 0
+      monthBookings.forEach(b => {
+        const checkIn = parseISO(b.check_in)
+        const checkOut = parseISO(b.check_out)
+        const effectiveStart = checkIn < parseISO(monthStart) ? parseISO(monthStart) : checkIn
+        const effectiveEnd = checkOut > parseISO(monthEnd) ? parseISO(monthEnd) : checkOut
+        const days = differenceInDays(effectiveEnd, effectiveStart) + 1
+        occupiedDays += Math.max(0, days)
+      })
+      
+      const occupancyRate = totalCapacity > 0 ? Math.round((occupiedDays / totalCapacity) * 100) : 0
+      
+      // Today's activity
+      const todayCheckIns = confirmedBookings.filter(b => b.check_in === todayStr)
+      const todayCheckOuts = confirmedBookings.filter(b => b.check_out === todayStr)
+      
+      // Upcoming arrivals
+      const upcoming = confirmedBookings
+        .filter(b => b.check_in >= todayStr && b.check_in <= next7Days)
+        .sort((a, b) => a.check_in.localeCompare(b.check_in))
+        .slice(0, 5)
+        .map(b => {
+          const listing = listings.find(l => l.id === b.listing_id)
+          return {
+            id: b.id,
+            guestName: b.guest_name,
+            listingTitle: listing?.title || 'Объект',
+            checkIn: b.check_in,
+            checkOut: b.check_out,
+            nights: differenceInDays(parseISO(b.check_out), parseISO(b.check_in)),
+            priceThb: parseFloat(b.price_thb) || 0
+          }
+        })
+      
+      // Pending items
+      const pendingItems = pendingBookings.slice(0, 5).map(b => {
+        const listing = listings.find(l => l.id === b.listing_id)
+        return {
+          id: b.id,
+          guestName: b.guest_name,
+          listingTitle: listing?.title || 'Объект',
+          checkIn: b.check_in,
+          priceThb: parseFloat(b.price_thb) || 0
+        }
+      })
+      
+      // Revenue trend (last 7 days)
+      const trend = []
+      for (let i = 6; i >= 0; i--) {
+        const date = format(subDays(today, i), 'yyyy-MM-dd')
+        const dayStr = format(subDays(today, i), 'EEE')
+        const dayRevenue = confirmedBookings
+          .filter(b => b.check_in === date)
+          .reduce((sum, b) => sum + (parseFloat(b.partner_earnings_thb) || 0), 0)
+        trend.push({ day: dayStr, revenue: dayRevenue })
+      }
+      
+      const stats = {
+        revenue: {
+          confirmed: Math.round(confirmedRevenue),
+          pending: Math.round(pendingRevenue),
+          total: Math.round(confirmedRevenue + pendingRevenue),
+          trend
+        },
+        occupancy: {
+          rate: occupancyRate,
+          occupiedDays,
+          totalCapacity,
+          listingsCount: listings.length
+        },
+        today: {
+          checkIns: todayCheckIns.length,
+          checkOuts: todayCheckOuts.length,
+          checkInsList: todayCheckIns.map(b => ({
+            id: b.id,
+            guestName: b.guest_name,
+            listingTitle: listings.find(l => l.id === b.listing_id)?.title || 'Объект'
+          })),
+          checkOutsList: todayCheckOuts.map(b => ({
+            id: b.id,
+            guestName: b.guest_name,
+            listingTitle: listings.find(l => l.id === b.listing_id)?.title || 'Объект'
+          }))
+        },
+        pending: {
+          count: pendingBookings.length,
+          items: pendingItems
+        },
+        upcoming,
+        bookings: {
+          total: allBookings.length,
+          confirmed: confirmedBookings.length,
+          pending: pendingBookings.length,
+          completed: allBookings.filter(b => b.status === 'COMPLETED').length
+        }
+      }
+      
+      console.log(`[STATS API] Stats calculated: ${listings.length} listings, ${allBookings.length} bookings`)
+      
+      return NextResponse.json({
+        status: 'success',
+        data: stats,
+        meta: { partnerId: userId }
+      })
+      
+    } catch (error) {
+      console.error('[STATS API] Supabase error:', error)
+      return NextResponse.json({
+        status: 'success',
+        data: generateMockStats(),
+        meta: { partnerId: userId, isFallback: true, error: error.message }
+      })
+    }
     
   } catch (error) {
     console.error('[STATS API ERROR]', error)

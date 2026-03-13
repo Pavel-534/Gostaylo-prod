@@ -119,10 +119,12 @@ export default function PartnerLayout({ children }) {
   const [devMode, setDevMode] = useState(false)
 
   // DEVELOPER MODE: Test partner data for preview environments
+  // Real partner from Supabase: 86boa@mail.ru
   const DEV_PARTNER = {
-    id: 'partner-dev-001',
+    id: 'user-mmhsxted-zon',
     email: '86boa@mail.ru',
-    name: 'Тестовый Партнёр',
+    name: 'Оксана',
+    first_name: 'Оксана',
     role: 'PARTNER',
     isDevMode: true
   }
