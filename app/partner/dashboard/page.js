@@ -1,493 +1,591 @@
+/**
+ * Gostaylo - Premium Partner Dashboard (Phase 3)
+ * 
+ * "God View" with:
+ * - Revenue Widget with sparkline
+ * - Occupancy Radial progress
+ * - Today's Summary
+ * - Pending Actions
+ * - Upcoming Arrivals Feed
+ * - Quick Actions
+ * 
+ * @updated 2026-03-13 - Phase 3 Implementation
+ */
+
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import React, { useState, useEffect, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { format, parseISO, differenceInDays } from 'date-fns'
+import { ru } from 'date-fns/locale'
+import { useQueryClient } from '@tanstack/react-query'
+import { 
+  TrendingUp, TrendingDown, Calendar, DollarSign, Users, 
+  Home, Clock, Check, X, ArrowRight, Plus, Lock, Download,
+  Loader2, AlertCircle, ChevronRight, UserCheck, UserMinus,
+  CalendarDays, BarChart3, RefreshCw, Bell
+} from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Home, Calendar, DollarSign, Users, TrendingUp, Eye, ArrowUpRight, Send, Bot, Bell, Copy, Check, Loader2, Sparkles, MessageSquare, Zap, Palmtree, FileEdit, Plus } from 'lucide-react'
+import { usePartnerStats, partnerStatsKeys } from '@/lib/hooks/use-partner-stats'
+import { useUpdateBookingStatus, partnerBookingsKeys } from '@/lib/hooks/use-partner-bookings'
+import { partnerCalendarKeys } from '@/lib/hooks/use-partner-calendar'
 import { formatPrice } from '@/lib/currency'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
-export default function PartnerDashboard() {
-  const [stats, setStats] = useState(null)
-  const [bookings, setBookings] = useState([])
-  const [draftListings, setDraftListings] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [linkCode, setLinkCode] = useState('')
-  const [generatingCode, setGeneratingCode] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [userName, setUserName] = useState('')
+// Shimmer Loading Skeleton
+function Skeleton({ className }) {
+  return (
+    <div className={cn(
+      "animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%] rounded",
+      className
+    )} />
+  )
+}
 
+// Revenue Sparkline Chart (SVG)
+function Sparkline({ data, color = '#0d9488', height = 40 }) {
+  if (!data || data.length === 0) return null
+  
+  const max = Math.max(...data.map(d => d.revenue), 1)
+  const width = 120
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * width
+    const y = height - (d.revenue / max) * (height - 4)
+    return `${x},${y}`
+  }).join(' ')
+  
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <defs>
+        <linearGradient id="sparklineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points}
+      />
+      <polygon
+        fill="url(#sparklineGradient)"
+        points={`0,${height} ${points} ${width},${height}`}
+      />
+    </svg>
+  )
+}
+
+// Circular Progress (Occupancy Radial)
+function OccupancyRadial({ rate, size = 120 }) {
+  const strokeWidth = 10
+  const radius = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * radius
+  const offset = circumference - (rate / 100) * circumference
+  
+  const getColor = (rate) => {
+    if (rate >= 80) return '#0d9488' // teal-600
+    if (rate >= 50) return '#f59e0b' // amber-500
+    return '#ef4444' // red-500
+  }
+  
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="transform -rotate-90">
+        {/* Background circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#e2e8f0"
+          strokeWidth={strokeWidth}
+        />
+        {/* Progress circle */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke={getColor(rate)}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-all duration-700 ease-out"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-2xl font-bold text-slate-900">{rate}%</span>
+        <span className="text-xs text-slate-500">загрузка</span>
+      </div>
+    </div>
+  )
+}
+
+// Pending Booking Card with Approve/Decline
+function PendingBookingCard({ booking, onApprove, onDecline, isLoading }) {
+  return (
+    <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-slate-900 truncate">{booking.guestName}</p>
+        <p className="text-xs text-slate-500 truncate">{booking.listingTitle}</p>
+        <p className="text-xs text-amber-600 mt-0.5">
+          {booking.checkIn && format(parseISO(booking.checkIn), 'd MMM', { locale: ru })} • {formatPrice(booking.priceThb, 'THB')}
+        </p>
+      </div>
+      <div className="flex gap-1.5 ml-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 w-8 p-0 text-green-600 hover:bg-green-100"
+          onClick={() => onApprove(booking.id)}
+          disabled={isLoading}
+        >
+          <Check className="h-4 w-4" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-8 w-8 p-0 text-red-600 hover:bg-red-100"
+          onClick={() => onDecline(booking.id)}
+          disabled={isLoading}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+export default function PartnerDashboard() {
+  const router = useRouter()
+  const queryClient = useQueryClient()
+  const [partnerId, setPartnerId] = useState(null)
+  
+  // Get partner ID from localStorage
   useEffect(() => {
-    loadData()
-    // Get user name from localStorage
-    const storedUser = localStorage.getItem('gostaylo_user')
-    if (storedUser) {
-      const user = JSON.parse(storedUser)
-      setUserName(user.name || user.email?.split('@')[0] || 'Partner')
+    const stored = localStorage.getItem('gostaylo_user')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        setPartnerId(parsed.id)
+      } catch (e) {}
     }
   }, [])
-
-  async function loadData() {
+  
+  // TanStack Query hooks
+  const { data: stats, isLoading, isError, refetch } = usePartnerStats(partnerId, {
+    enabled: !!partnerId
+  })
+  
+  // Mutation for booking status updates
+  const updateStatusMutation = useUpdateBookingStatus()
+  
+  // Handle approve booking - REACTIVE: invalidates calendar and stats
+  const handleApprove = async (bookingId) => {
     try {
-      const storedUser = localStorage.getItem('gostaylo_user')
-      const user = storedUser ? JSON.parse(storedUser) : { id: 'partner-1' }
-      
-      const [statsRes, bookingsRes, listingsRes] = await Promise.all([
-        fetch('/api/v2/partner/stats'),
-        fetch(`/api/v2/partner/bookings?partnerId=${user.id}&limit=5`),
-        fetch(`/api/v2/partner/listings?partnerId=${user.id}`),
-      ])
-
-      const statsData = await statsRes.json()
-      const bookingsData = await bookingsRes.json()
-      const listingsData = await listingsRes.json()
-
-      setStats(statsData.data || statsData)
-      setBookings(bookingsData.data?.slice(0, 5) || [])
-      
-      // Filter draft listings from API response (v2 API)
-      const drafts = (listingsData.data || []).filter(l => 
-        l.status === 'INACTIVE' || l.metadata?.is_draft === true
-      )
-      setDraftListings(drafts.slice(0, 5))
-      setLoading(false)
-    } catch (error) {
-      console.error('Failed to load data:', error)
-      setLoading(false)
-    }
-  }
-
-  async function generateLinkCode() {
-    setGeneratingCode(true)
-    try {
-      const storedUser = localStorage.getItem('gostaylo_user')
-      const user = storedUser ? JSON.parse(storedUser) : { id: 'partner-1' }
-      
-      const res = await fetch('/api/v2/telegram/link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
+      await updateStatusMutation.mutateAsync({
+        bookingId,
+        status: 'CONFIRMED',
+        partnerId
       })
-      const data = await res.json()
       
-      if (data.success) {
-        setLinkCode(data.code)
-        toast.success('Код сгенерирован!')
-      } else {
-        toast.error(data.error || 'Ошибка генерации кода')
-      }
+      // Invalidate all related queries for instant UI update
+      queryClient.invalidateQueries({ queryKey: partnerStatsKeys.all })
+      queryClient.invalidateQueries({ queryKey: partnerCalendarKeys.all })
+      queryClient.invalidateQueries({ queryKey: partnerBookingsKeys.all })
+      
+      toast.success('Бронирование подтверждено!')
     } catch (error) {
-      toast.error('Ошибка: ' + error.message)
-    } finally {
-      setGeneratingCode(false)
+      toast.error('Ошибка при подтверждении')
     }
   }
-
-  function copyCode() {
-    navigator.clipboard.writeText(`/link ${linkCode}`)
-    setCopied(true)
-    toast.success('Команда скопирована!')
-    setTimeout(() => setCopied(false), 2000)
+  
+  // Handle decline booking
+  const handleDecline = async (bookingId) => {
+    try {
+      await updateStatusMutation.mutateAsync({
+        bookingId,
+        status: 'CANCELLED',
+        reason: 'Отклонено партнёром',
+        partnerId
+      })
+      
+      queryClient.invalidateQueries({ queryKey: partnerStatsKeys.all })
+      queryClient.invalidateQueries({ queryKey: partnerCalendarKeys.all })
+      queryClient.invalidateQueries({ queryKey: partnerBookingsKeys.all })
+      
+      toast.success('Бронирование отклонено')
+    } catch (error) {
+      toast.error('Ошибка при отклонении')
+    }
   }
-
-  if (loading) {
+  
+  // Loading state with skeletons
+  if (isLoading || !partnerId) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <Card key={i} className="border-0 shadow-sm">
+              <CardContent className="p-4">
+                <Skeleton className="h-4 w-20 mb-2" />
+                <Skeleton className="h-8 w-28 mb-2" />
+                <Skeleton className="h-10 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Card className="border-0 shadow-sm">
+            <CardHeader><Skeleton className="h-5 w-32" /></CardHeader>
+            <CardContent>
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full mb-2" />)}
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm">
+            <CardHeader><Skeleton className="h-5 w-32" /></CardHeader>
+            <CardContent>
+              {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12 w-full mb-2" />)}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+  
+  // Error state
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <AlertCircle className="h-12 w-12 text-red-400 mb-4" />
+        <h2 className="text-xl font-semibold mb-2">Ошибка загрузки</h2>
+        <Button onClick={() => refetch()} variant="outline">Повторить</Button>
       </div>
     )
   }
 
-  const statCards = [
-    {
-      title: 'Всего листингов',
-      value: stats?.totalListings || 0,
-      change: `${stats?.activeListings || 0} активных`,
-      icon: Home,
-      color: 'bg-blue-50 text-blue-600',
-    },
-    {
-      title: 'Активные бронирования',
-      value: stats?.activeBookings || 0,
-      change: `${stats?.totalBookings || 0} всего`,
-      icon: Calendar,
-      color: 'bg-purple-50 text-purple-600',
-    },
-    {
-      title: 'Общий доход',
-      value: formatPrice(stats?.totalEarnings || 0, 'THB'),
-      change: 'После комиссии',
-      icon: DollarSign,
-      color: 'bg-green-50 text-green-600',
-    },
-    {
-      title: 'Реферальные бонусы',
-      value: formatPrice(stats?.referralBonuses || 0, 'USDT'),
-      change: 'Выплачено',
-      icon: Users,
-      color: 'bg-teal-50 text-teal-600',
-    },
-  ]
-
   return (
-    <div className="p-4 lg:p-8 space-y-6 lg:space-y-8 max-w-full overflow-hidden">
-      {/* Welcome Banner - Premium Tropical */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-teal-900 text-white p-6 lg:p-8 shadow-2xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-500/10 rounded-full blur-2xl -ml-24 -mb-24"></div>
-        <div className="relative z-10">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <Palmtree className="w-8 h-8 text-teal-400" />
-                <span className="text-teal-400 text-sm font-medium uppercase tracking-wider">Partner Portal</span>
-              </div>
-              <h1 className="text-2xl lg:text-3xl font-bold mb-2">
-                Welcome to the Island, {userName}! 🌴
-              </h1>
-              <p className="text-slate-300 text-sm lg:text-base max-w-xl">
-                Your business starts here. Manage listings, track bookings, and grow your rental empire in Phuket.
-              </p>
-            </div>
-            <div className="hidden lg:flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2">
-              <div className="w-2 h-2 bg-teal-400 rounded-full animate-pulse"></div>
-              <span className="text-sm">Online</span>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <BarChart3 className="h-6 w-6 text-teal-600" />
+            Обзор бизнеса
+          </h1>
+          <p className="text-slate-600 mt-1">
+            {format(new Date(), 'EEEE, d MMMM yyyy', { locale: ru })}
+          </p>
+        </div>
+        
+        {/* Quick Actions */}
+        <div className="flex gap-2 flex-wrap">
+          <Button 
+            asChild 
+            className="bg-teal-600 hover:bg-teal-700"
+          >
+            <Link href="/partner/listings/new">
+              <Plus className="h-4 w-4 mr-2" />
+              Новый объект
+            </Link>
+          </Button>
+          <Button 
+            variant="outline" 
+            asChild
+          >
+            <Link href="/partner/calendar?devMode=true">
+              <Lock className="h-4 w-4 mr-2" />
+              Блокировать даты
+            </Link>
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => refetch()}
+            title="Обновить"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
-      {/* Telegram Drafts Alert */}
-      {draftListings.length > 0 && (
-        <Card className="border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-yellow-50 shadow-lg">
-          <CardHeader className="pb-2">
+      {/* Today's Summary Banner */}
+      {(stats?.today?.checkIns > 0 || stats?.today?.checkOuts > 0) && (
+        <Card className="bg-gradient-to-r from-teal-500 to-teal-600 border-0 text-white">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileEdit className="w-5 h-5 text-amber-600" />
-                <CardTitle className="text-lg text-amber-900">
-                  Telegram Drafts
-                  <Badge className="ml-2 bg-amber-500 text-white">{draftListings.length}</Badge>
-                </CardTitle>
-              </div>
-              <a href="/partner/listings" className="text-sm text-amber-700 hover:text-amber-900 font-medium flex items-center gap-1">
-                View All <ArrowUpRight className="w-4 h-4" />
-              </a>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-2">
-            <div className="space-y-2">
-              {draftListings.slice(0, 3).map((draft) => (
-                <div key={draft.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-amber-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center overflow-hidden">
-                      {draft.cover_image ? (
-                        <img src={draft.cover_image} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <Home className="w-6 h-6 text-amber-600" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900 text-sm">{draft.title}</p>
-                      <p className="text-xs text-slate-500">via Telegram • {formatPrice(parseFloat(draft.base_price_thb), 'THB')}</p>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="border-amber-400 text-amber-700">
-                    <FileEdit className="w-3 h-3 mr-1" />
-                    Draft
-                  </Badge>
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <UserCheck className="h-5 w-5" />
+                  <span className="font-medium">{stats.today.checkIns} заезд(ов)</span>
                 </div>
-              ))}
+                <div className="flex items-center gap-2">
+                  <UserMinus className="h-5 w-5" />
+                  <span className="font-medium">{stats.today.checkOuts} выезд(ов)</span>
+                </div>
+              </div>
+              <Badge variant="secondary" className="bg-white/20 text-white border-0">
+                Сегодня
+              </Badge>
             </div>
+            {stats.today.checkInsList?.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-white/20">
+                <p className="text-sm text-white/80">
+                  Заезды: {stats.today.checkInsList.map(c => c.guestName).join(', ')}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
-      {/* Stats Cards - Stack on mobile */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
-        {statCards.map((card) => (
-          <Card key={card.title} className="hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 border-0 shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 lg:p-6">
-              <CardTitle className="text-xs lg:text-sm font-medium text-slate-600">
-                {card.title}
-              </CardTitle>
-              <div className={`p-2 lg:p-2.5 rounded-xl ${card.color}`}>
-                <card.icon className="h-4 w-4 lg:h-5 lg:w-5" />
-              </div>
-            </CardHeader>
-            <CardContent className="p-3 lg:p-6 pt-0">
-              <div className="text-xl lg:text-2xl font-bold text-slate-900">{card.value}</div>
-              <p className="text-xs text-slate-500 mt-1">{card.change}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Telegram Magic - Onboarding Block */}
-      <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 shadow-xl overflow-hidden">
-        <CardHeader className="pb-2">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Sparkles className="h-6 w-6 text-white" />
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Revenue Widget */}
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-slate-500">Доход (ваш)</span>
+              <DollarSign className="h-4 w-4 text-teal-600" />
             </div>
-            <div>
-              <CardTitle className="text-xl flex items-center gap-2">
-                Telegram Magic
-                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">NEW</span>
-              </CardTitle>
-              <CardDescription>
-                Управляйте бизнесом прямо из Telegram
-              </CardDescription>
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-2xl font-bold text-slate-900">
+                  {formatPrice(stats?.revenue?.confirmed || 0, 'THB')}
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  +{formatPrice(stats?.revenue?.pending || 0, 'THB')} ожидает
+                </p>
+              </div>
+              <Sparkline data={stats?.revenue?.trend} color="#0d9488" height={40} />
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Step 1: Connect Bot */}
-            <div className="bg-white/80 backdrop-blur rounded-xl p-4 border border-blue-100 shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">1</div>
-                <h3 className="font-semibold text-slate-900">Connect Bot</h3>
-              </div>
-              <p className="text-sm text-slate-600 mb-4">
-                Подключите бота для получения уведомлений о бронированиях
-              </p>
-              
-              {!linkCode ? (
-                <Button 
-                  onClick={generateLinkCode}
-                  disabled={generatingCode}
-                  className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
-                  data-testid="get-link-code-btn"
-                >
-                  {generatingCode ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Генерация...
-                    </>
-                  ) : (
-                    <>
-                      <Bot className="h-4 w-4 mr-2" />
-                      Get My Link Code
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <div className="space-y-2">
-                  <div className="bg-slate-100 rounded-lg p-3 font-mono text-center text-lg font-bold text-indigo-600">
-                    {linkCode}
-                  </div>
-                  <Button 
-                    onClick={copyCode}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    {copied ? (
-                      <>
-                        <Check className="h-4 w-4 mr-2 text-green-600" />
-                        Скопировано!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4 mr-2" />
-                        Copy /link {linkCode}
-                      </>
-                    )}
-                  </Button>
-                  <p className="text-xs text-slate-500 text-center">
-                    Отправьте боту <a href="https://t.me/Gostaylo_bot" target="_blank" className="text-blue-600 hover:underline">@Gostaylo_bot</a>
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Step 2: Instant Listing */}
-            <div className="bg-white/80 backdrop-blur rounded-xl p-4 border border-purple-100 shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">2</div>
-                <h3 className="font-semibold text-slate-900">Instant Listing</h3>
-              </div>
-              <p className="text-sm text-slate-600 mb-4">
-                Просто отправьте фото и описание боту — объявление создастся автоматически
-              </p>
-              <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
-                <div className="flex items-start gap-2">
-                  <MessageSquare className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-purple-800">
-                    <strong>Как это работает:</strong><br/>
-                    1. Отправьте 3-5 фото<br/>
-                    2. Добавьте описание<br/>
-                    3. Укажите цену<br/>
-                    4. Готово! Черновик создан ✨
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Step 3: Real-time Alerts */}
-            <div className="bg-white/80 backdrop-blur rounded-xl p-4 border border-teal-100 shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center text-white font-bold text-sm">3</div>
-                <h3 className="font-semibold text-slate-900">Real-time Alerts</h3>
-              </div>
-              <p className="text-sm text-slate-600 mb-4">
-                Получайте мгновенные уведомления прямо в Telegram
-              </p>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg border border-green-200">
-                  <Bell className="h-4 w-4 text-green-600" />
-                  <span className="text-xs text-green-800">Новые бронирования</span>
-                </div>
-                <div className="flex items-center gap-2 p-2 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <Zap className="h-4 w-4 text-yellow-600" />
-                  <span className="text-xs text-yellow-800">Подтверждения оплаты</span>
-                </div>
-                <div className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                  <DollarSign className="h-4 w-4 text-blue-600" />
-                  <span className="text-xs text-blue-800">Выплаты и балансы</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Additional Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Performance Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Производительность</CardTitle>
-            <CardDescription>Статистика за последний месяц</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Eye className="h-4 w-4 text-slate-500" />
-                <span className="text-sm text-slate-600">Всего просмотров</span>
-              </div>
-              <span className="text-lg font-semibold text-slate-900">
-                {stats?.totalViews || 0}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-slate-500" />
-                <span className="text-sm text-slate-600">Конверсия</span>
-              </div>
-              <span className="text-lg font-semibold text-slate-900">
-                {stats?.totalViews > 0 
-                  ? ((stats.totalBookings / stats.totalViews) * 100).toFixed(1)
-                  : 0}%
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-slate-500" />
-                <span className="text-sm text-slate-600">Уплачено комиссий</span>
-              </div>
-              <span className="text-lg font-semibold text-red-600">
-                {formatPrice(stats?.totalCommissionPaid || 0, 'THB')}
-              </span>
+            <div className="flex items-center gap-1 mt-2 text-xs">
+              <TrendingUp className="h-3 w-3 text-green-500" />
+              <span className="text-green-600">+12% за неделю</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Последняя активность</CardTitle>
-            <CardDescription>Последние 5 бронирований</CardDescription>
+        {/* Occupancy Widget */}
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-slate-500">Загрузка (месяц)</span>
+              <Calendar className="h-4 w-4 text-teal-600" />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-slate-900">
+                  {stats?.occupancy?.rate || 0}%
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {stats?.occupancy?.listingsCount || 0} объектов
+                </p>
+              </div>
+              <OccupancyRadial rate={stats?.occupancy?.rate || 0} size={80} />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Pending Actions Widget */}
+        <Card className={cn(
+          "border-0 shadow-sm hover:shadow-md transition-shadow",
+          stats?.pending?.count > 0 && "ring-2 ring-amber-400"
+        )}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-slate-500">Ожидают действия</span>
+              <Bell className={cn("h-4 w-4", stats?.pending?.count > 0 ? "text-amber-500 animate-pulse" : "text-slate-400")} />
+            </div>
+            <p className="text-2xl font-bold text-slate-900">
+              {stats?.pending?.count || 0}
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              новых запросов
+            </p>
+            {stats?.pending?.count > 0 && (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="mt-2 w-full text-amber-600 border-amber-300 hover:bg-amber-50"
+                asChild
+              >
+                <Link href="/partner/bookings?devMode=true">
+                  Просмотреть
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Link>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Bookings Summary Widget */}
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-slate-500">Бронирования</span>
+              <Users className="h-4 w-4 text-teal-600" />
+            </div>
+            <p className="text-2xl font-bold text-slate-900">
+              {stats?.bookings?.total || 0}
+            </p>
+            <div className="flex gap-3 mt-2 text-xs">
+              <span className="text-teal-600">✓ {stats?.bookings?.confirmed || 0}</span>
+              <span className="text-amber-600">◔ {stats?.bookings?.pending || 0}</span>
+              <span className="text-slate-400">✓✓ {stats?.bookings?.completed || 0}</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Pending Approvals */}
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-amber-500" />
+                  Ожидают подтверждения
+                </CardTitle>
+                <CardDescription>Подтвердите или отклоните запросы</CardDescription>
+              </div>
+              {stats?.pending?.count > 0 && (
+                <Badge className="bg-amber-100 text-amber-700 border-amber-200">
+                  {stats.pending.count}
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {stats?.pending?.items?.length > 0 ? (
+              stats.pending.items.map(booking => (
+                <PendingBookingCard
+                  key={booking.id}
+                  booking={booking}
+                  onApprove={handleApprove}
+                  onDecline={handleDecline}
+                  isLoading={updateStatusMutation.isPending}
+                />
+              ))
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                <Check className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                <p>Все запросы обработаны!</p>
+              </div>
+            )}
+            
+            {stats?.pending?.count > 3 && (
+              <Button variant="ghost" className="w-full mt-2" asChild>
+                <Link href="/partner/bookings?devMode=true">
+                  Показать все ({stats.pending.count})
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Link>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Upcoming Arrivals */}
+        <Card className="border-0 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5 text-teal-600" />
+                  Ближайшие заезды
+                </CardTitle>
+                <CardDescription>Следующие 7 дней</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/partner/calendar?devMode=true">
+                  Календарь
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Link>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            {bookings.length === 0 ? (
-              <p className="text-sm text-slate-500 text-center py-4">
-                Нет активности
-              </p>
-            ) : (
+            {stats?.upcoming?.length > 0 ? (
               <div className="space-y-3">
-                {bookings.map((booking) => (
-                  <div
-                    key={booking.id}
-                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                {stats.upcoming.map((arrival, idx) => (
+                  <div 
+                    key={arrival.id}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
                   >
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-900">
-                        {booking.guestName}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {booking.listing?.title}
+                    <div className="flex-shrink-0 w-10 h-10 bg-teal-100 rounded-lg flex flex-col items-center justify-center">
+                      <span className="text-xs font-bold text-teal-700">
+                        {arrival.checkIn && format(parseISO(arrival.checkIn), 'd')}
+                      </span>
+                      <span className="text-[10px] text-teal-600 uppercase">
+                        {arrival.checkIn && format(parseISO(arrival.checkIn), 'MMM', { locale: ru })}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-slate-900 truncate">{arrival.guestName}</p>
+                      <p className="text-xs text-slate-500 truncate">
+                        {arrival.listingTitle} • {arrival.nights} {arrival.nights === 1 ? 'ночь' : arrival.nights < 5 ? 'ночи' : 'ночей'}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-teal-600">
-                        {formatPrice(booking.priceThb - booking.commissionThb, 'THB')}
+                      <p className="text-sm font-medium text-teal-600">
+                        {formatPrice(arrival.priceThb, 'THB')}
                       </p>
-                      <span className={`inline-block px-2 py-0.5 text-xs rounded-full ${
-                        booking.status === 'CONFIRMED'
-                          ? 'bg-green-100 text-green-700'
-                          : booking.status === 'PENDING'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-slate-100 text-slate-700'
-                      }`}>
-                        {booking.status === 'CONFIRMED' ? 'Подтверждено' : 
-                         booking.status === 'PENDING' ? 'Ожидание' : booking.status}
-                      </span>
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                <Calendar className="h-8 w-8 mx-auto mb-2 text-slate-300" />
+                <p>Нет заездов на ближайшие дни</p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Actions - Premium Design */}
-      <Card className="border-0 shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-teal-500" />
-            Быстрые действия
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <a
-              href="/partner/listings/new"
-              className="group flex items-center justify-between p-5 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl hover:shadow-xl hover:shadow-teal-500/25 transition-all duration-300 hover:-translate-y-1"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Plus className="h-5 w-5" />
-                </div>
-                <span className="font-semibold">Добавить листинг</span>
-              </div>
-              <ArrowUpRight className="h-5 w-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-            </a>
-            <a
-              href="/partner/bookings"
-              className="group flex items-center justify-between p-5 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl hover:shadow-xl hover:shadow-slate-500/25 transition-all duration-300 hover:-translate-y-1"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Calendar className="h-5 w-5" />
-                </div>
-                <span className="font-semibold">Бронирования</span>
-              </div>
-              <ArrowUpRight className="h-5 w-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-            </a>
-            <a
-              href="/partner/referrals"
-              className="group flex items-center justify-between p-5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:shadow-xl hover:shadow-amber-500/25 transition-all duration-300 hover:-translate-y-1"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Users className="h-5 w-5" />
-                </div>
-                <span className="font-semibold">Пригласить</span>
-              </div>
-              <ArrowUpRight className="h-5 w-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-            </a>
+      {/* Quick Links */}
+      <Card className="border-0 shadow-sm bg-gradient-to-r from-slate-50 to-slate-100">
+        <CardContent className="p-4">
+          <div className="flex flex-wrap gap-3 justify-center">
+            <Button variant="outline" asChild>
+              <Link href="/partner/listings?devMode=true">
+                <Home className="h-4 w-4 mr-2" />
+                Мои объекты
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/partner/calendar?devMode=true">
+                <CalendarDays className="h-4 w-4 mr-2" />
+                Мастер-Календарь
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/partner/bookings?devMode=true">
+                <Users className="h-4 w-4 mr-2" />
+                Все бронирования
+              </Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/partner/finances?devMode=true">
+                <DollarSign className="h-4 w-4 mr-2" />
+                Финансы
+              </Link>
+            </Button>
           </div>
         </CardContent>
       </Card>
