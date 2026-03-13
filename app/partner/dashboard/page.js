@@ -305,7 +305,7 @@ export default function PartnerDashboard() {
             variant="outline" 
             asChild
           >
-            <Link href="/partner/calendar?devMode=true">
+            <Link href="/partner/calendar">
               <Lock className="h-4 w-4 mr-2" />
               Блокировать даты
             </Link>
@@ -422,7 +422,7 @@ export default function PartnerDashboard() {
                 className="mt-2 w-full text-amber-600 border-amber-300 hover:bg-amber-50"
                 asChild
               >
-                <Link href="/partner/bookings?devMode=true">
+                <Link href="/partner/bookings">
                   Просмотреть
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Link>
@@ -490,7 +490,7 @@ export default function PartnerDashboard() {
             
             {stats?.pending?.count > 3 && (
               <Button variant="ghost" className="w-full mt-2" asChild>
-                <Link href="/partner/bookings?devMode=true">
+                <Link href="/partner/bookings">
                   Показать все ({stats.pending.count})
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Link>
@@ -511,7 +511,7 @@ export default function PartnerDashboard() {
                 <CardDescription>Следующие 7 дней</CardDescription>
               </div>
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/partner/calendar?devMode=true">
+                <Link href="/partner/calendar">
                   Календарь
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Link>
@@ -563,25 +563,25 @@ export default function PartnerDashboard() {
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-3 justify-center">
             <Button variant="outline" asChild>
-              <Link href="/partner/listings?devMode=true">
+              <Link href="/partner/listings">
                 <Home className="h-4 w-4 mr-2" />
                 Мои объекты
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/partner/calendar?devMode=true">
+              <Link href="/partner/calendar">
                 <CalendarDays className="h-4 w-4 mr-2" />
                 Мастер-Календарь
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/partner/bookings?devMode=true">
+              <Link href="/partner/bookings">
                 <Users className="h-4 w-4 mr-2" />
                 Все бронирования
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link href="/partner/finances?devMode=true">
+              <Link href="/partner/finances">
                 <DollarSign className="h-4 w-4 mr-2" />
                 Финансы
               </Link>

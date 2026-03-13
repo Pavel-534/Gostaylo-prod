@@ -116,18 +116,6 @@ export default function PartnerLayout({ children }) {
   const [isImpersonating, setIsImpersonating] = useState(false)
   const [accessDenied, setAccessDenied] = useState(false)
   const [isNotLoggedIn, setIsNotLoggedIn] = useState(false)
-  const [devMode, setDevMode] = useState(false)
-
-  // DEVELOPER MODE: Test partner data for preview environments
-  // Real partner from Supabase: 86boa@mail.ru
-  const DEV_PARTNER = {
-    id: 'user-mmhsxted-zon',
-    email: '86boa@mail.ru',
-    name: 'Оксана',
-    first_name: 'Оксана',
-    role: 'PARTNER',
-    isDevMode: true
-  }
 
   // Close sidebar on mobile when route changes
   useEffect(() => {
@@ -138,33 +126,12 @@ export default function PartnerLayout({ children }) {
 
   // Check access and load user
   useEffect(() => {
-    // Check for dev mode flag in URL or localStorage
-    const urlParams = new URLSearchParams(window.location.search)
-    const isDevModeEnabled = urlParams.get('devMode') === 'true' || 
-                             localStorage.getItem('gostaylo_dev_mode') === 'true'
-    
-    if (isDevModeEnabled) {
-      console.log('[DEV MODE] Auto-injecting test partner session')
-      setDevMode(true)
-      setUser(DEV_PARTNER)
-      localStorage.setItem('gostaylo_user', JSON.stringify(DEV_PARTNER))
-      localStorage.setItem('gostaylo_dev_mode', 'true')
-      setLoading(false)
-      
-      // Set initial sidebar state
-      if (typeof window !== 'undefined') {
-        setSidebarOpen(window.innerWidth >= 1024)
-      }
-      return
-    }
-    
     const storedUser = localStorage.getItem('gostaylo_user')
     if (storedUser) {
       try {
         const parsed = JSON.parse(storedUser)
         setUser(parsed)
         setIsImpersonating(!!parsed.isImpersonated)
-        setDevMode(!!parsed.isDevMode)
         
         // Check if user has partner access
         const hasAccess = ['PARTNER', 'ADMIN', 'MODERATOR'].includes(parsed.role)

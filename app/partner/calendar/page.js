@@ -319,15 +319,6 @@ export default function MasterCalendar() {
           <Button asChild className="bg-teal-600 hover:bg-teal-700">
             <Link href="/profile?login=true">Войти</Link>
           </Button>
-          <Button 
-            variant="outline"
-            onClick={() => {
-              // Enable dev mode
-              window.location.href = '/partner/calendar?devMode=true'
-            }}
-          >
-            Dev Mode
-          </Button>
         </div>
       </div>
     )
