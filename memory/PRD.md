@@ -666,3 +666,42 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
   - `GostayloListingCardCompact` - Horizontal layout for lists
 - **Tested:** Screenshot verification (carousel, favorite, hover states)
 
+### 28. Global Date Sync & Search Optimization (2026-03-13)
+- **P0 Feature:** Buttery-smooth, high-performance search experience
+- **Global State Synchronization:**
+  - Lifted `checkIn`, `checkOut`, `guests` to page level
+  - Every filter change updates URL via shallow routing (`history.replaceState`)
+  - All `GostayloListingCard` components receive updated dates instantly
+  - Cards recalculate total price immediately on date change
+- **Debouncing (300ms):**
+  - `useDebounce` hook for all filter values
+  - Prevents excessive API calls during rapid typing
+  - Request ID tracking prevents race conditions (stale request handling)
+- **Client-Side Caching:**
+  - In-memory cache with 5-minute TTL
+  - Cache key based on serialized params
+  - Size-limited to 50 entries (FIFO eviction)
+  - Bypass cache for date-filtered requests (availability changes)
+  - Console logs: `[SEARCH] Cache HIT/MISS`
+- **Infinite Scroll Pagination:**
+  - 12 items per batch (`ITEMS_PER_PAGE`)
+  - `useIntersectionObserver` hook for lazy loading
+  - "Load more (X more)" button as fallback
+  - "Showing X of Y properties" counter
+- **Animations:**
+  - Fade-in/out transition when results change (`opacity-50` → `opacity-100`)
+  - Cards animate with `animate-in fade-in slide-in-from-bottom-4`
+  - Staggered animation delay (`animationDelay: index * 50ms`)
+- **Error Handling:**
+  - Error state with AlertCircle icon
+  - "Loading Error" message with error details
+  - Retry button with RefreshCw icon
+  - Graceful degradation on API failure
+- **UX Polish:**
+  - Loading spinner in badge during fetch
+  - "Cached" badge when serving from cache
+  - Smooth transitions between states
+- **Files Modified:**
+  - `/app/app/listings/page.js` - Complete optimization rewrite
+- **Tested:** Screenshot verification (debounce, transitions, URL sync)
+
