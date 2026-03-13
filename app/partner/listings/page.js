@@ -10,6 +10,7 @@ import { Plus, Eye, Edit, Trash2, Send, Loader2, AlertCircle, ExternalLink, Chev
 import { formatPrice } from '@/lib/currency'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/auth-context'
+import { usePartnerListings, useDeleteListing, usePublishListing } from '@/lib/hooks/use-partner-listings'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,8 +22,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+/**
+ * Partner Listings Page (v2 API)
+ * 
+ * STERILIZED: All data flows through API v2
+ * Uses TanStack Query for reactive state management
+ * 
+ * @updated 2026-03-13 - Phase 1 Sterilization
+ */
 
 export default function PartnerListings() {
   const router = useRouter()

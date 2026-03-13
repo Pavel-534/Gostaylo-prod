@@ -15,7 +15,7 @@
 
 import React, { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Heart, Star, MapPin, BedDouble, Users, Bath, Maximize, Wifi, Car, Waves } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Heart, Star, MapPin, BedDouble, Users, Bath, Maximize, Wifi, Car, Waves, Edit, Send, Trash2 } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { format, differenceInDays } from 'date-fns'
 import { cn } from '@/lib/utils'
@@ -29,6 +29,27 @@ const PROPERTY_TYPES = {
   studio: { en: 'Studio', ru: 'Студия' },
   penthouse: { en: 'Penthouse', ru: 'Пентхаус' },
   default: { en: 'Property', ru: 'Объект' }
+}
+
+// Listing status configuration for owner view
+const STATUS_CONFIG = {
+  ACTIVE: { label: { en: 'Active', ru: 'Активен' }, className: 'bg-green-100 text-green-700 border-green-200' },
+  PENDING: { label: { en: 'Pending', ru: 'На модерации' }, className: 'bg-amber-100 text-amber-700 border-amber-200' },
+  INACTIVE: { label: { en: 'Inactive', ru: 'Неактивен' }, className: 'bg-slate-100 text-slate-600 border-slate-200' },
+  REJECTED: { label: { en: 'Rejected', ru: 'Отклонён' }, className: 'bg-red-100 text-red-700 border-red-200' },
+}
+
+// Status Badge component for owner view
+function StatusBadge({ status, language = 'en' }) {
+  const config = STATUS_CONFIG[status] || STATUS_CONFIG.INACTIVE
+  return (
+    <span className={cn(
+      "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border",
+      config.className
+    )}>
+      {config.label[language] || config.label.en}
+    </span>
+  )
 }
 
 // Amenity icons mapping
@@ -46,7 +67,12 @@ export function GostayloListingCard({
   currency = 'THB',
   exchangeRates = { THB: 1 },
   onFavorite,
-  className
+  className,
+  // NEW: Owner view props
+  isOwnerView = false,
+  onEdit,
+  onDelete,
+  onPublish
 }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
@@ -364,19 +390,78 @@ export function GostayloListingCard({
             )}
           </div>
 
-          {/* Book Button */}
-          <button 
-            className="w-full mt-4 py-2.5 px-4 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-medium transition-colors text-sm"
-            onClick={(e) => {
-              e.preventDefault()
-              window.location.href = detailUrl
-            }}
-          >
-            {nights > 0 
-              ? (language === 'ru' ? 'Забронировать' : 'Book Now')
-              : (language === 'ru' ? 'Подробнее' : 'View Details')
-            }
-          </button>
+          {/* Owner View: Status Badge & Actions */}
+          {isOwnerView && (
+            <div className="mt-3">
+              {/* Status Badge */}
+              <div className="flex items-center justify-between mb-2">
+                <StatusBadge status={listing.status} language={language} />
+                {listing.metadata?.is_draft && (
+                  <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded">
+                    {language === 'ru' ? 'Черновик' : 'Draft'}
+                  </span>
+                )}
+              </div>
+              
+              {/* Owner Actions */}
+              <div className="flex gap-2">
+                {onEdit && (
+                  <button 
+                    className="flex-1 py-2 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition-colors text-sm flex items-center justify-center gap-1"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      onEdit(listing)
+                    }}
+                  >
+                    <Edit className="h-4 w-4" />
+                    {language === 'ru' ? 'Редактировать' : 'Edit'}
+                  </button>
+                )}
+                {onPublish && listing.status === 'INACTIVE' && (
+                  <button 
+                    className="flex-1 py-2 px-3 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-medium transition-colors text-sm flex items-center justify-center gap-1"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      onPublish(listing)
+                    }}
+                  >
+                    <Send className="h-4 w-4" />
+                    {language === 'ru' ? 'Опубликовать' : 'Publish'}
+                  </button>
+                )}
+                {onDelete && (
+                  <button 
+                    className="py-2 px-3 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition-colors text-sm"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      onDelete(listing)
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Guest View: Book Button */}
+          {!isOwnerView && (
+            <button 
+              className="w-full mt-4 py-2.5 px-4 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-medium transition-colors text-sm"
+              onClick={(e) => {
+                e.preventDefault()
+                window.location.href = detailUrl
+              }}
+            >
+              {nights > 0 
+                ? (language === 'ru' ? 'Забронировать' : 'Book Now')
+                : (language === 'ru' ? 'Подробнее' : 'View Details')
+              }
+            </button>
+          )}
         </div>
       </article>
     </Link>

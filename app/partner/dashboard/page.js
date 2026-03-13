@@ -33,37 +33,24 @@ export default function PartnerDashboard() {
       const storedUser = localStorage.getItem('gostaylo_user')
       const user = storedUser ? JSON.parse(storedUser) : { id: 'partner-1' }
       
-      const [statsRes, bookingsRes] = await Promise.all([
+      const [statsRes, bookingsRes, listingsRes] = await Promise.all([
         fetch('/api/v2/partner/stats'),
-        fetch('/api/v2/bookings'),
+        fetch(`/api/v2/partner/bookings?partnerId=${user.id}&limit=5`),
+        fetch(`/api/v2/partner/listings?partnerId=${user.id}`),
       ])
 
       const statsData = await statsRes.json()
       const bookingsData = await bookingsRes.json()
+      const listingsData = await listingsRes.json()
 
       setStats(statsData.data || statsData)
       setBookings(bookingsData.data?.slice(0, 5) || [])
       
-      // Fetch draft listings created via Telegram
-      try {
-        const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-        const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        
-        const draftsRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${user.id}&metadata->>is_draft=eq.true&order=created_at.desc&limit=5`,
-          {
-            headers: {
-              'apikey': SUPABASE_KEY,
-              'Authorization': `Bearer ${SUPABASE_KEY}`
-            }
-          }
-        )
-        const drafts = await draftsRes.json()
-        setDraftListings(Array.isArray(drafts) ? drafts : [])
-      } catch (e) {
-        console.log('No drafts found')
-      }
-      
+      // Filter draft listings from API response (v2 API)
+      const drafts = (listingsData.data || []).filter(l => 
+        l.status === 'INACTIVE' || l.metadata?.is_draft === true
+      )
+      setDraftListings(drafts.slice(0, 5))
       setLoading(false)
     } catch (error) {
       console.error('Failed to load data:', error)

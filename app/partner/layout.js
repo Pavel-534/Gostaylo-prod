@@ -6,7 +6,10 @@
  * - Collapsible drawer on mobile (hamburger menu)
  * - Breadcrumbs navigation
  * - "+ Create Listing" button
+ * - TanStack Query for reactive state management
  * - Future-ready for Firebase push notifications
+ * 
+ * @updated 2026-03-13 - Added TanStack Query Provider
  */
 
 'use client'
@@ -14,6 +17,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { getQueryClient } from '@/lib/query-client'
 import { 
   LayoutDashboard,
   Briefcase,
@@ -252,7 +257,11 @@ export default function PartnerLayout({ children }) {
     )
   }
 
+  // Get stable QueryClient instance
+  const queryClient = getQueryClient()
+
   return (
+    <QueryClientProvider client={queryClient}>
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Toaster position="top-right" richColors />
       
@@ -529,5 +538,6 @@ export default function PartnerLayout({ children }) {
         </main>
       </div>
     </div>
+    </QueryClientProvider>
   )
 }
