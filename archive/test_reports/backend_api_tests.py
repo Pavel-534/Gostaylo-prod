@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('NEXT_PUBLIC_BASE_URL', 'https://c325362c-1be1-450d-a1ad-cc1fb45ba828.preview.emergentagent.com')
+BASE_URL = os.environ.get('NEXT_PUBLIC_BASE_URL', 'https://gostaylo-502-fix.preview.emergentagent.com')
 
 
 class TestPWAIcons:

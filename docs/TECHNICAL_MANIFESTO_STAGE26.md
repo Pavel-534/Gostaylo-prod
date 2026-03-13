@@ -148,7 +148,7 @@ RESEND_API_KEY=  # Email notifications (mock mode)
 ## 6. DEPLOYMENT STATUS
 
 ### Preview Environment
-- URL: `https://c325362c-1be1-450d-a1ad-cc1fb45ba828.preview.emergentagent.com`
+- URL: `https://gostaylo-502-fix.preview.emergentagent.com`
 - Status: ✅ Running
 - Frontend: Running on port 3000
 

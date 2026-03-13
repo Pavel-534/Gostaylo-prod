@@ -10,17 +10,35 @@ import { NextResponse } from 'next/server'
 // Force dynamic rendering to prevent caching
 export const dynamic = 'force-dynamic'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-)
+// Mock settings for when Supabase is not configured
+let mockSettings = {
+  defaultCommissionRate: 15,
+  maintenanceMode: false,
+  heroTitle: 'Luxury Rentals in Phuket',
+  heroSubtitle: 'Villas, Bikes, Yachts & Tours',
+  serviceFeePercent: 5
+}
+
+// Helper to get supabase client (returns null if not configured)
+function getSupabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !key) return null
+  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
+}
 
 export async function GET() {
   try {
-    // Use direct REST API to bypass SDK caching
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     
+    // If Supabase is not configured, return mock settings
+    if (!supabaseUrl || !serviceKey) {
+      console.log('[SETTINGS] Supabase not configured, using mock settings')
+      return NextResponse.json({ data: mockSettings })
+    }
+    
+    // Use direct REST API to bypass SDK caching
     const res = await fetch(
       `${supabaseUrl}/rest/v1/system_settings?key=eq.general&select=*`,
       {
@@ -37,14 +55,7 @@ export async function GET() {
     
     if (!settingsData || settingsData.length === 0) {
       console.error('No settings found in database')
-      return NextResponse.json({ 
-        data: {
-          defaultCommissionRate: 15,
-          maintenanceMode: false,
-          heroTitle: 'Luxury Rentals in Phuket',
-          heroSubtitle: 'Villas, Bikes, Yachts & Tours'
-        }
-      })
+      return NextResponse.json({ data: mockSettings })
     }
 
     const data = settingsData[0]
@@ -69,6 +80,21 @@ export async function PUT(request) {
   try {
     const body = await request.json()
     const { defaultCommissionRate, maintenanceMode, heroTitle, heroSubtitle } = body
+    
+    const supabase = getSupabaseClient()
+    
+    // If Supabase is not configured, update mock settings
+    if (!supabase) {
+      console.log('[SETTINGS] Supabase not configured, updating mock settings')
+      mockSettings = {
+        ...mockSettings,
+        defaultCommissionRate: parseFloat(defaultCommissionRate) || 15,
+        maintenanceMode: !!maintenanceMode,
+        heroTitle: heroTitle || '',
+        heroSubtitle: heroSubtitle || '',
+      }
+      return NextResponse.json({ success: true, data: mockSettings })
+    }
 
     // First check if the row exists
     const { data: existing } = await supabase

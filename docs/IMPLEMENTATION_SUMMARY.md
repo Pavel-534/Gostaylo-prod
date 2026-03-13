@@ -297,7 +297,7 @@ yarn dev
 
 ### Landing Page URL
 **Development:** http://localhost:3000
-**Production:** https://services-platform-1.preview.emergentagent.com
+**Production:** https://gostaylo-502-fix.preview.emergentagent.com
 
 ### Key Visual Elements
 - Hero: Luxury overwater villa with teal water

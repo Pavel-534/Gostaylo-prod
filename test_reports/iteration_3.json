@@ -65,7 +65,7 @@
   },
   
   "environment_notes": {
-    "preview_url_issue": "Preview environment at https://c325362c-1be1-450d-a1ad-cc1fb45ba828.preview.emergentagent.com was returning 502/startup errors during testing. Tests performed on localhost:3000 which works correctly.",
+    "preview_url_issue": "Preview environment at https://gostaylo-502-fix.preview.emergentagent.com was returning 502/startup errors during testing. Tests performed on localhost:3000 which works correctly.",
     "memory_pressure": "Frontend service restarted once due to memory threshold during testing, but recovered successfully"
   }
 }
