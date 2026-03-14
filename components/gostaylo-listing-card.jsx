@@ -13,7 +13,7 @@
  * @created 2026-03-12
  */
 
-import React, { useState, useCallback, useMemo } from 'react'
+import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Heart, Star, MapPin, BedDouble, Users, Bath, Maximize, Wifi, Car, Waves, Edit, Send, Trash2 } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
@@ -67,6 +67,7 @@ export function GostayloListingCard({
   currency = 'THB',
   exchangeRates = { THB: 1 },
   onFavorite,
+  isFavorited = false, // NEW: controlled favorite state
   className,
   // NEW: Owner view props
   isOwnerView = false,
@@ -76,8 +77,13 @@ export function GostayloListingCard({
 }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isHovered, setIsHovered] = useState(false)
-  const [isFavorite, setIsFavorite] = useState(false)
+  const [isFavorite, setIsFavorite] = useState(isFavorited) // Initialize from prop
   const [imageLoaded, setImageLoaded] = useState(false)
+  
+  // Sync with prop changes
+  useEffect(() => {
+    setIsFavorite(isFavorited)
+  }, [isFavorited])
 
   // Extract listing data with defaults
   const {

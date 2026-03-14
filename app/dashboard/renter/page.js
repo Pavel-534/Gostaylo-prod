@@ -24,6 +24,7 @@ import {
   Loader2, TrendingUp, ArrowRight
 } from 'lucide-react'
 import { format } from 'date-fns'
+import { useRecentlyViewed } from '@/lib/hooks/use-recently-viewed'
 
 // Fetch renter bookings
 async function fetchRenterBookings(renterId) {
@@ -76,6 +77,7 @@ function BookingCardSkeleton() {
 
 export default function RenterDashboard() {
   const [userId, setUserId] = useState(null)
+  const { recentListings } = useRecentlyViewed()
 
   // Get user ID from localStorage
   useEffect(() => {
@@ -280,6 +282,62 @@ export default function RenterDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Recently Viewed */}
+      {recentListings.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Clock className="h-5 w-5 text-teal-600" />
+                Recently Viewed
+              </CardTitle>
+              <Link href="/listings">
+                <Button variant="ghost" size="sm" className="text-teal-600 hover:text-teal-700">
+                  Browse More
+                  <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto -mx-6 px-6">
+              <div className="flex gap-4 pb-2">
+                {recentListings.slice(0, 5).map((listing) => (
+                  <Link 
+                    key={listing.id} 
+                    href={`/listings/${listing.id}`}
+                    className="flex-shrink-0 w-64 group"
+                  >
+                    <div className="bg-slate-50 rounded-lg overflow-hidden hover:shadow-md transition-all">
+                      <div className="aspect-[4/3] overflow-hidden bg-slate-200">
+                        <img
+                          src={listing.cover_image || listing.images?.[0] || '/placeholder.jpg'}
+                          alt={listing.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                      <div className="p-3">
+                        <h4 className="font-semibold text-slate-900 line-clamp-1 text-sm group-hover:text-teal-600 transition-colors">
+                          {listing.title}
+                        </h4>
+                        <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+                          <MapPin className="h-3 w-3" />
+                          {listing.district}
+                        </div>
+                        <p className="text-sm font-semibold text-slate-900 mt-2">
+                          ฿{listing.base_price_thb?.toLocaleString()}
+                          <span className="text-xs text-slate-500 font-normal"> / night</span>
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
