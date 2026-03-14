@@ -292,11 +292,19 @@ export default function RenterProfilePage() {
   
   async function fetchApplicationStatus() {
     try {
-      const res = await fetch('/api/v2/partner/application-status')
+      const res = await fetch('/api/v2/partner/application-status', {
+        credentials: 'include'
+      })
       const data = await res.json()
       
-      if (data.success && data.data) {
-        setApplicationStatus(data.data)
+      // API returns: { success, hasApplication, status, rejectionReason, appliedAt, reviewedAt }
+      if (data.success && data.hasApplication) {
+        setApplicationStatus({
+          status: data.status,
+          rejection_reason: data.rejectionReason,
+          created_at: data.appliedAt,
+          reviewed_at: data.reviewedAt
+        })
       }
     } catch (error) {
       console.error('[PROFILE] Failed to fetch application status', error)
