@@ -107,6 +107,19 @@ export function GostayloListingCard({
   // Get rating values (support multiple field names)
   const displayRating = average_rating || rating || 0
   const displayReviewsCount = reviews_count || reviewsCount || 0
+  
+  // DEBUG: Log rating data
+  if (displayRating > 0) {
+    console.log('[GostayloCard] Rating data:', {
+      listingId: id,
+      title: title?.substring(0, 30),
+      rating,
+      reviews_count,
+      average_rating,
+      displayRating,
+      displayReviewsCount
+    })
+  }
 
   // Extract metadata
   const bedrooms = metadata?.bedrooms || 0

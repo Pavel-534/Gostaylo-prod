@@ -84,6 +84,8 @@ export async function GET(request) {
       .from('listings')
       .select(`
         *,
+        rating,
+        reviews_count,
         categories (id, name, slug, icon),
         owner:profiles!owner_id (id, first_name, last_name)
       `)
