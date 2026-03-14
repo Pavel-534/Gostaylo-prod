@@ -45,6 +45,8 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
     
+    console.log('[FAVORITES] GET request for userId:', userId)
+    
     if (!userId) {
       return NextResponse.json({
         success: false,
@@ -52,35 +54,23 @@ export async function GET(request) {
       }, { status: 400 })
     }
     
-    // Check if favorites table exists, if not create it
-    const { data: favorites, error: fetchError } = await supabaseAdmin
+    // First, get favorites
+    const { data: favoritesData, error: favError } = await supabaseAdmin
       .from('favorites')
-      .select(`
-        id,
-        listing_id,
-        created_at,
-        listings!listing_id (
-          id,
-          title,
-          district,
-          base_price_thb,
-          bedrooms,
-          bathrooms,
-          max_guests,
-          images,
-          cover_image,
-          property_type,
-          amenities,
-          rating,
-          reviews_count
-        )
-      `)
+      .select('id, listing_id, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
     
-    if (fetchError) {
+    console.log('[FAVORITES] Step 1 - Favorites query:', { 
+      hasError: !!favError, 
+      errorCode: favError?.code,
+      errorMessage: favError?.message,
+      dataLength: favoritesData?.length 
+    })
+    
+    if (favError) {
       // If table doesn't exist, return empty array
-      if (fetchError.code === 'PGRST116' || fetchError.message.includes('does not exist')) {
+      if (favError.code === 'PGRST116' || favError.message.includes('does not exist')) {
         console.log('[FAVORITES] Table does not exist yet, returning empty array')
         return NextResponse.json({
           success: true,
@@ -90,24 +80,63 @@ export async function GET(request) {
         })
       }
       
-      console.error('[FAVORITES GET ERROR]', fetchError)
+      console.error('[FAVORITES GET ERROR]', favError)
       return NextResponse.json({
         success: false,
         error: 'Failed to fetch favorites',
-        details: fetchError.message
+        details: favError.message,
+        code: favError.code
       }, { status: 500 })
     }
     
-    // Log for debugging
-    console.log(`[FAVORITES] Found ${favorites?.length || 0} favorites for user ${userId}`)
+    // If no favorites, return empty
+    if (!favoritesData || favoritesData.length === 0) {
+      console.log('[FAVORITES] No favorites found for user')
+      return NextResponse.json({
+        success: true,
+        data: [],
+        count: 0
+      })
+    }
     
-    // Transform data to include listing details
-    const formattedFavorites = favorites.map(fav => ({
+    // Get listing IDs
+    const listingIds = favoritesData.map(f => f.listing_id)
+    
+    // Fetch listings separately
+    const { data: listingsData, error: listingsError } = await supabaseAdmin
+      .from('listings')
+      .select('*')
+      .in('id', listingIds)
+    
+    console.log('[FAVORITES] Step 2 - Listings query:', { 
+      hasError: !!listingsError,
+      listingsFound: listingsData?.length 
+    })
+    
+    if (listingsError) {
+      console.error('[FAVORITES] Error fetching listings:', listingsError)
+      // Return favorites without listings details
+      return NextResponse.json({
+        success: true,
+        data: favoritesData.map(f => ({ ...f, listing: null })),
+        count: favoritesData.length
+      })
+    }
+    
+    // Map listings to favorites
+    const listingsMap = {}
+    listingsData.forEach(listing => {
+      listingsMap[listing.id] = listing
+    })
+    
+    const formattedFavorites = favoritesData.map(fav => ({
       id: fav.id,
       listing_id: fav.listing_id,
       created_at: fav.created_at,
-      listing: fav.listings
+      listing: listingsMap[fav.listing_id] || null
     }))
+    
+    console.log(`[FAVORITES] Successfully formatted ${formattedFavorites.length} favorites`)
     
     return NextResponse.json({
       success: true,

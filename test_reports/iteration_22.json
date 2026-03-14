@@ -1,0 +1,103 @@
+{
+  "summary": "Renter Portal Phase 3 - Favorites/Wishlist testing complete. Backend APIs working 100% (GET, POST toggle, DELETE). Frontend favorites page displays listings but has two issues: 1) Price shows ฿0 due to snake_case/camelCase field mismatch, 2) Heart icon on /listings page does NOT save to database (missing onFavorite handler).",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "GostayloListingCard",
+        "issue": "Price shows ฿0 on favorites page - API returns base_price_thb (snake_case) but component destructures basePriceThb (camelCase)",
+        "selector": ".text-teal-600",
+        "priority": "HIGH",
+        "file": "/app/components/gostaylo-listing-card.jsx",
+        "fix_attempted": "Added base_price_thb extraction but may need component rebuild"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Heart icon on /listings page",
+        "issue": "Clicking heart icon on listings page only updates local state, does NOT persist to database. Missing onFavorite handler in /app/app/listings/page.js",
+        "affected_selectors": ["button[aria-label*='favorite']"],
+        "priority": "CRITICAL",
+        "file": "/app/app/listings/page.js line 541-548",
+        "fix_needed": "Add onFavorite callback and fetch user's favorites to show filled heart state"
+      }
+    ],
+    "design_issues": []
+  },
+  
+  "test_report_links": [
+    "/app/test_reports/pytest/test_favorites_api_v22.py",
+    "/app/test_reports/pytest/favorites_api_v22_results.xml"
+  ],
+  
+  "action_items": [
+    "CRITICAL: Add onFavorite handler to GostayloListingCard in /app/app/listings/page.js to persist favorites to database",
+    "CRITICAL: Fetch user's favorites on listings page and pass isFavorited prop to show filled heart state",
+    "HIGH: Fix price display - ensure GostayloListingCard uses base_price_thb OR standardize data format",
+    "LOW: Consider normalizing API response from favorites to use camelCase consistently"
+  ],
+  
+  "critical_code_review_comments": [
+    "GostayloListingCard line 541-548 in listings/page.js missing onFavorite callback - heart icon is decorative only",
+    "Data field inconsistency: API returns snake_case (base_price_thb, cover_image) but component expects camelCase (basePriceThb, coverImage)",
+    "VERIFIED: GET /api/v2/renter/favorites returns full listing details with correct data",
+    "VERIFIED: POST /api/v2/renter/favorites toggles correctly (add/remove)",
+    "VERIFIED: DELETE /api/v2/renter/favorites removes specific favorite",
+    "VERIFIED: Favorites page correctly displays saved listings with remove functionality",
+    "VERIFIED: Empty state and stats section work correctly"
+  ],
+  
+  "updated_files": [
+    "/app/components/gostaylo-listing-card.jsx - Added snake_case field extraction (base_price_thb, cover_image, is_featured)",
+    "/app/test_reports/pytest/test_favorites_api_v22.py - New pytest test file for favorites API"
+  ],
+  
+  "success_rate": {
+    "backend": "100% - 10/10 pytest tests passed",
+    "frontend": "70% - Page loads, remove works, but add from listings broken"
+  },
+  
+  "test_credentials": {
+    "renter_email": "pavel29031983@gmail.com",
+    "renter_password": "az123456",
+    "user_id": "user-mmq8fm4a-n1s"
+  },
+  
+  "seed_data_creation": "Restored 2 test favorites: lst-mmih84ji-6jolf (Вилла у моря) and lst-f2b62ebd (Beautiful villa with pool)",
+  
+  "retest_needed": true,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Backend favorites API fully working. Frontend favorites page (/renter/favorites) shows favorites with remove functionality working. CRITICAL BUG: Heart icon on /listings page does not call API - only updates local state. Price display issue exists due to field name mismatch (snake_case vs camelCase).",
+  
+  "verified_features": {
+    "GET /api/v2/renter/favorites": "PASS - Returns favorites with full listing details",
+    "POST /api/v2/renter/favorites (toggle)": "PASS - Correctly adds/removes favorites",
+    "DELETE /api/v2/renter/favorites": "PASS - Removes specific favorite",
+    "/renter/favorites page loads": "PASS - Shows header, listing cards, stats",
+    "Remove from favorites via heart icon": "PASS - Optimistic UI + API call working",
+    "Empty state display": "PASS - Shows 'Your wishlist is empty' with CTA",
+    "Stats section": "PASS - Shows Total Saved, Districts, Most Saved",
+    "Add from listings page": "FAIL - Heart icon does not call API",
+    "Price display on favorites": "FAIL - Shows ฿0 instead of actual price"
+  },
+  
+  "rca_of_the_issue": {
+    "issue_1": {
+      "name": "Heart icon on listings page not persisting",
+      "root_cause": "GostayloListingCard in /app/app/listings/page.js (line 541-548) does not pass onFavorite callback prop. The component's handleFavorite function calls onFavorite?.(id, !isFavorite) which is no-op when undefined.",
+      "fix": "In listings/page.js, add: 1) State for user's favorite listing IDs, 2) useEffect to fetch favorites on mount, 3) onFavorite handler that calls POST /api/v2/renter/favorites, 4) isFavorited prop based on fetched favorites"
+    },
+    "issue_2": {
+      "name": "Price showing ฿0 on favorites page",
+      "root_cause": "API returns snake_case field names (base_price_thb) but component destructures camelCase (basePriceThb). My fix added fallback extraction but Next.js may need rebuild.",
+      "fix": "Either: 1) Transform API response to camelCase in favorites page, or 2) Ensure component rebuild catches my fallback extraction logic"
+    }
+  }
+}

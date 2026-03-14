@@ -92,17 +92,25 @@ export function GostayloListingCard({
     description = '',
     district = 'Phuket',
     basePriceThb = 0,
+    base_price_thb = 0, // Alternative field name from database
     images = [],
     coverImage,
+    cover_image, // Alternative field name from database
     rating = 0,
     reviewsCount = 0,
     reviews_count = 0, // Alternative field name
     average_rating = 0, // Alternative field name
     isFeatured = false,
+    is_featured = false, // Alternative field name from database
     metadata = {},
     pricing = null, // From API when dates are provided
     category
   } = listing
+  
+  // Use either camelCase or snake_case field
+  const basePrice = basePriceThb || base_price_thb || 0
+  const actualCoverImage = coverImage || cover_image
+  const actualIsFeatured = isFeatured || is_featured
 
   // Get rating values (support multiple field names)
   const displayRating = average_rating || rating || 0
@@ -133,14 +141,14 @@ export function GostayloListingCard({
   // Build image array
   const allImages = useMemo(() => {
     const imgs = []
-    if (coverImage) imgs.push(coverImage)
+    if (actualCoverImage) imgs.push(actualCoverImage)
     if (images?.length) {
       images.forEach(img => {
-        if (img !== coverImage) imgs.push(img)
+        if (img !== actualCoverImage) imgs.push(img)
       })
     }
     return imgs.length > 0 ? imgs : ['/placeholder.jpg']
-  }, [coverImage, images])
+  }, [actualCoverImage, images])
 
   // Calculate nights and pricing
   const nights = useMemo(() => {
@@ -161,15 +169,15 @@ export function GostayloListingCard({
     if (pricing?.totalPrice && nights > 0) {
       return pricing.totalPrice
     }
-    return basePriceThb
-  }, [pricing, nights, basePriceThb])
+    return basePrice
+  }, [pricing, nights, basePrice])
 
   const perNightPrice = useMemo(() => {
     if (pricing?.perNight) {
       return pricing.perNight
     }
-    return basePriceThb
-  }, [pricing, basePriceThb])
+    return basePrice
+  }, [pricing, basePrice])
 
   // Price conversion
   const convertPrice = useCallback((priceThb) => {
@@ -263,7 +271,7 @@ export function GostayloListingCard({
           </button>
 
           {/* Featured Badge */}
-          {isFeatured && (
+          {actualIsFeatured && (
             <div className="absolute top-3 left-3 z-10">
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-semibold shadow-lg">
                 <Star className="h-3 w-3 fill-current" />
