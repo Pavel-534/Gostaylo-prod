@@ -36,6 +36,61 @@ import { formatPrice } from '@/lib/currency'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
+// Welcome Partner Celebration Modal
+function WelcomePartnerModal({ isOpen, onClose, userName }) {
+  if (!isOpen) return null
+  
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div 
+        className="bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-600 rounded-2xl max-w-md w-full p-8 text-white text-center relative overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Confetti effect */}
+        <div className="absolute inset-0 opacity-20">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-2 h-2 bg-white rounded-full animate-bounce"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 2}s`,
+                animationDuration: `${1 + Math.random() * 2}s`
+              }}
+            />
+          ))}
+        </div>
+        
+        <div className="relative z-10">
+          <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Bell className="h-10 w-10" />
+          </div>
+          
+          <h2 className="text-3xl font-bold mb-2">Congratulations!</h2>
+          <p className="text-lg mb-4">{userName || 'Partner'}</p>
+          
+          <div className="bg-white/20 rounded-lg p-4 mb-6">
+            <CalendarDays className="h-8 w-8 mx-auto mb-2" />
+            <p className="text-sm">
+              You're now a Gostaylo Partner! Start listing your properties and earn with 0% commission.
+            </p>
+          </div>
+          
+          <div className="flex flex-col gap-3">
+            <Button
+              onClick={onClose}
+              className="w-full bg-white text-teal-600 hover:bg-white/90"
+            >
+              Let's Get Started!
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Shimmer Loading Skeleton
 function Skeleton({ className }) {
   return (
@@ -169,6 +224,10 @@ export default function PartnerDashboard() {
   const queryClient = useQueryClient()
   const [partnerId, setPartnerId] = useState(null)
   
+  // Welcome modal state
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false)
+  const [userName, setUserName] = useState('')
+  
   // Get partner ID from localStorage
   useEffect(() => {
     const stored = localStorage.getItem('gostaylo_user')
@@ -176,6 +235,14 @@ export default function PartnerDashboard() {
       try {
         const parsed = JSON.parse(stored)
         setPartnerId(parsed.id)
+        setUserName(parsed.name || parsed.first_name || 'Partner')
+        
+        // Check if just became partner (show welcome once)
+        const hasSeenWelcome = localStorage.getItem(`welcome_partner_${parsed.id}`)
+        if (parsed.role === 'PARTNER' && !hasSeenWelcome) {
+          setShowWelcomeModal(true)
+          localStorage.setItem(`welcome_partner_${parsed.id}`, 'true')
+        }
       } catch (e) {}
     }
   }, [])
@@ -589,6 +656,13 @@ export default function PartnerDashboard() {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Welcome Partner Modal */}
+      <WelcomePartnerModal
+        isOpen={showWelcomeModal}
+        onClose={() => setShowWelcomeModal(false)}
+        userName={userName}
+      />
     </div>
   )
 }

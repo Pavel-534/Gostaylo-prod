@@ -27,7 +27,7 @@ import {
   Home, Heart, Settings, LogOut,
   Send, Shield, TrendingUp, Clock, Zap,
   CheckCircle, XCircle, Loader2, AlertCircle,
-  Sparkles, PartyPopper, Trophy
+  Sparkles
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -180,70 +180,6 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
   )
 }
 
-// Welcome Partner Celebration Modal
-function WelcomePartnerModal({ isOpen, onClose, userName }) {
-  if (!isOpen) return null
-  
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div 
-        className="bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-600 rounded-2xl max-w-md w-full p-8 text-white text-center relative overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Confetti effect */}
-        <div className="absolute inset-0 opacity-20">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-2 h-2 bg-white rounded-full animate-bounce"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 2}s`,
-                animationDuration: `${1 + Math.random() * 2}s`
-              }}
-            />
-          ))}
-        </div>
-        
-        <div className="relative z-10">
-          <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <PartyPopper className="h-10 w-10" />
-          </div>
-          
-          <h2 className="text-3xl font-bold mb-2">Congratulations!</h2>
-          <p className="text-lg mb-4">{userName || 'Partner'}</p>
-          
-          <div className="bg-white/20 rounded-lg p-4 mb-6">
-            <Trophy className="h-8 w-8 mx-auto mb-2" />
-            <p className="text-sm">
-              You're now a Gostaylo Partner! Start listing your properties and earn with 0% commission.
-            </p>
-          </div>
-          
-          <div className="flex flex-col gap-3">
-            <Button
-              asChild
-              className="w-full bg-white text-teal-600 hover:bg-white/90"
-            >
-              <Link href="/partner/dashboard">
-                Go to Partner Dashboard
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={onClose}
-              className="text-white hover:bg-white/20"
-            >
-              Close
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 export default function RenterProfilePage() {
   const router = useRouter()
   const [user, setUser] = useState(null)
@@ -257,7 +193,6 @@ export default function RenterProfilePage() {
   // Modal states
   const [showApplicationModal, setShowApplicationModal] = useState(false)
   const [submittingApplication, setSubmittingApplication] = useState(false)
-  const [showWelcomeModal, setShowWelcomeModal] = useState(false)
   
   // Get user from localStorage
   useEffect(() => {
@@ -267,13 +202,6 @@ export default function RenterProfilePage() {
         const parsed = JSON.parse(storedUser)
         setUser(parsed)
         setTelegramLinked(!!(parsed.telegram_id || parsed.telegram_username))
-        
-        // Check if just became partner (show welcome once)
-        const hasSeenWelcome = localStorage.getItem(`welcome_partner_${parsed.id}`)
-        if (parsed.role === 'PARTNER' && !hasSeenWelcome) {
-          setShowWelcomeModal(true)
-          localStorage.setItem(`welcome_partner_${parsed.id}`, 'true')
-        }
       } catch (e) {
         console.error('[PROFILE] Failed to parse user', e)
       }
@@ -709,12 +637,6 @@ export default function RenterProfilePage() {
         onClose={() => setShowApplicationModal(false)}
         onSubmit={handleApplicationSubmit}
         isSubmitting={submittingApplication}
-      />
-      
-      <WelcomePartnerModal
-        isOpen={showWelcomeModal}
-        onClose={() => setShowWelcomeModal(false)}
-        userName={user.name || user.first_name}
       />
     </div>
   )
