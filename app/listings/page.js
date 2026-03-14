@@ -142,6 +142,10 @@ function ListingsContent() {
   const [language, setLanguage] = useState('en')
   const [currency, setCurrency] = useState('THB')
   const [exchangeRates, setExchangeRates] = useState({ THB: 1, USD: 35.5, RUB: 0.37 })
+  
+  // Favorites state
+  const [userFavorites, setUserFavorites] = useState(new Set())
+  const [userId, setUserId] = useState(null)
 
   // Debounced values for API calls
   const debouncedQuery = useDebounce(searchQuery)
@@ -169,7 +173,28 @@ function ListingsContent() {
     if (storedCurrency) setCurrency(storedCurrency)
     
     fetchExchangeRates().then(setExchangeRates).catch(console.error)
+    
+    // Get user ID and fetch favorites
+    const storedUserId = localStorage.getItem('gostaylo_user_id')
+    if (storedUserId) {
+      setUserId(storedUserId)
+      fetchUserFavorites(storedUserId)
+    }
   }, [])
+  
+  // Fetch user's favorites
+  const fetchUserFavorites = async (uid) => {
+    try {
+      const res = await fetch(`/api/v2/renter/favorites?userId=${uid}`)
+      const data = await res.json()
+      if (data.success && data.data) {
+        const favoriteIds = new Set(data.data.map(fav => fav.listing_id))
+        setUserFavorites(favoriteIds)
+      }
+    } catch (error) {
+      console.error('[FAVORITES] Error fetching:', error)
+    }
+  }
 
   useEffect(() => {
     const handleCurrencyChange = (e) => setCurrency(e.detail)
@@ -338,6 +363,60 @@ function ListingsContent() {
     setError(null)
     fetchListings(true)
   }, [fetchListings])
+  
+  // Handle favorite toggle
+  const handleFavorite = useCallback(async (listingId, newIsFavorite) => {
+    if (!userId) {
+      console.warn('[FAVORITES] No user ID, cannot save')
+      return
+    }
+    
+    // Optimistic update
+    setUserFavorites(prev => {
+      const next = new Set(prev)
+      if (newIsFavorite) {
+        next.add(listingId)
+      } else {
+        next.delete(listingId)
+      }
+      return next
+    })
+    
+    try {
+      const res = await fetch('/api/v2/renter/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, listingId })
+      })
+      
+      const data = await res.json()
+      if (!data.success) {
+        // Revert on error
+        setUserFavorites(prev => {
+          const next = new Set(prev)
+          if (newIsFavorite) {
+            next.delete(listingId)
+          } else {
+            next.add(listingId)
+          }
+          return next
+        })
+        console.error('[FAVORITES] Toggle failed:', data.error)
+      }
+    } catch (error) {
+      // Revert on error
+      setUserFavorites(prev => {
+        const next = new Set(prev)
+        if (newIsFavorite) {
+          next.delete(listingId)
+        } else {
+          next.add(listingId)
+        }
+        return next
+      })
+      console.error('[FAVORITES] Error:', error)
+    }
+  }, [userId])
 
   // Memoized values
   const nights = useMemo(() => 
@@ -545,6 +624,8 @@ function ListingsContent() {
                     language={language}
                     currency={currency}
                     exchangeRates={exchangeRates}
+                    onFavorite={handleFavorite}
+                    isFavorited={userFavorites.has(listing.id)}
                   />
                 </div>
               ))}
