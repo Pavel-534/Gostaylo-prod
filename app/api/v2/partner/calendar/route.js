@@ -20,11 +20,20 @@ const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
  */
 function getSeasonalPrice(seasonalPrices, listingId, date) {
   const dateObj = parseISO(date)
-  const seasonal = seasonalPrices.find(sp => 
-    sp.listing_id === listingId &&
-    dateObj >= parseISO(sp.start_date) &&
-    dateObj <= parseISO(sp.end_date)
-  )
+  const seasonal = seasonalPrices.find(sp => {
+    const spStart = parseISO(sp.start_date)
+    const spEnd = parseISO(sp.end_date)
+    const match = sp.listing_id === listingId &&
+                  dateObj >= spStart &&
+                  dateObj <= spEnd
+    
+    if (sp.listing_id === listingId && date >= '2025-12-20' && date <= '2025-12-27') {
+      console.log(`[SEASONAL] Checking ${date}: start=${sp.start_date}, end=${sp.end_date}, match=${match}`)
+    }
+    
+    return match
+  })
+  
   return seasonal ? {
     price: seasonal.price_daily,
     minStay: seasonal.min_stay || 1,
@@ -230,19 +239,28 @@ export async function GET(request) {
         // Fetch seasonal prices
         let seasonalPrices = []
         try {
-          const seasonalRes = await fetch(
-            `${SUPABASE_URL}/rest/v1/seasonal_prices?listing_id=in.(${listingIds.join(',')})&end_date=gte.${startDate}&start_date=lte.${endDate}&select=*`,
-            {
-              headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`
-              }
+          const seasonalUrl = `${SUPABASE_URL}/rest/v1/seasonal_prices?listing_id=in.(${listingIds.join(',')})&end_date=gte.${startDate}&start_date=lte.${endDate}&select=*`
+          console.log(`[CALENDAR] Fetching seasonal prices from: ${seasonalUrl}`)
+          
+          const seasonalRes = await fetch(seasonalUrl, {
+            headers: {
+              'apikey': SUPABASE_KEY,
+              'Authorization': `Bearer ${SUPABASE_KEY}`
             }
-          )
-          seasonalPrices = await seasonalRes.json()
-          if (!Array.isArray(seasonalPrices)) seasonalPrices = []
+          })
+          
+          console.log(`[CALENDAR] Seasonal prices response status: ${seasonalRes.status}`)
+          const seasonalData = await seasonalRes.json()
+          console.log(`[CALENDAR] Seasonal prices data:`, seasonalData)
+          
+          if (Array.isArray(seasonalData)) {
+            seasonalPrices = seasonalData
+            console.log(`[CALENDAR] Fetched ${seasonalPrices.length} seasonal prices`)
+          } else if (seasonalData.code) {
+            console.log(`[CALENDAR] Supabase error:`, seasonalData.message)
+          }
         } catch (e) {
-          console.log('[CALENDAR] No seasonal_prices:', e.message)
+          console.log('[CALENDAR] Error fetching seasonal_prices:', e.message)
         }
         
         const calendarData = processCalendarData(
