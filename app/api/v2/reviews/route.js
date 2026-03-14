@@ -73,6 +73,14 @@ export async function GET(request) {
     const formattedReviews = reviews?.map(review => ({
       id: review.id,
       rating: review.rating,
+      // Multi-category ratings
+      ratings: {
+        cleanliness: review.rating_cleanliness,
+        accuracy: review.rating_accuracy,
+        communication: review.rating_communication,
+        location: review.rating_location,
+        value: review.rating_value
+      },
       comment: review.comment,
       reviewerName: formatReviewerName(review.profiles?.first_name, review.profiles?.last_name),
       reviewerInitial: review.profiles?.first_name?.[0]?.toUpperCase() || 'G',
@@ -113,20 +121,61 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { userId, listingId, bookingId, rating, comment } = body;
+    const { 
+      userId, 
+      listingId, 
+      bookingId, 
+      rating, // Legacy single rating (optional if categories provided)
+      comment,
+      // New: Multi-category ratings
+      ratings = null // { cleanliness, accuracy, communication, location, value }
+    } = body;
 
-    if (!userId || !listingId || !rating) {
+    if (!userId || !listingId) {
       return NextResponse.json({ 
         success: false, 
-        error: 'userId, listingId, and rating are required' 
+        error: 'userId and listingId are required' 
       }, { status: 400 });
     }
 
-    // Validate rating
-    if (rating < 1 || rating > 5) {
+    // Validate ratings - either single rating OR all 5 categories
+    let ratingData = {};
+    
+    if (ratings && ratings.cleanliness) {
+      // Multi-category rating (new system)
+      const categories = ['cleanliness', 'accuracy', 'communication', 'location', 'value'];
+      
+      // Validate all categories present
+      for (const cat of categories) {
+        if (!ratings[cat] || ratings[cat] < 1 || ratings[cat] > 5) {
+          return NextResponse.json({ 
+            success: false, 
+            error: `Invalid ${cat} rating. All category ratings must be between 1 and 5` 
+          }, { status: 400 });
+        }
+      }
+      
+      ratingData = {
+        rating_cleanliness: parseInt(ratings.cleanliness),
+        rating_accuracy: parseInt(ratings.accuracy),
+        rating_communication: parseInt(ratings.communication),
+        rating_location: parseInt(ratings.location),
+        rating_value: parseInt(ratings.value),
+        // rating will be auto-calculated by trigger
+      };
+    } else if (rating) {
+      // Legacy single rating
+      if (rating < 1 || rating > 5) {
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Rating must be between 1 and 5' 
+        }, { status: 400 });
+      }
+      ratingData = { rating: parseInt(rating) };
+    } else {
       return NextResponse.json({ 
         success: false, 
-        error: 'Rating must be between 1 and 5' 
+        error: 'Either rating or ratings object is required' 
       }, { status: 400 });
     }
 
@@ -194,7 +243,7 @@ export async function POST(request) {
         user_id: userId,
         listing_id: listingId,
         booking_id: bookingId || null,
-        rating: parseInt(rating),
+        ...ratingData,
         comment: comment?.trim() || null,
         created_at: new Date().toISOString()
       })

@@ -16,7 +16,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,11 +24,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { 
   Calendar, MapPin, Loader2, ArrowLeft, 
   CreditCard, Clock, CheckCircle, XCircle,
-  AlertCircle, Home
+  AlertCircle, Home, Star
 } from 'lucide-react'
 import { format, parseISO, isPast, isFuture } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { formatPrice } from '@/lib/currency'
+import { ReviewModal } from '@/components/review-modal'
+import { toast } from 'sonner'
 
 // Fetch renter bookings
 async function fetchRenterBookings(renterId) {
@@ -138,7 +140,7 @@ function StatusBadge({ status }) {
 }
 
 // Individual booking card
-function BookingCard({ booking }) {
+function BookingCard({ booking, onReviewClick }) {
   const router = useRouter()
   
   const checkInDate = booking.check_in ? parseISO(booking.check_in) : null
@@ -177,8 +179,12 @@ function BookingCard({ booking }) {
     
     if (booking.status === 'COMPLETED') {
       return (
-        <Button variant="outline">
-          Оставить отзыв
+        <Button 
+          className="bg-teal-600 hover:bg-teal-700"
+          onClick={() => onReviewClick(booking)}
+        >
+          <Star className="h-4 w-4 mr-2" />
+          Leave a Review
         </Button>
       )
     }
@@ -259,6 +265,11 @@ function BookingCard({ booking }) {
 export default function RenterBookingsPage() {
   const [userId, setUserId] = useState(null)
   const [activeTab, setActiveTab] = useState('all')
+  const queryClient = useQueryClient()
+  
+  // Review modal state
+  const [reviewModalOpen, setReviewModalOpen] = useState(false)
+  const [selectedBooking, setSelectedBooking] = useState(null)
   
   // Get user ID from localStorage
   useEffect(() => {
@@ -326,6 +337,47 @@ export default function RenterBookingsPage() {
       cancelled: bookings.filter(b => ['CANCELLED', 'DECLINED'].includes(b.status)).length,
     }
   }, [bookings])
+  
+  // Submit review mutation
+  const submitReviewMutation = useMutation({
+    mutationFn: async ({ ratings, comment }) => {
+      const res = await fetch('/api/v2/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          listingId: selectedBooking.listing_id,
+          bookingId: selectedBooking.id,
+          ratings,
+          comment
+        })
+      })
+      
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to submit review')
+      }
+      
+      return await res.json()
+    },
+    onSuccess: () => {
+      toast.success('Review submitted successfully!')
+      queryClient.invalidateQueries({ queryKey: ['renter-bookings', userId] })
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    }
+  })
+  
+  // Handle review click
+  const handleReviewClick = (booking) => {
+    setSelectedBooking(booking)
+    setReviewModalOpen(true)
+  }
+  
+  const handleReviewSubmit = async (reviewData) => {
+    await submitReviewMutation.mutateAsync(reviewData)
+  }
   
   return (
     <div className="space-y-6">
@@ -427,12 +479,25 @@ export default function RenterBookingsPage() {
           ) : (
             <div className="space-y-4">
               {filteredBookings.map((booking) => (
-                <BookingCard key={booking.id} booking={booking} />
+                <BookingCard 
+                  key={booking.id} 
+                  booking={booking}
+                  onReviewClick={handleReviewClick}
+                />
               ))}
             </div>
           )}
         </TabsContent>
       </Tabs>
+      
+      {/* Review Modal */}
+      <ReviewModal
+        isOpen={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        booking={selectedBooking}
+        onSubmit={handleReviewSubmit}
+        isSubmitting={submitReviewMutation.isPending}
+      />
     </div>
   )
 }

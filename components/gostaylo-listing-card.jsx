@@ -96,11 +96,17 @@ export function GostayloListingCard({
     coverImage,
     rating = 0,
     reviewsCount = 0,
+    reviews_count = 0, // Alternative field name
+    average_rating = 0, // Alternative field name
     isFeatured = false,
     metadata = {},
     pricing = null, // From API when dates are provided
     category
   } = listing
+
+  // Get rating values (support multiple field names)
+  const displayRating = average_rating || rating || 0
+  const displayReviewsCount = reviews_count || reviewsCount || 0
 
   // Extract metadata
   const bedrooms = metadata?.bedrooms || 0
@@ -195,8 +201,8 @@ export function GostayloListingCard({
   // Get property type label
   const typeLabel = PROPERTY_TYPES[propertyType]?.[language] || PROPERTY_TYPES.default[language]
 
-  // Format rating
-  const formattedRating = rating > 0 ? rating.toFixed(1) : null
+  // Format rating - use displayRating instead of rating
+  const formattedRating = displayRating > 0 ? displayRating.toFixed(1) : null
 
   return (
     <Link 
@@ -311,9 +317,25 @@ export function GostayloListingCard({
               <h3 className="font-semibold text-slate-900 line-clamp-1 text-base group-hover:text-teal-700 transition-colors">
                 {title}
               </h3>
-              <p className="text-sm text-slate-500 mt-0.5">
-                {typeLabel} {district && `• ${district}`}
-              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <p className="text-sm text-slate-500">
+                  {typeLabel} {district && `• ${district}`}
+                </p>
+                {/* Rating Display */}
+                {displayRating > 0 && (
+                  <div className="flex items-center gap-1 text-sm">
+                    <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    <span className="font-semibold text-slate-900">
+                      {displayRating.toFixed(1)}
+                    </span>
+                    {displayReviewsCount > 0 && (
+                      <span className="text-slate-500">
+                        ({displayReviewsCount})
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
             
             {/* Rating */}
@@ -321,8 +343,8 @@ export function GostayloListingCard({
               <div className="flex items-center gap-1 flex-shrink-0">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                 <span className="font-semibold text-sm text-slate-800">{formattedRating}</span>
-                {reviewsCount > 0 && (
-                  <span className="text-xs text-slate-400">({reviewsCount})</span>
+                {displayReviewsCount > 0 && (
+                  <span className="text-xs text-slate-400">({displayReviewsCount})</span>
                 )}
               </div>
             )}
