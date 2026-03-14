@@ -143,7 +143,7 @@ export default function MasterCalendar() {
     startDate: format(new Date(), 'yyyy-MM-dd'),
     endDate: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
     priceDaily: '',
-    seasonType: 'BASE',
+    seasonType: 'HIGH',
     label: '',
     minStay: 1
   })
@@ -288,7 +288,7 @@ export default function MasterCalendar() {
       startDate: format(new Date(), 'yyyy-MM-dd'),
       endDate: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
       priceDaily: '',
-      seasonType: 'BASE',
+      seasonType: 'HIGH',
       label: '',
       minStay: 1
     })
@@ -988,7 +988,6 @@ export default function MasterCalendar() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="BASE">Базовый</SelectItem>
                     <SelectItem value="LOW">Низкий сезон</SelectItem>
                     <SelectItem value="HIGH">Высокий сезон</SelectItem>
                     <SelectItem value="PEAK">Пиковый сезон</SelectItem>
