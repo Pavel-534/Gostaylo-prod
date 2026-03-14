@@ -265,17 +265,6 @@ export default function PartnerLayout({ children }) {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Toaster position="top-right" richColors />
       
-      {/* DEV MODE Banner */}
-      {devMode && (
-        <div className="fixed top-0 left-0 right-0 bg-purple-600 text-white px-4 py-1 text-center text-xs font-medium z-50">
-          🔧 DEV MODE: Тестовый партнёр ({user?.email}) • <button onClick={() => {
-            localStorage.removeItem('gostaylo_dev_mode')
-            localStorage.removeItem('gostaylo_user')
-            window.location.href = '/'
-          }} className="underline hover:no-underline">Выйти</button>
-        </div>
-      )}
-      
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div 
