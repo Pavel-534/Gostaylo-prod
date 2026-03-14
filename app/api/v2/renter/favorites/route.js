@@ -59,7 +59,7 @@ export async function GET(request) {
         id,
         listing_id,
         created_at,
-        listings:listing_id (
+        listings!listing_id (
           id,
           title,
           district,
@@ -70,7 +70,9 @@ export async function GET(request) {
           images,
           cover_image,
           property_type,
-          amenities
+          amenities,
+          rating,
+          reviews_count
         )
       `)
       .eq('user_id', userId)
@@ -91,9 +93,13 @@ export async function GET(request) {
       console.error('[FAVORITES GET ERROR]', fetchError)
       return NextResponse.json({
         success: false,
-        error: 'Failed to fetch favorites'
+        error: 'Failed to fetch favorites',
+        details: fetchError.message
       }, { status: 500 })
     }
+    
+    // Log for debugging
+    console.log(`[FAVORITES] Found ${favorites?.length || 0} favorites for user ${userId}`)
     
     // Transform data to include listing details
     const formattedFavorites = favorites.map(fav => ({
