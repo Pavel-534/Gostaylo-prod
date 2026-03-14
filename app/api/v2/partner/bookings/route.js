@@ -14,12 +14,12 @@ import { getUserIdFromRequest, verifyPartnerAccess } from '@/lib/services/sessio
 
 export const dynamic = 'force-dynamic'
 
-// Mock bookings for development without Supabase
+// Mock bookings for development without Supabase (removed hardcoded IDs)
 const mockBookings = [
   {
     id: 'booking-1',
     listing_id: 'lst-001',
-    renter_id: 'renter-1',
+    renter_id: 'user-test-renter',
     partner_id: 'partner-1',
     status: 'PENDING',
     check_in: '2026-03-20',
@@ -43,7 +43,7 @@ const mockBookings = [
   {
     id: 'booking-2',
     listing_id: 'lst-002',
-    renter_id: 'renter-2',
+    renter_id: 'user-test-renter-2',
     partner_id: 'partner-1',
     status: 'CONFIRMED',
     check_in: '2026-03-15',

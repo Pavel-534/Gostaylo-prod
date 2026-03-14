@@ -33,9 +33,22 @@ export default function RenterMessages({ params }) {
   const [detectedPatterns, setDetectedPatterns] = useState([])
   const [paymentModalOpen, setPaymentModalOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState(null)
+  const [renterId, setRenterId] = useState(null)
 
-  const renterId = 'renter-1'
   const conversationId = params?.id
+  
+  // Get user ID from localStorage
+  useEffect(() => {
+    const storedUser = localStorage.getItem('gostaylo_user')
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser)
+        setRenterId(user.id)
+      } catch (e) {
+        console.error('[MESSAGES] Failed to parse user', e)
+      }
+    }
+  }, [])
 
   // Realtime message subscription
   const handleNewRealtimeMessage = useCallback((newMsg) => {
@@ -54,8 +67,10 @@ export default function RenterMessages({ params }) {
   const { isOnline: partnerOnline } = usePresence(conversationId, renterId);
 
   useEffect(() => {
-    loadConversations()
-  }, [])
+    if (renterId) {
+      loadConversations()
+    }
+  }, [renterId])
 
   useEffect(() => {
     if (conversationId) {
@@ -84,6 +99,8 @@ export default function RenterMessages({ params }) {
   }, [messages, safetyWarningShown])
 
   async function loadConversations() {
+    if (!renterId) return
+    
     try {
       const res = await fetch(`/api/conversations?userId=${renterId}&role=RENTER`)
       const data = await res.json()
@@ -129,7 +146,11 @@ export default function RenterMessages({ params }) {
 
   async function sendMessage(e) {
     e.preventDefault()
-    if (!newMessage.trim() || !selectedConv) return
+    if (!newMessage.trim() || !selectedConv || !renterId) return
+
+    // Get user name from localStorage
+    const storedUser = localStorage.getItem('gostaylo_user')
+    const userName = storedUser ? JSON.parse(storedUser).name || 'Guest' : 'Guest'
 
     setSending(true)
     try {
@@ -140,7 +161,7 @@ export default function RenterMessages({ params }) {
           conversationId: selectedConv.id,
           senderId: renterId,
           senderRole: 'RENTER',
-          senderName: 'Алексей Иванов',
+          senderName: userName,
           message: newMessage,
         }),
       })
