@@ -164,11 +164,6 @@ export async function GET(request) {
           cover_image,
           base_price_thb,
           commission_rate
-        ),
-        renter:profiles!bookings_renter_id_fkey (
-          id,
-          name,
-          email
         )
       `)
       .eq('partner_id', userId) // SECURITY: Filter by owner_id

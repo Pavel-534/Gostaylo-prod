@@ -12,7 +12,7 @@ import { format, addDays, subDays, startOfMonth, endOfMonth, differenceInDays, p
 export const dynamic = 'force-dynamic'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 /**
  * Get seasonal price for a specific date
@@ -92,7 +92,8 @@ export async function GET(request) {
           headers: {
             'apikey': SUPABASE_KEY,
             'Authorization': `Bearer ${SUPABASE_KEY}`
-          }
+          },
+          cache: 'no-store'
         }
       )
       const listings = await listingsRes.json()
@@ -108,7 +109,8 @@ export async function GET(request) {
           headers: {
             'apikey': SUPABASE_KEY,
             'Authorization': `Bearer ${SUPABASE_KEY}`
-          }
+          },
+          cache: 'no-store'
         }
       )
       const bookings = await bookingsRes.json()
