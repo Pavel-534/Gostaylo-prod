@@ -198,46 +198,40 @@ function PremiumListingContent({ params }) {
   
   async function loadListing() {
     try {
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-      
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?id=eq.${params.id}&select=*,categories(id,name,slug,icon),owner:profiles!owner_id(id,first_name,last_name,email)`,
-        {
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
-          }
-        }
-      )
-      
+      // Use API endpoint instead of direct Supabase query
+      // This bypasses RLS issues with joined tables (categories, profiles)
+      const res = await fetch(`/api/v2/listings/${params.id}`)
       const data = await res.json()
       
-      if (data && data.length > 0) {
-        const l = data[0]
+      if (data.success && data.data) {
+        const l = data.data
         setListing({
           id: l.id,
-          ownerId: l.owner_id,
+          ownerId: l.ownerId,
           owner: l.owner,
-          categoryId: l.category_id,
-          category: l.categories,
+          categoryId: l.categoryId,
+          category: l.category,
           status: l.status,
           title: l.title,
           description: l.description,
           district: l.district,
           address: l.address,
-          basePriceThb: parseFloat(l.base_price_thb),
+          latitude: l.latitude,
+          longitude: l.longitude,
+          basePriceThb: parseFloat(l.basePriceThb),
           images: l.images || [],
-          coverImage: l.cover_image,
+          coverImage: l.coverImage,
           metadata: l.metadata || {},
           available: l.available,
-          isFeatured: l.is_featured,
+          isFeatured: l.isFeatured,
           views: l.views || 0,
           rating: parseFloat(l.rating) || 0,
-          reviewsCount: l.reviews_count || 0,
-          seasonalPricing: l.metadata?.seasonal_pricing || [],
-          minStay: l.min_booking_days || 1
+          reviewsCount: l.reviewsCount || 0,
+          seasonalPricing: l.seasonalPricing || [],
+          minStay: l.minBookingDays || 1
         })
+      } else {
+        console.error('Listing not found or error:', data.error)
       }
       
       setLoading(false)

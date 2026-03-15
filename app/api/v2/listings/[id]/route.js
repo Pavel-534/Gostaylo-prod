@@ -48,9 +48,11 @@ async function cleanupListingStorage(listingId, images) {
   }
 }
 
-export async function GET(request, { params }) {
+export async function GET(request, context) {
   try {
-    const { id } = params;
+    // In Next.js 13+, params can be async - await it to be safe
+    const params = await Promise.resolve(context.params)
+    const { id } = params
     
     const { data: listing, error } = await supabaseAdmin
       .from('listings')
@@ -142,9 +144,10 @@ export async function GET(request, { params }) {
   }
 }
 
-export async function PUT(request, { params }) {
+export async function PUT(request, context) {
   try {
-    const { id } = params;
+    const params = await Promise.resolve(context.params)
+    const { id } = params
     const body = await request.json();
     
     // Build update object
@@ -191,9 +194,10 @@ export async function PUT(request, { params }) {
   }
 }
 
-export async function DELETE(request, { params }) {
+export async function DELETE(request, context) {
   try {
-    const { id } = params;
+    const params = await Promise.resolve(context.params)
+    const { id } = params
     
     // 1. First, get listing to retrieve image URLs for cleanup
     const { data: listing, error: fetchError } = await supabaseAdmin
