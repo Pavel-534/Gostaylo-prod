@@ -1,364 +1,381 @@
 'use client'
 
+/**
+ * Gostaylo Partner Finances v2 - Real-time Revenue Dashboard
+ * 
+ * Features:
+ * - TanStack Query for reactive data
+ * - Real commission calculations (15% platform fee)
+ * - Transaction breakdown by booking status
+ * - Downloadable financial reports
+ * 
+ * @version 2.0
+ */
+
 import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { DollarSign, Wallet, ArrowUpRight, Loader2, Building2, Download } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { 
+  DollarSign, TrendingUp, Wallet, Download, 
+  Calendar, Building2, Loader2, ArrowUpRight, Clock 
+} from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
+import { format } from 'date-fns'
 import { toast } from 'sonner'
 
-export default function PartnerFinances() {
-  const [balance, setBalance] = useState(null)
-  const [payouts, setPayouts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [payoutModalOpen, setPayoutModalOpen] = useState(false)
-  const [payoutAmount, setPayoutAmount] = useState('')
-  const [payoutMethod, setPayoutMethod] = useState('PROMPTPAY')
-  const [walletAddress, setWalletAddress] = useState('')
-  const [bankAccount, setBankAccount] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+// Fetch partner bookings with financial data
+async function fetchPartnerFinances(partnerId) {
+  if (!partnerId) throw new Error('No partner ID')
+  
+  const res = await fetch(`/api/v2/partner/bookings?partnerId=${partnerId}`, {
+    cache: 'no-store'
+  })
+  
+  if (!res.ok) throw new Error('Failed to fetch finances')
+  
+  const data = await res.json()
+  return data.data || []
+}
 
+// Financial calculations
+function calculateFinances(bookings) {
+  const GOSTAYLO_FEE_RATE = 0.15 // 15%
+  
+  let totalGrossRevenue = 0
+  let totalGostayloFee = 0
+  let totalNetEarnings = 0
+  let pendingRevenue = 0
+  let completedRevenue = 0
+  
+  bookings.forEach(booking => {
+    const gross = parseFloat(booking.total_price_thb) || 0
+    const fee = gross * GOSTAYLO_FEE_RATE
+    const net = gross - fee
+    
+    totalGrossRevenue += gross
+    totalGostayloFee += fee
+    totalNetEarnings += net
+    
+    if (booking.status === 'COMPLETED') {
+      completedRevenue += net
+    } else if (['CONFIRMED', 'PAID', 'PAID_ESCROW'].includes(booking.status)) {
+      pendingRevenue += net
+    }
+  })
+  
+  return {
+    totalGrossRevenue,
+    totalGostayloFee,
+    totalNetEarnings,
+    completedRevenue,
+    pendingRevenue,
+    transactionCount: bookings.length
+  }
+}
+
+// Status badge colors
+const STATUS_COLORS = {
+  PENDING: 'bg-amber-100 text-amber-800 border-amber-200',
+  CONFIRMED: 'bg-blue-100 text-blue-800 border-blue-200',
+  PAID: 'bg-green-100 text-green-800 border-green-200',
+  PAID_ESCROW: 'bg-teal-100 text-teal-800 border-teal-200',
+  COMPLETED: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  CANCELLED: 'bg-red-100 text-red-800 border-red-200',
+  REFUNDED: 'bg-slate-100 text-slate-800 border-slate-200'
+}
+
+function StatCard({ icon: Icon, title, value, subtitle, trend, loading }) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm font-medium text-slate-600">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-slate-400" />
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="h-8 w-24 bg-slate-200 animate-pulse rounded" />
+        ) : (
+          <>
+            <div className="text-3xl font-bold text-slate-900">{value}</div>
+            {subtitle && <p className="text-xs text-slate-500 mt-1">{subtitle}</p>}
+            {trend && (
+              <div className="flex items-center gap-1 mt-2 text-xs text-green-600">
+                <TrendingUp className="h-3 w-3" />
+                <span>{trend}</span>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+export default function PartnerFinancesV2() {
+  const [partnerId, setPartnerId] = useState(null)
+  const [currency, setCurrency] = useState('THB')
+  const [exchangeRates] = useState({ THB: 1 })
+
+  // Get partner ID from localStorage
   useEffect(() => {
-    loadBalance()
-    loadPayouts()
+    const storedUser = localStorage.getItem('gostaylo_user')
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser)
+        setPartnerId(user.id)
+      } catch (e) {
+        console.error('[FINANCES] Failed to parse user', e)
+      }
+    }
   }, [])
 
-  async function loadBalance() {
-    try {
-      const res = await fetch('/api/partner/balance?partnerId=partner-1')
-      const data = await res.json()
-      
-      if (data.success) {
-        setBalance(data.data)
-      }
-      setLoading(false)
-    } catch (error) {
-      console.error('Failed to load balance:', error)
-      setLoading(false)
-    }
-  }
+  // Fetch bookings with TanStack Query
+  const { 
+    data: bookings = [], 
+    isLoading, 
+    isError, 
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['partner-finances', partnerId],
+    queryFn: () => fetchPartnerFinances(partnerId),
+    enabled: !!partnerId,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000 // Auto-refresh every minute
+  })
 
-  async function loadPayouts() {
-    try {
-      const res = await fetch('/api/partner/payouts?partnerId=partner-1')
-      const data = await res.json()
-      
-      if (data.success) {
-        setPayouts(data.data)
-      }
-    } catch (error) {
-      console.error('Failed to load payouts:', error)
-    }
-  }
+  // Calculate financial stats
+  const finances = calculateFinances(bookings)
 
-  async function handlePayoutRequest(e) {
-    e.preventDefault()
-
-    const amount = parseFloat(payoutAmount)
-    const currency = 'THB'
-    const minWithdrawal = currency === 'USDT' ? 30 : 1000
-
-    if (amount < minWithdrawal) {
-      toast.error(`Минимальная сумма вывода: ${minWithdrawal} ${currency}`)
+  // Export to CSV
+  const handleExportCSV = () => {
+    if (bookings.length === 0) {
+      toast.error('No transactions to export')
       return
     }
 
-    if (amount > (balance?.availableBalance || 0)) {
-      toast.error('Недостаточно средств')
-      return
-    }
-
-    setSubmitting(true)
-
-    try {
-      const res = await fetch('/api/partner/payouts/request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          partnerId: 'partner-1',
-          amount,
-          currency,
-          method: payoutMethod,
-          walletAddress: payoutMethod === 'USDT' ? walletAddress : null,
-          bankAccount: payoutMethod === 'PROMPTPAY' ? bankAccount : null,
-        }),
+    const csvRows = [
+      ['Date', 'Booking ID', 'Listing', 'Guest', 'Status', 'Gross Revenue', 'GoStaylo Fee (15%)', 'Net Earnings'].join(','),
+      ...bookings.map(b => {
+        const gross = parseFloat(b.total_price_thb) || 0
+        const fee = gross * 0.15
+        const net = gross - fee
+        return [
+          format(new Date(b.created_at), 'yyyy-MM-dd'),
+          b.id,
+          `"${b.listing?.title || 'N/A'}"`,
+          `"${b.guest_name || 'N/A'}"`,
+          b.status,
+          gross.toFixed(2),
+          fee.toFixed(2),
+          net.toFixed(2)
+        ].join(',')
       })
+    ]
 
-      const data = await res.json()
-
-      if (data.success) {
-        toast.success('Заявка на вывод отправлена!')
-        setPayoutModalOpen(false)
-        setPayoutAmount('')
-        setWalletAddress('')
-        setBankAccount('')
-        loadBalance()
-        loadPayouts()
-      } else {
-        toast.error(data.error || 'Ошибка при создании заявки')
-      }
-    } catch (error) {
-      console.error('Failed to request payout:', error)
-      toast.error('Ошибка при создании заявки')
-    } finally {
-      setSubmitting(false)
-    }
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `gostaylo-finances-${format(new Date(), 'yyyy-MM-dd')}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    
+    toast.success('Financial report downloaded')
   }
-
-  function getPayoutStatusBadge(status) {
-    const config = {
-      PENDING: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Ожидает' },
-      PROCESSING: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Обработка' },
-      COMPLETED: { bg: 'bg-green-100', text: 'text-green-700', label: 'Завершено' },
-      REJECTED: { bg: 'bg-red-100', text: 'text-red-700', label: 'Отклонено' },
-    }
-    const c = config[status] || config.PENDING
-    return <Badge className={`${c.bg} ${c.text}`}>{c.label}</Badge>
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-teal-600" />
-      </div>
-    )
-  }
-
-  const availableBalance = balance?.availableBalance || 0
-  const escrowBalance = balance?.escrowBalance || 0
 
   return (
-    <div className="p-4 lg:p-8 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Финансы</h1>
-        <p className="text-slate-600 mt-1">Управление доходами и выплатами</p>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Finances & Payouts</h1>
+          <p className="text-slate-600 mt-1">Real-time revenue tracking and transaction history</p>
+        </div>
+        <Button 
+          onClick={handleExportCSV}
+          variant="outline"
+          disabled={bookings.length === 0}
+          className="gap-2"
+        >
+          <Download className="h-4 w-4" />
+          Export CSV
+        </Button>
       </div>
 
-      {/* Balance Card */}
-      <Card className="bg-gradient-to-r from-teal-500 to-teal-600 text-white">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Wallet className="h-5 w-5" />
-            Баланс
-          </CardTitle>
-          <CardDescription className="text-teal-50">
-            Средства доступные для вывода
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="text-sm text-teal-100 mb-1">Доступно для вывода</p>
-            <div className="text-5xl font-bold">
-              {formatPrice(availableBalance, 'THB')}
+      {/* Financial Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          icon={DollarSign}
+          title="Total Gross Revenue"
+          value={formatPrice(finances.totalGrossRevenue, currency, exchangeRates)}
+          subtitle="Before platform fees"
+          loading={isLoading}
+        />
+        
+        <StatCard
+          icon={Building2}
+          title="GoStaylo Fee (15%)"
+          value={formatPrice(finances.totalGostayloFee, currency, exchangeRates)}
+          subtitle="Platform commission"
+          loading={isLoading}
+        />
+        
+        <StatCard
+          icon={Wallet}
+          title="Net Earnings (85%)"
+          value={formatPrice(finances.totalNetEarnings, currency, exchangeRates)}
+          subtitle="Your share"
+          loading={isLoading}
+        />
+        
+        <StatCard
+          icon={TrendingUp}
+          title="Transactions"
+          value={finances.transactionCount}
+          subtitle={`${bookings.filter(b => b.status === 'COMPLETED').length} completed`}
+          loading={isLoading}
+        />
+      </div>
+
+      {/* Revenue Breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="border-green-200">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-500" />
+              Completed Revenue
+            </CardTitle>
+            <CardDescription>Funds from completed stays</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-600">
+              {formatPrice(finances.completedRevenue, currency, exchangeRates)}
             </div>
-          </div>
-          
-          {escrowBalance > 0 && (
-            <div className="bg-teal-700/50 rounded-lg p-4">
-              <p className="text-sm text-teal-100">В эскроу (ожидают check-in)</p>
-              <p className="text-2xl font-bold">{formatPrice(escrowBalance, 'THB')}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-amber-200">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-amber-500" />
+              Pending Revenue
+            </CardTitle>
+            <CardDescription>Upcoming or in-progress bookings</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-amber-600">
+              {formatPrice(finances.pendingRevenue, currency, exchangeRates)}
             </div>
-          )}
-          
-          <div className="flex gap-3">
-            <Dialog open={payoutModalOpen} onOpenChange={setPayoutModalOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  className="bg-white text-teal-600 hover:bg-teal-50"
-                  size="lg"
-                  disabled={availableBalance < 1000}
-                >
-                  <ArrowUpRight className="h-5 w-5 mr-2" />
-                  Вывести средства
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Запрос на вывод средств</DialogTitle>
-                </DialogHeader>
+          </CardContent>
+        </Card>
+      </div>
 
-                <form onSubmit={handlePayoutRequest} className="space-y-6">
-                  <div>
-                    <Label htmlFor="amount" className="text-base font-semibold mb-2 block">
-                      Сумма вывода
-                    </Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      value={payoutAmount}
-                      onChange={(e) => setPayoutAmount(e.target.value)}
-                      placeholder="Минимум 1,000 THB"
-                      min="1000"
-                      step="100"
-                    />
-                    <p className="text-xs text-slate-500 mt-1">
-                      Доступно: {formatPrice(availableBalance, 'THB')}
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label className="text-base font-semibold mb-3 block">
-                      Способ вывода
-                    </Label>
-                    <RadioGroup value={payoutMethod} onValueChange={setPayoutMethod}>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-slate-50">
-                        <RadioGroupItem value="PROMPTPAY" id="promptpay" />
-                        <Label htmlFor="promptpay" className="flex items-center gap-3 cursor-pointer flex-1">
-                          <Building2 className="h-5 w-5 text-slate-600" />
-                          <div>
-                            <p className="font-semibold">Thai Bank (PromptPay)</p>
-                            <p className="text-xs text-slate-500">Перевод на тайский банк</p>
-                          </div>
-                        </Label>
-                      </div>
-
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-slate-50">
-                        <RadioGroupItem value="USDT" id="usdt" />
-                        <Label htmlFor="usdt" className="flex items-center gap-3 cursor-pointer flex-1">
-                          <Wallet className="h-5 w-5 text-amber-600" />
-                          <div>
-                            <p className="font-semibold">USDT Wallet</p>
-                            <p className="text-xs text-slate-500">Минимум 30 USDT</p>
-                          </div>
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  {payoutMethod === 'PROMPTPAY' && (
-                    <div>
-                      <Label htmlFor="bank">Номер счёта PromptPay</Label>
-                      <Input
-                        id="bank"
-                        value={bankAccount}
-                        onChange={(e) => setBankAccount(e.target.value)}
-                        placeholder="0812345678"
-                        required
-                      />
-                    </div>
-                  )}
-
-                  {payoutMethod === 'USDT' && (
-                    <div>
-                      <Label htmlFor="wallet">USDT Wallet Address (TRC-20)</Label>
-                      <Input
-                        id="wallet"
-                        value={walletAddress}
-                        onChange={(e) => setWalletAddress(e.target.value)}
-                        placeholder="TXYZMockWallet..."
-                        className="font-mono text-sm"
-                        required
-                      />
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    disabled={submitting || !payoutAmount || parseFloat(payoutAmount) < 1000}
-                    className="w-full bg-teal-600 hover:bg-teal-700"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Отправка...
-                      </>
-                    ) : (
-                      'Отправить заявку'
-                    )}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-
-            <Button
-              variant="outline"
-              size="lg"
-              className="bg-white/10 border-white/20 hover:bg-white/20 text-white"
-            >
-              <Download className="h-5 w-5 mr-2" />
-              Скачать отчёт
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Payout History */}
+      {/* Transaction History */}
       <Card>
         <CardHeader>
-          <CardTitle>История выводов</CardTitle>
-          <CardDescription>Ваши запросы на вывод средств</CardDescription>
+          <CardTitle>Transaction History</CardTitle>
+          <CardDescription>
+            Detailed breakdown of all bookings with commission calculations
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {payouts.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
-              Пока нет заявок на вывод
+          {isLoading ? (
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-20 bg-slate-100 animate-pulse rounded-lg" />
+              ))}
+            </div>
+          ) : isError ? (
+            <div className="text-center py-8 text-red-600">
+              <p className="mb-2">Failed to load transactions</p>
+              <p className="text-sm text-slate-500">{error?.message}</p>
+              <Button onClick={() => refetch()} variant="outline" className="mt-4">
+                Retry
+              </Button>
+            </div>
+          ) : bookings.length === 0 ? (
+            <div className="text-center py-12 text-slate-500">
+              <Calendar className="h-16 w-16 mx-auto mb-4 text-slate-300" />
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">No transactions yet</h3>
+              <p>Your booking revenue will appear here</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {payouts.map((payout) => (
-                <div key={payout.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1">
-                      <p className="font-semibold">{formatPrice(payout.amount, payout.currency)}</p>
-                      {getPayoutStatusBadge(payout.status)}
+            <div className="space-y-4">
+              {bookings.map((booking) => {
+                const gross = parseFloat(booking.total_price_thb) || 0
+                const fee = gross * 0.15
+                const net = gross - fee
+                
+                return (
+                  <div 
+                    key={booking.id} 
+                    className="flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors gap-4"
+                  >
+                    {/* Left: Booking Info */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-semibold text-slate-900">
+                          {booking.listing?.title || 'Listing'}
+                        </h4>
+                        <Badge className={`text-xs ${STATUS_COLORS[booking.status] || 'bg-slate-100'}`}>
+                          {booking.status}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-slate-600">
+                        Guest: {booking.guest_name || 'N/A'}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {booking.check_in && format(new Date(booking.check_in), 'MMM d')} → {booking.check_out && format(new Date(booking.check_out), 'MMM d, yyyy')}
+                      </p>
                     </div>
-                    <p className="text-sm text-slate-600">
-                      {payout.method === 'PROMPTPAY' ? 'Thai Bank' : 'USDT Wallet'} •{' '}
-                      {new Date(payout.createdAt).toLocaleDateString('ru-RU')}
-                    </p>
+
+                    {/* Right: Financial Breakdown */}
+                    <div className="flex flex-col md:items-end gap-1">
+                      <div className="flex items-center gap-4 text-sm">
+                        <div>
+                          <span className="text-slate-500">Gross:</span>
+                          <span className="font-medium text-slate-900 ml-2">
+                            {formatPrice(gross, currency, exchangeRates)}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500">Fee:</span>
+                          <span className="font-medium text-red-600 ml-2">
+                            -{formatPrice(fee, currency, exchangeRates)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-lg font-bold text-green-600">
+                        {formatPrice(net, currency, exchangeRates)}
+                      </div>
+                      <p className="text-xs text-slate-500">Your net earnings</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Stats Cards */}
-      <div className="grid md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Всего заработано</CardTitle>
-            <DollarSign className="h-4 w-4 text-teal-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatPrice(availableBalance + escrowBalance, 'THB')}</div>
-            <p className="text-xs text-slate-500 mt-1">За всё время</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Комиссия платформы</CardTitle>
-            <DollarSign className="h-4 w-4 text-slate-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">15%</div>
-            <p className="text-xs text-slate-500 mt-1">Стандартная ставка</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Выведено</CardTitle>
-            <ArrowUpRight className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatPrice(
-                payouts.filter(p => p.status === 'COMPLETED').reduce((sum, p) => sum + p.amount, 0),
-                'THB'
-              )}
+      {/* Info Footer */}
+      <Card className="bg-blue-50 border-blue-200">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-3">
+            <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div>
+              <h4 className="font-semibold text-blue-900 mb-1">How Payouts Work</h4>
+              <p className="text-sm text-blue-700">
+                GoStaylo retains a 15% platform fee from each booking. Your net earnings (85%) are automatically calculated and will be available for withdrawal once bookings are completed. Payouts are processed within 2-3 business days.
+              </p>
             </div>
-            <p className="text-xs text-slate-500 mt-1">Успешные выплаты</p>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
