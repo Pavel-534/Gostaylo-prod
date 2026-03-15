@@ -1,5 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "yarn build",
+  "installCommand": "yarn install --legacy-peer-deps",
+  "framework": "nextjs",
   "crons": [
     {
       "path": "/api/cron/checkin-reminder",

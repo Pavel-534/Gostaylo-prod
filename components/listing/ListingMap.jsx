@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * ListingMap - Leaflet.js Map Integration
+ * ListingMap - Leaflet.js Map Integration (v4.2.1 - React 18 Compatible)
  * 
  * Features:
  * - OpenStreetMap base layer
@@ -16,7 +16,7 @@ import React, { useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { MapPin } from 'lucide-react'
 
-// Dynamic import to avoid SSR issues with Leaflet
+// Dynamic import to avoid SSR issues with Leaflet (v4.2.1 compatible)
 const MapContainer = dynamic(
   () => import('react-leaflet').then((mod) => mod.MapContainer),
   { ssr: false }
@@ -126,13 +126,11 @@ export function ListingMap({ latitude, longitude, title, district, language = 'e
 // Add Leaflet CSS import helper
 export function LeafletCSS() {
   return (
-    <>
-      <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-        crossOrigin=""
-      />
-    </>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossOrigin=""
+    />
   )
 }
