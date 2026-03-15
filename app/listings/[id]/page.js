@@ -32,6 +32,10 @@ import {
   Users, Bed, Bath, Square, Calendar, Send, Loader2, User,
   Wifi, Car, Waves, Utensils, Info, Check, Heart, Shield, Clock, Award
 } from 'lucide-react'
+import { BentoGallery } from '@/components/listing/BentoGallery'
+import { DesktopBookingWidget, MobileBookingBar } from '@/components/listing/BookingWidget'
+import { AmenitiesGrid } from '@/components/listing/AmenitiesGrid'
+import { ListingMap, LeafletCSS } from '@/components/listing/ListingMap'
 import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
 import { detectLanguage, getUIText } from '@/lib/translations'
@@ -43,15 +47,6 @@ import { format, differenceInDays } from 'date-fns'
 import { ru } from 'date-fns/locale'
 
 const SERVICE_FEE_RATE = 0.05 // 5% service fee
-
-// Amenity categories with icons
-const AMENITY_ICONS = {
-  wifi: Wifi,
-  parking: Car,
-  pool: Waves,
-  kitchen: Utensils,
-  // Add more as needed
-}
 
 // Premium Listing Detail Component
 function PremiumListingContent({ params }) {
@@ -343,7 +338,9 @@ function PremiumListingContent({ params }) {
   }
   
   return (
-    <div className="min-h-screen bg-white">
+    <>
+      <LeafletCSS />
+      <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
@@ -366,44 +363,12 @@ function PremiumListingContent({ params }) {
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 lg:pb-8">
         {/* BENTO GALLERY */}
-        <div 
-          className="grid grid-cols-1 md:grid-cols-4 gap-2 h-[50vh] min-h-[400px] max-h-[600px] rounded-2xl overflow-hidden mb-12 cursor-pointer"
-          onClick={() => setGalleryOpen(true)}
-        >
-          {/* Main large image */}
-          {allImages[0] && (
-            <div className="relative md:col-span-2 md:row-span-2 bg-slate-100">
-              <Image
-                src={allImages[0]}
-                alt={listing.title}
-                fill
-                className="object-cover hover:scale-105 transition-transform duration-300"
-                sizes="(max-width: 768px) 100vw, 50vw"
-                priority
-              />
-            </div>
-          )}
-          
-          {/* 4 smaller images */}
-          {allImages.slice(1, 5).map((img, idx) => (
-            <div key={idx} className="relative hidden md:block bg-slate-100">
-              <Image
-                src={img}
-                alt={`${listing.title} ${idx + 2}`}
-                fill
-                className="object-cover hover:scale-105 transition-transform duration-300"
-                sizes="25vw"
-              />
-              {idx === 3 && allImages.length > 5 && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <Button variant="secondary" size="sm">
-                    +{allImages.length - 5} {language === 'ru' ? 'фото' : 'more'}
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        <BentoGallery 
+          images={allImages}
+          title={listing.title}
+          language={language}
+          onImageClick={() => setGalleryOpen(true)}
+        />
         
         {/* 2-Column Layout: Content + Sticky Widget */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -521,24 +486,28 @@ function PremiumListingContent({ params }) {
             <Separator className="lg:hidden" />
             
             {/* Amenities */}
-            {amenities.length > 0 && (
-              <div>
-                <h2 className="text-2xl font-medium tracking-tight mb-4">
-                  {language === 'ru' ? 'Удобства' : 'Amenities'}
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {amenities.map((amenity, idx) => {
-                    const Icon = AMENITY_ICONS[amenity.toLowerCase()] || Check
-                    return (
-                      <div key={idx} className="flex items-center gap-3 text-slate-700 py-2 border-b border-slate-50 last:border-0">
-                        <Icon className="h-5 w-5 text-teal-600" />
-                        <span className="capitalize">{amenity}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+            <AmenitiesGrid amenities={amenities} language={language} />
+            
+            <Separator />
+            
+            {/* Location Map */}
+            <div>
+              <h2 className="text-2xl font-medium tracking-tight mb-4">
+                {language === 'ru' ? 'Где вы будете' : "Where you'll be"}
+              </h2>
+              <ListingMap
+                latitude={listing.latitude}
+                longitude={listing.longitude}
+                title={listing.title}
+                district={listing.district}
+                language={language}
+              />
+              {listing.district && (
+                <p className="text-sm text-slate-600 mt-4">
+                  {listing.district}, {listing.city || 'Phuket'}, {language === 'ru' ? 'Таиланд' : 'Thailand'}
+                </p>
+              )}
+            </div>
             
             <Separator />
             
@@ -866,6 +835,7 @@ function PremiumListingContent({ params }) {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   )
 }
 
