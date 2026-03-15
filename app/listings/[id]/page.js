@@ -501,6 +501,7 @@ function PremiumListingContent({ params }) {
                 title={listing.title}
                 district={listing.district}
                 language={language}
+                categoryId={listing.category_id}
               />
               {listing.district && (
                 <p className="text-sm text-slate-600 mt-4">
