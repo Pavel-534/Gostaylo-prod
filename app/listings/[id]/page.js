@@ -471,6 +471,55 @@ function PremiumListingContent({ params }) {
             
             <Separator />
             
+            {/* Mobile: Inline Date Selection */}
+            <div className="lg:hidden">
+              <h2 className="text-2xl font-medium tracking-tight mb-4">
+                {language === 'ru' ? 'Выберите даты' : 'Select Your Dates'}
+              </h2>
+              <Card className="border-slate-200 bg-slate-50">
+                <CardContent className="p-4 space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">{language === 'ru' ? 'Даты проживания' : 'Travel Dates'}</Label>
+                    <GostayloCalendar
+                      key={calendarKey}
+                      listingId={listing.id}
+                      value={dateRange}
+                      onChange={setDateRange}
+                      minStay={listing.minStay}
+                      language={language}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">{language === 'ru' ? 'Количество гостей' : 'Number of Guests'}</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max={maxGuests}
+                      value={guests}
+                      onChange={(e) => setGuests(parseInt(e.target.value) || 1)}
+                      className="h-12"
+                    />
+                  </div>
+                  
+                  {priceCalc && (
+                    <div className="bg-white p-4 rounded-lg space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>{formatPrice(priceCalc.avgPricePerNight, currency, exchangeRates)} × {priceCalc.nights} {language === 'ru' ? 'ночей' : 'nights'}</span>
+                        <span className="font-medium">{formatPrice(priceCalc.finalTotal, currency, exchangeRates)}</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <p className="text-xs text-center text-slate-500">
+                    {language === 'ru' ? '💡 Прокрутите вниз и нажмите «Забронировать»' : '💡 Scroll down and tap "Book" to continue'}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <Separator className="lg:hidden" />
+            
             {/* Amenities */}
             {amenities.length > 0 && (
               <div>

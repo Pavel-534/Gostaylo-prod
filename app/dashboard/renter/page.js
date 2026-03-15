@@ -365,7 +365,7 @@ export default function RenterDashboard() {
           </Card>
         </Link>
 
-        <Link href="/favorites">
+        <Link href="/renter/favorites">
           <Card className="hover:shadow-md transition-shadow cursor-pointer border-red-100 hover:border-red-200">
             <CardContent className="pt-6">
               <div className="flex items-center gap-3 mb-2">
