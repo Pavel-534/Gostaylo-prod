@@ -157,7 +157,9 @@ function PremiumListingContent({ params }) {
   
   // Calculate pricing
   useEffect(() => {
-    if (!listing || !dateRange.from || !dateRange.to) {
+    console.log('[PREMIUM PAGE] dateRange changed:', dateRange, 'from:', dateRange?.from, 'to:', dateRange?.to)
+    
+    if (!listing || !dateRange?.from || !dateRange?.to) {
       setPriceCalc(null)
       return
     }
@@ -165,6 +167,8 @@ function PremiumListingContent({ params }) {
     const checkIn = format(dateRange.from, 'yyyy-MM-dd')
     const checkOut = format(dateRange.to, 'yyyy-MM-dd')
     const nights = differenceInDays(dateRange.to, dateRange.from)
+    
+    console.log('[PREMIUM PAGE] Calculating price:', { checkIn, checkOut, nights })
     
     if (nights > 0) {
       const calc = PricingService.calculatePrice({
@@ -175,6 +179,8 @@ function PremiumListingContent({ params }) {
         currency,
         exchangeRates
       })
+      
+      console.log('[PREMIUM PAGE] Calc result:', calc)
       
       setPriceCalc({
         ...calc,
