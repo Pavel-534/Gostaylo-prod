@@ -86,7 +86,7 @@ function PremiumListingContent({ params }) {
   const [calendarKey, setCalendarKey] = useState(0)
   
   // Recently viewed tracking
-  const { addToRecentlyViewed } = useRecentlyViewed()
+  const { addToRecent } = useRecentlyViewed()
   
   // Initialize dates from URL
   useEffect(() => {
@@ -130,17 +130,21 @@ function PremiumListingContent({ params }) {
   // Add to recently viewed
   useEffect(() => {
     if (listing && !loading) {
-      addToRecentlyViewed({
+      addToRecent({
         id: listing.id,
         title: listing.title,
         district: listing.district,
         coverImage: listing.coverImage,
+        cover_image: listing.coverImage,
         basePriceThb: listing.basePriceThb,
+        base_price_thb: listing.basePriceThb,
         rating: listing.rating,
-        reviewsCount: listing.reviewsCount
+        reviewsCount: listing.reviewsCount,
+        metadata: listing.metadata,
+        images: listing.images
       })
     }
-  }, [listing, loading, addToRecentlyViewed])
+  }, [listing, loading, addToRecent])
   
   // Auto-fill form from user
   useEffect(() => {
