@@ -134,7 +134,7 @@ export function UniversalHeader() {
                   {/* Main Navigation */}
                   <div className='py-1'>
                     <DropdownMenuItem asChild className='cursor-pointer py-2.5'>
-                      <Link href='/profile'>
+                      <Link href='/dashboard/renter'>
                         <User className='h-4 w-4 mr-3 text-slate-400' />
                         <span>Профиль</span>
                       </Link>
