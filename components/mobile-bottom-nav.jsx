@@ -36,10 +36,10 @@ const NAV_ITEMS = [
     requiresAuth: true
   },
   { 
-    href: '/profile', 
+    href: '/renter/profile', 
     icon: User, 
     label: 'Профиль',
-    activeMatches: ['/profile', '/my-bookings', '/favorites', '/settings'],
+    activeMatches: ['/renter/profile', '/renter/bookings', '/renter/favorites', '/profile', '/settings'],
     requiresAuth: true
   },
 ];

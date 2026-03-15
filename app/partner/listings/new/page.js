@@ -53,12 +53,16 @@ const STEPS = [
 
 export default function PremiumListingWizard() {
   const router = useRouter()
+  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
+  const editId = searchParams.get('edit')
+  const isEditMode = !!editId
   
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [savingDraft, setSavingDraft] = useState(false)
   const [categories, setCategories] = useState([])
+  const [partnerCommissionRate, setPartnerCommissionRate] = useState(15) // Dynamic from DB
   
   // Form data
   const [formData, setFormData] = useState({
@@ -70,7 +74,7 @@ export default function PremiumListingWizard() {
     latitude: null,
     longitude: null,
     basePriceThb: '',
-    commissionRate: 15,
+    commissionRate: 15, // Will be dynamically loaded from partner profile
     minBookingDays: 1,
     maxBookingDays: 90,
     images: [],
@@ -92,21 +96,74 @@ export default function PremiumListingWizard() {
     seasonalPricing: []
   })
   
-  // Load categories
+  // Load categories and partner commission
   useEffect(() => {
-    async function loadCategories() {
+    async function loadInitialData() {
       try {
-        const res = await fetch('/api/v2/categories')
-        const data = await res.json()
-        if (data.success) {
-          setCategories(data.data || [])
+        // Load categories
+        const catRes = await fetch('/api/v2/categories')
+        const catData = await catRes.json()
+        if (catData.success) {
+          setCategories(catData.data || [])
+        }
+        
+        // Load partner commission rate
+        const userId = localStorage.getItem('gostaylo_user_id')
+        if (userId) {
+          const profileRes = await fetch(`/api/v2/profiles/${userId}`)
+          const profileData = await profileRes.json()
+          if (profileData.success && profileData.data) {
+            const commissionRate = profileData.data.commission_rate || 15
+            setPartnerCommissionRate(commissionRate)
+            setFormData(prev => ({ ...prev, commissionRate }))
+          }
+        }
+        
+        // Load existing listing if edit mode
+        if (isEditMode && editId) {
+          await loadExistingListing(editId)
         }
       } catch (error) {
-        console.error('Failed to load categories:', error)
+        console.error('Failed to load initial data:', error)
       }
     }
-    loadCategories()
+    loadInitialData()
   }, [])
+  
+  // Load existing listing for edit
+  async function loadExistingListing(listingId) {
+    try {
+      setLoading(true)
+      const res = await fetch(`/api/v2/listings/${listingId}`)
+      const data = await res.json()
+      
+      if (data.success && data.data) {
+        const listing = data.data
+        setFormData({
+          categoryId: listing.categoryId || '',
+          categoryName: listing.category?.name || '',
+          title: listing.title || '',
+          description: listing.description || '',
+          district: listing.district || '',
+          latitude: listing.latitude,
+          longitude: listing.longitude,
+          basePriceThb: listing.basePriceThb?.toString() || '',
+          commissionRate: listing.commissionRate || partnerCommissionRate,
+          minBookingDays: listing.minBookingDays || 1,
+          maxBookingDays: listing.maxBookingDays || 90,
+          images: listing.images || [],
+          coverImage: listing.coverImage || '',
+          metadata: listing.metadata || {},
+          seasonalPricing: listing.seasonalPricing || []
+        })
+      }
+    } catch (error) {
+      console.error('Failed to load listing:', error)
+      toast.error('Failed to load listing data')
+    } finally {
+      setLoading(false)
+    }
+  }
   
   // Progress calculation
   const progress = useMemo(() => {
@@ -215,18 +272,21 @@ export default function PremiumListingWizard() {
         max_booking_days: parseInt(formData.maxBookingDays) || 90
       }
       
-      const res = await fetch('/api/v2/listings', {
-        method: 'POST',
+      const method = isEditMode ? 'PUT' : 'POST'
+      const url = isEditMode ? `/api/v2/listings/${editId}` : '/api/v2/listings'
+      
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
       
       const data = await res.json()
       if (data.success) {
-        toast.success('Listing published!')
+        toast.success(isEditMode ? 'Listing updated!' : 'Listing published!')
         router.push('/partner/listings')
       } else {
-        toast.error(data.error || 'Failed to publish')
+        toast.error(data.error || 'Failed to save')
       }
     } catch (error) {
       toast.error('Something went wrong')
@@ -598,7 +658,7 @@ export default function PremiumListingWizard() {
               Exit
             </Button>
             
-            <h1 className="text-xl font-semibold">Create New Listing</h1>
+            <h1 className="text-xl font-semibold">{isEditMode ? 'Edit Listing' : 'Create New Listing'}</h1>
             
             <Button
               variant="outline"
@@ -681,7 +741,7 @@ export default function PremiumListingWizard() {
                       className="bg-teal-600 hover:bg-teal-700 gap-2"
                     >
                       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                      Publish Listing
+                      {isEditMode ? 'Update Listing' : 'Publish Listing'}
                     </Button>
                   )}
                 </div>

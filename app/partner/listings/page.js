@@ -455,7 +455,7 @@ export default function PartnerListings() {
                     className='h-9'
                     asChild
                   >
-                    <Link href={`/partner/listings/${listing.id}`}>
+                    <Link href={`/partner/listings/new?edit=${listing.id}`}>
                       <Edit className='h-4 w-4' />
                     </Link>
                   </Button>

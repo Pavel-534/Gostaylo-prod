@@ -140,13 +140,13 @@ export function UniversalHeader() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild className='cursor-pointer py-2.5'>
-                      <Link href='/my-bookings'>
+                      <Link href='/renter/bookings'>
                         <CalendarDays className='h-4 w-4 mr-3 text-slate-400' />
                         <span>Мои бронирования</span>
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild className='cursor-pointer py-2.5'>
-                      <Link href='/favorites'>
+                      <Link href='/renter/favorites'>
                         <Heart className='h-4 w-4 mr-3 text-slate-400' />
                         <span>Избранное</span>
                       </Link>
