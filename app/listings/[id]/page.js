@@ -157,8 +157,6 @@ function PremiumListingContent({ params }) {
   
   // Calculate pricing
   useEffect(() => {
-    console.log('[PREMIUM PAGE] dateRange changed:', dateRange, 'from:', dateRange?.from, 'to:', dateRange?.to)
-    
     if (!listing || !dateRange?.from || !dateRange?.to) {
       setPriceCalc(null)
       return
@@ -167,8 +165,6 @@ function PremiumListingContent({ params }) {
     const checkIn = format(dateRange.from, 'yyyy-MM-dd')
     const checkOut = format(dateRange.to, 'yyyy-MM-dd')
     const nights = differenceInDays(dateRange.to, dateRange.from)
-    
-    console.log('[PREMIUM PAGE] Calculating price:', { checkIn, checkOut, nights })
     
     if (nights > 0) {
       const calc = PricingService.calculatePrice({
@@ -179,8 +175,6 @@ function PremiumListingContent({ params }) {
         currency,
         exchangeRates
       })
-      
-      console.log('[PREMIUM PAGE] Calc result:', calc)
       
       setPriceCalc({
         ...calc,
@@ -370,7 +364,7 @@ function PremiumListingContent({ params }) {
         </div>
       </header>
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 lg:pb-8">
         {/* BENTO GALLERY */}
         <div 
           className="grid grid-cols-1 md:grid-cols-4 gap-2 h-[50vh] min-h-[400px] max-h-[600px] rounded-2xl overflow-hidden mb-12 cursor-pointer"
@@ -577,7 +571,8 @@ function PremiumListingContent({ params }) {
           
           {/* RIGHT: STICKY BOOKING WIDGET */}
           <div className="lg:col-span-1">
-            <Card className="border-slate-200 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] sticky top-24 z-10">
+            {/* Desktop: Sticky Card */}
+            <Card className="hidden lg:block border-slate-200 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] sticky top-24 z-10">
               <CardContent className="p-6 space-y-6">
                 {/* Price Header */}
                 <div>
@@ -668,6 +663,35 @@ function PremiumListingContent({ params }) {
                 </p>
               </CardContent>
             </Card>
+            
+            {/* Mobile: Fixed Bottom Bar (Airbnb Style) */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 shadow-[0_-4px_12px_rgb(0,0,0,0.08)]">
+              <div className="px-4 py-3 flex items-center justify-between">
+                <div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-semibold text-slate-900">
+                      {priceCalc ? formatPrice(priceCalc.finalTotal, currency, exchangeRates) : formatPrice(listing.basePriceThb, currency, exchangeRates)}
+                    </span>
+                    <span className="text-sm text-slate-500">
+                      {priceCalc ? ` / ${priceCalc.nights} ${language === 'ru' ? 'ноч.' : 'nights'}` : ` / ${language === 'ru' ? 'ночь' : 'night'}`}
+                    </span>
+                  </div>
+                  {listing.rating > 0 && (
+                    <div className="flex items-center gap-1 text-sm">
+                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                      <span className="font-medium">{listing.rating.toFixed(1)}</span>
+                    </div>
+                  )}
+                </div>
+                <Button
+                  onClick={() => setBookingModalOpen(true)}
+                  disabled={!dateRange.from || !dateRange.to}
+                  className="bg-teal-600 hover:bg-teal-700 text-white font-medium px-6 h-11 rounded-lg shadow-sm active:scale-95 transition-transform"
+                >
+                  {language === 'ru' ? 'Забронировать' : 'Book'}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </main>

@@ -75,6 +75,19 @@ export async function GET(request, { params }) {
       .update({ views: (listing.views || 0) + 1 })
       .eq('id', id);
     
+    // Server-side fallback: Calculate reviews_count if NULL
+    let reviewsCount = listing.reviews_count
+    if (reviewsCount === null || reviewsCount === undefined) {
+      // Fetch actual count from reviews table
+      const { count, error: countError } = await supabaseAdmin
+        .from('reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('listing_id', id)
+      
+      reviewsCount = countError ? 0 : (count || 0)
+      console.log(`[LISTING API] Fallback reviews_count for ${id}: ${reviewsCount}`)
+    }
+    
     // Get seasonal prices
     const { data: seasonalPrices } = await supabaseAdmin
       .from('seasonal_prices')
@@ -107,7 +120,7 @@ export async function GET(request, { params }) {
       views: (listing.views || 0) + 1,
       bookingsCount: listing.bookings_count || 0,
       rating: parseFloat(listing.rating) || 0,
-      reviewsCount: listing.reviews_count || 0,
+      reviewsCount: reviewsCount || 0,
       createdAt: listing.created_at,
       owner: listing.owner,
       seasonalPrices: seasonalPrices?.map(sp => ({

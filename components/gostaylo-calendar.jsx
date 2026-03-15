@@ -349,10 +349,8 @@ export function GostayloCalendar({
       // Valid range - set check-out
       onChange({ from: value.from, to: date })
       
-      // Close calendar on mobile after selection
-      if (isMobile) {
-        setTimeout(() => setOpen(false), 200)
-      }
+      // Auto-close calendar after selection (both mobile and desktop)
+      setTimeout(() => setOpen(false), 200)
     } else {
       // Already have both dates - start new selection
       onChange({ from: date, to: null })
