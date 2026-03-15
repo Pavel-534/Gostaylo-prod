@@ -2,7 +2,8 @@
 -- CRITICAL FIX: Bookings RLS Policies
 -- ========================================
 -- Issue: Renters can't see bookings they just created
--- Fix: Add SELECT policies for renters and partners
+-- Issue: Renters can't INSERT new bookings (blocked by RLS)
+-- Fix: Add SELECT and INSERT policies for renters and partners
 
 -- Policy 1: Renters can view their own bookings
 CREATE POLICY "renters_view_own_bookings"
@@ -31,6 +32,17 @@ USING (
     WHERE id = auth.uid() AND role = 'ADMIN'
   )
 );
+
+-- Policy 4: Renters can INSERT their own bookings
+CREATE POLICY "renters_insert_own_bookings"
+ON bookings FOR INSERT
+WITH CHECK (
+  renter_id = auth.uid()
+  OR renter_id IS NULL  -- Allow guest (anonymous) bookings
+);
+
+-- Policy 5: Service Role bypass (automatic for all operations)
+-- This is built-in to Supabase - Service Role always bypasses RLS
 
 -- ========================================
 -- Verification Query
