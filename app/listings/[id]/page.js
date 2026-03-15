@@ -32,10 +32,24 @@ import {
   Users, Bed, Bath, Square, Calendar, Send, Loader2, User,
   Wifi, Car, Waves, Utensils, Info, Check, Heart, Shield, Clock, Award
 } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import { BentoGallery } from '@/components/listing/BentoGallery'
 import { DesktopBookingWidget, MobileBookingBar } from '@/components/listing/BookingWidget'
 import { AmenitiesGrid } from '@/components/listing/AmenitiesGrid'
-import { ListingMap, LeafletCSS } from '@/components/listing/ListingMap'
+import { LeafletCSS } from '@/components/listing/ListingMap'
+
+// Dynamic import for ListingMap (SSR prevention for Leaflet)
+const ListingMap = dynamic(
+  () => import('@/components/listing/ListingMap').then((mod) => mod.ListingMap),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-[400px] bg-slate-100 rounded-xl flex items-center justify-center">
+        <div className="animate-pulse text-slate-400">Loading map...</div>
+      </div>
+    )
+  }
+)
 import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
 import { detectLanguage, getUIText } from '@/lib/translations'
