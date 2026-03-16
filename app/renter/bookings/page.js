@@ -149,7 +149,8 @@ function BookingCard({ booking, onReviewClick }) {
     ? Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24))
     : 0
   
-  const listing = booking.listing || {}
+  // Handle both 'listing' and 'listings' (Supabase join returns 'listings')
+  const listing = booking.listing || booking.listings || {}
   const listingImage = listing.images?.[0] || listing.cover_image || '/placeholder.jpg'
   
   // Determine action button

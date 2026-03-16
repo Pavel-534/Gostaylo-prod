@@ -501,10 +501,21 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Test Report:** `/app/test_reports/iteration_14.json`
 
 ## RLS Policy Notes
-- RLS policies are defined in `/app/database/rls_policies.sql`
+- RLS policies are defined in `/app/database/rls_policies.sql` and `/app/scripts/bookings-rls-fix.sql`
 - **Important:** RLS uses `auth.uid()` from Supabase Auth, but app uses custom JWT auth
 - Backend APIs use `SUPABASE_SERVICE_ROLE_KEY` which bypasses RLS
 - Authorization is handled at API level via `owner_id` filtering
+
+### Bookings Table RLS (✅ FIXED - 2026-03-15)
+**Issue:** "Booking Deadlock" - Renters couldn't create or view their own bookings due to missing RLS policies
+**Fix Applied:**
+- ✅ `renters_view_own_bookings` - Renters can SELECT their own bookings
+- ✅ `partners_view_listing_bookings` - Partners can SELECT bookings for their listings
+- ✅ `admins_view_all_bookings` - Admins can SELECT all bookings
+- ✅ `renters_insert_own_bookings` - Renters can INSERT their own bookings
+- **Script:** `/app/scripts/bookings-rls-fix.sql` (EXECUTED)
+- **Report:** `/app/docs/BOOKING_DEADLOCK_FIX_REPORT.md`
+- **Test Report:** `/app/test_reports/iteration_23.json` (100% backend, 100% frontend)
 
 ## Test Credentials
 - **Admin:** pavel_534@mail.ru / ChangeMe2025!
@@ -523,6 +534,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - `/app/test_reports/iteration_14.json` - Night-Based Booking Logic (14/14 backend, 8/8 frontend)
 - `/app/test_reports/iteration_15.json` - Visual Calendar Blocking (7/7 frontend - all verified)
 - `/app/test_reports/iteration_16.json` - Search Context Inheritance (5/5 frontend - all verified)
+- `/app/test_reports/iteration_23.json` - **Booking Deadlock Fix (E2E)** (6/6 backend, 5/5 frontend - 100% PASS)
 
 ### 24. Search Architecture Cleanup (2026-03-12)
 - **Sterilization:** Legacy search code marked deprecated, new architecture documented
