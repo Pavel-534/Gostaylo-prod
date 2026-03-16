@@ -129,7 +129,7 @@ const PARTNER_NAV = [
 const RENTER_NAV = [
   { 
     label: 'My Bookings', 
-    href: '/dashboard/renter', 
+    href: '/renter/bookings', 
     icon: Calendar,
     description: 'Your reservations'
   },
