@@ -49,77 +49,52 @@ export default function UserDetailPage() {
 
   const loadUserData = async () => {
     try {
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-      // Load user profile
-      const profileRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=*`,
-        {
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
-          }
+      // Use new admin API endpoint that bypasses RLS with SERVICE_ROLE_KEY
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        headers: {
+          'Cache-Control': 'no-cache'
         }
-      );
+      });
 
-      if (profileRes.ok) {
-        const profiles = await profileRes.json();
-        if (profiles.length > 0) {
-          const profile = profiles[0];
-          setUser({
-            id: profile.id,
-            email: profile.email,
-            firstName: profile.first_name,
-            lastName: profile.last_name,
-            name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email,
-            role: profile.role,
-            phone: profile.phone,
-            isVerified: profile.is_verified,
-            verificationStatus: profile.verification_status,
-            customCommissionRate: profile.custom_commission_rate,
-            availableBalance: profile.available_balance,
-            telegramId: profile.telegram_id,
-            telegramUsername: profile.telegram_username,
-            createdAt: profile.created_at,
-            verificationDocUrl: profile.verification_doc_url,
-            verificationDocType: profile.verification_doc_type,
-            verificationSubmittedAt: profile.verification_submitted_at,
-          });
-          setCustomCommission(profile.custom_commission_rate?.toString() || '');
-        }
+      if (!response.ok) {
+        throw new Error('Failed to load user data');
       }
 
-      // Load KYC documents (partner_applications)
-      const kycRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/partner_applications?user_id=eq.${userId}&select=*&order=created_at.desc`,
-        {
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
-          }
-        }
-      );
+      const { data } = await response.json();
 
-      if (kycRes.ok) {
-        const kycData = await kycRes.json();
-        setKycDocs(kycData);
+      // Set user profile
+      if (data.profile) {
+        const profile = data.profile;
+        setUser({
+          id: profile.id,
+          email: profile.email,
+          firstName: profile.first_name,
+          lastName: profile.last_name,
+          name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email,
+          role: profile.role,
+          phone: profile.phone,
+          isVerified: profile.is_verified,
+          verificationStatus: profile.verification_status,
+          customCommissionRate: profile.custom_commission_rate,
+          availableBalance: profile.available_balance,
+          telegramId: profile.telegram_id,
+          telegramUsername: profile.telegram_username,
+          createdAt: profile.created_at,
+          verificationDocUrl: profile.verification_doc_url,
+          verificationDocType: profile.verification_doc_type,
+          verificationSubmittedAt: profile.verification_submitted_at,
+        });
+        setCustomCommission(profile.custom_commission_rate?.toString() || '');
       }
 
-      // Load user's listings (if Partner)
-      const listingsRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${userId}&select=id,title,status,price_per_day,type&order=created_at.desc&limit=10`,
-        {
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`
-          }
-        }
-      );
+      // Set KYC documents
+      if (data.applications) {
+        setKycDocs(data.applications);
+      }
 
-      if (listingsRes.ok) {
-        const listingsData = await listingsRes.json();
-        setListings(listingsData);
+      // Set listings
+      if (data.listings) {
+        setListings(data.listings);
       }
 
     } catch (error) {

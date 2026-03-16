@@ -19,6 +19,7 @@ import {
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -38,6 +39,34 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handleRefreshCache() {
+    setRefreshing(true);
+    try {
+      const res = await fetch('/api/admin/revalidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          paths: ['/', '/listings', '/renter', '/partner/dashboard'] 
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        alert('✅ Cache cleared successfully! Ghost listings should now be gone.');
+        // Reload stats to reflect changes
+        loadStats();
+      } else {
+        alert('❌ Failed to clear cache. Please try again.');
+      }
+    } catch (error) {
+      console.error('[REFRESH CACHE]', error);
+      alert('❌ Error clearing cache. Check console for details.');
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -46,10 +75,21 @@ export default function AdminDashboard() {
           <h1 className="text-3xl font-bold text-slate-800">Admin Dashboard</h1>
           <p className="text-slate-600">System overview and management</p>
         </div>
-        <Badge className="bg-indigo-100 text-indigo-800">
-          <Shield className="h-3 w-3 mr-1" />
-          Admin Access
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Button 
+            onClick={handleRefreshCache}
+            disabled={refreshing}
+            variant="outline"
+            className="bg-white hover:bg-slate-50"
+          >
+            <TrendingUp className="h-4 w-4 mr-2" />
+            {refreshing ? 'Refreshing...' : 'Refresh Site Data'}
+          </Button>
+          <Badge className="bg-indigo-100 text-indigo-800">
+            <Shield className="h-3 w-3 mr-1" />
+            Admin Access
+          </Badge>
+        </div>
       </div>
 
       {/* Stats Grid */}

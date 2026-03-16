@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { revalidateListingPaths } from '@/lib/revalidation';
 
 /**
  * @deprecated Use /api/v2/search instead
@@ -169,6 +170,9 @@ export async function POST(request) {
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
+    
+    // Trigger cache revalidation (Airbnb-style smart caching)
+    await revalidateListingPaths('create', listing.id);
     
     return NextResponse.json({ 
       success: true, 

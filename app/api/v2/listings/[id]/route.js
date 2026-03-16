@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
+import { revalidateListingPaths } from '@/lib/revalidation';
 
 const STORAGE_BUCKET = 'listings';
 
@@ -177,6 +178,9 @@ export async function PUT(request, context) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
     
+    // Trigger cache revalidation (Airbnb-style smart caching)
+    await revalidateListingPaths('update', id);
+    
     return NextResponse.json({ 
       success: true, 
       data: {
@@ -229,6 +233,9 @@ export async function DELETE(request, context) {
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
+    
+    // Trigger cache revalidation (Airbnb-style smart caching)
+    await revalidateListingPaths('delete', id);
     
     return NextResponse.json({ 
       success: true, 
