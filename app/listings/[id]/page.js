@@ -669,7 +669,10 @@ function PremiumListingContent({ params }) {
                       </div>
                     )}
                     <div className="flex justify-between text-sm">
-                      <span>{language === 'ru' ? 'Сервисный сбор' : 'Service fee'} (5%)</span>
+                      <span>
+                        {language === 'ru' ? 'Сервисный сбор' : 'Service fee'} 
+                        ({priceCalc?.commissionRate || listing?.commissionRate || 15}%)
+                      </span>
                       <span>{formatPrice(priceCalc.serviceFee, currency, exchangeRates)}</span>
                     </div>
                     <Separator />
