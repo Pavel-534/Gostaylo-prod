@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
 import { revalidateListingPaths } from '@/lib/revalidation';
+import PricingService from '@/lib/services/pricing.service';
 
 const STORAGE_BUCKET = 'listings';
 
@@ -98,6 +99,15 @@ export async function GET(request, context) {
       .eq('listing_id', id)
       .order('start_date', { ascending: true });
     
+    // Calculate commission rate dynamically via PricingService
+    // This ensures UI always shows the CORRECT rate based on:
+    // 1. Partner's custom_commission_rate, 2. Global platform rate, 3. 15% fallback
+    const dummyPrice = 1000; // Use dummy price just to get commission rate
+    const commissionCalc = await PricingService.calculateCommission(dummyPrice, listing.owner_id);
+    const dynamicCommissionRate = commissionCalc.commissionRate;
+    
+    console.log(`[LISTING API] Commission rate for listing ${id}: ${dynamicCommissionRate}% (via PricingService)`);
+    
     // Transform for frontend
     const transformed = {
       id: listing.id,
@@ -112,7 +122,7 @@ export async function GET(request, context) {
       longitude: listing.longitude,
       address: listing.address,
       basePriceThb: parseFloat(listing.base_price_thb),
-      commissionRate: parseFloat(listing.commission_rate),
+      commissionRate: dynamicCommissionRate,  // Use calculated rate from PricingService
       images: listing.images || [],
       coverImage: listing.cover_image,
       metadata: listing.metadata || {},

@@ -60,8 +60,6 @@ import { useRecentlyViewed } from '@/lib/hooks/use-recently-viewed'
 import { format, differenceInDays } from 'date-fns'
 import { ru } from 'date-fns/locale'
 
-const SERVICE_FEE_RATE = 0.05 // 5% service fee
-
 // Premium Listing Detail Component
 function PremiumListingContent({ params }) {
   const router = useRouter()
@@ -185,11 +183,16 @@ function PremiumListingContent({ params }) {
         exchangeRates
       })
       
+      // Use commission rate from listing (calculated by PricingService for this partner)
+      const serviceFeeRate = (listing.commissionRate || 15) / 100
+      const serviceFee = Math.round(calc.totalPrice * serviceFeeRate)
+      
       setPriceCalc({
         ...calc,
         nights,
-        serviceFee: Math.round(calc.totalPrice * SERVICE_FEE_RATE),
-        finalTotal: calc.totalPrice + Math.round(calc.totalPrice * SERVICE_FEE_RATE)
+        commissionRate: listing.commissionRate || 15,
+        serviceFee,
+        finalTotal: calc.totalPrice + serviceFee
       })
     } else {
       setPriceCalc(null)
@@ -219,6 +222,7 @@ function PremiumListingContent({ params }) {
           latitude: l.latitude,
           longitude: l.longitude,
           basePriceThb: parseFloat(l.basePriceThb),
+          commissionRate: parseFloat(l.commissionRate) || 15,  // Commission from PricingService hierarchy
           images: l.images || [],
           coverImage: l.coverImage,
           metadata: l.metadata || {},
@@ -277,6 +281,7 @@ function PremiumListingContent({ params }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           listingId: listing.id,
+          renterId: user.id,  // CRITICAL FIX: Pass user ID from profiles table
           checkIn,
           checkOut,
           guestName,
