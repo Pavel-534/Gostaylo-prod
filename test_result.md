@@ -273,3 +273,48 @@
 - Browser: Chromium (Playwright)
 - Viewport: Desktop (1920x1080)
 - Authentication: Partner role verified
+
+---
+
+# 🧪 NEW TEST SESSION - Booking Deadlock Fix (E2E)
+**Date:** 2025-03-15
+**Agent:** Fork Agent (継続作業)
+**Test Type:** End-to-End Booking Flow + Calendar Sync Verification
+
+## Context
+- **Issue:** "Booking Deadlock" - UI shows dates as available but DB blocks them
+- **Root Cause:** Incorrect RLS policies on `bookings` table
+- **Fix Applied:** SQL script executed by architect to add proper INSERT and SELECT policies
+- **Code Status:** CalendarService already correctly filters by PENDING/CONFIRMED/PAID statuses
+
+## Test Objectives
+1. ✅ Verify renter can create a new booking through UI
+2. ✅ Verify booking appears in `/renter/bookings` dashboard immediately
+3. ✅ Verify booked dates are grayed out (blocked) in calendar for all users
+4. ✅ Verify redirect after successful booking goes to `/renter/bookings`
+5. ✅ Verify calendar API uses `force-dynamic` to prevent stale caching
+
+## Test Plan
+### Phase 1: Pre-test Cleanup
+- Execute SQL to remove all test bookings for `pavel29031983@gmail.com`
+
+### Phase 2: E2E Booking Test
+**Test Listing:** Villa (demo-villa-luxury-001)
+**Test User:** Renter (pavel29031983@gmail.com / az123456)
+
+**Test Flow:**
+1. Login as renter
+2. Navigate to Villa listing page
+3. Select available dates in calendar (e.g., 3-night stay)
+4. Click "Book Now" and fill booking form
+5. Submit booking
+6. **Expected:** Redirect to `/renter/bookings`
+7. **Expected:** New booking visible in "My Bookings" with status "PENDING"
+8. Navigate back to Villa listing page
+9. **Expected:** Previously selected dates now grayed out in calendar
+10. Test as another user (or anonymous) - dates should also be blocked
+
+## Incorporate User Feedback
+- User confirmed SQL script is executed with ::text casting for status
+- User confirmed RLS is active with public_view_busy_dates policy
+- Code review shows CalendarService already uses correct status filters
