@@ -26,15 +26,23 @@ export async function POST(request) {
     const defaultPaths = [
       '/',                    // Homepage
       '/listings',            // Listings page
-      '/renter',             // Renter dashboard
-      '/partner/dashboard',  // Partner dashboard
+      '/property',            // Property category
+      '/yacht',               // Yacht category
+      '/motorbike',           // Motorbike category
+      '/tour',                // Tour category
+      '/renter',              // Renter dashboard
+      '/partner/dashboard',   // Partner dashboard
     ]
 
     const pathsToRevalidate = paths.length > 0 ? paths : defaultPaths
 
     console.log('[REVALIDATION] Triggering revalidation for:', pathsToRevalidate)
 
-    // Revalidate each path
+    // CRITICAL: Revalidate root layout FIRST (clears ALL pages including categories)
+    revalidatePath('/', 'layout')
+    console.log('[REVALIDATION] ✅ GLOBAL LAYOUT revalidated (root)')
+
+    // Revalidate each specific path
     for (const path of pathsToRevalidate) {
       try {
         revalidatePath(path)
