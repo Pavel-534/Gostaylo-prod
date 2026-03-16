@@ -28,19 +28,17 @@ export default function UsersPage() {
 
   const loadUsers = async () => {
     try {
-      // Direct Supabase call to avoid k8s routing issues
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=*&order=created_at.desc`, {
+      // Use API endpoint that uses SERVICE_ROLE_KEY to bypass RLS
+      const res = await fetch('/api/admin/users/list', {
         headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
+          'Cache-Control': 'no-cache'
         }
       });
       
       if (res.ok) {
-        const data = await res.json();
+        const response = await res.json();
+        const data = response.data || [];
+        
         const formattedUsers = data.map(u => ({
           id: u.id,
           email: u.email,
@@ -58,6 +56,8 @@ export default function UsersPage() {
         }));
         setUsers(formattedUsers);
         setFilteredUsers(formattedUsers);
+      } else {
+        toast.error('Failed to load users');
       }
     } catch (error) {
       console.error('Failed to load users:', error);
