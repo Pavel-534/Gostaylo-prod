@@ -2,25 +2,29 @@
 
 /**
  * Gostaylo Premium Listing Detail Page
- * Refactored - Phase 7.6 Final
+ * Refactored - Phase 7.6
  * 
- * Clean modular architecture with extracted components
+ * @refactored Clean component-based architecture
  */
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, Loader2, Heart } from 'lucide-react'
+import { ArrowLeft, X, ChevronLeft, ChevronRight, Loader2, Heart } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { BentoGallery } from '@/components/listing/BentoGallery'
 import { DesktopBookingWidget, MobileBookingBar } from '@/components/listing/BookingWidget'
 import { AmenitiesGrid } from '@/components/listing/AmenitiesGrid'
 import { ListingInfo } from '@/components/listing/ListingInfo'
 import { ReviewsSection } from '@/components/listing/ReviewsSection'
-import { GalleryModal } from '@/components/listing/GalleryModal'
-import { BookingModal } from '@/components/listing/BookingModal'
 import { LeafletCSS } from '@/components/listing/ListingMap'
+import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
 import { detectLanguage } from '@/lib/translations'
 import { PricingService } from '@/lib/services/pricing.service'
@@ -28,10 +32,8 @@ import { useAuth } from '@/contexts/auth-context'
 import { GostayloCalendar } from '@/components/gostaylo-calendar'
 import { useRecentlyViewed } from '@/lib/hooks/use-recently-viewed'
 import { format, differenceInDays } from 'date-fns'
+import { ru } from 'date-fns/locale'
 import { Card, CardContent } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { formatPrice } from '@/lib/currency'
 
 const ListingMap = dynamic(
   () => import('@/components/listing/ListingMap').then((mod) => mod.ListingMap),
@@ -49,9 +51,6 @@ function PremiumListingContent({ params }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, openLoginModal } = useAuth()
-  const { addToRecent } = useRecentlyViewed()
-  
-  // State
   const [listing, setListing] = useState(null)
   const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
@@ -62,44 +61,63 @@ function PremiumListingContent({ params }) {
   const [language, setLanguage] = useState('ru')
   const [currency, setCurrency] = useState('THB')
   const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
+  
+  // Form state
   const [guestName, setGuestName] = useState('')
   const [guestEmail, setGuestEmail] = useState('')
   const [guestPhone, setGuestPhone] = useState('')
   const [dateRange, setDateRange] = useState({ from: null, to: null })
   const [guests, setGuests] = useState(2)
   const [message, setMessage] = useState('')
+  const [datesInitialized, setDatesInitialized] = useState(false)
+  
+  // Price calculation state
   const [priceCalc, setPriceCalc] = useState(null)
   const [calendarKey, setCalendarKey] = useState(0)
   
-  // Initialize from URL
+  // Recently viewed tracking
+  const { addToRecent } = useRecentlyViewed()
+  
+  // Initialize dates from URL
   useEffect(() => {
-    const checkInParam = searchParams.get('checkIn')
-    const checkOutParam = searchParams.get('checkOut')
-    const guestsParam = searchParams.get('guests')
+    if (datesInitialized || typeof window === 'undefined') return
+    
+    const urlParams = new URLSearchParams(window.location.search)
+    const checkInParam = urlParams.get('checkIn')
+    const checkOutParam = urlParams.get('checkOut')
+    const guestsParam = urlParams.get('guests')
     
     if (checkInParam && checkOutParam) {
       try {
         const from = new Date(checkInParam + 'T00:00:00')
         const to = new Date(checkOutParam + 'T00:00:00')
-        if (from >= new Date() && to > from) {
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        
+        if (from >= today && to > from) {
           setDateRange({ from, to })
         }
       } catch (e) {
-        // Invalid dates
+        console.error('Invalid date params:', e)
       }
     }
     
-    if (guestsParam) setGuests(parseInt(guestsParam) || 2)
-  }, [searchParams])
+    if (guestsParam) {
+      setGuests(parseInt(guestsParam) || 2)
+    }
+    
+    setDatesInitialized(true)
+  }, [datesInitialized])
   
-  // Load data
+  // Load listing data
   useEffect(() => {
-    setLanguage(detectLanguage())
+    const detectedLang = detectLanguage()
+    setLanguage(detectedLang)
     loadListing()
     loadReviews()
-  }, [params.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [params.id])
   
-  // Track recently viewed
+  // Add to recently viewed
   useEffect(() => {
     if (listing && !loading) {
       addToRecent({
@@ -107,14 +125,18 @@ function PremiumListingContent({ params }) {
         title: listing.title,
         district: listing.district,
         coverImage: listing.coverImage,
+        cover_image: listing.coverImage,
         basePriceThb: listing.basePriceThb,
+        base_price_thb: listing.basePriceThb,
         rating: listing.rating,
-        reviewsCount: listing.reviewsCount
+        reviewsCount: listing.reviewsCount,
+        metadata: listing.metadata,
+        images: listing.images
       })
     }
   }, [listing, loading, addToRecent])
   
-  // Auto-fill user data
+  // Auto-fill form from user
   useEffect(() => {
     if (user) {
       setGuestName(user.firstName || user.name || '')
@@ -130,13 +152,16 @@ function PremiumListingContent({ params }) {
       return
     }
     
+    const checkIn = format(dateRange.from, 'yyyy-MM-dd')
+    const checkOut = format(dateRange.to, 'yyyy-MM-dd')
     const nights = differenceInDays(dateRange.to, dateRange.from)
+    
     if (nights > 0) {
       const calc = PricingService.calculatePrice({
         basePriceThb: listing.basePriceThb,
         seasonalPricing: listing.seasonalPricing || [],
-        checkIn: format(dateRange.from, 'yyyy-MM-dd'),
-        checkOut: format(dateRange.to, 'yyyy-MM-dd'),
+        checkIn,
+        checkOut,
         currency,
         exchangeRates
       })
@@ -151,6 +176,8 @@ function PremiumListingContent({ params }) {
         serviceFee,
         finalTotal: calc.totalPrice + serviceFee
       })
+    } else {
+      setPriceCalc(null)
     }
   }, [listing, dateRange, currency, exchangeRates])
   
@@ -165,9 +192,13 @@ function PremiumListingContent({ params }) {
           id: l.id,
           ownerId: l.ownerId,
           owner: l.owner,
+          categoryId: l.categoryId,
+          category: l.category,
+          status: l.status,
           title: l.title,
           description: l.description,
           district: l.district,
+          address: l.address,
           latitude: l.latitude,
           longitude: l.longitude,
           basePriceThb: parseFloat(l.basePriceThb),
@@ -175,14 +206,16 @@ function PremiumListingContent({ params }) {
           images: l.images || [],
           coverImage: l.coverImage,
           metadata: l.metadata || {},
+          available: l.available,
+          isFeatured: l.isFeatured,
+          views: l.views || 0,
           rating: parseFloat(l.rating) || 0,
           reviewsCount: l.reviewsCount || 0,
           seasonalPricing: l.seasonalPricing || [],
-          minStay: l.minBookingDays || 1,
-          city: l.city,
-          category_id: l.categoryId
+          minStay: l.minBookingDays || 1
         })
       }
+      
       setLoading(false)
     } catch (error) {
       console.error('Failed to load listing:', error)
@@ -194,9 +227,11 @@ function PremiumListingContent({ params }) {
     try {
       const res = await fetch(`/api/v2/reviews?listingId=${params.id}`)
       const data = await res.json()
-      if (data.success) setReviews(data.data || [])
+      if (data.success) {
+        setReviews(data.data || [])
+      }
     } catch (error) {
-      // Failed to load reviews
+      console.error('Failed to load reviews:', error)
     }
   }
   
@@ -216,14 +251,17 @@ function PremiumListingContent({ params }) {
     setSubmitting(true)
     
     try {
+      const checkIn = format(dateRange.from, 'yyyy-MM-dd')
+      const checkOut = format(dateRange.to, 'yyyy-MM-dd')
+      
       const res = await fetch('/api/v2/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           listingId: listing.id,
           renterId: user.id,
-          checkIn: format(dateRange.from, 'yyyy-MM-dd'),
-          checkOut: format(dateRange.to, 'yyyy-MM-dd'),
+          checkIn,
+          checkOut,
           guestName,
           guestEmail,
           guestPhone,
@@ -251,6 +289,7 @@ function PremiumListingContent({ params }) {
   const maxGuests = listing?.metadata?.max_guests || listing?.metadata?.guests || 4
   const amenities = listing?.metadata?.amenities || []
   
+  // All images for gallery
   const allImages = useMemo(() => {
     if (!listing) return []
     const imgs = []
@@ -260,7 +299,7 @@ function PremiumListingContent({ params }) {
         if (img !== listing.coverImage) imgs.push(img)
       })
     }
-    return imgs.length > 0 ? imgs : []
+    return imgs
   }, [listing])
   
   if (loading) {
@@ -302,6 +341,7 @@ function PremiumListingContent({ params }) {
         </header>
         
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 lg:pb-8">
+          {/* Gallery */}
           <BentoGallery 
             images={allImages}
             title={listing.title}
@@ -309,11 +349,13 @@ function PremiumListingContent({ params }) {
             onImageClick={() => setGalleryOpen(true)}
           />
           
+          {/* 2-Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            {/* LEFT: Main Content */}
             <div className="lg:col-span-2 space-y-8">
               <ListingInfo listing={listing} language={language} />
               
-              {/* Mobile inline calendar */}
+              {/* Mobile: Inline Calendar */}
               <div className="lg:hidden">
                 <h2 className="text-2xl font-medium tracking-tight mb-4">
                   {language === 'ru' ? 'Выберите даты' : 'Select Your Dates'}
@@ -347,7 +389,7 @@ function PremiumListingContent({ params }) {
                       />
                     </div>
                     {priceCalc && (
-                      <div className="bg-white p-4 rounded-lg">
+                      <div className="bg-white p-4 rounded-lg space-y-2">
                         <div className="flex justify-between text-sm">
                           <span>
                             {formatPrice(priceCalc.avgPricePerNight, currency, exchangeRates)} × {priceCalc.nights} {language === 'ru' ? 'ночей' : 'nights'}
@@ -361,9 +403,11 @@ function PremiumListingContent({ params }) {
               </div>
               
               <Separator className="lg:hidden" />
+              
               <AmenitiesGrid amenities={amenities} language={language} />
               <Separator />
               
+              {/* Location Map */}
               <div>
                 <h2 className="text-2xl font-medium tracking-tight mb-4">
                   {language === 'ru' ? 'Где вы будете' : "Where you'll be"}
@@ -384,9 +428,11 @@ function PremiumListingContent({ params }) {
               </div>
               
               <Separator />
+              
               <ReviewsSection listing={listing} reviews={reviews} language={language} />
             </div>
             
+            {/* RIGHT: STICKY BOOKING WIDGET */}
             <div className="lg:col-span-1">
               <DesktopBookingWidget
                 listing={listing}
@@ -415,34 +461,106 @@ function PremiumListingContent({ params }) {
           </div>
         </main>
         
-        <GalleryModal
-          open={galleryOpen}
-          onOpenChange={setGalleryOpen}
-          images={allImages}
-          currentIndex={galleryIndex}
-          onIndexChange={setGalleryIndex}
-          listingTitle={listing.title}
-        />
+        {/* GALLERY MODAL */}
+        <Dialog open={galleryOpen} onOpenChange={setGalleryOpen}>
+          <DialogContent className="max-w-6xl h-[90vh] p-0">
+            <div className="relative h-full flex items-center justify-center bg-black">
+              <DialogClose className="absolute top-4 right-4 z-50">
+                <Button variant="secondary" size="icon" className="rounded-full">
+                  <X className="h-4 w-4" />
+                </Button>
+              </DialogClose>
+              
+              <div className="relative w-full h-full flex items-center justify-center">
+                <Image
+                  src={allImages[galleryIndex]}
+                  alt={`${listing.title} ${galleryIndex + 1}`}
+                  fill
+                  className="object-contain"
+                  sizes="100vw"
+                />
+              </div>
+              
+              {allImages.length > 1 && (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full"
+                    onClick={() => setGalleryIndex((galleryIndex - 1 + allImages.length) % allImages.length)}
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full"
+                    onClick={() => setGalleryIndex((galleryIndex + 1) % allImages.length)}
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                </>
+              )}
+              
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-sm bg-black/50 px-3 py-1 rounded-full">
+                {galleryIndex + 1} / {allImages.length}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
         
-        <BookingModal
-          open={bookingModalOpen}
-          onOpenChange={setBookingModalOpen}
-          guestName={guestName}
-          setGuestName={setGuestName}
-          guestEmail={guestEmail}
-          setGuestEmail={setGuestEmail}
-          guestPhone={guestPhone}
-          setGuestPhone={setGuestPhone}
-          message={message}
-          setMessage={setMessage}
-          dateRange={dateRange}
-          priceCalc={priceCalc}
-          currency={currency}
-          exchangeRates={exchangeRates}
-          language={language}
-          submitting={submitting}
-          onSubmit={handleBookingSubmit}
-        />
+        {/* BOOKING MODAL */}
+        <Dialog open={bookingModalOpen} onOpenChange={setBookingModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{language === 'ru' ? 'Подтвердите бронирование' : 'Confirm Booking'}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleBookingSubmit} className="space-y-4">
+              <div>
+                <Label>{language === 'ru' ? 'Имя' : 'Name'}</Label>
+                <Input value={guestName} onChange={(e) => setGuestName(e.target.value)} required />
+              </div>
+              <div>
+                <Label>{language === 'ru' ? 'Email' : 'Email'}</Label>
+                <Input type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} required />
+              </div>
+              <div>
+                <Label>{language === 'ru' ? 'Телефон' : 'Phone'}</Label>
+                <Input type="tel" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} required />
+              </div>
+              <div>
+                <Label>{language === 'ru' ? 'Особые пожелания' : 'Special Requests'}</Label>
+                <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={3} />
+              </div>
+              
+              {priceCalc && (
+                <div className="bg-slate-50 p-4 rounded-lg space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>{language === 'ru' ? 'Даты' : 'Dates'}:</span>
+                    <span>
+                      {format(dateRange.from, 'd MMM', { locale: ru })} - {format(dateRange.to, 'd MMM', { locale: ru })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm font-semibold">
+                    <span>{language === 'ru' ? 'Итого' : 'Total'}:</span>
+                    <span>{formatPrice(priceCalc.finalTotal, currency, exchangeRates)}</span>
+                  </div>
+                </div>
+              )}
+              
+              <Button type="submit" disabled={submitting} className="w-full bg-teal-600 hover:bg-teal-700">
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {language === 'ru' ? 'Отправка...' : 'Submitting...'}
+                  </>
+                ) : (
+                  language === 'ru' ? 'Подтвердить' : 'Confirm Booking'
+                )}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   )
