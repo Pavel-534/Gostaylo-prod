@@ -17,11 +17,12 @@
 import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { Search, ArrowLeft, MapPin, Loader2, Users, X, AlertCircle, RefreshCw, CalendarIcon } from 'lucide-react'
+import { Search, ArrowLeft, MapPin, Loader2, Users, X, AlertCircle, RefreshCw, CalendarIcon, Map as MapIcon, List } from 'lucide-react'
 import { fetchExchangeRates } from '@/lib/client-data'
 import { GostayloListingCard } from '@/components/gostaylo-listing-card'
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton'
@@ -29,6 +30,20 @@ import { SearchCalendar } from '@/components/search-calendar'
 import { format, parseISO, isSameDay, differenceInDays } from 'date-fns'
 import { ru, enUS } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/contexts/auth-context'
+
+// Dynamic import for map (SSR: false because of Leaflet)
+const InteractiveSearchMap = dynamic(
+  () => import('@/components/listing/InteractiveSearchMap'),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full bg-slate-100 animate-pulse rounded-lg flex items-center justify-center">
+        <span className="text-slate-400">Loading map...</span>
+      </div>
+    )
+  }
+);
 
 // Constants
 const DISTRICTS = [
@@ -142,10 +157,15 @@ function ListingsContent() {
   const [language, setLanguage] = useState('en')
   const [currency, setCurrency] = useState('THB')
   const [exchangeRates, setExchangeRates] = useState({ THB: 1, USD: 35.5, RUB: 0.37 })
+  const [showMap, setShowMap] = useState(false) // Map toggle (Mobile: toggle, Desktop: always show)
   
   // Favorites state
   const [userFavorites, setUserFavorites] = useState(new Set())
   const [userId, setUserId] = useState(null)
+  const [userBookings, setUserBookings] = useState([]) // For post-booking precision markers
+  
+  // Get auth context
+  const { user } = useAuth()
 
   // Debounced values for API calls
   const debouncedQuery = useDebounce(searchQuery)
@@ -195,6 +215,20 @@ function ListingsContent() {
       console.error('[FAVORITES] Error fetching:', error)
     }
   }
+  
+  // Fetch user bookings for map precision markers
+  useEffect(() => {
+    if (user?.id) {
+      fetch(`/api/v2/bookings?renterId=${user.id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setUserBookings(data.data || [])
+          }
+        })
+        .catch(err => console.error('[BOOKINGS] Error:', err))
+    }
+  }, [user])
 
   useEffect(() => {
     const handleCurrencyChange = (e) => setCurrency(e.detail)
@@ -366,8 +400,9 @@ function ListingsContent() {
   
   // Handle favorite toggle
   const handleFavorite = useCallback(async (listingId, newIsFavorite) => {
-    if (!userId) {
-      console.warn('[FAVORITES] No user ID, cannot save')
+    if (!user?.id) {
+      console.warn('[FAVORITES] No user logged in')
+      // Could open login modal here
       return
     }
     
@@ -383,13 +418,15 @@ function ListingsContent() {
     })
     
     try {
-      const res = await fetch('/api/v2/renter/favorites', {
-        method: 'POST',
+      const method = newIsFavorite ? 'POST' : 'DELETE'
+      const res = await fetch('/api/v2/favorites', {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, listingId })
+        body: JSON.stringify({ listingId })
       })
       
       const data = await res.json()
+      
       if (!data.success) {
         // Revert on error
         setUserFavorites(prev => {
@@ -401,7 +438,9 @@ function ListingsContent() {
           }
           return next
         })
-        console.error('[FAVORITES] Toggle failed:', data.error)
+        console.error('[FAVORITES] Error:', data.error)
+      } else {
+        console.log('[FAVORITES] Success:', newIsFavorite ? 'Added' : 'Removed')
       }
     } catch (error) {
       // Revert on error
@@ -414,9 +453,9 @@ function ListingsContent() {
         }
         return next
       })
-      console.error('[FAVORITES] Error:', error)
+      console.error('[FAVORITES] Network error:', error)
     }
-  }, [userId])
+  }, [user])
 
   // Memoized values
   const nights = useMemo(() => 
@@ -564,6 +603,27 @@ function ListingsContent() {
 
       {/* Results */}
       <div className="container mx-auto px-4 py-6">
+        {/* Map Toggle Button (Mobile) */}
+        <div className="lg:hidden mb-4 flex justify-end">
+          <Button
+            onClick={() => setShowMap(!showMap)}
+            variant="outline"
+            className="gap-2"
+          >
+            {showMap ? (
+              <>
+                <List className="h-4 w-4" />
+                {language === 'ru' ? 'Показать список' : 'Show List'}
+              </>
+            ) : (
+              <>
+                <MapIcon className="h-4 w-4" />
+                {language === 'ru' ? 'Показать карту' : 'Show Map'}
+              </>
+            )}
+          </Button>
+        </div>
+
         {/* Error State */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center mb-6">
@@ -604,35 +664,42 @@ function ListingsContent() {
           </div>
         ) : !error && (
           <>
-            {/* Results Grid with Animation */}
-            <div 
-              className={cn(
-                "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 transition-opacity duration-200",
-                isTransitioning ? "opacity-50" : "opacity-100"
-              )}
-            >
-              {listings.map((listing, index) => (
-                <div
-                  key={listing.id}
-                  className="animate-in fade-in slide-in-from-bottom-4 duration-300"
-                  style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
+            {/* Airbnb-style Split Layout: Desktop (50/50), Mobile (Toggle) */}
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Listings Grid (Mobile: conditional, Desktop: always show) */}
+              <div className={cn(
+                "flex-1",
+                showMap && "hidden lg:block" // Hide on mobile when map is shown
+              )}>
+                {/* Results Grid with Animation */}
+                <div 
+                  className={cn(
+                    "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-5 transition-opacity duration-200",
+                    isTransitioning ? "opacity-50" : "opacity-100"
+                  )}
                 >
-                  <GostayloListingCard 
-                    listing={listing}
-                    initialDates={cardDates}
-                    guests={guests}
-                    language={language}
-                    currency={currency}
-                    exchangeRates={exchangeRates}
-                    onFavorite={handleFavorite}
-                    isFavorited={userFavorites.has(listing.id)}
-                  />
+                  {listings.map((listing, index) => (
+                    <div
+                      key={listing.id}
+                      className="animate-in fade-in slide-in-from-bottom-4 duration-300"
+                      style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
+                    >
+                      <GostayloListingCard 
+                        listing={listing}
+                        initialDates={cardDates}
+                        guests={guests}
+                        language={language}
+                        currency={currency}
+                        exchangeRates={exchangeRates}
+                        onFavorite={handleFavorite}
+                        isFavorited={userFavorites.has(listing.id)}
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            {/* Load More / Infinite Scroll Trigger */}
-            {hasMore && (
+                {/* Load More / Infinite Scroll Trigger */}
+                {hasMore && (
               <div 
                 ref={loadMoreRef}
                 className="flex justify-center py-8"
@@ -662,6 +729,24 @@ function ListingsContent() {
                   : `Showing ${listings.length} of ${allListings.length} properties`}
               </div>
             )}
+              </div>
+
+              {/* Interactive Map (Mobile: conditional, Desktop: sticky sidebar) */}
+              <div className={cn(
+                "lg:w-1/2 lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)]",
+                !showMap && "hidden lg:block" // Hide on mobile when list is shown
+              )}>
+                <div className="h-[500px] lg:h-full rounded-lg overflow-hidden border border-slate-200 shadow-lg">
+                  <InteractiveSearchMap 
+                    listings={listings}
+                    userBookings={userBookings}
+                    userId={user?.id}
+                    center={[7.8804, 98.3923]} // Phuket, Thailand
+                    zoom={12}
+                  />
+                </div>
+              </div>
+            </div>
           </>
         )}
       </div>
