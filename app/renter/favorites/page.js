@@ -1,289 +1,167 @@
 /**
- * Gostaylo - Renter Favorites (Wishlist) Page
- * 
- * Features:
- * - Grid layout with GostayloListingCard
- * - TanStack Query for real-time data
- * - Empty state with CTA
- * - Remove from favorites action
- * 
- * @version 2.0
+ * Gostaylo - Renter Favorites Page
+ * Displays all listings the user has "hearted"
  */
 
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Heart, Loader2, Home, Search, Trash2 } from 'lucide-react'
-import { GostayloListingCard } from '@/components/gostaylo-listing-card'
-import { toast } from 'sonner'
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
+import { GostayloListingCard } from '@/components/gostaylo-listing-card';
+import { ListingGridSkeleton } from '@/components/listing-card-skeleton';
+import { Button } from '@/components/ui/button';
+import { Heart, ArrowLeft, RefreshCw } from 'lucide-react';
 
-// Fetch favorites
-async function fetchFavorites(userId) {
-  if (!userId) throw new Error('No user ID')
+export default function FavoritesPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [favorites, setFavorites] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  const res = await fetch(`/api/v2/renter/favorites?userId=${userId}`, {
-    cache: 'no-store'
-  })
+  const fetchFavorites = async () => {
+    if (!user?.id) {
+      router.push('/');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const res = await fetch('/api/v2/favorites');
+      const data = await res.json();
+      
+      if (data.success) {
+        // Transform favorites to listing format
+        const listings = data.favorites
+          .filter(fav => fav.listings) // Only favorites with valid listings
+          .map(fav => ({
+            id: fav.listings.id,
+            title: fav.listings.title,
+            basePriceThb: fav.listings.base_price_thb,
+            images: fav.listings.images || [],
+            coverImage: fav.listings.cover_image,
+            district: fav.listings.district,
+            rating: fav.listings.rating || 0,
+            categoryId: fav.listings.category_id,
+            status: fav.listings.status,
+            favoriteId: fav.id,
+            favoritedAt: fav.created_at
+          }));
+        
+        setFavorites(listings);
+      } else {
+        setError('Failed to load favorites');
+      }
+    } catch (err) {
+      console.error('[FAVORITES PAGE] Error:', err);
+      setError('Network error');
+    } finally {
+      setLoading(false);
+    }
+  };
   
-  if (!res.ok) throw new Error('Failed to fetch favorites')
-  
-  const data = await res.json()
-  return data.data || []
-}
-
-// Remove from favorites
-async function removeFavorite(userId, listingId) {
-  const res = await fetch('/api/v2/renter/favorites', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId, listingId })
-  })
-  
-  if (!res.ok) throw new Error('Failed to remove favorite')
-  
-  return await res.json()
-}
-
-// Shimmer skeleton
-function FavoriteCardSkeleton() {
-  return (
-    <div className="bg-white rounded-xl overflow-hidden border border-slate-200 animate-pulse">
-      <div className="w-full h-64 bg-slate-200" />
-      <div className="p-4 space-y-3">
-        <div className="h-6 w-3/4 bg-slate-200 rounded" />
-        <div className="h-4 w-1/2 bg-slate-200 rounded" />
-        <div className="h-8 w-24 bg-slate-200 rounded" />
-      </div>
-    </div>
-  )
-}
-
-export default function RenterFavoritesPage() {
-  const router = useRouter()
-  const queryClient = useQueryClient()
-  const [userId, setUserId] = useState(null)
-  
-  // Get user from localStorage
   useEffect(() => {
-    const storedUser = localStorage.getItem('gostaylo_user')
-    if (storedUser) {
+    fetchFavorites();
+  }, [user]);
+  
+  const handleFavorite = async (listingId, newIsFavorite) => {
+    if (!newIsFavorite) {
+      // Remove from favorites
       try {
-        const user = JSON.parse(storedUser)
-        setUserId(user.id)
-      } catch (e) {
-        console.error('[FAVORITES] Failed to parse user', e)
+        const res = await fetch('/api/v2/favorites', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ listingId })
+        });
+        
+        if (res.ok) {
+          // Remove from local state
+          setFavorites(prev => prev.filter(f => f.id !== listingId));
+        }
+      } catch (error) {
+        console.error('[FAVORITES] Remove error:', error);
       }
     }
-  }, [])
-  
-  // Fetch favorites with TanStack Query
-  const {
-    data: favorites = [],
-    isLoading,
-    isError,
-    error
-  } = useQuery({
-    queryKey: ['favorites', userId],
-    queryFn: () => fetchFavorites(userId),
-    enabled: !!userId,
-    staleTime: 30 * 1000,
-  })
-  
-  // Remove favorite mutation
-  const removeMutation = useMutation({
-    mutationFn: ({ listingId }) => removeFavorite(userId, listingId),
-    onMutate: async ({ listingId }) => {
-      // Cancel outgoing queries
-      await queryClient.cancelQueries({ queryKey: ['favorites', userId] })
-      
-      // Snapshot previous value
-      const previousFavorites = queryClient.getQueryData(['favorites', userId])
-      
-      // Optimistically update
-      queryClient.setQueryData(['favorites', userId], (old) =>
-        old.filter(fav => fav.listing_id !== listingId)
-      )
-      
-      return { previousFavorites }
-    },
-    onError: (err, variables, context) => {
-      // Rollback on error
-      queryClient.setQueryData(['favorites', userId], context.previousFavorites)
-      toast.error('Failed to remove from favorites')
-    },
-    onSuccess: () => {
-      toast.success('Removed from favorites')
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['favorites', userId] })
-    }
-  })
-  
-  // Handle favorite toggle
-  const handleFavoriteToggle = (listingId) => {
-    removeMutation.mutate({ listingId })
-  }
-  
-  if (!userId) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Card className="p-8 text-center">
-          <Heart className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-slate-900 mb-2">
-            Please log in
-          </h3>
-          <p className="text-slate-600 mb-4">
-            Sign in to view your wishlist
-          </p>
-          <Button asChild className="bg-teal-600 hover:bg-teal-700">
-            <Link href="/profile?login=true">Log In</Link>
-          </Button>
-        </Card>
-      </div>
-    )
-  }
+  };
   
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
-            <Heart className="h-8 w-8 text-rose-500 fill-rose-500" />
-            My Wishlist
-          </h1>
-          <p className="text-slate-600 mt-1">
-            {isLoading 
-              ? 'Loading...' 
-              : `${favorites.length} ${favorites.length === 1 ? 'property' : 'properties'} saved`
-            }
+      <div className="bg-gradient-to-r from-pink-500 to-red-500 text-white py-8">
+        <div className="container mx-auto px-4">
+          <Button 
+            variant="ghost" 
+            onClick={() => router.back()}
+            className="text-white hover:bg-white/20 mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Назад
+          </Button>
+          
+          <div className="flex items-center gap-3 mb-2">
+            <Heart className="h-8 w-8 fill-white" />
+            <h1 className="text-3xl font-bold">Избранное</h1>
+          </div>
+          <p className="text-white/90">
+            {loading ? 'Загрузка...' : `${favorites.length} избранных объектов`}
           </p>
         </div>
-        
-        <Button asChild variant="outline">
-          <Link href="/listings">
-            <Search className="h-4 w-4 mr-2" />
-            Browse Listings
-          </Link>
-        </Button>
       </div>
       
       {/* Content */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <FavoriteCardSkeleton />
-          <FavoriteCardSkeleton />
-          <FavoriteCardSkeleton />
-        </div>
-      ) : isError ? (
-        <Card className="p-12">
-          <div className="text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Heart className="h-8 w-8 text-red-600" />
-            </div>
-            <h3 className="text-xl font-semibold text-slate-900 mb-2">
-              Failed to load favorites
-            </h3>
-            <p className="text-slate-600 mb-4">{error?.message}</p>
-            <Button 
-              variant="outline" 
-              onClick={() => window.location.reload()}
-            >
-              Try Again
+      <div className="container mx-auto px-4 py-8">
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={fetchFavorites} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Повторить
             </Button>
           </div>
-        </Card>
-      ) : favorites.length === 0 ? (
-        <Card className="p-12">
-          <div className="text-center max-w-md mx-auto">
-            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Heart className="h-10 w-10 text-slate-400" />
-            </div>
-            <h3 className="text-2xl font-semibold text-slate-900 mb-2">
-              Your wishlist is empty
-            </h3>
-            <p className="text-slate-600 mb-6">
-              Start exploring Phuket! Click the heart icon on any listing to save it here.
+        )}
+        
+        {/* Loading State */}
+        {loading && !error && (
+          <ListingGridSkeleton count={6} />
+        )}
+        
+        {/* Empty State */}
+        {!loading && !error && favorites.length === 0 && (
+          <div className="text-center py-20">
+            <Heart className="h-20 w-20 text-slate-300 mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-slate-700 mb-2">
+              Нет избранных объектов
+            </h2>
+            <p className="text-slate-500 mb-6">
+              Начните добавлять понравившиеся объекты в избранное, нажимая на ❤️
             </p>
-            <Button asChild className="bg-teal-600 hover:bg-teal-700" size="lg">
-              <Link href="/listings">
-                <Home className="h-5 w-5 mr-2" />
-                Explore Properties
-              </Link>
+            <Button onClick={() => router.push('/listings')}>
+              Смотреть объекты
             </Button>
           </div>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {favorites.map((favorite) => {
-            const listing = favorite.listing
-            
-            if (!listing) {
-              return null // Skip if listing was deleted
-            }
-            
-            return (
-              <div key={favorite.id} className="relative group">
-                <GostayloListingCard
-                  listing={listing}
-                  currency="THB"
-                  language="en"
-                  onFavorite={() => handleFavoriteToggle(listing.id)}
-                  className="h-full"
-                />
-                
-                {/* Remove button overlay */}
-                <button
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    handleFavoriteToggle(listing.id)
-                  }}
-                  className="absolute top-3 right-3 z-10 w-10 h-10 bg-white rounded-full shadow-lg 
-                           flex items-center justify-center opacity-0 group-hover:opacity-100 
-                           transition-opacity duration-200 hover:bg-red-50"
-                  disabled={removeMutation.isPending}
-                >
-                  {removeMutation.isPending && removeMutation.variables?.listingId === listing.id ? (
-                    <Loader2 className="h-5 w-5 animate-spin text-slate-600" />
-                  ) : (
-                    <Heart className="h-5 w-5 text-rose-500 fill-rose-500" />
-                  )}
-                </button>
-              </div>
-            )
-          })}
-        </div>
-      )}
-      
-      {/* Stats */}
-      {favorites.length > 0 && (
-        <div className="mt-8 pt-8 border-t border-slate-200">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <p className="text-2xl font-bold text-teal-600">{favorites.length}</p>
-              <p className="text-sm text-slate-600">Total Saved</p>
-            </div>
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <p className="text-2xl font-bold text-teal-600">
-                {new Set(favorites.map(f => f.listing?.district)).size}
-              </p>
-              <p className="text-sm text-slate-600">Districts</p>
-            </div>
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <p className="text-2xl font-bold text-teal-600">
-                {favorites[0]?.listing?.district || 'Various'}
-              </p>
-              <p className="text-sm text-slate-600">Most Saved</p>
-            </div>
+        )}
+        
+        {/* Favorites Grid */}
+        {!loading && !error && favorites.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {favorites.map(listing => (
+              <GostayloListingCard
+                key={listing.id}
+                listing={listing}
+                language="ru"
+                currency="THB"
+                exchangeRates={{ THB: 1, USD: 35.5, RUB: 0.37 }}
+                onFavorite={handleFavorite}
+                isFavorited={true}
+              />
+            ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
-  )
+  );
 }
