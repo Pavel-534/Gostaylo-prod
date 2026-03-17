@@ -18,6 +18,7 @@ function ListingSidebarComponent({
   loading = false,
   error = null,
   hasMore = false,
+  loadingMore = false,
   isTransitioning = false,
   language = 'en',
   currency = 'THB',
@@ -30,7 +31,10 @@ function ListingSidebarComponent({
   onLoadMore,
   onRetry,
   onToggleMap,
-  meta
+  meta,
+  loadMoreRef,
+  allListings = [],
+  displayedCount = 0
 }) {
   
   // Error State
@@ -128,19 +132,26 @@ function ListingSidebarComponent({
           ))}
         </div>
 
-        {/* Load More */}
+        {/* Load More / Infinite Scroll Trigger */}
         {hasMore && (
-          <div className="flex justify-center mt-8">
-            <Button onClick={onLoadMore} disabled={loading} size="lg">
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {language === 'ru' ? 'Загрузка...' : 'Loading...'}
-                </>
-              ) : (
-                language === 'ru' ? 'Показать больше' : 'Load more'
-              )}
-            </Button>
+          <div 
+            ref={loadMoreRef}
+            className="flex justify-center py-8"
+          >
+            {loadingMore ? (
+              <div className="flex items-center gap-2 text-slate-500">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>{language === 'ru' ? 'Загрузка...' : 'Loading more...'}</span>
+              </div>
+            ) : (
+              <Button 
+                variant="outline" 
+                onClick={onLoadMore}
+                className="border-teal-300 text-teal-700 hover:bg-teal-50"
+              >
+                {language === 'ru' ? 'Показать ещё' : 'Load more'} ({allListings.length - displayedCount} {language === 'ru' ? 'ещё' : 'more'})
+              </Button>
+            )}
           </div>
         )}
 
@@ -148,8 +159,8 @@ function ListingSidebarComponent({
         {!hasMore && listings.length > 0 && (
           <div className="text-center py-6 text-slate-400 text-sm">
             {language === 'ru' 
-              ? `Показано ${listings.length} объектов`
-              : `Showing ${listings.length} properties`}
+              ? `Показано ${listings.length} из ${allListings.length} объектов`
+              : `Showing ${listings.length} of ${allListings.length} properties`}
           </div>
         )}
       </div>
