@@ -5,7 +5,8 @@
 
 'use client'
 
-import { useState, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
+import Image from 'next/image'
 import { ChevronLeft, ChevronRight, Heart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -43,15 +44,18 @@ export function CardImageCarousel({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <img
+      <Image
         src={images[currentIndex]}
         alt={`${title} - Photo ${currentIndex + 1}`}
+        fill
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         className={cn(
-          "w-full h-full object-cover transition-all duration-500",
+          "object-cover transition-all duration-500",
           imageLoaded ? "opacity-100" : "opacity-0",
           "group-hover:scale-105"
         )}
         onLoad={handleLoad}
+        priority={currentIndex === 0}
       />
       
       {/* Navigation arrows */}
