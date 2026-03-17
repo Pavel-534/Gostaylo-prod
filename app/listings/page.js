@@ -1,53 +1,35 @@
 'use client'
 
 /**
- * Gostaylo - Search Results Page (Optimized)
+ * Gostaylo - Search Results Page (Refactored & Optimized)
+ * 
+ * Architecture:
+ * - FilterBar: Search, dates, district, guests
+ * - ListingSidebar: Grid, infinite scroll, error handling
+ * - SearchMapWrapper: Memoized map component
  * 
  * Features:
  * - Global date synchronization
  * - 300ms debounced API calls
  * - Client-side caching (5-minute TTL)
- * - Infinite scroll pagination (12 items per batch)
- * - Smooth fade-in/out animations
- * - Error handling with retry
+ * - Infinite scroll pagination
+ * - Airbnb-style map integration
  * 
- * @optimized 2026-03-13
+ * @refactored 2026-03-16 - Phase 7.3
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo, Suspense } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-import { Search, ArrowLeft, MapPin, Loader2, Users, X, AlertCircle, RefreshCw, CalendarIcon, Map as MapIcon, List } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { fetchExchangeRates } from '@/lib/client-data'
-import { GostayloListingCard } from '@/components/gostaylo-listing-card'
-import { ListingGridSkeleton } from '@/components/listing-card-skeleton'
-import { SearchCalendar } from '@/components/search-calendar'
-import { format, parseISO, isSameDay, differenceInDays } from 'date-fns'
-import { ru, enUS } from 'date-fns/locale'
-import { cn } from '@/lib/utils'
-import { useAuth } from '@/contexts/auth-context'
-
-// Dynamic import for map (SSR: false because of Leaflet)
-const InteractiveSearchMap = dynamic(
-  () => import('@/components/listing/InteractiveSearchMap'),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-full bg-slate-100 animate-pulse rounded-lg flex items-center justify-center">
-        <span className="text-slate-400">Loading map...</span>
-      </div>
-    )
-  }
-);
-
-// Constants
-const DISTRICTS = [
-  'Patong', 'Kata', 'Karon', 'Kamala', 'Rawai', 'Chalong', 
+import { FilterBar } from '@/components/search/FilterBar'
+import { ListingSidebar } from '@/components/search/ListingSidebar'
+import { SearchMapWrapper } from '@/components/search/SearchMapWrapper'
+import { parseISO, differenceInDays } from 'date-fns'
+import { useAuth } from '@/contexts/auth-context' 
   'Bang Tao', 'Nai Harn', 'Panwa', 'Mai Khao', 'Nai Yang', 'Surin'
 ]
 const ITEMS_PER_PAGE = 12
