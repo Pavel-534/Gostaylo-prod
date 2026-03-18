@@ -14,16 +14,17 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, Check } from 'lucide-react';
+import { CurrencyFlag } from '@/components/flags'
 
 // Supported currencies with metadata
 const CURRENCIES = [
-  { code: 'THB', symbol: '฿', name: 'Thai Baht', flag: '🇹🇭' },
-  { code: 'USD', symbol: '$', name: 'US Dollar', flag: '🇺🇸' },
-  { code: 'EUR', symbol: '€', name: 'Euro', flag: '🇪🇺' },
-  { code: 'GBP', symbol: '£', name: 'British Pound', flag: '🇬🇧' },
-  { code: 'RUB', symbol: '₽', name: 'Russian Ruble', flag: '🇷🇺' },
-  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan', flag: '🇨🇳' },
-  { code: 'USDT', symbol: '₮', name: 'Tether', flag: '💎' },
+  { code: 'THB', symbol: '฿', name: 'Thai Baht' },
+  { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'EUR', symbol: '€', name: 'Euro' },
+  { code: 'GBP', symbol: '£', name: 'British Pound' },
+  { code: 'RUB', symbol: '₽', name: 'Russian Ruble' },
+  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
+  { code: 'USDT', symbol: '₮', name: 'Tether' },
 ];
 
 const STORAGE_KEY = 'gostaylo_currency';
@@ -76,7 +77,7 @@ export function CurrencySelector({
           className={`h-8 px-2 font-medium ${className}`}
           data-testid="currency-selector"
         >
-          <span className="text-sm mr-1">{currentCurrency.flag}</span>
+          <span className="mr-1"><CurrencyFlag code={currentCurrency.code} /></span>
           <span className="font-semibold text-sm">{currentCurrency.symbol}</span>
           {!compact && (
             <span className="ml-0.5 text-slate-600 text-xs">{currentCurrency.code}</span>
@@ -93,7 +94,7 @@ export function CurrencySelector({
             data-testid={`currency-option-${curr.code}`}
           >
             <div className="flex items-center gap-2">
-              <span className="text-base">{curr.flag}</span>
+              <CurrencyFlag code={curr.code} />
               <span className="font-medium">{curr.symbol}</span>
               <span className="text-slate-600">{curr.code}</span>
             </div>

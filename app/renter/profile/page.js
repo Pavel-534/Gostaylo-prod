@@ -31,7 +31,9 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { ru, enUS } from 'date-fns/locale'
+import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
 
 // Profile completion calculation
 function calculateProfileCompletion(user) {
@@ -58,6 +60,7 @@ function calculateProfileCompletion(user) {
 
 // Partner Application Form Modal
 function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
+  const { language } = useI18n()
   const [formData, setFormData] = useState({
     phone: '',
     experience: '',
@@ -80,20 +83,20 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
       >
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-slate-900">Partner Application</h2>
+            <h2 className="text-2xl font-bold text-slate-900">{getUIText('partnerApplication', language)}</h2>
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
               <XCircle className="h-6 w-6" />
             </button>
           </div>
           
           <p className="text-slate-600 mb-6">
-            Tell us about your hosting experience and we'll review your application within 24 hours.
+            {getUIText('partnerApplicationDesc', language)}
           </p>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Phone Number *
+                {getUIText('phoneNumber', language)} *
               </label>
               <input
                 type="tel"
@@ -107,7 +110,7 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
             
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Hosting Experience *
+                {getUIText('hostingExperience', language)} *
               </label>
               <textarea
                 required
@@ -153,7 +156,7 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
                 className="flex-1"
                 disabled={isSubmitting}
               >
-                Cancel
+                {language === 'ru' ? 'Отмена' : 'Cancel'}
               </Button>
               <Button
                 type="submit"
@@ -163,12 +166,12 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Submitting...
+                    {language === 'ru' ? 'Отправка...' : 'Submitting...'}
                   </>
                 ) : (
                   <>
                     <Send className="h-4 w-4 mr-2" />
-                    Submit Application
+                    {getUIText('submitApplication', language)}
                   </>
                 )}
               </Button>
@@ -182,6 +185,7 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
 
 export default function RenterProfilePage() {
   const router = useRouter()
+  const { language } = useI18n()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [applicationStatus, setApplicationStatus] = useState(null)
@@ -193,6 +197,8 @@ export default function RenterProfilePage() {
   // Modal states
   const [showApplicationModal, setShowApplicationModal] = useState(false)
   const [submittingApplication, setSubmittingApplication] = useState(false)
+
+  const dateLocale = language === 'ru' ? ru : enUS
   
   // Get user from localStorage
   useEffect(() => {
@@ -369,7 +375,7 @@ export default function RenterProfilePage() {
                 {user.created_at && (
                   <div className="flex items-center justify-center sm:justify-start gap-2">
                     <Calendar className="h-4 w-4" />
-                    Member since {format(new Date(user.created_at), 'MMM yyyy', { locale: ru })}
+                    {getUIText('memberSince', language)} {format(new Date(user.created_at), 'MMM yyyy', { locale: dateLocale })}
                   </div>
                 )}
               </div>
@@ -380,14 +386,14 @@ export default function RenterProfilePage() {
           <Separator className="my-6" />
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-slate-700">Profile Completion</span>
+              <span className="text-sm font-medium text-slate-700">{getUIText('profileCompletion', language)}</span>
               <span className="text-sm font-semibold text-teal-600">{profileCompletion}%</span>
             </div>
             <Progress value={profileCompletion} className="h-2" />
             <p className="text-xs text-slate-500 mt-2">
               {profileCompletion < 100 
-                ? 'Complete your profile to unlock all features!'
-                : 'Your profile is complete! 🎉'}
+                ? getUIText('completeProfileToUnlock', language)
+                : getUIText('profileComplete', language)}
             </p>
           </div>
         </CardContent>
@@ -399,10 +405,10 @@ export default function RenterProfilePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-teal-900">
               <Sparkles className="h-6 w-6" />
-              Start Earning with Gostaylo
+              {getUIText('startEarning', language)}
             </CardTitle>
             <CardDescription className="text-teal-700">
-              List your property and become a partner today!
+              {getUIText('listYourProperty', language)}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -413,8 +419,8 @@ export default function RenterProfilePage() {
                   <TrendingUp className="h-5 w-5 text-teal-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-slate-900 text-sm">0% Commission</p>
-                  <p className="text-xs text-slate-600">Keep all earnings</p>
+                  <p className="font-semibold text-slate-900 text-sm">{getUIText('commissionZero', language)}</p>
+                  <p className="text-xs text-slate-600">{getUIText('keepAllEarnings', language)}</p>
                 </div>
               </div>
               
@@ -423,8 +429,8 @@ export default function RenterProfilePage() {
                   <Shield className="h-5 w-5 text-teal-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-slate-900 text-sm">24/7 Support</p>
-                  <p className="text-xs text-slate-600">Always here for you</p>
+                  <p className="font-semibold text-slate-900 text-sm">{getUIText('support247', language)}</p>
+                  <p className="text-xs text-slate-600">{getUIText('alwaysHere', language)}</p>
                 </div>
               </div>
               
@@ -433,8 +439,8 @@ export default function RenterProfilePage() {
                   <Zap className="h-5 w-5 text-teal-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-slate-900 text-sm">Fast Payouts</p>
-                  <p className="text-xs text-slate-600">Quick payments</p>
+                  <p className="font-semibold text-slate-900 text-sm">{getUIText('fastPayouts', language)}</p>
+                  <p className="text-xs text-slate-600">{getUIText('quickPayments', language)}</p>
                 </div>
               </div>
             </div>
@@ -476,7 +482,7 @@ export default function RenterProfilePage() {
                       <>
                         <XCircle className="h-6 w-6 text-red-600" />
                         <div>
-                          <p className="font-semibold text-red-900">Application Declined</p>
+                          <p className="font-semibold text-red-900">{getUIText('applicationDeclined', language)}</p>
                           {applicationStatus.rejection_reason && (
                             <p className="text-sm text-red-700">{applicationStatus.rejection_reason}</p>
                           )}
@@ -493,7 +499,7 @@ export default function RenterProfilePage() {
                   
                   {applicationStatus.status === 'REJECTED' && (
                     <Button onClick={() => setShowApplicationModal(true)} variant="outline">
-                      Reapply
+                      {getUIText('reapply', language)}
                     </Button>
                   )}
                 </div>
@@ -504,7 +510,7 @@ export default function RenterProfilePage() {
                 className="w-full bg-teal-600 hover:bg-teal-700 text-lg py-6"
               >
                 <Send className="h-5 w-5 mr-2" />
-                Apply to Become a Partner
+                {getUIText('applyBecomePartner', language)}
               </Button>
             )}
           </CardContent>
@@ -514,9 +520,9 @@ export default function RenterProfilePage() {
       {/* Connect Telegram */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Telegram Notifications</CardTitle>
+          <CardTitle className="text-lg">{getUIText('telegramNotifications', language)}</CardTitle>
           <CardDescription>
-            Get instant updates about your bookings
+            {getUIText('instantUpdates', language)}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -533,7 +539,7 @@ export default function RenterProfilePage() {
           ) : telegramCode ? (
             <div className="space-y-3">
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-900 mb-2">Send this code to our bot:</p>
+                <p className="text-sm text-blue-900 mb-2">{getUIText('sendCodeToBot', language)}</p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 p-2 bg-white border border-blue-300 rounded font-mono text-lg text-center">
                     /link {telegramCode}
@@ -542,10 +548,10 @@ export default function RenterProfilePage() {
                     size="sm"
                     onClick={() => {
                       navigator.clipboard.writeText(`/link ${telegramCode}`)
-                      toast.success('Code copied!')
+                      toast.success(getUIText('codeCopied', language))
                     }}
                   >
-                    Copy
+                    {getUIText('copy', language)}
                   </Button>
                 </div>
               </div>
@@ -554,7 +560,7 @@ export default function RenterProfilePage() {
                 className="w-full"
                 onClick={() => window.open('https://t.me/GostayloBot', '_blank')}
               >
-                Open Telegram Bot
+                {getUIText('openTelegramBot', language)}
               </Button>
             </div>
           ) : (
@@ -566,12 +572,12 @@ export default function RenterProfilePage() {
               {linkingTelegram ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Generating...
+                  {getUIText('generating', language)}
                 </>
               ) : (
                 <>
                   <Send className="h-4 w-4 mr-2" />
-                  Connect Telegram
+                  {getUIText('connectTelegram', language)}
                 </>
               )}
             </Button>
@@ -582,7 +588,7 @@ export default function RenterProfilePage() {
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Quick Actions</CardTitle>
+          <CardTitle className="text-lg">{getUIText('quickActions', language)}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -593,7 +599,7 @@ export default function RenterProfilePage() {
             >
               <Link href="/renter/bookings">
                 <Home className="h-6 w-6 mb-2" />
-                <span className="text-sm">My Bookings</span>
+                <span className="text-sm">{getUIText('bookings', language)}</span>
               </Link>
             </Button>
             
@@ -602,9 +608,9 @@ export default function RenterProfilePage() {
               variant="outline"
               className="flex flex-col h-auto py-4"
             >
-              <Link href="/favorites">
+              <Link href="/renter/favorites">
                 <Heart className="h-6 w-6 mb-2" />
-                <span className="text-sm">Favorites</span>
+                <span className="text-sm">{getUIText('favorites', language)}</span>
               </Link>
             </Button>
             
@@ -615,7 +621,7 @@ export default function RenterProfilePage() {
             >
               <Link href="/renter/profile">
                 <Settings className="h-6 w-6 mb-2" />
-                <span className="text-sm">Settings</span>
+                <span className="text-sm">{getUIText('settings', language)}</span>
               </Link>
             </Button>
             
@@ -625,7 +631,7 @@ export default function RenterProfilePage() {
               className="flex flex-col h-auto py-4 text-red-600 hover:bg-red-50"
             >
               <LogOut className="h-6 w-6 mb-2" />
-              <span className="text-sm">Logout</span>
+              <span className="text-sm">{getUIText('logout', language)}</span>
             </Button>
           </div>
         </CardContent>

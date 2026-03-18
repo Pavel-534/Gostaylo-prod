@@ -29,14 +29,17 @@ export function ListingInfo({ listing, language = 'en' }) {
                 <MapPin className="h-4 w-4" />
                 <span>{listing.district}</span>
               </div>
-              {listing.rating > 0 && (
-                <div className="flex items-center gap-1">
+              {(listing.rating > 0 || (listing.reviewsCount || 0) > 0) && (
+                <a
+                  href="#reviews"
+                  className="flex items-center gap-1 hover:text-teal-600 transition-colors cursor-pointer group"
+                >
                   <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  <span className="font-medium">{listing.rating.toFixed(1)}</span>
-                  <span className="text-slate-400">
-                    ({listing.reviewsCount} {language === 'ru' ? 'отзывов' : 'reviews'})
+                  <span className="font-medium">{(Number(listing.rating) || 0).toFixed(1)}</span>
+                  <span className="text-slate-400 group-hover:text-teal-500">
+                    ({(listing.reviewsCount || 0)} {language === 'ru' ? 'отзывов' : 'reviews'})
                   </span>
-                </div>
+                </a>
               )}
             </div>
           </div>

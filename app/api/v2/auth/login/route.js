@@ -23,8 +23,6 @@ const ROLE_REDIRECTS = {
 };
 
 export async function POST(request) {
-  console.log('[LOGIN] ====== START ======');
-  
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
@@ -50,7 +48,6 @@ export async function POST(request) {
   }
   
   const normalizedEmail = email.toLowerCase().trim();
-  console.log('[LOGIN] Attempt:', normalizedEmail);
   
   // Find user (try exact then lowercase)
   let user = null;
@@ -73,7 +70,6 @@ export async function POST(request) {
   }
   
   if (!user) {
-    console.log('[LOGIN] User not found');
     return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 401 });
   }
   
@@ -88,12 +84,10 @@ export async function POST(request) {
       // Upgrade to bcrypt
       const newHash = await bcrypt.hash(password, 10);
       await supabase.from('profiles').update({ password_hash: newHash }).eq('id', user.id);
-      console.log('[LOGIN] Password upgraded to bcrypt');
     }
   }
   
   if (!passwordValid) {
-    console.log('[LOGIN] Invalid password');
     return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 401 });
   }
   
@@ -110,12 +104,15 @@ export async function POST(request) {
   // Update last login
   await supabase.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('id', user.id);
   
+  // Determine effective role (supports "[MODERATOR]" marker)
+  const effectiveRole = user.last_name?.includes('[MODERATOR]') ? 'MODERATOR' : user.role;
+
   // Generate JWT token (30 days)
   const token = jwt.sign(
     {
       userId: user.id,
       email: user.email,
-      role: user.role,
+      role: effectiveRole,
       firstName: user.first_name
     },
     JWT_SECRET,
@@ -123,11 +120,8 @@ export async function POST(request) {
   );
   
   // Determine redirect
-  const effectiveRole = user.last_name?.includes('[MODERATOR]') ? 'MODERATOR' : user.role;
   // Use requested redirect if provided, otherwise use role-based redirect
   const redirectTo = requestedRedirect || ROLE_REDIRECTS[effectiveRole] || '/';
-  
-  console.log(`[LOGIN] Success: ${user.email} (${effectiveRole}) -> ${redirectTo}`);
   
   // Create response with HttpOnly cookie
   const response = NextResponse.json({ 

@@ -6,6 +6,7 @@ import { UniversalHeader } from '@/components/universal-header'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { MainContent } from '@/components/main-content'
 import { AuthProvider } from '@/contexts/auth-context'
+import { I18nProvider } from '@/contexts/i18n-context'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 
@@ -68,12 +69,14 @@ export default function RootLayout({ children }) {
         <meta name="theme-color" content="#0d9488" />
       </head>
       <body className={inter.className}>
-        <AuthProvider>
-          <UniversalHeader />
-          <MainContent>{children}</MainContent>
-          <MobileBottomNav />
-          <Toaster />
-        </AuthProvider>
+        <I18nProvider>
+          <AuthProvider>
+            <UniversalHeader />
+            <MainContent>{children}</MainContent>
+            <MobileBottomNav />
+            <Toaster />
+          </AuthProvider>
+        </I18nProvider>
       </body>
     </html>
   )

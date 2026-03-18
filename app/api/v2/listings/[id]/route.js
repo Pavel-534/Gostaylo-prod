@@ -73,40 +73,60 @@ export async function GET(request, context) {
       }, { status: 404 });
     }
     
-    // Increment views
-    await supabaseAdmin
+    // Increment views (non-blocking)
+    supabaseAdmin
       .from('listings')
       .update({ views: (listing.views || 0) + 1 })
-      .eq('id', id);
+      .eq('id', id)
+      .then(() => {})
+      .catch(() => {});
     
-    // Server-side fallback: Calculate reviews_count if NULL
-    let reviewsCount = listing.reviews_count
-    if (reviewsCount === null || reviewsCount === undefined) {
-      // Fetch actual count from reviews table
-      const { count, error: countError } = await supabaseAdmin
-        .from('reviews')
-        .select('id', { count: 'exact', head: true })
-        .eq('listing_id', id)
-      
-      reviewsCount = countError ? 0 : (count || 0)
-      console.log(`[LISTING API] Fallback reviews_count for ${id}: ${reviewsCount}`)
-    }
-    
-    // Get seasonal prices
-    const { data: seasonalPrices } = await supabaseAdmin
-      .from('seasonal_prices')
-      .select('*')
-      .eq('listing_id', id)
-      .order('start_date', { ascending: true });
-    
-    // Calculate commission rate dynamically via PricingService
-    // This ensures UI always shows the CORRECT rate based on:
-    // 1. Partner's custom_commission_rate, 2. Global platform rate, 3. 15% fallback
-    const dummyPrice = 1000; // Use dummy price just to get commission rate
-    const commissionCalc = await PricingService.calculateCommission(dummyPrice, listing.owner_id);
-    const dynamicCommissionRate = commissionCalc.commissionRate;
-    
-    console.log(`[LISTING API] Commission rate for listing ${id}: ${dynamicCommissionRate}% (via PricingService)`);
+    // Parallelize slow dependent reads - each wrapped in try-catch for stability
+    const seasonalPricesPromise = (async () => {
+      try {
+        const { data, error } = await supabaseAdmin
+          .from('seasonal_prices')
+          .select('*')
+          .eq('listing_id', id)
+          .order('start_date', { ascending: true })
+        return error ? [] : (data || [])
+      } catch (e) {
+        console.warn('[LISTING] seasonal_prices error:', e?.message)
+        return []
+      }
+    })()
+
+    const reviewsCountPromise = (async () => {
+      try {
+        const rc = listing.reviews_count
+        if (rc !== null && rc !== undefined) return rc
+        const { count, error: countError } = await supabaseAdmin
+          .from('reviews')
+          .select('id', { count: 'exact', head: true })
+          .eq('listing_id', id)
+        return countError ? 0 : (count || 0)
+      } catch (e) {
+        console.warn('[LISTING] reviews count error:', e?.message)
+        return 0
+      }
+    })()
+
+    const commissionRatePromise = (async () => {
+      try {
+        const dummyPrice = 1000
+        const commissionCalc = await PricingService.calculateCommission(dummyPrice, listing.owner_id)
+        return commissionCalc?.commissionRate ?? 15
+      } catch (e) {
+        console.warn('[LISTING] commission error:', e?.message)
+        return 15
+      }
+    })()
+
+    const [seasonalPrices, reviewsCount, dynamicCommissionRate] = await Promise.all([
+      seasonalPricesPromise,
+      reviewsCountPromise,
+      commissionRatePromise
+    ])
     
     // Transform for frontend
     const transformed = {
@@ -136,7 +156,7 @@ export async function GET(request, context) {
       reviewsCount: reviewsCount || 0,
       createdAt: listing.created_at,
       owner: listing.owner,
-      seasonalPrices: seasonalPrices?.map(sp => ({
+      seasonalPrices: (seasonalPrices || [])?.map(sp => ({
         id: sp.id,
         startDate: sp.start_date,
         endDate: sp.end_date,

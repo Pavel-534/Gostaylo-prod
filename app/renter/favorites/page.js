@@ -12,10 +12,13 @@ import { GostayloListingCard } from '@/components/gostaylo-listing-card';
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton';
 import { Button } from '@/components/ui/button';
 import { Heart, ArrowLeft, RefreshCw } from 'lucide-react';
+import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
 
 export default function FavoritesPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const { language } = useI18n()
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -53,11 +56,11 @@ export default function FavoritesPage() {
         
         setFavorites(listings);
       } else {
-        setError('Failed to load favorites');
+        setError(language === 'ru' ? 'Не удалось загрузить избранное' : 'Failed to load favorites');
       }
     } catch (err) {
       console.error('[FAVORITES PAGE] Error:', err);
-      setError('Network error');
+      setError(language === 'ru' ? 'Ошибка сети' : 'Network error');
     } finally {
       setLoading(false);
     }
@@ -98,15 +101,17 @@ export default function FavoritesPage() {
             className="text-white hover:bg-white/20 mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Назад
+            {language === 'ru' ? 'Назад' : 'Back'}
           </Button>
           
           <div className="flex items-center gap-3 mb-2">
             <Heart className="h-8 w-8 fill-white" />
-            <h1 className="text-3xl font-bold">Избранное</h1>
+            <h1 className="text-3xl font-bold">{getUIText('favorites', language)}</h1>
           </div>
           <p className="text-white/90">
-            {loading ? 'Загрузка...' : `${favorites.length} избранных объектов`}
+            {loading
+              ? getUIText('loading', language)
+              : `${favorites.length} ${language === 'ru' ? 'избранных объектов' : 'favorites'}`}
           </p>
         </div>
       </div>
@@ -119,7 +124,7 @@ export default function FavoritesPage() {
             <p className="text-red-600 mb-4">{error}</p>
             <Button onClick={fetchFavorites} variant="outline">
               <RefreshCw className="h-4 w-4 mr-2" />
-              Повторить
+              {getUIText('retry', language)}
             </Button>
           </div>
         )}
@@ -134,13 +139,15 @@ export default function FavoritesPage() {
           <div className="text-center py-20">
             <Heart className="h-20 w-20 text-slate-300 mx-auto mb-4" />
             <h2 className="text-2xl font-semibold text-slate-700 mb-2">
-              Нет избранных объектов
+              {language === 'ru' ? 'Нет избранных объектов' : 'No favorites yet'}
             </h2>
             <p className="text-slate-500 mb-6">
-              Начните добавлять понравившиеся объекты в избранное, нажимая на ❤️
+              {language === 'ru'
+                ? 'Добавляйте понравившиеся объекты в избранное, нажимая на ❤️'
+                : 'Add listings to favorites by tapping ❤️'}
             </p>
             <Button onClick={() => router.push('/listings')}>
-              Смотреть объекты
+              {getUIText('browse', language)}
             </Button>
           </div>
         )}
@@ -152,7 +159,7 @@ export default function FavoritesPage() {
               <GostayloListingCard
                 key={listing.id}
                 listing={listing}
-                language="ru"
+                language={language}
                 currency="THB"
                 exchangeRates={{ THB: 1, USD: 35.5, RUB: 0.37 }}
                 onFavorite={handleFavorite}

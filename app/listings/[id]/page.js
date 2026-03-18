@@ -32,6 +32,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { formatPrice } from '@/lib/currency'
+import { cn } from '@/lib/utils'
 
 const ListingMap = dynamic(
   () => import('@/components/listing/ListingMap').then((mod) => mod.ListingMap),
@@ -70,6 +71,8 @@ function PremiumListingContent({ params }) {
   const [message, setMessage] = useState('')
   const [priceCalc, setPriceCalc] = useState(null)
   const [calendarKey, setCalendarKey] = useState(0)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteLoading, setFavoriteLoading] = useState(false)
   
   // Initialize from URL
   useEffect(() => {
@@ -98,6 +101,23 @@ function PremiumListingContent({ params }) {
     loadListing()
     loadReviews()
   }, [params.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  
+  // Load favorite status when user and listing are ready
+  useEffect(() => {
+    if (!user?.id || !listing?.id) {
+      setIsFavorite(false)
+      return
+    }
+    fetch('/api/v2/favorites')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.favorites) {
+          const inFavs = data.favorites.some(f => f.listing_id === listing.id)
+          setIsFavorite(inFavs)
+        }
+      })
+      .catch(() => {})
+  }, [user?.id, listing?.id])
   
   // Track recently viewed
   useEffect(() => {
@@ -192,9 +212,13 @@ function PremiumListingContent({ params }) {
   
   async function loadReviews() {
     try {
-      const res = await fetch(`/api/v2/reviews?listingId=${params.id}`)
+      const res = await fetch(`/api/v2/reviews?listing_id=${params.id}`)
       const data = await res.json()
-      if (data.success) setReviews(data.data || [])
+      if (data.success) {
+        // API returns { data: { reviews: [], stats: {} } }
+        const raw = data.data
+        setReviews(Array.isArray(raw) ? raw : (raw?.reviews ?? []))
+      }
     } catch (error) {
       // Failed to load reviews
     }
@@ -251,6 +275,38 @@ function PremiumListingContent({ params }) {
   const maxGuests = listing?.metadata?.max_guests || listing?.metadata?.guests || 4
   const amenities = listing?.metadata?.amenities || []
   
+  async function handleFavoriteClick() {
+    if (!user) {
+      openLoginModal()
+      return
+    }
+    if (favoriteLoading) return
+    setFavoriteLoading(true)
+    const newState = !isFavorite
+    setIsFavorite(newState)
+    try {
+      const res = await fetch('/api/v2/favorites', {
+        method: newState ? 'POST' : 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: listing.id })
+      })
+      const data = await res.json()
+      if (!data.success) {
+        setIsFavorite(!newState)
+        toast.error(language === 'ru' ? 'Ошибка обновления избранного' : 'Failed to update favorites')
+      } else {
+        toast.success(newState
+          ? (language === 'ru' ? '❤️ Добавлено в избранное' : '❤️ Added to favorites')
+          : (language === 'ru' ? 'Удалено из избранного' : 'Removed from favorites'))
+      }
+    } catch (err) {
+      setIsFavorite(!newState)
+      toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
+    } finally {
+      setFavoriteLoading(false)
+    }
+  }
+  
   const allImages = useMemo(() => {
     if (!listing) return []
     const imgs = []
@@ -295,8 +351,14 @@ function PremiumListingContent({ params }) {
               <ArrowLeft className="h-4 w-4" />
               <span className="hidden sm:inline">{language === 'ru' ? 'Назад' : 'Back'}</span>
             </Button>
-            <Button variant="ghost" size="icon">
-              <Heart className="h-5 w-5" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleFavoriteClick}
+              disabled={favoriteLoading}
+              aria-label={isFavorite ? (language === 'ru' ? 'Удалить из избранного' : 'Remove from favorites') : (language === 'ru' ? 'Добавить в избранное' : 'Add to favorites')}
+            >
+              <Heart className={cn('h-5 w-5', isFavorite && 'fill-red-500 text-red-500')} />
             </Button>
           </div>
         </header>

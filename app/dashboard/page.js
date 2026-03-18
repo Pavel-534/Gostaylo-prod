@@ -54,7 +54,7 @@ export default function DashboardRouter() {
           break;
         case 'RENTER':
         default:
-          router.push('/dashboard/renter');
+          router.push('/renter/dashboard');
           break;
       }
     } catch (error) {

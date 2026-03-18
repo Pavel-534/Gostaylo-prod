@@ -31,6 +31,8 @@ import { ru } from 'date-fns/locale'
 import { formatPrice } from '@/lib/currency'
 import { ReviewModal } from '@/components/review-modal'
 import { toast } from 'sonner'
+import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
 
 // Fetch renter bookings
 async function fetchRenterBookings(renterId) {
@@ -264,6 +266,7 @@ function BookingCard({ booking, onReviewClick }) {
 }
 
 export default function RenterBookingsPage() {
+  const { language } = useI18n()
   const [userId, setUserId] = useState(null)
   const [activeTab, setActiveTab] = useState('all')
   const queryClient = useQueryClient()
@@ -362,7 +365,7 @@ export default function RenterBookingsPage() {
       return await res.json()
     },
     onSuccess: () => {
-      toast.success('Review submitted successfully!')
+      toast.success(language === 'ru' ? 'Отзыв отправлен!' : 'Review submitted!')
       queryClient.invalidateQueries({ queryKey: ['renter-bookings', userId] })
     },
     onError: (error) => {
@@ -385,13 +388,13 @@ export default function RenterBookingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Мои бронирования</h1>
-          <p className="text-slate-600 mt-1">Управление всеми вашими поездками</p>
+          <h1 className="text-3xl font-bold text-slate-900">{getUIText('myBookingsTitle', language)}</h1>
+          <p className="text-slate-600 mt-1">{getUIText('manageTrips', language)}</p>
         </div>
         <Link href="/listings">
           <Button className="bg-teal-600 hover:bg-teal-700">
             <Home className="h-4 w-4 mr-2" />
-            Найти жильё
+            {getUIText('findStay', language)}
           </Button>
         </Link>
       </div>
@@ -400,7 +403,7 @@ export default function RenterBookingsPage() {
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
           <TabsTrigger value="all" className="relative">
-            Все
+            {getUIText('all', language)}
             {counts.all > 0 && (
               <Badge variant="secondary" className="ml-2 bg-teal-100 text-teal-700">
                 {counts.all}
@@ -408,7 +411,7 @@ export default function RenterBookingsPage() {
             )}
           </TabsTrigger>
           <TabsTrigger value="upcoming" className="relative">
-            Предстоящие
+            {getUIText('upcoming', language)}
             {counts.upcoming > 0 && (
               <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
                 {counts.upcoming}
@@ -416,7 +419,7 @@ export default function RenterBookingsPage() {
             )}
           </TabsTrigger>
           <TabsTrigger value="past" className="relative">
-            Прошедшие
+            {getUIText('past', language)}
             {counts.past > 0 && (
               <Badge variant="secondary" className="ml-2 bg-slate-200 text-slate-700">
                 {counts.past}
@@ -424,7 +427,7 @@ export default function RenterBookingsPage() {
             )}
           </TabsTrigger>
           <TabsTrigger value="cancelled" className="relative">
-            Отменённые
+            {getUIText('cancelled', language)}
             {counts.cancelled > 0 && (
               <Badge variant="secondary" className="ml-2 bg-red-100 text-red-700">
                 {counts.cancelled}
@@ -446,11 +449,11 @@ export default function RenterBookingsPage() {
               <div className="text-center">
                 <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-slate-900 mb-2">
-                  Ошибка загрузки
+                  {getUIText('loadError', language)}
                 </h3>
                 <p className="text-slate-600 mb-4">{error?.message}</p>
                 <Button variant="outline" onClick={() => window.location.reload()}>
-                  Повторить
+                  {getUIText('retry', language)}
                 </Button>
               </div>
             </Card>
@@ -459,20 +462,20 @@ export default function RenterBookingsPage() {
               <div className="text-center">
                 <Calendar className="h-16 w-16 text-slate-300 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-slate-900 mb-2">
-                  {activeTab === 'all' && 'Нет бронирований'}
-                  {activeTab === 'upcoming' && 'Нет предстоящих поездок'}
-                  {activeTab === 'past' && 'Нет прошедших поездок'}
-                  {activeTab === 'cancelled' && 'Нет отменённых бронирований'}
+                  {activeTab === 'all' && getUIText('noBookings', language)}
+                  {activeTab === 'upcoming' && getUIText('noUpcomingTrips', language)}
+                  {activeTab === 'past' && getUIText('noPastTrips', language)}
+                  {activeTab === 'cancelled' && getUIText('noCancelledBookings', language)}
                 </h3>
                 <p className="text-slate-600 mb-6">
-                  {activeTab === 'all' && 'Начните поиск жилья на Пхукете'}
-                  {activeTab === 'upcoming' && 'Забронируйте свою следующую поездку'}
-                  {activeTab === 'past' && 'У вас ещё нет завершённых поездок'}
-                  {activeTab === 'cancelled' && 'Все ваши бронирования активны'}
+                  {activeTab === 'all' && getUIText('startSearchingPhuket', language)}
+                  {activeTab === 'upcoming' && getUIText('bookNextTrip', language)}
+                  {activeTab === 'past' && getUIText('noCompletedTrips', language)}
+                  {activeTab === 'cancelled' && getUIText('allBookingsActive', language)}
                 </p>
                 <Link href="/listings">
                   <Button className="bg-teal-600 hover:bg-teal-700">
-                    Найти жильё
+                    {getUIText('findStay', language)}
                   </Button>
                 </Link>
               </div>

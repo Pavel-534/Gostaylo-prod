@@ -110,14 +110,18 @@ export async function GET(request) {
     
     // Apply category filter
     if (filters.category && filters.category !== 'all') {
-      const { data: cat } = await supabaseAdmin
-        .from('categories')
-        .select('id')
-        .eq('slug', filters.category)
-        .single();
-      
-      if (cat) {
-        query = query.eq('category_id', cat.id);
+      try {
+        const { data: cat, error: catError } = await supabaseAdmin
+          .from('categories')
+          .select('id')
+          .eq('slug', filters.category)
+          .single();
+        
+        if (!catError && cat) {
+          query = query.eq('category_id', cat.id);
+        }
+      } catch (e) {
+        console.warn('[SEARCH API] Categories filter error:', e?.message);
       }
     }
     
@@ -130,12 +134,14 @@ export async function GET(request) {
     }
     
     // Execute query
-    const { data: listings, error } = await query;
+    const { data: rawListings, error } = await query;
     
     if (error) {
-      console.error('[SEARCH API v3] Query error:', error);
+      console.error('[SEARCH API] Query error:', error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
+    
+    const listings = rawListings || [];
     
     // =====================================================
     // AVAILABILITY & CAPACITY FILTERING (when dates provided)
@@ -164,15 +170,15 @@ export async function GET(request) {
             filters.checkOut
           );
           
-          if (!availability.available) {
+          if (!availability?.available) {
             filteredOutByAvailability++;
             continue;
           }
           
           // Add pricing info for available listings
-          listing._pricing = availability.pricing;
+          listing._pricing = availability?.pricing || null;
         } catch (err) {
-          console.error(`[SEARCH API v3] Error checking availability for ${listing.id}:`, err);
+          console.warn(`[SEARCH API] Availability check failed for ${listing.id}:`, err?.message);
           // Include listing if availability check fails (graceful degradation)
         }
       }
@@ -191,7 +197,7 @@ export async function GET(request) {
       description: l.description,
       district: l.district,
       basePriceThb: parseFloat(l.base_price_thb),
-      commissionRate: parseFloat(l.commission_rate),
+      commissionRate: parseFloat(l.commission_rate) || 15,
       images: l.images || [],
       coverImage: l.cover_image,
       metadata: l.metadata || {},

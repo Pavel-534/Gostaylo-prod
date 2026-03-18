@@ -15,7 +15,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
   User, LogOut, ChevronDown, Heart, CalendarDays,
-  Briefcase, Settings, Shield
+  Briefcase, Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -28,36 +28,34 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { CurrencySelector } from '@/components/currency-selector';
 import { useAuth } from '@/contexts/auth-context';
+import { useI18n } from '@/contexts/i18n-context'
+import { Flag } from '@/components/flags'
 
 // Supported languages
 const LANGUAGES = [
-  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'zh', name: '中文', flag: '🇨🇳' },
-  { code: 'th', name: 'ไทย', flag: '🇹🇭' },
+  { code: 'ru', name: 'Русский' },
+  { code: 'en', name: 'English' },
+  { code: 'zh', name: '中文' },
+  { code: 'th', name: 'ไทย' },
 ];
 
 export function UniversalHeader() {
   const [mounted, setMounted] = useState(false);
   const [currency, setCurrency] = useState('THB');
-  const [language, setLanguage] = useState('ru');
   const pathname = usePathname();
   const router = useRouter();
   
+  const { language, setLanguage } = useI18n()
   const { user, logout, openLoginModal, isAdmin, isPartner } = useAuth();
 
   useEffect(() => {
     setMounted(true);
     const savedCurrency = localStorage.getItem('gostaylo_currency');
     if (savedCurrency) setCurrency(savedCurrency);
-    const savedLang = localStorage.getItem('gostaylo_language');
-    if (savedLang) setLanguage(savedLang);
-  }, [pathname]);
+  }, []);
 
   function handleLanguageChange(langCode) {
-    setLanguage(langCode);
-    localStorage.setItem('gostaylo_language', langCode);
-    window.dispatchEvent(new CustomEvent('languageChange', { detail: langCode }));
+    setLanguage(langCode)
   }
 
   if (!mounted) return null;
@@ -70,6 +68,19 @@ export function UniversalHeader() {
 
   // Don't render on partner pages (Partner has its own sidebar layout)
   if (isOnPartnerPage) return null;
+
+  const navigate = (href) => {
+    router.push(href);
+  };
+
+  const renderLangFlag = (code) => {
+    const c = (code || '').toLowerCase()
+    if (c === 'ru') return <Flag code="ru" title="RU" />
+    if (c === 'en') return <Flag code="gb" title="GB" />
+    if (c === 'zh') return <Flag code="cn" title="CN" />
+    if (c === 'th') return <Flag code="th" title="TH" />
+    return <Flag code="eu" title={c.toUpperCase()} />
+  }
 
   return (
     <header className='fixed top-0 left-0 right-0 z-[100] bg-white border-b border-slate-200'>
@@ -89,7 +100,7 @@ export function UniversalHeader() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant='ghost' size='sm' className='h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-full hover:bg-slate-100'>
-                  <span className='text-base sm:text-lg'>{LANGUAGES.find(l => l.code === language)?.flag || '🌐'}</span>
+                  {renderLangFlag(LANGUAGES.find(l => l.code === language)?.code || 'ru')}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align='end' className='min-w-[140px]'>
@@ -99,7 +110,7 @@ export function UniversalHeader() {
                     onClick={() => handleLanguageChange(lang.code)}
                     className={`cursor-pointer ${language === lang.code ? 'bg-teal-50 text-teal-700' : ''}`}
                   >
-                    <span className='text-base mr-2'>{lang.flag}</span>
+                    <span className='mr-2'>{renderLangFlag(lang.code)}</span>
                     <span className='text-sm'>{lang.name}</span>
                   </DropdownMenuItem>
                 ))}
@@ -133,23 +144,26 @@ export function UniversalHeader() {
                   
                   {/* Main Navigation */}
                   <div className='py-1'>
-                    <DropdownMenuItem asChild className='cursor-pointer py-2.5'>
-                      <Link href='/renter/profile'>
-                        <User className='h-4 w-4 mr-3 text-slate-400' />
-                        <span>Профиль</span>
-                      </Link>
+                    <DropdownMenuItem
+                      className='cursor-pointer py-2.5'
+                      onSelect={() => { navigate('/renter/profile'); }}
+                    >
+                      <User className='h-4 w-4 mr-3 text-slate-400' />
+                      <span>Профиль</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild className='cursor-pointer py-2.5'>
-                      <Link href='/renter/bookings'>
-                        <CalendarDays className='h-4 w-4 mr-3 text-slate-400' />
-                        <span>Мои бронирования</span>
-                      </Link>
+                    <DropdownMenuItem
+                      className='cursor-pointer py-2.5'
+                      onSelect={() => { navigate('/renter/bookings'); }}
+                    >
+                      <CalendarDays className='h-4 w-4 mr-3 text-slate-400' />
+                      <span>Мои бронирования</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild className='cursor-pointer py-2.5'>
-                      <Link href='/renter/favorites'>
-                        <Heart className='h-4 w-4 mr-3 text-slate-400' />
-                        <span>Избранное</span>
-                      </Link>
+                    <DropdownMenuItem
+                      className='cursor-pointer py-2.5'
+                      onSelect={() => { navigate('/renter/favorites'); }}
+                    >
+                      <Heart className='h-4 w-4 mr-3 text-slate-400' />
+                      <span>Избранное</span>
                     </DropdownMenuItem>
                   </div>
                   
@@ -158,11 +172,12 @@ export function UniversalHeader() {
                     <>
                       <DropdownMenuSeparator />
                       <div className='py-1'>
-                        <DropdownMenuItem asChild className='cursor-pointer py-2.5'>
-                          <Link href='/partner/dashboard'>
-                            <Briefcase className='h-4 w-4 mr-3 text-teal-600' />
-                            <span className='text-teal-700 font-medium'>Панель партнёра</span>
-                          </Link>
+                        <DropdownMenuItem
+                          className='cursor-pointer py-2.5'
+                          onSelect={() => { navigate('/partner/dashboard'); }}
+                        >
+                          <Briefcase className='h-4 w-4 mr-3 text-teal-600' />
+                          <span className='text-teal-700 font-medium'>Панель партнёра</span>
                         </DropdownMenuItem>
                       </div>
                     </>
@@ -173,11 +188,12 @@ export function UniversalHeader() {
                     <>
                       <DropdownMenuSeparator />
                       <div className='py-1'>
-                        <DropdownMenuItem asChild className='cursor-pointer py-2.5'>
-                          <Link href='/admin'>
-                            <Shield className='h-4 w-4 mr-3 text-indigo-600' />
-                            <span className='text-indigo-700 font-medium'>Админ-панель</span>
-                          </Link>
+                        <DropdownMenuItem
+                          className='cursor-pointer py-2.5'
+                          onSelect={() => { navigate('/admin'); }}
+                        >
+                          <Shield className='h-4 w-4 mr-3 text-indigo-600' />
+                          <span className='text-indigo-700 font-medium'>Админ-панель</span>
                         </DropdownMenuItem>
                       </div>
                     </>

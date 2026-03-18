@@ -37,7 +37,7 @@ export function DesktopBookingWidget({
   calendarKey,
   onBookingClick
 }) {
-  const maxGuests = listing.max_guests || 10
+  const maxGuests = listing?.metadata?.max_guests || listing?.metadata?.guests || listing?.max_guests || 10
 
   return (
     <div className="hidden lg:block sticky top-24">
@@ -46,18 +46,18 @@ export function DesktopBookingWidget({
           <div className="flex items-center justify-between mb-2">
             <div>
               <div className="text-3xl font-bold text-slate-900">
-                {formatPrice(priceCalc?.avgPricePerNight || listing.price_per_night, currency, exchangeRates)}
+                {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates)}
               </div>
               <p className="text-sm text-slate-500">
                 {language === 'ru' ? 'за ночь' : 'per night'}
               </p>
             </div>
-            {listing.rating && (
+            {(listing.rating > 0 || (listing.reviewsCount || listing.reviews_count || 0) > 0) && (
               <div className="flex items-center gap-1 text-sm">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span className="font-semibold">{listing.rating.toFixed(1)}</span>
-                {listing.reviews_count > 0 && (
-                  <span className="text-slate-500">({listing.reviews_count})</span>
+                <span className="font-semibold">{(Number(listing.rating) || 0).toFixed(1)}</span>
+                {(listing.reviewsCount || listing.reviews_count || 0) > 0 && (
+                  <span className="text-slate-500">({listing.reviewsCount || listing.reviews_count})</span>
                 )}
               </div>
             )}
@@ -159,7 +159,7 @@ export function MobileBookingBar({
       <div className="flex items-center justify-between gap-4">
         <div>
           <div className="text-2xl font-bold text-slate-900">
-            {formatPrice(priceCalc?.avgPricePerNight || listing.price_per_night, currency, exchangeRates)}
+            {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates)}
           </div>
           <p className="text-xs text-slate-500">
             {language === 'ru' ? 'за ночь' : 'per night'}

@@ -14,6 +14,12 @@ import {
   DrawerTitle,
   DrawerClose,
 } from "@/components/ui/drawer"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 const locales = { ru, en: enUS }
 
@@ -126,9 +132,9 @@ function DayCell({
         {date.getDate()}
       </span>
       
-      {/* Price indicator for available days (mobile hidden) */}
+      {/* Price indicator - compact, below date number */}
       {isClickable && !visuallyBlocked && price > 0 && !isSelected && !isInRange && (
-        <span className="hidden md:block text-[10px] text-slate-500 -mt-0.5">
+        <span className="hidden md:block text-[9px] text-slate-500 leading-tight mt-0.5 block">
           ฿{(price / 1000).toFixed(0)}k
         </span>
       )}
@@ -179,16 +185,16 @@ function MonthGrid({
       </div>
       
       {/* Weekday headers */}
-      <div className="grid grid-cols-7 gap-1 mb-2">
+      <div className="grid grid-cols-7 gap-2 mb-2">
         {weekDays.map((d, i) => (
-          <div key={i} className="text-center text-xs text-slate-500 font-medium py-1">
+          <div key={i} className="text-center text-sm text-slate-500 font-medium py-1">
             {d}
           </div>
         ))}
       </div>
       
       {/* Days grid */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-2">
         {weeks.flat().map((date, idx) => {
           const dateStr = format(date, 'yyyy-MM-dd')
           const dayData = calendarData.get(dateStr)
@@ -434,9 +440,9 @@ export function GostayloCalendar({
     <div className="p-4">
       {SelectionHint}
       
-      {/* Desktop: 2 months side-by-side with navigation */}
+      {/* Desktop: 2 months side-by-side with navigation - larger cells */}
       {!isMobile && (
-        <div className="flex items-start gap-8">
+        <div className="flex items-start gap-10">
           {/* Navigation */}
           <div className="absolute left-4 top-4">
             <Button variant="ghost" size="icon" onClick={goToPrevMonth}>
@@ -506,35 +512,24 @@ export function GostayloCalendar({
     )
   }
   
-  // Desktop: Use popover-like dropdown
+  // Desktop: Use centered modal (60%+ screen)
   if (isMobile === false) {
     return (
-      <div className="relative">
+      <>
         {TriggerButton}
-        {open && (
-          <>
-            {/* Backdrop */}
-            <div 
-              className="fixed inset-0 z-40" 
-              onClick={() => setOpen(false)}
-            />
-            {/* Calendar popup */}
-            <div className="absolute top-full left-0 mt-2 z-50 bg-white rounded-xl shadow-2xl border border-slate-200 min-w-[600px]">
-              <div className="relative p-4">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="absolute right-2 top-2"
-                  onClick={() => setOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                {CalendarContent}
-              </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogContent className="!max-w-[min(900px,95vw)] w-[min(900px,95vw)] min-h-[60vh] max-h-[90vh] overflow-y-auto p-0 gap-0">
+            <DialogHeader className="p-6 pb-2">
+              <DialogTitle>
+                {language === 'ru' ? 'Выберите даты' : 'Select dates'}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-auto p-6 pt-2 min-h-[50vh]">
+              {CalendarContent}
             </div>
-          </>
-        )}
-      </div>
+          </DialogContent>
+        </Dialog>
+      </>
     )
   }
   

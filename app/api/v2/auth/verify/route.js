@@ -15,13 +15,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-prod
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
 
 export async function GET(request) {
-  console.log('[VERIFY] ====== START ======');
-  
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
   
   if (!token) {
-    console.log('[VERIFY] Missing token');
     return NextResponse.redirect(`${BASE_URL}/?auth_error=missing_token`);
   }
   
@@ -29,7 +26,6 @@ export async function GET(request) {
   let decoded;
   try {
     decoded = jwt.verify(token, JWT_SECRET);
-    console.log('[VERIFY] Token decoded:', decoded.userId, decoded.email);
   } catch (error) {
     console.error('[VERIFY] Invalid token:', error.message);
     return NextResponse.redirect(`${BASE_URL}/?auth_error=invalid_or_expired_token`);
@@ -56,8 +52,6 @@ export async function GET(request) {
   });
   
   // Update user verification status
-  console.log('[VERIFY] Updating user:', userId);
-  
   const { data: user, error } = await supabase
     .from('profiles')
     .update({
@@ -80,14 +74,15 @@ export async function GET(request) {
     return NextResponse.redirect(`${BASE_URL}/?auth_error=user_not_found`);
   }
   
-  console.log('[VERIFY] SUCCESS! User verified:', user.email);
-  
+  // Determine effective role (supports "[MODERATOR]" marker)
+  const effectiveRole = user.last_name?.includes('[MODERATOR]') ? 'MODERATOR' : user.role;
+
   // Generate session JWT (30 days)
   const sessionToken = jwt.sign(
     {
       userId: user.id,
       email: user.email,
-      role: user.role,
+      role: effectiveRole,
       firstName: user.first_name
     },
     JWT_SECRET,
@@ -105,8 +100,6 @@ export async function GET(request) {
     maxAge: 60 * 60 * 24 * 30, // 30 days
     path: '/'
   });
-  
-  console.log('[VERIFY] Session cookie set, redirecting...');
   
   return response;
 }

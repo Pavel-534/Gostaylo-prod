@@ -12,17 +12,18 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { 
   Home, Calendar, MessageSquare, Heart, User, 
-  Menu, X, LogOut, Loader2, MapPin 
+  Menu, X, LogOut, Loader2, MapPin, Settings
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
 
 // TanStack Query client configuration
 const queryClient = new QueryClient({
@@ -39,34 +40,40 @@ const queryClient = new QueryClient({
 // Navigation items
 const NAV_ITEMS = [
   { 
-    href: '/dashboard/renter', 
-    label: 'Dashboard', 
+    href: '/renter/dashboard', 
+    labelKey: 'dashboard', 
     icon: Home,
-    description: 'Overview & stats'
+    descriptionKey: 'dashboardDesc'
   },
   { 
     href: '/renter/bookings', 
-    label: 'My Bookings', 
+    labelKey: 'bookings', 
     icon: Calendar,
-    description: 'All reservations'
+    descriptionKey: 'bookingsDesc'
   },
   { 
     href: '/renter/messages', 
-    label: 'Messages', 
+    labelKey: 'messages', 
     icon: MessageSquare,
-    description: 'Chat with hosts'
+    descriptionKey: 'messagesDesc'
   },
   { 
-    href: '/favorites', 
-    label: 'Favorites', 
+    href: '/renter/favorites', 
+    labelKey: 'favorites', 
     icon: Heart,
-    description: 'Saved properties'
+    descriptionKey: 'favoritesDesc'
   },
   { 
     href: '/renter/profile', 
-    label: 'Profile', 
+    labelKey: 'profile', 
     icon: User,
-    description: 'Account settings'
+    descriptionKey: 'profileDesc'
+  },
+  {
+    href: '/renter/settings',
+    labelKey: 'settings',
+    icon: Settings,
+    descriptionKey: 'settingsDesc'
   }
 ]
 
@@ -78,6 +85,45 @@ export default function RenterLayout({ children }) {
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [accessDenied, setAccessDenied] = useState(false)
+  const [language, setLanguage] = useState('ru')
+
+  useEffect(() => {
+    const initial = detectLanguage()
+    setLanguage(initial)
+    persistLanguage(initial)
+    document.documentElement.lang = initial
+
+    const handleLang = (e) => {
+      const next = e?.detail
+      if (!next) return
+      setLanguage(next)
+      persistLanguage(next)
+      document.documentElement.lang = next
+    }
+
+    window.addEventListener('language-change', handleLang)
+    window.addEventListener('languageChange', handleLang)
+    return () => {
+      window.removeEventListener('language-change', handleLang)
+      window.removeEventListener('languageChange', handleLang)
+    }
+  }, [])
+
+  const navItems = useMemo(() => {
+    const desc = {
+      dashboardDesc: language === 'ru' ? 'Обзор и быстрые действия' : 'Overview & quick actions',
+      bookingsDesc: language === 'ru' ? 'Все ваши бронирования' : 'All reservations',
+      messagesDesc: language === 'ru' ? 'Чат с хозяевами' : 'Chat with hosts',
+      favoritesDesc: language === 'ru' ? 'Сохранённые объекты' : 'Saved properties',
+      profileDesc: language === 'ru' ? 'Данные аккаунта' : 'Account details',
+      settingsDesc: language === 'ru' ? 'Уведомления и приватность' : 'Notifications & privacy',
+    }
+    return NAV_ITEMS.map(i => ({
+      ...i,
+      label: getUIText(i.labelKey, language),
+      description: desc[i.descriptionKey] || ''
+    }))
+  }, [language])
 
   // Session validation & auth check
   useEffect(() => {
@@ -87,7 +133,6 @@ export default function RenterLayout({ children }) {
         const storedUser = localStorage.getItem('gostaylo_user')
         
         if (!storedUser) {
-          console.log('[RENTER AUTH] No session found, redirecting to login')
           setAccessDenied(true)
           setLoading(false)
           return
@@ -99,18 +144,15 @@ export default function RenterLayout({ children }) {
         const allowedRoles = ['RENTER', 'ADMIN', 'MODERATOR']
         
         if (!allowedRoles.includes(parsedUser.role)) {
-          console.log(`[RENTER AUTH] Access denied for role: ${parsedUser.role}`)
           setAccessDenied(true)
           setLoading(false)
           return
         }
 
-        console.log(`[RENTER AUTH] Session valid for user: ${parsedUser.id}`)
         setUser(parsedUser)
         setLoading(false)
         
       } catch (error) {
-        console.error('[RENTER AUTH ERROR]', error)
         setAccessDenied(true)
         setLoading(false)
       }
@@ -186,7 +228,7 @@ export default function RenterLayout({ children }) {
 
               {/* Desktop Navigation */}
               <nav className="hidden md:flex items-center gap-1">
-                {NAV_ITEMS.map((item) => {
+                {navItems.map((item) => {
                   const Icon = item.icon
                   const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
                   
@@ -227,7 +269,7 @@ export default function RenterLayout({ children }) {
                 >
                   <Link href="/listings">
                     <MapPin className="h-4 w-4 mr-2" />
-                    Browse
+                    {getUIText('browse', language)}
                   </Link>
                 </Button>
 
@@ -273,7 +315,7 @@ export default function RenterLayout({ children }) {
           )}
         >
           <nav className="p-4 space-y-2">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
               

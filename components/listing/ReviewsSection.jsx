@@ -5,12 +5,20 @@
 
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Star, User } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function ReviewsSection({ listing, reviews, language = 'en' }) {
+  const [showAll, setShowAll] = useState(false)
+
+  // Defensive: API may return { reviews: [], stats: {} } or array directly
+  const reviewsArray = Array.isArray(reviews) ? reviews : (reviews?.reviews ?? [])
+  const visibleReviews = showAll ? reviewsArray : reviewsArray.slice(0, 3)
+
   return (
-    <div>
+    <div id="reviews">
       <h2 className="text-2xl font-medium tracking-tight mb-6">
         {language === 'ru' ? 'Отзывы' : 'Reviews'}
       </h2>
@@ -21,7 +29,7 @@ export function ReviewsSection({ listing, reviews, language = 'en' }) {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
               <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
-              <span className="text-3xl font-semibold">{listing.rating.toFixed(1)}</span>
+              <span className="text-3xl font-semibold">{(Number(listing?.rating) || 0).toFixed(1)}</span>
             </div>
             <span className="text-slate-500">
               · {listing.reviewsCount} {language === 'ru' ? 'отзывов' : 'reviews'}
@@ -29,9 +37,9 @@ export function ReviewsSection({ listing, reviews, language = 'en' }) {
           </div>
           
           {/* Individual Reviews */}
-          {reviews.length > 0 && (
+          {reviewsArray.length > 0 && (
             <div className="space-y-4 mt-6">
-              {reviews.slice(0, 3).map((review) => (
+              {visibleReviews.map((review) => (
                 <Card key={review.id} className="border-slate-200">
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
@@ -40,7 +48,7 @@ export function ReviewsSection({ listing, reviews, language = 'en' }) {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-medium">{review.reviewer_name}</h4>
+                          <h4 className="font-medium">{review.reviewerName || review.reviewer_name || 'Guest'}</h4>
                           <div className="flex items-center gap-1">
                             <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                             <span className="text-sm">{review.rating}</span>
@@ -54,6 +62,20 @@ export function ReviewsSection({ listing, reviews, language = 'en' }) {
                   </CardContent>
                 </Card>
               ))}
+
+              {reviewsArray.length > 3 && (
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowAll(v => !v)}
+                    className="border-teal-200 text-teal-700 hover:bg-teal-50"
+                  >
+                    {showAll
+                      ? (language === 'ru' ? 'Скрыть' : 'Hide')
+                      : (language === 'ru' ? 'Показать все отзывы' : 'Show all reviews')}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>

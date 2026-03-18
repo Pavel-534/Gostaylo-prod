@@ -11,6 +11,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import { Search, MapPin, Home, Bike, Map, Anchor, Loader2, BedDouble, Bath, Users, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -19,7 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerClose } from '@/components/ui/drawer'
 import { formatPrice } from '@/lib/currency'
 import { fetchCategories, fetchExchangeRates, fetchDistricts } from '@/lib/client-data'
-import { detectLanguage, getCategoryName, getUIText, getListingText } from '@/lib/translations'
+import { detectLanguage, setLanguage as persistLanguage, getCategoryName, getUIText, getListingText } from '@/lib/translations'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 import { SearchCalendar } from '@/components/search-calendar'
@@ -135,7 +136,25 @@ export function GostayloHomeContent() {
   }, [searchParams, language, openLoginModal])
 
   useEffect(() => {
-    setLanguageState(detectLanguage())
+    const initial = detectLanguage()
+    setLanguageState(initial)
+    persistLanguage(initial)
+    document.documentElement.lang = initial
+
+    const handleLang = (e) => {
+      const next = e?.detail
+      if (!next) return
+      setLanguageState(next)
+      persistLanguage(next)
+      document.documentElement.lang = next
+    }
+
+    window.addEventListener('language-change', handleLang)
+    window.addEventListener('languageChange', handleLang) // legacy
+    return () => {
+      window.removeEventListener('language-change', handleLang)
+      window.removeEventListener('languageChange', handleLang)
+    }
   }, [])
 
   // Currency sync
@@ -493,7 +512,14 @@ export function GostayloHomeContent() {
               return (
                 <Card key={cat.id} className='group cursor-pointer overflow-hidden hover:shadow-lg transition-all border hover:border-teal-500' onClick={() => router.push(`/listings?category=${cat.slug}`)}>
                   <div className='relative h-28 sm:h-40 overflow-hidden'>
-                    <img src={images[idx]} alt={cat.name} className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-300' />
+                    <Image
+                      src={images[idx]}
+                      alt={cat.name}
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 25vw"
+                      priority={idx < 4}
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
                     <div className='absolute inset-0 bg-gradient-to-t from-slate-900/70 to-transparent' />
                     <div className='absolute bottom-2 left-2 right-2'>
                       <div className='flex items-center gap-1.5 text-white'>
@@ -532,7 +558,7 @@ export function GostayloHomeContent() {
             <div className='text-center py-12'><p className='text-slate-600'>{language === 'ru' ? 'Ничего не найдено' : 'No results'}</p></div>
           ) : (
             <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
-              {listings.map(listing => {
+              {listings.map((listing, idx) => {
                 const listingParams = new URLSearchParams()
                 if (dateRange.from) listingParams.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
                 if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) listingParams.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
@@ -543,7 +569,14 @@ export function GostayloHomeContent() {
                   <Link key={listing.id} href={listingUrl}>
                     <Card className='group h-full flex flex-col overflow-hidden hover:shadow-lg transition-all border hover:border-teal-400 bg-white'>
                       <div className='relative h-40 sm:h-44 overflow-hidden flex-shrink-0'>
-                        <img src={listing.images?.[0] || '/placeholder.jpg'} alt={listing.title} className='w-full h-full object-cover group-hover:scale-105 transition-transform duration-300' />
+                        <Image
+                          src={listing.images?.[0] || '/placeholder.jpg'}
+                          alt={listing.title}
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                          priority={idx < 4}
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
                         {listing.isFeatured && <Badge className='absolute top-2 left-2 bg-gradient-to-r from-purple-600 to-pink-600'>⭐ TOP</Badge>}
                         {listing.rating > 0 && <Badge className='absolute top-2 right-2 bg-teal-600'>⭐ {listing.rating}</Badge>}
                       </div>

@@ -15,7 +15,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Route protection configuration
 const PROTECTED_ROUTES = {
@@ -29,8 +29,9 @@ const PROTECTED_ROUTES = {
  */
 async function verifyToken(token: string): Promise<{ userId: string; role: string; email: string } | null> {
   try {
+    if (!JWT_SECRET) return null;
     const secret = new TextEncoder().encode(JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, secret, { algorithms: ['HS256'] });
     
     return {
       userId: payload.userId as string,
@@ -38,7 +39,6 @@ async function verifyToken(token: string): Promise<{ userId: string; role: strin
       email: payload.email as string
     };
   } catch (error) {
-    console.error('[MIDDLEWARE] JWT verification failed:', error);
     return null;
   }
 }
@@ -55,13 +55,17 @@ export async function middleware(request: NextRequest) {
     // Public route - allow access
     return NextResponse.next();
   }
+
+  // Fail closed if server is misconfigured
+  if (!JWT_SECRET) {
+    return NextResponse.json({ success: false, error: 'Server misconfigured: JWT_SECRET is missing' }, { status: 500 });
+  }
   
   // Protected route - verify authentication
   const token = request.cookies.get('gostaylo_session')?.value;
   
   if (!token) {
     // No token - redirect to home
-    console.log(`[MIDDLEWARE] Blocked access to ${pathname} - No token`);
     return NextResponse.redirect(new URL('/', request.url));
   }
   
@@ -70,7 +74,6 @@ export async function middleware(request: NextRequest) {
   
   if (!decoded) {
     // Invalid token - redirect to home
-    console.log(`[MIDDLEWARE] Blocked access to ${pathname} - Invalid token`);
     const response = NextResponse.redirect(new URL('/', request.url));
     // Clear invalid cookie
     response.cookies.delete('gostaylo_session');
@@ -82,7 +85,6 @@ export async function middleware(request: NextRequest) {
   
   if (!allowedRoles.includes(decoded.role as any)) {
     // Unauthorized role - redirect to home
-    console.log(`[MIDDLEWARE] Blocked access to ${pathname} - Role ${decoded.role} not allowed`);
     return NextResponse.redirect(new URL('/', request.url));
   }
   
@@ -90,13 +92,11 @@ export async function middleware(request: NextRequest) {
   if (decoded.role === 'MODERATOR') {
     const restrictedPaths = ['/admin/finances', '/admin/users', '/admin/marketing', '/admin/security', '/admin/settings'];
     if (restrictedPaths.some(path => pathname.startsWith(path))) {
-      console.log(`[MIDDLEWARE] Blocked MODERATOR access to ${pathname}`);
       return NextResponse.redirect(new URL('/admin/dashboard', request.url));
     }
   }
   
   // Authorized - allow access
-  console.log(`[MIDDLEWARE] ✅ Allowed access to ${pathname} - Role: ${decoded.role}`);
   return NextResponse.next();
 }
 
