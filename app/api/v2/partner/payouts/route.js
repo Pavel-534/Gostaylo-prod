@@ -2,15 +2,22 @@
  * Gostaylo - Partner Payouts API (v2)
  * GET /api/v2/partner/payouts - Get partner's payout history
  * POST /api/v2/partner/payouts - Request payout
+ * SECURITY: partnerId must match session userId
  */
 
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
 import { PaymentService } from '@/lib/services/payment.service';
+import { getUserIdFromSession } from '@/lib/services/session-service';
 
 export async function GET(request) {
   try {
+    const sessionUserId = await getUserIdFromSession();
+    if (!sessionUserId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const partnerId = searchParams.get('partnerId');
     
@@ -19,6 +26,10 @@ export async function GET(request) {
         success: false, 
         error: 'partnerId is required' 
       }, { status: 400 });
+    }
+
+    if (partnerId !== sessionUserId) {
+      return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
     }
     
     const { data: payouts, error } = await supabaseAdmin
@@ -58,6 +69,11 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const sessionUserId = await getUserIdFromSession();
+    if (!sessionUserId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { partnerId, amount, method, walletAddress, bankAccount } = body;
     
@@ -66,6 +82,10 @@ export async function POST(request) {
         success: false, 
         error: 'Missing required fields: partnerId, amount, method' 
       }, { status: 400 });
+    }
+
+    if (partnerId !== sessionUserId) {
+      return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
     }
     
     // Request payout using service

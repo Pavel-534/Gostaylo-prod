@@ -7,7 +7,7 @@
 
 import { NextResponse } from 'next/server'
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
-import { getUserIdFromRequest, verifyPartnerAccess } from '@/lib/services/session-service'
+import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { addDays, format, parseISO, isWithinInterval, isSameDay, differenceInDays } from 'date-fns'
 
 export const dynamic = 'force-dynamic'
@@ -153,12 +153,12 @@ function processCalendarData(listings, bookings, blocks, seasonalPrices, startDa
 
 export async function GET(request) {
   try {
-    const userId = getUserIdFromRequest(request)
+    const userId = await getUserIdFromSession()
     
     if (!userId) {
       return NextResponse.json({
         status: 'error',
-        error: 'Authentication required. Please provide partnerId.'
+        error: 'Authentication required. Please log in.'
       }, { status: 401 })
     }
     

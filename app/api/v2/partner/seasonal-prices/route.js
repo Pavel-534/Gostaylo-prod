@@ -12,7 +12,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { getUserIdFromRequest, verifyPartnerAccess } from '@/lib/services/session-service'
+import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { parseISO, format, isBefore, isAfter, isSameDay, addDays, subDays } from 'date-fns'
 
 export const dynamic = 'force-dynamic'
@@ -128,7 +128,7 @@ async function resolveConflicts(listingId, newStart, newEnd) {
  */
 export async function GET(request) {
   try {
-    const userId = getUserIdFromRequest(request)
+    const userId = await getUserIdFromSession()
     
     if (!userId) {
       return NextResponse.json({
@@ -213,7 +213,7 @@ export async function GET(request) {
  */
 export async function POST(request) {
   try {
-    const userId = getUserIdFromRequest(request)
+    const userId = await getUserIdFromSession()
     
     if (!userId) {
       return NextResponse.json({
@@ -238,7 +238,7 @@ export async function POST(request) {
     }
     
     const body = await request.json()
-    const { listingId, startDate, endDate, priceDaily, seasonType, label, minStay } = body
+    const { listingId, startDate, endDate, priceDaily, priceMonthly, seasonType, label, minStay } = body
     
     // Validation
     if (!listingId || !startDate || !endDate || !priceDaily) {
@@ -318,7 +318,8 @@ export async function POST(request) {
       start_date: startDate,
       end_date: endDate,
       price_daily: parseFloat(priceDaily),
-      season_type: seasonType || 'BASE',
+      price_monthly: priceMonthly != null && priceMonthly !== '' ? parseFloat(priceMonthly) : null,
+      season_type: seasonType || 'NORMAL',
       label: label || null,
       min_stay: minStay ? parseInt(minStay) : 1
     }
@@ -370,7 +371,7 @@ export async function POST(request) {
  */
 export async function DELETE(request) {
   try {
-    const userId = getUserIdFromRequest(request)
+    const userId = await getUserIdFromSession()
     
     if (!userId) {
       return NextResponse.json({

@@ -9,7 +9,7 @@
 
 import { NextResponse } from 'next/server'
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
-import { getUserIdFromRequest, verifyPartnerAccess } from '@/lib/services/session-service'
+import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { v4 as uuidv4 } from 'uuid'
 
 export const dynamic = 'force-dynamic'
@@ -28,7 +28,7 @@ let mockBlocks = [
 
 export async function POST(request) {
   try {
-    const userId = getUserIdFromRequest(request)
+    const userId = await getUserIdFromSession()
     
     if (!userId) {
       return NextResponse.json({
@@ -155,7 +155,7 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   try {
-    const userId = getUserIdFromRequest(request)
+    const userId = await getUserIdFromSession()
     
     if (!userId) {
       return NextResponse.json({

@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner'
 import CalendarSyncManager from '@/components/calendar-sync-manager'
 import AvailabilityCalendar from '@/components/availability-calendar'
+import SeasonalPriceManager from '@/components/seasonal-price-manager'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 
@@ -46,14 +47,6 @@ export default function EditListing({ params }) {
     coverIndex: 0
   })
   
-  // Seasonal pricing state
-  const [seasons, setSeasons] = useState([])
-  const [newSeason, setNewSeason] = useState({
-    name: '',
-    startDate: '',
-    endDate: '',
-    priceMultiplier: 1.0
-  })
 
   useEffect(() => {
     if (!authLoading && listingId) {
@@ -103,10 +96,7 @@ export default function EditListing({ params }) {
           coverIndex: coverIndex >= 0 ? coverIndex : 0
         })
         
-        // Load seasonal pricing from metadata
-        if (l.metadata?.seasonal_pricing) {
-          setSeasons(l.metadata.seasonal_pricing)
-        }
+        // Seasonal prices loaded by SeasonalPriceManager from API
       } else {
         console.error('[EDIT] Failed to load:', result.error)
       }
@@ -184,7 +174,6 @@ export default function EditListing({ params }) {
           status: 'PENDING',
           metadata: {
             is_draft: false,
-            seasonal_pricing: seasons,
             published_at: new Date().toISOString()
           }
         })
@@ -287,31 +276,6 @@ export default function EditListing({ params }) {
   function setAsCover(index) {
     setFormData({ ...formData, coverIndex: index })
     toast.success('Обложка установлена')
-  }
-
-  // Seasonal pricing functions
-  function addSeason() {
-    if (!newSeason.name || !newSeason.startDate || !newSeason.endDate) {
-      toast.error('Заполните все поля сезона')
-      return
-    }
-    
-    const season = {
-      id: `season-${Date.now()}`,
-      name: newSeason.name,
-      startDate: newSeason.startDate,
-      endDate: newSeason.endDate,
-      priceMultiplier: parseFloat(newSeason.priceMultiplier) || 1.0
-    }
-    
-    setSeasons([...seasons, season])
-    setNewSeason({ name: '', startDate: '', endDate: '', priceMultiplier: 1.0 })
-    toast.success('Сезон добавлен')
-  }
-  
-  function removeSeason(id) {
-    setSeasons(seasons.filter(s => s.id !== id))
-    toast.success('Сезон удалён')
   }
 
   // Check if can publish
@@ -590,121 +554,11 @@ export default function EditListing({ params }) {
           syncErrors={[]}
         />
 
-        {/* Seasonal Pricing Section */}
-        <Card className="border-2 border-teal-200 bg-gradient-to-br from-teal-50 to-cyan-50">
-          <CardHeader className="pb-2 lg:pb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                <Calendar className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
-              </div>
-              <div>
-                <CardTitle className="text-base lg:text-lg">Сезонные цены</CardTitle>
-                <CardDescription className="text-xs">Настройте цены для разных сезонов</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Base price info */}
-            <div className="bg-white/80 rounded-lg p-3 border border-teal-200">
-              <p className="text-sm text-slate-600">
-                Базовая цена: <span className="font-bold text-teal-700">฿{formData.basePriceThb || '0'}</span>/день
-              </p>
-            </div>
-            
-            {/* Existing seasons */}
-            {seasons.length > 0 && (
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Активные сезоны ({seasons.length})</Label>
-                {seasons.map((season) => (
-                  <div key={season.id} className="bg-white rounded-lg p-3 border border-slate-200">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-slate-900 truncate">{season.name}</p>
-                        <p className="text-xs text-slate-500">
-                          {new Date(season.startDate).toLocaleDateString('ru-RU')} — {new Date(season.endDate).toLocaleDateString('ru-RU')}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeSeason(season.id)}
-                        className="text-red-500 hover:text-red-600 hover:bg-red-50 h-8 w-8 flex-shrink-0"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Badge className={season.priceMultiplier > 1 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}>
-                        {season.priceMultiplier > 1 ? '+' : ''}{Math.round((season.priceMultiplier - 1) * 100)}%
-                      </Badge>
-                      <span className="font-bold text-teal-600 text-lg">
-                        ฿{Math.round(parseFloat(formData.basePriceThb || 0) * season.priceMultiplier)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {/* Add new season form */}
-            <div className="bg-white/80 rounded-lg p-3 sm:p-4 border border-teal-200">
-              <Label className="text-sm font-medium mb-3 block">Добавить сезон</Label>
-              <div className="space-y-3">
-                <Input
-                  placeholder="Название (напр. Высокий сезон)"
-                  value={newSeason.name}
-                  onChange={(e) => setNewSeason({ ...newSeason, name: e.target.value })}
-                  className="w-full"
-                />
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs text-slate-500 mb-1 block">Начало</Label>
-                    <Input
-                      type="date"
-                      value={newSeason.startDate}
-                      onChange={(e) => setNewSeason({ ...newSeason, startDate: e.target.value })}
-                      className="w-full text-sm"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-slate-500 mb-1 block">Конец</Label>
-                    <Input
-                      type="date"
-                      value={newSeason.endDate}
-                      onChange={(e) => setNewSeason({ ...newSeason, endDate: e.target.value })}
-                      className="w-full text-sm"
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                  <div className="flex items-center gap-2 flex-1">
-                    <Label className="text-xs text-slate-500 whitespace-nowrap">Множитель:</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      min="0.5"
-                      max="3"
-                      value={newSeason.priceMultiplier}
-                      onChange={(e) => setNewSeason({ ...newSeason, priceMultiplier: e.target.value })}
-                      className="w-20 text-center"
-                    />
-                    <span className="text-xs text-slate-500 whitespace-nowrap">
-                      = ฿{Math.round(parseFloat(formData.basePriceThb || 0) * (parseFloat(newSeason.priceMultiplier) || 1))}
-                    </span>
-                  </div>
-                  <Button
-                    onClick={addSeason}
-                    className="bg-teal-600 hover:bg-teal-700 w-full sm:w-auto"
-                    size="sm"
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Добавить
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Seasonal Pricing - Full SeasonalPriceManager */}
+        <SeasonalPriceManager 
+          listingId={listingId} 
+          basePriceThb={parseFloat(formData.basePriceThb) || 0} 
+        />
 
         {/* Action Buttons - Mobile Fixed Footer */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t p-3 z-50 safe-area-pb">

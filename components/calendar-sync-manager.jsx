@@ -111,14 +111,24 @@ export default function CalendarSyncManager({ listingId, onSync }) {
   
   async function loadBlockedDates() {
     try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/bookings?listing_id=eq.${listingId}&status=eq.BLOCKED_BY_ICAL&select=id,check_in,check_out,metadata,guest_name`,
-        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-      )
-      const data = await res.json()
-      setBlockedDates(data || [])
+      const res = await fetch(`/api/v2/partner/listings/${listingId}/calendar`, { credentials: 'include' })
+      const json = await res.json()
+      if (!json.success || !json.blocks) {
+        setBlockedDates([])
+        return
+      }
+      // Map calendar_blocks to display format; show only iCal blocks (source != 'manual')
+      const icalBlocks = (json.blocks || []).filter(b => b.source && b.source !== 'manual')
+      const mapped = icalBlocks.map(b => ({
+        id: b.id,
+        check_in: b.start_date,
+        check_out: b.end_date,
+        guest_name: b.reason || ''
+      }))
+      setBlockedDates(mapped)
     } catch (error) {
       console.error('Failed to load blocked dates:', error)
+      setBlockedDates([])
     }
   }
   

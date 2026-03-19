@@ -273,7 +273,7 @@ function ListingsContent() {
           />
 
           <SearchMapWrapper
-            listings={listings}
+            listings={allListings}
             userBookings={userBookings}
             userId={user?.id}
             language={language}

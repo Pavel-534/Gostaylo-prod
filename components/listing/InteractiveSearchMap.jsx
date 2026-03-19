@@ -49,6 +49,16 @@ const createCustomIcon = (color = 'teal') => {
   });
 };
 
+// Normalize coordinates - support both latitude/longitude and lat/lng
+function getListingPosition(listing) {
+  const lat = listing.latitude ?? listing.lat;
+  const lng = listing.longitude ?? listing.lng;
+  if (lat != null && lng != null) {
+    return [parseFloat(lat), parseFloat(lng)];
+  }
+  return null;
+}
+
 // Map bounds updater component
 function MapBoundsUpdater({ listings }) {
   const map = useMap();
@@ -56,8 +66,8 @@ function MapBoundsUpdater({ listings }) {
   useEffect(() => {
     if (listings && listings.length > 0) {
       const bounds = listings
-        .filter(l => l.latitude && l.longitude)
-        .map(l => [l.latitude, l.longitude]);
+        .map(l => getListingPosition(l))
+        .filter(Boolean);
       
       if (bounds.length > 0) {
         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
@@ -195,9 +205,8 @@ export default function InteractiveSearchMap({
       <MapBoundsUpdater listings={listings} />
       
       {listings.map((listing) => {
-        if (!listing.latitude || !listing.longitude) return null;
-        
-        const position = [listing.latitude, listing.longitude];
+        const position = getListingPosition(listing);
+        if (!position) return null;
         const markerConfig = getMarkerConfig(listing);
         
         return (

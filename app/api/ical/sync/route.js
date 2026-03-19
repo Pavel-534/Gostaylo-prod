@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
+import jwt from 'jsonwebtoken';
 
 /**
  * @deprecated DEPRECATED: This endpoint will be replaced by /api/v2/calendar
@@ -19,7 +22,29 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow up to 60 seconds
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+function getSupabase() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    throw new Error('Missing Supabase config');
+  }
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+}
+
+const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
+
+function verifyAuth() {
+  const cookieStore = cookies();
+  const session = cookieStore.get('gostaylo_session');
+  if (!session?.value) return null;
+  try {
+    return jwt.verify(session.value, JWT_SECRET);
+  } catch {
+    return null;
+  }
+}
 
 // iCal source detection
 const ICAL_SOURCES = {
@@ -137,7 +162,13 @@ async function fetchICal(url) {
   }
 }
 
-// Sync single source
+// Format date to YYYY-MM-DD
+function formatDate(date) {
+  const d = new Date(date);
+  return d.toISOString().split('T')[0];
+}
+
+// Sync single source - writes to calendar_blocks (unified with Cron, Admin)
 async function syncSource(listingId, sourceConfig) {
   const { url, source, id: sourceId } = sourceConfig;
   if (!url) return { success: false, error: 'No URL' };
@@ -151,70 +182,44 @@ async function syncSource(listingId, sourceConfig) {
   const now = new Date();
   const futureEvents = events.filter(e => e.dtend > now);
   
-  // Get existing blocks
-  const existingRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/bookings?listing_id=eq.${listingId}&status=eq.BLOCKED_BY_ICAL&select=id,metadata`,
-    { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-  );
-  const existingBlocks = await existingRes.json() || [];
-  const existingByUid = new Map(existingBlocks.filter(b => b.metadata?.ical_source_id === (sourceId || source)).map(b => [b.metadata?.ical_uid, b]));
+  const supabase = getSupabase();
   
-  const currentUids = new Set();
-  let eventsCreated = 0, eventsRemoved = 0;
+  // Delete existing iCal blocks for this source
+  const { error: deleteError } = await supabase
+    .from('calendar_blocks')
+    .delete()
+    .eq('listing_id', listingId)
+    .eq('source', url);
   
-  for (const event of futureEvents) {
-    const uid = event.uid || `${source}-${event.dtstart.toISOString()}`;
-    currentUids.add(uid);
+  if (deleteError) {
+    return { success: false, error: deleteError.message, eventsCreated: 0, eventsRemoved: 0 };
+  }
+  
+  // Insert new blocks (same schema as cron/admin)
+  let eventsCreated = 0;
+  if (futureEvents.length > 0) {
+    const platformName = source || sourceConfig.platform || 'External';
+    const blocks = futureEvents.map(e => {
+      // iCal DTEND is exclusive for all-day events; subtract 1 day for last occupied night
+      const endDate = new Date(e.dtend);
+      endDate.setUTCDate(endDate.getUTCDate() - 1);
+      return {
+        listing_id: listingId,
+        start_date: formatDate(e.dtstart),
+        end_date: formatDate(endDate),
+        reason: e.summary || `${platformName} booking`,
+        source: url
+      };
+    });
     
-    if (!existingByUid.has(uid)) {
-      const bookingId = `blk-${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 5)}`;
-      await fetch(`${SUPABASE_URL}/rest/v1/bookings`, {
-        method: 'POST',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          id: bookingId,
-          listing_id: listingId,
-          renter_id: 'system-ical-sync',
-          status: 'BLOCKED_BY_ICAL',
-          check_in: event.dtstart.toISOString(),
-          check_out: event.dtend.toISOString(),
-          price_thb: 0,
-          currency: 'THB',
-          price_paid: 0,
-          exchange_rate: 1,
-          commission_thb: 0,
-          guest_name: `iCal - ${source}`,
-          guest_phone: '',
-          guest_email: '',
-          special_requests: event.summary || `Blocked by ${source}`,
-          metadata: {
-            ical_source: source,
-            ical_source_id: sourceId || source,
-            ical_uid: uid,
-            ical_url: url
-          }
-        })
-      });
-      eventsCreated++;
+    const { error: insertError } = await supabase.from('calendar_blocks').insert(blocks);
+    if (insertError) {
+      return { success: false, error: insertError.message, eventsCreated: 0, eventsRemoved: 0 };
     }
+    eventsCreated = blocks.length;
   }
   
-  // Remove old blocks
-  for (const [uid, block] of existingByUid) {
-    if (!currentUids.has(uid)) {
-      await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${block.id}`, {
-        method: 'DELETE',
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-      });
-      eventsRemoved++;
-    }
-  }
-  
-  return { success: true, eventsProcessed: futureEvents.length, eventsCreated, eventsRemoved };
+  return { success: true, eventsProcessed: futureEvents.length, eventsCreated, eventsRemoved: 0 };
 }
 
 // POST handler
@@ -251,16 +256,24 @@ export async function POST(request) {
     
     // Sync single listing
     if (action === 'sync' && listingId) {
-      // Get listing sync settings from both sync_settings column and metadata (for migration)
-      const listingRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=id,sync_settings,metadata`,
-        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-      );
-      const listings = await listingRes.json();
-      const listing = listings?.[0];
-      
-      if (!listing) {
+      const auth = verifyAuth();
+      if (!auth) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      }
+
+      const supabase = getSupabase();
+      const { data: listing, error: listingError } = await supabase
+        .from('listings')
+        .select('id, owner_id, sync_settings, metadata')
+        .eq('id', listingId)
+        .single();
+
+      if (listingError || !listing) {
         return NextResponse.json({ success: false, error: 'Listing not found' });
+      }
+
+      if (listing.owner_id !== auth.userId && auth.role !== 'ADMIN') {
+        return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
       }
       
       // Prefer sync_settings column, fallback to provided sources or metadata.sync_settings
@@ -287,32 +300,39 @@ export async function POST(request) {
       const currentSyncSettings = listing.sync_settings || { sources: syncSources };
       currentSyncSettings.last_sync = new Date().toISOString();
       
-      await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+      await supabase
+        .from('listings')
+        .update({
           sync_settings: currentSyncSettings,
-          metadata: { ...listing.metadata, last_ical_sync: new Date().toISOString() }
+          metadata: { ...listing.metadata, last_ical_sync: new Date().toISOString() },
+          updated_at: new Date().toISOString()
         })
-      });
+        .eq('id', listingId);
       
       return NextResponse.json({ success: true, listingId, results, eventsProcessed: totalEventsProcessed });
     }
     
-    // Sync all listings (admin)
+    // Sync all listings (admin only)
     if (action === 'sync-all') {
-      const listingsRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?select=id,sync_settings,metadata&status=eq.ACTIVE`,
-        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
-      );
-      const listings = await listingsRes.json() || [];
+      const auth = verifyAuth();
+      if (!auth || auth.role !== 'ADMIN') {
+        return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
+      }
+
+      const supabase = getSupabase();
+      const { data: listings, error: listingsError } = await supabase
+        .from('listings')
+        .select('id, sync_settings, metadata')
+        .eq('status', 'ACTIVE');
+
+      if (listingsError) {
+        return NextResponse.json({ success: false, error: listingsError.message });
+      }
+
+      const listingsData = listings || [];
       
       // Filter listings that have iCal sources (in sync_settings column or metadata)
-      const listingsWithICal = listings.filter(l => 
+      const listingsWithICal = listingsData.filter(l => 
         (l.sync_settings?.sources?.length > 0) ||
         (l.sync_settings?.auto_sync) ||
         (l.metadata?.sync_settings?.length > 0) || 
@@ -331,7 +351,7 @@ export async function POST(request) {
           }
           
           for (const source of syncSources) {
-            if (source.enabled !== false) {
+            if (source.url && source.enabled !== false) {
               const result = await syncSource(listing.id, source);
               if (result.eventsProcessed) totalEvents += result.eventsProcessed;
             }
@@ -341,15 +361,10 @@ export async function POST(request) {
           const currentSyncSettings = listing.sync_settings || { sources: syncSources };
           currentSyncSettings.last_sync = new Date().toISOString();
           
-          await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listing.id}`, {
-            method: 'PATCH',
-            headers: {
-              'apikey': SUPABASE_KEY,
-              'Authorization': `Bearer ${SUPABASE_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ sync_settings: currentSyncSettings })
-          });
+          await supabase
+            .from('listings')
+            .update({ sync_settings: currentSyncSettings, updated_at: new Date().toISOString() })
+            .eq('id', listing.id);
           
           successCount++;
         } catch {
@@ -369,28 +384,13 @@ export async function POST(request) {
       };
       
       // Try to update, if not exists - create
-      const updateRes = await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.ical_sync_status`, {
-        method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal'
-        },
-        body: JSON.stringify(statusUpdate)
-      });
-      
-      if (!updateRes.ok) {
-        // Create if not exists
-        await fetch(`${SUPABASE_URL}/rest/v1/system_settings`, {
-          method: 'POST',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ key: 'ical_sync_status', ...statusUpdate })
-        });
+      const { error: updateErr } = await supabase
+        .from('system_settings')
+        .update(statusUpdate)
+        .eq('key', 'ical_sync_status');
+
+      if (updateErr) {
+        await supabase.from('system_settings').insert({ key: 'ical_sync_status', ...statusUpdate });
       }
       
       return NextResponse.json({
@@ -414,7 +414,7 @@ export async function GET() {
   try {
     const statusRes = await fetch(
       `${SUPABASE_URL}/rest/v1/system_settings?key=eq.ical_sync_status&select=value`,
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
     );
     const statusData = await statusRes.json();
     const status = statusData?.[0]?.value || {};
@@ -422,7 +422,7 @@ export async function GET() {
     // Get global settings
     const settingsRes = await fetch(
       `${SUPABASE_URL}/rest/v1/system_settings?key=eq.ical_sync_settings&select=value`,
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+      { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
     );
     const settingsData = await settingsRes.json();
     const settings = settingsData?.[0]?.value || { frequency: '1h', enabled: true };

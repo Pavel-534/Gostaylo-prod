@@ -47,11 +47,21 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
 
   async function loadSeasonalPrices() {
     try {
-      const res = await fetch(`/api/listings/${listingId}/seasonal-prices`)
+      const res = await fetch(`/api/v2/partner/seasonal-prices?listingId=${listingId}`, { credentials: 'include' })
       const data = await res.json()
       
-      if (data.success) {
-        setSeasonalPrices(data.data || [])
+      if (data.status === 'success' || data.success) {
+        const raw = data.data || []
+        setSeasonalPrices(raw.map(sp => ({
+          id: sp.id,
+          startDate: sp.start_date || sp.startDate,
+          endDate: sp.end_date || sp.endDate,
+          label: sp.label,
+          seasonType: sp.season_type || sp.seasonType,
+          priceDaily: sp.price_daily ?? sp.priceDaily,
+          priceMonthly: sp.price_monthly ?? sp.priceMonthly,
+          description: sp.description
+        })))
       }
       setLoading(false)
     } catch (error) {
@@ -119,26 +129,29 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
         description: formData.description,
       }
       
-      let res
-      if (editingPrice) {
-        // Update existing
-        res = await fetch(`/api/listings/${listingId}/seasonal-prices/${editingPrice.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-      } else {
-        // Create new
-        res = await fetch(`/api/listings/${listingId}/seasonal-prices`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-      }
+      const res = editingPrice
+        ? await (async () => {
+            await fetch(`/api/v2/partner/seasonal-prices?id=${editingPrice.id}`, {
+              method: 'DELETE',
+              credentials: 'include',
+            })
+            return fetch('/api/v2/partner/seasonal-prices', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ ...payload, listingId }),
+            })
+          })()
+        : await fetch('/api/v2/partner/seasonal-prices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ ...payload, listingId }),
+          })
       
       const data = await res.json()
       
-      if (data.success) {
+      if (data.status === 'success' || data.success) {
         toast.success(editingPrice ? 'Сезон обновлён' : 'Сезон создан')
         setModalOpen(false)
         loadSeasonalPrices()
@@ -157,13 +170,14 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
     if (!confirm('Удалить этот сезонный период?')) return
     
     try {
-      const res = await fetch(`/api/listings/${listingId}/seasonal-prices/${priceId}`, {
+      const res = await fetch(`/api/v2/partner/seasonal-prices?id=${priceId}`, {
         method: 'DELETE',
+        credentials: 'include',
       })
       
       const data = await res.json()
       
-      if (data.success) {
+      if (data.status === 'success' || data.success) {
         toast.success('Сезон удалён')
         loadSeasonalPrices()
       } else {

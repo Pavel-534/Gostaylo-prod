@@ -37,7 +37,7 @@ if (typeof window !== 'undefined') {
 const PHUKET_CENTER = [7.8804, 98.3923]
 
 function MapClickHandler({ onMapClick }) {
-  const map = useMapEvents({
+  useMapEvents({
     click(e) {
       onMapClick(e.latlng.lat, e.latlng.lng)
     },
@@ -45,7 +45,17 @@ function MapClickHandler({ onMapClick }) {
   return null
 }
 
-export default function MapPicker({ latitude, longitude, onSelect, height = 280 }) {
+function MapCenterUpdater({ center, zoom }) {
+  const map = useMap()
+  useEffect(() => {
+    if (center && Array.isArray(center) && center.length >= 2) {
+      map.setView(center, zoom ?? 15)
+    }
+  }, [center, zoom, map])
+  return null
+}
+
+export default function MapPicker({ latitude, longitude, onSelect, height = 280, fetchAddressOnClick = true }) {
   const [mounted, setMounted] = useState(false)
   const [position, setPosition] = useState(null)
 
@@ -59,9 +69,19 @@ export default function MapPicker({ latitude, longitude, onSelect, height = 280 
     }
   }, [latitude, longitude])
 
-  const handleMapClick = (lat, lng) => {
+  const handleMapClick = async (lat, lng) => {
     setPosition([lat, lng])
-    onSelect?.(lat, lng)
+    let address = null
+    if (fetchAddressOnClick) {
+      try {
+        const res = await fetch(`/api/v2/geocode/reverse?lat=${lat}&lon=${lng}`)
+        const data = await res.json()
+        if (data.success && data.data) address = data.data
+      } catch (e) {
+        console.warn('[MapPicker] Reverse geocode failed:', e)
+      }
+    }
+    onSelect?.(lat, lng, address)
   }
 
   if (!mounted) {
@@ -97,10 +117,20 @@ export default function MapPicker({ latitude, longitude, onSelect, height = 280 
             position={position}
             draggable
             eventHandlers={{
-              dragend(e) {
+              async dragend(e) {
                 const { lat, lng } = e.target.getLatLng()
                 setPosition([lat, lng])
-                onSelect?.(lat, lng)
+                let address = null
+                if (fetchAddressOnClick) {
+                  try {
+                    const res = await fetch(`/api/v2/geocode/reverse?lat=${lat}&lon=${lng}`)
+                    const data = await res.json()
+                    if (data.success && data.data) address = data.data
+                  } catch (err) {
+                    console.warn('[MapPicker] Reverse geocode failed:', err)
+                  }
+                }
+                onSelect?.(lat, lng, address)
               },
             }}
           />

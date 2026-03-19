@@ -36,8 +36,20 @@ import {
 import { toast } from 'sonner'
 import { GostayloListingCard } from '@/components/gostaylo-listing-card'
 import dynamic from 'next/dynamic'
+import { DayPicker } from 'react-day-picker'
+import { format } from 'date-fns'
+import { ru } from 'date-fns/locale'
+import { getSeasonColor } from '@/lib/price-calculator'
+import 'react-day-picker/dist/style.css'
 
 const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
+
+const SEASON_TYPES = [
+  { value: 'LOW', label: 'Низкий', color: 'green' },
+  { value: 'NORMAL', label: 'Обычный', color: 'slate' },
+  { value: 'HIGH', label: 'Высокий', color: 'orange' },
+  { value: 'PEAK', label: 'Пик', color: 'red' },
+]
 
 const DISTRICTS = [
   'Rawai', 'Chalong', 'Kata', 'Karon', 'Patong', 'Kamala', 
@@ -74,8 +86,15 @@ export default function PremiumListingWizard() {
   const [geocoding, setGeocoding] = useState(false)
   const [geocodeQuery, setGeocodeQuery] = useState('')
   const [geocodeResults, setGeocodeResults] = useState([])
+  const [customDistricts, setCustomDistricts] = useState([]) // From map reverse geocode
   const [categories, setCategories] = useState([])
-  const [newSeason, setNewSeason] = useState({ label: '', startDate: '', endDate: '', priceDaily: '' })
+  const [newSeason, setNewSeason] = useState({ 
+    label: '', 
+    dateRange: { from: null, to: null }, 
+    priceDaily: '', 
+    priceMonthly: '',
+    seasonType: 'NORMAL' 
+  })
   const [partnerCommissionRate, setPartnerCommissionRate] = useState(15) // Dynamic from DB
   
   // Form data
@@ -121,15 +140,20 @@ export default function PremiumListingWizard() {
           setCategories(catData.data || [])
         }
         
-        // Load partner commission rate
-        const userId = localStorage.getItem('gostaylo_user_id')
+        // Load partner commission rate (system or individual)
+        let userId = localStorage.getItem('gostaylo_user_id')
+        if (!userId) {
+          const meRes = await fetch('/api/v2/auth/me', { credentials: 'include' })
+          const meData = await meRes.json()
+          if (meData.success && meData.user?.id) userId = meData.user.id
+        }
         if (userId) {
-          const profileRes = await fetch(`/api/v2/profiles/${userId}`)
-          const profileData = await profileRes.json()
-          if (profileData.success && profileData.data) {
-            const commissionRate = profileData.data.commission_rate || 15
-            setPartnerCommissionRate(commissionRate)
-            setFormData(prev => ({ ...prev, commissionRate }))
+          const commissionRes = await fetch(`/api/v2/commission?partnerId=${userId}`, { credentials: 'include' })
+          const commissionData = await commissionRes.json()
+          if (commissionData.success && commissionData.data) {
+            const rate = commissionData.data.effectiveRate ?? commissionData.data.systemRate ?? 15
+            setPartnerCommissionRate(rate)
+            setFormData(prev => ({ ...prev, commissionRate: rate }))
           }
         }
         
@@ -444,8 +468,9 @@ export default function PremiumListingWizard() {
                   startDate: s.startDate,
                   endDate: s.endDate,
                   priceDaily: s.priceDaily,
+                  priceMonthly: s.priceMonthly || null,
                   label: s.label || 'Season',
-                  seasonType: s.seasonType || 'high',
+                  seasonType: (s.seasonType || 'NORMAL').toUpperCase(),
                 }),
               })
             } catch (e) {
@@ -646,7 +671,7 @@ export default function PremiumListingWizard() {
                   <SelectValue placeholder={t('selectDistrictPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {DISTRICTS.map(d => (
+                  {[...DISTRICTS, ...customDistricts.filter(d => !DISTRICTS.includes(d))].map(d => (
                     <SelectItem key={d} value={d}>
                       {d}
                     </SelectItem>
@@ -694,9 +719,16 @@ export default function PremiumListingWizard() {
                 <MapPicker
                   latitude={formData.latitude}
                   longitude={formData.longitude}
-                  onSelect={(lat, lng) => {
+                  onSelect={(lat, lng, address) => {
                     updateField('latitude', lat)
                     updateField('longitude', lng)
+                    if (address?.district) {
+                      updateField('district', address.district)
+                      setGeocodeQuery(address.displayName || address.district)
+                      setCustomDistricts(prev => 
+                        prev.includes(address.district) ? prev : [...prev, address.district]
+                      )
+                    }
                   }}
                   height={280}
                 />
@@ -803,7 +835,11 @@ export default function PremiumListingWizard() {
                   className="mt-2 h-12"
                   disabled
                 />
-                <p className="text-xs text-slate-500 mt-1">{t('standardRate')}: 15%</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {partnerCommissionRate !== 15 
+                    ? (language === 'ru' ? `Индивидуальная ставка: ${partnerCommissionRate}%` : `Personal rate: ${partnerCommissionRate}%`)
+                    : (language === 'ru' ? 'Стандартная ставка: 15%' : 'Standard rate: 15%')}
+                </p>
               </div>
             </div>
             
@@ -833,53 +869,81 @@ export default function PremiumListingWizard() {
             <div>
               <Label className="text-base font-medium">{t('seasonalPricing')}</Label>
               <p className="text-xs text-slate-500 mt-1">{t('seasonalPricingDesc')}</p>
-              <div className="mt-2 space-y-3">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <Input
-                    placeholder={t('seasonLabel')}
-                    value={newSeason.label}
-                    onChange={(e) => setNewSeason(s => ({ ...s, label: e.target.value }))}
+              <div className="mt-2 space-y-4">
+                <div className="border rounded-lg p-4 bg-slate-50">
+                  <Label className="text-sm font-medium mb-2 block">Диапазон дат</Label>
+                  <DayPicker
+                    mode="range"
+                    selected={newSeason.dateRange}
+                    onSelect={(range) => setNewSeason(s => ({ ...s, dateRange: range || { from: null, to: null } }))}
+                    locale={ru}
+                    className="mx-auto"
                   />
-                  <Input
-                    type="date"
-                    placeholder={t('seasonStart')}
-                    value={newSeason.startDate}
-                    onChange={(e) => setNewSeason(s => ({ ...s, startDate: e.target.value }))}
-                  />
-                  <Input
-                    type="date"
-                    placeholder={t('seasonEnd')}
-                    value={newSeason.endDate}
-                    onChange={(e) => setNewSeason(s => ({ ...s, endDate: e.target.value }))}
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder={t('seasonPrice')}
-                    value={newSeason.priceDaily}
-                    onChange={(e) => setNewSeason(s => ({ ...s, priceDaily: e.target.value }))}
-                  />
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <Label className="text-xs text-slate-500 mb-1 block">{t('seasonLabel')}</Label>
+                    <Input
+                      placeholder="Высокий сезон"
+                      value={newSeason.label}
+                      onChange={(e) => setNewSeason(s => ({ ...s, label: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500 mb-1 block">Тип</Label>
+                    <Select value={newSeason.seasonType} onValueChange={(v) => setNewSeason(s => ({ ...s, seasonType: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {SEASON_TYPES.map(st => (
+                          <SelectItem key={st.value} value={st.value}>{st.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500 mb-1 block">฿/день</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="15000"
+                      value={newSeason.priceDaily}
+                      onChange={(e) => setNewSeason(s => ({ ...s, priceDaily: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-slate-500 mb-1 block">฿/мес (опц.)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="—"
+                      value={newSeason.priceMonthly}
+                      onChange={(e) => setNewSeason(s => ({ ...s, priceMonthly: e.target.value }))}
+                    />
+                  </div>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    if (newSeason.label && newSeason.startDate && newSeason.endDate && newSeason.priceDaily) {
+                    const from = newSeason.dateRange?.from
+                    const to = newSeason.dateRange?.to || newSeason.dateRange?.from
+                    if (newSeason.label && from && to && newSeason.priceDaily) {
                       setFormData(prev => ({
                         ...prev,
                         seasonalPricing: [...(prev.seasonalPricing || []), {
                           id: `s-${Date.now()}`,
                           label: newSeason.label,
-                          startDate: newSeason.startDate,
-                          endDate: newSeason.endDate,
+                          startDate: format(from, 'yyyy-MM-dd'),
+                          endDate: format(to, 'yyyy-MM-dd'),
                           priceDaily: parseFloat(newSeason.priceDaily) || 0,
-                          seasonType: 'high'
+                          priceMonthly: newSeason.priceMonthly ? parseFloat(newSeason.priceMonthly) : null,
+                          seasonType: newSeason.seasonType
                         }]
                       }))
-                      setNewSeason({ label: '', startDate: '', endDate: '', priceDaily: '' })
+                      setNewSeason({ label: '', dateRange: { from: null, to: null }, priceDaily: '', priceMonthly: '', seasonType: 'NORMAL' })
                       toast.success(language === 'ru' ? 'Сезон добавлен' : 'Season added')
                     } else {
-                      toast.error(language === 'ru' ? 'Заполните все поля' : 'Fill all fields')
+                      toast.error(language === 'ru' ? 'Заполните все поля и выберите даты' : 'Fill all fields and select dates')
                     }
                   }}
                 >
@@ -888,22 +952,28 @@ export default function PremiumListingWizard() {
                 </Button>
                 {(formData.seasonalPricing || []).length > 0 && (
                   <div className="space-y-2 mt-3">
-                    {formData.seasonalPricing.map((s, i) => (
-                      <div key={s.id || i} className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-lg">
-                        <span className="text-sm">{s.label}: {s.startDate} — {s.endDate} • ฿{s.priceDaily}/{t('night')}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700"
-                          onClick={() => setFormData(prev => ({
-                            ...prev,
-                            seasonalPricing: (prev.seasonalPricing || []).filter((_, j) => j !== i)
-                          }))}
-                        >
-                          {t('removeSeason')}
-                        </Button>
-                      </div>
-                    ))}
+                    {formData.seasonalPricing.map((s, i) => {
+                      const colors = getSeasonColor(s.seasonType || 'NORMAL')
+                      return (
+                        <div key={s.id || i} className={`flex items-center justify-between py-2 px-3 rounded-lg border ${colors.bg} ${colors.border}`}>
+                          <span className="text-sm">
+                            {s.label} ({s.seasonType || 'NORMAL'}): {s.startDate} — {s.endDate} • ฿{s.priceDaily}/день
+                            {s.priceMonthly && ` • ฿${s.priceMonthly}/мес`}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => setFormData(prev => ({
+                              ...prev,
+                              seasonalPricing: (prev.seasonalPricing || []).filter((_, j) => j !== i)
+                            }))}
+                          >
+                            {t('removeSeason')}
+                          </Button>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>

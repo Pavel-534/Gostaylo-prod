@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { getUserIdFromRequest, verifyPartnerAccess } from '@/lib/services/session-service'
+import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { format, addDays, subDays, startOfMonth, endOfMonth, differenceInDays, parseISO } from 'date-fns'
 
 export const dynamic = 'force-dynamic'
@@ -50,12 +50,11 @@ function generateMockStats() {
 
 export async function GET(request) {
   try {
-    const userId = getUserIdFromRequest(request)
-    
+    const userId = await getUserIdFromSession()
     if (!userId) {
       return NextResponse.json({
         status: 'error',
-        error: 'Authentication required'
+        error: 'Authentication required. Please log in.'
       }, { status: 401 })
     }
     

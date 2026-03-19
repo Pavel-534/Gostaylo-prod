@@ -10,7 +10,7 @@
 
 import { NextResponse } from 'next/server'
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
-import { getUserIdFromRequest, verifyPartnerAccess } from '@/lib/services/session-service'
+import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 
 export const dynamic = 'force-dynamic'
 
@@ -94,13 +94,13 @@ const mockBookings = [
 
 export async function GET(request) {
   try {
-    // 1. Extract user ID from request
-    const userId = getUserIdFromRequest(request)
+    // 1. Extract user ID from session (secure - cannot be spoofed)
+    const userId = await getUserIdFromSession()
     
     if (!userId) {
       return NextResponse.json({
         status: 'error',
-        error: 'Authentication required. Please provide partnerId.',
+        error: 'Authentication required. Please log in.',
         meta: { total: 0 }
       }, { status: 401 })
     }

@@ -2,14 +2,22 @@
  * Gostaylo - Partner Listings API (v2)
  * GET /api/v2/partner/listings - Get partner's listings
  * POST /api/v2/partner/listings - Create new listing
+ * 
+ * SECURITY: partnerId must match session userId - no access to other partners' data
  */
 
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getUserIdFromSession } from '@/lib/services/session-service';
 
 export async function GET(request) {
   try {
+    const sessionUserId = await getUserIdFromSession();
+    if (!sessionUserId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const partnerId = searchParams.get('partnerId');
     
@@ -18,6 +26,10 @@ export async function GET(request) {
         success: false, 
         error: 'partnerId is required' 
       }, { status: 400 });
+    }
+
+    if (partnerId !== sessionUserId) {
+      return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
     }
     
     // Filter by valid statuses (exclude deleted via NOT IN)
@@ -71,6 +83,11 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const sessionUserId = await getUserIdFromSession();
+    if (!sessionUserId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     
     const {
@@ -89,6 +106,10 @@ export async function POST(request) {
         success: false, 
         error: 'Missing required fields' 
       }, { status: 400 });
+    }
+
+    if (partnerId !== sessionUserId) {
+      return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
     }
     
     // Verify partner exists and is verified

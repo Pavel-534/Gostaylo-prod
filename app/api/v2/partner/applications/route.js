@@ -11,6 +11,7 @@
 import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 import { supabaseAdmin } from '@/lib/supabase'
+import { getUserIdFromSession } from '@/lib/services/session-service'
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const TELEGRAM_ADMIN_GROUP_ID = process.env.TELEGRAM_ADMIN_GROUP_ID
@@ -63,6 +64,11 @@ async function sendTelegramNotification(application, userEmail) {
 
 export async function POST(request) {
   try {
+    const sessionUserId = await getUserIdFromSession()
+    if (!sessionUserId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { userId, phone, experience, socialLink, portfolio } = await request.json()
     
     if (!userId || !phone || !experience) {
@@ -70,6 +76,10 @@ export async function POST(request) {
         success: false,
         error: 'Missing required fields: userId, phone, experience'
       }, { status: 400 })
+    }
+
+    if (userId !== sessionUserId) {
+      return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 })
     }
     
     // Check if user exists
