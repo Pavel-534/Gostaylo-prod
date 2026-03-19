@@ -39,7 +39,9 @@ export async function GET(request) {
       isActive: c.is_active
     }));
     
-    return NextResponse.json({ success: true, data: transformed });
+    return NextResponse.json({ success: true, data: transformed }, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' }
+    });
     
   } catch (error) {
     console.error('[CATEGORIES GET ERROR]', error);

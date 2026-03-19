@@ -187,7 +187,9 @@ export async function PUT(request, context) {
     if (body.title !== undefined) updates.title = body.title;
     if (body.description !== undefined) updates.description = body.description;
     if (body.district !== undefined) updates.district = body.district;
-    if (body.basePriceThb !== undefined) updates.base_price_thb = body.basePriceThb;
+    if (body.latitude !== undefined) updates.latitude = body.latitude;
+    if (body.longitude !== undefined) updates.longitude = body.longitude;
+    if (body.basePriceThb !== undefined) updates.base_price_thb = parseFloat(body.basePriceThb) || 0;
     if (body.images !== undefined) {
       updates.images = body.images;
       updates.cover_image = body.images[0] || null;
@@ -196,6 +198,9 @@ export async function PUT(request, context) {
     if (body.available !== undefined) updates.available = body.available;
     if (body.status !== undefined) updates.status = body.status;
     if (body.isFeatured !== undefined) updates.is_featured = body.isFeatured;
+    if (body.categoryId !== undefined) updates.category_id = body.categoryId;
+    if (body.minBookingDays !== undefined) updates.min_booking_days = parseInt(body.minBookingDays) || 1;
+    if (body.maxBookingDays !== undefined) updates.max_booking_days = parseInt(body.maxBookingDays) || 90;
     
     const { data: listing, error } = await supabaseAdmin
       .from('listings')

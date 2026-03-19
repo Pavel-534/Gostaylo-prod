@@ -22,7 +22,7 @@ import { GalleryModal } from '@/components/listing/GalleryModal'
 import { BookingModal } from '@/components/listing/BookingModal'
 import { LeafletCSS } from '@/components/listing/ListingMap'
 import { toast } from 'sonner'
-import { detectLanguage } from '@/lib/translations'
+import { detectLanguage, getUIText } from '@/lib/translations'
 import { PricingService } from '@/lib/services/pricing.service'
 import { useAuth } from '@/contexts/auth-context'
 import { GostayloCalendar } from '@/components/gostaylo-calendar'
@@ -101,6 +101,13 @@ function PremiumListingContent({ params }) {
     loadListing()
     loadReviews()
   }, [params.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync language when user switches in header
+  useEffect(() => {
+    const handler = (e) => e?.detail && setLanguage(e.detail)
+    window.addEventListener('language-change', handler)
+    return () => window.removeEventListener('language-change', handler)
+  }, [])
   
   // Load favorite status when user and listing are ready
   useEffect(() => {
@@ -167,6 +174,7 @@ function PremiumListingContent({ params }) {
       setPriceCalc({
         ...calc,
         nights,
+        subtotal: calc.totalPrice,
         commissionRate: listing.commissionRate || 15,
         serviceFee,
         finalTotal: calc.totalPrice + serviceFee
@@ -378,7 +386,7 @@ function PremiumListingContent({ params }) {
               {/* Mobile inline calendar */}
               <div className="lg:hidden">
                 <h2 className="text-2xl font-medium tracking-tight mb-4">
-                  {language === 'ru' ? 'Выберите даты' : 'Select Your Dates'}
+                  {getUIText('selectYourDates', language)}
                 </h2>
                 <Card className="border-slate-200 bg-slate-50">
                   <CardContent className="p-4 space-y-4">
@@ -397,7 +405,7 @@ function PremiumListingContent({ params }) {
                     </div>
                     <div>
                       <Label className="text-sm font-medium mb-2 block">
-                        {language === 'ru' ? 'Количество гостей' : 'Number of Guests'}
+                        {getUIText('numberOfGuests', language)}
                       </Label>
                       <Input
                         type="number"
@@ -412,7 +420,7 @@ function PremiumListingContent({ params }) {
                       <div className="bg-white p-4 rounded-lg">
                         <div className="flex justify-between text-sm">
                           <span>
-                            {formatPrice(priceCalc.avgPricePerNight, currency, exchangeRates)} × {priceCalc.nights} {language === 'ru' ? 'ночей' : 'nights'}
+                            {formatPrice(priceCalc.avgPricePerNight, currency, exchangeRates)} × {priceCalc.nights} {getUIText('nights', language)}
                           </span>
                           <span className="font-medium">{formatPrice(priceCalc.finalTotal, currency, exchangeRates)}</span>
                         </div>
@@ -428,7 +436,7 @@ function PremiumListingContent({ params }) {
               
               <div>
                 <h2 className="text-2xl font-medium tracking-tight mb-4">
-                  {language === 'ru' ? 'Где вы будете' : "Where you'll be"}
+                  {getUIText('whereYoullBe', language)}
                 </h2>
                 <ListingMap
                   latitude={listing.latitude}
@@ -440,7 +448,7 @@ function PremiumListingContent({ params }) {
                 />
                 {listing.district && (
                   <p className="text-sm text-slate-600 mt-4">
-                    {listing.district}, {listing.city || 'Phuket'}, {language === 'ru' ? 'Таиланд' : 'Thailand'}
+                    {listing.district}, {listing.city || 'Phuket'}, {getUIText('thailand', language)}
                   </p>
                 )}
               </div>

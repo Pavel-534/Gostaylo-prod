@@ -80,7 +80,22 @@ export default function PartnerBookings() {
   const [filter, setFilter] = useState('all')
   const [rejectDialog, setRejectDialog] = useState({ open: false, bookingId: null })
   const [rejectReason, setRejectReason] = useState('')
-  
+  const [fallbackPartnerId, setFallbackPartnerId] = useState(null)
+
+  // Fallback partnerId from localStorage (when useAuth is delayed or user from different source)
+  useEffect(() => {
+    if (user?.id) return
+    const stored = localStorage.getItem('gostaylo_user')
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored)
+        if (parsed?.id) setFallbackPartnerId(parsed.id)
+      } catch {}
+    }
+  }, [user?.id])
+
+  const partnerId = user?.id || fallbackPartnerId
+
   // TanStack Query hook for bookings
   const { 
     data, 
@@ -88,9 +103,9 @@ export default function PartnerBookings() {
     isError, 
     error,
     refetch
-  } = usePartnerBookings(user?.id, {
+  } = usePartnerBookings(partnerId, {
     status: filter,
-    enabled: !!user?.id
+    enabled: !!partnerId
   })
   
   // Mutation hook for status updates
@@ -133,7 +148,7 @@ export default function PartnerBookings() {
       bookingId: rejectDialog.bookingId,
       status: 'CANCELLED',
       reason: rejectReason,
-      partnerId: user?.id
+      partnerId
     }, {
       onSuccess: () => {
         setRejectDialog({ open: false, bookingId: null })
@@ -147,7 +162,7 @@ export default function PartnerBookings() {
     updateStatusMutation.mutate({
       bookingId,
       status: 'COMPLETED',
-      partnerId: user?.id
+      partnerId
     })
   }
 
@@ -164,7 +179,7 @@ export default function PartnerBookings() {
   }
 
   // Not authenticated
-  if (!isAuthenticated || !user?.id) {
+  if (!isAuthenticated && !fallbackPartnerId) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
         <Calendar className="h-12 w-12 text-slate-300 mb-4" />

@@ -130,6 +130,41 @@ function extractPrice(text) {
   return 0;
 }
 
+/** Category keywords → category slug (matches categories table) */
+const CATEGORY_KEYWORDS = {
+  'cat-yachts': ['яхта', 'yacht', 'лодка', 'boat', 'катер', 'катамаран', 'catamaran'],
+  'cat-vehicles': ['байк', 'bike', 'мот', 'скутер', 'scooter', 'машина', 'car', 'авто', 'аренда авто'],
+  'cat-tours': ['тур', 'tour', 'экскурсия', 'excursion', 'поездка', 'trip', 'сёрфинг', 'surf'],
+  'cat-property': ['вилла', 'villa', 'апарт', 'apartment', 'дом', 'house', 'кондо', 'condo', 'студия', 'studio', 'недвижимость', 'property']
+};
+
+function extractCategoryFromCaption(text) {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  for (const [catId, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (keywords.some(kw => lower.includes(kw))) {
+      console.log(`[CATEGORY] Detected: ${catId}`);
+      return catId;
+    }
+  }
+  return null;
+}
+
+/** District names (Phuket) */
+const DISTRICTS = ['Rawai', 'Chalong', 'Kata', 'Karon', 'Patong', 'Kamala', 'Surin', 'Bang Tao', 'Nai Harn', 'Panwa', 'Mai Khao', 'Nai Yang', 'Phuket Town'];
+
+function extractDistrictFromCaption(text) {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  for (const d of DISTRICTS) {
+    if (lower.includes(d.toLowerCase())) {
+      console.log(`[DISTRICT] Detected: ${d}`);
+      return d;
+    }
+  }
+  return null;
+}
+
 /**
  * Compress image using Sharp
  * - Max 1920px
@@ -327,12 +362,19 @@ export async function POST(request) {
     if (text.startsWith('/help')) {
       await sendTelegram(chatId,
         '📖 <b>Инструкция Gostaylo</b>\n\n' +
-        '1. <b>Привязка:</b> <code>/link email@test.com</code>\n' +
-        '2. <b>Статус:</b> <code>/status</code>\n' +
-        '3. <b>Lazy Realtor:</b> Отправьте фото с описанием (например: "Вилла на Раваи, 25000 THB")\n' +
-        '4. <b>Помощь:</b> <code>/help</code>\n\n' +
-        '💡 <b>Цена:</b> Укажите в описании (25000 thb, ฿25000, 25000 бат)\n\n' +
-        `🌐 <b>Личный кабинет:</b> ${APP_URL}`
+        '━━━━━━━━━━━━━━━━━━━━\n' +
+        '📸 <b>Ленивый риелтор</b>\n' +
+        'Отправьте <b>фото + подпись</b> → черновик в ЛК.\n\n' +
+        'Пример подписи:\n' +
+        '<i>Вилла на Раваи, 25000 THB</i>\n' +
+        'или\n' +
+        '<i>Апартаменты Патонг\n฿15000/ночь</i>\n\n' +
+        '💡 <b>Цена:</b> 25000 thb, ฿25000, 25000 бат\n\n' +
+        '━━━━━━━━━━━━━━━━━━━━\n' +
+        '📋 <b>Мои черновики:</b> <code>/my</code>\n' +
+        '🔗 <b>Привязка:</b> <code>/link email@test.com</code>\n' +
+        '📋 <b>Статус:</b> <code>/status</code>\n\n' +
+        `🌐 <a href="${APP_URL}/partner/listings">Личный кабинет →</a>`
       );
       return NextResponse.json({ ok: true });
     }
@@ -353,10 +395,12 @@ export async function POST(request) {
       await sendTelegram(chatId,
         `🌴 <b>Aloha, ${firstName}!</b>\n\n` +
         'Добро пожаловать в <b>Gostaylo</b>!\n\n' +
-        '📸 <b>Lazy Realtor</b>\n' +
-        'Отправьте фото + описание → получите черновик.\n\n' +
+        '📸 <b>Ленивый риелтор</b>\n' +
+        'Отправьте <b>фото + подпись</b> → черновик в ЛК.\n' +
+        'Дома редактируйте и отправляйте на модерацию.\n\n' +
         '📋 <b>Команды:</b>\n' +
-        '/help — Справка\n' +
+        '/my — Мои черновики\n' +
+        '/help — Подробная инструкция\n' +
         '/link email — Привязать аккаунт\n' +
         '/status — Проверить привязку'
       );
@@ -389,11 +433,29 @@ export async function POST(request) {
       return NextResponse.json({ ok: true });
     }
     
+    // /my — list partner's drafts with edit links
+    if (text.startsWith('/my')) {
+      await handleMyDrafts(chatId);
+      return NextResponse.json({ ok: true });
+    }
+
+    // /draft, /lazy — shortcut hints for Lazy Realtor
+    if (text.startsWith('/draft') || text.startsWith('/lazy')) {
+      await sendTelegram(chatId,
+        '📸 <b>Ленивый риелтор</b>\n\n' +
+        'Отправьте <b>фото + подпись</b> (название, цена).\n\n' +
+        'Пример: <i>Вилла Раваи, 25000 THB</i>\n\n' +
+        '/help — полная инструкция'
+      );
+      return NextResponse.json({ ok: true });
+    }
+
     // Default
     if (text && !text.startsWith('/')) {
       await sendTelegram(chatId,
         '📸 Отправьте <b>фото с описанием</b> для создания черновика!\n\n' +
-        '/help — справка'
+        'Пример подписи: <i>Вилла Раваи, 25000 THB</i>\n\n' +
+        '/help — полная инструкция'
       );
     }
     
@@ -588,6 +650,56 @@ async function handleLinkAccount(chatId, email, firstName, username) {
 }
 
 /**
+ * List partner's drafts (/my command)
+ */
+async function handleMyDrafts(chatId) {
+  const chatIdStr = String(chatId);
+  const partnerRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/profiles?telegram_id=eq.${chatIdStr}&select=id,role`,
+    { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
+  );
+  const partners = await partnerRes.json();
+  const partner = partners?.[0];
+
+  if (!partner || !['PARTNER', 'ADMIN'].includes(partner.role)) {
+    await sendTelegram(chatId,
+      '❌ <b>Telegram не привязан</b> или недостаточно прав.\n\n' +
+      '<code>/link email@test.com</code> — привязать аккаунт'
+    );
+    return;
+  }
+
+  const listingsRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${partner.id}&status=eq.INACTIVE&select=id,title,base_price_thb,metadata`,
+    { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
+  );
+  const listings = await listingsRes.json();
+  const drafts = (Array.isArray(listings) ? listings : [])
+    .filter(l => (l.metadata?.is_draft === true || l.metadata?.is_draft === 'true') || l.metadata?.source === 'TELEGRAM_LAZY_REALTOR');
+
+  if (drafts.length === 0) {
+    await sendTelegram(chatId,
+      '📋 <b>Нет черновиков</b>\n\n' +
+      'Отправьте фото с описанием — создам черновик.\n\n' +
+      '/help — инструкция'
+    );
+    return;
+  }
+
+  const lines = drafts.slice(0, 10).map((d, i) => {
+    const price = d.base_price_thb ? `฿${Number(d.base_price_thb).toLocaleString()}` : '—';
+    const editUrl = `${APP_URL}/partner/listings/new?edit=${d.id}`;
+    return `${i + 1}. <b>${(d.title || 'Без названия').substring(0, 40)}</b> ${price}\n   <a href="${editUrl}">Редактировать →</a>`;
+  });
+  const more = drafts.length > 10 ? `\n\n... и ещё ${drafts.length - 10}` : '';
+
+  await sendTelegram(chatId,
+    `📋 <b>Ваши черновики</b> (${drafts.length})\n\n` +
+    lines.join('\n\n') + more + `\n\n📍 <a href="${APP_URL}/partner/listings">Все объекты →</a>`
+  );
+}
+
+/**
  * Process photo and create listing DRAFT
  * Uses: status='INACTIVE' + metadata.is_draft=true
  * (INACTIVE is a valid enum value; DRAFT is NOT in the enum)
@@ -653,9 +765,24 @@ async function handlePhotoUpload(chatId, message, firstName) {
     const title = lines[0]?.substring(0, 100) || `Объект от ${firstName}`;
     const description = lines.slice(1).join('\n') || caption || 'Создано через Telegram';
 
+    // Detect category from caption (villa, yacht, bike, tour)
+    const detectedCategory = extractCategoryFromCaption(caption);
+    let categoryId = detectedCategory;
+
+    if (!categoryId) {
+      const catRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/categories?is_active=eq.true&limit=1&select=id`,
+        { headers: { 'apikey': SUPABASE_SERVICE_KEY, 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` } }
+      );
+      const cats = await catRes.json();
+      categoryId = Array.isArray(cats) && cats[0]?.id ? cats[0].id : 'cat-property';
+    }
+
+    // Detect district from caption (Rawai, Patong, etc.)
+    const district = extractDistrictFromCaption(caption) || 'Phuket';
+
     console.log(`[LAZY REALTOR] Creating DRAFT: ${listingId}`);
-    console.log(`[LAZY REALTOR] owner_id will be: "${partner.id}" (type: ${typeof partner.id})`);
-    console.log(`[LAZY REALTOR] partner email: ${partner.email}, role: ${partner.role}`);
+    console.log(`[LAZY REALTOR] owner_id: ${partner.id}, category: ${categoryId}, district: ${district}`);
     console.log(`[LAZY REALTOR] Price: ${price}, Photo: ${photoUrl ? 'yes' : 'no'}`);
 
     // Create listing with status = 'INACTIVE' (valid enum) + metadata.is_draft = true
@@ -672,11 +799,11 @@ async function handlePhotoUpload(chatId, message, firstName) {
       body: JSON.stringify({
         id: listingId,
         owner_id: partner.id,
-        category_id: '1',
+        category_id: categoryId,
         status: 'INACTIVE',  // Valid enum value (DRAFT is not in enum)
         title,
         description,
-        district: 'Phuket',
+        district,
         base_price_thb: price,
         commission_rate: 15,
         images: photoUrl ? [photoUrl] : [],
@@ -697,6 +824,7 @@ async function handlePhotoUpload(chatId, message, firstName) {
 
     if (listingRes.ok) {
       const priceText = price > 0 ? `฿${price.toLocaleString()}` : 'Не указана';
+      const editUrl = `${APP_URL}/partner/listings/new?edit=${listingId}`;
       
       await sendTelegram(chatId,
         '✅ <b>Черновик создан!</b>\n\n' +
@@ -704,8 +832,9 @@ async function handlePhotoUpload(chatId, message, firstName) {
         `💰 <b>Цена:</b> ${priceText}\n` +
         `📸 <b>Фото:</b> ${photoUrl ? '✓' : '✗'}\n\n` +
         '⚠️ <b>Важно:</b> Черновик НЕ виден модераторам.\n' +
-        'Отредактируйте и нажмите "Опубликовать" в ЛК.\n\n' +
-        `🌐 ${APP_URL}/partner/listings`
+        'Отредактируйте и нажмите «Опубликовать» в ЛК.\n\n' +
+        `✏️ <a href="${editUrl}">Редактировать черновик →</a>\n\n` +
+        `📍 Все объекты: ${APP_URL}/partner/listings`
       );
     } else {
       const error = await listingRes.text();

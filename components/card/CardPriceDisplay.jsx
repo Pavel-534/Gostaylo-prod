@@ -8,6 +8,7 @@
 import { useMemo, useCallback } from 'react'
 import { differenceInDays } from 'date-fns'
 import { formatPrice } from '@/lib/currency'
+import { getUIText } from '@/lib/translations'
 
 export function CardPriceDisplay({
   basePrice,
@@ -61,8 +62,8 @@ export function CardPriceDisplay({
       </span>
       <span className="text-sm text-slate-500">
         {nights > 0 
-          ? `/ ${nights} ${language === 'ru' ? 'ноч.' : 'nights'}`
-          : `/ ${language === 'ru' ? 'ночь' : 'night'}`
+          ? `/ ${nights} ${getUIText('nights', language)}`
+          : `/ ${getUIText('night', language)}`
         }
       </span>
     </div>

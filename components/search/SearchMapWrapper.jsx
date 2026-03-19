@@ -26,6 +26,7 @@ function SearchMapWrapperComponent({
   listings = [],
   userBookings = [],
   userId = null,
+  language = 'ru',
   showMap = false,
   className
 }) {
@@ -40,6 +41,7 @@ function SearchMapWrapperComponent({
           listings={listings}
           userBookings={userBookings}
           userId={userId}
+          language={language}
           center={[7.8804, 98.3923]} // Phuket, Thailand
           zoom={12}
         />
@@ -50,11 +52,11 @@ function SearchMapWrapperComponent({
 
 // Memoize to prevent re-renders during list scrolling
 export const SearchMapWrapper = memo(SearchMapWrapperComponent, (prevProps, nextProps) => {
-  // Only re-render if listings, userBookings, userId, or showMap changed
   return (
     prevProps.listings === nextProps.listings &&
     prevProps.userBookings === nextProps.userBookings &&
     prevProps.userId === nextProps.userId &&
+    prevProps.language === nextProps.language &&
     prevProps.showMap === nextProps.showMap
   );
 });

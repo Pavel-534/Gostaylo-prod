@@ -5,11 +5,12 @@
  * 
  * Features:
  * - TanStack Query for reactive data
- * - Real commission calculations (15% platform fee)
+ * - Dynamic commission (per-booking or global fallback)
  * - Transaction breakdown by booking status
  * - Downloadable financial reports
+ * - i18n translations
  * 
- * @version 2.0
+ * @version 2.1
  */
 
 import { useState, useEffect } from 'react'
@@ -17,33 +18,52 @@ import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { 
   DollarSign, TrendingUp, Wallet, Download, 
-  Calendar, Building2, Loader2, ArrowUpRight, Clock 
+  Calendar, Building2, Loader2, Clock 
 } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
+import { getUIText } from '@/lib/translations'
+import { useI18n } from '@/contexts/i18n-context'
 
 // Fetch partner bookings with financial data
 async function fetchPartnerFinances(partnerId) {
   if (!partnerId) throw new Error('No partner ID')
   
   const res = await fetch(`/api/v2/partner/bookings?partnerId=${partnerId}`, {
-    cache: 'no-store'
+    cache: 'no-store',
+    credentials: 'include'
   })
   
-  if (!res.ok) throw new Error('Failed to fetch finances')
-  
   const data = await res.json()
-  return data.data || []
+  
+  if (!res.ok) {
+    const msg = data?.error || (res.status === 401 ? 'Auth required' : res.status === 403 ? 'Access denied' : 'Failed to fetch')
+    throw new Error(msg)
+  }
+  
+  return data.data ?? []
 }
 
-// Financial calculations
+// Fetch effective commission rate from admin settings (profiles.custom_commission_rate or system_settings)
+async function fetchCommissionRate(partnerId) {
+  if (!partnerId) return { effectiveRate: 15, partnerEarningsPercent: 85 }
+  try {
+    const res = await fetch(`/api/v2/commission?partnerId=${partnerId}`, { cache: 'no-store' })
+    const json = await res.json()
+    if (json?.data) {
+      return { effectiveRate: json.data.effectiveRate ?? 15, partnerEarningsPercent: json.data.partnerEarningsPercent ?? 85 }
+    }
+  } catch (e) { /* ignore */ }
+  return { effectiveRate: 15, partnerEarningsPercent: 85 }
+}
+
+// Financial calculations — uses per-booking commission_rate when available
+const DEFAULT_COMMISSION_RATE = 15
+
 function calculateFinances(bookings) {
-  const GOSTAYLO_FEE_RATE = 0.15 // 15%
-  
   let totalGrossRevenue = 0
   let totalGostayloFee = 0
   let totalNetEarnings = 0
@@ -51,9 +71,11 @@ function calculateFinances(bookings) {
   let completedRevenue = 0
   
   bookings.forEach(booking => {
-    const gross = parseFloat(booking.total_price_thb) || 0
-    const fee = gross * GOSTAYLO_FEE_RATE
-    const net = gross - fee
+    const gross = parseFloat(booking.priceThb || booking.total_price_thb) || 0
+    const rate = parseFloat(booking.commissionRate ?? booking.listing?.commissionRate) || DEFAULT_COMMISSION_RATE
+    const feeRate = rate / 100
+    const fee = gross * feeRate
+    const net = parseFloat(booking.partnerEarningsThb) || (gross - fee)
     
     totalGrossRevenue += gross
     totalGostayloFee += fee
@@ -66,13 +88,20 @@ function calculateFinances(bookings) {
     }
   })
   
+  const avgFeePercent = totalGrossRevenue > 0 
+    ? Math.round((totalGostayloFee / totalGrossRevenue) * 100) 
+    : DEFAULT_COMMISSION_RATE
+  const netPercent = 100 - avgFeePercent
+  
   return {
     totalGrossRevenue,
     totalGostayloFee,
     totalNetEarnings,
     completedRevenue,
     pendingRevenue,
-    transactionCount: bookings.length
+    transactionCount: bookings.length,
+    avgFeePercent,
+    netPercent
   }
 }
 
@@ -115,6 +144,9 @@ function StatCard({ icon: Icon, title, value, subtitle, trend, loading }) {
 }
 
 export default function PartnerFinancesV2() {
+  const { language } = useI18n()
+  const t = (key) => getUIText(key, language)
+  
   const [partnerId, setPartnerId] = useState(null)
   const [currency, setCurrency] = useState('THB')
   const [exchangeRates] = useState({ THB: 1 })
@@ -147,27 +179,39 @@ export default function PartnerFinancesV2() {
     refetchInterval: 60 * 1000 // Auto-refresh every minute
   })
 
+  // Fetch effective commission rate (from admin: 7% global, 4% per-user)
+  const { data: commissionData } = useQuery({
+    queryKey: ['partner-commission', partnerId],
+    queryFn: () => fetchCommissionRate(partnerId),
+    enabled: !!partnerId
+  })
+
   // Calculate financial stats
   const finances = calculateFinances(bookings)
+  
+  // When no bookings: use effective rate from admin settings. When bookings exist: use calculated avg
+  const displayFeePercent = finances.transactionCount > 0 ? finances.avgFeePercent : (commissionData?.effectiveRate ?? DEFAULT_COMMISSION_RATE)
+  const displayNetPercent = finances.transactionCount > 0 ? finances.netPercent : (commissionData?.partnerEarningsPercent ?? (100 - DEFAULT_COMMISSION_RATE))
 
   // Export to CSV
   const handleExportCSV = () => {
     if (bookings.length === 0) {
-      toast.error('No transactions to export')
+      toast.error(t('noTransactionsExport'))
       return
     }
 
     const csvRows = [
-      ['Date', 'Booking ID', 'Listing', 'Guest', 'Status', 'Gross Revenue', 'GoStaylo Fee (15%)', 'Net Earnings'].join(','),
+      ['Date', 'Booking ID', t('listing'), t('guest'), 'Status', t('gross'), t('fee'), t('netEarnings')].join(','),
       ...bookings.map(b => {
-        const gross = parseFloat(b.total_price_thb) || 0
-        const fee = gross * 0.15
-        const net = gross - fee
+        const gross = parseFloat(b.priceThb || b.total_price_thb) || 0
+        const rate = parseFloat(b.commissionRate ?? b.listing?.commissionRate) || DEFAULT_COMMISSION_RATE
+        const fee = gross * (rate / 100)
+        const net = parseFloat(b.partnerEarningsThb) || (gross - fee)
         return [
-          format(new Date(b.created_at), 'yyyy-MM-dd'),
+          format(new Date(b.createdAt || b.created_at), 'yyyy-MM-dd'),
           b.id,
           `"${b.listing?.title || 'N/A'}"`,
-          `"${b.guest_name || 'N/A'}"`,
+          `"${b.guestName || b.guest_name || 'N/A'}"`,
           b.status,
           gross.toFixed(2),
           fee.toFixed(2),
@@ -184,7 +228,7 @@ export default function PartnerFinancesV2() {
     a.click()
     URL.revokeObjectURL(url)
     
-    toast.success('Financial report downloaded')
+    toast.success(t('reportDownloaded'))
   }
 
   return (
@@ -192,8 +236,8 @@ export default function PartnerFinancesV2() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Finances & Payouts</h1>
-          <p className="text-slate-600 mt-1">Real-time revenue tracking and transaction history</p>
+          <h1 className="text-3xl font-bold text-slate-900">{t('financesTitle')}</h1>
+          <p className="text-slate-600 mt-1">{t('financesDesc')}</p>
         </div>
         <Button 
           onClick={handleExportCSV}
@@ -202,7 +246,7 @@ export default function PartnerFinancesV2() {
           className="gap-2"
         >
           <Download className="h-4 w-4" />
-          Export CSV
+          {t('exportCSV')}
         </Button>
       </div>
 
@@ -210,33 +254,33 @@ export default function PartnerFinancesV2() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={DollarSign}
-          title="Total Gross Revenue"
+          title={t('totalGrossRevenue')}
           value={formatPrice(finances.totalGrossRevenue, currency, exchangeRates)}
-          subtitle="Before platform fees"
+          subtitle={t('beforeFees')}
           loading={isLoading}
         />
         
         <StatCard
           icon={Building2}
-          title="GoStaylo Fee (15%)"
+          title={`${t('platformFee')} (${displayFeePercent}%)`}
           value={formatPrice(finances.totalGostayloFee, currency, exchangeRates)}
-          subtitle="Platform commission"
+          subtitle={t('platformFee')}
           loading={isLoading}
         />
         
         <StatCard
           icon={Wallet}
-          title="Net Earnings (85%)"
+          title={`${t('netEarnings')} (${displayNetPercent}%)`}
           value={formatPrice(finances.totalNetEarnings, currency, exchangeRates)}
-          subtitle="Your share"
+          subtitle={t('yourShare')}
           loading={isLoading}
         />
         
         <StatCard
           icon={TrendingUp}
-          title="Transactions"
+          title={t('transactions')}
           value={finances.transactionCount}
-          subtitle={`${bookings.filter(b => b.status === 'COMPLETED').length} completed`}
+          subtitle={`${bookings.filter(b => b.status === 'COMPLETED').length} ${t('completed')}`}
           loading={isLoading}
         />
       </div>
@@ -247,9 +291,9 @@ export default function PartnerFinancesV2() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-green-500" />
-              Completed Revenue
+              {t('completedRevenue')}
             </CardTitle>
-            <CardDescription>Funds from completed stays</CardDescription>
+            <CardDescription>{t('fundsFromCompleted')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-600">
@@ -262,9 +306,9 @@ export default function PartnerFinancesV2() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-amber-500" />
-              Pending Revenue
+              {t('pendingRevenue')}
             </CardTitle>
-            <CardDescription>Upcoming or in-progress bookings</CardDescription>
+            <CardDescription>{t('upcomingBookings')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-amber-600">
@@ -277,10 +321,8 @@ export default function PartnerFinancesV2() {
       {/* Transaction History */}
       <Card>
         <CardHeader>
-          <CardTitle>Transaction History</CardTitle>
-          <CardDescription>
-            Detailed breakdown of all bookings with commission calculations
-          </CardDescription>
+          <CardTitle>{t('transactionHistory')}</CardTitle>
+          <CardDescription>{t('transactionHistoryDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -290,25 +332,28 @@ export default function PartnerFinancesV2() {
               ))}
             </div>
           ) : isError ? (
-            <div className="text-center py-8 text-red-600">
-              <p className="mb-2">Failed to load transactions</p>
-              <p className="text-sm text-slate-500">{error?.message}</p>
-              <Button onClick={() => refetch()} variant="outline" className="mt-4">
-                Retry
+            <div className="text-center py-8">
+              <p className="mb-2 text-slate-700 font-medium">{t('failedToLoad')}</p>
+              <p className="text-sm text-slate-500 mb-4">{error?.message}</p>
+              <Button onClick={() => refetch()} variant="outline">
+                {t('retry')}
               </Button>
             </div>
           ) : bookings.length === 0 ? (
             <div className="text-center py-12 text-slate-500">
               <Calendar className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-              <h3 className="text-lg font-semibold text-slate-700 mb-2">No transactions yet</h3>
-              <p>Your booking revenue will appear here</p>
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">{t('noTransactions')}</h3>
+              <p>{t('noTransactionsDesc')}</p>
             </div>
           ) : (
             <div className="space-y-4">
               {bookings.map((booking) => {
-                const gross = parseFloat(booking.total_price_thb) || 0
-                const fee = gross * 0.15
-                const net = gross - fee
+                const gross = parseFloat(booking.priceThb || booking.total_price_thb) || 0
+                const rate = parseFloat(booking.commissionRate ?? booking.listing?.commissionRate) || DEFAULT_COMMISSION_RATE
+                const fee = gross * (rate / 100)
+                const net = parseFloat(booking.partnerEarningsThb) || (gross - fee)
+                const checkIn = booking.checkIn || booking.check_in
+                const checkOut = booking.checkOut || booking.check_out
                 
                 return (
                   <div 
@@ -319,17 +364,17 @@ export default function PartnerFinancesV2() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-semibold text-slate-900">
-                          {booking.listing?.title || 'Listing'}
+                          {booking.listing?.title || t('listing')}
                         </h4>
                         <Badge className={`text-xs ${STATUS_COLORS[booking.status] || 'bg-slate-100'}`}>
                           {booking.status}
                         </Badge>
                       </div>
                       <p className="text-sm text-slate-600">
-                        Guest: {booking.guest_name || 'N/A'}
+                        {t('guest')}: {booking.guestName || booking.guest_name || 'N/A'}
                       </p>
                       <p className="text-xs text-slate-500 mt-1">
-                        {booking.check_in && format(new Date(booking.check_in), 'MMM d')} → {booking.check_out && format(new Date(booking.check_out), 'MMM d, yyyy')}
+                        {checkIn && format(new Date(checkIn), 'MMM d')} → {checkOut && format(new Date(checkOut), 'MMM d, yyyy')}
                       </p>
                     </div>
 
@@ -337,13 +382,13 @@ export default function PartnerFinancesV2() {
                     <div className="flex flex-col md:items-end gap-1">
                       <div className="flex items-center gap-4 text-sm">
                         <div>
-                          <span className="text-slate-500">Gross:</span>
+                          <span className="text-slate-500">{t('gross')}:</span>
                           <span className="font-medium text-slate-900 ml-2">
                             {formatPrice(gross, currency, exchangeRates)}
                           </span>
                         </div>
                         <div>
-                          <span className="text-slate-500">Fee:</span>
+                          <span className="text-slate-500">{t('fee')}:</span>
                           <span className="font-medium text-red-600 ml-2">
                             -{formatPrice(fee, currency, exchangeRates)}
                           </span>
@@ -352,7 +397,7 @@ export default function PartnerFinancesV2() {
                       <div className="text-lg font-bold text-green-600">
                         {formatPrice(net, currency, exchangeRates)}
                       </div>
-                      <p className="text-xs text-slate-500">Your net earnings</p>
+                      <p className="text-xs text-slate-500">{t('yourNetEarnings')}</p>
                     </div>
                   </div>
                 )
@@ -362,15 +407,15 @@ export default function PartnerFinancesV2() {
         </CardContent>
       </Card>
 
-      {/* Info Footer */}
+      {/* Info Footer — no commission numbers */}
       <Card className="bg-blue-50 border-blue-200">
         <CardContent className="p-6">
           <div className="flex items-start gap-3">
             <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
             <div>
-              <h4 className="font-semibold text-blue-900 mb-1">How Payouts Work</h4>
+              <h4 className="font-semibold text-blue-900 mb-1">{t('howPayoutsWork')}</h4>
               <p className="text-sm text-blue-700">
-                GoStaylo retains a 15% platform fee from each booking. Your net earnings (85%) are automatically calculated and will be available for withdrawal once bookings are completed. Payouts are processed within 2-3 business days.
+                {t('payoutsInfo')}
               </p>
             </div>
           </div>

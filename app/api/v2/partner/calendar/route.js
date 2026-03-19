@@ -13,7 +13,8 @@ import { addDays, format, parseISO, isWithinInterval, isSameDay, differenceInDay
 export const dynamic = 'force-dynamic'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+// Use service role to bypass RLS (partner listings may be restricted by RLS)
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 /**
  * Get seasonal price for a date
@@ -179,22 +180,33 @@ export async function GET(request) {
     const startDate = searchParams.get('startDate') || defaultStart
     const endDate = searchParams.get('endDate') || defaultEnd
     
-    // Try direct Supabase REST API
-    if (SUPABASE_URL && SUPABASE_KEY) {
+    // Use supabaseAdmin (service role) to bypass RLS, or direct fetch with service key
+    const useAdmin = !!supabaseAdmin
+    if (useAdmin || (SUPABASE_URL && SUPABASE_KEY)) {
       try {
-        // Fetch listings
-        const listingsRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${userId}&select=id,title,district,cover_image,base_price_thb,commission_rate,status`,
-          {
-            headers: {
-              'apikey': SUPABASE_KEY,
-              'Authorization': `Bearer ${SUPABASE_KEY}`
-            }
-          }
-        )
-        const listings = await listingsRes.json()
+        let listings = []
+        let bookings = []
+        let blocks = []
+        let seasonalPrices = []
+
+        if (useAdmin) {
+          // Use supabaseAdmin - bypasses RLS
+          const { data: listingsData, error: listingsErr } = await supabaseAdmin
+            .from('listings')
+            .select('id,title,district,cover_image,base_price_thb,commission_rate,status')
+            .eq('owner_id', userId)
+          if (listingsErr) throw listingsErr
+          listings = listingsData || []
+        } else {
+          const listingsRes = await fetch(
+            `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${userId}&select=id,title,district,cover_image,base_price_thb,commission_rate,status`,
+            { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+          )
+          const data = await listingsRes.json()
+          listings = Array.isArray(data) ? data : []
+        }
         
-        if (!Array.isArray(listings) || listings.length === 0) {
+        if (!listings.length) {
           console.log(`[CALENDAR] No listings found for partner ${userId}`)
           return NextResponse.json({
             status: 'success',
@@ -206,61 +218,67 @@ export async function GET(request) {
         const listingIds = listings.map(l => l.id)
         console.log(`[CALENDAR] Found ${listings.length} listings for partner ${userId}`)
         
-        // Fetch bookings
-        const bookingsRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/bookings?partner_id=eq.${userId}&check_out=gte.${startDate}&check_in=lte.${endDate}&status=in.(PENDING,CONFIRMED,PAID)&select=id,listing_id,guest_name,check_in,check_out,status,price_thb,source`,
-          {
-            headers: {
-              'apikey': SUPABASE_KEY,
-              'Authorization': `Bearer ${SUPABASE_KEY}`
-            }
+        if (useAdmin) {
+          const { data: bookingsData } = await supabaseAdmin
+            .from('bookings')
+            .select('id,listing_id,guest_name,check_in,check_out,status,price_thb,source')
+            .eq('partner_id', userId)
+            .gte('check_out', startDate)
+            .lte('check_in', endDate)
+            .in('status', ['PENDING', 'CONFIRMED', 'PAID'])
+          bookings = bookingsData || []
+          
+          try {
+            const { data: blocksData } = await supabaseAdmin
+              .from('calendar_blocks')
+              .select('id,listing_id,start_date,end_date,reason,type')
+              .in('listing_id', listingIds)
+              .gte('end_date', startDate)
+              .lte('start_date', endDate)
+            blocks = blocksData || []
+          } catch (e) {
+            console.log('[CALENDAR] No calendar_blocks table:', e.message)
           }
-        )
-        const bookings = await bookingsRes.json()
-        
-        // Fetch blocks (calendar_blocks table)
-        let blocks = []
-        try {
-          const blocksRes = await fetch(
-            `${SUPABASE_URL}/rest/v1/calendar_blocks?listing_id=in.(${listingIds.join(',')})&end_date=gte.${startDate}&start_date=lte.${endDate}&select=id,listing_id,start_date,end_date,reason,type`,
-            {
-              headers: {
-                'apikey': SUPABASE_KEY,
-                'Authorization': `Bearer ${SUPABASE_KEY}`
-              }
-            }
+          
+          try {
+            const { data: seasonalData } = await supabaseAdmin
+              .from('seasonal_prices')
+              .select('*')
+              .in('listing_id', listingIds)
+              .gte('end_date', startDate)
+              .lte('start_date', endDate)
+            seasonalPrices = seasonalData || []
+          } catch (e) {
+            console.log('[CALENDAR] Error fetching seasonal_prices:', e.message)
+          }
+        } else {
+          const bookingsRes = await fetch(
+            `${SUPABASE_URL}/rest/v1/bookings?partner_id=eq.${userId}&check_out=gte.${startDate}&check_in=lte.${endDate}&status=in.(PENDING,CONFIRMED,PAID)&select=id,listing_id,guest_name,check_in,check_out,status,price_thb,source`,
+            { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
           )
-          blocks = await blocksRes.json()
-          if (!Array.isArray(blocks)) blocks = []
-        } catch (e) {
-          console.log('[CALENDAR] No calendar_blocks table or error:', e.message)
-        }
-        
-        // Fetch seasonal prices
-        let seasonalPrices = []
-        try {
-          const seasonalUrl = `${SUPABASE_URL}/rest/v1/seasonal_prices?listing_id=in.(${listingIds.join(',')})&end_date=gte.${startDate}&start_date=lte.${endDate}&select=*`
-          console.log(`[CALENDAR] Fetching seasonal prices from: ${seasonalUrl}`)
+          const bookingsJson = await bookingsRes.json()
+          bookings = Array.isArray(bookingsJson) ? bookingsJson : []
           
-          const seasonalRes = await fetch(seasonalUrl, {
-            headers: {
-              'apikey': SUPABASE_KEY,
-              'Authorization': `Bearer ${SUPABASE_KEY}`
-            }
-          })
-          
-          console.log(`[CALENDAR] Seasonal prices response status: ${seasonalRes.status}`)
-          const seasonalData = await seasonalRes.json()
-          console.log(`[CALENDAR] Seasonal prices data:`, seasonalData)
-          
-          if (Array.isArray(seasonalData)) {
-            seasonalPrices = seasonalData
-            console.log(`[CALENDAR] Fetched ${seasonalPrices.length} seasonal prices`)
-          } else if (seasonalData.code) {
-            console.log(`[CALENDAR] Supabase error:`, seasonalData.message)
+          try {
+            const blocksRes = await fetch(
+              `${SUPABASE_URL}/rest/v1/calendar_blocks?listing_id=in.(${listingIds.join(',')})&end_date=gte.${startDate}&start_date=lte.${endDate}&select=id,listing_id,start_date,end_date,reason,type`,
+              { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+            )
+            blocks = Array.isArray(await blocksRes.json()) ? await blocksRes.json() : []
+          } catch (e) {
+            console.log('[CALENDAR] No calendar_blocks table or error:', e.message)
           }
-        } catch (e) {
-          console.log('[CALENDAR] Error fetching seasonal_prices:', e.message)
+          
+          try {
+            const seasonalRes = await fetch(
+              `${SUPABASE_URL}/rest/v1/seasonal_prices?listing_id=in.(${listingIds.join(',')})&end_date=gte.${startDate}&start_date=lte.${endDate}&select=*`,
+              { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+            )
+            const sd = await seasonalRes.json()
+            seasonalPrices = Array.isArray(sd) ? sd : []
+          } catch (e) {
+            console.log('[CALENDAR] Error fetching seasonal_prices:', e.message)
+          }
         }
         
         const calendarData = processCalendarData(

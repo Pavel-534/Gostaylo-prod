@@ -196,6 +196,8 @@ export async function GET(request) {
       title: l.title,
       description: l.description,
       district: l.district,
+      latitude: l.latitude != null ? parseFloat(l.latitude) : null,
+      longitude: l.longitude != null ? parseFloat(l.longitude) : null,
       basePriceThb: parseFloat(l.base_price_thb),
       commissionRate: parseFloat(l.commission_rate) || 15,
       images: l.images || [],

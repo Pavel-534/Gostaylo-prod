@@ -12,6 +12,7 @@ import { ListingGridSkeleton } from '@/components/listing-card-skeleton';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw, Loader2, List as ListIcon, Map as MapIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getUIText } from '@/lib/translations';
 
 function ListingSidebarComponent({
   listings = [],
@@ -43,12 +44,12 @@ function ListingSidebarComponent({
       <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center mb-6">
         <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-3" />
         <h3 className="text-lg font-semibold text-red-700 mb-2">
-          {language === 'ru' ? 'Ошибка загрузки' : 'Loading Error'}
+          {getUIText('loadError', language)}
         </h3>
         <p className="text-red-600 mb-4">{error}</p>
         <Button onClick={onRetry} variant="outline" className="border-red-300 text-red-700 hover:bg-red-100">
           <RefreshCw className="h-4 w-4 mr-2" />
-          {language === 'ru' ? 'Повторить' : 'Retry'}
+          {getUIText('retry', language)}
         </Button>
       </div>
     );
@@ -61,19 +62,16 @@ function ListingSidebarComponent({
   
   // Empty State
   if (!error && listings.length === 0) {
+    const unavailText = meta?.filteredOutByAvailability > 0
+      ? `${meta.filteredOutByAvailability} ${getUIText('listingsUnavailable', language)}`
+      : getUIText('tryChangingFilters', language);
     return (
       <div className="text-center py-20">
         <div className="text-6xl mb-4">🏠</div>
         <h3 className="text-xl font-semibold mb-2">
-          {language === 'ru' ? 'Ничего не найдено' : 'No results found'}
+          {getUIText('noResults', language)}
         </h3>
-        <p className="text-slate-500 mb-4">
-          {meta?.filteredOutByAvailability > 0 
-            ? (language === 'ru' 
-                ? `${meta.filteredOutByAvailability} объектов недоступны на выбранные даты`
-                : `${meta.filteredOutByAvailability} listings unavailable for selected dates`)
-            : (language === 'ru' ? 'Попробуйте изменить фильтры' : 'Try changing your filters')}
-        </p>
+        <p className="text-slate-500 mb-4">{unavailText}</p>
       </div>
     );
   }
@@ -90,12 +88,12 @@ function ListingSidebarComponent({
           {showMap ? (
             <>
               <ListIcon className="h-4 w-4" />
-              {language === 'ru' ? 'Показать список' : 'Show List'}
+              {getUIText('showList', language)}
             </>
           ) : (
             <>
               <MapIcon className="h-4 w-4" />
-              {language === 'ru' ? 'Показать карту' : 'Show Map'}
+              {getUIText('showMap', language)}
             </>
           )}
         </Button>
@@ -141,7 +139,7 @@ function ListingSidebarComponent({
             {loadingMore ? (
               <div className="flex items-center gap-2 text-slate-500">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                <span>{language === 'ru' ? 'Загрузка...' : 'Loading more...'}</span>
+                <span>{getUIText('loadingMore', language)}</span>
               </div>
             ) : (
               <Button 
@@ -149,7 +147,7 @@ function ListingSidebarComponent({
                 onClick={onLoadMore}
                 className="border-teal-300 text-teal-700 hover:bg-teal-50"
               >
-                {language === 'ru' ? 'Показать ещё' : 'Load more'} ({allListings.length - displayedCount} {language === 'ru' ? 'ещё' : 'more'})
+                {getUIText('loadMore', language)} ({allListings.length - displayedCount} {getUIText('more', language)})
               </Button>
             )}
           </div>
@@ -158,9 +156,7 @@ function ListingSidebarComponent({
         {/* Results Info */}
         {!hasMore && listings.length > 0 && (
           <div className="text-center py-6 text-slate-400 text-sm">
-            {language === 'ru' 
-              ? `Показано ${listings.length} из ${allListings.length} объектов`
-              : `Showing ${listings.length} of ${allListings.length} properties`}
+            {getUIText('showingXofY', language).replace('{count}', listings.length).replace('{total}', allListings.length)}
           </div>
         )}
       </div>

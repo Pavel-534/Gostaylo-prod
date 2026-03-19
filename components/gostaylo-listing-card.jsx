@@ -11,16 +11,7 @@ import { Star, MapPin, BedDouble, Users, Bath, Maximize } from 'lucide-react'
 import { CardImageCarousel } from '@/components/card/CardImageCarousel'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
 import { cn } from '@/lib/utils'
-
-const PROPERTY_TYPES = {
-  villa: { en: 'Villa', ru: 'Вилла' },
-  apartment: { en: 'Apartment', ru: 'Апартаменты' },
-  house: { en: 'House', ru: 'Дом' },
-  condo: { en: 'Condo', ru: 'Кондо' },
-  studio: { en: 'Studio', ru: 'Студия' },
-  penthouse: { en: 'Penthouse', ru: 'Пентхаус' },
-  default: { en: 'Property', ru: 'Объект' }
-}
+import { getUIText, getCategoryName } from '@/lib/translations'
 
 export function GostayloListingCard({
   listing,
@@ -106,7 +97,7 @@ export function GostayloListingCard({
     onFavorite?.(id, newState)
   }, [id, isFavorite, onFavorite])
 
-  const typeLabel = PROPERTY_TYPES[propertyType]?.[language] || PROPERTY_TYPES.default[language]
+  const typeLabel = getCategoryName(propertyType, language) || getCategoryName('property', language)
 
   return (
     <Link 
@@ -114,7 +105,7 @@ export function GostayloListingCard({
       className={cn("block group", className)}
       data-testid={`listing-card-${id}`}
     >
-      <article className="bg-white rounded-xl overflow-hidden transition-all duration-300 hover:shadow-xl border border-slate-100 hover:border-teal-200">
+      <article className="bg-white rounded-xl overflow-hidden group-hover:overflow-visible transition-all duration-300 hover:shadow-xl border border-slate-100 hover:border-teal-200 relative hover:z-20">
         <CardImageCarousel
           images={allImages}
           title={title}
@@ -150,23 +141,23 @@ export function GostayloListingCard({
           {/* Specs Row */}
           <div className="flex items-center gap-4 text-sm text-slate-500 mb-3">
             {bedrooms > 0 && (
-              <div className="flex items-center gap-1" title={language === 'ru' ? 'Спальни' : 'Bedrooms'}>
+              <div className="flex items-center gap-1" title={getUIText('bedrooms', language)}>
                 <BedDouble className="h-4 w-4" />
                 <span>{bedrooms}</span>
               </div>
             )}
             {bathrooms > 0 && (
-              <div className="flex items-center gap-1" title={language === 'ru' ? 'Ванные' : 'Bathrooms'}>
+              <div className="flex items-center gap-1" title={getUIText('bathrooms', language)}>
                 <Bath className="h-4 w-4" />
                 <span>{bathrooms}</span>
               </div>
             )}
-            <div className="flex items-center gap-1" title={language === 'ru' ? 'Макс. гостей' : 'Max guests'}>
+            <div className="flex items-center gap-1" title={getUIText('guests', language)}>
               <Users className="h-4 w-4" />
               <span>{maxGuests}</span>
             </div>
             {area > 0 && (
-              <div className="flex items-center gap-1" title={language === 'ru' ? 'Площадь' : 'Area'}>
+              <div className="flex items-center gap-1" title={getUIText('area', language)}>
                 <Maximize className="h-4 w-4" />
                 <span>{area}м²</span>
               </div>

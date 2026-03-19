@@ -129,40 +129,52 @@ export async function POST(request) {
     
     const {
       ownerId,
+      owner_id,
       categoryId,
       title,
       description,
       district,
       basePriceThb,
+      base_price_thb,
       images,
       metadata,
-      commissionRate = 15
+      commissionRate = 15,
+      status: bodyStatus,
+      available: bodyAvailable
     } = body;
     
-    // Validate required fields
-    if (!ownerId || !categoryId || !title || !basePriceThb) {
+    const uid = ownerId || owner_id;
+    const price = basePriceThb ?? base_price_thb ?? 0;
+    
+    // Validate required fields (relaxed for drafts)
+    if (!uid || !categoryId || !title) {
       return NextResponse.json({ 
         success: false, 
-        error: 'Missing required fields: ownerId, categoryId, title, basePriceThb' 
+        error: 'Missing required fields: ownerId, categoryId, title' 
       }, { status: 400 });
     }
+    
+    // Draft: INACTIVE + available=false; New listing: PENDING
+    const isDraft = metadata?.is_draft === true;
+    const status = bodyStatus || (isDraft ? 'INACTIVE' : 'PENDING');
+    const available = bodyAvailable !== undefined ? bodyAvailable : false;
     
     // Create listing
     const { data: listing, error } = await supabaseAdmin
       .from('listings')
       .insert({
-        owner_id: ownerId,
+        owner_id: uid,
         category_id: categoryId,
-        status: 'PENDING',
+        status,
         title,
-        description,
-        district,
-        base_price_thb: basePriceThb,
+        description: description || '',
+        district: district || null,
+        base_price_thb: parseFloat(price) || 0,
         commission_rate: commissionRate,
         images: images || [],
         cover_image: images?.[0] || null,
         metadata: metadata || {},
-        available: false // Pending approval
+        available
       })
       .select()
       .single();

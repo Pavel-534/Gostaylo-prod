@@ -140,8 +140,8 @@ export default function RenterLayout({ children }) {
 
         const parsedUser = JSON.parse(storedUser)
         
-        // Validate role - Renter portal accepts RENTER, ADMIN, MODERATOR
-        const allowedRoles = ['RENTER', 'ADMIN', 'MODERATOR']
+        // Validate role - Renter portal accepts RENTER, ADMIN, MODERATOR, PARTNER (partner can also book as renter)
+        const allowedRoles = ['RENTER', 'ADMIN', 'MODERATOR', 'PARTNER']
         
         if (!allowedRoles.includes(parsedUser.role)) {
           setAccessDenied(true)

@@ -22,6 +22,7 @@ import { Separator } from '@/components/ui/separator'
 import { CalendarIcon, Users, Star, ArrowRight } from 'lucide-react'
 import { format } from 'date-fns'
 import { formatPrice } from '@/lib/currency'
+import { getUIText } from '@/lib/translations'
 import { GostayloCalendar } from '@/components/gostaylo-calendar'
 
 export function DesktopBookingWidget({
@@ -49,7 +50,7 @@ export function DesktopBookingWidget({
                 {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates)}
               </div>
               <p className="text-sm text-slate-500">
-                {language === 'ru' ? 'за ночь' : 'per night'}
+                {getUIText('perNight', language)}
               </p>
             </div>
             {(listing.rating > 0 || (listing.reviewsCount || listing.reviews_count || 0) > 0) && (
@@ -68,7 +69,7 @@ export function DesktopBookingWidget({
           {/* Calendar */}
           <div>
             <Label className="text-sm font-medium mb-2 block">
-              {language === 'ru' ? 'Даты проживания' : 'Travel Dates'}
+              {getUIText('travelDates', language)}
             </Label>
             <GostayloCalendar
               key={calendarKey}
@@ -83,7 +84,7 @@ export function DesktopBookingWidget({
           {/* Guests */}
           <div>
             <Label className="text-sm font-medium mb-2 block">
-              {language === 'ru' ? 'Количество гостей' : 'Number of Guests'}
+              {getUIText('numberOfGuests', language)}
             </Label>
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-slate-400" />
@@ -103,14 +104,14 @@ export function DesktopBookingWidget({
             <div className="space-y-3 pt-4 border-t">
               <div className="flex justify-between text-sm">
                 <span className="text-slate-600">
-                  {formatPrice(priceCalc.avgPricePerNight, currency, exchangeRates)} × {priceCalc.nights} {language === 'ru' ? 'ночей' : 'nights'}
+                  {formatPrice(priceCalc.avgPricePerNight, currency, exchangeRates)} × {priceCalc.nights} {getUIText('nights', language)}
                 </span>
                 <span className="font-medium">{formatPrice(priceCalc.subtotal, currency, exchangeRates)}</span>
               </div>
               
               {priceCalc.serviceFee > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-600">{language === 'ru' ? 'Сервисный сбор' : 'Service fee'}</span>
+                  <span className="text-slate-600">{getUIText('serviceFee', language)}</span>
                   <span className="font-medium">{formatPrice(priceCalc.serviceFee, currency, exchangeRates)}</span>
                 </div>
               )}
@@ -118,7 +119,7 @@ export function DesktopBookingWidget({
               <Separator />
               
               <div className="flex justify-between text-lg font-bold">
-                <span>{language === 'ru' ? 'Итого' : 'Total'}</span>
+                <span>{getUIText('total', language)}</span>
                 <span>{formatPrice(priceCalc.finalTotal, currency, exchangeRates)}</span>
               </div>
             </div>
@@ -130,13 +131,13 @@ export function DesktopBookingWidget({
             disabled={!dateRange?.from || !dateRange?.to}
             className="w-full h-12 text-base bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
           >
-            {language === 'ru' ? 'Забронировать' : 'Book Now'}
+            {getUIText('bookNow', language)}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
 
           {(!dateRange?.from || !dateRange?.to) && (
             <p className="text-xs text-center text-slate-500">
-              {language === 'ru' ? 'Выберите даты для бронирования' : 'Select dates to book'}
+              {getUIText('selectDatesToBook', language)}
             </p>
           )}
         </CardContent>
@@ -162,8 +163,8 @@ export function MobileBookingBar({
             {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates)}
           </div>
           <p className="text-xs text-slate-500">
-            {language === 'ru' ? 'за ночь' : 'per night'}
-            {priceCalc && ` • ${priceCalc.nights} ${language === 'ru' ? 'ночей' : 'nights'}`}
+            {getUIText('perNight', language)}
+            {priceCalc && ` • ${priceCalc.nights} ${getUIText('nights', language)}`}
           </p>
         </div>
         
@@ -172,7 +173,7 @@ export function MobileBookingBar({
           disabled={!dateRange?.from || !dateRange?.to}
           className="h-12 px-8 text-base bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
         >
-          {language === 'ru' ? 'Забронировать' : 'Book'}
+          {getUIText('bookNow', language)}
         </Button>
       </div>
     </div>

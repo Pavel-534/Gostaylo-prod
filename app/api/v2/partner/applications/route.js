@@ -16,7 +16,10 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const TELEGRAM_ADMIN_GROUP_ID = process.env.TELEGRAM_ADMIN_GROUP_ID
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.gostaylo.com'
 
-// Send Telegram notification to admin
+// Topic: NEW_PARTNERS (thread 17) — заявки на партнёрство
+const TOPIC_NEW_PARTNERS = 17
+
+// Send Telegram notification to admin (NEW_PARTNERS topic)
 async function sendTelegramNotification(application, userEmail) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_ADMIN_GROUP_ID) {
     console.log('[TELEGRAM] Bot not configured, skipping notification')
@@ -24,28 +27,30 @@ async function sendTelegramNotification(application, userEmail) {
   }
   
   try {
-    const message = `
-🆕 <b>New Partner Application</b>
-
-<b>User:</b> ${userEmail}
-<b>Phone:</b> ${application.phone}
-<b>Experience:</b> ${application.experience}
-<b>Social:</b> ${application.social_link || 'N/A'}
-<b>Portfolio:</b> ${application.portfolio || 'N/A'}
-
-<b>Review in Admin:</b>
-${APP_URL}/admin/users
-
-⏰ Please review within 24 hours
-    `.trim()
+    const message = [
+      '🤝 <b>НОВАЯ ЗАЯВКА НА ПАРТНЁРСТВО</b>',
+      '',
+      `📧 <b>Email:</b> ${userEmail}`,
+      `📞 <b>Телефон:</b> ${application.phone || '—'}`,
+      `📝 <b>Опыт:</b> ${(application.experience || '—').substring(0, 200)}`,
+      application.social_link ? `🔗 <b>Соцсети:</b> ${application.social_link}` : '',
+      application.portfolio ? `📂 <b>Портфолио:</b> ${application.portfolio}` : '',
+      '',
+      '━━━━━━━━━━━━━━━━━━━━',
+      `🔗 <a href="${APP_URL}/admin/users">Открыть модерацию →</a>`,
+      '',
+      '⏰ Рассмотреть в течение 24 часов'
+    ].filter(Boolean).join('\n')
     
     await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chat_id: TELEGRAM_ADMIN_GROUP_ID,
+        message_thread_id: TOPIC_NEW_PARTNERS,
         text: message,
-        parse_mode: 'HTML'
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
       })
     })
     

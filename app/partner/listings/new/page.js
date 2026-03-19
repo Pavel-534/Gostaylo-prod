@@ -10,12 +10,15 @@
  * - Seasonal pricing integration
  * - Save draft functionality
  * - Professional Airbnb-inspired UX
+ * - Multi-language support (RU, EN, ZH, TH)
  * 
  * @version 2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,6 +35,9 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { GostayloListingCard } from '@/components/gostaylo-listing-card'
+import dynamic from 'next/dynamic'
+
+const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
 
 const DISTRICTS = [
   'Rawai', 'Chalong', 'Kata', 'Karon', 'Patong', 'Kamala', 
@@ -43,25 +49,33 @@ const AMENITIES = [
   'Security', 'Garden', 'Terrace', 'BBQ', 'Gym', 'Sauna'
 ]
 
-const STEPS = [
-  { id: 1, label: 'Basics', icon: Home },
-  { id: 2, label: 'Location', icon: MapIcon },
-  { id: 3, label: 'Specs', icon: Building },
-  { id: 4, label: 'Pricing', icon: DollarSign },
-  { id: 5, label: 'Gallery', icon: ImageIcon }
-]
-
 export default function PremiumListingWizard() {
   const router = useRouter()
+  const { language } = useI18n()
+  const t = (key) => getUIText(key, language)
   const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
   const editId = searchParams.get('edit')
   const isEditMode = !!editId
+  const fileInputRef = useRef(null)
+
+  const STEPS = [
+    { id: 1, label: t('basics'), icon: Home },
+    { id: 2, label: t('location'), icon: MapIcon },
+    { id: 3, label: t('specs'), icon: Building },
+    { id: 4, label: t('pricing'), icon: DollarSign },
+    { id: 5, label: t('gallery'), icon: ImageIcon }
+  ]
   
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [savingDraft, setSavingDraft] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [geocoding, setGeocoding] = useState(false)
+  const [geocodeQuery, setGeocodeQuery] = useState('')
+  const [geocodeResults, setGeocodeResults] = useState([])
   const [categories, setCategories] = useState([])
+  const [newSeason, setNewSeason] = useState({ label: '', startDate: '', endDate: '', priceDaily: '' })
   const [partnerCommissionRate, setPartnerCommissionRate] = useState(15) // Dynamic from DB
   
   // Form data
@@ -130,36 +144,59 @@ export default function PremiumListingWizard() {
     loadInitialData()
   }, [])
   
-  // Load existing listing for edit
+  // Load existing listing for edit (prefer partner API for security)
   async function loadExistingListing(listingId) {
     try {
       setLoading(true)
-      const res = await fetch(`/api/v2/listings/${listingId}`)
+      // Use partner API (verifies ownership, returns full data)
+      const res = await fetch(`/api/v2/partner/listings/${listingId}`, { credentials: 'include' })
       const data = await res.json()
+      const listing = data.data || data.listing
       
-      if (data.success && data.data) {
-        const listing = data.data
+      if (data.success && listing) {
+        const cat = listing.category || listing.categories
+        const rawSeasonal = listing.seasonalPricing || listing.seasonalPrices || []
+        const seasonal = rawSeasonal.map((s, i) => ({
+          id: s.id || `s-${i}`,
+          label: s.label || 'Season',
+          startDate: s.startDate || s.start_date,
+          endDate: s.endDate || s.end_date,
+          priceDaily: s.priceDaily ?? s.price_daily ?? 0,
+          seasonType: s.seasonType || s.season_type || 'high',
+        }))
         setFormData({
-          categoryId: listing.categoryId || '',
-          categoryName: listing.category?.name || '',
+          categoryId: listing.categoryId || listing.category_id || '',
+          categoryName: cat?.name || '',
           title: listing.title || '',
           description: listing.description || '',
           district: listing.district || '',
-          latitude: listing.latitude,
-          longitude: listing.longitude,
-          basePriceThb: listing.basePriceThb?.toString() || '',
-          commissionRate: listing.commissionRate || partnerCommissionRate,
-          minBookingDays: listing.minBookingDays || 1,
-          maxBookingDays: listing.maxBookingDays || 90,
+          latitude: listing.latitude ?? null,
+          longitude: listing.longitude ?? null,
+          basePriceThb: (listing.basePriceThb ?? listing.base_price_thb)?.toString() || '',
+          commissionRate: listing.commissionRate ?? listing.commission_rate ?? partnerCommissionRate,
+          minBookingDays: listing.minBookingDays ?? listing.min_booking_days ?? 1,
+          maxBookingDays: listing.maxBookingDays ?? listing.max_booking_days ?? 90,
           images: listing.images || [],
-          coverImage: listing.coverImage || '',
-          metadata: listing.metadata || {},
-          seasonalPricing: listing.seasonalPricing || []
+          coverImage: listing.coverImage || listing.cover_image || '',
+          metadata: {
+            bedrooms: 0,
+            bathrooms: 0,
+            max_guests: 2,
+            area: 0,
+            amenities: [],
+            property_type: 'Villa',
+            passengers: 0,
+            engine: '',
+            duration: '',
+            includes: [],
+            ...(listing.metadata || {})
+          },
+          seasonalPricing: seasonal || listing.seasonalPricing || listing.seasonalPrices || []
         })
       }
     } catch (error) {
       console.error('Failed to load listing:', error)
-      toast.error('Failed to load listing data')
+      toast.error(t('failedToLoadListing'))
     } finally {
       setLoading(false)
     }
@@ -182,6 +219,83 @@ export default function PremiumListingWizard() {
       metadata: { ...prev.metadata, [field]: value }
     }))
   }
+
+  // Image upload via API
+  async function handleImageUpload(files) {
+    const fileList = Array.from(files || [])
+    if (fileList.length === 0) return
+    setUploading(true)
+    const folder = editId || `temp-${Date.now()}`
+    const newUrls = []
+    try {
+      for (const file of fileList) {
+        if (!file.type?.startsWith('image/')) continue
+        const fd = new FormData()
+        fd.append('file', file)
+        fd.append('bucket', 'listings')
+        fd.append('folder', folder)
+        const res = await fetch('/api/v2/upload', {
+          method: 'POST',
+          credentials: 'include',
+          body: fd
+        })
+        const data = await res.json()
+        if (data.success && data.url) newUrls.push(data.url)
+      }
+      if (newUrls.length > 0) {
+        setFormData(prev => ({ ...prev, images: [...(prev.images || []), ...newUrls] }))
+        toast.success(`+${newUrls.length} ${language === 'ru' ? 'фото загружено' : 'photos uploaded'}`)
+      }
+    } catch (e) {
+      console.error(e)
+      toast.error(language === 'ru' ? 'Ошибка загрузки' : 'Upload failed')
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  function removeImage(index) {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }))
+  }
+
+  // Geocoding: search address → set coordinates
+  async function handleGeocode() {
+    if (!geocodeQuery.trim() || geocodeQuery.length < 3) return
+    setGeocoding(true)
+    setGeocodeResults([])
+    try {
+      const res = await fetch(`/api/v2/geocode?q=${encodeURIComponent(geocodeQuery.trim())}`)
+      const data = await res.json()
+      if (data.success && data.data?.length) {
+        setGeocodeResults(data.data)
+      } else {
+        toast.error(language === 'ru' ? 'Ничего не найдено' : 'No results found')
+      }
+    } catch (e) {
+      toast.error(language === 'ru' ? 'Ошибка поиска' : 'Search failed')
+    } finally {
+      setGeocoding(false)
+    }
+  }
+
+  function selectGeocodeResult(r) {
+    updateField('latitude', r.lat)
+    updateField('longitude', r.lon)
+    setGeocodeResults([])
+    setGeocodeQuery('')
+  }
+
+  // Coordinate validation: lat -90..90, lng -180..180
+  const coordsValid = useMemo(() => {
+    const lat = formData.latitude
+    const lng = formData.longitude
+    if (lat == null || lng == null) return true
+    return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+  }, [formData.latitude, formData.longitude])
   
   // Validation for each step
   const canProceed = useMemo(() => {
@@ -189,7 +303,7 @@ export default function PremiumListingWizard() {
       case 1:
         return formData.categoryId && formData.title.length >= 10 && formData.description.length >= 20
       case 2:
-        return formData.district
+        return formData.district && coordsValid
       case 3:
         return true // Always allow (specs are optional)
       case 4:
@@ -214,82 +328,138 @@ export default function PremiumListingWizard() {
     }
   }
   
-  // Save draft
+  // Save draft (creates new or updates existing)
   const saveDraft = async () => {
     setSavingDraft(true)
     try {
       const userId = localStorage.getItem('gostaylo_user_id')
       if (!userId) {
-        toast.error('Please log in to save')
+        toast.error(t('pleaseLogIn'))
         return
       }
       
-      const payload = {
-        ...formData,
-        owner_id: userId,
-        status: 'draft',
-        available: false
-      }
-      
-      const res = await fetch('/api/v2/listings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      
-      const data = await res.json()
-      if (data.success) {
-        toast.success('Draft saved!')
-        router.push('/partner/listings')
+      if (isEditMode && editId) {
+        // Update existing draft/listing
+        const payload = {
+          ...formData,
+          status: formData.status || 'INACTIVE',
+          available: false,
+          basePriceThb: parseFloat(formData.basePriceThb) || 0,
+          images: formData.images,
+          metadata: { ...formData.metadata, is_draft: true }
+        }
+        const res = await fetch(`/api/v2/partner/listings/${editId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        })
+        const data = await res.json()
+        if (data.success) {
+          toast.success(t('draftSaved'))
+          router.push('/partner/listings')
+        } else {
+          toast.error(data.error || t('failedToLoadListing'))
+        }
       } else {
-        toast.error(data.error || 'Failed to save')
+        // Create new draft
+        const payload = {
+          ownerId: userId,
+          categoryId: formData.categoryId,
+          title: formData.title || 'Черновик',
+          description: formData.description || '',
+          district: formData.district || '',
+          basePriceThb: parseFloat(formData.basePriceThb) || 0,
+          images: formData.images || [],
+          metadata: { ...formData.metadata, is_draft: true },
+          status: 'INACTIVE',
+          available: false
+        }
+        const res = await fetch('/api/v2/listings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload)
+        })
+        const data = await res.json()
+        if (data.success) {
+          toast.success(t('draftSaved'))
+          router.push('/partner/listings')
+        } else {
+          toast.error(data.error || t('failedToLoadListing'))
+        }
       }
     } catch (error) {
-      toast.error('Something went wrong')
+      toast.error(t('failedToLoadListing'))
     } finally {
       setSavingDraft(false)
     }
   }
   
-  // Final submit
+  // Final submit (publish)
   const handleSubmit = async () => {
     setLoading(true)
     try {
       const userId = localStorage.getItem('gostaylo_user_id')
       if (!userId) {
-        toast.error('Please log in')
+        toast.error(t('pleaseLogIn'))
         return
       }
       
       const payload = {
         ...formData,
-        owner_id: userId,
-        status: 'active',
+        ownerId: userId,
+        status: 'PENDING',
         available: true,
-        base_price_thb: parseFloat(formData.basePriceThb),
-        commission_rate: parseFloat(formData.commissionRate),
-        min_booking_days: parseInt(formData.minBookingDays) || 1,
-        max_booking_days: parseInt(formData.maxBookingDays) || 90
+        basePriceThb: parseFloat(formData.basePriceThb) || 0,
+        commissionRate: parseFloat(formData.commissionRate) || 15,
+        minBookingDays: parseInt(formData.minBookingDays) || 1,
+        maxBookingDays: parseInt(formData.maxBookingDays) || 90,
+        metadata: { ...formData.metadata, is_draft: false }
       }
       
       const method = isEditMode ? 'PUT' : 'POST'
-      const url = isEditMode ? `/api/v2/listings/${editId}` : '/api/v2/listings'
+      const url = isEditMode ? `/api/v2/partner/listings/${editId}` : '/api/v2/listings'
       
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload)
       })
       
       const data = await res.json()
       if (data.success) {
-        toast.success(isEditMode ? 'Listing updated!' : 'Listing published!')
+        const listingId = data.data?.id || data.listing?.id || editId
+        const seasons = formData.seasonalPricing || []
+        if (listingId && seasons.length > 0) {
+          for (const s of seasons) {
+            try {
+              await fetch('/api/v2/partner/seasonal-prices', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                  listingId,
+                  startDate: s.startDate,
+                  endDate: s.endDate,
+                  priceDaily: s.priceDaily,
+                  label: s.label || 'Season',
+                  seasonType: s.seasonType || 'high',
+                }),
+              })
+            } catch (e) {
+              console.warn('Seasonal price save failed:', e)
+            }
+          }
+        }
+        toast.success(isEditMode ? t('listingUpdated') : t('listingPublished'))
         router.push('/partner/listings')
       } else {
-        toast.error(data.error || 'Failed to save')
+        toast.error(data.error || t('failedToLoadListing'))
       }
     } catch (error) {
-      toast.error('Something went wrong')
+      toast.error(t('failedToLoadListing'))
     } finally {
       setLoading(false)
     }
@@ -395,7 +565,7 @@ export default function PremiumListingWizard() {
     return (
       <div className="text-center py-8 text-slate-500">
         <Building className="h-12 w-12 mx-auto mb-2 text-slate-300" />
-        <p>Select a category to see relevant fields</p>
+        <p>{t('selectCategoryToSeeFields')}</p>
       </div>
     )
   }
@@ -407,12 +577,12 @@ export default function PremiumListingWizard() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-semibold mb-2">Tell us about your listing</h2>
-              <p className="text-slate-600">Start with the basics that guests will see first.</p>
+              <h2 className="text-2xl font-semibold mb-2">{t('tellUsAboutListing')}</h2>
+              <p className="text-slate-600">{t('startWithBasics')}</p>
             </div>
             
             <div>
-              <Label className="text-base font-medium">Category *</Label>
+              <Label className="text-base font-medium">{t('selectCategory')}</Label>
               <Select 
                 value={formData.categoryId} 
                 onValueChange={(value) => {
@@ -422,7 +592,7 @@ export default function PremiumListingWizard() {
                 }}
               >
                 <SelectTrigger className="mt-2 h-12">
-                  <SelectValue placeholder="Select a category" />
+                  <SelectValue placeholder={t('selectCategoryPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map(cat => (
@@ -438,25 +608,25 @@ export default function PremiumListingWizard() {
               <Label className="text-base font-medium">Title *</Label>
               <Input
                 type="text"
-                placeholder="e.g., Luxury Sea View Villa in Rawai"
+                placeholder={t('titlePlaceholder')}
                 value={formData.title}
                 onChange={(e) => updateField('title', e.target.value)}
                 className="mt-2 h-12"
                 maxLength={100}
               />
-              <p className="text-xs text-slate-500 mt-1">{formData.title.length}/100 characters</p>
+              <p className="text-xs text-slate-500 mt-1">{formData.title.length}/100 {t('characters')}</p>
             </div>
             
             <div>
               <Label className="text-base font-medium">Description *</Label>
               <Textarea
-                placeholder="Describe your listing in detail..."
+                placeholder={t('descriptionPlaceholder')}
                 value={formData.description}
                 onChange={(e) => updateField('description', e.target.value)}
                 className="mt-2 min-h-[120px]"
                 maxLength={2000}
               />
-              <p className="text-xs text-slate-500 mt-1">{formData.description.length}/2000 characters</p>
+              <p className="text-xs text-slate-500 mt-1">{formData.description.length}/2000 {t('characters')}</p>
             </div>
           </div>
         )
@@ -465,37 +635,102 @@ export default function PremiumListingWizard() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-semibold mb-2">Where is your listing?</h2>
-              <p className="text-slate-600">Help guests find you easily.</p>
+              <h2 className="text-2xl font-semibold mb-2">{t('whereIsListing')}</h2>
+              <p className="text-slate-600">{t('helpGuestsFind')}</p>
             </div>
             
             <div>
-              <Label className="text-base font-medium">District *</Label>
+              <Label className="text-base font-medium">{t('selectDistrict')}</Label>
               <Select value={formData.district} onValueChange={(value) => updateField('district', value)}>
                 <SelectTrigger className="mt-2 h-12">
-                  <SelectValue placeholder="Select district" />
+                  <SelectValue placeholder={t('selectDistrictPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {DISTRICTS.map(district => (
-                    <SelectItem key={district} value={district}>
-                      {district}
+                  {DISTRICTS.map(d => (
+                    <SelectItem key={d} value={d}>
+                      {d}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             
+            {/* Geocoding search */}
             <div>
-              <Label className="text-base font-medium">Map Location (Optional)</Label>
-              <div className="mt-2 border-2 border-dashed border-slate-200 rounded-lg p-8 text-center bg-slate-50">
-                <MapIcon className="h-12 w-12 mx-auto mb-2 text-slate-300" />
-                <p className="text-slate-500 mb-2">Click to pin your exact location</p>
-                <p className="text-xs text-slate-400">Latitude: {formData.latitude || 'Not set'}, Longitude: {formData.longitude || 'Not set'}</p>
-                <Button variant="outline" className="mt-3" disabled>
-                  Open Map Picker (Coming Soon)
+              <Label className="text-base font-medium">{t('searchAddress')}</Label>
+              <div className="flex gap-2 mt-2">
+                <Input
+                  placeholder={t('searchAddressPlaceholder')}
+                  value={geocodeQuery}
+                  onChange={(e) => setGeocodeQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleGeocode())}
+                  className="flex-1"
+                />
+                <Button variant="outline" onClick={handleGeocode} disabled={geocoding}>
+                  {geocoding ? <Loader2 className="h-4 w-4 animate-spin" /> : t('search')}
                 </Button>
               </div>
+              {geocodeResults.length > 0 && (
+                <div className="mt-2 border rounded-lg divide-y max-h-40 overflow-y-auto">
+                  {geocodeResults.map((r, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      className="w-full text-left px-3 py-2 hover:bg-slate-50 text-sm"
+                      onClick={() => selectGeocodeResult(r)}
+                    >
+                      {r.displayName}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+            
+            {/* Interactive map */}
+            <div>
+              <Label className="text-base font-medium">{t('mapLocation')}</Label>
+              <p className="text-xs text-slate-500 mt-1">{t('clickToPin')}</p>
+              <div className="mt-2">
+                <MapPicker
+                  latitude={formData.latitude}
+                  longitude={formData.longitude}
+                  onSelect={(lat, lng) => {
+                    updateField('latitude', lat)
+                    updateField('longitude', lng)
+                  }}
+                  height={280}
+                />
+              </div>
+            </div>
+            
+            {/* Manual coordinates + validation */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm">{t('latitude')}</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder="7.8235"
+                  value={formData.latitude ?? ''}
+                  onChange={(e) => updateField('latitude', e.target.value ? parseFloat(e.target.value) : null)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-sm">{t('longitude')}</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder="98.3828"
+                  value={formData.longitude ?? ''}
+                  onChange={(e) => updateField('longitude', e.target.value ? parseFloat(e.target.value) : null)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            {!coordsValid && (
+              <p className="text-sm text-amber-600">{t('invalidCoords')}</p>
+            )}
           </div>
         )
       
@@ -503,14 +738,14 @@ export default function PremiumListingWizard() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-semibold mb-2">Listing specifications</h2>
-              <p className="text-slate-600">Add details specific to your {formData.categoryName}.</p>
+              <h2 className="text-2xl font-semibold mb-2">{t('listingSpecs')}</h2>
+              <p className="text-slate-600">{t('addDetailsFor')} {formData.categoryName || ''}.</p>
             </div>
             
             {renderSpecs()}
             
             <div>
-              <Label className="text-base font-medium">Amenities</Label>
+              <Label className="text-base font-medium">{t('amenities')}</Label>
               <div className="grid grid-cols-3 gap-3 mt-2">
                 {AMENITIES.map(amenity => {
                   const selected = formData.metadata.amenities?.includes(amenity)
@@ -541,24 +776,24 @@ export default function PremiumListingWizard() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-semibold mb-2">Pricing & booking rules</h2>
-              <p className="text-slate-600">Set your rates and availability.</p>
+              <h2 className="text-2xl font-semibold mb-2">{t('pricingAndBooking')}</h2>
+              <p className="text-slate-600">{t('setRates')}</p>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-base font-medium">Base Price (THB/night) *</Label>
+                <Label className="text-base font-medium">{t('basePrice')}</Label>
                 <Input
                   type="number"
                   min="0"
-                  placeholder="e.g., 5000"
+                  placeholder={t('basePricePlaceholder')}
                   value={formData.basePriceThb}
                   onChange={(e) => updateField('basePriceThb', e.target.value)}
                   className="mt-2 h-12"
                 />
               </div>
               <div>
-                <Label className="text-base font-medium">Commission Rate (%)</Label>
+                <Label className="text-base font-medium">{t('commissionRate')}</Label>
                 <Input
                   type="number"
                   min="0"
@@ -568,13 +803,13 @@ export default function PremiumListingWizard() {
                   className="mt-2 h-12"
                   disabled
                 />
-                <p className="text-xs text-slate-500 mt-1">Standard rate: 15%</p>
+                <p className="text-xs text-slate-500 mt-1">{t('standardRate')}: 15%</p>
               </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-base font-medium">Min Stay (nights)</Label>
+                <Label className="text-base font-medium">{t('minStay')}</Label>
                 <Input
                   type="number"
                   min="1"
@@ -584,7 +819,7 @@ export default function PremiumListingWizard() {
                 />
               </div>
               <div>
-                <Label className="text-base font-medium">Max Stay (nights)</Label>
+                <Label className="text-base font-medium">{t('maxStay')}</Label>
                 <Input
                   type="number"
                   min="1"
@@ -596,13 +831,81 @@ export default function PremiumListingWizard() {
             </div>
             
             <div>
-              <Label className="text-base font-medium">Seasonal Pricing (Optional)</Label>
-              <div className="mt-2 border-2 border-dashed border-slate-200 rounded-lg p-6 text-center bg-slate-50">
-                <DollarSign className="h-10 w-10 mx-auto mb-2 text-slate-300" />
-                <p className="text-slate-500 mb-2">Configure high/low season prices</p>
-                <Button variant="outline" size="sm" disabled>
-                  Add Seasonal Pricing
+              <Label className="text-base font-medium">{t('seasonalPricing')}</Label>
+              <p className="text-xs text-slate-500 mt-1">{t('seasonalPricingDesc')}</p>
+              <div className="mt-2 space-y-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <Input
+                    placeholder={t('seasonLabel')}
+                    value={newSeason.label}
+                    onChange={(e) => setNewSeason(s => ({ ...s, label: e.target.value }))}
+                  />
+                  <Input
+                    type="date"
+                    placeholder={t('seasonStart')}
+                    value={newSeason.startDate}
+                    onChange={(e) => setNewSeason(s => ({ ...s, startDate: e.target.value }))}
+                  />
+                  <Input
+                    type="date"
+                    placeholder={t('seasonEnd')}
+                    value={newSeason.endDate}
+                    onChange={(e) => setNewSeason(s => ({ ...s, endDate: e.target.value }))}
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder={t('seasonPrice')}
+                    value={newSeason.priceDaily}
+                    onChange={(e) => setNewSeason(s => ({ ...s, priceDaily: e.target.value }))}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (newSeason.label && newSeason.startDate && newSeason.endDate && newSeason.priceDaily) {
+                      setFormData(prev => ({
+                        ...prev,
+                        seasonalPricing: [...(prev.seasonalPricing || []), {
+                          id: `s-${Date.now()}`,
+                          label: newSeason.label,
+                          startDate: newSeason.startDate,
+                          endDate: newSeason.endDate,
+                          priceDaily: parseFloat(newSeason.priceDaily) || 0,
+                          seasonType: 'high'
+                        }]
+                      }))
+                      setNewSeason({ label: '', startDate: '', endDate: '', priceDaily: '' })
+                      toast.success(language === 'ru' ? 'Сезон добавлен' : 'Season added')
+                    } else {
+                      toast.error(language === 'ru' ? 'Заполните все поля' : 'Fill all fields')
+                    }
+                  }}
+                >
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  {t('addSeason')}
                 </Button>
+                {(formData.seasonalPricing || []).length > 0 && (
+                  <div className="space-y-2 mt-3">
+                    {formData.seasonalPricing.map((s, i) => (
+                      <div key={s.id || i} className="flex items-center justify-between py-2 px-3 bg-slate-50 rounded-lg">
+                        <span className="text-sm">{s.label}: {s.startDate} — {s.endDate} • ฿{s.priceDaily}/{t('night')}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700"
+                          onClick={() => setFormData(prev => ({
+                            ...prev,
+                            seasonalPricing: (prev.seasonalPricing || []).filter((_, j) => j !== i)
+                          }))}
+                        >
+                          {t('removeSeason')}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -612,25 +915,46 @@ export default function PremiumListingWizard() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-semibold mb-2">Add photos</h2>
-              <p className="text-slate-600">Showcase your listing with beautiful images.</p>
+              <h2 className="text-2xl font-semibold mb-2">{t('addPhotos')}</h2>
+              <p className="text-slate-600">{t('showcasePhotos')}</p>
             </div>
             
-            <div className="border-2 border-dashed border-slate-300 rounded-lg p-12 text-center hover:border-teal-500 transition-colors cursor-pointer">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => handleImageUpload(e.target.files)}
+            />
+            <div
+              className="border-2 border-dashed border-slate-300 rounded-lg p-12 text-center hover:border-teal-500 transition-colors cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
               <ImageIcon className="h-16 w-16 mx-auto mb-4 text-slate-400" />
-              <h3 className="text-lg font-medium mb-2">Drag & drop images here</h3>
-              <p className="text-slate-500 mb-4">or click to browse (max 20 images)</p>
-              <Button variant="outline">Select Files</Button>
+              <h3 className="text-lg font-medium mb-2">{t('dragDropImages')}</h3>
+              <p className="text-slate-500 mb-4">{t('orClickToBrowse')}</p>
+              <Button variant="outline" disabled={uploading} type="button">
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('selectFiles')}
+              </Button>
             </div>
             
             {formData.images.length > 0 && (
               <div className="grid grid-cols-4 gap-4">
                 {formData.images.map((img, idx) => (
-                  <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200">
+                  <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group">
                     <img src={img} alt={`Upload ${idx + 1}`} className="object-cover w-full h-full" />
                     {idx === 0 && (
                       <Badge className="absolute top-2 left-2 bg-teal-600">Cover</Badge>
                     )}
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => { e.stopPropagation(); removeImage(idx) }}
+                    >
+                      ×
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -722,7 +1046,7 @@ export default function PremiumListingWizard() {
                     className="gap-2"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    Back
+                    {t('back')}
                   </Button>
                   
                   {currentStep < STEPS.length ? (
@@ -731,7 +1055,7 @@ export default function PremiumListingWizard() {
                       disabled={!canProceed}
                       className="bg-teal-600 hover:bg-teal-700 gap-2"
                     >
-                      Next
+                      {t('next')}
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   ) : (
@@ -741,7 +1065,7 @@ export default function PremiumListingWizard() {
                       className="bg-teal-600 hover:bg-teal-700 gap-2"
                     >
                       {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                      {isEditMode ? 'Update Listing' : 'Publish Listing'}
+                      {isEditMode ? t('updateListing') : t('publishListing')}
                     </Button>
                   )}
                 </div>
@@ -752,7 +1076,7 @@ export default function PremiumListingWizard() {
           {/* RIGHT: Live Preview */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
-              <h3 className="text-lg font-semibold mb-4 text-slate-700">Live Preview</h3>
+              <h3 className="text-lg font-semibold mb-4 text-slate-700">{t('livePreview')}</h3>
               <Card className="border-slate-200 bg-white">
                 <CardContent className="p-4">
                   <GostayloListingCard
@@ -773,7 +1097,7 @@ export default function PremiumListingWizard() {
                       is_featured: false
                     }}
                     currency="THB"
-                    language="en"
+                    language={language}
                     exchangeRates={{ THB: 1 }}
                     onFavorite={() => {}}
                     isFavorited={false}

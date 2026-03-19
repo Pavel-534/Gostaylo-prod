@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Star, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { getUIText } from '@/lib/translations'
 
 export function ReviewsSection({ listing, reviews, language = 'en' }) {
   const [showAll, setShowAll] = useState(false)
@@ -20,7 +21,7 @@ export function ReviewsSection({ listing, reviews, language = 'en' }) {
   return (
     <div id="reviews">
       <h2 className="text-2xl font-medium tracking-tight mb-6">
-        {language === 'ru' ? 'Отзывы' : 'Reviews'}
+        {getUIText('reviews', language)}
       </h2>
       
       {listing.reviewsCount > 0 ? (
@@ -71,8 +72,8 @@ export function ReviewsSection({ listing, reviews, language = 'en' }) {
                     className="border-teal-200 text-teal-700 hover:bg-teal-50"
                   >
                     {showAll
-                      ? (language === 'ru' ? 'Скрыть' : 'Hide')
-                      : (language === 'ru' ? 'Показать все отзывы' : 'Show all reviews')}
+                      ? getUIText('hide', language)
+                      : getUIText('showAllReviews', language)}
                   </Button>
                 </div>
               )}

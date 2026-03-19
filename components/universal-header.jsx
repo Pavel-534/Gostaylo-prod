@@ -29,6 +29,7 @@ import {
 import { CurrencySelector } from '@/components/currency-selector';
 import { useAuth } from '@/contexts/auth-context';
 import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
 import { Flag } from '@/components/flags'
 
 // Supported languages
@@ -207,7 +208,7 @@ export function UniversalHeader() {
                       className='cursor-pointer py-2.5 text-red-600 focus:text-red-600 focus:bg-red-50'
                     >
                       <LogOut className='h-4 w-4 mr-3' />
-                      <span>Выйти</span>
+                      <span>{getUIText('logout', language)}</span>
                     </DropdownMenuItem>
                   </div>
                 </DropdownMenuContent>
@@ -218,7 +219,7 @@ export function UniversalHeader() {
                 className='bg-teal-600 hover:bg-teal-700 h-9 px-4 rounded-full font-medium'
                 onClick={openLoginModal}
               >
-                Войти
+                {getUIText('login', language)}
               </Button>
             )}
           </div>

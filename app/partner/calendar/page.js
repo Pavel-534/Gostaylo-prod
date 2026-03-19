@@ -31,7 +31,7 @@ export default function MasterCalendar() {
   const scrollContainerRef = useRef(null)
   const todayRef = useRef(null)
   
-  // Get partner ID
+  // Get partner ID (useAuth or localStorage fallback)
   const [partnerId, setPartnerId] = useState(null)
   
   useEffect(() => {
@@ -39,18 +39,14 @@ export default function MasterCalendar() {
       setPartnerId(user.id)
       return
     }
-    
-    // Fall back to localStorage (dev mode)
     const stored = localStorage.getItem('gostaylo_user')
     if (stored) {
       try {
         const parsed = JSON.parse(stored)
         if (parsed?.id) setPartnerId(parsed.id)
-      } catch (e) {
-        // Ignore parse errors
-      }
+      } catch (e) {}
     }
-  }, [user])
+  }, [user?.id])
   
   // View state
   const [viewMode, setViewMode] = useState('normal')

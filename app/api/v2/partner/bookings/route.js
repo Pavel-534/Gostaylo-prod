@@ -20,7 +20,7 @@ const mockBookings = [
     id: 'booking-1',
     listing_id: 'lst-001',
     renter_id: 'user-test-renter',
-    partner_id: 'partner-1',
+    partner_id: 'partner-1', // Use this ID when testing with mock data
     status: 'PENDING',
     check_in: '2026-03-20',
     check_out: '2026-03-25',

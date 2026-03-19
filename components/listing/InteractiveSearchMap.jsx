@@ -18,6 +18,7 @@ import { MapContainer, TileLayer, Marker, Circle, Popup, useMap } from 'react-le
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Star } from 'lucide-react';
+import { getUIText } from '@/lib/translations';
 
 // Fix Leaflet default marker icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -27,7 +28,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Custom marker icons
+// Custom marker icons - popup opens BELOW marker to avoid being cut off by header
 const createCustomIcon = (color = 'teal') => {
   return L.divIcon({
     className: 'custom-marker',
@@ -44,7 +45,7 @@ const createCustomIcon = (color = 'teal') => {
     `,
     iconSize: [32, 32],
     iconAnchor: [16, 32],
-    popupAnchor: [0, -32]
+    popupAnchor: [0, 32] // Popup opens below marker to avoid header overlap
   });
 };
 
@@ -68,7 +69,7 @@ function MapBoundsUpdater({ listings }) {
 }
 
 // Popup Card Component
-function ListingPopupCard({ listing }) {
+function ListingPopupCard({ listing, language = 'ru' }) {
   const image = listing.images?.[0] || listing.coverImage || '/placeholder-listing.jpg';
   const price = listing.basePriceThb || listing.base_price_thb || 0;
   const rating = listing.rating || 0;
@@ -94,18 +95,18 @@ function ListingPopupCard({ listing }) {
               )}
             </>
           ) : (
-            <span className="text-xs text-slate-400">Новый</span>
+            <span className="text-xs text-slate-400">{getUIText('newListing', language)}</span>
           )}
         </div>
         <div className="flex items-baseline gap-1">
           <span className="text-lg font-bold text-teal-600">฿{price.toLocaleString()}</span>
-          <span className="text-xs text-slate-500">/ ночь</span>
+          <span className="text-xs text-slate-500">/ {getUIText('perNight', language)}</span>
         </div>
         <a 
           href={`/listings/${listing.id}`}
           className="mt-2 block w-full bg-teal-600 hover:bg-teal-700 text-white text-xs font-medium py-1.5 px-3 rounded-lg text-center transition-colors"
         >
-          Подробнее
+          {getUIText('viewDetails', language)}
         </a>
       </div>
     </div>
@@ -116,6 +117,7 @@ export default function InteractiveSearchMap({
   listings = [], 
   userBookings = [], 
   userId = null,
+  language = 'ru',
   center = [7.8804, 98.3923], // Default: Phuket
   zoom = 12 
 }) {
@@ -212,8 +214,8 @@ export default function InteractiveSearchMap({
                   weight: 2
                 }}
               >
-                <Popup>
-                  <ListingPopupCard listing={listing} />
+                <Popup autoPan={true} autoPanPadding={[80, 60]} className="map-listing-popup">
+                  <ListingPopupCard listing={listing} language={language} />
                 </Popup>
               </Circle>
             )}
@@ -224,8 +226,8 @@ export default function InteractiveSearchMap({
                 position={position}
                 icon={markerConfig.icon}
               >
-                <Popup>
-                  <ListingPopupCard listing={listing} />
+                <Popup autoPan={true} autoPanPadding={[80, 60]} className="map-listing-popup">
+                  <ListingPopupCard listing={listing} language={language} />
                 </Popup>
               </Marker>
             )}

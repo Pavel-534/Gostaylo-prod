@@ -13,6 +13,7 @@ import { Search, MapPin, Users, CalendarIcon, X } from 'lucide-react';
 import { SearchCalendar } from '@/components/search-calendar';
 import { format } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
+import { getUIText } from '@/lib/translations';
 
 const DISTRICTS = [
   'Rawai', 'Kata', 'Karon', 'Patong', 'Kamala', 'Surin', 'Bang Tao', 
@@ -42,7 +43,7 @@ export function FilterBar({
       <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white py-6">
         <div className="container mx-auto px-4">
           <h1 className="text-2xl font-bold mb-3">
-            {language === 'ru' ? 'Результаты поиска' : 'Search Results'}
+            {getUIText('searchResults', language)}
           </h1>
           
           {/* Active Filters */}
@@ -81,7 +82,7 @@ export function FilterBar({
             <div className="col-span-2 md:col-span-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder={language === 'ru' ? 'Поиск...' : 'Search...'}
+                placeholder={getUIText('searchPlaceholder', language)}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 h-9"
@@ -94,7 +95,7 @@ export function FilterBar({
               value={dateRange}
               onChange={setDateRange}
               locale={language}
-              placeholder={language === 'ru' ? 'Даты' : 'Dates'}
+              placeholder={getUIText('dates', language)}
               className="h-9 border rounded-md justify-start px-3"
             />
 
@@ -103,11 +104,11 @@ export function FilterBar({
               <SelectTrigger className="h-9">
                 <MapPin className="h-4 w-4 mr-2 text-teal-600" />
                 <span className="truncate">
-                  {selectedDistrict === 'all' ? (language === 'ru' ? 'Район' : 'District') : selectedDistrict}
+                  {selectedDistrict === 'all' ? getUIText('district', language) : selectedDistrict}
                 </span>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{language === 'ru' ? 'Все районы' : 'All districts'}</SelectItem>
+                <SelectItem value="all">{getUIText('allDistricts', language)}</SelectItem>
                 {DISTRICTS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -121,7 +122,7 @@ export function FilterBar({
               <SelectContent>
                 {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
                   <SelectItem key={n} value={n.toString()}>
-                    {n} {language === 'ru' ? 'гостей' : 'guests'}
+                    {n} {getUIText('guests', language)}
                   </SelectItem>
                 ))}
               </SelectContent>

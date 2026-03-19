@@ -35,10 +35,15 @@ import { partnerCalendarKeys } from '@/lib/hooks/use-partner-calendar'
 import { formatPrice } from '@/lib/currency'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { getUIText } from '@/lib/translations'
+import { useI18n } from '@/contexts/i18n-context'
 
-// Welcome Partner Celebration Modal
-function WelcomePartnerModal({ isOpen, onClose, userName }) {
+// Welcome Partner Celebration Modal — shown once when renter becomes partner
+// Text: no commission, no property/real estate; uses user language
+function WelcomePartnerModal({ isOpen, onClose, userName, language = 'ru' }) {
   if (!isOpen) return null
+  
+  const t = (key) => getUIText(key, language)
   
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -67,13 +72,13 @@ function WelcomePartnerModal({ isOpen, onClose, userName }) {
             <Bell className="h-10 w-10" />
           </div>
           
-          <h2 className="text-3xl font-bold mb-2">Congratulations!</h2>
+          <h2 className="text-3xl font-bold mb-2">{t('welcomePartnerTitle')}</h2>
           <p className="text-lg mb-4">{userName || 'Partner'}</p>
           
           <div className="bg-white/20 rounded-lg p-4 mb-6">
             <CalendarDays className="h-8 w-8 mx-auto mb-2" />
             <p className="text-sm">
-              You're now a Gostaylo Partner! Start listing your properties and earn with 0% commission.
+              {t('welcomePartnerBody')}
             </p>
           </div>
           
@@ -82,7 +87,7 @@ function WelcomePartnerModal({ isOpen, onClose, userName }) {
               onClick={onClose}
               className="w-full bg-white text-teal-600 hover:bg-white/90"
             >
-              Let's Get Started!
+              {t('welcomePartnerButton')}
             </Button>
           </div>
         </div>
@@ -222,6 +227,7 @@ function PendingBookingCard({ booking, onApprove, onDecline, isLoading }) {
 export default function PartnerDashboard() {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const { language } = useI18n()
   const [partnerId, setPartnerId] = useState(null)
   
   // Welcome modal state

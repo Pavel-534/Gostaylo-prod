@@ -15,7 +15,8 @@ export const dynamic = 'force-dynamic';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
 
-export async function GET(request, { params }) {
+export async function GET(request, context) {
+  const params = await Promise.resolve(context.params);
   const listingId = params.id;
   
   console.log('[PARTNER-LISTING] GET single listing:', listingId);
@@ -55,10 +56,13 @@ export async function GET(request, { params }) {
     auth: { autoRefreshToken: false, persistSession: false }
   });
   
-  // Fetch listing
+  // Fetch listing with category
   const { data: listing, error } = await supabase
     .from('listings')
-    .select('*')
+    .select(`
+      *,
+      categories (id, name, slug, icon)
+    `)
     .eq('id', listingId)
     .single();
   
@@ -74,8 +78,55 @@ export async function GET(request, { params }) {
   
   console.log(`[PARTNER-LISTING] Found: ${listing.title}, status: ${listing.status}, is_draft: ${listing.metadata?.is_draft}`);
   
+  const cat = listing.categories || listing.category;
+  
+  // Fetch seasonal prices
+  let seasonalPrices = [];
+  try {
+    const { data: sp } = await supabase
+      .from('seasonal_prices')
+      .select('*')
+      .eq('listing_id', listingId)
+      .order('start_date', { ascending: true });
+    seasonalPrices = sp || [];
+  } catch (e) {
+    console.warn('[PARTNER-LISTING] seasonal_prices error:', e?.message);
+  }
+  
   return NextResponse.json({
     success: true,
+    data: {
+      id: listing.id,
+      categoryId: listing.category_id,
+      category: cat,
+      title: listing.title,
+      description: listing.description,
+      status: listing.status,
+      district: listing.district,
+      latitude: listing.latitude,
+      longitude: listing.longitude,
+      basePriceThb: parseFloat(listing.base_price_thb) || 0,
+      commissionRate: parseFloat(listing.commission_rate) || 15,
+      minBookingDays: listing.min_booking_days ?? 1,
+      maxBookingDays: listing.max_booking_days ?? 90,
+      images: listing.images || [],
+      coverImage: listing.cover_image,
+      available: listing.available,
+      isFeatured: listing.is_featured,
+      views: listing.views || 0,
+      metadata: listing.metadata || {},
+      ownerId: listing.owner_id,
+      createdAt: listing.created_at,
+      updatedAt: listing.updated_at,
+      seasonalPrices: seasonalPrices.map(sp => ({
+        id: sp.id,
+        label: sp.label,
+        startDate: sp.start_date,
+        endDate: sp.end_date,
+        priceDaily: parseFloat(sp.price_daily) || 0,
+        seasonType: sp.season_type,
+      })),
+    },
     listing: {
       id: listing.id,
       title: listing.title,
@@ -98,10 +149,20 @@ export async function GET(request, { params }) {
 }
 
 /**
+ * PUT /api/v2/partner/listings/[id]
+ * Update a listing (same as PATCH, for compatibility)
+ */
+export async function PUT(request, context) {
+  const params = await Promise.resolve(context.params)
+  return PATCH(request, context)
+}
+
+/**
  * PATCH /api/v2/partner/listings/[id]
  * Update a listing
  */
-export async function PATCH(request, { params }) {
+export async function PATCH(request, context) {
+  const params = await Promise.resolve(context.params)
   const listingId = params.id;
   
   console.log('[PARTNER-LISTING] PATCH listing:', listingId);
@@ -161,6 +222,11 @@ export async function PATCH(request, { params }) {
   if (body.description !== undefined) updateData.description = body.description;
   if (body.basePriceThb !== undefined) updateData.base_price_thb = parseFloat(body.basePriceThb);
   if (body.district !== undefined) updateData.district = body.district;
+  if (body.latitude !== undefined) updateData.latitude = body.latitude;
+  if (body.longitude !== undefined) updateData.longitude = body.longitude;
+  if (body.categoryId !== undefined) updateData.category_id = body.categoryId;
+  if (body.minBookingDays !== undefined) updateData.min_booking_days = parseInt(body.minBookingDays) || 1;
+  if (body.maxBookingDays !== undefined) updateData.max_booking_days = parseInt(body.maxBookingDays) || 90;
   if (body.images !== undefined) updateData.images = body.images;
   if (body.coverImage !== undefined) updateData.cover_image = body.coverImage;
   if (body.status !== undefined) updateData.status = body.status;
@@ -200,7 +266,8 @@ export async function PATCH(request, { params }) {
  * Soft delete a listing (set status to 'DELETED')
  * Keeps message history intact
  */
-export async function DELETE(request, { params }) {
+export async function DELETE(request, context) {
+  const params = await Promise.resolve(context.params);
   const listingId = params.id;
   
   console.log('[PARTNER-LISTING] SOFT DELETE listing:', listingId);

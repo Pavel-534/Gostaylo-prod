@@ -26,6 +26,7 @@ import { SearchMapWrapper } from '@/components/search/SearchMapWrapper'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 import { useDebounce, useIntersectionObserver, useListingsFetch } from '@/lib/hooks/useListingsSearch'
+import { detectLanguage } from '@/lib/translations'
 
 const ITEMS_PER_PAGE = 12
 
@@ -83,9 +84,7 @@ function ListingsContent() {
   
   // Initialize language, currency, favorites
   useEffect(() => {
-    const storedLang = localStorage.getItem('gostaylo_language')
-    const detectedLang = storedLang || (navigator.language.split('-')[0] === 'ru' ? 'ru' : 'en')
-    setLanguage(detectedLang)
+    setLanguage(detectLanguage())
     
     const storedCurrency = localStorage.getItem('gostaylo_currency')
     if (storedCurrency) setCurrency(storedCurrency)
@@ -117,6 +116,12 @@ function ListingsContent() {
     const handler = (e) => setCurrency(e.detail)
     window.addEventListener('currency-change', handler)
     return () => window.removeEventListener('currency-change', handler)
+  }, [])
+
+  useEffect(() => {
+    const handler = (e) => e?.detail && setLanguage(e.detail)
+    window.addEventListener('language-change', handler)
+    return () => window.removeEventListener('language-change', handler)
   }, [])
   
   // Initial fetch
@@ -271,6 +276,7 @@ function ListingsContent() {
             listings={listings}
             userBookings={userBookings}
             userId={user?.id}
+            language={language}
             showMap={showMap}
           />
         </div>

@@ -2,11 +2,12 @@
 
 import * as React from "react"
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, isSameDay, isSameMonth, isBefore, differenceInDays } from "date-fns"
-import { ru, enUS } from "date-fns/locale"
+import { ru, enUS, th, zhCN } from "date-fns/locale"
 import { ChevronLeft, ChevronRight, Loader2, CalendarIcon, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { getUIText } from "@/lib/translations"
 import {
   Drawer,
   DrawerContent,
@@ -21,7 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-const locales = { ru, en: enUS }
+const locales = { ru, en: enUS, th, zh: zhCN }
 
 /**
  * GostayloCalendar - High-Performance Airbnb-Style Calendar
@@ -158,7 +159,7 @@ function MonthGrid({
   const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }) // Monday start
   const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 })
   
-  // Build weeks
+  // Build weeks - pad to 6 rows to prevent calendar "jumping" when month has 5 vs 6 weeks
   const weeks = []
   let days = []
   let day = startDate
@@ -171,10 +172,16 @@ function MonthGrid({
     weeks.push(days)
     days = []
   }
+  // Pad to 6 rows with placeholder nulls (rendered as empty cells)
+  while (weeks.length < 6) {
+    weeks.push(Array(7).fill(null))
+  }
   
-  // Weekday headers
+  // Weekday headers (Monday first)
   const weekDays = locale === 'ru' 
     ? ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+    : locale === 'zh' ? ['一', '二', '三', '四', '五', '六', '日']
+    : locale === 'th' ? ['จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.', 'อา.']
     : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   
   return (
@@ -193,15 +200,16 @@ function MonthGrid({
         ))}
       </div>
       
-      {/* Days grid */}
-      <div className="grid grid-cols-7 gap-2">
+      {/* Days grid - fixed 6 rows + fixed height to prevent layout jump when month has 5 vs 6 weeks */}
+      <div className="grid grid-cols-7 grid-rows-6 gap-2 h-[200px] [&>*]:min-h-0">
         {weeks.flat().map((date, idx) => {
+          if (!date) return <div key={idx} className="aspect-square min-w-0 min-h-0" />
           const dateStr = format(date, 'yyyy-MM-dd')
           const dayData = calendarData.get(dateStr)
           const isCurrentMonth = isSameMonth(date, month)
           
           if (!isCurrentMonth) {
-            return <div key={idx} className="aspect-square" />
+            return <div key={idx} className="aspect-square min-w-0 min-h-0" />
           }
           
           // Check selection state
@@ -380,16 +388,19 @@ export function GostayloCalendar({
   
   // Display text
   const displayText = React.useMemo(() => {
-    if (loading) return language === 'ru' ? 'Загрузка...' : 'Loading...'
-    if (!value?.from) return language === 'ru' ? 'Заезд — Выезд' : 'Check-in — Check-out'
+    if (loading) return getUIText('loading', language)
+    if (!value?.from) return `${getUIText('checkIn', language)} — ${getUIText('checkOut', language)}`
     if (!value.to) {
       return `${format(value.from, 'd MMM', { locale: locales[locale] })} — ...`
     }
     
     const nights = differenceInDays(value.to, value.from)
-    const nightsText = language === 'ru'
-      ? `${nights} ${nights === 1 ? 'ночь' : nights < 5 ? 'ночи' : 'ночей'}`
-      : `${nights} night${nights > 1 ? 's' : ''}`
+    const nightWord = language === 'ru'
+      ? (nights === 1 ? 'ночь' : nights < 5 ? 'ночи' : 'ночей')
+      : language === 'zh' ? '晚'
+      : language === 'th' ? 'คืน'
+      : (nights === 1 ? 'night' : 'nights')
+    const nightsText = `${nights} ${nightWord}`
     
     return `${format(value.from, 'd MMM', { locale: locales[locale] })} — ${format(value.to, 'd MMM', { locale: locales[locale] })} (${nightsText})`
   }, [value, locale, language, loading])
@@ -420,7 +431,7 @@ export function GostayloCalendar({
   // Selection hint
   const SelectionHint = isSelectingCheckout ? (
     <div className="mb-4 text-center text-sm text-teal-600 bg-teal-50 rounded-lg py-2 px-3">
-      {language === 'ru' ? '✓ Заезд выбран. Выберите дату выезда' : '✓ Check-in selected. Select check-out date'}
+      {getUIText('checkInSelectedHint', language)}
     </div>
   ) : null
   
@@ -440,21 +451,9 @@ export function GostayloCalendar({
     <div className="p-4">
       {SelectionHint}
       
-      {/* Desktop: 2 months side-by-side with navigation - larger cells */}
+      {/* Desktop: 2 months side-by-side (arrows in header) */}
       {!isMobile && (
-        <div className="flex items-start gap-10">
-          {/* Navigation */}
-          <div className="absolute left-4 top-4">
-            <Button variant="ghost" size="icon" onClick={goToPrevMonth}>
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          </div>
-          <div className="absolute right-4 top-4">
-            <Button variant="ghost" size="icon" onClick={goToNextMonth}>
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-          
+        <div className="flex items-start justify-center gap-8">
           {months.slice(0, 2).map((month, idx) => (
             <MonthGrid
               key={idx}
@@ -497,7 +496,7 @@ export function GostayloCalendar({
           <DrawerContent className="max-h-[90vh]">
             <DrawerHeader className="relative border-b pb-4">
               <DrawerTitle className="text-center">
-                {language === 'ru' ? 'Выберите даты' : 'Select dates'}
+                {getUIText('datePickerTitle', language)}
               </DrawerTitle>
               <DrawerClose asChild>
                 <Button variant="ghost" size="icon" className="absolute right-2 top-2">
@@ -512,19 +511,30 @@ export function GostayloCalendar({
     )
   }
   
-  // Desktop: Use centered modal (60%+ screen)
+  // Desktop: Use centered modal (~50% screen, no overlap with header)
   if (isMobile === false) {
     return (
       <>
         {TriggerButton}
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogContent className="!max-w-[min(900px,95vw)] w-[min(900px,95vw)] min-h-[60vh] max-h-[90vh] overflow-y-auto p-0 gap-0">
-            <DialogHeader className="p-6 pb-2">
-              <DialogTitle>
-                {language === 'ru' ? 'Выберите даты' : 'Select dates'}
+          <DialogContent className="!max-w-[min(700px,90vw)] w-[min(700px,90vw)] max-h-[50vh] min-h-[400px] overflow-hidden p-0 gap-0 [&>button]:hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <DialogTitle className="text-lg font-semibold m-0">
+                {getUIText('datePickerTitle', language)}
               </DialogTitle>
-            </DialogHeader>
-            <div className="flex-1 overflow-auto p-6 pt-2 min-h-[50vh]">
+              <div className="flex items-center gap-3">
+                <Button variant="outline" size="icon" onClick={goToPrevMonth} className="h-9 w-9 shrink-0">
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={goToNextMonth} className="h-9 w-9 shrink-0">
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => setOpen(false)} className="h-9 w-9 shrink-0 ml-2">
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto p-6">
               {CalendarContent}
             </div>
           </DialogContent>

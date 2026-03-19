@@ -40,7 +40,7 @@ export function CardImageCarousel({
   
   return (
     <div 
-      className="relative aspect-[4/3] overflow-hidden bg-slate-100"
+      className="relative aspect-[4/3] overflow-hidden group-hover:overflow-visible bg-slate-100"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

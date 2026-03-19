@@ -8,6 +8,7 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { MapPin, Star, Bed, Bath, Users, Square, User } from 'lucide-react'
+import { getUIText, getListingText } from '@/lib/translations'
 
 export function ListingInfo({ listing, language = 'en' }) {
   const bedrooms = listing?.metadata?.bedrooms || 0
@@ -37,7 +38,7 @@ export function ListingInfo({ listing, language = 'en' }) {
                   <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                   <span className="font-medium">{(Number(listing.rating) || 0).toFixed(1)}</span>
                   <span className="text-slate-400 group-hover:text-teal-500">
-                    ({(listing.reviewsCount || 0)} {language === 'ru' ? 'отзывов' : 'reviews'})
+                    ({(listing.reviewsCount || 0)} {getUIText('reviews', language)})
                   </span>
                 </a>
               )}
@@ -56,12 +57,12 @@ export function ListingInfo({ listing, language = 'en' }) {
           {bathrooms > 0 && (
             <div className="flex items-center gap-2">
               <Bath className="h-5 w-5 text-slate-400" />
-              <span>{bathrooms} {language === 'ru' ? 'ванных' : 'bathrooms'}</span>
+              <span>{bathrooms} {getUIText('bathrooms', language)}</span>
             </div>
           )}
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-slate-400" />
-            <span>{maxGuests} {language === 'ru' ? 'гостей' : 'guests'}</span>
+            <span>{maxGuests} {getUIText('guests', language)}</span>
           </div>
           {area > 0 && (
             <div className="flex items-center gap-2">
@@ -77,10 +78,10 @@ export function ListingInfo({ listing, language = 'en' }) {
       {/* Description */}
       <div>
         <h2 className="text-2xl font-medium tracking-tight mb-4">
-          {language === 'ru' ? 'Описание' : 'Description'}
+          {getUIText('description', language)}
         </h2>
         <p className="text-base leading-relaxed text-slate-600 whitespace-pre-wrap">
-          {listing.description}
+          {getListingText(listing, 'description', language) || listing.description}
         </p>
       </div>
       
@@ -91,7 +92,7 @@ export function ListingInfo({ listing, language = 'en' }) {
         <>
           <div>
             <h2 className="text-2xl font-medium tracking-tight mb-4">
-              {language === 'ru' ? 'Хозяин' : 'Meet your Host'}
+              {getUIText('meetYourHost', language)}
             </h2>
             <Card className="border-slate-200">
               <CardContent className="p-6">
@@ -104,7 +105,7 @@ export function ListingInfo({ listing, language = 'en' }) {
                       {listing.owner.first_name} {listing.owner.last_name}
                     </h3>
                     <p className="text-sm text-slate-500">
-                      {language === 'ru' ? 'Владелец' : 'Property Owner'}
+                      {getUIText('propertyOwner', language)}
                     </p>
                   </div>
                 </div>

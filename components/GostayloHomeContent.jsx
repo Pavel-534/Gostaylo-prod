@@ -346,7 +346,7 @@ export function GostayloHomeContent() {
                   <Search className='h-4 w-4 text-teal-600 flex-shrink-0' />
                   <input
                     type="text"
-                    placeholder={language === 'ru' ? 'Поиск...' : 'Search...'}
+                    placeholder={getUIText('searchPlaceholder', language)}
                     className='w-full text-sm outline-none bg-transparent text-slate-700 placeholder:text-slate-400'
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -361,7 +361,7 @@ export function GostayloHomeContent() {
                     value={dateRange}
                     onChange={handleDateChange}
                     locale={language}
-                    placeholder={language === 'ru' ? 'Даты' : 'Dates'}
+                    placeholder={getUIText('dates', language)}
                     liveCount={liveCount}
                     countLoading={countLoading}
                   />
@@ -405,7 +405,7 @@ export function GostayloHomeContent() {
                 </Popover>
                 
                 <Button onClick={handleSearch} className='h-12 px-6 rounded-full bg-teal-600 hover:bg-teal-700 m-1' data-testid="search-button">
-                  <Search className='h-4 w-4 mr-2' />{language === 'ru' ? 'Найти' : 'Search'}
+                  <Search className='h-4 w-4 mr-2' />{getUIText('findButton', language)}
                 </Button>
               </div>
               
@@ -417,7 +417,7 @@ export function GostayloHomeContent() {
                     value={dateRange}
                     onChange={handleDateChange}
                     locale={language}
-                    placeholder={nights > 0 ? `${nights}н.` : (language === 'ru' ? 'Даты' : 'Dates')}
+                    placeholder={nights > 0 ? `${nights}н.` : getUIText('dates', language)}
                     liveCount={liveCount}
                     countLoading={countLoading}
                     className="justify-center py-3"
