@@ -2,14 +2,13 @@
 
 /**
  * Error Boundary for /listings segment
- * Shows friendly message instead of white screen
  */
 
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { AlertCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 
 export default function ListingsError({ error, reset }) {
   useEffect(() => {
@@ -18,8 +17,12 @@ export default function ListingsError({ error, reset }) {
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-4 bg-slate-50">
-      <Card className="max-w-md w-full">
-        <CardContent className="pt-6 text-center">
+      <div
+        className={cn(
+          'rounded-xl border bg-card text-card-foreground shadow max-w-md w-full'
+        )}
+      >
+        <div className="p-6 pt-6 text-center">
           <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Что-то пошло не так</h2>
           <p className="text-slate-600 mb-6">
@@ -36,8 +39,8 @@ export default function ListingsError({ error, reset }) {
               </Link>
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }
