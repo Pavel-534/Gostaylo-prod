@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
+import { lastOccupiedNightIsoFromDtendDate } from '@/lib/ical-all-day-range';
 
 /**
  * @deprecated DEPRECATED: This endpoint will be replaced by /api/v2/calendar
@@ -199,18 +200,13 @@ async function syncSource(listingId, sourceConfig) {
   let eventsCreated = 0;
   if (futureEvents.length > 0) {
     const platformName = source || sourceConfig.platform || 'External';
-    const blocks = futureEvents.map(e => {
-      // iCal DTEND is exclusive for all-day events; subtract 1 day for last occupied night
-      const endDate = new Date(e.dtend);
-      endDate.setUTCDate(endDate.getUTCDate() - 1);
-      return {
-        listing_id: listingId,
-        start_date: formatDate(e.dtstart),
-        end_date: formatDate(endDate),
-        reason: e.summary || `${platformName} booking`,
-        source: url
-      };
-    });
+    const blocks = futureEvents.map(e => ({
+      listing_id: listingId,
+      start_date: formatDate(e.dtstart),
+      end_date: lastOccupiedNightIsoFromDtendDate(e.dtend),
+      reason: e.summary || `${platformName} booking`,
+      source: url
+    }));
     
     const { error: insertError } = await supabase.from('calendar_blocks').insert(blocks);
     if (insertError) {

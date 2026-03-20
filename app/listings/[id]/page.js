@@ -100,7 +100,7 @@ function PremiumListingContent({ params }) {
     setLanguage(detectLanguage())
     loadListing()
     loadReviews()
-  }, [params.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [params.id])
 
   // Sync language when user switches in header
   useEffect(() => {

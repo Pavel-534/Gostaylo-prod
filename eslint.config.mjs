@@ -15,6 +15,9 @@ export default [
       "archive/**",
       "backend/**",
       "prisma/**",
+      "**/*.old",
+      "**/*.backup",
+      "**/*.backup.*",
     ],
   },
   {

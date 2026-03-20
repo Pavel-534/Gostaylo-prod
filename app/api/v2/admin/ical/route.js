@@ -8,6 +8,10 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
+import {
+  compactYmdToIsoDate,
+  lastOccupiedDateFromExclusiveAllDayDtend,
+} from '@/lib/ical-all-day-range';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -77,14 +81,15 @@ function parseICalEvents(icalData) {
       const summary = block.match(/SUMMARY:(.+)/)?.[1]?.trim();
       
       if (dtstart && dtend) {
-        const startDate = `${dtstart.slice(0,4)}-${dtstart.slice(4,6)}-${dtstart.slice(6,8)}`;
-        const endDate = `${dtend.slice(0,4)}-${dtend.slice(4,6)}-${dtend.slice(6,8)}`;
-        
-        events.push({
-          start_date: startDate,
-          end_date: endDate,
-          summary: summary || 'Blocked'
-        });
+        const startDate = compactYmdToIsoDate(dtstart);
+        const endDate = lastOccupiedDateFromExclusiveAllDayDtend(dtend);
+        if (startDate && endDate && startDate <= endDate) {
+          events.push({
+            start_date: startDate,
+            end_date: endDate,
+            summary: summary || 'Blocked'
+          });
+        }
       }
     }
   } catch (err) {

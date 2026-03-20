@@ -11,6 +11,10 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import {
+  compactYmdToIsoDate,
+  lastOccupiedDateFromExclusiveAllDayDtend,
+} from '@/lib/ical-all-day-range';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // 60 seconds max for Vercel
@@ -42,17 +46,18 @@ function parseICalEvents(icalData, sourceUrl) {
       const uid = block.match(/UID:(.+)/)?.[1]?.trim();
       
       if (dtstart && dtend) {
-        // Parse YYYYMMDD format
-        const startDate = `${dtstart.slice(0,4)}-${dtstart.slice(4,6)}-${dtstart.slice(6,8)}`;
-        const endDate = `${dtend.slice(0,4)}-${dtend.slice(4,6)}-${dtend.slice(6,8)}`;
-        
-        events.push({
-          uid,
-          start_date: startDate,
-          end_date: endDate,
-          summary: summary || 'Blocked',
-          source: sourceUrl
-        });
+        const startDate = compactYmdToIsoDate(dtstart);
+        // RFC 5545: all-day DTEND is exclusive — last blocked night is day before DTEND
+        const endDate = lastOccupiedDateFromExclusiveAllDayDtend(dtend);
+        if (startDate && endDate && startDate <= endDate) {
+          events.push({
+            uid,
+            start_date: startDate,
+            end_date: endDate,
+            summary: summary || 'Blocked',
+            source: sourceUrl
+          });
+        }
       }
     }
   } catch (err) {

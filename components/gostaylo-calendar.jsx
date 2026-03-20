@@ -324,7 +324,6 @@ export function GostayloCalendar({
     }
     
     onPriceCalculated?.({ nights, totalPrice })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value?.from?.getTime(), value?.to?.getTime(), calendarData.size])
   
   // Handle day selection

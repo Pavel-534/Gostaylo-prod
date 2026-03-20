@@ -47,18 +47,6 @@ function verifyExportToken(listingId, token) {
   return token === expected;
 }
 
-/**
- * Generate export token for a listing
- */
-export function generateExportToken(listingId) {
-  const secret = process.env.JWT_SECRET || 'gostaylo-secret';
-  return crypto
-    .createHmac('sha256', secret)
-    .update(`ical-export-${listingId}`)
-    .digest('hex')
-    .slice(0, 32);
-}
-
 export async function GET(request, { params }) {
   const listingId = params.id;
   const { searchParams } = new URL(request.url);

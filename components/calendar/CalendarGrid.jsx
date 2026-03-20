@@ -211,6 +211,8 @@ export function CalendarGrid({
                           ? `${cellData.guestName} (${cellData.bookingStatus})`
                           : cellData.status === 'BLOCKED'
                           ? cellData.reason
+                          : cellData.previousGuestName
+                          ? `Выезд ${cellData.previousGuestName} — можно бронировать заезд`
                           : 'Доступно - нажмите для действия'
                         }
                       >

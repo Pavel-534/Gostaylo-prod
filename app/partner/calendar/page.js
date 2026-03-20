@@ -11,6 +11,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { format, addDays, subDays, parseISO } from 'date-fns'
 import { Calendar, Loader2, AlertCircle, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { usePartnerCalendar, useCreateBlock, useCreateManualBooking } from '@/lib/hooks/use-partner-calendar'
@@ -18,6 +19,7 @@ import { useUpsertSeasonalPrice } from '@/lib/hooks/use-seasonal-prices'
 import { CalendarHeader } from '@/components/calendar/CalendarHeader'
 import { CalendarGrid } from '@/components/calendar/CalendarGrid'
 import { ActionModals } from '@/components/calendar/ActionModals'
+import { PartnerCalendarEducationCard } from '@/components/partner/PartnerCalendarEducationCard'
 
 // Day width options
 const DAY_WIDTHS = {
@@ -98,6 +100,7 @@ export default function MasterCalendar() {
   // TanStack Query hooks
   const { 
     data: calendarData, 
+    meta: calendarMeta,
     isLoading, 
     isError, 
     error,
@@ -287,7 +290,18 @@ export default function MasterCalendar() {
   const dayWidth = DAY_WIDTHS[viewMode]
   
   return (
-    <div className="max-w-full overflow-hidden">
+    <div className="max-w-full overflow-hidden space-y-4 px-2 sm:px-0">
+      <PartnerCalendarEducationCard variant="calendar-page" className="max-w-[1600px] mx-auto" />
+      {calendarMeta?.isDemoFallback && (
+        <Alert className="max-w-[1600px] mx-auto border-amber-500/50 bg-amber-50 text-amber-950 [&>svg]:text-amber-600">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Демо-режим</AlertTitle>
+          <AlertDescription>
+            API календаря недоступен. Показаны демо-данные (NEXT_PUBLIC_PARTNER_CALENDAR_DEMO_FALLBACK=1).
+            {calendarMeta?.demoErrorMessage ? ` Причина: ${calendarMeta.demoErrorMessage}` : ''}
+          </AlertDescription>
+        </Alert>
+      )}
       <CalendarHeader
         startDate={startDate}
         endDate={endDate}

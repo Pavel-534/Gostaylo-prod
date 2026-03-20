@@ -19,12 +19,15 @@ import AvailabilityCalendar from '@/components/availability-calendar'
 import SeasonalPriceManager from '@/components/seasonal-price-manager'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
+import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 
 export default function EditListing({ params }) {
   const router = useRouter()
   const { user, loading: authLoading, isAuthenticated } = useAuth()
+  const { language } = useI18n()
   const listingId = params?.id
   const fileInputRef = useRef(null)
   
@@ -68,6 +71,19 @@ export default function EditListing({ params }) {
     window.addEventListener('auth-change', handleAuthChange)
     return () => window.removeEventListener('auth-change', handleAuthChange)
   }, [user, listingId, listing])
+
+  // After publish from wizard: scroll to calendar block
+  useEffect(() => {
+    if (typeof window === 'undefined' || !listing) return
+    const sp = new URLSearchParams(window.location.search)
+    if (sp.get('highlight') !== 'calendar') return
+    const timer = setTimeout(() => {
+      document.getElementById('partner-calendar-sync')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      toast.success(getUIText('partnerCal_toastScroll', language))
+      window.history.replaceState({}, '', window.location.pathname)
+    }, 600)
+    return () => clearTimeout(timer)
+  }, [listing, language])
 
   async function loadListing() {
     try {
@@ -124,10 +140,8 @@ export default function EditListing({ params }) {
           basePriceThb: parseFloat(formData.basePriceThb) || 0,
           district: formData.district,
           images: formData.images,
-          coverImage: coverImage,
-          metadata: {
-            seasonal_pricing: seasons
-          }
+          coverImage: coverImage
+          // Сезонные цены и iCal — отдельные компоненты / API, не перезаписываем metadata.seasonal_pricing здесь
         })
       })
       
@@ -135,7 +149,9 @@ export default function EditListing({ params }) {
       
       if (result.success) {
         toast.success('✅ Объявление сохранено!')
-        router.push('/partner/listings')
+        setListing((prev) =>
+          prev ? { ...prev, title: formData.title, description: formData.description } : prev
+        )
       } else {
         toast.error(result.error || 'Ошибка при сохранении')
       }
@@ -173,8 +189,12 @@ export default function EditListing({ params }) {
           coverImage: coverImage,
           status: 'PENDING',
           metadata: {
+            ...(listing?.metadata || {}),
             is_draft: false,
-            published_at: new Date().toISOString()
+            published_at: new Date().toISOString(),
+            ...(listing?.metadata?.source === 'TELEGRAM_LAZY_REALTOR'
+              ? { submitted_from: 'telegram' }
+              : {})
           }
         })
       })
@@ -542,7 +562,7 @@ export default function EditListing({ params }) {
           </CardContent>
         </Card>
 
-        {/* iCal Calendar Sync */}
+        {/* iCal: импорт занятости с Airbnb/Booking и экспорт .ics для других площадок */}
         <CalendarSyncManager 
           listingId={listingId}
           onSync={() => {}}

@@ -124,12 +124,12 @@ function ListingsContent() {
   // Initial fetch
   useEffect(() => {
     fetchListings(true)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
   
   // Refetch on filter changes
   useEffect(() => {
     if (!loading) fetchListings(false)
-  }, [debouncedWhere, selectedCategory, debouncedDateRange, debouncedGuests]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [debouncedWhere, selectedCategory, debouncedDateRange, debouncedGuests])
   
   // URL sync - 4 params
   useEffect(() => {

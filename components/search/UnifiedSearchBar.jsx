@@ -40,7 +40,7 @@ export function UnifiedSearchBar({
   // Hero-only
   liveCount = null,
   countLoading = false,
-  clearDates,
+  clearDates: _clearDates,
   nights = 0
 }) {
   const [categories, setCategories] = useState([])
@@ -49,7 +49,6 @@ export function UnifiedSearchBar({
   const [guestsDrawerOpen, setGuestsDrawerOpen] = useState(false)
   const [wherePopoverOpen, setWherePopoverOpen] = useState(false)
   const [whereFilter, setWhereFilter] = useState('')
-  const [tempWhere, setTempWhere] = useState('all')
   const [tempGuests, setTempGuests] = useState('2')
 
   useEffect(() => {
@@ -80,11 +79,6 @@ export function UnifiedSearchBar({
     ? where
     : getUIText('wherePlaceholder', language)
 
-  const handleLocationConfirm = () => {
-    setWhere(tempWhere)
-    setLocationDrawerOpen(false)
-  }
-
   const handleGuestsConfirm = () => {
     setGuests(tempGuests)
     setGuestsDrawerOpen(false)
@@ -94,11 +88,8 @@ export function UnifiedSearchBar({
     onSearch?.()
   }
 
-  const isHero = variant === 'hero'
-
   const triggerBase = 'flex items-center gap-2 text-left hover:bg-slate-50 transition-colors'
   const triggerHero = 'px-4 py-3 border-r border-slate-200 min-w-0'
-  const triggerFilter = 'h-9 px-3 border rounded-md justify-start'
 
   if (variant === 'filter') {
     return (
@@ -191,7 +182,7 @@ export function UnifiedSearchBar({
         </Popover>
 
         {/* Where - single field with smart search */}
-        <Popover open={wherePopoverOpen} onOpenChange={(open) => { setWherePopoverOpen(open); if (open) { setTempWhere(where || 'all'); setWhereFilter(''); } }}>
+        <Popover open={wherePopoverOpen} onOpenChange={(open) => { setWherePopoverOpen(open); if (open) setWhereFilter(''); }}>
           <PopoverTrigger asChild>
             <button className={`${triggerBase} ${triggerHero} flex-1 min-w-[120px]`}>
               <MapPin className="h-4 w-4 text-teal-600" />
@@ -279,7 +270,7 @@ export function UnifiedSearchBar({
           />
         </div>
         <button
-          onClick={() => { setTempWhere(where || 'all'); setLocationDrawerOpen(true); }}
+          onClick={() => setLocationDrawerOpen(true)}
           className="flex-1 flex items-center justify-center gap-2 py-3 border-r border-slate-200"
           data-testid="mobile-where-trigger"
         >

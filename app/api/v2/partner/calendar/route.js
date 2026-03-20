@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
-import { addDays, format, parseISO, isWithinInterval, isSameDay, differenceInDays } from 'date-fns'
+import { addDays, format, parseISO, isSameDay } from 'date-fns'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,6 +45,10 @@ function getSeasonalPrice(seasonalPrices, listingId, date) {
 
 /**
  * Process calendar data with seasonal pricing
+ *
+ * Priority (same night): BOOKING night > BLOCK > checkout transition > AVAILABLE
+ * Night model: occupied nights are [check_in, check_out) — aligns with CalendarService / OTAs.
+ * Blocks are inclusive [start_date, end_date].
  */
 function processCalendarData(listings, bookings, blocks, seasonalPrices, startDate, endDate) {
   const start = parseISO(startDate)
@@ -66,32 +70,27 @@ function processCalendarData(listings, bookings, blocks, seasonalPrices, startDa
     dates.forEach(date => {
       const dateObj = parseISO(date)
       
-      // Check booking
+      // 1) Occupied nights only: check_in <= date < check_out
       const booking = listingBookings.find(b => {
         const checkIn = parseISO(b.check_in)
         const checkOut = parseISO(b.check_out)
-        return (dateObj >= checkIn && dateObj <= checkOut) ||
-               isSameDay(dateObj, checkIn) || isSameDay(dateObj, checkOut)
+        return dateObj >= checkIn && dateObj < checkOut
       })
       
-      // Check block
-      const block = listingBlocks.find(b => {
+      // 2) Inclusive block (manual / iCal) — skipped if a booking occupies this night
+      const block = !booking && listingBlocks.find(b => {
         const blockStart = parseISO(b.start_date)
         const blockEnd = parseISO(b.end_date)
-        return (dateObj >= blockStart && dateObj <= blockEnd) ||
-               isSameDay(dateObj, blockStart) || isSameDay(dateObj, blockEnd)
+        return dateObj >= blockStart && dateObj <= blockEnd
       })
+      
+      // Checkout morning: not an occupied night; may still be blocked above
+      const checkoutBooking = listingBookings.find(b => isSameDay(dateObj, parseISO(b.check_out)))
       
       if (booking) {
         const isCheckIn = isSameDay(dateObj, parseISO(booking.check_in))
-        const isCheckOut = isSameDay(dateObj, parseISO(booking.check_out))
-        
-        // Transition detection
-        const hasOtherCheckOut = listingBookings.some(b => 
+        const hasOtherCheckOut = listingBookings.some(b =>
           b.id !== booking.id && isSameDay(dateObj, parseISO(b.check_out))
-        )
-        const hasOtherCheckIn = listingBookings.some(b => 
-          b.id !== booking.id && isSameDay(dateObj, parseISO(b.check_in))
         )
         
         availability[date] = {
@@ -101,8 +100,9 @@ function processCalendarData(listings, bookings, blocks, seasonalPrices, startDa
           bookingStatus: booking.status,
           source: booking.source || 'PLATFORM',
           isCheckIn,
-          isCheckOut,
-          isTransition: (isCheckOut && hasOtherCheckIn) || (isCheckIn && hasOtherCheckOut),
+          isCheckOut: false,
+          // Same-day turnover: new guest checks in while another checks out
+          isTransition: isCheckIn && hasOtherCheckOut,
           priceThb: parseFloat(booking.price_thb) || 0
         }
       } else if (block) {
@@ -112,8 +112,19 @@ function processCalendarData(listings, bookings, blocks, seasonalPrices, startDa
           reason: block.reason,
           blockType: block.type
         }
+      } else if (checkoutBooking) {
+        const seasonalData = getSeasonalPrice(seasonalPrices, listing.id, date)
+        availability[date] = {
+          status: 'AVAILABLE',
+          priceThb: seasonalData?.price || listing.base_price_thb,
+          minStay: seasonalData?.minStay || 1,
+          seasonType: seasonalData?.seasonType,
+          label: seasonalData?.label,
+          isTransition: false,
+          isCheckOut: true,
+          previousGuestName: checkoutBooking.guest_name
+        }
       } else {
-        // Available - get seasonal price if exists
         const seasonalData = getSeasonalPrice(seasonalPrices, listing.id, date)
         availability[date] = {
           status: 'AVAILABLE',
@@ -303,18 +314,25 @@ export async function GET(request) {
         
       } catch (error) {
         console.error('[CALENDAR API] Supabase error:', error)
+        return NextResponse.json(
+          {
+            status: 'error',
+            error: error?.message || 'Не удалось загрузить календарь из базы данных.',
+            code: 'CALENDAR_DB_ERROR'
+          },
+          { status: 503 }
+        )
       }
     }
-    
-    // Fallback to mock if Supabase fails
-    console.log('[CALENDAR API] Using mock data fallback')
-    const mockData = generateMockCalendarData(startDate, endDate)
-    
-    return NextResponse.json({
-      status: 'success',
-      data: mockData,
-      meta: { partnerId: userId, startDate, endDate, isMockData: true }
-    })
+
+    return NextResponse.json(
+      {
+        status: 'error',
+        error: 'Календарь недоступен: не настроено подключение к базе данных.',
+        code: 'CALENDAR_DISABLED'
+      },
+      { status: 503 }
+    )
     
   } catch (error) {
     console.error('[CALENDAR API ERROR]', error)
@@ -322,22 +340,5 @@ export async function GET(request) {
       status: 'error',
       error: error.message
     }, { status: 500 })
-  }
-}
-
-function generateMockCalendarData(startDate, endDate) {
-  const start = parseISO(startDate)
-  const end = parseISO(endDate)
-  const dates = []
-  let current = start
-  while (current <= end) {
-    dates.push(format(current, 'yyyy-MM-dd'))
-    current = addDays(current, 1)
-  }
-  
-  return {
-    dates,
-    listings: [],
-    summary: { totalListings: 0, totalBookings: 0, totalBlocks: 0 }
   }
 }

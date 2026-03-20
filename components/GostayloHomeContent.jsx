@@ -109,7 +109,7 @@ export function GostayloHomeContent() {
         setDateRange({ from: new Date(ci), to: new Date(co) })
       } catch {}
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   // Handle URL params (login, verification)
   useEffect(() => {

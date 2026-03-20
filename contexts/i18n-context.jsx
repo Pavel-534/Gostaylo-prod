@@ -44,7 +44,6 @@ export function I18nProvider({ children }) {
       window.removeEventListener('language-change', handleLang)
       window.removeEventListener('languageChange', handleLang)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const t = useCallback((key) => getUIText(key, language), [language])

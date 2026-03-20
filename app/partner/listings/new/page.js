@@ -35,6 +35,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { GostayloListingCard } from '@/components/gostaylo-listing-card'
+import { PartnerCalendarEducationCard } from '@/components/partner/PartnerCalendarEducationCard'
 import dynamic from 'next/dynamic'
 import { DayPicker } from 'react-day-picker'
 import { format } from 'date-fns'
@@ -479,7 +480,11 @@ export default function PremiumListingWizard() {
           }
         }
         toast.success(isEditMode ? t('listingUpdated') : t('listingPublished'))
-        router.push('/partner/listings')
+        if (listingId && !isEditMode) {
+          router.push(`/partner/listings/${listingId}?highlight=calendar`)
+        } else {
+          router.push('/partner/listings')
+        }
       } else {
         toast.error(data.error || t('failedToLoadListing'))
       }
@@ -1026,6 +1031,8 @@ export default function PremiumListingWizard() {
                 ))}
               </div>
             )}
+
+            <PartnerCalendarEducationCard variant="wizard" className="mt-8" />
           </div>
         )
       

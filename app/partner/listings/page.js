@@ -1,16 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Eye, Edit, Trash2, Send, Loader2, AlertCircle, ExternalLink, ChevronRight, LogIn } from 'lucide-react'
-import { formatPrice } from '@/lib/currency'
+import { Plus, Eye, Edit, Trash2, Send, Loader2, AlertCircle, ExternalLink, ChevronRight, LogIn, Calendar } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/auth-context'
-import { usePartnerListings, useDeleteListing, usePublishListing } from '@/lib/hooks/use-partner-listings'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { cn } from '@/lib/utils'
 
 /**
  * Partner Listings Page (v2 API)
@@ -32,13 +30,16 @@ import {
  */
 
 export default function PartnerListings() {
-  const router = useRouter()
   const { toast } = useToast()
-  const { user, loading: authLoading, isAuthenticated, canAccessPartner, openLoginModal } = useAuth()
+  const { user, loading: authLoading, isAuthenticated, openLoginModal } = useAuth()
   const [listings, setListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [deleteId, setDeleteId] = useState(null)
   const [publishingId, setPublishingId] = useState(null)
+  const [listFilter, setListFilter] = useState(
+    /** @type {'all' | 'active' | 'draft' | 'pending' | 'rejected'} */ ('all')
+  )
+  const [visibilityBusyId, setVisibilityBusyId] = useState(null)
 
   useEffect(() => {
     // Wait for auth to load before fetching listings
@@ -98,11 +99,6 @@ export default function PartnerListings() {
     }
   }
 
-  // Check if listing can be published (ANY INACTIVE listing)
-  function canPublish(listing) {
-    return listing.status === 'INACTIVE'
-  }
-
   // Check if listing has all required data for publishing
   function isReadyToPublish(listing) {
     const hasPrice = listing.base_price_thb > 0
@@ -140,10 +136,11 @@ export default function PartnerListings() {
         body: JSON.stringify({
           status: 'PENDING',
           metadata: {
+            ...(listing.metadata || {}),
             is_draft: false,
             needs_review: true,
-            submitted_at: new Date().toISOString()
-          }
+            submitted_at: new Date().toISOString(),
+          },
         })
       })
 
@@ -206,7 +203,7 @@ export default function PartnerListings() {
       const result = await res.json()
       
       if (result.success) {
-        setListings(listings.filter(l => l.id !== id))
+        setListings((prev) => prev.filter((l) => l.id !== id))
         setDeleteId(null)
         toast({ title: 'Удалено', description: 'Листинг успешно удалён' })
       } else {
@@ -223,22 +220,106 @@ export default function PartnerListings() {
     ACTIVE: { label: 'Активный', color: 'bg-green-100 text-green-700 border-green-200' },
     PENDING: { label: 'На модерации', color: 'bg-amber-100 text-amber-700 border-amber-200' },
     INACTIVE: { label: 'Черновик', color: 'bg-slate-100 text-slate-600 border-slate-300 border-dashed' },
+    HIDDEN: { label: 'Скрыт', color: 'bg-slate-200 text-slate-800 border-slate-300' },
     REJECTED: { label: 'Отклонён', color: 'bg-red-100 text-red-700 border-red-200' },
     BOOKED: { label: 'Забронирован', color: 'bg-blue-100 text-blue-700 border-blue-200' },
   }
 
-  // Get effective status (handle metadata.is_draft)
+  // Get effective status (handle metadata.is_draft, partner_hidden)
   function getStatus(listing) {
-    if (listing.metadata?.is_draft === true) return 'INACTIVE'
+    const md = listing.metadata || {}
+    if (md.is_draft === true || md.is_draft === 'true') return 'INACTIVE'
+    if (listing.status === 'INACTIVE' && md.partner_hidden) return 'HIDDEN'
     return listing.status || 'INACTIVE'
   }
 
-  // Stats calculation
+  function isTelegramDraft(listing) {
+    return listing.metadata?.source === 'TELEGRAM_LAZY_REALTOR'
+  }
+
+  /** Должен вызываться до любых return — иначе ломается порядок хуков */
+  const filteredListings = useMemo(() => {
+    return listings.filter((l) => {
+      const md = l.metadata || {}
+      if (listFilter === 'all') return true
+      if (listFilter === 'active') return l.status === 'ACTIVE'
+      if (listFilter === 'draft') return md.is_draft === true || md.is_draft === 'true'
+      if (listFilter === 'pending') return l.status === 'PENDING'
+      if (listFilter === 'rejected') return l.status === 'REJECTED'
+      return true
+    })
+  }, [listings, listFilter])
+
+  // Stats calculation (API: bookingsCount → bookings_count)
   const stats = {
     total: listings.length,
     active: listings.filter(l => l.status === 'ACTIVE').length,
     views: listings.reduce((sum, l) => sum + (l.views || 0), 0),
-    bookings: listings.reduce((sum, l) => sum + (l.bookingsCount || 0), 0),
+    bookings: listings.reduce((sum, l) => sum + (l.bookings_count || 0), 0),
+  }
+
+  async function setListingOnSite(listing, onSite) {
+    setVisibilityBusyId(listing.id)
+    try {
+      const md = listing.metadata || {}
+      const res = await fetch(`/api/v2/partner/listings/${listing.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(
+          onSite
+            ? {
+                status: 'ACTIVE',
+                metadata: {
+                  ...md,
+                  partner_hidden: false,
+                  paused_at: null,
+                },
+              }
+            : {
+                status: 'INACTIVE',
+                metadata: {
+                  ...md,
+                  partner_hidden: true,
+                  paused_at: new Date().toISOString(),
+                },
+              }
+        ),
+      })
+      const result = await res.json()
+      if (!result.success) throw new Error(result.error || 'Ошибка')
+
+      setListings((prev) =>
+        prev.map((l) =>
+          l.id === listing.id
+            ? {
+                ...l,
+                status: onSite ? 'ACTIVE' : 'INACTIVE',
+                metadata: {
+                  ...md,
+                  partner_hidden: !onSite,
+                  ...(onSite ? { paused_at: null } : { paused_at: new Date().toISOString() }),
+                },
+              }
+            : l
+        )
+      )
+      toast({
+        title: onSite ? 'Снова на сайте' : 'Снято с публикации',
+        description: onSite
+          ? 'Объект снова виден гостям'
+          : 'Объект скрыт с витрины, данные сохранены',
+      })
+    } catch (e) {
+      console.error(e)
+      toast({
+        title: 'Ошибка',
+        description: e.message || 'Не удалось обновить',
+        variant: 'destructive',
+      })
+    } finally {
+      setVisibilityBusyId(null)
+    }
   }
 
   if (loading || authLoading) {
@@ -295,6 +376,36 @@ export default function PartnerListings() {
         </div>
       </div>
 
+      {/* Filters — как вкладки Airbnb: быстрый доступ к черновикам и модерации */}
+      <div className='px-4 pt-2 pb-1'>
+        <div className='flex gap-1.5 overflow-x-auto pb-2 scrollbar-thin -mx-1 px-1'>
+          {[
+            { id: 'all', label: 'Все' },
+            { id: 'active', label: 'На сайте' },
+            { id: 'draft', label: 'Черновики' },
+            { id: 'pending', label: 'Модерация' },
+            { id: 'rejected', label: 'Отклонены' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type='button'
+              onClick={() => setListFilter(tab.id)}
+              className={cn(
+                'shrink-0 rounded-full px-3 py-1.5 text-xs font-medium border transition-colors',
+                listFilter === tab.id
+                  ? 'bg-teal-600 text-white border-teal-600'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-teal-300'
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <p className='text-[11px] text-slate-500 pb-2'>
+          Черновики из Telegram-бота «ленивый риелтор» попадают сюда с пометкой — доработайте и отправьте на модерацию.
+        </p>
+      </div>
+
       {/* Stats - 2x2 grid on mobile */}
       <div className='grid grid-cols-2 gap-2 p-4'>
         <div className='bg-white rounded-lg p-3 border'>
@@ -337,12 +448,24 @@ export default function PartnerListings() {
               </Button>
             </CardContent>
           </Card>
+        ) : filteredListings.length === 0 ? (
+          <Card className='border-dashed'>
+            <CardContent className='py-8 text-center text-sm text-slate-500'>
+              В этой категории пока нет объектов.
+            </CardContent>
+          </Card>
         ) : (
-          listings.map((listing) => {
+          filteredListings.map((listing) => {
             const status = getStatus(listing)
             const config = statusConfig[status] || statusConfig.INACTIVE
-            const isInactive = status === 'INACTIVE'
+            const showPublishCta = status === 'INACTIVE' || status === 'REJECTED'
             const ready = isReadyToPublish(listing)
+            const canHideFromSite =
+              listing.status === 'ACTIVE' && listing.metadata?.is_draft !== true
+            const canRestoreToSite =
+              listing.metadata?.partner_hidden === true &&
+              listing.status === 'INACTIVE' &&
+              listing.metadata?.is_draft !== true
             
             return (
               <Card 
@@ -400,15 +523,20 @@ export default function PartnerListings() {
                         <Badge className={`text-[10px] px-1.5 py-0 h-5 border ${config.color}`}>
                           {config.label}
                         </Badge>
+                        {isTelegramDraft(listing) && (
+                          <Badge variant='outline' className='text-[10px] px-1.5 py-0 h-5 border-blue-200 text-blue-700 bg-blue-50'>
+                            Telegram
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
                 </Link>
                 
-                {/* Action buttons row - always visible */}
-                <div className='px-3 pb-3 flex gap-2'>
-                  {/* PUBLISH BUTTON - for ANY INACTIVE listing */}
-                  {isInactive && (
+                {/* Action buttons — редактирование, календарь/iCal, видимость на сайте */}
+                <div className='px-3 pb-3 flex flex-wrap gap-2'>
+                  {/* Публикация / повторная отправка после отклонения */}
+                  {showPublishCta && (
                     <Button
                       onClick={(e) => {
                         e.preventDefault()
@@ -448,17 +576,66 @@ export default function PartnerListings() {
                     </Link>
                   </Button>
                   
-                  {/* Edit button */}
+                  {/* Edit */}
                   <Button
                     variant='outline'
                     size='sm'
                     className='h-9'
                     asChild
                   >
-                    <Link href={`/partner/listings/new?edit=${listing.id}`}>
-                      <Edit className='h-4 w-4' />
+                    <Link href={`/partner/listings/${listing.id}`} title='Редактировать'>
+                      <Edit className='h-4 w-4 sm:mr-1' />
+                      <span className='hidden sm:inline text-xs'>Изменить</span>
                     </Link>
                   </Button>
+
+                  {/* Календарь + iCal — якорь на странице редактирования */}
+                  <Button variant='outline' size='sm' className='h-9' asChild>
+                    <Link
+                      href={`/partner/listings/${listing.id}#partner-calendar-sync`}
+                      title='Календарь и синхронизация iCal'
+                    >
+                      <Calendar className='h-4 w-4 sm:mr-1' />
+                      <span className='hidden sm:inline text-xs'>Календарь</span>
+                    </Link>
+                  </Button>
+
+                  {canHideFromSite && (
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      className='h-9 text-slate-700'
+                      disabled={visibilityBusyId === listing.id}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setListingOnSite(listing, false)
+                      }}
+                    >
+                      {visibilityBusyId === listing.id ? (
+                        <Loader2 className='h-4 w-4 animate-spin' />
+                      ) : (
+                        <span className='text-xs'>Скрыть</span>
+                      )}
+                    </Button>
+                  )}
+
+                  {canRestoreToSite && (
+                    <Button
+                      size='sm'
+                      className='h-9 bg-teal-600 hover:bg-teal-700 text-xs'
+                      disabled={visibilityBusyId === listing.id}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setListingOnSite(listing, true)
+                      }}
+                    >
+                      {visibilityBusyId === listing.id ? (
+                        <Loader2 className='h-4 w-4 animate-spin' />
+                      ) : (
+                        'На сайт'
+                      )}
+                    </Button>
+                  )}
                   
                   {/* Delete button */}
                   <Button
