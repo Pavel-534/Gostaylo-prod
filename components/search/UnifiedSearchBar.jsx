@@ -2,22 +2,25 @@
 
 /**
  * UnifiedSearchBar - Airbnb/Booking style: What | Where | When | Who
- * Simple 4-field search, no extra "search" input.
- * 
+ * Where: умное поле с вводом и RU/EN подсказками (см. WhereCombobox).
+ *
  * variant: 'hero' | 'filter'
  * - hero: Rounded bar on home page
  * - filter: Compact grid on search results page
  */
 
-import { useState, useEffect } from 'react'
-import { Search, MapPin, Users, Layers } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Search, Users, Layers, MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerClose } from '@/components/ui/drawer'
 import { SearchCalendar } from '@/components/search-calendar'
+import { WhereCombobox } from '@/components/search/WhereCombobox'
 import { getUIText, getCategoryName } from '@/lib/translations'
+import { buildWhereOptions, filterWhereOptions, getOptionLabel } from '@/lib/locations/where-options'
+import { getStaticLocationsSeed } from '@/lib/locations/locations-seed'
 
 const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12]
 
@@ -44,40 +47,50 @@ export function UnifiedSearchBar({
   nights = 0
 }) {
   const [categories, setCategories] = useState([])
-  const [locations, setLocations] = useState({ cities: [], districtsByCity: {}, allDistricts: [] })
+  /** Сразу известные города/районы (Пхукет) — без ожидания API; ответ locations подмешивает реальные данные */
+  const [locations, setLocations] = useState(getStaticLocationsSeed)
   const [locationDrawerOpen, setLocationDrawerOpen] = useState(false)
   const [guestsDrawerOpen, setGuestsDrawerOpen] = useState(false)
-  const [wherePopoverOpen, setWherePopoverOpen] = useState(false)
-  const [whereFilter, setWhereFilter] = useState('')
+  const [mobileWhereInput, setMobileWhereInput] = useState('')
   const [tempGuests, setTempGuests] = useState('2')
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/v2/categories').then(r => r.json()),
-      fetch('/api/v2/search/locations').then(r => r.json())
-    ]).then(([catRes, locRes]) => {
-      if (catRes.success && catRes.data) setCategories(catRes.data)
-      if (locRes.success && locRes.data) setLocations(locRes.data)
-    }).catch(() => {})
+    fetch('/api/v2/categories')
+      .then((r) => r.json())
+      .then((catRes) => {
+        if (catRes.success && catRes.data) setCategories(catRes.data)
+      })
+      .catch(() => {})
   }, [])
 
-  // Flat options: All + cities + districts (user picks one)
-  const whereOptions = [
-    { value: 'all', label: language === 'ru' ? 'Всё' : 'All', type: 'all' },
-    ...(locations.cities || []).map(c => ({ value: c, label: c, type: 'city' })),
-    ...(locations.allDistricts || []).map(d => ({ value: d, label: d, type: 'district' }))
-  ]
-  const filteredWhereOptions = whereFilter.trim()
-    ? whereOptions.filter(o => o.value.toLowerCase().includes(whereFilter.toLowerCase()))
-    : whereOptions
+  useEffect(() => {
+    fetch('/api/v2/search/locations')
+      .then((r) => r.json())
+      .then((locRes) => {
+        if (locRes.success && locRes.data) setLocations(locRes.data)
+      })
+      .catch(() => {})
+  }, [])
+
+  const whereOptionsFull = useMemo(
+    () => buildWhereOptions(locations, language),
+    [locations, language]
+  )
 
   const categoryLabel = category && category !== 'all'
     ? (getCategoryName(category, language) || categories.find(c => c.slug === category)?.name || category)
     : (language === 'ru' ? 'Что ищете?' : 'What?')
 
-  const whereLabel = where && where !== 'all'
-    ? where
-    : getUIText('wherePlaceholder', language)
+  const whereLabel =
+    where && where !== 'all' ? getOptionLabel(whereOptionsFull, where) : getUIText('wherePlaceholder', language)
+
+  useEffect(() => {
+    if (locationDrawerOpen) {
+      setMobileWhereInput(
+        where && where !== 'all' ? getOptionLabel(whereOptionsFull, where) : ''
+      )
+    }
+  }, [locationDrawerOpen, where, whereOptionsFull])
 
   const handleGuestsConfirm = () => {
     setGuests(tempGuests)
@@ -110,18 +123,15 @@ export function UnifiedSearchBar({
           </SelectContent>
         </Select>
 
-        {/* Where - single field */}
-        <Select value={where || 'all'} onValueChange={(v) => setWhere?.(v)}>
-          <SelectTrigger className="h-9">
-            <MapPin className="h-4 w-4 mr-2 text-teal-600" />
-            <span className="truncate">{where && where !== 'all' ? where : (language === 'ru' ? 'Куда?' : 'Where?')}</span>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{language === 'ru' ? 'Всё' : 'All'}</SelectItem>
-            {locations.cities?.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            {locations.allDistricts?.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        {/* Where — умное поле */}
+        <WhereCombobox
+          options={whereOptionsFull}
+          value={where || 'all'}
+          onChange={setWhere}
+          placeholder={getUIText('whereShort', language)}
+          variant="compact"
+          className="min-w-0"
+        />
 
         {/* When */}
         <SearchCalendar
@@ -150,12 +160,12 @@ export function UnifiedSearchBar({
 
   // Hero variant - 4 fields: What | Where | When | Who
   return (
-    <div className="bg-white rounded-full shadow-2xl overflow-hidden border border-slate-200">
-      <div className="hidden md:flex items-center">
+    <div className="bg-white rounded-full shadow-2xl border border-slate-200 overflow-visible">
+      <div className="hidden md:flex items-center rounded-full overflow-visible">
         {/* What - Category */}
         <Popover>
           <PopoverTrigger asChild>
-            <button className={`${triggerBase} ${triggerHero} flex-1 min-w-[120px]`}>
+            <button className={`${triggerBase} ${triggerHero} flex-1 min-w-[120px] rounded-l-full`}>
               <Layers className="h-4 w-4 text-teal-600 flex-shrink-0" />
               <span className="text-sm text-slate-700 truncate">{categoryLabel}</span>
             </button>
@@ -181,40 +191,17 @@ export function UnifiedSearchBar({
           </PopoverContent>
         </Popover>
 
-        {/* Where - single field with smart search */}
-        <Popover open={wherePopoverOpen} onOpenChange={(open) => { setWherePopoverOpen(open); if (open) setWhereFilter(''); }}>
-          <PopoverTrigger asChild>
-            <button className={`${triggerBase} ${triggerHero} flex-1 min-w-[120px]`}>
-              <MapPin className="h-4 w-4 text-teal-600" />
-              <span className="text-sm text-slate-700 truncate">{whereLabel}</span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-72 p-3" align="start">
-            <Input
-              placeholder={language === 'ru' ? 'Город или район...' : 'City or area...'}
-              value={whereFilter}
-              onChange={(e) => setWhereFilter(e.target.value)}
-              className="mb-3"
-            />
-            <div className="max-h-48 overflow-y-auto space-y-1">
-              <button
-                onClick={() => { setWhere?.('all'); setWherePopoverOpen(false); }}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm ${(!where || where === 'all') ? 'bg-teal-50 text-teal-700' : 'hover:bg-slate-100'}`}
-              >
-                {language === 'ru' ? 'Всё' : 'All'}
-              </button>
-              {filteredWhereOptions.filter(o => o.type !== 'all').map(o => (
-                <button
-                  key={o.value}
-                  onClick={() => { setWhere?.(o.value); setWherePopoverOpen(false); }}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm ${where === o.value ? 'bg-teal-50 text-teal-700' : 'hover:bg-slate-100'}`}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+        {/* Where — ввод в строке + подсказки RU/EN */}
+        <WhereCombobox
+          options={whereOptionsFull}
+          value={where || 'all'}
+          onChange={setWhere}
+          placeholder={getUIText('wherePlaceholder', language)}
+          loading={locationsLoading}
+          loadingPlaceholder={getUIText('loading', language)}
+          variant="hero"
+          className="flex-1 min-w-[140px]"
+        />
 
         {/* When */}
         <div className="border-r border-slate-200">
@@ -293,24 +280,30 @@ export function UnifiedSearchBar({
       <Drawer open={locationDrawerOpen} onOpenChange={setLocationDrawerOpen}>
         <DrawerContent className="h-[70vh] max-h-[70vh]">
           <DrawerHeader className="border-b pb-4">
-            <DrawerTitle>{language === 'ru' ? 'Куда?' : 'Where?'}</DrawerTitle>
+            <DrawerTitle>{getUIText('whereShort', language)}</DrawerTitle>
             <DrawerClose asChild><Button variant="ghost" size="icon"><span className="sr-only">Close</span></Button></DrawerClose>
           </DrawerHeader>
-          <div className="flex-1 overflow-y-auto p-4">
-            <button
-              onClick={() => { setWhere?.('all'); setLocationDrawerOpen(false); }}
-              className={`w-full p-3 rounded-lg border text-left mb-2 ${(!where || where === 'all') ? 'border-teal-600 bg-teal-50' : 'border-slate-200'}`}
-            >
-              {language === 'ru' ? 'Всё' : 'All'}
-            </button>
-            <div className="grid grid-cols-2 gap-2">
-              {whereOptions.filter(o => o.type !== 'all').map(o => (
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            <Input
+              placeholder={getUIText('cityOrAreaHint', language)}
+              value={mobileWhereInput}
+              onChange={(e) => setMobileWhereInput(e.target.value)}
+              className="mb-2"
+            />
+            <div className="space-y-1">
+              {filterWhereOptions(whereOptionsFull, mobileWhereInput).map((opt) => (
                 <button
-                  key={o.value}
-                  onClick={() => { setWhere?.(o.value); setLocationDrawerOpen(false); }}
-                  className={`p-3 rounded-lg border text-left ${where === o.value ? 'border-teal-600 bg-teal-50' : 'border-slate-200'}`}
+                  key={`${opt.type}-${opt.value}`}
+                  type="button"
+                  onClick={() => {
+                    setWhere?.(opt.value)
+                    setLocationDrawerOpen(false)
+                  }}
+                  className={`w-full text-left px-3 py-2.5 rounded-lg text-sm border ${
+                    where === opt.value ? 'border-teal-600 bg-teal-50 text-teal-900' : 'border-slate-200 hover:bg-slate-50'
+                  }`}
                 >
-                  {o.label}
+                  {opt.label}
                 </button>
               ))}
             </div>

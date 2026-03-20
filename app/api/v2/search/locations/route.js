@@ -7,14 +7,9 @@
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { PHUKET_DISTRICTS } from '@/lib/locations/city-district-map';
 
 export const dynamic = 'force-dynamic';
-
-// Known Phuket districts for backwards compatibility (district without city)
-const PHUKET_DISTRICTS = [
-  'Rawai', 'Chalong', 'Kata', 'Karon', 'Patong', 'Kamala', 'Surin', 'Bang Tao',
-  'Nai Harn', 'Panwa', 'Mai Khao', 'Nai Yang', 'Phuket Town', 'Cape Panwa'
-];
 
 export async function GET() {
   try {
@@ -57,7 +52,14 @@ export async function GET() {
       allDistricts: Array.from(allDistricts).sort(),
     };
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json(
+      { success: true, data: result },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+        },
+      }
+    );
   } catch (err) {
     console.error('[LOCATIONS API]', err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

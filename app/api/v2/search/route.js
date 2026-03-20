@@ -18,6 +18,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { CalendarService } from '@/lib/services/calendar.service';
 import { rateLimitCheck } from '@/lib/rate-limit';
+import { getDistrictsForCity } from '@/lib/locations/city-district-map';
 
 // Haversine distance in km
 function haversineKm(lat1, lon1, lat2, lon2) {
@@ -48,6 +49,29 @@ function buildTextSearchOr(q) {
 function matchesAllWords(listing, words) {
   const text = `${listing.title || ''} ${listing.description || ''} ${listing.district || ''}`.toLowerCase();
   return words.every(w => text.includes(w.toLowerCase()));
+}
+
+/** PostgREST .or() фрагмент district.eq.<value> (значения со пробелами — в кавычках) */
+function districtEqForOrClause(district) {
+  const d = String(district);
+  if (/^[a-zA-Z0-9_-]+$/.test(d)) {
+    return `district.eq.${d}`;
+  }
+  return `district.eq."${d.replace(/"/g, '\\"')}"`;
+}
+
+/**
+ * Фильтр «Куда»: город = все районы этого города + metadata.city, а не только ILIKE по названию города.
+ */
+function applySmartWhereFilter(query, whereValue) {
+  if (!whereValue || whereValue === 'all') return query;
+  const cityJson = JSON.stringify({ city: whereValue });
+  const districts = getDistrictsForCity(whereValue);
+  if (districts?.length) {
+    const parts = [`metadata.cs.${cityJson}`, ...districts.map(districtEqForOrClause)];
+    return query.or(parts.join(','));
+  }
+  return query.or(`metadata.cs.${cityJson},district.ilike.%${whereValue}%`);
 }
 
 const cache = { data: null, timestamp: 0, TTL: 60 * 1000 };
@@ -132,10 +156,9 @@ export async function GET(request) {
       query = query.or(textOr);
     }
     
-    // Smart "where" - single param: city OR district (Airbnb-style)
+    // Smart "where" — город разворачивается в районы (см. city-district-map)
     if (filters.where && filters.where !== 'all') {
-      const cityJson = JSON.stringify({ city: filters.where });
-      query = query.or(`metadata.cs.${cityJson},district.ilike.%${filters.where}%`);
+      query = applySmartWhereFilter(query, filters.where);
     } else {
       // Legacy: separate city/location
       if (filters.city && filters.city !== 'all') {
