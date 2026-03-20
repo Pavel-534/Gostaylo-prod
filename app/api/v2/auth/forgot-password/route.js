@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
+import { rateLimitCheck } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-prod
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
 
 export async function POST(request) {
+  const rl = rateLimitCheck(request, 'auth');
+  if (rl) {
+    return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers });
+  }
+
   console.log('[FORGOT-PASSWORD] ====== START ======');
   
   let body;

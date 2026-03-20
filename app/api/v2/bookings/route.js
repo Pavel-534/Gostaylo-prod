@@ -13,6 +13,8 @@ import { BookingService } from '@/lib/services/booking.service';
 import { CalendarService } from '@/lib/services/calendar.service';
 import { NotificationService, NotificationEvents } from '@/lib/services/notification.service';
 import { supabaseAdmin } from '@/lib/supabase';
+import { rateLimitCheck } from '@/lib/rate-limit';
+import { createBookingSchema } from '@/lib/validations/booking';
 
 export async function GET(request) {
   try {
@@ -45,8 +47,20 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const rl = rateLimitCheck(request, 'booking');
+  if (rl) {
+    return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers });
+  }
+
   try {
     const body = await request.json();
+    
+    const parseResult = createBookingSchema.safeParse(body);
+    if (!parseResult.success) {
+      const firstError = parseResult.error.errors[0];
+      const message = firstError?.message || 'Invalid request data';
+      return NextResponse.json({ success: false, error: message }, { status: 400 });
+    }
     
     const {
       listingId,
@@ -59,15 +73,7 @@ export async function POST(request) {
       specialRequests,
       currency,
       promoCode
-    } = body;
-    
-    // Validate required fields
-    if (!listingId || !checkIn || !checkOut) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Missing required fields: listingId, checkIn, checkOut' 
-      }, { status: 400 });
-    }
+    } = parseResult.data;
     
     // ========================================
     // SECURITY LOCK: Server-Side Availability Check

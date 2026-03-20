@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { rateLimitCheck } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -139,8 +140,13 @@ async function sendTelegramNotification(user) {
 }
 
 export async function POST(request) {
+  const rl = rateLimitCheck(request, 'auth');
+  if (rl) {
+    return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers });
+  }
+
   console.log('[REGISTER] ====== START ======');
-  
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   

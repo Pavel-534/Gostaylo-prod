@@ -1,7 +1,7 @@
 import { Inter } from 'next/font/google'
 import './globals.css'
 import 'leaflet/dist/leaflet.css' // Leaflet map styles
-import { Toaster } from '@/components/ui/sonner'
+import { Toaster } from 'sonner'
 import { UniversalHeader } from '@/components/universal-header'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { MainContent } from '@/components/main-content'

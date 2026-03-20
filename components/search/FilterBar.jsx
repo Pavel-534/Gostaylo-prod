@@ -1,133 +1,89 @@
 /**
- * FilterBar Component
- * Extracted from /app/app/listings/page.js
- * Handles search, dates, district, guests, price filters
+ * FilterBar - 4 fields: What | Where | When | Who (Airbnb-style)
  */
 
 'use client';
 
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Search, MapPin, Users, CalendarIcon, X } from 'lucide-react';
-import { SearchCalendar } from '@/components/search-calendar';
+import { MapPin, Users, CalendarIcon, X, Layers } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
-import { getUIText } from '@/lib/translations';
-
-const DISTRICTS = [
-  'Rawai', 'Kata', 'Karon', 'Patong', 'Kamala', 'Surin', 'Bang Tao', 
-  'Nai Harn', 'Chalong', 'Phuket Town', 'Cape Panwa'
-];
+import { getUIText, getCategoryName } from '@/lib/translations';
+import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar';
 
 export function FilterBar({
   language = 'en',
-  searchQuery,
-  setSearchQuery,
   dateRange,
   setDateRange,
-  selectedDistrict,
-  setSelectedDistrict,
+  selectedCategory,
+  setSelectedCategory,
+  where,
+  setWhere,
   guests,
   setGuests,
-  priceRange,
-  setPriceRange,
   clearDates,
   nights = 0
 }) {
   const locale = language === 'ru' ? ru : enUS;
-  
+
   return (
     <>
-      {/* Hero Section with Active Filters */}
       <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white py-6">
         <div className="container mx-auto px-4">
           <h1 className="text-2xl font-bold mb-3">
             {getUIText('searchResults', language)}
           </h1>
-          
-          {/* Active Filters */}
-          {(dateRange.from && dateRange.to) && (
+
+          {/* Active Filters - 4 items max */}
+          {(dateRange.from && dateRange.to) || (selectedCategory && selectedCategory !== 'all') || (where && where !== 'all') || guests !== '1' ? (
             <div className="flex flex-wrap items-center gap-2">
-              <Badge className="bg-white text-teal-700 hover:bg-white/90 flex items-center gap-2 px-3 py-1">
-                <CalendarIcon className="h-4 w-4" />
-                {format(dateRange.from, 'd MMM', { locale })} — {format(dateRange.to, 'd MMM', { locale })}
-                <span className="text-teal-500">({nights} {language === 'ru' ? 'н.' : 'n.'})</span>
-                <button onClick={clearDates} className="ml-1 hover:text-red-600">
-                  <X className="h-3 w-3" />
-                </button>
-              </Badge>
+              {selectedCategory && selectedCategory !== 'all' && (
+                <Badge className="bg-white text-teal-700">
+                  <Layers className="h-4 w-4 mr-1" />
+                  {getCategoryName(selectedCategory, language) || selectedCategory}
+                </Badge>
+              )}
+              {(dateRange.from && dateRange.to) && (
+                <Badge className="bg-white text-teal-700 hover:bg-white/90 flex items-center gap-2 px-3 py-1">
+                  <CalendarIcon className="h-4 w-4" />
+                  {format(dateRange.from, 'd MMM', { locale })} — {format(dateRange.to, 'd MMM', { locale })}
+                  <span className="text-teal-500">({nights} {language === 'ru' ? 'н.' : 'n.'})</span>
+                  <button onClick={clearDates} className="ml-1 hover:text-red-600">
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              )}
               {guests !== '1' && (
                 <Badge className="bg-white text-teal-700">
                   <Users className="h-4 w-4 mr-1" />
                   {guests} {language === 'ru' ? 'гостей' : 'guests'}
                 </Badge>
               )}
-              {selectedDistrict !== 'all' && (
+              {where && where !== 'all' && (
                 <Badge className="bg-white text-teal-700">
                   <MapPin className="h-4 w-4 mr-1" />
-                  {selectedDistrict}
+                  {where}
                 </Badge>
               )}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
-      {/* Filters Bar */}
       <div className="bg-white border-b sticky top-12 z-10">
         <div className="container mx-auto px-4 py-3">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {/* Search */}
-            <div className="col-span-2 md:col-span-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder={getUIText('searchPlaceholder', language)}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-9"
-                data-testid="listings-search-input"
-              />
-            </div>
-
-            {/* Date Picker */}
-            <SearchCalendar
-              value={dateRange}
-              onChange={setDateRange}
-              locale={language}
-              placeholder={getUIText('dates', language)}
-              className="h-9 border rounded-md justify-start px-3"
-            />
-
-            {/* District */}
-            <Select value={selectedDistrict} onValueChange={setSelectedDistrict}>
-              <SelectTrigger className="h-9">
-                <MapPin className="h-4 w-4 mr-2 text-teal-600" />
-                <span className="truncate">
-                  {selectedDistrict === 'all' ? getUIText('district', language) : selectedDistrict}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{getUIText('allDistricts', language)}</SelectItem>
-                {DISTRICTS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-              </SelectContent>
-            </Select>
-
-            {/* Guests */}
-            <Select value={guests} onValueChange={setGuests}>
-              <SelectTrigger className="h-9">
-                <Users className="h-4 w-4 mr-2 text-teal-600" />
-                <span>{guests} {language === 'ru' ? 'гостей' : 'guests'}</span>
-              </SelectTrigger>
-              <SelectContent>
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(n => (
-                  <SelectItem key={n} value={n.toString()}>
-                    {n} {getUIText('guests', language)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <UnifiedSearchBar
+            variant="filter"
+            language={language}
+            category={selectedCategory}
+            setCategory={setSelectedCategory}
+            where={where}
+            setWhere={setWhere}
+            dateRange={dateRange}
+            setDateRange={setDateRange}
+            guests={guests}
+            setGuests={setGuests}
+          />
         </div>
       </div>
     </>

@@ -34,10 +34,9 @@ function ListingsContent() {
   const searchParams = useSearchParams()
   const { user } = useAuth()
   
-  // Initialize from URL
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
+  // Initialize from URL - 4 params: What, Where, When, Who
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all')
-  const [selectedDistrict, setSelectedDistrict] = useState(searchParams.get('location') || 'all')
+  const [where, setWhere] = useState(searchParams.get('where') || searchParams.get('location') || searchParams.get('city') || 'all')
   const [guests, setGuests] = useState(searchParams.get('guests') || '2')
   const [dateRange, setDateRange] = useState({
     from: searchParams.get('checkIn') ? parseISO(searchParams.get('checkIn')) : null,
@@ -53,8 +52,7 @@ function ListingsContent() {
   const [userBookings, setUserBookings] = useState([])
   
   // Debounced values
-  const debouncedQuery = useDebounce(searchQuery)
-  const debouncedDistrict = useDebounce(selectedDistrict)
+  const debouncedWhere = useDebounce(where)
   const debouncedGuests = useDebounce(guests)
   const debouncedDateRange = useDebounce(dateRange)
   
@@ -72,9 +70,8 @@ function ListingsContent() {
     loadMore,
     retry
   } = useListingsFetch({
-    debouncedQuery,
     selectedCategory,
-    debouncedDistrict,
+    debouncedWhere,
     debouncedDateRange,
     debouncedGuests,
     itemsPerPage: ITEMS_PER_PAGE
@@ -132,21 +129,20 @@ function ListingsContent() {
   // Refetch on filter changes
   useEffect(() => {
     if (!loading) fetchListings(false)
-  }, [debouncedQuery, selectedCategory, debouncedDistrict, debouncedDateRange, debouncedGuests]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [debouncedWhere, selectedCategory, debouncedDateRange, debouncedGuests]) // eslint-disable-line react-hooks/exhaustive-deps
   
-  // URL sync
+  // URL sync - 4 params
   useEffect(() => {
     const params = new URLSearchParams()
-    if (debouncedQuery) params.set('q', debouncedQuery)
     if (selectedCategory !== 'all') params.set('category', selectedCategory)
-    if (debouncedDistrict !== 'all') params.set('location', debouncedDistrict)
+    if (debouncedWhere !== 'all') params.set('where', debouncedWhere)
     if (debouncedDateRange.from) params.set('checkIn', format(debouncedDateRange.from, 'yyyy-MM-dd'))
     if (debouncedDateRange.to) params.set('checkOut', format(debouncedDateRange.to, 'yyyy-MM-dd'))
     if (debouncedGuests !== '1') params.set('guests', debouncedGuests)
     
     const url = params.toString() ? `/listings?${params.toString()}` : '/listings'
     window.history.replaceState({}, '', url)
-  }, [debouncedQuery, selectedCategory, debouncedDistrict, debouncedDateRange, debouncedGuests])
+  }, [selectedCategory, debouncedWhere, debouncedDateRange, debouncedGuests])
   
   // Handlers
   const clearDates = () => setDateRange({ from: null, to: null })
@@ -233,12 +229,12 @@ function ListingsContent() {
       {/* Filter Bar */}
       <FilterBar
         language={language}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
         dateRange={dateRange}
         setDateRange={setDateRange}
-        selectedDistrict={selectedDistrict}
-        setSelectedDistrict={setSelectedDistrict}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+        where={where}
+        setWhere={setWhere}
         guests={guests}
         setGuests={setGuests}
         clearDates={clearDates}

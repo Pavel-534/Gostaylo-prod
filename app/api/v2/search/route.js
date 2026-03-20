@@ -1,25 +1,15 @@
 /**
- * Gostaylo - Search API (v2) - STAGE 3: Smart Home Page
- * GET /api/v2/search - Search listings with availability filter
+ * Gostaylo - Search API (v2) - Smart Search
+ * GET /api/v2/search - Search listings with availability, geo, full-text
  * 
  * Query Parameters:
- * - q: Search query (text)
- * - location: District/area filter
- * - category: Category slug filter (default: null = all categories)
- * - checkIn: Check-in date (YYYY-MM-DD) - for availability filtering
- * - checkOut: Check-out date (YYYY-MM-DD) - for availability filtering
- * - guests: Number of guests (for capacity filtering)
- * - minPrice: Minimum price filter
- * - maxPrice: Maximum price filter
- * - limit: Results limit (default: 50, home page uses 12)
- * - featured: Show featured first (default: true)
+ * - q: Full-text search (flexible order, words in any order)
+ * - location: District filter
+ * - city: City filter (hierarchy: city -> district)
+ * - lat, lon, radiusKm: Geo-search by radius (Haversine)
+ * - category, checkIn, checkOut, guests, minPrice, maxPrice, limit, featured
  * 
- * STAGE 3 Features:
- * - Category filtering with default support
- * - In-memory caching for home page (12 top listings)
- * - Cache TTL: 60 seconds
- * 
- * @updated 2026-03-12
+ * @updated 2026-03-19
  */
 
 export const dynamic = 'force-dynamic';
@@ -27,29 +17,65 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { CalendarService } from '@/lib/services/calendar.service';
+import { rateLimitCheck } from '@/lib/rate-limit';
 
-// Simple in-memory cache for home page listings
-const cache = {
-  data: null,
-  timestamp: 0,
-  TTL: 60 * 1000 // 60 seconds
-};
+// Haversine distance in km
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Build Supabase OR filter: any word in title, description, or district
+// Escape % for ilike
+function buildTextSearchOr(q) {
+  if (!q || q.trim().length < 2) return null;
+  const words = q.trim().split(/\s+/).filter(w => w.length >= 2);
+  if (words.length === 0) return null;
+  const parts = [];
+  for (const w of words) {
+    const esc = w.replace(/'/g, "''");
+    parts.push(`title.ilike.%${esc}%`, `description.ilike.%${esc}%`, `district.ilike.%${esc}%`);
+  }
+  return parts.join(',');
+}
+
+// Filter listings to require ALL words present (flexible order)
+function matchesAllWords(listing, words) {
+  const text = `${listing.title || ''} ${listing.description || ''} ${listing.district || ''}`.toLowerCase();
+  return words.every(w => text.includes(w.toLowerCase()));
+}
+
+const cache = { data: null, timestamp: 0, TTL: 60 * 1000 };
 
 function getCacheKey(filters) {
-  // Only cache when no date filters (home page default view)
-  if (filters.checkIn || filters.checkOut) return null;
-  return `${filters.category || 'all'}_${filters.limit}_${filters.location || 'all'}`;
+  if (filters.checkIn || filters.checkOut || filters.lat != null || filters.lon != null) return null;
+  const where = filters.where || filters.location || filters.city || 'all';
+  return `${filters.category || 'all'}_${filters.limit}_${where}_${filters.q || ''}`;
 }
 
 export async function GET(request) {
+  const rl = rateLimitCheck(request, 'search');
+  if (rl) {
+    return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     
-    // Parse all search parameters
     const filters = {
       q: searchParams.get('q'),
+      where: searchParams.get('where'), // Single param: city OR district (smart)
       location: searchParams.get('location'),
-      category: searchParams.get('category'), // null = all categories
+      city: searchParams.get('city'),
+      lat: parseFloat(searchParams.get('lat')) || null,
+      lon: parseFloat(searchParams.get('lon')) || null,
+      radiusKm: parseFloat(searchParams.get('radiusKm')) || 50,
+      category: searchParams.get('category'),
       checkIn: searchParams.get('checkIn'),
       checkOut: searchParams.get('checkOut'),
       guests: parseInt(searchParams.get('guests')) || null,
@@ -96,16 +122,28 @@ export async function GET(request) {
       query = query.order('is_featured', { ascending: false });
     }
     query = query.order('created_at', { ascending: false });
-    query = query.limit(filters.limit);
+    // When geo filter: fetch more to allow distance filtering
+    const fetchLimit = (filters.lat != null && filters.lon != null) ? Math.min(filters.limit * 10, 500) : filters.limit;
+    query = query.limit(fetchLimit);
     
-    // Apply text search
-    if (filters.q) {
-      query = query.or(`title.ilike.%${filters.q}%,description.ilike.%${filters.q}%,district.ilike.%${filters.q}%`);
+    // Full-text search (flexible word order)
+    const textOr = buildTextSearchOr(filters.q);
+    if (textOr) {
+      query = query.or(textOr);
     }
     
-    // Apply location/district filter
-    if (filters.location && filters.location !== 'all') {
-      query = query.ilike('district', `%${filters.location}%`);
+    // Smart "where" - single param: city OR district (Airbnb-style)
+    if (filters.where && filters.where !== 'all') {
+      const cityJson = JSON.stringify({ city: filters.where });
+      query = query.or(`metadata.cs.${cityJson},district.ilike.%${filters.where}%`);
+    } else {
+      // Legacy: separate city/location
+      if (filters.city && filters.city !== 'all') {
+        query = query.contains('metadata', { city: filters.city });
+      }
+      if (filters.location && filters.location !== 'all') {
+        query = query.ilike('district', `%${filters.location}%`);
+      }
     }
     
     // Apply category filter
@@ -141,7 +179,27 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
     
-    const listings = rawListings || [];
+    let listings = rawListings || [];
+    
+    // Geo filter by radius (Haversine)
+    if (filters.lat != null && filters.lon != null && filters.radiusKm > 0) {
+      listings = listings
+        .filter(l => {
+          const lat = parseFloat(l.latitude ?? l.metadata?.latitude ?? l.metadata?.lat);
+          const lon = parseFloat(l.longitude ?? l.metadata?.longitude ?? l.metadata?.lng);
+          if (isNaN(lat) || isNaN(lon)) return false;
+          return haversineKm(filters.lat, filters.lon, lat, lon) <= filters.radiusKm;
+        })
+        .slice(0, filters.limit); // Trim to requested limit
+    }
+    
+    // Multi-word text filter (all words must appear)
+    if (filters.q) {
+      const words = filters.q.trim().split(/\s+/).filter(w => w.length >= 2);
+      if (words.length > 1) {
+        listings = listings.filter(l => matchesAllWords(l, words));
+      }
+    }
     
     // =====================================================
     // AVAILABILITY & CAPACITY FILTERING (when dates provided)
@@ -196,6 +254,7 @@ export async function GET(request) {
       title: l.title,
       description: l.description,
       district: l.district,
+      city: l.metadata?.city || null,
       latitude: (l.latitude ?? l.metadata?.latitude ?? l.metadata?.lat) != null ? parseFloat(l.latitude ?? l.metadata?.latitude ?? l.metadata?.lat) : null,
       longitude: (l.longitude ?? l.metadata?.longitude ?? l.metadata?.lng) != null ? parseFloat(l.longitude ?? l.metadata?.longitude ?? l.metadata?.lng) : null,
       basePriceThb: parseFloat(l.base_price_thb),

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,7 +21,9 @@ const GOSTAYLO_WALLET = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
 
 export default function CheckoutPage({ params }) {
   const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(true)
+  const [accessDenied, setAccessDenied] = useState(false)
   const [booking, setBooking] = useState(null)
   const [listing, setListing] = useState(null)
   const [payment, setPayment] = useState(null)
@@ -41,6 +44,20 @@ export default function CheckoutPage({ params }) {
   useEffect(() => {
     loadPaymentStatus()
   }, [params.bookingId])
+
+  // Ownership check: when auth is ready and booking has renter_id, verify user owns it
+  useEffect(() => {
+    if (authLoading || !booking) return
+    if (booking.renter_id) {
+      if (!user?.id) {
+        setAccessDenied(true)
+        return
+      }
+      if (booking.renter_id !== user.id) {
+        setAccessDenied(true)
+      }
+    }
+  }, [authLoading, booking, user])
 
   async function handleApplyPromoCode() {
     if (!promoCode.trim()) {
@@ -92,10 +109,13 @@ export default function CheckoutPage({ params }) {
       
       const b = bookingData.data;
       const l = b.listings;
+
+      // Ownership check deferred until auth is ready (see useEffect below)
       
       // Transform booking data
       setBooking({
         id: b.id,
+        renter_id: b.renter_id,
         status: b.status,
         checkIn: b.check_in,
         checkOut: b.check_out,
@@ -378,10 +398,33 @@ export default function CheckoutPage({ params }) {
     }
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-teal-600" />
+      </div>
+    )
+  }
+
+  if (accessDenied) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <h3 className="text-xl font-semibold mb-2">Доступ запрещён</h3>
+            <p className="text-slate-600 mb-4">
+              Вы можете оплатить только своё бронирование. Войдите в аккаунт, с которым создавали бронирование.
+            </p>
+            <div className="flex gap-2 justify-center">
+              <Button asChild>
+                <Link href="/">На главную</Link>
+              </Button>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Обновить
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }

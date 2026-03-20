@@ -12,27 +12,19 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { Search, MapPin, Home, Bike, Map, Anchor, Loader2, BedDouble, Bath, Users, X } from 'lucide-react'
+import { MapPin, Home, Bike, Map, Anchor, Loader2, BedDouble, Bath } from 'lucide-react'
+import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerClose } from '@/components/ui/drawer'
 import { formatPrice } from '@/lib/currency'
-import { fetchCategories, fetchExchangeRates, fetchDistricts } from '@/lib/client-data'
+import { fetchCategories, fetchExchangeRates } from '@/lib/client-data'
 import { detectLanguage, setLanguage as persistLanguage, getCategoryName, getUIText, getListingText } from '@/lib/translations'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
-import { SearchCalendar } from '@/components/search-calendar'
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton'
 import { format, isSameDay, differenceInDays } from 'date-fns'
 import { ru, enUS } from 'date-fns/locale'
-
-// Phuket districts
-const PHUKET_DISTRICTS = [
-  'Patong', 'Kata', 'Karon', 'Kamala', 'Surin', 'Bang Tao', 
-  'Rawai', 'Chalong', 'Nai Harn', 'Mai Khao', 'Nai Yang', 'Panwa'
-]
 
 // Debounce hook
 function useDebounce(value, delay) {
@@ -70,25 +62,16 @@ export function GostayloHomeContent() {
   const [language, setLanguageState] = useState('ru')
   const [categories, setCategories] = useState([])
   const [listings, setListings] = useState([])
-  const [districts, setDistricts] = useState([])
   const [exchangeRates, setExchangeRates] = useState({})
   const [loading, setLoading] = useState(true)
   const [listingsLoading, setListingsLoading] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
   
-  // Search filters
-  const [selectedDistrict, setSelectedDistrict] = useState('all')
-  const [searchQuery, setSearchQuery] = useState('')
+  // Search filters (What | Where | When | Who) - 4 fields only
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [where, setWhere] = useState('all')
   const [dateRange, setDateRange] = useState({ from: null, to: null })
   const [guests, setGuests] = useState('2')
-  
-  // Drawer states (mobile)
-  const [locationDrawerOpen, setLocationDrawerOpen] = useState(false)
-  const [guestsDrawerOpen, setGuestsDrawerOpen] = useState(false)
-  
-  // Temp states for drawers
-  const [tempDistrict, setTempDistrict] = useState('all')
-  const [tempGuests, setTempGuests] = useState('2')
   
   // Live counter
   const [liveCount, setLiveCount] = useState(null)
@@ -96,7 +79,7 @@ export function GostayloHomeContent() {
   
   // Debounced values
   const debouncedDateRange = useDebounce(dateRange, 500)
-  const debouncedDistrict = useDebounce(selectedDistrict, 300)
+  const debouncedWhere = useDebounce(where, 300)
   const debouncedGuests = useDebounce(guests, 300)
 
   // Sync user from auth context
@@ -111,7 +94,24 @@ export function GostayloHomeContent() {
     }
   }, [authUser])
   
-  // Handle URL params
+  // Initialize search from URL (e.g. back navigation, shared link)
+  useEffect(() => {
+    const cat = searchParams?.get('category')
+    const w = searchParams?.get('where') || searchParams?.get('location') || searchParams?.get('city')
+    const g = searchParams?.get('guests')
+    const ci = searchParams?.get('checkIn')
+    const co = searchParams?.get('checkOut')
+    if (cat) setSelectedCategory(cat)
+    if (w) setWhere(w)
+    if (g) setGuests(g)
+    if (ci && co) {
+      try {
+        setDateRange({ from: new Date(ci), to: new Date(co) })
+      } catch {}
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Handle URL params (login, verification)
   useEffect(() => {
     if (searchParams?.get('login') === 'true') {
       openLoginModal?.('login')
@@ -167,19 +167,14 @@ export function GostayloHomeContent() {
     return () => window.removeEventListener('currency-change', handleCurrencyChange)
   }, [])
 
-  // Initial data load
+  // Initial data load (locations come from UnifiedSearchBar via /api/v2/search/locations)
   useEffect(() => {
-    async function loadInitialData() {
-      const [cats, rates, dists] = await Promise.all([
-        fetchCategories(),
-        fetchExchangeRates(),
-        fetchDistricts()
-      ])
-      setCategories(cats)
-      setExchangeRates(rates)
-      setDistricts(dists)
-    }
-    loadInitialData().catch(console.error)
+    Promise.all([fetchCategories(), fetchExchangeRates()])
+      .then(([cats, rates]) => {
+        setCategories(cats)
+        setExchangeRates(rates)
+      })
+      .catch(console.error)
   }, [])
 
   // Fetch listings from API
@@ -188,7 +183,8 @@ export function GostayloHomeContent() {
     
     try {
       const params = new URLSearchParams({ limit: '12', featured: 'true' })
-      if (selectedDistrict && selectedDistrict !== 'all') params.set('location', selectedDistrict)
+      if (selectedCategory && selectedCategory !== 'all') params.set('category', selectedCategory)
+      if (where && where !== 'all') params.set('where', where)
       if (dateRange.from && dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
         params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
         params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
@@ -209,7 +205,7 @@ export function GostayloHomeContent() {
       setLoading(false)
     }
     return 0
-  }, [selectedDistrict, dateRange, guests])
+  }, [selectedCategory, where, dateRange, guests])
 
   // Initial load
   useEffect(() => {
@@ -219,14 +215,15 @@ export function GostayloHomeContent() {
   // Live updates
   useEffect(() => {
     if (!loading) fetchListingsData(false)
-  }, [debouncedDateRange, debouncedDistrict, debouncedGuests, loading, fetchListingsData])
+  }, [debouncedDateRange, debouncedWhere, debouncedGuests, loading, fetchListingsData])
 
-  // Live count fetch for drawers
-  const fetchLiveCount = useCallback(async (dr, dist, g) => {
+  // Live count fetch for search bar
+  const fetchLiveCount = useCallback(async (dr, w, g, cat) => {
     setCountLoading(true)
     try {
       const params = new URLSearchParams({ limit: '50' })
-      if (dist && dist !== 'all') params.set('location', dist)
+      if (cat && cat !== 'all') params.set('category', cat)
+      if (w && w !== 'all') params.set('where', w)
       if (dr?.from && dr?.to && !isSameDay(dr.from, dr.to)) {
         params.set('checkIn', format(dr.from, 'yyyy-MM-dd'))
         params.set('checkOut', format(dr.to, 'yyyy-MM-dd'))
@@ -243,36 +240,6 @@ export function GostayloHomeContent() {
     }
   }, [])
 
-  // Drawer effects for live count
-  useEffect(() => {
-    if (locationDrawerOpen) {
-      setTempDistrict(selectedDistrict)
-      fetchLiveCount(dateRange, selectedDistrict, guests)
-    }
-  }, [locationDrawerOpen, dateRange, selectedDistrict, guests, fetchLiveCount])
-
-  useEffect(() => {
-    if (guestsDrawerOpen) {
-      setTempGuests(guests)
-      fetchLiveCount(dateRange, selectedDistrict, guests)
-    }
-  }, [guestsDrawerOpen, dateRange, selectedDistrict, guests, fetchLiveCount])
-
-  // Debounced temp values for live count
-  const debouncedTempDistrict = useDebounce(tempDistrict, 300)
-  const debouncedTempGuests = useDebounce(tempGuests, 300)
-
-  useEffect(() => {
-    if (locationDrawerOpen) {
-      fetchLiveCount(dateRange, debouncedTempDistrict, guests)
-    }
-  }, [locationDrawerOpen, dateRange, debouncedTempDistrict, guests, fetchLiveCount])
-
-  useEffect(() => {
-    if (guestsDrawerOpen) {
-      fetchLiveCount(dateRange, selectedDistrict, debouncedTempGuests)
-    }
-  }, [guestsDrawerOpen, dateRange, selectedDistrict, debouncedTempGuests, fetchLiveCount])
 
   // Price conversion
   const convertPrice = useCallback((priceThb) => {
@@ -284,44 +251,27 @@ export function GostayloHomeContent() {
 
   const categoryIcons = { property: Home, vehicles: Bike, tours: Map, yachts: Anchor }
 
-  // URL Bridge Search
+  // URL Bridge Search - 4 params: What, Where, When, Who
   const handleSearch = useCallback(() => {
     const params = new URLSearchParams()
-    if (searchQuery.trim()) params.set('q', searchQuery.trim())
-    if (selectedDistrict && selectedDistrict !== 'all') params.set('location', selectedDistrict)
+    if (selectedCategory && selectedCategory !== 'all') params.set('category', selectedCategory)
+    if (where && where !== 'all') params.set('where', where)
     if (dateRange.from) params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
     if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
     if (guests && guests !== '1') params.set('guests', guests)
     router.push(params.toString() ? `/listings?${params.toString()}` : '/listings')
-  }, [searchQuery, selectedDistrict, dateRange, guests, router])
+  }, [selectedCategory, where, dateRange, guests, router])
 
   const nights = dateRange.from && dateRange.to ? differenceInDays(dateRange.to, dateRange.from) : 0
   const locale = language === 'ru' ? ru : enUS
-
-  // Drawer confirm handlers
-  const confirmDistrict = useCallback(() => {
-    setSelectedDistrict(tempDistrict)
-    setLocationDrawerOpen(false)
-  }, [tempDistrict])
-
-  const confirmGuests = useCallback(() => {
-    setGuests(tempGuests)
-    setGuestsDrawerOpen(false)
-  }, [tempGuests])
-
-  // Drawer button text
-  const drawerButtonText = useMemo(() => {
-    const count = liveCount !== null ? liveCount : ''
-    return `${language === 'ru' ? 'Показать' : 'Show'} ${count} ${language === 'ru' ? 'вариантов' : 'options'}`
-  }, [liveCount, language])
 
   // Handle calendar date change with live count update
   const handleDateChange = useCallback((newRange) => {
     setDateRange(newRange)
     if (newRange.from && newRange.to) {
-      fetchLiveCount(newRange, selectedDistrict, guests)
+      fetchLiveCount(newRange, where, guests, selectedCategory)
     }
-  }, [selectedDistrict, guests, fetchLiveCount])
+  }, [where, guests, selectedCategory, fetchLiveCount])
 
   return (
     <div className='min-h-screen bg-white'>
@@ -338,163 +288,26 @@ export function GostayloHomeContent() {
               {getUIText('heroSubtitle', language)}
             </p>
 
-            {/* Monolithic Search Bar */}
-            <div className='bg-white rounded-full shadow-2xl overflow-hidden border border-slate-200'>
-              {/* Desktop */}
-              <div className='hidden md:flex items-center'>
-                <div className='flex items-center gap-2 px-5 py-3 flex-1 min-w-0 border-r border-slate-200'>
-                  <Search className='h-4 w-4 text-teal-600 flex-shrink-0' />
-                  <input
-                    type="text"
-                    placeholder={getUIText('searchPlaceholder', language)}
-                    className='w-full text-sm outline-none bg-transparent text-slate-700 placeholder:text-slate-400'
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    data-testid="search-input"
-                  />
-                </div>
-                
-                {/* Date Picker - Using SearchCalendar */}
-                <div className='border-r border-slate-200'>
-                  <SearchCalendar
-                    value={dateRange}
-                    onChange={handleDateChange}
-                    locale={language}
-                    placeholder={getUIText('dates', language)}
-                    liveCount={liveCount}
-                    countLoading={countLoading}
-                  />
-                </div>
-                
-                {/* Location */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className='flex items-center gap-2 px-4 py-3 border-r border-slate-200 hover:bg-slate-50 transition-colors'>
-                      <MapPin className='h-4 w-4 text-teal-600' />
-                      <span className='text-sm text-slate-700'>{selectedDistrict === 'all' ? (language === 'ru' ? 'Район' : 'District') : selectedDistrict}</span>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 p-2" align="start">
-                    <div className="space-y-1">
-                      <button onClick={() => setSelectedDistrict('all')} className={`w-full text-left px-3 py-2 rounded-md text-sm ${selectedDistrict === 'all' ? 'bg-teal-50 text-teal-700' : 'hover:bg-slate-100'}`}>
-                        {language === 'ru' ? 'Все районы' : 'All districts'}
-                      </button>
-                      {districts.map(d => (
-                        <button key={d} onClick={() => setSelectedDistrict(d)} className={`w-full text-left px-3 py-2 rounded-md text-sm ${selectedDistrict === d ? 'bg-teal-50 text-teal-700' : 'hover:bg-slate-100'}`}>{d}</button>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                
-                {/* Guests */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className='flex items-center gap-2 px-4 py-3 border-r border-slate-200 hover:bg-slate-50 transition-colors'>
-                      <Users className='h-4 w-4 text-teal-600' />
-                      <span className='text-sm text-slate-700'>{guests}</span>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-48 p-2" align="start">
-                    <div className="grid grid-cols-5 gap-1">
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 10, 12].map(n => (
-                        <button key={n} onClick={() => setGuests(String(n))} className={`p-2 rounded text-sm ${guests === String(n) ? 'bg-teal-600 text-white' : 'hover:bg-slate-100'}`}>{n}</button>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                
-                <Button onClick={handleSearch} className='h-12 px-6 rounded-full bg-teal-600 hover:bg-teal-700 m-1' data-testid="search-button">
-                  <Search className='h-4 w-4 mr-2' />{getUIText('findButton', language)}
-                </Button>
-              </div>
-              
-              {/* Mobile */}
-              <div className='md:hidden flex items-center p-1'>
-                {/* Mobile Date - Using SearchCalendar with built-in drawer */}
-                <div className='flex-1 border-r border-slate-200'>
-                  <SearchCalendar
-                    value={dateRange}
-                    onChange={handleDateChange}
-                    locale={language}
-                    placeholder={nights > 0 ? `${nights}н.` : getUIText('dates', language)}
-                    liveCount={liveCount}
-                    countLoading={countLoading}
-                    className="justify-center py-3"
-                  />
-                </div>
-                
-                <button onClick={() => setLocationDrawerOpen(true)} className='flex-1 flex items-center justify-center gap-2 py-3 border-r border-slate-200' data-testid="mobile-location-trigger">
-                  <MapPin className='h-4 w-4 text-teal-600' />
-                  <span className='text-xs text-slate-700 truncate max-w-[60px]'>{selectedDistrict === 'all' ? (language === 'ru' ? 'Район' : 'Area') : selectedDistrict}</span>
-                </button>
-                <button onClick={() => setGuestsDrawerOpen(true)} className='flex-1 flex items-center justify-center gap-2 py-3 border-r border-slate-200' data-testid="mobile-guests-trigger">
-                  <Users className='h-4 w-4 text-teal-600' />
-                  <span className='text-xs text-slate-700'>{guests}</span>
-                </button>
-                <Button onClick={handleSearch} size="icon" className='h-10 w-10 rounded-full bg-teal-600 hover:bg-teal-700 mx-1' data-testid="mobile-search-button">
-                  <Search className='h-4 w-4' />
-                </Button>
-              </div>
-            </div>
+            {/* Unified Search Bar (What | Where | When | Who) */}
+            <UnifiedSearchBar
+              variant="hero"
+              language={language}
+              category={selectedCategory}
+              setCategory={setSelectedCategory}
+              where={where}
+              setWhere={setWhere}
+              dateRange={dateRange}
+              setDateRange={handleDateChange}
+              guests={guests}
+              setGuests={setGuests}
+              onSearch={handleSearch}
+              liveCount={liveCount}
+              countLoading={countLoading}
+              nights={nights}
+            />
           </div>
         </div>
       </section>
-      
-      {/* Mobile Location Drawer */}
-      <Drawer open={locationDrawerOpen} onOpenChange={setLocationDrawerOpen}>
-        <DrawerContent className="h-[70vh] max-h-[70vh]">
-          <DrawerHeader className="border-b pb-4">
-            <div className="flex items-center justify-between">
-              <DrawerTitle>{language === 'ru' ? 'Район Пхукета' : 'Phuket District'}</DrawerTitle>
-              <DrawerClose asChild><Button variant="ghost" size="icon"><X className="h-5 w-5" /></Button></DrawerClose>
-            </div>
-          </DrawerHeader>
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => setTempDistrict('all')} className={`p-3 rounded-lg border text-left transition-all ${tempDistrict === 'all' ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-slate-200 hover:border-slate-300'}`}>
-                <span className="font-medium">{language === 'ru' ? 'Все районы' : 'All districts'}</span>
-              </button>
-              {PHUKET_DISTRICTS.map(district => (
-                <button key={district} onClick={() => setTempDistrict(district)} className={`p-3 rounded-lg border text-left transition-all ${tempDistrict === district ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-slate-200 hover:border-slate-300'}`}>
-                  <span className="font-medium">{district}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <DrawerFooter className="border-t pt-4">
-            <Button className="w-full h-11 bg-teal-600 hover:bg-teal-700" onClick={confirmDistrict} data-testid="drawer-confirm-location">
-              {countLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              {drawerButtonText}
-            </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-
-      {/* Mobile Guests Drawer */}
-      <Drawer open={guestsDrawerOpen} onOpenChange={setGuestsDrawerOpen}>
-        <DrawerContent className="h-[50vh] max-h-[50vh]">
-          <DrawerHeader className="border-b pb-4">
-            <div className="flex items-center justify-between">
-              <DrawerTitle>{language === 'ru' ? 'Количество гостей' : 'Number of guests'}</DrawerTitle>
-              <DrawerClose asChild><Button variant="ghost" size="icon"><X className="h-5 w-5" /></Button></DrawerClose>
-            </div>
-          </DrawerHeader>
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="grid grid-cols-5 gap-2">
-              {[1, 2, 3, 4, 5, 6, 7, 8, 10, 12].map(num => (
-                <button key={num} onClick={() => setTempGuests(String(num))} className={`p-4 rounded-lg border text-center transition-all ${tempGuests === String(num) ? 'border-teal-600 bg-teal-50 text-teal-700 font-bold' : 'border-slate-200 hover:border-slate-300'}`}>{num}</button>
-              ))}
-            </div>
-          </div>
-          <DrawerFooter className="border-t pt-4">
-            <Button className="w-full h-11 bg-teal-600 hover:bg-teal-700" onClick={confirmGuests} data-testid="drawer-confirm-guests">
-              {countLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              {drawerButtonText}
-            </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
 
       {/* Categories Section */}
       <section className='py-10 sm:py-14 bg-white'>
@@ -510,7 +323,16 @@ export function GostayloHomeContent() {
                 'https://images.unsplash.com/photo-1566735201951-bc1cbeeb2964',
               ]
               return (
-                <Card key={cat.id} className='group cursor-pointer overflow-hidden hover:shadow-lg transition-all border hover:border-teal-500' onClick={() => router.push(`/listings?category=${cat.slug}`)}>
+                <Card key={cat.id} className='group cursor-pointer overflow-hidden hover:shadow-lg transition-all border hover:border-teal-500' onClick={() => {
+                  setSelectedCategory(cat.slug)
+                  const params = new URLSearchParams()
+                  params.set('category', cat.slug)
+                  if (where !== 'all') params.set('where', where)
+                  if (dateRange.from) params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
+                  if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
+                  if (guests !== '1') params.set('guests', guests)
+                  router.push(`/listings?${params.toString()}`)
+                }}>
                   <div className='relative h-28 sm:h-40 overflow-hidden'>
                     <Image
                       src={images[idx]}

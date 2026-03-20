@@ -27,11 +27,13 @@ export async function GET(request) {
       lon: String(lon),
       format: 'json',
       addressdetails: '1',
+      'accept-language': 'en',
     })
 
     const res = await fetch(`${NOMINATIM_REVERSE}?${params}`, {
       headers: {
         'User-Agent': 'Gostaylo/1.0 (contact@gostaylo.com)',
+        'Accept-Language': 'en',
       },
     })
 

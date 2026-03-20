@@ -729,6 +729,7 @@ export default function PremiumListingWizard() {
                         prev.includes(address.district) ? prev : [...prev, address.district]
                       )
                     }
+                    if (address?.city) updateMetadata('city', address.city)
                   }}
                   height={280}
                 />
@@ -824,21 +825,17 @@ export default function PremiumListingWizard() {
                   className="mt-2 h-12"
                 />
               </div>
-              <div>
-                <Label className="text-base font-medium">{t('commissionRate')}</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.commissionRate}
-                  onChange={(e) => updateField('commissionRate', e.target.value)}
-                  className="mt-2 h-12"
-                  disabled
-                />
-                <p className="text-xs text-slate-500 mt-1">
+              <div className="flex flex-col justify-end">
+                <p className="text-sm font-medium text-slate-700">
+                  {language === 'ru' ? 'Комиссия системы' : 'System commission'}
+                </p>
+                <p className="text-lg font-semibold text-teal-600 mt-1">
+                  {partnerCommissionRate}%
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">
                   {partnerCommissionRate !== 15 
-                    ? (language === 'ru' ? `Индивидуальная ставка: ${partnerCommissionRate}%` : `Personal rate: ${partnerCommissionRate}%`)
-                    : (language === 'ru' ? 'Стандартная ставка: 15%' : 'Standard rate: 15%')}
+                    ? (language === 'ru' ? 'Индивидуальная ставка для партнёра' : 'Personal partner rate')
+                    : (language === 'ru' ? 'Стандартная ставка' : 'Standard rate')}
                 </p>
               </div>
             </div>

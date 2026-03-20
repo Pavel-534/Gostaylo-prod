@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getUserIdFromSession } from '@/lib/services/session-service';
+import { createListingSchema } from '@/lib/validations/listing';
 
 export async function GET(request) {
   try {
@@ -90,6 +91,13 @@ export async function POST(request) {
 
     const body = await request.json();
     
+    const parseResult = createListingSchema.safeParse(body);
+    if (!parseResult.success) {
+      const firstError = parseResult.error.errors[0];
+      const message = firstError?.message || 'Invalid request data';
+      return NextResponse.json({ success: false, error: message }, { status: 400 });
+    }
+    
     const {
       partnerId,
       categoryId,
@@ -99,14 +107,7 @@ export async function POST(request) {
       basePriceThb,
       images,
       metadata
-    } = body;
-    
-    if (!partnerId || !categoryId || !title || !basePriceThb) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Missing required fields' 
-      }, { status: 400 });
-    }
+    } = parseResult.data;
 
     if (partnerId !== sessionUserId) {
       return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });

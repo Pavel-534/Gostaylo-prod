@@ -1,9 +1,12 @@
 /**
  * POST /api/bookings/[id]/payment/confirm
  * Confirm a payment and update booking status
+ * SECURITY: Verifies booking ownership (renter_id must match session)
  */
 
 import { NextResponse } from 'next/server';
+import { getUserIdFromSession } from '@/lib/services/session-service';
+
 export const dynamic = 'force-dynamic';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -38,6 +41,17 @@ export async function POST(request, { params }) {
     }
     
     const booking = bookings[0];
+
+    // Ownership check: only the renter can confirm payment for their booking
+    const sessionUserId = await getUserIdFromSession();
+    if (booking.renter_id) {
+      if (!sessionUserId) {
+        return NextResponse.json({ success: false, error: 'Please log in to complete payment' }, { status: 401 });
+      }
+      if (booking.renter_id !== sessionUserId) {
+        return NextResponse.json({ success: false, error: 'Access denied. This is not your booking.' }, { status: 403 });
+      }
+    }
     
     if (booking.status === 'CANCELLED') {
       return NextResponse.json({ success: false, error: 'Booking is cancelled' }, { status: 400 });
