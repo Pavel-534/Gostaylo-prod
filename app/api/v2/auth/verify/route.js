@@ -8,18 +8,20 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
+import { getPublicSiteUrl } from '@/lib/site-url.js';
 
 export const dynamic = 'force-dynamic';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
   
+  const siteBase = getPublicSiteUrl()
+
   if (!token) {
-    return NextResponse.redirect(`${BASE_URL}/?auth_error=missing_token`);
+    return NextResponse.redirect(`${siteBase}/?auth_error=missing_token`);
   }
   
   // Verify JWT token
@@ -28,12 +30,12 @@ export async function GET(request) {
     decoded = jwt.verify(token, JWT_SECRET);
   } catch (error) {
     console.error('[VERIFY] Invalid token:', error.message);
-    return NextResponse.redirect(`${BASE_URL}/?auth_error=invalid_or_expired_token`);
+    return NextResponse.redirect(`${siteBase}/?auth_error=invalid_or_expired_token`);
   }
   
   if (decoded.type !== 'email_verification') {
     console.error('[VERIFY] Wrong token type:', decoded.type);
-    return NextResponse.redirect(`${BASE_URL}/?auth_error=invalid_token_type`);
+    return NextResponse.redirect(`${siteBase}/?auth_error=invalid_token_type`);
   }
   
   const { userId, email } = decoded;
@@ -44,7 +46,7 @@ export async function GET(request) {
   
   if (!url || !serviceKey) {
     console.error('[VERIFY] Missing DB config');
-    return NextResponse.redirect(`${BASE_URL}/?auth_error=server_error`);
+    return NextResponse.redirect(`${siteBase}/?auth_error=server_error`);
   }
   
   const supabase = createClient(url, serviceKey, {
@@ -66,12 +68,12 @@ export async function GET(request) {
   
   if (error) {
     console.error('[VERIFY] DB Error:', error.message, error.code);
-    return NextResponse.redirect(`${BASE_URL}/?auth_error=verification_failed`);
+    return NextResponse.redirect(`${siteBase}/?auth_error=verification_failed`);
   }
   
   if (!user) {
     console.error('[VERIFY] User not found');
-    return NextResponse.redirect(`${BASE_URL}/?auth_error=user_not_found`);
+    return NextResponse.redirect(`${siteBase}/?auth_error=user_not_found`);
   }
   
   // Determine effective role (supports "[MODERATOR]" marker)
@@ -90,15 +92,16 @@ export async function GET(request) {
   );
   
   // Create redirect response with success message
-  const response = NextResponse.redirect(`${BASE_URL}/?verified=success`);
-  
-  // Set HttpOnly session cookie (auto-login)
+  const response = NextResponse.redirect(`${siteBase}/?verified=success`);
+
+  const secureCookie =
+    process.env.NODE_ENV === 'production' || process.env.FORCE_SECURE_COOKIES === 'true'
   response.cookies.set('gostaylo_session', sessionToken, {
     httpOnly: true,
-    secure: true,
+    secure: secureCookie,
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 30, // 30 days
-    path: '/'
+    maxAge: 60 * 60 * 24 * 30,
+    path: '/',
   });
   
   return response;

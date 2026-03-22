@@ -1,3 +1,8 @@
+/**
+ * Legacy chat REST proxy. Prefer:
+ * - GET/POST /api/v2/chat/messages (session + participant check)
+ * - GET /api/v2/chat/conversations
+ */
 import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic';
 

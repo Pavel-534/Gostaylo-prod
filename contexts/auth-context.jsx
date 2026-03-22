@@ -1,6 +1,7 @@
 /**
  * Gostaylo - Global Auth Context
- * Provides authentication state and login modal
+ * Сессия: HttpOnly-кука `gostaylo_session` выставляется только сервером (login/verify);
+ * SameSite=Lax и Secure (на production) задаются в API — домен не фиксируется, работает .ru / .com.
  */
 
 'use client';

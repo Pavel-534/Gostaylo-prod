@@ -149,16 +149,16 @@ export async function POST(request) {
     redirectTo
   });
   
-  // Set HttpOnly cookie (30 days)
-  // SameSite=Lax allows the cookie to be sent with top-level navigations
-  // This is important for links from Telegram opening in browser
+  // HttpOnly session; SameSite=Lax — отправка при переходах с того же сайта (в т.ч. gostaylo.ru).
+  // Secure только в production (HTTPS); локально без HTTPS кука не установится с Secure.
+  const secureCookie =
+    process.env.NODE_ENV === 'production' || process.env.FORCE_SECURE_COOKIES === 'true'
   response.cookies.set('gostaylo_session', token, {
     httpOnly: true,
-    secure: true, // Always secure for HTTPS
+    secure: secureCookie,
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 30, // 30 days
+    maxAge: 60 * 60 * 24 * 30,
     path: '/',
-    // Don't set domain - let browser use the default (current domain)
   });
   
   return response;

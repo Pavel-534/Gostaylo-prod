@@ -7,37 +7,29 @@ import { Loader2, MessageCircle, Home } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useAuth } from '@/contexts/auth-context'
 
 export default function RenterMessagesIndex() {
   const router = useRouter()
-  const [renterId, setRenterId] = useState(null)
+  const { user, loading: authLoading, openLoginModal } = useAuth()
   const [conversations, setConversations] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('gostaylo_user')
-    if (!storedUser) {
+    if (authLoading) return
+    if (!user?.id) {
       setLoading(false)
       return
     }
 
-    try {
-      const user = JSON.parse(storedUser)
-      setRenterId(user?.id || null)
-    } catch {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!renterId) return
-
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch(`/api/conversations?userId=${renterId}&role=RENTER`)
+        const res = await fetch('/api/v2/chat/conversations?enrich=1', { credentials: 'include' })
         const data = await res.json()
-        if (!cancelled) setConversations(data?.data || [])
+        if (!cancelled && data.success && Array.isArray(data.data)) {
+          setConversations(data.data)
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -46,12 +38,35 @@ export default function RenterMessagesIndex() {
     return () => {
       cancelled = true
     }
-  }, [renterId])
+  }, [user?.id, authLoading])
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="bg-white border-b sticky top-0 z-10">
+          <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold">GS</span>
+              </div>
+              <span className="font-bold text-slate-900">Gostaylo</span>
+            </Link>
+          </div>
+        </div>
+        <div className="container mx-auto px-4 py-16 max-w-md text-center">
+          <p className="text-slate-600 mb-4">Войдите, чтобы видеть диалоги</p>
+          <Button className="bg-teal-600 hover:bg-teal-700" onClick={() => openLoginModal('login')}>
+            Войти
+          </Button>
+        </div>
       </div>
     )
   }
@@ -94,7 +109,7 @@ export default function RenterMessagesIndex() {
             <h1 className="text-2xl font-bold text-slate-900 mb-6">Мои диалоги</h1>
             <div className="space-y-4">
               {conversations.map((conv) => {
-                const unread = conv.unreadCountRenter || 0
+                const unread = conv.unreadCount ?? 0
                 return (
                   <Card
                     key={conv.id}
@@ -116,7 +131,9 @@ export default function RenterMessagesIndex() {
                         </div>
                         <p className="text-sm text-slate-600 mb-2">{conv.listing?.district}</p>
                         <p className="text-sm text-slate-500 truncate">
-                          {conv.lastMessage?.message || 'Новое сообщение'}
+                          {conv.lastMessage?.message ||
+                            conv.lastMessage?.content ||
+                            'Новое сообщение'}
                         </p>
                       </div>
                     </div>
@@ -130,4 +147,3 @@ export default function RenterMessagesIndex() {
     </div>
   )
 }
-

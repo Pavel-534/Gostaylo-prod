@@ -63,18 +63,44 @@ export async function POST(request) {
       expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
     };
 
-    // Create message with invoice type
+    const line = `💳 Invoice: ${currency === 'THB' ? '฿' : '$'}${parseFloat(amount).toLocaleString()} ${currency}`
+
+    const { error: invTableError } = await supabaseAdmin.from('invoices').insert({
+      id: invoiceId,
+      conversation_id: conversationId,
+      booking_id: bookingId || null,
+      amount: parseFloat(amount),
+      status: 'pending',
+      metadata: {
+        currency,
+        payment_method: paymentMethod,
+        description: description || null,
+        listing: invoice.listing,
+        check_in: checkIn,
+        check_out: checkOut,
+      },
+    })
+    if (invTableError) {
+      console.warn('[INVOICE] invoices table:', invTableError.message)
+    }
+
+    const messageId = `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+
     const { data: message, error: messageError } = await supabaseAdmin
       .from('messages')
       .insert({
+        id: messageId,
         conversation_id: conversationId,
         sender_id: senderId,
+        sender_role: 'PARTNER',
         sender_name: senderName || 'Partner',
-        message: `💳 Invoice: ${currency === 'THB' ? '฿' : '$'}${parseFloat(amount).toLocaleString()} ${currency}`,
-        type: 'INVOICE',
+        message: line,
+        content: line,
+        type: 'invoice',
         metadata: {
-          invoice
-        }
+          invoice,
+          invoice_id: invoiceId,
+        },
       })
       .select()
       .single();
@@ -119,7 +145,7 @@ export async function GET(request) {
     let query = supabaseAdmin
       .from('messages')
       .select('*')
-      .eq('type', 'INVOICE');
+      .or('type.eq.invoice,type.eq.INVOICE');
 
     if (conversationId) {
       query = query.eq('conversation_id', conversationId);
