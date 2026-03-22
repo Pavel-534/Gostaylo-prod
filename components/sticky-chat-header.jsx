@@ -2,8 +2,9 @@
 
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
-import { Building2, Shield } from 'lucide-react'
+import { Building2, LifeBuoy, Loader2, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 /**
  * Липкий контекст чата: фото листинга, название, даты и статус брони.
@@ -17,6 +18,12 @@ export function StickyChatHeader({
   contactName,
   /** null — не показывать индикатор; иначе зелёный/серый = online/offline */
   presenceOnline = null,
+  /** Эскалация в поддержку (рентер / партнёр, не admin view) */
+  onSupportClick = null,
+  supportLoading = false,
+  supportPriorityActive = false,
+  supportLabel = 'Поддержка',
+  supportDoneLabel = 'Запрос отправлен',
   className,
   children,
 }) {
@@ -82,7 +89,29 @@ export function StickyChatHeader({
           ) : null}
           {dateLine}
         </div>
-        {children ? <div className="shrink-0 flex items-center gap-2">{children}</div> : null}
+        <div className="shrink-0 flex flex-col items-end gap-2">
+          {!isAdminView && onSupportClick ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 px-2.5 text-xs border-amber-200 text-amber-900 hover:bg-amber-50 inline-flex items-center"
+              onClick={onSupportClick}
+              disabled={supportLoading || supportPriorityActive}
+              title={supportLabel}
+            >
+              {supportLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+              ) : (
+                <LifeBuoy className="h-3.5 w-3.5 shrink-0" />
+              )}
+              <span className="ml-1.5 max-w-[7rem] sm:max-w-none truncate">
+                {supportPriorityActive ? supportDoneLabel : supportLabel}
+              </span>
+            </Button>
+          ) : null}
+          {children ? <div className="flex items-center gap-2">{children}</div> : null}
+        </div>
       </div>
     </div>
   )

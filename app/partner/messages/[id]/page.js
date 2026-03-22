@@ -55,6 +55,7 @@ export default function PartnerMessages({ params }) {
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [supportLoading, setSupportLoading] = useState(false)
 
   const conversationId = params?.id
 
@@ -169,6 +170,35 @@ export default function PartnerMessages({ params }) {
       setMessages(msgJson.data.map(apiMessageToRow).filter(Boolean))
     } catch (error) {
       console.error('Failed to load messages:', error)
+    }
+  }
+
+  async function handleRequestSupport() {
+    if (!selectedConv?.id || supportLoading) return
+    setSupportLoading(true)
+    try {
+      const res = await fetch('/api/v2/chat/escalate', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: selectedConv.id }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        toast.error(json.error || 'Не удалось отправить запрос')
+        return
+      }
+      setSelectedConv((prev) => (prev ? { ...prev, isPriority: true } : prev))
+      if (json.data?.notified) {
+        toast.success('Запрос передан в поддержку')
+      } else {
+        toast.success('Диалог уже отмечен для поддержки')
+      }
+      loadConversations()
+    } catch {
+      toast.error('Ошибка сети')
+    } finally {
+      setSupportLoading(false)
     }
   }
 
@@ -368,6 +398,11 @@ export default function PartnerMessages({ params }) {
                     : selectedConv.renterName || 'Клиент'
                 }
                 presenceOnline={peerParticipantId ? peerOnline : null}
+                onSupportClick={handleRequestSupport}
+                supportLoading={supportLoading}
+                supportPriorityActive={!!selectedConv?.isPriority}
+                supportLabel="Помощь"
+                supportDoneLabel="В поддержке"
               >
                 <span
                   className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}

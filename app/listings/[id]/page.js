@@ -413,7 +413,7 @@ function PremiumListingContent({ params }) {
         </header>
         
         <main
-          className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:pb-8 ${showContactPartner ? 'pb-32' : 'pb-24'}`}
+          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-40 lg:pb-8"
         >
           <BentoGallery 
             images={allImages}

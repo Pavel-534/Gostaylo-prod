@@ -64,6 +64,7 @@ export default function RenterMessages({ params }) {
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [supportLoading, setSupportLoading] = useState(false)
   const [safetyWarningShown, setSafetyWarningShown] = useState(false)
   const [detectedPatterns, setDetectedPatterns] = useState([])
 
@@ -180,6 +181,35 @@ export default function RenterMessages({ params }) {
       loadConversations()
     } catch (error) {
       console.error('Failed to load messages:', error)
+    }
+  }
+
+  async function handleRequestSupport() {
+    if (!selectedConv?.id || supportLoading) return
+    setSupportLoading(true)
+    try {
+      const res = await fetch('/api/v2/chat/escalate', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: selectedConv.id }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        toast.error(json.error || 'Не удалось отправить запрос')
+        return
+      }
+      setSelectedConv((prev) => (prev ? { ...prev, isPriority: true } : prev))
+      if (json.data?.notified) {
+        toast.success('Запрос передан в поддержку')
+      } else {
+        toast.success('Диалог уже отмечен для поддержки')
+      }
+      loadConversations()
+    } catch {
+      toast.error('Ошибка сети')
+    } finally {
+      setSupportLoading(false)
     }
   }
 
@@ -344,6 +374,11 @@ export default function RenterMessages({ params }) {
               isAdminView={false}
               contactName={selectedConv?.partnerName || 'Партнёр'}
               presenceOnline={partnerOnline}
+              onSupportClick={handleRequestSupport}
+              supportLoading={supportLoading}
+              supportPriorityActive={!!selectedConv?.isPriority}
+              supportLabel="Помощь"
+              supportDoneLabel="В поддержке"
             >
               <div className="flex flex-col items-end gap-1">
                 <span

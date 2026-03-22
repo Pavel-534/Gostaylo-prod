@@ -62,6 +62,7 @@ function mapConversationRow(c) {
     adminId: c.admin_id ?? null,
     adminName: c.admin_name ?? null,
     type: c.type ?? null,
+    isPriority: c.is_priority === true,
   }
 }
 
@@ -165,7 +166,7 @@ export async function GET(request) {
 
   let url
   if (staff) {
-    url = `${SUPABASE_URL}/rest/v1/conversations?select=*&order=last_message_at.desc.nullslast`
+    url = `${SUPABASE_URL}/rest/v1/conversations?select=*&order=is_priority.desc,last_message_at.desc.nullslast`
     if (singleId) {
       url += `&id=eq.${encodeURIComponent(singleId)}`
     }
@@ -293,6 +294,7 @@ export async function POST(request) {
     type: 'INQUIRY',
     status: 'OPEN',
     status_label: 'OPEN',
+    is_priority: false,
     created_at: now,
     updated_at: now,
     last_message_at: null,

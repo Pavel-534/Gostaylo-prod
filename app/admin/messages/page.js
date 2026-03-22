@@ -296,9 +296,14 @@ export default function AdminMessagesPage() {
                         <p className="font-semibold text-sm text-slate-900 truncate">
                           {conv.partnerName || conv.renterName || 'Пользователь'}
                         </p>
-                        {conv.unreadCount > 0 && (
-                          <Badge className="bg-red-500 text-white shrink-0">{conv.unreadCount}</Badge>
-                        )}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {conv.isPriority ? (
+                            <Badge className="bg-amber-500 text-white text-[10px] px-1.5 py-0">Приоритет</Badge>
+                          ) : null}
+                          {conv.unreadCount > 0 && (
+                            <Badge className="bg-red-500 text-white">{conv.unreadCount}</Badge>
+                          )}
+                        </div>
                       </div>
                       {conv.listing?.title && (
                         <p className="text-xs text-slate-600 truncate mb-1">{conv.listing.title}</p>

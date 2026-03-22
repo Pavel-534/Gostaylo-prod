@@ -174,40 +174,48 @@ export function MobileBookingBar({
   askPartnerLoading = false,
   showAskPartner = false,
 }) {
+  const askLabel = askPartnerLoading ? getUIText('loading', language) : getUIText('askListingQuestion', language)
+
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 shadow-2xl z-40 space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-2xl font-bold text-slate-900">
+    <div
+      className="lg:hidden fixed left-0 right-0 z-50 bg-white border-t border-slate-200 p-3 shadow-2xl pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}
+    >
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="text-xl sm:text-2xl font-bold text-slate-900 tabular-nums leading-tight">
             {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates)}
           </div>
-          <p className="text-xs text-slate-500">
+          <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
             {getUIText('perNight', language)}
             {priceCalc && ` • ${priceCalc.nights} ${getUIText('nights', language)}`}
           </p>
         </div>
-        
-        <Button 
-          onClick={onBookingClick}
-          disabled={!dateRange?.from || !dateRange?.to}
-          className="h-12 px-6 shrink-0 text-base bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
-        >
-          {getUIText('bookNow', language)}
-        </Button>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {showAskPartner && onAskPartner && (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={onAskPartner}
+              disabled={askPartnerLoading}
+              className="h-12 w-12 shrink-0 border-teal-200 text-teal-800 hover:bg-teal-50"
+              aria-label={askLabel}
+              title={askLabel}
+            >
+              <MessageCircle className="h-5 w-5" />
+            </Button>
+          )}
+          <Button
+            onClick={onBookingClick}
+            disabled={!dateRange?.from || !dateRange?.to}
+            className="h-12 min-w-[7.5rem] px-4 text-sm sm:text-base bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
+          >
+            {getUIText('bookNow', language)}
+          </Button>
+        </div>
       </div>
-      {showAskPartner && onAskPartner && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onAskPartner}
-          disabled={askPartnerLoading}
-          className="w-full h-10 border-teal-200 text-teal-800 hover:bg-teal-50"
-        >
-          <MessageCircle className="mr-2 h-4 w-4" />
-          {askPartnerLoading ? getUIText('loading', language) : getUIText('askListingQuestion', language)}
-        </Button>
-      )}
     </div>
   )
 }
