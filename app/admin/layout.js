@@ -128,7 +128,7 @@ export default function AdminLayout({ children }) {
     { href: '/admin/users', icon: Users, label: 'Пользователи', moderatorAccess: false },
     { href: '/admin/marketing', icon: TrendingUp, label: 'Маркетинг', moderatorAccess: false },
     { href: '/admin/security', icon: ShieldAlert, label: 'Безопасность', moderatorAccess: false },
-    { href: '/admin/audit-export', icon: FileDown, label: 'Журнал (CSV)', moderatorAccess: false },
+    { href: '/admin/audit-export', icon: FileDown, label: 'Выгрузки', moderatorAccess: false },
     { href: '/admin/categories', icon: Layers, label: 'Категории', moderatorAccess: true },
     { href: '/admin/settings', icon: Settings, label: 'Настройки', moderatorAccess: false },
     { href: '/admin/test-db', icon: Database, label: 'Test DB', moderatorAccess: true },
