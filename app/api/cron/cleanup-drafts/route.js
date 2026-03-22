@@ -23,48 +23,49 @@ export const dynamic = 'force-dynamic';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
-const STORAGE_BUCKET = 'listings';
+const STORAGE_BUCKETS = ['listing-images', 'listings'];
 
 // Draft expiry in days
 const DRAFT_EXPIRY_DAYS = 30;
 
 /**
- * Delete images from Supabase Storage for a listing
+ * Delete images from Supabase Storage for a listing (per-URL; DB trigger also clears prefix on DELETE).
  */
 async function deleteListingImages(listingId, images) {
   if (!images || images.length === 0) return { deleted: 0, errors: 0 };
-  
+
   let deleted = 0;
   let errors = 0;
-  
+
   for (const imageUrl of images) {
     try {
-      // Extract file path from URL
-      // URL format: {SUPABASE_URL}/storage/v1/object/public/listings/{listingId}/{timestamp}.webp
-      const match = imageUrl.match(/\/storage\/v1\/object\/public\/listings\/(.+)$/);
-      if (!match) continue;
-      
-      const filePath = match[1];
-      
-      const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${filePath}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+      let matched = false;
+      for (const bucket of STORAGE_BUCKETS) {
+        const re = new RegExp(`/storage/v1/object/public/${bucket}/(.+)$`);
+        const match = imageUrl.match(re);
+        if (!match) continue;
+        matched = true;
+        const filePath = match[1].split('?')[0].split('#')[0];
+        const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${filePath}`, {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+          },
+        });
+        if (res.ok) deleted++;
+        else {
+          errors++;
+          console.log(`[CLEANUP] Failed to delete image: ${bucket}/${filePath}`);
         }
-      });
-      
-      if (res.ok) {
-        deleted++;
-      } else {
-        errors++;
-        console.log(`[CLEANUP] Failed to delete image: ${filePath}`);
+        break;
       }
+      if (!matched) errors++;
     } catch (e) {
       errors++;
       console.error(`[CLEANUP] Error deleting image:`, e.message);
     }
   }
-  
+
   return { deleted, errors };
 }
 

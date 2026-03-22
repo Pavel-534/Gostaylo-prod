@@ -12,42 +12,39 @@ import { revalidateListingPaths } from '@/lib/revalidation';
 import PricingService from '@/lib/services/pricing.service';
 import { toStorageProxyUrl } from '@/lib/supabase-proxy-urls';
 
-const STORAGE_BUCKET = 'listings';
+const STORAGE_BUCKETS = ['listing-images', 'listings'];
 
 /**
- * Delete files from Supabase Storage for a listing
+ * Delete files from Supabase Storage for a listing (best-effort; DB trigger also wipes prefix).
  */
 async function cleanupListingStorage(listingId, images) {
   if (!images || images.length === 0) return;
-  
+
   try {
-    // Extract file paths from URLs
-    // URLs look like: https://xxx.supabase.co/storage/v1/object/public/listings/lst-xxx/123456.jpg
-    const filePaths = images
-      .filter(url => url && url.includes(`/storage/v1/object/public/${STORAGE_BUCKET}/`))
-      .map(url => {
-        const match = url.match(new RegExp(`/${STORAGE_BUCKET}/(.+)$`));
-        return match ? match[1] : null;
-      })
-      .filter(Boolean);
-    
-    if (filePaths.length > 0) {
-      console.log(`[STORAGE CLEANUP] Deleting ${filePaths.length} files for listing ${listingId}`);
-      
-      const { error } = await supabaseAdmin
-        .storage
-        .from(STORAGE_BUCKET)
-        .remove(filePaths);
-      
+    const byBucket = { 'listing-images': [], listings: [] };
+    for (const url of images) {
+      if (!url || typeof url !== 'string') continue;
+      for (const bucket of STORAGE_BUCKETS) {
+        const marker = `/storage/v1/object/public/${bucket}/`;
+        if (!url.includes(marker)) continue;
+        const after = url.split(marker)[1];
+        const pathOnly = after?.split('?')[0]?.split('#')[0];
+        if (pathOnly) byBucket[bucket].push(pathOnly);
+        break;
+      }
+    }
+
+    for (const bucket of STORAGE_BUCKETS) {
+      const paths = [...new Set(byBucket[bucket])];
+      if (paths.length === 0) continue;
+      console.log(`[STORAGE CLEANUP] Deleting ${paths.length} files in ${bucket} for listing ${listingId}`);
+      const { error } = await supabaseAdmin.storage.from(bucket).remove(paths);
       if (error) {
-        console.error('[STORAGE CLEANUP ERROR]', error);
-      } else {
-        console.log(`[STORAGE CLEANUP] Successfully deleted files for ${listingId}`);
+        console.error('[STORAGE CLEANUP ERROR]', bucket, error);
       }
     }
   } catch (e) {
     console.error('[STORAGE CLEANUP ERROR]', e);
-    // Don't throw - listing deletion should still proceed
   }
 }
 
