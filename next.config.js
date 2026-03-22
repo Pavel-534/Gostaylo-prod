@@ -13,6 +13,14 @@ function supabaseHostname() {
 
 const host = supabaseHostname()
 
+/** Next/Image: листинги и OG могут ссылаться на оба прод-домена */
+const SITE_IMAGE_HOSTS = [
+  'www.gostaylo.com',
+  'gostaylo.com',
+  'www.gostaylo.ru',
+  'gostaylo.ru',
+]
+
 const nextConfig = {
   images: {
     // Оптимизация Vercel / Next Image: WebP/AVIF, resize
@@ -25,6 +33,11 @@ const nextConfig = {
         hostname: 'images.unsplash.com',
         pathname: '/**',
       },
+      ...SITE_IMAGE_HOSTS.map((hostname) => ({
+        protocol: 'https',
+        hostname,
+        pathname: '/**',
+      })),
       ...(host
         ? [
             {
@@ -35,6 +48,35 @@ const nextConfig = {
           ]
         : []),
     ],
+  },
+
+  /**
+   * Явно разрешаем оба домена (на случай внешнего CSP-прокси).
+   * 'self' покрывает текущий хост; домены — для кросс-ссылок и редиректов.
+   */
+  async headers() {
+    const siteOrigins = SITE_IMAGE_HOSTS.map((h) => `https://${h}`).join(' ')
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${siteOrigins}`,
+              `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com ${siteOrigins}`,
+              "font-src 'self' data: https://fonts.gstatic.com",
+              "img-src 'self' data: blob: https:",
+              "connect-src 'self' https: wss:",
+              "frame-src 'self' https:",
+              "worker-src 'self' blob:",
+              "manifest-src 'self'",
+            ].join('; '),
+          },
+        ],
+      },
+    ]
   },
 
   async rewrites() {

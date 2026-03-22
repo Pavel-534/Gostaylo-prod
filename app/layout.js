@@ -7,11 +7,9 @@ import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { MainContent } from '@/components/main-content'
 import { AuthProvider } from '@/contexts/auth-context'
 import { I18nProvider } from '@/contexts/i18n-context'
+import { getRequestSiteUrl } from '@/lib/server-site-url'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
-
-// Base URL for meta tags (falls back to production domain)
-const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
 
 export const viewport = {
   width: 'device-width',
@@ -21,40 +19,44 @@ export const viewport = {
   themeColor: '#0d9488',
 }
 
-export const metadata = {
-  metadataBase: new URL(siteUrl),
-  title: 'Gostaylo - Premium Global Rentals',
-  description: 'Premium villas, yachts, transport and tours worldwide. Book your perfect stay with Gostaylo.',
-  manifest: '/manifest.json',
-  keywords: 'rentals, villas, yachts, phuket, thailand, luxury, vacation, holiday',
-  authors: [{ name: 'Gostaylo' }],
-  openGraph: {
+export async function generateMetadata() {
+  const siteUrl = await getRequestSiteUrl()
+  return {
+    metadataBase: new URL(siteUrl),
     title: 'Gostaylo - Premium Global Rentals',
-    description: 'Premium villas, yachts, transport and tours worldwide. Book your perfect stay.',
-    url: siteUrl,
-    siteName: 'Gostaylo',
-    locale: 'en_US',
-    type: 'website',
-    images: [
-      {
-        url: `${siteUrl}/og-image.png`,
-        width: 1200,
-        height: 630,
-        alt: 'Gostaylo - Premium Global Rentals',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Gostaylo - Premium Global Rentals',
-    description: 'Premium villas, yachts, transport and tours worldwide.',
-    images: [`${siteUrl}/og-image.png`],
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'default',
-    title: 'Gostaylo'
-  },
+    description:
+      'Premium villas, yachts, transport and tours worldwide. Book your perfect stay with Gostaylo.',
+    manifest: '/manifest.json',
+    keywords: 'rentals, villas, yachts, phuket, thailand, luxury, vacation, holiday',
+    authors: [{ name: 'Gostaylo' }],
+    openGraph: {
+      title: 'Gostaylo - Premium Global Rentals',
+      description: 'Premium villas, yachts, transport and tours worldwide. Book your perfect stay.',
+      url: siteUrl,
+      siteName: 'Gostaylo',
+      locale: 'en_US',
+      type: 'website',
+      images: [
+        {
+          url: '/og-image.png',
+          width: 1200,
+          height: 630,
+          alt: 'Gostaylo - Premium Global Rentals',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: 'Gostaylo - Premium Global Rentals',
+      description: 'Premium villas, yachts, transport and tours worldwide.',
+      images: ['/og-image.png'],
+    },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'default',
+      title: 'Gostaylo',
+    },
+  }
 }
 
 export default function RootLayout({ children }) {

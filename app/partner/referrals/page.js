@@ -17,13 +17,15 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-// Base URL for referral links
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
-
 export default function PartnerReferrals() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [siteOrigin, setSiteOrigin] = useState('')
+
+  useEffect(() => {
+    setSiteOrigin(typeof window !== 'undefined' ? window.location.origin : '')
+  }, [])
 
   useEffect(() => {
     loadReferrals()
@@ -49,7 +51,7 @@ export default function PartnerReferrals() {
   }
 
   function shareReferralLink() {
-    const link = `${BASE_URL}?ref=${data?.referralCode}`
+    const link = `${siteOrigin}?ref=${data?.referralCode}`
     navigator.clipboard.writeText(link)
     toast.success('Ссылка скопирована в буфер обмена!')
   }
@@ -152,7 +154,7 @@ export default function PartnerReferrals() {
         <CardContent className="space-y-4">
           <div className="flex gap-2">
             <Input
-              value={`${BASE_URL}?ref=${data?.referralCode}`}
+              value={siteOrigin ? `${siteOrigin}?ref=${data?.referralCode}` : ''}
               readOnly
               className="bg-white/20 border-white/30 text-white placeholder:text-teal-100"
             />

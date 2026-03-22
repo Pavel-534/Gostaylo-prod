@@ -6,8 +6,7 @@
 import { cookies, headers } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getUIText, getLangFromRequest } from '@/lib/translations';
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
+import { getRequestSiteUrl } from '@/lib/server-site-url';
 
 async function getListing(id) {
   const { data, error } = await supabaseAdmin
@@ -27,6 +26,8 @@ function interpolate(template, vars) {
 
 export async function generateMetadata({ params }) {
   const listing = await getListing(params.id);
+  const baseUrl = await getRequestSiteUrl();
+
   if (!listing) {
     return {
       title: 'Listing | Gostaylo',
@@ -48,7 +49,7 @@ export async function generateMetadata({ params }) {
   const metaDesc = interpolate(descTemplate, { title, district });
 
   const imageUrl = listing.cover_image || listing.images?.[0];
-  const ogImage = imageUrl?.startsWith('http') ? imageUrl : imageUrl ? `${BASE_URL}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}` : null;
+  const ogImage = imageUrl?.startsWith('http') ? imageUrl : imageUrl ? `${baseUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}` : null;
 
   return {
     title: metaTitle,
@@ -59,7 +60,7 @@ export async function generateMetadata({ params }) {
       type: 'website',
       ...(ogImage && { images: [{ url: ogImage, width: 1200, height: 630 }] }),
       locale: lang === 'ru' ? 'ru_RU' : lang === 'zh' ? 'zh_CN' : lang === 'th' ? 'th_TH' : 'en_US',
-      url: `${BASE_URL}/listings/${params.id}`
+      url: `${baseUrl}/listings/${params.id}`
     },
     twitter: {
       card: 'summary_large_image',
