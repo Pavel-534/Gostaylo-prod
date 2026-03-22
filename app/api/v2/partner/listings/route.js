@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getUserIdFromSession } from '@/lib/services/session-service';
 import { createListingSchema } from '@/lib/validations/listing';
+import { toStorageProxyUrl } from '@/lib/supabase-proxy-urls';
 
 export async function GET(request) {
   try {
@@ -57,8 +58,8 @@ export async function GET(request) {
       district: l.district,
       basePriceThb: parseFloat(l.base_price_thb) || 0,
       commissionRate: parseFloat(l.commission_rate) || 15,
-      images: l.images || [],
-      coverImage: l.cover_image,
+      images: (l.images || []).map((u) => toStorageProxyUrl(u)).filter(Boolean),
+      coverImage: l.cover_image ? toStorageProxyUrl(l.cover_image) : null,
       available: l.available,
       isFeatured: l.is_featured,
       views: l.views || 0,

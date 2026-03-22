@@ -92,8 +92,6 @@ export default function AdminDashboard() {
 
   const loadDashboardData = async () => {
     try {
-      // Direct Supabase calls (bypass Kubernetes routing)
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
       const headers = {
@@ -102,10 +100,10 @@ export default function AdminDashboard() {
       };
       
       const [profilesRes, listingsRes, bookingsRes, activityRes] = await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id,role`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/listings?select=id,status,base_price_thb,category_id`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/bookings?select=id,status,price_thb,commission_thb`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/activity_log?select=*&order=created_at.desc&limit=8`, { headers })
+        fetch(`/_db/profiles?select=id,role`, { headers }),
+        fetch(`/_db/listings?select=id,status,base_price_thb,category_id`, { headers }),
+        fetch(`/_db/bookings?select=id,status,price_thb,commission_thb`, { headers }),
+        fetch(`/_db/activity_log?select=*&order=created_at.desc&limit=8`, { headers })
       ]);
       
       const profiles = await profilesRes.json();

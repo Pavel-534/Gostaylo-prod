@@ -33,6 +33,7 @@ import {
   Home, Bike, Anchor, Map as MapIcon, DollarSign, 
   ImageIcon, Building, Users, Bed, Bath, Loader2
 } from 'lucide-react'
+import { ProxiedImage } from '@/components/proxied-image'
 import { toast } from 'sonner'
 import { GostayloListingCard } from '@/components/gostaylo-listing-card'
 import { PartnerCalendarEducationCard } from '@/components/partner/PartnerCalendarEducationCard'
@@ -1015,7 +1016,7 @@ export default function PremiumListingWizard() {
               <div className="grid grid-cols-4 gap-4">
                 {formData.images.map((img, idx) => (
                   <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group">
-                    <img src={img} alt={`Upload ${idx + 1}`} className="object-cover w-full h-full" />
+                    <ProxiedImage src={img} alt={`Upload ${idx + 1}`} fill className="object-cover" sizes="25vw" />
                     {idx === 0 && (
                       <Badge className="absolute top-2 left-2 bg-teal-600">Cover</Badge>
                     )}

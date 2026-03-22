@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ProxiedImage } from '@/components/proxied-image'
 import { 
   Calendar, MapPin, Loader2, ArrowLeft, 
   CreditCard, Clock, CheckCircle, XCircle,
@@ -153,7 +154,7 @@ function BookingCard({ booking, onReviewClick }) {
   
   // Handle both 'listing' and 'listings' (Supabase join returns 'listings')
   const listing = booking.listing || booking.listings || {}
-  const listingImage = listing.images?.[0] || listing.cover_image || '/placeholder.jpg'
+  const listingImage = listing.images?.[0] || listing.cover_image || '/placeholder.svg'
   
   // Determine action button
   const getActionButton = () => {
@@ -200,13 +201,15 @@ function BookingCard({ booking, onReviewClick }) {
       <div className="flex flex-col sm:flex-row">
         {/* Image */}
         <div 
-          className="w-full sm:w-48 h-48 sm:h-auto bg-slate-100 flex-shrink-0 cursor-pointer"
+          className="relative w-full sm:w-48 h-48 bg-slate-100 flex-shrink-0 cursor-pointer overflow-hidden"
           onClick={() => router.push(`/listings/${listing.id}`)}
         >
-          <img 
+          <ProxiedImage
             src={listingImage}
             alt={listing.title}
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+            fill
+            className="object-cover hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 640px) 100vw, 192px"
           />
         </div>
         

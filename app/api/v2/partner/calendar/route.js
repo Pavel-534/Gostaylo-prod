@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { addDays, format, parseISO, isSameDay } from 'date-fns'
+import { toStorageProxyUrl } from '@/lib/supabase-proxy-urls'
 
 export const dynamic = 'force-dynamic'
 
@@ -141,7 +142,7 @@ function processCalendarData(listings, bookings, blocks, seasonalPrices, startDa
         id: listing.id,
         title: listing.title,
         district: listing.district,
-        coverImage: listing.cover_image,
+        coverImage: listing.cover_image ? toStorageProxyUrl(listing.cover_image) : null,
         basePriceThb: parseFloat(listing.base_price_thb) || 0,
         commissionRate: parseFloat(listing.commission_rate) || 15
       },

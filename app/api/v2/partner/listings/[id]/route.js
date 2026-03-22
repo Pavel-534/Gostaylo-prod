@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
+import { toStorageProxyUrl } from '@/lib/supabase-proxy-urls';
 
 export const dynamic = 'force-dynamic';
 
@@ -109,12 +110,13 @@ export async function GET(request, context) {
       commissionRate: parseFloat(listing.commission_rate) || 15,
       minBookingDays: listing.min_booking_days ?? 1,
       maxBookingDays: listing.max_booking_days ?? 90,
-      images: listing.images || [],
-      coverImage: listing.cover_image,
+      images: (listing.images || []).map((u) => toStorageProxyUrl(u)).filter(Boolean),
+      coverImage: listing.cover_image ? toStorageProxyUrl(listing.cover_image) : null,
       available: listing.available,
       isFeatured: listing.is_featured,
       views: listing.views || 0,
       metadata: listing.metadata || {},
+      sync_settings: listing.sync_settings || null,
       ownerId: listing.owner_id,
       createdAt: listing.created_at,
       updatedAt: listing.updated_at,
@@ -135,12 +137,13 @@ export async function GET(request, context) {
       district: listing.district,
       basePriceThb: parseFloat(listing.base_price_thb) || 0,
       commissionRate: parseFloat(listing.commission_rate) || 15,
-      images: listing.images || [],
-      coverImage: listing.cover_image,
+      images: (listing.images || []).map((u) => toStorageProxyUrl(u)).filter(Boolean),
+      coverImage: listing.cover_image ? toStorageProxyUrl(listing.cover_image) : null,
       available: listing.available,
       isFeatured: listing.is_featured,
       views: listing.views || 0,
       metadata: listing.metadata || {},
+      sync_settings: listing.sync_settings || null,
       ownerId: listing.owner_id,
       createdAt: listing.created_at,
       updatedAt: listing.updated_at
@@ -238,6 +241,9 @@ export async function PATCH(request, context) {
       ...(existing.metadata || {}),
       ...body.metadata
     };
+  }
+  if (body.sync_settings !== undefined) {
+    updateData.sync_settings = body.sync_settings;
   }
   
   // Update

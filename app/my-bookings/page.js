@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Star, Calendar, MapPin, Loader2, Upload, X, MessageSquare, ArrowLeft } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
+import { ProxiedImage } from '@/components/proxied-image'
 
 export default function MyBookings() {
   const [bookings, setBookings] = useState([])
@@ -25,9 +26,9 @@ export default function MyBookings() {
 
   // Mock photos for testing
   const MOCK_PHOTO_URLS = [
-    'https://images.pexels.com/photos/1172064/pexels-photo-1172064.jpeg',
-    'https://images.pexels.com/photos/1001965/pexels-photo-1001965.jpeg',
-    'https://images.pexels.com/photos/439391/pexels-photo-439391.jpeg',
+    'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?auto=format&fit=crop&w=800&q=80',
   ]
 
   useEffect(() => {
@@ -281,11 +282,13 @@ export default function MyBookings() {
                 </Label>
                 <div className="flex flex-wrap gap-3">
                   {mockPhotos.map((photo, idx) => (
-                    <div key={idx} className="relative group">
-                      <img
+                    <div key={idx} className="relative group w-24 h-24 rounded-lg overflow-hidden">
+                      <ProxiedImage
                         src={photo}
                         alt={`Photo ${idx + 1}`}
-                        className="w-24 h-24 object-cover rounded-lg"
+                        width={96}
+                        height={96}
+                        className="object-cover"
                       />
                       <button
                         type="button"

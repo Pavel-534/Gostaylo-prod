@@ -49,6 +49,7 @@ export function UnifiedSearchBar({
   const [categories, setCategories] = useState([])
   /** Сразу известные города/районы (Пхукет) — без ожидания API; ответ locations подмешивает реальные данные */
   const [locations, setLocations] = useState(getStaticLocationsSeed)
+  const [locationsLoading, setLocationsLoading] = useState(true)
   const [locationDrawerOpen, setLocationDrawerOpen] = useState(false)
   const [guestsDrawerOpen, setGuestsDrawerOpen] = useState(false)
   const [mobileWhereInput, setMobileWhereInput] = useState('')
@@ -70,6 +71,7 @@ export function UnifiedSearchBar({
         if (locRes.success && locRes.data) setLocations(locRes.data)
       })
       .catch(() => {})
+      .finally(() => setLocationsLoading(false))
   }, [])
 
   const whereOptionsFull = useMemo(

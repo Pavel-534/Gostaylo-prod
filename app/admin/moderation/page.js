@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel'
 import { toast } from 'sonner'
+import { ProxiedImage } from '@/components/proxied-image'
 import { 
   CheckCircle, XCircle, Loader2, Building2, User, Clock, 
   AlertTriangle, MapPin, DollarSign, Percent,
@@ -199,10 +200,12 @@ export default function ModerationPage() {
               {/* Image */}
               <div className="relative aspect-[4/3] overflow-hidden">
                 {listing.images?.[0] ? (
-                  <img
+                  <ProxiedImage
                     src={listing.images[0]}
                     alt={listing.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    sizes="(max-width: 768px) 100vw, 33vw"
                   />
                 ) : (
                   <div className="w-full h-full bg-slate-200 flex items-center justify-center">
@@ -263,11 +266,13 @@ export default function ModerationPage() {
                     <CarouselContent>
                       {selectedListing.images.map((img, idx) => (
                         <CarouselItem key={idx}>
-                          <div className="aspect-[16/10] md:aspect-[16/9]">
-                            <img
+                          <div className="relative aspect-[16/10] md:aspect-[16/9]">
+                            <ProxiedImage
                               src={img}
                               alt={`Фото ${idx + 1}`}
-                              className="w-full h-full object-cover"
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 1024px) 100vw, 896px"
                             />
                           </div>
                         </CarouselItem>

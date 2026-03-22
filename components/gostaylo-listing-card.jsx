@@ -74,7 +74,7 @@ export function GostayloListingCard({
         if (img !== actualCoverImage) imgs.push(img)
       })
     }
-    return imgs.length > 0 ? imgs : ['/placeholder.jpg']
+    return imgs.length > 0 ? imgs : ['/placeholder.svg']
   }, [actualCoverImage, images])
 
   // Build detail page URL

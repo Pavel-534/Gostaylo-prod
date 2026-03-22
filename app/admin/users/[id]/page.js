@@ -16,6 +16,7 @@ import {
   LogIn, ExternalLink, AlertTriangle, Percent, Send
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ProxiedImage } from '@/components/proxied-image';
 
 export default function UserDetailPage() {
   const params = useParams();
@@ -450,10 +451,12 @@ export default function UserDetailPage() {
                         rel="noopener noreferrer"
                         className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                       >
-                        <img 
+                        <ProxiedImage 
                           src={kycDocs[0].document_url} 
                           alt="Документ"
-                          className="w-24 h-16 object-cover"
+                          width={96}
+                          height={64}
+                          className="object-cover"
                         />
                       </a>
                     )}
@@ -464,10 +467,12 @@ export default function UserDetailPage() {
                         rel="noopener noreferrer"
                         className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                       >
-                        <img 
+                        <ProxiedImage 
                           src={kycDocs[0].selfie_url} 
                           alt="Селфи"
-                          className="w-24 h-16 object-cover"
+                          width={96}
+                          height={64}
+                          className="object-cover"
                         />
                       </a>
                     )}
@@ -478,10 +483,12 @@ export default function UserDetailPage() {
                         rel="noopener noreferrer"
                         className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                       >
-                        <img 
+                        <ProxiedImage 
                           src={user.verificationDocUrl} 
                           alt="Документ"
-                          className="w-24 h-16 object-cover"
+                          width={96}
+                          height={64}
+                          className="object-cover"
                         />
                       </a>
                     )}
@@ -640,10 +647,12 @@ export default function UserDetailPage() {
                             target="_blank"
                             className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                           >
-                            <img 
+                            <ProxiedImage 
                               src={doc.document_url} 
                               alt="Документ"
-                              className="w-40 h-28 object-cover"
+                              width={160}
+                              height={112}
+                              className="object-cover"
                             />
                             <p className="text-xs text-center py-1 bg-gray-100">Документ</p>
                           </a>
@@ -654,10 +663,12 @@ export default function UserDetailPage() {
                             target="_blank"
                             className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                           >
-                            <img 
+                            <ProxiedImage 
                               src={doc.selfie_url} 
                               alt="Селфи"
-                              className="w-40 h-28 object-cover"
+                              width={160}
+                              height={112}
+                              className="object-cover"
                             />
                             <p className="text-xs text-center py-1 bg-gray-100">Селфи</p>
                           </a>
@@ -675,7 +686,7 @@ export default function UserDetailPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Image className="w-5 h-5 text-blue-600" />
+                  <ImageIcon className="w-5 h-5 text-blue-600" />
                   Документ верификации (Legacy)
                 </CardTitle>
               </CardHeader>
@@ -685,10 +696,12 @@ export default function UserDetailPage() {
                   target="_blank"
                   className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow w-fit"
                 >
-                  <img 
+                  <ProxiedImage 
                     src={user.verificationDocUrl} 
                     alt="Verification document"
-                    className="max-w-sm h-auto"
+                    width={448}
+                    height={320}
+                    className="max-w-sm h-auto object-contain"
                   />
                 </a>
                 {user.verificationDocType && (

@@ -29,9 +29,6 @@ import {
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
 const PLATFORMS = [
   { value: 'Airbnb', label: 'Airbnb', color: 'bg-red-100 text-red-700 border-red-200' },
   { value: 'Booking.com', label: 'Booking.com', color: 'bg-blue-100 text-blue-700 border-blue-200' },
@@ -118,12 +115,9 @@ export default function CalendarSyncManager({ listingId, onSync }) {
 
   async function loadSyncSettings() {
     try {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}&select=sync_settings,metadata`,
-        { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
-      )
-      const data = await res.json()
-      const listing = data?.[0]
+      const res = await fetch(`/api/v2/partner/listings/${listingId}`, { credentials: 'include' })
+      const json = await res.json()
+      const listing = json?.success ? (json.data || json.listing) : null
 
       if (listing) {
         let settings = listing.sync_settings || {}
@@ -175,17 +169,11 @@ export default function CalendarSyncManager({ listingId, onSync }) {
   async function saveSyncSettings(newSettings, { silent = false } = {}) {
     setSaving(true)
     try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/listings?id=eq.${listingId}`, {
+      const res = await fetch(`/api/v2/partner/listings/${listingId}`, {
         method: 'PATCH',
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sync_settings: newSettings,
-          updated_at: new Date().toISOString(),
-        }),
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sync_settings: newSettings }),
       })
 
       if (res.ok) {

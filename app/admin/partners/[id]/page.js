@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import Link from 'next/link'
+import { ProxiedImage } from '@/components/proxied-image'
 
 export default function PartnerApplicationDetailPage() {
   const router = useRouter()
@@ -312,15 +313,14 @@ export default function PartnerApplicationDetailPage() {
                     rel="noopener noreferrer"
                     className="block group"
                   >
-                    <div className="relative overflow-hidden rounded-lg border bg-slate-100">
-                      <img 
-                        src={application.verification_doc_url} 
+                    <div className="relative overflow-hidden rounded-lg border bg-slate-100 min-h-[120px] max-h-72">
+                      <ProxiedImage
+                        src={application.verification_doc_url}
                         alt="Verification document"
+                        width={1200}
+                        height={800}
                         className="w-full h-auto max-h-72 object-contain group-hover:scale-105 transition-transform duration-200"
-                        onError={(e) => {
-                          e.target.onerror = null
-                          e.target.src = '/placeholder.jpg'
-                        }}
+                        unoptimized
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
                         <ExternalLink className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />

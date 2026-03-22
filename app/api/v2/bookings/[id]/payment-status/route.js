@@ -5,6 +5,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { toStorageProxyUrl } from '@/lib/supabase-proxy-urls';
 export const dynamic = 'force-dynamic';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -83,7 +84,7 @@ export async function GET(request, { params }) {
           id: listing.id,
           title: listing.title,
           district: listing.district,
-          coverImage: listing.cover_image || listing.images?.[0],
+          coverImage: toStorageProxyUrl(listing.cover_image || listing.images?.[0]),
           basePriceThb: parseFloat(listing.base_price_thb)
         } : null,
         payment

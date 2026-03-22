@@ -51,11 +51,9 @@ export default function CategoriesPage() {
 
   const loadCategories = async () => {
     try {
-      // Direct Supabase call
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/categories?select=*&order=order.asc`, {
+      const res = await fetch(`/_db/categories?select=*&order=order.asc`, {
         headers: {
           'apikey': SUPABASE_KEY,
           'Authorization': `Bearer ${SUPABASE_KEY}`
@@ -83,10 +81,9 @@ export default function CategoriesPage() {
 
   const handleToggle = async (categoryId, currentStatus) => {
     try {
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/categories?id=eq.${categoryId}`, {
+      const res = await fetch(`/_db/categories?id=eq.${categoryId}`, {
         method: 'PATCH',
         headers: {
           'apikey': SUPABASE_KEY,
@@ -112,12 +109,11 @@ export default function CategoriesPage() {
     }
 
     try {
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
       const slug = newCategory.slug || newCategory.name.toLowerCase().replace(/\s+/g, '-');
       
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/categories`, {
+      const res = await fetch(`/_db/categories`, {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_KEY,

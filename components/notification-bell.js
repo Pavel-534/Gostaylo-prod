@@ -1,6 +1,8 @@
 'use client'
 
+import Image from 'next/image'
 import { Bell } from 'lucide-react'
+import { toStorageProxyUrl } from '@/lib/supabase-proxy-urls'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -70,11 +72,15 @@ export function NotificationBell({ userId = 'renter-1', userRole = 'RENTER' }) {
                     className="block p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
                   >
                     <div className="flex items-start gap-3">
-                      <img
-                        src={conv.listing?.images?.[0] || '/placeholder.jpg'}
-                        alt={conv.listing?.title}
-                        className="w-12 h-12 rounded object-cover"
-                      />
+                      <div className="relative w-12 h-12 flex-shrink-0 rounded overflow-hidden">
+                        <Image
+                          src={toStorageProxyUrl(conv.listing?.images?.[0]) || '/placeholder.svg'}
+                          alt={conv.listing?.title || ''}
+                          width={48}
+                          height={48}
+                          className="object-cover"
+                        />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm text-slate-900 truncate">
                           {conv.listing?.title}

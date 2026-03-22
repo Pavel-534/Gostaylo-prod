@@ -71,11 +71,10 @@ export default function SystemControlPage() {
 
   async function loadSystemStatus() {
     try {
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
       // Load maintenance mode
-      const settingsRes = await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.maintenance_mode`, {
+      const settingsRes = await fetch(`/_db/system_settings?key=eq.maintenance_mode`, {
         headers: {
           'apikey': SUPABASE_KEY,
           'Authorization': `Bearer ${SUPABASE_KEY}`
@@ -90,7 +89,7 @@ export default function SystemControlPage() {
       await checkWebhookStatus();
       
       // Load recent activity
-      const activityRes = await fetch(`${SUPABASE_URL}/rest/v1/activity_log?order=created_at.desc&limit=10`, {
+      const activityRes = await fetch(`/_db/activity_log?order=created_at.desc&limit=10`, {
         headers: {
           'apikey': SUPABASE_KEY,
           'Authorization': `Bearer ${SUPABASE_KEY}`
@@ -144,11 +143,10 @@ export default function SystemControlPage() {
 
   async function loadIcalSyncStatus() {
     try {
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
       // Get sync status
-      const statusRes = await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.ical_sync_status`, {
+      const statusRes = await fetch(`/_db/system_settings?key=eq.ical_sync_status`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       const statusData = await statusRes.json();
@@ -157,7 +155,7 @@ export default function SystemControlPage() {
       }
       
       // Get sync settings
-      const settingsRes = await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.ical_sync_settings`, {
+      const settingsRes = await fetch(`/_db/system_settings?key=eq.ical_sync_settings`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       const settingsData = await settingsRes.json();
@@ -194,17 +192,16 @@ export default function SystemControlPage() {
   }
 
   async function handleIcalFrequencyChange(frequency) {
-    const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     
     try {
       // Upsert settings
-      await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.ical_sync_settings`, {
+      await fetch(`/_db/system_settings?key=eq.ical_sync_settings`, {
         method: 'DELETE',
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
       });
       
-      await fetch(`${SUPABASE_URL}/rest/v1/system_settings`, {
+      await fetch(`/_db/system_settings`, {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_KEY,
@@ -226,10 +223,9 @@ export default function SystemControlPage() {
 
   async function handleMaintenanceToggle(enabled) {
     try {
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
-      await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.maintenance_mode`, {
+      await fetch(`/_db/system_settings?key=eq.maintenance_mode`, {
         method: 'DELETE',
         headers: {
           'apikey': SUPABASE_KEY,
@@ -237,7 +233,7 @@ export default function SystemControlPage() {
         }
       });
 
-      await fetch(`${SUPABASE_URL}/rest/v1/system_settings`, {
+      await fetch(`/_db/system_settings`, {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_KEY,
@@ -363,10 +359,9 @@ export default function SystemControlPage() {
 
   async function logActivity(action, details) {
     try {
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
-      await fetch(`${SUPABASE_URL}/rest/v1/activity_log`, {
+      await fetch(`/_db/activity_log`, {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_KEY,

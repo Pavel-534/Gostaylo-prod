@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
 import { revalidateListingPaths } from '@/lib/revalidation';
 import PricingService from '@/lib/services/pricing.service';
+import { toStorageProxyUrl } from '@/lib/supabase-proxy-urls';
 
 const STORAGE_BUCKET = 'listings';
 
@@ -143,8 +144,8 @@ export async function GET(request, context) {
       address: listing.address,
       basePriceThb: parseFloat(listing.base_price_thb),
       commissionRate: dynamicCommissionRate,  // Use calculated rate from PricingService
-      images: listing.images || [],
-      coverImage: listing.cover_image,
+      images: (listing.images || []).map((u) => toStorageProxyUrl(u)).filter(Boolean),
+      coverImage: listing.cover_image ? toStorageProxyUrl(listing.cover_image) : null,
       metadata: listing.metadata || {},
       available: listing.available,
       isFeatured: listing.is_featured,

@@ -10,6 +10,7 @@ import { ru } from 'date-fns/locale'
 import { Home, Anchor, Bike, Car, Lock } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { ProxiedImage } from '@/components/proxied-image'
 
 // Type icons
 const TYPE_ICONS = {
@@ -68,12 +69,14 @@ export function CalendarGrid({
                     style={{ minWidth: '200px', maxWidth: '240px' }}
                   >
                     {/* Thumbnail */}
-                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
+                    <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
                       {item.listing.coverImage ? (
-                        <img 
+                        <ProxiedImage 
                           src={item.listing.coverImage} 
                           alt={item.listing.title}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          sizes="40px"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">

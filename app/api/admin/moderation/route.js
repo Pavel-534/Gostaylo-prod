@@ -5,6 +5,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { toStorageProxyUrl } from '@/lib/supabase-proxy-urls'
 
 export const dynamic = 'force-dynamic'
 
@@ -57,6 +58,8 @@ export async function GET() {
     // Add effective commission to each listing
     const listingsWithCommission = listings.map(listing => ({
       ...listing,
+      images: (listing.images || []).map((u) => toStorageProxyUrl(u)).filter(Boolean),
+      cover_image: listing.cover_image ? toStorageProxyUrl(listing.cover_image) : null,
       effectiveCommission: listing.owner?.custom_commission_rate ?? systemCommission,
       systemCommission
     }))

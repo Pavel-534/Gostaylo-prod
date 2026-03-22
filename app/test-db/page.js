@@ -24,24 +24,21 @@ export default function TestDbPage() {
   async function checkDatabase() {
     setLoading(true);
     try {
-      // Fetch directly from Supabase REST API (bypasses Kubernetes routing)
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
       const headers = {
         'apikey': SUPABASE_KEY,
         'Authorization': `Bearer ${SUPABASE_KEY}`
       };
       
-      // Fetch table counts
       const [profilesRes, categoriesRes, listingsRes, bookingsRes, promoRes, ratesRes, settingsRes] = await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/categories?select=*&order=order.asc`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/listings?select=id`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/bookings?select=id`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/promo_codes?select=id`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/exchange_rates?select=id`, { headers }),
-        fetch(`${SUPABASE_URL}/rest/v1/system_settings?select=id`, { headers })
+        fetch(`/_db/profiles?select=id`, { headers }),
+        fetch(`/_db/categories?select=*&order=order.asc`, { headers }),
+        fetch(`/_db/listings?select=id`, { headers }),
+        fetch(`/_db/bookings?select=id`, { headers }),
+        fetch(`/_db/promo_codes?select=id`, { headers }),
+        fetch(`/_db/exchange_rates?select=id`, { headers }),
+        fetch(`/_db/system_settings?select=id`, { headers })
       ]);
       
       const profiles = await profilesRes.json();
@@ -53,7 +50,7 @@ export default function TestDbPage() {
       const settings = await settingsRes.json();
       
       // Get admin user
-      const adminRes = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.admin-777`, { headers });
+      const adminRes = await fetch(`/_db/profiles?id=eq.admin-777`, { headers });
       const adminData = await adminRes.json();
       const adminUser = adminData[0] ? {
         id: adminData[0].id,
@@ -64,7 +61,7 @@ export default function TestDbPage() {
 
       setDbStatus({
         connected: true,
-        url: SUPABASE_URL,
+        url: '/_db',
         adminUser,
         tableCounts: {
           profiles: profiles.length,

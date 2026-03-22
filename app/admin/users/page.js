@@ -124,10 +124,9 @@ export default function UsersPage() {
 
   const handleRoleChange = async (userId, newRole) => {
     try {
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
+      const res = await fetch(`/_db/profiles?id=eq.${userId}`, {
         method: 'PATCH',
         headers: {
           'apikey': SUPABASE_KEY,
@@ -148,10 +147,9 @@ export default function UsersPage() {
 
   const handleCommissionChange = async (partnerId, customRate) => {
     try {
-      const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${partnerId}`, {
+      const res = await fetch(`/_db/profiles?id=eq.${partnerId}`, {
         method: 'PATCH',
         headers: {
           'apikey': SUPABASE_KEY,

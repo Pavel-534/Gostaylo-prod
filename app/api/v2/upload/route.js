@@ -15,6 +15,18 @@ export const dynamic = 'force-dynamic';
 const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
+const ALLOWED_BUCKETS = ['verification_documents', 'listing-images']
+
+function publicUrlToProxyPath(publicUrl, supabaseProjectUrl) {
+  if (!publicUrl || !supabaseProjectUrl) return publicUrl
+  const base = supabaseProjectUrl.replace(/\/$/, '')
+  const prefix = `${base}/storage/v1/object/public/`
+  if (publicUrl.startsWith(prefix)) {
+    return `/_storage/${publicUrl.slice(prefix.length)}`
+  }
+  return publicUrl
+}
+
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -44,6 +56,12 @@ export async function POST(request) {
     const file = formData.get('file');
     const bucket = formData.get('bucket') || 'verification_documents';
     const folder = formData.get('folder') || auth.userId;
+    const objectPath = formData.get('objectPath');
+    const upsert = formData.get('upsert') === 'true';
+
+    if (!ALLOWED_BUCKETS.includes(bucket)) {
+      return NextResponse.json({ success: false, error: 'Bucket not allowed' }, { status: 400 });
+    }
     
     if (!file) {
       return NextResponse.json({ success: false, error: 'No file provided' }, { status: 400 });
@@ -66,10 +84,11 @@ export async function POST(request) {
       }, { status: 400 });
     }
     
-    // Generate unique filename
     const ext = file.name.split('.').pop();
     const timestamp = Date.now();
-    const filename = `${folder}/${timestamp}.${ext}`;
+    const filename = objectPath && typeof objectPath === 'string'
+      ? objectPath.replace(/^\/+/, '')
+      : `${folder}/${timestamp}.${ext}`;
     
     const supabase = getSupabase();
     
@@ -82,7 +101,7 @@ export async function POST(request) {
       .from(bucket)
       .upload(filename, buffer, {
         contentType: file.type,
-        upsert: false
+        upsert
       });
     
     if (error) {
@@ -96,16 +115,49 @@ export async function POST(request) {
       .getPublicUrl(filename);
     
     console.log(`[UPLOAD] File uploaded: ${filename}`);
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const proxyUrl = publicUrlToProxyPath(urlData.publicUrl, supabaseUrl)
     
     return NextResponse.json({
       success: true,
       path: data.path,
-      url: urlData.publicUrl,
+      url: proxyUrl,
+      publicUrl: urlData.publicUrl,
       filename: filename
     });
     
   } catch (error) {
     console.error('[UPLOAD] Error:', error);
     return NextResponse.json({ success: false, error: 'Upload failed' }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE /api/v2/upload — удалить объект из Storage (service role на сервере)
+ */
+export async function DELETE(request) {
+  const auth = verifyAuth();
+  if (!auth) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const { bucket, path: objectPath } = body;
+    if (!bucket || !objectPath || !ALLOWED_BUCKETS.includes(bucket)) {
+      return NextResponse.json({ success: false, error: 'Invalid bucket or path' }, { status: 400 });
+    }
+
+    const supabase = getSupabase();
+    const { error } = await supabase.storage.from(bucket).remove([objectPath]);
+    if (error) {
+      console.error('[UPLOAD] Delete error:', error);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    console.error('[UPLOAD] Delete:', e);
+    return NextResponse.json({ success: false, error: 'Delete failed' }, { status: 500 });
   }
 }

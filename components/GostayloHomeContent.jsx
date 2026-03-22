@@ -37,6 +37,20 @@ function useDebounce(value, delay) {
 }
 
 // Media query hook
+/** Внешние фото главной: не из Supabase. next/image с оптимизацией тянет CDN с сервера Node — при таймаутах даёт 500; для внешних URL используем unoptimized (грузит браузер). */
+const HERO_BACKGROUND_IMAGE =
+  'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1920&q=80'
+const CATEGORY_CARD_IMAGES = [
+  'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80',
+  'https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?auto=format&fit=crop&w=1200&q=80',
+]
+
+function isAbsoluteHttpUrl(src) {
+  return typeof src === 'string' && (src.startsWith('http://') || src.startsWith('https://'))
+}
+
 function useMediaQuery(query) {
   const getMatches = (q) => typeof window !== 'undefined' ? window.matchMedia(q).matches : false
   const [matches, setMatches] = useState(() => getMatches(query))
@@ -76,6 +90,12 @@ export function GostayloHomeContent() {
   // Live counter
   const [liveCount, setLiveCount] = useState(null)
   const [countLoading, setCountLoading] = useState(false)
+
+  /** Внешние URL (Unsplash / Supabase) не загрузились — показываем локальный placeholder */
+  const [mediaFallback, setMediaFallback] = useState({})
+  const markMediaFailed = useCallback((key) => {
+    setMediaFallback((m) => (m[key] ? m : { ...m, [key]: true }))
+  }, [])
   
   // Debounced values
   const debouncedDateRange = useDebounce(dateRange, 500)
@@ -276,7 +296,7 @@ export function GostayloHomeContent() {
   return (
     <div className='min-h-screen bg-white'>
       {/* Hero Section */}
-      <section className='relative pt-14 min-h-[500px] sm:min-h-[580px] bg-cover bg-center' style={{ backgroundImage: 'url(https://images.pexels.com/photos/33607600/pexels-photo-33607600.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940)' }}>
+      <section className='relative pt-14 min-h-[500px] sm:min-h-[580px] bg-slate-900 bg-cover bg-center' style={{ backgroundImage: `url(${HERO_BACKGROUND_IMAGE})` }}>
         <div className='absolute inset-0 bg-gradient-to-r from-slate-900/80 to-slate-900/40' />
         <div className='relative container mx-auto px-4 min-h-[440px] sm:min-h-[510px] flex flex-col justify-center'>
           <div className='max-w-3xl mx-auto sm:mx-0'>
@@ -316,12 +336,7 @@ export function GostayloHomeContent() {
           <div className='grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4'>
             {categories.map((cat, idx) => {
               const Icon = categoryIcons[cat.slug] || Home
-              const images = [
-                'https://images.pexels.com/photos/33607600/pexels-photo-33607600.jpeg',
-                'https://images.pexels.com/photos/31342032/pexels-photo-31342032.jpeg',
-                'https://images.pexels.com/photos/18277777/pexels-photo-18277777.jpeg',
-                'https://images.unsplash.com/photo-1566735201951-bc1cbeeb2964',
-              ]
+              const cardImage = CATEGORY_CARD_IMAGES[idx % CATEGORY_CARD_IMAGES.length]
               return (
                 <Card key={cat.id} className='group cursor-pointer overflow-hidden hover:shadow-lg transition-all border hover:border-teal-500' onClick={() => {
                   setSelectedCategory(cat.slug)
@@ -335,12 +350,14 @@ export function GostayloHomeContent() {
                 }}>
                   <div className='relative h-28 sm:h-40 overflow-hidden'>
                     <Image
-                      src={images[idx]}
+                      src={mediaFallback[`cat-${cat.id}`] ? '/placeholder.svg' : cardImage}
                       alt={cat.name}
                       fill
+                      unoptimized
                       sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 25vw"
                       priority={idx < 4}
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      onError={() => markMediaFailed(`cat-${cat.id}`)}
                     />
                     <div className='absolute inset-0 bg-gradient-to-t from-slate-900/70 to-transparent' />
                     <div className='absolute bottom-2 left-2 right-2'>
@@ -386,18 +403,21 @@ export function GostayloHomeContent() {
                 if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) listingParams.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
                 if (guests !== '1') listingParams.set('guests', guests)
                 const listingUrl = listingParams.toString() ? `/listings/${listing.id}?${listingParams.toString()}` : `/listings/${listing.id}`
+                const thumbSrc = listing.coverImage || listing.images?.[0] || '/placeholder.svg'
                 
                 return (
                   <Link key={listing.id} href={listingUrl}>
                     <Card className='group h-full flex flex-col overflow-hidden hover:shadow-lg transition-all border hover:border-teal-400 bg-white'>
                       <div className='relative h-40 sm:h-44 overflow-hidden flex-shrink-0'>
                         <Image
-                          src={listing.images?.[0] || '/placeholder.jpg'}
+                          src={mediaFallback[`lst-${listing.id}`] ? '/placeholder.svg' : thumbSrc}
                           alt={listing.title}
                           fill
+                          unoptimized={isAbsoluteHttpUrl(thumbSrc)}
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                           priority={idx < 4}
                           className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={() => markMediaFailed(`lst-${listing.id}`)}
                         />
                         {listing.isFeatured && <Badge className='absolute top-2 left-2 bg-gradient-to-r from-purple-600 to-pink-600'>⭐ TOP</Badge>}
                         {listing.rating > 0 && <Badge className='absolute top-2 right-2 bg-teal-600'>⭐ {listing.rating}</Badge>}

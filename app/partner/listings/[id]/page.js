@@ -21,8 +21,7 @@ import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
+import { ProxiedImage } from '@/components/proxied-image'
 
 export default function EditListing({ params }) {
   const router = useRouter()
@@ -266,7 +265,7 @@ export default function EditListing({ params }) {
     const imageUrl = formData.images[index]
     
     // Try to delete from Supabase Storage if it's a storage URL
-    if (typeof imageUrl === 'string' && imageUrl.includes('supabase.co/storage')) {
+    if (typeof imageUrl === 'string' && (imageUrl.includes('/listing-images/') || imageUrl.includes('supabase.co/storage'))) {
       try {
         const { deleteFromStorage } = await import('@/lib/services/image-upload.service')
         await deleteFromStorage(imageUrl)
@@ -496,10 +495,12 @@ export default function EditListing({ params }) {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {formData.images.map((img, index) => (
                 <div key={index} className="relative group aspect-video rounded-lg overflow-hidden border-2 border-slate-200">
-                  <img
+                  <ProxiedImage
                     src={img}
                     alt={`Image ${index + 1}`}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 50vw, 33vw"
                   />
                   
                   {/* Cover badge */}

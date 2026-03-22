@@ -32,15 +32,15 @@ Located just 5 minutes from Rawai Beach and 15 minutes from Phuket''s best resta
   3,
   90,
   ARRAY[
-    'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg',
-    'https://images.pexels.com/photos/1571468/pexels-photo-1571468.jpeg',
-    'https://images.pexels.com/photos/1571467/pexels-photo-1571467.jpeg',
-    'https://images.pexels.com/photos/1643384/pexels-photo-1643384.jpeg',
-    'https://images.pexels.com/photos/1648776/pexels-photo-1648776.jpeg',
-    'https://images.pexels.com/photos/2102587/pexels-photo-2102587.jpeg',
-    'https://images.pexels.com/photos/2119714/pexels-photo-2119714.jpeg'
+    'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80'
   ],
-  'https://images.pexels.com/photos/1571460/pexels-photo-1571460.jpeg',
+  'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80',
   jsonb_build_object(
     'bedrooms', 5,
     'bathrooms', 5,
@@ -92,13 +92,13 @@ Ideal for celebrations, romantic getaways, or family adventures. Catering and be
   1,
   30,
   ARRAY[
-    'https://images.pexels.com/photos/163236/luxury-yacht-boat-speed-water-163236.jpeg',
-    'https://images.pexels.com/photos/261403/pexels-photo-261403.jpeg',
-    'https://images.pexels.com/photos/1659438/pexels-photo-1659438.jpeg',
-    'https://images.pexels.com/photos/2662116/pexels-photo-2662116.jpeg',
-    'https://images.pexels.com/photos/1878293/pexels-photo-1878293.jpeg'
+    'https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1439066615861-d1af74d74000?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1505118380757-91f5f5632de0?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1559827260-dc66d52bef19?auto=format&fit=crop&w=1200&q=80'
   ],
-  'https://images.pexels.com/photos/163236/luxury-yacht-boat-speed-water-163236.jpeg',
+  'https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?auto=format&fit=crop&w=1200&q=80',
   jsonb_build_object(
     'passengers', 12,
     'engine', '2x 450HP Cummins',
@@ -157,13 +157,13 @@ Small group size (max 20 people) ensures personalized experience. Departure 7:30
   1,
   1,
   ARRAY[
-    'https://images.pexels.com/photos/1450353/pexels-photo-1450353.jpeg',
-    'https://images.pexels.com/photos/1007657/pexels-photo-1007657.jpeg',
-    'https://images.pexels.com/photos/1287460/pexels-photo-1287460.jpeg',
-    'https://images.pexels.com/photos/1268855/pexels-photo-1268855.jpeg',
-    'https://images.pexels.com/photos/2166711/pexels-photo-2166711.jpeg'
+    'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1506929562872-bb421503ef21?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1200&q=80'
   ],
-  'https://images.pexels.com/photos/1450353/pexels-photo-1450353.jpeg',
+  'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80',
   jsonb_build_object(
     'duration', '10 hours',
     'max_guests', 20,
@@ -224,13 +224,13 @@ Flexible rental periods from 1 day to 1 month with special discounts for long-te
   1,
   90,
   ARRAY[
-    'https://images.pexels.com/photos/2393816/pexels-photo-2393816.jpeg',
-    'https://images.pexels.com/photos/2393817/pexels-photo-2393817.jpeg',
-    'https://images.pexels.com/photos/1413412/pexels-photo-1413412.jpeg',
-    'https://images.pexels.com/photos/2519370/pexels-photo-2519370.jpeg',
-    'https://images.pexels.com/photos/1421903/pexels-photo-1421903.jpeg'
+    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1609630875171-b1321377ea65?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1568772585407-93651733e49e?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1449426468159-d96dbf08f19f?auto=format&fit=crop&w=1200&q=80',
+    'https://images.unsplash.com/photo-1628527304949-b4cd854cb7d0?auto=format&fit=crop&w=1200&q=80'
   ],
-  'https://images.pexels.com/photos/2393816/pexels-photo-2393816.jpeg',
+  'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1200&q=80',
   jsonb_build_object(
     'vehicle_type', 'Automatic Scooter',
     'model', 'Honda PCX 160',

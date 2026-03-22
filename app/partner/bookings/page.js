@@ -26,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { ProxiedImage } from '@/components/proxied-image'
 import {
   Dialog,
   DialogContent,
@@ -348,12 +349,14 @@ export default function PartnerBookings() {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center gap-3">
                         {/* Listing Image */}
-                        <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
+                        <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
                           {booking.listing?.images?.[0] || booking.listing?.coverImage ? (
-                            <img 
+                            <ProxiedImage
                               src={booking.listing?.images?.[0] || booking.listing?.coverImage}
-                              alt={booking.listing?.title}
-                              className="w-full h-full object-cover"
+                              alt={booking.listing?.title || ''}
+                              fill
+                              className="object-cover"
+                              sizes="56px"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">

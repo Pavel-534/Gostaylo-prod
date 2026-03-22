@@ -19,6 +19,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
+import { ProxiedImage } from '@/components/proxied-image'
 
 /**
  * Partner Listings Page (v2 API)
@@ -480,11 +481,13 @@ export default function PartnerListings() {
                 >
                   <div className='flex p-3 gap-3'>
                     {/* Image */}
-                    <div className='relative w-20 h-20 flex-shrink-0'>
-                      <img
-                        src={listing.images?.[0] || listing.cover_image || '/placeholder.jpg'}
+                    <div className='relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden'>
+                      <ProxiedImage
+                        src={listing.images?.[0] || listing.cover_image || '/placeholder.svg'}
                         alt={listing.title}
-                        className='w-full h-full object-cover rounded-lg'
+                        fill
+                        className='object-cover'
+                        sizes='80px'
                       />
                       {listing.images?.length > 1 && (
                         <span className='absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-1 rounded'>

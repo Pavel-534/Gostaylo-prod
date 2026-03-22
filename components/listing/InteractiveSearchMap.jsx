@@ -19,6 +19,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Star } from 'lucide-react';
 import { getUIText } from '@/lib/translations';
+import { toStorageProxyUrl } from '@/lib/supabase-proxy-urls';
 
 // Fix Leaflet default marker icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -80,7 +81,8 @@ function MapBoundsUpdater({ listings }) {
 
 // Popup Card Component
 function ListingPopupCard({ listing, language = 'ru' }) {
-  const image = listing.images?.[0] || listing.coverImage || '/placeholder-listing.jpg';
+  const raw = listing.images?.[0] || listing.coverImage || '/placeholder.svg';
+  const image = toStorageProxyUrl(raw) || raw;
   const price = listing.basePriceThb || listing.base_price_thb || 0;
   const rating = listing.rating || 0;
   

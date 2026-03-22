@@ -40,8 +40,8 @@ export default function AdminTestDbPage() {
       ]);
 
       setDbStatus({
-        connected: !!statusData.supabaseUrl && !Object.values(statusData.tableCounts).every(v => v === 'error'),
-        url: statusData.supabaseUrl,
+        connected: !!statusData.dataProxyBase && !Object.values(statusData.tableCounts).every(v => v === 'error'),
+        url: statusData.dataProxyBase,
         adminUser: adminUser,
         tableCounts: statusData.tableCounts
       });

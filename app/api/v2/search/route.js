@@ -19,6 +19,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { CalendarService } from '@/lib/services/calendar.service';
 import { rateLimitCheck } from '@/lib/rate-limit';
 import { getDistrictsForCity } from '@/lib/locations/city-district-map';
+import { toStorageProxyUrl } from '@/lib/supabase-proxy-urls';
 
 // Haversine distance in km
 function haversineKm(lat1, lon1, lat2, lon2) {
@@ -282,8 +283,8 @@ export async function GET(request) {
       longitude: (l.longitude ?? l.metadata?.longitude ?? l.metadata?.lng) != null ? parseFloat(l.longitude ?? l.metadata?.longitude ?? l.metadata?.lng) : null,
       basePriceThb: parseFloat(l.base_price_thb),
       commissionRate: parseFloat(l.commission_rate) || 15,
-      images: l.images || [],
-      coverImage: l.cover_image,
+      images: (l.images || []).map((u) => toStorageProxyUrl(u)).filter(Boolean),
+      coverImage: l.cover_image ? toStorageProxyUrl(l.cover_image) : null,
       metadata: l.metadata || {},
       bedrooms: l.metadata?.bedrooms || 0,
       bathrooms: l.metadata?.bathrooms || 0,

@@ -257,7 +257,7 @@ export default function RenterMessages({ params }) {
                   >
                     <div className="flex gap-4">
                       <img
-                        src={conv.listing?.images?.[0] || '/placeholder.jpg'}
+                        src={conv.listing?.images?.[0] || '/placeholder.svg'}
                         alt={conv.listing?.title}
                         className="w-20 h-20 rounded-lg object-cover"
                       />
