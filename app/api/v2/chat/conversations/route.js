@@ -1,11 +1,17 @@
 /**
  * GET /api/v2/chat/conversations
  * Список бесед текущего пользователя; ?listing_category= — фильтр по категории листинга.
+ *
+ * POST /api/v2/chat/conversations
+ * Создание (или возврат) беседы по объявлению: { listingId, partnerId, sendIntro? }
+ * Только для авторизованного пользователя; partnerId должен совпадать с owner_id листинга.
  */
 
 import { NextResponse } from 'next/server'
 import { getSessionPayload } from '@/lib/services/session-service'
-import { isStaffRole } from '@/lib/services/chat/access'
+import { effectiveRoleFromProfile, isStaffRole } from '@/lib/services/chat/access'
+import { getPublicSiteUrl } from '@/lib/site-url.js'
+import { PushService } from '@/lib/services/push.service.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +21,27 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
 const hdr = {
   apikey: SERVICE_KEY,
   Authorization: `Bearer ${SERVICE_KEY}`,
+}
+
+const hdrWrite = {
+  ...hdr,
+  'Content-Type': 'application/json',
+  Prefer: 'return=representation',
+}
+
+async function fetchProfileShort(userId) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,first_name,last_name,role,email`,
+    { headers: hdr, cache: 'no-store' }
+  )
+  const rows = await res.json()
+  return Array.isArray(rows) ? rows[0] : null
+}
+
+function displayNameFromProfile(p) {
+  if (!p) return 'Guest'
+  const n = [p.first_name, p.last_name?.replace(' [MODERATOR]', '')].filter(Boolean).join(' ').trim()
+  return n || p.email || 'User'
 }
 
 function mapConversationRow(c) {
@@ -184,4 +211,158 @@ export async function GET(request) {
     console.error('[chat/conversations]', e)
     return NextResponse.json({ success: false, error: e.message }, { status: 500 })
   }
+}
+
+export async function POST(request) {
+  if (!SUPABASE_URL || !SERVICE_KEY) {
+    return NextResponse.json({ success: false, error: 'Server misconfigured' }, { status: 500 })
+  }
+
+  const session = await getSessionPayload()
+  if (!session?.userId) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const renterUserId = session.userId
+
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  const { listingId, partnerId, sendIntro = true } = body || {}
+  if (!listingId || !partnerId) {
+    return NextResponse.json({ success: false, error: 'listingId and partnerId required' }, { status: 400 })
+  }
+
+  if (String(renterUserId) === String(partnerId)) {
+    return NextResponse.json({ success: false, error: 'Cannot start a chat with yourself' }, { status: 400 })
+  }
+
+  const listRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/listings?id=eq.${encodeURIComponent(listingId)}&select=id,title,owner_id,category_id`,
+    { headers: hdr, cache: 'no-store' }
+  )
+  const listRows = await listRes.json()
+  const listing = Array.isArray(listRows) ? listRows[0] : null
+  if (!listing) {
+    return NextResponse.json({ success: false, error: 'Listing not found' }, { status: 404 })
+  }
+
+  if (String(listing.owner_id) !== String(partnerId)) {
+    return NextResponse.json({ success: false, error: 'partnerId does not match listing owner' }, { status: 403 })
+  }
+
+  const renterProfile = await fetchProfileShort(renterUserId)
+  const partnerProfile = await fetchProfileShort(partnerId)
+  const renterName = displayNameFromProfile(renterProfile)
+  const partnerName = displayNameFromProfile(partnerProfile)
+
+  const existingUrl =
+    `${SUPABASE_URL}/rest/v1/conversations?listing_id=eq.${encodeURIComponent(listingId)}` +
+    `&partner_id=eq.${encodeURIComponent(partnerId)}` +
+    `&renter_id=eq.${encodeURIComponent(renterUserId)}` +
+    '&select=*&limit=1'
+
+  const exRes = await fetch(existingUrl, { headers: hdr, cache: 'no-store' })
+  const exRows = await exRes.json()
+  if (Array.isArray(exRows) && exRows.length > 0) {
+    const row = exRows[0]
+    return NextResponse.json({
+      success: true,
+      data: { id: row.id },
+      existing: true,
+      introSent: false,
+    })
+  }
+
+  const convId = `conv-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+  const now = new Date().toISOString()
+  const listingCategory = listing.category_id != null ? String(listing.category_id) : null
+
+  const conversationRow = {
+    id: convId,
+    listing_id: listingId,
+    listing_category: listingCategory,
+    partner_id: partnerId,
+    partner_name: partnerName,
+    renter_id: renterUserId,
+    renter_name: renterName,
+    type: 'INQUIRY',
+    status: 'OPEN',
+    status_label: 'OPEN',
+    created_at: now,
+    updated_at: now,
+    last_message_at: null,
+  }
+
+  const insRes = await fetch(`${SUPABASE_URL}/rest/v1/conversations`, {
+    method: 'POST',
+    headers: hdrWrite,
+    body: JSON.stringify(conversationRow),
+  })
+
+  const insData = await insRes.json()
+  if (!insRes.ok) {
+    return NextResponse.json(
+      { success: false, error: insData?.message || insData?.hint || 'Could not create conversation', details: insData },
+      { status: 400 }
+    )
+  }
+
+  const created = Array.isArray(insData) ? insData[0] : conversationRow
+  const finalId = created.id || convId
+
+  let introSent = false
+  if (sendIntro) {
+    const listingTitle = listing.title || 'this listing'
+    const introText = `I'm interested in this ${listingTitle}. Could you provide more details?`
+    const msgId = `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+    const msgNow = new Date().toISOString()
+    const accessRole = effectiveRoleFromProfile(renterProfile)
+    const messageData = {
+      id: msgId,
+      conversation_id: finalId,
+      sender_id: renterUserId,
+      sender_role: accessRole,
+      sender_name: renterName,
+      message: introText,
+      content: introText,
+      type: 'text',
+      metadata: { source: 'listing_inquiry' },
+      is_read: false,
+      created_at: msgNow,
+    }
+
+    const msgRes = await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
+      method: 'POST',
+      headers: hdrWrite,
+      body: JSON.stringify(messageData),
+    })
+
+    if (msgRes.ok) {
+      introSent = true
+      await fetch(`${SUPABASE_URL}/rest/v1/conversations?id=eq.${encodeURIComponent(finalId)}`, {
+        method: 'PATCH',
+        headers: hdrWrite,
+        body: JSON.stringify({ updated_at: msgNow, last_message_at: msgNow }),
+      })
+
+      const base = getPublicSiteUrl()
+      const link = `${base}/partner/messages/${encodeURIComponent(finalId)}`
+      PushService.sendToUser(partnerId, 'NEW_MESSAGE', {
+        sender: renterName,
+        link,
+      }).catch((e) => console.error('[chat/conversations] FCM intro', e?.message || e))
+    }
+  }
+
+  return NextResponse.json({
+    success: true,
+    data: { id: finalId },
+    existing: false,
+    introSent,
+  })
 }

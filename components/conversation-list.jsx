@@ -3,6 +3,7 @@
 import * as LucideIcons from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { AlertTriangle, Building2, LayoutGrid, Shield } from 'lucide-react'
+import { getUIText } from '@/lib/translations'
 
 /**
  * Соответствие slug категории из БД → имя экспорта lucide-react (PascalCase).
@@ -56,6 +57,9 @@ export function ConversationList({
   categoryFilter,
   onCategoryChange,
   categories = [],
+  /** Партнёрский сайдбар: под именем гостя — «Вопрос по: [название объекта]». */
+  partnerSidebar = false,
+  sidebarLang = 'ru',
 }) {
   return (
     <div
@@ -164,7 +168,11 @@ export function ConversationList({
                     )}
                   </div>
                   {conv.listing?.title && (
-                    <p className="text-xs text-slate-600 truncate mb-1">{conv.listing.title}</p>
+                    <p className="text-xs text-slate-500 truncate mb-1">
+                      {partnerSidebar
+                        ? `${getUIText('queryAboutListingPrefix', sidebarLang)} ${conv.listing.title}`
+                        : conv.listing.title}
+                    </p>
                   )}
                   <p className="text-xs text-slate-500 truncate flex items-center gap-1">
                     {['rejection', 'REJECTION'].includes(conv.lastMessage?.type) && (

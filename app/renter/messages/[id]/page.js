@@ -19,7 +19,7 @@ import {
 import { StickyChatHeader } from '@/components/sticky-chat-header'
 import { BookingRequestCard, SystemMessage } from '@/components/booking-request-card'
 import { detectUnsafePatterns, SafetyBanner } from '@/components/chat-safety'
-import { InvoiceCard } from '@/components/chat-invoice'
+import { InvoiceBubble } from '@/components/invoice-bubble'
 import { useRealtimeMessages, usePresence, playNotificationSound } from '@/hooks/use-realtime-chat'
 import { formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
@@ -85,7 +85,11 @@ export default function RenterMessages({ params }) {
   )
 
   const { isConnected } = useRealtimeMessages(conversationId, handleNewRealtimeMessage)
-  const { isOnline: partnerOnline } = usePresence(conversationId, renterId)
+  const { isOnline: partnerOnline } = usePresence(
+    conversationId,
+    renterId,
+    selectedConv?.partnerId || selectedConv?.adminId || null
+  )
 
   useEffect(() => {
     if (authLoading) return
@@ -205,6 +209,7 @@ export default function RenterMessages({ params }) {
           conversationId: selectedConv.id,
           content: newMessage.trim(),
           type: 'text',
+          skipPush: !!partnerOnline,
         }),
       })
       const data = await res.json()
@@ -233,14 +238,6 @@ export default function RenterMessages({ params }) {
       if (conversationId) loadMessages(conversationId)
       loadConversations()
     }, 500)
-  }
-
-  function handlePayInvoice(invoice) {
-    if (invoice?.booking_id) {
-      router.push(`/checkout/${invoice.booking_id}`)
-    } else {
-      toast.error('Не удалось найти бронирование для оплаты')
-    }
   }
 
   if (authLoading || loading) {
@@ -341,14 +338,14 @@ export default function RenterMessages({ params }) {
               </Button>
             </div>
 
-            <StickyChatHeader listing={listing} booking={booking} isAdminView={false}>
+            <StickyChatHeader
+              listing={listing}
+              booking={booking}
+              isAdminView={false}
+              contactName={selectedConv?.partnerName || 'Партнёр'}
+              presenceOnline={partnerOnline}
+            >
               <div className="flex flex-col items-end gap-1">
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className={`w-2 h-2 rounded-full ${partnerOnline ? 'bg-green-500' : 'bg-slate-300'}`}
-                  />
-                  <span className="text-xs text-slate-600">{partnerOnline ? 'Online' : 'Offline'}</span>
-                </div>
                 <span
                   className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}
                 >
@@ -399,6 +396,19 @@ export default function RenterMessages({ params }) {
                     )
                   }
 
+                  if (String(msg.type || '').toLowerCase() === 'system') {
+                    return (
+                      <div key={msg.id} className="flex justify-center px-2">
+                        <div className="max-w-lg rounded-xl bg-slate-100 border border-slate-200 px-4 py-2 text-sm text-slate-700 text-center">
+                          {msg.metadata?.system_key === 'passport_request' && (
+                            <p className="text-xs font-semibold text-teal-800 mb-1">Системное сообщение</p>
+                          )}
+                          {msg.message || msg.content}
+                        </div>
+                      </div>
+                    )
+                  }
+
                   if ((msg.sender_role || msg.senderRole) === 'SYSTEM') {
                     return <SystemMessage key={msg.id} message={msg} />
                   }
@@ -411,11 +421,11 @@ export default function RenterMessages({ params }) {
                     const isOwn = msg.sender_id === renterId || msg.senderId === renterId
                     return (
                       <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                        <InvoiceCard
+                        <InvoiceBubble
                           invoice={msg.metadata.invoice}
                           isOwn={isOwn}
+                          showPay={!isOwn}
                           paymentMethod={msg.metadata.invoice.payment_method}
-                          onPay={handlePayInvoice}
                         />
                       </div>
                     )

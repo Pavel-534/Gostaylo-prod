@@ -12,6 +12,7 @@ import {
   canWriteConversation,
   effectiveRoleFromProfile,
   isStaffRole,
+  userParticipatesInConversation,
 } from '@/lib/services/chat/access'
 import { insertAuditLog } from '@/lib/services/audit/insert-audit-log'
 import { normalizeMessageType } from '@/lib/services/chat/message-types'
@@ -147,6 +148,8 @@ export async function POST(request) {
     amount,
     bookingId,
     currency = 'THB',
+    /** true = клиент видит собеседника в Supabase Presence — не шлём FCM */
+    skipPush = false,
   } = body
 
   if (!conversationId) {
@@ -174,14 +177,25 @@ export async function POST(request) {
     'User'
   const senderRole = accessRole
 
-  const type = normalizeMessageType(rawType)
-
-  if (type === 'system' && !['ADMIN', 'MODERATOR'].includes(senderRole)) {
-    return NextResponse.json({ success: false, error: 'Only staff can send system messages' }, { status: 403 })
-  }
+  let type = normalizeMessageType(rawType)
 
   let content = typeof bodyContent === 'string' ? bodyContent : legacyMessage
   let finalMetadata = metadata && typeof metadata === 'object' ? { ...metadata } : {}
+
+  if (type === 'system' && !['ADMIN', 'MODERATOR'].includes(senderRole)) {
+    const allowPartnerPassport =
+      senderRole === 'PARTNER' &&
+      finalMetadata?.system_key === 'passport_request' &&
+      userParticipatesInConversation(userId, conversation)
+    if (!allowPartnerPassport) {
+      return NextResponse.json({ success: false, error: 'Only staff can send system messages' }, { status: 403 })
+    }
+    if (!content || !String(content).trim()) {
+      content =
+        'Пожалуйста, загрузите чёткое фото страницы паспорта для завершения бронирования. Данные обрабатываются конфиденциально.'
+    }
+    finalMetadata = { ...finalMetadata, system_key: 'passport_request' }
+  }
   let invoiceRow = null
 
   if (type === 'image') {
@@ -292,13 +306,21 @@ export async function POST(request) {
     body: JSON.stringify({ updated_at: now, last_message_at: now }),
   })
 
-  if (String(senderRole).toUpperCase() === 'PARTNER' && conversation.renter_id) {
+  if (!skipPush) {
     const base = getPublicSiteUrl()
-    const link = `${base}/renter/messages/${encodeURIComponent(conversationId)}`
-    PushService.sendToUser(conversation.renter_id, 'NEW_MESSAGE', {
-      sender: senderName,
-      link,
-    }).catch((e) => console.error('[chat/messages] FCM', e?.message || e))
+    const cid = encodeURIComponent(conversationId)
+    if (conversation.renter_id && String(userId) === String(conversation.partner_id)) {
+      PushService.sendToUser(conversation.renter_id, 'NEW_MESSAGE', {
+        sender: senderName,
+        link: `${base}/renter/messages/${cid}`,
+      }).catch((e) => console.error('[chat/messages] FCM renter', e?.message || e))
+    }
+    if (conversation.partner_id && String(userId) === String(conversation.renter_id)) {
+      PushService.sendToUser(conversation.partner_id, 'NEW_MESSAGE', {
+        sender: senderName,
+        link: `${base}/partner/messages/${cid}`,
+      }).catch((e) => console.error('[chat/messages] FCM partner', e?.message || e))
+    }
   }
 
   let telegramSent = false

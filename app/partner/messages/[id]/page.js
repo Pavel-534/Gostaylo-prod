@@ -3,28 +3,26 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
-  Send,
   Loader2,
   ArrowLeft,
   Check,
   CheckCheck,
   AlertTriangle,
   MessageSquare,
-  Building2,
   Shield,
   Wifi,
   WifiOff,
-  Receipt,
 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { useRealtimeMessages, usePresence, playNotificationSound } from '@/hooks/use-realtime-chat'
-import { SendInvoiceDialog, InvoiceCard } from '@/components/chat-invoice'
 import { ConversationList } from '@/components/conversation-list'
+import { StickyChatHeader } from '@/components/sticky-chat-header'
+import { PartnerChatComposer } from '@/components/partner-chat-composer'
+import { InvoiceBubble } from '@/components/invoice-bubble'
 
 function apiMessageToRow(m) {
   if (!m) return null
@@ -75,7 +73,13 @@ export default function PartnerMessages({ params }) {
   )
 
   const { isConnected } = useRealtimeMessages(conversationId, handleNewRealtimeMessage)
-  const { isOnline: renterOnline } = usePresence(conversationId, user?.id)
+  const peerParticipantId =
+    selectedConv?.adminId || selectedConv?.renterId || null
+  const { isOnline: peerOnline } = usePresence(
+    conversationId,
+    user?.id,
+    peerParticipantId
+  )
 
   useEffect(() => {
     checkAuth()
@@ -151,6 +155,7 @@ export default function PartnerMessages({ params }) {
 
       setSelectedConv(conv)
       setListing(conv.listing || null)
+      setBooking(conv.booking || null)
 
       const msgRes = await fetch(
         `/api/v2/chat/messages?conversationId=${encodeURIComponent(convId)}`,
@@ -195,6 +200,7 @@ export default function PartnerMessages({ params }) {
           conversationId: selectedConv.id,
           content: newMessage.trim(),
           type: 'text',
+          skipPush: !!peerOnline,
         }),
       })
       const json = await res.json()
@@ -213,6 +219,30 @@ export default function PartnerMessages({ params }) {
     } finally {
       setSending(false)
     }
+  }
+
+  async function handleSendPassportRequest() {
+    if (!selectedConv || !user) return
+    const res = await fetch('/api/v2/chat/messages', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversationId: selectedConv.id,
+        type: 'system',
+        content: '',
+        metadata: { system_key: 'passport_request' },
+        skipPush: !!peerOnline,
+      }),
+    })
+    const json = await res.json()
+    if (!res.ok || !json.success) {
+      throw new Error(json.error || 'Ошибка отправки')
+    }
+    const row = apiMessageToRow(json.data)
+    if (row) setMessages((prev) => [...prev, row])
+    loadConversations()
+    scrollToBottom()
   }
 
   async function handleSendInvoice(invoiceData) {
@@ -313,88 +343,70 @@ export default function PartnerMessages({ params }) {
         categoryFilter={categoryFilter}
         onCategoryChange={setCategoryFilter}
         categories={categories}
+        partnerSidebar
       />
 
       {conversationId && selectedConv ? (
-        <div className="flex-1 flex flex-col">
-          <div className="bg-white border-b p-4">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="lg:hidden"
-                onClick={() => router.push('/partner/messages')}
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="flex items-center gap-2 px-2 pt-2 lg:px-0 lg:pt-0 bg-white border-b lg:border-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden shrink-0"
+              onClick={() => router.push('/partner/messages')}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div className="flex-1 min-w-0">
+              <StickyChatHeader
+                listing={listing}
+                booking={booking}
+                isAdminView={false}
+                contactName={
+                  selectedConv.adminId
+                    ? selectedConv.adminName || 'Поддержка'
+                    : selectedConv.renterName || 'Клиент'
+                }
+                presenceOnline={peerParticipantId ? peerOnline : null}
               >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div className="flex-1">
-                <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-                  {selectedConv.adminId ? (
-                    <>
-                      <Shield className="h-4 w-4 text-indigo-500" />
-                      {selectedConv.adminName || 'Администратор Gostaylo'}
-                    </>
-                  ) : (
-                    <>
-                      {selectedConv.renterName || 'Клиент'}
-                      <span
-                        className={`w-2 h-2 rounded-full ${renterOnline ? 'bg-green-500' : 'bg-slate-300'}`}
-                      />
-                    </>
-                  )}
-                </h3>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-slate-600">{listing?.title || selectedConv.type}</p>
-                  <span
-                    className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}
-                  >
-                    {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-                    {isConnected ? 'Live' : 'Connecting'}
-                  </span>
-                </div>
-              </div>
+                <span
+                  className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}
+                >
+                  {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+                  {isConnected ? 'Live' : '…'}
+                </span>
+              </StickyChatHeader>
             </div>
           </div>
 
-          {listing && (
-            <div className="bg-white border-b p-4">
-              <div className="flex gap-3 p-3 bg-slate-50 rounded-lg">
-                {listing.images?.[0] ? (
-                  <img
-                    src={listing.images[0]}
-                    alt={listing.title}
-                    className="w-16 h-16 rounded-lg object-cover"
-                  />
-                ) : (
-                  <div className="w-16 h-16 bg-slate-200 rounded-lg flex items-center justify-center">
-                    <Building2 className="h-8 w-8 text-slate-400" />
-                  </div>
-                )}
-                <div>
-                  <p className="font-medium text-slate-900">{listing.title}</p>
-                  <p className="text-sm text-slate-600">{listing.district}</p>
-                  <p className="text-sm font-semibold text-teal-600">
-                    {listing.base_price_thb?.toLocaleString()} THB/day
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 min-h-0">
             {messages.map((msg) => {
               const isOwn = msg.sender_id === user?.id
-              const isAdmin = msg.sender_role === 'ADMIN'
+              const isAdmin = msg.sender_role === 'ADMIN' || msg.sender_role === 'MODERATOR'
               const msgType = (msg.type || '').toLowerCase()
               const isRejection = msgType === 'rejection'
               const isInvoice = msgType === 'invoice' || msg.type === 'INVOICE'
 
+              if (msgType === 'system') {
+                return (
+                  <div key={msg.id} className="flex justify-center px-2">
+                    <div className="max-w-lg rounded-xl bg-slate-100 border border-slate-200 px-4 py-2 text-sm text-slate-700 text-center">
+                      {msg.metadata?.system_key === 'passport_request' && (
+                        <p className="text-xs font-semibold text-teal-800 mb-1">Запрос от партнёра</p>
+                      )}
+                      {msg.message ?? msg.content}
+                    </div>
+                  </div>
+                )
+              }
+
               if (isInvoice && msg.metadata?.invoice) {
                 return (
                   <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                    <InvoiceCard
+                    <InvoiceBubble
                       invoice={msg.metadata.invoice}
                       isOwn={isOwn}
+                      showPay={false}
                       paymentMethod={msg.metadata.invoice.payment_method}
                     />
                   </div>
@@ -465,40 +477,17 @@ export default function PartnerMessages({ params }) {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="bg-white border-t p-4">
-            <form onSubmit={sendMessage} className="flex gap-2">
-              <SendInvoiceDialog
-                booking={booking}
-                listing={listing}
-                onSend={handleSendInvoice}
-                trigger={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="flex-shrink-0 border-amber-300 hover:bg-amber-50"
-                    data-testid="send-invoice-btn"
-                  >
-                    <Receipt className="h-4 w-4 text-amber-600" />
-                  </Button>
-                }
-              />
-              <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1"
-                disabled={sending}
-              />
-              <Button
-                type="submit"
-                disabled={!newMessage.trim() || sending}
-                className="bg-teal-600 hover:bg-teal-700 flex-shrink-0"
-              >
-                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              </Button>
-            </form>
-          </div>
+          <PartnerChatComposer
+            newMessage={newMessage}
+            onMessageChange={setNewMessage}
+            onSubmit={sendMessage}
+            sending={sending}
+            disabled={!selectedConv}
+            booking={booking}
+            listing={listing}
+            onSendInvoice={handleSendInvoice}
+            onSendPassportRequest={handleSendPassportRequest}
+          />
         </div>
       ) : (
         <div className="flex-1 hidden lg:flex items-center justify-center bg-slate-50">

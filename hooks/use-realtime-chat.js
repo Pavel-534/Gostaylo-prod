@@ -74,11 +74,9 @@ export function useRealtimeMessages(conversationId, onNewMessage = null) {
             return [...prev, newMessage];
           });
 
-          // Play sound for messages from others
           if (onNewMessage) {
             onNewMessage(newMessage);
           }
-          playNotificationSound();
         }
       )
       .on('presence', { event: 'sync' }, () => {
@@ -113,34 +111,46 @@ export function useRealtimeMessages(conversationId, onNewMessage = null) {
  * @param {string} userId - Current user ID
  * @returns {Object} { onlineUsers, isOnline }
  */
-export function usePresence(conversationId, userId) {
+export function usePresence(conversationId, userId, peerUserId = null) {
   const [onlineUsers, setOnlineUsers] = useState([]);
-  const [isOnline, setIsOnline] = useState(false);
+  /** Собеседник в сети (если передан peerUserId — проверяем его presence) */
+  const [isPeerOnline, setIsPeerOnline] = useState(false);
+
   const channelRef = useRef(null);
 
   useEffect(() => {
     if (!conversationId || !userId) return;
 
-    const channel = supabase
-      .channel(`presence:${conversationId}`)
-      .on('presence', { event: 'sync' }, () => {
-        const state = channel.presenceState();
-        const users = Object.values(state).flat().map(p => p.user_id);
-        setOnlineUsers(users);
-        setIsOnline(users.length > 1); // More than just current user
-      })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        console.log('[PRESENCE] User joined:', newPresences);
-      })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        console.log('[PRESENCE] User left:', leftPresences);
-      })
+    const channel = supabase.channel(`presence:${conversationId}`, {
+      config: {
+        presence: {
+          key: userId,
+        },
+      },
+    });
+
+    const syncPresence = () => {
+      const state = channel.presenceState();
+      const rows = Object.values(state).flat();
+      const ids = rows.map((p) => p.user_id).filter(Boolean);
+      setOnlineUsers(ids);
+
+      if (peerUserId) {
+        setIsPeerOnline(ids.includes(String(peerUserId)));
+      } else {
+        setIsPeerOnline(ids.filter((id) => String(id) !== String(userId)).length > 0);
+      }
+    };
+
+    channel
+      .on('presence', { event: 'sync' }, syncPresence)
+      .on('presence', { event: 'join' }, syncPresence)
+      .on('presence', { event: 'leave' }, syncPresence)
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          // Track current user's presence
           await channel.track({
             user_id: userId,
-            online_at: new Date().toISOString()
+            online_at: new Date().toISOString(),
           });
         }
       });
@@ -152,9 +162,9 @@ export function usePresence(conversationId, userId) {
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [conversationId, userId]);
+  }, [conversationId, userId, peerUserId]);
 
-  return { onlineUsers, isOnline };
+  return { onlineUsers, isOnline: isPeerOnline, isPeerOnline };
 }
 
 /**

@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -19,8 +19,9 @@ import { QRCodeSVG } from 'qrcode.react'
 // Official Gostaylo USDT TRC-20 Wallet Address
 const GOSTAYLO_WALLET = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
 
-export default function CheckoutPage({ params }) {
+function CheckoutPageInner({ params }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(true)
   const [accessDenied, setAccessDenied] = useState(false)
@@ -44,6 +45,12 @@ export default function CheckoutPage({ params }) {
   useEffect(() => {
     loadPaymentStatus()
   }, [params.bookingId])
+
+  useEffect(() => {
+    const pm = searchParams.get('pm')
+    if (pm === 'CRYPTO') setPaymentMethod('CRYPTO')
+    if (pm === 'CARD') setPaymentMethod('CARD')
+  }, [searchParams])
 
   // Ownership check: when auth is ready and booking has renter_id, verify user owns it
   useEffect(() => {
@@ -883,5 +890,19 @@ export default function CheckoutPage({ params }) {
         </Dialog>
       </div>
     </div>
+  )
+}
+
+export default function CheckoutPage({ params }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+          <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
+        </div>
+      }
+    >
+      <CheckoutPageInner params={params} />
+    </Suspense>
   )
 }

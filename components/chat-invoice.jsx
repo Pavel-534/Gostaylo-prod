@@ -150,9 +150,13 @@ export function SendInvoiceDialog({
   booking = null, 
   listing = null,
   onSend,
-  trigger 
+  trigger,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }) {
-  const [open, setOpen] = useState(false)
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
+  const open = controlledOpen !== undefined ? controlledOpen : uncontrolledOpen
+  const setOpen = controlledOnOpenChange || setUncontrolledOpen
   const [sending, setSending] = useState(false)
   const [invoiceData, setInvoiceData] = useState({
     amount: booking?.price_thb || '',
@@ -190,14 +194,16 @@ export function SendInvoiceDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
+      {trigger ? (
+        <DialogTrigger asChild>{trigger}</DialogTrigger>
+      ) : controlledOpen === undefined ? (
+        <DialogTrigger asChild>
           <Button variant="outline" size="sm" className="gap-1">
             <Receipt className="h-4 w-4" />
             Счёт
           </Button>
-        )}
-      </DialogTrigger>
+        </DialogTrigger>
+      ) : null}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

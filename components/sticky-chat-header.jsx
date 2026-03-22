@@ -13,6 +13,10 @@ export function StickyChatHeader({
   listing,
   booking,
   isAdminView = false,
+  /** Имя собеседника (клиент / партнёр) */
+  contactName,
+  /** null — не показывать индикатор; иначе зелёный/серый = online/offline */
+  presenceOnline = null,
   className,
   children,
 }) {
@@ -61,6 +65,20 @@ export function StickyChatHeader({
           <p className="font-semibold text-slate-900 truncate">{title}</p>
           {listing?.district ? (
             <p className="text-xs text-slate-500 truncate">{listing.district}</p>
+          ) : null}
+          {contactName ? (
+            <p className="text-sm font-medium text-slate-800 mt-0.5 flex items-center gap-2">
+              {contactName}
+              {presenceOnline !== null && (
+                <span
+                  className={`inline-block w-2 h-2 rounded-full shrink-0 ${
+                    presenceOnline ? 'bg-emerald-500' : 'bg-slate-300'
+                  }`}
+                  title={presenceOnline ? 'Online' : 'Offline'}
+                  aria-hidden
+                />
+              )}
+            </p>
           ) : null}
           {dateLine}
         </div>

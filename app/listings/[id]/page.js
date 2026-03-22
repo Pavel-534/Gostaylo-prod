@@ -73,6 +73,7 @@ function PremiumListingContent({ params }) {
   const [calendarKey, setCalendarKey] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteLoading, setFavoriteLoading] = useState(false)
+  const [contactPartnerLoading, setContactPartnerLoading] = useState(false)
   
   // Initialize from URL
   useEffect(() => {
@@ -218,6 +219,46 @@ function PremiumListingContent({ params }) {
     }
   }
   
+  const showContactPartner =
+    !!listing?.ownerId && String(user?.id || '') !== String(listing.ownerId)
+
+  async function handleContactPartner() {
+    if (!listing?.ownerId) {
+      toast.error(language === 'ru' ? 'Объявление недоступно' : 'Listing unavailable')
+      return
+    }
+    if (!user) {
+      openLoginModal()
+      return
+    }
+    if (String(user.id) === String(listing.ownerId)) return
+
+    setContactPartnerLoading(true)
+    try {
+      const res = await fetch('/api/v2/chat/conversations', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          listingId: listing.id,
+          partnerId: listing.ownerId,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        toast.error(json.error || (language === 'ru' ? 'Не удалось открыть чат' : 'Could not open chat'))
+        return
+      }
+      const id = json.data?.id
+      if (id) router.push(`/renter/messages/${encodeURIComponent(id)}`)
+    } catch (e) {
+      console.error(e)
+      toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
+    } finally {
+      setContactPartnerLoading(false)
+    }
+  }
+
   async function loadReviews() {
     try {
       const res = await fetch(`/api/v2/reviews?listing_id=${params.id}`)
@@ -371,7 +412,9 @@ function PremiumListingContent({ params }) {
           </div>
         </header>
         
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 lg:pb-8">
+        <main
+          className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:pb-8 ${showContactPartner ? 'pb-32' : 'pb-24'}`}
+        >
           <BentoGallery 
             images={allImages}
             title={listing.title}
@@ -470,6 +513,9 @@ function PremiumListingContent({ params }) {
                 language={language}
                 calendarKey={calendarKey}
                 onBookingClick={() => setBookingModalOpen(true)}
+                showAskPartner={showContactPartner}
+                onAskPartner={handleContactPartner}
+                askPartnerLoading={contactPartnerLoading}
               />
               
               <MobileBookingBar
@@ -480,6 +526,9 @@ function PremiumListingContent({ params }) {
                 exchangeRates={exchangeRates}
                 language={language}
                 onBookingClick={() => setBookingModalOpen(true)}
+                showAskPartner={showContactPartner}
+                onAskPartner={handleContactPartner}
+                askPartnerLoading={contactPartnerLoading}
               />
             </div>
           </div>

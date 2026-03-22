@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { CalendarIcon, Users, Star, ArrowRight } from 'lucide-react'
+import { Users, Star, ArrowRight, MessageCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
@@ -36,7 +36,10 @@ export function DesktopBookingWidget({
   exchangeRates,
   language,
   calendarKey,
-  onBookingClick
+  onBookingClick,
+  onAskPartner,
+  askPartnerLoading = false,
+  showAskPartner = false,
 }) {
   const maxGuests = listing?.metadata?.max_guests || listing?.metadata?.guests || listing?.max_guests || 10
 
@@ -135,6 +138,19 @@ export function DesktopBookingWidget({
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
 
+          {showAskPartner && onAskPartner && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onAskPartner}
+              disabled={askPartnerLoading}
+              className="w-full h-12 text-base border-teal-200 text-teal-800 hover:bg-teal-50"
+            >
+              <MessageCircle className="mr-2 h-4 w-4" />
+              {askPartnerLoading ? getUIText('loading', language) : getUIText('askListingQuestion', language)}
+            </Button>
+          )}
+
           {(!dateRange?.from || !dateRange?.to) && (
             <p className="text-xs text-center text-slate-500">
               {getUIText('selectDatesToBook', language)}
@@ -153,11 +169,14 @@ export function MobileBookingBar({
   exchangeRates,
   language,
   dateRange,
-  onBookingClick
+  onBookingClick,
+  onAskPartner,
+  askPartnerLoading = false,
+  showAskPartner = false,
 }) {
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 shadow-2xl z-40">
-      <div className="flex items-center justify-between gap-4">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 shadow-2xl z-40 space-y-2">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <div className="text-2xl font-bold text-slate-900">
             {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates)}
@@ -171,11 +190,24 @@ export function MobileBookingBar({
         <Button 
           onClick={onBookingClick}
           disabled={!dateRange?.from || !dateRange?.to}
-          className="h-12 px-8 text-base bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
+          className="h-12 px-6 shrink-0 text-base bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
         >
           {getUIText('bookNow', language)}
         </Button>
       </div>
+      {showAskPartner && onAskPartner && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onAskPartner}
+          disabled={askPartnerLoading}
+          className="w-full h-10 border-teal-200 text-teal-800 hover:bg-teal-50"
+        >
+          <MessageCircle className="mr-2 h-4 w-4" />
+          {askPartnerLoading ? getUIText('loading', language) : getUIText('askListingQuestion', language)}
+        </Button>
+      )}
     </div>
   )
 }
