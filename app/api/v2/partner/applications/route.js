@@ -12,10 +12,11 @@ import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getUserIdFromSession } from '@/lib/services/session-service'
+import { getPublicSiteUrl } from '@/lib/site-url.js'
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const TELEGRAM_ADMIN_GROUP_ID = process.env.TELEGRAM_ADMIN_GROUP_ID
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.gostaylo.com'
+const APP_URL = getPublicSiteUrl()
 
 // Topic: NEW_PARTNERS (thread 17) — заявки на партнёрство
 const TOPIC_NEW_PARTNERS = 17

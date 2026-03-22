@@ -6,6 +6,7 @@
 
 import { NextResponse } from 'next/server'
 import { toStorageProxyUrl } from '@/lib/supabase-proxy-urls'
+import { getPublicSiteUrl } from '@/lib/site-url.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -147,7 +148,7 @@ export async function PATCH(request) {
 
     // Send Telegram notification to partner
     if (listing.owner?.telegram_id) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gostaylo.com'
+      const appUrl = getPublicSiteUrl()
       const partnerMessage = action === 'approve'
         ? `✅ <b>Ваше объявление опубликовано!</b>\n\n📍 <b>${listing.title}</b>\n\n🎉 Теперь его видят арендаторы!\n\n<a href="${appUrl}/listings/${listing.id}">Посмотреть объявление →</a>`
         : `❌ <b>Объявление отклонено</b>\n\n📍 <b>${listing.title}</b>\n\n📝 <b>Причина:</b>\n${rejectReason}\n\n<i>Исправьте замечания и отправьте повторно</i>\n\n<a href="${appUrl}/partner/listings/${listing.id}/edit">✏️ Редактировать объявление →</a>`

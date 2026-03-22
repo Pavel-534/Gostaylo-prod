@@ -9,17 +9,17 @@ import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { generateExportToken } from '@/lib/ical-export-token';
+import { getPublicSiteUrl } from '@/lib/site-url.js';
 
 export const dynamic = 'force-dynamic';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
 
 function getPublicBaseUrl() {
-  const u =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL.replace(/^https?:\/\//, '')}` : null);
-  return (u || 'https://www.gostaylo.com').replace(/\/$/, '');
+  if (process.env.VERCEL_URL && !process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_BASE_URL) {
+    return `https://${process.env.VERCEL_URL.replace(/^https?:\/\//, '')}`.replace(/\/$/, '');
+  }
+  return getPublicSiteUrl();
 }
 
 export async function GET(request, context) {

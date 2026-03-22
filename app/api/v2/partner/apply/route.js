@@ -12,13 +12,14 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
+import { getPublicSiteUrl } from '@/lib/site-url.js';
 
 export const dynamic = 'force-dynamic';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_GROUP_ID = process.env.TELEGRAM_ADMIN_GROUP_ID;
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.gostaylo.com';
+const APP_URL = getPublicSiteUrl();
 
 export async function POST(request) {
   console.log('[PARTNER-APPLY] ====== START ======');
