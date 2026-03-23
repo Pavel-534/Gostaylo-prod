@@ -242,6 +242,7 @@ function PremiumListingContent({ params }) {
         body: JSON.stringify({
           listingId: listing.id,
           partnerId: listing.ownerId,
+          sendIntro: false,
         }),
       })
       const json = await res.json()
@@ -250,7 +251,19 @@ function PremiumListingContent({ params }) {
         return
       }
       const id = json.data?.id
-      if (id) router.push(`/messages/${encodeURIComponent(id)}`)
+      if (id) {
+        const title = listing.title || (language === 'ru' ? 'объект' : 'this listing')
+        const draft =
+          language === 'ru'
+            ? `Здравствуйте! Меня интересует объект «${title}». Пожалуйста, расскажите подробнее о доступности и условиях.`
+            : `I'm interested in "${title}". Could you share more details about availability and conditions?`
+        try {
+          sessionStorage.setItem(`gostaylo_chat_prefill_${id}`, draft)
+        } catch {
+          /* ignore */
+        }
+        router.push(`/messages/${encodeURIComponent(id)}`)
+      }
     } catch (e) {
       console.error(e)
       toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')

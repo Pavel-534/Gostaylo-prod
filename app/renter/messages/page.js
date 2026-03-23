@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Loader2, MessageCircle, Home } from 'lucide-react'
+import { Loader2, MessageCircle, Home, Archive } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -39,6 +40,27 @@ export default function RenterMessagesIndex() {
       cancelled = true
     }
   }, [user?.id, authLoading])
+
+  async function archiveConversation(e, convId) {
+    e.stopPropagation()
+    try {
+      const res = await fetch('/api/v2/chat/conversations/archive', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: convId, archived: true }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        toast.error(json.error || 'Не удалось скрыть диалог')
+        return
+      }
+      setConversations((prev) => prev.filter((c) => c.id !== convId))
+      toast.success('Диалог скрыт из списка')
+    } catch {
+      toast.error('Ошибка сети')
+    }
+  }
 
   if (authLoading || loading) {
     return (
@@ -127,9 +149,22 @@ export default function RenterMessagesIndex() {
                           <h3 className="font-semibold text-slate-900 line-clamp-2 leading-snug">
                             {conv.listing?.title}
                           </h3>
-                          {unread > 0 && (
-                            <Badge className="bg-red-500 text-white shrink-0">{unread} новых</Badge>
-                          )}
+                          <div className="flex items-center gap-1 shrink-0">
+                            {unread > 0 && (
+                              <Badge className="bg-red-500 text-white">{unread} новых</Badge>
+                            )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-slate-500"
+                              title="Скрыть из списка"
+                              aria-label="Скрыть из списка"
+                              onClick={(e) => archiveConversation(e, conv.id)}
+                            >
+                              <Archive className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                         <p className="text-sm text-slate-600 mb-1 truncate">{conv.listing?.district}</p>
                         <p className="text-sm text-slate-500 line-clamp-2 break-words">

@@ -14,6 +14,7 @@ import {
   Wifi,
   WifiOff,
   Shield,
+  Archive,
 } from 'lucide-react'
 import { StickyChatHeader } from '@/components/sticky-chat-header'
 import { BookingRequestCard, SystemMessage } from '@/components/booking-request-card'
@@ -140,6 +141,20 @@ export default function RenterMessages({ params }) {
       loadMessages(conversationId)
     }
   }, [conversationId, renterId])
+
+  useEffect(() => {
+    if (!conversationId || typeof window === 'undefined') return
+    try {
+      const key = `gostaylo_chat_prefill_${conversationId}`
+      const v = sessionStorage.getItem(key)
+      if (v) {
+        setNewMessage((prev) => (prev.trim() ? prev : v))
+        sessionStorage.removeItem(key)
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [conversationId])
 
   useEffect(() => {
     scrollToBottom()
@@ -337,6 +352,27 @@ export default function RenterMessages({ params }) {
     }, 500)
   }
 
+  async function handleArchiveDialog() {
+    if (!selectedConv?.id) return
+    try {
+      const res = await fetch('/api/v2/chat/conversations/archive', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: selectedConv.id, archived: true }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        toast.error(json.error || 'Не удалось скрыть диалог')
+        return
+      }
+      toast.success('Диалог скрыт из списка')
+      router.push('/renter/messages')
+    } catch {
+      toast.error('Ошибка сети')
+    }
+  }
+
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -376,7 +412,7 @@ export default function RenterMessages({ params }) {
       </div>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {conversations.length === 0 ? (
+        {conversations.length === 0 && !conversationId ? (
           <Card className="p-12">
             <div className="text-center">
               <h3 className="text-xl font-semibold text-slate-900 mb-2">Нет активных диалогов</h3>
@@ -430,10 +466,20 @@ export default function RenterMessages({ params }) {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <Button variant="ghost" onClick={() => router.push('/renter/messages')}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Все диалоги
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-slate-600 border-slate-200"
+                onClick={() => handleArchiveDialog()}
+              >
+                <Archive className="h-4 w-4 mr-1.5" />
+                Скрыть из списка
               </Button>
             </div>
 

@@ -1,6 +1,7 @@
 'use client'
 
-import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { Fragment, Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -149,11 +150,19 @@ export default function AdminMessagesPage() {
     loadConversations()
   }, [me])
 
+  const openFromUrl = searchParams.get('open')
   useEffect(() => {
-    if (selectedConv?.id) {
-      loadMessages(selectedConv.id)
+    if (!openFromUrl || !me) return
+    let cancelled = false
+    ;(async () => {
+      await loadMessages(openFromUrl)
+      if (!cancelled) router.replace('/admin/messages', { scroll: false })
+    })()
+    return () => {
+      cancelled = true
     }
-  }, [selectedConv?.id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load on deep link once per open param
+  }, [openFromUrl, me])
 
   useEffect(() => {
     scrollToBottom()
@@ -423,11 +432,11 @@ export default function AdminMessagesPage() {
                   key={conv.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => setSelectedConv(conv)}
+                  onClick={() => loadMessages(conv.id)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
-                      setSelectedConv(conv)
+                      loadMessages(conv.id)
                     }
                   }}
                   className={`p-4 border-b cursor-pointer transition-colors ${
@@ -505,7 +514,7 @@ export default function AdminMessagesPage() {
                 const dayLabel = chatDayLabel(msg.created_at, language)
 
                 const role = (msg.sender_role || '').toUpperCase()
-                const isOwn = role === 'ADMIN' || role === 'MODERATOR'
+                const isOwn = String(msg.sender_id ?? msg.senderId ?? '') === String(me?.id || '')
                 const msgType = (msg.type || '').toLowerCase()
                 const rawType = String(msg.type || '').toUpperCase()
                 const isRejection = msgType === 'rejection'
@@ -673,5 +682,19 @@ export default function AdminMessagesPage() {
       </Card>
       </div>
     </div>
+  )
+}
+
+export default function AdminMessagesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center h-96">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        </div>
+      }
+    >
+      <AdminMessagesPageContent />
+    </Suspense>
   )
 }

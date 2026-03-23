@@ -22,7 +22,10 @@ const SITE_IMAGE_HOSTS = [
 ]
 
 const nextConfig = {
-  /** CDN: полный URL префикса для /_next. Пусто — текущий хост (см. base href в app/layout.js). */
+  /**
+   * CDN: префикс для /_next. Оставьте пустым за прокси Cloudflare→Vercel (иначе статика уйдёт на другой origin и обойдёт Worker).
+   * Не задавайте NEXT_PUBLIC_ASSET_PREFIX на URL *.vercel.app для продакшена .ru
+   */
   assetPrefix: process.env.NEXT_PUBLIC_ASSET_PREFIX || undefined,
 
   /**
@@ -81,7 +84,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              `script-src 'self' 'unsafe-inline' 'unsafe-eval' ${siteOrigins}`,
+              `script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com ${siteOrigins}`,
               `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com ${siteOrigins}`,
               "font-src 'self' data: https://fonts.gstatic.com",
               "img-src 'self' data: blob: https:",

@@ -60,13 +60,11 @@ export async function generateMetadata() {
 }
 
 export default async function RootLayout({ children }) {
-  const siteUrl = await getRequestSiteUrl()
-  const baseHref = `${siteUrl.replace(/\/$/, '')}/`
-
   return (
     <html lang="en">
       <head>
-        <base href={baseHref} />
+        {/* Относительный base: стили/чанки — пути /_next/... с текущего хоста (Worker → Vercel). Без абсолютного NEXT_PUBLIC_BASE_URL в разметке. */}
+        <base href="/" />
         {/* Минимальная подстраховка, если .css из /_next/static не загрузились (сеть / Edge). */}
         <style
           dangerouslySetInnerHTML={{

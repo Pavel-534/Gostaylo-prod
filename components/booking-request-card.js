@@ -11,7 +11,9 @@ import Link from 'next/link'
 export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingStatus }) {
   const [updating, setUpdating] = useState(false)
   const metadata = message.metadata || {}
-  const { checkIn, checkOut, days, basePrice, serviceFee, totalPrice } = metadata
+  const { checkIn, checkOut, serviceFee, totalPrice } = metadata
+  const days = Math.max(1, Number(metadata.days) || 1)
+  const basePrice = Number(metadata.basePrice) || 0
   const currentStatus = bookingStatus || 'PENDING'
 
   async function handleAccept() {
@@ -98,7 +100,9 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
           <div className="flex justify-between">
             <span className="text-slate-600">Даты:</span>
             <span className="font-medium">
-              {new Date(checkIn).toLocaleDateString('ru-RU')} - {new Date(checkOut).toLocaleDateString('ru-RU')}
+              {checkIn && checkOut
+                ? `${new Date(checkIn).toLocaleDateString('ru-RU')} - ${new Date(checkOut).toLocaleDateString('ru-RU')}`
+                : '—'}
             </span>
           </div>
           <div className="flex justify-between">
@@ -108,7 +112,7 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
         </div>
 
         <PriceBreakdown
-          basePrice={basePrice / days}
+          basePrice={days > 0 ? basePrice / days : basePrice}
           days={days}
           commissionRate={15}
           currency="THB"

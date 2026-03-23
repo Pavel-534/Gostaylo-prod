@@ -44,6 +44,21 @@ function displayNameFromProfile(p) {
   return n || p.email || 'User'
 }
 
+function normalizeListingRow(L) {
+  if (!L) return null
+  let images = L.images
+  if (typeof images === 'string') {
+    try {
+      const p = JSON.parse(images)
+      images = Array.isArray(p) ? p : []
+    } catch {
+      images = []
+    }
+  }
+  if (!Array.isArray(images)) images = []
+  return { ...L, images }
+}
+
 function mapConversationRow(c) {
   return {
     id: c.id,
@@ -79,7 +94,7 @@ async function enrichConversationRows(rows, viewerUserId) {
     )
     const list = await lr.json()
     if (Array.isArray(list)) {
-      for (const L of list) listingsById[L.id] = L
+      for (const L of list) listingsById[L.id] = normalizeListingRow(L)
     }
   }
 
@@ -197,7 +212,14 @@ export async function GET(request) {
       )
     }
 
-    const rows = Array.isArray(data) ? data : []
+    let rows = Array.isArray(data) ? data : []
+
+    if (!staff) {
+      rows = rows.filter((c) => {
+        if (c.renter_archived_at && String(c.renter_id) === String(userId)) return false
+        return true
+      })
+    }
 
     const payload = enrich
       ? await enrichConversationRows(rows, userId)

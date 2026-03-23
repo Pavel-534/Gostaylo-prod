@@ -52,6 +52,17 @@ export function MessageBubble({
   const [translating, setTranslating] = useState(false)
 
   const created = msg.created_at || msg.createdAt
+  let createdRelative = null
+  if (created) {
+    const d = new Date(created)
+    if (!Number.isNaN(d.getTime())) {
+      try {
+        createdRelative = formatDistanceToNow(d, { addSuffix: true, locale: ru })
+      } catch {
+        createdRelative = null
+      }
+    }
+  }
   const meta = msg.metadata || {}
   const rawType = String(msg.type || '').toLowerCase()
   const text = msg.message ?? msg.content ?? ''
@@ -168,11 +179,7 @@ export function MessageBubble({
           {body}
         </div>
         <div className="flex items-center gap-1 mt-1 justify-end">
-          {created && (
-            <span className="text-xs text-slate-500">
-              {formatDistanceToNow(new Date(created), { addSuffix: true, locale: ru })}
-            </span>
-          )}
+          {createdRelative ? <span className="text-xs text-slate-500">{createdRelative}</span> : null}
           <MessageReadTicks
             isOwn={isOwn}
             isRead={msg.is_read ?? msg.isRead}
