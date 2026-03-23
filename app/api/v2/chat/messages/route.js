@@ -337,16 +337,17 @@ export async function POST(request) {
   if (!skipPush) {
     const base = getPublicSiteUrl()
     const cid = encodeURIComponent(conversationId)
+    const msgDeepLink = `${base}/messages/${cid}`
     if (conversation.renter_id && String(userId) === String(conversation.partner_id)) {
       PushService.sendToUser(conversation.renter_id, 'NEW_MESSAGE', {
         sender: senderName,
-        link: `${base}/renter/messages/${cid}`,
+        link: msgDeepLink,
       }).catch((e) => console.error('[chat/messages] FCM renter', e?.message || e))
     }
     if (conversation.partner_id && String(userId) === String(conversation.renter_id)) {
       PushService.sendToUser(conversation.partner_id, 'NEW_MESSAGE', {
         sender: senderName,
-        link: `${base}/partner/messages/${cid}`,
+        link: msgDeepLink,
       }).catch((e) => console.error('[chat/messages] FCM partner', e?.message || e))
     }
   }

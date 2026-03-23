@@ -23,7 +23,6 @@ import {
 import { toast } from 'sonner'
 import { StickyChatHeader } from '@/components/sticky-chat-header'
 import { MessageBubble } from '@/components/message-bubble'
-import { ChatTypingBar } from '@/components/chat-typing-bar'
 import { ChatDateSeparator } from '@/components/chat-date-separator'
 import { InvoiceBubble } from '@/components/invoice-bubble'
 import { useI18n } from '@/contexts/i18n-context'
@@ -119,6 +118,11 @@ export default function AdminMessagesPage() {
     me?.id,
     staffTypingName
   )
+
+  const headerTypingLine = useMemo(() => {
+    if (!peerTypingName) return null
+    return language === 'ru' ? `${peerTypingName} печатает…` : `${peerTypingName} is typing…`
+  }, [peerTypingName, language])
 
   useEffect(() => {
     ;(async () => {
@@ -482,6 +486,9 @@ export default function AdminMessagesPage() {
               booking={booking}
               isAdminView
               className="rounded-t-lg"
+              presenceOnline={peerOnline}
+              typingIndicator={headerTypingLine}
+              typingGateWithPresence
             >
               <span
                 className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}
@@ -490,8 +497,6 @@ export default function AdminMessagesPage() {
                 {isConnected ? 'Live' : '…'}
               </span>
             </StickyChatHeader>
-
-            <ChatTypingBar name={peerTypingName} />
 
             <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 min-h-0">
               {messages.map((msg, idx) => {

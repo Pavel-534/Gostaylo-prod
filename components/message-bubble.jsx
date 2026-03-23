@@ -9,12 +9,22 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
-export function MessageReadTicks({ isOwn, isRead, className }) {
+/**
+ * @param {'light' | 'dark'} bubbleTone — dark: «свои» пузыри (teal/indigo фон); light: светлый фон
+ */
+export function MessageReadTicks({ isOwn, isRead, className, bubbleTone = 'light' }) {
   if (!isOwn) return null
+  if (bubbleTone === 'dark') {
+    return isRead ? (
+      <CheckCheck className={cn('h-3.5 w-3.5 shrink-0 text-sky-300', className)} aria-label="Прочитано" />
+    ) : (
+      <Check className={cn('h-3.5 w-3.5 shrink-0 text-slate-300', className)} aria-label="Отправлено" />
+    )
+  }
   return isRead ? (
-    <CheckCheck className={cn('h-3.5 w-3.5 shrink-0 text-sky-200', className)} aria-label="Прочитано" />
+    <CheckCheck className={cn('h-3.5 w-3.5 shrink-0 text-blue-600', className)} aria-label="Прочитано" />
   ) : (
-    <Check className={cn('h-3.5 w-3.5 shrink-0 text-slate-300', className)} aria-label="Доставлено" />
+    <Check className={cn('h-3.5 w-3.5 shrink-0 text-slate-400', className)} aria-label="Отправлено" />
   )
 }
 
@@ -163,7 +173,12 @@ export function MessageBubble({
               {formatDistanceToNow(new Date(created), { addSuffix: true, locale: ru })}
             </span>
           )}
-          <MessageReadTicks isOwn={isOwn} isRead={msg.is_read ?? msg.isRead} className={ticksClassName} />
+          <MessageReadTicks
+            isOwn={isOwn}
+            isRead={msg.is_read ?? msg.isRead}
+            bubbleTone={tickTone}
+            className={ticksClassName}
+          />
         </div>
         {canTranslate ? (
           <div className={cn('mt-1 w-full', isOwn ? 'flex justify-end' : 'flex justify-start')}>

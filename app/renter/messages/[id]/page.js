@@ -20,7 +20,6 @@ import { BookingRequestCard, SystemMessage } from '@/components/booking-request-
 import { detectUnsafePatterns, SafetyBanner } from '@/components/chat-safety'
 import { InvoiceBubble } from '@/components/invoice-bubble'
 import { MessageBubble } from '@/components/message-bubble'
-import { ChatTypingBar } from '@/components/chat-typing-bar'
 import { ChatDateSeparator } from '@/components/chat-date-separator'
 import { uploadChatFile } from '@/lib/chat-upload'
 import { useI18n } from '@/contexts/i18n-context'
@@ -121,6 +120,11 @@ export default function RenterMessages({ params }) {
     renterId,
     renterTypingName
   )
+
+  const headerTypingLine = useMemo(() => {
+    if (!peerTypingName) return null
+    return language === 'ru' ? `${peerTypingName} печатает…` : `${peerTypingName} is typing…`
+  }, [peerTypingName, language])
 
   useEffect(() => {
     if (authLoading) return
@@ -439,6 +443,8 @@ export default function RenterMessages({ params }) {
               isAdminView={false}
               contactName={selectedConv?.partnerName || 'Партнёр'}
               presenceOnline={partnerOnline}
+              typingIndicator={headerTypingLine}
+              typingGateWithPresence
               onSupportClick={handleRequestSupport}
               supportLoading={supportLoading}
               supportPriorityActive={!!selectedConv?.isPriority}
@@ -454,8 +460,6 @@ export default function RenterMessages({ params }) {
                 </span>
               </div>
             </StickyChatHeader>
-
-            <ChatTypingBar name={peerTypingName} />
 
             {bookingStatus === 'PAID' &&
               String(listing?.category_id ?? listing?.categoryId) !== '2' && (

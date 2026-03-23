@@ -353,7 +353,7 @@ export async function POST(request) {
       })
 
       const base = getPublicSiteUrl()
-      const link = `${base}/partner/messages/${encodeURIComponent(finalId)}`
+      const link = `${base}/messages/${encodeURIComponent(finalId)}`
       PushService.sendToUser(partnerId, 'NEW_MESSAGE', {
         sender: renterName,
         link,

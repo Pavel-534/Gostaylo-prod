@@ -26,6 +26,9 @@ export function StickyChatHeader({
   supportDoneLabel = 'Запрос отправлен',
   /** Только партнёр: PENDING-бронь — подтвердить / отклонить */
   partnerBookingActions = null,
+  /** Текст «печатает…» (связка с useChatTyping; при typingGateWithPresence показываем только если собеседник online по usePresence) */
+  typingIndicator = null,
+  typingGateWithPresence = true,
   className,
   children,
 }) {
@@ -87,6 +90,12 @@ export function StickyChatHeader({
                   aria-hidden
                 />
               )}
+            </p>
+          ) : null}
+          {typingIndicator &&
+          (!typingGateWithPresence || presenceOnline !== false) ? (
+            <p className="text-xs text-teal-600 mt-1 truncate animate-pulse" aria-live="polite">
+              {typingIndicator}
             </p>
           ) : null}
           {dateLine}

@@ -25,6 +25,20 @@ const nextConfig = {
   /** CDN: полный URL префикса для /_next. Пусто — текущий хост (см. base href в app/layout.js). */
   assetPrefix: process.env.NEXT_PUBLIC_ASSET_PREFIX || undefined,
 
+  /**
+   * Инлайн критических стилей в HTML (Critters). Помогает при сбоях загрузки отдельных .css на Edge/WAF.
+   * Требует devDependency `critters` (npm install).
+   */
+  experimental: {
+    optimizeCss: true,
+  },
+
+  /** Сброс кэша путей _next на новом деплое (Vercel / ручной билд). */
+  generateBuildId: async () =>
+    process.env.VERCEL_DEPLOYMENT_ID ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    `build-${Date.now()}`,
+
   images: {
     // Оптимизация Vercel / Next Image: WebP/AVIF, resize
     formats: ['image/avif', 'image/webp'],

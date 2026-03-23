@@ -250,7 +250,7 @@ function PremiumListingContent({ params }) {
         return
       }
       const id = json.data?.id
-      if (id) router.push(`/renter/messages/${encodeURIComponent(id)}`)
+      if (id) router.push(`/messages/${encodeURIComponent(id)}`)
     } catch (e) {
       console.error(e)
       toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')

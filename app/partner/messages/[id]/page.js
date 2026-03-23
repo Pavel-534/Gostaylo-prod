@@ -25,7 +25,6 @@ import { StickyChatHeader } from '@/components/sticky-chat-header'
 import { PartnerChatComposer } from '@/components/partner-chat-composer'
 import { InvoiceBubble } from '@/components/invoice-bubble'
 import { MessageBubble } from '@/components/message-bubble'
-import { ChatTypingBar } from '@/components/chat-typing-bar'
 import { ChatDateSeparator } from '@/components/chat-date-separator'
 import { uploadChatFile } from '@/lib/chat-upload'
 import { useI18n } from '@/contexts/i18n-context'
@@ -113,6 +112,11 @@ export default function PartnerMessages({ params }) {
     user?.id,
     partnerNameForTyping
   )
+
+  const headerTypingLine = useMemo(() => {
+    if (!peerTypingName) return null
+    return language === 'ru' ? `${peerTypingName} печатает…` : `${peerTypingName} is typing…`
+  }, [peerTypingName, language])
 
   useEffect(() => {
     checkAuth()
@@ -525,6 +529,8 @@ export default function PartnerMessages({ params }) {
                     : selectedConv.renterName || 'Клиент'
                 }
                 presenceOnline={peerParticipantId ? peerOnline : null}
+                typingIndicator={headerTypingLine}
+                typingGateWithPresence
                 partnerBookingActions={{
                   visible:
                     !!booking?.id && String(booking.status || '').toUpperCase() === 'PENDING',
@@ -547,8 +553,6 @@ export default function PartnerMessages({ params }) {
               </StickyChatHeader>
             </div>
           </div>
-
-          <ChatTypingBar name={peerTypingName} />
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 min-h-0">
             {messages.map((msg, idx) => {

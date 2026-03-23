@@ -67,6 +67,20 @@ export default async function RootLayout({ children }) {
     <html lang="en">
       <head>
         <base href={baseHref} />
+        {/* Минимальная подстраховка, если .css из /_next/static не загрузились (сеть / Edge). */}
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+:root{color-scheme:light}
+html{line-height:1.5;-webkit-text-size-adjust:100%}
+body{margin:0;background:#f8fafc;color:#0f172a}
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+a{color:#0d9488}
+img,svg,video{max-width:100%;height:auto}
+button{font:inherit}
+`,
+          }}
+        />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <link rel="icon" href="/favicon.ico" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

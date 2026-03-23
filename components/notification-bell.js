@@ -68,7 +68,7 @@ export function NotificationBell({ userId = 'renter-1', userRole = 'RENTER' }) {
                 return (
                   <a
                     key={conv.id}
-                    href={userRole === 'PARTNER' ? `/partner/messages/${conv.id}` : `/renter/messages/${conv.id}`}
+                    href={`/messages/${conv.id}`}
                     className="block p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors"
                   >
                     <div className="flex items-start gap-3">
