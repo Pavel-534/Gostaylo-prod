@@ -51,7 +51,7 @@ function apiMessageToRow(m) {
   }
 }
 
-export default function AdminMessagesPage() {
+function AdminMessagesPageContent() {
   const { language } = useI18n()
   const messagesEndRef = useRef(null)
   const attachFileRef = useRef(null)
