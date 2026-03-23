@@ -1,8 +1,10 @@
 'use client'
 
+import Link from 'next/link'
 import * as LucideIcons from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { AlertTriangle, Building2, LayoutGrid, Shield } from 'lucide-react'
+import { AlertTriangle, Archive, Building2, LayoutGrid, Shield } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 
 /**
@@ -60,6 +62,12 @@ export function ConversationList({
   /** Партнёрский сайдбар: под именем гостя — «Вопрос по: [название объекта]». */
   partnerSidebar = false,
   sidebarLang = 'ru',
+  /** Скрыть диалог у себя в списке (архив); не удаляет историю для собеседника. */
+  onArchiveConversation = null,
+  archiveLabel = 'Скрыть из списка',
+  /** Ссылка на экран архивных диалогов (нагрузка только при переходе). */
+  archivedListHref = null,
+  archivedListLabel = 'Архив',
 }) {
   return (
     <div
@@ -70,6 +78,14 @@ export function ConversationList({
       <div className="p-4 border-b bg-gradient-to-r from-teal-500 to-cyan-500">
         <h2 className="text-xl font-bold text-white">Сообщения</h2>
         <p className="text-teal-100 text-sm">{conversations.length} диалогов</p>
+        {archivedListHref ? (
+          <Link
+            href={archivedListHref}
+            className="text-teal-50 text-xs font-medium underline underline-offset-2 hover:text-white mt-1.5 inline-block"
+          >
+            {archivedListLabel}
+          </Link>
+        ) : null}
       </div>
 
       {categories.length > 0 && (
@@ -163,9 +179,25 @@ export function ConversationList({
                         )}
                       </p>
                     </div>
-                    {unread > 0 && (
-                      <Badge className="bg-red-500 text-white ml-2 shrink-0">{unread}</Badge>
-                    )}
+                    <div className="flex items-center gap-1 ml-2 shrink-0">
+                      {unread > 0 && <Badge className="bg-red-500 text-white">{unread}</Badge>}
+                      {onArchiveConversation ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-slate-500 hover:text-slate-800"
+                          title={archiveLabel}
+                          aria-label={archiveLabel}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onArchiveConversation(conv.id, e)
+                          }}
+                        >
+                          <Archive className="h-4 w-4" />
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
                   {conv.listing?.title && (
                     <p className="text-xs text-slate-500 truncate mb-1">

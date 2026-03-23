@@ -40,7 +40,7 @@ export async function POST(request) {
   }
 
   const fc = await fetch(
-    `${SUPABASE_URL}/rest/v1/conversations?id=eq.${encodeURIComponent(conversationId)}&select=id,renter_id`,
+    `${SUPABASE_URL}/rest/v1/conversations?id=eq.${encodeURIComponent(conversationId)}&select=id,renter_id,partner_id`,
     { headers: hdr, cache: 'no-store' }
   )
   const rows = await fc.json()
@@ -48,11 +48,21 @@ export async function POST(request) {
   if (!row) {
     return NextResponse.json({ success: false, error: 'Conversation not found' }, { status: 404 })
   }
-  if (String(row.renter_id) !== String(session.userId)) {
+
+  const uid = String(session.userId)
+  const isRenter = String(row.renter_id) === uid
+  const isPartner = String(row.partner_id) === uid
+  if (!isRenter && !isPartner) {
     return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
   }
 
-  const patch = archived ? { renter_archived_at: new Date().toISOString() } : { renter_archived_at: null }
+  const nowIso = new Date().toISOString()
+  let patch
+  if (isRenter) {
+    patch = archived ? { renter_archived_at: nowIso } : { renter_archived_at: null }
+  } else {
+    patch = archived ? { partner_archived_at: nowIso } : { partner_archived_at: null }
+  }
   const patchRes = await fetch(
     `${SUPABASE_URL}/rest/v1/conversations?id=eq.${encodeURIComponent(conversationId)}`,
     { method: 'PATCH', headers: hdrWrite, body: JSON.stringify(patch) }
@@ -61,7 +71,11 @@ export async function POST(request) {
   if (!patchRes.ok) {
     const err = await patchRes.text()
     return NextResponse.json(
-      { success: false, error: err || 'Could not update conversation', hint: 'Run migration 007_renter_conversation_archive.sql if column missing' },
+      {
+        success: false,
+        error: err || 'Could not update conversation',
+        hint: 'Run migrations 007_renter_conversation_archive.sql and 008_partner_conversation_archive.sql if columns missing',
+      },
       { status: 400 }
     )
   }

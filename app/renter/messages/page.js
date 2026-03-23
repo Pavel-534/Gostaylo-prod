@@ -103,12 +103,20 @@ export default function RenterMessagesIndex() {
             </div>
             <span className="font-bold text-slate-900">Gostaylo</span>
           </Link>
-          <Button asChild variant="ghost">
-            <Link href="/">
-              <Home className="h-4 w-4 mr-2" />
-              На главную
-            </Link>
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button asChild variant="ghost" size="sm" className="text-slate-700">
+              <Link href="/renter/messages/archived">
+                <Archive className="h-4 w-4 mr-1.5" />
+                Архив
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/">
+                <Home className="h-4 w-4 mr-1.5" />
+                На главную
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 

@@ -178,6 +178,8 @@ export async function GET(request) {
     searchParams.get('enrich') === '1' ||
     searchParams.get('enrich') === 'true'
   const singleId = searchParams.get('id')
+  const archivedOnly =
+    searchParams.get('archived') === 'only' || searchParams.get('archivedOnly') === '1'
 
   let url
   if (staff) {
@@ -215,10 +217,20 @@ export async function GET(request) {
     let rows = Array.isArray(data) ? data : []
 
     if (!staff) {
-      rows = rows.filter((c) => {
-        if (c.renter_archived_at && String(c.renter_id) === String(userId)) return false
-        return true
-      })
+      if (archivedOnly) {
+        rows = rows.filter((c) => {
+          if (String(c.renter_id) === String(userId) && c.renter_archived_at) return true
+          if (String(c.partner_id) === String(userId) && c.partner_archived_at) return true
+          return false
+        })
+      } else if (!singleId) {
+        // Списки inbox: скрыть архив у себя. Запрос по ?id= — оставить (открытие чата по прямой ссылке).
+        rows = rows.filter((c) => {
+          if (c.renter_archived_at && String(c.renter_id) === String(userId)) return false
+          if (c.partner_archived_at && String(c.partner_id) === String(userId)) return false
+          return true
+        })
+      }
     }
 
     const payload = enrich
@@ -228,7 +240,12 @@ export async function GET(request) {
     return NextResponse.json({
       success: true,
       data: payload,
-      meta: { total: rows.length, listingCategory: listingCategory || null, enrich },
+      meta: {
+        total: rows.length,
+        listingCategory: listingCategory || null,
+        enrich,
+        archivedOnly: !!archivedOnly && !staff,
+      },
     })
   } catch (e) {
     console.error('[chat/conversations]', e)

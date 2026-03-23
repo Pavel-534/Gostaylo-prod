@@ -467,10 +467,18 @@ export default function RenterMessages({ params }) {
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <Button variant="ghost" onClick={() => router.push('/renter/messages')}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Все диалоги
-              </Button>
+              <div className="flex items-center gap-3 flex-wrap">
+                <Button variant="ghost" onClick={() => router.push('/renter/messages')}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Все диалоги
+                </Button>
+                <Link
+                  href="/renter/messages/archived"
+                  className="text-sm font-medium text-teal-700 hover:text-teal-900 hover:underline underline-offset-2"
+                >
+                  Архив
+                </Link>
+              </div>
               <Button
                 type="button"
                 variant="outline"

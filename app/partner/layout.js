@@ -99,6 +99,7 @@ const BREADCRUMB_NAMES = {
   'calendar': 'Календарь',
   'bookings': 'Бронирования',
   'messages': 'Сообщения',
+  'archived': 'Архив',
   'finances': 'Финансы',
   'settings': 'Настройки',
   'new': 'Создание',

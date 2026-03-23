@@ -2,6 +2,7 @@
 
 import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
   Loader2,
@@ -11,6 +12,7 @@ import {
   Shield,
   Wifi,
   WifiOff,
+  Archive,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -458,6 +460,34 @@ export default function PartnerMessages({ params }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
+  async function archiveConversationById(convId) {
+    if (!convId) return
+    try {
+      const res = await fetch('/api/v2/chat/conversations/archive', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: convId, archived: true }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        toast.error(
+          json.error || (language === 'ru' ? 'Не удалось скрыть диалог' : 'Could not archive')
+        )
+        return
+      }
+      toast.success(language === 'ru' ? 'Диалог скрыт из списка' : 'Archived')
+      const next = conversations.filter((c) => c.id !== convId)
+      setConversations(next)
+      if (String(conversationId) === String(convId)) {
+        if (next.length) router.push(`/partner/messages/${next[0].id}`)
+        else router.push('/partner/messages')
+      }
+    } catch {
+      toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -486,9 +516,15 @@ export default function PartnerMessages({ params }) {
           <MessageSquare className="h-16 w-16 text-slate-300 mb-4" />
           <div className="text-center">
             <h3 className="text-xl font-semibold text-slate-900 mb-2">Нет сообщений</h3>
-            <p className="text-slate-600">
+            <p className="text-slate-600 mb-4">
               Когда клиенты или администраторы напишут вам, диалоги появятся здесь
             </p>
+            <Link
+              href="/partner/messages/archived"
+              className="text-sm font-medium text-teal-700 hover:text-teal-900 underline underline-offset-2"
+            >
+              Архив скрытых диалогов
+            </Link>
           </div>
         </div>
       </div>
@@ -505,6 +541,12 @@ export default function PartnerMessages({ params }) {
         onCategoryChange={setCategoryFilter}
         categories={categories}
         partnerSidebar
+        onArchiveConversation={(id) => {
+          void archiveConversationById(id)
+        }}
+        archiveLabel={language === 'ru' ? 'Скрыть из списка' : 'Hide from list'}
+        archivedListHref="/partner/messages/archived"
+        archivedListLabel={language === 'ru' ? 'Архив' : 'Archive'}
       />
 
       {conversationId && selectedConv ? (
@@ -517,6 +559,30 @@ export default function PartnerMessages({ params }) {
               onClick={() => router.push('/partner/messages')}
             >
               <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 text-slate-600 border-slate-200 hidden sm:inline-flex"
+              title={language === 'ru' ? 'Скрыть из списка' : 'Hide from list'}
+              onClick={() => void archiveConversationById(selectedConv?.id)}
+            >
+              <Archive className="h-4 w-4 sm:mr-1.5" />
+              <span className="hidden md:inline">
+                {language === 'ru' ? 'В архив' : 'Archive'}
+              </span>
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="shrink-0 sm:hidden text-slate-600"
+              title={language === 'ru' ? 'Скрыть из списка' : 'Hide from list'}
+              aria-label={language === 'ru' ? 'Скрыть из списка' : 'Hide from list'}
+              onClick={() => void archiveConversationById(selectedConv?.id)}
+            >
+              <Archive className="h-5 w-5" />
             </Button>
             <div className="flex-1 min-w-0">
               <StickyChatHeader
