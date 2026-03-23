@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-const ALLOWED_BUCKETS = ['verification_documents', 'listing-images']
+const ALLOWED_BUCKETS = ['verification_documents', 'listing-images', 'chat-attachments']
 
 function publicUrlToProxyPath(publicUrl, supabaseProjectUrl) {
   if (!publicUrl || !supabaseProjectUrl) return publicUrl
@@ -75,13 +75,20 @@ export async function POST(request) {
       }, { status: 400 });
     }
     
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    const isChatBucket = bucket === 'chat-attachments'
+    const allowedTypes = isChatBucket
+      ? ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']
+      : ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Неподдерживаемый формат файла. Используйте JPG, PNG, WebP или PDF' 
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: isChatBucket
+            ? 'Для чата: JPG, PNG, WebP, GIF или PDF'
+            : 'Неподдерживаемый формат файла. Используйте JPG, PNG, WebP или PDF',
+        },
+        { status: 400 }
+      )
     }
     
     const ext = file.name.split('.').pop();

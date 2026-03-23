@@ -1,28 +1,32 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   Loader2,
   ArrowLeft,
-  Check,
-  CheckCheck,
   AlertTriangle,
   MessageSquare,
   Shield,
   Wifi,
   WifiOff,
 } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
-import { ru } from 'date-fns/locale'
 import { toast } from 'sonner'
-import { useRealtimeMessages, usePresence, playNotificationSound } from '@/hooks/use-realtime-chat'
+import {
+  useRealtimeMessages,
+  usePresence,
+  playNotificationSound,
+} from '@/hooks/use-realtime-chat'
+import { useMarkConversationRead } from '@/hooks/use-mark-conversation-read'
+import { useChatTyping } from '@/hooks/use-chat-typing'
 import { ConversationList } from '@/components/conversation-list'
 import { StickyChatHeader } from '@/components/sticky-chat-header'
 import { PartnerChatComposer } from '@/components/partner-chat-composer'
 import { InvoiceBubble } from '@/components/invoice-bubble'
+import { MessageBubble } from '@/components/message-bubble'
+import { ChatTypingBar } from '@/components/chat-typing-bar'
+import { uploadChatFile } from '@/lib/chat-upload'
 
 function apiMessageToRow(m) {
   if (!m) return null
@@ -73,13 +77,36 @@ export default function PartnerMessages({ params }) {
     [user]
   )
 
-  const { isConnected } = useRealtimeMessages(conversationId, handleNewRealtimeMessage)
+  const handleMessageUpdate = useCallback((row) => {
+    setMessages((prev) => prev.map((m) => (m.id === row.id ? { ...m, ...row } : m)))
+  }, [])
+
+  const { isConnected } = useRealtimeMessages(
+    conversationId,
+    handleNewRealtimeMessage,
+    handleMessageUpdate
+  )
   const peerParticipantId =
     selectedConv?.adminId || selectedConv?.renterId || null
   const { isOnline: peerOnline } = usePresence(
     conversationId,
     user?.id,
     peerParticipantId
+  )
+
+  useMarkConversationRead(conversationId, !!(conversationId && user?.id), peerOnline)
+
+  const partnerNameForTyping = useMemo(() => {
+    if (!user) return 'Partner'
+    if (user.name) return user.name
+    const n = [user.first_name, user.last_name].filter(Boolean).join(' ').trim()
+    return n || user.email || 'Partner'
+  }, [user])
+
+  const { peerTypingName, broadcastTyping } = useChatTyping(
+    conversationId,
+    user?.id,
+    partnerNameForTyping
   )
 
   useEffect(() => {
@@ -313,18 +340,38 @@ export default function PartnerMessages({ params }) {
     }
   }
 
-  function scrollToBottom() {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  async function handleAttachFile(file) {
+    if (!selectedConv || !user) return
+    try {
+      const { url } = await uploadChatFile(file, user.id)
+      const isImg = file.type.startsWith('image/')
+      const res = await fetch('/api/v2/chat/messages', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConv.id,
+          type: isImg ? 'image' : 'file',
+          metadata: isImg ? { url } : { file_url: url, file_name: file.name },
+          skipPush: !!peerOnline,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        toast.error(json.error || 'Ошибка отправки')
+        return
+      }
+      const row = apiMessageToRow(json.data)
+      if (row) setMessages((prev) => [...prev, row])
+      loadConversations()
+      scrollToBottom()
+    } catch (error) {
+      toast.error(error?.message || 'Не удалось загрузить файл')
+    }
   }
 
-  function getReadStatus(msg) {
-    if (msg.sender_id !== user?.id) return null
-
-    return msg.is_read ? (
-      <CheckCheck className="h-3 w-3 text-blue-500" />
-    ) : (
-      <Check className="h-3 w-3 text-slate-400" />
-    )
+  function scrollToBottom() {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
   if (loading) {
@@ -414,6 +461,8 @@ export default function PartnerMessages({ params }) {
             </div>
           </div>
 
+          <ChatTypingBar name={peerTypingName} />
+
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 min-h-0">
             {messages.map((msg) => {
               const isOwn = msg.sender_id === user?.id
@@ -448,73 +497,41 @@ export default function PartnerMessages({ params }) {
                 )
               }
 
-              return (
-                <div key={msg.id} className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
-                  <Avatar className="w-8 h-8 flex-shrink-0">
-                    <AvatarFallback
-                      className={
-                        isOwn
-                          ? 'bg-teal-100 text-teal-700'
-                          : isAdmin
-                            ? 'bg-indigo-100 text-indigo-700'
-                            : 'bg-slate-200'
-                      }
-                    >
-                      {isAdmin ? (
+              const isBubble =
+                ['text', 'image', 'file', 'rejection', ''].includes(msgType) || !msg.type
+
+              if (isBubble) {
+                return (
+                  <MessageBubble
+                    key={msg.id}
+                    msg={msg}
+                    isOwn={isOwn}
+                    isAdmin={isAdmin}
+                    isRejection={isRejection}
+                    showSenderName={!isOwn}
+                    senderName={msg.sender_name || 'User'}
+                    avatarFallback={
+                      isAdmin ? (
                         <Shield className="h-4 w-4" />
                       ) : (
                         msg.sender_name?.[0]?.toUpperCase() || 'U'
-                      )}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-md`}>
-                    {!isOwn && (
-                      <span className="text-xs text-slate-500 mb-1 flex items-center gap-1">
-                        {isAdmin && <Shield className="h-3 w-3 text-indigo-500" />}
-                        {msg.sender_name || 'User'}
-                      </span>
-                    )}
-                    <div
-                      className={`px-4 py-2 rounded-2xl ${
-                        isRejection
-                          ? 'bg-red-50 text-red-900 border border-red-200 rounded-tl-none'
-                          : isOwn
-                            ? 'bg-teal-600 text-white rounded-tr-none'
-                            : isAdmin
-                              ? 'bg-indigo-50 text-indigo-900 border border-indigo-200 rounded-tl-none'
-                              : 'bg-white text-slate-900 rounded-tl-none shadow-sm'
-                      }`}
-                    >
-                      {isRejection && (
-                        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-red-200">
-                          <AlertTriangle className="h-4 w-4 text-red-500" />
-                          <span className="font-semibold text-sm">Listing Rejected</span>
-                        </div>
-                      )}
-                      <p className="text-sm whitespace-pre-wrap break-words">
-                        {msg.message ?? msg.content}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      <span className="text-xs text-slate-500">
-                        {msg.created_at &&
-                          formatDistanceToNow(new Date(msg.created_at), {
-                            addSuffix: true,
-                            locale: ru,
-                          })}
-                      </span>
-                      {getReadStatus(msg)}
-                    </div>
-                  </div>
-                </div>
-              )
+                      )
+                    }
+                  />
+                )
+              }
+
+              return null
             })}
             <div ref={messagesEndRef} />
           </div>
 
           <PartnerChatComposer
             newMessage={newMessage}
-            onMessageChange={setNewMessage}
+            onMessageChange={(v) => {
+              setNewMessage(v)
+              broadcastTyping()
+            }}
             onSubmit={sendMessage}
             sending={sending}
             disabled={!selectedConv}
@@ -522,6 +539,7 @@ export default function PartnerMessages({ params }) {
             listing={listing}
             onSendInvoice={handleSendInvoice}
             onSendPassportRequest={handleSendPassportRequest}
+            onAttachFile={handleAttachFile}
           />
         </div>
       ) : (

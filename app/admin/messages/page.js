@@ -1,50 +1,56 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   MessageSquare,
   Send,
   Loader2,
-  Building2,
   User,
   Shield,
-  Check,
-  CheckCheck,
   AlertTriangle,
   Search,
   Wifi,
   WifiOff,
+  Paperclip,
+  Inbox,
+  Activity,
+  Headphones,
 } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
-import { ru } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { StickyChatHeader } from '@/components/sticky-chat-header'
-import { useRealtimeMessages } from '@/hooks/use-realtime-chat'
+import { MessageBubble } from '@/components/message-bubble'
+import { ChatTypingBar } from '@/components/chat-typing-bar'
+import { InvoiceBubble } from '@/components/invoice-bubble'
+import { BookingRequestCard, SystemMessage } from '@/components/booking-request-card'
+import { uploadChatFile } from '@/lib/chat-upload'
+import { useRealtimeMessages, usePresence } from '@/hooks/use-realtime-chat'
+import { useMarkConversationRead } from '@/hooks/use-mark-conversation-read'
+import { useChatTyping } from '@/hooks/use-chat-typing'
 
 function apiMessageToRow(m) {
   if (!m) return null
   return {
     id: m.id,
-    conversation_id: m.conversationId,
-    sender_id: m.senderId,
-    sender_role: m.senderRole,
-    sender_name: m.senderName,
+    conversation_id: m.conversationId ?? m.conversation_id,
+    sender_id: m.senderId ?? m.sender_id,
+    sender_role: m.senderRole ?? m.sender_role,
+    sender_name: m.senderName ?? m.sender_name,
     message: m.message ?? m.content,
     content: m.content ?? m.message,
     type: m.type,
     metadata: m.metadata,
-    is_read: m.isRead,
-    created_at: m.createdAt,
+    is_read: m.isRead ?? m.is_read,
+    created_at: m.createdAt ?? m.created_at,
   }
 }
 
 export default function AdminMessagesPage() {
   const messagesEndRef = useRef(null)
+  const attachFileRef = useRef(null)
   const [me, setMe] = useState(null)
   const [conversations, setConversations] = useState([])
   const [selectedConv, setSelectedConv] = useState(null)
@@ -56,19 +62,59 @@ export default function AdminMessagesPage() {
   const [sending, setSending] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [authChecked, setAuthChecked] = useState(false)
+  const [chatStats, setChatStats] = useState(null)
+  const [priorityOnly, setPriorityOnly] = useState(false)
 
   const conversationId = selectedConv?.id
 
-  const handleRealtime = (newMsg) => {
-    if (newMsg.sender_id !== me?.id) {
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === newMsg.id)) return prev
-        return [...prev, newMsg]
-      })
-    }
-  }
+  const handleRealtime = useCallback(
+    (newMsg) => {
+      const sid = newMsg.sender_id ?? newMsg.senderId
+      if (sid !== me?.id) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev
+          const row = apiMessageToRow(newMsg)
+          return row ? [...prev, row] : prev
+        })
+      }
+    },
+    [me?.id]
+  )
 
-  const { isConnected } = useRealtimeMessages(conversationId, handleRealtime)
+  const handleMessageUpdate = useCallback((row) => {
+    const normalized = {
+      is_read: row.is_read,
+      message: row.message,
+      content: row.content,
+      metadata: row.metadata,
+      type: row.type,
+    }
+    setMessages((prev) =>
+      prev.map((m) => (m.id === row.id ? { ...m, ...normalized } : m))
+    )
+  }, [])
+
+  const { isConnected } = useRealtimeMessages(
+    conversationId,
+    handleRealtime,
+    handleMessageUpdate
+  )
+
+  const { isOnline: peerOnline } = usePresence(conversationId, me?.id, null)
+
+  useMarkConversationRead(conversationId, !!(conversationId && me?.id), peerOnline)
+
+  const staffTypingName = useMemo(() => {
+    if (!me) return 'Поддержка'
+    const n = [me.first_name, me.last_name].filter(Boolean).join(' ').trim()
+    return n || me.name || me.email || 'Поддержка'
+  }, [me])
+
+  const { peerTypingName, broadcastTyping } = useChatTyping(
+    conversationId,
+    me?.id,
+    staffTypingName
+  )
 
   useEffect(() => {
     ;(async () => {
@@ -105,6 +151,16 @@ export default function AdminMessagesPage() {
     scrollToBottom()
   }, [messages])
 
+  async function loadStats() {
+    try {
+      const res = await fetch('/api/v2/chat/stats', { credentials: 'include' })
+      const json = await res.json()
+      if (json.success && json.data) setChatStats(json.data)
+    } catch {
+      /* ignore */
+    }
+  }
+
   async function loadConversations() {
     setLoading(true)
     try {
@@ -115,6 +171,7 @@ export default function AdminMessagesPage() {
       } else {
         setConversations([])
       }
+      await loadStats()
     } catch (error) {
       console.error('Failed to load conversations:', error)
     } finally {
@@ -159,6 +216,39 @@ export default function AdminMessagesPage() {
     }
   }
 
+  async function handleAttachFile(file) {
+    if (!selectedConv || !me) return
+    setSending(true)
+    try {
+      const { url } = await uploadChatFile(file, me.id)
+      const isImg = file.type.startsWith('image/')
+      const res = await fetch('/api/v2/chat/messages', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConv.id,
+          type: isImg ? 'image' : 'file',
+          metadata: isImg ? { url } : { file_url: url, file_name: file.name },
+          skipPush: !!peerOnline,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        toast.error(json.error || 'Ошибка отправки')
+        return
+      }
+      const row = apiMessageToRow(json.data)
+      if (row) setMessages((prev) => [...prev, row])
+      loadConversations()
+      scrollToBottom()
+    } catch (error) {
+      toast.error(error?.message || 'Не удалось загрузить файл')
+    } finally {
+      setSending(false)
+    }
+  }
+
   async function sendMessage(e) {
     e.preventDefault()
     if (!newMessage.trim() || !selectedConv || !me) return
@@ -173,6 +263,7 @@ export default function AdminMessagesPage() {
           conversationId: selectedConv.id,
           content: newMessage.trim(),
           type: 'text',
+          skipPush: !!peerOnline,
         }),
       })
       const json = await res.json()
@@ -196,15 +287,17 @@ export default function AdminMessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  const filteredConversations = conversations.filter((conv) => {
-    if (!searchQuery) return true
-    const q = searchQuery.toLowerCase()
-    return (
-      conv.partnerName?.toLowerCase().includes(q) ||
-      conv.renterName?.toLowerCase().includes(q) ||
-      conv.listing?.title?.toLowerCase().includes(q)
-    )
-  })
+  const filteredConversations = conversations
+    .filter((conv) => {
+      if (!searchQuery) return true
+      const q = searchQuery.toLowerCase()
+      return (
+        conv.partnerName?.toLowerCase().includes(q) ||
+        conv.renterName?.toLowerCase().includes(q) ||
+        conv.listing?.title?.toLowerCase().includes(q)
+      )
+    })
+    .filter((conv) => !priorityOnly || conv.isPriority)
 
   if (!authChecked) {
     return (
@@ -222,16 +315,66 @@ export default function AdminMessagesPage() {
     )
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-      </div>
-    )
-  }
-
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-4">
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Card className="border-indigo-100 shadow-sm">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-indigo-50 p-2">
+              <Inbox className="h-5 w-5 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total Chats</p>
+              <p className="text-2xl font-bold text-slate-900 tabular-nums">
+                {chatStats?.totalChats ?? '—'}
+              </p>
+              <p className="text-xs text-slate-600">Всего диалогов</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-emerald-100 shadow-sm">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-emerald-50 p-2">
+              <Activity className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Active Today</p>
+              <p className="text-2xl font-bold text-slate-900 tabular-nums">
+                {chatStats?.activeToday ?? '—'}
+              </p>
+              <p className="text-xs text-slate-600">Сообщения за 24 ч</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-amber-100 shadow-sm">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="rounded-lg bg-amber-50 p-2">
+              <Headphones className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Support Needed</p>
+              <p className="text-2xl font-bold text-slate-900 tabular-nums">
+                {chatStats?.supportNeeded ?? '—'}
+              </p>
+              <p className="text-xs text-slate-600">Приоритетные диалоги</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          type="button"
+          variant={priorityOnly ? 'default' : 'outline'}
+          size="sm"
+          className={priorityOnly ? 'bg-amber-600 hover:bg-amber-700' : ''}
+          onClick={() => setPriorityOnly((v) => !v)}
+        >
+          Показать только приоритетные
+        </Button>
+      </div>
+
+      <div className="h-[calc(100vh-14rem)] min-h-[320px] flex flex-col lg:flex-row gap-4">
       <Card className="w-full lg:w-96 flex-shrink-0 flex flex-col">
         <CardHeader className="pb-3 border-b">
           <CardTitle className="flex items-center gap-2 text-lg">
@@ -254,7 +397,11 @@ export default function AdminMessagesPage() {
           </div>
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto p-0">
-          {filteredConversations.length === 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+            </div>
+          ) : filteredConversations.length === 0 ? (
             <div className="p-8 text-center text-slate-500">
               <MessageSquare className="h-12 w-12 mx-auto mb-3 text-slate-300" />
               <p>Нет сообщений</p>
@@ -340,88 +487,134 @@ export default function AdminMessagesPage() {
               </span>
             </StickyChatHeader>
 
+            <ChatTypingBar name={peerTypingName} />
+
             <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 min-h-0">
               {messages.map((msg) => {
                 const role = (msg.sender_role || '').toUpperCase()
                 const isOwn = role === 'ADMIN' || role === 'MODERATOR'
-                const isRejection = ['rejection', 'REJECTION'].includes(
-                  String(msg.type || '').toLowerCase()
-                )
+                const msgType = (msg.type || '').toLowerCase()
+                const rawType = String(msg.type || '').toUpperCase()
+                const isRejection = msgType === 'rejection'
+                const isInvoice =
+                  msgType === 'invoice' || msg.type === 'INVOICE' || msg.metadata?.invoice
 
-                return (
-                  <div
-                    key={msg.id}
-                    className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}
-                  >
-                    <Avatar className="w-8 h-8 flex-shrink-0">
-                      <AvatarFallback
-                        className={isOwn ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200'}
-                      >
-                        {isOwn ? (
-                          <Shield className="h-4 w-4" />
-                        ) : (
-                          msg.sender_name?.[0]?.toUpperCase() || 'U'
+                if (rawType === 'BOOKING_REQUEST') {
+                  const bid = msg.metadata?.booking_id || msg.bookingId
+                  return (
+                    <BookingRequestCard
+                      key={msg.id}
+                      message={{
+                        ...msg,
+                        conversationId: msg.conversation_id,
+                        bookingId: bid,
+                      }}
+                      userRole="ADMIN"
+                      bookingStatus={booking?.status}
+                    />
+                  )
+                }
+
+                if (msgType === 'system') {
+                  return (
+                    <div key={msg.id} className="flex justify-center px-2">
+                      <div className="max-w-lg rounded-xl bg-slate-100 border border-slate-200 px-4 py-2 text-sm text-slate-700 text-center">
+                        {msg.metadata?.system_key === 'passport_request' && (
+                          <p className="text-xs font-semibold text-indigo-800 mb-1">Системное сообщение</p>
                         )}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-md`}>
-                      {!isOwn && (
-                        <span className="text-xs text-slate-500 mb-1">{msg.sender_name}</span>
-                      )}
-                      <div
-                        className={`px-4 py-2 rounded-2xl ${
-                          isRejection
-                            ? 'bg-red-50 text-red-900 border border-red-200 rounded-tl-none'
-                            : isOwn
-                              ? 'bg-indigo-600 text-white rounded-tr-none'
-                              : 'bg-white text-slate-900 rounded-tl-none shadow-sm'
-                        }`}
-                      >
-                        {isRejection && (
-                          <div className="flex items-center gap-2 mb-2 pb-2 border-b border-red-200">
-                            <AlertTriangle className="h-4 w-4 text-red-500" />
-                            <span className="font-semibold text-sm">Отклонение</span>
-                          </div>
-                        )}
-                        <p className="text-sm whitespace-pre-wrap break-words">
-                          {msg.message ?? msg.content}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 mt-1">
-                        <span className="text-xs text-slate-500">
-                          {msg.created_at &&
-                            formatDistanceToNow(new Date(msg.created_at), {
-                              addSuffix: true,
-                              locale: ru,
-                            })}
-                        </span>
-                        {isOwn &&
-                          (msg.is_read ? (
-                            <CheckCheck className="h-3 w-3 text-blue-500" />
-                          ) : (
-                            <Check className="h-3 w-3 text-slate-400" />
-                          ))}
+                        {msg.message ?? msg.content}
                       </div>
                     </div>
-                  </div>
+                  )
+                }
+
+                if (role === 'SYSTEM') {
+                  return <SystemMessage key={msg.id} message={msg} />
+                }
+
+                if (isInvoice && msg.metadata?.invoice) {
+                  return (
+                    <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                      <InvoiceBubble
+                        invoice={msg.metadata.invoice}
+                        isOwn={isOwn}
+                        showPay={false}
+                        paymentMethod={msg.metadata.invoice.payment_method}
+                      />
+                    </div>
+                  )
+                }
+
+                const isPartner = role === 'PARTNER'
+                const isStaffIncoming = role === 'ADMIN' || role === 'MODERATOR'
+                const isBubble =
+                  ['text', 'image', 'file', 'rejection', ''].includes(msgType) || !msg.type
+
+                if (!isBubble) return null
+
+                return (
+                  <MessageBubble
+                    key={msg.id}
+                    msg={msg}
+                    isOwn={isOwn}
+                    isAdmin={isStaffIncoming && !isOwn}
+                    isRejection={isRejection}
+                    ownVariant="indigo"
+                    showSenderName={!isOwn}
+                    senderName={msg.sender_name || 'Участник'}
+                    avatarFallback={
+                      isOwn ? (
+                        <Shield className="h-4 w-4" />
+                      ) : isStaffIncoming && !isPartner ? (
+                        <Shield className="h-4 w-4" />
+                      ) : (
+                        msg.sender_name?.[0]?.toUpperCase() || 'U'
+                      )
+                    }
+                  />
                 )
               })}
               <div ref={messagesEndRef} />
             </CardContent>
 
             <div className="p-4 border-t bg-white">
+              <input
+                ref={attachFileRef}
+                type="file"
+                className="hidden"
+                accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  e.target.value = ''
+                  if (f) handleAttachFile(f)
+                }}
+              />
               <form onSubmit={sendMessage} className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="flex-shrink-0 border-slate-200"
+                  disabled={sending}
+                  aria-label="Прикрепить файл"
+                  onClick={() => attachFileRef.current?.click()}
+                >
+                  <Paperclip className="h-5 w-5" />
+                </Button>
                 <Input
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value)
+                    broadcastTyping()
+                  }}
                   placeholder="Напишите сообщение от имени поддержки..."
-                  className="flex-1"
+                  className="flex-1 min-w-0"
                   disabled={sending}
                 />
                 <Button
                   type="submit"
                   disabled={!newMessage.trim() || sending}
-                  className="bg-indigo-600 hover:bg-indigo-700"
+                  className="bg-indigo-600 hover:bg-indigo-700 flex-shrink-0"
                 >
                   {sending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -442,6 +635,7 @@ export default function AdminMessagesPage() {
           </div>
         )}
       </Card>
+      </div>
     </div>
   )
 }

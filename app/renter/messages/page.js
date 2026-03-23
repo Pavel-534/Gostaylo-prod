@@ -116,21 +116,23 @@ export default function RenterMessagesIndex() {
                     className="p-4 cursor-pointer hover:shadow-lg transition-shadow"
                     onClick={() => router.push(`/renter/messages/${conv.id}`)}
                   >
-                    <div className="flex gap-4">
+                    <div className="flex gap-3 sm:gap-4 min-w-0">
                       <img
                         src={conv.listing?.images?.[0] || '/placeholder.svg'}
                         alt={conv.listing?.title}
-                        className="w-20 h-20 rounded-lg object-cover"
+                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover flex-shrink-0"
                       />
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="font-semibold text-slate-900">{conv.listing?.title}</h3>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <h3 className="font-semibold text-slate-900 line-clamp-2 leading-snug">
+                            {conv.listing?.title}
+                          </h3>
                           {unread > 0 && (
-                            <Badge className="bg-red-500 text-white ml-2">{unread} новых</Badge>
+                            <Badge className="bg-red-500 text-white shrink-0">{unread} новых</Badge>
                           )}
                         </div>
-                        <p className="text-sm text-slate-600 mb-2">{conv.listing?.district}</p>
-                        <p className="text-sm text-slate-500 truncate">
+                        <p className="text-sm text-slate-600 mb-1 truncate">{conv.listing?.district}</p>
+                        <p className="text-sm text-slate-500 line-clamp-2 break-words">
                           {conv.lastMessage?.message ||
                             conv.lastMessage?.content ||
                             'Новое сообщение'}

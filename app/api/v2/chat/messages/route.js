@@ -209,6 +209,19 @@ export async function POST(request) {
     content = content?.trim() || `📷 ${url}`
   }
 
+  if (type === 'file') {
+    const url = finalMetadata.file_url || finalMetadata.url
+    if (!url || typeof url !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'file type requires metadata.file_url or metadata.url' },
+        { status: 400 }
+      )
+    }
+    const fname = finalMetadata.file_name || finalMetadata.name || 'file'
+    finalMetadata = { ...finalMetadata, file_url: url, file_name: fname }
+    content = content?.trim() || `📎 ${fname}`
+  }
+
   if (type === 'invoice') {
     const amt = parseFloat(amount)
     if (!Number.isFinite(amt) || amt <= 0) {

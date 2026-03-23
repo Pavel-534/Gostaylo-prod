@@ -40,18 +40,27 @@ export function playNotificationSound() {
  * Custom hook for realtime chat messages
  * @param {string} conversationId - The conversation ID to subscribe to
  * @param {Function} onNewMessage - Callback when new message arrives
+ * @param {Function} onMessageUpdate - Callback when message row updates (e.g. is_read)
  * @returns {Object} { messages, isConnected, error, sendMessage }
  */
-export function useRealtimeMessages(conversationId, onNewMessage = null) {
+export function useRealtimeMessages(conversationId, onNewMessage = null, onMessageUpdate = null) {
   const [messages, setMessages] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState(null);
   const channelRef = useRef(null);
+  const onNewMessageRef = useRef(onNewMessage);
+  const onMessageUpdateRef = useRef(onMessageUpdate);
+
+  useEffect(() => {
+    onNewMessageRef.current = onNewMessage
+  }, [onNewMessage])
+  useEffect(() => {
+    onMessageUpdateRef.current = onMessageUpdate
+  }, [onMessageUpdate])
 
   useEffect(() => {
     if (!conversationId) return;
 
-    // Subscribe to messages channel for this conversation
     const channel = supabase
       .channel(`messages:${conversationId}`)
       .on(
@@ -63,19 +72,30 @@ export function useRealtimeMessages(conversationId, onNewMessage = null) {
           filter: `conversation_id=eq.${conversationId}`
         },
         (payload) => {
-          console.log('[REALTIME] New message:', payload);
           const newMessage = payload.new;
-          
           setMessages(prev => {
-            // Avoid duplicates
             if (prev.some(m => m.id === newMessage.id)) {
               return prev;
             }
             return [...prev, newMessage];
           });
-
-          if (onNewMessage) {
-            onNewMessage(newMessage);
+          if (onNewMessageRef.current) {
+            onNewMessageRef.current(newMessage);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        (payload) => {
+          const row = payload.new
+          if (onMessageUpdateRef.current) {
+            onMessageUpdateRef.current(row)
           }
         }
       )
@@ -83,7 +103,6 @@ export function useRealtimeMessages(conversationId, onNewMessage = null) {
         setIsConnected(true);
       })
       .subscribe((status) => {
-        console.log('[REALTIME] Channel status:', status);
         if (status === 'SUBSCRIBED') {
           setIsConnected(true);
           setError(null);
@@ -100,7 +119,7 @@ export function useRealtimeMessages(conversationId, onNewMessage = null) {
         supabase.removeChannel(channelRef.current);
       }
     };
-  }, [conversationId, onNewMessage]);
+  }, [conversationId]);
 
   return { messages, setMessages, isConnected, error };
 }

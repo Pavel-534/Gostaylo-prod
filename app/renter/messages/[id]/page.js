@@ -1,26 +1,30 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   Send,
   Loader2,
   ArrowLeft,
-  Image as ImageIcon,
-  Smile,
+  Paperclip,
   Home,
   Wifi,
   WifiOff,
+  Shield,
 } from 'lucide-react'
 import { StickyChatHeader } from '@/components/sticky-chat-header'
 import { BookingRequestCard, SystemMessage } from '@/components/booking-request-card'
 import { detectUnsafePatterns, SafetyBanner } from '@/components/chat-safety'
 import { InvoiceBubble } from '@/components/invoice-bubble'
+import { MessageBubble } from '@/components/message-bubble'
+import { ChatTypingBar } from '@/components/chat-typing-bar'
+import { uploadChatFile } from '@/lib/chat-upload'
 import { useRealtimeMessages, usePresence, playNotificationSound } from '@/hooks/use-realtime-chat'
+import { useMarkConversationRead } from '@/hooks/use-mark-conversation-read'
+import { useChatTyping } from '@/hooks/use-chat-typing'
 import { formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -55,6 +59,7 @@ export default function RenterMessages({ params }) {
   const router = useRouter()
   const { user, loading: authLoading, openLoginModal } = useAuth()
   const messagesEndRef = useRef(null)
+  const attachFileRef = useRef(null)
   const [conversations, setConversations] = useState([])
   const [selectedConv, setSelectedConv] = useState(null)
   const [messages, setMessages] = useState([])
@@ -85,11 +90,34 @@ export default function RenterMessages({ params }) {
     [renterId]
   )
 
-  const { isConnected } = useRealtimeMessages(conversationId, handleNewRealtimeMessage)
+  const handleMessageUpdate = useCallback((row) => {
+    setMessages((prev) => prev.map((m) => (m.id === row.id ? { ...m, ...row } : m)))
+  }, [])
+
+  const { isConnected } = useRealtimeMessages(
+    conversationId,
+    handleNewRealtimeMessage,
+    handleMessageUpdate
+  )
   const { isOnline: partnerOnline } = usePresence(
     conversationId,
     renterId,
     selectedConv?.partnerId || selectedConv?.adminId || null
+  )
+
+  useMarkConversationRead(conversationId, !!(conversationId && renterId), partnerOnline)
+
+  const renterTypingName = useMemo(() => {
+    if (!user) return 'Гость'
+    if (user.name) return user.name
+    const n = [user.first_name, user.last_name].filter(Boolean).join(' ').trim()
+    return n || user.email || 'Гость'
+  }, [user])
+
+  const { peerTypingName, broadcastTyping } = useChatTyping(
+    conversationId,
+    renterId,
+    renterTypingName
   )
 
   useEffect(() => {
@@ -259,6 +287,39 @@ export default function RenterMessages({ params }) {
     }
   }
 
+  async function handleAttachFile(file) {
+    if (!selectedConv || !renterId) return
+    setSending(true)
+    try {
+      const { url } = await uploadChatFile(file, renterId)
+      const isImg = file.type.startsWith('image/')
+      const res = await fetch('/api/v2/chat/messages', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConv.id,
+          type: isImg ? 'image' : 'file',
+          metadata: isImg ? { url } : { file_url: url, file_name: file.name },
+          skipPush: !!partnerOnline,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        toast.error(json.error || 'Ошибка отправки')
+        return
+      }
+      const row = apiMessageToRow(json.data)
+      if (row) setMessages((prev) => [...prev, row])
+      loadConversations()
+      scrollToBottom()
+    } catch (error) {
+      toast.error(error?.message || 'Не удалось загрузить файл')
+    } finally {
+      setSending(false)
+    }
+  }
+
   function scrollToBottom() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -333,23 +394,25 @@ export default function RenterMessages({ params }) {
                     className="p-4 cursor-pointer hover:shadow-lg transition-shadow"
                     onClick={() => router.push(`/renter/messages/${conv.id}`)}
                   >
-                    <div className="flex gap-4">
+                    <div className="flex gap-3 sm:gap-4 min-w-0">
                       <img
                         src={conv.listing?.images?.[0] || '/placeholder.svg'}
                         alt={conv.listing?.title}
-                        className="w-20 h-20 rounded-lg object-cover"
+                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover flex-shrink-0"
                       />
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="font-semibold text-slate-900">{conv.listing?.title}</h3>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <h3 className="font-semibold text-slate-900 line-clamp-2 leading-snug">
+                            {conv.listing?.title}
+                          </h3>
                           {unread > 0 && (
-                            <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">
+                            <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full shrink-0">
                               {unread} новых
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-slate-600 mb-2">{conv.listing?.district}</p>
-                        <p className="text-sm text-slate-500 truncate">
+                        <p className="text-sm text-slate-600 mb-1 truncate">{conv.listing?.district}</p>
+                        <p className="text-sm text-slate-500 line-clamp-2 break-words">
                           {conv.lastMessage?.message || conv.lastMessage?.content || 'Новое сообщение'}
                         </p>
                       </div>
@@ -389,6 +452,8 @@ export default function RenterMessages({ params }) {
                 </span>
               </div>
             </StickyChatHeader>
+
+            <ChatTypingBar name={peerTypingName} />
 
             {bookingStatus === 'PAID' &&
               String(listing?.category_id ?? listing?.categoryId) !== '2' && (
@@ -469,58 +534,77 @@ export default function RenterMessages({ params }) {
                   const isOwn = msg.sender_id === renterId || msg.senderId === renterId
                   const isPartner =
                     msg.sender_role === 'PARTNER' || msg.senderRole === 'PARTNER'
+                  const isAdmin =
+                    msg.sender_role === 'ADMIN' ||
+                    msg.senderRole === 'ADMIN' ||
+                    msg.sender_role === 'MODERATOR' ||
+                    msg.senderRole === 'MODERATOR'
+                  const mt = (msg.type || '').toLowerCase()
+                  const isRejection = mt === 'rejection'
 
-                  return (
-                    <div
-                      key={msg.id}
-                      className={`flex gap-3 ${isOwn ? 'flex-row-reverse' : 'flex-row'}`}
-                    >
-                      <Avatar className="w-8 h-8 flex-shrink-0">
-                        <AvatarFallback
-                          className={isPartner ? 'bg-teal-100 text-teal-700' : 'bg-slate-200'}
-                        >
-                          {(msg.sender_name || msg.senderName)?.[0]?.toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} max-w-md`}>
-                        <div
-                          className={`px-4 py-2 rounded-2xl ${
-                            isOwn
-                              ? 'bg-teal-600 text-white rounded-tr-none'
-                              : 'bg-white text-slate-900 rounded-tl-none shadow-sm border'
-                          }`}
-                        >
-                          <p className="text-sm whitespace-pre-wrap break-words">
-                            {msg.message || msg.content}
-                          </p>
-                        </div>
-                        <span className="text-xs text-slate-500 mt-1">
-                          {(msg.created_at || msg.createdAt) &&
-                            formatDistanceToNow(new Date(msg.created_at || msg.createdAt), {
-                              addSuffix: true,
-                              locale: ru,
-                            })}
-                        </span>
-                      </div>
-                    </div>
-                  )
+                  if (
+                    ['text', 'image', 'file', 'rejection', ''].includes(mt) ||
+                    !msg.type
+                  ) {
+                    return (
+                      <MessageBubble
+                        key={msg.id}
+                        msg={msg}
+                        isOwn={isOwn}
+                        isAdmin={isAdmin && !isPartner}
+                        isRejection={isRejection}
+                        showSenderName={!isOwn}
+                        senderName={msg.sender_name || msg.senderName || 'Участник'}
+                        avatarFallback={
+                          isAdmin ? (
+                            <Shield className="h-4 w-4" />
+                          ) : isPartner ? (
+                            (msg.sender_name || msg.senderName)?.[0]?.toUpperCase() || 'P'
+                          ) : (
+                            (msg.sender_name || msg.senderName)?.[0]?.toUpperCase() || 'U'
+                          )
+                        }
+                      />
+                    )
+                  }
+
+                  return null
                 })}
                 <div ref={messagesEndRef} />
               </div>
 
               <div className="border-t p-4">
+                <input
+                  ref={attachFileRef}
+                  type="file"
+                  className="hidden"
+                  accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    e.target.value = ''
+                    if (f) handleAttachFile(f)
+                  }}
+                />
                 <form onSubmit={sendMessage} className="flex gap-2">
-                  <Button type="button" variant="ghost" size="icon" className="flex-shrink-0">
-                    <ImageIcon className="h-5 w-5 text-slate-400" />
-                  </Button>
-                  <Button type="button" variant="ghost" size="icon" className="flex-shrink-0">
-                    <Smile className="h-5 w-5 text-slate-400" />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="flex-shrink-0 border-slate-200"
+                    disabled={sending}
+                    aria-label="Прикрепить файл"
+                    onClick={() => attachFileRef.current?.click()}
+                  >
+                    <Paperclip className="h-5 w-5" />
                   </Button>
                   <Input
                     value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
+                    onChange={(e) => {
+                      setNewMessage(e.target.value)
+                      broadcastTyping()
+                    }}
                     placeholder="Напишите сообщение..."
-                    className="flex-1"
+                    className="flex-1 min-w-0"
                     disabled={sending}
                   />
                   <Button

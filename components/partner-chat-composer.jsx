@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SendInvoiceDialog } from '@/components/chat-invoice'
-import { Plus, Receipt, IdCard, Loader2, Send } from 'lucide-react'
+import { Plus, Receipt, IdCard, Loader2, Send, Paperclip } from 'lucide-react'
 import { toast } from 'sonner'
 
 /**
@@ -26,9 +26,12 @@ export function PartnerChatComposer({
   listing,
   onSendInvoice,
   onSendPassportRequest,
+  onAttachFile,
 }) {
   const [invoiceOpen, setInvoiceOpen] = useState(false)
   const [passportLoading, setPassportLoading] = useState(false)
+  const [attachBusy, setAttachBusy] = useState(false)
+  const fileRef = useRef(null)
 
   async function handlePassportRequest() {
     if (!onSendPassportRequest) return
@@ -43,9 +46,41 @@ export function PartnerChatComposer({
     }
   }
 
+  async function handleFileChange(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !onAttachFile) return
+    setAttachBusy(true)
+    try {
+      await onAttachFile(file)
+    } finally {
+      setAttachBusy(false)
+    }
+  }
+
   return (
     <div className="bg-white border-t p-4">
+      <input
+        ref={fileRef}
+        type="file"
+        className="hidden"
+        accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+        onChange={handleFileChange}
+      />
       <form onSubmit={onSubmit} className="flex gap-2 items-center">
+        {onAttachFile ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="flex-shrink-0 border-slate-200"
+            disabled={disabled || attachBusy}
+            aria-label="Прикрепить файл"
+            onClick={() => fileRef.current?.click()}
+          >
+            {attachBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Paperclip className="h-5 w-5" />}
+          </Button>
+        ) : null}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
