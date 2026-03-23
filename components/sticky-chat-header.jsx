@@ -2,7 +2,7 @@
 
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
-import { Building2, LifeBuoy, Loader2, Shield } from 'lucide-react'
+import { Building2, Check, LifeBuoy, Loader2, Shield, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
@@ -24,6 +24,8 @@ export function StickyChatHeader({
   supportPriorityActive = false,
   supportLabel = 'Поддержка',
   supportDoneLabel = 'Запрос отправлен',
+  /** Только партнёр: PENDING-бронь — подтвердить / отклонить */
+  partnerBookingActions = null,
   className,
   children,
 }) {
@@ -90,6 +92,37 @@ export function StickyChatHeader({
           {dateLine}
         </div>
         <div className="shrink-0 flex flex-col items-end gap-2">
+          {!isAdminView && partnerBookingActions?.visible ? (
+            <div className="flex flex-wrap justify-end gap-1.5">
+              <Button
+                type="button"
+                size="sm"
+                className="h-8 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                disabled={partnerBookingActions.loading}
+                onClick={partnerBookingActions.onConfirm}
+              >
+                {partnerBookingActions.loading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <>
+                    <Check className="h-3.5 w-3.5 mr-1" />
+                    Confirm Booking
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                className="h-8 px-2.5 text-xs"
+                disabled={partnerBookingActions.loading}
+                onClick={partnerBookingActions.onDecline}
+              >
+                <X className="h-3.5 w-3.5 mr-1" />
+                Decline
+              </Button>
+            </div>
+          ) : null}
           {!isAdminView && onSupportClick ? (
             <Button
               type="button"

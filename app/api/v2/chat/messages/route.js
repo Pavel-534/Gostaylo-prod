@@ -187,14 +187,29 @@ export async function POST(request) {
       senderRole === 'PARTNER' &&
       finalMetadata?.system_key === 'passport_request' &&
       userParticipatesInConversation(userId, conversation)
-    if (!allowPartnerPassport) {
+    const allowPartnerBooking =
+      senderRole === 'PARTNER' &&
+      ['booking_confirmed', 'booking_declined'].includes(finalMetadata?.system_key) &&
+      userParticipatesInConversation(userId, conversation)
+    if (!allowPartnerPassport && !allowPartnerBooking) {
       return NextResponse.json({ success: false, error: 'Only staff can send system messages' }, { status: 403 })
     }
-    if (!content || !String(content).trim()) {
-      content =
-        'Пожалуйста, загрузите чёткое фото страницы паспорта для завершения бронирования. Данные обрабатываются конфиденциально.'
+    if (allowPartnerPassport) {
+      if (!content || !String(content).trim()) {
+        content =
+          'Пожалуйста, загрузите чёткое фото страницы паспорта для завершения бронирования. Данные обрабатываются конфиденциально.'
+      }
+      finalMetadata = { ...finalMetadata, system_key: 'passport_request' }
     }
-    finalMetadata = { ...finalMetadata, system_key: 'passport_request' }
+    if (allowPartnerBooking) {
+      if (!content || !String(content).trim()) {
+        return NextResponse.json(
+          { success: false, error: 'content is required for booking system messages' },
+          { status: 400 }
+        )
+      }
+      finalMetadata = { ...finalMetadata, system_key: finalMetadata.system_key }
+    }
   }
   let invoiceRow = null
 

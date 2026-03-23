@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,7 +24,10 @@ import { toast } from 'sonner'
 import { StickyChatHeader } from '@/components/sticky-chat-header'
 import { MessageBubble } from '@/components/message-bubble'
 import { ChatTypingBar } from '@/components/chat-typing-bar'
+import { ChatDateSeparator } from '@/components/chat-date-separator'
 import { InvoiceBubble } from '@/components/invoice-bubble'
+import { useI18n } from '@/contexts/i18n-context'
+import { chatDayLabel, chatNeedsDaySeparator } from '@/lib/chat-date-labels'
 import { BookingRequestCard, SystemMessage } from '@/components/booking-request-card'
 import { uploadChatFile } from '@/lib/chat-upload'
 import { useRealtimeMessages, usePresence } from '@/hooks/use-realtime-chat'
@@ -49,6 +52,7 @@ function apiMessageToRow(m) {
 }
 
 export default function AdminMessagesPage() {
+  const { language } = useI18n()
   const messagesEndRef = useRef(null)
   const attachFileRef = useRef(null)
   const [me, setMe] = useState(null)
@@ -490,7 +494,11 @@ export default function AdminMessagesPage() {
             <ChatTypingBar name={peerTypingName} />
 
             <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 min-h-0">
-              {messages.map((msg) => {
+              {messages.map((msg, idx) => {
+                const prev = messages[idx - 1]
+                const showDay = chatNeedsDaySeparator(prev?.created_at, msg.created_at)
+                const dayLabel = chatDayLabel(msg.created_at, language)
+
                 const role = (msg.sender_role || '').toUpperCase()
                 const isOwn = role === 'ADMIN' || role === 'MODERATOR'
                 const msgType = (msg.type || '').toLowerCase()
@@ -502,46 +510,61 @@ export default function AdminMessagesPage() {
                 if (rawType === 'BOOKING_REQUEST') {
                   const bid = msg.metadata?.booking_id || msg.bookingId
                   return (
-                    <BookingRequestCard
-                      key={msg.id}
-                      message={{
-                        ...msg,
-                        conversationId: msg.conversation_id,
-                        bookingId: bid,
-                      }}
-                      userRole="ADMIN"
-                      bookingStatus={booking?.status}
-                    />
+                    <Fragment key={msg.id}>
+                      {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                      <BookingRequestCard
+                        message={{
+                          ...msg,
+                          conversationId: msg.conversation_id,
+                          bookingId: bid,
+                        }}
+                        userRole="ADMIN"
+                        bookingStatus={booking?.status}
+                      />
+                    </Fragment>
                   )
                 }
 
                 if (msgType === 'system') {
+                  const sk = msg.metadata?.system_key
+                  let line = null
+                  if (sk === 'passport_request') line = 'Системное сообщение'
+                  if (sk === 'booking_confirmed' || sk === 'booking_declined') line = 'Бронирование'
                   return (
-                    <div key={msg.id} className="flex justify-center px-2">
-                      <div className="max-w-lg rounded-xl bg-slate-100 border border-slate-200 px-4 py-2 text-sm text-slate-700 text-center">
-                        {msg.metadata?.system_key === 'passport_request' && (
-                          <p className="text-xs font-semibold text-indigo-800 mb-1">Системное сообщение</p>
-                        )}
-                        {msg.message ?? msg.content}
+                    <Fragment key={msg.id}>
+                      {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                      <div className="flex justify-center px-2">
+                        <div className="max-w-lg rounded-xl bg-slate-100 border border-slate-200 px-4 py-2 text-sm text-slate-700 text-center">
+                          {line ? <p className="text-xs font-semibold text-indigo-800 mb-1">{line}</p> : null}
+                          {msg.message ?? msg.content}
+                        </div>
                       </div>
-                    </div>
+                    </Fragment>
                   )
                 }
 
                 if (role === 'SYSTEM') {
-                  return <SystemMessage key={msg.id} message={msg} />
+                  return (
+                    <Fragment key={msg.id}>
+                      {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                      <SystemMessage message={msg} />
+                    </Fragment>
+                  )
                 }
 
                 if (isInvoice && msg.metadata?.invoice) {
                   return (
-                    <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                      <InvoiceBubble
-                        invoice={msg.metadata.invoice}
-                        isOwn={isOwn}
-                        showPay={false}
-                        paymentMethod={msg.metadata.invoice.payment_method}
-                      />
-                    </div>
+                    <Fragment key={msg.id}>
+                      {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                      <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                        <InvoiceBubble
+                          invoice={msg.metadata.invoice}
+                          isOwn={isOwn}
+                          showPay={false}
+                          paymentMethod={msg.metadata.invoice.payment_method}
+                        />
+                      </div>
+                    </Fragment>
                   )
                 }
 
@@ -553,25 +576,33 @@ export default function AdminMessagesPage() {
                 if (!isBubble) return null
 
                 return (
-                  <MessageBubble
-                    key={msg.id}
-                    msg={msg}
-                    isOwn={isOwn}
-                    isAdmin={isStaffIncoming && !isOwn}
-                    isRejection={isRejection}
-                    ownVariant="indigo"
-                    showSenderName={!isOwn}
-                    senderName={msg.sender_name || 'Участник'}
-                    avatarFallback={
-                      isOwn ? (
-                        <Shield className="h-4 w-4" />
-                      ) : isStaffIncoming && !isPartner ? (
-                        <Shield className="h-4 w-4" />
-                      ) : (
-                        msg.sender_name?.[0]?.toUpperCase() || 'U'
-                      )
-                    }
-                  />
+                  <Fragment key={msg.id}>
+                    {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                    <MessageBubble
+                      msg={msg}
+                      isOwn={isOwn}
+                      isAdmin={isStaffIncoming && !isOwn}
+                      isRejection={isRejection}
+                      ownVariant="indigo"
+                      showSenderName={!isOwn}
+                      senderName={msg.sender_name || 'Участник'}
+                      translateTargetLang={language}
+                      translateButtonLabels={{
+                        translate: language === 'ru' ? 'Перевести' : 'Translate',
+                        original: language === 'ru' ? 'Оригинал' : 'Original',
+                        translating: '…',
+                      }}
+                      avatarFallback={
+                        isOwn ? (
+                          <Shield className="h-4 w-4" />
+                        ) : isStaffIncoming && !isPartner ? (
+                          <Shield className="h-4 w-4" />
+                        ) : (
+                          msg.sender_name?.[0]?.toUpperCase() || 'U'
+                        )
+                      }
+                    />
+                  </Fragment>
                 )
               })}
               <div ref={messagesEndRef} />

@@ -1,10 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
-import { AlertTriangle, Check, CheckCheck, Paperclip, Shield } from 'lucide-react'
+import { AlertTriangle, Check, CheckCheck, Languages, Loader2, Paperclip, Shield } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 export function MessageReadTicks({ isOwn, isRead, className }) {
   if (!isOwn) return null
@@ -30,7 +33,14 @@ export function MessageBubble({
   ticksClassName,
   /** «Свои» сообщения: teal (арендатор/партнёр) или indigo (админ-панель) */
   ownVariant = 'teal',
+  /** Код языка UI (ru, en) — если задан, показываем кнопку перевода для текстовых сообщений */
+  translateTargetLang = null,
+  translateButtonLabels = { translate: 'Translate', original: 'Original', translating: '…' },
 }) {
+  const [translated, setTranslated] = useState(null)
+  const [showTranslated, setShowTranslated] = useState(false)
+  const [translating, setTranslating] = useState(false)
+
   const created = msg.created_at || msg.createdAt
   const meta = msg.metadata || {}
   const rawType = String(msg.type || '').toLowerCase()
@@ -39,6 +49,40 @@ export function MessageBubble({
   const imgUrl = meta.image_url || meta.url
   const fileUrl = meta.file_url || (rawType === 'file' ? meta.url : null)
   const fileName = meta.file_name || meta.name || 'Файл'
+
+  const canTranslate =
+    translateTargetLang &&
+    !isRejection &&
+    (rawType === 'text' || rawType === '') &&
+    text.trim().length > 0 &&
+    !imgUrl &&
+    !fileUrl
+
+  async function runTranslate() {
+    if (!translateTargetLang || !text.trim()) return
+    setTranslating(true)
+    try {
+      const res = await fetch('/api/v2/translate', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, target: translateTargetLang }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success || !json.data?.translatedText) {
+        toast.error(json.error || 'Перевод недоступен')
+        return
+      }
+      setTranslated(json.data.translatedText)
+      setShowTranslated(true)
+    } catch {
+      toast.error('Ошибка сети')
+    } finally {
+      setTranslating(false)
+    }
+  }
+
+  const displayText = showTranslated && translated ? translated : text
 
   let body = null
   if (rawType === 'image' && imgUrl && typeof imgUrl === 'string') {
@@ -60,7 +104,7 @@ export function MessageBubble({
       </a>
     )
   } else {
-    body = <p className="text-sm whitespace-pre-wrap break-words">{text}</p>
+    body = <p className="text-sm whitespace-pre-wrap break-words">{displayText}</p>
   }
 
   return (
@@ -69,7 +113,13 @@ export function MessageBubble({
         <Avatar className="w-8 h-8 flex-shrink-0">
           <AvatarFallback
             className={cn(
-              isOwn ? 'bg-teal-100 text-teal-700' : isAdmin ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-200'
+              isOwn
+                ? ownVariant === 'indigo'
+                  ? 'bg-indigo-100 text-indigo-700'
+                  : 'bg-teal-100 text-teal-700'
+                : isAdmin
+                  ? 'bg-indigo-100 text-indigo-700'
+                  : 'bg-slate-200'
             )}
           >
             {avatarFallback}
@@ -115,6 +165,42 @@ export function MessageBubble({
           )}
           <MessageReadTicks isOwn={isOwn} isRead={msg.is_read ?? msg.isRead} className={ticksClassName} />
         </div>
+        {canTranslate ? (
+          <div className={cn('mt-1 w-full', isOwn ? 'flex justify-end' : 'flex justify-start')}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-[11px] text-slate-500 hover:text-slate-800"
+              disabled={translating}
+              onClick={() => {
+                if (showTranslated) {
+                  setShowTranslated(false)
+                  return
+                }
+                if (translated) {
+                  setShowTranslated(true)
+                  return
+                }
+                runTranslate()
+              }}
+            >
+              {translating ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                  {translateButtonLabels.translating}
+                </>
+              ) : showTranslated ? (
+                translateButtonLabels.original
+              ) : (
+                <>
+                  <Languages className="h-3 w-3 mr-1" />
+                  {translateButtonLabels.translate}
+                </>
+              )}
+            </Button>
+          </div>
+        ) : null}
       </div>
     </div>
   )

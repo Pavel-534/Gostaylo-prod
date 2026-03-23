@@ -22,6 +22,9 @@ const SITE_IMAGE_HOSTS = [
 ]
 
 const nextConfig = {
+  /** CDN: полный URL префикса для /_next. Пусто — текущий хост (см. base href в app/layout.js). */
+  assetPrefix: process.env.NEXT_PUBLIC_ASSET_PREFIX || undefined,
+
   images: {
     // Оптимизация Vercel / Next Image: WebP/AVIF, resize
     formats: ['image/avif', 'image/webp'],

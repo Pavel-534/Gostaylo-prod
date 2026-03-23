@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -21,12 +21,13 @@ import { detectUnsafePatterns, SafetyBanner } from '@/components/chat-safety'
 import { InvoiceBubble } from '@/components/invoice-bubble'
 import { MessageBubble } from '@/components/message-bubble'
 import { ChatTypingBar } from '@/components/chat-typing-bar'
+import { ChatDateSeparator } from '@/components/chat-date-separator'
 import { uploadChatFile } from '@/lib/chat-upload'
+import { useI18n } from '@/contexts/i18n-context'
+import { chatDayLabel, chatNeedsDaySeparator } from '@/lib/chat-date-labels'
 import { useRealtimeMessages, usePresence, playNotificationSound } from '@/hooks/use-realtime-chat'
 import { useMarkConversationRead } from '@/hooks/use-mark-conversation-read'
 import { useChatTyping } from '@/hooks/use-chat-typing'
-import { formatDistanceToNow } from 'date-fns'
-import { ru } from 'date-fns/locale'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
@@ -57,6 +58,7 @@ function apiMessageToRow(m) {
 
 export default function RenterMessages({ params }) {
   const router = useRouter()
+  const { language } = useI18n()
   const { user, loading: authLoading, openLoginModal } = useAuth()
   const messagesEndRef = useRef(null)
   const attachFileRef = useRef(null)
@@ -483,34 +485,50 @@ export default function RenterMessages({ params }) {
 
             <Card className="overflow-hidden">
               <div className="h-[500px] overflow-y-auto p-4 space-y-4">
-                {messages.map((msg) => {
+                {messages.map((msg, idx) => {
+                  const prev = messages[idx - 1]
+                  const showDay = chatNeedsDaySeparator(prev?.created_at, msg.created_at)
+                  const dayLabel = chatDayLabel(msg.created_at, language)
+
                   const rawType = String(msg.type || '').toUpperCase()
                   if (rawType === 'BOOKING_REQUEST') {
                     return (
-                      <BookingRequestCard
-                        key={msg.id}
-                        message={msg}
-                        userRole="RENTER"
-                        onStatusUpdate={handleBookingStatusUpdate}
-                      />
+                      <Fragment key={msg.id}>
+                        {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                        <BookingRequestCard
+                          message={msg}
+                          userRole="RENTER"
+                          onStatusUpdate={handleBookingStatusUpdate}
+                        />
+                      </Fragment>
                     )
                   }
 
                   if (String(msg.type || '').toLowerCase() === 'system') {
+                    const sk = msg.metadata?.system_key
+                    let line = null
+                    if (sk === 'passport_request') line = 'Системное сообщение'
+                    if (sk === 'booking_confirmed' || sk === 'booking_declined') line = 'Бронирование'
                     return (
-                      <div key={msg.id} className="flex justify-center px-2">
-                        <div className="max-w-lg rounded-xl bg-slate-100 border border-slate-200 px-4 py-2 text-sm text-slate-700 text-center">
-                          {msg.metadata?.system_key === 'passport_request' && (
-                            <p className="text-xs font-semibold text-teal-800 mb-1">Системное сообщение</p>
-                          )}
-                          {msg.message || msg.content}
+                      <Fragment key={msg.id}>
+                        {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                        <div className="flex justify-center px-2">
+                          <div className="max-w-lg rounded-xl bg-slate-100 border border-slate-200 px-4 py-2 text-sm text-slate-700 text-center">
+                            {line ? <p className="text-xs font-semibold text-teal-800 mb-1">{line}</p> : null}
+                            {msg.message || msg.content}
+                          </div>
                         </div>
-                      </div>
+                      </Fragment>
                     )
                   }
 
                   if ((msg.sender_role || msg.senderRole) === 'SYSTEM') {
-                    return <SystemMessage key={msg.id} message={msg} />
+                    return (
+                      <Fragment key={msg.id}>
+                        {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                        <SystemMessage message={msg} />
+                      </Fragment>
+                    )
                   }
 
                   const isInvoice =
@@ -520,14 +538,17 @@ export default function RenterMessages({ params }) {
                   if (isInvoice && msg.metadata?.invoice) {
                     const isOwn = msg.sender_id === renterId || msg.senderId === renterId
                     return (
-                      <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                        <InvoiceBubble
-                          invoice={msg.metadata.invoice}
-                          isOwn={isOwn}
-                          showPay={!isOwn}
-                          paymentMethod={msg.metadata.invoice.payment_method}
-                        />
-                      </div>
+                      <Fragment key={msg.id}>
+                        {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                        <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                          <InvoiceBubble
+                            invoice={msg.metadata.invoice}
+                            isOwn={isOwn}
+                            showPay={!isOwn}
+                            paymentMethod={msg.metadata.invoice.payment_method}
+                          />
+                        </div>
+                      </Fragment>
                     )
                   }
 
@@ -547,24 +568,32 @@ export default function RenterMessages({ params }) {
                     !msg.type
                   ) {
                     return (
-                      <MessageBubble
-                        key={msg.id}
-                        msg={msg}
-                        isOwn={isOwn}
-                        isAdmin={isAdmin && !isPartner}
-                        isRejection={isRejection}
-                        showSenderName={!isOwn}
-                        senderName={msg.sender_name || msg.senderName || 'Участник'}
-                        avatarFallback={
-                          isAdmin ? (
-                            <Shield className="h-4 w-4" />
-                          ) : isPartner ? (
-                            (msg.sender_name || msg.senderName)?.[0]?.toUpperCase() || 'P'
-                          ) : (
-                            (msg.sender_name || msg.senderName)?.[0]?.toUpperCase() || 'U'
-                          )
-                        }
-                      />
+                      <Fragment key={msg.id}>
+                        {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                        <MessageBubble
+                          msg={msg}
+                          isOwn={isOwn}
+                          isAdmin={isAdmin && !isPartner}
+                          isRejection={isRejection}
+                          showSenderName={!isOwn}
+                          senderName={msg.sender_name || msg.senderName || 'Участник'}
+                          translateTargetLang={language}
+                          translateButtonLabels={{
+                            translate: language === 'ru' ? 'Перевести' : 'Translate',
+                            original: language === 'ru' ? 'Оригинал' : 'Original',
+                            translating: '…',
+                          }}
+                          avatarFallback={
+                            isAdmin ? (
+                              <Shield className="h-4 w-4" />
+                            ) : isPartner ? (
+                              (msg.sender_name || msg.senderName)?.[0]?.toUpperCase() || 'P'
+                            ) : (
+                              (msg.sender_name || msg.senderName)?.[0]?.toUpperCase() || 'U'
+                            )
+                          }
+                        />
+                      </Fragment>
                     )
                   }
 

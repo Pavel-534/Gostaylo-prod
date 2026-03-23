@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,7 +26,10 @@ import { PartnerChatComposer } from '@/components/partner-chat-composer'
 import { InvoiceBubble } from '@/components/invoice-bubble'
 import { MessageBubble } from '@/components/message-bubble'
 import { ChatTypingBar } from '@/components/chat-typing-bar'
+import { ChatDateSeparator } from '@/components/chat-date-separator'
 import { uploadChatFile } from '@/lib/chat-upload'
+import { useI18n } from '@/contexts/i18n-context'
+import { chatDayLabel, chatNeedsDaySeparator } from '@/lib/chat-date-labels'
 
 function apiMessageToRow(m) {
   if (!m) return null
@@ -47,6 +50,7 @@ function apiMessageToRow(m) {
 
 export default function PartnerMessages({ params }) {
   const router = useRouter()
+  const { language } = useI18n()
   const messagesEndRef = useRef(null)
   const [user, setUser] = useState(null)
   const [conversations, setConversations] = useState([])
@@ -60,6 +64,7 @@ export default function PartnerMessages({ params }) {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [supportLoading, setSupportLoading] = useState(false)
+  const [bookingActionLoading, setBookingActionLoading] = useState(false)
 
   const conversationId = params?.id
 
@@ -197,6 +202,81 @@ export default function PartnerMessages({ params }) {
       setMessages(msgJson.data.map(apiMessageToRow).filter(Boolean))
     } catch (error) {
       console.error('Failed to load messages:', error)
+    }
+  }
+
+  async function postBookingSystemMessage(systemKey, content) {
+    if (!selectedConv?.id) return
+    const msgRes = await fetch('/api/v2/chat/messages', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversationId: selectedConv.id,
+        type: 'system',
+        content,
+        metadata: { system_key: systemKey },
+        skipPush: !!peerOnline,
+      }),
+    })
+    const msgJson = await msgRes.json()
+    if (msgRes.ok && msgJson.success && msgJson.data) {
+      const row = apiMessageToRow(msgJson.data)
+      if (row) setMessages((prev) => [...prev, row])
+    }
+  }
+
+  async function handleConfirmBookingHeader() {
+    const bid = booking?.id
+    if (!bid || !selectedConv?.id || bookingActionLoading) return
+    setBookingActionLoading(true)
+    try {
+      const put = await fetch(`/api/v2/partner/bookings/${encodeURIComponent(bid)}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CONFIRMED' }),
+      })
+      const json = await put.json()
+      if (json.status !== 'success') {
+        toast.error(json.error || 'Ошибка')
+        return
+      }
+      setBooking((b) => (b ? { ...b, status: 'CONFIRMED' } : b))
+      await postBookingSystemMessage('booking_confirmed', 'Partner confirmed your stay! 🏠')
+      loadConversations()
+      toast.success(json.message || 'Бронирование подтверждено')
+    } catch {
+      toast.error('Ошибка сети')
+    } finally {
+      setBookingActionLoading(false)
+    }
+  }
+
+  async function handleDeclineBookingHeader() {
+    const bid = booking?.id
+    if (!bid || !selectedConv?.id || bookingActionLoading) return
+    setBookingActionLoading(true)
+    try {
+      const put = await fetch(`/api/v2/partner/bookings/${encodeURIComponent(bid)}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CANCELLED' }),
+      })
+      const json = await put.json()
+      if (json.status !== 'success') {
+        toast.error(json.error || 'Ошибка')
+        return
+      }
+      setBooking((b) => (b ? { ...b, status: 'CANCELLED' } : b))
+      await postBookingSystemMessage('booking_declined', 'Partner declined your booking request.')
+      loadConversations()
+      toast.success(json.message || 'Бронирование отклонено')
+    } catch {
+      toast.error('Ошибка сети')
+    } finally {
+      setBookingActionLoading(false)
     }
   }
 
@@ -445,6 +525,13 @@ export default function PartnerMessages({ params }) {
                     : selectedConv.renterName || 'Клиент'
                 }
                 presenceOnline={peerParticipantId ? peerOnline : null}
+                partnerBookingActions={{
+                  visible:
+                    !!booking?.id && String(booking.status || '').toUpperCase() === 'PENDING',
+                  loading: bookingActionLoading,
+                  onConfirm: handleConfirmBookingHeader,
+                  onDecline: handleDeclineBookingHeader,
+                }}
                 onSupportClick={handleRequestSupport}
                 supportLoading={supportLoading}
                 supportPriorityActive={!!selectedConv?.isPriority}
@@ -464,7 +551,11 @@ export default function PartnerMessages({ params }) {
           <ChatTypingBar name={peerTypingName} />
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 min-h-0">
-            {messages.map((msg) => {
+            {messages.map((msg, idx) => {
+              const prev = messages[idx - 1]
+              const showDay = chatNeedsDaySeparator(prev?.created_at, msg.created_at)
+              const dayLabel = chatDayLabel(msg.created_at, language)
+
               const isOwn = msg.sender_id === user?.id
               const isAdmin = msg.sender_role === 'ADMIN' || msg.sender_role === 'MODERATOR'
               const msgType = (msg.type || '').toLowerCase()
@@ -472,28 +563,58 @@ export default function PartnerMessages({ params }) {
               const isInvoice = msgType === 'invoice' || msg.type === 'INVOICE'
 
               if (msgType === 'system') {
+                const sk = msg.metadata?.system_key
+                let sysTitle = null
+                if (sk === 'passport_request') sysTitle = 'Запрос от партнёра'
+                if (sk === 'booking_confirmed') sysTitle = 'Бронирование'
+                if (sk === 'booking_declined') sysTitle = 'Бронирование'
                 return (
-                  <div key={msg.id} className="flex justify-center px-2">
-                    <div className="max-w-lg rounded-xl bg-slate-100 border border-slate-200 px-4 py-2 text-sm text-slate-700 text-center">
-                      {msg.metadata?.system_key === 'passport_request' && (
-                        <p className="text-xs font-semibold text-teal-800 mb-1">Запрос от партнёра</p>
-                      )}
-                      {msg.message ?? msg.content}
+                  <Fragment key={msg.id}>
+                    {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                    <div className="flex justify-center px-2">
+                      <div className="max-w-lg rounded-xl bg-slate-100 border border-slate-200 px-4 py-2 text-sm text-slate-700 text-center">
+                        {sysTitle ? (
+                          <p className="text-xs font-semibold text-teal-800 mb-1">{sysTitle}</p>
+                        ) : null}
+                        {msg.message ?? msg.content}
+                      </div>
                     </div>
-                  </div>
+                  </Fragment>
                 )
               }
 
               if (isInvoice && msg.metadata?.invoice) {
                 return (
-                  <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                    <InvoiceBubble
-                      invoice={msg.metadata.invoice}
-                      isOwn={isOwn}
-                      showPay={false}
-                      paymentMethod={msg.metadata.invoice.payment_method}
-                    />
-                  </div>
+                  <Fragment key={msg.id}>
+                    {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                      <InvoiceBubble
+                        invoice={msg.metadata.invoice}
+                        isOwn={isOwn}
+                        showPay={false}
+                        paymentMethod={msg.metadata.invoice.payment_method}
+                        messageId={msg.id}
+                        onInvoiceCancelled={() => {
+                          setMessages((prevList) =>
+                            prevList.map((m) =>
+                              m.id === msg.id
+                                ? {
+                                    ...m,
+                                    metadata: {
+                                      ...m.metadata,
+                                      invoice: {
+                                        ...m.metadata.invoice,
+                                        status: 'CANCELLED',
+                                      },
+                                    },
+                                  }
+                                : m
+                            )
+                          )
+                        }}
+                      />
+                    </div>
+                  </Fragment>
                 )
               }
 
@@ -502,22 +623,30 @@ export default function PartnerMessages({ params }) {
 
               if (isBubble) {
                 return (
-                  <MessageBubble
-                    key={msg.id}
-                    msg={msg}
-                    isOwn={isOwn}
-                    isAdmin={isAdmin}
-                    isRejection={isRejection}
-                    showSenderName={!isOwn}
-                    senderName={msg.sender_name || 'User'}
-                    avatarFallback={
-                      isAdmin ? (
-                        <Shield className="h-4 w-4" />
-                      ) : (
-                        msg.sender_name?.[0]?.toUpperCase() || 'U'
-                      )
-                    }
-                  />
+                  <Fragment key={msg.id}>
+                    {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                    <MessageBubble
+                      msg={msg}
+                      isOwn={isOwn}
+                      isAdmin={isAdmin}
+                      isRejection={isRejection}
+                      showSenderName={!isOwn}
+                      senderName={msg.sender_name || 'User'}
+                      translateTargetLang={language}
+                      translateButtonLabels={{
+                        translate: language === 'ru' ? 'Перевести' : 'Translate',
+                        original: language === 'ru' ? 'Оригинал' : 'Original',
+                        translating: '…',
+                      }}
+                      avatarFallback={
+                        isAdmin ? (
+                          <Shield className="h-4 w-4" />
+                        ) : (
+                          msg.sender_name?.[0]?.toUpperCase() || 'U'
+                        )
+                      }
+                    />
+                  </Fragment>
                 )
               }
 

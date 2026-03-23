@@ -59,10 +59,14 @@ export async function generateMetadata() {
   }
 }
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const siteUrl = await getRequestSiteUrl()
+  const baseHref = `${siteUrl.replace(/\/$/, '')}/`
+
   return (
     <html lang="en">
       <head>
+        <base href={baseHref} />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <link rel="icon" href="/favicon.ico" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

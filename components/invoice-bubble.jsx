@@ -31,10 +31,14 @@ export function InvoiceBubble({
   showPay = false,
   paymentMethod = 'CRYPTO',
   className,
+  /** id сообщения type=invoice — для отмены партнёром */
+  messageId = null,
+  onInvoiceCancelled = null,
 }) {
   const router = useRouter()
   const [methodOpen, setMethodOpen] = useState(false)
   const [navigating, setNavigating] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
 
   if (!invoice) return null
 
@@ -124,7 +128,21 @@ export function InvoiceBubble({
         )}
 
         {isOwn && rawStatus === 'PENDING' && (
-          <p className="text-[10px] text-center text-slate-500">Ожидаем оплату</p>
+          <div className="flex flex-col gap-2">
+            <p className="text-[10px] text-center text-slate-500">Ожидаем оплату</p>
+            {messageId ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full h-8 text-xs border-red-200 text-red-700 hover:bg-red-50"
+                disabled={cancelling}
+                onClick={cancelInvoice}
+              >
+                {cancelling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Cancel Invoice'}
+              </Button>
+            ) : null}
+          </div>
         )}
       </div>
 
