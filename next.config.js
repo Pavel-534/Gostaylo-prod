@@ -26,11 +26,11 @@ const nextConfig = {
   assetPrefix: process.env.NEXT_PUBLIC_ASSET_PREFIX || undefined,
 
   /**
-   * Инлайн критических стилей в HTML (Critters). Помогает при сбоях загрузки отдельных .css на Edge/WAF.
-   * Требует devDependency `critters` (npm install).
+   * Critters (optimizeCss) ломает пререндер /404 и /500 на части сборок Next 14 + Vercel (TypeError: is not a constructor).
+   * Включать только локально: NEXT_OPTIMIZE_CSS=1 npm run build
    */
   experimental: {
-    optimizeCss: true,
+    optimizeCss: process.env.NEXT_OPTIMIZE_CSS === '1',
   },
 
   /** Сброс кэша путей _next на новом деплое (Vercel / ручной билд). */
