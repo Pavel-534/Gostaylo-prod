@@ -449,9 +449,11 @@ export default function EditListing({ params }) {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="price" className="text-sm">Цена (THB/день)</Label>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-start">
+              <div className="space-y-2 min-w-0">
+                <Label htmlFor="price" className="text-sm font-medium leading-normal">
+                  Цена (THB/день)
+                </Label>
                 <Input
                   id="price"
                   type="number"
@@ -460,8 +462,10 @@ export default function EditListing({ params }) {
                   placeholder="15000"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="district" className="text-sm">Район</Label>
+              <div className="space-y-2 min-w-0">
+                <Label htmlFor="district" className="text-sm font-medium leading-normal">
+                  Район
+                </Label>
                 <Input
                   id="district"
                   value={formData.district}
@@ -472,27 +476,30 @@ export default function EditListing({ params }) {
             </div>
 
             <div className="space-y-2 pt-2 border-t border-slate-100">
-              <Label className="text-sm">Точка на карте</Label>
+              <Label className="text-sm font-medium">Точка на карте</Label>
               <p className="text-xs text-slate-500">
-                Как при создании объявления: нажмите на карту или перетащите маркер — координаты сохранятся вместе с объявлением.
+                Закрепите точку после выбора. Для жилья и нянь подставляем район (без точного адреса); для яхт и транспорта — более точное описание.
               </p>
               <MapPicker
+                categoryId={listing?.categoryId}
+                categorySlug={listing?.category?.slug}
+                language={language}
                 latitude={formData.latitude ? parseFloat(formData.latitude) : null}
                 longitude={formData.longitude ? parseFloat(formData.longitude) : null}
                 height={220}
-                onSelect={(lat, lng, address) => {
+                onSelect={(lat, lng, geo) => {
                   setFormData((fd) => ({
                     ...fd,
                     latitude: String(lat),
                     longitude: String(lng),
                     district:
-                      typeof address === 'string' && address.trim()
-                        ? address.split(',')[0]?.trim() || fd.district
+                      geo?.district != null && String(geo.district).trim()
+                        ? String(geo.district).trim()
                         : fd.district,
                   }))
                 }}
               />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
                   <Label htmlFor="lat" className="text-xs text-slate-500">Широта</Label>
                   <Input

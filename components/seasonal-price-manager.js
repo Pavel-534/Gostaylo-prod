@@ -203,18 +203,21 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-teal-600" />
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                <Calendar className="h-5 w-5 shrink-0 text-teal-600" />
                 Сезонные цены
               </CardTitle>
               <CardDescription className="mt-2">
                 Установите разные цены для разных периодов года. Базовая цена: <strong>{basePriceThb?.toLocaleString('ru-RU')} ₿/день</strong>
               </CardDescription>
             </div>
-            <Button onClick={openCreateModal} className="bg-teal-600 hover:bg-teal-700">
-              <Plus className="h-4 w-4 mr-2" />
+            <Button
+              onClick={openCreateModal}
+              className="w-full shrink-0 bg-teal-600 hover:bg-teal-700 sm:w-auto"
+            >
+              <Plus className="mr-2 h-4 w-4" />
               Добавить сезон
             </Button>
           </div>
@@ -239,20 +242,21 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
                     key={price.id}
                     className={`p-4 border-2 ${colors.border} ${colors.bg} rounded-lg`}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
                           <h4 className="font-semibold text-slate-900">{price.label}</h4>
-                          <Badge className={`${colors.bg} ${colors.text} border-0`}>
+                          <Badge className={`max-sm:hidden ${colors.bg} ${colors.text} border-0`}>
                             {colors.label}
                           </Badge>
                         </div>
-                        
-                        <p className="text-sm text-slate-600 mb-2">
-                          📅 {format(new Date(price.startDate), 'dd MMMM yyyy', { locale: ru })} — {format(new Date(price.endDate), 'dd MMMM yyyy', { locale: ru })}
+
+                        <p className="mb-2 text-sm text-slate-600">
+                          📅 {format(new Date(price.startDate), 'dd MMMM yyyy', { locale: ru })} —{' '}
+                          {format(new Date(price.endDate), 'dd MMMM yyyy', { locale: ru })}
                         </p>
-                        
-                        <div className="flex gap-4 text-sm">
+
+                        <div className="flex flex-col gap-1 text-sm sm:flex-row sm:flex-wrap sm:gap-4">
                           <span className="font-medium text-slate-900">
                             💰 {price.priceDaily?.toLocaleString('ru-RU')} ₿/день
                           </span>
@@ -262,25 +266,28 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
                             </span>
                           )}
                         </div>
-                        
+
                         {price.description && (
-                          <p className="text-xs text-slate-500 mt-2">{price.description}</p>
+                          <p className="mt-2 text-xs text-slate-500">{price.description}</p>
                         )}
                       </div>
-                      
-                      <div className="flex gap-2">
+
+                      <div className="flex max-sm:mx-1 max-sm:w-full max-sm:justify-between max-sm:gap-6 max-sm:px-1 shrink-0 gap-2 self-stretch sm:self-start sm:gap-2 sm:px-0">
                         <Button
                           size="sm"
                           variant="outline"
+                          className="min-h-11 min-w-[52px] flex-1 px-4 sm:flex-none sm:min-h-9 sm:min-w-9 sm:px-3"
                           onClick={() => openEditModal(price)}
+                          aria-label="Редактировать сезон"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-red-600 hover:bg-red-50"
+                          className="min-h-11 min-w-[52px] flex-1 px-4 text-red-600 hover:bg-red-50 sm:flex-none sm:min-h-9 sm:min-w-9 sm:px-3"
                           onClick={() => handleDelete(price.id)}
+                          aria-label="Удалить сезон"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

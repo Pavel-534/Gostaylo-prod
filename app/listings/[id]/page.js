@@ -33,15 +33,26 @@ import { Input } from '@/components/ui/input'
 import { formatPrice } from '@/lib/currency'
 import { cn } from '@/lib/utils'
 
+function ListingMapLoadFallback() {
+  const [lang, setLang] = useState('ru')
+  useEffect(() => {
+    setLang(detectLanguage())
+    const h = (e) => e?.detail && setLang(e.detail)
+    window.addEventListener('language-change', h)
+    return () => window.removeEventListener('language-change', h)
+  }, [])
+  return (
+    <div className="h-[400px] bg-slate-100 rounded-xl flex items-center justify-center">
+      <div className="animate-pulse text-slate-400">{getUIText('mapPicker_loading', lang)}</div>
+    </div>
+  )
+}
+
 const ListingMap = dynamic(
   () => import('@/components/listing/ListingMap').then((mod) => mod.ListingMap),
-  { 
+  {
     ssr: false,
-    loading: () => (
-      <div className="h-[400px] bg-slate-100 rounded-xl flex items-center justify-center">
-        <div className="animate-pulse text-slate-400">Loading map...</div>
-      </div>
-    )
+    loading: () => <ListingMapLoadFallback />,
   }
 )
 
@@ -220,7 +231,8 @@ function PremiumListingContent({ params }) {
           seasonalPricing,
           minStay: l.minBookingDays || 1,
           city: l.city,
-          category_id: l.categoryId
+          category_id: l.categoryId,
+          categorySlug: l.category?.slug || null,
         })
       }
       setLoading(false)
@@ -438,11 +450,14 @@ function PremiumListingContent({ params }) {
         <main
           className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-40 lg:pb-8"
         >
-          <BentoGallery 
+          <BentoGallery
             images={allImages}
             title={listing.title}
             language={language}
-            onImageClick={() => setGalleryOpen(true)}
+            onImageClick={(index) => {
+              setGalleryIndex(typeof index === 'number' ? index : 0)
+              setGalleryOpen(true)
+            }}
           />
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -511,6 +526,7 @@ function PremiumListingContent({ params }) {
                   district={listing.district}
                   language={language}
                   categoryId={listing.category_id}
+                  categorySlug={listing.categorySlug}
                 />
                 {listing.district && (
                   <p className="text-sm text-slate-600 mt-4">

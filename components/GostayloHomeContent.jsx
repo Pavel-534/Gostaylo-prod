@@ -284,6 +284,22 @@ export function GostayloHomeContent() {
     router.push(params.toString() ? `/listings?${params.toString()}` : '/listings')
   }, [selectedCategory, where, dateRange, guests, router])
 
+  const handleQuickCategorySearch = useCallback(
+    (slug) => {
+      setSelectedCategory(slug)
+      const params = new URLSearchParams()
+      params.set('category', slug)
+      if (where && where !== 'all') params.set('where', where)
+      if (dateRange.from) params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
+      if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
+        params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
+      }
+      if (guests && guests !== '1') params.set('guests', guests)
+      router.push(`/listings?${params.toString()}`)
+    },
+    [where, dateRange, guests, router]
+  )
+
   const nights = dateRange.from && dateRange.to ? differenceInDays(dateRange.to, dateRange.from) : 0
   const locale = language === 'ru' ? ru : enUS
 
@@ -323,6 +339,7 @@ export function GostayloHomeContent() {
               guests={guests}
               setGuests={setGuests}
               onSearch={handleSearch}
+              onQuickCategorySearch={handleQuickCategorySearch}
               liveCount={liveCount}
               countLoading={countLoading}
               nights={nights}

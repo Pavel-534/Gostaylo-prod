@@ -10,7 +10,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
-import { Search, Users, Layers, MapPin } from 'lucide-react'
+import { Search, Users, Layers, MapPin, Home, Bike, Anchor, Baby } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -21,8 +21,17 @@ import { WhereCombobox } from '@/components/search/WhereCombobox'
 import { getUIText, getCategoryName } from '@/lib/translations'
 import { buildWhereOptions, filterWhereOptions, getOptionLabel } from '@/lib/locations/where-options'
 import { getStaticLocationsSeed } from '@/lib/locations/locations-seed'
+import { cn } from '@/lib/utils'
 
 const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12]
+
+/** Порядок чипов на мобильном hero: подбираем slug из ответа /api/v2/categories */
+const QUICK_CHIP_SPECS = [
+  { candidates: ['property', 'villa', 'apartment', 'apartments', 'house'], icon: Home },
+  { candidates: ['vehicles', 'vehicle', 'transport', 'transportation'], icon: Bike },
+  { candidates: ['yachts', 'yacht', 'boats'], icon: Anchor },
+  { candidates: ['nanny', 'babysitter'], icon: Baby },
+]
 
 export function UnifiedSearchBar({
   variant = 'hero',
@@ -40,6 +49,8 @@ export function UnifiedSearchBar({
   guests,
   setGuests,
   onSearch,
+  /** Мобильный hero: мгновенный переход в /listings с выбранной категорией */
+  onQuickCategorySearch,
   // Hero-only
   liveCount = null,
   countLoading = false,
@@ -51,6 +62,7 @@ export function UnifiedSearchBar({
   const [locations, setLocations] = useState(getStaticLocationsSeed)
   const [locationsLoading, setLocationsLoading] = useState(true)
   const [locationDrawerOpen, setLocationDrawerOpen] = useState(false)
+  const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false)
   const [guestsDrawerOpen, setGuestsDrawerOpen] = useState(false)
   const [mobileWhereInput, setMobileWhereInput] = useState('')
   const [tempGuests, setTempGuests] = useState('2')
@@ -79,9 +91,10 @@ export function UnifiedSearchBar({
     [locations, language]
   )
 
-  const categoryLabel = category && category !== 'all'
-    ? (getCategoryName(category, language) || categories.find(c => c.slug === category)?.name || category)
-    : (language === 'ru' ? 'Что ищете?' : 'What?')
+  const categoryLabel =
+    category && category !== 'all'
+      ? getCategoryName(category, language) || categories.find((c) => c.slug === category)?.name || category
+      : getUIText('mobileSearchWhatTitle', language)
 
   const whereLabel =
     where && where !== 'all' ? getOptionLabel(whereOptionsFull, where) : getUIText('wherePlaceholder', language)
@@ -102,6 +115,20 @@ export function UnifiedSearchBar({
   const handleSearch = () => {
     onSearch?.()
   }
+
+  const quickChips = useMemo(() => {
+    return QUICK_CHIP_SPECS.map((spec) => {
+      const cat = categories.find((c) =>
+        spec.candidates.includes(String(c.slug || '').toLowerCase())
+      )
+      if (!cat) return null
+      return {
+        slug: cat.slug,
+        icon: spec.icon,
+        label: getCategoryName(cat.slug, language, cat.name),
+      }
+    }).filter(Boolean)
+  }, [categories, language])
 
   const triggerBase = 'flex items-center gap-2 text-left hover:bg-slate-50 transition-colors'
   const triggerHero = 'px-4 py-3 border-r border-slate-200 min-w-0'
@@ -162,7 +189,7 @@ export function UnifiedSearchBar({
 
   // Hero variant - 4 fields: What | Where | When | Who
   return (
-    <div className="bg-white rounded-full shadow-2xl border border-slate-200 overflow-visible">
+    <div className="bg-white rounded-2xl md:rounded-full shadow-2xl border border-slate-200 overflow-visible">
       <div className="hidden md:flex items-center rounded-full overflow-visible">
         {/* What - Category */}
         <Popover>
@@ -245,38 +272,141 @@ export function UnifiedSearchBar({
         </Button>
       </div>
 
-      {/* Mobile Hero */}
-      <div className="md:hidden flex items-center p-1">
-        <div className="flex-1 border-r border-slate-200">
+      {/* Mobile Hero — stacked so dates/guests/where never clip */}
+      <div className="md:hidden flex flex-col gap-2 p-3">
+        <button
+          type="button"
+          onClick={() => setCategoryDrawerOpen(true)}
+          className="flex w-full items-center gap-2 rounded-xl border border-slate-200 px-3 py-3 text-left hover:bg-slate-50"
+          data-testid="mobile-category-trigger"
+        >
+          <Layers className="h-4 w-4 shrink-0 text-teal-600" />
+          <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{categoryLabel}</span>
+        </button>
+        <div className="rounded-xl border border-slate-200 overflow-hidden">
           <SearchCalendar
             value={dateRange}
             onChange={setDateRange}
             locale={language}
-            placeholder={nights > 0 ? `${nights}н.` : getUIText('dates', language)}
+            placeholder={getUIText('dates', language)}
             liveCount={liveCount}
             countLoading={countLoading}
-            className="justify-center py-3"
+            className="w-full justify-start px-3 py-3"
           />
         </div>
-        <button
-          onClick={() => setLocationDrawerOpen(true)}
-          className="flex-1 flex items-center justify-center gap-2 py-3 border-r border-slate-200"
-          data-testid="mobile-where-trigger"
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setLocationDrawerOpen(true)}
+            className="flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left hover:bg-slate-50"
+            data-testid="mobile-where-trigger"
+          >
+            <MapPin className="h-4 w-4 shrink-0 text-teal-600" />
+            <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{whereLabel}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setTempGuests(guests || '2')
+              setGuestsDrawerOpen(true)
+            }}
+            className="flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left hover:bg-slate-50"
+          >
+            <Users className="h-4 w-4 shrink-0 text-teal-600" />
+            <span className="truncate text-sm text-slate-800">
+              {guests} {getUIText('guests', language)}
+            </span>
+          </button>
+        </div>
+        <Button
+          onClick={handleSearch}
+          className="h-11 w-full rounded-xl bg-teal-600 hover:bg-teal-700"
+          data-testid="unified-search-button"
         >
-          <MapPin className="h-4 w-4 text-teal-600" />
-          <span className="text-xs text-slate-700 truncate max-w-[60px]">{whereLabel}</span>
-        </button>
-        <button
-          onClick={() => { setTempGuests(guests || '2'); setGuestsDrawerOpen(true); }}
-          className="flex-1 flex items-center justify-center gap-2 py-3 border-r border-slate-200"
-        >
-          <Users className="h-4 w-4 text-teal-600" />
-          <span className="text-xs text-slate-700">{guests}</span>
-        </button>
-        <Button onClick={handleSearch} size="icon" className="h-10 w-10 rounded-full bg-teal-600 hover:bg-teal-700 mx-1">
-          <Search className="h-4 w-4" />
+          <Search className="mr-2 h-4 w-4" />
+          {getUIText('findButton', language)}
         </Button>
+
+        {variant === 'hero' && onQuickCategorySearch && quickChips.length > 0 ? (
+          <div
+            className="-mx-1 flex gap-3 overflow-x-auto pb-1 pt-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            role="list"
+            aria-label={getUIText('categories', language)}
+          >
+            {quickChips.map((chip) => {
+              const Icon = chip.icon
+              const active = category === chip.slug
+              return (
+                <button
+                  key={chip.slug}
+                  type="button"
+                  role="listitem"
+                  onClick={() => {
+                    setCategory?.(chip.slug)
+                    onQuickCategorySearch(chip.slug)
+                  }}
+                  className={cn(
+                    'flex snap-start shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors',
+                    active
+                      ? 'border-teal-600 bg-teal-50 text-teal-900'
+                      : 'border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50'
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0 text-teal-600" aria-hidden />
+                  {chip.label}
+                </button>
+              )
+            })}
+          </div>
+        ) : null}
       </div>
+
+      {/* Mobile category drawer */}
+      <Drawer open={categoryDrawerOpen} onOpenChange={setCategoryDrawerOpen}>
+        <DrawerContent className="max-h-[min(70vh,520px)]">
+          <DrawerHeader className="border-b pb-4">
+            <DrawerTitle>{getUIText('mobileSearchWhatTitle', language)}</DrawerTitle>
+            <DrawerClose asChild>
+              <Button variant="ghost" size="icon">
+                <span className="sr-only">Close</span>
+              </Button>
+            </DrawerClose>
+          </DrawerHeader>
+          <div className="max-h-[55vh] overflow-y-auto p-4 space-y-1">
+            <button
+              type="button"
+              onClick={() => {
+                setCategory?.('all')
+                setCategoryDrawerOpen(false)
+              }}
+              className={`w-full rounded-lg border px-3 py-3 text-left text-sm ${
+                !category || category === 'all'
+                  ? 'border-teal-600 bg-teal-50 text-teal-900'
+                  : 'border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              {language === 'ru' ? 'Всё' : 'All'}
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => {
+                  setCategory?.(c.slug)
+                  setCategoryDrawerOpen(false)
+                }}
+                className={`w-full rounded-lg border px-3 py-3 text-left text-sm ${
+                  category === c.slug
+                    ? 'border-teal-600 bg-teal-50 text-teal-900'
+                    : 'border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                {getCategoryName(c.slug, language) || c.name}
+              </button>
+            ))}
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Mobile Location Drawer */}
       <Drawer open={locationDrawerOpen} onOpenChange={setLocationDrawerOpen}>
@@ -317,7 +447,7 @@ export function UnifiedSearchBar({
       <Drawer open={guestsDrawerOpen} onOpenChange={setGuestsDrawerOpen}>
         <DrawerContent>
           <DrawerHeader className="border-b pb-4">
-            <DrawerTitle>{language === 'ru' ? 'Кто едет?' : 'Who?'}</DrawerTitle>
+            <DrawerTitle>{getUIText('mobileSearchWhoTitle', language)}</DrawerTitle>
             <DrawerClose asChild><Button variant="ghost" size="icon"><span className="sr-only">Close</span></Button></DrawerClose>
           </DrawerHeader>
           <div className="p-4">
@@ -335,7 +465,7 @@ export function UnifiedSearchBar({
           </div>
           <DrawerFooter>
             <Button onClick={handleGuestsConfirm} className="w-full bg-teal-600">
-              {language === 'ru' ? 'Готово' : 'Done'}
+              {getUIText('mobileSearchDone', language)}
             </Button>
           </DrawerFooter>
         </DrawerContent>

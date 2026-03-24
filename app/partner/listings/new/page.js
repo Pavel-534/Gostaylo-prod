@@ -495,7 +495,12 @@ export default function PremiumListingWizard() {
       setLoading(false)
     }
   }
-  
+
+  const mapCategorySlug = useMemo(
+    () => categories.find((c) => c.id === formData.categoryId)?.slug ?? '',
+    [categories, formData.categoryId]
+  )
+
   // Dynamic fields based on category
   const renderSpecs = () => {
     const categoryName = formData.categoryName?.toLowerCase() || ''
@@ -723,19 +728,22 @@ export default function PremiumListingWizard() {
               <p className="text-xs text-slate-500 mt-1">{t('clickToPin')}</p>
               <div className="mt-2">
                 <MapPicker
+                  categoryId={formData.categoryId}
+                  categorySlug={mapCategorySlug}
+                  language={language}
                   latitude={formData.latitude}
                   longitude={formData.longitude}
-                  onSelect={(lat, lng, address) => {
+                  onSelect={(lat, lng, geo) => {
                     updateField('latitude', lat)
                     updateField('longitude', lng)
-                    if (address?.district) {
-                      updateField('district', address.district)
-                      setGeocodeQuery(address.displayName || address.district)
-                      setCustomDistricts(prev => 
-                        prev.includes(address.district) ? prev : [...prev, address.district]
+                    if (geo?.district) {
+                      updateField('district', geo.district)
+                      setGeocodeQuery(geo.displayName || geo.district)
+                      setCustomDistricts((prev) =>
+                        prev.includes(geo.district) ? prev : [...prev, geo.district]
                       )
                     }
-                    if (address?.city) updateMetadata('city', address.city)
+                    if (geo?.city) updateMetadata('city', geo.city)
                   }}
                   height={280}
                 />

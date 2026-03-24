@@ -85,6 +85,7 @@ export default function PartnerMessages({ params }) {
   const [declineOpen, setDeclineOpen] = useState(false)
   const [declinePreset, setDeclinePreset] = useState('occupied')
   const [declineOtherDetail, setDeclineOtherDetail] = useState('')
+  const [threadLoading, setThreadLoading] = useState(false)
 
   const conversationId = params?.id
 
@@ -211,6 +212,11 @@ export default function PartnerMessages({ params }) {
   }
 
   async function loadMessages(convId) {
+    setThreadLoading(true)
+    setSelectedConv(null)
+    setListing(null)
+    setBooking(null)
+    setMessages([])
     try {
       const convRes = await fetch(
         `/api/v2/chat/conversations?id=${encodeURIComponent(convId)}&enrich=1`,
@@ -236,6 +242,8 @@ export default function PartnerMessages({ params }) {
       setMessages(msgJson.data.map(apiMessageToRow).filter(Boolean))
     } catch (error) {
       console.error('Failed to load messages:', error)
+    } finally {
+      setThreadLoading(false)
     }
   }
 
@@ -512,7 +520,8 @@ export default function PartnerMessages({ params }) {
     )
   }
 
-  if (!categoryFilter && conversations.length === 0) {
+  /* Не показываем «пусто», пока открыт конкретный диалог по URL — иначе мигание до загрузки списка */
+  if (!categoryFilter && conversations.length === 0 && !conversationId) {
     return (
       <div className="p-4 lg:p-8">
         <div className="flex flex-col items-center justify-center h-96">
@@ -552,7 +561,24 @@ export default function PartnerMessages({ params }) {
         archivedListLabel={language === 'ru' ? 'Архив' : 'Archive'}
       />
 
-      {conversationId && selectedConv ? (
+      {conversationId && threadLoading ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-slate-50 px-6 py-12 min-h-[50vh] lg:min-h-0">
+          <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
+          <p className="text-center text-sm text-slate-600">
+            {language === 'ru' ? 'Загружаем диалог…' : 'Loading conversation…'}
+          </p>
+        </div>
+      ) : conversationId && !selectedConv ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-slate-50 px-6 py-12 min-h-[50vh] lg:min-h-0">
+          <MessageSquare className="h-12 w-12 text-slate-300" />
+          <p className="text-center text-sm text-slate-600">
+            {language === 'ru' ? 'Диалог не найден или нет доступа.' : 'Conversation not found or access denied.'}
+          </p>
+          <Button type="button" variant="outline" onClick={() => router.push('/partner/messages')}>
+            {language === 'ru' ? 'К списку' : 'Back to list'}
+          </Button>
+        </div>
+      ) : conversationId && selectedConv ? (
         <div className="flex-1 flex flex-col min-h-0">
           <div className="flex items-center gap-2 px-2 pt-2 lg:px-0 lg:pt-0 bg-white border-b lg:border-0">
             <Button
