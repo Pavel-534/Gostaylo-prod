@@ -28,13 +28,8 @@ const nextConfig = {
    */
   assetPrefix: process.env.NEXT_PUBLIC_ASSET_PREFIX || undefined,
 
-  /**
-   * Critters (optimizeCss) ломает пререндер /404 и /500 на части сборок Next 14 + Vercel (TypeError: is not a constructor).
-   * Включать только локально: NEXT_OPTIMIZE_CSS=1 npm run build
-   */
-  experimental: {
-    optimizeCss: process.env.NEXT_OPTIMIZE_CSS === '1',
-  },
+  /** Cloudflare / origin: единообразные пути со слешем в конце. */
+  trailingSlash: true,
 
   /** Сброс кэша путей _next на новом деплое (Vercel / ручной билд). */
   generateBuildId: async () =>

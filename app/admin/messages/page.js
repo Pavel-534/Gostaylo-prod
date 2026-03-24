@@ -53,6 +53,8 @@ function apiMessageToRow(m) {
 
 function AdminMessagesPageContent() {
   const { language } = useI18n()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const messagesEndRef = useRef(null)
   const attachFileRef = useRef(null)
   const [me, setMe] = useState(null)
@@ -156,7 +158,7 @@ function AdminMessagesPageContent() {
     let cancelled = false
     ;(async () => {
       await loadMessages(openFromUrl)
-      if (!cancelled) router.replace('/admin/messages', { scroll: false })
+      if (!cancelled) router.replace('/admin/messages/', { scroll: false })
     })()
     return () => {
       cancelled = true

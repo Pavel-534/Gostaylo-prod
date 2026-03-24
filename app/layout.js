@@ -63,8 +63,6 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en">
       <head>
-        {/* Относительный base: стили/чанки — пути /_next/... с текущего хоста (Worker → Vercel). Без абсолютного NEXT_PUBLIC_BASE_URL в разметке. */}
-        <base href="/" />
         {/* Минимальная подстраховка, если .css из /_next/static не загрузились (сеть / Edge). */}
         <style
           dangerouslySetInnerHTML={{
