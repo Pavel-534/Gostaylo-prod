@@ -11,7 +11,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
-import { toStorageProxyUrl } from '@/lib/supabase-proxy-urls'
+import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url'
 
 export const dynamic = 'force-dynamic'
 
@@ -245,8 +245,8 @@ function transformBooking(booking) {
       id: booking.listing.id,
       title: booking.listing.title,
       district: booking.listing.district,
-      images: (booking.listing.images || []).map((u) => toStorageProxyUrl(u)).filter(Boolean),
-      coverImage: booking.listing.cover_image ? toStorageProxyUrl(booking.listing.cover_image) : null,
+      images: mapPublicImageUrls(booking.listing.images || []),
+      coverImage: booking.listing.cover_image ? toPublicImageUrl(booking.listing.cover_image) : null,
       basePriceThb: parseFloat(booking.listing.base_price_thb) || 0,
       commissionRate: parseFloat(booking.listing.commission_rate) || 15
     } : null,

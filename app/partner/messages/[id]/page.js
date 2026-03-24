@@ -476,7 +476,16 @@ export default function PartnerMessages({ params }) {
         )
         return
       }
-      toast.success(language === 'ru' ? 'Диалог скрыт из списка' : 'Archived')
+      toast.success(language === 'ru' ? 'Диалог скрыт из списка' : 'Archived', {
+        description:
+          language === 'ru'
+            ? 'Вернуть: раздел «Архив» в сообщениях'
+            : 'Restore from Messages → Archive',
+        action: {
+          label: language === 'ru' ? 'Архив' : 'Archive',
+          onClick: () => router.push('/partner/messages/archived'),
+        },
+      })
       const next = conversations.filter((c) => c.id !== convId)
       setConversations(next)
       if (String(conversationId) === String(convId)) {

@@ -55,11 +55,15 @@ export function useChatTyping(conversationId, userId, displayName) {
     const now = Date.now()
     if (now - lastSentRef.current < 400) return
     lastSentRef.current = now
-    channelRef.current.send({
-      type: 'broadcast',
-      event: 'typing',
-      payload: { userId, name: displayName || 'User' },
-    })
+    try {
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'typing',
+        payload: { userId, name: displayName || 'User' },
+      })
+    } catch {
+      /* Realtime / send может бросить при сетевых сбоях — не роняем UI */
+    }
   }, [userId, displayName])
 
   return { peerTypingName, broadcastTyping }

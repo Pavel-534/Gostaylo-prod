@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { AlertTriangle, Archive, Building2, LayoutGrid, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
+import { toPublicImageUrl } from '@/lib/public-image-url'
 
 /**
  * Соответствие slug категории из БД → имя экспорта lucide-react (PascalCase).
@@ -152,7 +153,7 @@ export function ConversationList({
               <div className="flex gap-3">
                 {conv.listing?.images?.[0] ? (
                   <img
-                    src={conv.listing.images[0]}
+                    src={toPublicImageUrl(conv.listing.images[0]) || conv.listing.images[0]}
                     alt={conv.listing.title}
                     className="w-12 h-12 rounded-lg object-cover"
                   />

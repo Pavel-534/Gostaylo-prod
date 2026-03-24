@@ -9,7 +9,7 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import { ChevronLeft, ChevronRight, Heart } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { mapStorageUrlsToProxy } from '@/lib/supabase-proxy-urls'
+import { mapPublicImageUrls } from '@/lib/public-image-url'
 
 const PLACEHOLDER = '/placeholder.svg'
 
@@ -20,7 +20,7 @@ export function CardImageCarousel({
   onFavoriteClick,
   onImageLoad
 }) {
-  const imagesProxied = useMemo(() => mapStorageUrlsToProxy(images), [images])
+  const imagesProxied = useMemo(() => mapPublicImageUrls(images), [images])
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isHovered, setIsHovered] = useState(false)

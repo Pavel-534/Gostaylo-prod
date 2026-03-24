@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { toStorageProxyUrl } from '@/lib/supabase-proxy-urls'
+import { toPublicImageUrl } from '@/lib/public-image-url'
 
 function isAbsoluteHttpUrl(url) {
   return typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'))
@@ -22,7 +22,8 @@ export function ProxiedImage({
   priority,
   unoptimized,
 }) {
-  const u = toStorageProxyUrl(src) || src || '/placeholder.svg'
+  const raw = src || '/placeholder.svg'
+  const u = raw === '/placeholder.svg' ? raw : toPublicImageUrl(raw) || raw
   const effectiveUnoptimized =
     unoptimized !== undefined ? unoptimized : isAbsoluteHttpUrl(u)
   if (fill) {

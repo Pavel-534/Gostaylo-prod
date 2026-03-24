@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { ChatGrowingTextarea } from '@/components/chat-growing-textarea'
 import { SendInvoiceDialog } from '@/components/chat-invoice'
 import { Plus, Receipt, IdCard, Loader2, Send, Paperclip } from 'lucide-react'
 import { toast } from 'sonner'
@@ -67,7 +67,7 @@ export function PartnerChatComposer({
         accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
         onChange={handleFileChange}
       />
-      <form onSubmit={onSubmit} className="flex gap-2 items-center">
+      <form onSubmit={onSubmit} className="flex gap-2 items-end">
         {onAttachFile ? (
           <Button
             type="button"
@@ -87,7 +87,7 @@ export function PartnerChatComposer({
               type="button"
               variant="outline"
               size="icon"
-              className="flex-shrink-0 border-slate-200"
+              className="flex-shrink-0 border-slate-200 h-10 w-10"
               aria-label="Действия"
               disabled={disabled}
             >
@@ -134,17 +134,16 @@ export function PartnerChatComposer({
           }}
         />
 
-        <Input
+        <ChatGrowingTextarea
           value={newMessage}
-          onChange={(e) => onMessageChange(e.target.value)}
+          onChange={onMessageChange}
           placeholder="Сообщение…"
-          className="flex-1"
           disabled={sending || disabled}
         />
         <Button
           type="submit"
           disabled={!newMessage.trim() || sending || disabled}
-          className="bg-teal-600 hover:bg-teal-700 flex-shrink-0"
+          className="bg-teal-600 hover:bg-teal-700 flex-shrink-0 h-10 w-10 sm:w-auto sm:px-4"
         >
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>

@@ -4,7 +4,7 @@ import { Fragment, useState, useEffect, useRef, useCallback, useMemo } from 'rea
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { ChatGrowingTextarea } from '@/components/chat-growing-textarea'
 import {
   Send,
   Loader2,
@@ -366,7 +366,13 @@ export default function RenterMessages({ params }) {
         toast.error(json.error || 'Не удалось скрыть диалог')
         return
       }
-      toast.success('Диалог скрыт из списка')
+      toast.success('Диалог скрыт из списка', {
+        description: 'Вернуть или открыть снова — раздел «Архив» в сообщениях',
+        action: {
+          label: 'Архив',
+          onClick: () => router.push('/renter/messages/archived'),
+        },
+      })
       router.push('/renter/messages')
     } catch {
       toast.error('Ошибка сети')
@@ -672,32 +678,31 @@ export default function RenterMessages({ params }) {
                     if (f) handleAttachFile(f)
                   }}
                 />
-                <form onSubmit={sendMessage} className="flex gap-2">
+                <form onSubmit={sendMessage} className="flex gap-2 items-end">
                   <Button
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="flex-shrink-0 border-slate-200"
+                    className="flex-shrink-0 border-slate-200 h-10 w-10"
                     disabled={sending}
                     aria-label="Прикрепить файл"
                     onClick={() => attachFileRef.current?.click()}
                   >
                     <Paperclip className="h-5 w-5" />
                   </Button>
-                  <Input
+                  <ChatGrowingTextarea
                     value={newMessage}
-                    onChange={(e) => {
-                      setNewMessage(e.target.value)
+                    onChange={(v) => {
+                      setNewMessage(v)
                       broadcastTyping()
                     }}
-                    placeholder="Напишите сообщение..."
-                    className="flex-1 min-w-0"
+                    placeholder="Напишите сообщение…"
                     disabled={sending}
                   />
                   <Button
                     type="submit"
                     disabled={!newMessage.trim() || sending}
-                    className="bg-teal-600 hover:bg-teal-700 flex-shrink-0"
+                    className="bg-teal-600 hover:bg-teal-700 flex-shrink-0 h-10 w-10 sm:w-auto sm:px-4"
                   >
                     {sending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

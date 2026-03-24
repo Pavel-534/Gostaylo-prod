@@ -23,6 +23,7 @@ import { detectLanguage, setLanguage as persistLanguage, getCategoryName, getUIT
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton'
+import { proxifyUnsplashUrl } from '@/lib/proxify-unsplash-url'
 import { format, isSameDay, differenceInDays } from 'date-fns'
 import { ru, enUS } from 'date-fns/locale'
 
@@ -38,13 +39,14 @@ function useDebounce(value, delay) {
 
 // Media query hook
 /** Внешние фото главной: не из Supabase. next/image с оптимизацией тянет CDN с сервера Node — при таймаутах даёт 500; для внешних URL используем unoptimized (грузит браузер). */
-const HERO_BACKGROUND_IMAGE =
+const HERO_BACKGROUND_IMAGE = proxifyUnsplashUrl(
   'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1920&q=80'
+)
 const CATEGORY_CARD_IMAGES = [
-  'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80',
-  'https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?auto=format&fit=crop&w=1200&q=80',
+  proxifyUnsplashUrl('https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=80'),
+  proxifyUnsplashUrl('https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=1200&q=80'),
+  proxifyUnsplashUrl('https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80'),
+  proxifyUnsplashUrl('https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?auto=format&fit=crop&w=1200&q=80'),
 ]
 
 function isAbsoluteHttpUrl(src) {
@@ -403,7 +405,9 @@ export function GostayloHomeContent() {
                 if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) listingParams.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
                 if (guests !== '1') listingParams.set('guests', guests)
                 const listingUrl = listingParams.toString() ? `/listings/${listing.id}?${listingParams.toString()}` : `/listings/${listing.id}`
-                const thumbSrc = listing.coverImage || listing.images?.[0] || '/placeholder.svg'
+                const thumbRaw = listing.coverImage || listing.images?.[0] || '/placeholder.svg'
+                const thumbSrc =
+                  thumbRaw === '/placeholder.svg' ? thumbRaw : proxifyUnsplashUrl(thumbRaw)
                 
                 return (
                   <Link key={listing.id} href={listingUrl}>

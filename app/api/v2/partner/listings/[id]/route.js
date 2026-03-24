@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
-import { toStorageProxyUrl } from '@/lib/supabase-proxy-urls';
+import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,8 +110,8 @@ export async function GET(request, context) {
       commissionRate: parseFloat(listing.commission_rate) || 15,
       minBookingDays: listing.min_booking_days ?? 1,
       maxBookingDays: listing.max_booking_days ?? 90,
-      images: (listing.images || []).map((u) => toStorageProxyUrl(u)).filter(Boolean),
-      coverImage: listing.cover_image ? toStorageProxyUrl(listing.cover_image) : null,
+      images: mapPublicImageUrls(listing.images || []),
+      coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
       available: listing.available,
       isFeatured: listing.is_featured,
       views: listing.views || 0,
@@ -137,8 +137,8 @@ export async function GET(request, context) {
       district: listing.district,
       basePriceThb: parseFloat(listing.base_price_thb) || 0,
       commissionRate: parseFloat(listing.commission_rate) || 15,
-      images: (listing.images || []).map((u) => toStorageProxyUrl(u)).filter(Boolean),
-      coverImage: listing.cover_image ? toStorageProxyUrl(listing.cover_image) : null,
+      images: mapPublicImageUrls(listing.images || []),
+      coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
       available: listing.available,
       isFeatured: listing.is_featured,
       views: listing.views || 0,

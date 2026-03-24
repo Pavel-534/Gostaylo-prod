@@ -2,7 +2,7 @@ import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { MapPin, Calendar } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
-import { toStorageProxyUrl } from '@/lib/supabase-proxy-urls'
+import { toPublicImageUrl } from '@/lib/public-image-url'
 
 export function ListingContextCard({ listing, checkIn, checkOut, className = '' }) {
   if (!listing) return null
@@ -12,7 +12,7 @@ export function ListingContextCard({ listing, checkIn, checkOut, className = '' 
     : 1
 
   const thumb =
-    toStorageProxyUrl(listing.coverImage || listing.cover_image || listing.images?.[0]) ||
+    toPublicImageUrl(listing.coverImage || listing.cover_image || listing.images?.[0]) ||
     '/placeholder.svg'
 
   return (

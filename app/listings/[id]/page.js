@@ -20,7 +20,6 @@ import { ListingInfo } from '@/components/listing/ListingInfo'
 import { ReviewsSection } from '@/components/listing/ReviewsSection'
 import { GalleryModal } from '@/components/listing/GalleryModal'
 import { BookingModal } from '@/components/listing/BookingModal'
-import { LeafletCSS } from '@/components/listing/ListingMap'
 import { toast } from 'sonner'
 import { detectLanguage, getUIText } from '@/lib/translations'
 import { PricingService } from '@/lib/services/pricing.service'
@@ -404,7 +403,6 @@ function PremiumListingContent({ params }) {
   
   return (
     <>
-      <LeafletCSS />
       <div className="min-h-screen bg-white">
         {/* Header */}
         <header className="sticky top-0 z-30 bg-white border-b border-slate-200">

@@ -185,14 +185,7 @@ export function ListingMap({ latitude, longitude, title, district, language = 'e
   )
 }
 
-// Add Leaflet CSS import helper
+/** Раньше тянули CSS с unpkg (ломалось по CSP). Стили Leaflet — `import 'leaflet/dist/leaflet.css'` в app/layout.js */
 export function LeafletCSS() {
-  return (
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-      crossOrigin=""
-    />
-  )
+  return null
 }

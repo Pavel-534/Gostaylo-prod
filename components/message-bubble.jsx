@@ -105,6 +105,9 @@ export function MessageBubble({
 
   const displayText = showTranslated && translated ? translated : text
 
+  /** Галочки: на тёмном пузыре (свои) — светлые иконки */
+  const tickTone = isOwn ? 'dark' : 'light'
+
   let body = null
   if (rawType === 'image' && imgUrl && typeof imgUrl === 'string') {
     body = (

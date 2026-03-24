@@ -56,7 +56,13 @@ export default function RenterMessagesIndex() {
         return
       }
       setConversations((prev) => prev.filter((c) => c.id !== convId))
-      toast.success('Диалог скрыт из списка')
+      toast.success('Диалог скрыт из списка', {
+        description: 'Восстановить: раздел «Архив» выше',
+        action: {
+          label: 'Открыть архив',
+          onClick: () => router.push('/renter/messages/archived'),
+        },
+      })
     } catch {
       toast.error('Ошибка сети')
     }
@@ -104,7 +110,7 @@ export default function RenterMessagesIndex() {
             <span className="font-bold text-slate-900">Gostaylo</span>
           </Link>
           <div className="flex items-center gap-1">
-            <Button asChild variant="ghost" size="sm" className="text-slate-700">
+            <Button asChild variant="outline" size="sm" className="text-teal-800 border-teal-200">
               <Link href="/renter/messages/archived">
                 <Archive className="h-4 w-4 mr-1.5" />
                 Архив
