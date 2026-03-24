@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-sync'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,6 +64,7 @@ export async function POST(request) {
     }
 
     // Process action
+    const previousStatus = booking.status
     const newStatus = action === 'approve' ? 'CONFIRMED' : 'CANCELLED'
     const timestamp = new Date().toISOString()
 
@@ -80,6 +82,16 @@ export async function POST(request) {
     if (updateError) {
       await answerCallback(callbackId, 'Ошибка обновления')
       return NextResponse.json({ ok: true })
+    }
+
+    try {
+      await syncBookingStatusToConversationChat({
+        bookingId,
+        previousStatus,
+        newStatus,
+      })
+    } catch (e) {
+      console.error('[telegram booking-callback] chat sync', e)
     }
 
     // Answer callback

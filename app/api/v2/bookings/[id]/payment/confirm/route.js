@@ -6,6 +6,7 @@
 
 import { NextResponse } from 'next/server';
 import { getUserIdFromSession } from '@/lib/services/session-service';
+import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-sync';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,6 +42,7 @@ export async function POST(request, { params }) {
     }
     
     const booking = bookings[0];
+    const previousStatus = booking.status;
 
     // Ownership check: only the renter can confirm payment for their booking
     const sessionUserId = await getUserIdFromSession();
@@ -87,7 +89,17 @@ export async function POST(request, { params }) {
     if (!updateRes.ok) {
       throw new Error('Failed to update booking');
     }
-    
+
+    try {
+      await syncBookingStatusToConversationChat({
+        bookingId,
+        previousStatus,
+        newStatus: 'CONFIRMED',
+      })
+    } catch (e) {
+      console.error('[PAYMENT CONFIRMED] chat sync', e)
+    }
+
     // Log payment confirmation
     console.log(`[PAYMENT CONFIRMED] Booking ${bookingId} | TX: ${txId || 'N/A'} | Gateway: ${gatewayRef || 'N/A'}`);
     

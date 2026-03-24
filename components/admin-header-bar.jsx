@@ -114,7 +114,7 @@ export function AdminHeaderBar() {
                 Finance
               </Button>
             </Link>
-            <Link href="/admin/messages">
+            <Link href="/admin/messages/">
               <Button 
                 variant="ghost" 
                 size="sm" 

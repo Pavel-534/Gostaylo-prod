@@ -60,7 +60,7 @@ const ADMIN_NAV = [
   },
   { 
     label: 'Messages', 
-    href: '/admin/messages', 
+    href: '/admin/messages/', 
     icon: MessageSquare,
     description: 'TG Thread 18 Bridge'
   },

@@ -592,11 +592,11 @@ export default function PartnerListings() {
                     </Link>
                   </Button>
 
-                  {/* Календарь + iCal — якорь на странице редактирования */}
+                  {/* Мастер-календарь, отфильтрованный по этому листингу (не страница редактирования) */}
                   <Button variant='outline' size='sm' className='h-9' asChild>
                     <Link
-                      href={`/partner/listings/${listing.id}#partner-calendar-sync`}
-                      title='Календарь и синхронизация iCal'
+                      href={`/partner/calendar?listingId=${listing.id}`}
+                      title='Мастер-календарь: только этот объект'
                     >
                       <Calendar className='h-4 w-4 sm:mr-1' />
                       <span className='hidden sm:inline text-xs'>Календарь</span>

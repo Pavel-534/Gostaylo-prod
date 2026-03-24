@@ -35,7 +35,7 @@ export default function UniversalMessageDeepLink() {
           return
         }
         if (role === 'ADMIN' || role === 'MODERATOR') {
-          router.replace(`/admin/messages?open=${encodeURIComponent(id)}`)
+          router.replace(`/admin/messages/?open=${encodeURIComponent(id)}`)
           return
         }
         router.replace(`/renter/messages/${encodeURIComponent(id)}`)

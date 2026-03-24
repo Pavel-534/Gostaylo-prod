@@ -14,17 +14,30 @@ import { toast } from 'sonner'
  */
 export function MessageReadTicks({ isOwn, isRead, className, bubbleTone = 'light' }) {
   if (!isOwn) return null
+  const read = Boolean(isRead)
   if (bubbleTone === 'dark') {
-    return isRead ? (
-      <CheckCheck className={cn('h-3.5 w-3.5 shrink-0 text-sky-300', className)} aria-label="Прочитано" />
+    return read ? (
+      <CheckCheck
+        className={cn('h-3.5 w-3.5 shrink-0 text-sky-300 transition-colors duration-150', className)}
+        aria-label="Прочитано"
+      />
     ) : (
-      <Check className={cn('h-3.5 w-3.5 shrink-0 text-slate-300', className)} aria-label="Отправлено" />
+      <Check
+        className={cn('h-3.5 w-3.5 shrink-0 text-slate-300 transition-colors duration-150', className)}
+        aria-label="Отправлено"
+      />
     )
   }
-  return isRead ? (
-    <CheckCheck className={cn('h-3.5 w-3.5 shrink-0 text-blue-600', className)} aria-label="Прочитано" />
+  return read ? (
+    <CheckCheck
+      className={cn('h-3.5 w-3.5 shrink-0 text-blue-600 transition-colors duration-150', className)}
+      aria-label="Прочитано"
+    />
   ) : (
-    <Check className={cn('h-3.5 w-3.5 shrink-0 text-slate-400', className)} aria-label="Отправлено" />
+    <Check
+      className={cn('h-3.5 w-3.5 shrink-0 text-slate-400 transition-colors duration-150', className)}
+      aria-label="Отправлено"
+    />
   )
 }
 
@@ -185,7 +198,7 @@ export function MessageBubble({
           {createdRelative ? <span className="text-xs text-slate-500">{createdRelative}</span> : null}
           <MessageReadTicks
             isOwn={isOwn}
-            isRead={msg.is_read ?? msg.isRead}
+            isRead={Boolean(msg.is_read ?? msg.isRead)}
             bubbleTone={tickTone}
             className={ticksClassName}
           />

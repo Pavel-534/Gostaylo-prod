@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,8 @@ import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { ProxiedImage } from '@/components/proxied-image'
+
+const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
 
 export default function EditListing({ params }) {
   const router = useRouter()
@@ -45,6 +48,8 @@ export default function EditListing({ params }) {
     description: '',
     basePriceThb: '',
     district: '',
+    latitude: '',
+    longitude: '',
     images: [],
     coverIndex: 0
   })
@@ -94,8 +99,8 @@ export default function EditListing({ params }) {
       
       console.log('[EDIT] API response:', result)
       
-      if (result.success && result.listing) {
-        const l = result.listing
+      if (result.success && (result.data || result.listing)) {
+        const l = result.data || result.listing
         setListing(l)
         
         // Find cover index
@@ -107,6 +112,8 @@ export default function EditListing({ params }) {
           description: l.description || '',
           basePriceThb: l.basePriceThb?.toString() || '',
           district: l.district || '',
+          latitude: l.latitude != null && l.latitude !== '' ? String(l.latitude) : '',
+          longitude: l.longitude != null && l.longitude !== '' ? String(l.longitude) : '',
           images: images,
           coverIndex: coverIndex >= 0 ? coverIndex : 0
         })
@@ -138,6 +145,8 @@ export default function EditListing({ params }) {
           description: formData.description,
           basePriceThb: parseFloat(formData.basePriceThb) || 0,
           district: formData.district,
+          latitude: formData.latitude === '' ? null : parseFloat(formData.latitude),
+          longitude: formData.longitude === '' ? null : parseFloat(formData.longitude),
           images: formData.images,
           coverImage: coverImage
           // Сезонные цены и iCal — отдельные компоненты / API, не перезаписываем metadata.seasonal_pricing здесь
@@ -147,10 +156,19 @@ export default function EditListing({ params }) {
       const result = await res.json()
       
       if (result.success) {
-        toast.success('✅ Объявление сохранено!')
+        toast.success('Объявление сохранено', { id: 'partner-listing-save' })
         setListing((prev) =>
-          prev ? { ...prev, title: formData.title, description: formData.description } : prev
+          prev
+            ? {
+                ...prev,
+                title: formData.title,
+                description: formData.description,
+                latitude: formData.latitude === '' ? null : parseFloat(formData.latitude),
+                longitude: formData.longitude === '' ? null : parseFloat(formData.longitude),
+              }
+            : prev
         )
+        router.push('/partner/listings')
       } else {
         toast.error(result.error || 'Ошибка при сохранении')
       }
@@ -184,6 +202,8 @@ export default function EditListing({ params }) {
           description: formData.description,
           basePriceThb: parseFloat(formData.basePriceThb) || 0,
           district: formData.district,
+          latitude: formData.latitude === '' ? null : parseFloat(formData.latitude),
+          longitude: formData.longitude === '' ? null : parseFloat(formData.longitude),
           images: formData.images,
           coverImage: coverImage,
           status: 'PENDING',
@@ -449,6 +469,53 @@ export default function EditListing({ params }) {
                   onChange={(e) => setFormData({ ...formData, district: e.target.value })}
                   placeholder="Rawai"
                 />
+              </div>
+            </div>
+
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <Label className="text-sm">Точка на карте</Label>
+              <p className="text-xs text-slate-500">
+                Как при создании объявления: нажмите на карту или перетащите маркер — координаты сохранятся вместе с объявлением.
+              </p>
+              <MapPicker
+                latitude={formData.latitude ? parseFloat(formData.latitude) : null}
+                longitude={formData.longitude ? parseFloat(formData.longitude) : null}
+                height={220}
+                onSelect={(lat, lng, address) => {
+                  setFormData((fd) => ({
+                    ...fd,
+                    latitude: String(lat),
+                    longitude: String(lng),
+                    district:
+                      typeof address === 'string' && address.trim()
+                        ? address.split(',')[0]?.trim() || fd.district
+                        : fd.district,
+                  }))
+                }}
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="lat" className="text-xs text-slate-500">Широта</Label>
+                  <Input
+                    id="lat"
+                    inputMode="decimal"
+                    value={formData.latitude}
+                    onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                    placeholder="7.88"
+                    className="text-sm font-mono"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="lng" className="text-xs text-slate-500">Долгота</Label>
+                  <Input
+                    id="lng"
+                    inputMode="decimal"
+                    value={formData.longitude}
+                    onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                    placeholder="98.39"
+                    className="text-sm font-mono"
+                  />
+                </div>
               </div>
             </div>
           </CardContent>

@@ -125,34 +125,98 @@ export default function PartnerLayout({ children }) {
     }
   }, [pathname])
 
-  // Check access and load user
+  // Partner access from DB via /auth/me (fixes stale localStorage after role change); keep impersonation path
   useEffect(() => {
-    const storedUser = localStorage.getItem('gostaylo_user')
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser)
-        setUser(parsed)
-        setIsImpersonating(!!parsed.isImpersonated)
-        
-        // Check if user has partner access
-        const hasAccess = ['PARTNER', 'ADMIN', 'MODERATOR'].includes(parsed.role)
-        if (!hasAccess) {
-          setAccessDenied(true)
-          setIsNotLoggedIn(false)
-        }
-      } catch (e) {
-        setAccessDenied(true)
-        setIsNotLoggedIn(true)
-      }
-    } else {
-      setAccessDenied(true)
-      setIsNotLoggedIn(true)
-    }
-    setLoading(false)
+    let cancelled = false
 
-    // Set initial sidebar state based on screen width
-    if (typeof window !== 'undefined') {
-      setSidebarOpen(window.innerWidth >= 1024)
+    async function resolveAccess() {
+      let parsed = null
+      try {
+        const raw = localStorage.getItem('gostaylo_user')
+        if (raw) parsed = JSON.parse(raw)
+      } catch {
+        parsed = null
+      }
+
+      if (parsed?.isImpersonated) {
+        if (cancelled) return
+        setUser(parsed)
+        setIsImpersonating(true)
+        const hasAccess = ['PARTNER', 'ADMIN', 'MODERATOR'].includes(parsed.role)
+        setAccessDenied(!hasAccess)
+        setIsNotLoggedIn(false)
+        setLoading(false)
+        if (typeof window !== 'undefined') {
+          setSidebarOpen(window.innerWidth >= 1024)
+        }
+        return
+      }
+
+      setLoading(true)
+      try {
+        const res = await fetch('/api/v2/auth/me', { credentials: 'include' })
+        const data = await res.json()
+        if (cancelled) return
+
+        if (res.ok && data.success && data.user) {
+          const u = data.user
+          const merged = {
+            id: u.id,
+            email: u.email,
+            role: u.role,
+            name: u.name,
+            first_name: u.first_name,
+            last_name: u.last_name,
+            phone: u.phone,
+            referral_code: u.referral_code,
+            is_verified: u.is_verified,
+            telegram_id: u.telegram_id,
+          }
+          localStorage.setItem('gostaylo_user', JSON.stringify(merged))
+          setUser(merged)
+          setIsImpersonating(false)
+          const hasAccess = ['PARTNER', 'ADMIN', 'MODERATOR'].includes(u.role)
+          setAccessDenied(!hasAccess)
+          setIsNotLoggedIn(false)
+        } else {
+          if (res.status === 401) {
+            setUser(null)
+            setAccessDenied(true)
+            setIsNotLoggedIn(true)
+          } else if (parsed) {
+            const hasAccess = ['PARTNER', 'ADMIN', 'MODERATOR'].includes(parsed.role)
+            setUser(parsed)
+            setIsImpersonating(false)
+            setAccessDenied(!hasAccess)
+            setIsNotLoggedIn(false)
+          } else {
+            setUser(null)
+            setAccessDenied(true)
+            setIsNotLoggedIn(true)
+          }
+        }
+      } catch {
+        if (cancelled) return
+        if (parsed) {
+          const hasAccess = ['PARTNER', 'ADMIN', 'MODERATOR'].includes(parsed.role)
+          setUser(parsed)
+          setAccessDenied(!hasAccess)
+          setIsNotLoggedIn(false)
+        } else {
+          setAccessDenied(true)
+          setIsNotLoggedIn(true)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+        if (typeof window !== 'undefined') {
+          setSidebarOpen(window.innerWidth >= 1024)
+        }
+      }
+    }
+
+    resolveAccess()
+    return () => {
+      cancelled = true
     }
   }, [pathname])
 

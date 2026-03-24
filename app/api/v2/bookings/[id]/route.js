@@ -35,7 +35,7 @@ export async function PUT(request, { params }) {
   try {
     const { id } = params;
     const body = await request.json();
-    const { status, reason } = body;
+    const { status, reason, declineReasonKey, declineReasonDetail } = body;
     
     if (!status) {
       return NextResponse.json({ 
@@ -48,7 +48,11 @@ export async function PUT(request, { params }) {
     const bookingBefore = await BookingService.getBookingById(id);
     
     // Update status
-    const result = await BookingService.updateStatus(id, status, { reason });
+    const result = await BookingService.updateStatus(id, status, {
+      reason,
+      declineReasonKey,
+      declineReasonDetail,
+    });
     
     if (result.error) {
       return NextResponse.json({ success: false, error: result.error }, { status: 400 });

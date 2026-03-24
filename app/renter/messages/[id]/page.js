@@ -31,6 +31,9 @@ import { useChatTyping } from '@/hooks/use-chat-typing'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
+import { SupportRequestDialog } from '@/components/support-request-dialog'
+import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
+import { ChatBookingAnnouncement } from '@/components/chat-booking-announcement'
 
 function apiMessageToRow(m) {
   if (!m) return null
@@ -71,7 +74,7 @@ export default function RenterMessages({ params }) {
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
-  const [supportLoading, setSupportLoading] = useState(false)
+  const [supportDialogOpen, setSupportDialogOpen] = useState(false)
   const [safetyWarningShown, setSafetyWarningShown] = useState(false)
   const [detectedPatterns, setDetectedPatterns] = useState([])
 
@@ -80,20 +83,29 @@ export default function RenterMessages({ params }) {
 
   const handleNewRealtimeMessage = useCallback(
     (newMsg) => {
-      if (newMsg.sender_id !== renterId) {
+      const isSystem = String(newMsg.type || '').toLowerCase() === 'system'
+      const fromPeer = newMsg.sender_id !== renterId
+      if (fromPeer || isSystem) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === newMsg.id)) return prev
           return [...prev, newMsg]
         })
-        playNotificationSound()
-        toast.info('💬 Новое сообщение')
+        if (fromPeer) {
+          playNotificationSound()
+          toast.info('💬 Новое сообщение')
+        }
       }
     },
     [renterId]
   )
 
   const handleMessageUpdate = useCallback((row) => {
-    setMessages((prev) => prev.map((m) => (m.id === row.id ? { ...m, ...row } : m)))
+    const merged = {
+      ...row,
+      is_read: row.is_read ?? row.isRead,
+      isRead: row.is_read ?? row.isRead,
+    }
+    setMessages((prev) => prev.map((m) => (m.id === row.id ? { ...m, ...merged } : m)))
   }, [])
 
   const { isConnected } = useRealtimeMessages(
@@ -126,6 +138,22 @@ export default function RenterMessages({ params }) {
     if (!peerTypingName) return null
     return language === 'ru' ? `${peerTypingName} печатает…` : `${peerTypingName} is typing…`
   }, [peerTypingName, language])
+
+  const payNowHref = useMemo(() => {
+    if (!booking?.id) return null
+    if (String(booking.status || '').toUpperCase() !== 'CONFIRMED') return null
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const inv = messages[i]?.metadata?.invoice
+      if (!inv) continue
+      if (String(inv.booking_id || '') !== String(booking.id)) continue
+      const st = String(inv.status || 'PENDING').toUpperCase()
+      if (st !== 'PENDING') continue
+      const pm = String(inv.payment_method || 'CRYPTO').toUpperCase()
+      const q = pm === 'CARD' || pm === 'CARD_INTL' ? 'CARD' : pm === 'MIR' || pm === 'CARD_RU' ? 'MIR' : 'CRYPTO'
+      return `/checkout/${encodeURIComponent(booking.id)}?pm=${q}`
+    }
+    return null
+  }, [messages, booking])
 
   useEffect(() => {
     if (authLoading) return
@@ -230,35 +258,6 @@ export default function RenterMessages({ params }) {
       loadConversations()
     } catch (error) {
       console.error('Failed to load messages:', error)
-    }
-  }
-
-  async function handleRequestSupport() {
-    if (!selectedConv?.id || supportLoading) return
-    setSupportLoading(true)
-    try {
-      const res = await fetch('/api/v2/chat/escalate', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId: selectedConv.id }),
-      })
-      const json = await res.json()
-      if (!res.ok || !json.success) {
-        toast.error(json.error || 'Не удалось отправить запрос')
-        return
-      }
-      setSelectedConv((prev) => (prev ? { ...prev, isPriority: true } : prev))
-      if (json.data?.notified) {
-        toast.success('Запрос передан в поддержку')
-      } else {
-        toast.success('Диалог уже отмечен для поддержки')
-      }
-      loadConversations()
-    } catch {
-      toast.error('Ошибка сети')
-    } finally {
-      setSupportLoading(false)
     }
   }
 
@@ -500,16 +499,16 @@ export default function RenterMessages({ params }) {
             <StickyChatHeader
               listing={listing}
               booking={booking}
+              language={language}
               isAdminView={false}
               contactName={selectedConv?.partnerName || 'Партнёр'}
               presenceOnline={partnerOnline}
               typingIndicator={headerTypingLine}
               typingGateWithPresence
-              onSupportClick={handleRequestSupport}
-              supportLoading={supportLoading}
+              payNowHref={payNowHref}
+              onSupportClick={() => setSupportDialogOpen(true)}
               supportPriorityActive={!!selectedConv?.isPriority}
               supportLabel="Помощь"
-              supportDoneLabel="В поддержке"
             >
               <div className="flex flex-col items-end gap-1">
                 <span
@@ -554,6 +553,24 @@ export default function RenterMessages({ params }) {
                   const showDay = chatNeedsDaySeparator(prev?.created_at, msg.created_at)
                   const dayLabel = chatDayLabel(msg.created_at, language)
 
+                  const st = msg.metadata?.support_ticket
+                  if (st?.category && st?.disputeType) {
+                    return (
+                      <Fragment key={msg.id}>
+                        {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                        <div className="flex justify-center px-1">
+                          <div className="w-full max-w-lg">
+                            <ChatSupportTicketCard
+                              ticket={st}
+                              senderName={msg.sender_name || msg.senderName}
+                              language={language}
+                            />
+                          </div>
+                        </div>
+                      </Fragment>
+                    )
+                  }
+
                   const rawType = String(msg.type || '').toUpperCase()
                   if (rawType === 'BOOKING_REQUEST') {
                     return (
@@ -570,9 +587,23 @@ export default function RenterMessages({ params }) {
 
                   if (String(msg.type || '').toLowerCase() === 'system') {
                     const sk = msg.metadata?.system_key
+                    if (
+                      msg.metadata?.booking_announcement ||
+                      sk === 'booking_confirmed' ||
+                      sk === 'booking_declined' ||
+                      sk === 'booking_status_update'
+                    ) {
+                      return (
+                        <Fragment key={msg.id}>
+                          {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                          <div className="flex justify-center px-2">
+                            <ChatBookingAnnouncement message={msg} language={language} />
+                          </div>
+                        </Fragment>
+                      )
+                    }
                     let line = null
                     if (sk === 'passport_request') line = 'Системное сообщение'
-                    if (sk === 'booking_confirmed' || sk === 'booking_declined') line = 'Бронирование'
                     return (
                       <Fragment key={msg.id}>
                         {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
@@ -716,6 +747,18 @@ export default function RenterMessages({ params }) {
           </div>
         )}
       </div>
+
+      <SupportRequestDialog
+        open={supportDialogOpen}
+        onOpenChange={setSupportDialogOpen}
+        conversationId={selectedConv?.id}
+        language={language}
+        onSubmitted={() => {
+          setSelectedConv((prev) => (prev ? { ...prev, isPriority: true } : prev))
+          if (conversationId) loadMessages(conversationId)
+          loadConversations()
+        }}
+      />
     </div>
   )
 }

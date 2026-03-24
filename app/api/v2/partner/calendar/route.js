@@ -191,7 +191,8 @@ export async function GET(request) {
     
     const startDate = searchParams.get('startDate') || defaultStart
     const endDate = searchParams.get('endDate') || defaultEnd
-    
+    const filterListingId = searchParams.get('listingId') || searchParams.get('listing_id')
+
     // Use supabaseAdmin (service role) to bypass RLS, or direct fetch with service key
     const useAdmin = !!supabaseAdmin
     if (useAdmin || (SUPABASE_URL && SUPABASE_KEY)) {
@@ -217,7 +218,22 @@ export async function GET(request) {
           const data = await listingsRes.json()
           listings = Array.isArray(data) ? data : []
         }
-        
+
+        if (filterListingId) {
+          const fid = String(filterListingId)
+          listings = (listings || []).filter((l) => String(l.id) === fid)
+          if (!listings.length) {
+            return NextResponse.json(
+              {
+                status: 'error',
+                error: 'Listing not found or does not belong to your account',
+                code: 'LISTING_NOT_FOUND',
+              },
+              { status: 404 }
+            )
+          }
+        }
+
         if (!listings.length) {
           console.log(`[CALENDAR] No listings found for partner ${userId}`)
           return NextResponse.json({

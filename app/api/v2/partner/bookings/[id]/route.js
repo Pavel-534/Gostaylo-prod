@@ -6,6 +6,7 @@
 
 import { NextResponse } from 'next/server'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
+import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-sync'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,11 +15,11 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_P
 
 const STATUS_TRANSITIONS = {
   PENDING: ['CONFIRMED', 'CANCELLED'],
-  CONFIRMED: ['COMPLETED', 'CANCELLED'],
+  CONFIRMED: ['PAID', 'COMPLETED', 'CANCELLED'],
   PAID: ['COMPLETED', 'REFUNDED'],
   COMPLETED: [],
   CANCELLED: [],
-  REFUNDED: []
+  REFUNDED: [],
 }
 
 export async function GET(request, { params }) {
@@ -64,7 +65,7 @@ export async function PUT(request, { params }) {
     const { id } = await params
     const userId = await getUserIdFromSession()
     const body = await request.json()
-    const { status: newStatus, reason } = body
+    const { status: newStatus, reason, declineReasonKey, declineReasonDetail } = body
     
     if (!userId) {
       return NextResponse.json({ status: 'error', error: 'Authentication required' }, { status: 401 })
@@ -91,7 +92,7 @@ export async function PUT(request, { params }) {
     
     // 1. Fetch current booking
     const getRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}&partner_id=eq.${userId}&select=id,status,partner_id`,
+      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}&partner_id=eq.${userId}&select=id,status,partner_id,listing_id`,
       {
         headers: {
           'apikey': SUPABASE_KEY,
@@ -128,6 +129,8 @@ export async function PUT(request, { params }) {
       updateData.cancelled_at = new Date().toISOString()
     } else if (newStatus === 'COMPLETED') {
       updateData.completed_at = new Date().toISOString()
+    } else if (newStatus === 'PAID') {
+      updateData.checked_in_at = new Date().toISOString()
     }
     
     // 4. Update in Supabase
@@ -153,7 +156,20 @@ export async function PUT(request, { params }) {
     
     const updated = await updateRes.json()
     console.log(`[BOOKING UPDATE] Success: ${id} -> ${newStatus}`)
-    
+
+    try {
+      await syncBookingStatusToConversationChat({
+        bookingId: id,
+        previousStatus: currentBooking.status,
+        newStatus,
+        declineReasonKey,
+        declineReasonDetail,
+        reasonFreeText: reason,
+      })
+    } catch (e) {
+      console.error('[BOOKING UPDATE] chat sync', e)
+    }
+
     return NextResponse.json({
       status: 'success',
       data: updated[0] || { id, status: newStatus },

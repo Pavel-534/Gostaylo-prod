@@ -14,6 +14,7 @@
 import { NextResponse } from 'next/server'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { parseISO, format, isBefore, isAfter, isSameDay, addDays, subDays } from 'date-fns'
+import { revalidateListingPaths } from '@/lib/revalidation'
 
 export const dynamic = 'force-dynamic'
 
@@ -344,6 +345,12 @@ export async function POST(request) {
     }
     
     const inserted = await insertRes.json()
+
+    try {
+      await revalidateListingPaths('update', listingId)
+    } catch (e) {
+      console.warn('[SEASONAL-PRICES] revalidate:', e?.message)
+    }
     
     return NextResponse.json({
       status: 'success',
@@ -454,6 +461,13 @@ export async function DELETE(request) {
         }
       }
     )
+
+    const affectedListingId = price[0].listing_id
+    try {
+      await revalidateListingPaths('update', affectedListingId)
+    } catch (e) {
+      console.warn('[SEASONAL-PRICES] revalidate:', e?.message)
+    }
     
     return NextResponse.json({
       status: 'success',

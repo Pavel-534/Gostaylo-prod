@@ -412,9 +412,19 @@ function ProfileContent() {
                 </p>
                 <Button 
                   className='bg-blue-600 hover:bg-blue-700 px-6'
+                  disabled={!user?.id}
                   onClick={() => {
-                    const botName = process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'GostayloBot'
-                    window.open(`https://t.me/${botName}?start=link_${user.id}`, '_blank')
+                    if (!user?.id) {
+                      toast({
+                        title: 'Сначала войдите',
+                        description: 'Обновите страницу или войдите в аккаунт, затем снова нажмите «Привязать Telegram».',
+                        variant: 'destructive',
+                      })
+                      return
+                    }
+                    const botName = (process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'GostayloBot').replace(/^@/, '')
+                    const url = `https://t.me/${botName}?start=link_${encodeURIComponent(user.id)}`
+                    window.open(url, '_blank', 'noopener,noreferrer')
                   }}
                 >
                   <MessageSquare className='h-4 w-4 mr-2' />

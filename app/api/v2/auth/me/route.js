@@ -53,8 +53,11 @@ export async function GET() {
   }
   
   const effectiveRole = user.last_name?.includes('[MODERATOR]') ? 'MODERATOR' : user.role;
-  
-  return NextResponse.json({ 
+  const jwtRole = String(decoded.role || '').toUpperCase();
+  const dbRole = String(effectiveRole || '').toUpperCase();
+  const needsJwtRefresh = jwtRole !== dbRole;
+
+  const payload = { 
     success: true,
     user: {
       id: user.id,
@@ -78,5 +81,31 @@ export async function GET() {
       email_verified_at: user.email_verified_at,
       created_at: user.created_at
     }
-  });
+  };
+
+  const res = NextResponse.json(payload);
+
+  if (needsJwtRefresh) {
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        role: effectiveRole,
+        firstName: user.first_name,
+      },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+    const secureCookie =
+      process.env.NODE_ENV === 'production' || process.env.FORCE_SECURE_COOKIES === 'true';
+    res.cookies.set('gostaylo_session', token, {
+      httpOnly: true,
+      secure: secureCookie,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30,
+      path: '/',
+    });
+  }
+
+  return res;
 }

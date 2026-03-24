@@ -380,13 +380,19 @@ export default function CalendarSyncManager({ listingId, onSync }) {
       <CardContent className="p-0 sm:p-0">
         <Tabs defaultValue="export" className="w-full">
           <div className="px-4 pt-4 sm:px-6">
-            <TabsList className="grid w-full grid-cols-2 h-auto p-1 bg-slate-100/90 rounded-xl">
-              <TabsTrigger value="export" className="rounded-lg py-2.5 text-sm data-[state=active]:shadow-sm gap-2">
-                <Share2 className="h-4 w-4" />
+            <TabsList className="flex w-full flex-col gap-1.5 h-auto p-1.5 bg-slate-100/90 rounded-xl sm:grid sm:grid-cols-2 sm:gap-0">
+              <TabsTrigger
+                value="export"
+                className="rounded-lg py-2.5 px-2 text-xs sm:text-sm leading-snug whitespace-normal data-[state=active]:shadow-sm gap-2 justify-center text-center min-h-[2.75rem] sm:min-h-0"
+              >
+                <Share2 className="h-4 w-4 shrink-0" />
                 {tr('partnerCal_tabExport')}
               </TabsTrigger>
-              <TabsTrigger value="import" className="rounded-lg py-2.5 text-sm data-[state=active]:shadow-sm gap-2">
-                <Link2 className="h-4 w-4" />
+              <TabsTrigger
+                value="import"
+                className="rounded-lg py-2.5 px-2 text-xs sm:text-sm leading-snug whitespace-normal data-[state=active]:shadow-sm gap-2 justify-center text-center min-h-[2.75rem] sm:min-h-0"
+              >
+                <Link2 className="h-4 w-4 shrink-0" />
                 {tr('partnerCal_tabImport')}
               </TabsTrigger>
             </TabsList>

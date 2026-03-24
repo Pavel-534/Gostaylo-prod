@@ -7,12 +7,13 @@
 
 'use client'
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react'
 import { format, addDays, subDays, parseISO } from 'date-fns'
 import { Calendar, Loader2, AlertCircle, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { usePartnerCalendar, useCreateBlock, useCreateManualBooking } from '@/lib/hooks/use-partner-calendar'
 import { useUpsertSeasonalPrice } from '@/lib/hooks/use-seasonal-prices'
@@ -29,7 +30,23 @@ const DAY_WIDTHS = {
 }
 
 export default function MasterCalendar() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+        </div>
+      }
+    >
+      <MasterCalendarContent />
+    </Suspense>
+  )
+}
+
+function MasterCalendarContent() {
   const { user, loading: authLoading } = useAuth()
+  const searchParams = useSearchParams()
+  const filterListingId = searchParams.get('listingId') || searchParams.get('listing_id') || ''
   const scrollContainerRef = useRef(null)
   const todayRef = useRef(null)
   
@@ -108,6 +125,7 @@ export default function MasterCalendar() {
   } = usePartnerCalendar(partnerId, {
     startDate,
     endDate,
+    listingId: filterListingId || null,
     enabled: !!partnerId
   })
   
@@ -292,6 +310,15 @@ export default function MasterCalendar() {
   return (
     <div className="max-w-full overflow-hidden space-y-4 px-2 sm:px-0">
       <PartnerCalendarEducationCard variant="calendar-page" className="max-w-[1600px] mx-auto" />
+      {filterListingId ? (
+        <div className="max-w-[1600px] mx-auto flex flex-wrap items-center gap-2 rounded-xl border border-teal-200 bg-teal-50/90 px-3 py-2.5 text-sm text-teal-900">
+          <span className="font-medium">Режим: один объект</span>
+          <span className="text-teal-700/80">даты и цены только для выбранного листинга</span>
+          <Button asChild variant="outline" size="sm" className="h-8 text-xs border-teal-300 ml-auto">
+            <Link href="/partner/calendar">Все объекты</Link>
+          </Button>
+        </div>
+      ) : null}
       {calendarMeta?.isDemoFallback && (
         <Alert className="max-w-[1600px] mx-auto border-amber-500/50 bg-amber-50 text-amber-950 [&>svg]:text-amber-600">
           <AlertCircle className="h-4 w-4" />

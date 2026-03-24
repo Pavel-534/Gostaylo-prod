@@ -5,6 +5,16 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
   Loader2,
   ArrowLeft,
   AlertTriangle,
@@ -31,6 +41,12 @@ import { ChatDateSeparator } from '@/components/chat-date-separator'
 import { uploadChatFile } from '@/lib/chat-upload'
 import { useI18n } from '@/contexts/i18n-context'
 import { chatDayLabel, chatNeedsDaySeparator } from '@/lib/chat-date-labels'
+import { SupportRequestDialog } from '@/components/support-request-dialog'
+import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
+import { ChatBookingAnnouncement } from '@/components/chat-booking-announcement'
+import { PartnerChatCalendarPeek } from '@/components/partner-chat-calendar-peek'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { DECLINE_REASON_PRESETS } from '@/lib/booking-chat-copy'
 
 function apiMessageToRow(m) {
   if (!m) return null
@@ -64,27 +80,39 @@ export default function PartnerMessages({ params }) {
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
-  const [supportLoading, setSupportLoading] = useState(false)
+  const [supportDialogOpen, setSupportDialogOpen] = useState(false)
   const [bookingActionLoading, setBookingActionLoading] = useState(false)
+  const [declineOpen, setDeclineOpen] = useState(false)
+  const [declinePreset, setDeclinePreset] = useState('occupied')
+  const [declineOtherDetail, setDeclineOtherDetail] = useState('')
 
   const conversationId = params?.id
 
   const handleNewRealtimeMessage = useCallback(
     (newMsg) => {
-      if (newMsg.sender_id !== user?.id) {
+      const isSystem = String(newMsg.type || '').toLowerCase() === 'system'
+      const fromPeer = newMsg.sender_id !== user?.id
+      if (fromPeer || isSystem) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === newMsg.id)) return prev
           return [...prev, newMsg]
         })
-        playNotificationSound()
-        toast.info('💬 Новое сообщение от гостя')
+        if (fromPeer) {
+          playNotificationSound()
+          toast.info('💬 Новое сообщение от гостя')
+        }
       }
     },
     [user]
   )
 
   const handleMessageUpdate = useCallback((row) => {
-    setMessages((prev) => prev.map((m) => (m.id === row.id ? { ...m, ...row } : m)))
+    const merged = {
+      ...row,
+      is_read: row.is_read ?? row.isRead,
+      isRead: row.is_read ?? row.isRead,
+    }
+    setMessages((prev) => prev.map((m) => (m.id === row.id ? { ...m, ...merged } : m)))
   }, [])
 
   const { isConnected } = useRealtimeMessages(
@@ -211,27 +239,6 @@ export default function PartnerMessages({ params }) {
     }
   }
 
-  async function postBookingSystemMessage(systemKey, content) {
-    if (!selectedConv?.id) return
-    const msgRes = await fetch('/api/v2/chat/messages', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        conversationId: selectedConv.id,
-        type: 'system',
-        content,
-        metadata: { system_key: systemKey },
-        skipPush: !!peerOnline,
-      }),
-    })
-    const msgJson = await msgRes.json()
-    if (msgRes.ok && msgJson.success && msgJson.data) {
-      const row = apiMessageToRow(msgJson.data)
-      if (row) setMessages((prev) => [...prev, row])
-    }
-  }
-
   async function handleConfirmBookingHeader() {
     const bid = booking?.id
     if (!bid || !selectedConv?.id || bookingActionLoading) return
@@ -249,8 +256,8 @@ export default function PartnerMessages({ params }) {
         return
       }
       setBooking((b) => (b ? { ...b, status: 'CONFIRMED' } : b))
-      await postBookingSystemMessage('booking_confirmed', 'Partner confirmed your stay! 🏠')
       loadConversations()
+      if (conversationId) loadMessages(conversationId)
       toast.success(json.message || 'Бронирование подтверждено')
     } catch {
       toast.error('Ошибка сети')
@@ -259,16 +266,30 @@ export default function PartnerMessages({ params }) {
     }
   }
 
-  async function handleDeclineBookingHeader() {
+  function handleDeclineBookingHeader() {
+    setDeclinePreset('occupied')
+    setDeclineOtherDetail('')
+    setDeclineOpen(true)
+  }
+
+  async function confirmDeclineBooking() {
     const bid = booking?.id
     if (!bid || !selectedConv?.id || bookingActionLoading) return
+    if (declinePreset === 'other' && !declineOtherDetail.trim()) {
+      toast.error(language === 'ru' ? 'Укажите комментарий для «Другое»' : 'Please add details for «Other»')
+      return
+    }
     setBookingActionLoading(true)
     try {
       const put = await fetch(`/api/v2/partner/bookings/${encodeURIComponent(bid)}`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'CANCELLED' }),
+        body: JSON.stringify({
+          status: 'CANCELLED',
+          declineReasonKey: declinePreset,
+          declineReasonDetail: declinePreset === 'other' ? declineOtherDetail.trim() : '',
+        }),
       })
       const json = await put.json()
       if (json.status !== 'success') {
@@ -276,42 +297,15 @@ export default function PartnerMessages({ params }) {
         return
       }
       setBooking((b) => (b ? { ...b, status: 'CANCELLED' } : b))
-      await postBookingSystemMessage('booking_declined', 'Partner declined your booking request.')
+      setDeclineOpen(false)
+      setDeclineOtherDetail('')
       loadConversations()
+      if (conversationId) loadMessages(conversationId)
       toast.success(json.message || 'Бронирование отклонено')
     } catch {
       toast.error('Ошибка сети')
     } finally {
       setBookingActionLoading(false)
-    }
-  }
-
-  async function handleRequestSupport() {
-    if (!selectedConv?.id || supportLoading) return
-    setSupportLoading(true)
-    try {
-      const res = await fetch('/api/v2/chat/escalate', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId: selectedConv.id }),
-      })
-      const json = await res.json()
-      if (!res.ok || !json.success) {
-        toast.error(json.error || 'Не удалось отправить запрос')
-        return
-      }
-      setSelectedConv((prev) => (prev ? { ...prev, isPriority: true } : prev))
-      if (json.data?.notified) {
-        toast.success('Запрос передан в поддержку')
-      } else {
-        toast.success('Диалог уже отмечен для поддержки')
-      }
-      loadConversations()
-    } catch {
-      toast.error('Ошибка сети')
-    } finally {
-      setSupportLoading(false)
     }
   }
 
@@ -597,6 +591,7 @@ export default function PartnerMessages({ params }) {
               <StickyChatHeader
                 listing={listing}
                 booking={booking}
+                language={language}
                 isAdminView={false}
                 contactName={
                   selectedConv.adminId
@@ -613,18 +608,23 @@ export default function PartnerMessages({ params }) {
                   onConfirm: handleConfirmBookingHeader,
                   onDecline: handleDeclineBookingHeader,
                 }}
-                onSupportClick={handleRequestSupport}
-                supportLoading={supportLoading}
+                onSupportClick={() => setSupportDialogOpen(true)}
                 supportPriorityActive={!!selectedConv?.isPriority}
                 supportLabel="Помощь"
-                supportDoneLabel="В поддержке"
               >
-                <span
-                  className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}
-                >
-                  {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-                  {isConnected ? 'Live' : '…'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <PartnerChatCalendarPeek
+                    listingId={listing?.id}
+                    listingTitle={listing?.title}
+                    language={language}
+                  />
+                  <span
+                    className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}
+                  >
+                    {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+                    {isConnected ? 'Live' : '…'}
+                  </span>
+                </div>
               </StickyChatHeader>
             </div>
           </div>
@@ -635,6 +635,24 @@ export default function PartnerMessages({ params }) {
               const showDay = chatNeedsDaySeparator(prev?.created_at, msg.created_at)
               const dayLabel = chatDayLabel(msg.created_at, language)
 
+              const st = msg.metadata?.support_ticket
+              if (st?.category && st?.disputeType) {
+                return (
+                  <Fragment key={msg.id}>
+                    {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                    <div className="flex justify-center px-1">
+                      <div className="w-full max-w-lg">
+                        <ChatSupportTicketCard
+                          ticket={st}
+                          senderName={msg.sender_name}
+                          language={language}
+                        />
+                      </div>
+                    </div>
+                  </Fragment>
+                )
+              }
+
               const isOwn = msg.sender_id === user?.id
               const isAdmin = msg.sender_role === 'ADMIN' || msg.sender_role === 'MODERATOR'
               const msgType = (msg.type || '').toLowerCase()
@@ -643,10 +661,23 @@ export default function PartnerMessages({ params }) {
 
               if (msgType === 'system') {
                 const sk = msg.metadata?.system_key
+                if (
+                  msg.metadata?.booking_announcement ||
+                  sk === 'booking_confirmed' ||
+                  sk === 'booking_declined' ||
+                  sk === 'booking_status_update'
+                ) {
+                  return (
+                    <Fragment key={msg.id}>
+                      {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                      <div className="flex justify-center px-2">
+                        <ChatBookingAnnouncement message={msg} language={language} />
+                      </div>
+                    </Fragment>
+                  )
+                }
                 let sysTitle = null
                 if (sk === 'passport_request') sysTitle = 'Запрос от партнёра'
-                if (sk === 'booking_confirmed') sysTitle = 'Бронирование'
-                if (sk === 'booking_declined') sysTitle = 'Бронирование'
                 return (
                   <Fragment key={msg.id}>
                     {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
@@ -745,6 +776,7 @@ export default function PartnerMessages({ params }) {
             disabled={!selectedConv}
             booking={booking}
             listing={listing}
+            language={language}
             onSendInvoice={handleSendInvoice}
             onSendPassportRequest={handleSendPassportRequest}
             onAttachFile={handleAttachFile}
@@ -759,6 +791,83 @@ export default function PartnerMessages({ params }) {
           </div>
         </div>
       )}
+
+      <SupportRequestDialog
+        open={supportDialogOpen}
+        onOpenChange={setSupportDialogOpen}
+        conversationId={selectedConv?.id}
+        language={language}
+        onSubmitted={() => {
+          setSelectedConv((prev) => (prev ? { ...prev, isPriority: true } : prev))
+          if (conversationId) loadMessages(conversationId)
+          loadConversations()
+        }}
+      />
+
+      <Dialog open={declineOpen} onOpenChange={setDeclineOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'ru' ? 'Отклонить бронирование?' : 'Decline booking?'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'ru'
+                ? 'Гость увидит уведомление в чате. По желанию укажите причину — так проще найти решение.'
+                : 'The guest will see an update in chat. Optionally add a reason.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label>{language === 'ru' ? 'Причина отказа' : 'Decline reason'}</Label>
+            <RadioGroup value={declinePreset} onValueChange={setDeclinePreset} className="space-y-2">
+              {(['occupied', 'repair', 'other']).map((key) => (
+                <label
+                  key={key}
+                  className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 cursor-pointer hover:bg-slate-50"
+                >
+                  <RadioGroupItem value={key} id={`decline-${key}`} />
+                  <span className="text-sm text-slate-800">
+                    {language === 'ru' ? DECLINE_REASON_PRESETS[key].ru : DECLINE_REASON_PRESETS[key].en}
+                  </span>
+                </label>
+              ))}
+            </RadioGroup>
+            {declinePreset === 'other' ? (
+              <div className="space-y-1">
+                <Label htmlFor="decline-other">{language === 'ru' ? 'Комментарий' : 'Details'}</Label>
+                <Textarea
+                  id="decline-other"
+                  value={declineOtherDetail}
+                  onChange={(e) => setDeclineOtherDetail(e.target.value)}
+                  rows={3}
+                  placeholder={
+                    language === 'ru' ? 'Кратко опишите причину…' : 'Briefly describe the reason…'
+                  }
+                  className="resize-none"
+                />
+              </div>
+            ) : null}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setDeclineOpen(false)}>
+              {language === 'ru' ? 'Отмена' : 'Cancel'}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={bookingActionLoading}
+              onClick={() => void confirmDeclineBooking()}
+            >
+              {bookingActionLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : language === 'ru' ? (
+                'Отклонить'
+              ) : (
+                'Decline'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -183,7 +183,7 @@ export default function AdminDashboard() {
           </Card>
         </Link>
 
-        <Link href="/admin/messages">
+        <Link href="/admin/messages/">
           <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-purple-500">
             <CardContent className="pt-6">
               <MessageSquare className="h-8 w-8 text-purple-600 mb-2" />

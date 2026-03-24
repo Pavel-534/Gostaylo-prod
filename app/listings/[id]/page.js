@@ -189,6 +189,18 @@ function PremiumListingContent({ params }) {
       
       if (data.success && data.data) {
         const l = data.data
+        const seasonalRaw = l.seasonalPrices || l.seasonalPricing || []
+        const seasonalPricing = Array.isArray(seasonalRaw)
+          ? seasonalRaw.map((sp) => ({
+              startDate: sp.startDate || sp.start_date,
+              endDate: sp.endDate || sp.end_date,
+              priceDaily: sp.priceDaily ?? sp.price_daily,
+              label: sp.label,
+              seasonType: sp.seasonType || sp.season_type,
+              name: sp.label,
+              priceMultiplier: sp.priceMultiplier,
+            }))
+          : []
         setListing({
           id: l.id,
           ownerId: l.ownerId,
@@ -205,7 +217,7 @@ function PremiumListingContent({ params }) {
           metadata: l.metadata || {},
           rating: parseFloat(l.rating) || 0,
           reviewsCount: l.reviewsCount || 0,
-          seasonalPricing: l.seasonalPricing || [],
+          seasonalPricing,
           minStay: l.minBookingDays || 1,
           city: l.city,
           category_id: l.categoryId

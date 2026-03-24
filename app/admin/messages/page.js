@@ -20,6 +20,7 @@ import {
   Inbox,
   Activity,
   Headphones,
+  ArrowLeft,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { StickyChatHeader } from '@/components/sticky-chat-header'
@@ -33,6 +34,10 @@ import { uploadChatFile } from '@/lib/chat-upload'
 import { useRealtimeMessages, usePresence } from '@/hooks/use-realtime-chat'
 import { useMarkConversationRead } from '@/hooks/use-mark-conversation-read'
 import { useChatTyping } from '@/hooks/use-chat-typing'
+import { cn } from '@/lib/utils'
+import { toPublicImageUrl } from '@/lib/public-image-url'
+import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
+import { ChatBookingAnnouncement } from '@/components/chat-booking-announcement'
 
 function apiMessageToRow(m) {
   if (!m) return null
@@ -70,13 +75,17 @@ function AdminMessagesPageContent() {
   const [authChecked, setAuthChecked] = useState(false)
   const [chatStats, setChatStats] = useState(null)
   const [priorityOnly, setPriorityOnly] = useState(false)
+  const [threadLoading, setThreadLoading] = useState(false)
+  /** На узком экране: true — показать переписку, false — список диалогов */
+  const [mobileThread, setMobileThread] = useState(false)
 
   const conversationId = selectedConv?.id
 
   const handleRealtime = useCallback(
     (newMsg) => {
       const sid = newMsg.sender_id ?? newMsg.senderId
-      if (sid !== me?.id) {
+      const isSystem = String(newMsg.type || '').toLowerCase() === 'system'
+      if (sid !== me?.id || isSystem) {
         setMessages((prev) => {
           if (prev.some((m) => m.id === newMsg.id)) return prev
           const row = apiMessageToRow(newMsg)
@@ -89,7 +98,9 @@ function AdminMessagesPageContent() {
 
   const handleMessageUpdate = useCallback((row) => {
     const normalized = {
-      is_read: row.is_read,
+      ...row,
+      is_read: row.is_read ?? row.isRead,
+      isRead: row.is_read ?? row.isRead,
       message: row.message,
       content: row.content,
       metadata: row.metadata,
@@ -108,7 +119,8 @@ function AdminMessagesPageContent() {
 
   const { isOnline: peerOnline } = usePresence(conversationId, me?.id, null)
 
-  useMarkConversationRead(conversationId, !!(conversationId && me?.id), peerOnline)
+  /** Админ — наблюдатель: не помечаем сообщения прочитанными (см. /api/v2/chat/read staff_observer). */
+  useMarkConversationRead(conversationId, false, peerOnline)
 
   const staffTypingName = useMemo(() => {
     if (!me) return 'Поддержка'
@@ -157,13 +169,16 @@ function AdminMessagesPageContent() {
     if (!openFromUrl || !me) return
     let cancelled = false
     ;(async () => {
-      await loadMessages(openFromUrl)
-      if (!cancelled) router.replace('/admin/messages/', { scroll: false })
+      const ok = await loadMessages(openFromUrl)
+      if (cancelled) return
+      if (ok) setMobileThread(true)
+      if (!ok) toast.error('Не удалось открыть диалог по ссылке')
+      router.replace('/admin/messages/', { scroll: false })
     })()
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load on deep link once per open param
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deep link once per open param
   }, [openFromUrl, me])
 
   useEffect(() => {
@@ -180,8 +195,8 @@ function AdminMessagesPageContent() {
     }
   }
 
-  async function loadConversations() {
-    setLoading(true)
+  async function loadConversations({ silent = false } = {}) {
+    if (!silent) setLoading(true)
     try {
       const res = await fetch('/api/v2/chat/conversations?enrich=1', { credentials: 'include' })
       const json = await res.json()
@@ -194,11 +209,12 @@ function AdminMessagesPageContent() {
     } catch (error) {
       console.error('Failed to load conversations:', error)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
   async function loadMessages(convId) {
+    setThreadLoading(true)
     try {
       const convRes = await fetch(
         `/api/v2/chat/conversations?id=${encodeURIComponent(convId)}&enrich=1`,
@@ -206,11 +222,18 @@ function AdminMessagesPageContent() {
       )
       const convJson = await convRes.json()
       const conv = convJson.data?.[0]
-      if (conv) {
-        setSelectedConv(conv)
-        setListing(conv.listing || null)
-        setBooking(conv.booking || null)
+      if (!conv) {
+        toast.error('Диалог не найден или нет доступа')
+        setSelectedConv(null)
+        setListing(null)
+        setBooking(null)
+        setMessages([])
+        return false
       }
+
+      setSelectedConv(conv)
+      setListing(conv.listing || null)
+      setBooking(conv.booking || null)
 
       const msgRes = await fetch(
         `/api/v2/chat/messages?conversationId=${encodeURIComponent(convId)}`,
@@ -223,15 +246,14 @@ function AdminMessagesPageContent() {
         setMessages([])
       }
 
-      await fetch('/api/v2/chat/read', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId: convId }),
-      })
-      loadConversations()
+      await loadConversations({ silent: true })
+      return true
     } catch (error) {
       console.error('Failed to load messages:', error)
+      toast.error('Не удалось загрузить сообщения')
+      return false
+    } finally {
+      setThreadLoading(false)
     }
   }
 
@@ -259,7 +281,7 @@ function AdminMessagesPageContent() {
       }
       const row = apiMessageToRow(json.data)
       if (row) setMessages((prev) => [...prev, row])
-      loadConversations()
+      loadConversations({ silent: true })
       scrollToBottom()
     } catch (error) {
       toast.error(error?.message || 'Не удалось загрузить файл')
@@ -290,7 +312,7 @@ function AdminMessagesPageContent() {
         const row = apiMessageToRow(json.data)
         if (row) setMessages((prev) => [...prev, row])
         setNewMessage('')
-        loadConversations()
+        loadConversations({ silent: true })
       } else {
         toast.error(json.error || 'Ошибка при отправке')
       }
@@ -393,8 +415,13 @@ function AdminMessagesPageContent() {
         </Button>
       </div>
 
-      <div className="h-[calc(100vh-14rem)] min-h-[320px] flex flex-col lg:flex-row gap-4">
-      <Card className="w-full lg:w-96 flex-shrink-0 flex flex-col">
+      <div className="min-h-[calc(100vh-12rem)] flex flex-col lg:flex-row gap-4">
+      <Card
+        className={cn(
+          'w-full lg:w-96 flex-shrink-0 flex flex-col max-h-[44vh] lg:max-h-none min-h-0',
+          mobileThread && 'hidden lg:flex'
+        )}
+      >
         <CardHeader className="pb-3 border-b">
           <CardTitle className="flex items-center gap-2 text-lg">
             <MessageSquare className="h-5 w-5 text-indigo-600" />
@@ -434,11 +461,15 @@ function AdminMessagesPageContent() {
                   key={conv.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() => loadMessages(conv.id)}
+                  onClick={() => {
+                    loadMessages(conv.id)
+                    setMobileThread(true)
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault()
                       loadMessages(conv.id)
+                      setMobileThread(true)
                     }
                   }}
                   className={`p-4 border-b cursor-pointer transition-colors ${
@@ -448,7 +479,7 @@ function AdminMessagesPageContent() {
                   <div className="flex gap-3">
                     {conv.listing?.images?.[0] ? (
                       <img
-                        src={conv.listing.images[0]}
+                        src={toPublicImageUrl(conv.listing.images[0]) || conv.listing.images[0]}
                         alt=""
                         className="w-12 h-12 rounded-lg object-cover"
                       />
@@ -489,17 +520,40 @@ function AdminMessagesPageContent() {
         </CardContent>
       </Card>
 
-      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <Card
+        className={cn(
+          'flex-1 flex flex-col min-h-0 overflow-hidden min-h-[52vh] lg:min-h-0',
+          !mobileThread && 'hidden lg:flex'
+        )}
+      >
         {selectedConv ? (
           <>
+            <div className="lg:hidden shrink-0 px-2 pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-slate-600 -ml-1"
+                onClick={() => setMobileThread(false)}
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                К списку диалогов
+              </Button>
+            </div>
             <StickyChatHeader
               listing={listing}
               booking={booking}
               isAdminView
-              className="rounded-t-lg"
+              language={language}
+              className="rounded-t-lg lg:rounded-t-lg"
               presenceOnline={peerOnline}
               typingIndicator={headerTypingLine}
               typingGateWithPresence
+              adminParticipants={{
+                renterName: selectedConv.renterName,
+                partnerName: selectedConv.partnerName,
+                bookingId: selectedConv.bookingId || booking?.id,
+              }}
             >
               <span
                 className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}
@@ -509,11 +563,36 @@ function AdminMessagesPageContent() {
               </span>
             </StickyChatHeader>
 
-            <CardContent className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 min-h-0">
-              {messages.map((msg, idx) => {
+            <CardContent className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 bg-slate-50 min-h-0">
+              {threadLoading ? (
+                <div className="flex flex-col items-center justify-center py-24 gap-2 text-slate-500">
+                  <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
+                  <p className="text-sm">Загрузка сообщений…</p>
+                </div>
+              ) : null}
+              {!threadLoading &&
+                messages.map((msg, idx) => {
                 const prev = messages[idx - 1]
                 const showDay = chatNeedsDaySeparator(prev?.created_at, msg.created_at)
                 const dayLabel = chatDayLabel(msg.created_at, language)
+
+                const st = msg.metadata?.support_ticket
+                if (st?.category && st?.disputeType) {
+                  return (
+                    <Fragment key={msg.id}>
+                      {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                      <div className="flex justify-center px-1">
+                        <div className="w-full max-w-lg">
+                          <ChatSupportTicketCard
+                            ticket={st}
+                            senderName={msg.sender_name}
+                            language={language}
+                          />
+                        </div>
+                      </div>
+                    </Fragment>
+                  )
+                }
 
                 const role = (msg.sender_role || '').toUpperCase()
                 const isOwn = String(msg.sender_id ?? msg.senderId ?? '') === String(me?.id || '')
@@ -543,9 +622,23 @@ function AdminMessagesPageContent() {
 
                 if (msgType === 'system') {
                   const sk = msg.metadata?.system_key
+                  if (
+                    msg.metadata?.booking_announcement ||
+                    sk === 'booking_confirmed' ||
+                    sk === 'booking_declined' ||
+                    sk === 'booking_status_update'
+                  ) {
+                    return (
+                      <Fragment key={msg.id}>
+                        {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                        <div className="flex justify-center px-2">
+                          <ChatBookingAnnouncement message={msg} language={language} />
+                        </div>
+                      </Fragment>
+                    )
+                  }
                   let line = null
                   if (sk === 'passport_request') line = 'Системное сообщение'
-                  if (sk === 'booking_confirmed' || sk === 'booking_declined') line = 'Бронирование'
                   return (
                     <Fragment key={msg.id}>
                       {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
@@ -621,10 +714,13 @@ function AdminMessagesPageContent() {
                   </Fragment>
                 )
               })}
-              <div ref={messagesEndRef} />
+              {!threadLoading ? <div ref={messagesEndRef} /> : null}
             </CardContent>
 
-            <div className="p-4 border-t bg-white">
+            <div className="p-3 sm:p-4 border-t bg-white shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <p className="text-xs font-medium text-slate-600 mb-2">
+                Ответ от поддержки — увидят и гость, и партнёр в этом чате
+              </p>
               <input
                 ref={attachFileRef}
                 type="file"

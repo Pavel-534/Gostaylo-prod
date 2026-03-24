@@ -4,7 +4,11 @@
 
 import { NextResponse } from 'next/server'
 import { getSessionPayload } from '@/lib/services/session-service'
-import { canReadConversation, effectiveRoleFromProfile } from '@/lib/services/chat/access'
+import {
+  canReadConversation,
+  effectiveRoleFromProfile,
+  isStaffRole,
+} from '@/lib/services/chat/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,6 +72,11 @@ export async function POST(request) {
 
   if (!canReadConversation(userId, accessRole, conversation)) {
     return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+  }
+
+  /** Админ/модератор смотрит чат «наблюдателем» — не трогаем is_read (галочки у гостя/партнёра). */
+  if (isStaffRole(accessRole)) {
+    return NextResponse.json({ success: true, skipped: true, reason: 'staff_observer' })
   }
 
   const uid = encodeURIComponent(String(userId))

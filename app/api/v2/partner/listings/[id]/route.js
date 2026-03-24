@@ -11,10 +11,31 @@ import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url';
+import { verifyPartnerAccess } from '@/lib/services/session-service';
+import { revalidateListingPaths } from '@/lib/revalidation';
 
 export const dynamic = 'force-dynamic';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
+
+async function getPartnerFromSession() {
+  const cookieStore = cookies();
+  const sessionCookie = cookieStore.get('gostaylo_session');
+  if (!sessionCookie?.value) {
+    return { error: NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 }) };
+  }
+  let decoded;
+  try {
+    decoded = jwt.verify(sessionCookie.value, JWT_SECRET);
+  } catch {
+    return { error: NextResponse.json({ success: false, error: 'Invalid session' }, { status: 401 }) };
+  }
+  const partner = await verifyPartnerAccess(decoded.userId);
+  if (!partner) {
+    return { error: NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 }) };
+  }
+  return { userId: decoded.userId, userRole: partner.role };
+}
 
 export async function GET(request, context) {
   const params = await Promise.resolve(context.params);
@@ -22,28 +43,9 @@ export async function GET(request, context) {
   
   console.log('[PARTNER-LISTING] GET single listing:', listingId);
   
-  // Verify JWT from cookie
-  const cookieStore = cookies();
-  const sessionCookie = cookieStore.get('gostaylo_session');
-  
-  if (!sessionCookie?.value) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-  }
-  
-  let decoded;
-  try {
-    decoded = jwt.verify(sessionCookie.value, JWT_SECRET);
-  } catch (error) {
-    return NextResponse.json({ success: false, error: 'Invalid session' }, { status: 401 });
-  }
-  
-  const userId = decoded.userId;
-  const userRole = decoded.role;
-  
-  // Check role
-  if (!['PARTNER', 'ADMIN', 'MODERATOR'].includes(userRole)) {
-    return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
-  }
+  const auth = await getPartnerFromSession();
+  if (auth.error) return auth.error;
+  const { userId, userRole } = auth;
   
   // Get Supabase client with service key
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -135,8 +137,12 @@ export async function GET(request, context) {
       description: listing.description,
       status: listing.status,
       district: listing.district,
+      latitude: listing.latitude,
+      longitude: listing.longitude,
       basePriceThb: parseFloat(listing.base_price_thb) || 0,
       commissionRate: parseFloat(listing.commission_rate) || 15,
+      minBookingDays: listing.min_booking_days ?? 1,
+      maxBookingDays: listing.max_booking_days ?? 90,
       images: mapPublicImageUrls(listing.images || []),
       coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
       available: listing.available,
@@ -146,7 +152,15 @@ export async function GET(request, context) {
       sync_settings: listing.sync_settings || null,
       ownerId: listing.owner_id,
       createdAt: listing.created_at,
-      updatedAt: listing.updated_at
+      updatedAt: listing.updated_at,
+      seasonalPrices: seasonalPrices.map(sp => ({
+        id: sp.id,
+        label: sp.label,
+        startDate: sp.start_date,
+        endDate: sp.end_date,
+        priceDaily: parseFloat(sp.price_daily) || 0,
+        seasonType: sp.season_type,
+      })),
     }
   });
 }
@@ -170,27 +184,9 @@ export async function PATCH(request, context) {
   
   console.log('[PARTNER-LISTING] PATCH listing:', listingId);
   
-  // Verify JWT
-  const cookieStore = cookies();
-  const sessionCookie = cookieStore.get('gostaylo_session');
-  
-  if (!sessionCookie?.value) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-  }
-  
-  let decoded;
-  try {
-    decoded = jwt.verify(sessionCookie.value, JWT_SECRET);
-  } catch (error) {
-    return NextResponse.json({ success: false, error: 'Invalid session' }, { status: 401 });
-  }
-  
-  const userId = decoded.userId;
-  const userRole = decoded.role;
-  
-  if (!['PARTNER', 'ADMIN', 'MODERATOR'].includes(userRole)) {
-    return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
-  }
+  const auth = await getPartnerFromSession();
+  if (auth.error) return auth.error;
+  const { userId, userRole } = auth;
   
   const body = await request.json();
   
@@ -260,6 +256,12 @@ export async function PATCH(request, context) {
   }
   
   console.log('[PARTNER-LISTING] Updated successfully');
+
+  try {
+    await revalidateListingPaths('update', listingId);
+  } catch (e) {
+    console.warn('[PARTNER-LISTING] revalidate:', e?.message);
+  }
   
   return NextResponse.json({
     success: true,
@@ -278,27 +280,9 @@ export async function DELETE(request, context) {
   
   console.log('[PARTNER-LISTING] SOFT DELETE listing:', listingId);
   
-  // Verify JWT
-  const cookieStore = cookies();
-  const sessionCookie = cookieStore.get('gostaylo_session');
-  
-  if (!sessionCookie?.value) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-  }
-  
-  let decoded;
-  try {
-    decoded = jwt.verify(sessionCookie.value, JWT_SECRET);
-  } catch (error) {
-    return NextResponse.json({ success: false, error: 'Invalid session' }, { status: 401 });
-  }
-  
-  const userId = decoded.userId;
-  const userRole = decoded.role;
-  
-  if (!['PARTNER', 'ADMIN', 'MODERATOR'].includes(userRole)) {
-    return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
-  }
+  const auth = await getPartnerFromSession();
+  if (auth.error) return auth.error;
+  const { userId, userRole } = auth;
   
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -343,6 +327,12 @@ export async function DELETE(request, context) {
   }
   
   console.log('[PARTNER-LISTING] Soft deleted successfully');
+
+  try {
+    await revalidateListingPaths('delete', listingId);
+  } catch (e) {
+    console.warn('[PARTNER-LISTING] revalidate:', e?.message);
+  }
   
   // Note: Images are kept in storage for potential restoration
   // They will be cleaned up by the cleanup-drafts cron if needed

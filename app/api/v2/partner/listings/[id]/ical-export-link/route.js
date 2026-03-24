@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { generateExportToken } from '@/lib/ical-export-token';
 import { getPublicSiteUrl } from '@/lib/site-url.js';
+import { verifyPartnerAccess } from '@/lib/services/session-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,10 +41,11 @@ export async function GET(request, context) {
   }
 
   const userId = decoded.userId;
-  const userRole = decoded.role;
-  if (!['PARTNER', 'ADMIN', 'MODERATOR'].includes(userRole)) {
+  const partner = await verifyPartnerAccess(userId);
+  if (!partner) {
     return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
   }
+  const userRole = partner.role;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

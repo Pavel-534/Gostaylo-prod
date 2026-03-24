@@ -5,13 +5,40 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { ChatGrowingTextarea } from '@/components/chat-growing-textarea'
 import { SendInvoiceDialog } from '@/components/chat-invoice'
-import { Plus, Receipt, IdCard, Loader2, Send, Paperclip } from 'lucide-react'
+import { Plus, Receipt, IdCard, Loader2, Send, Paperclip, Quote } from 'lucide-react'
 import { toast } from 'sonner'
+
+const QUICK_REPLIES = [
+  {
+    shortRu: 'Свободен на ваши даты',
+    textRu: 'Здравствуйте! Объект свободен на ваши даты.',
+    shortEn: 'Available for your dates',
+    textEn: 'Hello! The property is available for your dates.',
+  },
+  {
+    shortRu: 'Фото паспорта для договора',
+    textRu:
+      'Пожалуйста, пришлите фото вашего паспорта для договора и регистрации (можно закрыть номер, главное — ФИО и срок действия).',
+    shortEn: 'Passport photo for agreement',
+    textEn:
+      'Please send a clear passport photo for the rental agreement (you may cover the document number; we need your name and expiry).',
+  },
+  {
+    shortRu: 'Где вы сейчас / локация',
+    textRu:
+      'Подскажите, пожалуйста, где вы сейчас находитесь или пришлите геолокацию — так удобнее согласовать встречу или заселение.',
+    shortEn: 'Your location',
+    textEn:
+      'Could you share where you are now or send your location? It helps coordinate check-in or a meeting.',
+  },
+]
 
 /**
  * Поле ввода + меню «Действия» для партнёра.
@@ -24,6 +51,7 @@ export function PartnerChatComposer({
   disabled,
   booking,
   listing,
+  language = 'ru',
   onSendInvoice,
   onSendPassportRequest,
   onAttachFile,
@@ -32,6 +60,7 @@ export function PartnerChatComposer({
   const [passportLoading, setPassportLoading] = useState(false)
   const [attachBusy, setAttachBusy] = useState(false)
   const fileRef = useRef(null)
+  const isRu = language !== 'en'
 
   async function handlePassportRequest() {
     if (!onSendPassportRequest) return
@@ -118,8 +147,30 @@ export function PartnerChatComposer({
               ) : (
                 <IdCard className="h-4 w-4 text-teal-600" />
               )}
-              Запросить фото паспорта
+              {isRu ? 'Запросить фото паспорта' : 'Request passport photo'}
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs text-slate-500 font-normal">
+              {isRu ? 'Быстрые ответы' : 'Quick replies'}
+            </DropdownMenuLabel>
+            {QUICK_REPLIES.map((q, idx) => (
+              <DropdownMenuItem
+                key={idx}
+                className="gap-2 cursor-pointer flex-col items-start"
+                onSelect={(e) => {
+                  e.preventDefault()
+                  onMessageChange(isRu ? q.textRu : q.textEn)
+                }}
+              >
+                <span className="flex items-center gap-2 w-full">
+                  <Quote className="h-4 w-4 text-slate-500 shrink-0" />
+                  <span className="font-medium text-sm">{isRu ? q.shortRu : q.shortEn}</span>
+                </span>
+                <span className="text-xs text-slate-500 line-clamp-2 pl-6">
+                  {isRu ? q.textRu : q.textEn}
+                </span>
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
 
