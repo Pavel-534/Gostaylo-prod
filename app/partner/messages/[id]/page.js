@@ -47,6 +47,12 @@ import { ChatBookingAnnouncement } from '@/components/chat-booking-announcement'
 import { PartnerChatCalendarPeek } from '@/components/partner-chat-calendar-peek'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { DECLINE_REASON_PRESETS } from '@/lib/booking-chat-copy'
+import {
+  INBOX_TAB_HOSTING,
+  INBOX_TAB_TRAVELING,
+  filterConversationsByInboxTab,
+  sumUnreadInConversations,
+} from '@/lib/chat-inbox-tabs'
 
 function apiMessageToRow(m) {
   if (!m) return null
@@ -86,6 +92,7 @@ export default function PartnerMessages({ params }) {
   const [declinePreset, setDeclinePreset] = useState('occupied')
   const [declineOtherDetail, setDeclineOtherDetail] = useState('')
   const [threadLoading, setThreadLoading] = useState(false)
+  const [inboxTab, setInboxTab] = useState(INBOX_TAB_HOSTING)
 
   const conversationId = params?.id
   const loadThreadSeq = useRef(0)
@@ -142,6 +149,65 @@ export default function PartnerMessages({ params }) {
     if (!selectedConv || !user?.id) return false
     return String(selectedConv.partnerId) === String(user.id)
   }, [selectedConv, user])
+
+  const hostingUnread = useMemo(
+    () =>
+      sumUnreadInConversations(
+        filterConversationsByInboxTab(conversations, user?.id, INBOX_TAB_HOSTING)
+      ),
+    [conversations, user?.id]
+  )
+
+  const travelingUnread = useMemo(
+    () =>
+      sumUnreadInConversations(
+        filterConversationsByInboxTab(conversations, user?.id, INBOX_TAB_TRAVELING)
+      ),
+    [conversations, user?.id]
+  )
+
+  const filteredConversations = useMemo(
+    () => filterConversationsByInboxTab(conversations, user?.id, inboxTab),
+    [conversations, user?.id, inboxTab]
+  )
+
+  const payNowHref = useMemo(() => {
+    if (viewerIsListingHost || !booking?.id) return null
+    if (String(booking.status || '').toUpperCase() !== 'CONFIRMED') return null
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const inv = messages[i]?.metadata?.invoice
+      if (!inv) continue
+      if (String(inv.booking_id || '') !== String(booking.id)) continue
+      const st = String(inv.status || 'PENDING').toUpperCase()
+      if (st !== 'PENDING') continue
+      const pm = String(inv.payment_method || 'CRYPTO').toUpperCase()
+      const q =
+        pm === 'CARD' || pm === 'CARD_INTL' ? 'CARD' : pm === 'MIR' || pm === 'CARD_RU' ? 'MIR' : 'CRYPTO'
+      return `/checkout/${encodeURIComponent(booking.id)}?pm=${q}`
+    }
+    return null
+  }, [messages, booking, viewerIsListingHost])
+
+  const handleInboxTabChange = useCallback(
+    (next) => {
+      setInboxTab(next)
+      const list = filterConversationsByInboxTab(conversations, user?.id, next)
+      if (conversationId && !list.some((c) => c.id === conversationId)) {
+        const first = list[0]
+        if (first) router.push(`/partner/messages/${first.id}`)
+        else router.push('/partner/messages')
+      }
+    },
+    [conversations, user?.id, conversationId, router]
+  )
+
+  /** Синхронизируем вкладку с открытым по URL диалогом только когда conv уже соответствует URL (не затираем выбор при смене вкладки до загрузки треда). */
+  useEffect(() => {
+    if (!conversationId || !selectedConv?.id || !user?.id) return
+    if (String(selectedConv.id) !== String(conversationId)) return
+    const isHost = String(selectedConv.partnerId) === String(user.id)
+    setInboxTab(isHost ? INBOX_TAB_HOSTING : INBOX_TAB_TRAVELING)
+  }, [conversationId, selectedConv?.id, selectedConv?.partnerId, user?.id])
 
   const { isOnline: peerOnline } = usePresence(
     conversationId,
@@ -573,13 +639,19 @@ export default function PartnerMessages({ params }) {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col bg-slate-50 lg:flex-row">
       <ConversationList
-        conversations={conversations}
+        conversations={filteredConversations}
         selectedId={conversationId}
         onSelect={(id) => router.push(`/partner/messages/${id}`)}
         categoryFilter={categoryFilter}
         onCategoryChange={setCategoryFilter}
         categories={categories}
         partnerSidebar
+        partnerListAsGuest={inboxTab === INBOX_TAB_TRAVELING}
+        inboxTab={inboxTab}
+        onInboxTabChange={handleInboxTabChange}
+        hostingUnread={hostingUnread}
+        travelingUnread={travelingUnread}
+        inboxTabsLang={language === 'en' ? 'en' : 'ru'}
         onArchiveConversation={(id) => {
           void archiveConversationById(id)
         }}
@@ -662,23 +734,26 @@ export default function PartnerMessages({ params }) {
                   onConfirm: handleConfirmBookingHeader,
                   onDecline: handleDeclineBookingHeader,
                 }}
+                payNowHref={viewerIsListingHost ? null : payNowHref}
                 onSupportClick={() => setSupportDialogOpen(true)}
                 supportPriorityActive={!!selectedConv?.isPriority}
                 supportLabel="Помощь"
               >
-                <div className="flex items-center gap-2">
-                  <PartnerChatCalendarPeek
-                    listingId={listing?.id}
-                    listingTitle={listing?.title}
-                    language={language}
-                  />
-                  <span
-                    className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}
-                  >
-                    {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-                    {isConnected ? 'Live' : '…'}
-                  </span>
-                </div>
+                {viewerIsListingHost ? (
+                  <div className="flex items-center gap-2">
+                    <PartnerChatCalendarPeek
+                      listingId={listing?.id}
+                      listingTitle={listing?.title}
+                      language={language}
+                    />
+                    <span
+                      className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}
+                    >
+                      {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+                      {isConnected ? 'Live' : '…'}
+                    </span>
+                  </div>
+                ) : null}
               </StickyChatHeader>
             </div>
           </div>
@@ -755,27 +830,31 @@ export default function PartnerMessages({ params }) {
                       <InvoiceBubble
                         invoice={msg.metadata.invoice}
                         isOwn={isOwn}
-                        showPay={false}
+                        showPay={!viewerIsListingHost}
                         paymentMethod={msg.metadata.invoice.payment_method}
-                        messageId={msg.id}
-                        onInvoiceCancelled={() => {
-                          setMessages((prevList) =>
-                            prevList.map((m) =>
-                              m.id === msg.id
-                                ? {
-                                    ...m,
-                                    metadata: {
-                                      ...m.metadata,
-                                      invoice: {
-                                        ...m.metadata.invoice,
-                                        status: 'CANCELLED',
-                                      },
-                                    },
-                                  }
-                                : m
-                            )
-                          )
-                        }}
+                        messageId={viewerIsListingHost ? msg.id : undefined}
+                        onInvoiceCancelled={
+                          viewerIsListingHost
+                            ? () => {
+                                setMessages((prevList) =>
+                                  prevList.map((m) =>
+                                    m.id === msg.id
+                                      ? {
+                                          ...m,
+                                          metadata: {
+                                            ...m.metadata,
+                                            invoice: {
+                                              ...m.metadata.invoice,
+                                              status: 'CANCELLED',
+                                            },
+                                          },
+                                        }
+                                      : m
+                                  )
+                                )
+                              }
+                            : undefined
+                        }
                       />
                     </div>
                   </Fragment>
@@ -834,6 +913,7 @@ export default function PartnerMessages({ params }) {
             onSendInvoice={viewerIsListingHost ? handleSendInvoice : undefined}
             onSendPassportRequest={viewerIsListingHost ? handleSendPassportRequest : undefined}
             onAttachFile={handleAttachFile}
+            showHostPlusMenu={viewerIsListingHost}
           />
         </div>
       ) : (

@@ -1,20 +1,59 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2, MessageCircle, Home, Archive } from 'lucide-react'
 import { toast } from 'sonner'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/contexts/auth-context'
+import { useI18n } from '@/contexts/i18n-context'
+import { ChatInboxRoleTabs } from '@/components/chat-inbox-role-tabs'
+import {
+  INBOX_TAB_HOSTING,
+  INBOX_TAB_TRAVELING,
+  filterConversationsByInboxTab,
+  sumUnreadInConversations,
+  consumeRenterInboxTabPreference,
+} from '@/lib/chat-inbox-tabs'
 
 export default function RenterMessagesIndex() {
   const router = useRouter()
+  const { language } = useI18n()
   const { user, loading: authLoading, openLoginModal } = useAuth()
   const [conversations, setConversations] = useState([])
   const [loading, setLoading] = useState(true)
+  const [inboxTab, setInboxTab] = useState(INBOX_TAB_TRAVELING)
+
+  useEffect(() => {
+    const p = consumeRenterInboxTabPreference()
+    if (p) setInboxTab(p)
+  }, [])
+
+  const hostingUnread = useMemo(
+    () =>
+      sumUnreadInConversations(
+        filterConversationsByInboxTab(conversations, user?.id, INBOX_TAB_HOSTING)
+      ),
+    [conversations, user?.id]
+  )
+
+  const travelingUnread = useMemo(
+    () =>
+      sumUnreadInConversations(
+        filterConversationsByInboxTab(conversations, user?.id, INBOX_TAB_TRAVELING)
+      ),
+    [conversations, user?.id]
+  )
+
+  const filteredConversations = useMemo(
+    () => filterConversationsByInboxTab(conversations, user?.id, inboxTab),
+    [conversations, user?.id, inboxTab]
+  )
+
+  const handleInboxTabChange = useCallback((next) => setInboxTab(next), [])
 
   useEffect(() => {
     if (authLoading) return
@@ -142,56 +181,72 @@ export default function RenterMessagesIndex() {
           </Card>
         ) : (
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 mb-6">Мои диалоги</h1>
-            <div className="space-y-4">
-              {conversations.map((conv) => {
-                const unread = conv.unreadCount ?? 0
-                return (
-                  <Card
-                    key={conv.id}
-                    className="p-4 cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => router.push(`/renter/messages/${conv.id}`)}
-                  >
-                    <div className="flex gap-3 sm:gap-4 min-w-0">
-                      <img
-                        src={conv.listing?.images?.[0] || '/placeholder.svg'}
-                        alt={conv.listing?.title}
-                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover flex-shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 className="font-semibold text-slate-900 line-clamp-2 leading-snug">
-                            {conv.listing?.title}
-                          </h3>
-                          <div className="flex items-center gap-1 shrink-0">
-                            {unread > 0 && (
-                              <Badge className="bg-red-500 text-white">{unread} новых</Badge>
-                            )}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-slate-500"
-                              title="Скрыть из списка"
-                              aria-label="Скрыть из списка"
-                              onClick={(e) => archiveConversation(e, conv.id)}
-                            >
-                              <Archive className="h-4 w-4" />
-                            </Button>
+            <h1 className="text-2xl font-bold text-slate-900 mb-4">Мои диалоги</h1>
+            <ChatInboxRoleTabs
+              value={inboxTab}
+              onChange={handleInboxTabChange}
+              hostingUnread={hostingUnread}
+              travelingUnread={travelingUnread}
+              language={language === 'en' ? 'en' : 'ru'}
+              className="mb-6"
+            />
+            {filteredConversations.length === 0 ? (
+              <p className="text-slate-600 text-center py-8">
+                {language === 'en'
+                  ? 'No conversations in this tab yet.'
+                  : 'В этой вкладке пока нет диалогов.'}
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {filteredConversations.map((conv) => {
+                  const unread = conv.unreadCount ?? 0
+                  return (
+                    <Card
+                      key={conv.id}
+                      className="p-4 cursor-pointer hover:shadow-lg transition-shadow"
+                      onClick={() => router.push(`/renter/messages/${conv.id}`)}
+                    >
+                      <div className="flex gap-3 sm:gap-4 min-w-0">
+                        <img
+                          src={conv.listing?.images?.[0] || '/placeholder.svg'}
+                          alt={conv.listing?.title}
+                          className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h3 className="font-semibold text-slate-900 line-clamp-2 leading-snug">
+                              {conv.listing?.title}
+                            </h3>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {unread > 0 && (
+                                <Badge className="bg-red-500 text-white">{unread} новых</Badge>
+                              )}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-slate-500"
+                                title="Скрыть из списка"
+                                aria-label="Скрыть из списка"
+                                onClick={(e) => archiveConversation(e, conv.id)}
+                              >
+                                <Archive className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
+                          <p className="text-sm text-slate-600 mb-1 truncate">{conv.listing?.district}</p>
+                          <p className="text-sm text-slate-500 line-clamp-2 break-words">
+                            {conv.lastMessage?.message ||
+                              conv.lastMessage?.content ||
+                              'Новое сообщение'}
+                          </p>
                         </div>
-                        <p className="text-sm text-slate-600 mb-1 truncate">{conv.listing?.district}</p>
-                        <p className="text-sm text-slate-500 line-clamp-2 break-words">
-                          {conv.lastMessage?.message ||
-                            conv.lastMessage?.content ||
-                            'Новое сообщение'}
-                        </p>
                       </div>
-                    </div>
-                  </Card>
-                )
-              })}
-            </div>
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

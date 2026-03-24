@@ -7,6 +7,8 @@
  * variant: 'hero' | 'filter'
  * - hero: Rounded bar on home page
  * - filter: Compact grid on search results page
+ *
+ * Listings for grid/map: @/lib/search-endpoints LISTINGS_SEARCH_API_PATH (not fetched here).
  */
 
 import { useState, useEffect, useMemo } from 'react'
@@ -189,7 +191,7 @@ export function UnifiedSearchBar({
 
   // Hero variant - 4 fields: What | Where | When | Who
   return (
-    <div className="bg-white rounded-2xl md:rounded-full shadow-2xl border border-slate-200 overflow-visible">
+    <div className="box-border w-full min-w-0 max-w-full overflow-x-hidden bg-white rounded-2xl border border-slate-200 shadow-2xl md:overflow-visible md:rounded-full">
       <div className="hidden md:flex items-center rounded-full overflow-visible">
         {/* What - Category */}
         <Popover>
@@ -272,8 +274,8 @@ export function UnifiedSearchBar({
         </Button>
       </div>
 
-      {/* Mobile Hero — stacked so dates/guests/where never clip */}
-      <div className="md:hidden flex flex-col gap-2 p-3">
+      {/* Mobile Hero — stack Where + Guests (2-col row overflows narrow Android viewports) */}
+      <div className="flex min-w-0 flex-col gap-2 p-3 md:hidden">
         <button
           type="button"
           onClick={() => setCategoryDrawerOpen(true)}
@@ -294,11 +296,11 @@ export function UnifiedSearchBar({
             className="w-full justify-start px-3 py-3"
           />
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="flex min-w-0 flex-col gap-2">
           <button
             type="button"
             onClick={() => setLocationDrawerOpen(true)}
-            className="flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left hover:bg-slate-50"
+            className="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left hover:bg-slate-50"
             data-testid="mobile-where-trigger"
           >
             <MapPin className="h-4 w-4 shrink-0 text-teal-600" />
@@ -310,10 +312,10 @@ export function UnifiedSearchBar({
               setTempGuests(guests || '2')
               setGuestsDrawerOpen(true)
             }}
-            className="flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left hover:bg-slate-50"
+            className="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left hover:bg-slate-50"
           >
             <Users className="h-4 w-4 shrink-0 text-teal-600" />
-            <span className="truncate text-sm text-slate-800">
+            <span className="min-w-0 flex-1 truncate text-sm text-slate-800">
               {guests} {getUIText('guests', language)}
             </span>
           </button>
@@ -329,7 +331,7 @@ export function UnifiedSearchBar({
 
         {variant === 'hero' && onQuickCategorySearch && quickChips.length > 0 ? (
           <div
-            className="-mx-1 flex gap-3 overflow-x-auto pb-1 pt-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            className="-mx-0 flex min-w-0 gap-2 overflow-x-auto pb-1 pt-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:gap-3"
             role="list"
             aria-label={getUIText('categories', language)}
           >

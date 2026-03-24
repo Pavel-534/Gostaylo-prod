@@ -7,6 +7,7 @@ import { AlertTriangle, Archive, Building2, LayoutGrid, Shield } from 'lucide-re
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { toPublicImageUrl } from '@/lib/public-image-url'
+import { ChatInboxRoleTabs } from '@/components/chat-inbox-role-tabs'
 
 /**
  * Соответствие slug категории из БД → имя экспорта lucide-react (PascalCase).
@@ -62,6 +63,8 @@ export function ConversationList({
   categories = [],
   /** Партнёрский сайдбар: под именем гостя — «Вопрос по: [название объекта]». */
   partnerSidebar = false,
+  /** В режиме гостя в списке показываем имя хозяина (partnerName), не гостя. */
+  partnerListAsGuest = false,
   sidebarLang = 'ru',
   /** Скрыть диалог у себя в списке (архив); не удаляет историю для собеседника. */
   onArchiveConversation = null,
@@ -69,6 +72,12 @@ export function ConversationList({
   /** Ссылка на экран архивных диалогов (нагрузка только при переходе). */
   archivedListHref = null,
   archivedListLabel = 'Архив',
+  /** Вкладки Hosting / Traveling (партнёр и т.п.): если заданы — показываем переключатель над списком. */
+  inboxTab = null,
+  onInboxTabChange = null,
+  hostingUnread = 0,
+  travelingUnread = 0,
+  inboxTabsLang = 'ru',
 }) {
   return (
     <div
@@ -79,6 +88,17 @@ export function ConversationList({
       <div className="p-4 border-b bg-gradient-to-r from-teal-500 to-cyan-500">
         <h2 className="text-xl font-bold text-white">Сообщения</h2>
         <p className="text-teal-100 text-sm">{conversations.length} диалогов</p>
+        {inboxTab != null && typeof onInboxTabChange === 'function' ? (
+          <div className="mt-3 rounded-lg bg-white/15 p-1.5 backdrop-blur-sm">
+            <ChatInboxRoleTabs
+              value={inboxTab}
+              onChange={onInboxTabChange}
+              hostingUnread={hostingUnread}
+              travelingUnread={travelingUnread}
+              language={inboxTabsLang}
+            />
+          </div>
+        ) : null}
         {archivedListHref ? (
           <Link
             href={archivedListHref}
@@ -129,6 +149,17 @@ export function ConversationList({
       )}
 
       <div className="flex-1 overflow-y-auto">
+        {conversations.length === 0 ? (
+          <div className="p-6 text-center text-sm text-slate-500">
+            {inboxTab != null
+              ? inboxTabsLang === 'en'
+                ? 'No conversations in this tab.'
+                : 'В этой вкладке нет диалогов.'
+              : inboxTabsLang === 'en'
+                ? 'No conversations yet.'
+                : 'Пока нет диалогов.'}
+          </div>
+        ) : null}
         {conversations.map((conv) => {
           const isActive = conv.id === selectedId
           const unread = conv.unreadCount || 0
@@ -175,6 +206,8 @@ export function ConversationList({
                             <Shield className="h-3 w-3 text-indigo-500" />
                             {conv.adminName || 'Администратор'}
                           </span>
+                        ) : partnerSidebar && partnerListAsGuest ? (
+                          conv.partnerName || (sidebarLang === 'en' ? 'Host' : 'Хозяин')
                         ) : (
                           conv.renterName || 'Клиент'
                         )}

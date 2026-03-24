@@ -3,6 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { MessageSquare } from 'lucide-react'
+import {
+  INBOX_TAB_HOSTING,
+  INBOX_TAB_TRAVELING,
+  filterConversationsByInboxTab,
+} from '@/lib/chat-inbox-tabs'
 
 export default function PartnerMessagesIndex() {
   const router = useRouter()
@@ -25,8 +30,15 @@ export default function PartnerMessagesIndex() {
         if (cancelled) return
 
         if (data.success && data.data?.length > 0) {
-          router.replace(`/partner/messages/${data.data[0].id}`)
-          return
+          const uid = me.user.id
+          const all = data.data
+          const hosting = filterConversationsByInboxTab(all, uid, INBOX_TAB_HOSTING)
+          const traveling = filterConversationsByInboxTab(all, uid, INBOX_TAB_TRAVELING)
+          const nextId = hosting[0]?.id || traveling[0]?.id
+          if (nextId) {
+            router.replace(`/partner/messages/${nextId}`)
+            return
+          }
         }
         setPhase('empty')
       } catch (error) {

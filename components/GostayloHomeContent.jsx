@@ -25,6 +25,7 @@ import { toast } from 'sonner'
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton'
 import { proxifyUnsplashUrl } from '@/lib/proxify-unsplash-url'
 import { format, isSameDay, differenceInDays } from 'date-fns'
+import { LISTINGS_SEARCH_API_PATH } from '@/lib/search-endpoints'
 import { ru, enUS } from 'date-fns/locale'
 
 // Debounce hook
@@ -252,7 +253,7 @@ export function GostayloHomeContent() {
       }
       if (g && g !== '1') params.set('guests', g)
       
-      const response = await fetch(`/api/v2/search?${params.toString()}`)
+      const response = await fetch(`${LISTINGS_SEARCH_API_PATH}?${params.toString()}`)
       const data = await response.json()
       if (data.success) setLiveCount(data.data.meta.available)
     } catch (e) {
@@ -316,8 +317,8 @@ export function GostayloHomeContent() {
       {/* Hero Section */}
       <section className='relative pt-14 min-h-[500px] sm:min-h-[580px] bg-slate-900 bg-cover bg-center' style={{ backgroundImage: `url(${HERO_BACKGROUND_IMAGE})` }}>
         <div className='absolute inset-0 bg-gradient-to-r from-slate-900/80 to-slate-900/40' />
-        <div className='relative container mx-auto px-4 min-h-[440px] sm:min-h-[510px] flex flex-col justify-center'>
-          <div className='max-w-3xl mx-auto sm:mx-0'>
+        <div className='relative container mx-auto min-h-[440px] min-w-0 max-w-full px-3 sm:min-h-[510px] sm:px-4 flex flex-col justify-center'>
+          <div className='mx-auto w-full min-w-0 max-w-3xl sm:mx-0'>
             <h1 className='text-3xl sm:text-5xl md:text-6xl font-bold text-white mb-4 text-center sm:text-left'>
               {getUIText('heroTitle', language)}
               <span className='block text-teal-400'>{getUIText('heroTitleHighlight', language)}</span>

@@ -35,6 +35,14 @@ import { SupportRequestDialog } from '@/components/support-request-dialog'
 import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
 import { ChatBookingAnnouncement } from '@/components/chat-booking-announcement'
 import { getUIText } from '@/lib/translations'
+import { ConversationList } from '@/components/conversation-list'
+import {
+  INBOX_TAB_HOSTING,
+  INBOX_TAB_TRAVELING,
+  filterConversationsByInboxTab,
+  sumUnreadInConversations,
+  consumeRenterInboxTabPreference,
+} from '@/lib/chat-inbox-tabs'
 
 function apiMessageToRow(m) {
   if (!m) return null
@@ -66,6 +74,8 @@ export default function RenterMessages({ params }) {
   const { user, loading: authLoading, openLoginModal } = useAuth()
   const messagesEndRef = useRef(null)
   const attachFileRef = useRef(null)
+  const loadThreadSeq = useRef(0)
+  const prevLoadedConversationIdRef = useRef(null)
   const [conversations, setConversations] = useState([])
   const [selectedConv, setSelectedConv] = useState(null)
   const [messages, setMessages] = useState([])
@@ -78,6 +88,10 @@ export default function RenterMessages({ params }) {
   const [supportDialogOpen, setSupportDialogOpen] = useState(false)
   const [safetyWarningShown, setSafetyWarningShown] = useState(false)
   const [detectedPatterns, setDetectedPatterns] = useState([])
+  const [categories, setCategories] = useState([])
+  const [categoryFilter, setCategoryFilter] = useState(null)
+  const [inboxTab, setInboxTab] = useState(INBOX_TAB_TRAVELING)
+  const [threadLoading, setThreadLoading] = useState(false)
 
   const renterId = user?.id
   const conversationId = params?.id
@@ -156,6 +170,61 @@ export default function RenterMessages({ params }) {
     return null
   }, [messages, booking])
 
+  const hostingUnread = useMemo(
+    () =>
+      sumUnreadInConversations(
+        filterConversationsByInboxTab(conversations, renterId, INBOX_TAB_HOSTING)
+      ),
+    [conversations, renterId]
+  )
+
+  const travelingUnread = useMemo(
+    () =>
+      sumUnreadInConversations(
+        filterConversationsByInboxTab(conversations, renterId, INBOX_TAB_TRAVELING)
+      ),
+    [conversations, renterId]
+  )
+
+  const filteredConversations = useMemo(
+    () => filterConversationsByInboxTab(conversations, renterId, inboxTab),
+    [conversations, renterId, inboxTab]
+  )
+
+  const handleInboxTabChange = useCallback(
+    (next) => {
+      setInboxTab(next)
+      const list = filterConversationsByInboxTab(conversations, renterId, next)
+      if (conversationId && !list.some((c) => c.id === conversationId)) {
+        const first = list[0]
+        if (first) router.push(`/renter/messages/${first.id}`)
+        else router.push('/renter/messages')
+      }
+    },
+    [conversations, renterId, conversationId, router]
+  )
+
+  useEffect(() => {
+    const p = consumeRenterInboxTabPreference()
+    if (p) setInboxTab(p)
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/v2/categories')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.success && Array.isArray(d.data)) setCategories(d.data)
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (!conversationId || !selectedConv?.id || !renterId) return
+    if (String(selectedConv.id) !== String(conversationId)) return
+    const isHost = String(selectedConv.partnerId) === String(renterId)
+    setInboxTab(isHost ? INBOX_TAB_HOSTING : INBOX_TAB_TRAVELING)
+  }, [conversationId, selectedConv?.id, selectedConv?.partnerId, renterId])
+
   useEffect(() => {
     if (authLoading) return
     if (!renterId) {
@@ -163,27 +232,13 @@ export default function RenterMessages({ params }) {
       return
     }
     loadConversations()
-  }, [renterId, authLoading])
+  }, [renterId, authLoading, categoryFilter])
 
   useEffect(() => {
     if (conversationId && renterId) {
       loadMessages(conversationId)
     }
   }, [conversationId, renterId])
-
-  useEffect(() => {
-    if (!conversationId || typeof window === 'undefined') return
-    try {
-      const key = `gostaylo_chat_prefill_${conversationId}`
-      const v = sessionStorage.getItem(key)
-      if (v) {
-        setNewMessage((prev) => (prev.trim() ? prev : v))
-        sessionStorage.removeItem(key)
-      }
-    } catch {
-      /* ignore */
-    }
-  }, [conversationId])
 
   useEffect(() => {
     scrollToBottom()
@@ -208,7 +263,9 @@ export default function RenterMessages({ params }) {
   async function loadConversations() {
     if (!renterId) return
     try {
-      const res = await fetch('/api/v2/chat/conversations?enrich=1', { credentials: 'include' })
+      const params = new URLSearchParams({ enrich: '1' })
+      if (categoryFilter) params.set('listing_category', categoryFilter)
+      const res = await fetch(`/api/v2/chat/conversations?${params}`, { credentials: 'include' })
       const data = await res.json()
       if (data.success && Array.isArray(data.data)) {
         setConversations(data.data)
@@ -220,7 +277,72 @@ export default function RenterMessages({ params }) {
     }
   }
 
+  function mergeListingFromNavigationContext(convId, apiListing, convListingId) {
+    if (typeof window === 'undefined') return apiListing || null
+    try {
+      const raw = sessionStorage.getItem(`gostaylo_chat_context_listing_${convId}`)
+      if (!raw) return apiListing || null
+      const ctx = JSON.parse(raw)
+      if (!ctx?.listingId || String(ctx.listingId) !== String(convListingId || '')) {
+        return apiListing || null
+      }
+      sessionStorage.removeItem(`gostaylo_chat_context_listing_${convId}`)
+      const base = apiListing && typeof apiListing === 'object' ? { ...apiListing } : {}
+      return {
+        ...base,
+        id: ctx.listingId,
+        title: ctx.title ?? base.title ?? '—',
+        images: Array.isArray(ctx.images) ? ctx.images : base.images,
+        district: ctx.district ?? base.district ?? null,
+      }
+    } catch {
+      return apiListing || null
+    }
+  }
+
+  /**
+   * Черновик с листинга: только «первое касание» — в диалоге ещё нет сообщений от пользователя
+   * и нет истории сообщений (messages.length === 0), иначе ключ удаляем без подстановки.
+   */
+  function tryApplyListingPrefillDraft(convId, rows, currentUserId) {
+    if (typeof window === 'undefined') return
+    const key = `gostaylo_chat_prefill_${convId}`
+    let draft = null
+    try {
+      draft = sessionStorage.getItem(key)
+    } catch {
+      return
+    }
+    if (!draft || !currentUserId) return
+
+    const userSent = rows.some((m) => String(m.sender_id || m.senderId) === String(currentUserId))
+    if (rows.length > 0 || userSent) {
+      try {
+        sessionStorage.removeItem(key)
+      } catch {
+        /* ignore */
+      }
+      return
+    }
+
+    try {
+      sessionStorage.removeItem(key)
+    } catch {
+      /* ignore */
+    }
+    setNewMessage((prev) => (prev.trim() ? prev : draft))
+  }
+
   async function loadMessages(convId) {
+    const seq = ++loadThreadSeq.current
+    const prevConv = prevLoadedConversationIdRef.current
+    if (prevConv !== null && prevConv !== convId) {
+      setMessages([])
+      setNewMessage('')
+    }
+    prevLoadedConversationIdRef.current = convId
+
+    setThreadLoading(true)
     try {
       const convRes = await fetch(
         `/api/v2/chat/conversations?id=${encodeURIComponent(convId)}&enrich=1`,
@@ -228,10 +350,14 @@ export default function RenterMessages({ params }) {
       )
       const convJson = await convRes.json()
       const conv = convJson.data?.[0]
+      if (seq !== loadThreadSeq.current) return
       if (!conv) return
 
+      const convListingId = conv.listingId ?? conv.listing_id
+      const mergedListing = mergeListingFromNavigationContext(convId, conv.listing || null, convListingId)
+
       setSelectedConv(conv)
-      setListing(conv.listing || null)
+      setListing(mergedListing)
       setBooking(conv.booking || null)
 
       const msgRes = await fetch(
@@ -239,8 +365,9 @@ export default function RenterMessages({ params }) {
         { credentials: 'include' }
       )
       const msgJson = await msgRes.json()
+      let rows = []
       if (msgJson.success && Array.isArray(msgJson.data)) {
-        const rows = msgJson.data.map(apiMessageToRow).filter(Boolean)
+        rows = msgJson.data.map(apiMessageToRow).filter(Boolean)
         setMessages(rows)
 
         const bookingRequestMsg = rows.find((m) =>
@@ -248,7 +375,13 @@ export default function RenterMessages({ params }) {
         )
         const bid = bookingRequestMsg?.metadata?.booking_id || bookingRequestMsg?.bookingId
         if (bid) fetchBookingStatus(bid)
+      } else {
+        setMessages([])
       }
+
+      if (seq !== loadThreadSeq.current) return
+
+      tryApplyListingPrefillDraft(convId, rows, renterId)
 
       await fetch('/api/v2/chat/read', {
         method: 'POST',
@@ -259,6 +392,8 @@ export default function RenterMessages({ params }) {
       loadConversations()
     } catch (error) {
       console.error('Failed to load messages:', error)
+    } finally {
+      if (seq === loadThreadSeq.current) setThreadLoading(false)
     }
   }
 
@@ -352,31 +487,46 @@ export default function RenterMessages({ params }) {
     }, 500)
   }
 
-  async function handleArchiveDialog() {
-    if (!selectedConv?.id) return
+  async function archiveConversationById(convId) {
+    if (!convId) return
     try {
       const res = await fetch('/api/v2/chat/conversations/archive', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId: selectedConv.id, archived: true }),
+        body: JSON.stringify({ conversationId: convId, archived: true }),
       })
       const json = await res.json()
       if (!res.ok || !json.success) {
-        toast.error(json.error || 'Не удалось скрыть диалог')
+        toast.error(json.error || (language === 'ru' ? 'Не удалось скрыть диалог' : 'Could not archive'))
         return
       }
-      toast.success('Диалог скрыт из списка', {
-        description: 'Вернуть или открыть снова — раздел «Архив» в сообщениях',
+      toast.success(language === 'ru' ? 'Диалог скрыт из списка' : 'Archived', {
+        description:
+          language === 'ru'
+            ? 'Вернуть или открыть снова — раздел «Архив» в сообщениях'
+            : 'Restore from Messages → Archive',
         action: {
-          label: 'Архив',
+          label: language === 'ru' ? 'Архив' : 'Archive',
           onClick: () => router.push('/renter/messages/archived'),
         },
       })
-      router.push('/renter/messages')
+      const next = conversations.filter((c) => c.id !== convId)
+      setConversations(next)
+      if (String(conversationId) === String(convId)) {
+        const list = filterConversationsByInboxTab(next, renterId, inboxTab)
+        const first = list[0]
+        if (first) router.push(`/renter/messages/${first.id}`)
+        else router.push('/renter/messages')
+      }
     } catch {
-      toast.error('Ошибка сети')
+      toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
     }
+  }
+
+  async function handleArchiveDialog() {
+    if (!selectedConv?.id) return
+    await archiveConversationById(selectedConv.id)
   }
 
   if (authLoading || loading) {
@@ -399,8 +549,8 @@ export default function RenterMessages({ params }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="bg-white border-b sticky top-0 z-10">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <div className="bg-white border-b sticky top-0 z-10 shrink-0">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
@@ -417,114 +567,119 @@ export default function RenterMessages({ params }) {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {conversations.length === 0 && !conversationId ? (
-          <Card className="p-12">
-            <div className="text-center">
-              <h3 className="text-xl font-semibold text-slate-900 mb-2">Нет активных диалогов</h3>
-              <p className="text-slate-600 mb-6">
-                Когда вы отправите запрос на бронирование, диалог появится здесь
-              </p>
-              <Button asChild className="bg-teal-600 hover:bg-teal-700">
-                <Link href="/">Найти жильё</Link>
-              </Button>
-            </div>
-          </Card>
-        ) : !conversationId ? (
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">Мои диалоги</h2>
-            <div className="space-y-4">
-              {conversations.map((conv) => {
-                const unread = conv.unreadCount ?? 0
-                return (
-                  <Card
-                    key={conv.id}
-                    className="p-4 cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => router.push(`/renter/messages/${conv.id}`)}
-                  >
-                    <div className="flex gap-3 sm:gap-4 min-w-0">
-                      <img
-                        src={conv.listing?.images?.[0] || '/placeholder.svg'}
-                        alt={conv.listing?.title}
-                        className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover flex-shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 className="font-semibold text-slate-900 line-clamp-2 leading-snug">
-                            {conv.listing?.title}
-                          </h3>
-                          {unread > 0 && (
-                            <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full shrink-0">
-                              {unread} новых
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-slate-600 mb-1 truncate">{conv.listing?.district}</p>
-                        <p className="text-sm text-slate-500 line-clamp-2 break-words">
-                          {conv.lastMessage?.message || conv.lastMessage?.content || 'Новое сообщение'}
-                        </p>
-                      </div>
-                    </div>
-                  </Card>
-                )
-              })}
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-3 flex-wrap">
-                <Button variant="ghost" onClick={() => router.push('/renter/messages')}>
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Все диалоги
+      <div className="flex min-h-0 min-w-0 flex-1 w-full max-w-[1600px] mx-auto px-2 sm:px-4 py-4">
+        <div className="flex w-full min-h-[min(72dvh,760px)] flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:flex-row">
+          <ConversationList
+            conversations={filteredConversations}
+            selectedId={conversationId}
+            onSelect={(id) => router.push(`/renter/messages/${id}`)}
+            categoryFilter={categoryFilter}
+            onCategoryChange={setCategoryFilter}
+            categories={categories}
+            partnerSidebar
+            partnerListAsGuest={inboxTab === INBOX_TAB_TRAVELING}
+            sidebarLang={language === 'en' ? 'en' : 'ru'}
+            inboxTab={inboxTab}
+            onInboxTabChange={handleInboxTabChange}
+            hostingUnread={hostingUnread}
+            travelingUnread={travelingUnread}
+            inboxTabsLang={language === 'en' ? 'en' : 'ru'}
+            onArchiveConversation={(id) => void archiveConversationById(id)}
+            archiveLabel={language === 'ru' ? 'Скрыть из списка' : 'Hide from list'}
+            archivedListHref="/renter/messages/archived"
+            archivedListLabel={language === 'ru' ? 'Архив' : 'Archive'}
+          />
+
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-slate-50">
+            {threadLoading ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-12 min-h-[50vh] lg:min-h-0">
+                <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
+                <p className="text-center text-sm text-slate-600">
+                  {language === 'ru' ? 'Загружаем диалог…' : 'Loading conversation…'}
+                </p>
+              </div>
+            ) : !selectedConv ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-12 min-h-[50vh] lg:min-h-0">
+                <p className="text-center text-sm text-slate-600">
+                  {language === 'ru' ? 'Диалог не найден или нет доступа.' : 'Conversation not found or access denied.'}
+                </p>
+                <Button type="button" variant="outline" onClick={() => router.push('/renter/messages')}>
+                  {language === 'ru' ? 'К списку' : 'Back to list'}
                 </Button>
-                <Link
-                  href="/renter/messages/archived"
-                  className="text-sm font-medium text-teal-700 hover:text-teal-900 hover:underline underline-offset-2"
-                >
-                  Архив
-                </Link>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="text-slate-600 border-slate-200"
-                onClick={() => handleArchiveDialog()}
-              >
-                <Archive className="h-4 w-4 mr-1.5" />
-                Скрыть из списка
-              </Button>
-            </div>
+            ) : (
+              <div className="flex flex-1 flex-col min-h-0">
+                <div className="flex items-center gap-2 px-2 pt-2 lg:px-0 lg:pt-0 bg-white border-b lg:border-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="lg:hidden shrink-0"
+                    onClick={() => router.push('/renter/messages')}
+                    aria-label={language === 'ru' ? 'К списку диалогов' : 'Back to conversations'}
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 text-slate-600 border-slate-200 hidden sm:inline-flex"
+                    title={language === 'ru' ? 'Скрыть из списка' : 'Hide from list'}
+                    onClick={() => void handleArchiveDialog()}
+                  >
+                    <Archive className="h-4 w-4 sm:mr-1.5" />
+                    <span className="hidden md:inline">
+                      {language === 'ru' ? 'В архив' : 'Archive'}
+                    </span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 sm:hidden text-slate-600"
+                    title={language === 'ru' ? 'Скрыть из списка' : 'Hide from list'}
+                    aria-label={language === 'ru' ? 'Скрыть из списка' : 'Hide from list'}
+                    onClick={() => void handleArchiveDialog()}
+                  >
+                    <Archive className="h-5 w-5" />
+                  </Button>
+                  <Link
+                    href="/renter/messages/archived"
+                    className="hidden lg:inline text-xs font-medium text-teal-700 hover:text-teal-900 underline underline-offset-2 shrink-0"
+                  >
+                    {language === 'ru' ? 'Архив' : 'Archive'}
+                  </Link>
+                  <div className="flex-1 min-w-0 min-h-0 overflow-x-hidden">
+                    <StickyChatHeader
+                      listing={listing}
+                      booking={booking}
+                      language={language}
+                      isAdminView={false}
+                      embedded
+                      compact
+                      showBookingTimeline={Boolean(booking?.id && booking?.status)}
+                      contactName={selectedConv?.partnerName || 'Партнёр'}
+                      presenceOnline={partnerOnline}
+                      typingIndicator={headerTypingLine}
+                      typingGateWithPresence
+                      payNowHref={payNowHref}
+                      onSupportClick={() => setSupportDialogOpen(true)}
+                      supportPriorityActive={!!selectedConv?.isPriority}
+                      supportLabel="Помощь"
+                    >
+                      <div className="flex flex-col items-end gap-1">
+                        <span
+                          className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}
+                        >
+                          {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+                          {isConnected ? 'Live' : '…'}
+                        </span>
+                      </div>
+                    </StickyChatHeader>
+                  </div>
+                </div>
 
-            <StickyChatHeader
-              listing={listing}
-              booking={booking}
-              language={language}
-              isAdminView={false}
-              embedded
-              compact
-              showBookingTimeline={Boolean(booking?.id && booking?.status)}
-              contactName={selectedConv?.partnerName || 'Партнёр'}
-              presenceOnline={partnerOnline}
-              typingIndicator={headerTypingLine}
-              typingGateWithPresence
-              payNowHref={payNowHref}
-              onSupportClick={() => setSupportDialogOpen(true)}
-              supportPriorityActive={!!selectedConv?.isPriority}
-              supportLabel="Помощь"
-            >
-              <div className="flex flex-col items-end gap-1">
-                <span
-                  className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}
-                >
-                  {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-                  {isConnected ? 'Live' : '…'}
-                </span>
-              </div>
-            </StickyChatHeader>
-
-            {bookingStatus === 'PAID' &&
+                {bookingStatus === 'PAID' &&
               String(listing?.category_id ?? listing?.categoryId) !== '2' && (
               <Card className="bg-gradient-to-r from-teal-50 to-blue-50 border-teal-200">
                 <CardContent className="p-4">
@@ -550,8 +705,8 @@ export default function RenterMessages({ params }) {
               lang="ru"
             />
 
-            <Card className="overflow-hidden flex flex-col min-h-0 max-h-[min(70vh,560px)] sm:max-h-[560px]">
-              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4 pb-6 space-y-4 scroll-pb-4">
+                <Card className="overflow-hidden flex flex-col min-h-0 flex-1 border-0 shadow-none rounded-none sm:rounded-lg sm:border sm:border-slate-200 sm:shadow-sm mx-2 mb-2 sm:mx-0 sm:mb-0">
+              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4 pb-28 sm:pb-24 space-y-4 scroll-pb-24">
                 {messages.map((msg, idx) => {
                   const prev = messages[idx - 1]
                   const showDay = chatNeedsDaySeparator(prev?.created_at, msg.created_at)
@@ -748,8 +903,10 @@ export default function RenterMessages({ params }) {
                 </form>
               </div>
             </Card>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       <SupportRequestDialog

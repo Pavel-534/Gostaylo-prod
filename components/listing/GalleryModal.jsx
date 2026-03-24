@@ -28,11 +28,31 @@ export function GalleryModal({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[90vh] p-0">
-        <div className="relative h-full flex items-center justify-center bg-black">
-          <DialogClose className="absolute top-4 right-4 z-50">
-            <Button variant="secondary" size="icon" className="rounded-full">
-              <X className="h-4 w-4" />
+      <DialogContent
+        showCloseButton={false}
+        style={{ maxHeight: '100dvh' }}
+        className={
+          'h-[100dvh] w-full max-w-none gap-0 border-0 bg-black p-0 shadow-none ' +
+          'left-0 top-0 translate-x-0 translate-y-0 rounded-none ' +
+          'sm:left-[50%] sm:top-[50%] sm:h-[90vh] sm:max-w-6xl sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:shadow-2xl'
+        }
+      >
+        <div className="relative flex h-full w-full items-center justify-center bg-black">
+          <DialogClose
+            className="absolute z-20 focus:outline-none"
+            style={{
+              top: 'max(0.75rem, env(safe-area-inset-top, 0px))',
+              right: 'max(0.75rem, env(safe-area-inset-right, 0px))',
+            }}
+          >
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              className="h-11 w-11 rounded-full border-0 bg-white/95 text-slate-900 shadow-lg hover:bg-white"
+              aria-label="Close gallery"
+            >
+              <X className="h-5 w-5" />
             </Button>
           </DialogClose>
           
@@ -51,23 +71,28 @@ export function GalleryModal({
               <Button
                 variant="secondary"
                 size="icon"
-                className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full"
+                className="absolute left-2 top-1/2 z-10 h-11 w-11 -translate-y-1/2 rounded-full border-0 bg-white/90 shadow-md sm:left-4"
                 onClick={handlePrev}
+                aria-label="Previous image"
               >
                 <ChevronLeft className="h-5 w-5" />
               </Button>
               <Button
                 variant="secondary"
                 size="icon"
-                className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full"
+                className="absolute right-2 top-1/2 z-10 h-11 w-11 -translate-y-1/2 rounded-full border-0 bg-white/90 shadow-md sm:right-4"
                 onClick={handleNext}
+                aria-label="Next image"
               >
                 <ChevronRight className="h-5 w-5" />
               </Button>
             </>
           )}
           
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white text-sm bg-black/50 px-3 py-1 rounded-full">
+          <div
+            className="absolute left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1.5 text-sm text-white"
+            style={{ bottom: 'max(1rem, env(safe-area-inset-bottom, 0px))' }}
+          >
             {currentIndex + 1} / {images.length}
           </div>
         </div>

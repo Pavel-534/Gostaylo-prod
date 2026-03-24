@@ -2,34 +2,30 @@
  * Gostaylo - Interactive Search Map (Airbnb-style)
  * Desktop: 50/50 split (List Left, Map Right)
  * Mobile: Toggle between List and Map
- * 
- * Privacy Logic:
- * - Property/Nanny: 500m Circle
- * - Others: Precise Marker
- * 
- * Post-Booking Logic:
- * - CONFIRMED/PAID: Precise Marker (even for Property)
+ *
+ * Приватность: lib/listing-location-privacy.js → getListingLocationDisplayMode (slug + legacy categoryId).
+ * Листинги с родителя: желательно из LISTINGS_SEARCH_API_PATH (@/lib/search-endpoints), чтобы был category.slug.
+ * После CONFIRMED/PAID — точный маркер (оранжевый), иначе круг ~500 м или маркер.
  */
 
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Circle, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { Star } from 'lucide-react';
-import { getUIText } from '@/lib/translations';
-import { toPublicImageUrl } from '@/lib/public-image-url';
+import { Fragment, useEffect, useState, useCallback } from 'react'
+import { MapContainer, TileLayer, Marker, Circle, Popup, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import { Star } from 'lucide-react'
+import { getUIText } from '@/lib/translations'
+import { toPublicImageUrl } from '@/lib/public-image-url'
+import { getListingLocationDisplayMode } from '@/lib/listing-location-privacy'
 
-// Fix Leaflet default marker icon
-delete L.Icon.Default.prototype._getIconUrl;
+delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-});
+})
 
-// Custom marker icons - popup opens BELOW marker to avoid being cut off by header
 const createCustomIcon = (color = 'teal') => {
   return L.divIcon({
     className: 'custom-marker',
@@ -46,57 +42,79 @@ const createCustomIcon = (color = 'teal') => {
     `,
     iconSize: [32, 32],
     iconAnchor: [16, 32],
-    popupAnchor: [0, 32] // Popup opens below marker to avoid header overlap
-  });
-};
+    popupAnchor: [0, 32],
+  })
+}
 
-// Normalize coordinates - support both latitude/longitude and lat/lng
 function getListingPosition(listing) {
-  const lat = listing.latitude ?? listing.lat;
-  const lng = listing.longitude ?? listing.lng;
+  const lat = listing.latitude ?? listing.lat
+  const lng = listing.longitude ?? listing.lng
   if (lat != null && lng != null) {
-    return [parseFloat(lat), parseFloat(lng)];
+    return [parseFloat(lat), parseFloat(lng)]
   }
-  return null;
+  return null
 }
 
-// Map bounds updater component
-function MapBoundsUpdater({ listings }) {
-  const map = useMap();
-  
+function listingCategorySlug(listing) {
+  return listing.categorySlug ?? listing.category?.slug ?? null
+}
+
+function listingLocationBounds(listing, hasConfirmedBookingFn) {
+  const pos = getListingPosition(listing)
+  if (!pos) return null
+  const booked = hasConfirmedBookingFn(listing.id)
+  if (booked) {
+    return L.latLngBounds(pos, pos)
+  }
+  const mode = getListingLocationDisplayMode({
+    categorySlug: listingCategorySlug(listing),
+    categoryId: listing.category_id ?? listing.categoryId,
+  })
+  if (mode === 'privacy') {
+    return L.circle(pos, { radius: 500 }).getBounds()
+  }
+  return L.latLngBounds(pos, pos)
+}
+
+function MapBoundsUpdater({ listings, hasConfirmedBooking }) {
+  const map = useMap()
+
+  const hasConfirmedBookingFn = useCallback(
+    (listingId) => hasConfirmedBooking(listingId),
+    [hasConfirmedBooking]
+  )
+
   useEffect(() => {
-    if (listings && listings.length > 0) {
-      const bounds = listings
-        .map(l => getListingPosition(l))
-        .filter(Boolean);
-      
-      if (bounds.length > 0) {
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 });
-      }
+    if (!listings?.length) return
+    let bounds = null
+    for (const listing of listings) {
+      const b = listingLocationBounds(listing, hasConfirmedBookingFn)
+      if (!b || !b.isValid()) continue
+      bounds = bounds ? bounds.extend(b) : b
     }
-  }, [listings, map]);
-  
-  return null;
+    if (bounds?.isValid()) {
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 })
+    }
+  }, [listings, map, hasConfirmedBookingFn])
+
+  return null
 }
 
-// Popup Card Component
-function ListingPopupCard({ listing, language = 'ru' }) {
-  const raw = listing.images?.[0] || listing.coverImage || '/placeholder.svg';
-  const image = raw ? toPublicImageUrl(raw) || raw : raw;
-  const price = listing.basePriceThb || listing.base_price_thb || 0;
-  const rating = listing.rating || 0;
-  
+function ListingPopupCard({ listing, language = 'ru', isApproximateLocation }) {
+  const raw = listing.images?.[0] || listing.coverImage || '/placeholder.svg'
+  const image = raw ? toPublicImageUrl(raw) || raw : raw
+  const price = listing.basePriceThb || listing.base_price_thb || 0
+  const rating = listing.rating || 0
+  const locHint = getUIText(
+    isApproximateLocation ? 'mapListing_approximatePopup' : 'mapListing_exactPopup',
+    language
+  )
+
   return (
     <div className="w-64">
-      <img 
-        src={image} 
-        alt={listing.title}
-        className="w-full h-32 object-cover rounded-t-lg"
-      />
+      <img src={image} alt={listing.title} className="w-full h-32 object-cover rounded-t-lg" />
       <div className="p-3 bg-white rounded-b-lg">
-        <h3 className="font-semibold text-sm text-slate-900 truncate mb-1">
-          {listing.title}
-        </h3>
+        <h3 className="font-semibold text-sm text-slate-900 truncate mb-1">{listing.title}</h3>
         <div className="flex items-center gap-1 mb-2">
           {rating > 0 ? (
             <>
@@ -110,11 +128,12 @@ function ListingPopupCard({ listing, language = 'ru' }) {
             <span className="text-xs text-slate-400">{getUIText('newListing', language)}</span>
           )}
         </div>
+        <p className="text-[11px] text-slate-500 mb-2 leading-snug">{locHint}</p>
         <div className="flex items-baseline gap-1">
           <span className="text-lg font-bold text-teal-600">฿{price.toLocaleString()}</span>
           <span className="text-xs text-slate-500">/ {getUIText('perNight', language)}</span>
         </div>
-        <a 
+        <a
           href={`/listings/${listing.id}`}
           className="mt-2 block w-full bg-teal-600 hover:bg-teal-700 text-white text-xs font-medium py-1.5 px-3 rounded-lg text-center transition-colors"
         >
@@ -122,76 +141,71 @@ function ListingPopupCard({ listing, language = 'ru' }) {
         </a>
       </div>
     </div>
-  );
+  )
 }
 
-export default function InteractiveSearchMap({ 
-  listings = [], 
-  userBookings = [], 
+function getMarkerVisualConfig(listing, hasConfirmedBookingFn) {
+  const listingId = listing.id
+  if (hasConfirmedBookingFn(listingId)) {
+    return {
+      showCircle: false,
+      icon: createCustomIcon('orange'),
+      isApproximatePopup: false,
+    }
+  }
+  const mode = getListingLocationDisplayMode({
+    categorySlug: listingCategorySlug(listing),
+    categoryId: listing.category_id ?? listing.categoryId,
+  })
+  if (mode === 'privacy') {
+    return {
+      showCircle: true,
+      radius: 500,
+      icon: null,
+      isApproximatePopup: true,
+    }
+  }
+  return {
+    showCircle: false,
+    icon: createCustomIcon('teal'),
+    isApproximatePopup: false,
+  }
+}
+
+export default function InteractiveSearchMap({
+  listings = [],
+  userBookings = [],
   userId = null,
   language = 'ru',
-  center = [7.8804, 98.3923], // Default: Phuket
-  zoom = 12 
+  center = [7.8804, 98.3923],
+  zoom = 12,
 }) {
-  const [mounted, setMounted] = useState(false);
-  
+  const [mounted, setMounted] = useState(false)
+
   useEffect(() => {
-    setMounted(true);
-  }, []);
-  
+    setMounted(true)
+  }, [])
+
+  const hasConfirmedBooking = useCallback(
+    (listingId) => {
+      if (!userId || !userBookings?.length) return false
+      return userBookings.some(
+        (booking) =>
+          booking.listing_id === listingId &&
+          (booking.status === 'CONFIRMED' || booking.status === 'PAID')
+      )
+    },
+    [userId, userBookings]
+  )
+
   if (!mounted) {
     return (
       <div className="w-full h-full bg-slate-100 animate-pulse rounded-lg flex items-center justify-center">
         <span className="text-slate-400">Loading map...</span>
       </div>
-    );
+    )
   }
-  
-  // Check if user has confirmed/paid booking for a listing
-  const hasConfirmedBooking = (listingId) => {
-    if (!userId || !userBookings || userBookings.length === 0) return false;
-    
-    return userBookings.some(booking => 
-      booking.listing_id === listingId && 
-      (booking.status === 'CONFIRMED' || booking.status === 'PAID')
-    );
-  };
-  
-  // Determine marker type based on category and booking status
-  const getMarkerConfig = (listing) => {
-    const categoryId = listing.category_id || listing.categoryId;
-    const listingId = listing.id;
-    
-    // Privacy categories (show circle)
-    const privacyCategories = [1, 2]; // Property, Nanny
-    const isPrivacyCategory = privacyCategories.includes(categoryId);
-    
-    // If user has confirmed booking, always show precise marker
-    if (hasConfirmedBooking(listingId)) {
-      return {
-        type: 'marker',
-        icon: createCustomIcon('orange'), // Orange for booked
-        showCircle: false
-      };
-    }
-    
-    // Privacy categories: show circle
-    if (isPrivacyCategory) {
-      return {
-        type: 'circle',
-        radius: 500, // 500 meters
-        showCircle: true
-      };
-    }
-    
-    // Other categories: show precise marker
-    return {
-      type: 'marker',
-      icon: createCustomIcon('teal'),
-      showCircle: false
-    };
-  };
-  
+
   return (
     <MapContainer
       center={center}
@@ -203,48 +217,51 @@ export default function InteractiveSearchMap({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      
-      <MapBoundsUpdater listings={listings} />
-      
+
+      <MapBoundsUpdater listings={listings} hasConfirmedBooking={hasConfirmedBooking} />
+
       {listings.map((listing) => {
-        const position = getListingPosition(listing);
-        if (!position) return null;
-        const markerConfig = getMarkerConfig(listing);
-        
+        const position = getListingPosition(listing)
+        if (!position) return null
+        const cfg = getMarkerVisualConfig(listing, hasConfirmedBooking)
+
         return (
-          <div key={listing.id}>
-            {/* Circle for privacy categories */}
-            {markerConfig.showCircle && (
+          <Fragment key={listing.id}>
+            {cfg.showCircle && (
               <Circle
                 center={position}
-                radius={markerConfig.radius}
+                radius={cfg.radius}
                 pathOptions={{
                   color: '#14b8a6',
                   fillColor: '#14b8a6',
                   fillOpacity: 0.15,
-                  weight: 2
+                  weight: 2,
                 }}
               >
                 <Popup autoPan={true} autoPanPadding={[80, 60]} className="map-listing-popup">
-                  <ListingPopupCard listing={listing} language={language} />
+                  <ListingPopupCard
+                    listing={listing}
+                    language={language}
+                    isApproximateLocation={cfg.isApproximatePopup}
+                  />
                 </Popup>
               </Circle>
             )}
-            
-            {/* Marker (precise or for non-privacy categories) */}
-            {!markerConfig.showCircle && (
-              <Marker 
-                position={position}
-                icon={markerConfig.icon}
-              >
+
+            {!cfg.showCircle && cfg.icon && (
+              <Marker position={position} icon={cfg.icon}>
                 <Popup autoPan={true} autoPanPadding={[80, 60]} className="map-listing-popup">
-                  <ListingPopupCard listing={listing} language={language} />
+                  <ListingPopupCard
+                    listing={listing}
+                    language={language}
+                    isApproximateLocation={cfg.isApproximatePopup}
+                  />
                 </Popup>
               </Marker>
             )}
-          </div>
-        );
+          </Fragment>
+        )
       })}
     </MapContainer>
-  );
+  )
 }

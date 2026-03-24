@@ -32,6 +32,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { formatPrice } from '@/lib/currency'
 import { cn } from '@/lib/utils'
+import { INBOX_TAB_TRAVELING, setRenterInboxTabPreference } from '@/lib/chat-inbox-tabs'
 
 function ListingMapLoadFallback() {
   const [lang, setLang] = useState('ru')
@@ -281,7 +282,17 @@ function PremiumListingContent({ params }) {
             ? `Здравствуйте! Меня интересует объект «${title}». Подскажите детали?`
             : `Hello! I'm interested in "${title}". Could you share more details?`
         try {
+          setRenterInboxTabPreference(INBOX_TAB_TRAVELING)
           sessionStorage.setItem(`gostaylo_chat_prefill_${id}`, draft)
+          sessionStorage.setItem(
+            `gostaylo_chat_context_listing_${id}`,
+            JSON.stringify({
+              listingId: listing.id,
+              title: listing.title || null,
+              images: listing.images,
+              district: listing.district || null,
+            })
+          )
         } catch {
           /* ignore */
         }

@@ -57,6 +57,8 @@ export function PartnerChatComposer({
   onSendInvoice,
   onSendPassportRequest,
   onAttachFile,
+  /** Меню «+» (счёт, паспорт, быстрые ответы) — только в режиме хозяина */
+  showHostPlusMenu = true,
 }) {
   const [invoiceOpen, setInvoiceOpen] = useState(false)
   const [passportLoading, setPassportLoading] = useState(false)
@@ -115,73 +117,75 @@ export function PartnerChatComposer({
             {attachBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Paperclip className="h-5 w-5" />}
           </Button>
         ) : null}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="h-10 w-10 flex-shrink-0 border-slate-200"
-              aria-label={isRu ? 'Действия' : 'Actions'}
-              disabled={disabled}
-            >
-              <Plus className="h-5 w-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            {showInvoice ? (
-              <DropdownMenuItem
-                className="gap-2 cursor-pointer"
-                onSelect={(e) => {
-                  e.preventDefault()
-                  setInvoiceOpen(true)
-                }}
+        {showHostPlusMenu ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 flex-shrink-0 border-slate-200"
+                aria-label={isRu ? 'Действия' : 'Actions'}
+                disabled={disabled}
               >
-                <Receipt className="h-4 w-4 text-amber-600" />
-                {isRu ? 'Выставить счёт' : 'Send invoice'}
-              </DropdownMenuItem>
-            ) : null}
-            {showPassport ? (
-              <DropdownMenuItem
-                className="gap-2 cursor-pointer"
-                onSelect={(e) => {
-                  e.preventDefault()
-                  handlePassportRequest()
-                }}
-                disabled={passportLoading}
-              >
-                {passportLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <IdCard className="h-4 w-4 text-teal-600" />
-                )}
-                {isRu ? 'Запросить фото паспорта' : 'Request passport photo'}
-              </DropdownMenuItem>
-            ) : null}
-            {showHostDivider ? <DropdownMenuSeparator /> : null}
-            <DropdownMenuLabel className="text-xs font-normal text-slate-500">
-              {isRu ? 'Быстрые ответы' : 'Quick replies'}
-            </DropdownMenuLabel>
-            {QUICK_REPLIES.map((q, idx) => (
-              <DropdownMenuItem
-                key={idx}
-                className="flex cursor-pointer flex-col items-start gap-2"
-                onSelect={(e) => {
-                  e.preventDefault()
-                  onMessageChange(isRu ? q.textRu : q.textEn)
-                }}
-              >
-                <span className="flex w-full items-center gap-2">
-                  <Quote className="h-4 w-4 shrink-0 text-slate-500" />
-                  <span className="text-sm font-medium">{isRu ? q.shortRu : q.shortEn}</span>
-                </span>
-                <span className="line-clamp-2 pl-6 text-xs text-slate-500">
-                  {isRu ? q.textRu : q.textEn}
-                </span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+                <Plus className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              {showInvoice ? (
+                <DropdownMenuItem
+                  className="gap-2 cursor-pointer"
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    setInvoiceOpen(true)
+                  }}
+                >
+                  <Receipt className="h-4 w-4 text-amber-600" />
+                  {isRu ? 'Выставить счёт' : 'Send invoice'}
+                </DropdownMenuItem>
+              ) : null}
+              {showPassport ? (
+                <DropdownMenuItem
+                  className="gap-2 cursor-pointer"
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    handlePassportRequest()
+                  }}
+                  disabled={passportLoading}
+                >
+                  {passportLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <IdCard className="h-4 w-4 text-teal-600" />
+                  )}
+                  {isRu ? 'Запросить фото паспорта' : 'Request passport photo'}
+                </DropdownMenuItem>
+              ) : null}
+              {showHostDivider ? <DropdownMenuSeparator /> : null}
+              <DropdownMenuLabel className="text-xs font-normal text-slate-500">
+                {isRu ? 'Быстрые ответы' : 'Quick replies'}
+              </DropdownMenuLabel>
+              {QUICK_REPLIES.map((q, idx) => (
+                <DropdownMenuItem
+                  key={idx}
+                  className="flex cursor-pointer flex-col items-start gap-2"
+                  onSelect={(e) => {
+                    e.preventDefault()
+                    onMessageChange(isRu ? q.textRu : q.textEn)
+                  }}
+                >
+                  <span className="flex w-full items-center gap-2">
+                    <Quote className="h-4 w-4 shrink-0 text-slate-500" />
+                    <span className="text-sm font-medium">{isRu ? q.shortRu : q.shortEn}</span>
+                  </span>
+                  <span className="line-clamp-2 pl-6 text-xs text-slate-500">
+                    {isRu ? q.textRu : q.textEn}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
 
         {showInvoice ? (
           <SendInvoiceDialog

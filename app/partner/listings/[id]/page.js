@@ -654,14 +654,22 @@ export default function EditListing({ params }) {
           basePriceThb={parseFloat(formData.basePriceThb) || 0} 
         />
 
-        {/* Action Buttons - Mobile Fixed Footer */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t p-3 z-50 safe-area-pb">
-          <div className="flex gap-2">
+        {/* Action Buttons - Mobile Fixed Footer (extra padding: Android nav bar + breathing room) */}
+        <div
+          className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200/80 bg-white/95 shadow-[0_-6px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm lg:hidden"
+          style={{
+            paddingTop: '0.75rem',
+            paddingBottom: 'max(1.25rem, calc(env(safe-area-inset-bottom, 0px) + 12px))',
+            paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))',
+            paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))',
+          }}
+        >
+          <div className="mx-auto flex max-w-4xl gap-3">
             <Button
               onClick={handleSave}
               disabled={saving || publishing}
               variant="outline"
-              className="flex-1"
+              className="h-12 flex-1 rounded-xl border-slate-300 text-base font-medium"
             >
               {saving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -676,7 +684,7 @@ export default function EditListing({ params }) {
               <Button
                 onClick={handlePublish}
                 disabled={!canPublish || saving || publishing}
-                className="flex-1 bg-teal-600 hover:bg-teal-700"
+                className="h-12 flex-1 rounded-xl bg-teal-600 text-base font-medium hover:bg-teal-700"
               >
                 {publishing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -690,14 +698,14 @@ export default function EditListing({ params }) {
             )}
           </div>
           {isDraft && !canPublish && (
-            <p className="text-xs text-amber-600 mt-2 text-center">
+            <p className="mt-3 text-center text-xs text-amber-600">
               Добавьте название, цену и фото для публикации
             </p>
           )}
         </div>
         
         {/* Spacer for fixed footer on mobile */}
-        <div className="lg:hidden h-24" />
+        <div className="h-28 lg:hidden" />
       </div>
     </div>
   )
