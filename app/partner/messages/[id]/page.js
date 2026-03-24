@@ -88,6 +88,7 @@ export default function PartnerMessages({ params }) {
   const [threadLoading, setThreadLoading] = useState(false)
 
   const conversationId = params?.id
+  const loadThreadSeq = useRef(0)
 
   const handleNewRealtimeMessage = useCallback(
     (newMsg) => {
@@ -121,8 +122,27 @@ export default function PartnerMessages({ params }) {
     handleNewRealtimeMessage,
     handleMessageUpdate
   )
-  const peerParticipantId =
-    selectedConv?.adminId || selectedConv?.renterId || null
+  const peerParticipantId = useMemo(() => {
+    if (!selectedConv?.id || !user?.id) return null
+    if (selectedConv.adminId) return selectedConv.adminId
+    if (String(selectedConv.partnerId) === String(user.id)) return selectedConv.renterId
+    return selectedConv.partnerId
+  }, [selectedConv, user])
+
+  const chatHeaderContactName = useMemo(() => {
+    if (!selectedConv) return ''
+    if (selectedConv.adminId) return selectedConv.adminName || 'Поддержка'
+    if (String(selectedConv.partnerId) === String(user?.id)) {
+      return selectedConv.renterName || (language === 'ru' ? 'Клиент' : 'Guest')
+    }
+    return selectedConv.partnerName || (language === 'ru' ? 'Хозяин' : 'Host')
+  }, [selectedConv, user, language])
+
+  const viewerIsListingHost = useMemo(() => {
+    if (!selectedConv || !user?.id) return false
+    return String(selectedConv.partnerId) === String(user.id)
+  }, [selectedConv, user])
+
   const { isOnline: peerOnline } = usePresence(
     conversationId,
     user?.id,
@@ -167,15 +187,6 @@ export default function PartnerMessages({ params }) {
   }, [user, categoryFilter])
 
   useEffect(() => {
-    if (conversationId && user) {
-      loadMessages(conversationId)
-      markAsRead(conversationId)
-    } else if (conversations.length > 0 && !conversationId) {
-      router.push(`/partner/messages/${conversations[0].id}`)
-    }
-  }, [conversationId, conversations, user])
-
-  useEffect(() => {
     scrollToBottom()
   }, [messages])
 
@@ -211,7 +222,8 @@ export default function PartnerMessages({ params }) {
     }
   }
 
-  async function loadMessages(convId) {
+  const loadMessages = useCallback(async (convId) => {
+    const seq = ++loadThreadSeq.current
     setThreadLoading(true)
     setSelectedConv(null)
     setListing(null)
@@ -224,6 +236,7 @@ export default function PartnerMessages({ params }) {
       )
       const convJson = await convRes.json()
       const conv = convJson.data?.[0]
+      if (seq !== loadThreadSeq.current) return
       if (!conv) return
 
       setSelectedConv(conv)
@@ -235,6 +248,7 @@ export default function PartnerMessages({ params }) {
         { credentials: 'include' }
       )
       const msgJson = await msgRes.json()
+      if (seq !== loadThreadSeq.current) return
       if (!msgJson.success || !Array.isArray(msgJson.data)) {
         setMessages([])
         return
@@ -243,9 +257,22 @@ export default function PartnerMessages({ params }) {
     } catch (error) {
       console.error('Failed to load messages:', error)
     } finally {
-      setThreadLoading(false)
+      if (seq === loadThreadSeq.current) setThreadLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (!conversationId || !user) return
+    loadMessages(conversationId)
+    markAsRead(conversationId)
+  }, [conversationId, user, loadMessages])
+
+  useEffect(() => {
+    if (conversationId) return
+    if (conversations.length > 0 && user) {
+      router.push(`/partner/messages/${conversations[0].id}`)
+    }
+  }, [conversationId, conversations, user, router])
 
   async function handleConfirmBookingHeader() {
     const bid = booking?.id
@@ -544,7 +571,7 @@ export default function PartnerMessages({ params }) {
   }
 
   return (
-    <div className="h-screen flex flex-col lg:flex-row bg-slate-50">
+    <div className="flex h-full min-h-0 flex-1 flex-col bg-slate-50 lg:flex-row">
       <ConversationList
         conversations={conversations}
         selectedId={conversationId}
@@ -619,17 +646,15 @@ export default function PartnerMessages({ params }) {
                 booking={booking}
                 language={language}
                 isAdminView={false}
-                contactName={
-                  selectedConv.adminId
-                    ? selectedConv.adminName || 'Поддержка'
-                    : selectedConv.renterName || 'Клиент'
-                }
+                contactName={chatHeaderContactName}
                 presenceOnline={peerParticipantId ? peerOnline : null}
                 typingIndicator={headerTypingLine}
                 typingGateWithPresence
                 partnerBookingActions={{
                   visible:
-                    !!booking?.id && String(booking.status || '').toUpperCase() === 'PENDING',
+                    viewerIsListingHost &&
+                    !!booking?.id &&
+                    String(booking.status || '').toUpperCase() === 'PENDING',
                   loading: bookingActionLoading,
                   onConfirm: handleConfirmBookingHeader,
                   onDecline: handleDeclineBookingHeader,
@@ -803,8 +828,8 @@ export default function PartnerMessages({ params }) {
             booking={booking}
             listing={listing}
             language={language}
-            onSendInvoice={handleSendInvoice}
-            onSendPassportRequest={handleSendPassportRequest}
+            onSendInvoice={viewerIsListingHost ? handleSendInvoice : undefined}
+            onSendPassportRequest={viewerIsListingHost ? handleSendPassportRequest : undefined}
             onAttachFile={handleAttachFile}
           />
         </div>

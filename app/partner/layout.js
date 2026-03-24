@@ -43,6 +43,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Toaster } from 'sonner'
+import { cn } from '@/lib/utils'
 
 // Sidebar navigation items with universal business icons
 const SIDEBAR_ITEMS = [
@@ -325,6 +326,9 @@ export default function PartnerLayout({ children }) {
   // Get stable QueryClient instance
   const queryClient = getQueryClient()
 
+  /** Чат: полноэкранная колонка без лишних отступов — иначе h-screen + p-4 схлопывает flex и ломает мобилку */
+  const isMessagesFullBleed = pathname?.startsWith('/partner/messages')
+
   return (
     <QueryClientProvider client={queryClient}>
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -392,7 +396,7 @@ export default function PartnerLayout({ children }) {
       </header>
 
       {/* Main Layout */}
-      <div className="flex flex-1">
+      <div className="flex min-h-0 flex-1">
         {/* Sidebar */}
         <aside
           className={`${
@@ -508,7 +512,12 @@ export default function PartnerLayout({ children }) {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 w-full max-w-full overflow-x-hidden">
+        <main
+          className={cn(
+            'flex-1 lg:ml-64 pt-14 lg:pt-0 w-full max-w-full overflow-x-hidden',
+            isMessagesFullBleed && 'flex flex-col min-h-0 overflow-hidden lg:overflow-x-hidden'
+          )}
+        >
           {/* Desktop Top Bar */}
           <div className="hidden lg:block sticky top-0 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 z-10">
             {/* Impersonation Banner - Desktop */}
@@ -576,7 +585,12 @@ export default function PartnerLayout({ children }) {
           </div>
           
           {/* Mobile Breadcrumbs */}
-          <div className="lg:hidden px-4 py-2 bg-white border-b border-slate-100">
+          <div
+            className={cn(
+              'lg:hidden px-4 py-2 bg-white border-b border-slate-100',
+              isMessagesFullBleed && 'shrink-0'
+            )}
+          >
             <nav className="flex items-center text-xs overflow-x-auto" aria-label="Breadcrumb">
               {breadcrumbs.slice(-2).map((crumb, index, arr) => (
                 <div key={crumb.href} className="flex items-center whitespace-nowrap">
@@ -597,7 +611,13 @@ export default function PartnerLayout({ children }) {
           </div>
 
           {/* Page Content */}
-          <div className="p-4 lg:p-6 max-w-full overflow-x-hidden">
+          <div
+            className={cn(
+              isMessagesFullBleed
+                ? 'flex flex-1 flex-col min-h-0 overflow-hidden px-0 pb-0 pt-0 lg:px-6 lg:pb-6 lg:pt-0 max-w-full'
+                : 'p-4 lg:p-6 max-w-full overflow-x-hidden'
+            )}
+          >
             {children}
           </div>
         </main>

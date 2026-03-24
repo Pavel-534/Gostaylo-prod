@@ -14,6 +14,7 @@ import { ChatGrowingTextarea } from '@/components/chat-growing-textarea'
 import { SendInvoiceDialog } from '@/components/chat-invoice'
 import { Plus, Receipt, IdCard, Loader2, Send, Paperclip, Quote } from 'lucide-react'
 import { toast } from 'sonner'
+import { getUIText } from '@/lib/translations'
 
 const QUICK_REPLIES = [
   {
@@ -41,7 +42,8 @@ const QUICK_REPLIES = [
 ]
 
 /**
- * Поле ввода + меню «Действия» для партнёра.
+ * Поле ввода + меню «Действия» для партнёра (хозяин объекта).
+ * Если пользователь в чате как гость (renter_id), onSendInvoice / onSendPassportRequest не передаются — остаются вложения и быстрые ответы.
  */
 export function PartnerChatComposer({
   newMessage,
@@ -61,6 +63,9 @@ export function PartnerChatComposer({
   const [attachBusy, setAttachBusy] = useState(false)
   const fileRef = useRef(null)
   const isRu = language !== 'en'
+  const showInvoice = typeof onSendInvoice === 'function'
+  const showPassport = typeof onSendPassportRequest === 'function'
+  const showHostDivider = showInvoice || showPassport
 
   async function handlePassportRequest() {
     if (!onSendPassportRequest) return
@@ -88,7 +93,7 @@ export function PartnerChatComposer({
   }
 
   return (
-    <div className="bg-white border-t p-4">
+    <div className="border-t border-slate-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_24px_-8px_rgba(15,23,42,0.12)] sm:p-4">
       <input
         ref={fileRef}
         type="file"
@@ -102,7 +107,7 @@ export function PartnerChatComposer({
             type="button"
             variant="outline"
             size="icon"
-            className="flex-shrink-0 border-slate-200"
+            className="h-10 w-10 flex-shrink-0 border-slate-200 bg-white"
             disabled={disabled || attachBusy}
             aria-label="Прикрепить файл"
             onClick={() => fileRef.current?.click()}
@@ -116,57 +121,61 @@ export function PartnerChatComposer({
               type="button"
               variant="outline"
               size="icon"
-              className="flex-shrink-0 border-slate-200 h-10 w-10"
-              aria-label="Действия"
+              className="h-10 w-10 flex-shrink-0 border-slate-200 bg-white"
+              aria-label={isRu ? 'Действия' : 'Actions'}
               disabled={disabled}
             >
               <Plus className="h-5 w-5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
-            <DropdownMenuItem
-              className="gap-2 cursor-pointer"
-              onSelect={(e) => {
-                e.preventDefault()
-                setInvoiceOpen(true)
-              }}
-            >
-              <Receipt className="h-4 w-4 text-amber-600" />
-              Выставить счёт
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="gap-2 cursor-pointer"
-              onSelect={(e) => {
-                e.preventDefault()
-                handlePassportRequest()
-              }}
-              disabled={passportLoading}
-            >
-              {passportLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <IdCard className="h-4 w-4 text-teal-600" />
-              )}
-              {isRu ? 'Запросить фото паспорта' : 'Request passport photo'}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs text-slate-500 font-normal">
+            {showInvoice ? (
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer"
+                onSelect={(e) => {
+                  e.preventDefault()
+                  setInvoiceOpen(true)
+                }}
+              >
+                <Receipt className="h-4 w-4 text-amber-600" />
+                {isRu ? 'Выставить счёт' : 'Send invoice'}
+              </DropdownMenuItem>
+            ) : null}
+            {showPassport ? (
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer"
+                onSelect={(e) => {
+                  e.preventDefault()
+                  handlePassportRequest()
+                }}
+                disabled={passportLoading}
+              >
+                {passportLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <IdCard className="h-4 w-4 text-teal-600" />
+                )}
+                {isRu ? 'Запросить фото паспорта' : 'Request passport photo'}
+              </DropdownMenuItem>
+            ) : null}
+            {showHostDivider ? <DropdownMenuSeparator /> : null}
+            <DropdownMenuLabel className="text-xs font-normal text-slate-500">
               {isRu ? 'Быстрые ответы' : 'Quick replies'}
             </DropdownMenuLabel>
             {QUICK_REPLIES.map((q, idx) => (
               <DropdownMenuItem
                 key={idx}
-                className="gap-2 cursor-pointer flex-col items-start"
+                className="flex cursor-pointer flex-col items-start gap-2"
                 onSelect={(e) => {
                   e.preventDefault()
                   onMessageChange(isRu ? q.textRu : q.textEn)
                 }}
               >
-                <span className="flex items-center gap-2 w-full">
-                  <Quote className="h-4 w-4 text-slate-500 shrink-0" />
-                  <span className="font-medium text-sm">{isRu ? q.shortRu : q.shortEn}</span>
+                <span className="flex w-full items-center gap-2">
+                  <Quote className="h-4 w-4 shrink-0 text-slate-500" />
+                  <span className="text-sm font-medium">{isRu ? q.shortRu : q.shortEn}</span>
                 </span>
-                <span className="text-xs text-slate-500 line-clamp-2 pl-6">
+                <span className="line-clamp-2 pl-6 text-xs text-slate-500">
                   {isRu ? q.textRu : q.textEn}
                 </span>
               </DropdownMenuItem>
@@ -174,27 +183,30 @@ export function PartnerChatComposer({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <SendInvoiceDialog
-          open={invoiceOpen}
-          onOpenChange={setInvoiceOpen}
-          booking={booking}
-          listing={listing}
-          onSend={async (data) => {
-            await onSendInvoice(data)
-            setInvoiceOpen(false)
-          }}
-        />
+        {showInvoice ? (
+          <SendInvoiceDialog
+            open={invoiceOpen}
+            onOpenChange={setInvoiceOpen}
+            booking={booking}
+            listing={listing}
+            onSend={async (data) => {
+              await onSendInvoice(data)
+              setInvoiceOpen(false)
+            }}
+          />
+        ) : null}
 
         <ChatGrowingTextarea
           value={newMessage}
           onChange={onMessageChange}
-          placeholder="Сообщение…"
+          placeholder={getUIText('chatComposerPlaceholder', language)}
           disabled={sending || disabled}
+          className="!rounded-xl !border-slate-200 !bg-slate-50/80 !shadow-inner focus-visible:!ring-2 focus-visible:!ring-teal-500/25 focus-visible:!ring-offset-0"
         />
         <Button
           type="submit"
           disabled={!newMessage.trim() || sending || disabled}
-          className="bg-teal-600 hover:bg-teal-700 flex-shrink-0 h-10 w-10 sm:w-auto sm:px-4"
+          className="h-10 w-10 flex-shrink-0 bg-teal-600 hover:bg-teal-700 sm:w-auto sm:px-4"
         >
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
