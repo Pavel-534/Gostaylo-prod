@@ -18,6 +18,25 @@ import { toast } from 'sonner';
 
 const AuthContext = createContext(null);
 
+function normalizeAuthUser(u) {
+  if (!u || typeof u !== 'object') return u;
+  const first_name = u.first_name ?? u.firstName ?? '';
+  const last_name = u.last_name ?? u.lastName ?? '';
+  const name =
+    (u.name && String(u.name).trim()) ||
+    `${first_name} ${last_name}`.trim() ||
+    u.email ||
+    '';
+  return {
+    ...u,
+    first_name,
+    last_name,
+    firstName: u.firstName ?? first_name,
+    lastName: u.lastName ?? last_name,
+    name,
+  };
+}
+
 export function AuthProvider({ children }) {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -42,15 +61,16 @@ export function AuthProvider({ children }) {
       const stored = localStorage.getItem('gostaylo_user');
       if (stored) {
         try {
-          setUser(JSON.parse(stored));
+          setUser(normalizeAuthUser(JSON.parse(stored)));
         } catch (e) {}
       }
       
       // Then verify with server
       const serverUser = await getCurrentUser();
       if (serverUser) {
-        setUser(serverUser);
-        localStorage.setItem('gostaylo_user', JSON.stringify(serverUser));
+        const normalized = normalizeAuthUser(serverUser);
+        setUser(normalized);
+        localStorage.setItem('gostaylo_user', JSON.stringify(normalized));
       } else if (stored) {
         // Session expired, clear localStorage
         localStorage.removeItem('gostaylo_user');
@@ -71,6 +91,37 @@ export function AuthProvider({ children }) {
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
+
+  const refreshUserFromServer = useCallback(async () => {
+    try {
+      const serverUser = await getCurrentUser();
+      if (serverUser) {
+        const normalized = normalizeAuthUser(serverUser);
+        setUser(normalized);
+        localStorage.setItem('gostaylo_user', JSON.stringify(normalized));
+        window.dispatchEvent(new CustomEvent('auth-change', { detail: normalized }));
+        return normalized;
+      }
+      localStorage.removeItem('gostaylo_user');
+      setUser(null);
+      window.dispatchEvent(new CustomEvent('auth-change', { detail: null }));
+      return null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  useEffect(() => {
+    const onSessionRefresh = () => {
+      refreshUserFromServer();
+    };
+    window.addEventListener('gostaylo-refresh-session', onSessionRefresh);
+    window.addEventListener('gostaylo-switch-role', onSessionRefresh);
+    return () => {
+      window.removeEventListener('gostaylo-refresh-session', onSessionRefresh);
+      window.removeEventListener('gostaylo-switch-role', onSessionRefresh);
+    };
+  }, [refreshUserFromServer]);
 
   const openLoginModal = useCallback((mode) => {
     // Handle case when called from onClick (event passed as first arg)
@@ -123,7 +174,9 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      setUser(result.user);
+      const normalizedLogin = normalizeAuthUser(result.user);
+      setUser(normalizedLogin);
+      localStorage.setItem('gostaylo_user', JSON.stringify(normalizedLogin));
       closeLoginModal();
       
       // Clear saved redirect URL after successful login
@@ -131,7 +184,7 @@ export function AuthProvider({ children }) {
         sessionStorage.removeItem('gostaylo_redirect_after_login');
       }
       
-      window.dispatchEvent(new CustomEvent('auth-change', { detail: result.user }));
+      window.dispatchEvent(new CustomEvent('auth-change', { detail: normalizedLogin }));
       
       // Redirect priority: savedRedirect > stayOnCurrentPage > result.redirectTo
       if (savedRedirect) {
@@ -222,9 +275,10 @@ export function AuthProvider({ children }) {
 
   // Update user
   const updateUser = useCallback((updatedUser) => {
-    setUser(updatedUser);
-    localStorage.setItem('gostaylo_user', JSON.stringify(updatedUser));
-    window.dispatchEvent(new CustomEvent('auth-change', { detail: updatedUser }));
+    const normalized = normalizeAuthUser(updatedUser);
+    setUser(normalized);
+    localStorage.setItem('gostaylo_user', JSON.stringify(normalized));
+    window.dispatchEvent(new CustomEvent('auth-change', { detail: normalized }));
   }, []);
 
   const value = {
@@ -241,6 +295,7 @@ export function AuthProvider({ children }) {
     closeLoginModal,
     logout,
     updateUser,
+    refreshUserFromServer,
   };
 
   return (

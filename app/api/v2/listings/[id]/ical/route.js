@@ -1,9 +1,10 @@
 /**
- * Gostaylo - iCal Export Feed
+ * Gostaylo - iCal Export Feed (публичный, только ?token=…)
  * GET /api/v2/listings/[id]/ical?token=xxx
- * 
- * Generates iCal feed for a listing's bookings
- * Partners can use this URL to sync Gostaylo bookings to Airbnb/Booking.com
+ *
+ * Не путать с GET /api/v2/partner/listings/[id]/ical-export-link — тот только для кабинета
+ * партнёра (кука сессии), чтобы скопировать эту публичную ссылку с токеном.
+ * Airbnb/Booking ходят сюда без куки; доступ только по HMAC-токену.
  */
 
 import { NextResponse } from 'next/server';
@@ -27,11 +28,34 @@ function formatICalDate(date) {
 }
 
 /**
- * Generate iCal format date (date only, no time)
+ * Generate iCal format date (date only, no time) from ISO date or YYYY-MM-DD
  */
 function formatICalDateOnly(date) {
+  if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}/.test(date)) {
+    return date.split('T')[0].replace(/-/g, '');
+  }
   const d = new Date(date);
   return d.toISOString().split('T')[0].replace(/-/g, '');
+}
+
+/** Inclusive calendar date (YYYY-MM-DD) → next day as YYYYMMDD (iCal all-day DTEND exclusive). */
+function icalExclusiveEndFromInclusive(ymd) {
+  const part = String(ymd).split('T')[0];
+  const [y, m, d] = part.split('-').map((n) => parseInt(n, 10));
+  if (!y || !m || !d) return formatICalDateOnly(ymd);
+  const dt = new Date(Date.UTC(y, m - 1, d + 1));
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${yy}${mm}${dd}`;
+}
+
+function escapeIcalText(s) {
+  return String(s || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\n/g, '\\n');
 }
 
 /**
@@ -59,16 +83,18 @@ export async function GET(request, { params }) {
   
   const supabase = getSupabase();
   
-  // Get listing info
   const { data: listing } = await supabase
     .from('listings')
-    .select('id, title, address')
+    .select('id, title, address, status, available')
     .eq('id', listingId)
     .single();
-  
+
   if (!listing) {
     return new NextResponse('Listing not found', { status: 404 });
   }
+
+  const statusUp = String(listing.status || '').toUpperCase();
+  const publiclyBookable = statusUp === 'ACTIVE' && listing.available !== false;
   
   // Get confirmed bookings
   // Valid booking_status enum values: PENDING, CONFIRMED, PAID, CANCELLED, COMPLETED, REFUNDED
@@ -79,13 +105,19 @@ export async function GET(request, { params }) {
     .in('status', ['CONFIRMED', 'PAID', 'COMPLETED'])
     .gte('check_out', new Date().toISOString().split('T')[0]);
   
-  // Get manual blocks
+  const todayYmd = new Date().toISOString().split('T')[0];
+
   const { data: blocks } = await supabase
     .from('calendar_blocks')
     .select('id, start_date, end_date, reason, source')
     .eq('listing_id', listingId)
-    .eq('source', 'manual')
-    .gte('end_date', new Date().toISOString().split('T')[0]);
+    .gte('end_date', todayYmd);
+
+  const { data: seasonalRows } = await supabase
+    .from('seasonal_prices')
+    .select('id, start_date, end_date, label, season_type, price_daily')
+    .eq('listing_id', listingId)
+    .gte('end_date', todayYmd);
   
   // Build iCal content
   const now = formatICalDate(new Date());
@@ -101,7 +133,24 @@ export async function GET(request, { params }) {
     `X-WR-TIMEZONE:Asia/Bangkok`
   ];
   
-  // Add bookings as events
+  if (!publiclyBookable) {
+    const farEnd = new Date();
+    farEnd.setUTCMonth(farEnd.getUTCMonth() + 18);
+    const endInc = farEnd.toISOString().split('T')[0];
+    ical.push(
+      'BEGIN:VEVENT',
+      `UID:listing-unavailable-${listingId}@gostaylo.com`,
+      `DTSTAMP:${now}`,
+      `DTSTART;VALUE=DATE:${formatICalDateOnly(todayYmd)}`,
+      `DTEND;VALUE=DATE:${icalExclusiveEndFromInclusive(endInc)}`,
+      'SUMMARY:Gostaylo — объект недоступен',
+      `DESCRIPTION:${escapeIcalText('Объявление не активно или скрыто на Gostaylo. Бронирование через календарь недоступно.')}`,
+      'STATUS:CONFIRMED',
+      'TRANSP:OPAQUE',
+      'END:VEVENT'
+    );
+  }
+
   (bookings || []).forEach(booking => {
     const uid = `booking-${booking.id}@gostaylo.com`;
     ical.push(
@@ -118,23 +167,44 @@ export async function GET(request, { params }) {
     );
   });
   
-  // Add manual blocks as events
-  (blocks || []).forEach(block => {
+  (blocks || []).forEach((block) => {
     const uid = `block-${block.id}@gostaylo.com`;
+    const src = block.source ? String(block.source) : '';
     ical.push(
       'BEGIN:VEVENT',
       `UID:${uid}`,
       `DTSTAMP:${now}`,
       `DTSTART;VALUE=DATE:${formatICalDateOnly(block.start_date)}`,
-      `DTEND;VALUE=DATE:${formatICalDateOnly(block.end_date)}`,
-      `SUMMARY:${block.reason || 'Blocked'}`,
-      `DESCRIPTION:Manual block via Gostaylo`,
+      `DTEND;VALUE=DATE:${icalExclusiveEndFromInclusive(block.end_date)}`,
+      `SUMMARY:${escapeIcalText(block.reason || 'Blocked')}`,
+      `DESCRIPTION:${escapeIcalText(`Занято в Gostaylo (${src || 'block'})`)}`,
       'STATUS:CONFIRMED',
       'TRANSP:OPAQUE',
       'END:VEVENT'
     );
   });
-  
+
+  (seasonalRows || []).forEach((sp) => {
+    const uid = `season-${sp.id}@gostaylo.com`;
+    const label = sp.label || sp.season_type || 'Season';
+    const price =
+      sp.price_daily != null && !Number.isNaN(parseFloat(sp.price_daily))
+        ? `${parseFloat(sp.price_daily)} THB/night`
+        : '';
+    ical.push(
+      'BEGIN:VEVENT',
+      `UID:${uid}`,
+      `DTSTAMP:${now}`,
+      `DTSTART;VALUE=DATE:${formatICalDateOnly(sp.start_date)}`,
+      `DTEND;VALUE=DATE:${icalExclusiveEndFromInclusive(sp.end_date)}`,
+      `SUMMARY:${escapeIcalText(`Gostaylo — ${label}${price ? ` (${price})` : ''}`)}`,
+      `DESCRIPTION:${escapeIcalText('Сезонные цены Gostaylo. Событие информационное (TRANSPARENT), не блокирует календарь в большинстве OTA.')}`,
+      'STATUS:CONFIRMED',
+      'TRANSP:TRANSPARENT',
+      'END:VEVENT'
+    );
+  });
+
   ical.push('END:VCALENDAR');
   
   const icalContent = ical.join('\r\n');

@@ -1,7 +1,9 @@
 /**
  * GET /api/v2/partner/listings/[id]/ical-export-link
- * Returns the public iCal export URL (with token) for the authenticated listing owner.
- * Used in partner UI to paste into Airbnb / Booking.com calendar import.
+ *
+ * Только для авторизованного владельца (кука gostaylo_session): отдаёт готовую ссылку
+ * на ПУБЛИЧНЫЙ фид GET /api/v2/listings/[id]/ical?token=…
+ * Внешние сервисы (Airbnb/Booking) подписываются на фид по токену в URL, без сессии.
  */
 
 import { NextResponse } from 'next/server';

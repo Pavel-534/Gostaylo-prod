@@ -168,7 +168,6 @@ export default function EditListing({ params }) {
               }
             : prev
         )
-        router.push('/partner/listings')
       } else {
         toast.error(result.error || 'Ошибка при сохранении')
       }

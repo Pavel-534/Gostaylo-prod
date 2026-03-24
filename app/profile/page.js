@@ -35,7 +35,7 @@ function ProfileContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
-  const { user: authUser, loading: authLoading, isAuthenticated, openLoginModal } = useAuth()
+  const { user: authUser, loading: authLoading, isAuthenticated, openLoginModal, refreshUserFromServer } = useAuth()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -83,6 +83,11 @@ function ProfileContent() {
       }
     }
   }, [authLoading, isAuthenticated, authUser, searchParams, openLoginModal, router])
+
+  useEffect(() => {
+    if (authLoading || !isAuthenticated || !authUser?.id) return
+    refreshUserFromServer()
+  }, [authLoading, isAuthenticated, authUser?.id, refreshUserFromServer])
 
   // Submit Partner Application
   async function submitPartnerApplication(e) {

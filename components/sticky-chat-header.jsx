@@ -111,7 +111,13 @@ export function StickyChatHeader({
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-slate-900 truncate">{title}</p>
+          {listing?.id ? (
+            <Link href={`/listings/${listing.id}`} className="font-semibold text-slate-900 truncate block hover:text-teal-700">
+              {title}
+            </Link>
+          ) : (
+            <p className="font-semibold text-slate-900 truncate">{title}</p>
+          )}
           {listing?.district ? (
             <p className="text-xs text-slate-500 truncate">{listing.district}</p>
           ) : null}

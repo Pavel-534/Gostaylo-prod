@@ -155,6 +155,17 @@ export default function UserDetailPage() {
       if (res.ok && data.success) {
         toast.success(`Роль изменена на ${newRole}`);
         setUser(prev => ({ ...prev, role: newRole }));
+        try {
+          const raw = localStorage.getItem('gostaylo_user');
+          if (raw) {
+            const self = JSON.parse(raw);
+            if (String(self?.id) === String(userId)) {
+              window.dispatchEvent(new Event('gostaylo-switch-role'));
+            }
+          }
+        } catch {
+          /* ignore */
+        }
       } else {
         throw new Error(data.error || 'Failed to update');
       }
@@ -163,7 +174,21 @@ export default function UserDetailPage() {
     }
   };
 
-  const handleLoginAs = () => {
+  const handleLoginAs = async () => {
+    try {
+      await fetch('/api/v2/admin/audit/impersonation', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetUserId: user.id,
+          targetRole: user.role,
+        }),
+      });
+    } catch (e) {
+      console.warn('[impersonation audit]', e);
+    }
+
     const currentUser = localStorage.getItem('gostaylo_user');
     if (currentUser) {
       const parsed = JSON.parse(currentUser);

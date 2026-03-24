@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { AlertTriangle, Check, CheckCheck, Languages, Loader2, Paperclip, Shield } from 'lucide-react'
@@ -8,6 +9,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { toRelativeSiteUrl } from '@/lib/chat-same-origin-url'
 
 /**
  * @param {'light' | 'dark'} bubbleTone — dark: «свои» пузыри (teal/indigo фон); light: светлый фон
@@ -118,6 +120,41 @@ export function MessageBubble({
 
   const displayText = showTranslated && translated ? translated : text
 
+  function renderTextWithLocalLinks(str) {
+    if (!str) return null
+    const s = String(str)
+    const re = /https?:\/\/[^\s]+/gi
+    const nodes = []
+    let last = 0
+    let m
+    let k = 0
+    while ((m = re.exec(s)) !== null) {
+      if (m.index > last) {
+        nodes.push(<span key={`t-${k++}`}>{s.slice(last, m.index)}</span>)
+      }
+      const raw = m[0]
+      const href = toRelativeSiteUrl(raw)
+      if (href.startsWith('/')) {
+        nodes.push(
+          <Link key={`l-${k++}`} href={href} className="underline break-all font-medium" prefetch={false}>
+            {raw}
+          </Link>
+        )
+      } else {
+        nodes.push(
+          <a key={`a-${k++}`} href={raw} target="_blank" rel="noopener noreferrer" className="underline break-all">
+            {raw}
+          </a>
+        )
+      }
+      last = m.index + raw.length
+    }
+    if (last < s.length) {
+      nodes.push(<span key={`t-${k++}`}>{s.slice(last)}</span>)
+    }
+    return nodes.length ? nodes : s
+  }
+
   /** Галочки: на тёмном пузыре (свои) — светлые иконки */
   const tickTone = isOwn ? 'dark' : 'light'
 
@@ -141,7 +178,7 @@ export function MessageBubble({
       </a>
     )
   } else {
-    body = <p className="text-sm whitespace-pre-wrap break-words">{displayText}</p>
+    body = <p className="text-sm whitespace-pre-wrap break-words">{renderTextWithLocalLinks(displayText)}</p>
   }
 
   return (

@@ -68,8 +68,21 @@ export default function UsersPage() {
   };
 
   // Login as another user (impersonation)
-  const handleLoginAs = (targetUser) => {
-    // Save original admin for return
+  const handleLoginAs = async (targetUser) => {
+    try {
+      await fetch('/api/v2/admin/audit/impersonation', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetUserId: targetUser.id,
+          targetRole: targetUser.role,
+        }),
+      });
+    } catch (e) {
+      console.warn('[impersonation audit]', e);
+    }
+
     const currentUser = localStorage.getItem('gostaylo_user');
     if (currentUser) {
       const parsed = JSON.parse(currentUser);
@@ -92,7 +105,6 @@ export default function UsersPage() {
     localStorage.setItem('gostaylo_user', JSON.stringify(impersonatedUser));
     toast.success(`Вы вошли как ${targetUser.name}`);
     
-    // Force full page reload to update all UI state immediately
     if (targetUser.role === 'PARTNER') {
       window.location.href = '/partner/dashboard';
     } else if (targetUser.role === 'RENTER') {

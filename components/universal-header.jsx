@@ -47,7 +47,7 @@ export function UniversalHeader() {
   const router = useRouter();
   
   const { language, setLanguage } = useI18n()
-  const { user, logout, openLoginModal, isAdmin, isPartner } = useAuth();
+  const { user, logout, openLoginModal, isAdmin, isPartner, refreshUserFromServer } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -123,7 +123,11 @@ export function UniversalHeader() {
 
             {/* User Menu */}
             {user ? (
-              <DropdownMenu>
+              <DropdownMenu
+                onOpenChange={(open) => {
+                  if (open && user) refreshUserFromServer();
+                }}
+              >
                 <DropdownMenuTrigger asChild>
                   <Button variant='ghost' size='sm' className='flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-1.5 sm:px-2 rounded-full hover:bg-slate-100 border border-slate-200'>
                     <Avatar className='h-6 w-6 sm:h-7 sm:w-7'>
