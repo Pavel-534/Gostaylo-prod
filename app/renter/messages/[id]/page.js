@@ -34,6 +34,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { SupportRequestDialog } from '@/components/support-request-dialog'
 import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
 import { ChatBookingAnnouncement } from '@/components/chat-booking-announcement'
+import { getUIText } from '@/lib/translations'
 
 function apiMessageToRow(m) {
   if (!m) return null
@@ -501,6 +502,9 @@ export default function RenterMessages({ params }) {
               booking={booking}
               language={language}
               isAdminView={false}
+              embedded
+              compact
+              showBookingTimeline={Boolean(booking?.id && booking?.status)}
               contactName={selectedConv?.partnerName || 'Партнёр'}
               presenceOnline={partnerOnline}
               typingIndicator={headerTypingLine}
@@ -546,8 +550,8 @@ export default function RenterMessages({ params }) {
               lang="ru"
             />
 
-            <Card className="overflow-hidden">
-              <div className="h-[500px] overflow-y-auto p-4 space-y-4">
+            <Card className="overflow-hidden flex flex-col min-h-0 max-h-[min(70vh,560px)] sm:max-h-[560px]">
+              <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4 pb-6 space-y-4 scroll-pb-4">
                 {messages.map((msg, idx) => {
                   const prev = messages[idx - 1]
                   const showDay = chatNeedsDaySeparator(prev?.created_at, msg.created_at)
@@ -697,7 +701,7 @@ export default function RenterMessages({ params }) {
                 <div ref={messagesEndRef} />
               </div>
 
-              <div className="border-t p-4">
+              <div className="shrink-0 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 <input
                   ref={attachFileRef}
                   type="file"
@@ -727,7 +731,7 @@ export default function RenterMessages({ params }) {
                       setNewMessage(v)
                       broadcastTyping()
                     }}
-                    placeholder="Напишите сообщение…"
+                    placeholder={getUIText('chatComposerPlaceholder', language)}
                     disabled={sending}
                   />
                   <Button

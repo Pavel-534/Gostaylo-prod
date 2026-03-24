@@ -640,12 +640,15 @@ export default function PartnerMessages({ params }) {
             >
               <Archive className="h-5 w-5" />
             </Button>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 min-h-0 overflow-x-hidden">
               <StickyChatHeader
                 listing={listing}
                 booking={booking}
                 language={language}
                 isAdminView={false}
+                embedded
+                compact
+                showBookingTimeline={Boolean(booking?.id && booking?.status)}
                 contactName={chatHeaderContactName}
                 presenceOnline={peerParticipantId ? peerOnline : null}
                 typingIndicator={headerTypingLine}
@@ -680,7 +683,7 @@ export default function PartnerMessages({ params }) {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 min-h-0">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-28 sm:pb-24 space-y-4 bg-slate-50 min-h-0 scroll-pb-24">
             {messages.map((msg, idx) => {
               const prev = messages[idx - 1]
               const showDay = chatNeedsDaySeparator(prev?.created_at, msg.created_at)

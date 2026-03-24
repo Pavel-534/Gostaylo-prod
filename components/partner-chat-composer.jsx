@@ -93,7 +93,7 @@ export function PartnerChatComposer({
   }
 
   return (
-    <div className="border-t border-slate-200 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_24px_-8px_rgba(15,23,42,0.12)] sm:p-4">
+    <div className="shrink-0 border-t border-slate-200 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
       <input
         ref={fileRef}
         type="file"
@@ -107,7 +107,7 @@ export function PartnerChatComposer({
             type="button"
             variant="outline"
             size="icon"
-            className="h-10 w-10 flex-shrink-0 border-slate-200 bg-white"
+            className="h-10 w-10 flex-shrink-0 border-slate-200"
             disabled={disabled || attachBusy}
             aria-label="Прикрепить файл"
             onClick={() => fileRef.current?.click()}
@@ -121,7 +121,7 @@ export function PartnerChatComposer({
               type="button"
               variant="outline"
               size="icon"
-              className="h-10 w-10 flex-shrink-0 border-slate-200 bg-white"
+              className="h-10 w-10 flex-shrink-0 border-slate-200"
               aria-label={isRu ? 'Действия' : 'Actions'}
               disabled={disabled}
             >
@@ -201,7 +201,6 @@ export function PartnerChatComposer({
           onChange={onMessageChange}
           placeholder={getUIText('chatComposerPlaceholder', language)}
           disabled={sending || disabled}
-          className="!rounded-xl !border-slate-200 !bg-slate-50/80 !shadow-inner focus-visible:!ring-2 focus-visible:!ring-teal-500/25 focus-visible:!ring-offset-0"
         />
         <Button
           type="submit"

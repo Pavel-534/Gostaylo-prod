@@ -278,14 +278,14 @@ function PremiumListingContent({ params }) {
         const title = listing.title || (language === 'ru' ? 'объект' : 'this listing')
         const draft =
           language === 'ru'
-            ? `Здравствуйте! Меня интересует объект «${title}». Пожалуйста, расскажите подробнее о доступности и условиях.`
-            : `I'm interested in "${title}". Could you share more details about availability and conditions?`
+            ? `Здравствуйте! Меня интересует объект «${title}». Подскажите детали?`
+            : `Hello! I'm interested in "${title}". Could you share more details?`
         try {
           sessionStorage.setItem(`gostaylo_chat_prefill_${id}`, draft)
         } catch {
           /* ignore */
         }
-        router.push(`/messages/${encodeURIComponent(id)}`)
+        router.push(`/renter/messages/${encodeURIComponent(id)}`)
       }
     } catch (e) {
       console.error(e)

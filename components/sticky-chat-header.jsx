@@ -40,6 +40,13 @@ export function StickyChatHeader({
   showBookingTimeline = true,
   /** Рентер: ссылка на единый checkout (при CONFIRMED + неоплаченный счёт) */
   payNowHref = null,
+  /**
+   * Вложенный чат (партнёрский layout): без position:sticky — иначе при скролле страницы
+   * шапка прилипает к top вьюпорта и уезжает под фиксированный mobile header.
+   */
+  embedded = false,
+  /** Узкая шапка на мобилках: меньше отступы, мельче типографика, действия в один ряд */
+  compact = false,
   className,
   children,
 }) {
@@ -55,7 +62,12 @@ export function StickyChatHeader({
     const a = from ? safeFormat(from) : null
     const b = to ? safeFormat(to) : null
     dateLine = (
-      <p className="text-sm text-slate-600 flex flex-wrap items-center gap-x-1 gap-y-1">
+      <p
+        className={cn(
+          'text-slate-600 flex flex-wrap items-center gap-x-1 gap-y-1',
+          compact ? 'text-[11px] sm:text-sm' : 'text-sm'
+        )}
+      >
         {a}
         {a && b ? ' — ' : null}
         {b}
@@ -69,7 +81,15 @@ export function StickyChatHeader({
   }
 
   return (
-    <div className={cn('sticky top-0 z-20 bg-white/95 backdrop-blur border-b shadow-sm', className)}>
+    <div
+      className={cn(
+        'border-b bg-white',
+        embedded
+          ? 'relative z-[15] shadow-none'
+          : 'sticky top-0 z-20 bg-white/95 shadow-sm backdrop-blur',
+        className
+      )}
+    >
       {isAdminView && (
         <div className="bg-amber-50 border-b border-amber-200/80 px-4 py-2 text-center text-xs font-medium text-amber-950 flex items-center justify-center gap-2">
           <Shield className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -102,27 +122,59 @@ export function StickyChatHeader({
           </ul>
         </div>
       ) : null}
-      <div className="px-4 py-3 flex gap-3 items-start">
+      <div
+        className={cn(
+          'flex gap-2 items-center sm:gap-3 sm:items-start',
+          compact ? 'px-2 py-2 sm:px-4 sm:py-3' : 'px-4 py-3'
+        )}
+      >
         {img ? (
-          <img src={img} alt="" className="w-14 h-14 rounded-lg object-cover shrink-0 border border-slate-100" />
+          <img
+            src={img}
+            alt=""
+            className={cn(
+              'rounded-lg object-cover shrink-0 border border-slate-100',
+              compact ? 'w-10 h-10 sm:w-14 sm:h-14' : 'w-14 h-14'
+            )}
+          />
         ) : (
-          <div className="w-14 h-14 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-            <Building2 className="h-7 w-7 text-slate-400" />
+          <div
+            className={cn(
+              'rounded-lg bg-slate-100 flex items-center justify-center shrink-0',
+              compact ? 'w-10 h-10 sm:w-14 sm:h-14' : 'w-14 h-14'
+            )}
+          >
+            <Building2 className={cn('text-slate-400', compact ? 'h-5 w-5 sm:h-7 sm:w-7' : 'h-7 w-7')} />
           </div>
         )}
         <div className="flex-1 min-w-0">
           {listing?.id ? (
-            <Link href={`/listings/${listing.id}`} className="font-semibold text-slate-900 truncate block hover:text-teal-700">
+            <Link
+              href={`/listings/${listing.id}`}
+              className={cn(
+                'font-semibold text-slate-900 truncate block hover:text-teal-700',
+                compact && 'text-sm sm:text-base'
+              )}
+            >
               {title}
             </Link>
           ) : (
-            <p className="font-semibold text-slate-900 truncate">{title}</p>
+            <p className={cn('font-semibold text-slate-900 truncate', compact && 'text-sm sm:text-base')}>
+              {title}
+            </p>
           )}
           {listing?.district ? (
-            <p className="text-xs text-slate-500 truncate">{listing.district}</p>
+            <p className={cn('text-slate-500 truncate', compact ? 'text-[11px] sm:text-xs' : 'text-xs')}>
+              {listing.district}
+            </p>
           ) : null}
           {contactName ? (
-            <p className="text-sm font-medium text-slate-800 mt-0.5 flex items-center gap-2">
+            <p
+              className={cn(
+                'font-medium text-slate-800 mt-0.5 flex items-center gap-2',
+                compact ? 'text-xs sm:text-sm' : 'text-sm'
+              )}
+            >
               {contactName}
               {presenceOnline !== null && (
                 <span
@@ -143,7 +195,14 @@ export function StickyChatHeader({
           ) : null}
           {dateLine}
         </div>
-        <div className="shrink-0 flex flex-col items-end gap-2">
+        <div
+          className={cn(
+            'shrink-0 flex items-center',
+            compact
+              ? 'flex-row flex-wrap justify-end gap-1.5 sm:flex-col sm:items-end sm:gap-2'
+              : 'flex-col items-end gap-2'
+          )}
+        >
           {!isAdminView && partnerBookingActions?.visible ? (
             <div className="flex flex-wrap justify-end gap-1.5">
               <Button
@@ -192,7 +251,12 @@ export function StickyChatHeader({
               type="button"
               variant="outline"
               size="sm"
-              className="h-8 px-2.5 text-xs border-slate-200 text-slate-800 hover:bg-slate-50 inline-flex items-center"
+              className={cn(
+                'border-slate-200 text-slate-800 hover:bg-slate-50 inline-flex items-center',
+                compact
+                  ? 'h-8 w-8 shrink-0 p-0 sm:h-8 sm:w-auto sm:px-2.5 sm:text-xs'
+                  : 'h-8 px-2.5 text-xs'
+              )}
               onClick={onSupportClick}
               disabled={supportLoading}
               title={supportPriorityActive ? `${supportLabel} — ${supportDoneLabel}` : supportLabel}
@@ -202,7 +266,9 @@ export function StickyChatHeader({
               ) : (
                 <LifeBuoy className="h-3.5 w-3.5 shrink-0 text-teal-600" />
               )}
-              <span className="ml-1.5 max-w-[7rem] sm:max-w-none truncate">{supportLabel}</span>
+              <span className={cn('truncate', compact ? 'hidden sm:ml-1.5 sm:inline sm:max-w-[7rem] md:max-w-none' : 'ml-1.5 max-w-[7rem] sm:max-w-none')}>
+                {supportLabel}
+              </span>
               {supportPriorityActive ? (
                 <span className="ml-1 hidden sm:inline text-[10px] font-normal text-amber-700 truncate max-w-[5.5rem]">
                   ({supportDoneLabel})
@@ -210,7 +276,9 @@ export function StickyChatHeader({
               ) : null}
             </Button>
           ) : null}
-          {children ? <div className="flex items-center gap-2">{children}</div> : null}
+          {children ? (
+            <div className={cn('flex items-center gap-1.5 sm:gap-2', compact && 'shrink-0')}>{children}</div>
+          ) : null}
         </div>
       </div>
       {showBookingTimeline && booking ? (
