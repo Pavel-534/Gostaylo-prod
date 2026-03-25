@@ -193,9 +193,23 @@ export async function POST(request) {
       basePriceThbFallback,
     })
 
+    // ── Диагностика по полям: предупреждения вместо ошибок ──────────────────
     const parserWarnings = []
-    if (!row.images?.length) parserWarnings.push('Фотографии не извлечены — добавьте их вручную.')
-    if (row.base_price_thb === 0) parserWarnings.push('Цена не определена — укажите стоимость в батах перед публикацией.')
+    if (!row.title || row.title === 'Imported listing') {
+      parserWarnings.push('Название объявления не получено — заполните поле «Название» вручную.')
+    }
+    if (!row.description) {
+      parserWarnings.push('Описание не получено — заполните поле «Описание» вручную.')
+    }
+    if (!row.images?.length) {
+      parserWarnings.push('Фотографии не извлечены — добавьте фото вручную.')
+    }
+    if (row.base_price_thb === 0) {
+      parserWarnings.push('Цена не определена — укажите стоимость в батах перед публикацией.')
+    }
+    if (!row.district) {
+      parserWarnings.push('Район не определён — выберите район вручную.')
+    }
 
     let imageMigration = null
     if (listingId && migrateImagesToStorage && row.images?.length) {
@@ -266,6 +280,9 @@ export async function POST(request) {
   } catch (e) {
     const code = e?.code
     const msg = e?.message || String(e)
+    console.error(`[airbnb-preview] error (code=${code ?? 'none'}):`, msg)
+
+    // ── Импорт не настроен (нет APIFY_TOKEN / Playwright) ───────────────────
     if (code === 'IMPORT_NOT_CONFIGURED') {
       return NextResponse.json(
         {
@@ -277,8 +294,34 @@ export async function POST(request) {
         { status: 503 }
       )
     }
-    // Airbnb URL parse error
-    if (msg.includes('airbnb') || msg.includes('rooms') || msg.includes('URL')) {
+
+    // ── Объявление не найдено / пустой датасет ───────────────────────────────
+    if (code === 'LISTING_NOT_FOUND' || code === 'APIFY_EMPTY_DATASET') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Объявление не найдено или недоступно. Проверьте, что оно открыто в браузере (не удалено и не скрыто).',
+          error_en: msg,
+          field: 'url',
+        },
+        { status: 422 }
+      )
+    }
+
+    // ── Все акторы вернули 404 ────────────────────────────────────────────────
+    if (code === 'ALL_ACTORS_UNAVAILABLE') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Сервис парсинга временно недоступен. Попробуйте позже или обратитесь к администратору.',
+          error_en: msg,
+        },
+        { status: 503 }
+      )
+    }
+
+    // ── URL не подходит для парсинга (только явные ошибки URL-парсера) ──────
+    if (code === 'INVALID_AIRBNB_URL' || code === 'URL_PARSE_ERROR') {
       return NextResponse.json(
         {
           success: false,
@@ -289,7 +332,20 @@ export async function POST(request) {
         { status: 422 }
       )
     }
-    console.error('[airbnb-preview]', msg)
+
+    // ── HTTP-ошибка от Apify (таймаут, 5xx, etc.) ────────────────────────────
+    if (code === 'APIFY_HTTP_ERROR') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Ошибка при обращении к сервису парсинга (HTTP ${e?.httpStatus ?? '?'}). Попробуйте позже.`,
+          error_en: msg,
+        },
+        { status: 502 }
+      )
+    }
+
+    // ── Прочие неожиданные ошибки ────────────────────────────────────────────
     return NextResponse.json({ success: false, error: msg }, { status: 422 })
   }
 }
