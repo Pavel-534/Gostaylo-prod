@@ -13,6 +13,12 @@ import type {
   ListingRules,
   ListingSyncSettings,
 } from '@/lib/types/listing-metadata'
+import {
+  buildImportSeoMeta,
+  descriptionImpliesWorkationReady,
+  nearestPhuketDistrictName,
+  type ImportSeoLocales,
+} from '@/lib/listings/airbnb-import-enrichment'
 
 export interface MapExternalOptions {
   /** UUID владельца (обязателен для insert через API) */
@@ -105,6 +111,19 @@ function mapAirbnbLike(raw: ExternalListingPayload, warnings: string[]): Partial
   if (base == null) {
     warnings.push('airbnb: missing price, using 0 (set basePriceThbFallback in options)')
     base = 0
+  }
+
+  // Currency check: Airbnb sometimes returns USD/EUR/other depending on scraper locale
+  const rawCurrency = str(
+    raw.currency ??
+    raw.price_currency ??
+    raw.priceCurrency ??
+    (pricing ? pricing.currency ?? pricing.currencyCode : null)
+  )
+  if (rawCurrency && rawCurrency.toUpperCase() !== 'THB') {
+    warnings.push(
+      `Цена импортирована в ${rawCurrency.toUpperCase()}, пожалуйста, проверьте конвертацию в THB`
+    )
   }
 
   const extId = str(raw.id ?? raw.listing_id ?? raw.room_id)
@@ -266,6 +285,27 @@ export function mapExternalToInternal(
   const fallbackPrice = options.basePriceThbFallback ?? 0
   const price = partial.base_price_thb != null && partial.base_price_thb > 0 ? partial.base_price_thb : fallbackPrice
   if (price === 0) warnings.push('base_price_thb is 0 — set manually before publish')
+
+  if (platform === 'airbnb') {
+    const geoDistrict = nearestPhuketDistrictName(partial.latitude ?? null, partial.longitude ?? null)
+    if (geoDistrict) {
+      partial.district = geoDistrict
+    }
+    const districtForSeo = partial.district ?? null
+    const amenBlock = partial.metadata?.amenities as ListingAmenitiesBlock | undefined
+    const amenityLabels = Array.isArray(amenBlock?.labels) ? amenBlock.labels.map(String) : []
+    const { seo } = buildImportSeoMeta({
+      title: partial.title || 'Imported listing',
+      district: districtForSeo,
+      description: partial.description ?? null,
+      amenityLabels,
+    })
+    partial.metadata = {
+      ...(partial.metadata || {}),
+      seo,
+      ...(descriptionImpliesWorkationReady(partial.description) ? { is_workation_ready: true } : {}),
+    }
+  }
 
   const metadata = { ...(partial.metadata || {}) } as ListingMetadata
   const sync_settings: ListingSyncSettings = {

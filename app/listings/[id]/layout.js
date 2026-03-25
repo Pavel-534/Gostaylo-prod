@@ -41,12 +41,24 @@ export async function generateMetadata({ params }) {
 
   const title = listing.title || 'Rental';
   const district = listing.district || listing.metadata?.city || 'Thailand';
+  const md = listing.metadata && typeof listing.metadata === 'object' ? listing.metadata : {};
 
   const titleTemplate = getUIText('listingPageTitle', lang);
   const descTemplate = getUIText('listingPageDesc', lang);
 
-  const metaTitle = interpolate(titleTemplate, { title, district });
-  const metaDesc = interpolate(descTemplate, { title, district });
+  // Priority: metadata.seo[lang] → metadata.seo.en → deprecated flat keys → template
+  const seoBlock =
+    (md.seo && typeof md.seo === 'object' && (md.seo[lang] || md.seo['en'])) || null;
+
+  const metaTitle =
+    (seoBlock?.title && String(seoBlock.title).trim()) ||
+    (typeof md.seo_title === 'string' && md.seo_title.trim()) ||
+    interpolate(titleTemplate, { title, district });
+
+  const metaDesc =
+    (seoBlock?.description && String(seoBlock.description).trim()) ||
+    (typeof md.seo_description === 'string' && md.seo_description.trim()) ||
+    interpolate(descTemplate, { title, district });
 
   const imageUrl = listing.cover_image || listing.images?.[0];
   const ogImage = imageUrl?.startsWith('http') ? imageUrl : imageUrl ? `${baseUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}` : null;

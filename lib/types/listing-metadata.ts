@@ -67,6 +67,20 @@ export interface ListingMetadata extends Record<string, unknown> {
   import_draft?: boolean
   /** Версия схемы metadata (для миграций приложения) */
   metadata_schema_version?: number
+
+  /**
+   * Мультиязычные SEO-теги, сгенерированные при импорте.
+   * Ключи — код языка (ru/en/zh/th). Приоритет в generateMetadata выше шаблонных.
+   */
+  seo?: Partial<Record<'ru' | 'en' | 'zh' | 'th', { title: string; description: string }>>
+
+  /** @deprecated Используйте metadata.seo[lang]. Оставлено для обратной совместимости. */
+  seo_title?: string
+  /** @deprecated Используйте metadata.seo[lang]. Оставлено для обратной совместимости. */
+  seo_description?: string
+
+  /** Подходит для удалённой работы (быстрый интернет в описании) */
+  is_workation_ready?: boolean
 }
 
 /** Подмножество sync_settings JSONB */
