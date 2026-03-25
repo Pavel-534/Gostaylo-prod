@@ -21,8 +21,17 @@ import { useI18n } from '@/contexts/i18n-context'
  * @param {'wizard' | 'edit'} props.variant
  * @param {(preview: object) => void} props.onSuccess — вызывается с preview после успешного запроса (до merge в форму)
  * @param {(preview: object) => void} props.onApplyPreview — применить к форме (родитель мержит)
+ * @param {string} [props.listingId] — при редактировании: перенос фото в Storage сразу в БД (migrateImagesToStorage)
+ * @param {boolean} [props.migrateImportedImagesToStorage]
  */
-export function PartnerListingImportBlock({ categoryId, variant = 'wizard', onSuccess, onApplyPreview }) {
+export function PartnerListingImportBlock({
+  categoryId,
+  variant = 'wizard',
+  onSuccess,
+  onApplyPreview,
+  listingId,
+  migrateImportedImagesToStorage = false,
+}) {
   const { language } = useI18n()
   const ru = language === 'ru'
 
@@ -42,11 +51,19 @@ export function PartnerListingImportBlock({ categoryId, variant = 'wizard', onSu
 
     setLoading(true)
     try {
+      const body = {
+        url: trimmed,
+        categoryId,
+        ...(listingId && migrateImportedImagesToStorage
+          ? { listingId, migrateImagesToStorage: true }
+          : {}),
+      }
+
       const res = await fetch('/api/v2/partner/listings/import/airbnb-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ url: trimmed, categoryId }),
+        body: JSON.stringify(body),
       })
 
       const data = await res.json().catch(() => ({}))
@@ -74,13 +91,21 @@ export function PartnerListingImportBlock({ categoryId, variant = 'wizard', onSu
       if (data.source) {
         console.info('[import] source:', data.source)
       }
+      if (data.imageMigration && (data.imageMigration.migrated > 0 || data.imageMigration.failed > 0)) {
+        toast.message(
+          ru
+            ? `Фото: перенесено в хранилище ${data.imageMigration.migrated}, с ошибками ${data.imageMigration.failed} (оставлены исходные ссылки).`
+            : `Photos: migrated ${data.imageMigration.migrated}, failed ${data.imageMigration.failed} (original URLs kept).`,
+          { duration: 5000 }
+        )
+      }
     } catch (e) {
       console.error(e)
       toast.error(ru ? 'Ошибка сети' : 'Network error')
     } finally {
       setLoading(false)
     }
-  }, [url, categoryId, onSuccess, onApplyPreview, ru])
+  }, [url, categoryId, listingId, migrateImportedImagesToStorage, onSuccess, onApplyPreview, ru])
 
   return (
     <Card className="border-teal-200/80 bg-gradient-to-br from-teal-50/80 via-white to-slate-50/90 shadow-sm">

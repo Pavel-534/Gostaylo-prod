@@ -17,11 +17,16 @@ import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/sessio
 import { rateLimitCheck } from '@/lib/rate-limit'
 import { mapExternalToInternal } from '@/lib/listings/map-external-to-internal'
 import { fetchAirbnbListingRaw, normalizeAirbnbPayloadForMapper } from '@/lib/listings/airbnb-parser'
+import { supabaseAdmin } from '@/lib/supabase'
+import { migrateListingExternalImages } from '@/lib/services/external-image-storage'
 
 const bodySchema = z.object({
   url: z.string().url(),
   categoryId: z.string().uuid(),
   basePriceThbFallback: z.number().nonnegative().optional(),
+  /** Если задано вместе с migrateImagesToStorage — после парсинга только колонка images обновляется в БД */
+  listingId: z.string().uuid().optional(),
+  migrateImagesToStorage: z.boolean().optional(),
 })
 
 function toPreview(row, categoryId) {
@@ -78,7 +83,7 @@ export async function POST(request) {
     )
   }
 
-  const { url, categoryId, basePriceThbFallback } = parsed.data
+  const { url, categoryId, basePriceThbFallback, listingId, migrateImagesToStorage } = parsed.data
 
   try {
     const { raw, source } = await fetchAirbnbListingRaw(url)
@@ -93,11 +98,47 @@ export async function POST(request) {
     if (!row.images?.length) parserWarnings.push('No photos extracted — add images manually.')
     if (row.base_price_thb === 0) parserWarnings.push('Price missing or zero — set THB price before publish.')
 
+    let imageMigration = null
+    if (listingId && migrateImagesToStorage && row.images?.length) {
+      if (!supabaseAdmin) {
+        parserWarnings.push('migrateImagesToStorage skipped: server storage not configured')
+      } else {
+        const { data: existing, error: exErr } = await supabaseAdmin
+          .from('listings')
+          .select('id, owner_id')
+          .eq('id', listingId)
+          .single()
+        if (exErr || !existing || String(existing.owner_id) !== String(userId)) {
+          return NextResponse.json({ success: false, error: 'Listing not found or access denied' }, { status: 403 })
+        }
+        const { images: migratedImages, migrated, failed, details } = await migrateListingExternalImages(
+          listingId,
+          row.images
+        )
+        const { error: upErr } = await supabaseAdmin
+          .from('listings')
+          .update({
+            images: migratedImages,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', listingId)
+        if (upErr) {
+          console.error('[airbnb-preview] images migrate update:', upErr)
+          parserWarnings.push(`Image storage update failed: ${upErr.message}`)
+        } else {
+          row.images = migratedImages
+          row.cover_image = migratedImages[0] ?? row.cover_image
+          imageMigration = { migrated, failed, details }
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       source,
       warnings: [...parserWarnings, ...warnings],
       preview: toPreview(row, categoryId),
+      imageMigration,
       /** Готовый payload для insert (snake_case); owner_id уже текущий партнёр */
       suggestedInsert: {
         owner_id: row.owner_id,

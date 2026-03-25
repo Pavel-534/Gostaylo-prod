@@ -25,6 +25,10 @@ import { getUIText } from '@/lib/translations'
 import { ProxiedImage } from '@/components/proxied-image'
 import { PartnerListingImportBlock } from '@/components/partner/PartnerListingImportBlock'
 import { LISTING_AMENITY_PRESETS, mergeAirbnbPreviewEdit } from '@/lib/partner/listing-import-merge'
+import {
+  migrateExternalImagesAfterSave,
+  patchPartnerListingCoverImage,
+} from '@/lib/partner/migrate-external-images-client'
 
 const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
 
@@ -171,6 +175,27 @@ export default function EditListing({ params }) {
               }
             : prev
         )
+        const prevCoverIdx = Math.min(
+          Math.max(0, formData.coverIndex),
+          Math.max(0, formData.images.length - 1)
+        )
+        const mig = await migrateExternalImagesAfterSave(listingId, formData.images)
+        if (mig?.images?.length) {
+          const newCover =
+            mig.images[Math.min(prevCoverIdx, mig.images.length - 1)] || mig.images[0]
+          await patchPartnerListingCoverImage(listingId, newCover)
+          setFormData((fd) => ({
+            ...fd,
+            images: mig.images,
+            coverIndex: Math.min(fd.coverIndex, Math.max(0, mig.images.length - 1)),
+          }))
+          toast.success(
+            language === 'ru'
+              ? `Фото перенесены в хранилище (${mig.migrated ?? 0} шт.)`
+              : `Photos saved to storage (${mig.migrated ?? 0})`,
+            { id: 'partner-listing-migrate-img' }
+          )
+        }
       } else {
         toast.error(result.error || 'Ошибка при сохранении')
       }
@@ -224,6 +249,16 @@ export default function EditListing({ params }) {
       const result = await res.json()
       
       if (result.success) {
+        const prevCoverIdx = Math.min(
+          Math.max(0, formData.coverIndex),
+          Math.max(0, formData.images.length - 1)
+        )
+        const mig = await migrateExternalImagesAfterSave(listingId, formData.images)
+        if (mig?.images?.length) {
+          const newCover =
+            mig.images[Math.min(prevCoverIdx, mig.images.length - 1)] || mig.images[0]
+          await patchPartnerListingCoverImage(listingId, newCover)
+        }
         toast.success('🚀 Объявление отправлено на модерацию!')
         router.push('/partner/listings')
       } else {
@@ -434,6 +469,8 @@ export default function EditListing({ params }) {
               <PartnerListingImportBlock
                 categoryId={listing.categoryId}
                 variant="edit"
+                listingId={listingId}
+                migrateImportedImagesToStorage
                 onApplyPreview={(preview) => {
                   setFormData((prev) => mergeAirbnbPreviewEdit(prev, preview).nextFormData)
                 }}

@@ -39,6 +39,11 @@ import { GostayloListingCard } from '@/components/gostaylo-listing-card'
 import { PartnerCalendarEducationCard } from '@/components/partner/PartnerCalendarEducationCard'
 import { PartnerListingImportBlock } from '@/components/partner/PartnerListingImportBlock'
 import { mergeAirbnbPreviewWizard } from '@/lib/partner/listing-import-merge'
+import {
+  migrateExternalImagesAfterSave,
+  mapCoverUrlAfterMigration,
+  patchPartnerListingCoverImage,
+} from '@/lib/partner/migrate-external-images-client'
 import dynamic from 'next/dynamic'
 import { DayPicker } from 'react-day-picker'
 import { format } from 'date-fns'
@@ -384,6 +389,16 @@ export default function PremiumListingWizard() {
         })
         const data = await res.json()
         if (data.success) {
+          const lid = editId
+          const mig = await migrateExternalImagesAfterSave(lid, formData.images)
+          if (mig?.images?.length) {
+            const cover = mapCoverUrlAfterMigration(
+              formData.images,
+              formData.coverImage,
+              mig.images
+            )
+            if (cover) await patchPartnerListingCoverImage(lid, cover)
+          }
           toast.success(t('draftSaved'))
           router.push('/partner/listings')
         } else {
@@ -411,6 +426,16 @@ export default function PremiumListingWizard() {
         })
         const data = await res.json()
         if (data.success) {
+          const lid = data.data?.id
+          const mig = await migrateExternalImagesAfterSave(lid, formData.images)
+          if (mig?.images?.length) {
+            const cover = mapCoverUrlAfterMigration(
+              formData.images,
+              formData.coverImage,
+              mig.images
+            )
+            if (cover) await patchPartnerListingCoverImage(lid, cover)
+          }
           toast.success(t('draftSaved'))
           router.push('/partner/listings')
         } else {
@@ -459,6 +484,15 @@ export default function PremiumListingWizard() {
       const data = await res.json()
       if (data.success) {
         const listingId = data.data?.id || data.listing?.id || editId
+        const mig = await migrateExternalImagesAfterSave(listingId, formData.images)
+        if (mig?.images?.length) {
+          const cover = mapCoverUrlAfterMigration(
+            formData.images,
+            formData.coverImage,
+            mig.images
+          )
+          if (cover) await patchPartnerListingCoverImage(listingId, cover)
+        }
         const seasons = formData.seasonalPricing || []
         if (listingId && seasons.length > 0) {
           for (const s of seasons) {
@@ -645,6 +679,8 @@ export default function PremiumListingWizard() {
             <PartnerListingImportBlock
               categoryId={formData.categoryId}
               variant="wizard"
+              listingId={isEditMode && editId ? editId : undefined}
+              migrateImportedImagesToStorage={!!(isEditMode && editId)}
               onApplyPreview={(preview) => {
                 setFormData((prev) => {
                   const { nextFormData, customDistrictsToAdd } = mergeAirbnbPreviewWizard(prev, preview)
