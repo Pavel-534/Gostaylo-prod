@@ -37,6 +37,8 @@ import { ProxiedImage } from '@/components/proxied-image'
 import { toast } from 'sonner'
 import { GostayloListingCard } from '@/components/gostaylo-listing-card'
 import { PartnerCalendarEducationCard } from '@/components/partner/PartnerCalendarEducationCard'
+import { PartnerListingImportBlock } from '@/components/partner/PartnerListingImportBlock'
+import { mergeAirbnbPreviewWizard } from '@/lib/partner/listing-import-merge'
 import dynamic from 'next/dynamic'
 import { DayPicker } from 'react-day-picker'
 import { format } from 'date-fns'
@@ -639,6 +641,28 @@ export default function PremiumListingWizard() {
                 </SelectContent>
               </Select>
             </div>
+
+            <PartnerListingImportBlock
+              categoryId={formData.categoryId}
+              variant="wizard"
+              onApplyPreview={(preview) => {
+                setFormData((prev) => {
+                  const { nextFormData, customDistrictsToAdd } = mergeAirbnbPreviewWizard(prev, preview)
+                  if (customDistrictsToAdd.length) {
+                    Promise.resolve().then(() => {
+                      setCustomDistricts((dprev) => {
+                        const n = [...dprev]
+                        for (const d of customDistrictsToAdd) {
+                          if (d && !DISTRICTS.includes(d) && !n.includes(d)) n.push(d)
+                        }
+                        return n
+                      })
+                    })
+                  }
+                  return nextFormData
+                })
+              }}
+            />
             
             <div>
               <Label className="text-base font-medium">Title *</Label>

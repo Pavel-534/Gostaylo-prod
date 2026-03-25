@@ -23,6 +23,8 @@ import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { ProxiedImage } from '@/components/proxied-image'
+import { PartnerListingImportBlock } from '@/components/partner/PartnerListingImportBlock'
+import { LISTING_AMENITY_PRESETS, mergeAirbnbPreviewEdit } from '@/lib/partner/listing-import-merge'
 
 const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
 
@@ -51,7 +53,8 @@ export default function EditListing({ params }) {
     latitude: '',
     longitude: '',
     images: [],
-    coverIndex: 0
+    coverIndex: 0,
+    metadata: {},
   })
   
 
@@ -148,8 +151,8 @@ export default function EditListing({ params }) {
           latitude: formData.latitude === '' ? null : parseFloat(formData.latitude),
           longitude: formData.longitude === '' ? null : parseFloat(formData.longitude),
           images: formData.images,
-          coverImage: coverImage
-          // Сезонные цены и iCal — отдельные компоненты / API, не перезаписываем metadata.seasonal_pricing здесь
+          coverImage: coverImage,
+          metadata: formData.metadata && typeof formData.metadata === 'object' ? formData.metadata : undefined,
         })
       })
       
@@ -208,6 +211,7 @@ export default function EditListing({ params }) {
           status: 'PENDING',
           metadata: {
             ...(listing?.metadata || {}),
+            ...(formData.metadata && typeof formData.metadata === 'object' ? formData.metadata : {}),
             is_draft: false,
             published_at: new Date().toISOString(),
             ...(listing?.metadata?.source === 'TELEGRAM_LAZY_REALTOR'
@@ -426,6 +430,16 @@ export default function EditListing({ params }) {
             <CardTitle className="text-base lg:text-lg">Основная информация</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {listing?.categoryId && (
+              <PartnerListingImportBlock
+                categoryId={listing.categoryId}
+                variant="edit"
+                onApplyPreview={(preview) => {
+                  setFormData((prev) => mergeAirbnbPreviewEdit(prev, preview).nextFormData)
+                }}
+              />
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="title" className="text-sm">Название</Label>
               <Input
@@ -447,6 +461,39 @@ export default function EditListing({ params }) {
                 className="text-base"
                 placeholder="Подробное описание объекта..."
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Удобства</Label>
+              <p className="text-xs text-slate-500">
+                Отметьте доступные опции (в т.ч. после импорта с Airbnb — проверьте список).
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {LISTING_AMENITY_PRESETS.map((amenity) => {
+                  const selected = Array.isArray(formData.metadata?.amenities) && formData.metadata.amenities.includes(amenity)
+                  return (
+                    <Button
+                      key={amenity}
+                      type="button"
+                      variant={selected ? 'default' : 'outline'}
+                      size="sm"
+                      className={selected ? 'bg-teal-600 hover:bg-teal-700' : ''}
+                      onClick={() => {
+                        setFormData((fd) => {
+                          const cur = Array.isArray(fd.metadata?.amenities) ? fd.metadata.amenities : []
+                          const updated = selected ? cur.filter((a) => a !== amenity) : [...cur, amenity]
+                          return {
+                            ...fd,
+                            metadata: { ...fd.metadata, amenities: updated },
+                          }
+                        })
+                      }}
+                    >
+                      {amenity}
+                    </Button>
+                  )
+                })}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-start">
