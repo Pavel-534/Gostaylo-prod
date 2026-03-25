@@ -281,6 +281,9 @@ export async function POST(request) {
     const code = e?.code
     const msg = e?.message || String(e)
     console.error(`[airbnb-preview] error (code=${code ?? 'none'}):`, msg)
+    if (e?.stack) {
+      console.error('[airbnb-preview] stack:', e.stack)
+    }
 
     // ── Импорт не настроен (нет APIFY_TOKEN / Playwright) ───────────────────
     if (code === 'IMPORT_NOT_CONFIGURED') {
@@ -333,12 +336,13 @@ export async function POST(request) {
       )
     }
 
-    // ── HTTP-ошибка от Apify (таймаут, 5xx, etc.) ────────────────────────────
+    // ── HTTP-ошибка от Apify (таймаут, 5xx, сетевая ошибка) ─────────────────
     if (code === 'APIFY_HTTP_ERROR') {
+      const httpStatus = e?.httpStatus ?? '?'
       return NextResponse.json(
         {
           success: false,
-          error: `Ошибка при обращении к сервису парсинга (HTTP ${e?.httpStatus ?? '?'}). Попробуйте позже.`,
+          error: `Ошибка сервиса парсинга (HTTP ${httpStatus}). Попробуйте позже или смените актор в настройках.`,
           error_en: msg,
         },
         { status: 502 }
