@@ -17,17 +17,21 @@ import { useI18n } from '@/contexts/i18n-context'
 
 // ─── Client-side URL helpers ────────────────────────────────────────────────
 
-const AIRBNB_HOST_RE = /^(?:www\.|(?:[a-z]{2}[_-]?)?)airbnb\./i
+/** Простая проверка: hostname содержит airbnb. (работает для ru.airbnb.com, www.airbnb.com, airbnb.com, airbnb.ru) */
+function isAirbnbHost(hostname) {
+  return /airbnb\./i.test(hostname)
+}
 
 /**
  * Клиентская нормализация ссылки Airbnb: убирает параметры, нормализует поддомен.
+ * ru.airbnb.com → www.airbnb.com  |  airbnb.ru → www.airbnb.com
  * Возвращает очищенную строку или исходную, если разобрать не удалось.
  */
 function clientNormalizeAirbnbUrl(raw) {
   if (!raw || typeof raw !== 'string') return raw
   try {
     const u = new URL(raw.trim())
-    if (AIRBNB_HOST_RE.test(u.hostname)) {
+    if (isAirbnbHost(u.hostname)) {
       u.hostname = 'www.airbnb.com'
       u.protocol = 'https:'
     }
@@ -40,11 +44,13 @@ function clientNormalizeAirbnbUrl(raw) {
 }
 
 function looksLikeAirbnbUrl(raw) {
+  if (!raw || typeof raw !== 'string') return false
   try {
     const u = new URL(raw.trim())
-    return AIRBNB_HOST_RE.test(u.hostname)
+    return isAirbnbHost(u.hostname)
   } catch {
-    return false
+    // Если URL вообще не парсится — ещё раз проверяем просто текстом
+    return /airbnb\.com\/rooms\//i.test(raw)
   }
 }
 
@@ -133,12 +139,16 @@ export function PartnerListingImportBlock({
   const ru = language === 'ru'
 
   const [rawUrl, setRawUrl] = useState('')
+  const [urlError, setUrlError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  /** Авто-очистка при вставке / изменении */
+  // Debug: видим, какой categoryId приходит в компонент
+  console.log('Current categoryId in ImportBlock:', categoryId)
+
+  /** Авто-очистка при вставке / изменении + сброс ошибок */
   function handleUrlChange(e) {
     const val = e.target.value
-    // Показываем очищенный URL если выглядит как Airbnb — иначе оставляем как есть
+    setUrlError('') // сбрасываем ошибку при любом изменении
     if (looksLikeAirbnbUrl(val)) {
       setRawUrl(clientNormalizeAirbnbUrl(val))
     } else {
@@ -149,10 +159,12 @@ export function PartnerListingImportBlock({
   const loadPreview = useCallback(async () => {
     const trimmed = rawUrl.trim()
     if (!trimmed) {
+      setUrlError(t('errPasteUrl'))
       toast.error(t('errPasteUrl'))
       return
     }
     if (!looksLikeAirbnbUrl(trimmed)) {
+      setUrlError(t('errNotAirbnb'))
       toast.error(t('errNotAirbnb'))
       return
     }
@@ -160,6 +172,7 @@ export function PartnerListingImportBlock({
       toast.error(t('errSelectCategory'))
       return
     }
+    setUrlError('')
 
     setLoading(true)
     try {
@@ -216,7 +229,7 @@ export function PartnerListingImportBlock({
     } finally {
       setLoading(false)
     }
-  }, [rawUrl, categoryId, listingId, migrateImportedImagesToStorage, onSuccess, onApplyPreview, language, ru, t])
+  }, [rawUrl, categoryId, listingId, migrateImportedImagesToStorage, onSuccess, onApplyPreview, language, ru])
 
   return (
     <Card className="border-teal-200/80 bg-gradient-to-br from-teal-50/80 via-white to-slate-50/90 shadow-sm">
@@ -276,7 +289,7 @@ export function PartnerListingImportBlock({
               value={rawUrl}
               onChange={handleUrlChange}
               disabled={loading}
-              className="h-11 flex-1 font-mono text-sm"
+              className={`h-11 flex-1 font-mono text-sm${urlError ? ' border-red-400 focus-visible:ring-red-400' : ''}`}
               autoComplete="off"
             />
             <Button
@@ -298,6 +311,9 @@ export function PartnerListingImportBlock({
               )}
             </Button>
           </div>
+          {urlError && (
+            <p className="text-xs text-red-500 mt-1">{urlError}</p>
+          )}
         </div>
 
         {loading && (

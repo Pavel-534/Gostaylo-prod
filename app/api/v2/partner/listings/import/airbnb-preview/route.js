@@ -22,8 +22,6 @@ import { migrateListingExternalImages } from '@/lib/services/external-image-stor
 
 // ─── URL normalisation ────────────────────────────────────────────────────────
 
-const AIRBNB_HOST_RE = /^(?:www\.|(?:[a-z]{2}[_-]?)?)airbnb\./i
-
 /**
  * Очищает ссылку Airbnb: убирает query-параметры, hash, нормализует поддомен.
  *   ru.airbnb.com → www.airbnb.com
@@ -39,13 +37,12 @@ function normalizeAirbnbUrl(raw) {
   }
   if (!['https:', 'http:'].includes(u.protocol)) return null
 
-  // Нормализуем все варианты хоста к www.airbnb.com
-  if (AIRBNB_HOST_RE.test(u.hostname)) {
+  // hostname.includes('airbnb.') — работает для любого поддомена и TLD
+  if (/airbnb\./i.test(u.hostname)) {
     u.hostname = 'www.airbnb.com'
     u.protocol = 'https:'
   }
 
-  // Убираем все параметры и якорь (source_impression_id, check_in/out и т.д.)
   u.search = ''
   u.hash = ''
   return u.toString()
@@ -55,7 +52,7 @@ function normalizeAirbnbUrl(raw) {
 function looksLikeAirbnbListingUrl(url) {
   try {
     const u = new URL(url)
-    return AIRBNB_HOST_RE.test(u.hostname) && (/\/rooms\/\d+/.test(u.pathname) || /\/h\/[a-z0-9_-]+/i.test(u.pathname))
+    return /airbnb\./i.test(u.hostname) && (/\/rooms\/\d+/.test(u.pathname) || /\/h\/[a-z0-9_-]+/i.test(u.pathname))
   } catch {
     return false
   }
@@ -66,9 +63,14 @@ function looksLikeAirbnbListingUrl(url) {
 const bodySchema = z.object({
   /** Raw URL from partner — will be normalised before use */
   url: z.string().min(1),
-  /** UUID категории из БД */
-  categoryId: z.string().uuid(),
+  /**
+   * ID категории из БД.
+   * В нашей БД категории хранятся с текстовыми ID вида 'cat-property',
+   * поэтому НЕ используем .uuid() — принимаем любую непустую строку.
+   */
+  categoryId: z.string().min(1),
   basePriceThbFallback: z.number().nonnegative().optional(),
+  /** listingId остаётся UUID — это реальный UUID из таблицы listings */
   listingId: z.string().uuid().optional(),
   migrateImagesToStorage: z.boolean().optional(),
 })
