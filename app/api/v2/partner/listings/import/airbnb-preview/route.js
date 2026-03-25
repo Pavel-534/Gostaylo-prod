@@ -311,12 +311,24 @@ export async function POST(request) {
       )
     }
 
-    // ── Все акторы вернули 404 ────────────────────────────────────────────────
+    // ── Все акторы не найдены / превысили таймаут ────────────────────────────
     if (code === 'ALL_ACTORS_UNAVAILABLE') {
       return NextResponse.json(
         {
           success: false,
           error: 'Сервис парсинга временно недоступен. Попробуйте позже или обратитесь к администратору.',
+          error_en: msg,
+        },
+        { status: 503 }
+      )
+    }
+
+    // ── Все акторы заблокированы Airbnb (run-failed) ─────────────────────────
+    if (code === 'ALL_ACTORS_BLOCKED') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Airbnb заблокировал запросы к данному объявлению. Попробуйте позже или воспользуйтесь другим актором.',
           error_en: msg,
         },
         { status: 503 }
