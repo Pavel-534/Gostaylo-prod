@@ -18,7 +18,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/contexts/i18n-context'
-import { getUIText } from '@/lib/translations'
+import { getUIText, getCategoryName } from '@/lib/translations'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -669,7 +669,7 @@ export default function PremiumListingWizard() {
                 <SelectContent>
                   {categories.map(cat => (
                     <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
+                      {getCategoryName(cat.slug, language) || cat.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

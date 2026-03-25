@@ -20,14 +20,87 @@ import { fetchAirbnbListingRaw, normalizeAirbnbPayloadForMapper } from '@/lib/li
 import { supabaseAdmin } from '@/lib/supabase'
 import { migrateListingExternalImages } from '@/lib/services/external-image-storage'
 
+// ─── URL normalisation ────────────────────────────────────────────────────────
+
+const AIRBNB_HOST_RE = /^(?:www\.|(?:[a-z]{2}[_-]?)?)airbnb\./i
+
+/**
+ * Очищает ссылку Airbnb: убирает query-параметры, hash, нормализует поддомен.
+ *   ru.airbnb.com → www.airbnb.com
+ *   airbnb.ru     → www.airbnb.com
+ * Возвращает чистую строку или null если разобрать не удалось.
+ */
+function normalizeAirbnbUrl(raw) {
+  let u
+  try {
+    u = new URL(raw.trim())
+  } catch {
+    return null
+  }
+  if (!['https:', 'http:'].includes(u.protocol)) return null
+
+  // Нормализуем все варианты хоста к www.airbnb.com
+  if (AIRBNB_HOST_RE.test(u.hostname)) {
+    u.hostname = 'www.airbnb.com'
+    u.protocol = 'https:'
+  }
+
+  // Убираем все параметры и якорь (source_impression_id, check_in/out и т.д.)
+  u.search = ''
+  u.hash = ''
+  return u.toString()
+}
+
+/** Проверяет, что строка похожа на URL объявления Airbnb (содержит /rooms/ или /h/) */
+function looksLikeAirbnbListingUrl(url) {
+  try {
+    const u = new URL(url)
+    return AIRBNB_HOST_RE.test(u.hostname) && (/\/rooms\/\d+/.test(u.pathname) || /\/h\/[a-z0-9_-]+/i.test(u.pathname))
+  } catch {
+    return false
+  }
+}
+
+// ─── Validation ───────────────────────────────────────────────────────────────
+
 const bodySchema = z.object({
-  url: z.string().url(),
+  /** Raw URL from partner — will be normalised before use */
+  url: z.string().min(1),
+  /** UUID категории из БД */
   categoryId: z.string().uuid(),
   basePriceThbFallback: z.number().nonnegative().optional(),
-  /** Если задано вместе с migrateImagesToStorage — после парсинга только колонка images обновляется в БД */
   listingId: z.string().uuid().optional(),
   migrateImagesToStorage: z.boolean().optional(),
 })
+
+/** Человекочитаемая ошибка для каждого поля (сервер возвращает в поле error) */
+function friendlyValidationError(zodError) {
+  const issues = zodError.issues || []
+  for (const issue of issues) {
+    const field = issue.path[0]
+    if (field === 'url') {
+      return {
+        error: 'Ссылка на объявление не распознана. Убедитесь, что вставили корректный URL.',
+        error_en: 'Listing URL is invalid. Please paste a correct listing link.',
+        field: 'url',
+      }
+    }
+    if (field === 'categoryId') {
+      return {
+        error: 'Пожалуйста, выберите категорию объекта перед импортом.',
+        error_en: 'Please select a listing category before importing.',
+        field: 'categoryId',
+      }
+    }
+  }
+  return {
+    error: 'Неверные параметры запроса. Проверьте форму и попробуйте снова.',
+    error_en: 'Invalid request parameters. Check the form and try again.',
+    field: null,
+  }
+}
+
+// ─── Preview shape ────────────────────────────────────────────────────────────
 
 function toPreview(row, categoryId) {
   return {
@@ -52,6 +125,8 @@ function toPreview(row, categoryId) {
   }
 }
 
+// ─── Handler ──────────────────────────────────────────────────────────────────
+
 export async function POST(request) {
   const limited = rateLimitCheck(request, 'partner_import')
   if (limited) {
@@ -75,19 +150,41 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 })
   }
 
+  // ── Нормализуем URL до валидации ─────────────────────────────────────────
+  if (json && typeof json.url === 'string') {
+    const clean = normalizeAirbnbUrl(json.url)
+    if (clean) {
+      json = { ...json, url: clean }
+    }
+  }
+
   const parsed = bodySchema.safeParse(json)
   if (!parsed.success) {
+    const friendly = friendlyValidationError(parsed.error)
     return NextResponse.json(
-      { success: false, error: 'Validation failed', details: parsed.error.flatten() },
+      { success: false, ...friendly, details: parsed.error.flatten() },
       { status: 400 }
     )
   }
 
   const { url, categoryId, basePriceThbFallback, listingId, migrateImagesToStorage } = parsed.data
 
+  // ── Дополнительная проверка: ссылка должна быть Airbnb листингом ─────────
+  if (!looksLikeAirbnbListingUrl(url)) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Ссылка не похожа на объявление Airbnb. Скопируйте URL со страницы объявления вида airbnb.com/rooms/…',
+        error_en: 'URL does not look like an Airbnb listing. Copy the URL from a listing page (airbnb.com/rooms/…).',
+        field: 'url',
+      },
+      { status: 400 }
+    )
+  }
+
   try {
     const { raw, source } = await fetchAirbnbListingRaw(url)
-    const normalized = normalizeAirbnbPayloadForMapper(raw, url.split('?')[0])
+    const normalized = normalizeAirbnbPayloadForMapper(raw, url)
     const { row, warnings } = mapExternalToInternal(normalized, 'airbnb', {
       ownerId: userId,
       categoryId,
@@ -95,13 +192,13 @@ export async function POST(request) {
     })
 
     const parserWarnings = []
-    if (!row.images?.length) parserWarnings.push('No photos extracted — add images manually.')
-    if (row.base_price_thb === 0) parserWarnings.push('Price missing or zero — set THB price before publish.')
+    if (!row.images?.length) parserWarnings.push('Фотографии не извлечены — добавьте их вручную.')
+    if (row.base_price_thb === 0) parserWarnings.push('Цена не определена — укажите стоимость в батах перед публикацией.')
 
     let imageMigration = null
     if (listingId && migrateImagesToStorage && row.images?.length) {
       if (!supabaseAdmin) {
-        parserWarnings.push('migrateImagesToStorage skipped: server storage not configured')
+        parserWarnings.push('Перенос фото пропущен: хранилище не настроено на сервере.')
       } else {
         const { data: existing, error: exErr } = await supabaseAdmin
           .from('listings')
@@ -124,7 +221,7 @@ export async function POST(request) {
           .eq('id', listingId)
         if (upErr) {
           console.error('[airbnb-preview] images migrate update:', upErr)
-          parserWarnings.push(`Image storage update failed: ${upErr.message}`)
+          parserWarnings.push(`Ошибка переноса фото в хранилище: ${upErr.message}`)
         } else {
           row.images = migratedImages
           row.cover_image = migratedImages[0] ?? row.cover_image
@@ -136,6 +233,8 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       source,
+      /** Используемый (нормализованный) URL — полезен для отладки */
+      normalizedUrl: url,
       warnings: [...parserWarnings, ...warnings],
       preview: toPreview(row, categoryId),
       imageMigration,
@@ -169,10 +268,23 @@ export async function POST(request) {
       return NextResponse.json(
         {
           success: false,
-          error: msg,
+          error: 'Импорт не настроен на сервере. Обратитесь к администратору.',
+          error_en: msg,
           hint: 'Set APIFY_TOKEN in production, or ENABLE_AIRBNB_PLAYWRIGHT=1 on a Node server with Playwright browsers installed.',
         },
         { status: 503 }
+      )
+    }
+    // Airbnb URL parse error
+    if (msg.includes('airbnb') || msg.includes('rooms') || msg.includes('URL')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Ссылка на Airbnb не распознана. Скопируйте URL прямо со страницы объявления.',
+          error_en: msg,
+          field: 'url',
+        },
+        { status: 422 }
       )
     }
     console.error('[airbnb-preview]', msg)
