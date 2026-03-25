@@ -158,7 +158,12 @@ function mapAirbnbLike(raw: ExternalListingPayload, warnings: string[]): Partial
     smoking_allowed: bool(raw.smoking_allowed),
   }
 
-  const category_specific: ListingCategorySpecific = {}
+  // room_type (Entire home, Private room, etc.) — от официального актора
+  const roomType = str(raw.room_type ?? raw.roomType ?? raw.propertyType ?? raw.property_type)
+
+  const category_specific: ListingCategorySpecific = {
+    ...(roomType ? { room_type: roomType } : {}),
+  }
 
   return {
     title: title || 'Imported listing',
