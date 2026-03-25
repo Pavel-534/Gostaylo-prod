@@ -76,20 +76,32 @@ function pickStringArray(v: unknown): string[] {
   return v.map((x) => String(x).trim()).filter(Boolean)
 }
 
+/** Безопасный доступ к вложенным объектам из Record<string, unknown> */
+function asRecord(v: unknown): Record<string, unknown> | null {
+  if (v != null && typeof v === 'object' && !Array.isArray(v)) {
+    return v as Record<string, unknown>
+  }
+  return null
+}
+
 /**
  * Нормализация «псевдо-Airbnb» JSON (поля именованы гипотетически; подстроите под реальный парсер).
  */
 function mapAirbnbLike(raw: ExternalListingPayload, warnings: string[]): Partial<MappedListingRow> {
   const title = str(raw.name ?? raw.title ?? raw.listing_title)
-  const description = str(raw.description ?? raw.summary ?? raw.description_languages?.[0])
+  const descLangs = raw.description_languages
+  const descLang0 = Array.isArray(descLangs) ? descLangs[0] : null
+  const description = str(raw.description ?? raw.summary ?? descLang0)
 
-  const city = str(raw.city ?? raw.location?.city)
-  const district = str(raw.neighborhood ?? raw.district ?? raw.location?.neighborhood ?? city)
+  const loc = asRecord(raw.location)
+  const city = str(raw.city ?? (loc ? loc.city : null))
+  const district = str(raw.neighborhood ?? raw.district ?? (loc ? loc.neighborhood : null) ?? city)
 
-  const lat = num(raw.lat ?? raw.latitude ?? raw.location?.lat)
-  const lng = num(raw.lng ?? raw.lon ?? raw.longitude ?? raw.location?.lng)
+  const lat = num(raw.lat ?? raw.latitude ?? (loc ? loc.lat : null))
+  const lng = num(raw.lng ?? raw.lon ?? raw.longitude ?? (loc ? loc.lng : null))
 
-  let base = num(raw.price ?? raw.nightly_price ?? raw.pricing?.base_price)
+  const pricing = asRecord(raw.pricing)
+  let base = num(raw.price ?? raw.nightly_price ?? (pricing ? pricing.base_price : null))
   if (base == null) {
     warnings.push('airbnb: missing price, using 0 (set basePriceThbFallback in options)')
     base = 0
@@ -164,12 +176,15 @@ function mapBookingLike(raw: ExternalListingPayload, warnings: string[]): Partia
   const title = str(raw.property_name ?? raw.name ?? raw.title)
   const description = str(raw.description ?? raw.long_description)
 
-  const district = str(raw.city_name ?? raw.address?.city)
+  const address = asRecord(raw.address)
+  const district = str(raw.city_name ?? (address ? address.city : null))
 
-  const lat = num(raw.latitude ?? raw.geo?.latitude)
-  const lng = num(raw.longitude ?? raw.geo?.longitude)
+  const geo = asRecord(raw.geo)
+  const lat = num(raw.latitude ?? (geo ? geo.latitude : null))
+  const lng = num(raw.longitude ?? (geo ? geo.longitude : null))
 
-  let base = num(raw.price_amount ?? raw.min_rate ?? raw.rates?.nightly)
+  const rates = asRecord(raw.rates)
+  let base = num(raw.price_amount ?? raw.min_rate ?? (rates ? rates.nightly : null))
   if (base == null) {
     warnings.push('booking: missing price, using 0 (set basePriceThbFallback in options)')
     base = 0
