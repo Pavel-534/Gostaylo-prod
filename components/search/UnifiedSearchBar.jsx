@@ -68,6 +68,9 @@ export function UnifiedSearchBar({
   const [guestsDrawerOpen, setGuestsDrawerOpen] = useState(false)
   const [mobileWhereInput, setMobileWhereInput] = useState('')
   const [tempGuests, setTempGuests] = useState('2')
+  /** Контролируемые Popover на desktop — закрываются после выбора */
+  const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false)
+  const [guestsPopoverOpen, setGuestsPopoverOpen] = useState(false)
 
   useEffect(() => {
     fetch('/api/v2/categories')
@@ -194,7 +197,7 @@ export function UnifiedSearchBar({
     <div className="box-border w-full min-w-0 max-w-full overflow-x-hidden bg-white rounded-2xl border border-slate-200 shadow-2xl md:overflow-visible md:rounded-full">
       <div className="hidden md:flex items-center rounded-full overflow-visible">
         {/* What - Category */}
-        <Popover>
+        <Popover open={categoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
           <PopoverTrigger asChild>
             <button className={`${triggerBase} ${triggerHero} flex-1 min-w-[120px] rounded-l-full`}>
               <Layers className="h-4 w-4 text-teal-600 flex-shrink-0" />
@@ -204,15 +207,23 @@ export function UnifiedSearchBar({
           <PopoverContent className="w-56 p-2" align="start">
             <div className="space-y-1">
               <button
-                onClick={() => setCategory?.('all')}
+                type="button"
+                onClick={() => {
+                  setCategory?.('all')
+                  setCategoryPopoverOpen(false)
+                }}
                 className={`w-full text-left px-3 py-2 rounded-md text-sm ${(!category || category === 'all') ? 'bg-teal-50 text-teal-700' : 'hover:bg-slate-100'}`}
               >
                 {language === 'ru' ? 'Всё' : 'All'}
               </button>
               {categories.map(c => (
                 <button
+                  type="button"
                   key={c.id}
-                  onClick={() => setCategory?.(c.slug)}
+                  onClick={() => {
+                    setCategory?.(c.slug)
+                    setCategoryPopoverOpen(false)
+                  }}
                   className={`w-full text-left px-3 py-2 rounded-md text-sm ${category === c.slug ? 'bg-teal-50 text-teal-700' : 'hover:bg-slate-100'}`}
                 >
                   {getCategoryName(c.slug, language) || c.name}
@@ -247,7 +258,7 @@ export function UnifiedSearchBar({
         </div>
 
         {/* Who */}
-        <Popover>
+        <Popover open={guestsPopoverOpen} onOpenChange={setGuestsPopoverOpen}>
           <PopoverTrigger asChild>
             <button className={`${triggerBase} ${triggerHero}`}>
               <Users className="h-4 w-4 text-teal-600" />
@@ -258,8 +269,12 @@ export function UnifiedSearchBar({
             <div className="grid grid-cols-5 gap-1">
               {GUEST_OPTIONS.map(n => (
                 <button
+                  type="button"
                   key={n}
-                  onClick={() => setGuests?.(String(n))}
+                  onClick={() => {
+                    setGuests?.(String(n))
+                    setGuestsPopoverOpen(false)
+                  }}
                   className={`p-2 rounded text-sm ${guests === String(n) ? 'bg-teal-600 text-white' : 'hover:bg-slate-100'}`}
                 >
                   {n}

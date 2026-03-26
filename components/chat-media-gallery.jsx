@@ -237,7 +237,7 @@ export function ChatMediaGallery({ messages = [], open, onClose, language = 'ru'
       {lightboxIdx !== null && lightboxImages.length > 0 && (
         <ChatLightbox
           images={lightboxImages}
-          initialIndex={lightboxIdx}
+          startIndex={lightboxIdx}
           onClose={() => setLightboxIdx(null)}
         />
       )}

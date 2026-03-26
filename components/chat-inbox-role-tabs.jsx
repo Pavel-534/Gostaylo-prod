@@ -16,9 +16,9 @@ export function ChatInboxRoleTabs({
   className,
 }) {
   const isRu = language !== 'en'
-  const hostingLabel = isRu ? 'Принимаю' : 'Hosting'
+  const hostingLabel = isRu ? 'Сдаю' : 'Hosting'
   const travelingLabel = isRu ? 'Снимаю' : 'Traveling'
-  const hostingHint = isRu ? 'Hosting — диалоги по моим объявлениям' : 'Hosting — conversations about my listings'
+  const hostingHint = isRu ? 'Сдаю объекты — диалоги по моим объявлениям' : 'Hosting — conversations about my listings'
   const travelingHint = isRu ? 'Traveling — я интересуюсь чужими объявлениями' : 'Traveling — inquiries on others’ listings'
 
   const TabBtn = ({ tab, label, title, unread }) => {

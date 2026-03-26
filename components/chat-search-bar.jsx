@@ -15,6 +15,7 @@
 import { useRef, useEffect } from 'react'
 import { Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { highlightText } from '@/lib/chat-highlight-text'
 
 const LABELS = {
   ru: { placeholder: 'Поиск по сообщениям…', found: 'найдено', notFound: 'Не найдено' },
@@ -72,25 +73,4 @@ export function ChatSearchBar({ value, onChange, resultCount, onClose, language 
   )
 }
 
-/**
- * Утилита: подсветка вхождений строки поиска в тексте.
- * Возвращает React-узлы с <mark>.
- *
- * @param {string} text
- * @param {string} query
- * @returns {React.ReactNode}
- */
-export function highlightText(text, query) {
-  if (!query || !query.trim()) return text
-  const safeQ = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const parts = text.split(new RegExp(`(${safeQ})`, 'gi'))
-  return parts.map((part, i) =>
-    part.toLowerCase() === query.toLowerCase() ? (
-      <mark key={i} className="bg-amber-200 text-amber-900 rounded px-0.5">
-        {part}
-      </mark>
-    ) : (
-      part
-    ),
-  )
-}
+export { highlightText }

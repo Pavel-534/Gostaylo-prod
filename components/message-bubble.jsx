@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { toRelativeSiteUrl } from '@/lib/chat-same-origin-url'
 import { maskContactInfo } from '@/lib/mask-contacts'
-import { highlightText } from '@/components/chat-search-bar'
+import { highlightText } from '@/lib/chat-highlight-text'
 
 /**
  * @param {'light' | 'dark'} bubbleTone — dark: «свои» пузыри (teal/indigo фон); light: светлый фон

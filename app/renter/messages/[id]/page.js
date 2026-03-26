@@ -43,7 +43,7 @@ import { ChatImageCollage, groupConsecutiveImages } from '@/components/chat-imag
 import { ChatVoicePlayer } from '@/components/chat-voice-player'
 import { useVoiceRecorder } from '@/hooks/use-voice-recorder'
 import { ChatMediaGallery } from '@/components/chat-media-gallery'
-import { ChatSearchBar, highlightText } from '@/components/chat-search-bar'
+import { ChatSearchBar } from '@/components/chat-search-bar'
 import { getUIText } from '@/lib/translations'
 import { ConversationList } from '@/components/conversation-list'
 import { ChatActionBar } from '@/components/chat-action-bar'

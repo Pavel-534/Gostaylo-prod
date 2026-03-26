@@ -59,6 +59,19 @@ function listingCategorySlug(listing) {
   return listing.categorySlug ?? listing.category?.slug ?? null
 }
 
+/**
+ * Границы ~radius м вокруг точки без L.circle#getBounds — у круга без карты
+ * getBounds() в Leaflet вызывает layerPointToLatLng и падает, если слой не на map.
+ */
+function boundsAroundPointMeters(latlng, radiusMeters) {
+  const lat = latlng[0]
+  const lng = latlng[1]
+  const dLat = radiusMeters / 111320
+  const cosLat = Math.cos((lat * Math.PI) / 180) || 1
+  const dLng = radiusMeters / (111320 * cosLat)
+  return L.latLngBounds([lat - dLat, lng - dLng], [lat + dLat, lng + dLng])
+}
+
 function listingLocationBounds(listing, hasConfirmedBookingFn) {
   const pos = getListingPosition(listing)
   if (!pos) return null
@@ -71,7 +84,7 @@ function listingLocationBounds(listing, hasConfirmedBookingFn) {
     categoryId: listing.category_id ?? listing.categoryId,
   })
   if (mode === 'privacy') {
-    return L.circle(pos, { radius: 500 }).getBounds()
+    return boundsAroundPointMeters(pos, 500)
   }
   return L.latLngBounds(pos, pos)
 }
