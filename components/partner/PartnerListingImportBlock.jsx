@@ -95,6 +95,12 @@ const I18N = {
     zh: '导入暂时不可用 — 联系管理员',
     th: 'นำเข้าไม่พร้อมใช้ชั่วคราว — ติดต่อผู้ดูแล',
   },
+  errAirbnbBlocked: {
+    ru: 'Airbnb временно ограничил автоматический импорт. Пожалуйста, заполните основные поля вручную — это займёт всего 2 минуты.',
+    en: 'Airbnb temporarily limited automatic import. Please fill in the main fields manually — it takes just 2 minutes.',
+    zh: 'Airbnb 暂时限制了自动导入。请手动填写主要字段 — 只需 2 分钟。',
+    th: 'Airbnb จำกัดการนำเข้าอัตโนมัติชั่วคราว กรุณากรอกข้อมูลหลักด้วยตนเอง — ใช้เวลาเพียง 2 นาที',
+  },
   successFilled: {
     ru: 'Данные подставлены в форму. Проверьте и при необходимости отредактируйте.',
     en: 'Form filled from import. Review before publishing.',
@@ -194,6 +200,11 @@ export function PartnerListingImportBlock({
       const data = await res.json().catch(() => ({}))
 
       if (!res.ok) {
+        // canFillManually = true → Airbnb заблокировал, предлагаем ручное заполнение
+        if (data.canFillManually) {
+          toast.error(t('errAirbnbBlocked'), { duration: 12000 })
+          return
+        }
         // Используем локализованное сообщение от сервера или fallback
         const serverMsg = ru ? data.error : (data.error_en || data.error)
         if (res.status === 503) {

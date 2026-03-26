@@ -186,6 +186,10 @@ export async function POST(request) {
 
   try {
     const { raw, source } = await fetchAirbnbListingRaw(url)
+
+    // ── Финальный вердикт: что именно сработало ──────────────────────────────
+    console.log(`[airbnb-preview] ✅ Data fetched successfully. Source: ${source}`)
+
     const normalized = normalizeAirbnbPayloadForMapper(raw, url)
     const { row, warnings } = mapExternalToInternal(normalized, 'airbnb', {
       ownerId: userId,
@@ -298,12 +302,20 @@ export async function POST(request) {
       )
     }
 
-    // ── Объявление не найдено / пустой датасет ───────────────────────────────
+    /**
+     * Единое вежливое UX-сообщение для всех случаев, когда автоматический импорт не удался.
+     * Партнёру не нужно знать технические детали — мы уже залогировали их выше.
+     */
+    const FRIENDLY_MANUAL_MSG =
+      'Airbnb временно ограничил автоматический импорт. ' +
+      'Пожалуйста, заполните основные поля вручную — это займёт всего 2 минуты.'
+
+    // ── Объявление не найдено / закрыто ──────────────────────────────────────
     if (code === 'LISTING_NOT_FOUND' || code === 'APIFY_EMPTY_DATASET') {
       return NextResponse.json(
         {
           success: false,
-          error: 'Объявление не найдено или недоступно. Проверьте, что оно открыто в браузере (не удалено и не скрыто).',
+          error: 'Объявление не найдено или недоступно. Проверьте, что оно открыто в браузере.',
           error_en: msg,
           field: 'url',
         },
@@ -311,31 +323,23 @@ export async function POST(request) {
       )
     }
 
-    // ── Все акторы не найдены / превысили таймаут ────────────────────────────
-    if (code === 'ALL_ACTORS_UNAVAILABLE') {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Сервис парсинга временно недоступен. Попробуйте позже или обратитесь к администратору.',
-          error_en: msg,
-        },
-        { status: 503 }
-      )
-    }
-
-    // ── Все акторы заблокированы Airbnb (run-failed) ─────────────────────────
+    // ── Все акторы заблокированы Airbnb ──────────────────────────────────────
     if (code === 'ALL_ACTORS_BLOCKED') {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Airbnb заблокировал запросы к данному объявлению. Попробуйте позже или воспользуйтесь другим актором.',
-          error_en: msg,
-        },
+        { success: false, error: FRIENDLY_MANUAL_MSG, error_en: msg, canFillManually: true },
         { status: 503 }
       )
     }
 
-    // ── URL не подходит для парсинга (только явные ошибки URL-парсера) ──────
+    // ── Все акторы недоступны / таймаут ──────────────────────────────────────
+    if (code === 'ALL_ACTORS_UNAVAILABLE') {
+      return NextResponse.json(
+        { success: false, error: FRIENDLY_MANUAL_MSG, error_en: msg, canFillManually: true },
+        { status: 503 }
+      )
+    }
+
+    // ── URL не подходит для парсинга ─────────────────────────────────────────
     if (code === 'INVALID_AIRBNB_URL' || code === 'URL_PARSE_ERROR') {
       return NextResponse.json(
         {
@@ -348,20 +352,18 @@ export async function POST(request) {
       )
     }
 
-    // ── HTTP-ошибка от Apify (таймаут, 5xx, сетевая ошибка) ─────────────────
+    // ── HTTP / сетевые ошибки ─────────────────────────────────────────────────
     if (code === 'APIFY_HTTP_ERROR') {
-      const httpStatus = e?.httpStatus ?? '?'
       return NextResponse.json(
-        {
-          success: false,
-          error: `Ошибка сервиса парсинга (HTTP ${httpStatus}). Попробуйте позже или смените актор в настройках.`,
-          error_en: msg,
-        },
+        { success: false, error: FRIENDLY_MANUAL_MSG, error_en: msg, canFillManually: true },
         { status: 502 }
       )
     }
 
-    // ── Прочие неожиданные ошибки ────────────────────────────────────────────
-    return NextResponse.json({ success: false, error: msg }, { status: 422 })
+    // ── Прочие неожиданные ошибки ─────────────────────────────────────────────
+    return NextResponse.json(
+      { success: false, error: FRIENDLY_MANUAL_MSG, error_en: msg, canFillManually: true },
+      { status: 422 }
+    )
   }
 }
