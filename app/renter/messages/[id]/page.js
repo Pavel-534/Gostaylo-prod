@@ -42,6 +42,8 @@ import { ChatMilestoneCard } from '@/components/chat-milestone-card'
 import { ChatImageCollage, groupConsecutiveImages } from '@/components/chat-image-collage'
 import { ChatVoicePlayer } from '@/components/chat-voice-player'
 import { useVoiceRecorder } from '@/hooks/use-voice-recorder'
+import { ChatMediaGallery } from '@/components/chat-media-gallery'
+import { ChatSearchBar, highlightText } from '@/components/chat-search-bar'
 import { getUIText } from '@/lib/translations'
 import { ConversationList } from '@/components/conversation-list'
 import { ChatActionBar } from '@/components/chat-action-bar'
@@ -89,6 +91,9 @@ export default function RenterMessages({ params }) {
   const [convHasMore, setConvHasMore] = useState(false)
   const [convOffset, setConvOffset] = useState(0)
   const [convLoadingMore, setConvLoadingMore] = useState(false)
+  const [mediaGalleryOpen, setMediaGalleryOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchActive, setSearchActive] = useState(false)
   const [selectedConv, setSelectedConv] = useState(null)
   const [messages, setMessages] = useState([])
   const [listing, setListing] = useState(null)
@@ -768,6 +773,9 @@ export default function RenterMessages({ params }) {
                       lastSeenAt={partnerLastSeenAt}
                       typingIndicator={headerTypingLine}
                       typingGateWithPresence
+                      onMediaGallery={selectedConv ? () => setMediaGalleryOpen(true) : null}
+                      onSearchToggle={() => { setSearchActive((v) => !v); setSearchQuery('') }}
+                      searchActive={searchActive}
                       payNowHref={payNowHref}
                       onSupportClick={() => setSupportDialogOpen(true)}
                       supportPriorityActive={!!selectedConv?.isPriority}
@@ -782,8 +790,29 @@ export default function RenterMessages({ params }) {
                         </span>
                       </div>
                     </StickyChatHeader>
+                    {/* Поиск по сообщениям */}
+                    {searchActive && (
+                      <ChatSearchBar
+                        value={searchQuery}
+                        onChange={setSearchQuery}
+                        resultCount={searchQuery.trim() ? messages.filter((m) => {
+                          const t = m.message || m.content || ''
+                          return t.toLowerCase().includes(searchQuery.toLowerCase())
+                        }).length : null}
+                        onClose={() => { setSearchActive(false); setSearchQuery('') }}
+                        language={language}
+                      />
+                    )}
                   </div>
                 </div>
+
+                {/* Медиа-галерея */}
+                <ChatMediaGallery
+                  messages={messages}
+                  open={mediaGalleryOpen}
+                  onClose={() => setMediaGalleryOpen(false)}
+                  language={language}
+                />
 
                 {bookingStatus === 'PAID' &&
               String(listing?.category_id ?? listing?.categoryId) !== '2' && (
@@ -813,7 +842,14 @@ export default function RenterMessages({ params }) {
 
                 <Card className="overflow-hidden flex flex-col min-h-0 flex-1 border-0 shadow-none rounded-none sm:rounded-lg sm:border sm:border-slate-200 sm:shadow-sm mx-2 mb-2 sm:mx-0 sm:mb-0">
               <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4 pb-28 sm:pb-24 space-y-4 scroll-pb-24">
-                {groupConsecutiveImages(messages).map((item, idx, arr) => {
+                {groupConsecutiveImages(
+                  searchQuery.trim()
+                    ? messages.filter((m) => {
+                        const t = m.message || m.content || ''
+                        return t.toLowerCase().includes(searchQuery.toLowerCase())
+                      })
+                    : messages
+                ).map((item, idx, arr) => {
                   const msgDate = item._imageGroup ? item.messages[0].created_at : item.created_at
                   const prevItem = arr[idx - 1]
                   const prevDate = prevItem ? (prevItem._imageGroup ? prevItem.messages[prevItem.messages.length - 1].created_at : prevItem.created_at) : null
@@ -892,8 +928,8 @@ export default function RenterMessages({ params }) {
                     )
                   }
 
-                  const mt = String(msg.type || '').toLowerCase()
-                  if (mt === 'voice' && msg.metadata?.voice_url) {
+                  const voiceMsgType = String(msg.type || '').toLowerCase()
+                  if (voiceMsgType === 'voice' && msg.metadata?.voice_url) {
                     const isOwn = msg.sender_id === renterId || msg.senderId === renterId
                     return (
                       <Fragment key={msg.id}>
@@ -945,7 +981,7 @@ export default function RenterMessages({ params }) {
                     ['text', 'image', 'file', 'rejection', ''].includes(mt) ||
                     !msg.type
                   ) {
-                    const bookingPaid = ['PAID', 'COMPLETED', 'CHECKED_IN', 'CHECKED_OUT'].includes(
+                    const bookingPaid = ['CONFIRMED', 'PAID', 'COMPLETED', 'CHECKED_IN', 'CHECKED_OUT'].includes(
                       String(booking?.status || '').toUpperCase()
                     )
                     return (
@@ -959,6 +995,7 @@ export default function RenterMessages({ params }) {
                           showSenderName={!isOwn}
                           senderName={msg.sender_name || msg.senderName || 'Участник'}
                           maskContacts={!bookingPaid}
+                          searchHighlight={searchQuery.trim() || undefined}
                           translateTargetLang={language}
                           translateButtonLabels={{
                             translate: language === 'ru' ? 'Перевести' : 'Translate',

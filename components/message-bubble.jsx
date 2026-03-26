@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { toRelativeSiteUrl } from '@/lib/chat-same-origin-url'
 import { maskContactInfo } from '@/lib/mask-contacts'
+import { highlightText } from '@/components/chat-search-bar'
 
 /**
  * @param {'light' | 'dark'} bubbleTone — dark: «свои» пузыри (teal/indigo фон); light: светлый фон
@@ -84,9 +85,11 @@ export function MessageBubble({
   translateButtonLabels = { translate: 'Translate', original: 'Original', translating: '…' },
   /**
    * Маскировать контакты (телефоны, e-mail, Telegram) в тексте?
-   * true — если бронирование НЕ оплачено (защита от обхода комиссии).
+   * true — если бронирование НЕ оплачено/подтверждено (защита от обхода комиссии).
    */
   maskContacts = false,
+  /** Строка поиска для подсветки вхождений */
+  searchHighlight = null,
 }) {
   const [translated, setTranslated] = useState(null)
   const [showTranslated, setShowTranslated] = useState(false)
@@ -145,8 +148,10 @@ export function MessageBubble({
   }
 
   const rawDisplayText = showTranslated && translated ? translated : text
-  // Маскируем контакты, если бронирование ещё не оплачено
+  // Маскируем контакты, если бронирование ещё не оплачено/подтверждено
   const displayText = maskContacts && !isOwn ? maskContactInfo(rawDisplayText) : rawDisplayText
+  // Подсветка поиска: если задана строка поиска — рендерим с <mark>
+  const renderedText = searchHighlight ? highlightText(displayText, searchHighlight) : displayText
 
   function renderTextWithLocalLinks(str) {
     if (!str) return null
@@ -207,7 +212,13 @@ export function MessageBubble({
       </a>
     )
   } else {
-    body = <p className="text-sm whitespace-pre-wrap break-words">{renderTextWithLocalLinks(displayText)}</p>
+    // Если есть поиск — renderTextWithLocalLinks не применяем (там string-only логика),
+    // вместо этого используем renderedText с подсветкой
+    body = (
+      <p className="text-sm whitespace-pre-wrap break-words">
+        {searchHighlight ? renderedText : renderTextWithLocalLinks(displayText)}
+      </p>
+    )
   }
 
   return (

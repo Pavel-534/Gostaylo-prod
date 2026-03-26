@@ -49,6 +49,8 @@ import { ChatMilestoneCard } from '@/components/chat-milestone-card'
 import { ChatImageCollage, groupConsecutiveImages } from '@/components/chat-image-collage'
 import { ChatVoicePlayer } from '@/components/chat-voice-player'
 import { uploadChatFile } from '@/lib/chat-upload'
+import { ChatMediaGallery } from '@/components/chat-media-gallery'
+import { ChatSearchBar, highlightText } from '@/components/chat-search-bar'
 import { PartnerChatCalendarPeek } from '@/components/partner-chat-calendar-peek'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { DECLINE_REASON_PRESETS } from '@/lib/booking-chat-copy'
@@ -87,6 +89,9 @@ export default function PartnerMessages({ params }) {
   const [convHasMore, setConvHasMore] = useState(false)
   const [convOffset, setConvOffset] = useState(0)
   const [convLoadingMore, setConvLoadingMore] = useState(false)
+  const [mediaGalleryOpen, setMediaGalleryOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchActive, setSearchActive] = useState(false)
   const [categories, setCategories] = useState([])
   const [categoryFilter, setCategoryFilter] = useState(null)
   const [selectedConv, setSelectedConv] = useState(null)
@@ -809,6 +814,9 @@ export default function PartnerMessages({ params }) {
                 lastSeenAt={peerLastSeenAt}
                 typingIndicator={headerTypingLine}
                 typingGateWithPresence
+                onMediaGallery={selectedConv ? () => setMediaGalleryOpen(true) : null}
+                onSearchToggle={() => { setSearchActive((v) => !v); setSearchQuery('') }}
+                searchActive={searchActive}
                 partnerBookingActions={{
                   visible:
                     viewerIsListingHost &&
@@ -839,11 +847,40 @@ export default function PartnerMessages({ params }) {
                   </div>
                 ) : null}
               </StickyChatHeader>
+
+              {/* Поиск по сообщениям */}
+              {searchActive && (
+                <ChatSearchBar
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  resultCount={searchQuery.trim() ? messages.filter((m) => {
+                    const text = m.message || m.content || ''
+                    return text.toLowerCase().includes(searchQuery.toLowerCase())
+                  }).length : null}
+                  onClose={() => { setSearchActive(false); setSearchQuery('') }}
+                  language={language}
+                />
+              )}
             </div>
           </div>
 
+          {/* Медиа-галерея */}
+          <ChatMediaGallery
+            messages={messages}
+            open={mediaGalleryOpen}
+            onClose={() => setMediaGalleryOpen(false)}
+            language={language}
+          />
+
           <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-28 sm:pb-24 space-y-4 bg-slate-50 min-h-0 scroll-pb-24">
-            {groupConsecutiveImages(messages).map((item, idx, arr) => {
+            {groupConsecutiveImages(
+              searchQuery.trim()
+                ? messages.filter((m) => {
+                    const text = m.message || m.content || ''
+                    return text.toLowerCase().includes(searchQuery.toLowerCase())
+                  })
+                : messages
+            ).map((item, idx, arr) => {
               // Для групп изображений берём created_at первого сообщения
               const msgDate = item._imageGroup ? item.messages[0].created_at : item.created_at
               const prevItem = arr[idx - 1]
@@ -965,7 +1002,7 @@ export default function PartnerMessages({ params }) {
                 ['text', 'image', 'file', 'rejection', ''].includes(msgType) || !msg.type
 
               if (isBubble) {
-                const bookingPaid = ['PAID', 'COMPLETED', 'CHECKED_IN', 'CHECKED_OUT'].includes(
+                const bookingPaid = ['CONFIRMED', 'PAID', 'COMPLETED', 'CHECKED_IN', 'CHECKED_OUT'].includes(
                   String(booking?.status || '').toUpperCase()
                 )
                 return (
@@ -979,6 +1016,7 @@ export default function PartnerMessages({ params }) {
                       showSenderName={!isOwn}
                       senderName={msg.sender_name || 'User'}
                       maskContacts={!bookingPaid}
+                      searchHighlight={searchQuery.trim() || undefined}
                       translateTargetLang={language}
                       translateButtonLabels={{
                         translate: language === 'ru' ? 'Перевести' : 'Translate',

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { ru as ruLocale } from 'date-fns/locale'
 import Link from 'next/link'
-import { Building2, Check, CreditCard, LifeBuoy, Loader2, Shield, X } from 'lucide-react'
+import { Building2, Check, CreditCard, Images, LifeBuoy, Loader2, Search, Shield, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { BookingChatTimeline } from '@/components/booking-chat-timeline'
@@ -43,6 +43,12 @@ export function StickyChatHeader({
   showBookingTimeline = true,
   /** Рентер: ссылка на единый checkout (при CONFIRMED + неоплаченный счёт) */
   payNowHref = null,
+  /** Кнопка медиа-галереи 🖼️ */
+  onMediaGallery = null,
+  /** Кнопка поиска 🔍 */
+  onSearchToggle = null,
+  /** Поиск активен (подсвечивает кнопку) */
+  searchActive = false,
   /**
    * Вложенный чат (партнёрский layout): без position:sticky — иначе при скролле страницы
    * шапка прилипает к top вьюпорта и уезжает под фиксированный mobile header.
@@ -62,17 +68,30 @@ export function StickyChatHeader({
   }, [presenceOnline, lastSeenAt])
 
   function getPresenceLabel(language) {
-    if (presenceOnline) return language === 'en' ? 'Online' : 'В сети'
-    if (!lastSeenAt) return language === 'en' ? 'Offline' : 'Не в сети'
+    const dateLocale = language === 'th' || language === 'zh' ? undefined : language !== 'en' ? ruLocale : undefined
+    if (presenceOnline) {
+      if (language === 'th') return 'ออนไลน์'
+      if (language === 'zh') return '在线'
+      return language === 'en' ? 'Online' : 'В сети'
+    }
+    if (!lastSeenAt) {
+      if (language === 'th') return 'ออฟไลน์'
+      if (language === 'zh') return '离线'
+      return language === 'en' ? 'Offline' : 'Не в сети'
+    }
     const diff = Date.now() - new Date(lastSeenAt).getTime()
     const RECENT_MS = 10 * 60 * 1000 // 10 минут
     if (diff < RECENT_MS) {
       const rel = formatDistanceToNow(new Date(lastSeenAt), {
         addSuffix: true,
-        locale: language !== 'en' ? ruLocale : undefined,
+        locale: dateLocale,
       })
+      if (language === 'th') return `เห็นล่าสุดเมื่อ ${rel}`
+      if (language === 'zh') return `最后在线 ${rel}`
       return language === 'en' ? `Last seen ${rel}` : `Был(а) ${rel}`
     }
+    if (language === 'th') return 'ออฟไลน์'
+    if (language === 'zh') return '离线'
     return language === 'en' ? 'Offline' : 'Не в сети'
   }
 
@@ -313,6 +332,43 @@ export function StickyChatHeader({
               ) : null}
             </Button>
           ) : null}
+          {/* Медиа-галерея */}
+          {onMediaGallery ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn(
+                'text-slate-500 hover:bg-slate-100 hover:text-teal-700',
+                compact ? 'h-8 w-8' : 'h-9 w-9',
+              )}
+              onClick={onMediaGallery}
+              title={language === 'en' ? 'Media gallery' : 'Медиафайлы'}
+              aria-label={language === 'en' ? 'Media gallery' : 'Медиафайлы'}
+            >
+              <Images className="h-4 w-4" />
+            </Button>
+          ) : null}
+
+          {/* Поиск по сообщениям */}
+          {onSearchToggle ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn(
+                'hover:bg-slate-100',
+                compact ? 'h-8 w-8' : 'h-9 w-9',
+                searchActive ? 'text-teal-600 bg-teal-50 hover:bg-teal-100' : 'text-slate-500 hover:text-teal-700',
+              )}
+              onClick={onSearchToggle}
+              title={language === 'en' ? 'Search messages' : 'Поиск по сообщениям'}
+              aria-label={language === 'en' ? 'Search messages' : 'Поиск по сообщениям'}
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          ) : null}
+
           {children ? (
             <div className={cn('flex items-center gap-1.5 sm:gap-2', compact && 'shrink-0')}>{children}</div>
           ) : null}
