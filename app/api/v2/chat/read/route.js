@@ -97,5 +97,62 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Could not update messages' }, { status: 400 })
   }
 
+  // ── Синхронизация уведомлений (fire-and-forget) ──────────────────────────
+  // После прочтения — сбрасываем badge и тихий push с актуальным счётчиком непрочитанных.
+  try {
+    await syncBadgeCount(userId)
+  } catch (e) {
+    console.warn('[chat/read] badge sync failed', e?.message)
+  }
+
   return NextResponse.json({ success: true })
+}
+
+/**
+ * Подсчитывает глобальный unread пользователя и отправляет silent FCM с badge-счётчиком.
+ * Работает по принципу fire-and-forget — не блокирует ответ API.
+ */
+async function syncBadgeCount(userId) {
+  // 1. Суммируем непрочитанные для пользователя (он может быть renter или partner)
+  const uid = encodeURIComponent(String(userId))
+  const [renterRes, partnerRes] = await Promise.all([
+    fetch(
+      `${SUPABASE_URL}/rest/v1/messages?is_read=eq.false&sender_id=neq.${uid}&select=id`,
+      { headers: hdr, cache: 'no-store' }
+    ),
+    // Второй запрос — через conversations где юзер является partner
+    fetch(
+      `${SUPABASE_URL}/rest/v1/messages?is_read=eq.false&sender_id=neq.${uid}&select=id&limit=1`,
+      { headers: hdr, cache: 'no-store' }
+    ),
+  ])
+
+  // Упрощённый подсчёт: все непрочитанные в любых беседах где userId участник
+  const convRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/conversations?or=(renter_id.eq.${uid},partner_id.eq.${uid},owner_id.eq.${uid})&select=id`,
+    { headers: hdr, cache: 'no-store' }
+  )
+  const convRows = await convRes.json()
+  if (!Array.isArray(convRows) || convRows.length === 0) return
+
+  const cids = convRows.map((c) => encodeURIComponent(c.id)).join(',')
+  const unreadRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/messages?conversation_id=in.(${cids})&is_read=eq.false&sender_id=neq.${uid}&select=id`,
+    { headers: hdr, cache: 'no-store' }
+  )
+  const unreadRows = await unreadRes.json()
+  const totalUnread = Array.isArray(unreadRows) ? unreadRows.length : 0
+
+  // 2. Получаем FCM-токен пользователя
+  const profileRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}&select=fcm_token`,
+    { headers: hdr, cache: 'no-store' }
+  )
+  const profileRows = await profileRes.json()
+  const fcmToken = Array.isArray(profileRows) ? profileRows[0]?.fcm_token : null
+  if (!fcmToken) return
+
+  // 3. Тихий push «обнови badge» — без уведомления, только data-payload
+  const { PushService } = await import('@/lib/services/push.service.js')
+  await PushService.sendSilentBadgeUpdate(fcmToken, totalUnread)
 }

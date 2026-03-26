@@ -183,9 +183,11 @@ export async function GET(request) {
   const archivedOnly = archivedParam === 'only' || archivedParam === '1'
   // ?archived=all → include archived conversations (used by ChatContext for full unread count)
   const archivedAll = archivedParam === 'all'
-  // Caller may request more via ?limit=N; default inbox limit is 30 to avoid N+1 explosion.
+  // Caller may request more via ?limit=N; default inbox limit is 20.
   const limitParam = parseInt(searchParams.get('limit') || '0', 10)
-  const inboxLimit = singleId ? '' : `&limit=${limitParam > 0 && limitParam <= 200 ? limitParam : 30}`
+  const pageLimit = limitParam > 0 && limitParam <= 200 ? limitParam : 20
+  const offsetParam = parseInt(searchParams.get('offset') || '0', 10)
+  const inboxLimit = singleId ? '' : `&limit=${pageLimit}&offset=${offsetParam >= 0 ? offsetParam : 0}`
 
   let url
   if (staff) {
@@ -254,11 +256,17 @@ export async function GET(request) {
       ? await enrichConversationRows(rows, userId)
       : rows.map((c) => mapConversationRow(c))
 
+    // hasMore: если вернулось столько, сколько запрашивали — возможно, есть ещё
+    const hasMore = !singleId && rows.length >= pageLimit
+
     return NextResponse.json({
       success: true,
       data: payload,
       meta: {
         total: rows.length,
+        offset: offsetParam,
+        limit: pageLimit,
+        hasMore,
         listingCategory: listingCategory || null,
         enrich,
         archivedOnly: !!archivedOnly && !staff,

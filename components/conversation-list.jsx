@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import * as LucideIcons from 'lucide-react'
+import { useEffect, useRef } from 'react'
 import { Badge } from '@/components/ui/badge'
-import { AlertTriangle, Archive, Building2, LayoutGrid, Shield } from 'lucide-react'
+import { AlertTriangle, Archive, Building2, LayoutGrid, Shield, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { toPublicImageUrl } from '@/lib/public-image-url'
@@ -103,7 +104,31 @@ export function ConversationList({
   hostingUnread = 0,
   travelingUnread = 0,
   inboxTabsLang = 'ru',
+  /** Infinite scroll: вызывается когда пользователь долистал до конца */
+  onLoadMore = null,
+  /** Есть ли ещё страницы */
+  hasMore = false,
+  /** Идёт подгрузка следующей порции */
+  loadingMore = false,
 }) {
+  const sentinelRef = useRef(null)
+
+  useEffect(() => {
+    if (!onLoadMore || !hasMore) return
+    const el = sentinelRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !loadingMore) {
+          onLoadMore()
+        }
+      },
+      { threshold: 0.1 },
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [onLoadMore, hasMore, loadingMore])
+
   return (
     <div
       className={`w-full lg:w-80 bg-white border-r flex-shrink-0 ${
@@ -174,7 +199,7 @@ export function ConversationList({
       )}
 
       <div className="flex-1 overflow-y-auto">
-        {conversations.length === 0 ? (
+        {conversations.length === 0 && !loadingMore ? (
           <div className="p-6 text-center text-sm text-slate-500">
             {inboxTab != null
               ? inboxTabsLang === 'en'
@@ -277,6 +302,22 @@ export function ConversationList({
             </div>
           )
         })}
+
+        {/* Sentinel для IntersectionObserver — подгрузка следующей страницы */}
+        {hasMore && (
+          <div ref={sentinelRef} className="py-4 flex justify-center">
+            {loadingMore ? (
+              <Loader2 className="h-5 w-5 animate-spin text-teal-500" />
+            ) : (
+              <span className="h-5 w-5" />
+            )}
+          </div>
+        )}
+        {!hasMore && conversations.length > 0 && (
+          <p className="py-3 text-center text-[11px] text-slate-400">
+            {inboxTabsLang === 'en' ? 'All conversations loaded' : 'Все диалоги загружены'}
+          </p>
+        )}
       </div>
     </div>
   )

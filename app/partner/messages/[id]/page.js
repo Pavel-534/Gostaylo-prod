@@ -47,6 +47,8 @@ import { SupportRequestDialog } from '@/components/support-request-dialog'
 import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
 import { ChatMilestoneCard } from '@/components/chat-milestone-card'
 import { ChatImageCollage, groupConsecutiveImages } from '@/components/chat-image-collage'
+import { ChatVoicePlayer } from '@/components/chat-voice-player'
+import { uploadChatFile } from '@/lib/chat-upload'
 import { PartnerChatCalendarPeek } from '@/components/partner-chat-calendar-peek'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { DECLINE_REASON_PRESETS } from '@/lib/booking-chat-copy'
@@ -82,6 +84,9 @@ export default function PartnerMessages({ params }) {
   const messagesEndRef = useRef(null)
   const [user, setUser] = useState(null)
   const [conversations, setConversations] = useState([])
+  const [convHasMore, setConvHasMore] = useState(false)
+  const [convOffset, setConvOffset] = useState(0)
+  const [convLoadingMore, setConvLoadingMore] = useState(false)
   const [categories, setCategories] = useState([])
   const [categoryFilter, setCategoryFilter] = useState(null)
   const [selectedConv, setSelectedConv] = useState(null)
@@ -241,6 +246,16 @@ export default function PartnerMessages({ params }) {
     peerParticipantId
   )
 
+  // Отслеживаем "Был недавно": когда пир уходит онлайн → записываем время
+  const [peerLastSeenAt, setPeerLastSeenAt] = useState(null)
+  const peerOnlinePrevRef = useRef(null)
+  useEffect(() => {
+    if (peerOnlinePrevRef.current === true && peerOnline === false) {
+      setPeerLastSeenAt(new Date().toISOString())
+    }
+    peerOnlinePrevRef.current = peerOnline
+  }, [peerOnline])
+
   const { markNow } = useMarkConversationRead(conversationId, !!(conversationId && user?.id), peerOnline)
 
   const { sendText: optimisticSendText } = useOptimisticSend({
@@ -306,20 +321,42 @@ export default function PartnerMessages({ params }) {
     }
   }
 
-  async function loadConversations() {
+  async function loadConversations(opts = {}) {
+    const { offset = 0, append = false } = opts
+    if (append) setConvLoadingMore(true)
     try {
-      const params = new URLSearchParams({ enrich: '1' })
+      const params = new URLSearchParams({ enrich: '1', limit: '20', offset: String(offset) })
       if (categoryFilter) params.set('listing_category', categoryFilter)
       const res = await fetch(`/api/v2/chat/conversations?${params}`, { credentials: 'include' })
       const json = await res.json()
       if (json.success && Array.isArray(json.data)) {
-        setConversations(json.data)
-      } else {
+        if (append) {
+          setConversations((prev) => {
+            const existingIds = new Set(prev.map((c) => c.id))
+            const fresh = json.data.filter((c) => !existingIds.has(c.id))
+            return [...prev, ...fresh]
+          })
+        } else {
+          setConversations(json.data)
+          setConvOffset(0)
+        }
+        setConvHasMore(!!json.meta?.hasMore)
+        if (append) setConvOffset(offset)
+      } else if (!append) {
         setConversations([])
+        setConvHasMore(false)
       }
     } catch (error) {
       console.error('Failed to load conversations:', error)
+    } finally {
+      if (append) setConvLoadingMore(false)
     }
+  }
+
+  function handleLoadMoreConversations() {
+    if (!convHasMore || convLoadingMore) return
+    const nextOffset = convOffset + 20
+    loadConversations({ offset: nextOffset, append: true })
   }
 
   const loadMessages = useCallback(async (convId) => {
@@ -467,6 +504,37 @@ export default function PartnerMessages({ params }) {
     try {
       await optimisticSendText(text, { skipPush: !!peerOnline })
       loadConversations()
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function handleSendVoice({ url, duration }) {
+    if (!selectedConv || !user) return
+    setSending(true)
+    try {
+      const res = await fetch('/api/v2/chat/messages', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConv.id,
+          type: 'voice',
+          content: '',
+          metadata: { voice_url: url, duration_sec: duration },
+          skipPush: !!peerOnline,
+        }),
+      })
+      const json = await res.json()
+      if (res.ok && json.success && json.data) {
+        const row = apiMessageToRow(json.data)
+        if (row) setMessages((prev) => [...prev, row])
+        loadConversations()
+      } else {
+        toast.error(json.error || 'Ошибка отправки голосового')
+      }
+    } catch {
+      toast.error('Ошибка сети')
     } finally {
       setSending(false)
     }
@@ -670,6 +738,9 @@ export default function PartnerMessages({ params }) {
         archiveLabel={language === 'ru' ? 'Скрыть из списка' : 'Hide from list'}
         archivedListHref="/partner/messages/archived"
         archivedListLabel={language === 'ru' ? 'Архив' : 'Archive'}
+        onLoadMore={handleLoadMoreConversations}
+        hasMore={convHasMore}
+        loadingMore={convLoadingMore}
       />
 
       {conversationId && threadLoading ? (
@@ -735,6 +806,7 @@ export default function PartnerMessages({ params }) {
                 showBookingTimeline={Boolean(booking?.id && booking?.status)}
                 contactName={chatHeaderContactName}
                 presenceOnline={peerParticipantId ? peerOnline : null}
+                lastSeenAt={peerLastSeenAt}
                 typingIndicator={headerTypingLine}
                 typingGateWithPresence
                 partnerBookingActions={{
@@ -831,6 +903,21 @@ export default function PartnerMessages({ params }) {
                   <Fragment key={msg.id}>
                     {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
                     <ChatMilestoneCard message={msg} language={language} />
+                  </Fragment>
+                )
+              }
+
+              if (msgType === 'voice' && msg.metadata?.voice_url) {
+                return (
+                  <Fragment key={msg.id}>
+                    {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                    <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                      <ChatVoicePlayer
+                        url={msg.metadata.voice_url}
+                        durationSec={msg.metadata.duration_sec || 0}
+                        isOwn={isOwn}
+                      />
+                    </div>
                   </Fragment>
                 )
               }
@@ -941,6 +1028,8 @@ export default function PartnerMessages({ params }) {
             onSendInvoice={viewerIsListingHost ? handleSendInvoice : undefined}
             onSendPassportRequest={viewerIsListingHost ? handleSendPassportRequest : undefined}
             onAttachFile={handleAttachFile}
+            onSendVoice={handleSendVoice}
+            userId={user?.id}
             showHostPlusMenu={viewerIsListingHost}
             invoiceDialogOpen={invoiceDialogOpen}
             onInvoiceDialogOpenChange={setInvoiceDialogOpen}

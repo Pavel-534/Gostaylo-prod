@@ -1,7 +1,8 @@
 'use client'
 
-import { format } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { useEffect, useRef, useState } from 'react'
+import { format, formatDistanceToNow } from 'date-fns'
+import { ru as ruLocale } from 'date-fns/locale'
 import Link from 'next/link'
 import { Building2, Check, CreditCard, LifeBuoy, Loader2, Shield, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -20,6 +21,8 @@ export function StickyChatHeader({
   contactName,
   /** null — не показывать индикатор; иначе зелёный/серый = online/offline */
   presenceOnline = null,
+  /** ISO-строка или Date — когда собеседник был в последний раз онлайн */
+  lastSeenAt = null,
   /** Эскалация в поддержку (рентер / партнёр, не admin view) */
   onSupportClick = null,
   supportLoading = false,
@@ -50,6 +53,29 @@ export function StickyChatHeader({
   className,
   children,
 }) {
+  // ── Ticker для "Был недавно" — обновляет текст каждые 30 секунд ──────────
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    if (presenceOnline || !lastSeenAt) return
+    const id = setInterval(() => setTick((t) => t + 1), 30_000)
+    return () => clearInterval(id)
+  }, [presenceOnline, lastSeenAt])
+
+  function getPresenceLabel(language) {
+    if (presenceOnline) return language === 'en' ? 'Online' : 'В сети'
+    if (!lastSeenAt) return language === 'en' ? 'Offline' : 'Не в сети'
+    const diff = Date.now() - new Date(lastSeenAt).getTime()
+    const RECENT_MS = 10 * 60 * 1000 // 10 минут
+    if (diff < RECENT_MS) {
+      const rel = formatDistanceToNow(new Date(lastSeenAt), {
+        addSuffix: true,
+        locale: language !== 'en' ? ruLocale : undefined,
+      })
+      return language === 'en' ? `Last seen ${rel}` : `Был(а) ${rel}`
+    }
+    return language === 'en' ? 'Offline' : 'Не в сети'
+  }
+
   const img = listing?.images?.[0]
   const title = listing?.title || '—'
 
@@ -179,12 +205,23 @@ export function StickyChatHeader({
               {presenceOnline !== null && (
                 <span
                   className={`inline-block w-2 h-2 rounded-full shrink-0 ${
-                    presenceOnline ? 'bg-emerald-500' : 'bg-slate-300'
+                    presenceOnline ? 'bg-emerald-500 shadow-[0_0_0_2px_rgba(16,185,129,0.25)] animate-pulse' : 'bg-slate-300'
                   }`}
-                  title={presenceOnline ? 'Online' : 'Offline'}
                   aria-hidden
                 />
               )}
+            </p>
+          ) : null}
+          {/* Статус "В сети / Был недавно" */}
+          {presenceOnline !== null && !typingIndicator ? (
+            <p
+              className={cn(
+                'mt-0.5 truncate',
+                compact ? 'text-[10px] sm:text-[11px]' : 'text-[11px]',
+                presenceOnline ? 'text-emerald-600 font-medium' : 'text-slate-400',
+              )}
+            >
+              {getPresenceLabel(language)}
             </p>
           ) : null}
           {typingIndicator &&
@@ -290,7 +327,7 @@ export function StickyChatHeader({
 
 function safeFormat(iso) {
   try {
-    return format(new Date(iso), 'd MMM yyyy', { locale: ru })
+    return format(new Date(iso), 'd MMM yyyy', { locale: ruLocale })
   } catch {
     return null
   }

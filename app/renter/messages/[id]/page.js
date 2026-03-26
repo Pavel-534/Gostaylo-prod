@@ -15,6 +15,9 @@ import {
   WifiOff,
   Shield,
   Archive,
+  Mic,
+  MicOff,
+  Trash2,
 } from 'lucide-react'
 import { StickyChatHeader } from '@/components/sticky-chat-header'
 import { BookingRequestCard, SystemMessage } from '@/components/booking-request-card'
@@ -37,6 +40,8 @@ import { SupportRequestDialog } from '@/components/support-request-dialog'
 import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
 import { ChatMilestoneCard } from '@/components/chat-milestone-card'
 import { ChatImageCollage, groupConsecutiveImages } from '@/components/chat-image-collage'
+import { ChatVoicePlayer } from '@/components/chat-voice-player'
+import { useVoiceRecorder } from '@/hooks/use-voice-recorder'
 import { getUIText } from '@/lib/translations'
 import { ConversationList } from '@/components/conversation-list'
 import { ChatActionBar } from '@/components/chat-action-bar'
@@ -81,6 +86,9 @@ export default function RenterMessages({ params }) {
   const loadThreadSeq = useRef(0)
   const prevLoadedConversationIdRef = useRef(null)
   const [conversations, setConversations] = useState([])
+  const [convHasMore, setConvHasMore] = useState(false)
+  const [convOffset, setConvOffset] = useState(0)
+  const [convLoadingMore, setConvLoadingMore] = useState(false)
   const [selectedConv, setSelectedConv] = useState(null)
   const [messages, setMessages] = useState([])
   const [listing, setListing] = useState(null)
@@ -140,6 +148,16 @@ export default function RenterMessages({ params }) {
     selectedConv?.partnerId || selectedConv?.adminId || null
   )
 
+  // Отслеживаем "Был недавно": когда партнёр уходит оффлайн → записываем время
+  const [partnerLastSeenAt, setPartnerLastSeenAt] = useState(null)
+  const partnerOnlinePrevRef = useRef(null)
+  useEffect(() => {
+    if (partnerOnlinePrevRef.current === true && partnerOnline === false) {
+      setPartnerLastSeenAt(new Date().toISOString())
+    }
+    partnerOnlinePrevRef.current = partnerOnline
+  }, [partnerOnline])
+
   const { markNow } = useMarkConversationRead(conversationId, !!(conversationId && renterId), partnerOnline)
 
   // Оптимистично сбрасываем счётчик в глобальном ChatContext при открытии треда
@@ -158,6 +176,54 @@ export default function RenterMessages({ params }) {
     userId: renterId,
     setMessages,
   })
+
+  // ─── Голосовые сообщения ───────────────────────────────────────────────────
+  const {
+    isRecording: voiceRecording,
+    duration: voiceDuration,
+    durationLabel: voiceDurationLabel,
+    audioBlob: voiceBlob,
+    audioUrl: voicePreviewUrl,
+    startRecording: startVoice,
+    stopRecording: stopVoice,
+    discardRecording: discardVoice,
+  } = useVoiceRecorder()
+
+  const [voiceSending, setVoiceSending] = useState(false)
+
+  async function handleSendVoice() {
+    if (!voiceBlob || !renterId || !selectedConv) return
+    setVoiceSending(true)
+    try {
+      const ext = voiceBlob.type.includes('ogg') ? 'ogg' : voiceBlob.type.includes('mp4') ? 'mp4' : 'webm'
+      const file = new File([voiceBlob], `voice_${Date.now()}.${ext}`, { type: voiceBlob.type })
+      const { url } = await uploadChatFile(file, renterId)
+      const res = await fetch('/api/v2/chat/messages', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConv.id,
+          type: 'voice',
+          content: '',
+          metadata: { voice_url: url, duration_sec: voiceDuration },
+          skipPush: !!partnerOnline,
+        }),
+      })
+      const json = await res.json()
+      if (res.ok && json.success && json.data) {
+        setMessages((prev) => [...prev, json.data])
+        discardVoice()
+        loadConversations()
+      } else {
+        toast.error(json.error || 'Ошибка отправки голосового')
+      }
+    } catch {
+      toast.error('Ошибка сети')
+    } finally {
+      setVoiceSending(false)
+    }
+  }
 
   const renterTypingName = useMemo(() => {
     if (!user) return 'Гость'
@@ -296,21 +362,41 @@ export default function RenterMessages({ params }) {
     }
   }, [messages, safetyWarningShown])
 
-  async function loadConversations() {
+  async function loadConversations(opts = {}) {
+    const { offset = 0, append = false } = opts
     if (!renterId) return
+    if (append) setConvLoadingMore(true)
     try {
-      const params = new URLSearchParams({ enrich: '1' })
+      const params = new URLSearchParams({ enrich: '1', limit: '20', offset: String(offset) })
       if (categoryFilter) params.set('listing_category', categoryFilter)
       const res = await fetch(`/api/v2/chat/conversations?${params}`, { credentials: 'include' })
       const data = await res.json()
       if (data.success && Array.isArray(data.data)) {
-        setConversations(data.data)
+        if (append) {
+          setConversations((prev) => {
+            const existingIds = new Set(prev.map((c) => c.id))
+            const fresh = data.data.filter((c) => !existingIds.has(c.id))
+            return [...prev, ...fresh]
+          })
+        } else {
+          setConversations(data.data)
+          setConvOffset(0)
+        }
+        setConvHasMore(!!data.meta?.hasMore)
+        if (append) setConvOffset(offset)
       }
     } catch (error) {
       console.error('Failed to load conversations:', error)
     } finally {
       setLoading(false)
+      if (append) setConvLoadingMore(false)
     }
+  }
+
+  function handleLoadMoreConversations() {
+    if (!convHasMore || convLoadingMore) return
+    const nextOffset = convOffset + 20
+    loadConversations({ offset: nextOffset, append: true })
   }
 
   function mergeListingFromNavigationContext(convId, apiListing, convListingId) {
@@ -604,6 +690,9 @@ export default function RenterMessages({ params }) {
             archiveLabel={language === 'ru' ? 'Скрыть из списка' : 'Hide from list'}
             archivedListHref="/renter/messages/archived"
             archivedListLabel={language === 'ru' ? 'Архив' : 'Archive'}
+            onLoadMore={handleLoadMoreConversations}
+            hasMore={convHasMore}
+            loadingMore={convLoadingMore}
           />
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-slate-50">
@@ -676,6 +765,7 @@ export default function RenterMessages({ params }) {
                       showBookingTimeline={Boolean(booking?.id && booking?.status)}
                       contactName={selectedConv?.partnerName || 'Партнёр'}
                       presenceOnline={partnerOnline}
+                      lastSeenAt={partnerLastSeenAt}
                       typingIndicator={headerTypingLine}
                       typingGateWithPresence
                       payNowHref={payNowHref}
@@ -802,6 +892,23 @@ export default function RenterMessages({ params }) {
                     )
                   }
 
+                  const mt = String(msg.type || '').toLowerCase()
+                  if (mt === 'voice' && msg.metadata?.voice_url) {
+                    const isOwn = msg.sender_id === renterId || msg.senderId === renterId
+                    return (
+                      <Fragment key={msg.id}>
+                        {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                        <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                          <ChatVoicePlayer
+                            url={msg.metadata.voice_url}
+                            durationSec={msg.metadata.duration_sec || 0}
+                            isOwn={isOwn}
+                          />
+                        </div>
+                      </Fragment>
+                    )
+                  }
+
                   const isInvoice =
                     String(msg.type || '').toLowerCase() === 'invoice' ||
                     msg.type === 'INVOICE' ||
@@ -908,26 +1015,59 @@ export default function RenterMessages({ params }) {
                   >
                     <Paperclip className="h-5 w-5" />
                   </Button>
-                  <ChatGrowingTextarea
-                    value={newMessage}
-                    onChange={(v) => {
-                      setNewMessage(v)
-                      broadcastTyping()
-                    }}
-                    placeholder={getUIText('chatComposerPlaceholder', language)}
-                    disabled={sending}
-                  />
-                  <Button
-                    type="submit"
-                    disabled={!newMessage.trim() || sending}
-                    className="bg-teal-600 hover:bg-teal-700 flex-shrink-0 h-10 w-10 sm:w-auto sm:px-4"
-                  >
-                    {sending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                  </Button>
+                  {/* Голосовое — предпросмотр */}
+                  {voiceBlob ? (
+                    <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-50 border border-teal-200">
+                      <audio src={voicePreviewUrl} controls className="h-8 flex-1 min-w-0" />
+                      <span className="text-xs text-teal-700 font-medium tabular-nums shrink-0">{voiceDurationLabel}</span>
+                      <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50 shrink-0" onClick={discardVoice}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button type="button" disabled={voiceSending} className="h-8 px-3 bg-teal-600 hover:bg-teal-700 shrink-0" onClick={handleSendVoice}>
+                        {voiceSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  ) : voiceRecording ? (
+                    <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-200">
+                      <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+                      <span className="text-sm text-red-700 font-medium flex-1">Запись... {voiceDurationLabel}</span>
+                      <Button type="button" size="icon" className="h-8 w-8 bg-red-500 hover:bg-red-600 shrink-0" onClick={stopVoice}>
+                        <MicOff className="h-4 w-4 text-white" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <ChatGrowingTextarea
+                        value={newMessage}
+                        onChange={(v) => {
+                          setNewMessage(v)
+                          broadcastTyping()
+                        }}
+                        placeholder={getUIText('chatComposerPlaceholder', language)}
+                        disabled={sending}
+                      />
+                      {!newMessage.trim() && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="flex-shrink-0 h-10 w-10 border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600"
+                          disabled={sending}
+                          onClick={startVoice}
+                          title="Голосовое сообщение"
+                        >
+                          <Mic className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        type="submit"
+                        disabled={!newMessage.trim() || sending}
+                        className="bg-teal-600 hover:bg-teal-700 flex-shrink-0 h-10 w-10 sm:w-auto sm:px-4"
+                      >
+                        {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                      </Button>
+                    </>
+                  )}
                 </form>
               </div>
             </Card>
