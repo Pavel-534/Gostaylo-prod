@@ -24,6 +24,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/auth-context';
+import { useChatContext } from '@/lib/context/ChatContext';
 
 // Admin navigation items - Full Control Panel per ARCHITECTURAL_PASSPORT
 const ADMIN_NAV = [
@@ -160,6 +161,7 @@ export function AppSidebar() {
     // Context not available, fallback to localStorage
   }
   
+  const { totalUnread } = useChatContext();
   const [user, setUser] = useState(authContext?.user || null);
   
   useEffect(() => {
@@ -310,6 +312,11 @@ export function AppSidebar() {
               const Icon = item.icon;
               const isActive = pathname === item.href || 
                               (item.href !== '/' && pathname?.startsWith(item.href.split('?')[0]));
+              const isMessagesLink =
+                item.href === '/renter/messages' ||
+                item.href === '/partner/messages' ||
+                item.href === '/admin/messages/';
+              const showUnreadBadge = isMessagesLink && totalUnread > 0 && !isActive;
               
               return (
                 <Link 
@@ -322,11 +329,21 @@ export function AppSidebar() {
                       ? 'bg-teal-50 text-teal-700 border border-teal-200' 
                       : 'hover:bg-slate-50 text-slate-700'
                   }`}>
-                    <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-teal-600' : 'text-slate-500'}`} />
+                    <span className='relative flex-shrink-0'>
+                      <Icon className={`h-5 w-5 ${isActive ? 'text-teal-600' : 'text-slate-500'}`} />
+                      {showUnreadBadge && (
+                        <span className='absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white' />
+                      )}
+                    </span>
                     <div className='flex-1 min-w-0'>
                       <div className='flex items-center gap-2'>
                         <p className='font-medium text-sm truncate'>{item.label}</p>
-                        {item.badge && (
+                        {showUnreadBadge && (
+                          <Badge variant='destructive' className='text-[10px] px-1.5 py-0 h-4'>
+                            {totalUnread > 99 ? '99+' : totalUnread}
+                          </Badge>
+                        )}
+                        {item.badge && !showUnreadBadge && (
                           <Badge 
                             variant='secondary' 
                             className={`text-[10px] px-1.5 py-0 ${

@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Search, MessageCircle, User } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
+import { useChatContext } from '@/lib/context/ChatContext';
 
 const NAV_ITEMS = [
   { 
@@ -48,6 +49,7 @@ export function MobileBottomNav() {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const { user, openLoginModal } = useAuth();
+  const { totalUnread } = useChatContext();
 
   useEffect(() => {
     setMounted(true);
@@ -92,6 +94,8 @@ export function MobileBottomNav() {
           const Icon = item.icon;
           const href = item.requiresAuth && !user ? '#' : item.href;
           
+          const showBadge = item.href === '/renter/messages' && totalUnread > 0;
+
           return (
             <Link
               key={item.href}
@@ -103,7 +107,12 @@ export function MobileBottomNav() {
                   : 'text-slate-400 hover:text-slate-600'
               }`}
             >
-              <Icon className={`h-5 w-5 ${active ? 'stroke-[2.5]' : 'stroke-[1.5]'}`} />
+              <span className="relative">
+                <Icon className={`h-5 w-5 ${active ? 'stroke-[2.5]' : 'stroke-[1.5]'}`} />
+                {showBadge && (
+                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white" />
+                )}
+              </span>
               <span className={`text-[10px] mt-1 ${active ? 'font-semibold' : 'font-medium'}`}>
                 {item.label}
               </span>

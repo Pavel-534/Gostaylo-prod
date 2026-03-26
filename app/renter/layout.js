@@ -22,8 +22,10 @@ import {
   Menu, X, LogOut, Loader2, MapPin, Settings
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
+import { useChatContext } from '@/lib/context/ChatContext'
 
 // TanStack Query client configuration
 const queryClient = new QueryClient({
@@ -86,6 +88,7 @@ export default function RenterLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [accessDenied, setAccessDenied] = useState(false)
   const [language, setLanguage] = useState('ru')
+  const { totalUnread } = useChatContext()
 
   useEffect(() => {
     const initial = detectLanguage()
@@ -231,20 +234,32 @@ export default function RenterLayout({ children }) {
                 {navItems.map((item) => {
                   const Icon = item.icon
                   const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                  const isMessages = item.href === '/renter/messages'
+                  const showBadge = isMessages && totalUnread > 0 && !isActive
                   
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-lg transition-colors",
+                        "flex items-center gap-2 px-4 py-2 rounded-lg transition-colors relative",
                         isActive 
                           ? "bg-teal-50 text-teal-700 font-medium" 
                           : "text-slate-600 hover:bg-slate-50"
                       )}
                     >
-                      <Icon className="h-4 w-4" />
+                      <span className="relative">
+                        <Icon className="h-4 w-4" />
+                        {showBadge && (
+                          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white" />
+                        )}
+                      </span>
                       <span className="text-sm">{item.label}</span>
+                      {showBadge && (
+                        <Badge variant="destructive" className="h-4 min-w-[16px] px-1 text-[9px] leading-none">
+                          {totalUnread > 99 ? '99+' : totalUnread}
+                        </Badge>
+                      )}
                     </Link>
                   )
                 })}
@@ -318,6 +333,8 @@ export default function RenterLayout({ children }) {
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+              const isMessages = item.href === '/renter/messages'
+              const showBadge = isMessages && totalUnread > 0 && !isActive
               
               return (
                 <Link
@@ -331,11 +348,21 @@ export default function RenterLayout({ children }) {
                       : "text-slate-600 hover:bg-slate-50"
                   )}
                 >
-                  <Icon className="h-5 w-5" />
-                  <div>
+                  <span className="relative shrink-0">
+                    <Icon className="h-5 w-5" />
+                    {showBadge && (
+                      <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white" />
+                    )}
+                  </span>
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{item.label}</p>
                     <p className="text-xs text-slate-500">{item.description}</p>
                   </div>
+                  {showBadge && (
+                    <Badge variant="destructive" className="h-5 min-w-[20px] px-1.5 text-[10px] shrink-0">
+                      {totalUnread > 99 ? '99+' : totalUnread}
+                    </Badge>
+                  )}
                 </Link>
               )
             })}

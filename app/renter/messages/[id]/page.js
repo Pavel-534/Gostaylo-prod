@@ -31,6 +31,7 @@ import { useChatTyping } from '@/hooks/use-chat-typing'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
+import { useChatContext } from '@/lib/context/ChatContext'
 import { SupportRequestDialog } from '@/components/support-request-dialog'
 import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
 import { ChatBookingAnnouncement } from '@/components/chat-booking-announcement'
@@ -137,6 +138,17 @@ export default function RenterMessages({ params }) {
 
   useMarkConversationRead(conversationId, !!(conversationId && renterId), partnerOnline)
 
+  // Оптимистично сбрасываем счётчик в глобальном ChatContext при открытии треда
+  const { markConversationRead: markGlobalRead, refresh: refreshChat } = useChatContext()
+  useEffect(() => {
+    if (conversationId) {
+      markGlobalRead(conversationId)
+    }
+  }, [conversationId, markGlobalRead])
+
+  // Синхронизируем ChatContext при изменении Realtime (чтобы другие вкладки тоже обновились)
+  useRealtimeConversations(renterId, () => { loadConversations(); refreshChat() })
+
   const renterTypingName = useMemo(() => {
     if (!user) return 'Гость'
     if (user.name) return user.name
@@ -216,18 +228,7 @@ export default function RenterMessages({ params }) {
     [conversations, renterId, conversationId, router]
   )
 
-  // Live inbox updates: re-fetch enriched list whenever any conversation row changes.
-  // The hook stores the callback in a ref, so passing an inline function is fine.
-  useRealtimeConversations(renterId, () => loadConversations())
-
-  // Sync document.title with total unread badge.
-  useEffect(() => {
-    const total = hostingUnread + travelingUnread
-    document.title = total > 0 ? `(${total}) Сообщения | Gostaylo` : 'Сообщения | Gostaylo'
-    return () => {
-      document.title = 'Gostaylo'
-    }
-  }, [hostingUnread, travelingUnread])
+  // document.title теперь управляется глобально через ChatContext (lib/context/ChatContext.jsx)
 
   useEffect(() => {
     const p = consumeRenterInboxTabPreference()

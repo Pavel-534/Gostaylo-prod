@@ -33,6 +33,34 @@ import { Input } from '@/components/ui/input'
 import { formatPrice } from '@/lib/currency'
 import { cn } from '@/lib/utils'
 import { INBOX_TAB_TRAVELING, setRenterInboxTabPreference } from '@/lib/chat-inbox-tabs'
+import { useChatContext } from '@/lib/context/ChatContext'
+
+const CHAT_CACHE_TTL = 5 * 60 * 1000 // 5 min
+
+function getChatCacheKey(listingId, userId) {
+  return `gostaylo_chat_check_${listingId}_${userId}`
+}
+
+function readChatCache(listingId, userId) {
+  try {
+    const raw = localStorage.getItem(getChatCacheKey(listingId, userId))
+    if (!raw) return null
+    const entry = JSON.parse(raw)
+    if (Date.now() - (entry.ts || 0) > CHAT_CACHE_TTL) return null
+    return entry
+  } catch {
+    return null
+  }
+}
+
+function writeChatCache(listingId, userId, data) {
+  try {
+    localStorage.setItem(
+      getChatCacheKey(listingId, userId),
+      JSON.stringify({ ...data, ts: Date.now() }),
+    )
+  } catch {}
+}
 
 function ListingMapLoadFallback() {
   const [lang, setLang] = useState('ru')
@@ -85,6 +113,11 @@ function PremiumListingContent({ params }) {
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteLoading, setFavoriteLoading] = useState(false)
   const [contactPartnerLoading, setContactPartnerLoading] = useState(false)
+  const [existingConvId, setExistingConvId] = useState(null)
+  const [lastMessagePreview, setLastMessagePreview] = useState(null)
+  const [hasUnreadFromHost, setHasUnreadFromHost] = useState(false)
+
+  const { getConversationForListing, loaded: chatLoaded } = useChatContext()
   
   // Initialize from URL
   useEffect(() => {
@@ -137,6 +170,70 @@ function PremiumListingContent({ params }) {
       })
       .catch(() => {})
   }, [user?.id, listing?.id])
+
+  // Smart pre-check: does the user already have a conversation for this listing?
+  // Priority: 1) ChatContext (free), 2) localStorage cache (5 min TTL), 3) API fallback
+  useEffect(() => {
+    if (!user?.id || !listing?.id || String(user.id) === String(listing.ownerId)) {
+      setExistingConvId(null)
+      setLastMessagePreview(null)
+      setHasUnreadFromHost(false)
+      return
+    }
+
+    function applyConvData(conv) {
+      if (!conv) {
+        setExistingConvId(null)
+        setLastMessagePreview(null)
+        setHasUnreadFromHost(false)
+        return
+      }
+      const preview = conv.lastMessage?.content || conv.lastMessage?.message || null
+      const unread = Number(conv.unreadCount || 0) > 0 &&
+        String(conv.partnerId || conv.partner_id || '') === String(listing.ownerId || '')
+      setExistingConvId(conv.id)
+      setLastMessagePreview(preview ? String(preview).slice(0, 80) : null)
+      setHasUnreadFromHost(unread)
+      writeChatCache(listing.id, user.id, {
+        id: conv.id,
+        preview: preview ? String(preview).slice(0, 80) : null,
+        hasUnread: unread,
+      })
+    }
+
+    // 1. Try ChatContext (instant, no network)
+    if (chatLoaded) {
+      const conv = getConversationForListing(listing.id)
+      if (conv) { applyConvData(conv); return }
+      // ChatContext loaded but no conversation found → cache negative result
+      writeChatCache(listing.id, user.id, { id: null })
+      setExistingConvId(null)
+      setLastMessagePreview(null)
+      setHasUnreadFromHost(false)
+      return
+    }
+
+    // 2. Try localStorage cache while ChatContext is still loading
+    const cached = readChatCache(listing.id, user.id)
+    if (cached) {
+      setExistingConvId(cached.id || null)
+      setLastMessagePreview(cached.preview || null)
+      setHasUnreadFromHost(cached.hasUnread || false)
+      return
+    }
+
+    // 3. API fallback (only fires when ChatContext not ready and no cache)
+    fetch(
+      `/api/v2/chat/conversations?listing_id=${encodeURIComponent(listing.id)}&limit=1`,
+      { credentials: 'include' },
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        const conv = data?.data?.[0] || null
+        applyConvData(conv)
+      })
+      .catch(() => {})
+  }, [user?.id, listing?.id, listing?.ownerId, chatLoaded, getConversationForListing])
   
   // Track recently viewed
   useEffect(() => {
@@ -257,6 +354,13 @@ function PremiumListingContent({ params }) {
     }
     if (String(user.id) === String(listing.ownerId)) return
 
+    // If we already know the conversation ID — go straight there
+    if (existingConvId) {
+      setRenterInboxTabPreference(INBOX_TAB_TRAVELING)
+      router.push(`/renter/messages/${encodeURIComponent(existingConvId)}`)
+      return
+    }
+
     setContactPartnerLoading(true)
     try {
       const res = await fetch('/api/v2/chat/conversations', {
@@ -296,6 +400,7 @@ function PremiumListingContent({ params }) {
         } catch {
           /* ignore */
         }
+        setExistingConvId(id)
         router.push(`/renter/messages/${encodeURIComponent(id)}`)
       }
     } catch (e) {
@@ -566,6 +671,9 @@ function PremiumListingContent({ params }) {
                 showAskPartner={showContactPartner}
                 onAskPartner={handleContactPartner}
                 askPartnerLoading={contactPartnerLoading}
+                hasExistingConversation={!!existingConvId}
+                lastMessagePreview={lastMessagePreview}
+                hasUnreadFromHost={hasUnreadFromHost}
               />
               
               <MobileBookingBar
@@ -579,6 +687,9 @@ function PremiumListingContent({ params }) {
                 showAskPartner={showContactPartner}
                 onAskPartner={handleContactPartner}
                 askPartnerLoading={contactPartnerLoading}
+                hasExistingConversation={!!existingConvId}
+                lastMessagePreview={lastMessagePreview}
+                hasUnreadFromHost={hasUnreadFromHost}
               />
             </div>
           </div>

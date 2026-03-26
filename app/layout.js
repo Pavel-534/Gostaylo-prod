@@ -7,6 +7,7 @@ import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { MainContent } from '@/components/main-content'
 import { AuthProvider } from '@/contexts/auth-context'
 import { I18nProvider } from '@/contexts/i18n-context'
+import { ChatProvider } from '@/lib/context/ChatContext'
 import { getRequestSiteUrl } from '@/lib/server-site-url'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
@@ -87,10 +88,12 @@ button{font:inherit}
       <body className={inter.className}>
         <I18nProvider>
           <AuthProvider>
-            <UniversalHeader />
-            <MainContent>{children}</MainContent>
-            <MobileBottomNav />
-            <Toaster />
+            <ChatProvider>
+              <UniversalHeader />
+              <MainContent>{children}</MainContent>
+              <MobileBottomNav />
+              <Toaster />
+            </ChatProvider>
           </AuthProvider>
         </I18nProvider>
       </body>

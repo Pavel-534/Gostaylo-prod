@@ -19,6 +19,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { getQueryClient } from '@/lib/query-client'
+import { useChatContext } from '@/lib/context/ChatContext'
 import { 
   LayoutDashboard,
   Briefcase,
@@ -118,6 +119,7 @@ export default function PartnerLayout({ children }) {
   const [isImpersonating, setIsImpersonating] = useState(false)
   const [accessDenied, setAccessDenied] = useState(false)
   const [isNotLoggedIn, setIsNotLoggedIn] = useState(false)
+  const { totalUnread } = useChatContext()
 
   // Close sidebar on mobile when route changes
   useEffect(() => {
@@ -462,6 +464,8 @@ export default function PartnerLayout({ children }) {
               const Icon = item.icon
               const isActive = pathname === item.href || 
                 (item.href !== '/partner/dashboard' && pathname?.startsWith(item.href))
+              const isMessages = item.href === '/partner/messages'
+              const showUnreadDot = isMessages && totalUnread > 0 && !isActive
               
               return (
                 <Link
@@ -478,11 +482,21 @@ export default function PartnerLayout({ children }) {
                       : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
-                  <Icon className={`w-[18px] h-[18px] ${isActive ? 'text-teal-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                  <span className={`text-sm ${isActive ? 'font-semibold' : 'font-medium'}`}>
+                  <span className="relative shrink-0">
+                    <Icon className={`w-[18px] h-[18px] ${isActive ? 'text-teal-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                    {showUnreadDot && (
+                      <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white" />
+                    )}
+                  </span>
+                  <span className={`text-sm flex-1 ${isActive ? 'font-semibold' : 'font-medium'}`}>
                     {item.name}
                   </span>
-                  {item.badge && (
+                  {isMessages && totalUnread > 0 && !isActive && (
+                    <Badge variant="destructive" className="ml-auto h-5 min-w-[20px] px-1.5 text-[10px]">
+                      {totalUnread > 99 ? '99+' : totalUnread}
+                    </Badge>
+                  )}
+                  {item.badge && !isMessages && (
                     <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-[10px]">
                       {item.badge}
                     </Badge>

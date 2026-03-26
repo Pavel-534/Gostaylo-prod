@@ -55,6 +55,7 @@ import {
   filterConversationsByInboxTab,
   sumUnreadInConversations,
 } from '@/lib/chat-inbox-tabs'
+import { useChatContext } from '@/lib/context/ChatContext'
 
 function apiMessageToRow(m) {
   if (!m) return null
@@ -211,9 +212,15 @@ export default function PartnerMessages({ params }) {
     [conversations, user?.id, conversationId, router]
   )
 
-  // Live inbox updates — when any conversation changes in the DB, re-fetch the enriched list.
-  // The hook stores the callback in a ref, so passing an inline function is fine.
-  useRealtimeConversations(user?.id, () => loadConversations())
+  // Live inbox updates — когда меняется строка conversations в DB, перезагружаем список
+  // и синхронизируем глобальный ChatContext.
+  const { markConversationRead: markGlobalRead, refresh: refreshChat } = useChatContext()
+  useRealtimeConversations(user?.id, () => { loadConversations(); refreshChat() })
+
+  // Оптимистично сбрасываем счётчик в ChatContext при открытии треда
+  useEffect(() => {
+    if (conversationId) markGlobalRead(conversationId)
+  }, [conversationId, markGlobalRead])
 
   /** Синхронизируем вкладку с открытым по URL диалогом только когда conv уже соответствует URL (не затираем выбор при смене вкладки до загрузки треда). */
   useEffect(() => {
@@ -249,14 +256,7 @@ export default function PartnerMessages({ params }) {
     return language === 'ru' ? `${peerTypingName} печатает…` : `${peerTypingName} is typing…`
   }, [peerTypingName, language])
 
-  // Sync document.title with total unread badge (all tabs combined).
-  useEffect(() => {
-    const total = hostingUnread + travelingUnread
-    document.title = total > 0 ? `(${total}) Сообщения | Gostaylo` : 'Сообщения | Gostaylo'
-    return () => {
-      document.title = 'Gostaylo'
-    }
-  }, [hostingUnread, travelingUnread])
+  // document.title теперь управляется глобально через ChatContext (lib/context/ChatContext.jsx)
 
   useEffect(() => {
     checkAuth()

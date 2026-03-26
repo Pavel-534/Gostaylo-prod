@@ -174,12 +174,15 @@ export async function GET(request) {
 
   const { searchParams } = new URL(request.url)
   const listingCategory = searchParams.get('listing_category') || searchParams.get('listingCategory')
+  const listingIdFilter = searchParams.get('listing_id') || searchParams.get('listingId')
   const enrich =
     searchParams.get('enrich') === '1' ||
     searchParams.get('enrich') === 'true'
   const singleId = searchParams.get('id')
-  const archivedOnly =
-    searchParams.get('archived') === 'only' || searchParams.get('archivedOnly') === '1'
+  const archivedParam = searchParams.get('archived') || searchParams.get('archivedOnly')
+  const archivedOnly = archivedParam === 'only' || archivedParam === '1'
+  // ?archived=all → include archived conversations (used by ChatContext for full unread count)
+  const archivedAll = archivedParam === 'all'
   // Caller may request more via ?limit=N; default inbox limit is 30 to avoid N+1 explosion.
   const limitParam = parseInt(searchParams.get('limit') || '0', 10)
   const inboxLimit = singleId ? '' : `&limit=${limitParam > 0 && limitParam <= 200 ? limitParam : 30}`
@@ -195,6 +198,9 @@ export async function GET(request) {
     if (listingCategory) {
       url += `&listing_category=eq.${encodeURIComponent(listingCategory)}`
     }
+    if (listingIdFilter) {
+      url += `&listing_id=eq.${encodeURIComponent(listingIdFilter)}`
+    }
   } else {
     const orFilter = `(partner_id.eq.${userId},renter_id.eq.${userId},owner_id.eq.${userId},admin_id.eq.${userId})`
     url =
@@ -207,6 +213,9 @@ export async function GET(request) {
     }
     if (listingCategory) {
       url += `&listing_category=eq.${encodeURIComponent(listingCategory)}`
+    }
+    if (listingIdFilter) {
+      url += `&listing_id=eq.${encodeURIComponent(listingIdFilter)}`
     }
   }
 
@@ -230,8 +239,9 @@ export async function GET(request) {
           if (String(c.partner_id) === String(userId) && c.partner_archived_at) return true
           return false
         })
-      } else if (!singleId) {
-        // Списки inbox: скрыть архив у себя. Запрос по ?id= — оставить (открытие чата по прямой ссылке).
+      } else if (!archivedAll && !singleId) {
+        // Inbox: hide archived. Direct ?id= link — keep it.
+        // ?archived=all (ChatContext) — skip this filter so everything is returned.
         rows = rows.filter((c) => {
           if (c.renter_archived_at && String(c.renter_id) === String(userId)) return false
           if (c.partner_archived_at && String(c.partner_id) === String(userId)) return false

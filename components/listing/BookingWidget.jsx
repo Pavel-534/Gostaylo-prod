@@ -25,6 +25,29 @@ import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
 import { GostayloCalendar } from '@/components/gostaylo-calendar'
 
+/** Превью последнего сообщения под кнопкой "Написать / Продолжить" */
+function ChatPreviewBadge({ preview, hasUnread, language }) {
+  if (!preview) return null
+  const label = preview.length > 55 ? preview.slice(0, 55) + '…' : preview
+  return (
+    <div className={`flex items-start gap-1.5 rounded-lg px-2.5 py-1.5 text-xs ${
+      hasUnread
+        ? 'bg-amber-50 border border-amber-200 text-amber-800'
+        : 'bg-slate-50 border border-slate-200 text-slate-500'
+    }`}>
+      {hasUnread && (
+        <span className="mt-px h-2 w-2 shrink-0 rounded-full bg-amber-500" />
+      )}
+      <span className="leading-tight">
+        {hasUnread
+          ? (language === 'ru' ? 'Новый ответ: ' : 'New reply: ')
+          : (language === 'ru' ? 'Последнее: ' : 'Last: ')}
+        <span className="font-medium">{label}</span>
+      </span>
+    </div>
+  )
+}
+
 export function DesktopBookingWidget({
   listing,
   dateRange,
@@ -40,6 +63,9 @@ export function DesktopBookingWidget({
   onAskPartner,
   askPartnerLoading = false,
   showAskPartner = false,
+  hasExistingConversation = false,
+  lastMessagePreview = null,
+  hasUnreadFromHost = false,
 }) {
   const maxGuests = listing?.metadata?.max_guests || listing?.metadata?.guests || listing?.max_guests || 10
 
@@ -139,16 +165,29 @@ export function DesktopBookingWidget({
           </Button>
 
           {showAskPartner && onAskPartner && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onAskPartner}
-              disabled={askPartnerLoading}
-              className="w-full h-12 text-base border-teal-200 text-teal-800 hover:bg-teal-50"
-            >
-              <MessageCircle className="mr-2 h-4 w-4" />
-              {askPartnerLoading ? getUIText('loading', language) : getUIText('askListingQuestion', language)}
-            </Button>
+            <div className="space-y-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onAskPartner}
+                disabled={askPartnerLoading}
+                className={`w-full h-12 text-base border-teal-200 text-teal-800 hover:bg-teal-50 ${
+                  hasUnreadFromHost ? 'border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900' : ''
+                }`}
+              >
+                <MessageCircle className="mr-2 h-4 w-4" />
+                {askPartnerLoading
+                  ? getUIText('loading', language)
+                  : hasExistingConversation
+                    ? (language === 'ru' ? 'Продолжить диалог' : 'Continue chat')
+                    : getUIText('askListingQuestion', language)}
+              </Button>
+              <ChatPreviewBadge
+                preview={lastMessagePreview}
+                hasUnread={hasUnreadFromHost}
+                language={language}
+              />
+            </div>
           )}
 
           {(!dateRange?.from || !dateRange?.to) && (
@@ -173,8 +212,15 @@ export function MobileBookingBar({
   onAskPartner,
   askPartnerLoading = false,
   showAskPartner = false,
+  hasExistingConversation = false,
+  lastMessagePreview = null,
+  hasUnreadFromHost = false,
 }) {
-  const askLabel = askPartnerLoading ? getUIText('loading', language) : getUIText('askListingQuestion', language)
+  const askLabel = askPartnerLoading
+    ? getUIText('loading', language)
+    : hasExistingConversation
+      ? (language === 'ru' ? 'Продолжить диалог' : 'Continue chat')
+      : getUIText('askListingQuestion', language)
 
   return (
     <div
@@ -194,18 +240,25 @@ export function MobileBookingBar({
 
         <div className="flex items-center gap-2 shrink-0">
           {showAskPartner && onAskPartner && (
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={onAskPartner}
-              disabled={askPartnerLoading}
-              className="h-12 w-12 shrink-0 border-teal-200 text-teal-800 hover:bg-teal-50"
-              aria-label={askLabel}
-              title={askLabel}
-            >
-              <MessageCircle className="h-5 w-5" />
-            </Button>
+            <div className="relative">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={onAskPartner}
+                disabled={askPartnerLoading}
+                className={`h-12 w-12 shrink-0 border-teal-200 text-teal-800 hover:bg-teal-50 ${
+                  hasUnreadFromHost ? 'border-amber-300 bg-amber-50 text-amber-900' : ''
+                }`}
+                aria-label={askLabel}
+                title={lastMessagePreview ? `${askLabel}: ${lastMessagePreview}` : askLabel}
+              >
+                <MessageCircle className="h-5 w-5" />
+              </Button>
+              {hasUnreadFromHost && (
+                <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-amber-500 ring-1 ring-white" />
+              )}
+            </div>
           )}
           <Button
             onClick={onBookingClick}
