@@ -149,8 +149,8 @@ function CheckoutPageInner({ params }) {
         });
       }
       
-      // Check if already paid
-      if (b.status === 'CONFIRMED' || b.status === 'PAID') {
+      // Только PAID = реально оплачено. CONFIRMED = подтверждено партнёром, но ещё не оплачено.
+      if (b.status === 'PAID' || b.status === 'COMPLETED') {
         setPayment({
           id: `pay-${b.id}`,
           status: 'COMPLETED',
@@ -524,6 +524,21 @@ function CheckoutPageInner({ params }) {
         </Link>
 
         <h1 className="text-3xl font-bold text-slate-900 mb-8">Оплата бронирования</h1>
+
+        {/* Баннер для подтверждённого, но неоплаченного бронирования */}
+        {booking?.status === 'CONFIRMED' && (
+          <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 flex items-start gap-3">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold text-emerald-900 text-sm">
+                Бронирование подтверждено партнёром!
+              </p>
+              <p className="text-sm text-emerald-700 mt-0.5">
+                Чтобы окончательно закрепить даты, завершите оплату.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="grid md:grid-cols-3 gap-6">
           {/* Payment Form */}

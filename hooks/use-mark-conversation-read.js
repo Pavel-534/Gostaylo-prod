@@ -4,7 +4,8 @@ import { useEffect, useCallback } from 'react'
 
 /**
  * Периодически помечает входящие сообщения прочитанными, пока открыт чат.
- * Чаще опрашиваем, когда собеседник в Presence — быстрее появляются двойные галочки.
+ * Возвращает `markNow()` — вызывайте при получении нового Realtime-сообщения,
+ * чтобы двойные галочки синели мгновенно, не дожидаясь следующего тика.
  */
 export function useMarkConversationRead(conversationId, enabled, peerOnline) {
   const mark = useCallback(async () => {
@@ -21,7 +22,8 @@ export function useMarkConversationRead(conversationId, enabled, peerOnline) {
     }
   }, [conversationId, enabled])
 
-  const intervalMs = peerOnline ? 10000 : 22000
+  // Быстрее при активном собеседнике — галочки синеют без задержки
+  const intervalMs = peerOnline ? 6000 : 20000
 
   useEffect(() => {
     if (!enabled || !conversationId) return
@@ -38,4 +40,7 @@ export function useMarkConversationRead(conversationId, enabled, peerOnline) {
       document.removeEventListener('visibilitychange', onVis)
     }
   }, [enabled, conversationId, mark, intervalMs])
+
+  // Возвращаем для вызова по событию (новое сообщение от собеседника)
+  return { markNow: mark }
 }

@@ -32,9 +32,11 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { useChatContext } from '@/lib/context/ChatContext'
+import { useOptimisticSend } from '@/hooks/use-optimistic-send'
 import { SupportRequestDialog } from '@/components/support-request-dialog'
 import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
-import { ChatBookingAnnouncement } from '@/components/chat-booking-announcement'
+import { ChatMilestoneCard } from '@/components/chat-milestone-card'
+import { ChatImageCollage, groupConsecutiveImages } from '@/components/chat-image-collage'
 import { getUIText } from '@/lib/translations'
 import { ConversationList } from '@/components/conversation-list'
 import { ChatActionBar } from '@/components/chat-action-bar'
@@ -110,10 +112,12 @@ export default function RenterMessages({ params }) {
         if (fromPeer) {
           playNotificationSound()
           toast.info('💬 Новое сообщение')
+          // Мгновенно помечаем прочитанным → галочки синеют у отправителя
+          markNow()
         }
       }
     },
-    [renterId]
+    [renterId, markNow]
   )
 
   const handleMessageUpdate = useCallback((row) => {
@@ -136,7 +140,7 @@ export default function RenterMessages({ params }) {
     selectedConv?.partnerId || selectedConv?.adminId || null
   )
 
-  useMarkConversationRead(conversationId, !!(conversationId && renterId), partnerOnline)
+  const { markNow } = useMarkConversationRead(conversationId, !!(conversationId && renterId), partnerOnline)
 
   // Оптимистично сбрасываем счётчик в глобальном ChatContext при открытии треда
   const { markConversationRead: markGlobalRead, refresh: refreshChat } = useChatContext()
@@ -146,8 +150,14 @@ export default function RenterMessages({ params }) {
     }
   }, [conversationId, markGlobalRead])
 
-  // Синхронизируем ChatContext при изменении Realtime (чтобы другие вкладки тоже обновились)
-  useRealtimeConversations(renterId, () => { loadConversations(); refreshChat() })
+  // ChatContext теперь управляет своим Realtime сам; здесь только обновляем локальный список
+  useRealtimeConversations(renterId, () => loadConversations())
+
+  const { sendText: optimisticSendText } = useOptimisticSend({
+    conversationId,
+    userId: renterId,
+    setMessages,
+  })
 
   const renterTypingName = useMemo(() => {
     if (!user) return 'Гость'
@@ -438,32 +448,12 @@ export default function RenterMessages({ params }) {
   async function sendMessage(e) {
     e.preventDefault()
     if (!newMessage.trim() || !selectedConv || !renterId) return
-
+    const text = newMessage.trim()
+    setNewMessage('')
     setSending(true)
     try {
-      const res = await fetch('/api/v2/chat/messages', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: selectedConv.id,
-          content: newMessage.trim(),
-          type: 'text',
-          skipPush: !!partnerOnline,
-        }),
-      })
-      const data = await res.json()
-      if (data.success && data.data) {
-        const row = apiMessageToRow(data.data)
-        if (row) setMessages((prev) => [...prev, row])
-        setNewMessage('')
-        loadConversations()
-      } else {
-        toast.error(data.error || 'Ошибка при отправке')
-      }
-    } catch (error) {
-      console.error('Failed to send message:', error)
-      toast.error('Ошибка при отправке сообщения')
+      await optimisticSendText(text, { skipPush: !!partnerOnline })
+      loadConversations()
     } finally {
       setSending(false)
     }
@@ -733,11 +723,35 @@ export default function RenterMessages({ params }) {
 
                 <Card className="overflow-hidden flex flex-col min-h-0 flex-1 border-0 shadow-none rounded-none sm:rounded-lg sm:border sm:border-slate-200 sm:shadow-sm mx-2 mb-2 sm:mx-0 sm:mb-0">
               <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4 pb-28 sm:pb-24 space-y-4 scroll-pb-24">
-                {messages.map((msg, idx) => {
-                  const prev = messages[idx - 1]
-                  const showDay = chatNeedsDaySeparator(prev?.created_at, msg.created_at)
-                  const dayLabel = chatDayLabel(msg.created_at, language)
+                {groupConsecutiveImages(messages).map((item, idx, arr) => {
+                  const msgDate = item._imageGroup ? item.messages[0].created_at : item.created_at
+                  const prevItem = arr[idx - 1]
+                  const prevDate = prevItem ? (prevItem._imageGroup ? prevItem.messages[prevItem.messages.length - 1].created_at : prevItem.created_at) : null
+                  const showDay = chatNeedsDaySeparator(prevDate, msgDate)
+                  const dayLabel = chatDayLabel(msgDate, language)
 
+                  // ─── Группа изображений ───────────────────────────────────
+                  if (item._imageGroup) {
+                    const first = item.messages[0]
+                    const isOwnGrp = first.sender_id === renterId
+                    return (
+                      <Fragment key={item.id}>
+                        {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                        <div className={`flex ${isOwnGrp ? 'justify-end' : 'justify-start'}`}>
+                          <ChatImageCollage
+                            images={item.messages.map((m) => ({
+                              id: m.id,
+                              url: m.metadata?.image_url || m.metadata?.url,
+                              alt: m.message || '',
+                            }))}
+                            isOwn={isOwnGrp}
+                          />
+                        </div>
+                      </Fragment>
+                    )
+                  }
+
+                  const msg = item
                   const st = msg.metadata?.support_ticket
                   if (st?.category && st?.disputeType) {
                     return (
@@ -771,33 +785,10 @@ export default function RenterMessages({ params }) {
                   }
 
                   if (String(msg.type || '').toLowerCase() === 'system') {
-                    const sk = msg.metadata?.system_key
-                    if (
-                      msg.metadata?.booking_announcement ||
-                      sk === 'booking_confirmed' ||
-                      sk === 'booking_declined' ||
-                      sk === 'booking_status_update'
-                    ) {
-                      return (
-                        <Fragment key={msg.id}>
-                          {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
-                          <div className="flex justify-center px-2">
-                            <ChatBookingAnnouncement message={msg} language={language} />
-                          </div>
-                        </Fragment>
-                      )
-                    }
-                    let line = null
-                    if (sk === 'passport_request') line = 'Системное сообщение'
                     return (
                       <Fragment key={msg.id}>
                         {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
-                        <div className="flex justify-center px-2">
-                          <div className="max-w-lg rounded-xl bg-slate-100 border border-slate-200 px-4 py-2 text-sm text-slate-700 text-center">
-                            {line ? <p className="text-xs font-semibold text-teal-800 mb-1">{line}</p> : null}
-                            {msg.message || msg.content}
-                          </div>
-                        </div>
+                        <ChatMilestoneCard message={msg} language={language} userRole="renter" />
                       </Fragment>
                     )
                   }
@@ -847,6 +838,9 @@ export default function RenterMessages({ params }) {
                     ['text', 'image', 'file', 'rejection', ''].includes(mt) ||
                     !msg.type
                   ) {
+                    const bookingPaid = ['PAID', 'COMPLETED', 'CHECKED_IN', 'CHECKED_OUT'].includes(
+                      String(booking?.status || '').toUpperCase()
+                    )
                     return (
                       <Fragment key={msg.id}>
                         {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
@@ -857,6 +851,7 @@ export default function RenterMessages({ params }) {
                           isRejection={isRejection}
                           showSenderName={!isOwn}
                           senderName={msg.sender_name || msg.senderName || 'Участник'}
+                          maskContacts={!bookingPaid}
                           translateTargetLang={language}
                           translateButtonLabels={{
                             translate: language === 'ru' ? 'Перевести' : 'Translate',

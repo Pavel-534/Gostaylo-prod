@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { ChatGrowingTextarea } from '@/components/chat-growing-textarea'
 import { SendInvoiceDialog } from '@/components/chat-invoice'
-import { Plus, Receipt, IdCard, Loader2, Send, Paperclip, Quote } from 'lucide-react'
+import { Plus, Receipt, IdCard, Loader2, Send, Paperclip, Quote, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 
@@ -205,6 +205,48 @@ export function PartnerChatComposer({
             }}
           />
         ) : null}
+
+        {/* ⚡ Быстрые ответы — отдельная кнопка для скорости */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 flex-shrink-0 border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-300"
+              aria-label={isRu ? 'Быстрые ответы' : 'Quick replies'}
+              disabled={disabled}
+              title={isRu ? 'Быстрые ответы' : 'Quick replies'}
+            >
+              <Zap className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-72">
+            <DropdownMenuLabel className="text-xs font-semibold text-slate-600 flex items-center gap-1.5">
+              <Zap className="h-3.5 w-3.5 text-amber-500" />
+              {isRu ? 'Быстрые ответы' : 'Quick replies'}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {QUICK_REPLIES.map((q, i) => (
+              <DropdownMenuItem
+                key={i}
+                className="flex cursor-pointer flex-col items-start gap-1 py-2.5"
+                onSelect={(e) => {
+                  e.preventDefault()
+                  onMessageChange(isRu ? q.textRu : q.textEn)
+                }}
+              >
+                <span className="flex w-full items-center gap-2">
+                  <Quote className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                  <span className="text-sm font-medium text-slate-800">{isRu ? q.shortRu : q.shortEn}</span>
+                </span>
+                <span className="line-clamp-2 pl-[1.375rem] text-xs text-slate-500 leading-snug">
+                  {isRu ? q.textRu : q.textEn}
+                </span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <ChatGrowingTextarea
           value={newMessage}

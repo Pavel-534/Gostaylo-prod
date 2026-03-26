@@ -4,40 +4,61 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { ru } from 'date-fns/locale'
-import { AlertTriangle, Check, CheckCheck, Languages, Loader2, Paperclip, Shield } from 'lucide-react'
+import { AlertTriangle, Check, CheckCheck, Clock, Languages, Loader2, Paperclip, Shield } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { toRelativeSiteUrl } from '@/lib/chat-same-origin-url'
+import { maskContactInfo } from '@/lib/mask-contacts'
 
 /**
  * @param {'light' | 'dark'} bubbleTone — dark: «свои» пузыри (teal/indigo фон); light: светлый фон
  */
-export function MessageReadTicks({ isOwn, isRead, className, bubbleTone = 'light' }) {
+/**
+ * status: 'sending' | 'sent' | undefined
+ * Если status='sending' → часики (отправляется).
+ * Если isRead=true → двойная синяя/голубая галочка (прочитано).
+ * Иначе → одна серая (отправлено на сервер).
+ */
+export function MessageReadTicks({ isOwn, isRead, status, className, bubbleTone = 'light' }) {
   if (!isOwn) return null
+
+  if (status === 'sending') {
+    return (
+      <Clock
+        className={cn(
+          'h-3.5 w-3.5 shrink-0 transition-colors duration-150',
+          bubbleTone === 'dark' ? 'text-slate-300/70' : 'text-slate-400/70',
+          className,
+        )}
+        aria-label="Отправляется"
+      />
+    )
+  }
+
   const read = Boolean(isRead)
   if (bubbleTone === 'dark') {
     return read ? (
       <CheckCheck
-        className={cn('h-3.5 w-3.5 shrink-0 text-sky-300 transition-colors duration-150', className)}
+        className={cn('h-3.5 w-3.5 shrink-0 text-sky-300 transition-colors duration-300', className)}
         aria-label="Прочитано"
       />
     ) : (
       <Check
-        className={cn('h-3.5 w-3.5 shrink-0 text-slate-300 transition-colors duration-150', className)}
+        className={cn('h-3.5 w-3.5 shrink-0 text-slate-300 transition-colors duration-300', className)}
         aria-label="Отправлено"
       />
     )
   }
   return read ? (
     <CheckCheck
-      className={cn('h-3.5 w-3.5 shrink-0 text-blue-600 transition-colors duration-150', className)}
+      className={cn('h-3.5 w-3.5 shrink-0 text-blue-600 transition-colors duration-300', className)}
       aria-label="Прочитано"
     />
   ) : (
     <Check
-      className={cn('h-3.5 w-3.5 shrink-0 text-slate-400 transition-colors duration-150', className)}
+      className={cn('h-3.5 w-3.5 shrink-0 text-slate-400 transition-colors duration-300', className)}
       aria-label="Отправлено"
     />
   )
@@ -61,6 +82,11 @@ export function MessageBubble({
   /** Код языка UI (ru, en) — если задан, показываем кнопку перевода для текстовых сообщений */
   translateTargetLang = null,
   translateButtonLabels = { translate: 'Translate', original: 'Original', translating: '…' },
+  /**
+   * Маскировать контакты (телефоны, e-mail, Telegram) в тексте?
+   * true — если бронирование НЕ оплачено (защита от обхода комиссии).
+   */
+  maskContacts = false,
 }) {
   const [translated, setTranslated] = useState(null)
   const [showTranslated, setShowTranslated] = useState(false)
@@ -118,7 +144,9 @@ export function MessageBubble({
     }
   }
 
-  const displayText = showTranslated && translated ? translated : text
+  const rawDisplayText = showTranslated && translated ? translated : text
+  // Маскируем контакты, если бронирование ещё не оплачено
+  const displayText = maskContacts && !isOwn ? maskContactInfo(rawDisplayText) : rawDisplayText
 
   function renderTextWithLocalLinks(str) {
     if (!str) return null
@@ -157,6 +185,7 @@ export function MessageBubble({
 
   /** Галочки: на тёмном пузыре (свои) — светлые иконки */
   const tickTone = isOwn ? 'dark' : 'light'
+  const isSending = msg._status === 'sending'
 
   let body = null
   if (rawType === 'image' && imgUrl && typeof imgUrl === 'string') {
@@ -182,7 +211,7 @@ export function MessageBubble({
   }
 
   return (
-    <div className={cn('flex gap-3', isOwn ? 'flex-row-reverse' : 'flex-row')}>
+    <div className={cn('flex gap-3', isOwn ? 'flex-row-reverse' : 'flex-row', isSending && 'opacity-60')}>
       {showAvatar ? (
         <Avatar className="w-8 h-8 flex-shrink-0">
           <AvatarFallback
@@ -236,6 +265,7 @@ export function MessageBubble({
           <MessageReadTicks
             isOwn={isOwn}
             isRead={Boolean(msg.is_read ?? msg.isRead)}
+            status={msg._status}
             bubbleTone={tickTone}
             className={ticksClassName}
           />
