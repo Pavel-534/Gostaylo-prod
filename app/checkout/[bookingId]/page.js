@@ -41,6 +41,7 @@ function CheckoutPageInner({ params }) {
   const [promoCode, setPromoCode] = useState('')
   const [promoDiscount, setPromoDiscount] = useState(null)
   const [promoLoading, setPromoLoading] = useState(false)
+  const [chatConversationId, setChatConversationId] = useState(null)
 
   useEffect(() => {
     loadPaymentStatus()
@@ -157,6 +158,31 @@ function CheckoutPageInner({ params }) {
           amount: b.price_thb
         });
         setPaymentSuccess(true);
+      }
+
+      // Try to find the linked conversation so we can offer a chat link on success screen.
+      try {
+        const convRes = await fetch(
+          `/api/v2/chat/conversations?id=${encodeURIComponent(b.id)}&enrich=0`,
+          { credentials: 'include' }
+        )
+        const convJson = await convRes.json()
+        const convId = convJson.data?.[0]?.id
+        if (convId) setChatConversationId(convId)
+        else {
+          // Fallback: search by booking_id param
+          const convRes2 = await fetch(
+            `/api/v2/chat/conversations?enrich=0`,
+            { credentials: 'include' }
+          )
+          const convJson2 = await convRes2.json()
+          const matched = Array.isArray(convJson2.data)
+            ? convJson2.data.find((c) => String(c.bookingId) === String(b.id))
+            : null
+          if (matched?.id) setChatConversationId(matched.id)
+        }
+      } catch {
+        // Non-critical — don't block checkout flow
       }
       
       setLoading(false);
@@ -453,9 +479,10 @@ function CheckoutPageInner({ params }) {
   }
 
   if (paymentSuccess) {
+    const chatHref = chatConversationId ? `/renter/messages/${chatConversationId}` : null
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Card className="max-w-md">
+        <Card className="max-w-md w-full mx-4">
           <CardContent className="pt-6 text-center">
             <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto mb-4" />
             <h3 className="text-2xl font-bold mb-2">Оплата успешна!</h3>
@@ -463,7 +490,12 @@ function CheckoutPageInner({ params }) {
               Ваше бронирование оплачено. Деньги переведены партнёру после подтверждения check-in.
             </p>
             <div className="space-y-3">
-              <Button asChild className="w-full bg-teal-600 hover:bg-teal-700">
+              {chatHref && (
+                <Button asChild className="w-full bg-teal-600 hover:bg-teal-700">
+                  <Link href={chatHref}>💬 Написать хозяину</Link>
+                </Button>
+              )}
+              <Button asChild variant={chatHref ? 'outline' : 'default'} className={`w-full${chatHref ? '' : ' bg-teal-600 hover:bg-teal-700'}`}>
                 <Link href="/">На главную</Link>
               </Button>
               <Button asChild variant="outline" className="w-full">

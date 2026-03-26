@@ -27,6 +27,7 @@ import {
 import { toast } from 'sonner'
 import {
   useRealtimeMessages,
+  useRealtimeConversations,
   usePresence,
   playNotificationSound,
 } from '@/hooks/use-realtime-chat'
@@ -35,6 +36,7 @@ import { useChatTyping } from '@/hooks/use-chat-typing'
 import { ConversationList } from '@/components/conversation-list'
 import { StickyChatHeader } from '@/components/sticky-chat-header'
 import { PartnerChatComposer } from '@/components/partner-chat-composer'
+import { ChatActionBar } from '@/components/chat-action-bar'
 import { InvoiceBubble } from '@/components/invoice-bubble'
 import { MessageBubble } from '@/components/message-bubble'
 import { ChatDateSeparator } from '@/components/chat-date-separator'
@@ -87,6 +89,7 @@ export default function PartnerMessages({ params }) {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [supportDialogOpen, setSupportDialogOpen] = useState(false)
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
   const [bookingActionLoading, setBookingActionLoading] = useState(false)
   const [declineOpen, setDeclineOpen] = useState(false)
   const [declinePreset, setDeclinePreset] = useState('occupied')
@@ -145,10 +148,17 @@ export default function PartnerMessages({ params }) {
     return selectedConv.partnerName || (language === 'ru' ? 'Хозяин' : 'Host')
   }, [selectedConv, user, language])
 
-  const viewerIsListingHost = useMemo(() => {
-    if (!selectedConv || !user?.id) return false
-    return String(selectedConv.partnerId) === String(user.id)
-  }, [selectedConv, user])
+  // Two-hat context: a user can be the host (Hosting) or guest (Traveling) in different conversations.
+  const isHosting = useMemo(
+    () => !!(selectedConv?.id && user?.id && String(selectedConv.partnerId) === String(user.id)),
+    [selectedConv, user]
+  )
+  const isTraveling = useMemo(
+    () => !!(selectedConv?.id && user?.id && String(selectedConv.renterId) === String(user.id)),
+    [selectedConv, user]
+  )
+  /** @deprecated Use isHosting instead */
+  const viewerIsListingHost = isHosting
 
   const hostingUnread = useMemo(
     () =>
@@ -201,6 +211,10 @@ export default function PartnerMessages({ params }) {
     [conversations, user?.id, conversationId, router]
   )
 
+  // Live inbox updates — when any conversation changes in the DB, re-fetch the enriched list.
+  // The hook stores the callback in a ref, so passing an inline function is fine.
+  useRealtimeConversations(user?.id, () => loadConversations())
+
   /** Синхронизируем вкладку с открытым по URL диалогом только когда conv уже соответствует URL (не затираем выбор при смене вкладки до загрузки треда). */
   useEffect(() => {
     if (!conversationId || !selectedConv?.id || !user?.id) return
@@ -234,6 +248,15 @@ export default function PartnerMessages({ params }) {
     if (!peerTypingName) return null
     return language === 'ru' ? `${peerTypingName} печатает…` : `${peerTypingName} is typing…`
   }, [peerTypingName, language])
+
+  // Sync document.title with total unread badge (all tabs combined).
+  useEffect(() => {
+    const total = hostingUnread + travelingUnread
+    document.title = total > 0 ? `(${total}) Сообщения | Gostaylo` : 'Сообщения | Gostaylo'
+    return () => {
+      document.title = 'Gostaylo'
+    }
+  }, [hostingUnread, travelingUnread])
 
   useEffect(() => {
     checkAuth()
@@ -489,11 +512,10 @@ export default function PartnerMessages({ params }) {
     try {
       const res = await fetch('/api/v2/chat/invoice', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId: selectedConv.id,
-          senderId: user.id,
-          senderName: user.name || user.email || 'Partner',
           amount: invoiceData.amount,
           currency: invoiceData.currency,
           paymentMethod: invoiceData.paymentMethod,
@@ -898,6 +920,17 @@ export default function PartnerMessages({ params }) {
             <div ref={messagesEndRef} />
           </div>
 
+          <ChatActionBar
+            isHosting={isHosting}
+            isTraveling={isTraveling}
+            booking={booking}
+            payNowHref={payNowHref}
+            onConfirm={isHosting ? handleConfirmBookingHeader : undefined}
+            onDecline={isHosting ? handleDeclineBookingHeader : undefined}
+            onOpenInvoice={isHosting ? () => setInvoiceDialogOpen(true) : undefined}
+            loading={bookingActionLoading}
+            language={language}
+          />
           <PartnerChatComposer
             newMessage={newMessage}
             onMessageChange={(v) => {
@@ -914,6 +947,8 @@ export default function PartnerMessages({ params }) {
             onSendPassportRequest={viewerIsListingHost ? handleSendPassportRequest : undefined}
             onAttachFile={handleAttachFile}
             showHostPlusMenu={viewerIsListingHost}
+            invoiceDialogOpen={invoiceDialogOpen}
+            onInvoiceDialogOpenChange={setInvoiceDialogOpen}
           />
         </div>
       ) : (

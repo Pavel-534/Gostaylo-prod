@@ -180,12 +180,17 @@ export async function GET(request) {
   const singleId = searchParams.get('id')
   const archivedOnly =
     searchParams.get('archived') === 'only' || searchParams.get('archivedOnly') === '1'
+  // Caller may request more via ?limit=N; default inbox limit is 30 to avoid N+1 explosion.
+  const limitParam = parseInt(searchParams.get('limit') || '0', 10)
+  const inboxLimit = singleId ? '' : `&limit=${limitParam > 0 && limitParam <= 200 ? limitParam : 30}`
 
   let url
   if (staff) {
     url = `${SUPABASE_URL}/rest/v1/conversations?select=*&order=is_priority.desc,last_message_at.desc.nullslast`
     if (singleId) {
       url += `&id=eq.${encodeURIComponent(singleId)}`
+    } else {
+      url += inboxLimit
     }
     if (listingCategory) {
       url += `&listing_category=eq.${encodeURIComponent(listingCategory)}`
@@ -197,6 +202,8 @@ export async function GET(request) {
       '&order=last_message_at.desc.nullslast'
     if (singleId) {
       url += `&id=eq.${encodeURIComponent(singleId)}`
+    } else {
+      url += inboxLimit
     }
     if (listingCategory) {
       url += `&listing_category=eq.${encodeURIComponent(listingCategory)}`

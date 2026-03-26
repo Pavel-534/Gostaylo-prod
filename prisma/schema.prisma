@@ -1,5 +1,5 @@
-// FunnyRent 2.1 Database Schema
-// Global Rental & Services Aggregator
+// Gostaylo Database Schema
+// Rental & Services Platform — Phuket
 
 generator client {
   provider = "prisma-client-js"
@@ -403,6 +403,106 @@ model SeasonalPrice {
   @@index([endDate])
   @@map("seasonal_prices")
 }
+
+// ─── Chat ────────────────────────────────────────────────────────────────────
+
+// Conversation between renter and partner (or admin) about a listing / booking.
+model Conversation {
+  id               String    @id
+  listingId        String?
+  listingCategory  String?
+  bookingId        String?   @unique
+
+  // Participants
+  partnerId        String?
+  partnerName      String?
+  renterId         String?
+  renterName       String?
+  ownerId          String?   // alias for partnerId (legacy)
+  adminId          String?
+  adminName        String?
+
+  // Lifecycle
+  type             String    @default("INQUIRY")   // INQUIRY | BOOKING | SUPPORT
+  status           String    @default("OPEN")      // OPEN | CLOSED | RESOLVED
+  statusLabel      String?
+  isPriority       Boolean   @default(false)
+
+  // Archive flags (per-participant; hide from own inbox without deleting history)
+  renterArchivedAt  DateTime?
+  partnerArchivedAt DateTime?
+
+  // Timestamps
+  lastMessageAt    DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  messages         Message[]
+  invoices         Invoice[]
+
+  @@index([partnerId])
+  @@index([renterId])
+  @@index([listingId])
+  @@index([bookingId])
+  @@index([lastMessageAt])
+  @@map("conversations")
+}
+
+// Individual chat message.
+model Message {
+  id             String    @id
+  conversationId String
+
+  // Sender — may be a platform user or a system process
+  senderId       String?
+  senderRole     String    @default("RENTER")  // RENTER | PARTNER | ADMIN | MODERATOR
+  senderName     String?
+
+  // Content
+  message        String?   // plain-text body (legacy column)
+  content        String?   // canonical content column
+  type           String    @default("text")    // text | image | file | invoice | system | rejection
+
+  // Rich metadata (JSONB): invoice payload, system_key, image_url, file_url, booking_announcement …
+  metadata       Json?
+
+  isRead         Boolean   @default(false)
+
+  createdAt      DateTime  @default(now())
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+// Invoice sent by the partner inside a chat thread.
+model Invoice {
+  id             String    @id
+  conversationId String
+  bookingId      String?
+
+  amount         Float
+  status         String    @default("pending")  // pending | paid | cancelled | expired
+
+  // Additional details stored as JSONB: currency, payment_method, description, listing, check_in, check_out
+  metadata       Json?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([bookingId])
+  @@index([status])
+  @@map("invoices")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
 
 // Enums
 enum Role {

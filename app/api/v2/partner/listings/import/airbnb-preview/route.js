@@ -310,6 +310,32 @@ export async function POST(request) {
       'Airbnb временно ограничил автоматический импорт. ' +
       'Пожалуйста, заполните основные поля вручную — это займёт всего 2 минуты.'
 
+    // ── Task: истёк платный период актора ────────────────────────────────────
+    if (code === 'TASK_PAYMENT_REQUIRED') {
+      console.error('[airbnb-preview] Task actor payment required — clear APIFY_AIRBNB_TASK_ID or pay for the actor')
+      return NextResponse.json(
+        { success: false, error: FRIENDLY_MANUAL_MSG, error_en: msg, canFillManually: true },
+        { status: 503 }
+      )
+    }
+
+    // ── Task: задача не найдена ───────────────────────────────────────────────
+    if (code === 'TASK_NOT_FOUND') {
+      console.error('[airbnb-preview] Apify Task not found — check APIFY_AIRBNB_TASK_ID value in Vercel env')
+      return NextResponse.json(
+        { success: false, error: FRIENDLY_MANUAL_MSG, error_en: msg, canFillManually: true },
+        { status: 503 }
+      )
+    }
+
+    // ── Task: актор выполнился, но провалился / пустой датасет ──────────────
+    if (code === 'TASK_RUN_FAILED' || code === 'TASK_EMPTY_DATASET' || code === 'TASK_BAD_INPUT') {
+      return NextResponse.json(
+        { success: false, error: FRIENDLY_MANUAL_MSG, error_en: msg, canFillManually: true },
+        { status: 503 }
+      )
+    }
+
     // ── Объявление не найдено / закрыто ──────────────────────────────────────
     if (code === 'LISTING_NOT_FOUND' || code === 'APIFY_EMPTY_DATASET') {
       return NextResponse.json(

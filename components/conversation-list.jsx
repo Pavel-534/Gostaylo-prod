@@ -10,6 +10,31 @@ import { toPublicImageUrl } from '@/lib/public-image-url'
 import { ChatInboxRoleTabs } from '@/components/chat-inbox-role-tabs'
 
 /**
+ * Map a conversation's statusLabel to a human-readable badge with colour.
+ * Returns null if there's nothing interesting to show.
+ */
+const STATUS_CFG = {
+  PENDING:   { ru: 'Ожидает',       en: 'Pending',    cls: 'bg-amber-100 text-amber-800 border-amber-200' },
+  CONFIRMED: { ru: 'Подтверждено',  en: 'Confirmed',  cls: 'bg-blue-100 text-blue-800 border-blue-200' },
+  PAID:      { ru: 'Оплачено',      en: 'Paid',       cls: 'bg-green-100 text-green-800 border-green-200' },
+  COMPLETED: { ru: 'Завершено',     en: 'Completed',  cls: 'bg-slate-100 text-slate-600 border-slate-200' },
+  CANCELLED: { ru: 'Отменено',      en: 'Cancelled',  cls: 'bg-red-100 text-red-700 border-red-200' },
+  REFUNDED:  { ru: 'Возврат',       en: 'Refunded',   cls: 'bg-purple-100 text-purple-700 border-purple-200' },
+}
+
+function ConversationStatusBadge({ statusLabel, lang = 'ru' }) {
+  if (!statusLabel) return null
+  const cfg = STATUS_CFG[String(statusLabel).toUpperCase()]
+  if (!cfg) return null
+  const label = lang === 'en' ? cfg.en : cfg.ru
+  return (
+    <span className={`inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded border ${cfg.cls} shrink-0`}>
+      {label}
+    </span>
+  )
+}
+
+/**
  * Соответствие slug категории из БД → имя экспорта lucide-react (PascalCase).
  * Неизвестные slug пробуются как PascalCase от сегментов slug; иначе Tag.
  */
@@ -214,6 +239,7 @@ export function ConversationList({
                       </p>
                     </div>
                     <div className="flex items-center gap-1 ml-2 shrink-0">
+                      <ConversationStatusBadge statusLabel={conv.statusLabel} lang={sidebarLang} />
                       {unread > 0 && <Badge className="bg-red-500 text-white">{unread}</Badge>}
                       {onArchiveConversation ? (
                         <Button

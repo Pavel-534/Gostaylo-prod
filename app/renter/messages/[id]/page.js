@@ -25,7 +25,7 @@ import { ChatDateSeparator } from '@/components/chat-date-separator'
 import { uploadChatFile } from '@/lib/chat-upload'
 import { useI18n } from '@/contexts/i18n-context'
 import { chatDayLabel, chatNeedsDaySeparator } from '@/lib/chat-date-labels'
-import { useRealtimeMessages, usePresence, playNotificationSound } from '@/hooks/use-realtime-chat'
+import { useRealtimeMessages, useRealtimeConversations, usePresence, playNotificationSound } from '@/hooks/use-realtime-chat'
 import { useMarkConversationRead } from '@/hooks/use-mark-conversation-read'
 import { useChatTyping } from '@/hooks/use-chat-typing'
 import { toast } from 'sonner'
@@ -36,6 +36,7 @@ import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
 import { ChatBookingAnnouncement } from '@/components/chat-booking-announcement'
 import { getUIText } from '@/lib/translations'
 import { ConversationList } from '@/components/conversation-list'
+import { ChatActionBar } from '@/components/chat-action-bar'
 import {
   INBOX_TAB_HOSTING,
   INBOX_TAB_TRAVELING,
@@ -154,7 +155,18 @@ export default function RenterMessages({ params }) {
     return language === 'ru' ? `${peerTypingName} печатает…` : `${peerTypingName} is typing…`
   }, [peerTypingName, language])
 
+  // Two-hat context: the same user can be a host on one conversation and a guest on another.
+  const isHosting = useMemo(
+    () => !!(selectedConv?.id && renterId && String(selectedConv.partnerId) === String(renterId)),
+    [selectedConv, renterId]
+  )
+  const isTraveling = useMemo(
+    () => !!(selectedConv?.id && renterId && String(selectedConv.renterId) === String(renterId)),
+    [selectedConv, renterId]
+  )
+
   const payNowHref = useMemo(() => {
+    if (isHosting) return null      // hosts don't pay; they receive
     if (!booking?.id) return null
     if (String(booking.status || '').toUpperCase() !== 'CONFIRMED') return null
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -203,6 +215,19 @@ export default function RenterMessages({ params }) {
     },
     [conversations, renterId, conversationId, router]
   )
+
+  // Live inbox updates: re-fetch enriched list whenever any conversation row changes.
+  // The hook stores the callback in a ref, so passing an inline function is fine.
+  useRealtimeConversations(renterId, () => loadConversations())
+
+  // Sync document.title with total unread badge.
+  useEffect(() => {
+    const total = hostingUnread + travelingUnread
+    document.title = total > 0 ? `(${total}) Сообщения | Gostaylo` : 'Сообщения | Gostaylo'
+    return () => {
+      document.title = 'Gostaylo'
+    }
+  }, [hostingUnread, travelingUnread])
 
   useEffect(() => {
     const p = consumeRenterInboxTabPreference()
@@ -856,6 +881,13 @@ export default function RenterMessages({ params }) {
                 <div ref={messagesEndRef} />
               </div>
 
+              <ChatActionBar
+                isHosting={isHosting}
+                isTraveling={isTraveling}
+                booking={booking}
+                payNowHref={payNowHref}
+                language={language}
+              />
               <div className="shrink-0 border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 <input
                   ref={attachFileRef}

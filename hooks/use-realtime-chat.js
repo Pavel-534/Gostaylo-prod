@@ -4,6 +4,17 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+
+/** Lightweight debounce: returns a function that delays invoking `fn` by `ms` ms. */
+function debounce(fn, ms) {
+  let timer = null;
+  const debounced = (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+  debounced.cancel = () => clearTimeout(timer);
+  return debounced;
+}
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client with realtime enabled
@@ -187,19 +198,44 @@ export function usePresence(conversationId, userId, peerUserId = null) {
 }
 
 /**
- * Custom hook for conversation list updates
- * @param {string} userId - User ID to watch conversations for
- * @returns {Object} { conversations, unreadCount }
+ * Custom hook for conversation list updates via Supabase Realtime.
+ *
+ * @param {string}   userId    - User ID to watch conversations for (scopes channel name).
+ * @param {Function} onUpdate  - Optional callback invoked whenever any conversation row
+ *                               changes (INSERT / UPDATE / DELETE).  Receives the raw
+ *                               Realtime payload.  Use this to trigger a full re-fetch of
+ *                               enriched data instead of relying on the raw payload.
+ *
+ * @returns {{ conversations: Array, setConversations: Function, unreadCount: number }}
+ *   `conversations` is useful only when you want the hook to manage raw state itself
+ *   (legacy behaviour).  For enriched data, pass `onUpdate` and manage state externally.
  */
-export function useRealtimeConversations(userId) {
+export function useRealtimeConversations(userId, onUpdate = null) {
   const [conversations, setConversations] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const channelRef = useRef(null);
+  const onUpdateRef = useRef(onUpdate);
+  // Debounced wrapper so bursts of conversation-row changes trigger only one reload.
+  const debouncedUpdateRef = useRef(null);
+
+  useEffect(() => {
+    onUpdateRef.current = onUpdate;
+  }, [onUpdate]);
+
+  // Recreate the debounced fn when userId changes (channel is scoped to userId anyway).
+  useEffect(() => {
+    const debounced = debounce((payload) => {
+      if (onUpdateRef.current) {
+        onUpdateRef.current(payload);
+      }
+    }, 400);
+    debouncedUpdateRef.current = debounced;
+    return () => debounced.cancel();
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
 
-    // Subscribe to conversations updates
     const channel = supabase
       .channel(`conversations:${userId}`)
       .on(
@@ -207,17 +243,25 @@ export function useRealtimeConversations(userId) {
         {
           event: '*',
           schema: 'public',
-          table: 'conversations'
+          table: 'conversations',
         },
         (payload) => {
-          console.log('[REALTIME] Conversation update:', payload);
-          // Trigger refresh
+          // If a callback was provided, call it debounced so burst-updates only fire once.
+          if (onUpdateRef.current) {
+            debouncedUpdateRef.current?.(payload);
+            return;
+          }
+
+          // Fallback: maintain raw conversations state locally.
           setConversations(prev => {
             if (payload.eventType === 'INSERT') {
               return [...prev, payload.new];
             }
             if (payload.eventType === 'UPDATE') {
               return prev.map(c => c.id === payload.new.id ? payload.new : c);
+            }
+            if (payload.eventType === 'DELETE') {
+              return prev.filter(c => c.id !== payload.old?.id);
             }
             return prev;
           });

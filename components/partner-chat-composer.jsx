@@ -59,8 +59,14 @@ export function PartnerChatComposer({
   onAttachFile,
   /** Меню «+» (счёт, паспорт, быстрые ответы) — только в режиме хозяина */
   showHostPlusMenu = true,
+  /** Контроль диалога счёта снаружи (от ChatActionBar) */
+  invoiceDialogOpen,
+  onInvoiceDialogOpenChange,
 }) {
-  const [invoiceOpen, setInvoiceOpen] = useState(false)
+  const [invoiceOpenInternal, setInvoiceOpenInternal] = useState(false)
+  // Prefer externally controlled state if provided.
+  const invoiceOpen = invoiceDialogOpen !== undefined ? invoiceDialogOpen : invoiceOpenInternal
+  const setInvoiceOpen = onInvoiceDialogOpenChange ?? setInvoiceOpenInternal
   const [passportLoading, setPassportLoading] = useState(false)
   const [attachBusy, setAttachBusy] = useState(false)
   const fileRef = useRef(null)
