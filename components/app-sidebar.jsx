@@ -313,6 +313,7 @@ export function AppSidebar() {
               const isActive =
                 item.href === '/messages'
                   ? pathname === '/messages' ||
+                    pathname?.startsWith('/messages/') ||
                     pathname?.startsWith('/partner/messages') ||
                     pathname?.startsWith('/renter/messages')
                   : pathname === item.href ||

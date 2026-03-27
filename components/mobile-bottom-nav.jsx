@@ -40,7 +40,7 @@ const NAV_ITEMS = [
     href: '/renter/profile', 
     icon: User, 
     label: 'Профиль',
-    activeMatches: ['/renter/profile', '/renter/bookings', '/renter/favorites', '/renter/messages', '/profile', '/settings'],
+    activeMatches: ['/renter/profile', '/renter/bookings', '/renter/favorites', '/profile', '/settings'],
     requiresAuth: true
   },
 ];

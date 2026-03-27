@@ -236,6 +236,7 @@ export default function RenterLayout({ children }) {
                   const isMessagesItem = item.href === '/messages'
                   const isActive = isMessagesItem
                     ? pathname === '/messages' ||
+                      pathname?.startsWith('/messages/') ||
                       pathname?.startsWith('/renter/messages') ||
                       pathname?.startsWith('/partner/messages')
                     : pathname === item.href || pathname.startsWith(item.href + '/')
@@ -340,6 +341,7 @@ export default function RenterLayout({ children }) {
               const isMessagesItem = item.href === '/messages'
               const isActive = isMessagesItem
                 ? pathname === '/messages' ||
+                  pathname?.startsWith('/messages/') ||
                   pathname?.startsWith('/renter/messages') ||
                   pathname?.startsWith('/partner/messages')
                 : pathname === item.href || pathname.startsWith(item.href + '/')

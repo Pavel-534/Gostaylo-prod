@@ -1,9 +1,8 @@
 'use client'
 
 /**
- * Единый холл сообщений (/messages) — Этап 1.
- * Переход в треды по-прежнему на /renter/messages/[id] или /partner/messages/[id]
- * переход в тред: /messages/[id].
+ * Единый холл сообщений (/messages).
+ * Переход в тред: /messages/[id] (legacy-страницы кабинетов остаются до Этапа 4).
  */
 
 import { useEffect, useState, useCallback, useMemo } from 'react'

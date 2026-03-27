@@ -22,7 +22,7 @@
  * <ConversationList
  *   inbox={inbox}
  *   selectedId={conversationId}
- *   onSelect={(id) => router.push(`/partner/messages/${id}`)}
+ *   onSelect={(id) => router.push(`/messages/${id}`)}
  *   language="ru"
  * />
  * ```

@@ -481,6 +481,7 @@ export default function PartnerLayout({ children }) {
               const isMessagesItem = item.href === '/messages'
               const isActive = isMessagesItem
                 ? pathname === '/messages' ||
+                  pathname?.startsWith('/messages/') ||
                   pathname?.startsWith('/partner/messages') ||
                   pathname?.startsWith('/renter/messages')
                 : pathname === item.href ||
