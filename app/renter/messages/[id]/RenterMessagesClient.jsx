@@ -16,7 +16,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   Archive, ArrowLeft, Loader2, Home,
@@ -27,6 +27,19 @@ import Link from 'next/link'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import {
+  Dialog, DialogContent, DialogDescription,
+  DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { ChatGrowingTextarea } from '@/components/chat-growing-textarea'
 
 import { useI18n } from '@/contexts/i18n-context'
@@ -56,6 +69,9 @@ import { StickyChatHeader } from '@/components/sticky-chat-header'
 import { ChatActionBar } from '@/components/chat-action-bar'
 import { ChatSearchBar } from '@/components/chat-search-bar'
 import { ChatMediaGallery } from '@/components/chat-media-gallery'
+import { PartnerChatComposer } from '@/components/partner-chat-composer'
+import { conversationMessagesHref } from '@/components/chat/conversation-messages-href'
+import { DealDetailsCard } from '@/components/chat/DealDetailsCard'
 import { SupportRequestDialog } from '@/components/support-request-dialog'
 import { detectUnsafePatterns, SafetyBanner } from '@/components/chat-safety'
 import { uploadChatFile } from '@/lib/chat-upload'
@@ -64,6 +80,7 @@ import {
   INBOX_TAB_TRAVELING,
   consumeRenterInboxTabPreference,
 } from '@/lib/chat-inbox-tabs'
+import { DECLINE_REASON_PRESETS } from '@/lib/booking-chat-copy'
 import { isBookingPaid } from '@/lib/mask-contacts'
 import { countSearchResults } from '@/lib/chat/message-filters'
 
@@ -80,7 +97,7 @@ function useCategories() {
 }
 
 // ─── Archive helper ───────────────────────────────────────────────────────────
-function useArchive({ language, router, inbox, conversationId, basePath }) {
+function useArchive({ language, router, inbox, conversationId, basePath, userId }) {
   const archiveConversation = useCallback(async (convId) => {
     if (!convId) return
     try {
@@ -104,13 +121,15 @@ function useArchive({ language, router, inbox, conversationId, basePath }) {
       inbox.setConversations((prev) => prev.filter((c) => c.id !== convId))
       if (String(conversationId) === String(convId)) {
         const remaining = inbox.filteredConversations.filter((c) => c.id !== convId)
-        if (remaining[0]) router.push(`${basePath}/${remaining[0].id}`)
-        else router.push(basePath)
+        if (remaining[0]) {
+          const next = conversationMessagesHref(userId, remaining[0]) || `${basePath}/${remaining[0].id}`
+          router.push(next)
+        } else router.push(basePath)
       }
     } catch {
       toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
     }
-  }, [language, router, inbox, conversationId, basePath])
+  }, [language, router, inbox, conversationId, basePath, userId])
 
   return { archiveConversation }
 }
@@ -119,6 +138,8 @@ function useArchive({ language, router, inbox, conversationId, basePath }) {
 
 export default function RenterMessagesClient({ params }) {
   const router = useRouter()
+  const pathname = usePathname()
+  const messagesListBase = pathname?.startsWith('/partner') ? '/partner/messages' : '/renter/messages'
   const { language } = useI18n()
   const { user, loading: authLoading, openLoginModal } = useAuth()
   const { markConversationRead: markGlobalRead } = useChatContext()
@@ -133,6 +154,12 @@ export default function RenterMessagesClient({ params }) {
   const [searchActive, setSearchActive] = useState(false)
   const [mediaGalleryOpen, setMediaGalleryOpen] = useState(false)
   const [supportDialogOpen, setSupportDialogOpen] = useState(false)
+  const [dealSheetOpen, setDealSheetOpen] = useState(false)
+  const [declineOpen, setDeclineOpen] = useState(false)
+  const [declinePreset, setDeclinePreset] = useState('occupied')
+  const [declineOtherDetail, setDeclineOtherDetail] = useState('')
+  const [bookingActionLoading, setBookingActionLoading] = useState(false)
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
   const [sending, setSending] = useState(false)
   const [newMessage, setNewMessage] = useState('')
   const [voiceSending, setVoiceSending] = useState(false)
@@ -170,7 +197,7 @@ export default function RenterMessagesClient({ params }) {
     selectedConv, listing, booking,
     sendMessage: _sendMessage, sendMedia,
     reload: reloadThread,
-    setMessages, setSelectedConv,
+    setMessages, setSelectedConv, setBooking,
   } = useChatThreadMessages({
     conversationId,
     userId: renterId,
@@ -214,8 +241,13 @@ export default function RenterMessagesClient({ params }) {
   )
   const isTraveling = !isHosting
 
-  // ── Presence / Typing ────────────────────────────────────────────────────────
-  const partnerPeerId = selectedConv?.partnerId || selectedConv?.adminId || null
+  // ── Presence / Typing (собеседник: гость если я хозяин, иначе хозяин) ───────────
+  const partnerPeerId = useMemo(() => {
+    if (!selectedConv) return null
+    if (selectedConv.adminId) return selectedConv.adminId
+    if (String(selectedConv.partnerId) === String(renterId)) return selectedConv.renterId
+    return selectedConv.partnerId
+  }, [selectedConv, renterId])
   const { isOnline: partnerOnline } = usePresence(conversationId, renterId, partnerPeerId)
 
   const [partnerLastSeenAt, setPartnerLastSeenAt] = useState(null)
@@ -261,6 +293,7 @@ export default function RenterMessagesClient({ params }) {
     language, router, inbox,
     conversationId,
     basePath: '/renter/messages',
+    userId: renterId,
   })
 
   // ── Send handlers ────────────────────────────────────────────────────────────
@@ -316,6 +349,138 @@ export default function RenterMessagesClient({ params }) {
     } finally { setSending(false) }
   }, [selectedConv, renterId, sendMedia, inbox])
 
+  // ── Действия с бронью (хозяин на /renter/ — те же API, что и в партнёрском кабинете) ──
+  const handleConfirmBooking = useCallback(async () => {
+    const bid = booking?.id
+    if (!bid || !selectedConv?.id || bookingActionLoading) return
+    setBookingActionLoading(true)
+    try {
+      const res = await fetch(`/api/v2/partner/bookings/${encodeURIComponent(bid)}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CONFIRMED' }),
+      })
+      const json = await res.json()
+      if (json.status !== 'success') { toast.error(json.error || 'Ошибка'); return }
+      setBooking((b) => (b ? { ...b, status: 'CONFIRMED' } : b))
+      inbox.refresh()
+      reloadThread()
+      toast.success(json.message || (language === 'ru' ? 'Бронирование подтверждено' : 'Booking confirmed'))
+    } catch { toast.error('Ошибка сети') }
+    finally { setBookingActionLoading(false) }
+  }, [booking?.id, selectedConv?.id, bookingActionLoading, setBooking, inbox, reloadThread, language])
+
+  const handleDeclineBooking = useCallback(() => {
+    setDeclinePreset('occupied')
+    setDeclineOtherDetail('')
+    setDeclineOpen(true)
+  }, [])
+
+  const confirmDecline = useCallback(async () => {
+    const bid = booking?.id
+    if (!bid || !selectedConv?.id || bookingActionLoading) return
+    if (declinePreset === 'other' && !declineOtherDetail.trim()) {
+      toast.error(language === 'ru' ? 'Укажите комментарий' : 'Please add details')
+      return
+    }
+    setBookingActionLoading(true)
+    try {
+      const res = await fetch(`/api/v2/partner/bookings/${encodeURIComponent(bid)}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'CANCELLED',
+          declineReasonKey: declinePreset,
+          declineReasonDetail: declinePreset === 'other' ? declineOtherDetail.trim() : '',
+        }),
+      })
+      const json = await res.json()
+      if (json.status !== 'success') { toast.error(json.error || 'Ошибка'); return }
+      setBooking((b) => (b ? { ...b, status: 'CANCELLED' } : b))
+      setDeclineOpen(false)
+      inbox.refresh()
+      reloadThread()
+      toast.success(json.message || (language === 'ru' ? 'Бронирование отклонено' : 'Booking declined'))
+    } catch { toast.error('Ошибка сети') }
+    finally { setBookingActionLoading(false) }
+  }, [booking?.id, selectedConv?.id, bookingActionLoading, declinePreset, declineOtherDetail, setBooking, inbox, reloadThread, language])
+
+  const handleSendInvoice = useCallback(async (invoiceData) => {
+    if (!selectedConv || !renterId) return
+    try {
+      const res = await fetch('/api/v2/chat/invoice', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConv.id,
+          ...invoiceData,
+          bookingId: booking?.id,
+          listingId: listing?.id,
+          listingTitle: listing?.title,
+          checkIn: booking?.check_in,
+          checkOut: booking?.check_out,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setMessages((prev) => [...prev, data.message])
+        toast.success(language === 'ru' ? 'Счёт отправлен!' : 'Invoice sent!')
+      } else {
+        toast.error(data.error || 'Ошибка при отправке счёта')
+      }
+    } catch { toast.error('Ошибка при отправке счёта') }
+  }, [selectedConv, renterId, booking, listing, setMessages, language])
+
+  const handleSendPassportRequest = useCallback(async () => {
+    if (!selectedConv || !renterId) return
+    const res = await fetch('/api/v2/chat/messages', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversationId: selectedConv.id,
+        type: 'system',
+        content: '',
+        metadata: { system_key: 'passport_request' },
+        skipPush: !!partnerOnline,
+      }),
+    })
+    const json = await res.json()
+    if (!res.ok || !json.success) throw new Error(json.error || 'Ошибка')
+    if (json.data) setMessages((prev) => [...prev, json.data])
+    inbox.refresh()
+  }, [selectedConv, renterId, partnerOnline, setMessages, inbox])
+
+  const handleComposerSendVoice = useCallback(async ({ url, duration }) => {
+    if (!selectedConv || !renterId) return
+    setSending(true)
+    try {
+      const res = await fetch('/api/v2/chat/messages', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConv.id,
+          type: 'voice',
+          content: '',
+          metadata: { voice_url: url, duration_sec: duration },
+          skipPush: !!partnerOnline,
+        }),
+      })
+      const json = await res.json()
+      if (res.ok && json.success && json.data) {
+        setMessages((prev) => [...prev, json.data])
+        inbox.refresh()
+      } else {
+        toast.error(json.error || 'Ошибка отправки голосового')
+      }
+    } catch { toast.error('Ошибка сети') }
+    finally { setSending(false) }
+  }, [selectedConv, renterId, partnerOnline, setMessages, inbox])
+
   // ── Вкладка инбокса с навигацией ─────────────────────────────────────────────
   const handleInboxTabChange = useCallback((next) => {
     inbox.setInboxTab(next)
@@ -325,10 +490,21 @@ export default function RenterMessagesClient({ params }) {
         : String(c.renterId) === String(renterId)
     )
     if (conversationId && !list.some((c) => c.id === conversationId)) {
-      if (list[0]) router.push(`/renter/messages/${list[0].id}`)
-      else router.push('/renter/messages')
+      if (list[0]) {
+        const href = conversationMessagesHref(renterId, list[0]) || `/renter/messages/${list[0].id}`
+        router.push(href)
+      } else router.push('/renter/messages')
     }
   }, [inbox, conversationId, router, renterId])
+
+  const handleConversationSelect = useCallback(
+    (id, conv) => {
+      const row = conv || inbox.filteredConversations.find((c) => c.id === id) || inbox.conversations.find((c) => c.id === id)
+      const href = conversationMessagesHref(renterId, row || { id }) || `/renter/messages/${id}`
+      router.push(href)
+    },
+    [router, renterId, inbox.filteredConversations, inbox.conversations]
+  )
 
   // ── Loading / Auth states ────────────────────────────────────────────────────
   if (authLoading) {
@@ -355,10 +531,10 @@ export default function RenterMessagesClient({ params }) {
     <ConversationList
       inbox={{ ...inbox, setInboxTab: handleInboxTabChange }}
       selectedId={conversationId}
-      onSelect={(id) => router.push(`/renter/messages/${id}`)}
+      onSelect={handleConversationSelect}
       categories={categories}
       showListingName
-      showGuestName={false}
+      showGuestName={inbox.inboxTab === INBOX_TAB_HOSTING}
       onArchive={(id) => void archiveConversation(id)}
       archivedHref="/renter/messages/archived"
       language={language}
@@ -367,7 +543,7 @@ export default function RenterMessagesClient({ params }) {
 
   const headerSlot = selectedConv ? (
     <div className="flex items-center gap-1 px-2 py-1.5 lg:px-0 lg:py-0 bg-white border-b lg:border-0">
-      <Button variant="ghost" size="icon" className="lg:hidden shrink-0" onClick={() => router.push('/renter/messages')}
+      <Button variant="ghost" size="icon" className="lg:hidden shrink-0" onClick={() => router.push(messagesListBase)}
         aria-label={language === 'ru' ? 'К списку диалогов' : 'Back to conversations'}>
         <ArrowLeft className="h-5 w-5" />
       </Button>
@@ -393,7 +569,11 @@ export default function RenterMessagesClient({ params }) {
           isAdminView={false}
           embedded compact
           showBookingTimeline={Boolean(booking?.id && booking?.status)}
-          contactName={selectedConv?.partnerName || (language === 'ru' ? 'Партнёр' : 'Host')}
+          contactName={
+            isHosting
+              ? (selectedConv?.renterName || (language === 'ru' ? 'Гость' : 'Guest'))
+              : (selectedConv?.partnerName || (language === 'ru' ? 'Партнёр' : 'Host'))
+          }
           presenceOnline={partnerOnline}
           lastSeenAt={partnerLastSeenAt}
           typingIndicator={typingLine}
@@ -401,9 +581,16 @@ export default function RenterMessagesClient({ params }) {
           onMediaGallery={() => setMediaGalleryOpen(true)}
           onSearchToggle={() => { setSearchActive((v) => !v); setSearchQuery('') }}
           searchActive={searchActive}
+          onDealInfoClick={() => setDealSheetOpen(true)}
           payNowHref={payNowHref}
           onSupportClick={() => setSupportDialogOpen(true)}
           supportPriorityActive={!!selectedConv?.isPriority}
+          partnerBookingActions={{
+            visible: isHosting && !!booking?.id && String(booking.status || '').toUpperCase() === 'PENDING',
+            loading: bookingActionLoading,
+            onConfirm: handleConfirmBooking,
+            onDecline: handleDeclineBooking,
+          }}
         >
           <span className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}>
             {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
@@ -430,6 +617,10 @@ export default function RenterMessagesClient({ params }) {
       isTraveling={isTraveling}
       booking={booking}
       payNowHref={payNowHref}
+      onConfirm={isHosting ? handleConfirmBooking : undefined}
+      onDecline={isHosting ? handleDeclineBooking : undefined}
+      onOpenInvoice={isHosting ? () => setInvoiceDialogOpen(true) : undefined}
+      loading={bookingActionLoading}
       language={language}
     />
   )
@@ -473,14 +664,33 @@ export default function RenterMessagesClient({ params }) {
           isBookingPaid={isBookingPaid(booking?.status)}
           searchHighlight={searchQuery.trim() || undefined}
           ownVariant="teal"
-          userRole="renter"
+          userRole={isHosting ? 'partner' : 'renter'}
         />
       )}
     </>
   )
 
-  // Composer рентера: ChatGrowingTextarea + голос + файл
-  const composerSlot = (
+  // Composer: хозяин — PartnerChatComposer (счёт, паспорт, шаблоны); гость — прежний UI
+  const composerSlot = isHosting ? (
+    <PartnerChatComposer
+      newMessage={newMessage}
+      onMessageChange={(v) => { setNewMessage(v); broadcastTyping() }}
+      onSubmit={handleSendText}
+      sending={sending}
+      disabled={!selectedConv}
+      booking={booking}
+      listing={listing}
+      language={language}
+      onSendInvoice={handleSendInvoice}
+      onSendPassportRequest={handleSendPassportRequest}
+      onAttachFile={handleAttachFile}
+      onSendVoice={handleComposerSendVoice}
+      userId={renterId}
+      showHostPlusMenu
+      invoiceDialogOpen={invoiceDialogOpen}
+      onInvoiceDialogOpenChange={setInvoiceDialogOpen}
+    />
+  ) : (
     <div className="shrink-0 border-t p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <input
         ref={attachFileRef}
@@ -504,7 +714,6 @@ export default function RenterMessagesClient({ params }) {
           <Paperclip className="h-5 w-5" />
         </Button>
 
-        {/* Предпросмотр голосового */}
         {voiceBlob ? (
           <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-50 border border-teal-200">
             <audio src={voicePreviewUrl} controls className="h-8 flex-1 min-w-0" />
@@ -556,6 +765,10 @@ export default function RenterMessagesClient({ params }) {
     </div>
   )
 
+  const dealDetailsPanel = selectedConv ? (
+    <DealDetailsCard listing={listing} booking={booking} language={language} className="min-h-0" />
+  ) : null
+
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <>
@@ -585,6 +798,7 @@ export default function RenterMessagesClient({ params }) {
               searchBarSlot={searchBarSlot}
               messagesSlot={messagesSlot}
               composerSlot={composerSlot}
+              sidePanelSlot={dealDetailsPanel}
               language={language}
               className="w-full h-full"
             />
@@ -604,6 +818,64 @@ export default function RenterMessagesClient({ params }) {
           inbox.refresh()
         }}
       />
+
+      <Sheet open={dealSheetOpen} onOpenChange={setDealSheetOpen}>
+        <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto rounded-t-2xl z-[210]">
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="text-base font-semibold">
+              {language === 'ru' ? 'Детали поездки' : 'Trip details'}
+            </SheetTitle>
+          </SheetHeader>
+          {dealDetailsPanel}
+        </SheetContent>
+      </Sheet>
+
+      <Dialog open={declineOpen} onOpenChange={setDeclineOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{language === 'ru' ? 'Отклонить бронирование?' : 'Decline booking?'}</DialogTitle>
+            <DialogDescription>
+              {language === 'ru'
+                ? 'Гость увидит уведомление в чате. По желанию укажите причину.'
+                : 'The guest will see an update in chat. Optionally add a reason.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label>{language === 'ru' ? 'Причина отказа' : 'Decline reason'}</Label>
+            <RadioGroup value={declinePreset} onValueChange={setDeclinePreset} className="space-y-2">
+              {['occupied', 'repair', 'other'].map((key) => (
+                <label key={key} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 cursor-pointer hover:bg-slate-50">
+                  <RadioGroupItem value={key} id={`decline-r-${key}`} />
+                  <span className="text-sm text-slate-800">
+                    {language === 'ru' ? DECLINE_REASON_PRESETS[key].ru : DECLINE_REASON_PRESETS[key].en}
+                  </span>
+                </label>
+              ))}
+            </RadioGroup>
+            {declinePreset === 'other' && (
+              <div className="space-y-1">
+                <Label htmlFor="decline-other-r">{language === 'ru' ? 'Комментарий' : 'Details'}</Label>
+                <Textarea
+                  id="decline-other-r"
+                  value={declineOtherDetail}
+                  onChange={(e) => setDeclineOtherDetail(e.target.value)}
+                  rows={3}
+                  placeholder={language === 'ru' ? 'Кратко опишите причину…' : 'Briefly describe the reason…'}
+                  className="resize-none"
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setDeclineOpen(false)}>
+              {language === 'ru' ? 'Отмена' : 'Cancel'}
+            </Button>
+            <Button type="button" variant="destructive" disabled={bookingActionLoading} onClick={() => void confirmDecline()}>
+              {bookingActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : language === 'ru' ? 'Отклонить' : 'Decline'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

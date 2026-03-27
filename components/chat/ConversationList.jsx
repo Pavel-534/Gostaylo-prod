@@ -173,11 +173,11 @@ function ConversationRow({
     <div
       role="button"
       tabIndex={0}
-      onClick={() => onSelect?.(conv.id)}
+      onClick={() => onSelect?.(conv.id, conv)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
-          onSelect?.(conv.id)
+          onSelect?.(conv.id, conv)
         }
       }}
       className={cn(
@@ -303,7 +303,7 @@ function CategoryFilter({ categories, categoryFilter, onCategoryChange, lang = '
  * @param {Object}    props
  * @param {Array}     props.conversations         — отфильтрованный список
  * @param {string}    [props.selectedId]          — активный conversationId
- * @param {Function}  [props.onSelect]            — (id) => void
+ * @param {Function}  [props.onSelect]            — (id, conv) => void
  * @param {Array}     [props.categories]          — список категорий {id, slug, name}
  * @param {string}    [props.categoryFilter]      — активный slug фильтра
  * @param {Function}  [props.onCategoryChange]    — (slug|null) => void

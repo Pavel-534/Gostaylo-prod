@@ -14,12 +14,12 @@
  *   composerSlot   — PartnerChatComposer / RenterChatComposer (поле ввода снизу)
  *   actionBarSlot  — ChatActionBar под шапкой (кнопки Pay, Confirm, Decline, Invoice…)
  *   searchBarSlot  — ChatSearchBar (появляется под шапкой при searchActive=true)
- *
- * Фаза 4 «вставит» в эти слоты готовые компоненты для Партнёра и Рентера.
+ *   sidePanelSlot  — правая колонка (~300px, только lg+): детали сделки. На мобиле —
+ *                    тот же контент открывается из шапки через Sheet (см. StickyChatHeader).
  *
  * Адаптивность:
- *   – мобиле (<lg): показывается либо сайдбар, либо тред (переключение через hasTread)
- *   – десктоп (>=lg): side-by-side
+ *   – мобиле (<lg): сайдбар | тред (без side panel в потоке)
+ *   – десктоп (>=lg): сайдбар | тред | side panel
  *
  * Использование (пример Фазы 4):
  * ```jsx
@@ -48,6 +48,7 @@ import { MessageSquare } from 'lucide-react'
  * @param {React.ReactNode} [props.messagesSlot]  — лента сообщений (ChatMessageList)
  * @param {React.ReactNode} [props.composerSlot]  — поле ввода (Composer)
  * @param {React.ReactNode} [props.emptySlot]     — placeholder когда тред не выбран
+ * @param {React.ReactNode} [props.sidePanelSlot] — правая колонка (десктоп): детали сделки
  * @param {string}          [props.language]      — для i18n пустого состояния
  * @param {string}          [props.className]
  */
@@ -60,6 +61,7 @@ export function ChatThreadChrome({
   messagesSlot,
   composerSlot,
   emptySlot,
+  sidePanelSlot = null,
   language = 'ru',
   className,
 }) {
@@ -83,50 +85,59 @@ export function ChatThreadChrome({
         {sidebarSlot ?? <DefaultSidebarEmpty language={language} />}
       </aside>
 
-      {/* ── Правая область: тред ────────────────────────────────────────── */}
-      <section
+      {/* ── Центр + правая панель (тред | side panel) ─────────────────── */}
+      <div
         className={cn(
-          'flex-1 flex flex-col min-w-0 overflow-hidden',
-          // Мобиле: показываем только если тред открыт
+          'flex flex-1 min-w-0 overflow-hidden',
           hasTread ? 'flex' : 'hidden lg:flex',
         )}
       >
-        {hasTread ? (
-          <>
-            {/* Шапка (прилипает к верху) */}
-            {headerSlot && (
-              <div className="flex-shrink-0 z-10">
-                {headerSlot}
-              </div>
-            )}
+        {/* ── Область треда ──────────────────────────────────────────── */}
+        <section className="flex flex-1 flex-col min-w-0 overflow-hidden">
+          {hasTread ? (
+            <>
+              {headerSlot && (
+                <div className="flex-shrink-0 z-10">
+                  {headerSlot}
+                </div>
+              )}
 
-            {/* Action Bar (кнопки) и Search Bar — под шапкой, если переданы */}
-            {(actionBarSlot || searchBarSlot) && (
-              <div className="flex-shrink-0 border-b border-slate-100 bg-white">
-                {actionBarSlot}
-                {searchBarSlot}
-              </div>
-            )}
+              {(actionBarSlot || searchBarSlot) && (
+                <div className="flex-shrink-0 border-b border-slate-100 bg-white">
+                  {actionBarSlot}
+                  {searchBarSlot}
+                </div>
+              )}
 
-            {/* Лента сообщений — растягивается и прокручивается */}
-            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
-              {messagesSlot}
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+                {messagesSlot}
+              </div>
+
+              {composerSlot && (
+                <div className="flex-shrink-0 border-t border-slate-100 bg-white">
+                  {composerSlot}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center bg-slate-50">
+              {emptySlot ?? <DefaultEmptyState language={language} />}
             </div>
+          )}
+        </section>
 
-            {/* Composer (поле ввода) — прилипает к низу */}
-            {composerSlot && (
-              <div className="flex-shrink-0 border-t border-slate-100 bg-white">
-                {composerSlot}
-              </div>
+        {/* ── Side panel: только lg+, мобиле — Sheet из шапки ─────────── */}
+        {hasTread && sidePanelSlot ? (
+          <aside
+            className={cn(
+              'hidden lg:flex flex-col w-[300px] shrink-0 border-l border-slate-200',
+              'bg-slate-50/90 overflow-y-auto overscroll-contain',
             )}
-          </>
-        ) : (
-          /* Пустое состояние: тред не выбран */
-          <div className="flex-1 flex items-center justify-center bg-slate-50">
-            {emptySlot ?? <DefaultEmptyState language={language} />}
-          </div>
-        )}
-      </section>
+          >
+            {sidePanelSlot}
+          </aside>
+        ) : null}
+      </div>
     </div>
   )
 }

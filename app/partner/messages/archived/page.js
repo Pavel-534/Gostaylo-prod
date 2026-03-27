@@ -7,6 +7,7 @@ import { Loader2, MessageSquare, Archive, RotateCcw, ArrowLeft } from 'lucide-re
 import { toast } from 'sonner'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { conversationMessagesHref } from '@/components/chat/conversation-messages-href'
 
 export default function PartnerMessagesArchivedPage() {
   const router = useRouter()
@@ -120,7 +121,10 @@ export default function PartnerMessagesArchivedPage() {
               <Card
                 key={conv.id}
                 className="p-4 cursor-pointer hover:shadow-md transition-shadow border-slate-200"
-                onClick={() => router.push(`/partner/messages/${conv.id}`)}
+                onClick={() => {
+                  const href = conversationMessagesHref(user?.id, conv) || `/partner/messages/${conv.id}`
+                  router.push(href)
+                }}
               >
                 <div className="flex gap-3 sm:gap-4 min-w-0">
                   <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-slate-100 flex-shrink-0 overflow-hidden">

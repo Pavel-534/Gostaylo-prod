@@ -25,6 +25,7 @@
  * @param {string}   [props.supportDoneLabel]
  * @param {Function} [props.onMediaGallery]
  * @param {Function} [props.onSearchToggle]
+ * @param {Function} [props.onDealInfoClick] — мобиле: открыть Sheet с деталями сделки (иконка скрыта на lg+)
  * @param {boolean}  [props.searchActive]
  * @param {string}   [props.language]
  * @param {boolean}  [props.compact]
@@ -32,7 +33,7 @@
  */
 
 import Link from 'next/link'
-import { Check, CreditCard, Images, LifeBuoy, Loader2, Search, X } from 'lucide-react'
+import { Check, CreditCard, Images, Info, LifeBuoy, Loader2, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
@@ -47,6 +48,7 @@ export function ChatHeaderActions({
   supportDoneLabel = 'В очереди у поддержки',
   onMediaGallery = null,
   onSearchToggle = null,
+  onDealInfoClick = null,
   searchActive = false,
   language = 'ru',
   compact = false,
@@ -60,6 +62,7 @@ export function ChatHeaderActions({
     onSupportClick ||
     onMediaGallery ||
     onSearchToggle ||
+    onDealInfoClick ||
     children
 
   if (!hasActions) return null
@@ -154,6 +157,24 @@ export function ChatHeaderActions({
               ({supportDoneLabel})
             </span>
           ) : null}
+        </Button>
+      ) : null}
+
+      {/* Детали сделки — только на мобиле (на десктопе панель справа в ChatThreadChrome) */}
+      {onDealInfoClick ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn(
+            'lg:hidden text-slate-500 hover:bg-slate-100 hover:text-teal-700',
+            compact ? 'h-8 w-8' : 'h-9 w-9'
+          )}
+          onClick={onDealInfoClick}
+          title={language === 'en' ? 'Trip details' : 'Информация о поездке'}
+          aria-label={language === 'en' ? 'Trip details' : 'Информация о поездке'}
+        >
+          <Info className="h-4 w-4" />
         </Button>
       ) : null}
 

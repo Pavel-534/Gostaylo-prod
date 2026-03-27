@@ -49,6 +49,8 @@ export function StickyChatHeader({
   payNowHref = null,
   onMediaGallery = null,
   onSearchToggle = null,
+  /** Мобиле: открыть детали сделки (Sheet); на lg+ кнопка скрыта — панель в ChatThreadChrome */
+  onDealInfoClick = null,
   searchActive = false,
   embedded = false,
   compact = false,
@@ -269,6 +271,7 @@ export function StickyChatHeader({
           supportDoneLabel={supportDoneLabel}
           onMediaGallery={onMediaGallery}
           onSearchToggle={onSearchToggle}
+          onDealInfoClick={onDealInfoClick}
           searchActive={searchActive}
           language={language}
           compact={compact}

@@ -58,6 +58,14 @@ import {
 } from '@/lib/chat-inbox-tabs'
 import { isBookingPaid } from '@/lib/mask-contacts'
 import { countSearchResults } from '@/lib/chat/message-filters'
+import { conversationMessagesHref } from '@/components/chat/conversation-messages-href'
+import { DealDetailsCard } from '@/components/chat/DealDetailsCard'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 
 // ─── Категории (загружаются один раз) ─────────────────────────────────────────
 function useCategories() {
@@ -86,7 +94,7 @@ function usePartnerAuth() {
 }
 
 // ─── Archive helper ───────────────────────────────────────────────────────────
-function useArchive({ language, router, inbox, conversationId, basePath }) {
+function useArchive({ language, router, inbox, conversationId, basePath, userId }) {
   const archiveConversation = useCallback(async (convId) => {
     if (!convId) return
     try {
@@ -107,17 +115,18 @@ function useArchive({ language, router, inbox, conversationId, basePath }) {
           onClick: () => router.push(`${basePath}/archived`),
         },
       })
-      // Убираем из локального стейта инбокса
       inbox.setConversations((prev) => prev.filter((c) => c.id !== convId))
       if (String(conversationId) === String(convId)) {
         const remaining = inbox.filteredConversations.filter((c) => c.id !== convId)
-        if (remaining[0]) router.push(`${basePath}/${remaining[0].id}`)
-        else router.push(basePath)
+        if (remaining[0]) {
+          const next = conversationMessagesHref(userId, remaining[0]) || `${basePath}/${remaining[0].id}`
+          router.push(next)
+        } else router.push(basePath)
       }
     } catch {
       toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
     }
-  }, [language, router, inbox, conversationId, basePath])
+  }, [language, router, inbox, conversationId, basePath, userId])
 
   return { archiveConversation }
 }
@@ -145,6 +154,7 @@ export default function PartnerMessagesClient({ params }) {
   const [sending, setSending] = useState(false)
   const [newMessage, setNewMessage] = useState('')
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
+  const [dealSheetOpen, setDealSheetOpen] = useState(false)
 
   // ── Инбокс (Фаза 2) ─────────────────────────────────────────────────────────
   const inbox = useConversationInbox({
@@ -157,7 +167,7 @@ export default function PartnerMessagesClient({ params }) {
   const {
     messages, isLoading: threadLoading, isConnected,
     selectedConv, listing, booking,
-    sendMessage: _sendMessage, sendVoice, sendMedia,
+    sendMessage: _sendMessage, sendMedia,
     reload: reloadThread,
     setMessages, setBooking, setSelectedConv,
   } = useChatThreadMessages({
@@ -254,6 +264,7 @@ export default function PartnerMessagesClient({ params }) {
     language, router, inbox,
     conversationId,
     basePath: '/partner/messages',
+    userId: user?.id,
   })
 
   // ── Booking actions (Confirm / Decline) ─────────────────────────────────────
@@ -420,10 +431,21 @@ export default function PartnerMessagesClient({ params }) {
         : String(c.renterId) === String(user?.id)
     )
     if (conversationId && !list.some((c) => c.id === conversationId)) {
-      if (list[0]) router.push(`/partner/messages/${list[0].id}`)
-      else router.push('/partner/messages')
+      if (list[0]) {
+        const href = conversationMessagesHref(user?.id, list[0]) || `/partner/messages/${list[0].id}`
+        router.push(href)
+      } else router.push('/partner/messages')
     }
   }, [inbox, conversationId, router, user?.id])
+
+  const handleConversationSelect = useCallback(
+    (id, conv) => {
+      const row = conv || inbox.filteredConversations.find((c) => c.id === id) || inbox.conversations.find((c) => c.id === id)
+      const href = conversationMessagesHref(user?.id, row || { id }) || `/partner/messages/${id}`
+      router.push(href)
+    },
+    [router, user?.id, inbox.filteredConversations, inbox.conversations]
+  )
 
   // ── Loading / Auth states ────────────────────────────────────────────────────
   if (authLoading) {
@@ -448,7 +470,7 @@ export default function PartnerMessagesClient({ params }) {
     <ConversationList
       inbox={{ ...inbox, setInboxTab: handleInboxTabChange }}
       selectedId={conversationId}
-      onSelect={(id) => router.push(`/partner/messages/${id}`)}
+      onSelect={handleConversationSelect}
       categories={categories}
       showListingName={false}
       showGuestName={inbox.inboxTab === INBOX_TAB_TRAVELING}
@@ -488,6 +510,7 @@ export default function PartnerMessagesClient({ params }) {
           onMediaGallery={() => setMediaGalleryOpen(true)}
           onSearchToggle={() => { setSearchActive((v) => !v); setSearchQuery('') }}
           searchActive={searchActive}
+          onDealInfoClick={() => setDealSheetOpen(true)}
           partnerBookingActions={{
             visible: isHosting && !!booking?.id && String(booking.status || '').toUpperCase() === 'PENDING',
             loading: bookingActionLoading,
@@ -589,6 +612,10 @@ export default function PartnerMessagesClient({ params }) {
     />
   )
 
+  const dealDetailsPanel = selectedConv ? (
+    <DealDetailsCard listing={listing} booking={booking} language={language} className="min-h-0" />
+  ) : null
+
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <>
@@ -600,9 +627,21 @@ export default function PartnerMessagesClient({ params }) {
         searchBarSlot={searchBarSlot}
         messagesSlot={messagesSlot}
         composerSlot={composerSlot}
+        sidePanelSlot={dealDetailsPanel}
         language={language}
         className="h-[calc(100vh-4rem)]"
       />
+
+      <Sheet open={dealSheetOpen} onOpenChange={setDealSheetOpen}>
+        <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto rounded-t-2xl z-[210]">
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="text-base font-semibold">
+              {language === 'ru' ? 'Детали поездки' : 'Trip details'}
+            </SheetTitle>
+          </SheetHeader>
+          {dealDetailsPanel}
+        </SheetContent>
+      </Sheet>
 
       {/* ── Диалог отклонения бронирования ────────────────────────────── */}
       <Dialog open={declineOpen} onOpenChange={setDeclineOpen}>
