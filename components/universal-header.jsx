@@ -64,6 +64,7 @@ export function UniversalHeader() {
   const isOnAdminPage = pathname?.startsWith('/admin');
   const isOnPartnerPage = pathname?.startsWith('/partner');
   const isOnRenterPage = pathname?.startsWith('/renter');
+  const isUnifiedMessagesHall = pathname?.startsWith('/messages');
 
   // Don't render on admin pages (Admin has its own header)
   if (isOnAdminPage) return null;
@@ -73,6 +74,9 @@ export function UniversalHeader() {
 
   // Renter portal has its own top bar (language, currency, nav) — avoid double header
   if (isOnRenterPage) return null;
+
+  // Единый холл сообщений — своя шапка на странице
+  if (isUnifiedMessagesHall) return null;
 
   const navigate = (href) => {
     router.push(href);

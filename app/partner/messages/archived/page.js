@@ -92,7 +92,7 @@ export default function PartnerMessagesArchivedPage() {
     <div className="p-4 lg:p-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between gap-3 flex-wrap mb-6">
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/partner/messages">
+          <Link href="/messages">
             <ArrowLeft className="h-4 w-4 mr-2" />
             К сообщениям
           </Link>
@@ -110,7 +110,7 @@ export default function PartnerMessagesArchivedPage() {
           <h3 className="text-lg font-semibold text-slate-900 mb-2">Архив пуст</h3>
           <p className="text-slate-600 mb-6">Скрытые диалоги появятся здесь</p>
           <Button asChild variant="outline" className="border-teal-200">
-            <Link href="/partner/messages">К сообщениям</Link>
+            <Link href="/messages">К сообщениям</Link>
           </Button>
         </Card>
       ) : (

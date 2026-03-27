@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 
 const ACTIONS = [
   { href: '/renter/bookings', icon: Calendar, key: 'bookings' },
-  { href: '/renter/messages', icon: MessageSquare, key: 'messages' },
+  { href: '/messages', icon: MessageSquare, key: 'messages' },
   { href: '/renter/favorites', icon: Heart, key: 'favorites' },
   { href: '/renter/profile', icon: User, key: 'profile' },
   { href: '/renter/settings', icon: Settings, key: 'settings' },

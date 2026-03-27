@@ -468,6 +468,7 @@ export function ConversationListPanel({
  * @param {string}   [props.language]
  * @param {string}   [props.title]
  * @param {string}   [props.className]
+ * @param {boolean}  [props.roleTabsVisible] — false: только «Снимаю», без переключателя Сдаю/Снимаю (единый холл для рентора)
  */
 export function ConversationList({
   inbox,
@@ -481,6 +482,7 @@ export function ConversationList({
   language = 'ru',
   title,
   className,
+  roleTabsVisible = true,
 }) {
   if (!inbox) return null
 
@@ -493,7 +495,7 @@ export function ConversationList({
       categoryFilter={inbox.categoryFilter}
       onCategoryChange={inbox.setCategoryFilter}
       inboxTab={inbox.inboxTab}
-      onInboxTabChange={inbox.setInboxTab}
+      onInboxTabChange={roleTabsVisible ? inbox.setInboxTab : undefined}
       hostingUnread={inbox.hostingUnread}
       travelingUnread={inbox.travelingUnread}
       hasMore={inbox.hasMore}

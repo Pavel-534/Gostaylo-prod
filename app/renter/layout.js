@@ -54,7 +54,7 @@ const NAV_ITEMS = [
     descriptionKey: 'bookingsDesc'
   },
   { 
-    href: '/renter/messages', 
+    href: '/messages', 
     labelKey: 'messages', 
     icon: MessageSquare,
     descriptionKey: 'messagesDesc'
@@ -233,8 +233,13 @@ export default function RenterLayout({ children }) {
               <nav className="hidden md:flex items-center gap-1">
                 {navItems.map((item) => {
                   const Icon = item.icon
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-                  const isMessages = item.href === '/renter/messages'
+                  const isMessagesItem = item.href === '/messages'
+                  const isActive = isMessagesItem
+                    ? pathname === '/messages' ||
+                      pathname?.startsWith('/renter/messages') ||
+                      pathname?.startsWith('/partner/messages')
+                    : pathname === item.href || pathname.startsWith(item.href + '/')
+                  const isMessages = isMessagesItem
                   const showBadge = isMessages && totalUnread > 0 && !isActive
                   
                   return (
@@ -332,8 +337,13 @@ export default function RenterLayout({ children }) {
           <nav className="p-4 space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-              const isMessages = item.href === '/renter/messages'
+              const isMessagesItem = item.href === '/messages'
+              const isActive = isMessagesItem
+                ? pathname === '/messages' ||
+                  pathname?.startsWith('/renter/messages') ||
+                  pathname?.startsWith('/partner/messages')
+                : pathname === item.href || pathname.startsWith(item.href + '/')
+              const isMessages = isMessagesItem
               const showBadge = isMessages && totalUnread > 0 && !isActive
               
               return (

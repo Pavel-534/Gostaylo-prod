@@ -16,7 +16,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   Archive, Loader2, Home,
@@ -107,7 +107,7 @@ function useCategories() {
 }
 
 // ─── Archive helper ───────────────────────────────────────────────────────────
-function useArchive({ language, router, inbox, conversationId, basePath, userId }) {
+function useArchive({ language, router, inbox, conversationId, basePath, listHallHref = '/messages', userId }) {
   const archiveConversation = useCallback(async (convId) => {
     if (!convId) return
     try {
@@ -134,12 +134,12 @@ function useArchive({ language, router, inbox, conversationId, basePath, userId 
         if (remaining[0]) {
           const next = conversationMessagesHref(userId, remaining[0]) || `${basePath}/${remaining[0].id}`
           router.push(next)
-        } else router.push(basePath)
+        } else router.push(listHallHref)
       }
     } catch {
       toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
     }
-  }, [language, router, inbox, conversationId, basePath, userId])
+  }, [language, router, inbox, conversationId, basePath, listHallHref, userId])
 
   return { archiveConversation }
 }
@@ -148,8 +148,6 @@ function useArchive({ language, router, inbox, conversationId, basePath, userId 
 
 export default function RenterMessagesClient({ params }) {
   const router = useRouter()
-  const pathname = usePathname()
-  const messagesListBase = pathname?.startsWith('/partner') ? '/partner/messages' : '/renter/messages'
   const { language } = useI18n()
   const { user, loading: authLoading, openLoginModal } = useAuth()
   const { markConversationRead: markGlobalRead } = useChatContext()
@@ -524,7 +522,7 @@ export default function RenterMessagesClient({ params }) {
       if (list[0]) {
         const href = conversationMessagesHref(renterId, list[0]) || `/renter/messages/${list[0].id}`
         router.push(href)
-      } else router.push('/renter/messages')
+      } else router.push('/messages')
     }
   }, [inbox, conversationId, router, renterId])
 
@@ -597,7 +595,7 @@ export default function RenterMessagesClient({ params }) {
           language={language}
           isAdminView={false}
           embedded compact
-          messagesListHref={messagesListBase}
+          messagesListHref="/messages"
           showBookingTimeline={Boolean(booking?.id && booking?.status)}
           contactName={
             isHosting

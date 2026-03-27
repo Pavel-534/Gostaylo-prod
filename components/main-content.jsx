@@ -19,8 +19,11 @@ export function MainContent({ children }) {
   
   // Home page handles its own header spacing in Hero section
   const isHomePage = pathname === '/';
+
+  // Единый холл /messages — своя шапка, без отступа под UniversalHeader
+  const isUnifiedMessagesHall = pathname?.startsWith('/messages');
   
-  if (isAdminPage || isPartnerPage || isHomePage) {
+  if (isAdminPage || isPartnerPage || isHomePage || isUnifiedMessagesHall) {
     return <>{children}</>;
   }
   

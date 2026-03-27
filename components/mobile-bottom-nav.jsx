@@ -30,10 +30,10 @@ const NAV_ITEMS = [
     activeMatches: ['/listings', '/search']
   },
   { 
-    href: '/renter/messages', 
+    href: '/messages', 
     icon: MessageCircle, 
     label: 'Сообщения',
-    activeMatches: ['/renter/messages', '/messages'],
+    activeMatches: ['/messages', '/renter/messages', '/partner/messages'],
     requiresAuth: true
   },
   { 
@@ -94,7 +94,7 @@ export function MobileBottomNav() {
           const Icon = item.icon;
           const href = item.requiresAuth && !user ? '#' : item.href;
           
-          const showBadge = item.href === '/renter/messages' && totalUnread > 0;
+          const showBadge = item.href === '/messages' && totalUnread > 0;
 
           return (
             <Link

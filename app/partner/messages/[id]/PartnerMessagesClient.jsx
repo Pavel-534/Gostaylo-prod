@@ -102,7 +102,7 @@ function usePartnerAuth() {
 }
 
 // ─── Archive helper ───────────────────────────────────────────────────────────
-function useArchive({ language, router, inbox, conversationId, basePath, userId }) {
+function useArchive({ language, router, inbox, conversationId, basePath, listHallHref = '/messages', userId }) {
   const archiveConversation = useCallback(async (convId) => {
     if (!convId) return
     try {
@@ -129,12 +129,12 @@ function useArchive({ language, router, inbox, conversationId, basePath, userId 
         if (remaining[0]) {
           const next = conversationMessagesHref(userId, remaining[0]) || `${basePath}/${remaining[0].id}`
           router.push(next)
-        } else router.push(basePath)
+        } else router.push(listHallHref)
       }
     } catch {
       toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
     }
-  }, [language, router, inbox, conversationId, basePath, userId])
+  }, [language, router, inbox, conversationId, basePath, listHallHref, userId])
 
   return { archiveConversation }
 }
@@ -455,7 +455,7 @@ export default function PartnerMessagesClient({ params }) {
       if (list[0]) {
         const href = conversationMessagesHref(user?.id, list[0]) || `/partner/messages/${list[0].id}`
         router.push(href)
-      } else router.push('/partner/messages')
+      } else router.push('/messages')
     }
   }, [inbox, conversationId, router, user?.id])
 
@@ -544,7 +544,7 @@ export default function PartnerMessagesClient({ params }) {
           embedded
           compact
           groupDesktopTools
-          messagesListHref="/partner/messages"
+          messagesListHref="/messages"
           showBookingTimeline={Boolean(booking?.id && booking?.status)}
           contactName={chatContactName}
           presenceOnline={peerOnline}

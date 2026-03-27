@@ -108,7 +108,7 @@ const PARTNER_NAV = [
   },
   { 
     label: 'Сообщения', 
-    href: '/partner/messages', 
+    href: '/messages', 
     icon: MessageSquare,
     description: 'Чат с гостями'
   },
@@ -136,7 +136,7 @@ const RENTER_NAV = [
   },
   { 
     label: 'Messages', 
-    href: '/renter/messages', 
+    href: '/messages', 
     icon: MessageSquare,
     description: 'Chat with hosts'
   },
@@ -310,9 +310,15 @@ export function AppSidebar() {
           <nav className='px-2 space-y-1'>
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href || 
-                              (item.href !== '/' && pathname?.startsWith(item.href.split('?')[0]));
+              const isActive =
+                item.href === '/messages'
+                  ? pathname === '/messages' ||
+                    pathname?.startsWith('/partner/messages') ||
+                    pathname?.startsWith('/renter/messages')
+                  : pathname === item.href ||
+                    (item.href !== '/' && pathname?.startsWith(item.href.split('?')[0]));
               const isMessagesLink =
+                item.href === '/messages' ||
                 item.href === '/renter/messages' ||
                 item.href === '/partner/messages' ||
                 item.href === '/admin/messages/';

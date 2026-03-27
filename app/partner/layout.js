@@ -74,7 +74,7 @@ const SIDEBAR_ITEMS = [
   },
   { 
     name: 'Сообщения', 
-    href: '/partner/messages', 
+    href: '/messages', 
     icon: MessageSquare,
     description: 'Чат с арендаторами',
     badge: null // Future: unread count from Firebase
@@ -478,9 +478,14 @@ export default function PartnerLayout({ children }) {
           <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
             {SIDEBAR_ITEMS.map((item) => {
               const Icon = item.icon
-              const isActive = pathname === item.href || 
-                (item.href !== '/partner/dashboard' && pathname?.startsWith(item.href))
-              const isMessages = item.href === '/partner/messages'
+              const isMessagesItem = item.href === '/messages'
+              const isActive = isMessagesItem
+                ? pathname === '/messages' ||
+                  pathname?.startsWith('/partner/messages') ||
+                  pathname?.startsWith('/renter/messages')
+                : pathname === item.href ||
+                  (item.href !== '/partner/dashboard' && pathname?.startsWith(item.href))
+              const isMessages = isMessagesItem
               const showUnreadDot = isMessages && totalUnread > 0 && !isActive
               
               return (

@@ -101,7 +101,7 @@ export default function RenterMessagesArchivedPage() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm" className="text-slate-700">
-              <Link href="/renter/messages">
+              <Link href="/messages">
                 <ArrowLeft className="h-4 w-4 mr-1" />
                 Диалоги
               </Link>
@@ -134,7 +134,7 @@ export default function RenterMessagesArchivedPage() {
               <h3 className="text-xl font-semibold text-slate-900 mb-2">Архив пуст</h3>
               <p className="text-slate-600 mb-6">Здесь появятся диалоги, которые вы скроете из основного списка</p>
               <Button asChild variant="outline" className="border-teal-200 text-teal-800">
-                <Link href="/renter/messages">К активным диалогам</Link>
+                <Link href="/messages">К активным диалогам</Link>
               </Button>
             </div>
           </Card>
