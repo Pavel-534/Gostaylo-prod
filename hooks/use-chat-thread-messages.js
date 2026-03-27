@@ -44,10 +44,15 @@ import { uploadChatFile } from '@/lib/chat-upload'
  * @param {string|null} viewerRole   — роль просматривающего ('partner'|'renter'|'admin')
  * @returns {import('@/lib/chat/map-api-message').mapApiMessageToRow.opts}
  */
-function buildMapperOpts(conv, userId, viewerRole) {
+function buildMapperOpts(conv, userId, viewerRole, bookingState = null) {
+  const bookingStatus =
+    bookingState?.status ??
+    conv?.booking?.status ??
+    conv?.bookingStatus ??
+    null
   return {
     viewerUserId: userId ?? null,
-    bookingStatus: conv?.booking?.status ?? conv?.bookingStatus ?? null,
+    bookingStatus,
     viewerRole: viewerRole ?? null,
     listingCategory: conv?.listingCategory ?? null,
   }
@@ -95,17 +100,16 @@ export function useChatThreadMessages({
   const loadSeqRef = useRef(0)
 
   // Текущие опции маппера — обновляются вместе с selectedConv
-  const mapperOptsRef = useRef(buildMapperOpts(null, userId, viewerRole))
+  const mapperOptsRef = useRef(buildMapperOpts(null, userId, viewerRole, null))
   useEffect(() => {
-    mapperOptsRef.current = buildMapperOpts(selectedConv, userId, viewerRole)
-    // При смене bookingStatus — перемаппируем весь список (для актуализации маскировки)
+    mapperOptsRef.current = buildMapperOpts(selectedConv, userId, viewerRole, booking)
+    // При смене статуса брони (в т.ч. после Confirm на клиенте) — актуализируем маскировку
     if (selectedConv) {
       setMessages((prev) =>
         prev.map((m) => mapApiMessageToRow(m, mapperOptsRef.current) ?? m)
       )
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedConv?.booking?.status, userId, viewerRole])
+  }, [selectedConv, booking?.status, booking?.id, userId, viewerRole])
 
   // Ref-кэш колбэка для onNewMessage (предотвращаем лишние useEffect-перезапуски)
   const onNewMessageRef = useRef(onNewMessage)
@@ -197,7 +201,7 @@ export function useChatThreadMessages({
       setBooking(conv.booking ?? null)
 
       // Обновляем опции маппера до загрузки сообщений
-      mapperOptsRef.current = buildMapperOpts(conv, userId, viewerRole)
+      mapperOptsRef.current = buildMapperOpts(conv, userId, viewerRole, conv.booking ?? null)
 
       // 2. Загружаем историю сообщений
       const msgRes = await fetch(
@@ -226,8 +230,8 @@ export function useChatThreadMessages({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ conversationId: convId }),
       }).catch(() => {})
-    } catch (err) {
-      console.error('[useChatThreadMessages] loadThread error:', err)
+    } catch {
+      /* сеть / парсинг — тосты выше по цепочке */
     } finally {
       if (seq === loadSeqRef.current) setIsLoading(false)
     }
@@ -339,8 +343,8 @@ export function useChatThreadMessages({
    * Вынесено в мемо, чтобы не пересоздавался на каждый рендер.
    */
   const mapperOpts = useMemo(
-    () => buildMapperOpts(selectedConv, userId, viewerRole),
-    [selectedConv, userId, viewerRole]
+    () => buildMapperOpts(selectedConv, userId, viewerRole, booking),
+    [selectedConv, booking, userId, viewerRole]
   )
 
   return {

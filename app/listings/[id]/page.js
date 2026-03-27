@@ -464,9 +464,9 @@ function PremiumListingContent({ params }) {
         setBookingModalOpen(false)
         const cid = data.conversationId
         if (cid) {
-          router.push(`/renter/messages/${encodeURIComponent(cid)}`)
+          router.push(`/renter/messages/${encodeURIComponent(cid)}`, { scroll: false })
         } else {
-          router.push('/renter/bookings')
+          router.push('/renter/bookings', { scroll: false })
         }
       } else {
         toast.error(data.error || 'Booking failed')

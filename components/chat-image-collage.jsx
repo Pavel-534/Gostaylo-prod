@@ -8,7 +8,7 @@
  *   <ChatImageCollage images={[{id, url, alt}]} onOpenLightbox={(idx) => ...} />
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { X, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react'
 
@@ -124,6 +124,7 @@ export function ChatLightbox({ images, startIndex = 0, onClose }) {
  */
 export function ChatImageCollage({ images, isOwn }) {
   const [lightboxIdx, setLightboxIdx] = useState(null)
+  const [singleLoaded, setSingleLoaded] = useState(false)
 
   const visible = images.slice(0, 6)
   const extra = images.length > 6 ? images.length - 6 : 0
@@ -132,6 +133,11 @@ export function ChatImageCollage({ images, isOwn }) {
   if (n === 0) return null
 
   const single = n === 1
+  const singleUrl = single ? visible[0]?.url : null
+
+  useEffect(() => {
+    setSingleLoaded(false)
+  }, [singleUrl])
 
   return (
     <>
@@ -144,16 +150,31 @@ export function ChatImageCollage({ images, isOwn }) {
       >
         {single ? (
           <button
-            className="relative block group"
+            type="button"
+            className="relative block w-full max-w-[min(100%,280px)] group text-left"
             onClick={() => setLightboxIdx(0)}
             aria-label="Открыть фото"
           >
-            <img
-              src={visible[0].url}
-              alt={visible[0].alt || ''}
-              className="max-h-64 w-full object-cover"
-            />
-            <span className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-100">
+              {!singleLoaded && (
+                <div
+                  className="absolute inset-0 z-[1] animate-pulse bg-slate-200"
+                  aria-hidden
+                />
+              )}
+              <img
+                src={visible[0].url}
+                alt={visible[0].alt || ''}
+                className={cn(
+                  'h-full w-full object-cover transition-opacity duration-200',
+                  singleLoaded ? 'opacity-100' : 'opacity-0',
+                )}
+                loading="lazy"
+                decoding="async"
+                onLoad={() => setSingleLoaded(true)}
+              />
+            </div>
+            <span className="pointer-events-none absolute inset-0 z-[2] bg-black/0 group-hover:bg-black/15 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
               <ZoomIn className="h-6 w-6 text-white drop-shadow" />
             </span>
           </button>
@@ -163,8 +184,9 @@ export function ChatImageCollage({ images, isOwn }) {
               const isLast = i === n - 1 && extra > 0
               return (
                 <button
+                  type="button"
                   key={img.id ?? i}
-                  className="relative overflow-hidden aspect-square group"
+                  className="relative overflow-hidden aspect-square group bg-slate-100"
                   onClick={() => setLightboxIdx(i)}
                   aria-label={`Фото ${i + 1}`}
                 >
@@ -172,6 +194,8 @@ export function ChatImageCollage({ images, isOwn }) {
                     src={img.url}
                     alt={img.alt || ''}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    loading="lazy"
+                    decoding="async"
                   />
                   {isLast ? (
                     <span className="absolute inset-0 bg-black/55 flex items-center justify-center text-white text-lg font-bold">

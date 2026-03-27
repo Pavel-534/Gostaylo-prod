@@ -54,8 +54,8 @@ import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
 function MaskedBadge({ language = 'ru' }) {
   const label =
     language === 'en'
-      ? 'Contact hidden until booking is confirmed'
-      : 'Контакт скрыт до подтверждения'
+      ? 'Contact hidden until booking is paid on the platform'
+      : 'Контакт скрыт до оплаты бронирования на платформе'
   return (
     <span
       className="inline-flex items-center gap-1 text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 mt-1 select-none"
