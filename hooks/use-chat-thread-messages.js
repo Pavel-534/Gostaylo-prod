@@ -31,7 +31,7 @@ import { mapApiMessageToRow, mergeRealtimeMessage } from '@/lib/chat/map-api-mes
 import { useRealtimeMessages } from '@/hooks/use-realtime-chat'
 import { useOptimisticSend } from '@/hooks/use-optimistic-send'
 import { playNotificationSound } from '@/hooks/use-realtime-chat'
-import { uploadChatFile } from '@/lib/chat-upload'
+import { uploadChatFile, uploadChatVoice } from '@/lib/chat-upload'
 
 // ─── Утилита ─────────────────────────────────────────────────────────────────
 
@@ -270,10 +270,10 @@ export function useChatThreadMessages({
     async (blob, durationSec = 0) => {
       if (!blob || !conversationId || !userId) return null
       try {
-        const voiceUrl = await uploadChatFile(blob, {
-          folder: 'voice',
-          fileName: `voice_${Date.now()}.webm`,
-        })
+        const mime = blob.type || 'audio/webm'
+        const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') ? 'm4a' : mime.includes('mpeg') ? 'mp3' : 'webm'
+        const file = new File([blob], `voice_${Date.now()}.${ext}`, { type: mime })
+        const { url: voiceUrl } = await uploadChatVoice(file, userId)
         const res = await fetch('/api/v2/chat/messages', {
           method: 'POST',
           credentials: 'include',
@@ -310,7 +310,7 @@ export function useChatThreadMessages({
     async (file, type = 'image') => {
       if (!file || !conversationId || !userId) return null
       try {
-        const url = await uploadChatFile(file, { folder: type === 'image' ? 'images' : 'files' })
+        const { url } = await uploadChatFile(file, userId, type === 'image' ? 'images' : 'files')
         const res = await fetch('/api/v2/chat/messages', {
           method: 'POST',
           credentials: 'include',

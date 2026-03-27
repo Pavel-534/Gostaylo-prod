@@ -82,7 +82,7 @@ import { DealDetailsCard } from '@/components/chat/DealDetailsCard'
 import { SupportRequestDialog } from '@/components/support-request-dialog'
 import { PartnerChatCalendarPeek } from '@/components/partner-chat-calendar-peek'
 import { detectUnsafePatterns, SafetyBanner } from '@/components/chat-safety'
-import { uploadChatFile } from '@/lib/chat-upload'
+import { uploadChatFile, uploadChatVoice } from '@/lib/chat-upload'
 import {
   INBOX_TAB_HOSTING,
   INBOX_TAB_TRAVELING,
@@ -91,6 +91,7 @@ import {
 import { DECLINE_REASON_PRESETS } from '@/lib/booking-chat-copy'
 import { isBookingPaid } from '@/lib/mask-contacts'
 import { countSearchResults } from '@/lib/chat/message-filters'
+import { cn } from '@/lib/utils'
 
 // ─── Категории ────────────────────────────────────────────────────────────────
 function useCategories() {
@@ -322,7 +323,10 @@ export default function RenterMessagesClient({ params }) {
     if (!voiceBlob || !renterId || !selectedConv) return
     setVoiceSending(true)
     try {
-      const voiceUrl = await uploadChatFile(voiceBlob, { folder: 'voice', fileName: `voice_${Date.now()}.webm` })
+      const mime = voiceBlob.type || 'audio/webm'
+      const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') ? 'm4a' : mime.includes('mpeg') ? 'mp3' : 'webm'
+      const file = new File([voiceBlob], `voice_${Date.now()}.${ext}`, { type: mime })
+      const { url: voiceUrl } = await uploadChatVoice(file, renterId)
       const res = await fetch('/api/v2/chat/messages', {
         method: 'POST',
         credentials: 'include',
@@ -709,7 +713,13 @@ export default function RenterMessagesClient({ params }) {
           if (f) handleAttachFile(f)
         }}
       />
-      <form onSubmit={handleSendText} className="flex w-full min-w-0 gap-1.5 items-end sm:gap-2">
+      <form
+        onSubmit={handleSendText}
+        className={cn(
+          'flex w-full min-w-0 gap-1.5 sm:gap-2',
+          voiceBlob || voiceRecording ? 'items-center' : 'items-end',
+        )}
+      >
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -738,8 +748,16 @@ export default function RenterMessagesClient({ params }) {
         </DropdownMenu>
 
         {voiceBlob ? (
-          <div className="flex flex-1 min-w-0 items-center gap-2 px-3 py-2 rounded-xl bg-teal-50 border border-teal-200">
-            <audio src={voicePreviewUrl} controls className="h-8 flex-1 min-w-0" />
+          <div className="flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-2 py-1.5 sm:px-3 sm:py-2">
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <audio
+                key={voicePreviewUrl || 'voice-preview'}
+                src={voicePreviewUrl || undefined}
+                controls
+                preload="auto"
+                className="block h-9 w-full max-w-full"
+              />
+            </div>
             <span className="text-xs text-teal-700 font-medium tabular-nums shrink-0">{voiceDurationLabel}</span>
             <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50 shrink-0" onClick={discardVoice}>
               <Trash2 className="h-4 w-4" />

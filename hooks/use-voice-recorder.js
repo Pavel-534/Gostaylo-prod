@@ -29,14 +29,18 @@ export function useVoiceRecorder() {
   const chunksRef = useRef([])
   const timerRef = useRef(null)
   const streamRef = useRef(null)
+  /** Ссылка на ObjectURL — чтобы не терять revoke при смене замыканий в startRecording */
+  const audioUrlRef = useRef(null)
+  /** Не создавать blob в onstop при принудительной остановке перед новой записью */
+  const skipNextBlobRef = useRef(false)
 
-  // Очищаем ObjectURL при размонтировании
-  useEffect(() => {
-    return () => {
-      if (audioUrl) URL.revokeObjectURL(audioUrl)
-      stopStream()
+  function revokePreviewUrl() {
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL(audioUrlRef.current)
+      audioUrlRef.current = null
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    setAudioUrl(null)
+  }
 
   function stopStream() {
     if (streamRef.current) {
@@ -45,9 +49,27 @@ export function useVoiceRecorder() {
     }
   }
 
+  useEffect(() => {
+    return () => {
+      revokePreviewUrl()
+      stopStream()
+    }
+  }, [])
+
   const startRecording = useCallback(async () => {
     setError(null)
-    discardRecording()
+    clearInterval(timerRef.current)
+    skipNextBlobRef.current = false
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      skipNextBlobRef.current = true
+      mediaRecorderRef.current.stop()
+    }
+    stopStream()
+    revokePreviewUrl()
+    setAudioBlob(null)
+    setDuration(0)
+    chunksRef.current = []
+    mediaRecorderRef.current = null
 
     let stream
     try {
@@ -58,7 +80,6 @@ export function useVoiceRecorder() {
     }
     streamRef.current = stream
 
-    // Подбираем поддерживаемый формат
     const mimeTypes = [
       'audio/webm;codecs=opus',
       'audio/webm',
@@ -76,18 +97,25 @@ export function useVoiceRecorder() {
     }
 
     recorder.onstop = () => {
+      if (skipNextBlobRef.current) {
+        skipNextBlobRef.current = false
+        stopStream()
+        chunksRef.current = []
+        return
+      }
       const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
+      revokePreviewUrl()
       const url = URL.createObjectURL(blob)
+      audioUrlRef.current = url
       setAudioBlob(blob)
       setAudioUrl(url)
       stopStream()
     }
 
-    recorder.start(100) // сохраняем чанки каждые 100ms
+    recorder.start(100)
     setIsRecording(true)
     setDuration(0)
 
-    // Таймер
     let secs = 0
     timerRef.current = setInterval(() => {
       secs += 1
@@ -96,7 +124,7 @@ export function useVoiceRecorder() {
         stopRecordingInternal(recorder)
       }
     }, 1000)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   function stopRecordingInternal(recorder) {
     clearInterval(timerRef.current)
@@ -115,19 +143,18 @@ export function useVoiceRecorder() {
   const discardRecording = useCallback(() => {
     clearInterval(timerRef.current)
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      skipNextBlobRef.current = true
       mediaRecorderRef.current.stop()
     }
     stopStream()
-    if (audioUrl) URL.revokeObjectURL(audioUrl)
+    revokePreviewUrl()
     setAudioBlob(null)
-    setAudioUrl(null)
     setDuration(0)
     setIsRecording(false)
     setError(null)
     chunksRef.current = []
-  }, [audioUrl])
+  }, [])
 
-  /** Форматирует секунды → "0:23" */
   function fmtDuration(sec) {
     const m = Math.floor(sec / 60)
     const s = sec % 60

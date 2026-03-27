@@ -33,7 +33,7 @@ import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { useVoiceRecorder } from '@/hooks/use-voice-recorder'
-import { uploadChatFile } from '@/lib/chat-upload'
+import { uploadChatVoice } from '@/lib/chat-upload'
 
 /**
  * @param {Object}   props
@@ -76,10 +76,10 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
     if (!audioBlob || !userId) return
     setVoiceSending(true)
     try {
-      const ext = audioBlob.type.includes('ogg') ? 'ogg'
-        : audioBlob.type.includes('mp4') ? 'mp4' : 'webm'
-      const file = new File([audioBlob], `voice_${Date.now()}.${ext}`, { type: audioBlob.type })
-      const { url } = await uploadChatFile(file, userId)
+      const mime = audioBlob.type || 'audio/webm'
+      const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') ? 'm4a' : mime.includes('mpeg') ? 'mp3' : 'webm'
+      const file = new File([audioBlob], `voice_${Date.now()}.${ext}`, { type: mime })
+      const { url } = await uploadChatVoice(file, userId)
       await onSend?.({ url, duration })
       discardRecording()
     } catch (e) {
@@ -92,8 +92,16 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
   // ── Состояние «предпросмотр» ─────────────────────────────────────────────
   if (audioBlob) {
     return (
-      <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-50 border border-teal-200">
-        <audio src={audioUrl} controls className="h-8 flex-1 min-w-0" />
+      <div className="flex w-full min-w-0 min-h-10 flex-1 items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-2 py-1.5 sm:px-3 sm:py-2">
+        <div className="min-w-0 flex-1 overflow-hidden">
+          <audio
+            key={audioUrl || 'preview'}
+            src={audioUrl || undefined}
+            controls
+            preload="auto"
+            className="block h-9 w-full max-w-full"
+          />
+        </div>
         <span className="text-xs text-teal-700 font-medium tabular-nums shrink-0">{durationLabel}</span>
         <Button
           type="button"
@@ -122,7 +130,7 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
   // ── Состояние «запись» ───────────────────────────────────────────────────
   if (isRecording) {
     return (
-      <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-200">
+      <div className="flex min-h-10 w-full min-w-0 flex-1 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-2 py-1.5 sm:px-3 sm:py-2">
         <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
         <span className="text-sm text-red-700 font-medium flex-1">
           {isRu ? 'Запись...' : 'Recording...'} {durationLabel}

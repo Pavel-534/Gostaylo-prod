@@ -196,7 +196,13 @@ export function PartnerChatComposer({
         onChange={handleFileChange}
       />
 
-      <form onSubmit={onSubmit} className="flex w-full min-w-0 gap-1.5 items-end sm:gap-2">
+      <form
+        onSubmit={onSubmit}
+        className={cn(
+          'flex w-full min-w-0 gap-1.5 sm:gap-2',
+          voiceActive ? 'items-center' : 'items-end',
+        )}
+      >
         {plusMenu}
 
         {!voiceActive ? (
@@ -211,7 +217,7 @@ export function PartnerChatComposer({
           </div>
         ) : null}
 
-        <div className={cn(voiceActive && 'min-w-0 flex-1 flex items-end')}>
+        <div className={cn(voiceActive && 'flex min-w-0 flex-1 items-center')}>
           <VoiceRecorder
             showMicTrigger={!voiceActive && !newMessage.trim() && !disabled && !sending}
             userId={userId}

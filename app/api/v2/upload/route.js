@@ -76,15 +76,23 @@ export async function POST(request) {
     }
     
     const isChatBucket = bucket === 'chat-attachments'
-    const allowedTypes = isChatBucket
-      ? ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']
-      : ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
-    if (!allowedTypes.includes(file.type)) {
+    const chatImageAndDocTypes = [
+      'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf',
+    ]
+    const type = (file.type || '').trim()
+    const nameLower = String(file.name || '').toLowerCase()
+    const looksLikeAudio =
+      type.startsWith('audio/') || /\.(webm|ogg|oga|opus|mp3|m4a|wav|mp4|aac)$/i.test(nameLower)
+    const allowed =
+      isChatBucket
+        ? (chatImageAndDocTypes.includes(type) || looksLikeAudio)
+        : ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(type)
+    if (!allowed) {
       return NextResponse.json(
         {
           success: false,
           error: isChatBucket
-            ? 'Для чата: JPG, PNG, WebP, GIF или PDF'
+            ? 'Для чата: изображения, PDF или голосовые (audio/*)'
             : 'Неподдерживаемый формат файла. Используйте JPG, PNG, WebP или PDF',
         },
         { status: 400 }
@@ -96,6 +104,10 @@ export async function POST(request) {
     const filename = objectPath && typeof objectPath === 'string'
       ? objectPath.replace(/^\/+/, '')
       : `${folder}/${timestamp}.${ext}`;
+
+    const contentType =
+      type ||
+      (looksLikeAudio ? 'audio/webm' : 'application/octet-stream');
     
     const supabase = getSupabase();
     
@@ -107,7 +119,7 @@ export async function POST(request) {
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(filename, buffer, {
-        contentType: file.type,
+        contentType,
         upsert
       });
     
