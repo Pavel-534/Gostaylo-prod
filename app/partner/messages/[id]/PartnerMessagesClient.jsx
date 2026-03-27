@@ -13,8 +13,9 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
-  Archive, ArrowLeft, Loader2,
-  Shield, Wifi, WifiOff,
+  Archive, Loader2,
+  Wifi, WifiOff,
+  LifeBuoy, Images, Search, Calendar,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -155,6 +156,7 @@ export default function PartnerMessagesClient({ params }) {
   const [newMessage, setNewMessage] = useState('')
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
   const [dealSheetOpen, setDealSheetOpen] = useState(false)
+  const [calendarOpen, setCalendarOpen] = useState(false)
 
   // ── Инбокс (Фаза 2) ─────────────────────────────────────────────────────────
   const inbox = useConversationInbox({
@@ -483,9 +485,6 @@ export default function PartnerMessagesClient({ params }) {
   // Header
   const headerSlot = selectedConv ? (
     <div className="flex items-center gap-1 px-2 py-1.5 lg:px-0 lg:py-0 bg-white border-b lg:border-0">
-      <Button variant="ghost" size="icon" className="lg:hidden shrink-0" onClick={() => router.push('/partner/messages')}>
-        <ArrowLeft className="h-5 w-5" />
-      </Button>
       <Button
         type="button" variant="outline" size="sm"
         className="shrink-0 text-slate-600 border-slate-200 hidden sm:inline-flex"
@@ -501,6 +500,7 @@ export default function PartnerMessagesClient({ params }) {
           language={language}
           isAdminView={false}
           embedded compact
+          messagesListHref="/partner/messages"
           showBookingTimeline={Boolean(booking?.id && booking?.status)}
           contactName={chatContactName}
           presenceOnline={peerParticipantId ? peerOnline : null}
@@ -522,13 +522,10 @@ export default function PartnerMessagesClient({ params }) {
           supportPriorityActive={!!selectedConv?.isPriority}
         >
           {isHosting && (
-            <div className="flex items-center gap-2">
-              <PartnerChatCalendarPeek listingId={listing?.id} listingTitle={listing?.title} language={language} />
-              <span className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}>
-                {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-                {isConnected ? 'Live' : '…'}
-              </span>
-            </div>
+            <span className={`flex items-center gap-1 text-xs shrink-0 ${isConnected ? 'text-green-600' : 'text-orange-500'}`}>
+              {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+              {isConnected ? 'Live' : '…'}
+            </span>
           )}
         </StickyChatHeader>
       </div>
@@ -632,6 +629,15 @@ export default function PartnerMessagesClient({ params }) {
         className="h-[calc(100vh-4rem)]"
       />
 
+      <PartnerChatCalendarPeek
+        listingId={listing?.id}
+        listingTitle={listing?.title}
+        language={language}
+        open={calendarOpen}
+        onOpenChange={setCalendarOpen}
+        triggerClassName="hidden lg:inline-flex"
+      />
+
       <Sheet open={dealSheetOpen} onOpenChange={setDealSheetOpen}>
         <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto rounded-t-2xl z-[210]">
           <SheetHeader className="text-left pb-2">
@@ -640,6 +646,62 @@ export default function PartnerMessagesClient({ params }) {
             </SheetTitle>
           </SheetHeader>
           {dealDetailsPanel}
+          <div className="lg:hidden border-t border-slate-200 pt-4 mt-4 space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              {language === 'ru' ? 'Инструменты' : 'Tools'}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start gap-2 text-slate-800"
+              onClick={() => {
+                setDealSheetOpen(false)
+                setSupportDialogOpen(true)
+              }}
+            >
+              <LifeBuoy className="h-4 w-4 text-teal-600 shrink-0" />
+              {language === 'ru' ? 'Помощь и поддержка' : 'Help & support'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start gap-2 text-slate-800"
+              onClick={() => {
+                setDealSheetOpen(false)
+                setMediaGalleryOpen(true)
+              }}
+            >
+              <Images className="h-4 w-4 text-teal-600 shrink-0" />
+              {language === 'ru' ? 'Медиафайлы в чате' : 'Media in chat'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start gap-2 text-slate-800"
+              onClick={() => {
+                setDealSheetOpen(false)
+                setSearchActive(true)
+                setSearchQuery('')
+              }}
+            >
+              <Search className="h-4 w-4 text-teal-600 shrink-0" />
+              {language === 'ru' ? 'Поиск по сообщениям' : 'Search messages'}
+            </Button>
+            {isHosting && listing?.id ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start gap-2 text-slate-800"
+                onClick={() => {
+                  setDealSheetOpen(false)
+                  setCalendarOpen(true)
+                }}
+              >
+                <Calendar className="h-4 w-4 text-teal-600 shrink-0" />
+                {language === 'ru' ? 'Календарь занятости' : 'Availability calendar'}
+              </Button>
+            ) : null}
+          </div>
         </SheetContent>
       </Sheet>
 

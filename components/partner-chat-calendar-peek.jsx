@@ -16,8 +16,25 @@ import { CalendarGrid } from '@/components/calendar/CalendarGrid'
 /**
  * Быстрый просмотр занятости одного листинга из шапки чата (без ухода со страницы).
  */
-export function PartnerChatCalendarPeek({ listingId, listingTitle, language = 'ru', triggerClassName }) {
-  const [open, setOpen] = useState(false)
+export function PartnerChatCalendarPeek({
+  listingId,
+  listingTitle,
+  language = 'ru',
+  triggerClassName,
+  open: openControlled,
+  onOpenChange: onOpenChangeControlled,
+  hideTrigger = false,
+}) {
+  const [openInternal, setOpenInternal] = useState(false)
+  const isControlled = openControlled !== undefined
+  const open = isControlled ? openControlled : openInternal
+  const setOpen = useCallback(
+    (next) => {
+      onOpenChangeControlled?.(next)
+      if (!isControlled) setOpenInternal(next)
+    },
+    [isControlled, onOpenChangeControlled]
+  )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [calendarPayload, setCalendarPayload] = useState(null)
@@ -65,18 +82,20 @@ export function PartnerChatCalendarPeek({ listingId, listingTitle, language = 'r
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className={triggerClassName}
-        title={isRu ? 'Календарь объекта' : 'Listing calendar'}
-        onClick={() => onOpenChange(true)}
-        disabled={!listingId}
-      >
-        <Calendar className="h-3.5 w-3.5 sm:mr-1" />
-        <span className="hidden sm:inline">{isRu ? 'Календарь' : 'Calendar'}</span>
-      </Button>
+      {!hideTrigger && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className={triggerClassName}
+          title={isRu ? 'Календарь объекта' : 'Listing calendar'}
+          onClick={() => onOpenChange(true)}
+          disabled={!listingId}
+        >
+          <Calendar className="h-3.5 w-3.5 sm:mr-1" />
+          <span className="hidden sm:inline">{isRu ? 'Календарь' : 'Calendar'}</span>
+        </Button>
+      )}
 
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">

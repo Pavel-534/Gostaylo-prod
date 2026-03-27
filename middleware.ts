@@ -45,6 +45,36 @@ async function verifyToken(token: string): Promise<{ userId: string; role: strin
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Deep links /messages/[id] → кабинет по роли (серверный redirect, без клиентского спиннера в истории)
+  if (pathname.startsWith('/messages/') && pathname !== '/messages/') {
+    const rest = pathname.slice('/messages/'.length);
+    const id = rest.split('/')[0];
+    if (id) {
+      if (!JWT_SECRET) {
+        return NextResponse.json({ success: false, error: 'Server misconfigured: JWT_SECRET is missing' }, { status: 500 });
+      }
+      const token = request.cookies.get('gostaylo_session')?.value;
+      if (!token) {
+        return NextResponse.redirect(new URL('/', request.url));
+      }
+      const decoded = await verifyToken(token);
+      if (!decoded) {
+        const response = NextResponse.redirect(new URL('/', request.url));
+        response.cookies.delete('gostaylo_session');
+        return response;
+      }
+      const role = String(decoded.role || '').toUpperCase();
+      const enc = encodeURIComponent(id);
+      if (role === 'PARTNER') {
+        return NextResponse.redirect(new URL(`/partner/messages/${enc}`, request.url));
+      }
+      if (role === 'ADMIN' || role === 'MODERATOR') {
+        return NextResponse.redirect(new URL(`/admin/messages/?open=${enc}`, request.url));
+      }
+      return NextResponse.redirect(new URL(`/renter/messages/${enc}`, request.url));
+    }
+  }
   
   // Check if route is protected
   const matchedRoute = Object.keys(PROTECTED_ROUTES).find(route => 
@@ -105,6 +135,7 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/partner/:path*',
-    '/renter/:path*'
+    '/renter/:path*',
+    '/messages/:path*',
   ]
 };

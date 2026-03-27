@@ -23,8 +23,10 @@ import { useEffect, useState } from 'react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { ru as ruLocale } from 'date-fns/locale'
 import Link from 'next/link'
-import { Building2, Shield } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, Building2, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { BookingChatTimeline } from '@/components/booking-chat-timeline'
 import { ChatHeaderActions } from '@/components/chat/ChatHeaderActions'
 
@@ -54,9 +56,14 @@ export function StickyChatHeader({
   searchActive = false,
   embedded = false,
   compact = false,
+  /** К списку диалогов; `router.replace` чтобы не копить историю и не зацикливаться с /messages/[id] */
+  messagesListHref = null,
+  messagesListBackLabel = null,
   className,
   children,
 }) {
+  const router = useRouter()
+
   // Ticker для обновления «Был X минут назад» каждые 30 секунд
   const [, setTick] = useState(0)
   useEffect(() => {
@@ -169,6 +176,22 @@ export function StickyChatHeader({
           compact ? 'px-2 py-2 sm:px-4 sm:py-3' : 'px-4 py-3'
         )}
       >
+        {messagesListHref ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="shrink-0 -ml-1 lg:hidden"
+            aria-label={
+              messagesListBackLabel
+                ?? (language === 'en' ? 'Back to conversations' : 'К списку диалогов')
+            }
+            onClick={() => router.replace(messagesListHref)}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        ) : null}
+
         {/* Миниатюра листинга */}
         {img ? (
           <img

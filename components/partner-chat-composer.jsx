@@ -1,66 +1,35 @@
 'use client'
 
 /**
- * @file components/partner-chat-composer.jsx
- *
- * Дирижёр чат-композера для партнёра.
- *
- * Этот файл — тонкий оркестратор: объединяет независимые модули из
- * components/chat/composer/ и обеспечивает их взаимодействие:
- *   – MediaUploader  — кнопка 📎 + скрытый input
- *   – HostPlusMenu   — выпадающее меню «+» (Счёт / Паспорт / шаблоны из +)
- *   – QuickReplies   — кнопка ⚡ + меню быстрых ответов
- *   – InvoiceCreator — диалог выставления счёта
- *   – VoiceRecorder  — запись, предпросмотр и отправка голосового
- *   – ChatGrowingTextarea + кнопка «Отправить» (показываются когда нет активной записи)
+ * Композер партнёра: одна кнопка «+» (вложения, быстрые ответы, счёт, паспорт),
+ * широкое поле ввода, микрофон и отправка справа.
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { ChatGrowingTextarea } from '@/components/chat-growing-textarea'
-import { Loader2, Send, Plus, Receipt, IdCard, Quote } from 'lucide-react'
+import { Loader2, Send, Plus, Receipt, IdCard, Paperclip, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
+import { cn } from '@/lib/utils'
 
-import { MediaUploader } from '@/components/chat/composer/MediaUploader'
-import { QuickReplies } from '@/components/chat/composer/QuickReplies'
+
 import { InvoiceCreator } from '@/components/chat/composer/InvoiceCreator'
 import { VoiceRecorder } from '@/components/chat/composer/VoiceRecorder'
+import { QuickRepliesPanel } from '@/components/chat/composer/QuickReplies'
 
-/** Быстрые ответы из меню «+» (краткий список для компактного варианта) */
-const HOST_QUICK_REPLIES = [
-  { shortRu: 'Свободен на ваши даты',       textRu: 'Здравствуйте! Объект свободен на ваши даты.',    shortEn: 'Available for your dates',  textEn: 'Hello! The property is available for your dates.' },
-  { shortRu: 'Фото паспорта для договора',   textRu: 'Пожалуйста, пришлите фото вашего паспорта для договора и регистрации (можно закрыть номер, главное — ФИО и срок действия).', shortEn: 'Passport photo for agreement', textEn: 'Please send a clear passport photo for the rental agreement (you may cover the document number; we need your name and expiry).' },
-  { shortRu: 'Где вы сейчас / локация',      textRu: 'Подскажите, пожалуйста, где вы сейчас находитесь или пришлите геолокацию — так удобнее согласовать встречу или заселение.',  shortEn: 'Your location',               textEn: 'Could you share where you are now or send your location? It helps coordinate check-in or a meeting.' },
-]
+const DEFAULT_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,application/pdf'
 
-/**
- * @param {Object}   props
- * @param {string}   props.newMessage
- * @param {Function} props.onMessageChange
- * @param {Function} props.onSubmit
- * @param {boolean}  props.sending
- * @param {boolean}  props.disabled
- * @param {Object}   [props.booking]
- * @param {Object}   [props.listing]
- * @param {string}   [props.language]
- * @param {Function} [props.onSendInvoice]          — если передан, показывается пункт «Счёт»
- * @param {Function} [props.onSendPassportRequest]  — если передан, показывается пункт «Паспорт»
- * @param {Function} [props.onAttachFile]           — если передан, показывается кнопка 📎
- * @param {Function} [props.onSendVoice]            — ({ url, duration }) => void|Promise
- * @param {string}   [props.userId]                 — нужен для папки в Storage при голосовом
- * @param {boolean}  [props.showHostPlusMenu]       — показывать меню «+»
- * @param {boolean}  [props.invoiceDialogOpen]      — внешнее управление диалогом счёта
- * @param {Function} [props.onInvoiceDialogOpenChange]
- */
 export function PartnerChatComposer({
   newMessage,
   onMessageChange,
@@ -81,17 +50,16 @@ export function PartnerChatComposer({
 }) {
   const isRu = language !== 'en'
   const [passportLoading, setPassportLoading] = useState(false)
-  // true когда VoiceRecorder в режиме «запись» или «предпросмотр»
   const [voiceActive, setVoiceActive] = useState(false)
+  const [attachBusy, setAttachBusy] = useState(false)
+  const fileRef = useRef(null)
 
-  // Состояние диалога счёта: поддерживает и внешнее управление (через props), и внутреннее
   const [invoiceOpenInternal, setInvoiceOpenInternal] = useState(false)
   const invoiceOpen = invoiceDialogOpen !== undefined ? invoiceDialogOpen : invoiceOpenInternal
   const setInvoiceOpen = onInvoiceDialogOpenChange ?? setInvoiceOpenInternal
 
   const showInvoice = typeof onSendInvoice === 'function'
   const showPassport = typeof onSendPassportRequest === 'function'
-  const showHostDivider = showInvoice || showPassport
 
   const handlePassportRequest = useCallback(async () => {
     if (!onSendPassportRequest) return
@@ -106,127 +74,174 @@ export function PartnerChatComposer({
     }
   }, [onSendPassportRequest, isRu])
 
-  return (
-    <div className="shrink-0 border-t border-slate-200 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <form onSubmit={onSubmit} className="flex gap-2 items-end">
+  async function handleFileChange(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file || !onAttachFile) return
+    setAttachBusy(true)
+    try {
+      await onAttachFile(file)
+    } finally {
+      setAttachBusy(false)
+    }
+  }
 
-        {/* 📎 Прикрепить файл */}
-        {onAttachFile ? (
-          <MediaUploader onAttachFile={onAttachFile} disabled={disabled} />
-        ) : null}
-
-        {/* ➕ Меню хозяина (Счёт / Паспорт / быстрые ответы в компактном виде) */}
-        {showHostPlusMenu ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 flex-shrink-0 border-slate-200"
-                aria-label={isRu ? 'Действия' : 'Actions'}
-                disabled={disabled}
-              >
-                <Plus className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              {showInvoice ? (
-                <DropdownMenuItem
-                  className="gap-2 cursor-pointer"
-                  onSelect={(e) => {
-                    e.preventDefault()
-                    setInvoiceOpen(true)
-                  }}
-                >
-                  <Receipt className="h-4 w-4 text-amber-600" />
-                  {isRu ? 'Выставить счёт' : 'Send invoice'}
-                </DropdownMenuItem>
-              ) : null}
-              {showPassport ? (
-                <DropdownMenuItem
-                  className="gap-2 cursor-pointer"
-                  onSelect={(e) => { e.preventDefault(); handlePassportRequest() }}
-                  disabled={passportLoading}
-                >
-                  {passportLoading
-                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                    : <IdCard className="h-4 w-4 text-teal-600" />}
-                  {isRu ? 'Запросить фото паспорта' : 'Request passport photo'}
-                </DropdownMenuItem>
-              ) : null}
-              {showHostDivider ? <DropdownMenuSeparator /> : null}
-              <DropdownMenuLabel className="text-xs font-normal text-slate-500">
-                {isRu ? 'Быстрые ответы' : 'Quick replies'}
-              </DropdownMenuLabel>
-              {HOST_QUICK_REPLIES.map((q, idx) => (
-                <DropdownMenuItem
-                  key={idx}
-                  className="flex cursor-pointer flex-col items-start gap-2"
-                  onSelect={(e) => { e.preventDefault(); onMessageChange(isRu ? q.textRu : q.textEn) }}
-                >
-                  <span className="flex w-full items-center gap-2">
-                    <Quote className="h-4 w-4 shrink-0 text-slate-500" />
-                    <span className="text-sm font-medium">{isRu ? q.shortRu : q.shortEn}</span>
-                  </span>
-                  <span className="line-clamp-2 pl-6 text-xs text-slate-500">
-                    {isRu ? q.textRu : q.textEn}
-                  </span>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : null}
-
-        {/* ⚡ Быстрые ответы (расширенный список + мои шаблоны) */}
-        <QuickReplies
-          currentMessage={newMessage}
-          onSelect={onMessageChange}
-          language={language}
+  const plusMenuFull = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="h-10 w-10 shrink-0 border-slate-200"
+          aria-label={isRu ? 'Вложения и действия' : 'Attachments & actions'}
           disabled={disabled}
-        />
-
-        {/* Диалог счёта (рендерится вне формы, состояние открытия через unified invoiceOpen) */}
-        {showInvoice ? (
-          <InvoiceCreator
-            booking={booking}
-            listing={listing}
-            onSend={onSendInvoice}
-            open={invoiceOpen}
-            onOpenChange={setInvoiceOpen}
-          />
+        >
+          <Plus className="h-5 w-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        {onAttachFile ? (
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer"
+            onSelect={(e) => {
+              e.preventDefault()
+              fileRef.current?.click()
+            }}
+          >
+            {attachBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
+            ) : (
+              <Paperclip className="h-4 w-4 text-slate-600" />
+            )}
+            {isRu ? 'Фото или файл' : 'Photo or file'}
+          </DropdownMenuItem>
         ) : null}
 
-        {/* 🎤 Голосовой рекордер (показывает mic/rec/preview; скрывает textarea когда active) */}
-        <VoiceRecorder
-          showMicTrigger={!voiceActive && !newMessage.trim() && !disabled && !sending}
-          userId={userId}
-          language={language}
-          onSend={onSendVoice}
-          onActiveChange={setVoiceActive}
-          disabled={disabled || sending}
-        />
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="gap-2">
+            <Zap className="h-4 w-4 text-amber-500" />
+            {isRu ? 'Быстрые ответы' : 'Quick replies'}
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-80 max-h-[min(70vh,22rem)] overflow-y-auto p-0">
+            <div className="p-1">
+              <QuickRepliesPanel
+                currentMessage={newMessage}
+                onSelect={(text) => onMessageChange(text)}
+                language={language}
+                disabled={disabled}
+              />
+            </div>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
 
-        {/* Поле ввода + кнопка «Отправить» (скрыты когда VoiceRecorder активен) */}
+        {showInvoice ? (
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer"
+            onSelect={(e) => {
+              e.preventDefault()
+              setInvoiceOpen(true)
+            }}
+          >
+            <Receipt className="h-4 w-4 text-amber-600" />
+            {isRu ? 'Выставить счёт' : 'Send invoice'}
+          </DropdownMenuItem>
+        ) : null}
+
+        {showPassport ? (
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer"
+            onSelect={(e) => {
+              e.preventDefault()
+              void handlePassportRequest()
+            }}
+            disabled={passportLoading}
+          >
+            {passportLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <IdCard className="h-4 w-4 text-teal-600" />
+            )}
+            {isRu ? 'Запросить фото паспорта' : 'Request passport photo'}
+          </DropdownMenuItem>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+
+  const plusMenu =
+    showHostPlusMenu ? (
+      plusMenuFull
+    ) : onAttachFile ? (
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="h-10 w-10 shrink-0 border-slate-200"
+        disabled={disabled || attachBusy}
+        aria-label={isRu ? 'Прикрепить файл' : 'Attach file'}
+        onClick={() => fileRef.current?.click()}
+      >
+        {attachBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Paperclip className="h-5 w-5" />}
+      </Button>
+    ) : null
+
+  return (
+    <div className="shrink-0 border-t border-slate-200 bg-white px-3 py-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-3">
+      <input
+        ref={fileRef}
+        type="file"
+        className="hidden"
+        accept={DEFAULT_ACCEPT}
+        onChange={handleFileChange}
+      />
+
+      <form onSubmit={onSubmit} className="flex w-full min-w-0 gap-1.5 items-end sm:gap-2">
+        {plusMenu}
+
         {!voiceActive ? (
-          <>
+          <div className="min-w-0 flex-1">
             <ChatGrowingTextarea
               value={newMessage}
               onChange={onMessageChange}
               placeholder={getUIText('chatComposerPlaceholder', language)}
               disabled={sending || disabled}
+              className="min-h-[40px] py-2 text-[15px] sm:text-sm"
             />
-            <Button
-              type="submit"
-              disabled={!newMessage.trim() || sending || disabled}
-              className="h-10 w-10 flex-shrink-0 bg-teal-600 hover:bg-teal-700 sm:w-auto sm:px-4"
-            >
-              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
-          </>
+          </div>
         ) : null}
 
+        <div className={cn(voiceActive && 'min-w-0 flex-1 flex items-end')}>
+          <VoiceRecorder
+            showMicTrigger={!voiceActive && !newMessage.trim() && !disabled && !sending}
+            userId={userId}
+            language={language}
+            onSend={onSendVoice}
+            onActiveChange={setVoiceActive}
+            disabled={disabled || sending}
+          />
+        </div>
+
+        {!voiceActive ? (
+          <Button
+            type="submit"
+            disabled={!newMessage.trim() || sending || disabled}
+            className="h-10 w-10 shrink-0 bg-teal-600 hover:bg-teal-700 sm:w-auto sm:px-4"
+          >
+            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </Button>
+        ) : null}
       </form>
+
+      {showInvoice ? (
+        <InvoiceCreator
+          booking={booking}
+          listing={listing}
+          onSend={onSendInvoice}
+          open={invoiceOpen}
+          onOpenChange={setInvoiceOpen}
+        />
+      ) : null}
     </div>
   )
 }

@@ -19,9 +19,10 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { toast } from 'sonner'
 import {
-  Archive, ArrowLeft, Loader2, Home,
+  Archive, Loader2, Home,
   Mic, MicOff, Paperclip, Send,
   Wifi, WifiOff, Trash2,
+  Plus, LifeBuoy, Images, Search, Calendar,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -41,6 +42,12 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { ChatGrowingTextarea } from '@/components/chat-growing-textarea'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 import { useI18n } from '@/contexts/i18n-context'
 import { useAuth } from '@/contexts/auth-context'
@@ -73,6 +80,7 @@ import { PartnerChatComposer } from '@/components/partner-chat-composer'
 import { conversationMessagesHref } from '@/components/chat/conversation-messages-href'
 import { DealDetailsCard } from '@/components/chat/DealDetailsCard'
 import { SupportRequestDialog } from '@/components/support-request-dialog'
+import { PartnerChatCalendarPeek } from '@/components/partner-chat-calendar-peek'
 import { detectUnsafePatterns, SafetyBanner } from '@/components/chat-safety'
 import { uploadChatFile } from '@/lib/chat-upload'
 import {
@@ -155,6 +163,7 @@ export default function RenterMessagesClient({ params }) {
   const [mediaGalleryOpen, setMediaGalleryOpen] = useState(false)
   const [supportDialogOpen, setSupportDialogOpen] = useState(false)
   const [dealSheetOpen, setDealSheetOpen] = useState(false)
+  const [calendarOpen, setCalendarOpen] = useState(false)
   const [declineOpen, setDeclineOpen] = useState(false)
   const [declinePreset, setDeclinePreset] = useState('occupied')
   const [declineOtherDetail, setDeclineOtherDetail] = useState('')
@@ -543,10 +552,6 @@ export default function RenterMessagesClient({ params }) {
 
   const headerSlot = selectedConv ? (
     <div className="flex items-center gap-1 px-2 py-1.5 lg:px-0 lg:py-0 bg-white border-b lg:border-0">
-      <Button variant="ghost" size="icon" className="lg:hidden shrink-0" onClick={() => router.push(messagesListBase)}
-        aria-label={language === 'ru' ? 'К списку диалогов' : 'Back to conversations'}>
-        <ArrowLeft className="h-5 w-5" />
-      </Button>
       <Button
         type="button" variant="outline" size="sm"
         className="shrink-0 text-slate-600 border-slate-200 hidden sm:inline-flex"
@@ -568,6 +573,7 @@ export default function RenterMessagesClient({ params }) {
           language={language}
           isAdminView={false}
           embedded compact
+          messagesListHref={messagesListBase}
           showBookingTimeline={Boolean(booking?.id && booking?.status)}
           contactName={
             isHosting
@@ -691,7 +697,7 @@ export default function RenterMessagesClient({ params }) {
       onInvoiceDialogOpenChange={setInvoiceDialogOpen}
     />
   ) : (
-    <div className="shrink-0 border-t p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <div className="shrink-0 border-t px-3 py-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-3">
       <input
         ref={attachFileRef}
         type="file"
@@ -703,19 +709,36 @@ export default function RenterMessagesClient({ params }) {
           if (f) handleAttachFile(f)
         }}
       />
-      <form onSubmit={handleSendText} className="flex gap-2 items-end">
-        <Button
-          type="button" variant="outline" size="icon"
-          className="flex-shrink-0 border-slate-200 h-10 w-10"
-          disabled={sending}
-          aria-label={language === 'ru' ? 'Прикрепить файл' : 'Attach file'}
-          onClick={() => attachFileRef.current?.click()}
-        >
-          <Paperclip className="h-5 w-5" />
-        </Button>
+      <form onSubmit={handleSendText} className="flex w-full min-w-0 gap-1.5 items-end sm:gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 shrink-0 border-slate-200"
+              disabled={sending}
+              aria-label={language === 'ru' ? 'Вложения' : 'Attachments'}
+            >
+              <Plus className="h-5 w-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            <DropdownMenuItem
+              className="gap-2 cursor-pointer"
+              onSelect={(e) => {
+                e.preventDefault()
+                attachFileRef.current?.click()
+              }}
+            >
+              <Paperclip className="h-4 w-4 text-slate-600" />
+              {language === 'ru' ? 'Фото или файл' : 'Photo or file'}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {voiceBlob ? (
-          <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-50 border border-teal-200">
+          <div className="flex flex-1 min-w-0 items-center gap-2 px-3 py-2 rounded-xl bg-teal-50 border border-teal-200">
             <audio src={voicePreviewUrl} controls className="h-8 flex-1 min-w-0" />
             <span className="text-xs text-teal-700 font-medium tabular-nums shrink-0">{voiceDurationLabel}</span>
             <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:bg-red-50 shrink-0" onClick={discardVoice}>
@@ -726,7 +749,7 @@ export default function RenterMessagesClient({ params }) {
             </Button>
           </div>
         ) : voiceRecording ? (
-          <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-200">
+          <div className="flex flex-1 min-w-0 items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-200">
             <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
             <span className="text-sm text-red-700 font-medium flex-1">{language === 'ru' ? 'Запись...' : 'Recording...'} {voiceDurationLabel}</span>
             <Button type="button" size="icon" className="h-8 w-8 bg-red-500 hover:bg-red-600 shrink-0" onClick={stopVoice}>
@@ -735,16 +758,19 @@ export default function RenterMessagesClient({ params }) {
           </div>
         ) : (
           <>
-            <ChatGrowingTextarea
-              value={newMessage}
-              onChange={(v) => { setNewMessage(v); broadcastTyping() }}
-              placeholder={getUIText('chatComposerPlaceholder', language)}
-              disabled={sending}
-            />
+            <div className="min-w-0 flex-1">
+              <ChatGrowingTextarea
+                value={newMessage}
+                onChange={(v) => { setNewMessage(v); broadcastTyping() }}
+                placeholder={getUIText('chatComposerPlaceholder', language)}
+                disabled={sending}
+                className="min-h-[40px] py-2 text-[15px] sm:text-sm"
+              />
+            </div>
             {!newMessage.trim() && (
               <Button
                 type="button" variant="outline" size="icon"
-                className="flex-shrink-0 h-10 w-10 border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600"
+                className="shrink-0 h-10 w-10 border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600"
                 disabled={sending}
                 onClick={startVoice}
                 title={language === 'ru' ? 'Голосовое сообщение' : 'Voice message'}
@@ -755,7 +781,7 @@ export default function RenterMessagesClient({ params }) {
             <Button
               type="submit"
               disabled={!newMessage.trim() || sending}
-              className="bg-teal-600 hover:bg-teal-700 flex-shrink-0 h-10 w-10 sm:w-auto sm:px-4"
+              className="bg-teal-600 hover:bg-teal-700 shrink-0 h-10 w-10 sm:w-auto sm:px-4"
             >
               {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
@@ -806,6 +832,15 @@ export default function RenterMessagesClient({ params }) {
         </div>
       </div>
 
+      <PartnerChatCalendarPeek
+        listingId={listing?.id}
+        listingTitle={listing?.title}
+        language={language}
+        open={calendarOpen}
+        onOpenChange={setCalendarOpen}
+        triggerClassName="hidden lg:inline-flex"
+      />
+
       {/* ── Диалог поддержки ──────────────────────────────────────────── */}
       <SupportRequestDialog
         open={supportDialogOpen}
@@ -827,6 +862,62 @@ export default function RenterMessagesClient({ params }) {
             </SheetTitle>
           </SheetHeader>
           {dealDetailsPanel}
+          <div className="lg:hidden border-t border-slate-200 pt-4 mt-4 space-y-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              {language === 'ru' ? 'Инструменты' : 'Tools'}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start gap-2 text-slate-800"
+              onClick={() => {
+                setDealSheetOpen(false)
+                setSupportDialogOpen(true)
+              }}
+            >
+              <LifeBuoy className="h-4 w-4 text-teal-600 shrink-0" />
+              {language === 'ru' ? 'Помощь и поддержка' : 'Help & support'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start gap-2 text-slate-800"
+              onClick={() => {
+                setDealSheetOpen(false)
+                setMediaGalleryOpen(true)
+              }}
+            >
+              <Images className="h-4 w-4 text-teal-600 shrink-0" />
+              {language === 'ru' ? 'Медиафайлы в чате' : 'Media in chat'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start gap-2 text-slate-800"
+              onClick={() => {
+                setDealSheetOpen(false)
+                setSearchActive(true)
+                setSearchQuery('')
+              }}
+            >
+              <Search className="h-4 w-4 text-teal-600 shrink-0" />
+              {language === 'ru' ? 'Поиск по сообщениям' : 'Search messages'}
+            </Button>
+            {isHosting && listing?.id ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start gap-2 text-slate-800"
+                onClick={() => {
+                  setDealSheetOpen(false)
+                  setCalendarOpen(true)
+                }}
+              >
+                <Calendar className="h-4 w-4 text-teal-600 shrink-0" />
+                {language === 'ru' ? 'Календарь занятости' : 'Availability calendar'}
+              </Button>
+            ) : null}
+          </div>
         </SheetContent>
       </Sheet>
 

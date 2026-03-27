@@ -14,8 +14,10 @@ export default function UniversalMessageDeepLink() {
 
   useEffect(() => {
     const id = params?.id
+    const nav = (href) => router.replace(href, { scroll: false })
+
     if (!id || typeof id !== 'string') {
-      router.replace('/')
+      nav('/')
       return
     }
 
@@ -26,19 +28,19 @@ export default function UniversalMessageDeepLink() {
         const data = await res.json()
         if (cancelled) return
         if (!data.success || !data.user) {
-          router.replace('/')
+          nav('/')
           return
         }
         const role = String(data.user.role || '').toUpperCase()
         if (role === 'PARTNER') {
-          router.replace(`/partner/messages/${encodeURIComponent(id)}`)
+          nav(`/partner/messages/${encodeURIComponent(id)}`)
           return
         }
         if (role === 'ADMIN' || role === 'MODERATOR') {
-          router.replace(`/admin/messages/?open=${encodeURIComponent(id)}`)
+          nav(`/admin/messages/?open=${encodeURIComponent(id)}`)
           return
         }
-        router.replace(`/renter/messages/${encodeURIComponent(id)}`)
+        nav(`/renter/messages/${encodeURIComponent(id)}`)
       } catch {
         if (!cancelled) setError('network')
       }

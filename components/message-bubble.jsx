@@ -251,7 +251,7 @@ export function MessageBubble({
         ) : null}
         <div
           className={cn(
-            'px-4 py-2 rounded-2xl',
+            'px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl',
             isRejection
               ? 'bg-red-50 text-red-900 border border-red-200 rounded-tl-none'
               : isOwn
@@ -271,24 +271,20 @@ export function MessageBubble({
           )}
           {body}
         </div>
-        <div className="flex items-center gap-1 mt-1 justify-end">
-          {createdRelative ? <span className="text-xs text-slate-500">{createdRelative}</span> : null}
-          <MessageReadTicks
-            isOwn={isOwn}
-            isRead={Boolean(msg.is_read ?? msg.isRead)}
-            status={msg._status}
-            bubbleTone={tickTone}
-            className={ticksClassName}
-          />
-        </div>
-        {canTranslate ? (
-          <div className={cn('mt-1 w-full', isOwn ? 'flex justify-end' : 'flex justify-start')}>
+        <div
+          className={cn(
+            'flex items-center gap-1 mt-0.5 flex-wrap min-h-[1rem]',
+            isOwn ? 'justify-end' : 'justify-start'
+          )}
+        >
+          {canTranslate ? (
             <Button
               type="button"
               variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-[11px] text-slate-500 hover:text-slate-800"
+              size="icon"
+              className="h-6 w-6 shrink-0 text-slate-400 hover:text-slate-700 -ml-0.5"
               disabled={translating}
+              title={showTranslated ? translateButtonLabels.original : translateButtonLabels.translate}
               onClick={() => {
                 if (showTranslated) {
                   setShowTranslated(false)
@@ -302,21 +298,25 @@ export function MessageBubble({
               }}
             >
               {translating ? (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                  {translateButtonLabels.translating}
-                </>
+                <Loader2 className="h-3 w-3 animate-spin" />
               ) : showTranslated ? (
-                translateButtonLabels.original
+                <span className="text-[9px] font-medium text-slate-500">A↔Я</span>
               ) : (
-                <>
-                  <Languages className="h-3 w-3 mr-1" />
-                  {translateButtonLabels.translate}
-                </>
+                <Languages className="h-3 w-3" />
               )}
             </Button>
-          </div>
-        ) : null}
+          ) : null}
+          {createdRelative ? (
+            <span className="text-[10px] sm:text-xs text-slate-500">{createdRelative}</span>
+          ) : null}
+          <MessageReadTicks
+            isOwn={isOwn}
+            isRead={Boolean(msg.is_read ?? msg.isRead)}
+            status={msg._status}
+            bubbleTone={tickTone}
+            className={ticksClassName}
+          />
+        </div>
       </div>
     </div>
   )
