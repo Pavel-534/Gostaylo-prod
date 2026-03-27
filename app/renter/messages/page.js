@@ -18,7 +18,6 @@ import {
   sumUnreadInConversations,
   consumeRenterInboxTabPreference,
 } from '@/lib/chat-inbox-tabs'
-import { conversationMessagesHref } from '@/components/chat/conversation-messages-href'
 
 export default function RenterMessagesIndex() {
   const router = useRouter()
@@ -206,8 +205,7 @@ export default function RenterMessagesIndex() {
                       key={conv.id}
                       className="p-4 cursor-pointer hover:shadow-lg transition-shadow"
                       onClick={() => {
-                        const href = conversationMessagesHref(user?.id, conv) || `/renter/messages/${conv.id}`
-                        router.push(href)
+                        router.push(`/messages/${encodeURIComponent(conv.id)}`)
                       }}
                     >
                       <div className="flex gap-3 sm:gap-4 min-w-0">

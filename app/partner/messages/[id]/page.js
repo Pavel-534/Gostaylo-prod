@@ -1,15 +1,10 @@
 /**
- * Partner Messages — thin Next.js page router.
- *
- * Вся логика данных и UI находится в PartnerMessagesClient.jsx.
- * Этот файл — только точка входа для Next.js App Router.
+ * Временный редирект на единый тред (Этап 2).
  */
-import PartnerMessagesClient from './PartnerMessagesClient'
+import { redirect } from 'next/navigation'
 
-export const metadata = {
-  title: 'Сообщения — Партнёр | Gostaylo',
-}
-
-export default function PartnerMessagesPage({ params }) {
-  return <PartnerMessagesClient params={params} />
+export default function PartnerMessagesThreadRedirect({ params }) {
+  const id = params?.id
+  if (!id) redirect('/messages')
+  redirect(`/messages/${encodeURIComponent(id)}`)
 }

@@ -479,7 +479,7 @@ function CheckoutPageInner({ params }) {
   }
 
   if (paymentSuccess) {
-    const chatHref = chatConversationId ? `/renter/messages/${chatConversationId}` : null
+    const chatHref = chatConversationId ? `/messages/${encodeURIComponent(chatConversationId)}` : null
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Card className="max-w-md w-full mx-4">

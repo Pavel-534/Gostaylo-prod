@@ -3,7 +3,7 @@
 /**
  * Единый холл сообщений (/messages) — Этап 1.
  * Переход в треды по-прежнему на /renter/messages/[id] или /partner/messages/[id]
- * через conversationMessagesHref.
+ * переход в тред: /messages/[id].
  */
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
@@ -21,7 +21,6 @@ import {
   INBOX_TAB_HOSTING,
   INBOX_TAB_TRAVELING,
 } from '@/lib/chat-inbox-tabs'
-import { conversationMessagesHref } from '@/components/chat/conversation-messages-href'
 
 const HOSTING_ROLES = new Set(['PARTNER', 'ADMIN', 'MODERATOR'])
 
@@ -110,16 +109,10 @@ export default function UnifiedMessagesHallPage() {
   )
 
   const handleConversationSelect = useCallback(
-    (id, conv) => {
-      const row =
-        conv ||
-        inbox.filteredConversations.find((c) => c.id === id) ||
-        inbox.conversations.find((c) => c.id === id)
-      const href =
-        conversationMessagesHref(user?.id, row || { id }) || `/renter/messages/${id}`
-      router.push(href)
+    (id) => {
+      router.push(`/messages/${encodeURIComponent(id)}`)
     },
-    [router, user?.id, inbox.filteredConversations, inbox.conversations]
+    [router]
   )
 
   const showGuestName = useMemo(

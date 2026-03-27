@@ -20,7 +20,6 @@ import {
   INBOX_TAB_HOSTING,
   INBOX_TAB_TRAVELING,
 } from '@/lib/chat-inbox-tabs'
-import { conversationMessagesHref } from '@/components/chat/conversation-messages-href'
 
 function usePartnerAuth() {
   const [user, setUser] = useState(null)
@@ -111,15 +110,10 @@ export default function PartnerMessagesIndex() {
   )
 
   const handleConversationSelect = useCallback(
-    (id, conv) => {
-      const row =
-        conv ||
-        inbox.filteredConversations.find((c) => c.id === id) ||
-        inbox.conversations.find((c) => c.id === id)
-      const href = conversationMessagesHref(user?.id, row || { id }) || `/partner/messages/${id}`
-      router.push(href)
+    (id) => {
+      router.push(`/messages/${encodeURIComponent(id)}`)
     },
-    [router, user?.id, inbox.filteredConversations, inbox.conversations]
+    [router]
   )
 
   const showGuestName = useMemo(

@@ -1,15 +1,10 @@
 /**
- * Renter Messages — thin Next.js page router.
- *
- * Вся логика данных и UI находится в RenterMessagesClient.jsx.
- * Этот файл — только точка входа для Next.js App Router.
+ * Временный редирект на единый тред (Этап 2).
  */
-import RenterMessagesClient from './RenterMessagesClient'
+import { redirect } from 'next/navigation'
 
-export const metadata = {
-  title: 'Сообщения | Gostaylo',
-}
-
-export default function RenterMessagesPage({ params }) {
-  return <RenterMessagesClient params={params} />
+export default function RenterMessagesThreadRedirect({ params }) {
+  const id = params?.id
+  if (!id) redirect('/messages')
+  redirect(`/messages/${encodeURIComponent(id)}`)
 }

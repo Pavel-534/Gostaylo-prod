@@ -357,7 +357,7 @@ function PremiumListingContent({ params }) {
     // If we already know the conversation ID — go straight there
     if (existingConvId) {
       setRenterInboxTabPreference(INBOX_TAB_TRAVELING)
-      router.push(`/renter/messages/${encodeURIComponent(existingConvId)}`)
+      router.push(`/messages/${encodeURIComponent(existingConvId)}`)
       return
     }
 
@@ -401,7 +401,7 @@ function PremiumListingContent({ params }) {
           /* ignore */
         }
         setExistingConvId(id)
-        router.push(`/renter/messages/${encodeURIComponent(id)}`)
+        router.push(`/messages/${encodeURIComponent(id)}`)
       }
     } catch (e) {
       console.error(e)
@@ -464,7 +464,7 @@ function PremiumListingContent({ params }) {
         setBookingModalOpen(false)
         const cid = data.conversationId
         if (cid) {
-          router.push(`/renter/messages/${encodeURIComponent(cid)}`, { scroll: false })
+          router.push(`/messages/${encodeURIComponent(cid)}`, { scroll: false })
         } else {
           router.push('/renter/bookings', { scroll: false })
         }
