@@ -56,9 +56,11 @@ export function StickyChatHeader({
   searchActive = false,
   embedded = false,
   compact = false,
-  /** К списку диалогов; `router.replace` чтобы не копить историю и не зацикливаться с /messages/[id] */
+  /** К списку диалогов */
   messagesListHref = null,
   messagesListBackLabel = null,
+  /** `replace` — не копить историю (универсальный /messages/[id]); `push` — явный переход в инбокс (партнёрский кабинет) */
+  messagesListBackNavigation = 'replace',
   className,
   children,
 }) {
@@ -186,7 +188,13 @@ export function StickyChatHeader({
               messagesListBackLabel
                 ?? (language === 'en' ? 'Back to conversations' : 'К списку диалогов')
             }
-            onClick={() => router.replace(messagesListHref)}
+            onClick={() => {
+              if (messagesListBackNavigation === 'push') {
+                router.push(messagesListHref, { scroll: false })
+              } else {
+                router.replace(messagesListHref, { scroll: false })
+              }
+            }}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>

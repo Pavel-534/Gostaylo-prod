@@ -114,7 +114,7 @@ export function ChatThreadChrome({
               </div>
 
               {composerSlot && (
-                <div className="flex-shrink-0 border-t border-slate-100 bg-white">
+                <div className="flex-shrink-0 border-t border-slate-200/90 bg-white">
                   {composerSlot}
                 </div>
               )}

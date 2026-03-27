@@ -92,6 +92,7 @@ import { DECLINE_REASON_PRESETS } from '@/lib/booking-chat-copy'
 import { isBookingPaid } from '@/lib/mask-contacts'
 import { countSearchResults } from '@/lib/chat/message-filters'
 import { mapApiMessageToRow } from '@/lib/chat/map-api-message'
+import { CHAT_COMPOSER_SHELL_CLASS } from '@/lib/chat-ui'
 
 // ─── Категории ────────────────────────────────────────────────────────────────
 function useCategories() {
@@ -718,7 +719,7 @@ export default function RenterMessagesClient({ params }) {
       onInvoiceDialogOpenChange={setInvoiceDialogOpen}
     />
   ) : (
-    <div className="shrink-0 border-t px-3 py-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-3">
+    <div className={CHAT_COMPOSER_SHELL_CLASS}>
       <input
         ref={attachFileRef}
         type="file"

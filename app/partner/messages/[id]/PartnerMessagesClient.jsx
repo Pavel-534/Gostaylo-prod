@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
@@ -506,6 +507,12 @@ export default function PartnerMessagesClient({ params }) {
         <Archive className="h-4 w-4 sm:mr-1.5" />
         <span className="hidden md:inline">{language === 'ru' ? 'В архив' : 'Archive'}</span>
       </Button>
+      <Link
+        href="/partner/messages/archived"
+        className="hidden lg:inline text-xs font-medium text-teal-700 hover:text-teal-900 underline underline-offset-2 shrink-0"
+      >
+        {language === 'ru' ? 'Архив' : 'Archive'}
+      </Link>
       <div className="flex-1 min-w-0">
         <StickyChatHeader
           listing={listing}
@@ -514,6 +521,7 @@ export default function PartnerMessagesClient({ params }) {
           isAdminView={false}
           embedded compact
           messagesListHref="/partner/messages"
+          messagesListBackNavigation="push"
           showBookingTimeline={Boolean(booking?.id && booking?.status)}
           contactName={chatContactName}
           presenceOnline={peerParticipantId ? peerOnline : null}
@@ -534,12 +542,10 @@ export default function PartnerMessagesClient({ params }) {
           onSupportClick={() => setSupportDialogOpen(true)}
           supportPriorityActive={!!selectedConv?.isPriority}
         >
-          {isHosting && (
-            <span className={`flex items-center gap-1 text-xs shrink-0 ${isConnected ? 'text-green-600' : 'text-orange-500'}`}>
-              {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              {isConnected ? 'Live' : '…'}
-            </span>
-          )}
+          <span className={`flex items-center gap-1 text-xs shrink-0 ${isConnected ? 'text-green-600' : 'text-orange-500'}`}>
+            {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+            {isConnected ? 'Live' : '…'}
+          </span>
         </StickyChatHeader>
       </div>
     </div>
@@ -587,7 +593,7 @@ export default function PartnerMessagesClient({ params }) {
           isBookingPaid={isBookingPaid(booking?.status)}
           searchHighlight={searchQuery.trim() || undefined}
           ownVariant="teal"
-          userRole="partner"
+          userRole={isHosting ? 'partner' : 'renter'}
           onInvoiceCancelled={(msgId) => {
             setMessages((prev) => prev.map((m) =>
               m.id === msgId
@@ -641,7 +647,7 @@ export default function PartnerMessagesClient({ params }) {
         composerSlot={composerSlot}
         sidePanelSlot={dealDetailsPanel}
         language={language}
-        className="h-[calc(100vh-4rem)]"
+        className="w-full h-full min-h-0"
       />
 
       <PartnerChatCalendarPeek

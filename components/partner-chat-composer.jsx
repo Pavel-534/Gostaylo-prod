@@ -22,7 +22,7 @@ import { Loader2, Send, Plus, Receipt, IdCard, Paperclip, Zap } from 'lucide-rea
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
-
+import { CHAT_COMPOSER_SHELL_CLASS } from '@/lib/chat-ui'
 
 import { InvoiceCreator } from '@/components/chat/composer/InvoiceCreator'
 import { VoiceRecorder } from '@/components/chat/composer/VoiceRecorder'
@@ -187,7 +187,7 @@ export function PartnerChatComposer({
     ) : null
 
   return (
-    <div className="shrink-0 border-t border-slate-200 bg-white px-3 py-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-3">
+    <div className={CHAT_COMPOSER_SHELL_CLASS}>
       <input
         ref={fileRef}
         type="file"
