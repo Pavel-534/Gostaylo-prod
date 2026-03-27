@@ -198,26 +198,24 @@ export function PartnerChatComposer({
 
       <form
         onSubmit={onSubmit}
-        className={cn(
-          'flex w-full min-w-0 gap-1.5 sm:gap-2',
-          voiceActive ? 'items-center' : 'items-end',
-        )}
+        className="flex w-full min-w-0 items-center gap-1.5 sm:gap-2"
       >
         {plusMenu}
 
         {!voiceActive ? (
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 flex items-center">
             <ChatGrowingTextarea
               value={newMessage}
               onChange={onMessageChange}
               placeholder={getUIText('chatComposerPlaceholder', language)}
               disabled={sending || disabled}
-              className="min-h-[40px] py-2 text-[15px] sm:text-sm"
+              minHeightPx={44}
+              className="min-h-[44px] py-3 text-[15px] leading-normal sm:text-sm"
             />
           </div>
         ) : null}
 
-        <div className={cn(voiceActive && 'flex min-w-0 flex-1 items-center')}>
+        <div className={cn('min-w-0', voiceActive && 'flex flex-1 items-center')}>
           <VoiceRecorder
             showMicTrigger={!voiceActive && !newMessage.trim() && !disabled && !sending}
             userId={userId}

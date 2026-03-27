@@ -181,7 +181,7 @@ export function StickyChatHeader({
             type="button"
             variant="ghost"
             size="icon"
-            className="shrink-0 -ml-1 lg:hidden"
+            className="shrink-0 -ml-1 xl:hidden"
             aria-label={
               messagesListBackLabel
                 ?? (language === 'en' ? 'Back to conversations' : 'К списку диалогов')

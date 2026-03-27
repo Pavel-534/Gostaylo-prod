@@ -98,6 +98,7 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
             key={audioUrl || 'preview'}
             src={audioUrl || undefined}
             controls
+            playsInline
             preload="auto"
             className="block h-9 w-full max-w-full"
           />

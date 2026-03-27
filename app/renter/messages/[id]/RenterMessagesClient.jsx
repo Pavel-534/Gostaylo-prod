@@ -91,7 +91,7 @@ import {
 import { DECLINE_REASON_PRESETS } from '@/lib/booking-chat-copy'
 import { isBookingPaid } from '@/lib/mask-contacts'
 import { countSearchResults } from '@/lib/chat/message-filters'
-import { cn } from '@/lib/utils'
+import { mapApiMessageToRow } from '@/lib/chat/map-api-message'
 
 // ─── Категории ────────────────────────────────────────────────────────────────
 function useCategories() {
@@ -224,10 +224,15 @@ export default function RenterMessagesClient({ params }) {
     if (conversationId) markGlobalRead(conversationId)
   }, [conversationId, markGlobalRead])
 
-  // Синхронизация вкладки
+  const tabSyncedForConvRef = useRef(null)
+  useEffect(() => {
+    tabSyncedForConvRef.current = null
+  }, [conversationId])
   useEffect(() => {
     if (!conversationId || !selectedConv?.id || !renterId) return
     if (String(selectedConv.id) !== String(conversationId)) return
+    if (tabSyncedForConvRef.current === conversationId) return
+    tabSyncedForConvRef.current = conversationId
     const isHost = String(selectedConv.partnerId) === String(renterId)
     inbox.setInboxTab(isHost ? INBOX_TAB_HOSTING : INBOX_TAB_TRAVELING)
   }, [conversationId, selectedConv?.id, selectedConv?.partnerId, renterId])
@@ -341,7 +346,13 @@ export default function RenterMessagesClient({ params }) {
       })
       const json = await res.json()
       if (res.ok && json.success && json.data) {
-        setMessages((prev) => [...prev, json.data])
+        const mapped = mapApiMessageToRow(json.data, {
+          viewerUserId: renterId,
+          viewerRole: 'renter',
+          bookingStatus: booking?.status ?? null,
+          listingCategory: selectedConv?.listingCategory ?? null,
+        })
+        if (mapped) setMessages((prev) => [...prev, mapped])
         discardVoice()
         inbox.refresh()
       } else {
@@ -349,7 +360,7 @@ export default function RenterMessagesClient({ params }) {
       }
     } catch { toast.error('Ошибка сети') }
     finally { setVoiceSending(false) }
-  }, [voiceBlob, renterId, selectedConv, voiceDuration, partnerOnline, setMessages, discardVoice, inbox])
+  }, [voiceBlob, renterId, selectedConv, voiceDuration, partnerOnline, booking?.status, setMessages, discardVoice, inbox])
 
   const handleAttachFile = useCallback(async (file) => {
     if (!selectedConv || !renterId) return
@@ -485,14 +496,20 @@ export default function RenterMessagesClient({ params }) {
       })
       const json = await res.json()
       if (res.ok && json.success && json.data) {
-        setMessages((prev) => [...prev, json.data])
+        const mapped = mapApiMessageToRow(json.data, {
+          viewerUserId: renterId,
+          viewerRole: 'renter',
+          bookingStatus: booking?.status ?? null,
+          listingCategory: selectedConv?.listingCategory ?? null,
+        })
+        if (mapped) setMessages((prev) => [...prev, mapped])
         inbox.refresh()
       } else {
         toast.error(json.error || 'Ошибка отправки голосового')
       }
     } catch { toast.error('Ошибка сети') }
     finally { setSending(false) }
-  }, [selectedConv, renterId, partnerOnline, setMessages, inbox])
+  }, [selectedConv, renterId, partnerOnline, booking?.status, setMessages, inbox])
 
   // ── Вкладка инбокса с навигацией ─────────────────────────────────────────────
   const handleInboxTabChange = useCallback((next) => {
@@ -715,10 +732,7 @@ export default function RenterMessagesClient({ params }) {
       />
       <form
         onSubmit={handleSendText}
-        className={cn(
-          'flex w-full min-w-0 gap-1.5 sm:gap-2',
-          voiceBlob || voiceRecording ? 'items-center' : 'items-end',
-        )}
+        className="flex w-full min-w-0 items-center gap-1.5 sm:gap-2"
       >
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -754,6 +768,7 @@ export default function RenterMessagesClient({ params }) {
                 key={voicePreviewUrl || 'voice-preview'}
                 src={voicePreviewUrl || undefined}
                 controls
+                playsInline
                 preload="auto"
                 className="block h-9 w-full max-w-full"
               />
@@ -776,13 +791,14 @@ export default function RenterMessagesClient({ params }) {
           </div>
         ) : (
           <>
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 flex items-center">
               <ChatGrowingTextarea
                 value={newMessage}
                 onChange={(v) => { setNewMessage(v); broadcastTyping() }}
                 placeholder={getUIText('chatComposerPlaceholder', language)}
                 disabled={sending}
-                className="min-h-[40px] py-2 text-[15px] sm:text-sm"
+                minHeightPx={44}
+                className="min-h-[44px] py-3 text-[15px] leading-normal sm:text-sm"
               />
             </div>
             {!newMessage.trim() && (
@@ -812,6 +828,8 @@ export default function RenterMessagesClient({ params }) {
   const dealDetailsPanel = selectedConv ? (
     <DealDetailsCard listing={listing} booking={booking} language={language} className="min-h-0" />
   ) : null
+
+  const listingIdForCalendar = listing?.id ?? selectedConv?.listingId ?? null
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
@@ -851,7 +869,7 @@ export default function RenterMessagesClient({ params }) {
       </div>
 
       <PartnerChatCalendarPeek
-        listingId={listing?.id}
+        listingId={listingIdForCalendar}
         listingTitle={listing?.title}
         language={language}
         open={calendarOpen}
@@ -875,8 +893,8 @@ export default function RenterMessagesClient({ params }) {
       <Sheet open={dealSheetOpen} onOpenChange={setDealSheetOpen}>
         <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto rounded-t-2xl z-[210]">
           <SheetHeader className="text-left pb-2">
-            <SheetTitle className="text-base font-semibold">
-              {language === 'ru' ? 'Детали поездки' : 'Trip details'}
+            <SheetTitle className="text-lg font-semibold text-slate-900">
+              {language === 'ru' ? 'Детали сделки' : 'Deal details'}
             </SheetTitle>
           </SheetHeader>
           {dealDetailsPanel}
@@ -921,7 +939,7 @@ export default function RenterMessagesClient({ params }) {
               <Search className="h-4 w-4 text-teal-600 shrink-0" />
               {language === 'ru' ? 'Поиск по сообщениям' : 'Search messages'}
             </Button>
-            {isHosting && listing?.id ? (
+            {isHosting && listingIdForCalendar ? (
               <Button
                 type="button"
                 variant="outline"

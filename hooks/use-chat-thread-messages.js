@@ -140,6 +140,12 @@ export function useChatThreadMessages({
           // Авто-пометка прочитанным (подхватится useMarkConversationRead снаружи)
           onMarkReadRef.current?.()
         }
+      } else {
+        // Своё сообщение пришло из Realtime раньше/вместо ответа POST — добавляем без дубликата
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === mapped.id)) return prev
+          return [...prev, mapped]
+        })
       }
     },
     [userId]

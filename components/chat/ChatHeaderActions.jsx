@@ -167,14 +167,14 @@ export function ChatHeaderActions({
           variant="ghost"
           size="icon"
           className={cn(
-            'lg:hidden text-slate-500 hover:bg-slate-100 hover:text-teal-700',
-            compact ? 'h-8 w-8' : 'h-9 w-9'
+            'lg:hidden h-10 w-10 text-slate-900 hover:bg-slate-100 hover:text-slate-900',
+            compact ? 'min-h-10 min-w-10' : ''
           )}
           onClick={onDealInfoClick}
-          title={language === 'en' ? 'Trip details' : 'Информация о поездке'}
-          aria-label={language === 'en' ? 'Trip details' : 'Информация о поездке'}
+          title={language === 'en' ? 'Deal details' : 'Детали сделки'}
+          aria-label={language === 'en' ? 'Deal details' : 'Детали сделки'}
         >
-          <Info className="h-4 w-4" />
+          <Info className="h-5 w-5 stroke-[2.25]" />
         </Button>
       ) : null}
 

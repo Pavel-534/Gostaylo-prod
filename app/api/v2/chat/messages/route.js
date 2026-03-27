@@ -1,6 +1,6 @@
 /**
  * POST /api/v2/chat/messages — отправка с проверкой участника беседы.
- * Типы: text | image | invoice | system (system — только ADMIN/MODERATOR).
+ * Типы: text | image | file | voice | invoice | system (system — только ADMIN/MODERATOR).
  *
  * GET /api/v2/chat/messages?conversationId= — история (сессия + участник).
  */
@@ -235,6 +235,18 @@ export async function POST(request) {
     const fname = finalMetadata.file_name || finalMetadata.name || 'file'
     finalMetadata = { ...finalMetadata, file_url: url, file_name: fname }
     content = content?.trim() || `📎 ${fname}`
+  }
+
+  if (type === 'voice') {
+    const voiceUrl = finalMetadata.voice_url
+    if (!voiceUrl || typeof voiceUrl !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'voice type requires metadata.voice_url' },
+        { status: 400 }
+      )
+    }
+    finalMetadata = { ...finalMetadata, voice_url: voiceUrl }
+    content = content?.trim() || '🎤'
   }
 
   if (type === 'invoice') {

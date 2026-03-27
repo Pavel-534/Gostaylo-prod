@@ -59,6 +59,7 @@ import {
 } from '@/lib/chat-inbox-tabs'
 import { isBookingPaid } from '@/lib/mask-contacts'
 import { countSearchResults } from '@/lib/chat/message-filters'
+import { mapApiMessageToRow } from '@/lib/chat/map-api-message'
 import { conversationMessagesHref } from '@/components/chat/conversation-messages-href'
 import { DealDetailsCard } from '@/components/chat/DealDetailsCard'
 import {
@@ -188,10 +189,16 @@ export default function PartnerMessagesClient({ params }) {
     if (conversationId) markGlobalRead(conversationId)
   }, [conversationId, markGlobalRead])
 
-  // Синхронизируем вкладку инбокса с ролью в открытом диалоге
+  // Вкладка «Сдаю / Снимаю» — только при смене открытого диалога (не перетирать ручной выбор при refresh)
+  const tabSyncedForConvRef = useRef(null)
   useEffect(() => {
-    if (!selectedConv?.id || !user?.id) return
-    if (String(selectedConv.id) !== String(conversationId)) return
+    tabSyncedForConvRef.current = null
+  }, [conversationId])
+  useEffect(() => {
+    if (!conversationId || !user?.id) return
+    if (!selectedConv?.id || String(selectedConv.id) !== String(conversationId)) return
+    if (tabSyncedForConvRef.current === conversationId) return
+    tabSyncedForConvRef.current = conversationId
     const isHost = String(selectedConv.partnerId) === String(user.id)
     inbox.setInboxTab(isHost ? INBOX_TAB_HOSTING : INBOX_TAB_TRAVELING)
   }, [conversationId, selectedConv?.id, selectedConv?.partnerId, user?.id])
@@ -358,14 +365,20 @@ export default function PartnerMessagesClient({ params }) {
       })
       const json = await res.json()
       if (res.ok && json.success && json.data) {
-        setMessages((prev) => [...prev, json.data])
+        const mapped = mapApiMessageToRow(json.data, {
+          viewerUserId: user.id,
+          viewerRole: 'partner',
+          bookingStatus: booking?.status ?? null,
+          listingCategory: selectedConv?.listingCategory ?? null,
+        })
+        if (mapped) setMessages((prev) => [...prev, mapped])
         inbox.refresh()
       } else {
         toast.error(json.error || 'Ошибка отправки голосового')
       }
     } catch { toast.error('Ошибка сети') }
     finally { setSending(false) }
-  }, [selectedConv, user, peerOnline, setMessages, inbox])
+  }, [selectedConv, user, peerOnline, booking?.status, setMessages, inbox])
 
   const handleSendInvoice = useCallback(async (invoiceData) => {
     if (!selectedConv || !user) return
@@ -613,6 +626,8 @@ export default function PartnerMessagesClient({ params }) {
     <DealDetailsCard listing={listing} booking={booking} language={language} className="min-h-0" />
   ) : null
 
+  const listingIdForCalendar = listing?.id ?? selectedConv?.listingId ?? null
+
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <>
@@ -630,7 +645,7 @@ export default function PartnerMessagesClient({ params }) {
       />
 
       <PartnerChatCalendarPeek
-        listingId={listing?.id}
+        listingId={listingIdForCalendar}
         listingTitle={listing?.title}
         language={language}
         open={calendarOpen}
@@ -641,8 +656,8 @@ export default function PartnerMessagesClient({ params }) {
       <Sheet open={dealSheetOpen} onOpenChange={setDealSheetOpen}>
         <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto rounded-t-2xl z-[210]">
           <SheetHeader className="text-left pb-2">
-            <SheetTitle className="text-base font-semibold">
-              {language === 'ru' ? 'Детали поездки' : 'Trip details'}
+            <SheetTitle className="text-lg font-semibold text-slate-900">
+              {language === 'ru' ? 'Детали сделки' : 'Deal details'}
             </SheetTitle>
           </SheetHeader>
           {dealDetailsPanel}
@@ -687,7 +702,7 @@ export default function PartnerMessagesClient({ params }) {
               <Search className="h-4 w-4 text-teal-600 shrink-0" />
               {language === 'ru' ? 'Поиск по сообщениям' : 'Search messages'}
             </Button>
-            {isHosting && listing?.id ? (
+            {isHosting && listingIdForCalendar ? (
               <Button
                 type="button"
                 variant="outline"
