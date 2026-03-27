@@ -33,9 +33,15 @@
  */
 
 import Link from 'next/link'
-import { Check, CreditCard, Images, Info, LifeBuoy, Loader2, Search, X } from 'lucide-react'
+import { Check, CreditCard, Images, Info, LifeBuoy, Loader2, MoreHorizontal, Search, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 export function ChatHeaderActions({
   isAdminView = false,
@@ -52,6 +58,7 @@ export function ChatHeaderActions({
   searchActive = false,
   language = 'ru',
   compact = false,
+  groupDesktopTools = false,
   children,
 }) {
   if (isAdminView) return null
@@ -67,13 +74,21 @@ export function ChatHeaderActions({
 
   if (!hasActions) return null
 
+  const isRu = language !== 'en' && language !== 'th' && language !== 'zh'
+  const secondaryCount =
+    (onSupportClick ? 1 : 0) + (onMediaGallery ? 1 : 0) + (onSearchToggle ? 1 : 0)
+  const showDesktopMoreMenu = groupDesktopTools && secondaryCount > 0
+
   return (
     <div
       className={cn(
-        'shrink-0 flex items-center',
-        compact
-          ? 'flex-row flex-wrap justify-end gap-1.5 sm:flex-col sm:items-end sm:gap-2'
-          : 'flex-col items-end gap-2'
+        /* min-w-0 + shrink: иначе длинная строка «Помощь + (В очереди…)» не сжимается и вылезает под соседнюю колонку грида */
+        'flex min-w-0 shrink items-center',
+        groupDesktopTools
+          ? 'flex-row flex-wrap justify-end gap-1'
+          : compact
+            ? 'flex-row flex-wrap justify-end gap-1.5 sm:flex-col sm:items-end sm:gap-2'
+            : 'flex-col items-end gap-2'
       )}
     >
       {/* Кнопки управления бронью — на мобиле дублируют ChatActionBar, скрываем */}
@@ -123,17 +138,79 @@ export function ChatHeaderActions({
         </Button>
       ) : null}
 
-      {/* Кнопка поддержки — на мобиле в панели «Инфо» */}
-      {onSupportClick ? (
+      {/* Десктоп: одно меню вместо трёх кнопок */}
+      {showDesktopMoreMenu ? (
+        <div className="hidden lg:flex">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 shrink-0 border-slate-200 text-slate-700 hover:bg-slate-50"
+                title={isRu ? 'Ещё: поддержка, медиа, поиск' : 'More: support, media, search'}
+                aria-label={isRu ? 'Дополнительные действия' : 'More actions'}
+              >
+                <MoreHorizontal className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60">
+              {onSupportClick ? (
+                <DropdownMenuItem
+                  disabled={supportLoading}
+                  onClick={() => onSupportClick()}
+                  className="gap-2 cursor-pointer"
+                >
+                  {supportLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                  ) : (
+                    <LifeBuoy className="h-4 w-4 shrink-0 text-teal-600" />
+                  )}
+                  <div className="flex min-w-0 flex-col">
+                    <span className="font-medium">
+                      {isRu ? 'Поддержка Gostaylo' : 'Gostaylo support'}
+                    </span>
+                    {supportPriorityActive ? (
+                      <span className="text-[11px] font-normal text-amber-700">{supportDoneLabel}</span>
+                    ) : (
+                      <span className="text-[11px] text-slate-500">
+                        {isRu ? 'Вопросы и споры по брони' : 'Questions & disputes'}
+                      </span>
+                    )}
+                  </div>
+                </DropdownMenuItem>
+              ) : null}
+              {onMediaGallery ? (
+                <DropdownMenuItem onClick={() => onMediaGallery()} className="gap-2 cursor-pointer">
+                  <Images className="h-4 w-4 shrink-0 text-slate-600" />
+                  {isRu ? 'Медиафайлы в чате' : 'Media in chat'}
+                </DropdownMenuItem>
+              ) : null}
+              {onSearchToggle ? (
+                <DropdownMenuItem onClick={() => onSearchToggle()} className="gap-2 cursor-pointer">
+                  <Search className="h-4 w-4 shrink-0 text-slate-600" />
+                  {isRu ? 'Поиск по сообщениям' : 'Search messages'}
+                  {searchActive ? (
+                    <span className="ml-auto text-[10px] text-teal-600">{isRu ? 'вкл.' : 'on'}</span>
+                  ) : null}
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ) : null}
+
+      {/* Кнопка поддержки — на мобиле в панели «Инфо»; отдельно на десктопе если не groupDesktopTools */}
+      {onSupportClick && !showDesktopMoreMenu ? (
         <Button
           type="button"
           variant="outline"
           size="sm"
           className={cn(
-            'hidden lg:inline-flex border-slate-200 text-slate-800 hover:bg-slate-50 items-center',
+            'hidden min-w-0 max-w-full overflow-hidden lg:inline-flex border-slate-200 text-slate-800 hover:bg-slate-50 items-center',
             compact
-              ? 'h-8 w-8 shrink-0 p-0 sm:h-8 sm:w-auto sm:px-2.5 sm:text-xs'
-              : 'h-8 px-2.5 text-xs'
+              ? 'h-8 w-8 shrink-0 p-0 sm:h-8 sm:w-auto sm:max-w-[min(100%,14rem)] sm:px-2.5 sm:text-xs'
+              : 'h-8 max-w-[min(100%,14rem)] px-2.5 text-xs sm:max-w-[min(100%,18rem)]'
           )}
           onClick={onSupportClick}
           disabled={supportLoading}
@@ -146,14 +223,14 @@ export function ChatHeaderActions({
           )}
           <span
             className={cn(
-              'truncate',
-              compact ? 'hidden sm:ml-1.5 sm:inline sm:max-w-[7rem] md:max-w-none' : 'ml-1.5 max-w-[7rem] sm:max-w-none'
+              'min-w-0 truncate',
+              compact ? 'hidden sm:ml-1.5 sm:inline sm:max-w-[7rem] md:max-w-[min(100%,9rem)]' : 'ml-1.5 max-w-[7rem] sm:max-w-[min(100%,9rem)]'
             )}
           >
             {supportLabel}
           </span>
           {supportPriorityActive ? (
-            <span className="ml-1 hidden sm:inline text-[10px] font-normal text-amber-700 truncate max-w-[5.5rem]">
+            <span className="ml-1 hidden min-w-0 sm:inline text-[10px] font-normal text-amber-700 truncate max-w-[5.5rem]">
               ({supportDoneLabel})
             </span>
           ) : null}
@@ -179,7 +256,7 @@ export function ChatHeaderActions({
       ) : null}
 
       {/* Медиа-галерея — на мобиле в панели «Инфо» */}
-      {onMediaGallery ? (
+      {onMediaGallery && !showDesktopMoreMenu ? (
         <Button
           type="button"
           variant="ghost"
@@ -197,7 +274,7 @@ export function ChatHeaderActions({
       ) : null}
 
       {/* Поиск — на мобиле в панели «Инфо» */}
-      {onSearchToggle ? (
+      {onSearchToggle && !showDesktopMoreMenu ? (
         <Button
           type="button"
           variant="ghost"

@@ -63,12 +63,16 @@ export function UniversalHeader() {
 
   const isOnAdminPage = pathname?.startsWith('/admin');
   const isOnPartnerPage = pathname?.startsWith('/partner');
+  const isOnRenterPage = pathname?.startsWith('/renter');
 
   // Don't render on admin pages (Admin has its own header)
   if (isOnAdminPage) return null;
 
   // Don't render on partner pages (Partner has its own sidebar layout)
   if (isOnPartnerPage) return null;
+
+  // Renter portal has its own top bar (language, currency, nav) — avoid double header
+  if (isOnRenterPage) return null;
 
   const navigate = (href) => {
     router.push(href);

@@ -15,11 +15,16 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
   Archive, Loader2,
-  Wifi, WifiOff,
-  LifeBuoy, Images, Search, Calendar,
+  LifeBuoy, Images, Search,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   Dialog, DialogContent, DialogDescription,
   DialogFooter, DialogHeader, DialogTitle,
@@ -169,7 +174,7 @@ export default function PartnerMessagesClient({ params }) {
 
   // ── Тред (Фаза 2) ───────────────────────────────────────────────────────────
   const {
-    messages, isLoading: threadLoading, isConnected,
+    messages, isLoading: threadLoading,
     selectedConv, listing, booking,
     sendMessage: _sendMessage, sendMedia,
     reload: reloadThread,
@@ -479,6 +484,9 @@ export default function PartnerMessagesClient({ params }) {
     )
   }
 
+  const listingIdForCalendar =
+    listing?.id ?? selectedConv?.listingId ?? selectedConv?.listing_id ?? null
+
   // ── Slots для ChatThreadChrome ────────────────────────────────────────────────
 
   // Sidebar
@@ -498,33 +506,48 @@ export default function PartnerMessagesClient({ params }) {
 
   // Header
   const headerSlot = selectedConv ? (
-    <div className="flex items-center gap-1 px-2 py-1.5 lg:px-0 lg:py-0 bg-white border-b lg:border-0">
-      <Button
-        type="button" variant="outline" size="sm"
-        className="shrink-0 text-slate-600 border-slate-200 hidden sm:inline-flex"
-        onClick={() => void archiveConversation(selectedConv.id)}
-      >
-        <Archive className="h-4 w-4 sm:mr-1.5" />
-        <span className="hidden md:inline">{language === 'ru' ? 'В архив' : 'Archive'}</span>
-      </Button>
-      <Link
-        href="/partner/messages/archived"
-        className="hidden lg:inline text-xs font-medium text-teal-700 hover:text-teal-900 underline underline-offset-2 shrink-0"
-      >
-        {language === 'ru' ? 'Архив' : 'Archive'}
-      </Link>
+    <div className="flex min-w-0 items-center gap-2 overflow-x-hidden px-2 py-1.5 lg:px-0 lg:py-0 bg-white border-b lg:border-0">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-9 w-9 shrink-0 border-slate-200 text-slate-600 hover:bg-slate-50"
+            title={language === 'ru' ? 'Архив диалогов' : 'Conversation archive'}
+            aria-label={language === 'ru' ? 'Архив' : 'Archive'}
+          >
+            <Archive className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56">
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer"
+            onClick={() => void archiveConversation(selectedConv.id)}
+          >
+            <Archive className="h-4 w-4 shrink-0" />
+            {language === 'ru' ? 'Скрыть этот диалог' : 'Archive this chat'}
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/partner/messages/archived" className="cursor-pointer gap-2">
+              {language === 'ru' ? 'Все архивные диалоги' : 'All archived chats'}
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       <div className="flex-1 min-w-0">
         <StickyChatHeader
           listing={listing}
           booking={booking}
           language={language}
           isAdminView={false}
-          embedded compact
+          embedded
+          compact
+          groupDesktopTools
           messagesListHref="/partner/messages"
-          messagesListBackNavigation="push"
           showBookingTimeline={Boolean(booking?.id && booking?.status)}
           contactName={chatContactName}
-          presenceOnline={peerParticipantId ? peerOnline : null}
+          presenceOnline={peerOnline}
           lastSeenAt={peerLastSeenAt}
           typingIndicator={typingLine}
           typingGateWithPresence
@@ -541,12 +564,8 @@ export default function PartnerMessagesClient({ params }) {
           payNowHref={isHosting ? null : payNowHref}
           onSupportClick={() => setSupportDialogOpen(true)}
           supportPriorityActive={!!selectedConv?.isPriority}
-        >
-          <span className={`flex items-center gap-1 text-xs shrink-0 ${isConnected ? 'text-green-600' : 'text-orange-500'}`}>
-            {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-            {isConnected ? 'Live' : '…'}
-          </span>
-        </StickyChatHeader>
+          supportLabel={language === 'ru' ? 'Поддержка' : 'Support'}
+        />
       </div>
     </div>
   ) : null
@@ -629,14 +648,18 @@ export default function PartnerMessagesClient({ params }) {
   )
 
   const dealDetailsPanel = selectedConv ? (
-    <DealDetailsCard listing={listing} booking={booking} language={language} className="min-h-0" />
+    <DealDetailsCard
+      listing={listing}
+      booking={booking}
+      language={language}
+      className="min-h-0"
+      onOpenCalendar={listingIdForCalendar ? () => setCalendarOpen(true) : undefined}
+    />
   ) : null
-
-  const listingIdForCalendar = listing?.id ?? selectedConv?.listingId ?? null
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <ChatThreadChrome
         hasTread={!!conversationId}
         sidebarSlot={sidebarSlot}
@@ -647,16 +670,17 @@ export default function PartnerMessagesClient({ params }) {
         composerSlot={composerSlot}
         sidePanelSlot={dealDetailsPanel}
         language={language}
-        className="w-full h-full min-h-0"
+        className="w-full min-h-0 flex-1 !h-full max-h-full"
       />
 
       <PartnerChatCalendarPeek
+        mode="partner"
         listingId={listingIdForCalendar}
         listingTitle={listing?.title}
         language={language}
         open={calendarOpen}
         onOpenChange={setCalendarOpen}
-        triggerClassName="hidden lg:inline-flex"
+        hideTrigger
       />
 
       <Sheet open={dealSheetOpen} onOpenChange={setDealSheetOpen}>
@@ -708,20 +732,6 @@ export default function PartnerMessagesClient({ params }) {
               <Search className="h-4 w-4 text-teal-600 shrink-0" />
               {language === 'ru' ? 'Поиск по сообщениям' : 'Search messages'}
             </Button>
-            {isHosting && listingIdForCalendar ? (
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full justify-start gap-2 text-slate-800"
-                onClick={() => {
-                  setDealSheetOpen(false)
-                  setCalendarOpen(true)
-                }}
-              >
-                <Calendar className="h-4 w-4 text-teal-600 shrink-0" />
-                {language === 'ru' ? 'Календарь занятости' : 'Availability calendar'}
-              </Button>
-            ) : null}
           </div>
         </SheetContent>
       </Sheet>
@@ -786,6 +796,6 @@ export default function PartnerMessagesClient({ params }) {
           inbox.refresh()
         }}
       />
-    </>
+    </div>
   )
 }

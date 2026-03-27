@@ -231,7 +231,12 @@ export function ChatMessageList({
   const items = groupConsecutiveImages(messages)
 
   return (
-    <div className={cn('flex flex-col gap-0 px-2.5 py-2 pb-24 sm:px-4 sm:py-3 sm:pb-24', className)}>
+    <div
+      className={cn(
+        'flex w-full min-w-0 max-w-full flex-col gap-0 px-2.5 py-2 pb-24 sm:px-4 sm:py-3 sm:pb-24',
+        className,
+      )}
+    >
       {items.map((item, idx, arr) => {
         // Вычисляем дату для разделителя
         const msgDate = item._imageGroup

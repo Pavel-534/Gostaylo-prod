@@ -39,7 +39,9 @@ export function CalendarGrid({
   viewMode,
   onCellClick,
   todayRef,
-  scrollContainerRef
+  scrollContainerRef,
+  /** В модалках/шитах задайте меньше (например min(60vh, 420px)), иначе пустота снизу */
+  scrollMaxHeight = 'calc(100vh - 280px)',
 }) {
   return (
     <Card className="overflow-hidden border-0 shadow-lg">
@@ -48,7 +50,7 @@ export function CalendarGrid({
         <div 
           ref={scrollContainerRef}
           className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
-          style={{ maxHeight: 'calc(100vh - 280px)' }}
+          style={{ maxHeight: scrollMaxHeight }}
         >
           <div className="inline-flex min-w-full">
             {/* Sticky Listing Column */}

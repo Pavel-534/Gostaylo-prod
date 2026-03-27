@@ -61,6 +61,8 @@ export function StickyChatHeader({
   messagesListBackLabel = null,
   /** `replace` — не копить историю (универсальный /messages/[id]); `push` — явный переход в инбокс (партнёрский кабинет) */
   messagesListBackNavigation = 'replace',
+  /** Десктоп: «Поддержка / Медиа / Поиск» в одном меню «Ещё» — меньше шума в шапке */
+  groupDesktopTools = false,
   className,
   children,
 }) {
@@ -174,7 +176,7 @@ export function StickyChatHeader({
       {/* Основная строка: фото + инфо + кнопки */}
       <div
         className={cn(
-          'flex gap-2 items-center sm:gap-3 sm:items-start',
+          'flex w-full min-w-0 gap-2 items-center overflow-x-hidden sm:gap-3 sm:items-start',
           compact ? 'px-2 py-2 sm:px-4 sm:py-3' : 'px-4 py-3'
         )}
       >
@@ -306,6 +308,7 @@ export function StickyChatHeader({
           searchActive={searchActive}
           language={language}
           compact={compact}
+          groupDesktopTools={groupDesktopTools}
         >
           {children}
         </ChatHeaderActions>

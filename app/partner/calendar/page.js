@@ -47,8 +47,11 @@ function MasterCalendarContent() {
   const { user, loading: authLoading } = useAuth()
   const searchParams = useSearchParams()
   const filterListingId = searchParams.get('listingId') || searchParams.get('listing_id') || ''
+  const focusDateFromChat = searchParams.get('focusDate') || searchParams.get('date') || ''
+  const openedFromChat = searchParams.get('from') === 'chat'
   const scrollContainerRef = useRef(null)
   const todayRef = useRef(null)
+  const appliedFocusDateRef = useRef(false)
   
   // Get partner ID (useAuth or localStorage fallback)
   const [partnerId, setPartnerId] = useState(null)
@@ -71,6 +74,20 @@ function MasterCalendarContent() {
   const [viewMode, setViewMode] = useState('normal')
   const [daysToShow, setDaysToShow] = useState(30)
   const [startDate, setStartDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
+
+  // Переход из чата: ?focusDate=YYYY-MM-DD — показать окно с этой датой в видимой полосе
+  useEffect(() => {
+    if (appliedFocusDateRef.current) return
+    if (!focusDateFromChat || !/^\d{4}-\d{2}-\d{2}$/.test(focusDateFromChat)) return
+    try {
+      const d = parseISO(focusDateFromChat)
+      if (Number.isNaN(d.getTime())) return
+      appliedFocusDateRef.current = true
+      setStartDate(format(subDays(d, 5), 'yyyy-MM-dd'))
+    } catch {
+      /* ignore */
+    }
+  }, [focusDateFromChat])
   
   // Modal state
   const [actionModal, setActionModal] = useState({
@@ -310,6 +327,11 @@ function MasterCalendarContent() {
   return (
     <div className="max-w-full overflow-hidden space-y-4 px-2 sm:px-0">
       <PartnerCalendarEducationCard variant="calendar-page" className="max-w-[1600px] mx-auto" />
+      {openedFromChat ? (
+        <div className="max-w-[1600px] mx-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+          Вы перешли из чата — здесь можно заблокировать даты, создать ручную бронь или изменить цену по ячейке.
+        </div>
+      ) : null}
       {filterListingId ? (
         <div className="max-w-[1600px] mx-auto flex flex-wrap items-center gap-2 rounded-xl border border-teal-200 bg-teal-50/90 px-3 py-2.5 text-sm text-teal-900">
           <span className="font-medium">Режим: один объект</span>

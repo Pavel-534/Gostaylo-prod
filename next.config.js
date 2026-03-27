@@ -48,6 +48,11 @@ const nextConfig = {
         hostname: 'images.unsplash.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.pexels.com',
+        pathname: '/**',
+      },
       ...SITE_IMAGE_HOSTS.map((hostname) => ({
         protocol: 'https',
         hostname,

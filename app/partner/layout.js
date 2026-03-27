@@ -237,13 +237,26 @@ export default function PartnerLayout({ children }) {
       // Skip UUID-like segments for cleaner breadcrumbs
       const isUUID = segment.match(/^[a-z]+-[a-z0-9]+-[a-z0-9]+$/i) || segment.match(/^lst-/)
       
+      // Открытый диалог: не дублируем «Детали» в десктопных крошках — достаточно «Сообщения»
+      if (
+        pathname.startsWith('/partner/messages/') &&
+        index === segments.length - 1 &&
+        isUUID
+      ) {
+        return
+      }
+
       crumbs.push({
         name: isUUID ? 'Детали' : (BREADCRUMB_NAMES[segment] || segment),
         href: currentPath,
         isLast: index === segments.length - 1
       })
     })
-    
+
+    crumbs.forEach((c, i) => {
+      c.isLast = i === crumbs.length - 1
+    })
+
     return crumbs
   }, [pathname])
 
@@ -330,6 +343,9 @@ export default function PartnerLayout({ children }) {
 
   /** Чат: полноэкранная колонка без лишних отступов — иначе h-screen + p-4 схлопывает flex и ломает мобилку */
   const isMessagesFullBleed = pathname?.startsWith('/partner/messages')
+  /** В открытом треде не показываем мобильные крошки «Сообщения > Детали» — шапка диалога самодостаточна */
+  const hideMobileBreadcrumbs =
+    Boolean(pathname?.match(/^\/partner\/messages\/[^/]+/))
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -528,7 +544,7 @@ export default function PartnerLayout({ children }) {
         {/* Main Content */}
         <main
           className={cn(
-            'flex-1 lg:ml-64 pt-14 lg:pt-0 w-full max-w-full overflow-x-hidden',
+            'flex-1 lg:ml-64 pt-14 lg:pt-0 w-full min-w-0 max-w-full overflow-x-hidden',
             isMessagesFullBleed && 'flex flex-col min-h-0 overflow-hidden lg:overflow-x-hidden'
           )}
         >
@@ -598,31 +614,33 @@ export default function PartnerLayout({ children }) {
             </div>
           </div>
           
-          {/* Mobile Breadcrumbs */}
-          <div
-            className={cn(
-              'lg:hidden px-4 py-2 bg-white border-b border-slate-100',
-              isMessagesFullBleed && 'shrink-0'
-            )}
-          >
-            <nav className="flex items-center text-xs overflow-x-auto" aria-label="Breadcrumb">
-              {breadcrumbs.slice(-2).map((crumb, index, arr) => (
-                <div key={crumb.href} className="flex items-center whitespace-nowrap">
-                  {index > 0 && <ChevronRight className="w-3 h-3 mx-1 text-slate-300 flex-shrink-0" />}
-                  {crumb.isLast ? (
-                    <span className="font-medium text-slate-900">{crumb.name}</span>
-                  ) : (
-                    <Link 
-                      href={crumb.href}
-                      className="text-slate-500"
-                    >
-                      {crumb.name}
-                    </Link>
-                  )}
-                </div>
-              ))}
-            </nav>
-          </div>
+          {/* Mobile Breadcrumbs — скрыты на экране открытого чата (избегаем «Сообщения > Детали») */}
+          {!hideMobileBreadcrumbs ? (
+            <div
+              className={cn(
+                'lg:hidden px-4 py-2 bg-white border-b border-slate-100',
+                isMessagesFullBleed && 'shrink-0'
+              )}
+            >
+              <nav className="flex items-center text-xs overflow-x-auto" aria-label="Breadcrumb">
+                {breadcrumbs.slice(-2).map((crumb, index, arr) => (
+                  <div key={crumb.href} className="flex items-center whitespace-nowrap">
+                    {index > 0 && <ChevronRight className="w-3 h-3 mx-1 text-slate-300 flex-shrink-0" />}
+                    {crumb.isLast ? (
+                      <span className="font-medium text-slate-900">{crumb.name}</span>
+                    ) : (
+                      <Link 
+                        href={crumb.href}
+                        className="text-slate-500"
+                      >
+                        {crumb.name}
+                      </Link>
+                    )}
+                  </div>
+                ))}
+              </nav>
+            </div>
+          ) : null}
 
           {/* Page Content */}
           <div

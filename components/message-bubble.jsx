@@ -215,14 +215,20 @@ export function MessageBubble({
     // Если есть поиск — renderTextWithLocalLinks не применяем (там string-only логика),
     // вместо этого используем renderedText с подсветкой
     body = (
-      <p className="text-sm whitespace-pre-wrap break-words">
+      <p className="text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
         {searchHighlight ? renderedText : renderTextWithLocalLinks(displayText)}
       </p>
     )
   }
 
   return (
-    <div className={cn('flex gap-3', isOwn ? 'flex-row-reverse' : 'flex-row', isSending && 'opacity-60')}>
+    <div
+      className={cn(
+        'flex w-full min-w-0 max-w-full gap-3',
+        isOwn ? 'flex-row-reverse' : 'flex-row',
+        isSending && 'opacity-60',
+      )}
+    >
       {showAvatar ? (
         <Avatar className="w-8 h-8 flex-shrink-0">
           <AvatarFallback
@@ -242,7 +248,12 @@ export function MessageBubble({
       ) : (
         <div className="w-8 flex-shrink-0" />
       )}
-      <div className={cn('flex flex-col min-w-0 max-w-[min(100%,20rem)]', isOwn ? 'items-end' : 'items-start')}>
+      <div
+        className={cn(
+          'flex min-w-0 max-w-[min(100%,20rem)] flex-col overflow-hidden',
+          isOwn ? 'items-end' : 'items-start',
+        )}
+      >
         {showSenderName && senderName ? (
           <span className="text-xs text-slate-500 mb-1 flex items-center gap-1">
             {isAdmin && <Shield className="h-3 w-3 text-indigo-500" />}

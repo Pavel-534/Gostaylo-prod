@@ -198,32 +198,40 @@ export function PartnerChatComposer({
 
       <form
         onSubmit={onSubmit}
-        className="flex w-full min-w-0 items-center gap-1.5 sm:gap-2"
+        className="flex w-full min-w-0 items-center gap-2"
       >
-        {plusMenu}
+        {/* Группа как у «чистого» мессенджера: (+), поле, микрофон — в одной «капсуле»; отправка снаружи */}
+        <div
+          className={cn(
+            'flex min-w-0 flex-1 items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-50/70 px-1 py-1 shadow-sm sm:gap-2 sm:px-1.5',
+            voiceActive && 'bg-teal-50/40 border-teal-200/80',
+          )}
+        >
+          {plusMenu}
 
-        {!voiceActive ? (
-          <div className="min-w-0 flex-1 flex items-center">
-            <ChatGrowingTextarea
-              value={newMessage}
-              onChange={onMessageChange}
-              placeholder={getUIText('chatComposerPlaceholder', language)}
-              disabled={sending || disabled}
-              minHeightPx={44}
-              className="min-h-[44px] py-3 text-[15px] leading-normal sm:text-sm"
+          {!voiceActive ? (
+            <div className="min-w-0 flex-1 flex items-center">
+              <ChatGrowingTextarea
+                value={newMessage}
+                onChange={onMessageChange}
+                placeholder={getUIText('chatComposerPlaceholder', language)}
+                disabled={sending || disabled}
+                minHeightPx={44}
+                className="min-h-[44px] border-0 bg-transparent py-3 text-[15px] leading-normal shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:text-sm"
+              />
+            </div>
+          ) : null}
+
+          <div className={cn('min-w-0 flex items-center', voiceActive ? 'flex-1' : 'shrink-0')}>
+            <VoiceRecorder
+              showMicTrigger={!voiceActive && !newMessage.trim() && !disabled && !sending}
+              userId={userId}
+              language={language}
+              onSend={onSendVoice}
+              onActiveChange={setVoiceActive}
+              disabled={disabled || sending}
             />
           </div>
-        ) : null}
-
-        <div className={cn('min-w-0', voiceActive && 'flex flex-1 items-center')}>
-          <VoiceRecorder
-            showMicTrigger={!voiceActive && !newMessage.trim() && !disabled && !sending}
-            userId={userId}
-            language={language}
-            onSend={onSendVoice}
-            onActiveChange={setVoiceActive}
-            disabled={disabled || sending}
-          />
         </div>
 
         {!voiceActive ? (

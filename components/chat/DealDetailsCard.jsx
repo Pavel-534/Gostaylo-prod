@@ -7,7 +7,7 @@
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ru as ruLocale } from 'date-fns/locale'
-import { Building2, CalendarRange, Banknote, ExternalLink } from 'lucide-react'
+import { Building2, Calendar, CalendarRange, Banknote, ExternalLink } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
@@ -53,8 +53,9 @@ function statusLabel(status, language) {
  * @param {Object|null} [props.booking]
  * @param {string} [props.language]
  * @param {string} [props.className]
+ * @param {Function} [props.onOpenCalendar] — открыть календарь занятости (партнёр / гость)
  */
-export function DealDetailsCard({ listing = null, booking = null, language = 'ru', className }) {
+export function DealDetailsCard({ listing = null, booking = null, language = 'ru', className, onOpenCalendar }) {
   const isEn = language === 'en'
   const imgRaw = listing?.images?.[0]
   const img = imgRaw ? toPublicImageUrl(imgRaw) || imgRaw : null
@@ -156,11 +157,23 @@ export function DealDetailsCard({ listing = null, booking = null, language = 'ru
         </p>
       )}
 
+      {typeof onOpenCalendar === 'function' ? (
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full justify-center gap-2 border-teal-200 bg-teal-50/80 text-teal-900 hover:bg-teal-100 font-medium shadow-sm"
+          onClick={onOpenCalendar}
+        >
+          <Calendar className="h-4 w-4 shrink-0" aria-hidden />
+          {isEn ? 'Availability calendar' : 'Календарь занятости'}
+        </Button>
+      ) : null}
+
       {listing?.id ? (
         <Button
           asChild
           variant="outline"
-          className="w-full justify-center gap-2 border-teal-200 text-teal-800 hover:bg-teal-50"
+          className="w-full justify-center gap-2 border-slate-200 text-slate-800 hover:bg-slate-50"
         >
           <Link href={`/listings/${listing.id}`}>
             <ExternalLink className="h-4 w-4 shrink-0" />

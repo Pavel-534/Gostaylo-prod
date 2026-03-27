@@ -22,7 +22,7 @@ import {
   Archive, Loader2, Home,
   Mic, MicOff, Paperclip, Send,
   Wifi, WifiOff, Trash2,
-  Plus, LifeBuoy, Images, Search, Calendar,
+  Plus, LifeBuoy, Images, Search,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -572,8 +572,10 @@ export default function RenterMessagesClient({ params }) {
     />
   )
 
+  const listingIdForCalendar = listing?.id ?? selectedConv?.listingId ?? null
+
   const headerSlot = selectedConv ? (
-    <div className="flex items-center gap-1 px-2 py-1.5 lg:px-0 lg:py-0 bg-white border-b lg:border-0">
+    <div className="flex min-w-0 items-center gap-1 overflow-x-hidden px-2 py-1.5 lg:px-0 lg:py-0 bg-white border-b lg:border-0">
       <Button
         type="button" variant="outline" size="sm"
         className="shrink-0 text-slate-600 border-slate-200 hidden sm:inline-flex"
@@ -827,10 +829,14 @@ export default function RenterMessagesClient({ params }) {
   )
 
   const dealDetailsPanel = selectedConv ? (
-    <DealDetailsCard listing={listing} booking={booking} language={language} className="min-h-0" />
+    <DealDetailsCard
+      listing={listing}
+      booking={booking}
+      language={language}
+      className="min-h-0"
+      onOpenCalendar={listingIdForCalendar ? () => setCalendarOpen(true) : undefined}
+    />
   ) : null
-
-  const listingIdForCalendar = listing?.id ?? selectedConv?.listingId ?? null
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
@@ -867,16 +873,17 @@ export default function RenterMessagesClient({ params }) {
             />
           </div>
         </div>
-      </div>
 
-      <PartnerChatCalendarPeek
-        listingId={listingIdForCalendar}
-        listingTitle={listing?.title}
-        language={language}
-        open={calendarOpen}
-        onOpenChange={setCalendarOpen}
-        triggerClassName="hidden lg:inline-flex"
-      />
+        <PartnerChatCalendarPeek
+          mode="renter"
+          listingId={listingIdForCalendar}
+          listingTitle={listing?.title}
+          language={language}
+          open={calendarOpen}
+          onOpenChange={setCalendarOpen}
+          hideTrigger
+        />
+      </div>
 
       {/* ── Диалог поддержки ──────────────────────────────────────────── */}
       <SupportRequestDialog
@@ -940,20 +947,6 @@ export default function RenterMessagesClient({ params }) {
               <Search className="h-4 w-4 text-teal-600 shrink-0" />
               {language === 'ru' ? 'Поиск по сообщениям' : 'Search messages'}
             </Button>
-            {isHosting && listingIdForCalendar ? (
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full justify-start gap-2 text-slate-800"
-                onClick={() => {
-                  setDealSheetOpen(false)
-                  setCalendarOpen(true)
-                }}
-              >
-                <Calendar className="h-4 w-4 text-teal-600 shrink-0" />
-                {language === 'ru' ? 'Календарь занятости' : 'Availability calendar'}
-              </Button>
-            ) : null}
           </div>
         </SheetContent>
       </Sheet>

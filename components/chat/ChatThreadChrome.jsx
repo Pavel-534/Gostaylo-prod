@@ -85,15 +85,20 @@ export function ChatThreadChrome({
         {sidebarSlot ?? <DefaultSidebarEmpty language={language} />}
       </aside>
 
-      {/* ── Центр + правая панель (тред | side panel) ─────────────────── */}
+      {/* ── Центр + правая панель (тред | side panel) ───────────────────
+          Grid + minmax(0,1fr): иначе при flex иногда соседняя колонка 300px
+          визуально наезжает на шапку/кнопки треда (paint order второго flex-child). */}
       <div
         className={cn(
-          'flex flex-1 min-w-0 overflow-hidden',
-          hasTread ? 'flex' : 'hidden lg:flex',
+          'grid flex-1 min-h-0 min-w-0 overflow-hidden',
+          hasTread && sidePanelSlot
+            ? 'grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px]'
+            : 'grid-cols-1',
+          hasTread ? 'grid' : 'hidden lg:grid',
         )}
       >
         {/* ── Область треда ──────────────────────────────────────────── */}
-        <section className="flex flex-1 flex-col min-w-0 overflow-hidden">
+        <section className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:min-w-0">
           {hasTread ? (
             <>
               {headerSlot && (
@@ -130,8 +135,8 @@ export function ChatThreadChrome({
         {hasTread && sidePanelSlot ? (
           <aside
             className={cn(
-              'hidden lg:flex flex-col w-[300px] shrink-0 border-l border-slate-200',
-              'bg-slate-50/90 overflow-y-auto overscroll-contain',
+              'hidden min-h-0 min-w-0 flex-col border-l border-slate-200 lg:flex',
+              'w-full bg-slate-50/90 overflow-y-auto overscroll-contain lg:w-auto',
             )}
           >
             {sidePanelSlot}
