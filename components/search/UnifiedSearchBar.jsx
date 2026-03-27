@@ -163,6 +163,8 @@ export function UnifiedSearchBar({
           value={where || 'all'}
           onChange={setWhere}
           placeholder={getUIText('whereShort', language)}
+          loading={locationsLoading}
+          loadingPlaceholder={getUIText('loading', language)}
           variant="compact"
           className="min-w-0"
         />

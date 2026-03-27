@@ -462,7 +462,12 @@ function PremiumListingContent({ params }) {
       if (data.success) {
         toast.success(language === 'ru' ? 'Бронирование создано!' : 'Booking created!')
         setBookingModalOpen(false)
-        router.push('/renter/bookings')
+        const cid = data.conversationId
+        if (cid) {
+          router.push(`/renter/messages/${encodeURIComponent(cid)}`)
+        } else {
+          router.push('/renter/bookings')
+        }
       } else {
         toast.error(data.error || 'Booking failed')
       }

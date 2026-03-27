@@ -167,7 +167,12 @@ export async function POST(request) {
     
     console.log(`[BOOKING] New booking created: ${result.booking.id} for listing ${listingId}`);
     
-    return NextResponse.json({ success: true, booking: result.booking });
+    return NextResponse.json({
+      success: true,
+      booking: result.booking,
+      /** Linked chat thread (see BookingService.ensureBookingConversation) */
+      conversationId: result.conversationId ?? null,
+    });
     
   } catch (error) {
     console.error('[BOOKINGS POST ERROR]', error);
