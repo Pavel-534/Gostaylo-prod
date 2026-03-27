@@ -199,24 +199,22 @@ export function useConversationInbox({
           // Обновляем существующую строку (UPDATE)
           // Мержим только скалярные поля, не трогаем обогащение (listing, booking, lastMessage)
           const next = [...prev]
-          next[idx] = {
+          const updatedConv = {
             ...next[idx],
             statusLabel: incoming.status_label ?? incoming.statusLabel ?? next[idx].statusLabel,
             lastMessageAt: incoming.last_message_at ?? next[idx].lastMessageAt,
             updatedAt: incoming.updated_at ?? next[idx].updatedAt,
             isPriority: incoming.is_priority ?? next[idx].isPriority,
           }
-          // Если конversация переехала наверх (новое сообщение), перемещаем
+          next[idx] = updatedConv
+          // Если беседа получила новое сообщение — всплываем на верх и пересортируем
           if (payload.eventType === 'UPDATE' && incoming.last_message_at) {
-            next.splice(idx, 1)
-            return [next[idx - 1] ?? next[0], ...next.filter((_, i) => i !== 0)]
-              .filter(Boolean)
-              // Re-sort: наиболее свежий диалог первым
-              .sort((a, b) => {
-                const ta = new Date(a.lastMessageAt || a.updatedAt || 0).getTime()
-                const tb = new Date(b.lastMessageAt || b.updatedAt || 0).getTime()
-                return tb - ta
-              })
+            next.splice(idx, 1)  // убираем со старой позиции
+            return [updatedConv, ...next].sort((a, b) => {
+              const ta = new Date(a.lastMessageAt || a.updatedAt || 0).getTime()
+              const tb = new Date(b.lastMessageAt || b.updatedAt || 0).getTime()
+              return tb - ta
+            })
           }
           return next
         }
