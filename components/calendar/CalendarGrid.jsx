@@ -114,7 +114,7 @@ export function CalendarGrid({
                   return (
                     <div 
                       key={date}
-                      ref={isCurrentDay ? todayRef : null}
+                      ref={isCurrentDay && todayRef ? todayRef : undefined}
                       className={cn(
                         'flex h-16 flex-col items-center justify-center border-r border-slate-100',
                         isCurrentDay && "bg-teal-50",

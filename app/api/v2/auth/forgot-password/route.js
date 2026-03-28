@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { rateLimitCheck } from '@/lib/rate-limit';
+import { getTransactionalFromAddress } from '@/lib/email-env';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,7 +78,7 @@ export async function POST(request) {
   
   // Send email via Resend
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  const EMAIL_FROM = process.env.EMAIL_FROM || 'Gostaylo <booking@gostaylo.com>';
+  const EMAIL_FROM = getTransactionalFromAddress();
   
   if (!RESEND_API_KEY) {
     console.error('[FORGOT-PASSWORD] RESEND_API_KEY not configured');

@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { rateLimitCheck } from '@/lib/rate-limit';
+import { getTransactionalFromAddress } from '@/lib/email-env';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,7 @@ function generateVerificationToken(userId, email) {
 // Send verification email via Resend
 async function sendVerificationEmail(user, token) {
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
-  const EMAIL_FROM = process.env.EMAIL_FROM || 'Gostaylo <booking@gostaylo.com>';
+  const EMAIL_FROM = getTransactionalFromAddress();
   
   if (!RESEND_API_KEY) {
     console.error('[EMAIL] RESEND_API_KEY not configured');

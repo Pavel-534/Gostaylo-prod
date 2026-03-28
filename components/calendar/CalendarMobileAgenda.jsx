@@ -3,8 +3,11 @@
 /**
  * Вертикальный режим мастер-календаря для узких экранов (< md).
  * Без горизонтального скролла всей таблицы: дни списком, крупные тапы.
+ *
+ * @param {React.RefObject<HTMLElement|null>} [props.todayAnchorRef] — первая строка «сегодня» (первый листинг) для кнопки «Сегодня»
  */
 
+import { useMemo } from 'react'
 import { format, parseISO, isToday as isDateToday } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { Home, Anchor, Bike, Car, Lock } from 'lucide-react'
@@ -30,14 +33,22 @@ const STATUS_BADGE = {
   AVAILABLE: 'bg-slate-100 text-slate-800 border border-slate-200',
 }
 
-export function CalendarMobileAgenda({ dates, listings, onCellClick, bare = false }) {
+/** Отступ при scrollIntoView: липкий заголовок объекта (~72px) + запас, чтобы дата не уезжала под него */
+const TODAY_SCROLL_MARGIN = 'scroll-mt-[5.5rem]'
+
+export function CalendarMobileAgenda({ dates, listings, onCellClick, bare = false, todayAnchorRef = null }) {
+  const firstTodayInRange = useMemo(
+    () => dates.find((d) => isDateToday(parseISO(d))),
+    [dates],
+  )
+
   const inner = (
     <div className="divide-y divide-slate-200">
-        {listings.map((item) => {
+        {listings.map((item, listingIndex) => {
           const TypeIcon = TYPE_ICONS[item.listing.type] || TYPE_ICONS.default
           return (
             <section key={item.listing.id} className="bg-white">
-              <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-slate-200 bg-slate-50 px-3 py-3">
+              <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-slate-200 bg-slate-50 px-3 py-3 shadow-[0_1px_0_rgba(15,23,42,0.06)]">
                 <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-slate-100">
                   {item.listing.coverImage ? (
                     <ProxiedImage
@@ -63,14 +74,20 @@ export function CalendarMobileAgenda({ dates, listings, onCellClick, bare = fals
               </div>
 
               <ul className="px-0">
-                {dates.map((date) => (
-                  <AgendaRow
-                    key={`${item.listing.id}-${date}`}
-                    date={date}
-                    item={item}
-                    onCellClick={onCellClick}
-                  />
-                ))}
+                {dates.map((date) => {
+                  const attachTodayAnchor =
+                    !!todayAnchorRef && firstTodayInRange === date && listingIndex === 0
+                  return (
+                    <AgendaRow
+                      key={`${item.listing.id}-${date}`}
+                      date={date}
+                      item={item}
+                      onCellClick={onCellClick}
+                      listItemRef={attachTodayAnchor ? todayAnchorRef : undefined}
+                      todayScrollMarginClass={attachTodayAnchor ? TODAY_SCROLL_MARGIN : undefined}
+                    />
+                  )
+                })}
               </ul>
             </section>
           )
@@ -87,7 +104,7 @@ export function CalendarMobileAgenda({ dates, listings, onCellClick, bare = fals
   return <Card className="overflow-hidden border-0 shadow-lg">{inner}</Card>
 }
 
-function AgendaRow({ date, item, onCellClick }) {
+function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClass }) {
   const cellData = item.availability[date] || { status: 'AVAILABLE' }
   const dateObj = parseISO(date)
   const today = isDateToday(dateObj)
@@ -133,7 +150,7 @@ function AgendaRow({ date, item, onCellClick }) {
   }
 
   return (
-    <li>
+    <li ref={listItemRef} className={cn(todayScrollMarginClass)}>
       <button
         type="button"
         onClick={() => onCellClick(item.listing, date, cellData)}

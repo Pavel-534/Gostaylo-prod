@@ -22,6 +22,7 @@ import { CalendarGrid } from '@/components/calendar/CalendarGrid'
 import { CalendarMobileAgenda } from '@/components/calendar/CalendarMobileAgenda'
 import { ActionModals } from '@/components/calendar/ActionModals'
 import { PartnerCalendarEducationCard } from '@/components/partner/PartnerCalendarEducationCard'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 // Day width options
 const DAY_WIDTHS = {
@@ -51,7 +52,9 @@ function MasterCalendarContent() {
   const focusDateFromChat = searchParams.get('focusDate') || searchParams.get('date') || ''
   const openedFromChat = searchParams.get('from') === 'chat'
   const scrollContainerRef = useRef(null)
-  const todayRef = useRef(null)
+  const todayGridRef = useRef(null)
+  const todayAgendaRef = useRef(null)
+  const isNarrowCalendar = useMediaQuery('(max-width: 767px)')
   const appliedFocusDateRef = useRef(false)
   
   // Get partner ID (useAuth or localStorage fallback)
@@ -154,10 +157,17 @@ function MasterCalendarContent() {
   // Navigation handlers
   const goToToday = useCallback(() => {
     setStartDate(format(new Date(), 'yyyy-MM-dd'))
-    setTimeout(() => {
-      todayRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center' })
-    }, 100)
-  }, [])
+    window.requestAnimationFrame(() => {
+      setTimeout(() => {
+        const el = isNarrowCalendar ? todayAgendaRef.current : todayGridRef.current
+        el?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'nearest',
+        })
+      }, 280)
+    })
+  }, [isNarrowCalendar])
   
   const goBack = useCallback(() => {
     setStartDate(format(subDays(parseISO(startDate), 7), 'yyyy-MM-dd'))
@@ -372,7 +382,7 @@ function MasterCalendarContent() {
           dayWidth={dayWidth}
           viewMode={viewMode}
           onCellClick={handleCellClick}
-          todayRef={todayRef}
+          todayRef={isNarrowCalendar ? null : todayGridRef}
           scrollContainerRef={scrollContainerRef}
         />
       </div>
@@ -381,7 +391,12 @@ function MasterCalendarContent() {
         <p className="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
           Список по дням — нажмите строку, чтобы заблокировать дату, создать бронь или сменить цену.
         </p>
-        <CalendarMobileAgenda dates={dates} listings={listings} onCellClick={handleCellClick} />
+        <CalendarMobileAgenda
+          dates={dates}
+          listings={listings}
+          onCellClick={handleCellClick}
+          todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
+        />
       </div>
       
       <ActionModals

@@ -228,6 +228,10 @@ export function AuthProvider({ children }) {
       
       if (result.emailError) {
         toast.error(`Ошибка отправки email: ${result.emailError}`);
+      } else if (result.requiresVerification && result.emailSent === false) {
+        toast.warning(
+          'Аккаунт создан, но письмо не отправлено. Проверьте настройки почты на сервере или нажмите «Отправить снова».',
+        );
       }
       
     } catch (err) {
