@@ -313,15 +313,11 @@ export function AppSidebar() {
               const isActive =
                 item.href === '/messages'
                   ? pathname === '/messages' ||
-                    pathname?.startsWith('/messages/') ||
-                    pathname?.startsWith('/partner/messages') ||
-                    pathname?.startsWith('/renter/messages')
+                    pathname?.startsWith('/messages/')
                   : pathname === item.href ||
                     (item.href !== '/' && pathname?.startsWith(item.href.split('?')[0]));
               const isMessagesLink =
                 item.href === '/messages' ||
-                item.href === '/renter/messages' ||
-                item.href === '/partner/messages' ||
                 item.href === '/admin/messages/';
               const showUnreadBadge = isMessagesLink && totalUnread > 0 && !isActive;
               

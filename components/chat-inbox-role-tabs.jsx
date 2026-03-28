@@ -14,6 +14,7 @@ export function ChatInboxRoleTabs({
   travelingUnread = 0,
   language = 'ru',
   className,
+  dense = false,
 }) {
   const isRu = language !== 'en'
   const hostingLabel = isRu ? 'Сдаю' : 'Hosting'
@@ -31,7 +32,8 @@ export function ChatInboxRoleTabs({
         title={title}
         onClick={() => onChange?.(tab)}
         className={cn(
-          'relative flex-1 rounded-lg px-2 py-2 text-center text-xs font-semibold transition-colors sm:text-sm',
+          'relative flex-1 rounded-lg px-2 text-center font-semibold transition-colors',
+          dense ? 'py-1 text-[11px] sm:text-xs' : 'py-2 text-xs sm:text-sm',
           active
             ? 'bg-teal-600 text-white shadow-sm'
             : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
@@ -41,7 +43,8 @@ export function ChatInboxRoleTabs({
         {unread > 0 ? (
           <Badge
             className={cn(
-              'mt-1 h-5 min-w-[1.25rem] px-1.5 text-[10px] font-bold tabular-nums',
+              'h-5 min-w-[1.25rem] px-1.5 text-[10px] font-bold tabular-nums',
+              dense ? 'mt-0.5' : 'mt-1',
               active ? 'bg-white text-teal-700 hover:bg-white' : 'bg-red-500 text-white hover:bg-red-500'
             )}
           >

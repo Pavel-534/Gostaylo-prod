@@ -4,7 +4,7 @@
 export default function MessagesThreadLoading() {
   return (
     <div
-      className="flex min-h-[50vh] flex-col gap-3 p-4 animate-pulse"
+      className="flex min-h-0 flex-1 flex-col gap-3 p-4 animate-pulse"
       aria-busy="true"
       aria-label="Загрузка чата"
     >

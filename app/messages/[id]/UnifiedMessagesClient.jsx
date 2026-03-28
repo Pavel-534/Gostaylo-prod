@@ -94,7 +94,7 @@ function useCategories() {
 }
 
 // ─── Archive helper ───────────────────────────────────────────────────────────
-function useArchive({ language, router, inbox, conversationId, basePath, listHallHref = '/messages', userId }) {
+function useArchive({ language, router, inbox, conversationId, listHallHref = '/messages/', userId }) {
   const archiveConversation = useCallback(async (convId) => {
     if (!convId) return
     try {
@@ -112,20 +112,20 @@ function useArchive({ language, router, inbox, conversationId, basePath, listHal
       toast.success(language === 'ru' ? 'Диалог скрыт' : 'Archived', {
         action: {
           label: language === 'ru' ? 'Архив' : 'Archive',
-          onClick: () => router.push(`${basePath}/archived`),
+          onClick: () => router.push(listHallHref),
         },
       })
       inbox.setConversations((prev) => prev.filter((c) => c.id !== convId))
       if (String(conversationId) === String(convId)) {
         const remaining = inbox.filteredConversations.filter((c) => c.id !== convId)
         if (remaining[0]) {
-          router.push(`/messages/${remaining[0].id}`)
+          router.push(`/messages/${remaining[0].id}/`)
         } else router.push(listHallHref)
       }
     } catch {
       toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
     }
-  }, [language, router, inbox, conversationId, basePath, listHallHref])
+  }, [language, router, inbox, conversationId, listHallHref])
 
   return { archiveConversation }
 }
@@ -249,7 +249,7 @@ export default function UnifiedMessagesClient({ params }) {
   )
   const isTraveling = !isHosting
 
-  const archiveBasePath = isPartnerAccount ? '/partner/messages' : '/renter/messages'
+  const hallHref = '/messages/'
 
   const chatContactName = useMemo(() => {
     if (!selectedConv) return ''
@@ -313,7 +313,7 @@ export default function UnifiedMessagesClient({ params }) {
   const { archiveConversation } = useArchive({
     language, router, inbox,
     conversationId,
-    basePath: archiveBasePath,
+    listHallHref: hallHref,
     userId: user?.id,
   })
 
@@ -527,14 +527,14 @@ export default function UnifiedMessagesClient({ params }) {
     )
     if (conversationId && !list.some((c) => c.id === conversationId)) {
       if (list[0]) {
-        router.push(`/messages/${list[0].id}`)
-      } else router.push('/messages')
+        router.push(`/messages/${list[0].id}/`)
+      } else router.push('/messages/')
     }
   }, [inbox, conversationId, router, user?.id])
 
   const handleConversationSelect = useCallback(
     (id) => {
-      router.push(`/messages/${id}`)
+      router.push(`/messages/${id}/`)
     },
     [router]
   )
@@ -542,14 +542,14 @@ export default function UnifiedMessagesClient({ params }) {
   // ── Loading / Auth states ────────────────────────────────────────────────────
   if (authLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex min-h-0 flex-1 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
       </div>
     )
   }
   if (!user) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 p-8">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-8">
         <p className="text-slate-600">
           {language === 'ru' ? 'Требуется авторизация' : 'Sign in required'}
         </p>
@@ -575,7 +575,7 @@ export default function UnifiedMessagesClient({ params }) {
       showListingName={false}
       showGuestName={inbox.inboxTab === INBOX_TAB_TRAVELING}
       onArchive={(id) => void archiveConversation(id)}
-      archivedHref={`${archiveBasePath}/archived`}
+      archivedHref={hallHref}
       language={language}
       roleTabsVisible={isPartnerAccount}
     />
@@ -606,7 +606,7 @@ export default function UnifiedMessagesClient({ params }) {
             {language === 'ru' ? 'Скрыть этот диалог' : 'Archive this chat'}
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href={`${archiveBasePath}/archived`} className="cursor-pointer gap-2">
+            <Link href={hallHref} className="cursor-pointer gap-2">
               {language === 'ru' ? 'Все архивные диалоги' : 'All archived chats'}
             </Link>
           </DropdownMenuItem>
@@ -872,7 +872,7 @@ export default function UnifiedMessagesClient({ params }) {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
       <ChatThreadChrome
         hasTread={!!conversationId}
         sidebarSlot={sidebarSlot}
@@ -883,7 +883,7 @@ export default function UnifiedMessagesClient({ params }) {
         composerSlot={composerSlot}
         sidePanelSlot={dealDetailsPanel}
         language={language}
-        className="w-full min-h-0 flex-1 !h-full max-h-full"
+        className="h-full min-h-0 w-full flex-1"
       />
 
       <PartnerChatCalendarPeek

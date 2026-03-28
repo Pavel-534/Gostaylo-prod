@@ -253,7 +253,7 @@ function ConversationRow({
 function CategoryFilter({ categories, categoryFilter, onCategoryChange, lang = 'ru' }) {
   if (!categories?.length) return null
   return (
-    <div className="px-3 py-2 border-b border-slate-100 flex flex-wrap gap-1.5 bg-slate-50/80">
+    <div className="flex flex-wrap gap-1 border-b border-slate-100 bg-slate-50/80 px-2 py-1.5">
       <button
         type="button"
         onClick={() => onCategoryChange?.(null)}
@@ -365,39 +365,40 @@ export function ConversationListPanel({
   const emptyText = isRu ? 'Диалогов пока нет' : 'No conversations yet'
 
   return (
-    <div className={cn('flex flex-col h-full', className)}>
-      {/* ── Шапка панели ──────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 p-4 border-b bg-gradient-to-r from-teal-500 to-cyan-500">
-        <h2 className="text-lg font-bold text-white leading-tight">
-          {title || (isRu ? 'Сообщения' : 'Messages')}
-        </h2>
-        <p className="text-teal-100 text-xs mt-0.5">
-          {conversations.length}{' '}
-          {isRu ? (conversations.length === 1 ? 'диалог' : 'диалогов') : 'conversations'}
-        </p>
-
-        {/* Вкладки Hosting / Traveling */}
-        {inboxTab != null && typeof onInboxTabChange === 'function' && (
-          <div className="mt-3 rounded-lg bg-white/15 p-1.5 backdrop-blur-sm">
+    <div className={cn('flex min-h-0 h-full flex-col', className)}>
+      {/* Компактная шапка: заголовок + счётчик + архив (WhatsApp-style) */}
+      <div className="flex shrink-0 flex-col border-b border-slate-200 bg-white">
+        <div className="flex items-center justify-between gap-2 px-3 py-2">
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-semibold leading-tight text-slate-900">
+              {title || (isRu ? 'Сообщения' : 'Messages')}
+            </h2>
+            <p className="text-[11px] leading-tight text-slate-500">
+              {conversations.length}{' '}
+              {isRu ? (conversations.length === 1 ? 'диалог' : 'диалогов') : 'conversations'}
+            </p>
+          </div>
+          {archivedHref ? (
+            <Link
+              href={archivedHref}
+              className="shrink-0 text-sm font-medium text-teal-700 hover:text-teal-800"
+            >
+              {isRu ? 'Архив' : 'Archive'}
+            </Link>
+          ) : null}
+        </div>
+        {inboxTab != null && typeof onInboxTabChange === 'function' ? (
+          <div className="border-t border-slate-100 bg-slate-50/90 px-2 py-1.5">
             <ChatInboxRoleTabs
               value={inboxTab}
               onChange={onInboxTabChange}
               hostingUnread={hostingUnread}
               travelingUnread={travelingUnread}
               language={language}
+              dense
             />
           </div>
-        )}
-
-        {/* Ссылка на архив */}
-        {archivedHref && (
-          <Link
-            href={archivedHref}
-            className="text-teal-100 text-xs underline underline-offset-2 hover:text-white mt-1.5 inline-block"
-          >
-            {isRu ? 'Архив' : 'Archive'}
-          </Link>
-        )}
+        ) : null}
       </div>
 
       {/* ── Фильтр по категориям ───────────────────────────────────────── */}

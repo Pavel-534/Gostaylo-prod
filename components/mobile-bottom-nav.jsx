@@ -33,7 +33,7 @@ const NAV_ITEMS = [
     href: '/messages', 
     icon: MessageCircle, 
     label: 'Сообщения',
-    activeMatches: ['/messages', '/renter/messages', '/partner/messages'],
+    activeMatches: ['/messages'],
     requiresAuth: true
   },
   { 

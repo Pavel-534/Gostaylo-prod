@@ -44,8 +44,6 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Toaster } from 'sonner'
-import { cn } from '@/lib/utils'
-
 // Sidebar navigation items with universal business icons
 const SIDEBAR_ITEMS = [
   { 
@@ -237,15 +235,6 @@ export default function PartnerLayout({ children }) {
       // Skip UUID-like segments for cleaner breadcrumbs
       const isUUID = segment.match(/^[a-z]+-[a-z0-9]+-[a-z0-9]+$/i) || segment.match(/^lst-/)
       
-      // Открытый диалог: не дублируем «Детали» в десктопных крошках — достаточно «Сообщения»
-      if (
-        pathname.startsWith('/partner/messages/') &&
-        index === segments.length - 1 &&
-        isUUID
-      ) {
-        return
-      }
-
       crumbs.push({
         name: isUUID ? 'Детали' : (BREADCRUMB_NAMES[segment] || segment),
         href: currentPath,
@@ -340,12 +329,6 @@ export default function PartnerLayout({ children }) {
 
   // Get stable QueryClient instance
   const queryClient = getQueryClient()
-
-  /** Чат: полноэкранная колонка без лишних отступов — иначе h-screen + p-4 схлопывает flex и ломает мобилку */
-  const isMessagesFullBleed = pathname?.startsWith('/partner/messages')
-  /** В открытом треде не показываем мобильные крошки «Сообщения > Детали» — шапка диалога самодостаточна */
-  const hideMobileBreadcrumbs =
-    Boolean(pathname?.match(/^\/partner\/messages\/[^/]+/))
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -481,9 +464,7 @@ export default function PartnerLayout({ children }) {
               const isMessagesItem = item.href === '/messages'
               const isActive = isMessagesItem
                 ? pathname === '/messages' ||
-                  pathname?.startsWith('/messages/') ||
-                  pathname?.startsWith('/partner/messages') ||
-                  pathname?.startsWith('/renter/messages')
+                  pathname?.startsWith('/messages/')
                 : pathname === item.href ||
                   (item.href !== '/partner/dashboard' && pathname?.startsWith(item.href))
               const isMessages = isMessagesItem
@@ -548,12 +529,7 @@ export default function PartnerLayout({ children }) {
         </aside>
 
         {/* Main Content */}
-        <main
-          className={cn(
-            'flex-1 lg:ml-64 pt-14 lg:pt-0 w-full min-w-0 max-w-full overflow-x-hidden',
-            isMessagesFullBleed && 'flex flex-col min-h-0 overflow-hidden lg:overflow-x-hidden'
-          )}
-        >
+        <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 w-full min-w-0 max-w-full overflow-x-hidden">
           {/* Desktop Top Bar */}
           <div className="hidden lg:block sticky top-0 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 z-10">
             {/* Impersonation Banner - Desktop */}
@@ -620,42 +596,25 @@ export default function PartnerLayout({ children }) {
             </div>
           </div>
           
-          {/* Mobile Breadcrumbs — скрыты на экране открытого чата (избегаем «Сообщения > Детали») */}
-          {!hideMobileBreadcrumbs ? (
-            <div
-              className={cn(
-                'lg:hidden px-4 py-2 bg-white border-b border-slate-100',
-                isMessagesFullBleed && 'shrink-0'
-              )}
-            >
-              <nav className="flex items-center text-xs overflow-x-auto" aria-label="Breadcrumb">
-                {breadcrumbs.slice(-2).map((crumb, index, arr) => (
-                  <div key={crumb.href} className="flex items-center whitespace-nowrap">
-                    {index > 0 && <ChevronRight className="w-3 h-3 mx-1 text-slate-300 flex-shrink-0" />}
-                    {crumb.isLast ? (
-                      <span className="font-medium text-slate-900">{crumb.name}</span>
-                    ) : (
-                      <Link 
-                        href={crumb.href}
-                        className="text-slate-500"
-                      >
-                        {crumb.name}
-                      </Link>
-                    )}
-                  </div>
-                ))}
-              </nav>
-            </div>
-          ) : null}
+          <div className="lg:hidden px-4 py-2 bg-white border-b border-slate-100">
+            <nav className="flex items-center text-xs overflow-x-auto" aria-label="Breadcrumb">
+              {breadcrumbs.slice(-2).map((crumb, index) => (
+                <div key={crumb.href} className="flex items-center whitespace-nowrap">
+                  {index > 0 && <ChevronRight className="w-3 h-3 mx-1 text-slate-300 flex-shrink-0" />}
+                  {crumb.isLast ? (
+                    <span className="font-medium text-slate-900">{crumb.name}</span>
+                  ) : (
+                    <Link href={crumb.href} className="text-slate-500">
+                      {crumb.name}
+                    </Link>
+                  )}
+                </div>
+              ))}
+            </nav>
+          </div>
 
           {/* Page Content */}
-          <div
-            className={cn(
-              isMessagesFullBleed
-                ? 'flex flex-1 flex-col min-h-0 overflow-hidden px-0 pb-0 pt-0 lg:px-6 lg:pb-6 lg:pt-0 max-w-full'
-                : 'p-4 lg:p-6 max-w-full overflow-x-hidden'
-            )}
-          >
+          <div className="p-4 lg:p-6 max-w-full overflow-x-hidden">
             {children}
           </div>
         </main>

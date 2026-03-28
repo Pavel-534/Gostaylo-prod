@@ -2,13 +2,13 @@
 
 /**
  * Единый холл сообщений (/messages).
- * Переход в тред: /messages/[id] (legacy-страницы кабинетов остаются до Этапа 4).
+ * Переход в тред: /messages/[id].
  */
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Loader2, Home, Archive } from 'lucide-react'
+import { Loader2, Home } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -88,9 +88,7 @@ export default function UnifiedMessagesHallPage() {
     enabled: !!user?.id,
   })
 
-  const archivedListHref = showHostingTabs
-    ? '/partner/messages/archived'
-    : '/renter/messages/archived'
+  const archivedListHref = '/messages/'
 
   const { archiveConversation } = useArchive({
     language,
@@ -109,7 +107,7 @@ export default function UnifiedMessagesHallPage() {
 
   const handleConversationSelect = useCallback(
     (id) => {
-      router.push(`/messages/${encodeURIComponent(id)}`)
+      router.push(`/messages/${encodeURIComponent(id)}/`)
     },
     [router]
   )
@@ -121,7 +119,7 @@ export default function UnifiedMessagesHallPage() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="flex min-h-0 flex-1 items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
       </div>
     )
@@ -129,9 +127,9 @@ export default function UnifiedMessagesHallPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <div className="sticky top-0 z-10 border-b bg-white">
-          <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-slate-50">
+        <header className="shrink-0 border-b bg-white">
+          <div className="mx-auto flex max-w-4xl items-center px-3 py-2">
             <Link href="/" className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-teal-500 to-teal-600">
                 <span className="text-sm font-bold text-white">GS</span>
@@ -139,8 +137,8 @@ export default function UnifiedMessagesHallPage() {
               <span className="font-bold text-slate-900">Gostaylo</span>
             </Link>
           </div>
-        </div>
-        <div className="mx-auto max-w-md px-4 py-16 text-center">
+        </header>
+        <div className="mx-auto flex max-w-md flex-1 flex-col justify-center px-4 py-8 text-center">
           <p className="mb-4 text-slate-600">
             {language === 'en' ? 'Sign in to see your messages' : 'Войдите, чтобы видеть диалоги'}
           </p>
@@ -153,53 +151,39 @@ export default function UnifiedMessagesHallPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20 md:pb-10">
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-3 sm:py-4">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50">
+      <header className="shrink-0 border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-2 px-3 py-2">
           <Link href="/" className="flex min-w-0 items-center gap-2">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-teal-500 to-teal-600">
               <span className="text-sm font-bold text-white">GS</span>
             </div>
             <span className="truncate font-bold text-slate-900">Gostaylo</span>
           </Link>
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            <Button asChild variant="outline" size="sm" className="border-teal-200 text-teal-800">
-              <Link href={archivedListHref}>
-                <Archive className="mr-1.5 h-4 w-4" />
-                {language === 'en' ? 'Archive' : 'Архив'}
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/">
-                <Home className="mr-1.5 h-4 w-4" />
-                {language === 'en' ? 'Home' : 'На главную'}
-              </Link>
-            </Button>
-          </div>
+          <Button asChild variant="ghost" size="sm" className="shrink-0">
+            <Link href="/">
+              <Home className="mr-1 h-4 w-4" />
+              {language === 'en' ? 'Home' : 'На главную'}
+            </Link>
+          </Button>
         </div>
       </header>
 
-      <div className="mx-auto max-w-4xl px-4 py-6">
-        <h1 className="mb-4 text-2xl font-bold text-slate-900">
-          {language === 'en' ? 'Messages' : 'Сообщения'}
-        </h1>
-
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="min-h-[min(70dvh,560px)] lg:min-h-[480px]">
-            <ConversationList
-              inbox={{ ...inbox, setInboxTab: handleInboxTabChange }}
-              selectedId={null}
-              onSelect={handleConversationSelect}
-              categories={categories}
-              showListingName={false}
-              showGuestName={showGuestName}
-              onArchive={(id) => void archiveConversation(id)}
-              archivedHref={archivedListHref}
-              language={language}
-              roleTabsVisible={showHostingTabs}
-              className="h-full max-h-[70dvh] lg:max-h-[560px]"
-            />
-          </div>
+      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-hidden md:px-4 md:py-2">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white md:rounded-xl md:border md:border-slate-200 md:shadow-sm">
+          <ConversationList
+            inbox={{ ...inbox, setInboxTab: handleInboxTabChange }}
+            selectedId={null}
+            onSelect={handleConversationSelect}
+            categories={categories}
+            showListingName={false}
+            showGuestName={showGuestName}
+            onArchive={(id) => void archiveConversation(id)}
+            archivedHref={archivedListHref}
+            language={language}
+            roleTabsVisible={showHostingTabs}
+            className="min-h-0 flex-1"
+          />
         </div>
       </div>
     </div>

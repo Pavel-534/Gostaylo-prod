@@ -68,16 +68,15 @@ export function ChatThreadChrome({
   return (
     <div
       className={cn(
-        'flex h-[calc(100vh-4rem)] overflow-hidden bg-white',
+        'flex h-full min-h-0 w-full flex-1 overflow-hidden bg-white',
         className,
       )}
     >
       {/* ── Левая колонка: список диалогов ──────────────────────────────── */}
       <aside
         className={cn(
-          // Мобиле: занимает весь экран пока тред не открыт
-          'flex-shrink-0 flex flex-col',
-          'w-full lg:w-80',
+          'flex h-full min-h-0 w-full flex-shrink-0 flex-col overflow-hidden',
+          'lg:w-80',
           hasTread ? 'hidden lg:flex' : 'flex',
           'border-r border-slate-200',
         )}

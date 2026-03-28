@@ -43,10 +43,33 @@ async function verifyToken(token: string): Promise<{ userId: string; role: strin
   }
 }
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+/**
+ * 301 с legacy URL кабинетов на единый инбокс (Этап 4).
+ * Должно выполняться до проверки JWT — закладки без сессии всё равно попадут на /messages/.
+ */
+function legacyMessagesRedirect(request: NextRequest): NextResponse | null {
+  const raw = request.nextUrl.pathname;
+  const p = raw.replace(/\/$/, '') || '/';
 
-  // Единый тред /messages/[id] обслуживается приложением без редиректа в legacy-кабинеты (Этап 3).
+  if (p === '/partner/messages/archived' || p === '/renter/messages/archived') {
+    return NextResponse.redirect(new URL('/messages/', request.url), 301);
+  }
+  if (p === '/partner/messages' || p === '/renter/messages') {
+    return NextResponse.redirect(new URL('/messages/', request.url), 301);
+  }
+  const m = p.match(/^\/(partner|renter)\/messages\/(.+)$/);
+  if (m && m[2] && m[2] !== 'archived') {
+    const id = m[2];
+    return NextResponse.redirect(new URL(`/messages/${encodeURIComponent(id)}/`, request.url), 301);
+  }
+  return null;
+}
+
+export async function middleware(request: NextRequest) {
+  const legacy = legacyMessagesRedirect(request);
+  if (legacy) return legacy;
+
+  const { pathname } = request.nextUrl;
 
   // Check if route is protected
   const matchedRoute = Object.keys(PROTECTED_ROUTES).find(route => 
