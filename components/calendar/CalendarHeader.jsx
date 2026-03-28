@@ -115,7 +115,7 @@ export function CalendarHeader({
             </Button>
           </div>
 
-          <div className="flex items-center gap-1 border rounded-lg overflow-hidden">
+          <div className="hidden items-center gap-1 overflow-hidden rounded-lg border md:flex">
             <Button
               variant={viewMode === 'compact' ? 'secondary' : 'ghost'}
               size="sm"

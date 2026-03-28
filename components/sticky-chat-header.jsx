@@ -59,6 +59,8 @@ export function StickyChatHeader({
   /** К списку диалогов */
   messagesListHref = null,
   messagesListBackLabel = null,
+  /** Когда «Назад» рендерит родитель (например слева от шапки), скрыть дублирующую кнопку */
+  hideBackButton = false,
   /** `replace` — не копить историю (универсальный /messages/[id]); `push` — явный переход в инбокс (партнёрский кабинет) */
   messagesListBackNavigation = 'replace',
   /** Десктоп: «Поддержка / Медиа / Поиск» в одном меню «Ещё» — меньше шума в шапке */
@@ -177,10 +179,10 @@ export function StickyChatHeader({
       <div
         className={cn(
           'flex w-full min-w-0 gap-2 items-center overflow-x-hidden sm:gap-3 sm:items-start',
-          compact ? 'px-2 py-2 sm:px-4 sm:py-3' : 'px-4 py-3'
+          compact ? 'px-2 py-1.5 sm:px-3 sm:py-2' : 'px-4 py-3'
         )}
       >
-        {messagesListHref ? (
+        {messagesListHref && !hideBackButton ? (
           <Button
             type="button"
             variant="ghost"

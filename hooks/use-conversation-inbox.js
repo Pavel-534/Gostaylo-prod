@@ -39,6 +39,8 @@ export function useConversationInbox({
   userId,
   defaultTab = INBOX_TAB_TRAVELING,
   enabled = true,
+  /** true = только скрытые у пользователя диалоги (GET …&archived=only) */
+  archivedOnly = false,
 }) {
   const [conversations, setConversations] = useState([])
   const [isLoading, setIsLoading] = useState(false)
@@ -52,6 +54,7 @@ export function useConversationInbox({
   const [favoriteTogglePendingIds, setFavoriteTogglePendingIds] = useState([])
 
   const favoriteOnlyFetchRef = useRef(false)
+  const archivedOnlyRef = useRef(archivedOnly)
   const [, bumpFavoriteOnlyVersion] = useState(0)
   const debouncedLoadRef = useRef(null)
   const toggleTimersRef = useRef(new Map())
@@ -61,6 +64,10 @@ export function useConversationInbox({
   useEffect(() => {
     favoriteIdsRef.current = favoriteIds
   }, [favoriteIds])
+
+  useEffect(() => {
+    archivedOnlyRef.current = archivedOnly
+  }, [archivedOnly])
 
   const setFavoriteOnlyFetch = useCallback((value) => {
     const v = !!value
@@ -88,6 +95,9 @@ export function useConversationInbox({
         })
         if (favoriteOnlyFetchRef.current) {
           params.set('is_favorite', 'true')
+        }
+        if (archivedOnlyRef.current) {
+          params.set('archived', 'only')
         }
 
         const res = await fetch(`/api/v2/chat/conversations?${params}`, {
@@ -134,7 +144,7 @@ export function useConversationInbox({
   useEffect(() => {
     if (!userId || !enabled) return
     debouncedLoadRef.current?.({ offset: 0, append: false })
-  }, [userId, enabled])
+  }, [userId, enabled, archivedOnly])
 
   const refreshFavoriteIdsFromServer = useCallback(async () => {
     if (!userId) return

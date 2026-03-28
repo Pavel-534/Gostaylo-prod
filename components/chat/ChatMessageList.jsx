@@ -148,6 +148,7 @@ function MessageItem({
           showPay={!isOwn}
           paymentMethod={meta.invoice.payment_method}
           messageId={isOwn ? msg.id : undefined}
+          language={language}
           onInvoiceCancelled={
             isOwn && typeof onInvoiceCancelled === 'function'
               ? () => onInvoiceCancelled(msg.id)

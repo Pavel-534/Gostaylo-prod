@@ -11,7 +11,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
-  Archive, Loader2,
+  Archive, ArrowLeft, Loader2,
   LifeBuoy, Images, Search,
   Mic, MicOff, Paperclip, Send, Wifi, WifiOff, Trash2, Plus,
 } from 'lucide-react'
@@ -82,7 +82,14 @@ import {
 } from '@/components/ui/sheet'
 
 // ─── Archive helper ───────────────────────────────────────────────────────────
-function useArchive({ language, router, inbox, conversationId, listHallHref = '/messages/', userId }) {
+function useArchive({
+  language,
+  router,
+  inbox,
+  conversationId,
+  inboxListHref = '/messages/',
+  archivedListHref = '/messages/archived/',
+}) {
   const archiveConversation = useCallback(async (convId) => {
     if (!convId) return
     try {
@@ -100,7 +107,7 @@ function useArchive({ language, router, inbox, conversationId, listHallHref = '/
       toast.success(language === 'ru' ? 'Диалог скрыт' : 'Archived', {
         action: {
           label: language === 'ru' ? 'Архив' : 'Archive',
-          onClick: () => router.push(listHallHref),
+          onClick: () => router.push(archivedListHref),
         },
       })
       inbox.setConversations((prev) => prev.filter((c) => c.id !== convId))
@@ -108,12 +115,12 @@ function useArchive({ language, router, inbox, conversationId, listHallHref = '/
         const remaining = inbox.filteredConversations.filter((c) => c.id !== convId)
         if (remaining[0]) {
           router.push(`/messages/${remaining[0].id}/`)
-        } else router.push(listHallHref)
+        } else router.push(inboxListHref)
       }
     } catch {
       toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
     }
-  }, [language, router, inbox, conversationId, listHallHref])
+  }, [language, router, inbox, conversationId, inboxListHref, archivedListHref])
 
   return { archiveConversation }
 }
@@ -236,7 +243,8 @@ export default function UnifiedMessagesClient({ params }) {
   )
   const isTraveling = !isHosting
 
-  const hallHref = '/messages/'
+  const inboxListHref = '/messages/'
+  const archivedHallHref = '/messages/archived/'
 
   const chatContactName = useMemo(() => {
     if (!selectedConv) return ''
@@ -298,10 +306,12 @@ export default function UnifiedMessagesClient({ params }) {
 
   // ── Archive ──────────────────────────────────────────────────────────────────
   const { archiveConversation } = useArchive({
-    language, router, inbox,
+    language,
+    router,
+    inbox,
     conversationId,
-    listHallHref: hallHref,
-    userId: user?.id,
+    inboxListHref,
+    archivedListHref: archivedHallHref,
   })
 
   // ── Booking actions (Confirm / Decline) ─────────────────────────────────────
@@ -561,7 +571,8 @@ export default function UnifiedMessagesClient({ params }) {
       showListingName={false}
       showGuestName={inbox.inboxTab === INBOX_TAB_TRAVELING}
       onArchive={(id) => void archiveConversation(id)}
-      archivedHref={hallHref}
+      headerActionHref={archivedHallHref}
+      headerActionLabel={language === 'en' ? 'Archive' : 'Архив'}
       language={language}
       roleTabsVisible={isPartnerAccount}
     />
@@ -569,36 +580,18 @@ export default function UnifiedMessagesClient({ params }) {
 
   // Header
   const headerSlot = selectedConv ? (
-    <div className="flex min-w-0 items-center gap-2 overflow-x-hidden px-2 py-1.5 lg:px-0 lg:py-0 bg-white border-b lg:border-0">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="h-9 w-9 shrink-0 border-slate-200 text-slate-600 hover:bg-slate-50"
-            title={language === 'ru' ? 'Архив диалогов' : 'Conversation archive'}
-            aria-label={language === 'ru' ? 'Архив' : 'Archive'}
-          >
-            <Archive className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-56">
-          <DropdownMenuItem
-            className="gap-2 cursor-pointer"
-            onClick={() => void archiveConversation(selectedConv.id)}
-          >
-            <Archive className="h-4 w-4 shrink-0" />
-            {language === 'ru' ? 'Скрыть этот диалог' : 'Archive this chat'}
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href={hallHref} className="cursor-pointer gap-2">
-              {language === 'ru' ? 'Все архивные диалоги' : 'All archived chats'}
-            </Link>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <div className="flex-1 min-w-0">
+    <div className="flex min-w-0 items-stretch gap-2 border-b border-slate-200 bg-white px-1 py-1 sm:px-2 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0">
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="h-8 w-8 shrink-0 self-center border-slate-200 text-slate-600 hover:bg-slate-50 xl:hidden"
+        aria-label={language === 'en' ? 'Back to conversations' : 'К списку диалогов'}
+        onClick={() => router.replace(inboxListHref, { scroll: false })}
+      >
+        <ArrowLeft className="h-4 w-4" />
+      </Button>
+      <div className="min-w-0 flex-1 overflow-x-hidden">
         <StickyChatHeader
           listing={listing}
           booking={booking}
@@ -607,7 +600,9 @@ export default function UnifiedMessagesClient({ params }) {
           embedded
           compact
           groupDesktopTools={isPartnerAccount}
-          messagesListHref="/messages"
+          messagesListHref={inboxListHref}
+          hideBackButton
+          className="border-0 shadow-none"
           showBookingTimeline={Boolean(booking?.id && booking?.status)}
           contactName={chatContactName}
           presenceOnline={peerOnline}
@@ -637,6 +632,34 @@ export default function UnifiedMessagesClient({ params }) {
           ) : null}
         </StickyChatHeader>
       </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 shrink-0 self-center border-slate-200 text-slate-600 hover:bg-slate-50"
+            title={language === 'ru' ? 'Архив диалогов' : 'Conversation archive'}
+            aria-label={language === 'ru' ? 'Архив' : 'Archive'}
+          >
+            <Archive className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer"
+            onClick={() => void archiveConversation(selectedConv.id)}
+          >
+            <Archive className="h-4 w-4 shrink-0" />
+            {language === 'ru' ? 'Скрыть этот диалог' : 'Archive this chat'}
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={archivedHallHref} className="cursor-pointer gap-2">
+              {language === 'ru' ? 'Все архивные диалоги' : 'All archived chats'}
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   ) : null
 

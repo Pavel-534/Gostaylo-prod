@@ -1,8 +1,7 @@
 'use client'
 
 /**
- * Единый холл сообщений (/messages).
- * Переход в тред: /messages/[id].
+ * Архивные диалоги (/messages/archived) — только скрытые у пользователя (archived=only).
  */
 
 import { useCallback, useMemo } from 'react'
@@ -23,8 +22,8 @@ import {
 
 const HOSTING_ROLES = new Set(['PARTNER', 'ADMIN', 'MODERATOR'])
 
-function useArchive({ language, router, inbox, archivedListHref }) {
-  const archiveConversation = useCallback(
+function useUnarchive({ language, inbox }) {
+  const unarchiveConversation = useCallback(
     async (convId) => {
       if (!convId) return
       try {
@@ -32,31 +31,26 @@ function useArchive({ language, router, inbox, archivedListHref }) {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conversationId: convId, archived: true }),
+          body: JSON.stringify({ conversationId: convId, archived: false }),
         })
         const json = await res.json()
         if (!res.ok || !json.success) {
-          toast.error(json.error || (language === 'ru' ? 'Не удалось скрыть' : 'Could not archive'))
+          toast.error(json.error || (language === 'ru' ? 'Не удалось вернуть' : 'Could not restore'))
           return
         }
-        toast.success(language === 'ru' ? 'Диалог скрыт' : 'Archived', {
-          action: {
-            label: language === 'ru' ? 'Архив' : 'Archive',
-            onClick: () => router.push(archivedListHref),
-          },
-        })
+        toast.success(language === 'ru' ? 'Диалог снова в списке' : 'Restored to inbox')
         inbox.setConversations((prev) => prev.filter((c) => c.id !== convId))
       } catch {
         toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
       }
     },
-    [language, router, inbox, archivedListHref]
+    [language, inbox]
   )
 
-  return { archiveConversation }
+  return { unarchiveConversation }
 }
 
-export default function UnifiedMessagesHallPage() {
+export default function MessagesArchivedPage() {
   const router = useRouter()
   const { language } = useI18n()
   const { user, loading: authLoading, openLoginModal } = useAuth()
@@ -71,16 +65,12 @@ export default function UnifiedMessagesHallPage() {
     userId: user?.id,
     defaultTab,
     enabled: !!user?.id,
+    archivedOnly: true,
   })
 
-  const archivedListHref = '/messages/archived/'
+  const inboxListHref = '/messages/'
 
-  const { archiveConversation } = useArchive({
-    language,
-    router,
-    inbox,
-    archivedListHref,
-  })
+  const { unarchiveConversation } = useUnarchive({ language, inbox })
 
   const handleInboxTabChange = useCallback(
     (next) => {
@@ -100,6 +90,9 @@ export default function UnifiedMessagesHallPage() {
     () => inbox.inboxTab === INBOX_TAB_TRAVELING,
     [inbox.inboxTab]
   )
+
+  const title = language === 'en' ? 'Archive' : 'Архив'
+  const backLabel = language === 'en' ? 'All conversations' : 'Все диалоги'
 
   if (authLoading) {
     return (
@@ -161,11 +154,13 @@ export default function UnifiedMessagesHallPage() {
             onSelect={handleConversationSelect}
             showListingName={false}
             showGuestName={showGuestName}
-            onArchive={(id) => void archiveConversation(id)}
-            headerActionHref={archivedListHref}
-            headerActionLabel={language === 'en' ? 'Archive' : 'Архив'}
+            onUnarchive={(id) => void unarchiveConversation(id)}
+            headerActionHref={inboxListHref}
+            headerActionLabel={backLabel}
             language={language}
             roleTabsVisible={showHostingTabs}
+            favoritesFilterEnabled={false}
+            title={title}
             className="min-h-0 flex-1"
           />
         </div>

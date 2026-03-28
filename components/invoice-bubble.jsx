@@ -34,11 +34,13 @@ export function InvoiceBubble({
   /** id сообщения type=invoice — для отмены партнёром */
   messageId = null,
   onInvoiceCancelled = null,
+  language = 'ru',
 }) {
   const router = useRouter()
   const [methodOpen, setMethodOpen] = useState(false)
   const [navigating, setNavigating] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const isEn = language === 'en'
 
   if (!invoice) return null
 
@@ -70,12 +72,13 @@ export function InvoiceBubble({
       })
       const json = await res.json()
       if (!res.ok || !json.success) {
-        toast.error(json.error || 'Не удалось отменить счёт')
+        toast.error(json.error || (isEn ? 'Could not cancel invoice' : 'Не удалось отменить счёт'))
         return
       }
+      toast.success(isEn ? 'Invoice cancelled' : 'Счёт отменён')
       onInvoiceCancelled?.()
     } catch {
-      toast.error('Ошибка сети')
+      toast.error(isEn ? 'Network error' : 'Ошибка сети')
     } finally {
       setCancelling(false)
     }

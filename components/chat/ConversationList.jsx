@@ -11,6 +11,7 @@ import { useEffect, useRef, useState, useMemo } from 'react'
 import Link from 'next/link'
 import {
   Archive,
+  ArchiveRestore,
   Building2,
   ChevronDown,
   Loader2,
@@ -116,7 +117,9 @@ function ConversationRow({
   showGuestName,
   onSelect,
   onArchive,
+  onUnarchive,
   archiveLabel,
+  unarchiveLabel,
   isFavorite,
   favoriteSaving,
   onToggleFavorite,
@@ -200,7 +203,22 @@ function ConversationRow({
                   )}
                 </Button>
               ) : null}
-              {onArchive && (
+              {onUnarchive && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-slate-400 hover:text-teal-600"
+                  title={unarchiveLabel || (lang === 'ru' ? 'Вернуть в инбокс' : 'Restore to inbox')}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onUnarchive(conv.id)
+                  }}
+                >
+                  <ArchiveRestore className="h-3.5 w-3.5" />
+                </Button>
+              )}
+              {onArchive && !onUnarchive && (
                 <Button
                   type="button"
                   variant="ghost"
@@ -237,6 +255,7 @@ function InboxSearchFilterBar({
   listFilter,
   onListFilterChange,
   language,
+  showStarredOption = true,
 }) {
   const isRu = language !== 'en'
   const labels = {
@@ -244,6 +263,10 @@ function InboxSearchFilterBar({
     [LIST_FILTER_UNREAD]: isRu ? 'Непрочитанные' : 'Unread',
     [LIST_FILTER_STARRED]: isRu ? 'Избранные' : 'Starred',
   }
+
+  const filterKeys = showStarredOption
+    ? [LIST_FILTER_ALL, LIST_FILTER_UNREAD, LIST_FILTER_STARRED]
+    : [LIST_FILTER_ALL, LIST_FILTER_UNREAD]
 
   return (
     <div className="flex shrink-0 items-center gap-2 border-b border-slate-100 bg-white px-2 py-2">
@@ -275,7 +298,7 @@ function InboxSearchFilterBar({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-44">
-          {[LIST_FILTER_ALL, LIST_FILTER_UNREAD, LIST_FILTER_STARRED].map((key) => (
+          {filterKeys.map((key) => (
             <DropdownMenuItem
               key={key}
               className="text-sm cursor-pointer"
@@ -305,7 +328,9 @@ export function ConversationListPanel({
   showListingName = false,
   showGuestName = false,
   onArchive,
-  archivedHref,
+  onUnarchive,
+  headerActionHref,
+  headerActionLabel,
   language = 'ru',
   title,
   className,
@@ -316,6 +341,7 @@ export function ConversationListPanel({
   favoriteIdSet = null,
   favoriteTogglePendingIds = [],
   onToggleFavorite,
+  showStarredFilter = true,
 }) {
   const sentinelRef = useRef(null)
 
@@ -357,12 +383,12 @@ export function ConversationListPanel({
               {isRu ? (conversations.length === 1 ? 'диалог' : 'диалогов') : 'conversations'}
             </p>
           </div>
-          {archivedHref ? (
+          {headerActionHref ? (
             <Link
-              href={archivedHref}
+              href={headerActionHref}
               className="shrink-0 text-sm font-medium text-teal-700 hover:text-teal-800"
             >
-              {isRu ? 'Архив' : 'Archive'}
+              {headerActionLabel || (isRu ? 'Архив' : 'Archive')}
             </Link>
           ) : null}
         </div>
@@ -387,6 +413,7 @@ export function ConversationListPanel({
           listFilter={listFilter}
           onListFilterChange={onListFilterChange}
           language={language}
+          showStarredOption={showStarredFilter}
         />
       ) : null}
 
@@ -411,6 +438,7 @@ export function ConversationListPanel({
             showGuestName={showGuestName}
             onSelect={onSelect}
             onArchive={onArchive}
+            onUnarchive={onUnarchive}
             isFavorite={favoriteIdSet ? isFavoriteConversationId(conv.id, favoriteIdSet) : false}
             favoriteSaving={favoriteTogglePendingIds.includes(String(conv.id))}
             onToggleFavorite={onToggleFavorite}
@@ -439,19 +467,29 @@ export function ConversationList({
   showListingName,
   showGuestName,
   onArchive,
-  archivedHref,
+  onUnarchive,
+  headerActionHref,
+  headerActionLabel,
   language = 'ru',
   title,
   className,
   roleTabsVisible = true,
+  /** На странице архива API избранного не сочетается с archived=only — фильтр «Избранные» скрыт */
+  favoritesFilterEnabled = true,
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [listFilter, setListFilter] = useState(LIST_FILTER_ALL)
 
   const setFavoriteOnlyFetch = inbox.setFavoriteOnlyFetch
   useEffect(() => {
-    setFavoriteOnlyFetch?.(listFilter === LIST_FILTER_STARRED)
-  }, [listFilter, setFavoriteOnlyFetch])
+    if (!favoritesFilterEnabled && listFilter === LIST_FILTER_STARRED) {
+      setListFilter(LIST_FILTER_ALL)
+    }
+  }, [favoritesFilterEnabled, listFilter])
+
+  useEffect(() => {
+    setFavoriteOnlyFetch?.(favoritesFilterEnabled && listFilter === LIST_FILTER_STARRED)
+  }, [listFilter, setFavoriteOnlyFetch, favoritesFilterEnabled])
 
   const displayConversations = useMemo(() => {
     let list = inbox.filteredConversations
@@ -482,7 +520,9 @@ export function ConversationList({
       showListingName={showListingName}
       showGuestName={showGuestName}
       onArchive={onArchive}
-      archivedHref={archivedHref}
+      onUnarchive={onUnarchive}
+      headerActionHref={headerActionHref}
+      headerActionLabel={headerActionLabel}
       language={language}
       title={title}
       className={className}
@@ -492,7 +532,8 @@ export function ConversationList({
       onListFilterChange={setListFilter}
       favoriteIdSet={inbox.favoriteIdSet}
       favoriteTogglePendingIds={inbox.favoriteTogglePendingIds}
-      onToggleFavorite={inbox.toggleFavorite}
+      onToggleFavorite={favoritesFilterEnabled ? inbox.toggleFavorite : undefined}
+      showStarredFilter={favoritesFilterEnabled}
     />
   )
 }

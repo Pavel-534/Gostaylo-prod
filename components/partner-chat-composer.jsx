@@ -1,8 +1,8 @@
 'use client'
 
 /**
- * Композер партнёра: одна кнопка «+» (вложения, быстрые ответы, счёт, паспорт),
- * широкое поле ввода, микрофон и отправка справа.
+ * Композер партнёра: «+» (вложения, счёт, паспорт), отдельно ⚡ быстрые ответы (Popover у капсулы),
+ * поле ввода, микрофон и отправка.
  */
 
 import { useState, useCallback, useRef } from 'react'
@@ -10,12 +10,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { ChatGrowingTextarea } from '@/components/chat-growing-textarea'
 import { Loader2, Send, Plus, Receipt, IdCard, Paperclip, Zap } from 'lucide-react'
@@ -26,7 +23,7 @@ import { CHAT_COMPOSER_SHELL_CLASS } from '@/lib/chat-ui'
 
 import { InvoiceCreator } from '@/components/chat/composer/InvoiceCreator'
 import { VoiceRecorder } from '@/components/chat/composer/VoiceRecorder'
-import { QuickRepliesPanel } from '@/components/chat/composer/QuickReplies'
+import { QuickRepliesScrollablePanel } from '@/components/chat/composer/QuickReplies'
 
 const DEFAULT_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,application/pdf'
 
@@ -57,6 +54,7 @@ export function PartnerChatComposer({
   const [invoiceOpenInternal, setInvoiceOpenInternal] = useState(false)
   const invoiceOpen = invoiceDialogOpen !== undefined ? invoiceDialogOpen : invoiceOpenInternal
   const setInvoiceOpen = onInvoiceDialogOpenChange ?? setInvoiceOpenInternal
+  const [quickRepliesOpen, setQuickRepliesOpen] = useState(false)
 
   const showInvoice = typeof onSendInvoice === 'function'
   const showPassport = typeof onSendPassportRequest === 'function'
@@ -117,23 +115,6 @@ export function PartnerChatComposer({
             {isRu ? 'Фото или файл' : 'Photo or file'}
           </DropdownMenuItem>
         ) : null}
-
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger className="gap-2">
-            <Zap className="h-4 w-4 text-amber-500" />
-            {isRu ? 'Быстрые ответы' : 'Quick replies'}
-          </DropdownMenuSubTrigger>
-          <DropdownMenuSubContent className="w-80 max-h-[min(70vh,22rem)] overflow-y-auto p-0">
-            <div className="p-1">
-              <QuickRepliesPanel
-                currentMessage={newMessage}
-                onSelect={(text) => onMessageChange(text)}
-                language={language}
-                disabled={disabled}
-              />
-            </div>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
 
         {showInvoice ? (
           <DropdownMenuItem
@@ -200,39 +181,107 @@ export function PartnerChatComposer({
         onSubmit={onSubmit}
         className="flex w-full min-w-0 items-center gap-2"
       >
-        {/* Группа как у «чистого» мессенджера: (+), поле, микрофон — в одной «капсуле»; отправка снаружи */}
-        <div
-          className={cn(
-            'flex min-w-0 flex-1 items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-50/70 px-1 py-1 shadow-sm sm:gap-2 sm:px-1.5',
-            voiceActive && 'bg-teal-50/40 border-teal-200/80',
-          )}
-        >
-          {plusMenu}
-
-          {!voiceActive ? (
-            <div className="min-w-0 flex-1 flex items-center">
-              <ChatGrowingTextarea
-                value={newMessage}
-                onChange={onMessageChange}
-                placeholder={getUIText('chatComposerPlaceholder', language)}
-                disabled={sending || disabled}
-                minHeightPx={44}
-                className="min-h-[44px] border-0 bg-transparent py-3 text-[15px] leading-normal shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:text-sm"
+        {/* Капсула (+), ⚡, поле, микрофон; Popover быстрых ответов привязан к капсуле (PopoverAnchor) — стабильнее при клавиатуре */}
+        {showHostPlusMenu ? (
+          <Popover open={quickRepliesOpen} onOpenChange={setQuickRepliesOpen} modal={false}>
+            <PopoverAnchor asChild>
+              <div
+                className={cn(
+                  'flex min-w-0 flex-1 items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-50/70 px-1 py-1 shadow-sm sm:gap-2 sm:px-1.5',
+                  voiceActive && 'border-teal-200/80 bg-teal-50/40',
+                )}
+              >
+                {plusMenu}
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-10 shrink-0 border-amber-200 text-amber-600 hover:border-amber-300 hover:bg-amber-50"
+                    aria-label={isRu ? 'Быстрые ответы' : 'Quick replies'}
+                    disabled={disabled}
+                    title={isRu ? 'Быстрые ответы' : 'Quick replies'}
+                  >
+                    <Zap className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                {!voiceActive ? (
+                  <div className="flex min-w-0 flex-1 items-center">
+                    <ChatGrowingTextarea
+                      value={newMessage}
+                      onChange={onMessageChange}
+                      placeholder={getUIText('chatComposerPlaceholder', language)}
+                      disabled={sending || disabled}
+                      minHeightPx={44}
+                      className="min-h-[44px] border-0 bg-transparent py-3 text-[15px] leading-normal shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:text-sm"
+                    />
+                  </div>
+                ) : null}
+                <div className={cn('flex min-w-0 items-center', voiceActive ? 'flex-1' : 'shrink-0')}>
+                  <VoiceRecorder
+                    showMicTrigger={!voiceActive && !newMessage.trim() && !disabled && !sending}
+                    userId={userId}
+                    language={language}
+                    onSend={onSendVoice}
+                    onActiveChange={setVoiceActive}
+                    disabled={disabled || sending}
+                  />
+                </div>
+              </div>
+            </PopoverAnchor>
+            <PopoverContent
+              side="top"
+              align="start"
+              sideOffset={8}
+              collisionPadding={16}
+              className="z-[130] w-[min(100vw-1.5rem,20rem)] border border-slate-200 bg-popover p-0 shadow-xl outline-none"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+              onCloseAutoFocus={(e) => e.preventDefault()}
+            >
+              <QuickRepliesScrollablePanel
+                active={quickRepliesOpen}
+                currentMessage={newMessage}
+                onSelect={(text) => {
+                  onMessageChange(text)
+                  setQuickRepliesOpen(false)
+                }}
+                language={language}
+                disabled={disabled}
+              />
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <div
+            className={cn(
+              'flex min-w-0 flex-1 items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-50/70 px-1 py-1 shadow-sm sm:gap-2 sm:px-1.5',
+              voiceActive && 'border-teal-200/80 bg-teal-50/40',
+            )}
+          >
+            {plusMenu}
+            {!voiceActive ? (
+              <div className="flex min-w-0 flex-1 items-center">
+                <ChatGrowingTextarea
+                  value={newMessage}
+                  onChange={onMessageChange}
+                  placeholder={getUIText('chatComposerPlaceholder', language)}
+                  disabled={sending || disabled}
+                  minHeightPx={44}
+                  className="min-h-[44px] border-0 bg-transparent py-3 text-[15px] leading-normal shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:text-sm"
+                />
+              </div>
+            ) : null}
+            <div className={cn('flex min-w-0 items-center', voiceActive ? 'flex-1' : 'shrink-0')}>
+              <VoiceRecorder
+                showMicTrigger={!voiceActive && !newMessage.trim() && !disabled && !sending}
+                userId={userId}
+                language={language}
+                onSend={onSendVoice}
+                onActiveChange={setVoiceActive}
+                disabled={disabled || sending}
               />
             </div>
-          ) : null}
-
-          <div className={cn('min-w-0 flex items-center', voiceActive ? 'flex-1' : 'shrink-0')}>
-            <VoiceRecorder
-              showMicTrigger={!voiceActive && !newMessage.trim() && !disabled && !sending}
-              userId={userId}
-              language={language}
-              onSend={onSendVoice}
-              onActiveChange={setVoiceActive}
-              disabled={disabled || sending}
-            />
           </div>
-        </div>
+        )}
 
         {!voiceActive ? (
           <Button

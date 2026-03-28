@@ -116,7 +116,7 @@ export function SupportRequestDialog({
               <SelectTrigger>
                 <SelectValue placeholder={isRu ? 'Выберите…' : 'Choose…'} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[130]">
                 {SUPPORT_REASONS.map((r) => (
                   <SelectItem key={r.slug} value={r.slug}>
                     {isRu ? r.labelRu : r.labelEn}
@@ -131,7 +131,7 @@ export function SupportRequestDialog({
               <SelectTrigger>
                 <SelectValue placeholder={isRu ? 'Выберите…' : 'Choose…'} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-[130]">
                 {SUPPORT_DISPUTE_KINDS.map((r) => (
                   <SelectItem key={r.slug} value={r.slug}>
                     {isRu ? r.labelRu : r.labelEn}

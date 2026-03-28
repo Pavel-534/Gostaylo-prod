@@ -56,8 +56,8 @@ export function CalendarGrid({
             {/* Sticky Listing Column */}
             <div className="sticky left-0 z-20 bg-white border-r border-slate-200 shadow-sm">
               {/* Corner cell */}
-              <div className="h-14 border-b border-slate-200 bg-slate-50 flex items-center justify-center px-4">
-                <span className="text-xs font-medium text-slate-500">Объект</span>
+              <div className="flex h-16 items-center justify-center border-b border-slate-200 bg-slate-50 px-4">
+                <span className="text-sm font-semibold text-slate-600">Объект</span>
               </div>
               
               {/* Listing rows */}
@@ -67,18 +67,18 @@ export function CalendarGrid({
                 return (
                   <div 
                     key={item.listing.id}
-                    className="h-16 border-b border-slate-100 flex items-center gap-3 px-3 hover:bg-slate-50 transition-colors"
-                    style={{ minWidth: '200px', maxWidth: '240px' }}
+                    className="flex min-h-[72px] items-center gap-3 border-b border-slate-100 px-3 py-2 transition-colors hover:bg-slate-50"
+                    style={{ minWidth: '220px', maxWidth: '260px' }}
                   >
                     {/* Thumbnail */}
-                    <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-100">
                       {item.listing.coverImage ? (
                         <ProxiedImage 
                           src={item.listing.coverImage} 
                           alt={item.listing.title}
                           fill
                           className="object-cover"
-                          sizes="40px"
+                          sizes="48px"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -89,10 +89,10 @@ export function CalendarGrid({
                     
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-medium text-slate-900 truncate">
+                      <h4 className="truncate text-base font-semibold text-slate-900">
                         {item.listing.title}
                       </h4>
-                      <p className="text-xs text-slate-500 flex items-center gap-1">
+                      <p className="flex items-center gap-1 text-sm text-slate-600">
                         <TypeIcon className="h-3 w-3" />
                         {item.listing.district}
                       </p>
@@ -105,7 +105,7 @@ export function CalendarGrid({
             {/* Date columns */}
             <div className="flex-1">
               {/* Sticky Date Header */}
-              <div className="sticky top-0 z-10 flex bg-slate-50 border-b border-slate-200">
+              <div className="sticky top-0 z-10 flex border-b border-slate-200 bg-slate-50">
                 {dates.map((date) => {
                   const dateObj = parseISO(date)
                   const isCurrentDay = isToday(dateObj)
@@ -116,22 +116,28 @@ export function CalendarGrid({
                       key={date}
                       ref={isCurrentDay ? todayRef : null}
                       className={cn(
-                        "h-14 flex flex-col items-center justify-center border-r border-slate-100",
+                        'flex h-16 flex-col items-center justify-center border-r border-slate-100',
                         isCurrentDay && "bg-teal-50",
                         isWeekend && "bg-slate-100/50"
                       )}
                       style={{ width: dayWidth, minWidth: dayWidth }}
                     >
-                      <span className={cn(
-                        "text-[10px] uppercase",
-                        isCurrentDay ? "text-teal-600 font-bold" : "text-slate-400"
-                      )}>
+                      <span
+                        className={cn(
+                          'text-[11px] font-semibold uppercase tracking-wide',
+                          isCurrentDay ? 'font-bold text-teal-700' : 'text-slate-500',
+                        )}
+                      >
                         {format(dateObj, 'EEE', { locale: ru })}
                       </span>
-                      <span className={cn(
-                        "text-sm font-medium",
-                        isCurrentDay ? "text-teal-600 bg-teal-600 text-white rounded-full w-6 h-6 flex items-center justify-center" : "text-slate-700"
-                      )}>
+                      <span
+                        className={cn(
+                          'text-base font-bold',
+                          isCurrentDay
+                            ? 'flex h-8 w-8 items-center justify-center rounded-full bg-teal-600 text-sm text-white'
+                            : 'text-slate-800',
+                        )}
+                      >
                         {format(dateObj, 'd')}
                       </span>
                     </div>
@@ -157,7 +163,7 @@ export function CalendarGrid({
                       // Show guest name (truncated for first day)
                       if (cellData.isCheckIn || viewMode === 'wide') {
                         content = (
-                          <span className="text-[9px] leading-tight truncate px-0.5">
+                          <span className="truncate px-0.5 text-[10px] font-semibold leading-tight">
                             {cellData.guestName?.split(' ')[0] || 'Гость'}
                           </span>
                         )
@@ -166,7 +172,7 @@ export function CalendarGrid({
                       cellClass = STATUS_COLORS.BLOCKED
                       if (viewMode === 'wide') {
                         content = (
-                          <Lock className="h-3 w-3 text-slate-500" />
+                          <Lock className="h-4 w-4 text-slate-600" />
                         )
                       }
                     } else if (cellData.status === 'AVAILABLE') {
@@ -185,14 +191,12 @@ export function CalendarGrid({
                         : 'text-slate-500'
                       
                       content = (
-                        <div className="flex flex-col items-center justify-center gap-0.5">
-                          <span className={cn("text-[10px] leading-tight", priceColor)}>
-                            ฿{Math.round(price)}
+                        <div className="flex flex-col items-center justify-center gap-0.5 px-0.5">
+                          <span className={cn('text-xs font-bold tabular-nums leading-tight', priceColor)}>
+                            ฿{Math.round(price).toLocaleString('en-US')}
                           </span>
                           {minStay > 1 && viewMode !== 'compact' && (
-                            <span className="text-[8px] text-slate-400 leading-none">
-                              min {minStay}
-                            </span>
+                            <span className="text-[9px] font-medium leading-none text-slate-500">мин {minStay}</span>
                           )}
                         </div>
                       )
@@ -203,7 +207,7 @@ export function CalendarGrid({
                         key={date}
                         onClick={() => onCellClick(item.listing, date, cellData)}
                         className={cn(
-                          "h-16 border-r border-b border-slate-100 flex items-center justify-center cursor-pointer transition-all",
+                          'flex min-h-[72px] cursor-pointer items-center justify-center border-b border-r border-slate-100 transition-all',
                           cellClass,
                           isCurrentDay && "ring-2 ring-inset ring-teal-400",
                           isWeekend && cellData.status === 'AVAILABLE' && "bg-slate-50",

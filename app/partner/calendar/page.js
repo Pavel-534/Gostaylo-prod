@@ -19,14 +19,15 @@ import { usePartnerCalendar, useCreateBlock, useCreateManualBooking } from '@/li
 import { useUpsertSeasonalPrice } from '@/lib/hooks/use-seasonal-prices'
 import { CalendarHeader } from '@/components/calendar/CalendarHeader'
 import { CalendarGrid } from '@/components/calendar/CalendarGrid'
+import { CalendarMobileAgenda } from '@/components/calendar/CalendarMobileAgenda'
 import { ActionModals } from '@/components/calendar/ActionModals'
 import { PartnerCalendarEducationCard } from '@/components/partner/PartnerCalendarEducationCard'
 
 // Day width options
 const DAY_WIDTHS = {
-  compact: 36,
-  normal: 48,
-  wide: 64
+  compact: 42,
+  normal: 56,
+  wide: 72,
 }
 
 export default function MasterCalendar() {
@@ -364,15 +365,24 @@ function MasterCalendarContent() {
         onPriceModalOpen={() => setPriceModal({ open: true })}
       />
       
-      <CalendarGrid
-        dates={dates}
-        listings={listings}
-        dayWidth={dayWidth}
-        viewMode={viewMode}
-        onCellClick={handleCellClick}
-        todayRef={todayRef}
-        scrollContainerRef={scrollContainerRef}
-      />
+      <div className="hidden max-w-[1600px] mx-auto md:block">
+        <CalendarGrid
+          dates={dates}
+          listings={listings}
+          dayWidth={dayWidth}
+          viewMode={viewMode}
+          onCellClick={handleCellClick}
+          todayRef={todayRef}
+          scrollContainerRef={scrollContainerRef}
+        />
+      </div>
+
+      <div className="mx-auto max-w-[1600px] md:hidden">
+        <p className="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+          Список по дням — нажмите строку, чтобы заблокировать дату, создать бронь или сменить цену.
+        </p>
+        <CalendarMobileAgenda dates={dates} listings={listings} onCellClick={handleCellClick} />
+      </div>
       
       <ActionModals
         actionModal={actionModal}

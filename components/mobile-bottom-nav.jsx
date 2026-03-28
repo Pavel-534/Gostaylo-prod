@@ -63,8 +63,9 @@ export function MobileBottomNav() {
   const normalized = (pathname || '').replace(/\/+$/, '') || '/';
   const isMessagesThread =
     /^\/messages\/.+/.test(normalized) && normalized !== '/messages';
+  const isMessagesHall = normalized === '/messages';
 
-  if (isOnPartnerPage || isOnAdminPage || isMessagesThread) return null;
+  if (isOnPartnerPage || isOnAdminPage || isMessagesThread || isMessagesHall) return null;
 
   const handleNavClick = (item, e) => {
     if (item.requiresAuth && !user) {
