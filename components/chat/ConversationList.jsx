@@ -4,10 +4,10 @@
  * @file components/chat/ConversationList.jsx
  *
  * Сайдбар списка диалогов: вкладки Hosting/Traveling, поиск, фильтр (все / непрочитанные / избранные),
- * бесконечная подгрузка, избранное в localStorage (lib/chat-inbox-favorites).
+ * бесконечная подгрузка, избранное через API (useConversationInbox).
  */
 
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import Link from 'next/link'
 import {
   Archive,
@@ -32,11 +32,7 @@ import {
 import { cn } from '@/lib/utils'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { ChatInboxRoleTabs } from '@/components/chat-inbox-role-tabs'
-import {
-  getFavoriteConversationIdSet,
-  isFavoriteConversationId,
-  toggleFavoriteConversationId,
-} from '@/lib/chat-inbox-favorites'
+import { isFavoriteConversationId } from '@/lib/chat-inbox-favorites'
 
 const LIST_FILTER_ALL = 'all'
 const LIST_FILTER_UNREAD = 'unread'
@@ -122,6 +118,7 @@ function ConversationRow({
   onArchive,
   archiveLabel,
   isFavorite,
+  favoriteSaving,
   onToggleFavorite,
 }) {
   const unread = conv.unreadCount || 0
@@ -184,6 +181,7 @@ function ConversationRow({
                   type="button"
                   variant="ghost"
                   size="icon"
+                  disabled={favoriteSaving}
                   className={cn(
                     'h-7 w-7',
                     isFavorite ? 'text-amber-500 hover:text-amber-600' : 'text-slate-300 hover:text-amber-500',
@@ -192,10 +190,14 @@ function ConversationRow({
                   aria-label={lang === 'ru' ? 'Избранное' : 'Favorite'}
                   onClick={(e) => {
                     e.stopPropagation()
-                    onToggleFavorite(conv.id)
+                    if (!favoriteSaving) onToggleFavorite(conv.id)
                   }}
                 >
-                  <Star className={cn('h-3.5 w-3.5', isFavorite && 'fill-current')} />
+                  {favoriteSaving ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />
+                  ) : (
+                    <Star className={cn('h-3.5 w-3.5', isFavorite && 'fill-current')} />
+                  )}
                 </Button>
               ) : null}
               {onArchive && (
@@ -312,6 +314,7 @@ export function ConversationListPanel({
   listFilter = LIST_FILTER_ALL,
   onListFilterChange,
   favoriteIdSet = null,
+  favoriteTogglePendingIds = [],
   onToggleFavorite,
 }) {
   const sentinelRef = useRef(null)
@@ -409,6 +412,7 @@ export function ConversationListPanel({
             onSelect={onSelect}
             onArchive={onArchive}
             isFavorite={favoriteIdSet ? isFavoriteConversationId(conv.id, favoriteIdSet) : false}
+            favoriteSaving={favoriteTogglePendingIds.includes(String(conv.id))}
             onToggleFavorite={onToggleFavorite}
           />
         ))}
@@ -443,30 +447,22 @@ export function ConversationList({
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [listFilter, setListFilter] = useState(LIST_FILTER_ALL)
-  const [favSet, setFavSet] = useState(() => new Set())
 
+  const setFavoriteOnlyFetch = inbox.setFavoriteOnlyFetch
   useEffect(() => {
-    setFavSet(getFavoriteConversationIdSet())
-    const onFav = () => setFavSet(getFavoriteConversationIdSet())
-    window.addEventListener('gostaylo-inbox-favorites-changed', onFav)
-    return () => window.removeEventListener('gostaylo-inbox-favorites-changed', onFav)
-  }, [])
-
-  const handleToggleFavorite = useCallback((id) => {
-    setFavSet(toggleFavoriteConversationId(id))
-  }, [])
+    setFavoriteOnlyFetch?.(listFilter === LIST_FILTER_STARRED)
+  }, [listFilter, setFavoriteOnlyFetch])
 
   const displayConversations = useMemo(() => {
     let list = inbox.filteredConversations
     if (listFilter === LIST_FILTER_UNREAD) list = list.filter((c) => (c.unreadCount || 0) > 0)
-    if (listFilter === LIST_FILTER_STARRED) list = list.filter((c) => favSet.has(String(c.id)))
     const q = searchQuery.trim().toLowerCase()
     if (q) {
       const showGuest = showGuestName
       list = list.filter((c) => conversationSearchHaystack(c, showGuest, language).includes(q))
     }
     return list
-  }, [inbox.filteredConversations, listFilter, searchQuery, favSet, showGuestName, language])
+  }, [inbox.filteredConversations, listFilter, searchQuery, showGuestName, language])
 
   if (!inbox) return null
 
@@ -494,8 +490,9 @@ export function ConversationList({
       onSearchChange={setSearchQuery}
       listFilter={listFilter}
       onListFilterChange={setListFilter}
-      favoriteIdSet={favSet}
-      onToggleFavorite={handleToggleFavorite}
+      favoriteIdSet={inbox.favoriteIdSet}
+      favoriteTogglePendingIds={inbox.favoriteTogglePendingIds}
+      onToggleFavorite={inbox.toggleFavorite}
     />
   )
 }

@@ -58,6 +58,29 @@ export function InvoiceBubble({
     router.push(`/checkout/${encodeURIComponent(bid)}?pm=${pm}`)
   }
 
+  async function cancelInvoice() {
+    if (!messageId) return
+    setCancelling(true)
+    try {
+      const res = await fetch('/api/v2/chat/invoice/cancel', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        toast.error(json.error || 'Не удалось отменить счёт')
+        return
+      }
+      onInvoiceCancelled?.()
+    } catch {
+      toast.error('Ошибка сети')
+    } finally {
+      setCancelling(false)
+    }
+  }
+
   return (
     <>
       <div

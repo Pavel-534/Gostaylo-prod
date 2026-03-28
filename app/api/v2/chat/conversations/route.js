@@ -189,6 +189,11 @@ export async function GET(request) {
   const offsetParam = parseInt(searchParams.get('offset') || '0', 10)
   const inboxLimit = singleId ? '' : `&limit=${pageLimit}&offset=${offsetParam >= 0 ? offsetParam : 0}`
 
+  const isFavoriteFilter =
+    searchParams.get('is_favorite') === 'true' ||
+    searchParams.get('is_favorite') === '1' ||
+    searchParams.get('isFavorite') === 'true'
+
   let url
   if (staff) {
     url = `${SUPABASE_URL}/rest/v1/conversations?select=*&order=is_priority.desc,last_message_at.desc.nullslast`
@@ -222,8 +227,39 @@ export async function GET(request) {
   }
 
   try {
-    const res = await fetch(url, { headers: hdr, cache: 'no-store' })
-    const data = await res.json()
+    let res
+    let data
+
+    if (isFavoriteFilter && !singleId) {
+      const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/rpc_chat_conversations_favorites_page`, {
+        method: 'POST',
+        headers: hdrWrite,
+        body: JSON.stringify({
+          p_user_id: userId,
+          p_limit: pageLimit,
+          p_offset: offsetParam >= 0 ? offsetParam : 0,
+          p_is_staff: staff,
+        }),
+      })
+      data = await rpcRes.json()
+      res = rpcRes
+      if (!rpcRes.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              data?.message ||
+              data?.hint ||
+              'Favorites page RPC failed (run migration 010_chat_conversation_favorites.sql?)',
+            details: data,
+          },
+          { status: rpcRes.status }
+        )
+      }
+    } else {
+      res = await fetch(url, { headers: hdr, cache: 'no-store' })
+      data = await res.json()
+    }
 
     if (!res.ok) {
       return NextResponse.json(
@@ -270,6 +306,7 @@ export async function GET(request) {
         listingCategory: listingCategory || null,
         enrich,
         archivedOnly: !!archivedOnly && !staff,
+        isFavorite: !!isFavoriteFilter && !singleId,
       },
     })
   } catch (e) {

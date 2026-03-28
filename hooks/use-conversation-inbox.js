@@ -3,32 +3,11 @@
 /**
  * @file hooks/use-conversation-inbox.js
  *
- * Хук состояния инбокса (левая панель со списком диалогов).
- *
- * Инкапсулирует всё, что ранее было разбросано по PartnerMessages / RenterMessages:
- *  – loadConversations (с пагинацией, offset/append)
- *  – Realtime-подписка на таблицу conversations (через useRealtimeConversations)
- *  – фильтрация по вкладкам Hosting / Traveling (two-hat логика)
- *  – бесконечная прокрутка (infinite scroll)
- *  – дебаунс запросов при смене фильтра/поиска
- *
- * Связь с Фазой 1: использует filterConversationsByInboxTab и sumUnreadInConversations
- * из lib/chat-inbox-tabs.js (они уже чистые утилиты, не нуждаются в переносе).
- *
- * Использование:
- * ```js
- * const {
- *   conversations, filteredConversations,
- *   isLoading, hasMore, isLoadingMore,
- *   inboxTab, setInboxTab,
- *   hostingUnread, travelingUnread,
- *   loadMore,
- *   refresh,
- * } = useConversationInbox({ userId, defaultTab })
- * ```
+ * Инбокс: пагинация, Realtime, вкладки Hosting/Traveling, избранное (API + optimistic UI).
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { toast } from 'sonner'
 import {
   INBOX_TAB_HOSTING,
   INBOX_TAB_TRAVELING,
@@ -36,10 +15,13 @@ import {
   sumUnreadInConversations,
 } from '@/lib/chat-inbox-tabs'
 import { useRealtimeConversations } from '@/hooks/use-realtime-chat'
+import {
+  dispatchInboxFavoritesChanged,
+  readLegacyFavoriteIds,
+  isFavoritesMigrated,
+  setFavoritesMigrated,
+} from '@/lib/chat-inbox-favorites'
 
-// ─── Утилита ─────────────────────────────────────────────────────────────────
-
-/** Lightweight debounce (аналогичен use-realtime-chat.js). */
 function debounce(fn, ms) {
   let timer = null
   const debounced = (...args) => {
@@ -51,36 +33,13 @@ function debounce(fn, ms) {
 }
 
 const PAGE_SIZE = 20
+const TOGGLE_DEBOUNCE_MS = 320
 
-// ─── Хук ─────────────────────────────────────────────────────────────────────
-
-/**
- * @param {Object}          opts
- * @param {string|null}     opts.userId             — UUID текущего пользователя
- * @param {string}          [opts.defaultTab]       — INBOX_TAB_HOSTING | INBOX_TAB_TRAVELING
- * @param {boolean}         [opts.enabled]          — false = хук спит (для lazy init)
- *
- * @returns {{
- *   conversations:         Array<Object>,
- *   filteredConversations: Array<Object>,
- *   isLoading:             boolean,
- *   hasMore:               boolean,
- *   isLoadingMore:         boolean,
- *   inboxTab:              string,
- *   setInboxTab:           (tab: string) => void,
- *   hostingUnread:         number,
- *   travelingUnread:       number,
- *   totalUnread:           number,
- *   loadMore:              () => void,
- *   refresh:               () => void,
- * }}
- */
 export function useConversationInbox({
   userId,
   defaultTab = INBOX_TAB_TRAVELING,
   enabled = true,
 }) {
-  // ── Стейт ───────────────────────────────────────────────────────────────────
   const [conversations, setConversations] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [hasMore, setHasMore] = useState(false)
@@ -89,16 +48,28 @@ export function useConversationInbox({
 
   const [inboxTab, setInboxTab] = useState(defaultTab)
 
-  // Стабилизируем дебаунс-функцию — пересоздаётся только при смене userId
+  const [favoriteIds, setFavoriteIds] = useState([])
+  const [favoriteTogglePendingIds, setFavoriteTogglePendingIds] = useState([])
+
+  const favoriteOnlyFetchRef = useRef(false)
+  const [, bumpFavoriteOnlyVersion] = useState(0)
   const debouncedLoadRef = useRef(null)
+  const toggleTimersRef = useRef(new Map())
 
-  // ── Загрузка ────────────────────────────────────────────────────────────────
+  const favoriteIdSet = useMemo(() => new Set(favoriteIds.map(String)), [favoriteIds])
+  const favoriteIdsRef = useRef(favoriteIds)
+  useEffect(() => {
+    favoriteIdsRef.current = favoriteIds
+  }, [favoriteIds])
 
-  /**
-   * Внутренняя функция загрузки. Используется как напрямую, так и через дебаунс.
-   *
-   * @param {{ offset?: number, append?: boolean }} fetchOpts
-   */
+  const setFavoriteOnlyFetch = useCallback((value) => {
+    const v = !!value
+    if (favoriteOnlyFetchRef.current === v) return
+    favoriteOnlyFetchRef.current = v
+    bumpFavoriteOnlyVersion((n) => n + 1)
+    debouncedLoadRef.current?.({ offset: 0, append: false })
+  }, [])
+
   const _fetchConversations = useCallback(
     async ({ offset: fetchOffset = 0, append = false } = {}) => {
       if (!userId || !enabled) return
@@ -115,6 +86,9 @@ export function useConversationInbox({
           limit: String(PAGE_SIZE),
           offset: String(fetchOffset),
         })
+        if (favoriteOnlyFetchRef.current) {
+          params.set('is_favorite', 'true')
+        }
 
         const res = await fetch(`/api/v2/chat/conversations?${params}`, {
           credentials: 'include',
@@ -151,32 +125,172 @@ export function useConversationInbox({
     [userId, enabled]
   )
 
-  // Создаём дебаунс-обёртку при изменении _fetchConversations
   useEffect(() => {
     const debounced = debounce((opts) => _fetchConversations(opts), 300)
     debouncedLoadRef.current = debounced
     return () => debounced.cancel()
   }, [_fetchConversations])
 
-  // ── Первичная загрузка и перезагрузка при смене фильтра ────────────────────
-
   useEffect(() => {
     if (!userId || !enabled) return
-    // Сброс offset при изменении фильтра — debounced, чтобы не молотить при rapid-change
     debouncedLoadRef.current?.({ offset: 0, append: false })
   }, [userId, enabled])
 
-  // ── Realtime: беседы обновляются в фоне ──────────────────────────────────────
-  // При изменении любой строки таблицы conversations — перезагружаем первую
-  // страницу (merge с текущим стейтом, без прокрутки вверх).
-  //
-  // Smart merge: если беседа уже в списке — обновляем на месте,
-  // если новая — добавляем в начало (для актуальных hot-диалогов).
+  const refreshFavoriteIdsFromServer = useCallback(async () => {
+    if (!userId) return
+    try {
+      const res = await fetch('/api/v2/chat/favorites', { credentials: 'include' })
+      const json = await res.json()
+      if (!res.ok || !json.success || !Array.isArray(json.data)) return
+      setFavoriteIds(json.data.map(String))
+    } catch (e) {
+      console.error('[useConversationInbox] refreshFavoriteIds', e)
+    }
+  }, [userId])
+
+  const runLegacyMigrationIfNeeded = useCallback(async () => {
+    if (typeof window === 'undefined' || !userId) return
+    if (isFavoritesMigrated()) return
+    const legacy = readLegacyFavoriteIds()
+    if (!legacy.length) {
+      setFavoritesMigrated()
+      return
+    }
+    try {
+      const res = await fetch('/api/v2/chat/favorites/bulk', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationIds: legacy }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        console.warn('[useConversationInbox] bulk migrate favorites', json)
+        return
+      }
+      setFavoritesMigrated()
+    } catch (e) {
+      console.error('[useConversationInbox] bulk migrate', e)
+    }
+  }, [userId])
+
+  useEffect(() => {
+    if (!userId || !enabled) {
+      setFavoriteIds([])
+      return
+    }
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/v2/chat/favorites', { credentials: 'include' })
+        const json = await res.json()
+        if (cancelled) return
+        if (!res.ok || !json.success || !Array.isArray(json.data)) return
+        let ids = json.data.map(String)
+        if (ids.length === 0) {
+          await runLegacyMigrationIfNeeded()
+          if (cancelled) return
+          const res2 = await fetch('/api/v2/chat/favorites', { credentials: 'include' })
+          const j2 = await res2.json()
+          if (cancelled) return
+          if (res2.ok && j2.success && Array.isArray(j2.data)) {
+            ids = j2.data.map(String)
+          }
+        } else if (!isFavoritesMigrated()) {
+          setFavoritesMigrated()
+        }
+        if (!cancelled) setFavoriteIds(ids)
+      } catch (e) {
+        console.error('[useConversationInbox] init favorites', e)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [userId, enabled, runLegacyMigrationIfNeeded])
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'visible' && userId && enabled) {
+        void refreshFavoriteIdsFromServer()
+      }
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [userId, enabled, refreshFavoriteIdsFromServer])
+
+  useEffect(() => {
+    return () => {
+      for (const t of toggleTimersRef.current.values()) {
+        clearTimeout(t)
+      }
+      toggleTimersRef.current.clear()
+    }
+  }, [])
+
+  const toggleFavorite = useCallback(
+    (conversationId) => {
+      if (!conversationId || !userId) return
+      const id = String(conversationId)
+
+      setFavoriteIds((prev) => {
+        const s = new Set(prev.map(String))
+        const was = s.has(id)
+        if (!was) s.add(id)
+        else s.delete(id)
+        return [...s]
+      })
+
+      const prevTimer = toggleTimersRef.current.get(id)
+      if (prevTimer) clearTimeout(prevTimer)
+
+      const t = setTimeout(async () => {
+        toggleTimersRef.current.delete(id)
+        setFavoriteTogglePendingIds((p) => (p.includes(id) ? p : [...p, id]))
+
+        const shouldBeFavorite = new Set(favoriteIdsRef.current.map(String)).has(id)
+
+        try {
+          const res = await fetch('/api/v2/chat/favorites/toggle', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ conversationId: id, isFavorite: shouldBeFavorite }),
+          })
+          const json = await res.json()
+
+          if (!res.ok || !json.success) {
+            await refreshFavoriteIdsFromServer()
+            dispatchInboxFavoritesChanged()
+            toast.error(json?.error || 'Не удалось обновить избранное')
+            return
+          }
+
+          if (favoriteOnlyFetchRef.current && !shouldBeFavorite) {
+            setConversations((prev) => prev.filter((c) => String(c.id) !== id))
+          }
+
+          dispatchInboxFavoritesChanged()
+        } catch (e) {
+          await refreshFavoriteIdsFromServer()
+          dispatchInboxFavoritesChanged()
+          toast.error('Ошибка сети при обновлении избранного')
+          console.error('[useConversationInbox] toggleFavorite', e)
+        } finally {
+          setFavoriteTogglePendingIds((p) => p.filter((x) => x !== id))
+        }
+      }, TOGGLE_DEBOUNCE_MS)
+
+      toggleTimersRef.current.set(id, t)
+    },
+    [userId, refreshFavoriteIdsFromServer]
+  )
 
   const handleRealtimeConvUpdate = useCallback(
     (payload) => {
       if (!payload?.new) {
-        // Перезагружаем полностью если payload пустой (DELETE или отсутствует new)
         debouncedLoadRef.current?.({ offset: 0, append: false })
         return
       }
@@ -188,8 +302,6 @@ export function useConversationInbox({
           return prev.filter((c) => c.id !== payload.old?.id)
         }
         if (idx !== -1) {
-          // Обновляем существующую строку (UPDATE)
-          // Мержим только скалярные поля, не трогаем обогащение (listing, booking, lastMessage)
           const next = [...prev]
           const updatedConv = {
             ...next[idx],
@@ -199,9 +311,8 @@ export function useConversationInbox({
             isPriority: incoming.is_priority ?? next[idx].isPriority,
           }
           next[idx] = updatedConv
-          // Если беседа получила новое сообщение — всплываем на верх и пересортируем
           if (payload.eventType === 'UPDATE' && incoming.last_message_at) {
-            next.splice(idx, 1)  // убираем со старой позиции
+            next.splice(idx, 1)
             return [updatedConv, ...next].sort((a, b) => {
               const ta = new Date(a.lastMessageAt || a.updatedAt || 0).getTime()
               const tb = new Date(b.lastMessageAt || b.updatedAt || 0).getTime()
@@ -210,8 +321,6 @@ export function useConversationInbox({
           }
           return next
         }
-        // INSERT: новый диалог появился — добавляем в начало и тригерим обогащение
-        // (сырой Realtime payload не содержит listing/booking — делаем точечный fetch)
         _fetchConversations({ offset: 0, append: false }).catch(() => {})
         return prev
       })
@@ -221,21 +330,15 @@ export function useConversationInbox({
 
   useRealtimeConversations(userId ?? null, handleRealtimeConvUpdate)
 
-  // ── Infinite scroll ────────────────────────────────────────────────────────
-
-  /** Загрузить следующую страницу. Вызывается из IntersectionObserver в ConversationList. */
   const loadMore = useCallback(() => {
     if (!hasMore || isLoadingMore) return
     const nextOffset = offset + PAGE_SIZE
     _fetchConversations({ offset: nextOffset, append: true })
   }, [hasMore, isLoadingMore, offset, _fetchConversations])
 
-  /** Принудительная перезагрузка первой страницы (например, после Archive/Unarchive). */
   const refresh = useCallback(() => {
     _fetchConversations({ offset: 0, append: false })
   }, [_fetchConversations])
-
-  // ── Derived: фильтры по вкладкам ───────────────────────────────────────────
 
   const filteredConversations = useMemo(
     () => filterConversationsByInboxTab(conversations, userId, inboxTab),
@@ -263,33 +366,28 @@ export function useConversationInbox({
     [hostingUnread, travelingUnread]
   )
 
-  // ── Синхронизация вкладки при открытии конкретного треда ──────────────────
-  // (Когда страница открывается по URL с conversationId — вкладка должна совпадать
-  //  с ролью пользователя в этой беседе.  Эту логику page.js вызывает явно через
-  //  setInboxTab — здесь только декларируем setter.)
-
   return {
-    // Данные
     conversations,
     filteredConversations,
     isLoading,
     hasMore,
     isLoadingMore,
 
-    // Фильтры
     inboxTab,
     setInboxTab,
 
-    // Счётчики
     hostingUnread,
     travelingUnread,
     totalUnread,
 
-    // Методы
     loadMore,
     refresh,
-
-    // Escape hatch — для прямой мутации списка из page.js
     setConversations,
+
+    favoriteIdSet,
+    favoriteTogglePendingIds,
+    toggleFavorite,
+    setFavoriteOnlyFetch,
+    refreshFavoriteIdsFromServer,
   }
 }
