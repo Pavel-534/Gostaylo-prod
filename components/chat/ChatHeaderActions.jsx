@@ -241,17 +241,18 @@ export function ChatHeaderActions({
       {onDealInfoClick ? (
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="icon"
           className={cn(
-            'lg:hidden h-10 w-10 text-slate-900 hover:bg-slate-100 hover:text-slate-900',
+            'lg:hidden h-10 w-10 shrink-0 border-2 border-slate-900 bg-white text-slate-900 shadow-sm',
+            'hover:bg-slate-50 hover:text-slate-900',
             compact ? 'min-h-10 min-w-10' : ''
           )}
           onClick={onDealInfoClick}
           title={language === 'en' ? 'Deal details' : 'Детали сделки'}
           aria-label={language === 'en' ? 'Deal details' : 'Детали сделки'}
         >
-          <Info className="h-5 w-5 stroke-[2.25]" />
+          <Info className="h-5 w-5 stroke-[2.5]" />
         </Button>
       ) : null}
 

@@ -60,8 +60,11 @@ export function MobileBottomNav() {
   // Don't show on partner or admin pages
   const isOnPartnerPage = pathname?.startsWith('/partner');
   const isOnAdminPage = pathname?.startsWith('/admin');
-  
-  if (isOnPartnerPage || isOnAdminPage) return null;
+  const normalized = (pathname || '').replace(/\/+$/, '') || '/';
+  const isMessagesThread =
+    /^\/messages\/.+/.test(normalized) && normalized !== '/messages';
+
+  if (isOnPartnerPage || isOnAdminPage || isMessagesThread) return null;
 
   const handleNavClick = (item, e) => {
     if (item.requiresAuth && !user) {

@@ -135,7 +135,8 @@ export function PartnerChatCalendarPeek({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="right"
-          className="flex w-full flex-col gap-0 overflow-y-auto sm:max-w-3xl"
+          overlayClassName="z-[340]"
+          className="z-[350] flex w-full flex-col gap-0 overflow-y-auto sm:max-w-3xl"
         >
           <SheetHeader className="shrink-0 space-y-1 pr-8 text-left">
             <SheetTitle>{isRu ? 'Занятость объекта' : 'Listing availability'}</SheetTitle>

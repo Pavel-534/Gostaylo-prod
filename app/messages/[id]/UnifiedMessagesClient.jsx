@@ -81,18 +81,6 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 
-// ─── Категории (загружаются один раз) ─────────────────────────────────────────
-function useCategories() {
-  const [categories, setCategories] = useState([])
-  useEffect(() => {
-    fetch('/api/v2/categories')
-      .then((r) => r.json())
-      .then((d) => { if (d.success && Array.isArray(d.data)) setCategories(d.data) })
-      .catch(() => {})
-  }, [])
-  return categories
-}
-
 // ─── Archive helper ───────────────────────────────────────────────────────────
 function useArchive({ language, router, inbox, conversationId, listHallHref = '/messages/', userId }) {
   const archiveConversation = useCallback(async (convId) => {
@@ -139,7 +127,6 @@ export default function UnifiedMessagesClient({ params }) {
   const { markConversationRead: markGlobalRead } = useChatContext()
 
   const conversationId = params?.id
-  const categories = useCategories()
   const attachFileRef = useRef(null)
 
   const isPartnerAccount = useMemo(() => {
@@ -571,7 +558,6 @@ export default function UnifiedMessagesClient({ params }) {
       inbox={{ ...inbox, setInboxTab: handleInboxTabChange }}
       selectedId={conversationId}
       onSelect={handleConversationSelect}
-      categories={categories}
       showListingName={false}
       showGuestName={inbox.inboxTab === INBOX_TAB_TRAVELING}
       onArchive={(id) => void archiveConversation(id)}
@@ -897,54 +883,61 @@ export default function UnifiedMessagesClient({ params }) {
       />
 
       <Sheet open={dealSheetOpen} onOpenChange={setDealSheetOpen}>
-        <SheetContent side="bottom" className="max-h-[88dvh] overflow-y-auto rounded-t-2xl z-[210]">
-          <SheetHeader className="text-left pb-2">
-            <SheetTitle className="text-lg font-semibold text-slate-900">
-              {language === 'ru' ? 'Детали сделки' : 'Deal details'}
-            </SheetTitle>
-          </SheetHeader>
-          {dealDetailsPanel}
-          <div className="lg:hidden border-t border-slate-200 pt-4 mt-4 space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-              {language === 'ru' ? 'Инструменты' : 'Tools'}
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full justify-start gap-2 text-slate-800"
-              onClick={() => {
-                setDealSheetOpen(false)
-                setSupportDialogOpen(true)
-              }}
-            >
-              <LifeBuoy className="h-4 w-4 text-teal-600 shrink-0" />
-              {language === 'ru' ? 'Помощь и поддержка' : 'Help & support'}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full justify-start gap-2 text-slate-800"
-              onClick={() => {
-                setDealSheetOpen(false)
-                setMediaGalleryOpen(true)
-              }}
-            >
-              <Images className="h-4 w-4 text-teal-600 shrink-0" />
-              {language === 'ru' ? 'Медиафайлы в чате' : 'Media in chat'}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full justify-start gap-2 text-slate-800"
-              onClick={() => {
-                setDealSheetOpen(false)
-                setSearchActive(true)
-                setSearchQuery('')
-              }}
-            >
-              <Search className="h-4 w-4 text-teal-600 shrink-0" />
-              {language === 'ru' ? 'Поиск по сообщениям' : 'Search messages'}
-            </Button>
+        <SheetContent
+          side="bottom"
+          className="flex max-h-[88dvh] flex-col gap-0 overflow-hidden rounded-t-2xl border-slate-200 p-0 z-[210]"
+        >
+          <div className="shrink-0 border-b border-slate-100 bg-background px-6 pb-3 pt-5 pr-14">
+            <SheetHeader className="space-y-0 p-0 text-left">
+              <SheetTitle className="text-lg font-semibold text-slate-900">
+                {language === 'ru' ? 'Детали сделки' : 'Deal details'}
+              </SheetTitle>
+            </SheetHeader>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
+            {dealDetailsPanel}
+            <div className="lg:hidden border-t border-slate-200 pt-4 mt-4 space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                {language === 'ru' ? 'Инструменты' : 'Tools'}
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start gap-2 text-slate-800"
+                onClick={() => {
+                  setDealSheetOpen(false)
+                  setSupportDialogOpen(true)
+                }}
+              >
+                <LifeBuoy className="h-4 w-4 text-teal-600 shrink-0" />
+                {language === 'ru' ? 'Помощь и поддержка' : 'Help & support'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start gap-2 text-slate-800"
+                onClick={() => {
+                  setDealSheetOpen(false)
+                  setMediaGalleryOpen(true)
+                }}
+              >
+                <Images className="h-4 w-4 text-teal-600 shrink-0" />
+                {language === 'ru' ? 'Медиафайлы в чате' : 'Media in chat'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start gap-2 text-slate-800"
+                onClick={() => {
+                  setDealSheetOpen(false)
+                  setSearchActive(true)
+                  setSearchQuery('')
+                }}
+              >
+                <Search className="h-4 w-4 text-teal-600 shrink-0" />
+                {language === 'ru' ? 'Поиск по сообщениям' : 'Search messages'}
+              </Button>
+            </div>
           </div>
         </SheetContent>
       </Sheet>

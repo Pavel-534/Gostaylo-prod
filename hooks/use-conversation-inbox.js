@@ -9,7 +9,6 @@
  *  – loadConversations (с пагинацией, offset/append)
  *  – Realtime-подписка на таблицу conversations (через useRealtimeConversations)
  *  – фильтрация по вкладкам Hosting / Traveling (two-hat логика)
- *  – фильтрация по listing_category (для будущих нянь и консьержей)
  *  – бесконечная прокрутка (infinite scroll)
  *  – дебаунс запросов при смене фильтра/поиска
  *
@@ -22,7 +21,6 @@
  *   conversations, filteredConversations,
  *   isLoading, hasMore, isLoadingMore,
  *   inboxTab, setInboxTab,
- *   categoryFilter, setCategoryFilter,
  *   hostingUnread, travelingUnread,
  *   loadMore,
  *   refresh,
@@ -60,7 +58,6 @@ const PAGE_SIZE = 20
  * @param {Object}          opts
  * @param {string|null}     opts.userId             — UUID текущего пользователя
  * @param {string}          [opts.defaultTab]       — INBOX_TAB_HOSTING | INBOX_TAB_TRAVELING
- * @param {string|null}     [opts.initialCategory]  — предварительный фильтр категории
  * @param {boolean}         [opts.enabled]          — false = хук спит (для lazy init)
  *
  * @returns {{
@@ -71,8 +68,6 @@ const PAGE_SIZE = 20
  *   isLoadingMore:         boolean,
  *   inboxTab:              string,
  *   setInboxTab:           (tab: string) => void,
- *   categoryFilter:        string|null,
- *   setCategoryFilter:     (cat: string|null) => void,
  *   hostingUnread:         number,
  *   travelingUnread:       number,
  *   totalUnread:           number,
@@ -83,7 +78,6 @@ const PAGE_SIZE = 20
 export function useConversationInbox({
   userId,
   defaultTab = INBOX_TAB_TRAVELING,
-  initialCategory = null,
   enabled = true,
 }) {
   // ── Стейт ───────────────────────────────────────────────────────────────────
@@ -94,7 +88,6 @@ export function useConversationInbox({
   const [offset, setOffset] = useState(0)
 
   const [inboxTab, setInboxTab] = useState(defaultTab)
-  const [categoryFilter, setCategoryFilter] = useState(initialCategory)
 
   // Стабилизируем дебаунс-функцию — пересоздаётся только при смене userId
   const debouncedLoadRef = useRef(null)
@@ -104,10 +97,10 @@ export function useConversationInbox({
   /**
    * Внутренняя функция загрузки. Используется как напрямую, так и через дебаунс.
    *
-   * @param {{ offset?: number, append?: boolean, category?: string|null }} fetchOpts
+   * @param {{ offset?: number, append?: boolean }} fetchOpts
    */
   const _fetchConversations = useCallback(
-    async ({ offset: fetchOffset = 0, append = false, category = categoryFilter } = {}) => {
+    async ({ offset: fetchOffset = 0, append = false } = {}) => {
       if (!userId || !enabled) return
 
       if (append) {
@@ -122,7 +115,6 @@ export function useConversationInbox({
           limit: String(PAGE_SIZE),
           offset: String(fetchOffset),
         })
-        if (category) params.set('listing_category', category)
 
         const res = await fetch(`/api/v2/chat/conversations?${params}`, {
           credentials: 'include',
@@ -156,7 +148,7 @@ export function useConversationInbox({
         }
       }
     },
-    [userId, enabled, categoryFilter]
+    [userId, enabled]
   )
 
   // Создаём дебаунс-обёртку при изменении _fetchConversations
@@ -171,8 +163,8 @@ export function useConversationInbox({
   useEffect(() => {
     if (!userId || !enabled) return
     // Сброс offset при изменении фильтра — debounced, чтобы не молотить при rapid-change
-    debouncedLoadRef.current?.({ offset: 0, append: false, category: categoryFilter })
-  }, [userId, enabled, categoryFilter])
+    debouncedLoadRef.current?.({ offset: 0, append: false })
+  }, [userId, enabled])
 
   // ── Realtime: беседы обновляются в фоне ──────────────────────────────────────
   // При изменении любой строки таблицы conversations — перезагружаем первую
@@ -287,8 +279,6 @@ export function useConversationInbox({
     // Фильтры
     inboxTab,
     setInboxTab,
-    categoryFilter,
-    setCategoryFilter,
 
     // Счётчики
     hostingUnread,

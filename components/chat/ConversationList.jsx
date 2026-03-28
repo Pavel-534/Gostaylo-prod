@@ -3,72 +3,54 @@
 /**
  * @file components/chat/ConversationList.jsx
  *
- * Умный сайдбар-список диалогов чата.
- *
- * Отличие от components/conversation-list.jsx (старый):
- *   – Принимает данные и колбэки непосредственно из useConversationInbox (Фаза 2).
- *   – Разделён на презентационную часть и управляющую:
- *       ConversationListPanel  — чистый UI (принимает props)
- *       ConversationList       — «умный» обёртка, подключённая к хуку
- *   – Поддерживает фильтрацию по категориям (няни, консьержи, апартаменты…).
- *   – Infinite scroll через IntersectionObserver.
- *   – Отображает флаг _masked (lock-иконка в превью последнего сообщения).
- *   – Поддерживает Hosting / Traveling вкладки.
- *
- * Использование (Фаза 4, thin page):
- * ```jsx
- * const inbox = useConversationInbox({ userId, defaultTab: INBOX_TAB_HOSTING })
- *
- * <ConversationList
- *   inbox={inbox}
- *   selectedId={conversationId}
- *   onSelect={(id) => router.push(`/messages/${id}`)}
- *   language="ru"
- * />
- * ```
- *
- * Или чисто презентационный вариант (без хука):
- * ```jsx
- * <ConversationListPanel
- *   conversations={filteredConversations}
- *   selectedId={conversationId}
- *   onSelect={handleSelect}
- *   ...
- * />
- * ```
+ * Сайдбар списка диалогов: вкладки Hosting/Traveling, поиск, фильтр (все / непрочитанные / избранные),
+ * бесконечная подгрузка, избранное в localStorage (lib/chat-inbox-favorites).
  */
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
-import * as LucideIcons from 'lucide-react'
 import {
   Archive,
   Building2,
-  LayoutGrid,
+  ChevronDown,
   Loader2,
   Lock,
+  Search,
   Shield,
   AlertTriangle,
+  Star,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { ChatInboxRoleTabs } from '@/components/chat-inbox-role-tabs'
 import {
-  INBOX_TAB_HOSTING,
-  INBOX_TAB_TRAVELING,
-} from '@/lib/chat-inbox-tabs'
+  getFavoriteConversationIdSet,
+  isFavoriteConversationId,
+  toggleFavoriteConversationId,
+} from '@/lib/chat-inbox-favorites'
+
+const LIST_FILTER_ALL = 'all'
+const LIST_FILTER_UNREAD = 'unread'
+const LIST_FILTER_STARRED = 'starred'
 
 // ─── Статус-бейдж ────────────────────────────────────────────────────────────
 
 const STATUS_CFG = {
-  PENDING:   { ru: 'Ожидает',      en: 'Pending',   cls: 'bg-amber-100 text-amber-800 border-amber-200' },
+  PENDING: { ru: 'Ожидает', en: 'Pending', cls: 'bg-amber-100 text-amber-800 border-amber-200' },
   CONFIRMED: { ru: 'Подтверждено', en: 'Confirmed', cls: 'bg-blue-100 text-blue-800 border-blue-200' },
-  PAID:      { ru: 'Оплачено',     en: 'Paid',      cls: 'bg-green-100 text-green-800 border-green-200' },
-  COMPLETED: { ru: 'Завершено',    en: 'Completed', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
-  CANCELLED: { ru: 'Отменено',     en: 'Cancelled', cls: 'bg-red-100 text-red-700 border-red-200' },
-  REFUNDED:  { ru: 'Возврат',      en: 'Refunded',  cls: 'bg-purple-100 text-purple-700 border-purple-200' },
+  PAID: { ru: 'Оплачено', en: 'Paid', cls: 'bg-green-100 text-green-800 border-green-200' },
+  COMPLETED: { ru: 'Завершено', en: 'Completed', cls: 'bg-slate-100 text-slate-600 border-slate-200' },
+  CANCELLED: { ru: 'Отменено', en: 'Cancelled', cls: 'bg-red-100 text-red-700 border-red-200' },
+  REFUNDED: { ru: 'Возврат', en: 'Refunded', cls: 'bg-purple-100 text-purple-700 border-purple-200' },
 }
 
 function StatusBadge({ statusLabel, lang = 'ru' }) {
@@ -86,34 +68,6 @@ function StatusBadge({ statusLabel, lang = 'ru' }) {
     </span>
   )
 }
-
-// ─── Иконка категории ─────────────────────────────────────────────────────────
-
-const SLUG_TO_LUCIDE = {
-  nanny: 'Baby', babysitter: 'Baby',
-  food: 'UtensilsCrossed', dining: 'UtensilsCrossed', restaurant: 'UtensilsCrossed',
-  apartment: 'Building2', villa: 'Home', house: 'Home',
-  transport: 'Car', cleaning: 'Sparkles', tour: 'Map',
-  default: 'Tag',
-}
-
-function slugToPascal(slug) {
-  return String(slug || '')
-    .split(/[-_]/)
-    .filter(Boolean)
-    .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
-    .join('')
-}
-
-function CategoryIcon({ slug, className }) {
-  if (!slug) return <LayoutGrid className={className} />
-  const key = String(slug).toLowerCase()
-  const name = SLUG_TO_LUCIDE[key] || (LucideIcons[slugToPascal(slug)] ? slugToPascal(slug) : 'Tag')
-  const Icon = LucideIcons[name] || LucideIcons.Tag
-  return <Icon className={className} />
-}
-
-// ─── Превью последнего сообщения ─────────────────────────────────────────────
 
 function LastMessagePreview({ conv, lang = 'ru' }) {
   const last = conv.lastMessage
@@ -136,7 +90,6 @@ function LastMessagePreview({ conv, lang = 'ru' }) {
   const text = last.content || last.message || ''
   return (
     <span className="flex items-center gap-1 truncate">
-      {/* Флаг _masked из маппера Фазы 1 — при наведении показываем подсказку */}
       {last._masked && (
         <Lock className="h-3 w-3 text-amber-500 shrink-0" aria-label={lang === 'ru' ? 'Контакт скрыт' : 'Contact hidden'} />
       )}
@@ -145,7 +98,19 @@ function LastMessagePreview({ conv, lang = 'ru' }) {
   )
 }
 
-// ─── Одна строка диалога ──────────────────────────────────────────────────────
+function conversationSearchHaystack(conv, showGuestName, lang) {
+  const isAdminChat = conv.type === 'ADMIN_FEEDBACK' || !!conv.adminId
+  const displayName = isAdminChat
+    ? (conv.adminName || (lang === 'ru' ? 'Администратор' : 'Administrator'))
+    : showGuestName
+      ? (conv.renterName || (lang === 'ru' ? 'Клиент' : 'Guest'))
+      : (conv.partnerName || (lang === 'ru' ? 'Хозяин' : 'Host'))
+  const parts = [displayName, conv.listing?.title, conv.listing?.slug]
+  const last = conv.lastMessage
+  if (last?.content) parts.push(String(last.content))
+  if (last?.message) parts.push(String(last.message))
+  return parts.filter(Boolean).join(' ').toLowerCase()
+}
 
 function ConversationRow({
   conv,
@@ -156,6 +121,8 @@ function ConversationRow({
   onSelect,
   onArchive,
   archiveLabel,
+  isFavorite,
+  onToggleFavorite,
 }) {
   const unread = conv.unreadCount || 0
   const isAdminChat = conv.type === 'ADMIN_FEEDBACK' || !!conv.adminId
@@ -166,8 +133,8 @@ function ConversationRow({
   const displayName = isAdminChat
     ? (conv.adminName || (lang === 'ru' ? 'Администратор' : 'Administrator'))
     : showGuestName
-    ? (conv.renterName || (lang === 'ru' ? 'Клиент' : 'Guest'))
-    : (conv.partnerName || (lang === 'ru' ? 'Хозяин' : 'Host'))
+      ? (conv.renterName || (lang === 'ru' ? 'Клиент' : 'Guest'))
+      : (conv.partnerName || (lang === 'ru' ? 'Хозяин' : 'Host'))
 
   return (
     <div
@@ -188,7 +155,6 @@ function ConversationRow({
       )}
     >
       <div className="flex gap-3">
-        {/* Превью листинга или иконка */}
         <div className="flex-shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
           {coverImg ? (
             <img src={coverImg} alt={conv.listing?.title || ''} className="w-full h-full object-cover" />
@@ -199,23 +165,39 @@ function ConversationRow({
           )}
         </div>
 
-        {/* Контент */}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-1 mb-0.5">
-            {/* Имя */}
             <p className="font-semibold text-sm text-slate-900 truncate leading-tight">
               {isAdminChat && <Shield className="inline h-3 w-3 text-indigo-500 mr-1 mb-0.5" />}
               {displayName}
             </p>
 
-            {/* Правый угол: статус + badge */}
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-0.5 shrink-0">
               <StatusBadge statusLabel={conv.statusLabel} lang={lang} />
               {unread > 0 && (
                 <Badge className="bg-red-500 text-white hover:bg-red-500 h-5 min-w-[1.25rem] px-1.5 text-[10px] font-bold">
                   {unread > 99 ? '99+' : unread}
                 </Badge>
               )}
+              {onToggleFavorite ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    'h-7 w-7',
+                    isFavorite ? 'text-amber-500 hover:text-amber-600' : 'text-slate-300 hover:text-amber-500',
+                  )}
+                  title={lang === 'ru' ? 'В избранное' : 'Favorite'}
+                  aria-label={lang === 'ru' ? 'Избранное' : 'Favorite'}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onToggleFavorite(conv.id)
+                  }}
+                >
+                  <Star className={cn('h-3.5 w-3.5', isFavorite && 'fill-current')} />
+                </Button>
+              ) : null}
               {onArchive && (
                 <Button
                   type="button"
@@ -223,7 +205,10 @@ function ConversationRow({
                   size="icon"
                   className="h-7 w-7 text-slate-400 hover:text-slate-600"
                   title={archiveLabel || (lang === 'ru' ? 'Скрыть' : 'Archive')}
-                  onClick={(e) => { e.stopPropagation(); onArchive(conv.id) }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onArchive(conv.id)
+                  }}
                 >
                   <Archive className="h-3.5 w-3.5" />
                 </Button>
@@ -231,14 +216,10 @@ function ConversationRow({
             </div>
           </div>
 
-          {/* Листинг (если нужно) */}
           {showListingName && conv.listing?.title && (
-            <p className="text-xs text-teal-600 truncate mb-0.5 font-medium">
-              {conv.listing.title}
-            </p>
+            <p className="text-xs text-teal-600 truncate mb-0.5 font-medium">{conv.listing.title}</p>
           )}
 
-          {/* Превью последнего сообщения */}
           <p className="text-xs text-slate-500 truncate">
             <LastMessagePreview conv={conv} lang={lang} />
           </p>
@@ -248,88 +229,69 @@ function ConversationRow({
   )
 }
 
-// ─── Фильтр категорий ─────────────────────────────────────────────────────────
+function InboxSearchFilterBar({
+  searchQuery,
+  onSearchChange,
+  listFilter,
+  onListFilterChange,
+  language,
+}) {
+  const isRu = language !== 'en'
+  const labels = {
+    [LIST_FILTER_ALL]: isRu ? 'Все' : 'All',
+    [LIST_FILTER_UNREAD]: isRu ? 'Непрочитанные' : 'Unread',
+    [LIST_FILTER_STARRED]: isRu ? 'Избранные' : 'Starred',
+  }
 
-function CategoryFilter({ categories, categoryFilter, onCategoryChange, lang = 'ru' }) {
-  if (!categories?.length) return null
   return (
-    <div className="flex flex-wrap gap-1 border-b border-slate-100 bg-slate-50/80 px-2 py-1.5">
-      <button
-        type="button"
-        onClick={() => onCategoryChange?.(null)}
-        className={cn(
-          'inline-flex items-center justify-center rounded-lg p-2 border transition-colors',
-          !categoryFilter
-            ? 'bg-teal-600 text-white border-teal-600'
-            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100',
-        )}
-        title={lang === 'ru' ? 'Все категории' : 'All categories'}
-        aria-label={lang === 'ru' ? 'Все' : 'All'}
-      >
-        <LayoutGrid className="h-4 w-4" />
-      </button>
-      {categories.map((cat) => {
-        const slug = cat.slug
-        if (!slug) return null
-        const active = categoryFilter === slug
-        return (
-          <button
-            key={slug}
+    <div className="flex shrink-0 items-center gap-2 border-b border-slate-100 bg-white px-2 py-2">
+      <div className="relative min-w-0 flex-1">
+        <Search
+          className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
+          aria-hidden
+        />
+        <Input
+          type="search"
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder={isRu ? 'Поиск…' : 'Search…'}
+          className="h-9 pl-8 pr-2 text-sm border-slate-200 bg-slate-50/80 focus-visible:bg-white"
+          autoComplete="off"
+          aria-label={isRu ? 'Поиск по диалогам' : 'Search conversations'}
+        />
+      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
             type="button"
-            onClick={() => onCategoryChange?.(slug)}
-            className={cn(
-              'inline-flex items-center justify-center rounded-lg p-2 border transition-colors',
-              active
-                ? 'bg-teal-600 text-white border-teal-600'
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100',
-            )}
-            title={cat.name || slug}
-            aria-label={cat.name || slug}
+            variant="outline"
+            size="sm"
+            className="h-9 shrink-0 gap-1 border-slate-200 px-2.5 text-xs font-medium text-slate-700"
           >
-            <CategoryIcon slug={slug} className="h-4 w-4" />
-          </button>
-        )
-      })}
+            {labels[listFilter] || labels[LIST_FILTER_ALL]}
+            <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44">
+          {[LIST_FILTER_ALL, LIST_FILTER_UNREAD, LIST_FILTER_STARRED].map((key) => (
+            <DropdownMenuItem
+              key={key}
+              className="text-sm cursor-pointer"
+              onClick={() => onListFilterChange(key)}
+            >
+              {labels[key]}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }
 
-// ─── Чистый презентационный компонент ────────────────────────────────────────
-
-/**
- * ConversationListPanel — чисто презентационный, данные передаются снаружи.
- * Используется в Фазе 4 через умную обёртку ConversationList.
- *
- * @param {Object}    props
- * @param {Array}     props.conversations         — отфильтрованный список
- * @param {string}    [props.selectedId]          — активный conversationId
- * @param {Function}  [props.onSelect]            — (id, conv) => void
- * @param {Array}     [props.categories]          — список категорий {id, slug, name}
- * @param {string}    [props.categoryFilter]      — активный slug фильтра
- * @param {Function}  [props.onCategoryChange]    — (slug|null) => void
- * @param {string}    [props.inboxTab]            — INBOX_TAB_HOSTING | INBOX_TAB_TRAVELING
- * @param {Function}  [props.onInboxTabChange]    — (tab) => void
- * @param {number}    [props.hostingUnread]
- * @param {number}    [props.travelingUnread]
- * @param {boolean}   [props.hasMore]             — есть ли ещё страницы
- * @param {boolean}   [props.isLoadingMore]       — идёт подгрузка
- * @param {Function}  [props.onLoadMore]          — триггер загрузки следующей страницы
- * @param {boolean}   [props.isLoading]           — первичная загрузка
- * @param {boolean}   [props.showListingName]     — показать название листинга в строке
- * @param {boolean}   [props.showGuestName]       — показать гостя (иначе хозяина)
- * @param {Function}  [props.onArchive]           — (id) => void — скрыть диалог
- * @param {string}    [props.archivedHref]        — ссылка на архив
- * @param {string}    [props.language]            — 'ru' | 'en'
- * @param {string}    [props.title]               — заголовок панели
- * @param {string}    [props.className]
- */
 export function ConversationListPanel({
   conversations = [],
   selectedId,
   onSelect,
-  categories = [],
-  categoryFilter,
-  onCategoryChange,
   inboxTab = null,
   onInboxTabChange,
   hostingUnread = 0,
@@ -345,28 +307,42 @@ export function ConversationListPanel({
   language = 'ru',
   title,
   className,
+  searchQuery = '',
+  onSearchChange,
+  listFilter = LIST_FILTER_ALL,
+  onListFilterChange,
+  favoriteIdSet = null,
+  onToggleFavorite,
 }) {
   const sentinelRef = useRef(null)
 
-  // Infinite scroll — IntersectionObserver на sentinel в хвосте списка
   useEffect(() => {
     if (!onLoadMore || !hasMore) return
     const el = sentinelRef.current
     if (!el) return
     const obs = new IntersectionObserver(
-      (entries) => { if (entries[0]?.isIntersecting && !isLoadingMore) onLoadMore() },
-      { threshold: 0.1 },
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isLoadingMore) onLoadMore()
+      },
+      { threshold: 0.1, rootMargin: '80px' },
     )
     obs.observe(el)
     return () => obs.disconnect()
   }, [onLoadMore, hasMore, isLoadingMore])
 
   const isRu = language !== 'en'
-  const emptyText = isRu ? 'Диалогов пока нет' : 'No conversations yet'
+  const emptyDefault = isRu ? 'Диалогов пока нет' : 'No conversations yet'
+  const emptyFiltered = isRu ? 'Нет подходящих диалогов' : 'No matching conversations'
+  const emptyStarred = isRu ? 'Нет избранных диалогов' : 'No starred conversations'
+
+  let emptyText = emptyDefault
+  if (listFilter === LIST_FILTER_STARRED) emptyText = emptyStarred
+  else if (listFilter === LIST_FILTER_UNREAD || (searchQuery && searchQuery.trim())) {
+    emptyText = emptyFiltered
+  }
 
   return (
     <div className={cn('flex min-h-0 h-full flex-col', className)}>
-      {/* Компактная шапка: заголовок + счётчик + архив (WhatsApp-style) */}
       <div className="flex shrink-0 flex-col border-b border-slate-200 bg-white">
         <div className="flex items-center justify-between gap-2 px-3 py-2">
           <div className="min-w-0">
@@ -401,16 +377,17 @@ export function ConversationListPanel({
         ) : null}
       </div>
 
-      {/* ── Фильтр по категориям ───────────────────────────────────────── */}
-      <CategoryFilter
-        categories={categories}
-        categoryFilter={categoryFilter}
-        onCategoryChange={onCategoryChange}
-        lang={language}
-      />
+      {typeof onSearchChange === 'function' && typeof onListFilterChange === 'function' ? (
+        <InboxSearchFilterBar
+          searchQuery={searchQuery}
+          onSearchChange={onSearchChange}
+          listFilter={listFilter}
+          onListFilterChange={onListFilterChange}
+          language={language}
+        />
+      ) : null}
 
-      {/* ── Список ────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto overscroll-contain">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]">
         {isLoading && conversations.length === 0 && (
           <div className="p-6 flex justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-teal-500" />
@@ -431,12 +408,13 @@ export function ConversationListPanel({
             showGuestName={showGuestName}
             onSelect={onSelect}
             onArchive={onArchive}
+            isFavorite={favoriteIdSet ? isFavoriteConversationId(conv.id, favoriteIdSet) : false}
+            onToggleFavorite={onToggleFavorite}
           />
         ))}
 
-        {/* Sentinel для IntersectionObserver */}
         {hasMore && (
-          <div ref={sentinelRef} className="py-4 flex justify-center">
+          <div ref={sentinelRef} className="py-4 flex min-h-[2.5rem] justify-center">
             {isLoadingMore && <Loader2 className="h-5 w-5 animate-spin text-teal-400" />}
           </div>
         )}
@@ -450,32 +428,10 @@ export function ConversationListPanel({
   )
 }
 
-// ─── Умная обёртка, подключённая к useConversationInbox ──────────────────────
-
-/**
- * ConversationList — «умный» компонент.
- * Принимает объект `inbox` (возвращаемый useConversationInbox из Фазы 2)
- * и остальные props для конфигурации UI.
- *
- * @param {Object}   props
- * @param {Object}   props.inbox            — объект из useConversationInbox
- * @param {string}   [props.selectedId]
- * @param {Function} [props.onSelect]
- * @param {Array}    [props.categories]     — из /api/v2/categories
- * @param {boolean}  [props.showListingName]
- * @param {boolean}  [props.showGuestName]
- * @param {Function} [props.onArchive]
- * @param {string}   [props.archivedHref]
- * @param {string}   [props.language]
- * @param {string}   [props.title]
- * @param {string}   [props.className]
- * @param {boolean}  [props.roleTabsVisible] — false: только «Снимаю», без переключателя Сдаю/Снимаю (единый холл для рентора)
- */
 export function ConversationList({
   inbox,
   selectedId,
   onSelect,
-  categories,
   showListingName,
   showGuestName,
   onArchive,
@@ -485,16 +441,40 @@ export function ConversationList({
   className,
   roleTabsVisible = true,
 }) {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [listFilter, setListFilter] = useState(LIST_FILTER_ALL)
+  const [favSet, setFavSet] = useState(() => new Set())
+
+  useEffect(() => {
+    setFavSet(getFavoriteConversationIdSet())
+    const onFav = () => setFavSet(getFavoriteConversationIdSet())
+    window.addEventListener('gostaylo-inbox-favorites-changed', onFav)
+    return () => window.removeEventListener('gostaylo-inbox-favorites-changed', onFav)
+  }, [])
+
+  const handleToggleFavorite = useCallback((id) => {
+    setFavSet(toggleFavoriteConversationId(id))
+  }, [])
+
+  const displayConversations = useMemo(() => {
+    let list = inbox.filteredConversations
+    if (listFilter === LIST_FILTER_UNREAD) list = list.filter((c) => (c.unreadCount || 0) > 0)
+    if (listFilter === LIST_FILTER_STARRED) list = list.filter((c) => favSet.has(String(c.id)))
+    const q = searchQuery.trim().toLowerCase()
+    if (q) {
+      const showGuest = showGuestName
+      list = list.filter((c) => conversationSearchHaystack(c, showGuest, language).includes(q))
+    }
+    return list
+  }, [inbox.filteredConversations, listFilter, searchQuery, favSet, showGuestName, language])
+
   if (!inbox) return null
 
   return (
     <ConversationListPanel
-      conversations={inbox.filteredConversations}
+      conversations={displayConversations}
       selectedId={selectedId}
       onSelect={onSelect}
-      categories={categories}
-      categoryFilter={inbox.categoryFilter}
-      onCategoryChange={inbox.setCategoryFilter}
       inboxTab={inbox.inboxTab}
       onInboxTabChange={roleTabsVisible ? inbox.setInboxTab : undefined}
       hostingUnread={inbox.hostingUnread}
@@ -510,6 +490,12 @@ export function ConversationList({
       language={language}
       title={title}
       className={className}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      listFilter={listFilter}
+      onListFilterChange={setListFilter}
+      favoriteIdSet={favSet}
+      onToggleFavorite={handleToggleFavorite}
     />
   )
 }

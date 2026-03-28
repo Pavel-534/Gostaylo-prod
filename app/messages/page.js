@@ -5,7 +5,7 @@
  * Переход в тред: /messages/[id].
  */
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2, Home } from 'lucide-react'
@@ -22,19 +22,6 @@ import {
 } from '@/lib/chat-inbox-tabs'
 
 const HOSTING_ROLES = new Set(['PARTNER', 'ADMIN', 'MODERATOR'])
-
-function useCategories() {
-  const [categories, setCategories] = useState([])
-  useEffect(() => {
-    fetch('/api/v2/categories')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.success && Array.isArray(d.data)) setCategories(d.data)
-      })
-      .catch(() => {})
-  }, [])
-  return categories
-}
 
 function useArchive({ language, router, inbox, archivedListHref, userId }) {
   const archiveConversation = useCallback(
@@ -73,8 +60,6 @@ export default function UnifiedMessagesHallPage() {
   const router = useRouter()
   const { language } = useI18n()
   const { user, loading: authLoading, openLoginModal } = useAuth()
-  const categories = useCategories()
-
   const showHostingTabs = useMemo(() => {
     const r = String(user?.role || '').toUpperCase()
     return HOSTING_ROLES.has(r)
@@ -175,7 +160,6 @@ export default function UnifiedMessagesHallPage() {
             inbox={{ ...inbox, setInboxTab: handleInboxTabChange }}
             selectedId={null}
             onSelect={handleConversationSelect}
-            categories={categories}
             showListingName={false}
             showGuestName={showGuestName}
             onArchive={(id) => void archiveConversation(id)}
