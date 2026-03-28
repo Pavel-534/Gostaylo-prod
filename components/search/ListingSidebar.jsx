@@ -7,12 +7,14 @@
 'use client';
 
 import { memo } from 'react';
+import Link from 'next/link';
 import { GostayloListingCard } from '@/components/gostaylo-listing-card';
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw, Loader2, List as ListIcon, Map as MapIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getUIText } from '@/lib/translations';
+import { isTransportListingCategory } from '@/lib/listing-category-slug';
 
 function ListingSidebarComponent({
   listings = [],
@@ -35,7 +37,10 @@ function ListingSidebarComponent({
   meta,
   loadMoreRef,
   allListings = [],
-  displayedCount = 0
+  displayedCount = 0,
+  selectedCategory = 'all',
+  filterWhere = 'all',
+  transportBroadenHref = null,
 }) {
   
   // Error State
@@ -65,13 +70,29 @@ function ListingSidebarComponent({
     const unavailText = meta?.filteredOutByAvailability > 0
       ? `${meta.filteredOutByAvailability} ${getUIText('listingsUnavailable', language)}`
       : getUIText('tryChangingFilters', language);
+    const transportMode = isTransportListingCategory(selectedCategory);
+    const showBroaden =
+      transportMode &&
+      transportBroadenHref &&
+      filterWhere &&
+      filterWhere !== 'all';
     return (
-      <div className="text-center py-20">
-        <div className="text-6xl mb-4">🏠</div>
+      <div className="text-center py-20 px-2">
+        <div className="text-6xl mb-4">{transportMode ? '🚗' : '🏠'}</div>
         <h3 className="text-xl font-semibold mb-2">
           {getUIText('noResults', language)}
         </h3>
-        <p className="text-slate-500 mb-4">{unavailText}</p>
+        <p className="text-slate-500 mb-2 max-w-md mx-auto">{unavailText}</p>
+        {transportMode && (
+          <p className="text-sm text-slate-600 mb-4 max-w-md mx-auto leading-relaxed">
+            {getUIText('transportEmptyHint', language)}
+          </p>
+        )}
+        {showBroaden && (
+          <Button asChild variant="outline" className="border-teal-300 text-teal-800 hover:bg-teal-50">
+            <Link href={transportBroadenHref}>{getUIText('transportBroadenCta', language)}</Link>
+          </Button>
+        )}
       </div>
     );
   }

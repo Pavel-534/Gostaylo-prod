@@ -351,8 +351,8 @@ export default function RenterBookingsPage() {
       const res = await fetch('/api/v2/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          userId,
           listingId: selectedBooking.listing_id,
           bookingId: selectedBooking.id,
           ratings,

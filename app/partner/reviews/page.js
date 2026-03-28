@@ -75,9 +75,9 @@ export default function PartnerReviewsPage() {
     try {
       const res = await fetch(`/api/v2/reviews/${replyingTo}/reply`, {
         method: 'PUT',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          partnerId: user.id,
           reply: replyText.trim()
         })
       })

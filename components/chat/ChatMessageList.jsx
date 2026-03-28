@@ -41,6 +41,9 @@ import { ChatDateSeparator } from '@/components/chat-date-separator'
 import { MessageBubble } from '@/components/message-bubble'
 import { InvoiceBubble } from '@/components/invoice-bubble'
 import { ChatMilestoneCard } from '@/components/chat-milestone-card'
+import { ChatTransportUpsell } from '@/components/chat/ChatTransportUpsell'
+import { isTransportUpsellAnchorMessage } from '@/lib/chat-transport-upsell-trigger'
+import { buildTransportListingsUrl } from '@/lib/chat-transport-upsell-url'
 import { ChatVoicePlayer } from '@/components/chat-voice-player'
 import { ChatImageCollage } from '@/components/chat-image-collage'
 import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
@@ -82,6 +85,8 @@ function MessageItem({
   ownVariant,
   userRole,
   onInvoiceCancelled,
+  booking,
+  listing,
 }) {
   // ── Группа изображений (коллаж) ────────────────────────────────────────────
   if (item._imageGroup) {
@@ -120,7 +125,23 @@ function MessageItem({
 
   // ── Системное сообщение (milestone) ───────────────────────────────────────
   if (msgType === 'system') {
-    return <ChatMilestoneCard message={msg} language={language} userRole={userRole} />
+    const showTransportUpsell =
+      (userRole === 'renter' || userRole == null) &&
+      booking &&
+      isTransportUpsellAnchorMessage(msg)
+    const transportHref = showTransportUpsell
+      ? buildTransportListingsUrl({ listing, booking })
+      : null
+    return (
+      <>
+        <ChatMilestoneCard message={msg} language={language} userRole={userRole} />
+        {transportHref ? (
+          <div className="mt-1 flex w-full justify-center px-2.5 sm:px-4">
+            <ChatTransportUpsell href={transportHref} language={language} />
+          </div>
+        ) : null}
+      </>
+    )
   }
 
   // ── Голосовое ─────────────────────────────────────────────────────────────
@@ -201,6 +222,8 @@ function MessageItem({
  * @param {string}   [props.userRole]       — 'renter' | 'partner' — для CTA отзыва
  * @param {boolean}  [props.autoScroll]     — скролл к новым сообщениям (default: true)
  * @param {Function} [props.onInvoiceCancelled] — (messageId) => void — отмена инвойса
+ * @param {object}   [props.booking] — бронь треда (даты, listings.district) для upsell «Транспорт»
+ * @param {object}   [props.listing] — листинг диалога
  * @param {string}   [props.className]
  */
 export function ChatMessageList({
@@ -213,6 +236,8 @@ export function ChatMessageList({
   userRole,
   autoScroll = true,
   onInvoiceCancelled,
+  booking,
+  listing,
   className,
 }) {
   const bottomRef = useRef(null)
@@ -272,6 +297,8 @@ export function ChatMessageList({
                 ownVariant={ownVariant}
                 userRole={userRole}
                 onInvoiceCancelled={onInvoiceCancelled}
+                booking={booking}
+                listing={listing}
               />
             </div>
           </Fragment>

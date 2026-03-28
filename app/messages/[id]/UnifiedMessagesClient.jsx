@@ -17,7 +17,6 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import { ChatGrowingTextarea } from '@/components/chat-growing-textarea'
 import { detectUnsafePatterns, SafetyBanner } from '@/components/chat-safety'
 import { uploadChatVoice } from '@/lib/chat-upload'
@@ -602,6 +601,7 @@ export default function UnifiedMessagesClient({ params }) {
           groupDesktopTools={isPartnerAccount}
           messagesListHref={inboxListHref}
           hideBackButton
+          catalogHref="/listings"
           className="border-0 shadow-none"
           showBookingTimeline={Boolean(booking?.id && booking?.status)}
           contactName={chatContactName}
@@ -694,21 +694,6 @@ export default function UnifiedMessagesClient({ params }) {
     <>
       <ChatMediaGallery messages={messages} open={mediaGalleryOpen} onClose={() => setMediaGalleryOpen(false)} language={language} />
 
-      {booking?.status === 'PAID' && String(listing?.category_id ?? listing?.categoryId) !== '2' && (
-        <Card className="mx-2 mt-2 bg-gradient-to-r from-teal-50 to-blue-50 border-teal-200">
-          <CardContent className="flex items-center gap-3 p-3">
-            <span className="text-2xl">🏍️</span>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-slate-900">{language === 'ru' ? 'Нужен транспорт?' : 'Need transport?'}</p>
-              <p className="text-xs text-slate-600">{language === 'ru' ? 'Исследуйте наши байки и авто!' : 'Check our bikes & cars!'}</p>
-            </div>
-            <Button asChild size="sm" className="shrink-0 bg-teal-600 hover:bg-teal-700">
-              <Link href="/?category=vehicles">{language === 'ru' ? 'Смотреть' : 'Browse'}</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
       <SafetyBanner
         patterns={detectedPatterns}
         onDismiss={() => setSafetyWarningShown(true)}
@@ -728,6 +713,8 @@ export default function UnifiedMessagesClient({ params }) {
           searchHighlight={searchQuery.trim() || undefined}
           ownVariant="teal"
           userRole={isHosting ? 'partner' : 'renter'}
+          booking={booking}
+          listing={listing}
           onInvoiceCancelled={(msgId) => {
             setMessages((prev) => prev.map((m) =>
               m.id === msgId

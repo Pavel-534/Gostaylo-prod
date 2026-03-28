@@ -1,17 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Star, Calendar, MapPin, Loader2, Upload, X, MessageSquare, ArrowLeft } from 'lucide-react'
+import { Star, Calendar, MapPin, Loader2, ArrowLeft } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
-import { ProxiedImage } from '@/components/proxied-image'
 
 export default function MyBookings() {
   const [bookings, setBookings] = useState([])
@@ -21,59 +20,54 @@ export default function MyBookings() {
   const [rating, setRating] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)
   const [comment, setComment] = useState('')
-  const [mockPhotos, setMockPhotos] = useState([])
   const [submitting, setSubmitting] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState(null)
 
-  // Mock photos for testing
-  const MOCK_PHOTO_URLS = [
-    'https://images.unsplash.com/photo-1613490493576-7fde63acd811?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?auto=format&fit=crop&w=800&q=80',
-  ]
-
-  useEffect(() => {
-    loadBookings()
-  }, [])
-
-  async function loadBookings() {
+  const loadBookings = useCallback(async () => {
+    setLoading(true)
     try {
-      // For now, load all bookings from partner API and filter for renter-3
-      // In real app, we'd have a renter-specific endpoint
-      const res = await fetch('/api/partner/bookings?partnerId=partner-1')
-      const data = await res.json()
-      
-      if (data.success) {
-        // Filter only completed bookings for this demo
-        const completedBookings = data.data.filter(b => b.status === 'COMPLETED')
-        setBookings(completedBookings)
+      const meRes = await fetch('/api/v2/auth/me', { credentials: 'include' })
+      const meJson = await meRes.json().catch(() => ({}))
+
+      if (!meRes.ok || !meJson.success || !meJson.user?.id) {
+        setCurrentUserId(null)
+        setBookings([])
+        return
       }
-      setLoading(false)
-    } catch (error) {
-      console.error('Failed to load bookings:', error)
+
+      const userId = meJson.user.id
+      setCurrentUserId(userId)
+
+      const res = await fetch(
+        `/api/v2/bookings?renterId=${encodeURIComponent(userId)}&limit=100`,
+        { credentials: 'include', cache: 'no-store' }
+      )
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok || !data.success || !Array.isArray(data.data)) {
+        setBookings([])
+        return
+      }
+
+      const completed = data.data.filter((b) => String(b.status || '').toUpperCase() === 'COMPLETED')
+      setBookings(completed)
+    } catch (e) {
+      console.error('Failed to load bookings:', e)
+      setBookings([])
+    } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    void loadBookings()
+  }, [loadBookings])
 
   function openReviewModal(booking) {
     setSelectedBooking(booking)
     setRating(0)
     setComment('')
-    setMockPhotos([])
     setReviewModalOpen(true)
-  }
-
-  function handleAddMockPhoto() {
-    if (mockPhotos.length >= 3) {
-      toast.error('Максимум 3 фото')
-      return
-    }
-    // Add a random mock photo
-    const randomPhoto = MOCK_PHOTO_URLS[Math.floor(Math.random() * MOCK_PHOTO_URLS.length)]
-    setMockPhotos([...mockPhotos, randomPhoto])
-  }
-
-  function handleRemovePhoto(index) {
-    setMockPhotos(mockPhotos.filter((_, i) => i !== index))
   }
 
   async function handleReviewSubmit(e) {
@@ -89,29 +83,40 @@ export default function MyBookings() {
       return
     }
 
+    if (!currentUserId) {
+      toast.error('Войдите в аккаунт')
+      return
+    }
+
+    const listingId = selectedBooking?.listing_id || selectedBooking?.listings?.id
+    const bookingId = selectedBooking?.id
+
+    if (!listingId || !bookingId) {
+      toast.error('Недостаточно данных бронирования')
+      return
+    }
+
     setSubmitting(true)
 
     try {
-      const res = await fetch('/api/reviews', {
+      const res = await fetch('/api/v2/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          bookingId: selectedBooking.id,
-          renterId: selectedBooking.renterId,
-          renterName: selectedBooking.guestName,
-          listingId: selectedBooking.listingId,
+          listingId,
+          bookingId,
           rating,
           comment: comment.trim(),
-          photos: mockPhotos,
         }),
       })
 
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
 
-      if (data.success) {
+      if (res.ok && data.success) {
         toast.success('Отзыв опубликован! Спасибо за ваше мнение.')
         setReviewModalOpen(false)
-        loadBookings() // Reload to update state
+        void loadBookings()
       } else {
         toast.error(data.error || 'Ошибка при публикации отзыва')
       }
@@ -123,16 +128,6 @@ export default function MyBookings() {
     }
   }
 
-  async function checkIfCanReview(bookingId) {
-    try {
-      const res = await fetch(`/api/bookings/${bookingId}/can-review`)
-      const data = await res.json()
-      return data.data?.canReview || false
-    } catch (error) {
-      return false
-    }
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -141,10 +136,33 @@ export default function MyBookings() {
     )
   }
 
+  if (!currentUserId) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <div className="container mx-auto px-4 py-8 max-w-lg">
+          <Link href="/" className="inline-flex items-center text-teal-600 hover:text-teal-700 mb-6">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            На главную
+          </Link>
+          <Card>
+            <CardHeader>
+              <CardTitle>Вход</CardTitle>
+              <CardDescription>Войдите, чтобы видеть завершённые бронирования и оставлять отзывы.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button asChild className="bg-teal-600 hover:bg-teal-700">
+                <Link href="/profile?login=true&redirect=%2Fmy-bookings">Войти</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Header */}
         <div className="mb-8">
           <Link href="/" className="inline-flex items-center text-teal-600 hover:text-teal-700 mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -154,7 +172,6 @@ export default function MyBookings() {
           <p className="text-slate-600">Оставьте отзывы о вашем опыте</p>
         </div>
 
-        {/* Bookings List */}
         {bookings.length === 0 ? (
           <Card>
             <CardContent className="py-16 text-center">
@@ -168,62 +185,70 @@ export default function MyBookings() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {bookings.map((booking) => (
-              <Card key={booking.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-xl mb-2">{booking.listingTitle}</CardTitle>
-                      <CardDescription className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span>
-                            {new Date(booking.checkIn).toLocaleDateString('ru-RU')} -{' '}
-                            {new Date(booking.checkOut).toLocaleDateString('ru-RU')}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          <span>Phuket, Thailand</span>
-                        </div>
-                      </CardDescription>
+            {bookings.map((booking) => {
+              const title = booking.listings?.title || 'Объект'
+              const district = booking.listings?.district
+              const checkIn = booking.check_in
+              const checkOut = booking.check_out
+              const priceThb = booking.price_thb ?? booking.total_amount_thb
+              const isCompleted = String(booking.status || '').toUpperCase() === 'COMPLETED'
+
+              return (
+                <Card key={booking.id}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-xl mb-2">{title}</CardTitle>
+                        <CardDescription className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            <span>
+                              {checkIn && checkOut
+                                ? `${new Date(checkIn).toLocaleDateString('ru-RU')} — ${new Date(checkOut).toLocaleDateString('ru-RU')}`
+                                : '—'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4" />
+                            <span>{district ? `${district}, Thailand` : 'Thailand'}</span>
+                          </div>
+                        </CardDescription>
+                      </div>
+                      <Badge className="bg-green-100 text-green-700">Завершено</Badge>
                     </div>
-                    <Badge className="bg-green-100 text-green-700">
-                      Завершено
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <div>
-                      <p className="text-sm text-slate-600 mb-1">Стоимость</p>
-                      <p className="text-2xl font-bold text-slate-900">
-                        {formatPrice(booking.priceThb, 'THB')}
-                      </p>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <div>
+                        <p className="text-sm text-slate-600 mb-1">Стоимость</p>
+                        <p className="text-2xl font-bold text-slate-900">
+                          {priceThb != null ? formatPrice(priceThb, 'THB') : '—'}
+                        </p>
+                      </div>
+                      {isCompleted ? (
+                        <Button
+                          onClick={() => openReviewModal(booking)}
+                          className="bg-teal-600 hover:bg-teal-700"
+                        >
+                          <Star className="h-4 w-4 mr-2" />
+                          Оставить отзыв
+                        </Button>
+                      ) : null}
                     </div>
-                    <Button
-                      onClick={() => openReviewModal(booking)}
-                      className="bg-teal-600 hover:bg-teal-700"
-                    >
-                      <Star className="h-4 w-4 mr-2" />
-                      Оставить отзыв
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              )
+            })}
           </div>
         )}
 
-        {/* Review Modal */}
         <Dialog open={reviewModalOpen} onOpenChange={setReviewModalOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Оставьте отзыв</DialogTitle>
             </DialogHeader>
 
             <form onSubmit={handleReviewSubmit} className="space-y-6">
-              {/* Rating Stars */}
               <div>
                 <Label className="text-base font-semibold mb-3 block">Ваша оценка</Label>
                 <div className="flex gap-2">
@@ -257,7 +282,6 @@ export default function MyBookings() {
                 )}
               </div>
 
-              {/* Comment */}
               <div>
                 <Label htmlFor="comment" className="text-base font-semibold mb-3 block">
                   Ваш отзыв
@@ -271,51 +295,10 @@ export default function MyBookings() {
                   className="resize-none"
                 />
                 <p className="text-xs text-slate-500 mt-2">
-                  Ваш отзыв поможет другим пользователям принять решение
+                  Имя в отзыве будет показано в формате «Имя Ф.» для конфиденциальности.
                 </p>
               </div>
 
-              {/* Photo Upload (Mock) */}
-              <div>
-                <Label className="text-base font-semibold mb-3 block">
-                  Добавьте фото (необязательно)
-                </Label>
-                <div className="flex flex-wrap gap-3">
-                  {mockPhotos.map((photo, idx) => (
-                    <div key={idx} className="relative group w-24 h-24 rounded-lg overflow-hidden">
-                      <ProxiedImage
-                        src={photo}
-                        alt={`Photo ${idx + 1}`}
-                        width={96}
-                        height={96}
-                        className="object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePhoto(idx)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                  {mockPhotos.length < 3 && (
-                    <button
-                      type="button"
-                      onClick={handleAddMockPhoto}
-                      className="w-24 h-24 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-slate-500 hover:border-teal-500 hover:text-teal-600 transition"
-                    >
-                      <Upload className="h-6 w-6 mb-1" />
-                      <span className="text-xs">Добавить</span>
-                    </button>
-                  )}
-                </div>
-                <p className="text-xs text-slate-500 mt-2">
-                  🎭 Mock: Нажмите "Добавить" для случайного фото (макс. 3)
-                </p>
-              </div>
-
-              {/* Submit Button */}
               <div className="flex gap-3">
                 <Button
                   type="submit"

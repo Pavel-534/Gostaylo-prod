@@ -61,6 +61,8 @@ export function StickyChatHeader({
   messagesListBackLabel = null,
   /** Когда «Назад» рендерит родитель (например слева от шапки), скрыть дублирующую кнопку */
   hideBackButton = false,
+  /** Выход из «тупика» чата — ссылка на каталог / поиск */
+  catalogHref = null,
   /** `replace` — не копить историю (универсальный /messages/[id]); `push` — явный переход в инбокс (партнёрский кабинет) */
   messagesListBackNavigation = 'replace',
   /** Десктоп: «Поддержка / Медиа / Поиск» в одном меню «Ещё» — меньше шума в шапке */
@@ -155,6 +157,23 @@ export function StickyChatHeader({
       )}
 
       {/* Admin participants list */}
+      {catalogHref ? (
+        <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-2 py-1 sm:px-3">
+          <Link
+            href={catalogHref}
+            className="text-xs font-semibold text-teal-700 hover:text-teal-900 hover:underline truncate min-w-0"
+          >
+            {language === 'en' ? '← Back to search' : '← Назад к поиску'}
+          </Link>
+          <Link
+            href="/"
+            className="shrink-0 text-xs font-bold tracking-tight text-teal-800 hover:text-teal-950"
+          >
+            Gostaylo
+          </Link>
+        </div>
+      ) : null}
+
       {isAdminView && adminParticipants ? (
         <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200/80 text-xs text-slate-700 leading-relaxed">
           <p className="font-semibold text-slate-800 mb-1">Участники диалога</p>

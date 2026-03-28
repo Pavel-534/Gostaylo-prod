@@ -9,11 +9,14 @@
 
 import { useEffect, useRef, useState, useMemo } from 'react'
 import Link from 'next/link'
+import { format } from 'date-fns'
+import { ru as ruLocale } from 'date-fns/locale'
 import {
   Archive,
   ArchiveRestore,
   Building2,
   ChevronDown,
+  House,
   Loader2,
   Lock,
   Search,
@@ -63,6 +66,30 @@ function StatusBadge({ statusLabel, lang = 'ru' }) {
     >
       {lang === 'en' ? cfg.en : cfg.ru}
     </span>
+  )
+}
+
+function DealPreviewLine({ conv, lang = 'ru' }) {
+  const booking = conv.booking
+  const title = conv.listing?.title?.trim()
+  const cin = booking?.check_in ?? booking?.checkIn
+  const cout = booking?.check_out ?? booking?.checkOut
+  if (!title && !cin && !cout) return null
+  const locale = lang === 'en' ? undefined : ruLocale
+  let dates = ''
+  try {
+    const a = cin ? format(new Date(cin), 'd MMM', { locale }) : ''
+    const b = cout ? format(new Date(cout), 'd MMM yyyy', { locale }) : ''
+    dates = [a, b].filter(Boolean).join(' — ')
+  } catch {
+    dates = ''
+  }
+  const parts = [dates, title].filter(Boolean)
+  if (parts.length === 0) return null
+  return (
+    <p className="text-[11px] text-slate-600 truncate mb-0.5 leading-tight" title={parts.join(' · ')}>
+      {parts.join(' · ')}
+    </p>
   )
 }
 
@@ -236,6 +263,8 @@ function ConversationRow({
             </div>
           </div>
 
+          <DealPreviewLine conv={conv} lang={lang} />
+
           {showListingName && conv.listing?.title && (
             <p className="text-xs text-teal-600 truncate mb-0.5 font-medium">{conv.listing.title}</p>
           )}
@@ -342,6 +371,7 @@ export function ConversationListPanel({
   favoriteTogglePendingIds = [],
   onToggleFavorite,
   showStarredFilter = true,
+  catalogHref = '/listings',
 }) {
   const sentinelRef = useRef(null)
 
@@ -373,6 +403,20 @@ export function ConversationListPanel({
   return (
     <div className={cn('flex min-h-0 h-full flex-col', className)}>
       <div className="flex shrink-0 flex-col border-b border-slate-200 bg-white">
+        {catalogHref ? (
+          <div className="flex items-center gap-2 border-b border-slate-100 bg-teal-50/60 px-3 py-1.5">
+            <Link
+              href={catalogHref}
+              className="inline-flex min-w-0 flex-1 items-center gap-2 rounded-md py-0.5 text-sm font-semibold text-teal-800 hover:text-teal-900"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-teal-600 text-xs font-bold text-white">
+                G
+              </span>
+              <House className="h-4 w-4 shrink-0 text-teal-700" aria-hidden />
+              <span className="truncate">{isRu ? 'Каталог и поиск' : 'Browse & search'}</span>
+            </Link>
+          </div>
+        ) : null}
         <div className="flex items-center justify-between gap-2 px-3 py-2">
           <div className="min-w-0">
             <h2 className="truncate text-base font-semibold leading-tight text-slate-900">
@@ -476,6 +520,8 @@ export function ConversationList({
   roleTabsVisible = true,
   /** На странице архива API избранного не сочетается с archived=only — фильтр «Избранные» скрыт */
   favoritesFilterEnabled = true,
+  /** Ссылка на каталог; null — скрыть полосу «К каталогу» */
+  catalogHref = '/listings',
 }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [listFilter, setListFilter] = useState(LIST_FILTER_ALL)
@@ -534,6 +580,7 @@ export function ConversationList({
       favoriteTogglePendingIds={inbox.favoriteTogglePendingIds}
       onToggleFavorite={favoritesFilterEnabled ? inbox.toggleFavorite : undefined}
       showStarredFilter={favoritesFilterEnabled}
+      catalogHref={catalogHref}
     />
   )
 }

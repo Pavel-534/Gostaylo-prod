@@ -8,7 +8,7 @@
 import { useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Loader2, Home } from 'lucide-react'
+import { Loader2, Home, Search } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -144,12 +144,20 @@ export default function UnifiedMessagesHallPage() {
             </div>
             <span className="truncate font-bold text-slate-900">Gostaylo</span>
           </Link>
-          <Button asChild variant="ghost" size="sm" className="shrink-0">
-            <Link href="/">
-              <Home className="mr-1 h-4 w-4" />
-              {language === 'en' ? 'Home' : 'На главную'}
-            </Link>
-          </Button>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Link href="/listings">
+                <Search className="mr-1 h-4 w-4" />
+                {language === 'en' ? 'Search' : 'Каталог'}
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/">
+                <Home className="mr-1 h-4 w-4" />
+                {language === 'en' ? 'Home' : 'Главная'}
+              </Link>
+            </Button>
+          </div>
         </div>
       </header>
 

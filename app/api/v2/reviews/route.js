@@ -1,19 +1,23 @@
 /**
  * Gostaylo - Reviews API
  * GET /api/v2/reviews?listing_id=xxx - Get reviews for a listing
- * POST /api/v2/reviews - Create a new review (requires CHECKED_IN or COMPLETED booking)
+ * POST /api/v2/reviews - Create review (session cookie required; userId never from client body)
  */
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getUserIdFromSession } from '@/lib/services/session-service';
 
 export const dynamic = 'force-dynamic';
 
-// Format user name: "Pavel S." (First name + Last initial)
+// Format user name: "Pavel S." (First name + last initial only; privacy)
 function formatReviewerName(firstName, lastName) {
-  if (!firstName) return 'Guest';
-  if (!lastName) return firstName;
-  return `${firstName} ${lastName[0]}.`;
+  const first = typeof firstName === 'string' ? firstName.trim() : '';
+  if (!first) return 'Guest';
+  const last = typeof lastName === 'string' ? lastName.trim() : '';
+  if (!last) return first;
+  const initial = last[0];
+  return `${first} ${initial}.`;
 }
 
 export async function GET(request) {
@@ -120,21 +124,34 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const sessionUserId = await getUserIdFromSession();
+    if (!sessionUserId) {
+      return NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
-    const { 
-      userId, 
-      listingId, 
-      bookingId, 
-      rating, // Legacy single rating (optional if categories provided)
+    const {
+      listingId,
+      bookingId,
+      rating,
       comment,
-      // New: Multi-category ratings
-      ratings = null // { cleanliness, accuracy, communication, location, value }
+      ratings = null,
     } = body;
 
-    if (!userId || !listingId) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'userId and listingId are required' 
+    if (!listingId) {
+      return NextResponse.json({
+        success: false,
+        error: 'listingId is required',
+      }, { status: 400 });
+    }
+
+    if (!bookingId || !String(bookingId).trim()) {
+      return NextResponse.json({
+        success: false,
+        error: 'bookingId is required'
       }, { status: 400 });
     }
 
@@ -179,58 +196,53 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
-    // If bookingId provided, verify it exists and has correct status
-    if (bookingId) {
-      const { data: booking, error: bookingError } = await supabaseAdmin
-        .from('bookings')
-        .select('id, status, renter_id, listing_id')
-        .eq('id', bookingId)
-        .single();
-      
-      if (bookingError || !booking) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Booking not found' 
-        }, { status: 404 });
-      }
+    const trimmedBookingId = String(bookingId).trim();
+    const { data: booking, error: bookingError } = await supabaseAdmin
+      .from('bookings')
+      .select('id, status, renter_id, listing_id')
+      .eq('id', trimmedBookingId)
+      .single();
+    
+    if (bookingError || !booking) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Booking not found' 
+      }, { status: 404 });
+    }
 
-      // Check booking status - only COMPLETED can leave reviews
-      if (!['COMPLETED'].includes(booking.status)) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'You can only leave a review after check-in or completion' 
-        }, { status: 403 });
-      }
+    // Only COMPLETED bookings may be reviewed
+    if (booking.status !== 'COMPLETED') {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'You can only leave a review after the stay is completed' 
+      }, { status: 403 });
+    }
 
-      // Check that the user is the renter
-      if (booking.renter_id !== userId) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'You can only review your own bookings' 
-        }, { status: 403 });
-      }
+    if (booking.renter_id !== sessionUserId) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'You can only review your own bookings' 
+      }, { status: 403 });
+    }
 
-      // Check listing matches
-      if (booking.listing_id !== listingId) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Booking does not match listing' 
-        }, { status: 400 });
-      }
+    if (booking.listing_id !== listingId) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Booking does not match listing' 
+      }, { status: 400 });
+    }
 
-      // Check if user already reviewed this booking
-      const { data: existingReview } = await supabaseAdmin
-        .from('reviews')
-        .select('id')
-        .eq('booking_id', bookingId)
-        .single();
-      
-      if (existingReview) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'You have already reviewed this booking' 
-        }, { status: 400 });
-      }
+    const { data: existingReview } = await supabaseAdmin
+      .from('reviews')
+      .select('id')
+      .eq('booking_id', trimmedBookingId)
+      .maybeSingle();
+    
+    if (existingReview) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'You have already reviewed this booking' 
+      }, { status: 400 });
     }
 
     // Create review
@@ -240,9 +252,9 @@ export async function POST(request) {
       .from('reviews')
       .insert({
         id: reviewId,
-        user_id: userId,
+        user_id: sessionUserId,
         listing_id: listingId,
-        booking_id: bookingId || null,
+        booking_id: trimmedBookingId,
         ...ratingData,
         comment: comment?.trim() || null,
         created_at: new Date().toISOString()

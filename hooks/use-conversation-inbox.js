@@ -350,10 +350,22 @@ export function useConversationInbox({
     _fetchConversations({ offset: 0, append: false })
   }, [_fetchConversations])
 
-  const filteredConversations = useMemo(
-    () => filterConversationsByInboxTab(conversations, userId, inboxTab),
-    [conversations, userId, inboxTab]
-  )
+  const filteredConversations = useMemo(() => {
+    const tab = filterConversationsByInboxTab(conversations, userId, inboxTab)
+    const ts = (c) =>
+      new Date(
+        c.lastMessageAt || c.last_message_at || c.updatedAt || c.updated_at || c.createdAt || 0
+      ).getTime()
+    return [...tab].sort((a, b) => {
+      const tb = ts(b)
+      const ta = ts(a)
+      if (tb !== ta) return tb - ta
+      const ba = a.bookingId || a.booking_id ? 1 : 0
+      const bb = b.bookingId || b.booking_id ? 1 : 0
+      if (bb !== ba) return bb - ba
+      return String(b.id || '').localeCompare(String(a.id || ''))
+    })
+  }, [conversations, userId, inboxTab])
 
   const hostingUnread = useMemo(
     () =>

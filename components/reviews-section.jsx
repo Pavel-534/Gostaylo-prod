@@ -16,7 +16,6 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useAuth } from '@/contexts/auth-context';
 import { toast } from 'sonner';
 
 // Star rating display
@@ -167,7 +166,6 @@ function WriteReviewDialog({ listingId, bookingId, onSuccess, language = 'ru' })
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const { user } = useAuth();
 
   const t = {
     ru: {
@@ -206,8 +204,8 @@ function WriteReviewDialog({ listingId, bookingId, onSuccess, language = 'ru' })
       const res = await fetch('/api/v2/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          userId: user.id,
           listingId,
           bookingId,
           rating,
@@ -285,7 +283,6 @@ export function ReviewsSection({ listingId, language = 'ru' }) {
   const [stats, setStats] = useState({ total: 0, averageRating: 0 });
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
-  const { user } = useAuth();
 
   const t = {
     ru: {

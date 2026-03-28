@@ -12,7 +12,7 @@
  * @refactored Phase 7.4 - Under 200 lines target
  */
 
-import { useState, useEffect, useMemo, Suspense } from 'react'
+import { useState, useEffect, useMemo, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -27,6 +27,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 import { useDebounce, useIntersectionObserver, useListingsFetch } from '@/lib/hooks/useListingsSearch'
 import { detectLanguage } from '@/lib/translations'
+import { normalizeListingCategorySlugForSearch, isTransportListingCategory } from '@/lib/listing-category-slug'
 
 const ITEMS_PER_PAGE = 12
 
@@ -35,13 +36,38 @@ function ListingsContent() {
   const { user } = useAuth()
   
   // Initialize from URL - 4 params: What, Where, When, Who
-  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all')
+  const [selectedCategory, setSelectedCategory] = useState(() =>
+    normalizeListingCategorySlugForSearch(searchParams.get('category') || 'all')
+  )
   const [where, setWhere] = useState(searchParams.get('where') || searchParams.get('location') || searchParams.get('city') || 'all')
   const [guests, setGuests] = useState(searchParams.get('guests') || '2')
   const [dateRange, setDateRange] = useState({
     from: searchParams.get('checkIn') ? parseISO(searchParams.get('checkIn')) : null,
     to: searchParams.get('checkOut') ? parseISO(searchParams.get('checkOut')) : null
   })
+
+  const searchParamsKey = searchParams.toString()
+  const urlSyncDidMount = useRef(false)
+  useEffect(() => {
+    if (!urlSyncDidMount.current) {
+      urlSyncDidMount.current = true
+      return
+    }
+    setSelectedCategory(
+      normalizeListingCategorySlugForSearch(searchParams.get('category') || 'all')
+    )
+    setWhere(
+      searchParams.get('where') ||
+        searchParams.get('location') ||
+        searchParams.get('city') ||
+        'all'
+    )
+    setGuests(searchParams.get('guests') || '2')
+    setDateRange({
+      from: searchParams.get('checkIn') ? parseISO(searchParams.get('checkIn')) : null,
+      to: searchParams.get('checkOut') ? parseISO(searchParams.get('checkOut')) : null,
+    })
+  }, [searchParamsKey])
   
   // UI state
   const [language, setLanguage] = useState('en')
@@ -198,6 +224,15 @@ function ListingsContent() {
   const nights = useMemo(() => 
     dateRange.from && dateRange.to ? differenceInDays(dateRange.to, dateRange.from) : 0,
   [dateRange])
+
+  const transportBroadenHref = useMemo(() => {
+    if (!isTransportListingCategory(selectedCategory)) return null
+    const params = new URLSearchParams()
+    params.set('category', 'vehicles')
+    if (dateRange.from) params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
+    if (dateRange.to) params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
+    return `/listings?${params.toString()}`
+  }, [selectedCategory, dateRange.from, dateRange.to])
   
   const cardDates = useMemo(() => ({
     checkIn: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : null,
@@ -266,6 +301,9 @@ function ListingsContent() {
             loadMoreRef={loadMoreRef}
             allListings={allListings}
             displayedCount={displayedCount}
+            selectedCategory={selectedCategory}
+            filterWhere={where}
+            transportBroadenHref={transportBroadenHref}
           />
 
           <SearchMapWrapper
