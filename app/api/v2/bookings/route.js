@@ -143,27 +143,17 @@ export async function POST(request) {
     if (result.error) {
       return NextResponse.json({ success: false, error: result.error }, { status: 400 });
     }
-    
-    // Get partner details for notification
-    const { data: listing } = await supabaseAdmin
-      .from('listings')
-      .select('*, owner:profiles!owner_id(*)')
-      .eq('id', listingId)
-      .single();
-    
-    if (listing) {
-      // Send notification to partner with commission details
-      await NotificationService.dispatch(NotificationEvents.NEW_BOOKING_REQUEST, {
-        booking: {
-          ...result.booking,
-          commission_rate: result.commission?.commissionRate,
-          commission_thb: result.commission?.commissionThb,
-          partner_earnings_thb: result.commission?.partnerEarnings
-        },
-        partner: listing.owner,
-        listing: { title: listing.title, district: listing.district }
-      });
-    }
+
+    // Emails + Telegram (guest, partner, admin topic) — всегда после успешного create;
+    // данные партнёра уже загружены в BookingService (owner:profiles!owner_id).
+    await NotificationService.dispatch(NotificationEvents.NEW_BOOKING_REQUEST, {
+      booking: { ...result.booking },
+      partner: result.partner ?? null,
+      listing: {
+        title: result.booking.listing?.title ?? null,
+        district: result.booking.listing?.district ?? null,
+      },
+    });
     
     console.log(`[BOOKING] New booking created: ${result.booking.id} for listing ${listingId}`);
     

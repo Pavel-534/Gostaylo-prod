@@ -17,6 +17,7 @@ import {
   Briefcase, Link as LinkIcon, MessageSquare, ArrowRight, Shield,
   Plane, Settings, LogOut, Star
 } from 'lucide-react'
+import { telegramAccountLinkUrl } from '@/lib/telegram-bot-public'
 
 // Main export with Suspense wrapper for useSearchParams
 export default function ProfilePage() {
@@ -427,9 +428,7 @@ function ProfileContent() {
                       })
                       return
                     }
-                    const botName = (process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME || 'GostayloBot').replace(/^@/, '')
-                    const url = `https://t.me/${botName}?start=link_${encodeURIComponent(user.id)}`
-                    window.open(url, '_blank', 'noopener,noreferrer')
+                    window.open(telegramAccountLinkUrl(user.id), '_blank', 'noopener,noreferrer')
                   }}
                 >
                   <MessageSquare className='h-4 w-4 mr-2' />

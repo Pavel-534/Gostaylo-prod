@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
 import { generateLinkCode } from '@/lib/telegram';
+import { getTelegramBotUsername } from '@/lib/telegram-bot-public';
 
 // Temporary storage for link codes (in production use Redis)
 const linkCodes = new Map();
@@ -40,12 +41,13 @@ export async function POST(request) {
       }
     }
 
+    const botUser = getTelegramBotUsername();
     return NextResponse.json({ 
       success: true, 
       code,
-      botUsername: 'GostayloBot', // Replace with actual bot username
+      botUsername: botUser,
       expiresIn: '15 minutes',
-      instruction: `Отправьте этот код боту @GostayloBot: /link ${code}`
+      instruction: `Откройте t.me/${botUser}?start=link_${userId} или отправьте боту /link ваш@email.com`,
     });
 
   } catch (error) {

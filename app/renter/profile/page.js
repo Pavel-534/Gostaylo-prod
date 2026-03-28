@@ -34,6 +34,7 @@ import { format } from 'date-fns'
 import { ru, enUS } from 'date-fns/locale'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { telegramAccountLinkUrl } from '@/lib/telegram-bot-public'
 
 // Profile completion calculation
 function calculateProfileCompletion(user) {
@@ -191,8 +192,6 @@ export default function RenterProfilePage() {
   const [applicationStatus, setApplicationStatus] = useState(null)
   const [loadingApplication, setLoadingApplication] = useState(true)
   const [telegramLinked, setTelegramLinked] = useState(false)
-  const [linkingTelegram, setLinkingTelegram] = useState(false)
-  const [telegramCode, setTelegramCode] = useState(null)
   
   // Modal states
   const [showApplicationModal, setShowApplicationModal] = useState(false)
@@ -244,31 +243,6 @@ export default function RenterProfilePage() {
       console.error('[PROFILE] Failed to fetch application status', error)
     } finally {
       setLoadingApplication(false)
-    }
-  }
-  
-  // Handle telegram link
-  async function handleTelegramLink() {
-    setLinkingTelegram(true)
-    try {
-      const res = await fetch('/api/v2/telegram/link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
-      })
-      
-      const data = await res.json()
-      
-      if (data.success) {
-        setTelegramCode(data.code)
-        toast.success('Link code generated! Send it to our bot.')
-      } else {
-        toast.error(data.error || 'Failed to generate code')
-      }
-    } catch (error) {
-      toast.error('Failed to generate telegram link')
-    } finally {
-      setLinkingTelegram(false)
     }
   }
   
@@ -536,51 +510,22 @@ export default function RenterProfilePage() {
                 </p>
               </div>
             </div>
-          ) : telegramCode ? (
-            <div className="space-y-3">
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-900 mb-2">{getUIText('sendCodeToBot', language)}</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 p-2 bg-white border border-blue-300 rounded font-mono text-lg text-center">
-                    /link {telegramCode}
-                  </code>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`/link ${telegramCode}`)
-                      toast.success(getUIText('codeCopied', language))
-                    }}
-                  >
-                    {getUIText('copy', language)}
-                  </Button>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => window.open('https://t.me/GostayloBot', '_blank')}
-              >
-                {getUIText('openTelegramBot', language)}
-              </Button>
-            </div>
           ) : (
-            <Button
-              onClick={handleTelegramLink}
-              disabled={linkingTelegram}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-            >
-              {linkingTelegram ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {getUIText('generating', language)}
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  {getUIText('connectTelegram', language)}
-                </>
-              )}
-            </Button>
+            <div className="space-y-3">
+              <p className="text-sm text-slate-600">{getUIText('telegramLinkOneTapHint', language)}</p>
+              <Button
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                disabled={!user?.id}
+                onClick={() => {
+                  if (!user?.id) return
+                  window.open(telegramAccountLinkUrl(user.id), '_blank', 'noopener,noreferrer')
+                }}
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {getUIText('telegramLinkOneTap', language)}
+              </Button>
+              <p className="text-xs text-slate-500">{getUIText('telegramLinkAltEmail', language)}</p>
+            </div>
           )}
         </CardContent>
       </Card>

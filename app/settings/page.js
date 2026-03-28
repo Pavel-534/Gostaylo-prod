@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Bell, Copy, Check, ExternalLink, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { telegramAccountLinkUrl, getTelegramBotUsername } from '@/lib/telegram-bot-public';
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -304,7 +305,7 @@ export default function SettingsPage() {
                         </p>
                         <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
                           <li>Скопируйте код выше</li>
-                          <li>Откройте бот @GostayloBot в Telegram</li>
+                          <li>Откройте бот @{getTelegramBotUsername()} в Telegram</li>
                           <li>Отправьте команду /start</li>
                           <li>Отправьте ваш код привязки</li>
                         </ol>
@@ -313,12 +314,16 @@ export default function SettingsPage() {
                           className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-semibold py-5 mt-2"
                         >
                           <a
-                            href="https://t.me/GostayloBot"
+                            href={
+                              user?.id
+                                ? telegramAccountLinkUrl(user.id)
+                                : `https://t.me/${getTelegramBotUsername()}`
+                            }
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center justify-center gap-2"
                           >
-                            Открыть @GostayloBot
+                            Открыть @{getTelegramBotUsername()}
                             <ExternalLink className="w-4 h-4" />
                           </a>
                         </Button>
