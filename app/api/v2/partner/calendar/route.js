@@ -247,11 +247,13 @@ export async function GET(request) {
         const listingIds = listings.map(l => l.id)
         console.log(`[CALENDAR] Found ${listings.length} listings for partner ${userId}`)
         
+        // Bookings by listing_id (not partner_id): matches public availability. Some rows may have
+        // missing/wrong partner_id while listing_id still points at this owner's listing.
         if (useAdmin) {
           const { data: bookingsData } = await supabaseAdmin
             .from('bookings')
             .select('id,listing_id,guest_name,check_in,check_out,status,price_thb,source')
-            .eq('partner_id', userId)
+            .in('listing_id', listingIds)
             .gte('check_out', startDate)
             .lte('check_in', endDate)
             .in('status', OCCUPYING_BOOKING_STATUSES)
@@ -281,8 +283,12 @@ export async function GET(request) {
             console.log('[CALENDAR] Error fetching seasonal_prices:', e.message)
           }
         } else {
+          const listingIn =
+            listingIds.length === 1
+              ? `listing_id=eq.${listingIds[0]}`
+              : `listing_id=in.(${listingIds.join(',')})`
           const bookingsRes = await fetch(
-            `${SUPABASE_URL}/rest/v1/bookings?partner_id=eq.${userId}&check_out=gte.${startDate}&check_in=lte.${endDate}&status=in.(${OCCUPYING_BOOKING_STATUSES.join(',')})&select=id,listing_id,guest_name,check_in,check_out,status,price_thb,source`,
+            `${SUPABASE_URL}/rest/v1/bookings?${listingIn}&check_out=gte.${startDate}&check_in=lte.${endDate}&status=in.(${OCCUPYING_BOOKING_STATUSES.join(',')})&select=id,listing_id,guest_name,check_in,check_out,status,price_thb,source`,
             { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
           )
           const bookingsJson = await bookingsRes.json()
