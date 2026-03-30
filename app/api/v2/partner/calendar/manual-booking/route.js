@@ -11,6 +11,7 @@ import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { v4 as uuidv4 } from 'uuid'
 import { differenceInDays, parseISO } from 'date-fns'
+import { OCCUPYING_BOOKING_STATUSES } from '@/lib/booking-occupancy-statuses'
 
 export const dynamic = 'force-dynamic'
 
@@ -112,7 +113,7 @@ export async function POST(request) {
       .from('bookings')
       .select('id')
       .eq('listing_id', listingId)
-      .in('status', ['PENDING', 'CONFIRMED', 'PAID'])
+      .in('status', OCCUPYING_BOOKING_STATUSES)
       .or(`and(check_in.lt.${checkOut},check_out.gt.${checkIn})`)
     
     if (conflicts && conflicts.length > 0) {

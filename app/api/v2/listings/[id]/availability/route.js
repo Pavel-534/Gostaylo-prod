@@ -20,6 +20,7 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { OCCUPYING_BOOKING_STATUSES } from '@/lib/booking-occupancy-statuses';
 
 export const dynamic = 'force-dynamic';
 
@@ -121,12 +122,12 @@ export async function GET(request, { params }) {
         .gte('end_date', todayStr)
         .lte('start_date', futureStr),
       
-      // Bookings that block nights (PENDING, CONFIRMED, PAID)
+      // Bookings that block nights (incl. PAID_ESCROW, CHECKED_IN)
       supabase
         .from('bookings')
         .select('id, check_in, check_out, status')
         .eq('listing_id', listingId)
-        .in('status', ['PENDING', 'CONFIRMED', 'PAID'])
+        .in('status', OCCUPYING_BOOKING_STATUSES)
         .gte('check_out', todayStr)  // Booking ends after today
         .lte('check_in', futureStr)   // Booking starts before future limit
     ]);

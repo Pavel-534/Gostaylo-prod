@@ -389,50 +389,64 @@ export default function RenterBookingsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">{getUIText('myBookingsTitle', language)}</h1>
-          <p className="text-slate-600 mt-1">{getUIText('manageTrips', language)}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 pr-2">
+          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+            {getUIText('myBookingsTitle', language)}
+          </h1>
+          <p className="text-slate-600 mt-1 text-sm sm:text-base">{getUIText('manageTrips', language)}</p>
         </div>
-        <Link href="/listings">
-          <Button className="bg-teal-600 hover:bg-teal-700">
+        <Link href="/listings" className="shrink-0 self-stretch sm:self-auto">
+          <Button className="w-full bg-teal-600 hover:bg-teal-700 sm:w-auto">
             <Home className="h-4 w-4 mr-2" />
             {getUIText('findStay', language)}
           </Button>
         </Link>
       </div>
       
-      {/* Tabs */}
+      {/* Tabs — horizontal scroll on narrow screens so labels + badges do not overlap */}
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="all" className="relative">
-            {getUIText('all', language)}
+        <TabsList className="flex h-auto w-full max-w-full flex-nowrap items-stretch justify-start gap-1 overflow-x-auto overflow-y-hidden rounded-lg bg-muted p-1 [scrollbar-width:none] lg:inline-grid lg:w-auto lg:grid-cols-4 lg:overflow-visible [&::-webkit-scrollbar]:hidden">
+          <TabsTrigger
+            value="all"
+            className="shrink-0 flex-col gap-1 px-3 py-2 text-xs data-[state=active]:shadow-sm lg:flex-row lg:text-sm"
+          >
+            <span className="whitespace-nowrap">{getUIText('all', language)}</span>
             {counts.all > 0 && (
-              <Badge variant="secondary" className="ml-2 bg-teal-100 text-teal-700">
+              <Badge variant="secondary" className="shrink-0 bg-teal-100 text-teal-700">
                 {counts.all}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="upcoming" className="relative">
-            {getUIText('upcoming', language)}
+          <TabsTrigger
+            value="upcoming"
+            className="shrink-0 flex-col gap-1 px-3 py-2 text-xs data-[state=active]:shadow-sm lg:flex-row lg:text-sm"
+          >
+            <span className="whitespace-nowrap">{getUIText('upcoming', language)}</span>
             {counts.upcoming > 0 && (
-              <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
+              <Badge variant="secondary" className="shrink-0 bg-blue-100 text-blue-700">
                 {counts.upcoming}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="past" className="relative">
-            {getUIText('past', language)}
+          <TabsTrigger
+            value="past"
+            className="shrink-0 flex-col gap-1 px-3 py-2 text-xs data-[state=active]:shadow-sm lg:flex-row lg:text-sm"
+          >
+            <span className="whitespace-nowrap">{getUIText('past', language)}</span>
             {counts.past > 0 && (
-              <Badge variant="secondary" className="ml-2 bg-slate-200 text-slate-700">
+              <Badge variant="secondary" className="shrink-0 bg-slate-200 text-slate-700">
                 {counts.past}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="cancelled" className="relative">
-            {getUIText('cancelled', language)}
+          <TabsTrigger
+            value="cancelled"
+            className="shrink-0 flex-col gap-1 px-3 py-2 text-xs data-[state=active]:shadow-sm lg:flex-row lg:text-sm"
+          >
+            <span className="whitespace-nowrap">{getUIText('cancelled', language)}</span>
             {counts.cancelled > 0 && (
-              <Badge variant="secondary" className="ml-2 bg-red-100 text-red-700">
+              <Badge variant="secondary" className="shrink-0 bg-red-100 text-red-700">
                 {counts.cancelled}
               </Badge>
             )}

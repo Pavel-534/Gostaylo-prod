@@ -10,6 +10,7 @@ import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { addDays, format, parseISO, isSameDay } from 'date-fns'
 import { toPublicImageUrl } from '@/lib/public-image-url'
+import { OCCUPYING_BOOKING_STATUSES } from '@/lib/booking-occupancy-statuses'
 
 export const dynamic = 'force-dynamic'
 
@@ -253,7 +254,7 @@ export async function GET(request) {
             .eq('partner_id', userId)
             .gte('check_out', startDate)
             .lte('check_in', endDate)
-            .in('status', ['PENDING', 'CONFIRMED', 'PAID'])
+            .in('status', OCCUPYING_BOOKING_STATUSES)
           bookings = bookingsData || []
           
           try {
@@ -281,7 +282,7 @@ export async function GET(request) {
           }
         } else {
           const bookingsRes = await fetch(
-            `${SUPABASE_URL}/rest/v1/bookings?partner_id=eq.${userId}&check_out=gte.${startDate}&check_in=lte.${endDate}&status=in.(PENDING,CONFIRMED,PAID)&select=id,listing_id,guest_name,check_in,check_out,status,price_thb,source`,
+            `${SUPABASE_URL}/rest/v1/bookings?partner_id=eq.${userId}&check_out=gte.${startDate}&check_in=lte.${endDate}&status=in.(${OCCUPYING_BOOKING_STATUSES.join(',')})&select=id,listing_id,guest_name,check_in,check_out,status,price_thb,source`,
             { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
           )
           const bookingsJson = await bookingsRes.json()
