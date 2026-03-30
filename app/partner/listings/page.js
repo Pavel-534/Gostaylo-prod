@@ -43,6 +43,17 @@ export default function PartnerListings() {
   const [visibilityBusyId, setVisibilityBusyId] = useState(null)
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const q = new URLSearchParams(window.location.search).get('filter')
+        if (q === 'draft') setListFilter('draft')
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [])
+
+  useEffect(() => {
     // Wait for auth to load before fetching listings
     if (!authLoading) {
       if (isAuthenticated && user?.id) {

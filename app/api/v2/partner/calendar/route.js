@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
-import { addDays, format, parseISO, isSameDay } from 'date-fns'
+import { addDays, format, parseISO } from 'date-fns'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { OCCUPYING_BOOKING_STATUSES } from '@/lib/booking-occupancy-statuses'
 
@@ -52,6 +52,13 @@ function getSeasonalPrice(seasonalPrices, listingId, date) {
  * Night model: occupied nights are [check_in, check_out) — aligns with CalendarService / OTAs.
  * Blocks are inclusive [start_date, end_date].
  */
+/** YYYY-MM-DD from DATE / timestamptz (same idea as listings availability API) */
+function calendarDateKey(value) {
+  if (value == null) return ''
+  const s = String(value)
+  return s.length >= 10 ? s.slice(0, 10) : s
+}
+
 function processCalendarData(listings, bookings, blocks, seasonalPrices, startDate, endDate) {
   const start = parseISO(startDate)
   const end = parseISO(endDate)
@@ -64,19 +71,20 @@ function processCalendarData(listings, bookings, blocks, seasonalPrices, startDa
   }
   
   const calendarData = listings.map(listing => {
-    const listingBookings = bookings.filter(b => b.listing_id === listing.id)
-    const listingBlocks = blocks.filter(b => b.listing_id === listing.id)
+    const lid = String(listing.id)
+    const listingBookings = bookings.filter((b) => String(b.listing_id) === lid)
+    const listingBlocks = blocks.filter((b) => String(b.listing_id) === lid)
     
     const availability = {}
     
     dates.forEach(date => {
       const dateObj = parseISO(date)
       
-      // 1) Occupied nights only: check_in <= date < check_out
-      const booking = listingBookings.find(b => {
-        const checkIn = parseISO(b.check_in)
-        const checkOut = parseISO(b.check_out)
-        return dateObj >= checkIn && dateObj < checkOut
+      // 1) Occupied nights only: check_in <= date < check_out (string calendar keys, no TZ drift)
+      const booking = listingBookings.find((b) => {
+        const checkIn = calendarDateKey(b.check_in)
+        const checkOut = calendarDateKey(b.check_out)
+        return checkIn && checkOut && date >= checkIn && date < checkOut
       })
       
       // 2) Inclusive block (manual / iCal) — skipped if a booking occupies this night
@@ -87,12 +95,12 @@ function processCalendarData(listings, bookings, blocks, seasonalPrices, startDa
       })
       
       // Checkout morning: not an occupied night; may still be blocked above
-      const checkoutBooking = listingBookings.find(b => isSameDay(dateObj, parseISO(b.check_out)))
+      const checkoutBooking = listingBookings.find((b) => date === calendarDateKey(b.check_out))
       
       if (booking) {
-        const isCheckIn = isSameDay(dateObj, parseISO(booking.check_in))
-        const hasOtherCheckOut = listingBookings.some(b =>
-          b.id !== booking.id && isSameDay(dateObj, parseISO(b.check_out))
+        const isCheckIn = date === calendarDateKey(booking.check_in)
+        const hasOtherCheckOut = listingBookings.some(
+          (b) => b.id !== booking.id && date === calendarDateKey(b.check_out)
         )
         
         availability[date] = {
@@ -100,7 +108,7 @@ function processCalendarData(listings, bookings, blocks, seasonalPrices, startDa
           bookingId: booking.id,
           guestName: booking.guest_name,
           bookingStatus: booking.status,
-          source: booking.source || 'PLATFORM',
+          source: booking.source != null ? booking.source : 'PLATFORM',
           isCheckIn,
           isCheckOut: false,
           // Same-day turnover: new guest checks in while another checks out
@@ -250,13 +258,17 @@ export async function GET(request) {
         // Bookings by listing_id (not partner_id): matches public availability. Some rows may have
         // missing/wrong partner_id while listing_id still points at this owner's listing.
         if (useAdmin) {
-          const { data: bookingsData } = await supabaseAdmin
+          const { data: bookingsData, error: bookingsQueryError } = await supabaseAdmin
             .from('bookings')
-            .select('id,listing_id,guest_name,check_in,check_out,status,price_thb,source')
+            .select('id,listing_id,guest_name,check_in,check_out,status,price_thb')
             .in('listing_id', listingIds)
             .gte('check_out', startDate)
             .lte('check_in', endDate)
             .in('status', OCCUPYING_BOOKING_STATUSES)
+          if (bookingsQueryError) {
+            console.error('[CALENDAR] bookings query error:', bookingsQueryError.message, bookingsQueryError)
+            throw bookingsQueryError
+          }
           bookings = bookingsData || []
           
           try {
@@ -288,10 +300,14 @@ export async function GET(request) {
               ? `listing_id=eq.${listingIds[0]}`
               : `listing_id=in.(${listingIds.join(',')})`
           const bookingsRes = await fetch(
-            `${SUPABASE_URL}/rest/v1/bookings?${listingIn}&check_out=gte.${startDate}&check_in=lte.${endDate}&status=in.(${OCCUPYING_BOOKING_STATUSES.join(',')})&select=id,listing_id,guest_name,check_in,check_out,status,price_thb,source`,
+            `${SUPABASE_URL}/rest/v1/bookings?${listingIn}&check_out=gte.${startDate}&check_in=lte.${endDate}&status=in.(${OCCUPYING_BOOKING_STATUSES.join(',')})&select=id,listing_id,guest_name,check_in,check_out,status,price_thb`,
             { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
           )
           const bookingsJson = await bookingsRes.json()
+          if (!bookingsRes.ok) {
+            console.error('[CALENDAR] bookings REST error:', bookingsRes.status, bookingsJson)
+            throw new Error(bookingsJson?.message || bookingsJson?.error || 'Bookings fetch failed')
+          }
           bookings = Array.isArray(bookingsJson) ? bookingsJson : []
           
           try {
