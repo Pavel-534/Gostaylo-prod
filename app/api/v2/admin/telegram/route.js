@@ -5,13 +5,13 @@
  */
 
 import { NextResponse } from 'next/server';
-import { getPublicSiteUrl } from '@/lib/site-url.js';
+import { getPublicSiteUrl, getTelegramWebhookUrl } from '@/lib/site-url.js';
 
 export const dynamic = 'force-dynamic';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const BASE_URL = getPublicSiteUrl();
-const WEBHOOK_URL = `${BASE_URL}/api/webhooks/telegram`;
+const WEBHOOK_URL = getTelegramWebhookUrl();
 
 // Auto-setup webhook if not configured
 async function ensureWebhookConfigured() {
@@ -26,7 +26,7 @@ async function ensureWebhookConfigured() {
       const currentUrl = infoData.result.url;
       
       // If webhook is not set or points to another host, update it
-      if (!currentUrl || currentUrl.replace(/\/$/, '') !== WEBHOOK_URL) {
+      if (!currentUrl || currentUrl.replace(/\/$/, '') !== WEBHOOK_URL.replace(/\/$/, '')) {
         console.log('[TELEGRAM] Auto-setting webhook to:', WEBHOOK_URL);
         
         const setResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook`, {
@@ -81,7 +81,7 @@ export async function GET() {
     
     const whUrl = webhookData.result?.url?.replace(/\/$/, '') || '';
     const webhookOk =
-      webhookData.ok && whUrl && whUrl === WEBHOOK_URL;
+      webhookData.ok && whUrl && whUrl === WEBHOOK_URL.replace(/\/$/, '');
     
     return NextResponse.json({
       success: true,

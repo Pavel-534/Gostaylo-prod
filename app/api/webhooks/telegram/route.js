@@ -4,7 +4,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { getPublicSiteUrl } from '@/lib/site-url.js'
+import { getPublicSiteUrl, getTelegramWebhookUrl } from '@/lib/site-url.js'
 import { getTelegramBotUsername } from '@/lib/telegram-bot-public'
 import { telegramEnv, IMAGE_CONFIG } from '@/lib/services/telegram/env.js'
 import { sendTelegram } from '@/lib/services/telegram/api.js'
@@ -133,7 +133,7 @@ export async function POST(request) {
 export async function GET() {
   const { storageBucket, botToken } = telegramEnv()
   const publicSiteUrl = getPublicSiteUrl()
-  const expectedWebhookUrl = `${publicSiteUrl}/api/webhooks/telegram`
+  const expectedWebhookUrl = getTelegramWebhookUrl()
   const botUsernameResolved = getTelegramBotUsername()
 
   let telegramWebhookInfo = null
@@ -161,7 +161,8 @@ export async function GET() {
         telegramWebhookInfo = {
           url: r.url || null,
           url_matches_expected:
-            Boolean(r.url) && String(r.url).replace(/\/$/, '') === expectedWebhookUrl,
+            Boolean(r.url) &&
+            String(r.url).replace(/\/$/, '') === String(expectedWebhookUrl).replace(/\/$/, ''),
           pending_update_count: r.pending_update_count ?? 0,
           last_error_message: r.last_error_message || null,
           last_error_date: r.last_error_date
