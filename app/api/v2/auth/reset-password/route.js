@@ -48,6 +48,7 @@ export async function POST(request) {
   }
   
   const { userId, email } = decoded;
+  const tokenEmailNorm = String(email || '').toLowerCase().trim();
   
   // Get Supabase client
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -61,24 +62,42 @@ export async function POST(request) {
     auth: { autoRefreshToken: false, persistSession: false }
   });
   
-  // Hash new password
+  // Профиль по id из токена (email в JWT должен совпадать без учёта регистра)
+  const { data: row, error: fetchErr } = await supabase
+    .from('profiles')
+    .select('id, email, first_name')
+    .eq('id', userId)
+    .maybeSingle();
+  
+  if (fetchErr || !row) {
+    console.error('[RESET-PASSWORD] Profile fetch:', fetchErr?.message || 'not found');
+    return NextResponse.json({ success: false, error: 'Invalid or expired token' }, { status: 400 });
+  }
+  
+  if (String(row.email || '').toLowerCase().trim() !== tokenEmailNorm) {
+    console.error('[RESET-PASSWORD] Email mismatch for user', userId);
+    return NextResponse.json({ success: false, error: 'Invalid or expired token' }, { status: 400 });
+  }
+  
   const passwordHash = await bcrypt.hash(password, 10);
   
-  // Update password
+  // Только колонки из схемы profiles (password_reset_at в миграциях нет — иначе PostgREST падает)
   const { data: user, error } = await supabase
     .from('profiles')
-    .update({ 
+    .update({
       password_hash: passwordHash,
-      password_reset_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('id', userId)
-    .eq('email', email.toLowerCase())
     .select('id, email, first_name')
     .single();
   
   if (error || !user) {
-    console.error('[RESET-PASSWORD] DB Error:', error?.message);
-    return NextResponse.json({ success: false, error: 'Failed to reset password' }, { status: 500 });
+    console.error('[RESET-PASSWORD] DB update:', error?.message, error?.details, error?.hint);
+    return NextResponse.json(
+      { success: false, error: 'Не удалось сохранить пароль. Попробуйте позже.' },
+      { status: 500 }
+    );
   }
   
   console.log('[RESET-PASSWORD] Password reset for:', user.email);

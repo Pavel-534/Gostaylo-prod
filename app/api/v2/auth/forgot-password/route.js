@@ -67,9 +67,9 @@ export async function POST(request) {
     });
   }
   
-  // Generate reset token (1 hour)
+  // Токен: email в нижнем регистре — совпадение при сбросе без учёта регистра в БД
   const resetToken = jwt.sign(
-    { userId: user.id, email: user.email, type: 'password_reset' },
+    { userId: user.id, email: normalizedEmail, type: 'password_reset' },
     JWT_SECRET,
     { expiresIn: '1h' }
   );
