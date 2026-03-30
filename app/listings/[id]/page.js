@@ -452,7 +452,7 @@ function PremiumListingContent({ params }) {
           guestName,
           guestEmail,
           guestPhone,
-          specialRequests: message || null,
+          specialRequests: message?.trim() ? message.trim() : undefined,
           currency: 'THB'
         })
       })
