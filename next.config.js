@@ -30,6 +30,11 @@ const nextConfig = {
 
   /** Cloudflare / origin: единообразные пути со слешем в конце. */
   trailingSlash: true,
+  /**
+   * Иначе Next отдаёт 307 с `/api/...` на `/api/.../` — Telegram и другие POST-вебхуки
+   * часто бьют в URL без слеша и не следуют редиректу для тела запроса.
+   */
+  skipTrailingSlashRedirect: true,
 
   /** Сброс кэша путей _next на новом деплое (Vercel / ручной билд). */
   generateBuildId: async () =>

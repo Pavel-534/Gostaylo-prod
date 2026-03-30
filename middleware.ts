@@ -66,10 +66,16 @@ function legacyMessagesRedirect(request: NextRequest): NextResponse | null {
 }
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // В matcher сейчас нет /api — оставляем явный bypass на случай расширения matcher (i18n и т.д.).
+  // Вебхуки и прочие API не должны проходить через редиректы авторизации.
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
   const legacy = legacyMessagesRedirect(request);
   if (legacy) return legacy;
-
-  const { pathname } = request.nextUrl;
 
   // Check if route is protected
   const matchedRoute = Object.keys(PROTECTED_ROUTES).find(route => 
