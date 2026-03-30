@@ -29,6 +29,15 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { BookingChatTimeline } from '@/components/booking-chat-timeline'
 import { ChatHeaderActions } from '@/components/chat/ChatHeaderActions'
+import { getUIText } from '@/lib/translations'
+
+function formatBookingStatusBadge(status, language) {
+  const s = String(status || '').toUpperCase()
+  if (!s) return null
+  const key = `chatBookingStatus_${s}`
+  const label = getUIText(key, language)
+  return label === key ? s : label
+}
 
 export function StickyChatHeader({
   listing,
@@ -131,7 +140,7 @@ export function StickyChatHeader({
         {b}
         {status ? (
           <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-800">
-            {status}
+            {formatBookingStatusBadge(status, language)}
           </span>
         ) : null}
       </p>
@@ -158,7 +167,7 @@ export function StickyChatHeader({
 
       {/* Admin participants list */}
       {catalogHref ? (
-        <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-2 py-1 sm:px-3">
+        <div className="hidden md:flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-2 py-1 sm:px-3">
           <Link
             href={catalogHref}
             className="text-xs font-semibold text-teal-700 hover:text-teal-900 hover:underline truncate min-w-0"

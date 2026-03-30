@@ -13,7 +13,7 @@ import { toast } from 'sonner'
 import {
   Archive, ArrowLeft, Loader2,
   LifeBuoy, Images, Search,
-  Mic, MicOff, Paperclip, Send, Wifi, WifiOff, Trash2, Plus,
+  Mic, MicOff, Paperclip, Send, Trash2, Plus,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -623,14 +623,7 @@ export default function UnifiedMessagesClient({ params }) {
           onSupportClick={() => setSupportDialogOpen(true)}
           supportPriorityActive={!!selectedConv?.isPriority}
           supportLabel={language === 'ru' ? 'Поддержка' : 'Support'}
-        >
-          {isTraveling ? (
-            <span className={`flex items-center gap-1 text-xs ${isConnected ? 'text-green-600' : 'text-orange-500'}`}>
-              {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              {isConnected ? 'Live' : '…'}
-            </span>
-          ) : null}
-        </StickyChatHeader>
+        />
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

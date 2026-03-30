@@ -237,25 +237,6 @@ export function ChatHeaderActions({
         </Button>
       ) : null}
 
-      {/* Детали сделки — только на мобиле (на десктопе панель справа в ChatThreadChrome) */}
-      {onDealInfoClick ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className={cn(
-            'lg:hidden h-10 w-10 shrink-0 border-2 border-slate-900 bg-white text-slate-900 shadow-sm',
-            'hover:bg-slate-50 hover:text-slate-900',
-            compact ? 'min-h-10 min-w-10' : ''
-          )}
-          onClick={onDealInfoClick}
-          title={language === 'en' ? 'Deal details' : 'Детали сделки'}
-          aria-label={language === 'en' ? 'Deal details' : 'Детали сделки'}
-        >
-          <Info className="h-5 w-5 stroke-[2.5]" />
-        </Button>
-      ) : null}
-
       {/* Медиа-галерея — на мобиле в панели «Инфо» */}
       {onMediaGallery && !showDesktopMoreMenu ? (
         <Button
@@ -298,6 +279,24 @@ export function ChatHeaderActions({
         <div className={cn('flex items-center gap-1.5 sm:gap-2', compact && 'shrink-0')}>
           {children}
         </div>
+      ) : null}
+
+      {/* Детали сделки — справа в ряду (мобиле); на lg+ панель в ChatThreadChrome */}
+      {onDealInfoClick ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className={cn(
+            'lg:hidden h-8 w-8 shrink-0 border border-slate-300 bg-white text-slate-700 shadow-sm',
+            'hover:bg-slate-50 hover:text-slate-900'
+          )}
+          onClick={onDealInfoClick}
+          title={language === 'en' ? 'Deal details' : 'Детали сделки'}
+          aria-label={language === 'en' ? 'Deal details' : 'Детали сделки'}
+        >
+          <Info className="h-4 w-4" strokeWidth={2} />
+        </Button>
       ) : null}
     </div>
   )

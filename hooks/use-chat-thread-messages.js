@@ -96,6 +96,11 @@ export function useChatThreadMessages({
   const [listing, setListing] = useState(null)
   const [booking, setBooking] = useState(null)
 
+  const bookingRef = useRef(null)
+  useEffect(() => {
+    bookingRef.current = booking
+  }, [booking])
+
   // Защита от race condition при быстром переключении диалогов
   const loadSeqRef = useRef(0)
 
@@ -133,6 +138,24 @@ export function useChatThreadMessages({
           if (prev.some((m) => m.id === mapped.id)) return prev
           return [...prev, mapped]
         })
+
+        if (isSystem) {
+          const ev = rawMsg.metadata?.booking_status_event
+          const bid = ev?.booking_id != null ? String(ev.booking_id) : ''
+          const toStatus = ev?.to_status != null ? String(ev.to_status).toUpperCase() : ''
+          const curBid = bookingRef.current?.id != null ? String(bookingRef.current.id) : ''
+          if (bid && toStatus && curBid && bid === curBid) {
+            setBooking((prev) => (prev ? { ...prev, status: toStatus } : prev))
+            setSelectedConv((prev) => {
+              if (!prev?.booking || String(prev.booking.id) !== bid) return prev
+              return {
+                ...prev,
+                booking: { ...prev.booking, status: toStatus },
+                bookingStatus: toStatus,
+              }
+            })
+          }
+        }
 
         if (fromPeer) {
           playNotificationSound()
