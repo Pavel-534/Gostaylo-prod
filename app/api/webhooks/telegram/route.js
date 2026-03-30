@@ -4,6 +4,8 @@
  */
 
 import { NextResponse } from 'next/server'
+import { getPublicSiteUrl } from '@/lib/site-url.js'
+import { getTelegramBotUsername } from '@/lib/telegram-bot-public'
 import { telegramEnv, IMAGE_CONFIG } from '@/lib/services/telegram/env.js'
 import { sendTelegram } from '@/lib/services/telegram/api.js'
 import { extractEmailFromLinkCommand } from '@/lib/services/telegram/parse.js'
@@ -16,13 +18,28 @@ import { resolveTelegramLanguageForChat, normalizeTelegramUiLang } from '@/lib/s
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+/** Ленивый риелтор: скачивание фото + Sharp — не обрывать на дефолтных ~10s */
+export const maxDuration = 60
 
 export async function POST(request) {
   let chatId
   let lang = 'en'
 
   try {
-    const update = await request.json()
+    let update
+    try {
+      update = await request.json()
+    } catch (parseErr) {
+      console.error('[WEBHOOK] Invalid or empty JSON body', parseErr?.message || parseErr)
+      return NextResponse.json({ ok: true })
+    }
+
+    const { botToken } = telegramEnv()
+    if (!botToken) {
+      console.error(
+        '[WEBHOOK] TELEGRAM_BOT_TOKEN missing — updates are accepted but replies cannot be sent. Set token in Vercel/hosting env.'
+      )
+    }
 
     if (update?.callback_query) {
       return handleCallbackQuery(update.callback_query)
@@ -114,7 +131,49 @@ export async function POST(request) {
 }
 
 export async function GET() {
-  const { storageBucket } = telegramEnv()
+  const { storageBucket, botToken } = telegramEnv()
+  const publicSiteUrl = getPublicSiteUrl()
+  const expectedWebhookUrl = `${publicSiteUrl}/api/webhooks/telegram`
+  const botUsernameResolved = getTelegramBotUsername()
+
+  let telegramWebhookInfo = null
+  /** Имя бота по токену (источник истины); сравнение с тем, что подхватил сайт из env/дефолта */
+  let botUsernameFromToken = null
+  let usernameMatchesTokenBot = null
+
+  if (botToken) {
+    try {
+      const [whRes, meRes] = await Promise.all([
+        fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`),
+        fetch(`https://api.telegram.org/bot${botToken}/getMe`),
+      ])
+      const whJson = await whRes.json()
+      const meJson = await meRes.json()
+
+      if (meJson?.ok && meJson.result?.username) {
+        botUsernameFromToken = String(meJson.result.username)
+        usernameMatchesTokenBot =
+          botUsernameFromToken.toLowerCase() === botUsernameResolved.toLowerCase()
+      }
+
+      if (whJson?.ok && whJson.result) {
+        const r = whJson.result
+        telegramWebhookInfo = {
+          url: r.url || null,
+          url_matches_expected:
+            Boolean(r.url) && String(r.url).replace(/\/$/, '') === expectedWebhookUrl,
+          pending_update_count: r.pending_update_count ?? 0,
+          last_error_message: r.last_error_message || null,
+          last_error_date: r.last_error_date
+            ? new Date(r.last_error_date * 1000).toISOString()
+            : null,
+        }
+      }
+    } catch (e) {
+      telegramWebhookInfo = { fetch_error: e?.message || 'getWebhookInfo/getMe failed' }
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     service: 'Gostaylo Telegram Webhook',
@@ -122,6 +181,20 @@ export async function GET() {
     stage: 28,
     runtime: 'nodejs',
     modular: true,
+    /** Без утечки секрета: достаточно для проверки, что прод-сервер видит токен */
+    bot_token_configured: Boolean(botToken),
+    /**
+     * Публичное имя бота, которое использует код для ссылок t.me (env NEXT_PUBLIC_TELEGRAM_BOT_USERNAME или дефолт).
+     */
+    bot_username: botUsernameResolved,
+    bot_open_url: `https://t.me/${botUsernameResolved}`,
+    /** @username бота, который возвращает Telegram по TELEGRAM_BOT_TOKEN; null если токена нет или getMe не удался */
+    bot_username_from_token: botUsernameFromToken,
+    /** true, если токен от того же бота, что и ссылки на сайте */
+    bot_username_matches_token: usernameMatchesTokenBot,
+    public_site_url: publicSiteUrl,
+    expected_webhook_url: expectedWebhookUrl,
+    telegram_webhook_info: telegramWebhookInfo,
     i18n: ['ru', 'en'],
     features: [
       'Advanced price extraction',
