@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server'
 import { getPublicSiteUrl, getTelegramWebhookUrl } from '@/lib/site-url.js'
 import { getTelegramBotUsername } from '@/lib/telegram-bot-public'
 import { telegramEnv, IMAGE_CONFIG } from '@/lib/services/telegram/env.js'
-import { sendTelegram } from '@/lib/services/telegram/api.js'
+import { sendTelegram, withMainMenu } from '@/lib/services/telegram/api.js'
 import { extractEmailFromLinkCommand } from '@/lib/services/telegram/parse.js'
 import { handleStatusCheck, handleDeepLink, handleLinkAccount } from '@/lib/services/telegram/handlers/accounts.js'
 import { handleMyDrafts } from '@/lib/services/telegram/handlers/drafts.js'
@@ -67,7 +67,7 @@ export async function POST(request) {
     )
 
     if (text.startsWith('/help')) {
-      await sendTelegram(chatId, t.help(lang))
+      await sendTelegram(chatId, t.help(lang), withMainMenu(lang))
       return NextResponse.json({ ok: true })
     }
 
@@ -81,7 +81,7 @@ export async function POST(request) {
         return NextResponse.json({ ok: true })
       }
 
-      await sendTelegram(chatId, t.start(firstName, lang))
+      await sendTelegram(chatId, t.start(firstName, lang), withMainMenu(lang))
       return NextResponse.json({ ok: true })
     }
 
@@ -93,7 +93,7 @@ export async function POST(request) {
     if (text.startsWith('/link')) {
       const email = extractEmailFromLinkCommand(text)
       if (!email) {
-        await sendTelegram(chatId, t.linkInvalidFormat)
+        await sendTelegram(chatId, t.linkInvalidFormat, withMainMenu(lang))
         return NextResponse.json({ ok: true })
       }
       await handleLinkAccount(chatId, email, firstName, username, lang)
@@ -111,12 +111,12 @@ export async function POST(request) {
     }
 
     if (text.startsWith('/draft') || text.startsWith('/lazy')) {
-      await sendTelegram(chatId, t.lazyDraftHint)
+      await sendTelegram(chatId, t.lazyDraftHint, withMainMenu(lang))
       return NextResponse.json({ ok: true })
     }
 
     if (text && !text.startsWith('/')) {
-      await sendTelegram(chatId, t.plainTextNeedsPhoto)
+      await sendTelegram(chatId, t.plainTextNeedsPhoto, withMainMenu(lang))
     }
 
     return NextResponse.json({ ok: true })
@@ -124,7 +124,7 @@ export async function POST(request) {
     console.error('[WEBHOOK ERROR]', error)
     if (chatId) {
       const errLang = lang || normalizeTelegramUiLang(undefined)
-      await sendTelegram(chatId, getTelegramMessages(errLang).webhookError)
+      await sendTelegram(chatId, getTelegramMessages(errLang).webhookError, withMainMenu(errLang))
     }
     return NextResponse.json({ ok: true })
   }
