@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('NEXT_PUBLIC_BASE_URL', 'https://gostaylo-502-fix.preview.emergentagent.com')
+BASE_URL = os.environ.get('NEXT_PUBLIC_BASE_URL', 'https://redirect-loop-debug.preview.emergentagent.com')
 
 
 class TestPWAIcons:

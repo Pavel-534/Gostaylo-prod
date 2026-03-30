@@ -13,7 +13,7 @@ class FunnyRentAPITester:
     def __init__(self, base_url=None):
         if base_url is None:
             # Read from environment or use default from .env
-            self.base_url = "https://gostaylo-502-fix.preview.emergentagent.com"
+            self.base_url = "https://redirect-loop-debug.preview.emergentagent.com"
         else:
             self.base_url = base_url
         

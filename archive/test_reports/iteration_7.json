@@ -194,7 +194,7 @@
   "should_main_agent_self_test": false,
   "context_for_next_testing_agent": "Stage 32 backend APIs fully verified via localhost. All 6 features working: 1) Forex API with live ExchangeRate-API rates and 3.5% FunnyRate markup, 2) Forex conversion THB→USD/RUB/CNY, 3) Geo API with IP detection and currency recommendation, 4) Push API with 6 FCM templates, 5) Payout cron with 24H escrow rule, 6) Check-in reminder cron at 14:00. Preview environment has 502 issues (infrastructure).",
   "environment_notes": {
-    "preview_url": "https://gostaylo-502-fix.preview.emergentagent.com",
+    "preview_url": "https://redirect-loop-debug.preview.emergentagent.com",
     "preview_status": "502 on API calls, 200 on homepage - infrastructure issue",
     "localhost_status": "All APIs working correctly on localhost:3000"
   },
