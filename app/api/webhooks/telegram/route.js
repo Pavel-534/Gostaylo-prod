@@ -11,7 +11,12 @@ import { sendTelegram, withMainMenuForChat } from '@/lib/services/telegram/api.j
 import { extractEmailFromLinkCommand } from '@/lib/services/telegram/parse.js'
 import { handleStatusCheck, handleDeepLink, handleLinkAccount } from '@/lib/services/telegram/handlers/accounts.js'
 import { handleMyDrafts } from '@/lib/services/telegram/handlers/drafts.js'
-import { handlePhotoUpload } from '@/lib/services/telegram/handlers/lazy-realtor.js'
+import {
+  handlePhotoUpload,
+  flushLazyRealtorAlbum,
+  handlePartnerDescriptionAfterPhotos,
+} from '@/lib/services/telegram/handlers/lazy-realtor.js'
+import { scheduleAlbumPhoto } from '@/lib/services/telegram/media-group-buffer.js'
 import { handleCallbackQuery } from '@/lib/services/telegram/handlers/callbacks.js'
 import {
   getTelegramMessages,
@@ -110,7 +115,10 @@ export async function POST(request) {
     }
 
     if (photo && photo.length > 0) {
-      await handlePhotoUpload(chatId, message, firstName, lang)
+      const albumQueued = scheduleAlbumPhoto(chatId, message, firstName, lang, flushLazyRealtorAlbum)
+      if (!albumQueued) {
+        await handlePhotoUpload(chatId, message, firstName, lang)
+      }
       return NextResponse.json({ ok: true })
     }
 
@@ -125,7 +133,15 @@ export async function POST(request) {
     }
 
     if (text && !text.startsWith('/')) {
-      await sendTelegram(chatId, t.plainTextNeedsPhoto, await withMainMenuForChat(lang, chatId))
+      const usedPending = await handlePartnerDescriptionAfterPhotos(
+        chatId,
+        text,
+        firstName,
+        lang
+      )
+      if (!usedPending) {
+        await sendTelegram(chatId, t.plainTextNeedsPhoto, await withMainMenuForChat(lang, chatId))
+      }
     }
 
     return NextResponse.json({ ok: true })
@@ -191,8 +207,8 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     service: 'Gostaylo Telegram Webhook',
-    version: '7.2',
-    stage: 28,
+    version: '7.4',
+    stage: 30,
     runtime: 'nodejs',
     modular: true,
     /** Без утечки секрета: достаточно для проверки, что прод-сервер видит токен */
@@ -211,6 +227,8 @@ export async function GET() {
     telegram_webhook_info: telegramWebhookInfo,
     i18n: ['ru', 'en'],
     features: [
+      'Media album batching (media_group_id debounce)',
+      'OpenAI-only listing parse (gpt-4o-mini); photo-first + follow-up text buffer',
       'Advanced price extraction',
       'Supabase Storage upload',
       'Server-side image compression (Sharp)',
