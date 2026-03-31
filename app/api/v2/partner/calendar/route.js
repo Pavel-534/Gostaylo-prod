@@ -11,6 +11,7 @@ import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/sessio
 import { addDays, format, parseISO } from 'date-fns'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { OCCUPYING_BOOKING_STATUSES } from '@/lib/booking-occupancy-statuses'
+import { mapCategorySlugToListingType } from '@/lib/partner-calendar-filters'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,6 +72,8 @@ function processCalendarData(listings, bookings, blocks, seasonalPrices, startDa
   }
   
   const calendarData = listings.map(listing => {
+    const rawCat = listing.categories
+    const cat = Array.isArray(rawCat) ? rawCat[0] : rawCat
     const lid = String(listing.id)
     const listingBookings = bookings.filter((b) => String(b.listing_id) === lid)
     const listingBlocks = blocks.filter((b) => String(b.listing_id) === lid)
@@ -146,6 +149,8 @@ function processCalendarData(listings, bookings, blocks, seasonalPrices, startDa
       }
     })
     
+    const categorySlug = cat?.slug ? String(cat.slug).toLowerCase() : null
+
     return {
       listing: {
         id: listing.id,
@@ -153,7 +158,18 @@ function processCalendarData(listings, bookings, blocks, seasonalPrices, startDa
         district: listing.district,
         coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
         basePriceThb: parseFloat(listing.base_price_thb) || 0,
-        commissionRate: parseFloat(listing.commission_rate) || 15
+        commissionRate: parseFloat(listing.commission_rate) || 15,
+        categoryId: listing.category_id ?? null,
+        category: cat
+          ? {
+              id: cat.id,
+              name: cat.name,
+              slug: cat.slug,
+              icon: cat.icon ?? null,
+            }
+          : null,
+        categorySlug,
+        type: mapCategorySlugToListingType(categorySlug || undefined),
       },
       availability,
       bookingsCount: listingBookings.length,
@@ -215,13 +231,15 @@ export async function GET(request) {
           // Use supabaseAdmin - bypasses RLS
           const { data: listingsData, error: listingsErr } = await supabaseAdmin
             .from('listings')
-            .select('id,title,district,cover_image,base_price_thb,commission_rate,status')
+            .select(
+              'id,title,district,cover_image,base_price_thb,commission_rate,status,category_id,categories(id,name,slug,icon)'
+            )
             .eq('owner_id', userId)
           if (listingsErr) throw listingsErr
           listings = listingsData || []
         } else {
           const listingsRes = await fetch(
-            `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${userId}&select=id,title,district,cover_image,base_price_thb,commission_rate,status`,
+            `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${userId}&select=id,title,district,cover_image,base_price_thb,commission_rate,status,category_id,categories(id,name,slug,icon)`,
             { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
           )
           const data = await listingsRes.json()

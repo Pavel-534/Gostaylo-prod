@@ -57,40 +57,49 @@ export function ActionModals({
         open={actionModal.open} 
         onOpenChange={(open) => setActionModal(prev => ({ ...prev, open }))}
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="w-[min(100vw-2rem,28rem)] max-w-[min(100vw-2rem,28rem)] gap-0 p-4 sm:w-full sm:max-w-[425px] sm:p-6">
           {/* Selection View */}
           {actionModal.type === 'select' && (
             <>
-              <DialogHeader>
-                <DialogTitle>Выберите действие</DialogTitle>
-                <DialogDescription>
-                  {actionModal.listing?.title} • {actionModal.date && format(parseISO(actionModal.date), 'd MMMM yyyy', { locale: ru })}
+              <DialogHeader className="space-y-2 pr-8 text-left">
+                <DialogTitle className="leading-snug">Выберите действие</DialogTitle>
+                <DialogDescription className="break-words text-left leading-snug">
+                  {actionModal.listing?.title} •{' '}
+                  {actionModal.date && format(parseISO(actionModal.date), 'd MMMM yyyy', { locale: ru })}
                 </DialogDescription>
               </DialogHeader>
-              
+
               <div className="grid gap-3 py-4">
                 <Button
                   variant="outline"
-                  className="h-auto py-4 justify-start"
+                  className="h-auto w-full justify-start whitespace-normal py-3 pl-3 pr-3 text-left [&_svg]:!size-5"
                   onClick={() => setActionModal(prev => ({ ...prev, type: 'block' }))}
                 >
-                  <Lock className="h-5 w-5 mr-3 text-slate-500" />
-                  <div className="text-left">
-                    <div className="font-medium">Заблокировать даты</div>
-                    <div className="text-xs text-slate-500">Для обслуживания или личного использования</div>
-                  </div>
+                  <span className="flex w-full min-w-0 items-start gap-3 text-left">
+                    <Lock className="mt-0.5 shrink-0 text-slate-500" aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium leading-snug">Заблокировать даты</span>
+                      <span className="mt-0.5 block text-xs font-normal leading-snug text-slate-500">
+                        Для обслуживания или личного использования
+                      </span>
+                    </span>
+                  </span>
                 </Button>
-                
+
                 <Button
                   variant="outline"
-                  className="h-auto py-4 justify-start"
+                  className="h-auto w-full justify-start whitespace-normal py-3 pl-3 pr-3 text-left [&_svg]:!size-5"
                   onClick={() => setActionModal(prev => ({ ...prev, type: 'booking' }))}
                 >
-                  <User className="h-5 w-5 mr-3 text-teal-600" />
-                  <div className="text-left">
-                    <div className="font-medium">Создать бронирование</div>
-                    <div className="text-xs text-slate-500">Для офлайн продаж</div>
-                  </div>
+                  <span className="flex w-full min-w-0 items-start gap-3 text-left">
+                    <User className="mt-0.5 shrink-0 text-teal-600" aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium leading-snug">Создать бронирование</span>
+                      <span className="mt-0.5 block text-xs font-normal leading-snug text-slate-500">
+                        Для офлайн продаж
+                      </span>
+                    </span>
+                  </span>
                 </Button>
               </div>
             </>
@@ -110,7 +119,7 @@ export function ActionModals({
               </DialogHeader>
               
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
                     <Label>Начало</Label>
                     <Input 
@@ -196,8 +205,8 @@ export function ActionModals({
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
-                <div className="grid grid-cols-2 gap-3">
+              <div className="grid max-h-[60vh] gap-4 overflow-y-auto py-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
                     <Label>Заезд</Label>
                     <Input 
@@ -229,7 +238,7 @@ export function ActionModals({
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
                     <Label>Телефон</Label>
                     <Input 

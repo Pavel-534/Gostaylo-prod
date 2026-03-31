@@ -54,7 +54,7 @@ function MasterCalendarContent() {
   const scrollContainerRef = useRef(null)
   const todayGridRef = useRef(null)
   const todayAgendaRef = useRef(null)
-  const isNarrowCalendar = useMediaQuery('(max-width: 767px)')
+  const isNarrowCalendar = useMediaQuery('(max-width: 1023px)')
   const appliedFocusDateRef = useRef(false)
   
   // Get partner ID (useAuth or localStorage fallback)
@@ -375,7 +375,7 @@ function MasterCalendarContent() {
         onPriceModalOpen={() => setPriceModal({ open: true })}
       />
       
-      <div className="hidden max-w-[1600px] mx-auto md:block">
+      <div className="hidden max-w-[1600px] mx-auto lg:block">
         <CalendarGrid
           dates={dates}
           listings={listings}
@@ -387,15 +387,17 @@ function MasterCalendarContent() {
         />
       </div>
 
-      <div className="mx-auto max-w-[1600px] md:hidden">
+      <div className="mx-auto max-w-[1600px] lg:hidden">
         <p className="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-          Список по дням — нажмите строку, чтобы заблокировать дату, создать бронь или сменить цену.
+          Объекты в списке: фильтр и поиск сверху. Нажмите карточку, чтобы развернуть даты; строку дня — для
+          блокировки, брони или цены.
         </p>
         <CalendarMobileAgenda
           dates={dates}
           listings={listings}
           onCellClick={handleCellClick}
           todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
+          initialExpandedListingId={filterListingId || undefined}
         />
       </div>
       
