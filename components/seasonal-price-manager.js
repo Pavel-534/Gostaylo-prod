@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,19 +12,55 @@ import { Badge } from '@/components/ui/badge'
 import { Calendar, Plus, Pencil, Trash2, Loader2, AlertCircle } from 'lucide-react'
 import { DayPicker } from 'react-day-picker'
 import { format } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { ru, enUS, zhCN, th as thDateLocale } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { getSeasonColor } from '@/lib/price-calculator'
+import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
+import { sanitizeThbDigits } from '@/lib/listing-wizard-numeric'
 import 'react-day-picker/dist/style.css'
 
-const SEASON_TYPES = [
-  { value: 'LOW', label: 'Низкий сезон', color: 'green' },
-  { value: 'NORMAL', label: 'Обычный', color: 'slate' },
-  { value: 'HIGH', label: 'Высокий сезон', color: 'orange' },
-  { value: 'PEAK', label: 'Пик', color: 'red' },
+const SEASON_TYPE_KEYS = [
+  { value: 'LOW', labelKey: 'seasonLow', color: 'green' },
+  { value: 'NORMAL', labelKey: 'seasonNormal', color: 'slate' },
+  { value: 'HIGH', labelKey: 'seasonHigh', color: 'orange' },
+  { value: 'PEAK', labelKey: 'seasonPeak', color: 'red' },
 ]
 
+const SEASON_DOT_CLASS = {
+  green: 'bg-green-500',
+  slate: 'bg-slate-500',
+  orange: 'bg-orange-500',
+  red: 'bg-red-500',
+}
+
+function seasonUiLabel(seasonType, t) {
+  const row = SEASON_TYPE_KEYS.find((x) => x.value === seasonType)
+  return t(row?.labelKey || 'seasonNormal')
+}
+
 export default function SeasonalPriceManager({ listingId, basePriceThb }) {
+  const { language } = useI18n()
+  const t = useCallback((key) => getUIText(key, language), [language])
+
+  const dayPickerLocale = { ru, en: enUS, zh: zhCN, th: thDateLocale }[language] || ru
+
+  const SEASON_TYPES = useMemo(
+    () =>
+      SEASON_TYPE_KEYS.map((row) => ({
+        value: row.value,
+        label: getUIText(row.labelKey, language),
+        color: row.color,
+      })),
+    [language],
+  )
+
+  const numberLocale = { ru: 'ru-RU', en: 'en-US', zh: 'zh-CN', th: 'th-TH' }[language] || 'ru-RU'
+  const baseNum =
+    basePriceThb != null && basePriceThb !== ''
+      ? Number(String(basePriceThb).replace(/\s/g, '').replace(',', '.'))
+      : NaN
+  const baseFormatted = Number.isFinite(baseNum) ? baseNum.toLocaleString(numberLocale) : '—'
   const [seasonalPrices, setSeasonalPrices] = useState([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
@@ -92,40 +128,44 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
     setFormData({
       label: price.label,
       seasonType: price.seasonType,
-      priceDaily: price.priceDaily.toString(),
-      priceMonthly: price.priceMonthly?.toString() || '',
+      priceDaily: sanitizeThbDigits(String(price.priceDaily ?? '')),
+      priceMonthly: price.priceMonthly != null ? sanitizeThbDigits(String(price.priceMonthly)) : '',
       description: price.description || '',
     })
     setModalOpen(true)
   }
 
   async function handleSave() {
-    // Validation
     if (!dateRange.from || !dateRange.to) {
-      toast.error('Выберите диапазон дат')
+      toast.error(t('seasonalMgr_pickRangeErr'))
       return
     }
-    
+
     if (!formData.label.trim()) {
-      toast.error('Введите название сезона')
+      toast.error(t('seasonalMgr_nameRequired'))
       return
     }
-    
-    if (!formData.priceDaily || parseFloat(formData.priceDaily) <= 0) {
-      toast.error('Введите дневную цену')
+
+    const dailyStr = sanitizeThbDigits(formData.priceDaily).replace(/\s/g, '')
+    const dailyNum = dailyStr ? parseFloat(dailyStr) : NaN
+    if (!dailyStr || !Number.isFinite(dailyNum) || dailyNum <= 0) {
+      toast.error(t('seasonalMgr_priceRequired'))
       return
     }
-    
+
+    const monthlyStr = sanitizeThbDigits(formData.priceMonthly).replace(/\s/g, '')
+    const monthlyNum = monthlyStr ? parseFloat(monthlyStr) : null
+
     setSaving(true)
-    
+
     try {
       const payload = {
         startDate: format(dateRange.from, 'yyyy-MM-dd'),
         endDate: format(dateRange.to, 'yyyy-MM-dd'),
         label: formData.label,
         seasonType: formData.seasonType,
-        priceDaily: parseFloat(formData.priceDaily),
-        priceMonthly: formData.priceMonthly ? parseFloat(formData.priceMonthly) : null,
+        priceDaily: dailyNum,
+        priceMonthly: monthlyNum != null && Number.isFinite(monthlyNum) ? monthlyNum : null,
         description: formData.description,
       }
       
@@ -152,40 +192,40 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
       const data = await res.json()
       
       if (data.status === 'success' || data.success) {
-        toast.success(editingPrice ? 'Сезон обновлён' : 'Сезон создан')
+        toast.success(editingPrice ? t('seasonalMgr_updated') : t('seasonalMgr_created'))
         setModalOpen(false)
         loadSeasonalPrices()
       } else {
-        toast.error(data.error || 'Ошибка при сохранении')
+        toast.error(data.error || t('seasonalMgr_saveErr'))
       }
     } catch (error) {
       console.error('Failed to save seasonal price:', error)
-      toast.error('Ошибка при сохранении')
+      toast.error(t('seasonalMgr_saveErr'))
     } finally {
       setSaving(false)
     }
   }
 
   async function handleDelete(priceId) {
-    if (!confirm('Удалить этот сезонный период?')) return
-    
+    if (!confirm(t('seasonalMgr_confirmDelete'))) return
+
     try {
       const res = await fetch(`/api/v2/partner/seasonal-prices?id=${priceId}`, {
         method: 'DELETE',
         credentials: 'include',
       })
-      
+
       const data = await res.json()
-      
+
       if (data.status === 'success' || data.success) {
-        toast.success('Сезон удалён')
+        toast.success(t('seasonalMgr_deleted'))
         loadSeasonalPrices()
       } else {
-        toast.error(data.error || 'Ошибка при удалении')
+        toast.error(data.error || t('seasonalMgr_deleteErr'))
       }
     } catch (error) {
       console.error('Failed to delete seasonal price:', error)
-      toast.error('Ошибка при удалении')
+      toast.error(t('seasonalMgr_deleteErr'))
     }
   }
 
@@ -207,10 +247,16 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
             <div className="min-w-0">
               <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                 <Calendar className="h-5 w-5 shrink-0 text-teal-600" />
-                Сезонные цены
+                {t('seasonalPricing')}
               </CardTitle>
-              <CardDescription className="mt-2">
-                Установите разные цены для разных периодов года. Базовая цена: <strong>{basePriceThb?.toLocaleString('ru-RU')} ₿/день</strong>
+              <CardDescription className="mt-2 space-y-1">
+                <span className="block">{t('seasonalMgr_cardIntro')}</span>
+                <span className="block text-slate-700">
+                  <strong>{t('seasonalMgr_baseHint')}</strong>{' '}
+                  <strong>
+                    {baseFormatted} {t('seasonalMgr_perDay')}
+                  </strong>
+                </span>
               </CardDescription>
             </div>
             <Button
@@ -218,25 +264,23 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
               className="w-full shrink-0 bg-teal-600 hover:bg-teal-700 sm:w-auto"
             >
               <Plus className="mr-2 h-4 w-4" />
-              Добавить сезон
+              {t('seasonalMgr_addSeasonBtn')}
             </Button>
           </div>
         </CardHeader>
-        
+
         <CardContent>
           {seasonalPrices.length === 0 ? (
             <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-lg">
               <Calendar className="h-12 w-12 text-slate-300 mx-auto mb-3" />
-              <p className="text-slate-600 mb-2">Сезонные цены не настроены</p>
-              <p className="text-sm text-slate-500">
-                Используется базовая цена для всех дат
-              </p>
+              <p className="text-slate-600 mb-2">{t('seasonalMgr_emptyTitle')}</p>
+              <p className="text-sm text-slate-500">{t('seasonalMgr_emptyDesc')}</p>
             </div>
           ) : (
             <div className="space-y-3">
               {seasonalPrices.map((price) => {
                 const colors = getSeasonColor(price.seasonType)
-                
+
                 return (
                   <div
                     key={price.id}
@@ -247,22 +291,22 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
                         <div className="mb-2 flex flex-wrap items-center gap-2">
                           <h4 className="font-semibold text-slate-900">{price.label}</h4>
                           <Badge className={`max-sm:hidden ${colors.bg} ${colors.text} border-0`}>
-                            {colors.label}
+                            {seasonUiLabel(price.seasonType, t)}
                           </Badge>
                         </div>
 
                         <p className="mb-2 text-sm text-slate-600">
-                          📅 {format(new Date(price.startDate), 'dd MMMM yyyy', { locale: ru })} —{' '}
-                          {format(new Date(price.endDate), 'dd MMMM yyyy', { locale: ru })}
+                          📅 {format(new Date(price.startDate), 'dd MMMM yyyy', { locale: dayPickerLocale })} —{' '}
+                          {format(new Date(price.endDate), 'dd MMMM yyyy', { locale: dayPickerLocale })}
                         </p>
 
                         <div className="flex flex-col gap-1 text-sm sm:flex-row sm:flex-wrap sm:gap-4">
                           <span className="font-medium text-slate-900">
-                            💰 {price.priceDaily?.toLocaleString('ru-RU')} ₿/день
+                            💰 {price.priceDaily?.toLocaleString(numberLocale)} {t('seasonalMgr_perDay')}
                           </span>
                           {price.priceMonthly && (
                             <span className="font-medium text-teal-700">
-                              📦 {price.priceMonthly?.toLocaleString('ru-RU')} ₿/месяц
+                              📦 {price.priceMonthly?.toLocaleString(numberLocale)} {t('seasonalMgr_perMonth')}
                             </span>
                           )}
                         </div>
@@ -278,7 +322,7 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
                           variant="outline"
                           className="min-h-11 min-w-[52px] flex-1 px-4 sm:flex-none sm:min-h-9 sm:min-w-9 sm:px-3"
                           onClick={() => openEditModal(price)}
-                          aria-label="Редактировать сезон"
+                          aria-label={t('seasonalMgr_editAria')}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -287,7 +331,7 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
                           variant="outline"
                           className="min-h-11 min-w-[52px] flex-1 px-4 text-red-600 hover:bg-red-50 sm:flex-none sm:min-h-9 sm:min-w-9 sm:px-3"
                           onClick={() => handleDelete(price.id)}
-                          aria-label="Удалить сезон"
+                          aria-label={t('seasonalMgr_deleteAria')}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -301,80 +345,88 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
         </CardContent>
       </Card>
 
-      {/* Create/Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>
-              {editingPrice ? 'Редактировать сезон' : 'Добавить сезонную цену'}
-            </DialogTitle>
+            <DialogTitle>{editingPrice ? t('seasonalMgr_titleEdit') : t('seasonalMgr_titleAdd')}</DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-6">
-            {/* Date Range Picker */}
             <div className="space-y-2">
-              <Label className="font-semibold">Выберите диапазон дат *</Label>
-              <div className="border rounded-lg p-4 bg-slate-50">
-                <DayPicker
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={setDateRange}
-                  locale={ru}
-                  className="mx-auto"
-                  classNames={{
-                    months: "flex flex-col sm:flex-row gap-4",
-                    month: "space-y-4",
-                    caption: "flex justify-center pt-1 relative items-center",
-                    caption_label: "text-sm font-medium",
-                    nav: "space-x-1 flex items-center",
-                    nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
-                    table: "w-full border-collapse space-y-1",
-                    head_row: "flex",
-                    head_cell: "text-slate-500 rounded-md w-9 font-normal text-[0.8rem]",
-                    row: "flex w-full mt-2",
-                    cell: "text-center text-sm p-0 relative [&:has([aria-selected])]:bg-teal-100 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                    day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-teal-50 rounded-md",
-                    day_selected: "bg-teal-600 text-white hover:bg-teal-700 hover:text-white focus:bg-teal-600 focus:text-white",
-                    day_today: "bg-slate-100 text-slate-900",
-                    day_outside: "text-slate-400 opacity-50",
-                    day_disabled: "text-slate-400 opacity-50",
-                    day_hidden: "invisible",
-                  }}
-                />
+              <Label className="font-semibold">{t('seasonalMgr_selectRange')}</Label>
+              <div className="min-w-0 overflow-hidden rounded-lg border bg-slate-50 p-2 sm:p-4">
+                <div className="w-full min-w-0 overflow-x-auto overscroll-x-contain [scrollbar-gutter:stable]">
+                  <div className="inline-flex min-w-full justify-center px-0.5 pb-1">
+                    <DayPicker
+                      mode="range"
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      locale={dayPickerLocale}
+                      className="!p-0"
+                      classNames={{
+                        months: 'flex flex-col gap-4 sm:flex-row',
+                        month: 'space-y-4',
+                        caption: 'relative flex items-center justify-center pt-1',
+                        caption_label: 'text-sm font-medium',
+                        nav: 'flex items-center space-x-1',
+                        nav_button:
+                          'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100',
+                        table: 'w-full border-collapse space-y-1',
+                        head_row: 'flex',
+                        head_cell:
+                          'w-8 rounded-md text-[0.65rem] font-normal text-slate-500 sm:w-9 sm:text-[0.8rem]',
+                        row: 'mt-2 flex w-full',
+                        cell: 'relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-teal-100 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md',
+                        day: 'h-8 w-8 rounded-md p-0 font-normal hover:bg-teal-50 aria-selected:opacity-100 sm:h-9 sm:w-9',
+                        day_selected:
+                          'bg-teal-600 text-white hover:bg-teal-700 hover:text-white focus:bg-teal-600 focus:text-white',
+                        day_today: 'bg-slate-100 text-slate-900',
+                        day_outside: 'text-slate-400 opacity-50',
+                        day_disabled: 'text-slate-400 opacity-50',
+                        day_hidden: 'invisible',
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
               {dateRange.from && dateRange.to && (
                 <p className="text-sm text-slate-600 mt-2">
-                  Выбрано: <strong>{format(dateRange.from, 'dd MMM yyyy', { locale: ru })} — {format(dateRange.to, 'dd MMM yyyy', { locale: ru })}</strong>
+                  {t('seasonalMgr_rangeSelected')}{' '}
+                  <strong>
+                    {format(dateRange.from, 'dd MMM yyyy', { locale: dayPickerLocale })} —{' '}
+                    {format(dateRange.to, 'dd MMM yyyy', { locale: dayPickerLocale })}
+                  </strong>
                 </p>
               )}
             </div>
 
-            {/* Season Info */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="label">Название сезона *</Label>
+                <Label htmlFor="label">{t('seasonalMgr_seasonName')}</Label>
                 <Input
                   id="label"
                   value={formData.label}
                   onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                  placeholder="Высокий сезон"
+                  placeholder={t('seasonalMgr_seasonNamePh')}
                 />
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="seasonType">Тип сезона *</Label>
-                <Select 
-                  value={formData.seasonType} 
+                <Label htmlFor="seasonType">{t('seasonalMgr_seasonType')}</Label>
+                <Select
+                  value={formData.seasonType}
                   onValueChange={(v) => setFormData({ ...formData, seasonType: v })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="seasonType">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {SEASON_TYPES.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 rounded-full bg-${type.color}-500`} />
+                          <div
+                            className={`h-3 w-3 shrink-0 rounded-full ${SEASON_DOT_CLASS[type.color] || 'bg-slate-400'}`}
+                          />
                           {type.label}
                         </div>
                       </SelectItem>
@@ -384,79 +436,74 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
               </div>
             </div>
 
-            {/* Pricing */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="priceDaily">Цена за день (THB) *</Label>
+                <Label htmlFor="priceDaily">{t('seasonalMgr_priceDailyThb')}</Label>
                 <Input
                   id="priceDaily"
-                  type="number"
+                  inputMode="numeric"
+                  autoComplete="off"
                   value={formData.priceDaily}
-                  onChange={(e) => setFormData({ ...formData, priceDaily: e.target.value })}
-                  placeholder={basePriceThb?.toString() || '10000'}
+                  onChange={(e) =>
+                    setFormData({ ...formData, priceDaily: sanitizeThbDigits(e.target.value) })
+                  }
+                  placeholder={Number.isFinite(baseNum) ? String(Math.round(baseNum)) : '10000'}
                 />
                 <p className="text-xs text-slate-500">
-                  Базовая: {basePriceThb?.toLocaleString('ru-RU')} ₿
+                  {t('seasonalMgr_baseHint')} {baseFormatted} THB
                 </p>
               </div>
-              
+
               <div className="space-y-2">
-                <Label htmlFor="priceMonthly">Цена за месяц (THB)</Label>
+                <Label htmlFor="priceMonthly">{t('seasonalMgr_priceMonthlyThb')}</Label>
                 <Input
                   id="priceMonthly"
-                  type="number"
+                  inputMode="numeric"
+                  autoComplete="off"
                   value={formData.priceMonthly}
-                  onChange={(e) => setFormData({ ...formData, priceMonthly: e.target.value })}
-                  placeholder="Опционально"
+                  onChange={(e) =>
+                    setFormData({ ...formData, priceMonthly: sanitizeThbDigits(e.target.value) })
+                  }
+                  placeholder={t('seasonalMgr_descriptionPh')}
                 />
-                <p className="text-xs text-slate-500">
-                  Для аренды 30+ дней
-                </p>
+                <p className="text-xs text-slate-500">{t('seasonalMgr_priceMonthlyHint')}</p>
               </div>
             </div>
 
-            {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description">Описание (опционально)</Label>
+              <Label htmlFor="description">{t('seasonalMgr_descLabel')}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Например: Рождество и Новый Год — пик туристического сезона"
+                placeholder={t('seasonalMgr_descPlaceholder')}
                 rows={2}
               />
             </div>
 
-            {/* Info Box */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
               <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-amber-900">
-                <p className="font-semibold mb-1">Важно:</p>
-                <p>Диапазоны дат не должны пересекаться. Если период не покрыт сезонной ценой, будет использоваться базовая цена.</p>
+                <p className="font-semibold mb-1">{t('seasonalMgr_importantTitle')}</p>
+                <p>{t('seasonalMgr_importantBody')}</p>
               </div>
             </div>
           </div>
-          
-          <DialogFooter className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setModalOpen(false)}
-              disabled={saving}
-            >
-              Отмена
+
+          <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={() => setModalOpen(false)} disabled={saving} className="w-full sm:w-auto">
+              {t('seasonalMgr_cancel')}
             </Button>
-            <Button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-teal-600 hover:bg-teal-700"
-            >
+            <Button onClick={handleSave} disabled={saving} className="w-full bg-teal-600 hover:bg-teal-700 sm:w-auto">
               {saving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Сохранение...
+                  {t('seasonalMgr_saving')}
                 </>
+              ) : editingPrice ? (
+                t('seasonalMgr_update')
               ) : (
-                editingPrice ? 'Обновить' : 'Создать'
+                t('seasonalMgr_create')
               )}
             </Button>
           </DialogFooter>

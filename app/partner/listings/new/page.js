@@ -18,7 +18,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useI18n } from '@/contexts/i18n-context'
-import { getUIText, getCategoryName } from '@/lib/translations'
+import { getUIText, getCategoryName, getAmenityName } from '@/lib/translations'
+import { clampIntFromDigits, sanitizeThbDigits } from '@/lib/listing-wizard-numeric'
+import { AMENITY_SLUGS, normalizeWizardAmenities } from '@/lib/listing-wizard-amenities'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,33 +49,33 @@ import {
 import dynamic from 'next/dynamic'
 import { DayPicker } from 'react-day-picker'
 import { format } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { ru, enUS, zhCN, th as thDateLocale } from 'date-fns/locale'
 import { getSeasonColor } from '@/lib/price-calculator'
 import 'react-day-picker/dist/style.css'
 
 const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
-
-const SEASON_TYPES = [
-  { value: 'LOW', label: 'Низкий', color: 'green' },
-  { value: 'NORMAL', label: 'Обычный', color: 'slate' },
-  { value: 'HIGH', label: 'Высокий', color: 'orange' },
-  { value: 'PEAK', label: 'Пик', color: 'red' },
-]
 
 const DISTRICTS = [
   'Rawai', 'Chalong', 'Kata', 'Karon', 'Patong', 'Kamala', 
   'Surin', 'Bang Tao', 'Nai Harn', 'Panwa', 'Mai Khao', 'Nai Yang'
 ]
 
-const AMENITIES = [
-  'Wi-Fi', 'Pool', 'Parking', 'AC', 'Kitchen', 'Laundry',
-  'Security', 'Garden', 'Terrace', 'BBQ', 'Gym', 'Sauna'
-]
-
 export default function PremiumListingWizard() {
   const router = useRouter()
   const { language } = useI18n()
   const t = (key) => getUIText(key, language)
+  const dayPickerLocale = { ru, en: enUS, zh: zhCN, th: thDateLocale }[language] || ru
+
+  const SEASON_TYPES = useMemo(
+    () => [
+      { value: 'LOW', label: getUIText('seasonLow', language), color: 'green' },
+      { value: 'NORMAL', label: getUIText('seasonNormal', language), color: 'slate' },
+      { value: 'HIGH', label: getUIText('seasonHigh', language), color: 'orange' },
+      { value: 'PEAK', label: getUIText('seasonPeak', language), color: 'red' },
+    ],
+    [language],
+  )
+
   const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '')
   const editId = searchParams.get('edit')
   const isEditMode = !!editId
@@ -197,6 +199,7 @@ export default function PremiumListingWizard() {
           priceDaily: s.priceDaily ?? s.price_daily ?? 0,
           seasonType: s.seasonType || s.season_type || 'high',
         }))
+        const rawMeta = listing.metadata || {}
         setFormData({
           categoryId: listing.categoryId || listing.category_id || '',
           categoryName: cat?.name || '',
@@ -205,10 +208,22 @@ export default function PremiumListingWizard() {
           district: listing.district || '',
           latitude: listing.latitude ?? null,
           longitude: listing.longitude ?? null,
-          basePriceThb: (listing.basePriceThb ?? listing.base_price_thb)?.toString() || '',
+          basePriceThb:
+            sanitizeThbDigits((listing.basePriceThb ?? listing.base_price_thb)?.toString() || '') ||
+            '',
           commissionRate: listing.commissionRate ?? listing.commission_rate ?? partnerCommissionRate,
-          minBookingDays: listing.minBookingDays ?? listing.min_booking_days ?? 1,
-          maxBookingDays: listing.maxBookingDays ?? listing.max_booking_days ?? 90,
+          minBookingDays: clampIntFromDigits(
+            listing.minBookingDays ?? listing.min_booking_days ?? 1,
+            1,
+            365,
+            1,
+          ),
+          maxBookingDays: clampIntFromDigits(
+            listing.maxBookingDays ?? listing.max_booking_days ?? 90,
+            1,
+            730,
+            90,
+          ),
           images: listing.images || [],
           coverImage: listing.coverImage || listing.cover_image || '',
           metadata: {
@@ -222,9 +237,15 @@ export default function PremiumListingWizard() {
             engine: '',
             duration: '',
             includes: [],
-            ...(listing.metadata || {})
+            ...rawMeta,
+            bedrooms: clampIntFromDigits(rawMeta.bedrooms ?? 0, 0, 99, 0),
+            bathrooms: clampIntFromDigits(rawMeta.bathrooms ?? 0, 0, 99, 0),
+            max_guests: clampIntFromDigits(rawMeta.max_guests ?? 2, 1, 999, 1),
+            area: clampIntFromDigits(rawMeta.area ?? 0, 0, 9_999_999, 0),
+            passengers: clampIntFromDigits(rawMeta.passengers ?? 0, 0, 999, 0),
+            amenities: normalizeWizardAmenities(rawMeta.amenities || []),
           },
-          seasonalPricing: seasonal || listing.seasonalPricing || listing.seasonalPrices || []
+          seasonalPricing: seasonal || listing.seasonalPricing || listing.seasonalPrices || [],
         })
       }
     } catch (error) {
@@ -277,11 +298,11 @@ export default function PremiumListingWizard() {
       }
       if (newUrls.length > 0) {
         setFormData(prev => ({ ...prev, images: [...(prev.images || []), ...newUrls] }))
-        toast.success(`+${newUrls.length} ${language === 'ru' ? 'фото загружено' : 'photos uploaded'}`)
+        toast.success(`+${newUrls.length} ${t('photosUploadedToast')}`)
       }
     } catch (e) {
       console.error(e)
-      toast.error(language === 'ru' ? 'Ошибка загрузки' : 'Upload failed')
+      toast.error(t('uploadFailedToast'))
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -306,10 +327,10 @@ export default function PremiumListingWizard() {
       if (data.success && data.data?.length) {
         setGeocodeResults(data.data)
       } else {
-        toast.error(language === 'ru' ? 'Ничего не найдено' : 'No results found')
+        toast.error(t('geocodeNoResults'))
       }
     } catch (e) {
-      toast.error(language === 'ru' ? 'Ошибка поиска' : 'Search failed')
+      toast.error(t('geocodeSearchFailed'))
     } finally {
       setGeocoding(false)
     }
@@ -340,7 +361,7 @@ export default function PremiumListingWizard() {
       case 3:
         return true // Always allow (specs are optional)
       case 4:
-        return formData.basePriceThb > 0
+        return parseFloat(String(formData.basePriceThb).replace(',', '.')) > 0
       case 5:
         return formData.images.length >= 1
       default:
@@ -544,47 +565,55 @@ export default function PremiumListingWizard() {
     if (categoryName.includes('villa') || categoryName.includes('property')) {
       return (
         <>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
-              <Label>Bedrooms</Label>
+              <Label className="text-sm font-medium text-slate-700">{t('fieldBedrooms')}</Label>
               <Input
-                type="number"
-                min="0"
-                value={formData.metadata.bedrooms}
-                onChange={(e) => updateMetadata('bedrooms', parseInt(e.target.value) || 0)}
-                className="mt-1"
+                inputMode="numeric"
+                autoComplete="off"
+                value={String(formData.metadata.bedrooms)}
+                onChange={(e) =>
+                  updateMetadata('bedrooms', clampIntFromDigits(e.target.value, 0, 99, 0))
+                }
+                className="mt-2 h-11"
               />
             </div>
             <div>
-              <Label>Bathrooms</Label>
+              <Label className="text-sm font-medium text-slate-700">{t('fieldBathrooms')}</Label>
               <Input
-                type="number"
-                min="0"
-                value={formData.metadata.bathrooms}
-                onChange={(e) => updateMetadata('bathrooms', parseInt(e.target.value) || 0)}
-                className="mt-1"
+                inputMode="numeric"
+                autoComplete="off"
+                value={String(formData.metadata.bathrooms)}
+                onChange={(e) =>
+                  updateMetadata('bathrooms', clampIntFromDigits(e.target.value, 0, 99, 0))
+                }
+                className="mt-2 h-11"
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
-              <Label>Max Guests</Label>
+              <Label className="text-sm font-medium text-slate-700">{t('fieldMaxGuests')}</Label>
               <Input
-                type="number"
-                min="1"
-                value={formData.metadata.max_guests}
-                onChange={(e) => updateMetadata('max_guests', parseInt(e.target.value) || 1)}
-                className="mt-1"
+                inputMode="numeric"
+                autoComplete="off"
+                value={String(formData.metadata.max_guests)}
+                onChange={(e) =>
+                  updateMetadata('max_guests', clampIntFromDigits(e.target.value, 1, 999, 1))
+                }
+                className="mt-2 h-11"
               />
             </div>
             <div>
-              <Label>Area (m²)</Label>
+              <Label className="text-sm font-medium text-slate-700">{t('fieldAreaSqm')}</Label>
               <Input
-                type="number"
-                min="0"
-                value={formData.metadata.area}
-                onChange={(e) => updateMetadata('area', parseInt(e.target.value) || 0)}
-                className="mt-1"
+                inputMode="numeric"
+                autoComplete="off"
+                value={String(formData.metadata.area)}
+                onChange={(e) =>
+                  updateMetadata('area', clampIntFromDigits(e.target.value, 0, 9_999_999, 0))
+                }
+                className="mt-2 h-11"
               />
             </div>
           </div>
@@ -593,25 +622,27 @@ export default function PremiumListingWizard() {
     } else if (categoryName.includes('yacht') || categoryName.includes('boat')) {
       return (
         <>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
-              <Label>Passengers</Label>
+              <Label className="text-sm font-medium text-slate-700">{t('fieldPassengers')}</Label>
               <Input
-                type="number"
-                min="1"
-                value={formData.metadata.passengers}
-                onChange={(e) => updateMetadata('passengers', parseInt(e.target.value) || 1)}
-                className="mt-1"
+                inputMode="numeric"
+                autoComplete="off"
+                value={String(formData.metadata.passengers)}
+                onChange={(e) =>
+                  updateMetadata('passengers', clampIntFromDigits(e.target.value, 1, 999, 1))
+                }
+                className="mt-2 h-11"
               />
             </div>
             <div>
-              <Label>Engine Type</Label>
+              <Label className="text-sm font-medium text-slate-700">{t('fieldEngineType')}</Label>
               <Input
                 type="text"
-                placeholder="e.g., 2x 300HP"
+                placeholder={t('fieldEnginePlaceholder')}
                 value={formData.metadata.engine}
                 onChange={(e) => updateMetadata('engine', e.target.value)}
-                className="mt-1"
+                className="mt-2 h-11"
               />
             </div>
           </div>
@@ -621,13 +652,13 @@ export default function PremiumListingWizard() {
       return (
         <>
           <div>
-            <Label>Duration</Label>
+            <Label className="text-sm font-medium text-slate-700">{t('fieldDuration')}</Label>
             <Input
               type="text"
-              placeholder="e.g., 4 hours"
+              placeholder={t('fieldDurationPlaceholder')}
               value={formData.metadata.duration}
               onChange={(e) => updateMetadata('duration', e.target.value)}
-              className="mt-1"
+              className="mt-2 h-11"
             />
           </div>
         </>
@@ -684,6 +715,13 @@ export default function PremiumListingWizard() {
               onApplyPreview={(preview) => {
                 setFormData((prev) => {
                   const { nextFormData, customDistrictsToAdd } = mergeAirbnbPreviewWizard(prev, preview)
+                  const merged = {
+                    ...nextFormData,
+                    metadata: {
+                      ...nextFormData.metadata,
+                      amenities: normalizeWizardAmenities(nextFormData.metadata?.amenities || []),
+                    },
+                  }
                   if (customDistrictsToAdd.length) {
                     Promise.resolve().then(() => {
                       setCustomDistricts((dprev) => {
@@ -695,13 +733,13 @@ export default function PremiumListingWizard() {
                       })
                     })
                   }
-                  return nextFormData
+                  return merged
                 })
               }}
             />
             
             <div>
-              <Label className="text-base font-medium">Title *</Label>
+              <Label className="text-base font-medium text-slate-800">{t('listingTitleLabel')}</Label>
               <Input
                 type="text"
                 placeholder={t('titlePlaceholder')}
@@ -710,11 +748,13 @@ export default function PremiumListingWizard() {
                 className="mt-2 h-12"
                 maxLength={100}
               />
-              <p className="text-xs text-slate-500 mt-1">{formData.title.length}/100 {t('characters')}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {formData.title.length}/100 {t('characters')}
+              </p>
             </div>
-            
+
             <div>
-              <Label className="text-base font-medium">Description *</Label>
+              <Label className="text-base font-medium text-slate-800">{t('listingDescriptionLabel')}</Label>
               <Textarea
                 placeholder={t('descriptionPlaceholder')}
                 value={formData.description}
@@ -722,7 +762,9 @@ export default function PremiumListingWizard() {
                 className="mt-2 min-h-[120px]"
                 maxLength={2000}
               />
-              <p className="text-xs text-slate-500 mt-1">{formData.description.length}/2000 {t('characters')}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {formData.description.length}/2000 {t('characters')}
+              </p>
             </div>
           </div>
         )
@@ -843,34 +885,40 @@ export default function PremiumListingWizard() {
       
       case 3:
         return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">{t('listingSpecs')}</h2>
-              <p className="text-slate-600">{t('addDetailsFor')} {formData.categoryName || ''}.</p>
+          <div className="space-y-8">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-semibold tracking-tight">{t('listingSpecs')}</h2>
+              <p className="text-slate-600 leading-relaxed">
+                {t('addDetailsFor')}{' '}
+                {getCategoryName(mapCategorySlug, language) || formData.categoryName || ''}.
+              </p>
             </div>
-            
+
             {renderSpecs()}
-            
-            <div>
-              <Label className="text-base font-medium">{t('amenities')}</Label>
-              <div className="grid grid-cols-3 gap-3 mt-2">
-                {AMENITIES.map(amenity => {
-                  const selected = formData.metadata.amenities?.includes(amenity)
+
+            <div className="space-y-3 pt-2">
+              <Label className="text-base font-medium text-slate-800">{t('amenities')}</Label>
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                {AMENITY_SLUGS.map((slug) => {
+                  const selected = formData.metadata.amenities?.includes(slug)
                   return (
                     <Button
-                      key={amenity}
+                      key={slug}
                       variant={selected ? 'default' : 'outline'}
                       size="sm"
+                      type="button"
                       onClick={() => {
                         const current = formData.metadata.amenities || []
-                        const updated = selected 
-                          ? current.filter(a => a !== amenity)
-                          : [...current, amenity]
+                        const updated = selected
+                          ? current.filter((a) => a !== slug)
+                          : [...current, slug]
                         updateMetadata('amenities', updated)
                       }}
-                      className={selected ? 'bg-teal-600 hover:bg-teal-700' : ''}
+                      className={`h-auto min-h-10 whitespace-normal px-3 py-2 text-center text-sm leading-snug ${
+                        selected ? 'bg-teal-600 hover:bg-teal-700' : ''
+                      }`}
                     >
-                      {amenity}
+                      {getAmenityName(slug, language, slug)}
                     </Button>
                   )
                 })}
@@ -881,164 +929,216 @@ export default function PremiumListingWizard() {
       
       case 4:
         return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">{t('pricingAndBooking')}</h2>
-              <p className="text-slate-600">{t('setRates')}</p>
+          <div className="space-y-8">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-semibold tracking-tight">{t('pricingAndBooking')}</h2>
+              <p className="text-slate-600 leading-relaxed">{t('setRates')}</p>
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <Label className="text-base font-medium">{t('basePrice')}</Label>
+                <Label className="text-base font-medium text-slate-800">{t('basePrice')}</Label>
                 <Input
-                  type="number"
-                  min="0"
+                  inputMode="numeric"
+                  autoComplete="off"
                   placeholder={t('basePricePlaceholder')}
                   value={formData.basePriceThb}
-                  onChange={(e) => updateField('basePriceThb', e.target.value)}
+                  onChange={(e) => updateField('basePriceThb', sanitizeThbDigits(e.target.value))}
                   className="mt-2 h-12"
                 />
               </div>
-              <div className="flex flex-col justify-end">
-                <p className="text-sm font-medium text-slate-700">
-                  {language === 'ru' ? 'Комиссия системы' : 'System commission'}
-                </p>
-                <p className="text-lg font-semibold text-teal-600 mt-1">
-                  {partnerCommissionRate}%
-                </p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {partnerCommissionRate !== 15 
-                    ? (language === 'ru' ? 'Индивидуальная ставка для партнёра' : 'Personal partner rate')
-                    : (language === 'ru' ? 'Стандартная ставка' : 'Standard rate')}
+              <div className="flex flex-col justify-end rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
+                <p className="text-sm font-medium text-slate-700">{t('systemCommission')}</p>
+                <p className="text-lg font-semibold text-teal-600 mt-1">{partnerCommissionRate}%</p>
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  {partnerCommissionRate !== 15 ? t('partnerCommissionPersonal') : t('partnerCommissionStandard')}
                 </p>
               </div>
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
-                <Label className="text-base font-medium">{t('minStay')}</Label>
+                <Label className="text-base font-medium text-slate-800">{t('minStay')}</Label>
                 <Input
-                  type="number"
-                  min="1"
-                  value={formData.minBookingDays}
-                  onChange={(e) => updateField('minBookingDays', e.target.value)}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={String(formData.minBookingDays)}
+                  onChange={(e) =>
+                    updateField('minBookingDays', clampIntFromDigits(e.target.value, 1, 365, 1))
+                  }
                   className="mt-2 h-12"
                 />
               </div>
               <div>
-                <Label className="text-base font-medium">{t('maxStay')}</Label>
+                <Label className="text-base font-medium text-slate-800">{t('maxStay')}</Label>
                 <Input
-                  type="number"
-                  min="1"
-                  value={formData.maxBookingDays}
-                  onChange={(e) => updateField('maxBookingDays', e.target.value)}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={String(formData.maxBookingDays)}
+                  onChange={(e) =>
+                    updateField('maxBookingDays', clampIntFromDigits(e.target.value, 1, 730, 90))
+                  }
                   className="mt-2 h-12"
                 />
               </div>
             </div>
-            
-            <div>
-              <Label className="text-base font-medium">{t('seasonalPricing')}</Label>
-              <p className="text-xs text-slate-500 mt-1">{t('seasonalPricingDesc')}</p>
-              <div className="mt-2 space-y-4">
-                <div className="border rounded-lg p-4 bg-slate-50">
-                  <Label className="text-sm font-medium mb-2 block">Диапазон дат</Label>
-                  <DayPicker
-                    mode="range"
-                    selected={newSeason.dateRange}
-                    onSelect={(range) => setNewSeason(s => ({ ...s, dateRange: range || { from: null, to: null } }))}
-                    locale={ru}
-                    className="mx-auto"
-                  />
+
+            <div className="space-y-3">
+              <Label className="text-base font-medium text-slate-800">{t('seasonalPricing')}</Label>
+              <p className="text-sm text-slate-500 leading-relaxed">{t('seasonalPricingDesc')}</p>
+              <div className="mt-1 space-y-5">
+                <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/90 p-2 sm:p-4">
+                  <Label className="mb-2 block text-sm font-medium text-slate-800">
+                    {t('wizardDateRange')}
+                  </Label>
+                  <div className="-mx-1 w-full min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain sm:mx-0 [scrollbar-gutter:stable]">
+                    <div className="inline-flex min-w-full justify-center px-1 pb-1 sm:px-0">
+                      <DayPicker
+                        mode="range"
+                        selected={newSeason.dateRange}
+                        onSelect={(range) =>
+                          setNewSeason((s) => ({
+                            ...s,
+                            dateRange: range || { from: null, to: null },
+                          }))
+                        }
+                        locale={dayPickerLocale}
+                        className="rdp-root !p-0 [--rdp-day-width:2.25rem] [--rdp-day-height:2.25rem] [--rdp-day_button-width:2.125rem] [--rdp-day_button-height:2.125rem] sm:[--rdp-day-width:2.75rem] sm:[--rdp-day-height:2.75rem] sm:[--rdp-day_button-width:2.625rem] sm:[--rdp-day_button-height:2.625rem] [&_.rdp-weekday]:text-[0.65rem] sm:[&_.rdp-weekday]:text-xs"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <div>
-                    <Label className="text-xs text-slate-500 mb-1 block">{t('seasonLabel')}</Label>
+                    <Label className="mb-1.5 block text-xs font-medium text-slate-600">
+                      {t('seasonLabel')}
+                    </Label>
                     <Input
-                      placeholder="Высокий сезон"
+                      placeholder={t('seasonLabelExamplePlaceholder')}
                       value={newSeason.label}
-                      onChange={(e) => setNewSeason(s => ({ ...s, label: e.target.value }))}
+                      onChange={(e) => setNewSeason((s) => ({ ...s, label: e.target.value }))}
+                      className="h-11"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-500 mb-1 block">Тип</Label>
-                    <Select value={newSeason.seasonType} onValueChange={(v) => setNewSeason(s => ({ ...s, seasonType: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                    <Label className="mb-1.5 block text-xs font-medium text-slate-600">
+                      {t('seasonTypeLabel')}
+                    </Label>
+                    <Select
+                      value={newSeason.seasonType}
+                      onValueChange={(v) => setNewSeason((s) => ({ ...s, seasonType: v }))}
+                    >
+                      <SelectTrigger className="h-11">
+                        <SelectValue />
+                      </SelectTrigger>
                       <SelectContent>
-                        {SEASON_TYPES.map(st => (
-                          <SelectItem key={st.value} value={st.value}>{st.label}</SelectItem>
+                        {SEASON_TYPES.map((st) => (
+                          <SelectItem key={st.value} value={st.value}>
+                            {st.label}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-500 mb-1 block">฿/день</Label>
+                    <Label className="mb-1.5 block text-xs font-medium text-slate-600">
+                      {t('pricePerDayShort')}
+                    </Label>
                     <Input
-                      type="number"
-                      min="0"
+                      inputMode="numeric"
+                      autoComplete="off"
                       placeholder="15000"
                       value={newSeason.priceDaily}
-                      onChange={(e) => setNewSeason(s => ({ ...s, priceDaily: e.target.value }))}
+                      onChange={(e) =>
+                        setNewSeason((s) => ({ ...s, priceDaily: sanitizeThbDigits(e.target.value) }))
+                      }
+                      className="h-11"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-500 mb-1 block">฿/мес (опц.)</Label>
+                    <Label className="mb-1.5 block text-xs font-medium text-slate-600">
+                      {t('pricePerMonthOptional')}
+                    </Label>
                     <Input
-                      type="number"
-                      min="0"
+                      inputMode="numeric"
+                      autoComplete="off"
                       placeholder="—"
                       value={newSeason.priceMonthly}
-                      onChange={(e) => setNewSeason(s => ({ ...s, priceMonthly: e.target.value }))}
+                      onChange={(e) =>
+                        setNewSeason((s) => ({ ...s, priceMonthly: sanitizeThbDigits(e.target.value) }))
+                      }
+                      className="h-11"
                     />
                   </div>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
+                  type="button"
+                  className="h-10"
                   onClick={() => {
                     const from = newSeason.dateRange?.from
                     const to = newSeason.dateRange?.to || newSeason.dateRange?.from
                     if (newSeason.label && from && to && newSeason.priceDaily) {
-                      setFormData(prev => ({
+                      setFormData((prev) => ({
                         ...prev,
-                        seasonalPricing: [...(prev.seasonalPricing || []), {
-                          id: `s-${Date.now()}`,
-                          label: newSeason.label,
-                          startDate: format(from, 'yyyy-MM-dd'),
-                          endDate: format(to, 'yyyy-MM-dd'),
-                          priceDaily: parseFloat(newSeason.priceDaily) || 0,
-                          priceMonthly: newSeason.priceMonthly ? parseFloat(newSeason.priceMonthly) : null,
-                          seasonType: newSeason.seasonType
-                        }]
+                        seasonalPricing: [
+                          ...(prev.seasonalPricing || []),
+                          {
+                            id: `s-${Date.now()}`,
+                            label: newSeason.label,
+                            startDate: format(from, 'yyyy-MM-dd'),
+                            endDate: format(to, 'yyyy-MM-dd'),
+                            priceDaily: parseFloat(newSeason.priceDaily) || 0,
+                            priceMonthly: newSeason.priceMonthly
+                              ? parseFloat(newSeason.priceMonthly)
+                              : null,
+                            seasonType: newSeason.seasonType,
+                          },
+                        ],
                       }))
-                      setNewSeason({ label: '', dateRange: { from: null, to: null }, priceDaily: '', priceMonthly: '', seasonType: 'NORMAL' })
-                      toast.success(language === 'ru' ? 'Сезон добавлен' : 'Season added')
+                      setNewSeason({
+                        label: '',
+                        dateRange: { from: null, to: null },
+                        priceDaily: '',
+                        priceMonthly: '',
+                        seasonType: 'NORMAL',
+                      })
+                      toast.success(t('seasonAddedToast'))
                     } else {
-                      toast.error(language === 'ru' ? 'Заполните все поля и выберите даты' : 'Fill all fields and select dates')
+                      toast.error(t('seasonFillErrorToast'))
                     }
                   }}
                 >
-                  <DollarSign className="h-4 w-4 mr-2" />
+                  <DollarSign className="mr-2 h-4 w-4" />
                   {t('addSeason')}
                 </Button>
                 {(formData.seasonalPricing || []).length > 0 && (
-                  <div className="space-y-2 mt-3">
+                  <div className="mt-3 space-y-2">
                     {formData.seasonalPricing.map((s, i) => {
                       const colors = getSeasonColor(s.seasonType || 'NORMAL')
                       return (
-                        <div key={s.id || i} className={`flex items-center justify-between py-2 px-3 rounded-lg border ${colors.bg} ${colors.border}`}>
-                          <span className="text-sm">
-                            {s.label} ({s.seasonType || 'NORMAL'}): {s.startDate} — {s.endDate} • ฿{s.priceDaily}/день
-                            {s.priceMonthly && ` • ฿${s.priceMonthly}/мес`}
+                        <div
+                          key={s.id || i}
+                          className={`flex flex-col gap-2 rounded-lg border py-2.5 px-3 sm:flex-row sm:items-center sm:justify-between ${colors.bg} ${colors.border}`}
+                        >
+                          <span className="text-sm leading-snug">
+                            {s.label} ({s.seasonType || 'NORMAL'}): {s.startDate} — {s.endDate} • ฿
+                            {s.priceDaily}
+                            {t('perNightShort')}
+                            {s.priceMonthly ? ` • ฿${s.priceMonthly}${t('perMonthShort')}` : ''}
                           </span>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-red-600 hover:text-red-700"
-                            onClick={() => setFormData(prev => ({
-                              ...prev,
-                              seasonalPricing: (prev.seasonalPricing || []).filter((_, j) => j !== i)
-                            }))}
+                            type="button"
+                            className="shrink-0 self-end text-red-600 hover:text-red-700 sm:self-auto"
+                            onClick={() =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                seasonalPricing: (prev.seasonalPricing || []).filter((_, j) => j !== i),
+                              }))
+                            }
                           >
                             {t('removeSeason')}
                           </Button>
@@ -1086,7 +1186,7 @@ export default function PremiumListingWizard() {
                   <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group">
                     <ProxiedImage src={img} alt={`Upload ${idx + 1}`} fill className="object-cover" sizes="25vw" />
                     {idx === 0 && (
-                      <Badge className="absolute top-2 left-2 bg-teal-600">Cover</Badge>
+                      <Badge className="absolute left-2 top-2 bg-teal-600">{t('coverBadge')}</Badge>
                     )}
                     <Button
                       variant="destructive"
@@ -1122,11 +1222,13 @@ export default function PremiumListingWizard() {
               className="gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Exit
+              {t('exit')}
             </Button>
-            
-            <h1 className="text-xl font-semibold">{isEditMode ? 'Edit Listing' : 'Create New Listing'}</h1>
-            
+
+            <h1 className="text-center text-lg font-semibold tracking-tight sm:text-xl">
+              {isEditMode ? t('editListing') : t('createNewListing')}
+            </h1>
+
             <Button
               variant="outline"
               onClick={saveDraft}
@@ -1134,7 +1236,7 @@ export default function PremiumListingWizard() {
               className="gap-2"
             >
               {savingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save Draft
+              {t('saveDraft')}
             </Button>
           </div>
           
@@ -1174,8 +1276,8 @@ export default function PremiumListingWizard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* LEFT: Wizard Form */}
           <div className="lg:col-span-2">
-            <Card className="border-slate-200">
-              <CardContent className="p-8">
+            <Card className="border-slate-200 shadow-sm">
+              <CardContent className="p-5 sm:p-8">
                 {renderStepContent()}
                 
                 <Separator className="my-8" />
@@ -1219,14 +1321,16 @@ export default function PremiumListingWizard() {
           {/* RIGHT: Live Preview */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
-              <h3 className="text-lg font-semibold mb-4 text-slate-700">{t('livePreview')}</h3>
-              <Card className="border-slate-200 bg-white">
-                <CardContent className="p-4">
+              <h3 className="mb-4 text-lg font-semibold tracking-tight text-slate-800">
+                {t('livePreview')}
+              </h3>
+              <Card className="border-slate-200 bg-white shadow-sm">
+                <CardContent className="p-4 sm:p-5">
                   <GostayloListingCard
                     listing={{
                       id: 'preview',
-                      title: formData.title || 'Your listing title',
-                      district: formData.district || 'District',
+                      title: formData.title || t('previewTitlePlaceholder'),
+                      district: formData.district || t('previewDistrictPlaceholder'),
                       basePriceThb: parseFloat(formData.basePriceThb) || 0,
                       base_price_thb: parseFloat(formData.basePriceThb) || 0,
                       coverImage: formData.images[0] || 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image',
@@ -1246,9 +1350,9 @@ export default function PremiumListingWizard() {
                     isFavorited={false}
                   />
                   
-                  <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-600">
-                    <p className="font-medium mb-1">This is how guests will see your listing</p>
-                    <p>Continue filling the form to see updates in real-time.</p>
+                  <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50/90 p-3 text-xs leading-relaxed text-slate-600">
+                    <p className="mb-1 font-medium text-slate-700">{t('thisIsHowGuestsSee')}</p>
+                    <p>{t('continueFilling')}</p>
                   </div>
                 </CardContent>
               </Card>

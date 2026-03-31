@@ -21,10 +21,12 @@ import SeasonalPriceManager from '@/components/seasonal-price-manager'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
-import { getUIText } from '@/lib/translations'
+import { getUIText, getAmenityName } from '@/lib/translations'
+import { sanitizeThbDigits } from '@/lib/listing-wizard-numeric'
+import { AMENITY_SLUGS, normalizeWizardAmenities } from '@/lib/listing-wizard-amenities'
 import { ProxiedImage } from '@/components/proxied-image'
 import { PartnerListingImportBlock } from '@/components/partner/PartnerListingImportBlock'
-import { LISTING_AMENITY_PRESETS, mergeAirbnbPreviewEdit } from '@/lib/partner/listing-import-merge'
+import { mergeAirbnbPreviewEdit } from '@/lib/partner/listing-import-merge'
 import {
   migrateExternalImagesAfterSave,
   patchPartnerListingCoverImage,
@@ -36,6 +38,16 @@ export default function EditListing({ params }) {
   const router = useRouter()
   const { user, loading: authLoading, isAuthenticated } = useAuth()
   const { language } = useI18n()
+  const t = (key) => getUIText(key, language)
+  const tr = (key, vars) => {
+    let s = getUIText(key, language)
+    if (vars) {
+      for (const [k, v] of Object.entries(vars)) {
+        s = s.split(`{{${k}}}`).join(String(v))
+      }
+    }
+    return s
+  }
   const listingId = params?.id
   const fileInputRef = useRef(null)
   
@@ -114,15 +126,20 @@ export default function EditListing({ params }) {
         const images = l.images || []
         const coverIndex = l.coverImage ? images.findIndex(img => img === l.coverImage) : 0
         
+        const rawMeta = l.metadata && typeof l.metadata === 'object' ? { ...l.metadata } : {}
         setFormData({
           title: l.title || '',
           description: l.description || '',
-          basePriceThb: l.basePriceThb?.toString() || '',
+          basePriceThb: sanitizeThbDigits((l.basePriceThb ?? l.base_price_thb)?.toString() || '') || '',
           district: l.district || '',
           latitude: l.latitude != null && l.latitude !== '' ? String(l.latitude) : '',
           longitude: l.longitude != null && l.longitude !== '' ? String(l.longitude) : '',
           images: images,
-          coverIndex: coverIndex >= 0 ? coverIndex : 0
+          coverIndex: coverIndex >= 0 ? coverIndex : 0,
+          metadata: {
+            ...rawMeta,
+            amenities: normalizeWizardAmenities(rawMeta.amenities || []),
+          },
         })
         
         // Seasonal prices loaded by SeasonalPriceManager from API
@@ -133,7 +150,7 @@ export default function EditListing({ params }) {
     } catch (error) {
       console.error('Failed to load listing:', error)
       setLoading(false)
-      toast.error('Ошибка при загрузке объявления')
+      toast.error(t('partnerEdit_loadErr'))
     }
   }
 
@@ -163,7 +180,7 @@ export default function EditListing({ params }) {
       const result = await res.json()
       
       if (result.success) {
-        toast.success('Объявление сохранено', { id: 'partner-listing-save' })
+        toast.success(t('partnerEdit_listingSaved'), { id: 'partner-listing-save' })
         setListing((prev) =>
           prev
             ? {
@@ -189,19 +206,16 @@ export default function EditListing({ params }) {
             images: mig.images,
             coverIndex: Math.min(fd.coverIndex, Math.max(0, mig.images.length - 1)),
           }))
-          toast.success(
-            language === 'ru'
-              ? `Фото перенесены в хранилище (${mig.migrated ?? 0} шт.)`
-              : `Photos saved to storage (${mig.migrated ?? 0})`,
-            { id: 'partner-listing-migrate-img' }
-          )
+          toast.success(tr('partnerEdit_photosMigrated', { n: mig.migrated ?? 0 }), {
+            id: 'partner-listing-migrate-img',
+          })
         }
       } else {
-        toast.error(result.error || 'Ошибка при сохранении')
+        toast.error(result.error || t('partnerEdit_listingSaveErr'))
       }
     } catch (error) {
       console.error('Failed to save listing:', error)
-      toast.error('Ошибка при сохранении')
+      toast.error(t('partnerEdit_listingSaveErr'))
     } finally {
       setSaving(false)
     }
@@ -210,7 +224,7 @@ export default function EditListing({ params }) {
   async function handlePublish() {
     // Validate required fields
     if (!formData.title || !formData.basePriceThb || formData.images.length === 0) {
-      toast.error('Заполните название, цену и добавьте фото')
+      toast.error(t('partnerEdit_validationPublish'))
       return
     }
     
@@ -259,14 +273,14 @@ export default function EditListing({ params }) {
             mig.images[Math.min(prevCoverIdx, mig.images.length - 1)] || mig.images[0]
           await patchPartnerListingCoverImage(listingId, newCover)
         }
-        toast.success('🚀 Объявление отправлено на модерацию!')
+        toast.success(t('partnerEdit_listingPublished'))
         router.push('/partner/listings')
       } else {
-        toast.error(result.error || 'Ошибка при публикации')
+        toast.error(result.error || t('partnerEdit_listingPublishErr'))
       }
     } catch (error) {
       console.error('Failed to publish:', error)
-      toast.error('Ошибка при публикации')
+      toast.error(t('partnerEdit_listingPublishErr'))
     } finally {
       setPublishing(false)
     }
@@ -299,16 +313,15 @@ export default function EditListing({ params }) {
       setFormData({ ...formData, images: newImages })
       
       if (uploadedUrls.length > 0) {
-        toast.success(`✅ Загружено ${uploadedUrls.length} фото`)
+        toast.success(tr('partnerEdit_photoUploadedN', { n: uploadedUrls.length }))
       }
-      
+
       if (uploadedUrls.length < files.length) {
-        toast.warning(`⚠️ ${files.length - uploadedUrls.length} файлов не удалось загрузить`)
+        toast.warning(tr('partnerEdit_photoPartialFail', { n: files.length - uploadedUrls.length }))
       }
-      
     } catch (error) {
       console.error('Upload error:', error)
-      toast.error('Ошибка загрузки изображений')
+      toast.error(t('partnerEdit_imageUploadErr'))
     }
     
     setUploading(false)
@@ -347,16 +360,19 @@ export default function EditListing({ params }) {
       images: newImages,
       coverIndex: Math.max(0, newCoverIndex)
     })
-    toast.success('Фото удалено')
+    toast.success(t('partnerEdit_photoRemoved'))
   }
 
   function setAsCover(index) {
     setFormData({ ...formData, coverIndex: index })
-    toast.success('Обложка установлена')
+    toast.success(t('partnerEdit_coverSet'))
   }
 
   // Check if can publish
-  const canPublish = formData.title && formData.basePriceThb && formData.images.length > 0
+  const canPublish =
+    !!formData.title &&
+    parseFloat(String(formData.basePriceThb).replace(',', '.')) > 0 &&
+    formData.images.length > 0
   const isDraft = listing?.metadata?.is_draft
 
   if (loading || authLoading) {
@@ -374,10 +390,8 @@ export default function EditListing({ params }) {
         <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
           <AlertCircle className="h-8 w-8 text-slate-400" />
         </div>
-        <h2 className="text-xl font-semibold text-slate-900 mb-2">Войдите в систему</h2>
-        <p className="text-slate-500 text-center mb-6">
-          Для редактирования листинга необходимо авторизоваться
-        </p>
+        <h2 className="text-xl font-semibold text-slate-900 mb-2">{t('partnerEdit_loginTitle')}</h2>
+        <p className="text-slate-500 text-center mb-6">{t('partnerEdit_loginSubtitle')}</p>
         <Button
           onClick={() => {
             // Use auth context openLoginModal if available
@@ -387,7 +401,7 @@ export default function EditListing({ params }) {
           }}
           className="bg-teal-600 hover:bg-teal-700"
         >
-          Войти
+          {t('partnerEdit_loginCta')}
         </Button>
       </div>
     )
@@ -397,9 +411,9 @@ export default function EditListing({ params }) {
     return (
       <div className="p-8 text-center">
         <AlertCircle className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-        <p className="text-slate-600 mb-4">Объявление не найдено</p>
+        <p className="text-slate-600 mb-4">{t('partnerEdit_notFound')}</p>
         <Button asChild className="bg-teal-600 hover:bg-teal-700">
-          <Link href="/partner/listings">Вернуться к списку</Link>
+          <Link href="/partner/listings">{t('partnerEdit_backToListings')}</Link>
         </Button>
       </div>
     )
@@ -422,11 +436,17 @@ export default function EditListing({ params }) {
             </Button>
             <div className="flex-1 min-w-0">
               <h1 className="text-base lg:text-2xl font-bold text-slate-900 truncate">
-                {isDraft ? 'Заполнить черновик' : 'Редактирование'}
+                {isDraft ? t('partnerEdit_fillDraft') : t('partnerEdit_editTitle')}
               </h1>
               <div className="flex items-center gap-2 mt-0.5">
                 <Badge className={`text-xs ${isDraft ? 'bg-amber-100 text-amber-700 border-amber-300' : statusColors[listing.status]}`}>
-                  {isDraft ? '📝 Черновик' : listing.status === 'ACTIVE' ? 'Активный' : listing.status === 'PENDING' ? 'На модерации' : 'Неактивный'}
+                  {isDraft
+                    ? t('partnerEdit_statusDraft')
+                    : listing.status === 'ACTIVE'
+                      ? t('partnerEdit_statusActive')
+                      : listing.status === 'PENDING'
+                        ? t('partnerEdit_statusPending')
+                        : t('partnerEdit_statusInactive')}
                 </Badge>
               </div>
             </div>
@@ -439,7 +459,7 @@ export default function EditListing({ params }) {
                 className="hidden lg:flex"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                Сохранить
+                {t('partnerEdit_save')}
               </Button>
               {isDraft && (
                 <Button
@@ -449,7 +469,7 @@ export default function EditListing({ params }) {
                   size="sm"
                 >
                   {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 lg:mr-2" />}
-                  <span className="hidden lg:inline">Опубликовать</span>
+                  <span className="hidden lg:inline">{t('partnerEdit_publish')}</span>
                 </Button>
               )}
             </div>
@@ -457,14 +477,16 @@ export default function EditListing({ params }) {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-4 lg:py-8 max-w-4xl space-y-4 lg:space-y-6">
+      <div className="container mx-auto max-w-4xl space-y-5 px-3 py-5 sm:px-4 lg:space-y-8 lg:py-8">
         
         {/* Basic Info - Mobile Optimized */}
-        <Card>
-          <CardHeader className="pb-2 lg:pb-4">
-            <CardTitle className="text-base lg:text-lg">Основная информация</CardTitle>
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-3 lg:pb-4">
+            <CardTitle className="text-base font-semibold tracking-tight lg:text-lg">
+              {t('partnerEdit_basicInfo')}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             {listing?.categoryId && (
               <PartnerListingImportBlock
                 categoryId={listing.categoryId}
@@ -472,53 +494,68 @@ export default function EditListing({ params }) {
                 listingId={listingId}
                 migrateImportedImagesToStorage
                 onApplyPreview={(preview) => {
-                  setFormData((prev) => mergeAirbnbPreviewEdit(prev, preview).nextFormData)
+                  setFormData((prev) => {
+                    const { nextFormData } = mergeAirbnbPreviewEdit(prev, preview)
+                    return {
+                      ...nextFormData,
+                      basePriceThb: sanitizeThbDigits(nextFormData.basePriceThb || ''),
+                      metadata: {
+                        ...nextFormData.metadata,
+                        amenities: normalizeWizardAmenities(nextFormData.metadata?.amenities || []),
+                      },
+                    }
+                  })
                 }}
               />
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="title" className="text-sm">Название</Label>
+              <Label htmlFor="title" className="text-sm font-medium text-slate-800">
+                {t('partnerEdit_listingTitle')}
+              </Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Роскошная вилла..."
-                className="text-base"
+                placeholder={t('partnerEdit_titlePh')}
+                className="h-11 text-base"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm">Описание</Label>
+              <Label htmlFor="description" className="text-sm font-medium text-slate-800">
+                {t('partnerEdit_listingDesc')}
+              </Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={4}
-                className="text-base"
-                placeholder="Подробное описание объекта..."
+                rows={5}
+                className="min-h-[120px] text-base"
+                placeholder={t('partnerEdit_descPh')}
               />
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Удобства</Label>
-              <p className="text-xs text-slate-500">
-                Отметьте доступные опции (в т.ч. после импорта с Airbnb — проверьте список).
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {LISTING_AMENITY_PRESETS.map((amenity) => {
-                  const selected = Array.isArray(formData.metadata?.amenities) && formData.metadata.amenities.includes(amenity)
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-slate-800">{t('amenities')}</Label>
+              <p className="text-xs leading-relaxed text-slate-500">{t('partnerEdit_amenitiesHint')}</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+                {AMENITY_SLUGS.map((slug) => {
+                  const selected =
+                    Array.isArray(formData.metadata?.amenities) && formData.metadata.amenities.includes(slug)
                   return (
                     <Button
-                      key={amenity}
+                      key={slug}
                       type="button"
                       variant={selected ? 'default' : 'outline'}
                       size="sm"
-                      className={selected ? 'bg-teal-600 hover:bg-teal-700' : ''}
+                      className={`h-auto min-h-10 whitespace-normal px-3 py-2 text-center text-sm leading-snug ${
+                        selected ? 'bg-teal-600 hover:bg-teal-700' : ''
+                      }`}
                       onClick={() => {
                         setFormData((fd) => {
                           const cur = Array.isArray(fd.metadata?.amenities) ? fd.metadata.amenities : []
-                          const updated = selected ? cur.filter((a) => a !== amenity) : [...cur, amenity]
+                          const updated = selected ? cur.filter((a) => a !== slug) : [...cur, slug]
                           return {
                             ...fd,
                             metadata: { ...fd.metadata, amenities: updated },
@@ -526,44 +563,47 @@ export default function EditListing({ params }) {
                         })
                       }}
                     >
-                      {amenity}
+                      {getAmenityName(slug, language, slug)}
                     </Button>
                   )
                 })}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-start">
+            <div className="grid grid-cols-1 gap-5 sm:gap-6">
               <div className="space-y-2 min-w-0">
-                <Label htmlFor="price" className="text-sm font-medium leading-normal">
-                  Цена (THB/день)
+                <Label htmlFor="price" className="text-sm font-medium text-slate-800">
+                  {t('basePrice')}
                 </Label>
                 <Input
                   id="price"
-                  type="number"
+                  inputMode="numeric"
+                  autoComplete="off"
                   value={formData.basePriceThb}
-                  onChange={(e) => setFormData({ ...formData, basePriceThb: e.target.value })}
-                  placeholder="15000"
+                  onChange={(e) =>
+                    setFormData({ ...formData, basePriceThb: sanitizeThbDigits(e.target.value) })
+                  }
+                  placeholder={t('basePricePlaceholder')}
+                  className="h-11"
                 />
               </div>
               <div className="space-y-2 min-w-0">
-                <Label htmlFor="district" className="text-sm font-medium leading-normal">
-                  Район
+                <Label htmlFor="district" className="text-sm font-medium text-slate-800">
+                  {t('selectDistrict').replace(' *', '')}
                 </Label>
                 <Input
                   id="district"
                   value={formData.district}
                   onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                  placeholder="Rawai"
+                  placeholder={t('selectDistrictPlaceholder')}
+                  className="h-11"
                 />
               </div>
             </div>
 
-            <div className="space-y-2 pt-2 border-t border-slate-100">
-              <Label className="text-sm font-medium">Точка на карте</Label>
-              <p className="text-xs text-slate-500">
-                Закрепите точку после выбора. Для жилья и нянь подставляем район (без точного адреса); для яхт и транспорта — более точное описание.
-              </p>
+            <div className="space-y-3 border-t border-slate-100 pt-5">
+              <Label className="text-sm font-medium text-slate-800">{t('partnerEdit_mapSection')}</Label>
+              <p className="text-xs leading-relaxed text-slate-500">{t('partnerEdit_mapHint')}</p>
               <MapPicker
                 categoryId={listing?.categoryId}
                 categorySlug={listing?.category?.slug}
@@ -583,9 +623,11 @@ export default function EditListing({ params }) {
                   }))
                 }}
               />
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <Label htmlFor="lat" className="text-xs text-slate-500">Широта</Label>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="lat" className="text-xs font-medium text-slate-600">
+                    {t('latitude')}
+                  </Label>
                   <Input
                     id="lat"
                     inputMode="decimal"
@@ -595,8 +637,10 @@ export default function EditListing({ params }) {
                     className="text-sm font-mono"
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="lng" className="text-xs text-slate-500">Долгота</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="lng" className="text-xs font-medium text-slate-600">
+                    {t('longitude')}
+                  </Label>
                   <Input
                     id="lng"
                     inputMode="decimal"
@@ -612,26 +656,30 @@ export default function EditListing({ params }) {
         </Card>
 
         {/* Media Management - Mobile First */}
-        <Card>
-          <CardHeader className="pb-2 lg:pb-4">
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-3 lg:pb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                  <FileImage className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 lg:h-10 lg:w-10">
+                  <FileImage className="h-4 w-4 text-white lg:h-5 lg:w-5" />
                 </div>
                 <div>
-                  <CardTitle className="text-base lg:text-lg">Фотографии</CardTitle>
-                  <CardDescription className="text-xs">{formData.images.length} из 30</CardDescription>
+                  <CardTitle className="text-base font-semibold tracking-tight lg:text-lg">
+                    {t('partnerEdit_photosTitle')}
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    {tr('partnerEdit_photosMeta', { n: formData.images.length })}
+                  </CardDescription>
                 </div>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5">
             {/* Upload Progress */}
             {uploading && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-purple-600 font-medium">Загрузка...</span>
+                  <span className="font-medium text-purple-600">{t('partnerEdit_uploading')}</span>
                   <span className="text-slate-500">{uploadProgress}%</span>
                 </div>
                 <Progress value={uploadProgress} className="h-2" />
@@ -649,7 +697,7 @@ export default function EditListing({ params }) {
             />
 
             {/* Image Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               {formData.images.map((img, index) => (
                 <div key={index} className="relative group aspect-video rounded-lg overflow-hidden border-2 border-slate-200">
                   <ProxiedImage
@@ -662,9 +710,9 @@ export default function EditListing({ params }) {
                   
                   {/* Cover badge */}
                   {index === formData.coverIndex && (
-                    <Badge className="absolute top-2 left-2 bg-teal-600 text-white">
-                      <Star className="h-3 w-3 mr-1" />
-                      Обложка
+                    <Badge className="absolute left-2 top-2 bg-teal-600 text-white">
+                      <Star className="mr-1 h-3 w-3" />
+                      {t('coverBadge')}
                     </Badge>
                   )}
                   
@@ -677,8 +725,8 @@ export default function EditListing({ params }) {
                         onClick={() => setAsCover(index)}
                         className="bg-white/90 hover:bg-white text-xs"
                       >
-                        <Star className="h-3 w-3 mr-1" />
-                        Обложка
+                        <Star className="mr-1 h-3 w-3" />
+                        {t('partnerEdit_setCoverBtn')}
                       </Button>
                     )}
                     <Button
@@ -706,7 +754,7 @@ export default function EditListing({ params }) {
                   ) : (
                     <Upload className="h-6 w-6" />
                   )}
-                  <span className="text-xs font-medium">Добавить</span>
+                  <span className="text-xs font-medium">{t('partnerEdit_addPhoto')}</span>
                 </button>
               )}
             </div>
@@ -714,7 +762,7 @@ export default function EditListing({ params }) {
             {formData.images.length === 0 && (
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-3">
                 <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0" />
-                <p className="text-sm text-amber-700">Добавьте хотя бы одно фото</p>
+                <p className="text-sm text-amber-700">{t('partnerEdit_photoRequired')}</p>
               </div>
             )}
           </CardContent>
@@ -733,9 +781,9 @@ export default function EditListing({ params }) {
         />
 
         {/* Seasonal Pricing - Full SeasonalPriceManager */}
-        <SeasonalPriceManager 
-          listingId={listingId} 
-          basePriceThb={parseFloat(formData.basePriceThb) || 0} 
+        <SeasonalPriceManager
+          listingId={listingId}
+          basePriceThb={parseFloat(String(formData.basePriceThb).replace(',', '.')) || 0}
         />
 
         {/* Action Buttons - Mobile Fixed Footer (extra padding: Android nav bar + breathing room) */}
@@ -759,8 +807,8 @@ export default function EditListing({ params }) {
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Сохранить
+                  <Save className="mr-2 h-4 w-4" />
+                  {t('partnerEdit_save')}
                 </>
               )}
             </Button>
@@ -774,16 +822,16 @@ export default function EditListing({ params }) {
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <Send className="h-4 w-4 mr-2" />
-                    Опубликовать
+                    <Send className="mr-2 h-4 w-4" />
+                    {t('partnerEdit_publish')}
                   </>
                 )}
               </Button>
             )}
           </div>
           {isDraft && !canPublish && (
-            <p className="mt-3 text-center text-xs text-amber-600">
-              Добавьте название, цену и фото для публикации
+            <p className="mt-3 text-center text-xs leading-relaxed text-amber-600">
+              {t('partnerEdit_publishFooterHint')}
             </p>
           )}
         </div>
