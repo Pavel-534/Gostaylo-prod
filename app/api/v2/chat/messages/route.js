@@ -18,6 +18,7 @@ import { insertAuditLog } from '@/lib/services/audit/insert-audit-log'
 import { normalizeMessageType } from '@/lib/services/chat/message-types'
 import { PushService } from '@/lib/services/push.service.js'
 import { getPublicSiteUrl } from '@/lib/site-url.js'
+import { registerTelegramReplyTarget } from '@/lib/services/telegram/telegram-reply-map.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,11 +44,67 @@ async function fetchConversation(conversationId) {
 
 async function fetchProfile(userId) {
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,first_name,last_name,role,email,telegram_id`,
+    `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,first_name,last_name,role,email,telegram_id,notification_preferences`,
     { headers: hdr, cache: 'no-store' }
   )
   const rows = await res.json()
   return Array.isArray(rows) ? rows[0] : null
+}
+
+async function fetchProfileIdByTelegramChatId(telegramChatId) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/profiles?telegram_id=eq.${encodeURIComponent(String(telegramChatId))}&select=id&limit=1`,
+    { headers: hdr, cache: 'no-store' }
+  )
+  const rows = await res.json()
+  return Array.isArray(rows) ? rows[0] : null
+}
+
+function escHtmlTelegram(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+/**
+ * Уведомление в Telegram + регистрация message_id для reply-to-web.
+ * @returns {Promise<boolean>}
+ */
+async function sendNewMessageTelegramPing({
+  recipientTelegramChatId,
+  recipientUserId,
+  conversationId,
+  senderName,
+  textBody,
+}) {
+  if (!TELEGRAM_BOT_TOKEN || !recipientTelegramChatId || !recipientUserId || !conversationId) return false
+  const clip = String(textBody || '').substring(0, 450)
+  const text =
+    `💬 <b>Новое сообщение</b> · ${escHtmlTelegram(senderName)}\n\n` +
+    `«${escHtmlTelegram(clip)}${String(textBody || '').length > 450 ? '…' : ''}»\n\n` +
+    '<i>Ответьте на это сообщение здесь — текст уйдёт в чат на сайте Gostaylo.</i>'
+  try {
+    const tgRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: recipientTelegramChatId,
+        text,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true,
+      }),
+    })
+    const tgJson = await tgRes.json().catch(() => ({}))
+    const mid = tgJson?.result?.message_id
+    if (tgJson?.ok && mid != null) {
+      await registerTelegramReplyTarget(recipientTelegramChatId, mid, conversationId, recipientUserId)
+      return true
+    }
+  } catch (e) {
+    console.error('[chat/messages] telegram ping', e)
+  }
+  return false
 }
 
 export async function GET(request) {
@@ -365,20 +422,50 @@ export async function POST(request) {
   }
 
   let telegramSent = false
-  if (notifyTelegram && recipientTelegramId && TELEGRAM_BOT_TOKEN) {
-    try {
-      const tgRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: recipientTelegramId,
-          text: `📬 <b>New message from ${senderName}</b>\n\n${textBody.substring(0, 500)}${textBody.length > 500 ? '...' : ''}\n\n<i>Reply in Gostaylo inbox</i>`,
-          parse_mode: 'HTML',
-        }),
+  if (notifyTelegram && recipientTelegramId) {
+    const recipRow = await fetchProfileIdByTelegramChatId(recipientTelegramId)
+    const recipId = recipRow?.id
+    if (recipId) {
+      telegramSent = await sendNewMessageTelegramPing({
+        recipientTelegramChatId: recipientTelegramId,
+        recipientUserId: recipId,
+        conversationId,
+        senderName,
+        textBody,
       })
-      telegramSent = tgRes.ok
-    } catch (e) {
-      console.error('[chat/messages] telegram', e)
+    }
+  }
+
+  if (
+    !telegramSent &&
+    !skipPush &&
+    type === 'text' &&
+    textBody &&
+    !isStaffRole(senderRole) &&
+    TELEGRAM_BOT_TOKEN
+  ) {
+    const otherId =
+      String(userId) === String(conversation.partner_id)
+        ? conversation.renter_id
+        : String(userId) === String(conversation.renter_id)
+          ? conversation.partner_id
+          : null
+    if (otherId) {
+      const other = await fetchProfile(otherId)
+      if (
+        other?.telegram_id &&
+        other?.notification_preferences &&
+        typeof other.notification_preferences === 'object' &&
+        other.notification_preferences.telegram === true
+      ) {
+        telegramSent = await sendNewMessageTelegramPing({
+          recipientTelegramChatId: other.telegram_id,
+          recipientUserId: other.id,
+          conversationId,
+          senderName,
+          textBody,
+        })
+      }
     }
   }
 

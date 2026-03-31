@@ -18,18 +18,42 @@ import {
 } from '@/lib/services/telegram/handlers/lazy-realtor.js'
 import { scheduleAlbumPhoto } from '@/lib/services/telegram/media-group-buffer.js'
 import { handleCallbackQuery } from '@/lib/services/telegram/handlers/callbacks.js'
+import { handleInboundTelegramChatReply } from '@/lib/services/telegram/handlers/chat-inbound-reply.js'
 import {
   getTelegramMessages,
   getHelpHtmlForMenuVariant,
   getStartHtmlForMenuVariant,
 } from '@/lib/services/telegram/messages/index.js'
-import { resolveMenuVariantForTelegramChat } from '@/lib/services/telegram/menu-variant.js'
+import {
+  resolveContentMenuVariantForTelegramChat,
+  resolveMenuVariantForTelegramChat,
+} from '@/lib/services/telegram/menu-variant.js'
 import { resolveTelegramLanguageForChat, normalizeTelegramUiLang } from '@/lib/services/telegram/locale.js'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 /** Ленивый риелтор: скачивание фото + Sharp — не обрывать на дефолтных ~10s */
 export const maxDuration = 60
+
+async function fetchProfileRoleByTelegramChatId(chatId) {
+  const { supabaseUrl, serviceKey } = telegramEnv()
+  if (!supabaseUrl || !serviceKey) return null
+  const res = await fetch(
+    `${supabaseUrl}/rest/v1/profiles?telegram_id=eq.${encodeURIComponent(String(chatId))}&select=role`,
+    {
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+      },
+    }
+  )
+  const rows = await res.json()
+  return Array.isArray(rows) ? rows[0]?.role ?? null : null
+}
+
+function isPartnerListingRole(role) {
+  return ['PARTNER', 'ADMIN'].includes(String(role || '').toUpperCase())
+}
 
 export async function POST(request) {
   let chatId
@@ -72,13 +96,25 @@ export async function POST(request) {
     lang = await resolveTelegramLanguageForChat(chatId, telegramLangCode)
     const t = getTelegramMessages(lang)
 
+    if (
+      message.reply_to_message &&
+      typeof message.text === 'string' &&
+      message.text.trim() &&
+      !message.text.startsWith('/')
+    ) {
+      const replyHandled = await handleInboundTelegramChatReply(message, lang)
+      if (replyHandled) {
+        return NextResponse.json({ ok: true })
+      }
+    }
+
     console.log(
       `[WEBHOOK] Chat: ${chatId}, User: ${firstName}, TelegramId: ${telegramUserId}, Lang: ${lang}, Text: ${text?.substring(0, 50)}`
     )
 
     if (text.startsWith('/help')) {
-      const menuVariant = await resolveMenuVariantForTelegramChat(chatId)
-      const helpHtml = getHelpHtmlForMenuVariant(t, lang, menuVariant)
+      const contentVariant = await resolveContentMenuVariantForTelegramChat(chatId)
+      const helpHtml = getHelpHtmlForMenuVariant(t, lang, contentVariant)
       await sendTelegram(chatId, helpHtml, await withMainMenuForChat(lang, chatId))
       return NextResponse.json({ ok: true })
     }
@@ -93,8 +129,8 @@ export async function POST(request) {
         return NextResponse.json({ ok: true })
       }
 
-      const menuVariant = await resolveMenuVariantForTelegramChat(chatId)
-      const startHtml = getStartHtmlForMenuVariant(t, lang, menuVariant, firstName)
+      const contentVariant = await resolveContentMenuVariantForTelegramChat(chatId)
+      const startHtml = getStartHtmlForMenuVariant(t, lang, contentVariant, firstName)
       await sendTelegram(chatId, startHtml, await withMainMenuForChat(lang, chatId))
       return NextResponse.json({ ok: true })
     }
@@ -115,6 +151,15 @@ export async function POST(request) {
     }
 
     if (photo && photo.length > 0) {
+      const listingRole = await fetchProfileRoleByTelegramChatId(chatId)
+      if (!isPartnerListingRole(listingRole)) {
+        await sendTelegram(
+          chatId,
+          t.renterPhotoNoListing(),
+          await withMainMenuForChat(lang, chatId)
+        )
+        return NextResponse.json({ ok: true })
+      }
       const albumQueued = scheduleAlbumPhoto(chatId, message, firstName, lang, flushLazyRealtorAlbum)
       if (!albumQueued) {
         await handlePhotoUpload(chatId, message, firstName, lang)
@@ -128,19 +173,30 @@ export async function POST(request) {
     }
 
     if (text.startsWith('/draft') || text.startsWith('/lazy')) {
-      await sendTelegram(chatId, t.lazyDraftHint, await withMainMenuForChat(lang, chatId))
+      const mk = await resolveMenuVariantForTelegramChat(chatId)
+      if (mk === 'partner' || mk === 'partner_guest') {
+        await sendTelegram(chatId, t.lazyDraftHint, await withMainMenuForChat(lang, chatId))
+      } else {
+        await sendTelegram(chatId, t.renterFreeTextHint(), await withMainMenuForChat(lang, chatId))
+      }
       return NextResponse.json({ ok: true })
     }
 
     if (text && !text.startsWith('/')) {
-      const usedPending = await handlePartnerDescriptionAfterPhotos(
-        chatId,
-        text,
-        firstName,
-        lang
-      )
-      if (!usedPending) {
-        await sendTelegram(chatId, t.plainTextNeedsPhoto, await withMainMenuForChat(lang, chatId))
+      const mk = await resolveMenuVariantForTelegramChat(chatId)
+      const partnerListing = mk === 'partner' || mk === 'partner_guest'
+      if (partnerListing) {
+        const usedPending = await handlePartnerDescriptionAfterPhotos(
+          chatId,
+          text,
+          firstName,
+          lang
+        )
+        if (!usedPending) {
+          await sendTelegram(chatId, t.plainTextNeedsPhoto, await withMainMenuForChat(lang, chatId))
+        }
+      } else {
+        await sendTelegram(chatId, t.renterFreeTextHint(), await withMainMenuForChat(lang, chatId))
       }
     }
 
@@ -207,8 +263,8 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     service: 'Gostaylo Telegram Webhook',
-    version: '7.4',
-    stage: 30,
+    version: '7.5',
+    stage: 31,
     runtime: 'nodejs',
     modular: true,
     /** Без утечки секрета: достаточно для проверки, что прод-сервер видит токен */
@@ -227,6 +283,8 @@ export async function GET() {
     telegram_webhook_info: telegramWebhookInfo,
     i18n: ['ru', 'en'],
     features: [
+      'Renter vs partner menus; partner guest mode (telegram_guest_menu)',
+      'Reply-to-web: telegram_chat_reply_map + inbound relay',
       'Media album batching (media_group_id debounce)',
       'OpenAI-only listing parse (gpt-4o-mini); photo-first + follow-up text buffer',
       'Advanced price extraction',
