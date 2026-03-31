@@ -13,7 +13,12 @@ import { handleStatusCheck, handleDeepLink, handleLinkAccount } from '@/lib/serv
 import { handleMyDrafts } from '@/lib/services/telegram/handlers/drafts.js'
 import { handlePhotoUpload } from '@/lib/services/telegram/handlers/lazy-realtor.js'
 import { handleCallbackQuery } from '@/lib/services/telegram/handlers/callbacks.js'
-import { getTelegramMessages } from '@/lib/services/telegram/messages/index.js'
+import {
+  getTelegramMessages,
+  getHelpHtmlForMenuVariant,
+  getStartHtmlForMenuVariant,
+} from '@/lib/services/telegram/messages/index.js'
+import { resolveMenuVariantForTelegramChat } from '@/lib/services/telegram/menu-variant.js'
 import { resolveTelegramLanguageForChat, normalizeTelegramUiLang } from '@/lib/services/telegram/locale.js'
 
 export const runtime = 'nodejs'
@@ -67,7 +72,9 @@ export async function POST(request) {
     )
 
     if (text.startsWith('/help')) {
-      await sendTelegram(chatId, t.help(lang), await withMainMenuForChat(lang, chatId))
+      const menuVariant = await resolveMenuVariantForTelegramChat(chatId)
+      const helpHtml = getHelpHtmlForMenuVariant(t, lang, menuVariant)
+      await sendTelegram(chatId, helpHtml, await withMainMenuForChat(lang, chatId))
       return NextResponse.json({ ok: true })
     }
 
@@ -81,7 +88,9 @@ export async function POST(request) {
         return NextResponse.json({ ok: true })
       }
 
-      await sendTelegram(chatId, t.start(firstName, lang), await withMainMenuForChat(lang, chatId))
+      const menuVariant = await resolveMenuVariantForTelegramChat(chatId)
+      const startHtml = getStartHtmlForMenuVariant(t, lang, menuVariant, firstName)
+      await sendTelegram(chatId, startHtml, await withMainMenuForChat(lang, chatId))
       return NextResponse.json({ ok: true })
     }
 
