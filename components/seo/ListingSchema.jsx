@@ -4,6 +4,10 @@
 import { getRequestSiteUrl } from '@/lib/server-site-url'
 import { decodeTelegramText } from '@/lib/services/telegram/telegram-text.js'
 
+/** Подсказки Google Rich Results для LodgingBusiness; переопределите через NEXT_PUBLIC_SITE_PHONE */
+const SITE_CONTACT_PHONE =
+  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SITE_PHONE) || '+66 76 000 000'
+
 function safeDescription(raw) {
   if (raw == null) return ''
   const s = String(raw)
@@ -90,9 +94,15 @@ function buildJsonLd(listing, baseUrl) {
   }
 
   if (slug === 'property') {
+    const priceRange =
+      price != null
+        ? `฿${Math.round(price)}+`
+        : '฿฿'
     return {
       ...base,
       '@type': 'LodgingBusiness',
+      telephone: SITE_CONTACT_PHONE,
+      priceRange,
       ...(district && {
         address: {
           '@type': 'PostalAddress',
