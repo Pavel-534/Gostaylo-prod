@@ -30,6 +30,13 @@ import {
 
 const ITEMS_PER_PAGE = 12
 
+function canonicalWhere(w) {
+  if (w == null) return 'all'
+  const s = String(w).trim()
+  if (!s || s.toLowerCase() === 'all') return 'all'
+  return s
+}
+
 function ListingsContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -39,9 +46,12 @@ function ListingsContent() {
   const [selectedCategory, setSelectedCategory] = useState(() =>
     normalizeListingCategorySlugForSearch(searchParams.get('category') || 'all'),
   )
-  const [where, setWhere] = useState(
-    searchParams.get('where') || searchParams.get('location') || searchParams.get('city') || 'all',
+  const [where, setWhereState] = useState(() =>
+    canonicalWhere(
+      searchParams.get('where') || searchParams.get('location') || searchParams.get('city') || 'all',
+    ),
   )
+  const setWhere = useCallback((w) => setWhereState(canonicalWhere(w)), [])
   const [guests, setGuests] = useState(searchParams.get('guests') || '2')
   const [dateRange, setDateRange] = useState({
     from: searchParams.get('checkIn') ? parseISO(searchParams.get('checkIn')) : null,
@@ -56,11 +66,13 @@ function ListingsContent() {
       return
     }
     setSelectedCategory(normalizeListingCategorySlugForSearch(searchParams.get('category') || 'all'))
-    setWhere(
-      searchParams.get('where') ||
-        searchParams.get('location') ||
-        searchParams.get('city') ||
-        'all',
+    setWhereState(
+      canonicalWhere(
+        searchParams.get('where') ||
+          searchParams.get('location') ||
+          searchParams.get('city') ||
+          'all',
+      ),
     )
     setGuests(searchParams.get('guests') || '2')
     setDateRange({
@@ -123,6 +135,10 @@ function ListingsContent() {
 
   const handleSearchThisArea = useCallback((b) => {
     setAppliedBbox(b)
+  }, [])
+
+  const handleClearMapBounds = useCallback(() => {
+    setAppliedBbox(null)
   }, [])
 
   const handleListingMarkerClick = useCallback((id) => {
@@ -411,6 +427,8 @@ function ListingsContent() {
             selectedListingId={mapSelectedListingId}
             onListingMarkerClick={handleListingMarkerClick}
             onSearchThisArea={handleSearchThisArea}
+            mapBoundsLocked={!!appliedBbox}
+            onClearMapBounds={handleClearMapBounds}
             appliedBboxKey={appliedBboxKey}
             mapFitResetKey={mapFitResetKey}
           />

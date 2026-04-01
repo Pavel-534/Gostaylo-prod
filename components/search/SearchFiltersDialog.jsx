@@ -34,6 +34,9 @@ import {
 import { NANNY_LANG_OPTIONS as NANNY_LANGS } from '@/lib/search/nanny-search-langs'
 import { cn } from '@/lib/utils'
 
+/** Выше Dialog overlay/content (z-[120]), иначе выпадающие списки не видны и кажутся «мёртвыми». */
+const FILTER_DIALOG_SELECT_Z = 'z-[130]'
+
 function amenityLabel(slug, language) {
   const row = amenityTranslations[slug] || amenityTranslations[String(slug).toLowerCase()]
   if (!row) return slug
@@ -176,7 +179,7 @@ export function SearchFiltersDialog({
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className={FILTER_DIALOG_SELECT_Z}>
                       {ROOM_OPTIONS.map((n) => (
                         <SelectItem key={n} value={n}>
                           {n === '0' ? t('Любое', 'Any') : n}
@@ -201,7 +204,7 @@ export function SearchFiltersDialog({
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className={FILTER_DIALOG_SELECT_Z}>
                       {ROOM_OPTIONS.map((n) => (
                         <SelectItem key={n} value={n}>
                           {n === '0' ? t('Любое', 'Any') : n}
@@ -256,7 +259,7 @@ export function SearchFiltersDialog({
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className={FILTER_DIALOG_SELECT_Z}>
                     <SelectItem value="any">{t('Любая', 'Any')}</SelectItem>
                     <SelectItem value="automatic">{t('Автомат', 'Automatic')}</SelectItem>
                     <SelectItem value="manual">{t('Механика', 'Manual')}</SelectItem>
@@ -278,7 +281,7 @@ export function SearchFiltersDialog({
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className={FILTER_DIALOG_SELECT_Z}>
                     <SelectItem value="any">{t('Любое', 'Any')}</SelectItem>
                     <SelectItem value="petrol">{t('Бензин', 'Petrol')}</SelectItem>
                     <SelectItem value="diesel">{t('Дизель', 'Diesel')}</SelectItem>
@@ -357,7 +360,7 @@ export function SearchFiltersDialog({
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className={FILTER_DIALOG_SELECT_Z}>
                     {['0', '1', '2', '3', '5', '10'].map((n) => (
                       <SelectItem key={n} value={n}>
                         {n === '0' ? t('Любой', 'Any') : `${n}+`}

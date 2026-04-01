@@ -167,17 +167,33 @@ code {
   }
 }
 
-/* Leaflet search map — Airbnb-style price pills */
+/* Leaflet search map — Airbnb-style price pills (oval tag pinned to lat/lng) */
 .leaflet-div-icon.gostaylo-price-pill-icon-root {
   background: transparent !important;
   border: none !important;
 }
 
-.gostaylo-price-pill {
+.gostaylo-price-pill-anchor {
   position: relative;
-  transform: translate(-50%, -100%);
-  margin-top: -6px;
-  padding: 6px 12px;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.gostaylo-price-pill-anchor .gostaylo-price-pill {
+  pointer-events: auto;
+}
+
+.gostaylo-price-pill {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translate(-50%, calc(-100% - 6px));
+  padding: 7px 14px;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 9999px;
   font-size: 12px;
   font-weight: 700;

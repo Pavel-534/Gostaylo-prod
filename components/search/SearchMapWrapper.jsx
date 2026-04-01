@@ -32,6 +32,8 @@ function SearchMapWrapperComponent({
   selectedListingId = null,
   onListingMarkerClick,
   onSearchThisArea,
+  mapBoundsLocked = false,
+  onClearMapBounds,
   appliedBboxKey = '',
   mapFitResetKey = '',
 }) {
@@ -56,6 +58,8 @@ function SearchMapWrapperComponent({
           selectedListingId={selectedListingId}
           onListingMarkerClick={onListingMarkerClick}
           onSearchThisArea={onSearchThisArea}
+          mapBoundsLocked={mapBoundsLocked}
+          onClearMapBounds={onClearMapBounds}
           appliedBboxKey={appliedBboxKey}
           mapFitResetKey={mapFitResetKey}
         />

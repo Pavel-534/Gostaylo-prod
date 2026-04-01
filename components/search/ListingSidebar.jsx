@@ -89,6 +89,11 @@ function ListingSidebarComponent({
           {getUIText('noResults', language)}
         </h3>
         <p className="text-slate-500 mb-2 max-w-md mx-auto">{unavailText}</p>
+        {meta?.availabilityFiltered && (
+          <p className="text-sm text-slate-600 mb-4 max-w-md mx-auto leading-relaxed">
+            {getUIText('searchHint_availabilityDates', language)}
+          </p>
+        )}
         {transportMode && (
           <p className="text-sm text-slate-600 mb-4 max-w-md mx-auto leading-relaxed">
             {getUIText('transportEmptyHint', language)}

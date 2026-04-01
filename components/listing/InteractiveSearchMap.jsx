@@ -73,8 +73,8 @@ function createPricePillIcon(priceText, { selected, approximate }) {
   const selClass = selected ? ' gostaylo-price-pill--selected' : ''
   return L.divIcon({
     className: 'gostaylo-price-pill-icon-root',
-    html: `<div class="gostaylo-price-pill${approxClass}${selClass}">${safe}</div>`,
-    iconSize: [0, 0],
+    html: `<div class="gostaylo-price-pill-anchor"><div class="gostaylo-price-pill${approxClass}${selClass}">${safe}</div></div>`,
+    iconSize: [1, 1],
     iconAnchor: [0, 0],
   })
 }
@@ -85,6 +85,8 @@ function MapSearchThisAreaButton({
   suppressBoundsUntilRef,
   appliedBboxKey,
   onSearchThisArea,
+  mapBoundsLocked,
+  onClearMapBounds,
 }) {
   const map = useMap()
   const [dirty, setDirty] = useState(false)
@@ -95,32 +97,65 @@ function MapSearchThisAreaButton({
 
   useMapEvents({
     moveend: () => {
-      if (!listingsLength || !onSearchThisArea) return
+      if (!listingsLength) return
+      if (!onSearchThisArea && !mapBoundsLocked) return
       if (Date.now() < suppressBoundsUntilRef.current) return
       setDirty(true)
     },
   })
 
-  if (!dirty || !onSearchThisArea) return null
+  const applyViewportBounds = () => {
+    if (!onSearchThisArea) return
+    const b = map.getBounds()
+    onSearchThisArea({
+      south: b.getSouth(),
+      west: b.getWest(),
+      north: b.getNorth(),
+      east: b.getEast(),
+    })
+    setDirty(false)
+  }
+
+  const canNarrow = listingsLength > 0 && onSearchThisArea
+  const showSearchThisArea = !mapBoundsLocked && dirty && canNarrow
+  const showSearchEverywhere = mapBoundsLocked && typeof onClearMapBounds === 'function'
+  const showUpdateArea = mapBoundsLocked && dirty && canNarrow
+
+  if (!showSearchThisArea && !showSearchEverywhere && !showUpdateArea) return null
 
   return (
-    <div className="pointer-events-auto absolute left-1/2 top-3 z-[400] flex w-[92%] max-w-md -translate-x-1/2 justify-center px-1">
-      <Button
-        type="button"
-        className="h-10 rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-lg hover:bg-slate-50"
-        onClick={() => {
-          const b = map.getBounds()
-          onSearchThisArea({
-            south: b.getSouth(),
-            west: b.getWest(),
-            north: b.getNorth(),
-            east: b.getEast(),
-          })
-          setDirty(false)
-        }}
-      >
-        {language === 'ru' ? 'Искать в этой области' : 'Search this area'}
-      </Button>
+    <div className="pointer-events-auto absolute left-1/2 top-3 z-[400] flex w-[92%] max-w-md -translate-x-1/2 flex-col items-center gap-2 px-1">
+      {showSearchEverywhere && (
+        <Button
+          type="button"
+          className="h-10 w-full max-w-sm rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-lg hover:bg-slate-50"
+          onClick={() => {
+            onClearMapBounds()
+            setDirty(false)
+          }}
+        >
+          {getUIText('mapSearch_everywhere', language)}
+        </Button>
+      )}
+      {showUpdateArea && (
+        <Button
+          type="button"
+          variant="outline"
+          className="h-10 w-full max-w-sm rounded-full border-slate-200 bg-white/95 px-5 text-sm font-semibold text-slate-800 shadow-md hover:bg-slate-50"
+          onClick={applyViewportBounds}
+        >
+          {getUIText('mapSearch_updateArea', language)}
+        </Button>
+      )}
+      {showSearchThisArea && (
+        <Button
+          type="button"
+          className="h-10 w-full max-w-sm rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-lg hover:bg-slate-50"
+          onClick={applyViewportBounds}
+        >
+          {getUIText('mapSearch_thisArea', language)}
+        </Button>
+      )}
     </div>
   )
 }
@@ -264,6 +299,8 @@ export default function InteractiveSearchMap({
   selectedListingId = null,
   onListingMarkerClick,
   onSearchThisArea,
+  mapBoundsLocked = false,
+  onClearMapBounds,
   appliedBboxKey = '',
   mapFitResetKey = '',
 }) {
@@ -298,7 +335,7 @@ export default function InteractiveSearchMap({
   if (!mounted) {
     return (
       <div className="w-full h-full bg-slate-100 animate-pulse rounded-lg flex items-center justify-center">
-        <span className="text-slate-400">Loading map...</span>
+        <span className="text-slate-400">{getUIText('mapPicker_loading', language)}</span>
       </div>
     )
   }
@@ -322,6 +359,8 @@ export default function InteractiveSearchMap({
           suppressBoundsUntilRef={suppressBoundsUntilRef}
           appliedBboxKey={appliedBboxKey}
           onSearchThisArea={onSearchThisArea}
+          mapBoundsLocked={mapBoundsLocked}
+          onClearMapBounds={onClearMapBounds}
         />
         <InitialListingBoundsFit
         listings={listings}
