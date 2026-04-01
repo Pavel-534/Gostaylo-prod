@@ -1,31 +1,20 @@
 /**
  * Gostaylo - Listing Detail Layout
- * Provides dynamic multilingual SEO metadata (generateMetadata)
+ * Provides dynamic multilingual SEO metadata (generateMetadata) + JSON-LD
  */
 
 import { cookies, headers } from 'next/headers';
-import { supabaseAdmin } from '@/lib/supabase';
 import { getUIText, getLangFromRequest } from '@/lib/translations';
 import { getRequestSiteUrl } from '@/lib/server-site-url';
-
-async function getListing(id) {
-  const { data, error } = await supabaseAdmin
-    .from('listings')
-    .select('id, title, description, district, cover_image, images, metadata')
-    .eq('id', id)
-    .eq('status', 'ACTIVE')
-    .single();
-
-  if (error || !data) return null;
-  return data;
-}
+import { getCachedActiveListingForLayout } from '@/lib/seo/listing-layout-data';
+import ListingSchema from '@/components/seo/ListingSchema';
 
 function interpolate(template, vars) {
   return template.replace(/\{(\w+)\}/g, (_, k) => vars[k] || '');
 }
 
 export async function generateMetadata({ params }) {
-  const listing = await getListing(params.id);
+  const listing = await getCachedActiveListingForLayout(params.id);
   const baseUrl = await getRequestSiteUrl();
 
   if (!listing) {
@@ -72,7 +61,7 @@ export async function generateMetadata({ params }) {
       type: 'website',
       ...(ogImage && { images: [{ url: ogImage, width: 1200, height: 630 }] }),
       locale: lang === 'ru' ? 'ru_RU' : lang === 'zh' ? 'zh_CN' : lang === 'th' ? 'th_TH' : 'en_US',
-      url: `${baseUrl}/listings/${params.id}`
+      url: `${baseUrl.replace(/\/$/, '')}/listings/${params.id}/`
     },
     twitter: {
       card: 'summary_large_image',
@@ -83,6 +72,13 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export default function ListingLayout({ children }) {
-  return children;
+export default async function ListingLayout({ children, params }) {
+  const listing = await getCachedActiveListingForLayout(params.id);
+
+  return (
+    <>
+      {listing ? <ListingSchema listing={listing} /> : null}
+      {children}
+    </>
+  );
 }
