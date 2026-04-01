@@ -57,6 +57,10 @@ export async function generateMetadata() {
       statusBarStyle: 'default',
       title: 'Gostaylo',
     },
+    // Яндекс.Вебмастер (метод «Метатег»); файл yandex_*.html в public/ — метод «HTML-файл»
+    verification: {
+      yandex: '2a8838b0c4b76c2d',
+    },
   }
 }
 
