@@ -12,8 +12,8 @@
  * @refactored Phase 7.4 - Under 200 lines target
  */
 
-import { useState, useEffect, useMemo, useRef, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState, useEffect, useMemo, useRef, Suspense, useCallback } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -28,11 +28,20 @@ import { toast } from 'sonner'
 import { useDebounce, useIntersectionObserver, useListingsFetch } from '@/lib/hooks/useListingsSearch'
 import { detectLanguage } from '@/lib/translations'
 import { normalizeListingCategorySlugForSearch, isTransportListingCategory } from '@/lib/listing-category-slug'
+import {
+  parseBBoxFromParams,
+  bboxToSearchParams,
+  parseExtraFiltersFromParams,
+  appendExtraFiltersToParams,
+  defaultExtraFilters,
+} from '@/lib/search/listings-page-url'
 
 const ITEMS_PER_PAGE = 12
 
 function ListingsContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
   const { user } = useAuth()
   
   // Initialize from URL - 4 params: What, Where, When, Who
@@ -76,12 +85,76 @@ function ListingsContent() {
   const [showMap, setShowMap] = useState(false)
   const [userFavorites, setUserFavorites] = useState(new Set())
   const [userBookings, setUserBookings] = useState([])
-  
+  const [appliedBbox, setAppliedBbox] = useState(null)
+  const [extraFilters, setExtraFilters] = useState(() => defaultExtraFilters())
+  const [mapSelectedListingId, setMapSelectedListingId] = useState(null)
+
+  const lastPushedSearchRef = useRef('')
+  const didInitUrlHydrateRef = useRef(false)
+  const skipNextUrlPushRef = useRef(false)
+
+  const mapFitResetKey = useMemo(
+    () =>
+      [
+        selectedCategory,
+        where,
+        dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
+        dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : '',
+        guests,
+      ].join('|'),
+    [selectedCategory, where, dateRange.from, dateRange.to, guests]
+  )
+
+  useEffect(() => {
+    setAppliedBbox(null)
+  }, [mapFitResetKey])
+
+  useEffect(() => {
+    const incoming = searchParams.toString()
+    if (!didInitUrlHydrateRef.current) {
+      didInitUrlHydrateRef.current = true
+      lastPushedSearchRef.current = incoming
+      setExtraFilters(parseExtraFiltersFromParams(searchParams))
+      setAppliedBbox(parseBBoxFromParams(searchParams))
+      skipNextUrlPushRef.current = true
+      return
+    }
+    if (incoming === lastPushedSearchRef.current) return
+    lastPushedSearchRef.current = incoming
+    setExtraFilters(parseExtraFiltersFromParams(searchParams))
+    setAppliedBbox(parseBBoxFromParams(searchParams))
+  }, [searchParamsKey, searchParams])
+
+  useEffect(() => {
+    if (!mapSelectedListingId) return
+    const t = setTimeout(() => setMapSelectedListingId(null), 5000)
+    return () => clearTimeout(t)
+  }, [mapSelectedListingId])
+
+  const handleSearchThisArea = useCallback((b) => {
+    setAppliedBbox(b)
+  }, [])
+
+  const handleListingMarkerClick = useCallback((id) => {
+    setMapSelectedListingId(id)
+  }, [])
+
   // Debounced values
   const debouncedWhere = useDebounce(where)
   const debouncedGuests = useDebounce(guests)
   const debouncedDateRange = useDebounce(dateRange)
-  
+
+  const appliedBboxKey = useMemo(() => {
+    if (!appliedBbox) return `none::${mapFitResetKey}`
+    return [
+      appliedBbox.south.toFixed(5),
+      appliedBbox.north.toFixed(5),
+      appliedBbox.west.toFixed(5),
+      appliedBbox.east.toFixed(5),
+      mapFitResetKey,
+    ].join('|')
+  }, [appliedBbox, mapFitResetKey])
+
   // Fetch listings with custom hook
   const {
     listings,
@@ -100,9 +173,18 @@ function ListingsContent() {
     debouncedWhere,
     debouncedDateRange,
     debouncedGuests,
+    appliedMapBounds: appliedBbox,
+    extraFilters,
     itemsPerPage: ITEMS_PER_PAGE
   })
-  
+
+  useEffect(() => {
+    if (!mapSelectedListingId) return
+    if (!allListings.some((l) => l.id === mapSelectedListingId)) {
+      setMapSelectedListingId(null)
+    }
+  }, [allListings, mapSelectedListingId])
+
   const loadMoreRef = useIntersectionObserver(loadMore)
   
   // Initialize language, currency, favorites
@@ -152,23 +234,46 @@ function ListingsContent() {
     fetchListings(true)
   }, [])
   
-  // Refetch on filter changes
+  // Refetch on filter changes (map bbox только после кнопки «Искать в этой области»)
   useEffect(() => {
     if (!loading) fetchListings(false)
-  }, [debouncedWhere, selectedCategory, debouncedDateRange, debouncedGuests])
-  
-  // URL sync - 4 params
+  }, [
+    debouncedWhere,
+    selectedCategory,
+    debouncedDateRange,
+    debouncedGuests,
+    appliedBbox,
+    extraFilters,
+  ])
+
+  // URL ← состояние (шаринг; совпадение с incoming пропускает лишний hydrate)
   useEffect(() => {
+    if (skipNextUrlPushRef.current) {
+      skipNextUrlPushRef.current = false
+      return
+    }
     const params = new URLSearchParams()
     if (selectedCategory !== 'all') params.set('category', selectedCategory)
     if (debouncedWhere !== 'all') params.set('where', debouncedWhere)
     if (debouncedDateRange.from) params.set('checkIn', format(debouncedDateRange.from, 'yyyy-MM-dd'))
     if (debouncedDateRange.to) params.set('checkOut', format(debouncedDateRange.to, 'yyyy-MM-dd'))
     if (debouncedGuests !== '1') params.set('guests', debouncedGuests)
-    
-    const url = params.toString() ? `/listings?${params.toString()}` : '/listings'
-    window.history.replaceState({}, '', url)
-  }, [selectedCategory, debouncedWhere, debouncedDateRange, debouncedGuests])
+    bboxToSearchParams(appliedBbox, params)
+    appendExtraFiltersToParams(params, extraFilters)
+    const s = params.toString()
+    if (s === lastPushedSearchRef.current) return
+    lastPushedSearchRef.current = s
+    router.replace(s ? `${pathname}?${s}` : pathname, { scroll: false })
+  }, [
+    router,
+    pathname,
+    selectedCategory,
+    debouncedWhere,
+    debouncedDateRange,
+    debouncedGuests,
+    appliedBbox,
+    extraFilters,
+  ])
   
   // Handlers
   const clearDates = () => setDateRange({ from: null, to: null })
@@ -274,37 +379,44 @@ function ListingsContent() {
         setGuests={setGuests}
         clearDates={clearDates}
         nights={nights}
+        extraFilters={extraFilters}
+        onExtraFiltersChange={setExtraFilters}
+        listingsForFiltersHistogram={allListings}
+        filterResultCount={allListings.length}
       />
 
       {/* Results */}
       <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col lg:flex-row gap-6">
-          <ListingSidebar
-            listings={listings}
-            loading={loading}
-            error={error}
-            hasMore={hasMore}
-            loadingMore={loadingMore}
-            isTransitioning={isTransitioning}
-            language={language}
-            currency={currency}
-            exchangeRates={exchangeRates}
-            userFavorites={userFavorites}
-            cardDates={cardDates}
-            guests={guests}
-            showMap={showMap}
-            onFavorite={handleFavorite}
-            onLoadMore={loadMore}
-            onRetry={retry}
-            onToggleMap={() => setShowMap(!showMap)}
-            meta={meta}
-            loadMoreRef={loadMoreRef}
-            allListings={allListings}
-            displayedCount={displayedCount}
-            selectedCategory={selectedCategory}
-            filterWhere={where}
-            transportBroadenHref={transportBroadenHref}
-          />
+        <div className="flex flex-col lg:flex-row lg:items-stretch gap-6">
+          <div className="w-full min-w-0 lg:w-[60%] lg:max-w-[60%] lg:flex-shrink-0">
+            <ListingSidebar
+              listings={listings}
+              loading={loading}
+              error={error}
+              hasMore={hasMore}
+              loadingMore={loadingMore}
+              isTransitioning={isTransitioning}
+              language={language}
+              currency={currency}
+              exchangeRates={exchangeRates}
+              userFavorites={userFavorites}
+              cardDates={cardDates}
+              guests={guests}
+              showMap={showMap}
+              onFavorite={handleFavorite}
+              onLoadMore={loadMore}
+              onRetry={retry}
+              onToggleMap={() => setShowMap(!showMap)}
+              meta={meta}
+              loadMoreRef={loadMoreRef}
+              allListings={allListings}
+              displayedCount={displayedCount}
+              selectedCategory={selectedCategory}
+              filterWhere={where}
+              transportBroadenHref={transportBroadenHref}
+              highlightedListingId={mapSelectedListingId}
+            />
+          </div>
 
           <SearchMapWrapper
             listings={allListings}
@@ -312,6 +424,13 @@ function ListingsContent() {
             userId={user?.id}
             language={language}
             showMap={showMap}
+            currency={currency}
+            exchangeRates={exchangeRates}
+            selectedListingId={mapSelectedListingId}
+            onListingMarkerClick={handleListingMarkerClick}
+            onSearchThisArea={handleSearchThisArea}
+            appliedBboxKey={appliedBboxKey}
+            mapFitResetKey={mapFitResetKey}
           />
         </div>
       </div>

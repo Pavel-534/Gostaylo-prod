@@ -1,23 +1,22 @@
 /**
  * Gostaylo - Interactive Search Map (Airbnb-style)
- * Desktop: 50/50 split (List Left, Map Right)
- * Mobile: Toggle between List and Map
+ * Desktop: list ~60% / map ~40%; price pills; viewport bounds sync.
  *
- * Приватность: lib/listing-location-privacy.js → getListingLocationDisplayMode (slug + legacy categoryId).
- * Листинги с родителя: желательно из LISTINGS_SEARCH_API_PATH (@/lib/search-endpoints), чтобы был category.slug.
- * После CONFIRMED/PAID — точный маркер (оранжевый), иначе круг ~500 м или маркер.
+ * Приватность: getListingLocationDisplayMode — «примерная» зона без круга, пилюля с пунктиром / ~.
  */
 
 'use client'
 
-import { Fragment, useEffect, useState, useCallback } from 'react'
-import { MapContainer, TileLayer, Marker, Circle, Popup, useMap } from 'react-leaflet'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Star } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { getListingLocationDisplayMode } from '@/lib/listing-location-privacy'
+import { convertFromThb, formatPrice } from '@/lib/currency'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -25,26 +24,6 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 })
-
-const createCustomIcon = (color = 'teal') => {
-  return L.divIcon({
-    className: 'custom-marker',
-    html: `
-      <div style="
-        background-color: ${color === 'teal' ? '#14b8a6' : '#f97316'};
-        width: 32px;
-        height: 32px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        border: 3px solid white;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      "></div>
-    `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, 32],
-  })
-}
 
 function getListingPosition(listing) {
   const lat = listing.latitude ?? listing.lat
@@ -59,10 +38,6 @@ function listingCategorySlug(listing) {
   return listing.categorySlug ?? listing.category?.slug ?? null
 }
 
-/**
- * Границы ~radius м вокруг точки без L.circle#getBounds — у круга без карты
- * getBounds() в Leaflet вызывает layerPointToLatLng и падает, если слой не на map.
- */
 function boundsAroundPointMeters(latlng, radiusMeters) {
   const lat = latlng[0]
   const lng = latlng[1]
@@ -89,16 +64,86 @@ function listingLocationBounds(listing, hasConfirmedBookingFn) {
   return L.latLngBounds(pos, pos)
 }
 
-function MapBoundsUpdater({ listings, hasConfirmedBooking }) {
-  const map = useMap()
+function createPricePillIcon(priceText, { selected, approximate }) {
+  const safe = String(priceText)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+  const approxClass = approximate ? ' gostaylo-price-pill--approx' : ''
+  const selClass = selected ? ' gostaylo-price-pill--selected' : ''
+  return L.divIcon({
+    className: 'gostaylo-price-pill-icon-root',
+    html: `<div class="gostaylo-price-pill${approxClass}${selClass}">${safe}</div>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  })
+}
 
-  const hasConfirmedBookingFn = useCallback(
-    (listingId) => hasConfirmedBooking(listingId),
-    [hasConfirmedBooking]
-  )
+function MapSearchThisAreaButton({
+  language,
+  listingsLength,
+  suppressBoundsUntilRef,
+  appliedBboxKey,
+  onSearchThisArea,
+}) {
+  const map = useMap()
+  const [dirty, setDirty] = useState(false)
 
   useEffect(() => {
-    if (!listings?.length) return
+    setDirty(false)
+  }, [appliedBboxKey])
+
+  useMapEvents({
+    moveend: () => {
+      if (!listingsLength || !onSearchThisArea) return
+      if (Date.now() < suppressBoundsUntilRef.current) return
+      setDirty(true)
+    },
+  })
+
+  if (!dirty || !onSearchThisArea) return null
+
+  return (
+    <div className="pointer-events-auto absolute left-1/2 top-3 z-[400] flex w-[92%] max-w-md -translate-x-1/2 justify-center px-1">
+      <Button
+        type="button"
+        className="h-10 rounded-full border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 shadow-lg hover:bg-slate-50"
+        onClick={() => {
+          const b = map.getBounds()
+          onSearchThisArea({
+            south: b.getSouth(),
+            west: b.getWest(),
+            north: b.getNorth(),
+            east: b.getEast(),
+          })
+          setDirty(false)
+        }}
+      >
+        {language === 'ru' ? 'Искать в этой области' : 'Search this area'}
+      </Button>
+    </div>
+  )
+}
+
+function InitialListingBoundsFit({
+  listings,
+  hasConfirmedBookingFn,
+  suppressBoundsUntilRef,
+  mapFitResetKey,
+}) {
+  const map = useMap()
+  const didFitRef = useRef(false)
+  const lastResetKeyRef = useRef(mapFitResetKey)
+
+  useEffect(() => {
+    if (lastResetKeyRef.current !== mapFitResetKey) {
+      lastResetKeyRef.current = mapFitResetKey
+      didFitRef.current = false
+    }
+  }, [mapFitResetKey])
+
+  useEffect(() => {
+    if (!listings?.length || didFitRef.current) return
     let bounds = null
     for (const listing of listings) {
       const b = listingLocationBounds(listing, hasConfirmedBookingFn)
@@ -106,9 +151,11 @@ function MapBoundsUpdater({ listings, hasConfirmedBooking }) {
       bounds = bounds ? bounds.extend(b) : b
     }
     if (bounds?.isValid()) {
+      suppressBoundsUntilRef.current = Date.now() + 1400
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13 })
+      didFitRef.current = true
     }
-  }, [listings, map, hasConfirmedBookingFn])
+  }, [listings, map, hasConfirmedBookingFn, suppressBoundsUntilRef, mapFitResetKey])
 
   return null
 }
@@ -157,32 +204,52 @@ function ListingPopupCard({ listing, language = 'ru', isApproximateLocation }) {
   )
 }
 
-function getMarkerVisualConfig(listing, hasConfirmedBookingFn) {
-  const listingId = listing.id
-  if (hasConfirmedBookingFn(listingId)) {
-    return {
-      showCircle: false,
-      icon: createCustomIcon('orange'),
-      isApproximatePopup: false,
-    }
+function ListingPriceMarker({
+  listing,
+  position,
+  priceLabel,
+  approximate,
+  selected,
+  language,
+  onSelect,
+}) {
+  const map = useMap()
+  const icon = useMemo(
+    () => createPricePillIcon(priceLabel, { selected, approximate }),
+    [priceLabel, selected, approximate]
+  )
+
+  return (
+    <Marker
+      position={position}
+      icon={icon}
+      eventHandlers={{
+        click: () => {
+          onSelect?.(listing.id)
+          map.setView(position, Math.max(map.getZoom(), 14), { animate: true })
+        },
+      }}
+    >
+      <Popup autoPan={true} autoPanPadding={[80, 60]} className="map-listing-popup">
+        <ListingPopupCard
+          listing={listing}
+          language={language}
+          isApproximateLocation={approximate}
+        />
+      </Popup>
+    </Marker>
+  )
+}
+
+function markerVisualFlags(listing, hasConfirmedBookingFn) {
+  if (hasConfirmedBookingFn(listing.id)) {
+    return { approximate: false }
   }
   const mode = getListingLocationDisplayMode({
     categorySlug: listingCategorySlug(listing),
     categoryId: listing.category_id ?? listing.categoryId,
   })
-  if (mode === 'privacy') {
-    return {
-      showCircle: true,
-      radius: 500,
-      icon: null,
-      isApproximatePopup: true,
-    }
-  }
-  return {
-    showCircle: false,
-    icon: createCustomIcon('teal'),
-    isApproximatePopup: false,
-  }
+  return { approximate: mode === 'privacy' }
 }
 
 export default function InteractiveSearchMap({
@@ -192,8 +259,16 @@ export default function InteractiveSearchMap({
   language = 'ru',
   center = [7.8804, 98.3923],
   zoom = 12,
+  currency = 'THB',
+  exchangeRates = { THB: 1 },
+  selectedListingId = null,
+  onListingMarkerClick,
+  onSearchThisArea,
+  appliedBboxKey = '',
+  mapFitResetKey = '',
 }) {
   const [mounted, setMounted] = useState(false)
+  const suppressBoundsUntilRef = useRef(0)
 
   useEffect(() => {
     setMounted(true)
@@ -211,6 +286,15 @@ export default function InteractiveSearchMap({
     [userId, userBookings]
   )
 
+  const priceForMarker = useCallback(
+    (listing) => {
+      const thb = parseFloat(listing.basePriceThb ?? listing.base_price_thb ?? 0) || 0
+      const converted = convertFromThb(thb, currency, exchangeRates)
+      return formatPrice(converted, currency)
+    },
+    [currency, exchangeRates]
+  )
+
   if (!mounted) {
     return (
       <div className="w-full h-full bg-slate-100 animate-pulse rounded-lg flex items-center justify-center">
@@ -220,61 +304,52 @@ export default function InteractiveSearchMap({
   }
 
   return (
-    <MapContainer
-      center={center}
-      zoom={zoom}
-      className="w-full h-full rounded-lg"
-      scrollWheelZoom={true}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+    <div className="relative h-full w-full min-h-[300px]">
+      <MapContainer
+        center={center}
+        zoom={zoom}
+        className="absolute inset-0 z-0 h-full w-full rounded-lg"
+        scrollWheelZoom={true}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
 
-      <MapBoundsUpdater listings={listings} hasConfirmedBooking={hasConfirmedBooking} />
+        <MapSearchThisAreaButton
+          language={language}
+          listingsLength={listings?.length ?? 0}
+          suppressBoundsUntilRef={suppressBoundsUntilRef}
+          appliedBboxKey={appliedBboxKey}
+          onSearchThisArea={onSearchThisArea}
+        />
+        <InitialListingBoundsFit
+        listings={listings}
+        hasConfirmedBookingFn={hasConfirmedBooking}
+        suppressBoundsUntilRef={suppressBoundsUntilRef}
+        mapFitResetKey={mapFitResetKey}
+      />
 
       {listings.map((listing) => {
         const position = getListingPosition(listing)
         if (!position) return null
-        const cfg = getMarkerVisualConfig(listing, hasConfirmedBooking)
+        const { approximate } = markerVisualFlags(listing, hasConfirmedBooking)
+        const priceText = (approximate ? '~' : '') + priceForMarker(listing)
 
         return (
-          <Fragment key={listing.id}>
-            {cfg.showCircle && (
-              <Circle
-                center={position}
-                radius={cfg.radius}
-                pathOptions={{
-                  color: '#14b8a6',
-                  fillColor: '#14b8a6',
-                  fillOpacity: 0.15,
-                  weight: 2,
-                }}
-              >
-                <Popup autoPan={true} autoPanPadding={[80, 60]} className="map-listing-popup">
-                  <ListingPopupCard
-                    listing={listing}
-                    language={language}
-                    isApproximateLocation={cfg.isApproximatePopup}
-                  />
-                </Popup>
-              </Circle>
-            )}
-
-            {!cfg.showCircle && cfg.icon && (
-              <Marker position={position} icon={cfg.icon}>
-                <Popup autoPan={true} autoPanPadding={[80, 60]} className="map-listing-popup">
-                  <ListingPopupCard
-                    listing={listing}
-                    language={language}
-                    isApproximateLocation={cfg.isApproximatePopup}
-                  />
-                </Popup>
-              </Marker>
-            )}
-          </Fragment>
+          <ListingPriceMarker
+            key={listing.id}
+            listing={listing}
+            position={position}
+            priceLabel={priceText}
+            approximate={approximate}
+            selected={selectedListingId === listing.id}
+            language={language}
+            onSelect={onListingMarkerClick}
+          />
         )
       })}
-    </MapContainer>
+      </MapContainer>
+    </div>
   )
 }

@@ -166,3 +166,55 @@ code {
     transform: translateX(100%);
   }
 }
+
+/* Leaflet search map — Airbnb-style price pills */
+.leaflet-div-icon.gostaylo-price-pill-icon-root {
+  background: transparent !important;
+  border: none !important;
+}
+
+.gostaylo-price-pill {
+  position: relative;
+  transform: translate(-50%, -100%);
+  margin-top: -6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: system-ui, -apple-system, sans-serif;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.gostaylo-price-pill:hover {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
+}
+
+.gostaylo-price-pill--approx {
+  border-style: dashed;
+}
+
+.gostaylo-price-pill--selected {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
+}
+
+.gostaylo-price-pill--selected:hover {
+  background: #020617;
+  border-color: #020617;
+}

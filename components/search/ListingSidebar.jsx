@@ -6,7 +6,7 @@
 
 'use client';
 
-import { memo } from 'react';
+import { memo, useEffect } from 'react';
 import Link from 'next/link';
 import { GostayloListingCard } from '@/components/gostaylo-listing-card';
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton';
@@ -41,8 +41,14 @@ function ListingSidebarComponent({
   selectedCategory = 'all',
   filterWhere = 'all',
   transportBroadenHref = null,
+  highlightedListingId = null,
 }) {
-  
+  useEffect(() => {
+    if (!highlightedListingId) return;
+    const el = document.getElementById(`listing-card-${highlightedListingId}`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [highlightedListingId, listings]);
+
   // Error State
   if (error) {
     return (
@@ -146,6 +152,7 @@ function ListingSidebarComponent({
                 exchangeRates={exchangeRates}
                 onFavorite={onFavorite}
                 isFavorited={userFavorites.has(listing.id)}
+                isMapHighlighted={highlightedListingId === listing.id}
               />
             </div>
           ))}

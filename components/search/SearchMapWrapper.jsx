@@ -1,7 +1,5 @@
 /**
- * SearchMapWrapper Component
- * Extracted from /app/app/listings/page.js
- * Wraps InteractiveSearchMap with proper memoization
+ * SearchMapWrapper — Leaflet map (~40% width on lg), price pills, viewport bounds callback.
  */
 
 'use client';
@@ -12,51 +10,58 @@ import { cn } from '@/lib/utils';
 
 const InteractiveSearchMap = dynamic(
   () => import('@/components/listing/InteractiveSearchMap'),
-  { 
+  {
     ssr: false,
     loading: () => (
       <div className="w-full h-full bg-slate-100 animate-pulse rounded-lg flex items-center justify-center">
         <span className="text-slate-400">Loading map...</span>
       </div>
-    )
+    ),
   }
 );
 
-function SearchMapWrapperComponent({ 
+function SearchMapWrapperComponent({
   listings = [],
   userBookings = [],
   userId = null,
   language = 'ru',
   showMap = false,
-  className
+  className,
+  currency = 'THB',
+  exchangeRates = { THB: 1 },
+  selectedListingId = null,
+  onListingMarkerClick,
+  onSearchThisArea,
+  appliedBboxKey = '',
+  mapFitResetKey = '',
 }) {
   return (
-    <div className={cn(
-      "lg:w-1/2 lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)]",
-      !showMap && "hidden lg:block",
-      className
-    )}>
+    <div
+      className={cn(
+        'w-full min-w-0 lg:w-[40%] lg:max-w-[40%] lg:flex-shrink-0 lg:sticky lg:top-20 lg:h-[calc(100vh-6rem)]',
+        !showMap && 'hidden lg:block',
+        className
+      )}
+    >
       <div className="h-[500px] lg:h-full rounded-lg overflow-hidden border border-slate-200 shadow-lg">
-        <InteractiveSearchMap 
+        <InteractiveSearchMap
           listings={listings}
           userBookings={userBookings}
           userId={userId}
           language={language}
-          center={[7.8804, 98.3923]} // Phuket, Thailand
+          center={[7.8804, 98.3923]}
           zoom={12}
+          currency={currency}
+          exchangeRates={exchangeRates}
+          selectedListingId={selectedListingId}
+          onListingMarkerClick={onListingMarkerClick}
+          onSearchThisArea={onSearchThisArea}
+          appliedBboxKey={appliedBboxKey}
+          mapFitResetKey={mapFitResetKey}
         />
       </div>
     </div>
   );
 }
 
-// Memoize to prevent re-renders during list scrolling
-export const SearchMapWrapper = memo(SearchMapWrapperComponent, (prevProps, nextProps) => {
-  return (
-    prevProps.listings === nextProps.listings &&
-    prevProps.userBookings === nextProps.userBookings &&
-    prevProps.userId === nextProps.userId &&
-    prevProps.language === nextProps.language &&
-    prevProps.showMap === nextProps.showMap
-  );
-});
+export const SearchMapWrapper = memo(SearchMapWrapperComponent);

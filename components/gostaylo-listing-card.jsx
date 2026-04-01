@@ -22,7 +22,8 @@ export function GostayloListingCard({
   exchangeRates = { THB: 1 },
   onFavorite,
   isFavorited = false,
-  className
+  className,
+  isMapHighlighted = false,
 }) {
   const [isFavorite, setIsFavorite] = useState(isFavorited)
   
@@ -102,10 +103,18 @@ export function GostayloListingCard({
   return (
     <Link 
       href={detailUrl}
-      className={cn("block group", className)}
+      id={`listing-card-${id}`}
+      className={cn("block group scroll-mt-24", className)}
       data-testid={`listing-card-${id}`}
     >
-      <article className="bg-white rounded-xl overflow-hidden group-hover:overflow-visible transition-all duration-300 hover:shadow-xl border border-slate-100 hover:border-teal-200 relative hover:z-20">
+      <article
+        className={cn(
+          'bg-white rounded-xl overflow-hidden group-hover:overflow-visible transition-all duration-300 hover:shadow-xl border relative hover:z-20',
+          isMapHighlighted
+            ? 'border-teal-500 shadow-lg ring-2 ring-teal-500/40 ring-offset-2'
+            : 'border-slate-100 hover:border-teal-200'
+        )}
+      >
         <CardImageCarousel
           images={allImages}
           title={title}
