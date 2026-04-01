@@ -4,7 +4,7 @@
 import { MessagesViewportShell } from '@/components/messages-viewport-shell'
 
 export const metadata = {
-  title: 'Сообщения | Gostaylo',
+  title: 'Сообщения | GoStayLo',
   description: 'Диалоги с гостями и хозяевами в одном месте',
 }
 

@@ -23,7 +23,7 @@ import {
 export interface MapExternalOptions {
   /** UUID владельца (обязателен для insert через API) */
   ownerId: string
-  /** UUID категории в Gostaylo */
+  /** UUID категории в GoStayLo */
   categoryId: string
   /** Если цена пришла не в THB — задайте курс или конвертацию снаружи */
   basePriceThbFallback?: number

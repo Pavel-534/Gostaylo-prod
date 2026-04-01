@@ -31,7 +31,7 @@ export default function PartnerApplicationSuccessPage() {
             Заявка принята!
           </h1>
           <p className='text-slate-600'>
-            Спасибо за интерес к партнёрству с Gostaylo
+            Спасибо за интерес к партнёрству с GoStayLo
           </p>
         </div>
 

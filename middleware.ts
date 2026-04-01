@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Next.js Edge Middleware
+ * GoStayLo - Next.js Edge Middleware
  * Protects /admin, /partner, and /renter routes from unauthorized access
  * 
  * ✅ Edge Runtime Compatible (using jose instead of jsonwebtoken)

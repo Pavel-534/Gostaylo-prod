@@ -324,7 +324,7 @@ function ProfileContent() {
             <CardHeader>
               <CardTitle className='flex items-center gap-2 text-teal-800'>
                 <Briefcase className='h-5 w-5' />
-                Станьте партнёром Gostaylo
+                Станьте партнёром GoStayLo
               </CardTitle>
               <CardDescription>
                 Сдавайте свою недвижимость и получайте доход. Присоединяйтесь к нашей сети владельцев на Пхукете.
@@ -500,7 +500,7 @@ function ProfileContent() {
               <div>
                 <h3 className='font-medium text-slate-700 text-sm'>Безопасность</h3>
                 <p className='text-xs text-slate-500 mt-1'>
-                  Всегда оплачивайте через Gostaylo для защиты ваших средств.
+                  Всегда оплачивайте через GoStayLo для защиты ваших средств.
                   Не переводите деньги напрямую незнакомым лицам.
                 </p>
               </div>
@@ -749,7 +749,7 @@ function ProfileContent() {
             </h2>
             <p className='text-slate-600 mb-6'>
               Ваша заявка одобрена. Теперь вы можете добавлять свои объекты 
-              и получать бронирования через Gostaylo.
+              и получать бронирования через GoStayLo.
             </p>
             
             <div className='space-y-3'>

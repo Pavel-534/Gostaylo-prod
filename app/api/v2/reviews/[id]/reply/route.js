@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Partner Review Reply API
+ * GoStayLo - Partner Review Reply API
  * PUT /api/v2/reviews/[id]/reply — ответ владельца; partner ID только из сессии (не из JSON).
  */
 

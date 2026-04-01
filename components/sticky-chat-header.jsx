@@ -178,7 +178,7 @@ export function StickyChatHeader({
             href="/"
             className="shrink-0 text-xs font-bold tracking-tight text-teal-800 hover:text-teal-950"
           >
-            Gostaylo
+            GoStayLo
           </Link>
         </div>
       ) : null}

@@ -1,5 +1,5 @@
 /**
- * Gostaylo — Chat Invoice API
+ * GoStayLo — Chat Invoice API
  * POST /api/v2/chat/invoice  — Creates an invoice message in chat
  * GET  /api/v2/chat/invoice?conversationId=  — List invoice messages for a conversation
  *

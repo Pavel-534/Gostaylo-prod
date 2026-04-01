@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Renter Profile Page (Phase 2)
+ * GoStayLo - Renter Profile Page (Phase 2)
  * 
  * Features:
  * - User info with profile completion progress

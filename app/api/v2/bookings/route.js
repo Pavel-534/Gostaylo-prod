@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Bookings API (v2)
+ * GoStayLo - Bookings API (v2)
  * GET /api/v2/bookings - List bookings
  * POST /api/v2/bookings - Create booking
  * 

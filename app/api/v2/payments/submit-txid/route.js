@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Payment TXID Submit API
+ * GoStayLo - Payment TXID Submit API
  * POST /api/v2/payments/submit-txid
  * 
  * Submits a TXID for crypto payment verification

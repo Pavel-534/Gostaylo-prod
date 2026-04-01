@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Admin Partners Management API
+ * GoStayLo - Admin Partners Management API
  * GET /api/v2/admin/partners - List pending partner applications
  * POST /api/v2/admin/partners - Approve or reject applications
  * 
@@ -54,7 +54,7 @@ async function sendEmail(to, subject, html) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Gostaylo <noreply@gostaylo.com>',
+        from: 'GoStayLo <noreply@gostaylo.com>',
         to: [to],
         subject,
         html
@@ -249,7 +249,7 @@ export async function POST(request) {
     // Send approval notifications
     const emailHtml = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #0d9488;">🎉 Добро пожаловать в Gostaylo!</h1>
+        <h1 style="color: #0d9488;">🎉 Добро пожаловать в GoStayLo!</h1>
         <p>Ваша заявка на партнёрство одобрена!</p>
         <p>Теперь вы можете:</p>
         <ul>
@@ -262,7 +262,7 @@ export async function POST(request) {
             Перейти в панель партнёра
           </a>
         </p>
-        <p style="color: #666; font-size: 14px;">С уважением,<br>Команда Gostaylo</p>
+        <p style="color: #666; font-size: 14px;">С уважением,<br>Команда GoStayLo</p>
       </div>
     `;
     
@@ -270,7 +270,7 @@ export async function POST(request) {
     
     if (user.telegram_id) {
       await sendTelegramToUser(user.telegram_id, 
-        `🎉 <b>Поздравляем!</b>\n\nВаша заявка на партнёрство в Gostaylo одобрена!\n\n` +
+        `🎉 <b>Поздравляем!</b>\n\nВаша заявка на партнёрство в GoStayLo одобрена!\n\n` +
         `Теперь вы можете добавлять объекты и принимать бронирования.\n\n` +
         `<a href="${APP_URL}/partner/dashboard">Перейти в панель партнёра</a>`
       );
@@ -311,7 +311,7 @@ export async function POST(request) {
         <p>К сожалению, ваша заявка на партнёрство не была одобрена.</p>
         <p><strong>Причина:</strong> ${rejectionReason}</p>
         <p>Вы можете подать новую заявку позже, учтя указанные замечания.</p>
-        <p style="color: #666; font-size: 14px;">С уважением,<br>Команда Gostaylo</p>
+        <p style="color: #666; font-size: 14px;">С уважением,<br>Команда GoStayLo</p>
       </div>
     `;
     

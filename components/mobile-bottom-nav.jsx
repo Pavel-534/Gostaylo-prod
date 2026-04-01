@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Mobile Bottom Navigation Bar
+ * GoStayLo - Mobile Bottom Navigation Bar
  * 
  * Fixed bottom nav for mobile devices with icons:
  * Home, Search, Messages, Profile

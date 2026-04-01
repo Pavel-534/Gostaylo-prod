@@ -4,9 +4,14 @@
 import { getRequestSiteUrl } from '@/lib/server-site-url'
 import { decodeTelegramText } from '@/lib/services/telegram/telegram-text.js'
 
-/** Подсказки Google Rich Results для LodgingBusiness; переопределите через NEXT_PUBLIC_SITE_PHONE */
-const SITE_CONTACT_PHONE =
-  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SITE_PHONE) || '+66 76 000 000'
+/** Телефон в JSON-LD только из NEXT_PUBLIC_SITE_PHONE (без fallback; не дублировать в UI карточки). */
+function siteContactPhone() {
+  const v =
+    typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SITE_PHONE
+      ? String(process.env.NEXT_PUBLIC_SITE_PHONE).trim()
+      : ''
+  return v || null
+}
 
 function safeDescription(raw) {
   if (raw == null) return ''
@@ -98,10 +103,11 @@ function buildJsonLd(listing, baseUrl) {
       price != null
         ? `฿${Math.round(price)}+`
         : '฿฿'
+    const phone = siteContactPhone()
     return {
       ...base,
       '@type': 'LodgingBusiness',
-      telephone: SITE_CONTACT_PHONE,
+      ...(phone ? { telephone: phone } : {}),
       priceRange,
       ...(district && {
         address: {

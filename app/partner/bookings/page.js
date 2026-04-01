@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Partner Bookings Page (v2 API)
+ * GoStayLo - Partner Bookings Page (v2 API)
  * 
  * STERILIZED: All data flows through API v2
  * Uses TanStack Query for reactive state management

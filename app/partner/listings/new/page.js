@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Gostaylo Premium Multi-step Listing Wizard v2
+ * GoStayLo Premium Multi-step Listing Wizard v2
  * 
  * Features:
  * - 5-step stepper UI with progress bar

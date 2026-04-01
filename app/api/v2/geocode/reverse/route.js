@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Reverse Geocoding API (Nominatim / OpenStreetMap)
+ * GoStayLo - Reverse Geocoding API (Nominatim / OpenStreetMap)
  * GET /api/v2/geocode/reverse?lat=7.88&lon=98.39
  * Converts coordinates to address. Free, no API key. Rate limit: 1 req/sec.
  */
@@ -32,7 +32,7 @@ export async function GET(request) {
 
     const res = await fetch(`${NOMINATIM_REVERSE}?${params}`, {
       headers: {
-        'User-Agent': 'Gostaylo/1.0 (contact@gostaylo.com)',
+        'User-Agent': 'GoStayLo/1.0 (contact@gostaylo.com)',
         'Accept-Language': 'en',
       },
     })

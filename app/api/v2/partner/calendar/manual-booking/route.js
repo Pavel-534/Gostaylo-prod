@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Manual Booking API
+ * GoStayLo - Manual Booking API
  * 
  * POST /api/v2/partner/calendar/manual-booking - Create manual booking (offline sales)
  * 

@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Dashboard Router
+ * GoStayLo - Dashboard Router
  * Redirects to appropriate dashboard based on user role
  */
 

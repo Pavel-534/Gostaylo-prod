@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Global Auth Context
+ * GoStayLo - Global Auth Context
  * Сессия: HttpOnly-кука `gostaylo_session` выставляется только сервером (login/verify);
  * SameSite=Lax и Secure (на production) задаются в API — домен не фиксируется, работает .ru / .com.
  */
@@ -423,7 +423,7 @@ export function AuthProvider({ children }) {
                 </DialogTitle>
                 <DialogDescription className='text-sm'>
                   {authMode === 'login' 
-                    ? 'Войдите в свой аккаунт Gostaylo'
+                    ? 'Войдите в свой аккаунт GoStayLo'
                     : 'Создайте новый аккаунт'}
                 </DialogDescription>
               </DialogHeader>

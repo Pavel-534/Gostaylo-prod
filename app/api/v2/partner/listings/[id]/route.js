@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Single Listing API for Partner
+ * GoStayLo - Single Listing API for Partner
  * GET /api/v2/partner/listings/[id]
  * 
  * Returns a single listing by ID for the owner

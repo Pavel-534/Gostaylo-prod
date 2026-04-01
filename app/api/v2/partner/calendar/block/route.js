@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Calendar Block API
+ * GoStayLo - Calendar Block API
  * 
  * POST /api/v2/partner/calendar/block - Create availability block
  * DELETE /api/v2/partner/calendar/block - Remove block

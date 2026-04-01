@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Locations API (City -> District hierarchy)
+ * GoStayLo - Locations API (City -> District hierarchy)
  * GET /api/v2/locations - Returns unique cities and districts from ACTIVE listings
  * Used for dynamic search filters (Airbnb-style)
  */

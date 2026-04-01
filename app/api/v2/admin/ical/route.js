@@ -1,5 +1,5 @@
 /**
- * Gostaylo - iCal Sync Admin API
+ * GoStayLo - iCal Sync Admin API
  * GET /api/v2/admin/ical - Get sync logs with optional error filter
  * POST /api/v2/admin/ical - Trigger manual sync for a listing or all listings
  */
@@ -119,7 +119,7 @@ async function syncSource(supabase, listingId, listingTitle, source) {
     
     const response = await fetch(source.url, {
       signal: controller.signal,
-      headers: { 'User-Agent': 'Gostaylo-Calendar-Sync/1.0' }
+      headers: { 'User-Agent': 'GoStayLo-Calendar-Sync/1.0' }
     });
     
     clearTimeout(timeoutId);

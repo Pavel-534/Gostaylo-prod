@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Forex API
+ * GoStayLo - Forex API
  * GET /api/v2/forex - Get exchange rates
  * GET /api/v2/forex?convert=1000&from=THB&to=RUB - Convert amount
  */
@@ -75,7 +75,7 @@ export async function GET(request) {
       cached,
       cacheAge: age,
       geoDetected: geoData,
-      markup: '3.5% Gostaylo Rate applied to display prices',
+      markup: '3.5% GoStayLo Rate applied to display prices',
       timestamp: new Date().toISOString()
     });
 

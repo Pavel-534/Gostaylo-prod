@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Telegram Admin API
+ * GoStayLo - Telegram Admin API
  * GET /api/v2/admin/telegram - Get status & auto-setup webhook
  * POST /api/v2/admin/telegram - Manual actions (setWebhook, deleteWebhook, testMessage)
  */
@@ -173,7 +173,7 @@ export async function POST(request) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: chatId,
-          text: `✅ *Тест подключения Gostaylo*\n\n🌐 Домен: ${BASE_URL}\n⏰ Время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Bangkok' })}`,
+          text: `✅ *Тест подключения GoStayLo*\n\n🌐 Домен: ${BASE_URL}\n⏰ Время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Bangkok' })}`,
           parse_mode: 'Markdown'
         })
       });

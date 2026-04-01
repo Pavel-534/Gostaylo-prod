@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Renter Favorites API (v2)
+ * GoStayLo - Renter Favorites API (v2)
  * 
  * GET /api/v2/renter/favorites - List all favorites for current user
  * POST /api/v2/renter/favorites - Toggle (add/remove) listing from favorites

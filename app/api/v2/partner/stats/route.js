@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Partner Stats API (v2) - LIVE DATA
+ * GoStayLo - Partner Stats API (v2) - LIVE DATA
  * 
  * Analytics endpoint with real Supabase data
  * Uses seasonal_prices for pricing calculations

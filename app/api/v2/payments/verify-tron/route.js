@@ -1,5 +1,5 @@
 /**
- * Gostaylo - TRON Transaction Verification API v2.0
+ * GoStayLo - TRON Transaction Verification API v2.0
  * POST /api/v2/payments/verify-tron
  * GET /api/v2/payments/verify-tron?txid=[TXID]&expectedAmount=[USDT]
  * 

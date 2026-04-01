@@ -168,7 +168,7 @@ export function ChatHeaderActions({
                   )}
                   <div className="flex min-w-0 flex-col">
                     <span className="font-medium">
-                      {isRu ? 'Поддержка Gostaylo' : 'Gostaylo support'}
+                      {isRu ? 'Поддержка GoStayLo' : 'GoStayLo support'}
                     </span>
                     {supportPriorityActive ? (
                       <span className="text-[11px] font-normal text-amber-700">{supportDoneLabel}</span>

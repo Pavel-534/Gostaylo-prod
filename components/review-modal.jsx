@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Review Submission Modal (Phase 4)
+ * GoStayLo - Review Submission Modal (Phase 4)
  * 
  * Premium 5-star category rating system:
  * - Cleanliness, Accuracy, Communication, Location, Value

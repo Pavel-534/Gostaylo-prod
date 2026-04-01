@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Listings API (v2)
+ * GoStayLo - Listings API (v2)
  * 
  * GET /api/v2/listings - DEPRECATED! Use /api/v2/search instead
  * POST /api/v2/listings - Create new listing (ACTIVE)

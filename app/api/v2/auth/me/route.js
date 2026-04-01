@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Get Current User API
+ * GoStayLo - Get Current User API
  * GET /api/v2/auth/me
  * 
  * Returns user from JWT session cookie

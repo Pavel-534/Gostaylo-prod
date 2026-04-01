@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Partner Application Status API
+ * GoStayLo - Partner Application Status API
  * GET /api/v2/partner/application-status
  * 
  * Returns the status of the current user's partner application

@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Logout API
+ * GoStayLo - Logout API
  * POST /api/v2/auth/logout
  * 
  * Clears session cookie

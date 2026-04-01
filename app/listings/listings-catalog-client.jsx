@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Gostaylo - Search Results Page (client)
+ * GoStayLo - Search Results Page (client)
  * @see app/listings/page.js — серверная оболочка (metadata, ItemList JSON-LD)
  */
 
@@ -342,7 +342,7 @@ function ListingsContent() {
           </Link>
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center text-white font-bold">G</div>
-            <span className="font-semibold text-lg hidden sm:inline">Gostaylo</span>
+            <span className="font-semibold text-lg hidden sm:inline">GoStayLo</span>
           </Link>
           <Badge variant="secondary" className="bg-teal-100 text-teal-700">
             {loading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : `${allListings.length}`}

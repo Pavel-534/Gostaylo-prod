@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Telegram Webhook (thin router)
+ * GoStayLo - Telegram Webhook (thin router)
  * Logic: lib/services/telegram/*
  */
 
@@ -262,7 +262,7 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    service: 'Gostaylo Telegram Webhook',
+    service: 'GoStayLo Telegram Webhook',
     version: '7.5',
     stage: 31,
     runtime: 'nodejs',

@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Universal Calendar API (v2)
+ * GoStayLo - Universal Calendar API (v2)
  * Single Source of Truth for calendar/availability data
  * 
  * GET /api/v2/listings/[id]/calendar

@@ -1,5 +1,5 @@
 /**
- * Gostaylo - iCal Export Feed (публичный, только ?token=…)
+ * GoStayLo - iCal Export Feed (публичный, только ?token=…)
  * GET /api/v2/listings/[id]/ical?token=xxx
  *
  * Не путать с GET /api/v2/partner/listings/[id]/ical-export-link — тот только для кабинета
@@ -121,12 +121,12 @@ export async function GET(request, { params }) {
   
   // Build iCal content
   const now = formatICalDate(new Date());
-  const calName = `Gostaylo - ${listing.title}`;
+  const calName = `GoStayLo - ${listing.title}`;
   
   let ical = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Gostaylo//Calendar Export//EN',
+    'PRODID:-//GoStayLo//Calendar Export//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${calName}`,
@@ -143,8 +143,8 @@ export async function GET(request, { params }) {
       `DTSTAMP:${now}`,
       `DTSTART;VALUE=DATE:${formatICalDateOnly(todayYmd)}`,
       `DTEND;VALUE=DATE:${icalExclusiveEndFromInclusive(endInc)}`,
-      'SUMMARY:Gostaylo — объект недоступен',
-      `DESCRIPTION:${escapeIcalText('Объявление не активно или скрыто на Gostaylo. Бронирование через календарь недоступно.')}`,
+      'SUMMARY:GoStayLo — объект недоступен',
+      `DESCRIPTION:${escapeIcalText('Объявление не активно или скрыто на GoStayLo. Бронирование через календарь недоступно.')}`,
       'STATUS:CONFIRMED',
       'TRANSP:OPAQUE',
       'END:VEVENT'
@@ -159,8 +159,8 @@ export async function GET(request, { params }) {
       `DTSTAMP:${now}`,
       `DTSTART;VALUE=DATE:${formatICalDateOnly(booking.check_in)}`,
       `DTEND;VALUE=DATE:${formatICalDateOnly(booking.check_out)}`,
-      `SUMMARY:Gostaylo Booking - ${booking.guest_name || 'Guest'}`,
-      `DESCRIPTION:Booking via Gostaylo`,
+      `SUMMARY:GoStayLo Booking - ${booking.guest_name || 'Guest'}`,
+      `DESCRIPTION:Booking via GoStayLo`,
       'STATUS:CONFIRMED',
       'TRANSP:OPAQUE',
       'END:VEVENT'
@@ -177,7 +177,7 @@ export async function GET(request, { params }) {
       `DTSTART;VALUE=DATE:${formatICalDateOnly(block.start_date)}`,
       `DTEND;VALUE=DATE:${icalExclusiveEndFromInclusive(block.end_date)}`,
       `SUMMARY:${escapeIcalText(block.reason || 'Blocked')}`,
-      `DESCRIPTION:${escapeIcalText(`Занято в Gostaylo (${src || 'block'})`)}`,
+      `DESCRIPTION:${escapeIcalText(`Занято в GoStayLo (${src || 'block'})`)}`,
       'STATUS:CONFIRMED',
       'TRANSP:OPAQUE',
       'END:VEVENT'
@@ -197,8 +197,8 @@ export async function GET(request, { params }) {
       `DTSTAMP:${now}`,
       `DTSTART;VALUE=DATE:${formatICalDateOnly(sp.start_date)}`,
       `DTEND;VALUE=DATE:${icalExclusiveEndFromInclusive(sp.end_date)}`,
-      `SUMMARY:${escapeIcalText(`Gostaylo — ${label}${price ? ` (${price})` : ''}`)}`,
-      `DESCRIPTION:${escapeIcalText('Сезонные цены Gostaylo. Событие информационное (TRANSPARENT), не блокирует календарь в большинстве OTA.')}`,
+      `SUMMARY:${escapeIcalText(`GoStayLo — ${label}${price ? ` (${price})` : ''}`)}`,
+      `DESCRIPTION:${escapeIcalText('Сезонные цены GoStayLo. Событие информационное (TRANSPARENT), не блокирует календарь в большинстве OTA.')}`,
       'STATUS:CONFIRMED',
       'TRANSP:TRANSPARENT',
       'END:VEVENT'

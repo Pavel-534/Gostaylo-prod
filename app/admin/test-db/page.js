@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Admin Database Test Page
+ * GoStayLo - Admin Database Test Page
  * /admin/test-db - Verify Supabase connection
  * Uses direct Supabase client (bypasses Kubernetes routing)
  */

@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Dynamic Locations API
+ * GoStayLo - Dynamic Locations API
  * GET /api/v2/search/locations
  * Returns cities and districts from actual ACTIVE listings (for filters)
  * Enables City -> District hierarchy like Airbnb

@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Partner Dashboard Layout (World-Class UX)
+ * GoStayLo - Partner Dashboard Layout (World-Class UX)
  * 
  * Features:
  * - Professional sidebar with universal business icons
@@ -294,7 +294,7 @@ export default function PartnerLayout({ children }) {
           <p className="text-slate-500 mb-6">
             {isNotLoggedIn 
               ? 'Войдите в аккаунт, чтобы просмотреть эту страницу' 
-              : 'Эта страница доступна только партнёрам Gostaylo'}
+              : 'Эта страница доступна только партнёрам GoStayLo'}
           </p>
           <div className="space-y-3">
             {isNotLoggedIn ? (
@@ -414,7 +414,7 @@ export default function PartnerLayout({ children }) {
                 </svg>
               </div>
               <div>
-                <h1 className="font-bold text-slate-900">Gostaylo</h1>
+                <h1 className="font-bold text-slate-900">GoStayLo</h1>
                 <p className="text-[10px] text-teal-600 font-semibold uppercase tracking-wider">Partner Portal</p>
               </div>
             </Link>

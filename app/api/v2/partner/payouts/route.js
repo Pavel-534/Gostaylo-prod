@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Partner Payouts API (v2)
+ * GoStayLo - Partner Payouts API (v2)
  * GET /api/v2/partner/payouts - Get partner's payout history
  * POST /api/v2/partner/payouts - Request payout
  * SECURITY: partnerId must match session userId

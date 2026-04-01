@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Auth Login API (v2)
+ * GoStayLo - Auth Login API (v2)
  * POST /api/v2/auth/login
  * 
  * Security: bcrypt + JWT HttpOnly Cookie (30 days)

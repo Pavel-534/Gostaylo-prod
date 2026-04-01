@@ -2,7 +2,7 @@
  * Обогащение строки листинга при импорте с Airbnb: гео-район Пхукета, SEO-мета, workation.
  */
 
-/** Популярные районы Gostaylo — те же названия, что в мастере партнёра */
+/** Популярные районы GoStayLo — те же названия, что в мастере партнёра */
 export const PHUKET_POPULAR_DISTRICTS: { name: string; lat: number; lng: number }[] = [
   { name: 'Rawai',    lat: 7.7665, lng: 98.3165 },
   { name: 'Nai Harn', lat: 7.777,  lng: 98.302  },
@@ -85,34 +85,34 @@ const LANG_CFG: Record<Lang, LangConfig> = {
   en: {
     phuket: 'Phuket',
     separator: ' · ',
-    bookSuffix: ', Phuket — book on Gostaylo.',
+    bookSuffix: ', Phuket — book on GoStayLo.',
     descSep: '.',
     amenitySep: '.',
   },
   ru: {
     phuket: 'Пхукет',
     separator: ' · ',
-    bookSuffix: ', Пхукет — бронируйте на Gostaylo.',
+    bookSuffix: ', Пхукет — бронируйте на GoStayLo.',
     descSep: '.',
     amenitySep: '.',
   },
   zh: {
     phuket: '普吉岛',
     separator: ' · ',
-    bookSuffix: '，普吉岛 — 在Gostaylo预订。',
+    bookSuffix: '，普吉岛 — 在GoStayLo预订。',
     descSep: '。',
     amenitySep: '。',
   },
   th: {
     phuket: 'ภูเก็ต',
     separator: ' · ',
-    bookSuffix: ', ภูเก็ต — จองผ่าน Gostaylo.',
+    bookSuffix: ', ภูเก็ต — จองผ่าน GoStayLo.',
     descSep: '.',
     amenitySep: '.',
   },
 }
 
-const BRAND = ' | Gostaylo'
+const BRAND = ' | GoStayLo'
 const TITLE_MAX = 60
 const DESC_MAX = 160
 const SNIPPET_MAX = 120

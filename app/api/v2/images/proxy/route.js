@@ -33,7 +33,7 @@ export async function GET(request) {
     upstream = await fetch(raw, {
       headers: {
         Accept: 'image/avif,image/webp,image/*,*/*;q=0.8',
-        'User-Agent': 'GostayloImageProxy/1.0',
+        'User-Agent': 'GoStayLoImageProxy/1.0',
       },
       redirect: 'follow',
       cache: 'no-store',

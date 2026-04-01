@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Admin Dashboard
+ * GoStayLo - Admin Dashboard
  * Main admin panel page
  */
 

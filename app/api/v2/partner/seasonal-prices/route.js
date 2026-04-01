@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Partner Seasonal Prices API (v2)
+ * GoStayLo - Partner Seasonal Prices API (v2)
  * 
  * Features:
  * - GET: Fetch seasonal prices for partner's listings

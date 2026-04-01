@@ -4,7 +4,7 @@
 import UnifiedMessagesClient from './UnifiedMessagesClient'
 
 export const metadata = {
-  title: 'Сообщения | Gostaylo',
+  title: 'Сообщения | GoStayLo',
 }
 
 export default function MessagesThreadPage({ params }) {

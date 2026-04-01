@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Geocoding API (Nominatim / OpenStreetMap)
+ * GoStayLo - Geocoding API (Nominatim / OpenStreetMap)
  * GET /api/v2/geocode?q=Rawai+Phuket+Thailand
  * Free, no API key required. Rate limit: 1 req/sec.
  */
@@ -30,7 +30,7 @@ export async function GET(request) {
 
     const res = await fetch(`${NOMINATIM_URL}?${params}`, {
       headers: {
-        'User-Agent': 'Gostaylo/1.0 (contact@gostaylo.com)',
+        'User-Agent': 'GoStayLo/1.0 (contact@gostaylo.com)',
       },
     })
 

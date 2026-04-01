@@ -125,7 +125,7 @@ function txt(key, language, ...args) {
 
 /**
  * @param {object} props
- * @param {string} props.categoryId — UUID категории Gostaylo (обязателен для API)
+ * @param {string} props.categoryId — UUID категории GoStayLo (обязателен для API)
  * @param {'wizard' | 'edit'} props.variant
  * @param {(preview: object) => void} [props.onSuccess]
  * @param {(preview: object) => void} [props.onApplyPreview]

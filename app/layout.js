@@ -24,17 +24,17 @@ export async function generateMetadata() {
   const siteUrl = await getRequestSiteUrl()
   return {
     metadataBase: new URL(siteUrl),
-    title: 'Gostaylo - Premium Global Rentals',
+    title: 'GoStayLo - Premium Global Rentals',
     description:
-      'Premium villas, yachts, transport and tours worldwide. Book your perfect stay with Gostaylo.',
+      'Premium villas, yachts, transport and tours worldwide. Book your perfect stay with GoStayLo.',
     manifest: '/manifest.json',
     keywords: 'rentals, villas, yachts, phuket, thailand, luxury, vacation, holiday',
-    authors: [{ name: 'Gostaylo' }],
+    authors: [{ name: 'GoStayLo' }],
     openGraph: {
-      title: 'Gostaylo - Premium Global Rentals',
+      title: 'GoStayLo - Premium Global Rentals',
       description: 'Premium villas, yachts, transport and tours worldwide. Book your perfect stay.',
       url: siteUrl,
-      siteName: 'Gostaylo',
+      siteName: 'GoStayLo',
       locale: 'en_US',
       type: 'website',
       images: [
@@ -42,20 +42,20 @@ export async function generateMetadata() {
           url: '/og-image.png',
           width: 1200,
           height: 630,
-          alt: 'Gostaylo - Premium Global Rentals',
+          alt: 'GoStayLo - Premium Global Rentals',
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'Gostaylo - Premium Global Rentals',
+      title: 'GoStayLo - Premium Global Rentals',
       description: 'Premium villas, yachts, transport and tours worldwide.',
       images: ['/og-image.png'],
     },
     appleWebApp: {
       capable: true,
       statusBarStyle: 'default',
-      title: 'Gostaylo',
+      title: 'GoStayLo',
     },
     // Яндекс.Вебмастер (метод «Метатег»); файл yandex_*.html в public/ — метод «HTML-файл»
     verification: {
@@ -86,7 +86,7 @@ button{font:inherit}
         <link rel="icon" href="/favicon.ico" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Gostaylo" />
+        <meta name="apple-mobile-web-app-title" content="GoStayLo" />
         <meta name="theme-color" content="#0d9488" />
       </head>
       <body className={inter.className}>

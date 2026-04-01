@@ -1,5 +1,5 @@
 /**
- * Gostaylo - In-Chat Invoice Component
+ * GoStayLo - In-Chat Invoice Component
  * Rich card for sending/receiving payment requests in chat
  */
 

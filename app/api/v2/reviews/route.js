@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Reviews API
+ * GoStayLo - Reviews API
  * GET /api/v2/reviews?listing_id=xxx - Get reviews for a listing
  * POST /api/v2/reviews - Create review (session cookie required; userId never from client body)
  */

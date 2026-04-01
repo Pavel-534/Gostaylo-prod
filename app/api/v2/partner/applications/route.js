@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Partner Applications API
+ * GoStayLo - Partner Applications API
  * POST /api/v2/partner/applications - Submit partner application
  * 
  * CRITICAL: Applications go through MANUAL MODERATION

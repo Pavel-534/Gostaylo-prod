@@ -15,7 +15,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 // Mock USDT exchange rate
 const USDT_TO_THB_RATE = 35.5;
 
-// Official Gostaylo USDT TRC-20 Wallet Address
+// Official GoStayLo USDT TRC-20 Wallet Address
 const TRON_WALLET_ADDRESS = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
 
 export async function POST(request, { params }) {

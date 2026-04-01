@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Telegram Test API
+ * GoStayLo - Telegram Test API
  * POST /api/v2/telegram/test - Send test alerts to admin group
  */
 

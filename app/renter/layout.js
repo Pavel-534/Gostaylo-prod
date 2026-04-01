@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Renter Portal Layout
+ * GoStayLo - Renter Portal Layout
  * 
  * Features:
  * - Server-side session validation
@@ -224,7 +224,7 @@ export default function RenterLayout({ children }) {
                   <span className="text-white font-bold text-lg">GS</span>
                 </div>
                 <div className="hidden sm:block">
-                  <span className="font-bold text-slate-900 text-lg">Gostaylo</span>
+                  <span className="font-bold text-slate-900 text-lg">GoStayLo</span>
                   <span className="block text-xs text-slate-500">My Trips</span>
                 </div>
               </Link>
@@ -385,7 +385,7 @@ export default function RenterLayout({ children }) {
         {/* Footer */}
         <footer className="bg-white border-t mt-12">
           <div className="container mx-auto px-4 py-6 text-center text-sm text-slate-600">
-            <p>© 2026 Gostaylo. Luxury rentals in Phuket.</p>
+            <p>© 2026 GoStayLo. Luxury rentals in Phuket.</p>
           </div>
         </footer>
       </div>

@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Reset Password API
+ * GoStayLo - Reset Password API
  * POST /api/v2/auth/reset-password
  * 
  * Sets new password from reset token

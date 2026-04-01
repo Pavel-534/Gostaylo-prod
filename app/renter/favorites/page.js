@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Renter Favorites Page
+ * GoStayLo - Renter Favorites Page
  * Displays all listings the user has "hearted"
  */
 

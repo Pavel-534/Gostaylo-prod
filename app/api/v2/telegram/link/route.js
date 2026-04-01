@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Telegram Link API
+ * GoStayLo - Telegram Link API
  * POST /api/v2/telegram/link - Generate link code for partner
  * PUT /api/v2/telegram/link - Confirm link with chat_id
  */

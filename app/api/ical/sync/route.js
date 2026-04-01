@@ -8,7 +8,7 @@ import { lastOccupiedNightIsoFromDtendDate } from '@/lib/ical-all-day-range';
  * @deprecated DEPRECATED: This endpoint will be replaced by /api/v2/calendar
  * Use the new unified calendar API for better performance and consistency.
  * 
- * Gostaylo - iCal Sync API Endpoint
+ * GoStayLo - iCal Sync API Endpoint
  * 
  * Routes:
  * - POST /api/ical/sync - Sync a specific listing
@@ -146,7 +146,7 @@ async function fetchICal(url) {
   try {
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: { 'User-Agent': 'Gostaylo/2.1', 'Accept': 'text/calendar, */*' }
+      headers: { 'User-Agent': 'GoStayLo/2.1', 'Accept': 'text/calendar, */*' }
     });
     clearTimeout(timeout);
     
@@ -425,7 +425,7 @@ export async function GET() {
     
     return NextResponse.json({
       ok: true,
-      service: 'Gostaylo iCal Sync',
+      service: 'GoStayLo iCal Sync',
       status,
       settings
     });

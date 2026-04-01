@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Admin Stats API (v2)
+ * GoStayLo - Admin Stats API (v2)
  * GET /api/v2/admin/stats - Dashboard statistics
  */
 

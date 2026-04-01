@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Premium Partner Dashboard (Phase 3)
+ * GoStayLo - Premium Partner Dashboard (Phase 3)
  * 
  * "God View" with:
  * - Revenue Widget with sparkline

@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Gostaylo Partner Finances v2 - Real-time Revenue Dashboard
+ * GoStayLo Partner Finances v2 - Real-time Revenue Dashboard
  * 
  * Features:
  * - TanStack Query for reactive data
@@ -65,7 +65,7 @@ const DEFAULT_COMMISSION_RATE = 15
 
 function calculateFinances(bookings) {
   let totalGrossRevenue = 0
-  let totalGostayloFee = 0
+  let totalGoStayLoFee = 0
   let totalNetEarnings = 0
   let pendingRevenue = 0
   let completedRevenue = 0
@@ -78,7 +78,7 @@ function calculateFinances(bookings) {
     const net = parseFloat(booking.partnerEarningsThb) || (gross - fee)
     
     totalGrossRevenue += gross
-    totalGostayloFee += fee
+    totalGoStayLoFee += fee
     totalNetEarnings += net
     
     if (booking.status === 'COMPLETED') {
@@ -89,13 +89,13 @@ function calculateFinances(bookings) {
   })
   
   const avgFeePercent = totalGrossRevenue > 0 
-    ? Math.round((totalGostayloFee / totalGrossRevenue) * 100) 
+    ? Math.round((totalGoStayLoFee / totalGrossRevenue) * 100) 
     : DEFAULT_COMMISSION_RATE
   const netPercent = 100 - avgFeePercent
   
   return {
     totalGrossRevenue,
-    totalGostayloFee,
+    totalGoStayLoFee,
     totalNetEarnings,
     completedRevenue,
     pendingRevenue,
@@ -263,7 +263,7 @@ export default function PartnerFinancesV2() {
         <StatCard
           icon={Building2}
           title={`${t('platformFee')} (${displayFeePercent}%)`}
-          value={formatPrice(finances.totalGostayloFee, currency, exchangeRates)}
+          value={formatPrice(finances.totalGoStayLoFee, currency, exchangeRates)}
           subtitle={t('platformFee')}
           loading={isLoading}
         />

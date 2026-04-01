@@ -372,7 +372,7 @@ export default function SystemControlPage() {
           action: action,
           details: details,
           ip_address: 'admin-panel',
-          user_agent: 'Gostaylo Admin'
+          user_agent: 'GoStayLo Admin'
         })
       });
       

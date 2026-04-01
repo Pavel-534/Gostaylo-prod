@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Forgot Password API
+ * GoStayLo - Forgot Password API
  * POST /api/v2/auth/forgot-password
  * 
  * Sends password reset email
@@ -95,7 +95,7 @@ export async function POST(request) {
       body: JSON.stringify({
         from: EMAIL_FROM,
         to: user.email,
-        subject: 'Сброс пароля - Gostaylo',
+        subject: 'Сброс пароля - GoStayLo',
         html: `
           <!DOCTYPE html>
           <html>
@@ -110,7 +110,7 @@ export async function POST(request) {
                   <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
                     <tr>
                       <td style="background:linear-gradient(135deg,#0d9488 0%,#0f766e 100%);padding:32px;text-align:center;">
-                        <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;">Gostaylo</h1>
+                        <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;">GoStayLo</h1>
                       </td>
                     </tr>
                     <tr>

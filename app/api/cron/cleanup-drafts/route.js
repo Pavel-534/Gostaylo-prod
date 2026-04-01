@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Draft Cleanup Cron Job
+ * GoStayLo - Draft Cleanup Cron Job
  * 
  * PURPOSE:
  * Clean up abandoned drafts older than 30 days.

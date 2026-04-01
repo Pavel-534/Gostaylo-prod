@@ -83,7 +83,7 @@ async function sendNewMessageTelegramPing({
   const text =
     `💬 <b>Новое сообщение</b> · ${escHtmlTelegram(senderName)}\n\n` +
     `«${escHtmlTelegram(clip)}${String(textBody || '').length > 450 ? '…' : ''}»\n\n` +
-    '<i>Ответьте на это сообщение здесь — текст уйдёт в чат на сайте Gostaylo.</i>'
+    '<i>Ответьте на это сообщение здесь — текст уйдёт в чат на сайте GoStayLo.</i>'
   try {
     const tgRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',

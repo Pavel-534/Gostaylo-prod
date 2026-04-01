@@ -1,5 +1,5 @@
 /**
- * Gostaylo - App Sidebar Navigation
+ * GoStayLo - App Sidebar Navigation
  * Based on ARCHITECTURAL_PASSPORT.md requirements:
  * - System Settings (TG Bot, Webhooks, Maintenance, Commission)
  * - Finance Hub (3.5% Markup, 0.5% Tolerance)
@@ -244,7 +244,7 @@ export function AppSidebar() {
               <Home className='h-5 w-5 text-white' />
             </div>
             <div>
-              <SheetTitle className='text-left'>Gostaylo</SheetTitle>
+              <SheetTitle className='text-left'>GoStayLo</SheetTitle>
               <p className='text-xs text-slate-500'>{currentSection}</p>
             </div>
           </div>

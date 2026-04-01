@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Database Migration & Seeding Script
+ * GoStayLo - Database Migration & Seeding Script
  * Run with: node scripts/migrate-supabase.js
  */
 
@@ -224,7 +224,7 @@ async function verifyTables() {
 }
 
 async function main() {
-  console.log('🚀 Gostaylo - Supabase Migration Script\n');
+  console.log('🚀 GoStayLo - Supabase Migration Script\n');
   
   // Test connection
   const connected = await testConnection();

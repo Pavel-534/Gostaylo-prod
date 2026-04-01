@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Email Verification API
+ * GoStayLo - Email Verification API
  * GET /api/v2/auth/verify?token=xxx
  * 
  * Verifies email, sets session cookie, redirects with success

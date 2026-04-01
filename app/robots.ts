@@ -21,7 +21,17 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/profile', '/partner', '/admin', '/api'],
+        disallow: [
+          '/profile',
+          '/partner',
+          '/admin',
+          '/api',
+          '/messages',
+          '/checkout',
+          '/settings',
+          '/dashboard',
+          '/renter',
+        ],
       },
     ],
     sitemap: `${origin}/sitemap.xml`,

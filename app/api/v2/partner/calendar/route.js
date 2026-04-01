@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Partner Calendar API (v2) - LIVE DATA
+ * GoStayLo - Partner Calendar API (v2) - LIVE DATA
  * 
  * Aggregates availability and bookings for ALL partner listings
  * Uses seasonal_prices table for pricing

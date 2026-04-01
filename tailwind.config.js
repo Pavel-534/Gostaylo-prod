@@ -18,7 +18,7 @@ module.exports = {
     },
     extend: {
       colors: {
-        // Gostaylo Brand Colors - Modern Travel
+        // GoStayLo brand colors - modern travel
         teal: {
           50: '#f0fdfa',
           100: '#ccfbf1',

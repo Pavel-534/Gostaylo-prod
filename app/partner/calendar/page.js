@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Master Calendar (God View)
+ * GoStayLo - Master Calendar (God View)
  * Refactored for Clean Code Architecture - Phase 7.5
  * 
  * @refactored 2026-03-17 - Modular Component Structure

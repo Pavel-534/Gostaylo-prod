@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Push Notifications API
+ * GoStayLo - Push Notifications API
  * POST /api/v2/push/register - Register FCM token
  * POST /api/v2/push/send - Send push notification (admin only)
  */
@@ -78,7 +78,7 @@ export async function POST(request) {
       }
 
       const result = await PushService.sendPush(token, 'NEW_MESSAGE', {
-        sender: 'Gostaylo Test',
+        sender: 'GoStayLo Test',
         link: '/'
       });
       

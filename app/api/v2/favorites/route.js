@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Favorites API
+ * GoStayLo - Favorites API
  * GET - Fetch user's favorite listings
  * POST - Add listing to favorites
  * DELETE - Remove listing from favorites

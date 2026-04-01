@@ -1,5 +1,5 @@
 /**
- * Gostaylo - File Upload API
+ * GoStayLo - File Upload API
  * POST /api/v2/upload - Upload file to Supabase Storage
  * 
  * Supports: verification documents, avatars, etc.

@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Profile API (v2)
+ * GoStayLo - Profile API (v2)
  * GET /api/v2/profile - Get user profile
  */
 

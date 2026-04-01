@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Auth Register API (v2)
+ * GoStayLo - Auth Register API (v2)
  * POST /api/v2/auth/register
  * 
  * Security: bcrypt + JWT + Email verification
@@ -51,7 +51,7 @@ async function sendVerificationEmail(user, token) {
       body: JSON.stringify({
         from: EMAIL_FROM,
         to: user.email,
-        subject: 'Подтвердите ваш email - Gostaylo',
+        subject: 'Подтвердите ваш email - GoStayLo',
         html: `
           <!DOCTYPE html>
           <html>
@@ -66,7 +66,7 @@ async function sendVerificationEmail(user, token) {
                   <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
                     <tr>
                       <td style="background:linear-gradient(135deg,#0d9488 0%,#0f766e 100%);padding:32px;text-align:center;">
-                        <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;">Gostaylo</h1>
+                        <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;">GoStayLo</h1>
                       </td>
                     </tr>
                     <tr>
@@ -81,7 +81,7 @@ async function sendVerificationEmail(user, token) {
                           Подтвердить email
                         </a>
                         <p style="margin:24px 0 0;color:#94a3b8;font-size:14px;">
-                          Ссылка действительна 24 часа. Если вы не регистрировались на Gostaylo, просто проигнорируйте это письмо.
+                          Ссылка действительна 24 часа. Если вы не регистрировались на GoStayLo, просто проигнорируйте это письмо.
                         </p>
                       </td>
                     </tr>

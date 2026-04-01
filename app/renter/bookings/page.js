@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Renter "My Bookings" Page (v2)
+ * GoStayLo - Renter "My Bookings" Page (v2)
  * 
  * Features:
  * - TanStack Query for data fetching

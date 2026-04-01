@@ -769,7 +769,7 @@ function ListingDetailContent({ params }) {
                           data-testid='guest-phone-input'
                         />
                       </div>
-                      {/* Gostaylo Calendar - High-Performance Airbnb Style */}
+                      {/* GoStayLo Calendar - High-Performance Airbnb Style */}
                       <div>
                         <Label>{language === 'ru' ? 'Даты проживания' : 'Stay dates'}</Label>
                         <GostayloCalendar

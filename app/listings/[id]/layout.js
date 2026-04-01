@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Listing Detail Layout
+ * GoStayLo - Listing Detail Layout
  * Provides dynamic multilingual SEO metadata (generateMetadata) + JSON-LD
  */
 
@@ -19,8 +19,8 @@ export async function generateMetadata({ params }) {
 
   if (!listing) {
     return {
-      title: 'Listing | Gostaylo',
-      description: 'Premium rentals on Gostaylo'
+      title: 'Listing | GoStayLo',
+      description: 'Premium rentals on GoStayLo'
     };
   }
 

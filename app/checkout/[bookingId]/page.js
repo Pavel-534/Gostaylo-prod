@@ -16,7 +16,7 @@ import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
 import { QRCodeSVG } from 'qrcode.react'
 
-// Official Gostaylo USDT TRC-20 Wallet Address
+// Official GoStayLo USDT TRC-20 Wallet Address
 const GOSTAYLO_WALLET = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
 
 function CheckoutPageInner({ params }) {
@@ -728,7 +728,7 @@ function CheckoutPageInner({ params }) {
               {/* Wallet Address with Copy */}
               <div>
                 <Label className="text-base font-semibold mb-2 block">
-                  Адрес кошелька Gostaylo (TRC-20)
+                  Адрес кошелька GoStayLo (TRC-20)
                 </Label>
                 <div className="flex items-center gap-2">
                   <Input

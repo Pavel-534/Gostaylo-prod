@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Listing Availability API (Interval/Night-Based Model)
+ * GoStayLo - Listing Availability API (Interval/Night-Based Model)
  * 
  * @note This endpoint will be ENHANCED (not deprecated) to become /api/v2/calendar
  * Current logic is correct and will be preserved.

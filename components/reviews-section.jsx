@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Public Reviews Section
+ * GoStayLo - Public Reviews Section
  * Displays reviews on listing detail page
  * - Star ratings
  * - Verified booking badge

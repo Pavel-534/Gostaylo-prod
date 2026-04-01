@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Single Listing API (v2)
+ * GoStayLo - Single Listing API (v2)
  * GET /api/v2/listings/[id] - Get listing details
  * PUT /api/v2/listings/[id] - Update listing
  * DELETE /api/v2/listings/[id] - Delete listing + cleanup storage

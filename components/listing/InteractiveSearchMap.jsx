@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Interactive Search Map (Airbnb-style)
+ * GoStayLo - Interactive Search Map (Airbnb-style)
  * Desktop: list ~60% / map ~40%; price pills; viewport bounds sync.
  *
  * Приватность: getListingLocationDisplayMode — «примерная» зона без круга, пилюля с пунктиром / ~.

@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Admin/Partner Navigation Bar
+ * GoStayLo - Admin/Partner Navigation Bar
  * Shows a persistent bar at the top for logged-in ADMIN or PARTNER users
  */
 

@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Partner Booking Actions API (v2) - LIVE DATA
+ * GoStayLo - Partner Booking Actions API (v2) - LIVE DATA
  * 
  * PUT /api/v2/partner/bookings/[id] - Update booking status in Supabase
  */

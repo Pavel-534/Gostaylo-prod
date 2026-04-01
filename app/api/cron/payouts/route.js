@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Payout Cron Job API
+ * GoStayLo - Payout Cron Job API
  * POST /api/cron/payouts
  * 
  * 24H ESCROW RULE:

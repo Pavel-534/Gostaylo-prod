@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Booking Actions in Chat
+ * GoStayLo - Booking Actions in Chat
  * Quick Approve/Reject buttons for partners to handle booking requests
  */
 

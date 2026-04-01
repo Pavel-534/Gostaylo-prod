@@ -2,7 +2,7 @@
  * @deprecated DEPRECATED: This cron job will be replaced by new CalendarService
  * The sync logic will be consolidated into /lib/services/calendar.service.js
  * 
- * Gostaylo - iCal Sync Cron Job
+ * GoStayLo - iCal Sync Cron Job
  * GET/POST /api/cron/ical-sync
  * 
  * Syncs external calendars (Airbnb, Booking.com, etc.)
@@ -89,7 +89,7 @@ async function syncSource(supabase, listingId, source, timeout = 10000) {
     const response = await fetch(source.url, {
       signal: controller.signal,
       headers: {
-        'User-Agent': 'Gostaylo-Calendar-Sync/1.0'
+        'User-Agent': 'GoStayLo-Calendar-Sync/1.0'
       }
     });
     

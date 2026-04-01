@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Currency Selector Component
+ * GoStayLo - Currency Selector Component
  * Dropdown to manually change currency (overrides auto-detection)
  */
 

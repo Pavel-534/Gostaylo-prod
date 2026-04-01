@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Supabase Realtime Chat Hook
+ * GoStayLo - Supabase Realtime Chat Hook
  * Provides instant message sync using Supabase Realtime
  */
 

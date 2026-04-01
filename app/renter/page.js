@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Renter Portal Entry
+ * GoStayLo - Renter Portal Entry
  * Redirects to Dashboard
  */
 

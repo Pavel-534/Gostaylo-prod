@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * Gostaylo Premium Listing Detail Page
+ * GoStayLo Premium Listing Detail Page
  * Refactored - Phase 7.6 Final
  * 
  * Clean modular architecture with extracted components

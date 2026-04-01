@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Categories API (v2)
+ * GoStayLo - Categories API (v2)
  * GET /api/v2/categories - Get all active categories
  */
 

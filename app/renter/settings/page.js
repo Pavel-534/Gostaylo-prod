@@ -56,7 +56,7 @@ export default function RenterSettingsPage() {
                 {language === 'ru' ? 'Маркетинговые рассылки' : 'Marketing emails'}
               </Label>
               <p className="text-xs text-slate-500">
-                {language === 'ru' ? 'Акции и подборки от Gostaylo' : 'Promos and curated picks'}
+                {language === 'ru' ? 'Акции и подборки от GoStayLo' : 'Promos and curated picks'}
               </p>
             </div>
             <Switch checked={marketing} onCheckedChange={setMarketing} />

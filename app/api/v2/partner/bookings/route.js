@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Partner Bookings API (v2)
+ * GoStayLo - Partner Bookings API (v2)
  * 
  * SECURITY: All queries filtered by owner_id = session.user.id
  * Response Format: { status: 'success', data: [...], meta: { total: 0 } }

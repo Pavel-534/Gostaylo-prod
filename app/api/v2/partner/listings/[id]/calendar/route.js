@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Calendar Blocks API
+ * GoStayLo - Calendar Blocks API
  * GET /api/v2/partner/listings/[id]/calendar - Get all blocks for listing
  * POST /api/v2/partner/listings/[id]/calendar - Add manual block
  * DELETE /api/v2/partner/listings/[id]/calendar - Remove block

@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Districts API (v2)
+ * GoStayLo - Districts API (v2)
  * GET /api/v2/districts - Get Phuket districts
  */
 

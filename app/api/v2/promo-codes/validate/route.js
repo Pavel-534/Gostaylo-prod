@@ -1,5 +1,5 @@
 /**
- * Gostaylo - Promo Code Validation API (v2)
+ * GoStayLo - Promo Code Validation API (v2)
  * POST /api/v2/promo-codes/validate - Validate a promo code
  */
 
