@@ -42,6 +42,12 @@ import { PartnerCalendarEducationCard } from '@/components/partner/PartnerCalend
 import { PartnerListingImportBlock } from '@/components/partner/PartnerListingImportBlock'
 import { mergeAirbnbPreviewWizard } from '@/lib/partner/listing-import-merge'
 import {
+  normalizePartnerListingMetadata,
+  partnerMetadataStateFromServer,
+  isPartnerListingHousingCategory,
+} from '@/lib/partner/listing-wizard-metadata'
+import { PartnerListingSearchMetadataFields } from '@/components/partner/PartnerListingSearchMetadataFields'
+import {
   migrateExternalImagesAfterSave,
   mapCoverUrlAfterMigration,
   patchPartnerListingCoverImage,
@@ -135,7 +141,13 @@ export default function PremiumListingWizard() {
       engine: '',
       // Tour-specific
       duration: '',
-      includes: []
+      includes: [],
+      transmission: '',
+      fuel_type: '',
+      engine_cc: '',
+      languages: [],
+      experience_years: '',
+      specialization: '',
     },
     seasonalPricing: []
   })
@@ -200,6 +212,7 @@ export default function PremiumListingWizard() {
           seasonType: s.seasonType || s.season_type || 'high',
         }))
         const rawMeta = listing.metadata || {}
+        const shapedMeta = partnerMetadataStateFromServer(rawMeta)
         setFormData({
           categoryId: listing.categoryId || listing.category_id || '',
           categoryName: cat?.name || '',
@@ -237,13 +250,25 @@ export default function PremiumListingWizard() {
             engine: '',
             duration: '',
             includes: [],
-            ...rawMeta,
-            bedrooms: clampIntFromDigits(rawMeta.bedrooms ?? 0, 0, 99, 0),
-            bathrooms: clampIntFromDigits(rawMeta.bathrooms ?? 0, 0, 99, 0),
-            max_guests: clampIntFromDigits(rawMeta.max_guests ?? 2, 1, 999, 1),
-            area: clampIntFromDigits(rawMeta.area ?? 0, 0, 9_999_999, 0),
-            passengers: clampIntFromDigits(rawMeta.passengers ?? 0, 0, 999, 0),
+            transmission: '',
+            fuel_type: '',
+            engine_cc: '',
+            languages: [],
+            experience_years: '',
+            specialization: '',
+            ...shapedMeta,
+            bedrooms: clampIntFromDigits(shapedMeta.bedrooms ?? 0, 0, 99, 0),
+            bathrooms: clampIntFromDigits(shapedMeta.bathrooms ?? 0, 0, 99, 0),
+            max_guests: clampIntFromDigits(shapedMeta.max_guests ?? 2, 1, 999, 1),
+            area: clampIntFromDigits(shapedMeta.area ?? 0, 0, 9_999_999, 0),
+            passengers: clampIntFromDigits(shapedMeta.passengers ?? rawMeta.passengers ?? 0, 0, 999, 0),
             amenities: normalizeWizardAmenities(rawMeta.amenities || []),
+            languages: Array.isArray(shapedMeta.languages) ? shapedMeta.languages : [],
+            experience_years: shapedMeta.experience_years ?? '',
+            transmission: shapedMeta.transmission ?? '',
+            fuel_type: shapedMeta.fuel_type ?? '',
+            engine_cc: shapedMeta.engine_cc ?? '',
+            specialization: shapedMeta.specialization ?? '',
           },
           seasonalPricing: seasonal || listing.seasonalPricing || listing.seasonalPrices || [],
         })
@@ -391,7 +416,9 @@ export default function PremiumListingWizard() {
         toast.error(t('pleaseLogIn'))
         return
       }
-      
+
+      const categorySlug = categories.find((c) => c.id === formData.categoryId)?.slug ?? ''
+
       if (isEditMode && editId) {
         // Update existing draft/listing
         const payload = {
@@ -400,7 +427,10 @@ export default function PremiumListingWizard() {
           available: false,
           basePriceThb: parseFloat(formData.basePriceThb) || 0,
           images: formData.images,
-          metadata: { ...formData.metadata, is_draft: true }
+          metadata: normalizePartnerListingMetadata(
+            { ...formData.metadata, is_draft: true },
+            categorySlug,
+          ),
         }
         const res = await fetch(`/api/v2/partner/listings/${editId}`, {
           method: 'PUT',
@@ -435,7 +465,10 @@ export default function PremiumListingWizard() {
           district: formData.district || '',
           basePriceThb: parseFloat(formData.basePriceThb) || 0,
           images: formData.images || [],
-          metadata: { ...formData.metadata, is_draft: true },
+          metadata: normalizePartnerListingMetadata(
+            { ...formData.metadata, is_draft: true },
+            categorySlug,
+          ),
           status: 'INACTIVE',
           available: false
         }
@@ -480,6 +513,8 @@ export default function PremiumListingWizard() {
         return
       }
       
+      const categorySlug = categories.find((c) => c.id === formData.categoryId)?.slug ?? ''
+
       const payload = {
         ...formData,
         ownerId: userId,
@@ -489,7 +524,10 @@ export default function PremiumListingWizard() {
         commissionRate: parseFloat(formData.commissionRate) || 15,
         minBookingDays: parseInt(formData.minBookingDays) || 1,
         maxBookingDays: parseInt(formData.maxBookingDays) || 90,
-        metadata: { ...formData.metadata, is_draft: false }
+        metadata: normalizePartnerListingMetadata(
+          { ...formData.metadata, is_draft: false },
+          categorySlug,
+        ),
       }
       
       const method = isEditMode ? 'PUT' : 'POST'
@@ -561,65 +599,9 @@ export default function PremiumListingWizard() {
   // Dynamic fields based on category
   const renderSpecs = () => {
     const categoryName = formData.categoryName?.toLowerCase() || ''
-    
-    if (categoryName.includes('villa') || categoryName.includes('property')) {
-      return (
-        <>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <div>
-              <Label className="text-sm font-medium text-slate-700">{t('fieldBedrooms')}</Label>
-              <Input
-                inputMode="numeric"
-                autoComplete="off"
-                value={String(formData.metadata.bedrooms)}
-                onChange={(e) =>
-                  updateMetadata('bedrooms', clampIntFromDigits(e.target.value, 0, 99, 0))
-                }
-                className="mt-2 h-11"
-              />
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-slate-700">{t('fieldBathrooms')}</Label>
-              <Input
-                inputMode="numeric"
-                autoComplete="off"
-                value={String(formData.metadata.bathrooms)}
-                onChange={(e) =>
-                  updateMetadata('bathrooms', clampIntFromDigits(e.target.value, 0, 99, 0))
-                }
-                className="mt-2 h-11"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <div>
-              <Label className="text-sm font-medium text-slate-700">{t('fieldMaxGuests')}</Label>
-              <Input
-                inputMode="numeric"
-                autoComplete="off"
-                value={String(formData.metadata.max_guests)}
-                onChange={(e) =>
-                  updateMetadata('max_guests', clampIntFromDigits(e.target.value, 1, 999, 1))
-                }
-                className="mt-2 h-11"
-              />
-            </div>
-            <div>
-              <Label className="text-sm font-medium text-slate-700">{t('fieldAreaSqm')}</Label>
-              <Input
-                inputMode="numeric"
-                autoComplete="off"
-                value={String(formData.metadata.area)}
-                onChange={(e) =>
-                  updateMetadata('area', clampIntFromDigits(e.target.value, 0, 9_999_999, 0))
-                }
-                className="mt-2 h-11"
-              />
-            </div>
-          </div>
-        </>
-      )
-    } else if (categoryName.includes('yacht') || categoryName.includes('boat')) {
+    const slug = (mapCategorySlug || '').toLowerCase()
+
+    if (slug === 'yachts' || categoryName.includes('yacht') || categoryName.includes('boat')) {
       return (
         <>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -648,7 +630,9 @@ export default function PremiumListingWizard() {
           </div>
         </>
       )
-    } else if (categoryName.includes('tour')) {
+    }
+
+    if (slug === 'tours' || categoryName.includes('tour')) {
       return (
         <>
           <div>
@@ -664,7 +648,25 @@ export default function PremiumListingWizard() {
         </>
       )
     }
-    
+
+    if (
+      slug === 'vehicles' ||
+      slug === 'nanny' ||
+      slug === 'babysitter' ||
+      isPartnerListingHousingCategory(slug, formData.categoryName)
+    ) {
+      return (
+        <PartnerListingSearchMetadataFields
+          categorySlug={slug}
+          categoryNameFallback={formData.categoryName}
+          language={language}
+          metadata={formData.metadata}
+          updateMetadata={updateMetadata}
+          variant="wizard"
+        />
+      )
+    }
+
     return (
       <div className="text-center py-8 text-slate-500">
         <Building className="h-12 w-12 mx-auto mb-2 text-slate-300" />

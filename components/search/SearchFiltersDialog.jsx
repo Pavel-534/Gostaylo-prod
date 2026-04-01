@@ -31,6 +31,7 @@ import {
   LISTINGS_PRICE_SLIDER_MAX_THB,
   defaultExtraFilters,
 } from '@/lib/search/listings-page-url'
+import { NANNY_LANG_OPTIONS as NANNY_LANGS } from '@/lib/search/nanny-search-langs'
 import { cn } from '@/lib/utils'
 
 function amenityLabel(slug, language) {
@@ -68,13 +69,6 @@ function PriceHistogram({ listings, binCount = 14 }) {
 }
 
 const ROOM_OPTIONS = ['0', '1', '2', '3', '4', '5', '6', '7', '8']
-
-const NANNY_LANGS = [
-  { id: 'ru', ru: 'Русский', en: 'Russian' },
-  { id: 'en', ru: 'Английский', en: 'English' },
-  { id: 'th', ru: 'Тайский', en: 'Thai' },
-  { id: 'zh', ru: 'Китайский', en: 'Chinese' },
-]
 
 export function SearchFiltersDialog({
   open,
@@ -341,7 +335,7 @@ export function SearchFiltersDialog({
                           checked={checked}
                           onCheckedChange={() => toggleNannyLang(row.id)}
                         />
-                        {language === 'ru' ? row.ru : row.en}
+                        {row[language] || row.en}
                       </label>
                     )
                   })}

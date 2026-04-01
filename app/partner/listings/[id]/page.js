@@ -31,6 +31,11 @@ import {
   migrateExternalImagesAfterSave,
   patchPartnerListingCoverImage,
 } from '@/lib/partner/migrate-external-images-client'
+import {
+  normalizePartnerListingMetadata,
+  partnerMetadataStateFromServer,
+} from '@/lib/partner/listing-wizard-metadata'
+import { PartnerListingSearchMetadataFields } from '@/components/partner/PartnerListingSearchMetadataFields'
 
 const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
 
@@ -127,6 +132,7 @@ export default function EditListing({ params }) {
         const coverIndex = l.coverImage ? images.findIndex(img => img === l.coverImage) : 0
         
         const rawMeta = l.metadata && typeof l.metadata === 'object' ? { ...l.metadata } : {}
+        const shaped = partnerMetadataStateFromServer(rawMeta)
         setFormData({
           title: l.title || '',
           description: l.description || '',
@@ -137,7 +143,7 @@ export default function EditListing({ params }) {
           images: images,
           coverIndex: coverIndex >= 0 ? coverIndex : 0,
           metadata: {
-            ...rawMeta,
+            ...shaped,
             amenities: normalizeWizardAmenities(rawMeta.amenities || []),
           },
         })
@@ -159,7 +165,12 @@ export default function EditListing({ params }) {
     
     try {
       const coverImage = formData.images[formData.coverIndex] || formData.images[0] || null
-      
+      const categorySlug = listing?.category?.slug ?? ''
+      const metadata =
+        formData.metadata && typeof formData.metadata === 'object'
+          ? normalizePartnerListingMetadata(formData.metadata, categorySlug)
+          : undefined
+
       const res = await fetch(`/api/v2/partner/listings/${listingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -173,7 +184,7 @@ export default function EditListing({ params }) {
           longitude: formData.longitude === '' ? null : parseFloat(formData.longitude),
           images: formData.images,
           coverImage: coverImage,
-          metadata: formData.metadata && typeof formData.metadata === 'object' ? formData.metadata : undefined,
+          metadata,
         })
       })
       
@@ -232,7 +243,17 @@ export default function EditListing({ params }) {
     
     try {
       const coverImage = formData.images[formData.coverIndex] || formData.images[0] || null
-      
+      const categorySlug = listing?.category?.slug ?? ''
+      const mergedMeta = {
+        ...(listing?.metadata || {}),
+        ...(formData.metadata && typeof formData.metadata === 'object' ? formData.metadata : {}),
+        is_draft: false,
+        published_at: new Date().toISOString(),
+        ...(listing?.metadata?.source === 'TELEGRAM_LAZY_REALTOR'
+          ? { submitted_from: 'telegram' }
+          : {}),
+      }
+
       // Save and change status to PENDING
       const res = await fetch(`/api/v2/partner/listings/${listingId}`, {
         method: 'PATCH',
@@ -248,15 +269,7 @@ export default function EditListing({ params }) {
           images: formData.images,
           coverImage: coverImage,
           status: 'PENDING',
-          metadata: {
-            ...(listing?.metadata || {}),
-            ...(formData.metadata && typeof formData.metadata === 'object' ? formData.metadata : {}),
-            is_draft: false,
-            published_at: new Date().toISOString(),
-            ...(listing?.metadata?.source === 'TELEGRAM_LAZY_REALTOR'
-              ? { submitted_from: 'telegram' }
-              : {})
-          }
+          metadata: normalizePartnerListingMetadata(mergedMeta, categorySlug),
         })
       })
       
@@ -535,6 +548,23 @@ export default function EditListing({ params }) {
                 placeholder={t('partnerEdit_descPh')}
               />
             </div>
+
+            {listing?.category?.slug ? (
+              <PartnerListingSearchMetadataFields
+                categorySlug={listing.category.slug}
+                categoryNameFallback={listing.category?.name}
+                language={language}
+                metadata={formData.metadata}
+                updateMetadata={(field, value) =>
+                  setFormData((fd) => ({
+                    ...fd,
+                    metadata: { ...fd.metadata, [field]: value },
+                  }))
+                }
+                variant="edit"
+                showWizardExtraHousingFields={false}
+              />
+            ) : null}
 
             <div className="space-y-3">
               <Label className="text-sm font-medium text-slate-800">{t('amenities')}</Label>
