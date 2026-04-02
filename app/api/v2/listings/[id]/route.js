@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
 import { revalidateListingPaths } from '@/lib/revalidation';
+import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings';
 import PricingService from '@/lib/services/pricing.service';
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url';
 
@@ -213,6 +214,11 @@ export async function PUT(request, context) {
     
     // Trigger cache revalidation (Airbnb-style smart caching)
     await revalidateListingPaths('update', id);
+
+    const semanticKeys = ['title', 'description', 'district', 'categoryId']
+    if (semanticKeys.some((k) => body[k] !== undefined)) {
+      scheduleListingEmbeddingRefresh(id);
+    }
     
     return NextResponse.json({ 
       success: true, 

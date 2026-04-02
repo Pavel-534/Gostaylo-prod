@@ -50,6 +50,7 @@ export async function GET(request) {
       totalUsd: data.totalUsd,
       telegramUsd: data.telegramUsd,
       webUsd: data.webUsd,
+      embeddingUsd: data.embeddingUsd,
       requestCount: data.requestCount,
       recent: data.recent,
       approximate: true,

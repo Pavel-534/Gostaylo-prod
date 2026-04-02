@@ -13,6 +13,7 @@ import jwt from 'jsonwebtoken';
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url';
 import { verifyPartnerAccess } from '@/lib/services/session-service';
 import { revalidateListingPaths } from '@/lib/revalidation';
+import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings';
 
 export const dynamic = 'force-dynamic';
 
@@ -261,6 +262,15 @@ export async function PATCH(request, context) {
     await revalidateListingPaths('update', listingId);
   } catch (e) {
     console.warn('[PARTNER-LISTING] revalidate:', e?.message);
+  }
+
+  if (
+    body.title !== undefined ||
+    body.description !== undefined ||
+    body.district !== undefined ||
+    body.categoryId !== undefined
+  ) {
+    scheduleListingEmbeddingRefresh(listingId);
   }
   
   return NextResponse.json({

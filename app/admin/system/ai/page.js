@@ -8,17 +8,21 @@ import { Badge } from '@/components/ui/badge'
 import {
   ArrowLeft,
   Bot,
+  Brain,
   Globe,
   Loader2,
+  RefreshCw,
   Sparkles,
   TrendingUp,
   Zap,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 /** Синхронизировано с lib/ai/usage-log.js */
 const TASK_TELEGRAM_PARSER = 'telegram_parser'
 const TASK_LISTING_DESCRIPTION = 'listing_description'
+const TASK_EMBEDDING = 'embedding'
 
 const PERIODS = [
   { id: 'today', label: 'Сегодня' },
@@ -40,6 +44,7 @@ function formatUsd(n) {
 function taskLabel(taskType) {
   if (taskType === TASK_TELEGRAM_PARSER) return 'Ленивый Риелтор (TG)'
   if (taskType === TASK_LISTING_DESCRIPTION) return 'Генератор описаний (Web)'
+  if (taskType === TASK_EMBEDDING) return 'Эмбеддинг объявления (поиск)'
   return String(taskType || '—')
 }
 
@@ -60,6 +65,7 @@ export default function AdminSystemAiPage() {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState(null)
   const [payload, setPayload] = useState(null)
+  const [reindexing, setReindexing] = useState(false)
 
   const load = useCallback(async (p) => {
     setLoading(true)
@@ -88,6 +94,33 @@ export default function AdminSystemAiPage() {
     load(period)
   }, [period, load])
 
+  async function runReindexEmbeddings() {
+    setReindexing(true)
+    try {
+      const res = await fetch('/api/v2/admin/system/ai/reindex', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ limit: 5 }),
+      })
+      const j = await res.json()
+      if (!res.ok || !j.success) {
+        toast.error(j.error || 'Не удалось переиндексировать')
+        return
+      }
+      const { succeeded, processed, failed } = j.data || {}
+      toast.success(
+        `Индексы: успешно ${succeeded ?? 0} из ${processed ?? 0}` +
+          (failed ? `, ошибок: ${failed}` : ''),
+      )
+      load(period)
+    } catch (e) {
+      toast.error(e?.message || 'Сеть')
+    } finally {
+      setReindexing(false)
+    }
+  }
+
   return (
     <div className="min-h-[60vh] space-y-6 px-1 pb-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -106,7 +139,7 @@ export default function AdminSystemAiPage() {
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">ИИ-аналитика</h1>
               <p className="text-sm text-slate-600">
-                Расходы OpenAI: Telegram и кабинет партнёра
+                Расходы OpenAI: Telegram, кабинет партнёра и векторный поиск
               </p>
             </div>
           </div>
@@ -141,8 +174,36 @@ export default function AdminSystemAiPage() {
         </Card>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-xl">
+      <Card className="border border-amber-200/80 bg-amber-50/40 shadow-sm">
+        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-amber-950">Поисковые векторы</p>
+            <p className="text-xs text-amber-900/80">
+              Первый запуск: пересчитать эмбеддинги для 5 последних по <code className="rounded bg-amber-100 px-1">updated_at</code>{' '}
+              объявлений (нужны SQL-миграции <code className="rounded bg-amber-100 px-1">embedding</code> +{' '}
+              <code className="rounded bg-amber-100 px-1">set_listing_embedding</code>).
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={reindexing}
+            onClick={runReindexEmbeddings}
+            className="shrink-0 border-amber-300 bg-white text-amber-950 hover:bg-amber-100"
+          >
+            {reindexing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Обновить поисковые индексы (5 объектов)
+          </Button>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-xl sm:col-span-2 xl:col-span-4">
           <div className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-teal-500/20 blur-2xl" />
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2 text-teal-300">
@@ -170,7 +231,7 @@ export default function AdminSystemAiPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-sky-200/80 bg-gradient-to-br from-sky-50 via-white to-cyan-50 shadow-md">
+        <Card className="border-2 border-sky-200/80 bg-gradient-to-br from-sky-50 via-white to-cyan-50 shadow-md sm:col-span-1">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2 text-sky-700">
               <Bot className="h-5 w-5" />
@@ -190,7 +251,7 @@ export default function AdminSystemAiPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-violet-200/80 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 shadow-md">
+        <Card className="border-2 border-violet-200/80 bg-gradient-to-br from-violet-50 via-white to-fuchsia-50 shadow-md sm:col-span-1">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2 text-violet-700">
               <Globe className="h-5 w-5" />
@@ -205,6 +266,26 @@ export default function AdminSystemAiPage() {
             ) : (
               <p className="text-3xl font-bold tabular-nums text-violet-900">
                 {formatUsd(payload?.webUsd)}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-white to-teal-50 shadow-md sm:col-span-2 xl:col-span-1">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2 text-emerald-700">
+              <Brain className="h-5 w-5" />
+              <span className="text-xs font-semibold uppercase tracking-wider">Vectors</span>
+            </div>
+            <CardTitle className="text-lg text-slate-800">Эмбеддинги поиска</CardTitle>
+            <CardDescription className="text-slate-600">text-embedding-3-small</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+            ) : (
+              <p className="text-3xl font-bold tabular-nums text-emerald-900">
+                {formatUsd(payload?.embeddingUsd)}
               </p>
             )}
           </CardContent>
@@ -230,6 +311,8 @@ export default function AdminSystemAiPage() {
             <ul className="space-y-2">
               {payload.recent.map((row) => {
                 const isTg = row.task_type === TASK_TELEGRAM_PARSER
+                const isEmb = row.task_type === TASK_EMBEDDING
+                const isWeb = row.task_type === TASK_LISTING_DESCRIPTION
                 return (
                   <li
                     key={row.id}
@@ -241,10 +324,20 @@ export default function AdminSystemAiPage() {
                           'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
                           isTg
                             ? 'bg-sky-100 text-sky-700'
-                            : 'bg-violet-100 text-violet-700',
+                            : isEmb
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : isWeb
+                                ? 'bg-violet-100 text-violet-700'
+                                : 'bg-slate-200 text-slate-700',
                         )}
                       >
-                        {isTg ? <Bot className="h-5 w-5" /> : <Globe className="h-5 w-5" />}
+                        {isTg ? (
+                          <Bot className="h-5 w-5" />
+                        ) : isEmb ? (
+                          <Brain className="h-5 w-5" />
+                        ) : (
+                          <Globe className="h-5 w-5" />
+                        )}
                       </div>
                       <div className="min-w-0">
                         <p className="truncate font-medium text-slate-900">{taskLabel(row.task_type)}</p>

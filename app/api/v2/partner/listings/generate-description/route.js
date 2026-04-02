@@ -16,6 +16,7 @@ import {
   quotaRemaining,
   TASK_LISTING_DESCRIPTION,
 } from '@/lib/ai/usage-log'
+import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings'
 
 export const dynamic = 'force-dynamic'
 
@@ -153,6 +154,16 @@ export async function POST(request) {
     const th = slice(locales.th.body)
 
     const after = await countAiGenerationsForQuota(auth.userId, listingId, TASK_LISTING_DESCRIPTION)
+
+    if (listingId) {
+      const mergedDesc = [ru, en, zh, th].filter(Boolean).join('\n\n')
+      scheduleListingEmbeddingRefresh(listingId, {
+        title,
+        description: mergedDesc,
+        district: typeof body.district === 'string' ? body.district.trim() : undefined,
+        categoryName: typeof body.categorySlug === 'string' ? body.categorySlug.trim() : undefined,
+      })
+    }
 
     return NextResponse.json({
       success: true,
