@@ -1,14 +1,15 @@
 -- RPC для записи vector(1536) из приложения (PostgREST не всегда сериализует vector из JSON).
 -- Поиск: косинусное расстояние pgvector (<=>).
+-- Нужен pgvector: см. 004_listings_embedding.sql (CREATE EXTENSION … vector).
 
 CREATE OR REPLACE FUNCTION public.set_listing_embedding(p_listing_id text, p_embedding text)
 RETURNS void
 LANGUAGE sql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
   UPDATE listings
-  SET embedding = p_embedding::vector(1536)
+  SET embedding = p_embedding::extensions.vector(1536)
   WHERE id = p_listing_id;
 $$;
 
@@ -29,18 +30,18 @@ RETURNS TABLE (
 )
 LANGUAGE sql
 STABLE
-SET search_path = public
+SET search_path = public, extensions
 AS $$
   SELECT
     l.id,
     l.owner_id,
     l.title,
     COALESCE(l.district, '')::text,
-    (1 - (l.embedding <=> query_embedding::vector(1536)))::double precision AS similarity
+    (1 - (l.embedding <=> query_embedding::extensions.vector(1536)))::double precision AS similarity
   FROM listings l
   WHERE l.embedding IS NOT NULL
     AND l.status::text = filter_status
-  ORDER BY l.embedding <=> query_embedding::vector(1536)
+  ORDER BY l.embedding <=> query_embedding::extensions.vector(1536)
   LIMIT GREATEST(1, LEAST(match_count, 100));
 $$;
 
