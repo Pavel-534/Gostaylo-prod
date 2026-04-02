@@ -175,30 +175,72 @@ export default function AdminSystemAiPage() {
       ) : null}
 
       <Card className="border border-amber-200/80 bg-amber-50/40 shadow-sm">
-        <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium text-amber-950">Поисковые векторы</p>
-            <p className="text-xs text-amber-900/80">
-              Первый запуск: пересчитать эмбеддинги для 5 последних по <code className="rounded bg-amber-100 px-1">updated_at</code>{' '}
-              объявлений (нужны SQL-миграции <code className="rounded bg-amber-100 px-1">embedding</code> +{' '}
-              <code className="rounded bg-amber-100 px-1">set_listing_embedding</code>).
-            </p>
+        <CardContent className="flex flex-col gap-4 py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-amber-950">Поисковые векторы</p>
+              <p className="mt-1 text-xs leading-relaxed text-amber-900/85">
+                Пересчёт эмбеддингов для 5 последних объявлений по <code className="rounded bg-amber-100 px-1">updated_at</code>{' '}
+                (только статусы ACTIVE, INACTIVE, PENDING, BOOKED — без REJECTED и без несуществующих в enum литералов).
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={reindexing}
+              onClick={runReindexEmbeddings}
+              title="Переиндексировать до 5 объявлений для смыслового поиска"
+              className="h-auto w-full min-h-11 shrink-0 whitespace-normal border-amber-300 bg-white px-4 py-3 text-amber-950 hover:bg-amber-100 sm:w-auto sm:max-w-[14rem]"
+            >
+              <span className="flex w-full flex-col items-center gap-1 sm:items-stretch">
+                <span className="inline-flex items-center justify-center gap-2">
+                  {reindexing ? (
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 shrink-0" />
+                  )}
+                  <span className="text-center text-sm font-semibold leading-tight">Обновить индексы</span>
+                </span>
+                <span className="text-center text-[11px] font-normal leading-snug text-amber-900/80">
+                  5 объектов · ACTIVE / INACTIVE / …
+                </span>
+              </span>
+            </Button>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={reindexing}
-            onClick={runReindexEmbeddings}
-            className="shrink-0 border-amber-300 bg-white text-amber-950 hover:bg-amber-100"
-          >
-            {reindexing ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-2 h-4 w-4" />
-            )}
-            Обновить поисковые индексы (5 объектов)
-          </Button>
+
+          {payload?.stats ? (
+            <div className="grid grid-cols-1 gap-2 rounded-lg border border-amber-200/60 bg-white/70 p-3 sm:grid-cols-3">
+              <div className="rounded-md bg-amber-50/80 px-3 py-2">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-amber-800/80">
+                  Активные на сайте
+                </p>
+                <p className="text-xl font-bold tabular-nums text-amber-950">
+                  {loading ? '—' : payload.stats.activeListings ?? '—'}
+                </p>
+                <p className="text-[10px] text-amber-900/70">status = ACTIVE</p>
+              </div>
+              <div className="rounded-md bg-amber-50/80 px-3 py-2">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-amber-800/80">
+                  С вектором поиска
+                </p>
+                <p className="text-xl font-bold tabular-nums text-amber-950">
+                  {loading ? '—' : payload.stats.withEmbeddingEligible ?? '—'}
+                </p>
+                <p className="text-[10px] text-amber-900/70">embedding заполнен, допустимый статус</p>
+              </div>
+              <div className="rounded-md bg-amber-50/80 px-3 py-2">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-amber-800/80">
+                  ИИ по объявлениям
+                </p>
+                <p className="text-xl font-bold tabular-nums text-amber-950">
+                  {loading ? '—' : payload.stats.aiLogsLinkedToListing ?? '—'}
+                </p>
+                <p className="text-[10px] text-amber-900/70">
+                  записей в логе (описание + эмбеддинг), не уникальные ID
+                </p>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

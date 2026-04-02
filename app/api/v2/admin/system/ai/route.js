@@ -6,7 +6,9 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import jwt from 'jsonwebtoken'
-import { getAiUsageDashboardData } from '@/lib/ai/usage-log'
+import { supabaseAdmin } from '@/lib/supabase'
+import { getAiUsageDashboardData, TASK_EMBEDDING, TASK_LISTING_DESCRIPTION } from '@/lib/ai/usage-log'
+import { LISTING_STATUSES_ELIGIBLE_FOR_EMBEDDING } from '@/lib/ai/listing-embedding-policy'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,6 +35,37 @@ function verifyAdminOnly() {
   }
 }
 
+async function getListingAiStats() {
+  if (!supabaseAdmin) {
+    return {
+      activeListings: 0,
+      withEmbeddingEligible: 0,
+      aiLogsLinkedToListing: 0,
+    }
+  }
+  const eligible = [...LISTING_STATUSES_ELIGIBLE_FOR_EMBEDDING]
+
+  const [activeRes, indexedRes, logsRes] = await Promise.all([
+    supabaseAdmin.from('listings').select('*', { count: 'exact', head: true }).eq('status', 'ACTIVE'),
+    supabaseAdmin
+      .from('listings')
+      .select('*', { count: 'exact', head: true })
+      .in('status', eligible)
+      .not('embedding', 'is', null),
+    supabaseAdmin
+      .from('ai_usage_logs')
+      .select('*', { count: 'exact', head: true })
+      .not('listing_id', 'is', null)
+      .in('task_type', [TASK_LISTING_DESCRIPTION, TASK_EMBEDDING]),
+  ])
+
+  return {
+    activeListings: activeRes.count ?? 0,
+    withEmbeddingEligible: indexedRes.count ?? 0,
+    aiLogsLinkedToListing: logsRes.count ?? 0,
+  }
+}
+
 export async function GET(request) {
   const auth = verifyAdminOnly()
   if (auth.error) return auth.error
@@ -41,7 +74,7 @@ export async function GET(request) {
   const raw = searchParams.get('period') || 'month'
   const period = PERIODS.has(raw) ? raw : 'month'
 
-  const data = await getAiUsageDashboardData(period)
+  const [data, stats] = await Promise.all([getAiUsageDashboardData(period), getListingAiStats()])
 
   return NextResponse.json({
     success: true,
@@ -53,6 +86,7 @@ export async function GET(request) {
       embeddingUsd: data.embeddingUsd,
       requestCount: data.requestCount,
       recent: data.recent,
+      stats,
       approximate: true,
       ...(data.error ? { note: 'partial_aggregation', aggregationNote: data.error } : {}),
     },

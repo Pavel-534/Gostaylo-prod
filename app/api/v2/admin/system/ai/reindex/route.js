@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import jwt from 'jsonwebtoken'
 import { supabaseAdmin } from '@/lib/supabase'
-import { updateListingEmbedding } from '@/lib/ai/embeddings'
+import { updateListingEmbedding, LISTING_STATUSES_ELIGIBLE_FOR_EMBEDDING } from '@/lib/ai/embeddings'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,10 +50,12 @@ export async function POST(request) {
     /* default */
   }
 
+  const eligible = [...LISTING_STATUSES_ELIGIBLE_FOR_EMBEDDING]
+
   const { data: rows, error } = await supabaseAdmin
     .from('listings')
     .select('id')
-    .neq('status', 'DELETED')
+    .in('status', eligible)
     .order('updated_at', { ascending: false })
     .limit(limit)
 
