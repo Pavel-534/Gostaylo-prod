@@ -23,8 +23,20 @@ import {
   Server,
   MessageSquare,
   FileDown,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+
+const MODERATOR_RESTRICTED_PREFIXES = [
+  '/admin/finances',
+  '/admin/users',
+  '/admin/marketing',
+  '/admin/security',
+  '/admin/settings',
+  '/admin/audit-export',
+  '/admin/ai-usage',
+  '/admin/system/ai',
+];
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
@@ -41,6 +53,13 @@ export default function AdminLayout({ children }) {
       setSidebarOpen(false);
     }
   }, [pathname]);
+
+  useEffect(() => {
+    if (!user?.isModerator) return;
+    if (MODERATOR_RESTRICTED_PREFIXES.some((path) => pathname.startsWith(path))) {
+      router.replace('/admin/dashboard');
+    }
+  }, [pathname, user?.isModerator, router]);
 
   useEffect(() => {
     checkAdminAccess();
@@ -66,9 +85,8 @@ export default function AdminLayout({ children }) {
           
           // HARD-BLOCK: If moderator tries to access restricted pages via URL
           if (isModerator) {
-            const restrictedPaths = ['/admin/finances', '/admin/users', '/admin/marketing', '/admin/security', '/admin/settings', '/admin/audit-export'];
             const currentPath = window.location.pathname;
-            if (restrictedPaths.some(path => currentPath.startsWith(path))) {
+            if (MODERATOR_RESTRICTED_PREFIXES.some((path) => currentPath.startsWith(path))) {
               // Redirect moderator away from restricted pages
               window.location.href = '/admin/dashboard';
               return;
@@ -130,6 +148,7 @@ export default function AdminLayout({ children }) {
     { href: '/admin/security', icon: ShieldAlert, label: 'Безопасность', moderatorAccess: false },
     { href: '/admin/audit-export', icon: FileDown, label: 'Выгрузки', moderatorAccess: false },
     { href: '/admin/categories', icon: Layers, label: 'Категории', moderatorAccess: true },
+    { href: '/admin/ai-usage', icon: Sparkles, label: 'Расходы AI', moderatorAccess: false },
     { href: '/admin/settings', icon: Settings, label: 'Настройки', moderatorAccess: false },
     { href: '/admin/test-db', icon: Database, label: 'Test DB', moderatorAccess: true },
   ];

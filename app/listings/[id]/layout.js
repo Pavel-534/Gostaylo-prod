@@ -35,9 +35,17 @@ export async function generateMetadata({ params }) {
   const titleTemplate = getUIText('listingPageTitle', lang);
   const descTemplate = getUIText('listingPageDesc', lang);
 
-  // Priority: metadata.seo[lang] → metadata.seo.en → deprecated flat keys → template
+  // Priority: metadata.seo[lang] (полный блок) → en → ru → устаревшие ключи → шаблон
+  const seoRaw = md.seo && typeof md.seo === 'object' ? md.seo : {}
+  const pickSeo = (block) =>
+    block &&
+    typeof block === 'object' &&
+    String(block.title || '').trim() &&
+    String(block.description || '').trim()
+      ? block
+      : null
   const seoBlock =
-    (md.seo && typeof md.seo === 'object' && (md.seo[lang] || md.seo['en'])) || null;
+    pickSeo(seoRaw[lang]) || pickSeo(seoRaw.en) || pickSeo(seoRaw.ru) || null
 
   const metaTitle =
     (seoBlock?.title && String(seoBlock.title).trim()) ||

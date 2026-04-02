@@ -108,6 +108,9 @@ model Listing {
   
   // Category-specific metadata (JSONB)
   metadata        Json?         // Flexible field for category-specific data
+
+  /// pgvector(1536) — см. prisma/migrations/004_listings_embedding.sql
+  embedding       Unsupported("vector(1536)")?
   // For Property: { bedrooms: 3, bathrooms: 2, area: 120, amenities: [] }
   // For Vehicles: { brand: "Honda", model: "PCX", year: 2023, seats: 2 }
   // For Tours: { duration: "4 hours", groupSize: 10, included: [] }

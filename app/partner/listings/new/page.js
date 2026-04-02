@@ -30,6 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { 
   ArrowLeft, ArrowRight, Save, CheckCircle2, 
   Home, Bike, Anchor, Map as MapIcon, DollarSign, 
@@ -107,6 +108,12 @@ export default function PremiumListingWizard() {
   const [uploading, setUploading] = useState(false)
   const [geocoding, setGeocoding] = useState(false)
   const [aiDescriptionLoading, setAiDescriptionLoading] = useState(false)
+  const [aiDescQuota, setAiDescQuota] = useState({
+    used: 0,
+    limit: 3,
+    remaining: 3,
+    exhausted: false,
+  })
   const [geocodeQuery, setGeocodeQuery] = useState('')
   const [geocodeResults, setGeocodeResults] = useState([])
   const [customDistricts, setCustomDistricts] = useState([]) // From map reverse geocode
@@ -185,17 +192,29 @@ export default function PremiumListingWizard() {
             setFormData(prev => ({ ...prev, commissionRate: rate }))
           }
         }
-        
-        // Load existing listing if edit mode
-        if (isEditMode && editId) {
-          await loadExistingListing(editId)
-        }
       } catch (error) {
         console.error('Failed to load initial data:', error)
       }
     }
     loadInitialData()
   }, [])
+
+  async function refreshAiDescriptionQuota() {
+    try {
+      const qs = isEditMode && editId ? `listingId=${encodeURIComponent(editId)}` : ''
+      const res = await fetch(`/api/v2/partner/listings/generate-description?${qs}`, {
+        credentials: 'include',
+      })
+      const j = await res.json()
+      if (j.success && j.data) setAiDescQuota(j.data)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  useEffect(() => {
+    if (currentStep === 1) refreshAiDescriptionQuota()
+  }, [currentStep, isEditMode, editId])
   
   // Load existing listing for edit (prefer partner API for security)
   async function loadExistingListing(listingId) {
@@ -287,6 +306,11 @@ export default function PremiumListingWizard() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!isEditMode || !editId) return
+    loadExistingListing(editId)
+  }, [editId, isEditMode])
   
   // Progress calculation
   const progress = useMemo(() => {
@@ -304,6 +328,8 @@ export default function PremiumListingWizard() {
       const dt = { ...(meta.description_translations && typeof meta.description_translations === 'object' ? meta.description_translations : {}) }
       if (language === 'ru') dt.ru = value
       else if (language === 'en') dt.en = value
+      else if (language === 'zh') dt.zh = value
+      else if (language === 'th') dt.th = value
       return {
         ...prev,
         description: value,
@@ -317,6 +343,7 @@ export default function PremiumListingWizard() {
       toast.error(language === 'ru' ? 'Сначала укажите название (от 10 символов)' : 'Add a title first (min 10 characters)')
       return
     }
+    if (aiDescQuota.exhausted) return
     setAiDescriptionLoading(true)
     try {
       const res = await fetch('/api/v2/partner/listings/generate-description', {
@@ -324,6 +351,7 @@ export default function PremiumListingWizard() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
+          listingId: isEditMode && editId ? editId : undefined,
           title: formData.title.trim(),
           district: formData.district || '',
           categorySlug: categories.find((c) => c.id === formData.categoryId)?.slug || '',
@@ -333,31 +361,45 @@ export default function PremiumListingWizard() {
         }),
       })
       const data = await res.json()
+      if (res.status === 429 || data.error === 'QUOTA_EXHAUSTED') {
+        setAiDescQuota((q) => ({ ...q, exhausted: true, remaining: 0 }))
+        toast.error(t('improveDescriptionAILimitExhausted'))
+        return
+      }
       if (!res.ok || !data.success) {
         toast.error(data.error || t('failedToLoadListing'))
         return
       }
       const ru = String(data.data?.descriptionRu || '').slice(0, 2000)
       const en = String(data.data?.descriptionEn || '').slice(0, 2000)
+      const zh = String(data.data?.descriptionZh || '').slice(0, 2000)
+      const th = String(data.data?.descriptionTh || '').slice(0, 2000)
       const seo = data.data?.seo || {}
+      const byLang = { ru, en, zh, th }
+      const shown = (byLang[language] || en || ru).slice(0, 2000)
+      if (data.data?.quota) setAiDescQuota(data.data.quota)
       setFormData((prev) => {
         const meta = { ...prev.metadata }
-        const shown = (language === 'ru' ? ru : language === 'en' ? en : en || ru).slice(0, 2000)
+        const prevSeo = meta.seo && typeof meta.seo === 'object' ? meta.seo : {}
         return {
           ...prev,
           description: shown,
           metadata: {
             ...meta,
-            description_translations: { ru, en },
+            description_translations: { ru, en, zh, th },
             seo: {
-              ...(meta.seo && typeof meta.seo === 'object' ? meta.seo : {}),
+              ...prevSeo,
               ...(seo.ru ? { ru: seo.ru } : {}),
               ...(seo.en ? { en: seo.en } : {}),
+              ...(seo.zh ? { zh: seo.zh } : {}),
+              ...(seo.th ? { th: seo.th } : {}),
             },
           },
         }
       })
-      toast.success(language === 'ru' ? 'Описание и SEO обновлены (RU + EN)' : 'Description and SEO updated (RU + EN)')
+      toast.success(
+        language === 'ru' ? 'Описание и SEO обновлены (RU, EN, ZH, TH)' : 'Descriptions & SEO updated (4 languages)',
+      )
     } catch (e) {
       console.error(e)
       toast.error(t('failedToLoadListing'))
@@ -538,7 +580,7 @@ export default function PremiumListingWizard() {
           toast.error(data.error || t('failedToLoadListing'))
         }
       } else {
-        // Create new draft
+        // Create new draft → сразу ?edit=id, чтобы квота ИИ считалась по listing_id
         const payload = {
           ownerId: userId,
           categoryId: formData.categoryId,
@@ -570,7 +612,11 @@ export default function PremiumListingWizard() {
             if (cover) await patchPartnerListingCoverImage(lid, cover)
           }
           toast.success(t('draftSaved'))
-          router.push('/partner/listings')
+          if (lid) {
+            router.replace(`/partner/listings/new?edit=${encodeURIComponent(lid)}`)
+          } else {
+            router.push('/partner/listings')
+          }
         } else {
           toast.error(data.error || t('failedToLoadListing'))
         }
@@ -844,25 +890,43 @@ export default function PremiumListingWizard() {
             <div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <Label className="text-base font-medium text-slate-800">{t('listingDescriptionLabel')}</Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 border-violet-200 bg-violet-50/80 text-violet-900 hover:bg-violet-100"
-                  disabled={aiDescriptionLoading}
-                  onClick={handleAiImproveDescription}
-                >
-                  {aiDescriptionLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('improveDescriptionAILoading')}
-                    </>
-                  ) : (
-                    t('improveDescriptionAI')
-                  )}
-                </Button>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0 border-violet-200 bg-violet-50/80 text-violet-900 hover:bg-violet-100 disabled:opacity-50"
+                          disabled={aiDescriptionLoading || aiDescQuota.exhausted}
+                          onClick={handleAiImproveDescription}
+                        >
+                          {aiDescriptionLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              {t('improveDescriptionAILoading')}
+                            </>
+                          ) : (
+                            t('improveDescriptionAI')
+                          )}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {aiDescQuota.exhausted ? (
+                      <TooltipContent side="bottom" className="max-w-xs">
+                        <p>{t('improveDescriptionAILimitExhausted')}</p>
+                      </TooltipContent>
+                    ) : null}
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <p className="mt-1 text-xs text-slate-500">{t('improveDescriptionAIHint')}</p>
+              <p className="mt-1 text-xs text-slate-600">
+                {t('improveDescriptionAIQuotaUsed')
+                  .replace('{{used}}', String(aiDescQuota.used))
+                  .replace('{{limit}}', String(aiDescQuota.limit))}
+              </p>
               <Textarea
                 placeholder={t('descriptionPlaceholder')}
                 value={formData.description}

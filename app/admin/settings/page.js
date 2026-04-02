@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, Settings as SettingsIcon, DollarSign, Power, Home, Type } from 'lucide-react';
+import { AlertTriangle, Settings as SettingsIcon, DollarSign, Power, Home, Type, Phone } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
@@ -17,6 +17,7 @@ export default function SettingsPage() {
     maintenanceMode: false,
     heroTitle: '',
     heroSubtitle: '',
+    sitePhone: '',
   });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -168,6 +169,37 @@ export default function SettingsPage() {
             </div>
             <p className="text-xs sm:text-sm text-gray-600 mt-2">
               Партнеры получают {100 - settings.defaultCommissionRate}%
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Rich Results / Schema.org — телефон только в JSON-LD, не на карточке объекта */}
+      <Card className="shadow-xl border-2 border-slate-200">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Phone className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600" />
+            Телефон для Google (Rich Results)
+          </CardTitle>
+          <CardDescription className="text-sm">
+            Сохраняется в system_settings.general.sitePhone. Попадает только в микроразметку LodgingBusiness (поле
+            telephone). На странице объявления для гостей не показывается.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6 pt-0 space-y-3">
+          <div>
+            <Label htmlFor="sitePhone" className="text-sm sm:text-base">
+              Контактный телефон
+            </Label>
+            <Input
+              id="sitePhone"
+              value={settings.sitePhone || ''}
+              onChange={(e) => setSettings({ ...settings, sitePhone: e.target.value })}
+              placeholder="+66 XX XXX XXXX"
+              className="mt-2 font-mono text-sm"
+            />
+            <p className="text-xs text-gray-600 mt-2">
+              Оставьте пустым — поле telephone в JSON-LD не выводится.
             </p>
           </div>
         </CardContent>

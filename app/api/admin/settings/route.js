@@ -16,7 +16,8 @@ let mockSettings = {
   maintenanceMode: false,
   heroTitle: 'Luxury Rentals in Phuket',
   heroSubtitle: 'Villas, Bikes, Yachts & Tours',
-  serviceFeePercent: 5
+  serviceFeePercent: 5,
+  sitePhone: '',
 }
 
 // Helper to get supabase client (returns null if not configured)
@@ -67,6 +68,7 @@ export async function GET() {
       heroTitle: data.value?.heroTitle || '',
       heroSubtitle: data.value?.heroSubtitle || '',
       serviceFeePercent: data.value?.serviceFeePercent || 5,
+      sitePhone: typeof data.value?.sitePhone === 'string' ? data.value.sitePhone : '',
     }
 
     return NextResponse.json({ data: settings })
@@ -79,7 +81,7 @@ export async function GET() {
 export async function PUT(request) {
   try {
     const body = await request.json()
-    const { defaultCommissionRate, maintenanceMode, heroTitle, heroSubtitle } = body
+    const { defaultCommissionRate, maintenanceMode, heroTitle, heroSubtitle, sitePhone } = body
     
     const supabase = getSupabaseClient()
     
@@ -92,6 +94,7 @@ export async function PUT(request) {
         maintenanceMode: !!maintenanceMode,
         heroTitle: heroTitle || '',
         heroSubtitle: heroSubtitle || '',
+        sitePhone: typeof sitePhone === 'string' ? sitePhone.trim() : '',
       }
       return NextResponse.json({ success: true, data: mockSettings })
     }
@@ -109,6 +112,7 @@ export async function PUT(request) {
       maintenanceMode: !!maintenanceMode,
       heroTitle: heroTitle || '',
       heroSubtitle: heroSubtitle || '',
+      sitePhone: typeof sitePhone === 'string' ? sitePhone.trim() : '',
     }
 
     let result

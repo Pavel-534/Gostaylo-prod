@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import Link from 'next/link';
 import { 
   Power, 
   Bot, 
@@ -32,7 +33,9 @@ import {
   EyeOff,
   Key,
   Calendar,
-  Link2
+  Link2,
+  Sparkles,
+  ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -471,6 +474,31 @@ export default function SystemControlPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* AI analytics — только ADMIN (маршрут /admin/system/ai) */}
+      <Link href="/admin/system/ai" className="block group">
+        <Card className="border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-white to-indigo-50 transition-shadow hover:shadow-lg">
+          <CardContent className="p-4 lg:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md group-hover:scale-[1.02] transition-transform">
+                  <Sparkles className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-base lg:text-lg text-slate-900">ИИ-аналитика</h3>
+                  <p className="text-xs lg:text-sm text-slate-600">
+                    Расходы OpenAI: Ленивый Риелтор (TG) и генератор описаний в кабинете партнёра
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 text-violet-700 font-medium text-sm self-end sm:self-auto">
+                Открыть дашборд
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
 
       {/* Telegram Webhook - Mobile Optimized */}
       <Card className="border-2 border-slate-200">

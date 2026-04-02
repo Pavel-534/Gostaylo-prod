@@ -7,15 +7,7 @@ import {
   lodgingStreetAddressStub,
   phuketPostalCodeForDistrict,
 } from '@/lib/seo/phuket-address-stubs.js'
-
-/** Телефон в JSON-LD только из NEXT_PUBLIC_SITE_PHONE (без fallback; не дублировать в UI карточки). */
-function siteContactPhone() {
-  const v =
-    typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SITE_PHONE
-      ? String(process.env.NEXT_PUBLIC_SITE_PHONE).trim()
-      : ''
-  return v || null
-}
+import { getCachedSitePhoneForSchema } from '@/lib/server/site-phone'
 
 function safeDescription(raw) {
   if (raw == null) return ''
@@ -79,7 +71,12 @@ function offerBlock(listing, pageUrl, price) {
   return offer
 }
 
-function buildJsonLd(listing, baseUrl) {
+/**
+ * @param {object} listing
+ * @param {string} baseUrl
+ * @param {string|null} telephone — только из настроек админки; не показывать в UI карточки
+ */
+function buildJsonLd(listing, baseUrl, telephone) {
   const slug = categorySlugFromRow(listing)
   const id = listing.id
   const pageUrl = canonicalListingUrl(baseUrl, id)
@@ -107,14 +104,13 @@ function buildJsonLd(listing, baseUrl) {
       price != null
         ? `฿${Math.round(price)}+`
         : '฿฿'
-    const phone = siteContactPhone()
     const locality = district || 'Phuket'
     const postalCode = phuketPostalCodeForDistrict(district)
     const streetAddress = lodgingStreetAddressStub(listing)
     return {
       ...base,
       '@type': 'LodgingBusiness',
-      ...(phone ? { telephone: phone } : {}),
+      ...(telephone ? { telephone } : {}),
       priceRange,
       address: {
         '@type': 'PostalAddress',
@@ -183,7 +179,8 @@ export default async function ListingSchema({ listing }) {
   if (!listing?.id) return null
 
   const baseUrl = await getRequestSiteUrl()
-  const schema = buildJsonLd(listing, baseUrl)
+  const telephone = await getCachedSitePhoneForSchema()
+  const schema = buildJsonLd(listing, baseUrl, telephone)
   const json = JSON.stringify(schema).replace(/</g, '\\u003c')
 
   return (

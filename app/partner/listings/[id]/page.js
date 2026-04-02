@@ -41,6 +41,7 @@ import {
   mergeDescriptionTranslationsForSave,
 } from '@/lib/partner/listing-description-i18n'
 import { PartnerListingSearchMetadataFields } from '@/components/partner/PartnerListingSearchMetadataFields'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
 
@@ -70,6 +71,12 @@ export default function EditListing({ params }) {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [aiDescriptionLoading, setAiDescriptionLoading] = useState(false)
+  const [aiDescQuota, setAiDescQuota] = useState({
+    used: 0,
+    limit: 3,
+    remaining: 3,
+    exhausted: false,
+  })
   
   // Form state
   const [formData, setFormData] = useState({
@@ -118,6 +125,24 @@ export default function EditListing({ params }) {
     }, 600)
     return () => clearTimeout(timer)
   }, [listing, language])
+
+  async function refreshAiDescriptionQuota() {
+    if (!listingId) return
+    try {
+      const res = await fetch(
+        `/api/v2/partner/listings/generate-description?listingId=${encodeURIComponent(listingId)}`,
+        { credentials: 'include' },
+      )
+      const j = await res.json()
+      if (j.success && j.data) setAiDescQuota(j.data)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  useEffect(() => {
+    if (listing) refreshAiDescriptionQuota()
+  }, [listing, listingId])
 
   async function loadListing() {
     try {
@@ -176,6 +201,8 @@ export default function EditListing({ params }) {
       }
       if (language === 'ru') dt.ru = value
       else if (language === 'en') dt.en = value
+      else if (language === 'zh') dt.zh = value
+      else if (language === 'th') dt.th = value
       return {
         ...prev,
         description: value,
@@ -189,6 +216,7 @@ export default function EditListing({ params }) {
       toast.error(language === 'ru' ? 'Сначала укажите название (от 10 символов)' : 'Add a title first (min 10 characters)')
       return
     }
+    if (aiDescQuota.exhausted) return
     setAiDescriptionLoading(true)
     try {
       const res = await fetch('/api/v2/partner/listings/generate-description', {
@@ -196,6 +224,7 @@ export default function EditListing({ params }) {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
+          listingId,
           title: formData.title.trim(),
           district: formData.district || '',
           categorySlug: listing?.category?.slug || '',
@@ -205,31 +234,45 @@ export default function EditListing({ params }) {
         }),
       })
       const data = await res.json()
+      if (res.status === 429 || data.error === 'QUOTA_EXHAUSTED') {
+        setAiDescQuota((q) => ({ ...q, exhausted: true, remaining: 0 }))
+        toast.error(t('improveDescriptionAILimitExhausted'))
+        return
+      }
       if (!res.ok || !data.success) {
         toast.error(data.error || t('partnerEdit_listingSaveErr'))
         return
       }
       const ru = String(data.data?.descriptionRu || '').slice(0, 2000)
       const en = String(data.data?.descriptionEn || '').slice(0, 2000)
+      const zh = String(data.data?.descriptionZh || '').slice(0, 2000)
+      const th = String(data.data?.descriptionTh || '').slice(0, 2000)
       const seo = data.data?.seo || {}
+      const byLang = { ru, en, zh, th }
+      const shown = (byLang[language] || en || ru).slice(0, 2000)
+      if (data.data?.quota) setAiDescQuota(data.data.quota)
       setFormData((prev) => {
         const meta = { ...prev.metadata }
-        const shown = (language === 'ru' ? ru : language === 'en' ? en : en || ru).slice(0, 2000)
+        const prevSeo = meta.seo && typeof meta.seo === 'object' ? meta.seo : {}
         return {
           ...prev,
           description: shown,
           metadata: {
             ...meta,
-            description_translations: { ru, en },
+            description_translations: { ru, en, zh, th },
             seo: {
-              ...(meta.seo && typeof meta.seo === 'object' ? meta.seo : {}),
+              ...prevSeo,
               ...(seo.ru ? { ru: seo.ru } : {}),
               ...(seo.en ? { en: seo.en } : {}),
+              ...(seo.zh ? { zh: seo.zh } : {}),
+              ...(seo.th ? { th: seo.th } : {}),
             },
           },
         }
       })
-      toast.success(language === 'ru' ? 'Описание и SEO обновлены (RU + EN)' : 'Description and SEO updated (RU + EN)')
+      toast.success(
+        language === 'ru' ? 'Описание и SEO (RU, EN, ZH, TH)' : 'Descriptions & SEO (4 languages)',
+      )
     } catch (e) {
       console.error(e)
       toast.error(t('partnerEdit_listingSaveErr'))
@@ -632,25 +675,43 @@ export default function EditListing({ params }) {
                 <Label htmlFor="description" className="text-sm font-medium text-slate-800">
                   {t('partnerEdit_listingDesc')}
                 </Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 border-violet-200 bg-violet-50/80 text-violet-900 hover:bg-violet-100"
-                  disabled={aiDescriptionLoading}
-                  onClick={handleAiImproveDescription}
-                >
-                  {aiDescriptionLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('improveDescriptionAILoading')}
-                    </>
-                  ) : (
-                    t('improveDescriptionAI')
-                  )}
-                </Button>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0 border-violet-200 bg-violet-50/80 text-violet-900 hover:bg-violet-100 disabled:opacity-50"
+                          disabled={aiDescriptionLoading || aiDescQuota.exhausted}
+                          onClick={handleAiImproveDescription}
+                        >
+                          {aiDescriptionLoading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              {t('improveDescriptionAILoading')}
+                            </>
+                          ) : (
+                            t('improveDescriptionAI')
+                          )}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    {aiDescQuota.exhausted ? (
+                      <TooltipContent side="bottom" className="max-w-xs">
+                        <p>{t('improveDescriptionAILimitExhausted')}</p>
+                      </TooltipContent>
+                    ) : null}
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <p className="text-xs text-slate-500">{t('improveDescriptionAIHint')}</p>
+              <p className="mt-1 text-xs text-slate-600">
+                {t('improveDescriptionAIQuotaUsed')
+                  .replace('{{used}}', String(aiDescQuota.used))
+                  .replace('{{limit}}', String(aiDescQuota.limit))}
+              </p>
               <Textarea
                 id="description"
                 value={formData.description}
