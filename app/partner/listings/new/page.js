@@ -46,6 +46,11 @@ import {
   partnerMetadataStateFromServer,
   isPartnerListingHousingCategory,
 } from '@/lib/partner/listing-wizard-metadata'
+import {
+  pickPartnerFormDescription,
+  buildListingDescriptionForDb,
+  mergeDescriptionTranslationsForSave,
+} from '@/lib/partner/listing-description-i18n'
 import { PartnerListingSearchMetadataFields } from '@/components/partner/PartnerListingSearchMetadataFields'
 import {
   migrateExternalImagesAfterSave,
@@ -101,6 +106,7 @@ export default function PremiumListingWizard() {
   const [savingDraft, setSavingDraft] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [geocoding, setGeocoding] = useState(false)
+  const [aiDescriptionLoading, setAiDescriptionLoading] = useState(false)
   const [geocodeQuery, setGeocodeQuery] = useState('')
   const [geocodeResults, setGeocodeResults] = useState([])
   const [customDistricts, setCustomDistricts] = useState([]) // From map reverse geocode
@@ -213,11 +219,12 @@ export default function PremiumListingWizard() {
         }))
         const rawMeta = listing.metadata || {}
         const shapedMeta = partnerMetadataStateFromServer(rawMeta)
+        const listingDesc = listing.description || ''
         setFormData({
           categoryId: listing.categoryId || listing.category_id || '',
           categoryName: cat?.name || '',
           title: listing.title || '',
-          description: listing.description || '',
+          description: pickPartnerFormDescription(language, listingDesc, rawMeta),
           district: listing.district || '',
           latitude: listing.latitude ?? null,
           longitude: listing.longitude ?? null,
@@ -289,6 +296,74 @@ export default function PremiumListingWizard() {
   // Update form field
   const updateField = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const updateDescription = (value) => {
+    setFormData((prev) => {
+      const meta = { ...prev.metadata }
+      const dt = { ...(meta.description_translations && typeof meta.description_translations === 'object' ? meta.description_translations : {}) }
+      if (language === 'ru') dt.ru = value
+      else if (language === 'en') dt.en = value
+      return {
+        ...prev,
+        description: value,
+        metadata: { ...meta, description_translations: dt },
+      }
+    })
+  }
+
+  async function handleAiImproveDescription() {
+    if (!formData.title || formData.title.trim().length < 10) {
+      toast.error(language === 'ru' ? 'Сначала укажите название (от 10 символов)' : 'Add a title first (min 10 characters)')
+      return
+    }
+    setAiDescriptionLoading(true)
+    try {
+      const res = await fetch('/api/v2/partner/listings/generate-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: formData.title.trim(),
+          district: formData.district || '',
+          categorySlug: categories.find((c) => c.id === formData.categoryId)?.slug || '',
+          basePriceThb: formData.basePriceThb,
+          metadata: formData.metadata,
+          existingDescription: formData.description || '',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        toast.error(data.error || t('failedToLoadListing'))
+        return
+      }
+      const ru = String(data.data?.descriptionRu || '').slice(0, 2000)
+      const en = String(data.data?.descriptionEn || '').slice(0, 2000)
+      const seo = data.data?.seo || {}
+      setFormData((prev) => {
+        const meta = { ...prev.metadata }
+        const shown = (language === 'ru' ? ru : language === 'en' ? en : en || ru).slice(0, 2000)
+        return {
+          ...prev,
+          description: shown,
+          metadata: {
+            ...meta,
+            description_translations: { ru, en },
+            seo: {
+              ...(meta.seo && typeof meta.seo === 'object' ? meta.seo : {}),
+              ...(seo.ru ? { ru: seo.ru } : {}),
+              ...(seo.en ? { en: seo.en } : {}),
+            },
+          },
+        }
+      })
+      toast.success(language === 'ru' ? 'Описание и SEO обновлены (RU + EN)' : 'Description and SEO updated (RU + EN)')
+    } catch (e) {
+      console.error(e)
+      toast.error(t('failedToLoadListing'))
+    } finally {
+      setAiDescriptionLoading(false)
+    }
   }
   
   // Update metadata field
@@ -418,19 +493,26 @@ export default function PremiumListingWizard() {
       }
 
       const categorySlug = categories.find((c) => c.id === formData.categoryId)?.slug ?? ''
+      const descTranslations = mergeDescriptionTranslationsForSave(formData, language)
+      const descriptionDb = buildListingDescriptionForDb(
+        { ...formData, metadata: { ...formData.metadata, description_translations: descTranslations } },
+        language,
+      )
+      const draftMeta = normalizePartnerListingMetadata(
+        { ...formData.metadata, description_translations: descTranslations, is_draft: true },
+        categorySlug,
+      )
 
       if (isEditMode && editId) {
         // Update existing draft/listing
         const payload = {
           ...formData,
+          description: descriptionDb,
           status: formData.status || 'INACTIVE',
           available: false,
           basePriceThb: parseFloat(formData.basePriceThb) || 0,
           images: formData.images,
-          metadata: normalizePartnerListingMetadata(
-            { ...formData.metadata, is_draft: true },
-            categorySlug,
-          ),
+          metadata: draftMeta,
         }
         const res = await fetch(`/api/v2/partner/listings/${editId}`, {
           method: 'PUT',
@@ -461,14 +543,11 @@ export default function PremiumListingWizard() {
           ownerId: userId,
           categoryId: formData.categoryId,
           title: formData.title || 'Черновик',
-          description: formData.description || '',
+          description: descriptionDb,
           district: formData.district || '',
           basePriceThb: parseFloat(formData.basePriceThb) || 0,
           images: formData.images || [],
-          metadata: normalizePartnerListingMetadata(
-            { ...formData.metadata, is_draft: true },
-            categorySlug,
-          ),
+          metadata: draftMeta,
           status: 'INACTIVE',
           available: false
         }
@@ -514,9 +593,19 @@ export default function PremiumListingWizard() {
       }
       
       const categorySlug = categories.find((c) => c.id === formData.categoryId)?.slug ?? ''
+      const descTranslations = mergeDescriptionTranslationsForSave(formData, language)
+      const descriptionDb = buildListingDescriptionForDb(
+        { ...formData, metadata: { ...formData.metadata, description_translations: descTranslations } },
+        language,
+      )
+      const publishMeta = normalizePartnerListingMetadata(
+        { ...formData.metadata, description_translations: descTranslations, is_draft: false },
+        categorySlug,
+      )
 
       const payload = {
         ...formData,
+        description: descriptionDb,
         ownerId: userId,
         status: 'PENDING',
         available: true,
@@ -524,10 +613,7 @@ export default function PremiumListingWizard() {
         commissionRate: parseFloat(formData.commissionRate) || 15,
         minBookingDays: parseInt(formData.minBookingDays) || 1,
         maxBookingDays: parseInt(formData.maxBookingDays) || 90,
-        metadata: normalizePartnerListingMetadata(
-          { ...formData.metadata, is_draft: false },
-          categorySlug,
-        ),
+        metadata: publishMeta,
       }
       
       const method = isEditMode ? 'PUT' : 'POST'
@@ -756,11 +842,31 @@ export default function PremiumListingWizard() {
             </div>
 
             <div>
-              <Label className="text-base font-medium text-slate-800">{t('listingDescriptionLabel')}</Label>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <Label className="text-base font-medium text-slate-800">{t('listingDescriptionLabel')}</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 border-violet-200 bg-violet-50/80 text-violet-900 hover:bg-violet-100"
+                  disabled={aiDescriptionLoading}
+                  onClick={handleAiImproveDescription}
+                >
+                  {aiDescriptionLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t('improveDescriptionAILoading')}
+                    </>
+                  ) : (
+                    t('improveDescriptionAI')
+                  )}
+                </Button>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">{t('improveDescriptionAIHint')}</p>
               <Textarea
                 placeholder={t('descriptionPlaceholder')}
                 value={formData.description}
-                onChange={(e) => updateField('description', e.target.value)}
+                onChange={(e) => updateDescription(e.target.value)}
                 className="mt-2 min-h-[120px]"
                 maxLength={2000}
               />

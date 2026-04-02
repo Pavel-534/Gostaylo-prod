@@ -35,6 +35,11 @@ import {
   normalizePartnerListingMetadata,
   partnerMetadataStateFromServer,
 } from '@/lib/partner/listing-wizard-metadata'
+import {
+  pickPartnerFormDescription,
+  buildListingDescriptionForDb,
+  mergeDescriptionTranslationsForSave,
+} from '@/lib/partner/listing-description-i18n'
 import { PartnerListingSearchMetadataFields } from '@/components/partner/PartnerListingSearchMetadataFields'
 
 const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
@@ -64,6 +69,7 @@ export default function EditListing({ params }) {
   // Upload state
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [aiDescriptionLoading, setAiDescriptionLoading] = useState(false)
   
   // Form state
   const [formData, setFormData] = useState({
@@ -135,7 +141,7 @@ export default function EditListing({ params }) {
         const shaped = partnerMetadataStateFromServer(rawMeta)
         setFormData({
           title: l.title || '',
-          description: l.description || '',
+          description: pickPartnerFormDescription(language, l.description || '', rawMeta),
           basePriceThb: sanitizeThbDigits((l.basePriceThb ?? l.base_price_thb)?.toString() || '') || '',
           district: l.district || '',
           latitude: l.latitude != null && l.latitude !== '' ? String(l.latitude) : '',
@@ -160,15 +166,95 @@ export default function EditListing({ params }) {
     }
   }
 
+  function updateDescription(value) {
+    setFormData((prev) => {
+      const meta = { ...prev.metadata }
+      const dt = {
+        ...(meta.description_translations && typeof meta.description_translations === 'object'
+          ? meta.description_translations
+          : {}),
+      }
+      if (language === 'ru') dt.ru = value
+      else if (language === 'en') dt.en = value
+      return {
+        ...prev,
+        description: value,
+        metadata: { ...meta, description_translations: dt },
+      }
+    })
+  }
+
+  async function handleAiImproveDescription() {
+    if (!formData.title || formData.title.trim().length < 10) {
+      toast.error(language === 'ru' ? 'Сначала укажите название (от 10 символов)' : 'Add a title first (min 10 characters)')
+      return
+    }
+    setAiDescriptionLoading(true)
+    try {
+      const res = await fetch('/api/v2/partner/listings/generate-description', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: formData.title.trim(),
+          district: formData.district || '',
+          categorySlug: listing?.category?.slug || '',
+          basePriceThb: formData.basePriceThb,
+          metadata: formData.metadata,
+          existingDescription: formData.description || '',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        toast.error(data.error || t('partnerEdit_listingSaveErr'))
+        return
+      }
+      const ru = String(data.data?.descriptionRu || '').slice(0, 2000)
+      const en = String(data.data?.descriptionEn || '').slice(0, 2000)
+      const seo = data.data?.seo || {}
+      setFormData((prev) => {
+        const meta = { ...prev.metadata }
+        const shown = (language === 'ru' ? ru : language === 'en' ? en : en || ru).slice(0, 2000)
+        return {
+          ...prev,
+          description: shown,
+          metadata: {
+            ...meta,
+            description_translations: { ru, en },
+            seo: {
+              ...(meta.seo && typeof meta.seo === 'object' ? meta.seo : {}),
+              ...(seo.ru ? { ru: seo.ru } : {}),
+              ...(seo.en ? { en: seo.en } : {}),
+            },
+          },
+        }
+      })
+      toast.success(language === 'ru' ? 'Описание и SEO обновлены (RU + EN)' : 'Description and SEO updated (RU + EN)')
+    } catch (e) {
+      console.error(e)
+      toast.error(t('partnerEdit_listingSaveErr'))
+    } finally {
+      setAiDescriptionLoading(false)
+    }
+  }
+
   async function handleSave() {
     setSaving(true)
     
     try {
       const coverImage = formData.images[formData.coverIndex] || formData.images[0] || null
       const categorySlug = listing?.category?.slug ?? ''
+      const descTranslations = mergeDescriptionTranslationsForSave(formData, language)
+      const descriptionDb = buildListingDescriptionForDb(
+        { ...formData, metadata: { ...formData.metadata, description_translations: descTranslations } },
+        language,
+      )
       const metadata =
         formData.metadata && typeof formData.metadata === 'object'
-          ? normalizePartnerListingMetadata(formData.metadata, categorySlug)
+          ? normalizePartnerListingMetadata(
+              { ...formData.metadata, description_translations: descTranslations },
+              categorySlug,
+            )
           : undefined
 
       const res = await fetch(`/api/v2/partner/listings/${listingId}`, {
@@ -177,7 +263,7 @@ export default function EditListing({ params }) {
         credentials: 'include',
         body: JSON.stringify({
           title: formData.title,
-          description: formData.description,
+          description: descriptionDb,
           basePriceThb: parseFloat(formData.basePriceThb) || 0,
           district: formData.district,
           latitude: formData.latitude === '' ? null : parseFloat(formData.latitude),
@@ -197,7 +283,7 @@ export default function EditListing({ params }) {
             ? {
                 ...prev,
                 title: formData.title,
-                description: formData.description,
+                description: descriptionDb,
                 latitude: formData.latitude === '' ? null : parseFloat(formData.latitude),
                 longitude: formData.longitude === '' ? null : parseFloat(formData.longitude),
               }
@@ -244,9 +330,15 @@ export default function EditListing({ params }) {
     try {
       const coverImage = formData.images[formData.coverIndex] || formData.images[0] || null
       const categorySlug = listing?.category?.slug ?? ''
+      const descTranslations = mergeDescriptionTranslationsForSave(formData, language)
+      const descriptionDb = buildListingDescriptionForDb(
+        { ...formData, metadata: { ...formData.metadata, description_translations: descTranslations } },
+        language,
+      )
       const mergedMeta = {
         ...(listing?.metadata || {}),
         ...(formData.metadata && typeof formData.metadata === 'object' ? formData.metadata : {}),
+        description_translations: descTranslations,
         is_draft: false,
         published_at: new Date().toISOString(),
         ...(listing?.metadata?.source === 'TELEGRAM_LAZY_REALTOR'
@@ -261,7 +353,7 @@ export default function EditListing({ params }) {
         credentials: 'include',
         body: JSON.stringify({
           title: formData.title,
-          description: formData.description,
+          description: descriptionDb,
           basePriceThb: parseFloat(formData.basePriceThb) || 0,
           district: formData.district,
           latitude: formData.latitude === '' ? null : parseFloat(formData.latitude),
@@ -536,13 +628,33 @@ export default function EditListing({ params }) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-medium text-slate-800">
-                {t('partnerEdit_listingDesc')}
-              </Label>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <Label htmlFor="description" className="text-sm font-medium text-slate-800">
+                  {t('partnerEdit_listingDesc')}
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 border-violet-200 bg-violet-50/80 text-violet-900 hover:bg-violet-100"
+                  disabled={aiDescriptionLoading}
+                  onClick={handleAiImproveDescription}
+                >
+                  {aiDescriptionLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {t('improveDescriptionAILoading')}
+                    </>
+                  ) : (
+                    t('improveDescriptionAI')
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-slate-500">{t('improveDescriptionAIHint')}</p>
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) => updateDescription(e.target.value)}
                 rows={5}
                 className="min-h-[120px] text-base"
                 placeholder={t('partnerEdit_descPh')}

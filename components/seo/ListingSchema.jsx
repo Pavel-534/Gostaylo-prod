@@ -3,6 +3,10 @@
  */
 import { getRequestSiteUrl } from '@/lib/server-site-url'
 import { decodeTelegramText } from '@/lib/services/telegram/telegram-text.js'
+import {
+  lodgingStreetAddressStub,
+  phuketPostalCodeForDistrict,
+} from '@/lib/seo/phuket-address-stubs.js'
 
 /** Телефон в JSON-LD только из NEXT_PUBLIC_SITE_PHONE (без fallback; не дублировать в UI карточки). */
 function siteContactPhone() {
@@ -104,18 +108,22 @@ function buildJsonLd(listing, baseUrl) {
         ? `฿${Math.round(price)}+`
         : '฿฿'
     const phone = siteContactPhone()
+    const locality = district || 'Phuket'
+    const postalCode = phuketPostalCodeForDistrict(district)
+    const streetAddress = lodgingStreetAddressStub(listing)
     return {
       ...base,
       '@type': 'LodgingBusiness',
       ...(phone ? { telephone: phone } : {}),
       priceRange,
-      ...(district && {
-        address: {
-          '@type': 'PostalAddress',
-          addressLocality: district,
-          addressCountry: 'TH',
-        },
-      }),
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress,
+        addressLocality: locality,
+        addressRegion: 'Phuket',
+        postalCode,
+        addressCountry: 'TH',
+      },
       ...(geo && { geo }),
       offers: offerBlock(listing, pageUrl, price),
     }
