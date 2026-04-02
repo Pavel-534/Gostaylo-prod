@@ -84,6 +84,7 @@ export async function GET(request) {
       telegramUsd: data.telegramUsd,
       webUsd: data.webUsd,
       embeddingUsd: data.embeddingUsd,
+      searchQueryUsd: data.searchQueryUsd,
       requestCount: data.requestCount,
       recent: data.recent,
       stats,

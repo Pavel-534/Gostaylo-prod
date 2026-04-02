@@ -13,6 +13,7 @@ import {
   Globe,
   Loader2,
   RefreshCw,
+  Search,
   Sparkles,
   TrendingUp,
   Zap,
@@ -24,6 +25,7 @@ import { cn } from '@/lib/utils'
 const TASK_TELEGRAM_PARSER = 'telegram_parser'
 const TASK_LISTING_DESCRIPTION = 'listing_description'
 const TASK_EMBEDDING = 'embedding'
+const TASK_SEARCH_QUERY = 'search_query'
 
 const PERIODS = [
   { id: 'today', label: 'Сегодня' },
@@ -46,6 +48,7 @@ function taskLabel(taskType) {
   if (taskType === TASK_TELEGRAM_PARSER) return 'Ленивый Риелтор (TG)'
   if (taskType === TASK_LISTING_DESCRIPTION) return 'Генератор описаний (Web)'
   if (taskType === TASK_EMBEDDING) return 'Эмбеддинг объявления (поиск)'
+  if (taskType === TASK_SEARCH_QUERY) return 'Живой поиск (запрос пользователя)'
   return String(taskType || '—')
 }
 
@@ -312,16 +315,15 @@ export default function AdminSystemAiPage() {
                     векторов. Устаревший <strong>GET /api/v2/listings</strong> помечен deprecated и тоже только ilike.
                   </p>
                   <p>
-                    К семантике API <strong>ещё не подключён</strong>: нужен вызов эмбеддинга запроса и{' '}
-                    <code className="rounded bg-slate-100 px-1">match_listings</code> в БД. Удобнее вынести в{' '}
-                    <strong>отдельный эндпоинт</strong> (например <code className="rounded bg-slate-100 px-1">/api/v2/search/semantic</code>
-                    ) или добавить флаг <code className="rounded bg-slate-100 px-1">semantic=1</code> /{' '}
-                    <code className="rounded bg-slate-100 px-1">q_ai</code> к <strong>/api/v2/search</strong>, чтобы не
-                    ломать кэш и контракт для обычного <code className="rounded bg-slate-100 px-1">q</code>.
+                    Семантика: <strong>GET /api/v2/search/semantic</strong> (<code className="rounded bg-slate-100 px-1">q</code>) — только
+                    вектор + <code className="rounded bg-slate-100 px-1">match_listings</code>; лимит 5 запросов/мин с IP. В общем каталоге —
+                    тот же <strong>GET /api/v2/search</strong> с <code className="rounded bg-slate-100 px-1">semantic=1</code> и{' '}
+                    <code className="rounded bg-slate-100 px-1">q</code>: сначала обычная выборка и фильтры, затем подмешивание порядка по
+                    similarity (ниже 0.3 не показываем как релевантные для буста).
                   </p>
                   <p>
-                    Для пользователя на витрине: один инпут + переключатель «По смыслу» / «По словам», либо вкладки
-                    результатов; при пустых векторах — подсказка «Уточните запрос» или откат на обычный поиск.
+                    На витрине: один инпут + переключатель «По смыслу» / «По словам» или вкладки; при отсутствии векторов у
+                    объявлений — часть выдачи останется только от текстового поиска.
                   </p>
                 </div>
               </details>
@@ -399,14 +401,14 @@ export default function AdminSystemAiPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-white to-teal-50 shadow-md sm:col-span-2 xl:col-span-1">
+        <Card className="border-2 border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-white to-teal-50 shadow-md sm:col-span-1">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2 text-emerald-700">
               <Brain className="h-5 w-5" />
               <span className="text-xs font-semibold uppercase tracking-wider">Vectors</span>
             </div>
             <CardTitle className="text-lg text-slate-800">Эмбеддинги поиска</CardTitle>
-            <CardDescription className="text-slate-600">text-embedding-3-small</CardDescription>
+            <CardDescription className="text-slate-600">Индексация объявлений</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -414,6 +416,26 @@ export default function AdminSystemAiPage() {
             ) : (
               <p className="text-3xl font-bold tabular-nums text-emerald-900">
                 {formatUsd(payload?.embeddingUsd)}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-cyan-200/80 bg-gradient-to-br from-cyan-50 via-white to-sky-50 shadow-md sm:col-span-1">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2 text-cyan-700">
+              <Search className="h-5 w-5" />
+              <span className="text-xs font-semibold uppercase tracking-wider">Live</span>
+            </div>
+            <CardTitle className="text-lg text-slate-800">Живой поиск</CardTitle>
+            <CardDescription className="text-slate-600">Запросы пользователей · text-embedding-3-small</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <Loader2 className="h-8 w-8 animate-spin text-cyan-600" />
+            ) : (
+              <p className="text-3xl font-bold tabular-nums text-cyan-950">
+                {formatUsd(payload?.searchQueryUsd)}
               </p>
             )}
           </CardContent>
@@ -441,6 +463,7 @@ export default function AdminSystemAiPage() {
                 const isTg = row.task_type === TASK_TELEGRAM_PARSER
                 const isEmb = row.task_type === TASK_EMBEDDING
                 const isWeb = row.task_type === TASK_LISTING_DESCRIPTION
+                const isSearchQ = row.task_type === TASK_SEARCH_QUERY
                 return (
                   <li
                     key={row.id}
@@ -456,13 +479,17 @@ export default function AdminSystemAiPage() {
                               ? 'bg-emerald-100 text-emerald-700'
                               : isWeb
                                 ? 'bg-violet-100 text-violet-700'
-                                : 'bg-slate-200 text-slate-700',
+                                : isSearchQ
+                                  ? 'bg-cyan-100 text-cyan-800'
+                                  : 'bg-slate-200 text-slate-700',
                         )}
                       >
                         {isTg ? (
                           <Bot className="h-5 w-5" />
                         ) : isEmb ? (
                           <Brain className="h-5 w-5" />
+                        ) : isSearchQ ? (
+                          <Search className="h-5 w-5" />
                         ) : (
                           <Globe className="h-5 w-5" />
                         )}
