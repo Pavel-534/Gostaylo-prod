@@ -6,9 +6,25 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { sendTestAlert, getBotInfo, getChatInfo, initializeTopics } from '@/lib/telegram';
+import { getSessionPayload } from '@/lib/services/session-service';
+
+async function requireAdminOrModeratorResponse() {
+  const session = await getSessionPayload();
+  if (!session?.userId) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  }
+  const role = String(session.role || '').toUpperCase();
+  if (role !== 'ADMIN' && role !== 'MODERATOR') {
+    return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+  }
+  return null;
+}
 
 export async function POST(request) {
   try {
+    const deny = await requireAdminOrModeratorResponse();
+    if (deny) return deny;
+
     const { type, action } = await request.json();
 
     // Action: initialize topics
@@ -65,8 +81,10 @@ export async function POST(request) {
   }
 }
 
-export async function GET(request) {
-  // Get bot and chat info
+export async function GET() {
+  const deny = await requireAdminOrModeratorResponse();
+  if (deny) return deny;
+
   const botInfo = await getBotInfo();
   const chatInfo = await getChatInfo();
 

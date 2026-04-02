@@ -30,6 +30,11 @@ export function FilterBar({
   onExtraFiltersChange,
   listingsForFiltersHistogram = [],
   filterResultCount = 0,
+  textQuery = '',
+  setTextQuery,
+  smartSearchOn = true,
+  setSmartSearchOn,
+  semanticSearchFeatureEnabled = true,
 }) {
   const locale = language === 'ru' ? ru : enUS;
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -92,6 +97,11 @@ export function FilterBar({
                 setDateRange={setDateRange}
                 guests={guests}
                 setGuests={setGuests}
+                textQuery={textQuery}
+                setTextQuery={setTextQuery}
+                smartSearchOn={smartSearchOn}
+                setSmartSearchOn={setSmartSearchOn}
+                semanticSearchFeatureEnabled={semanticSearchFeatureEnabled}
               />
             </div>
             <Button

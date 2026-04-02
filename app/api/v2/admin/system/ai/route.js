@@ -9,6 +9,10 @@ import jwt from 'jsonwebtoken'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getAiUsageDashboardData, TASK_EMBEDDING, TASK_LISTING_DESCRIPTION } from '@/lib/ai/usage-log'
 import { LISTING_STATUSES_ELIGIBLE_FOR_EMBEDDING } from '@/lib/ai/listing-embedding-policy'
+import {
+  getSemanticSearchSiteEnabled,
+  setSemanticSearchSiteEnabled,
+} from '@/lib/ai/site-search-settings'
 
 export const dynamic = 'force-dynamic'
 
@@ -74,7 +78,11 @@ export async function GET(request) {
   const raw = searchParams.get('period') || 'month'
   const period = PERIODS.has(raw) ? raw : 'month'
 
-  const [data, stats] = await Promise.all([getAiUsageDashboardData(period), getListingAiStats()])
+  const [data, stats, semanticSearchOnSite] = await Promise.all([
+    getAiUsageDashboardData(period),
+    getListingAiStats(),
+    getSemanticSearchSiteEnabled(),
+  ])
 
   return NextResponse.json({
     success: true,
@@ -85,11 +93,47 @@ export async function GET(request) {
       webUsd: data.webUsd,
       embeddingUsd: data.embeddingUsd,
       searchQueryUsd: data.searchQueryUsd,
+      searchQueryCount: data.searchQueryCount,
       requestCount: data.requestCount,
       recent: data.recent,
       stats,
+      semanticSearchOnSite,
       approximate: true,
       ...(data.error ? { note: 'partial_aggregation', aggregationNote: data.error } : {}),
     },
+  })
+}
+
+export async function PATCH(request) {
+  const auth = verifyAdminOnly()
+  if (auth.error) return auth.error
+
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  if (typeof body?.semanticSearchOnSite !== 'boolean') {
+    return NextResponse.json(
+      { success: false, error: 'semanticSearchOnSite (boolean) is required' },
+      { status: 400 }
+    )
+  }
+
+  try {
+    await setSemanticSearchSiteEnabled(body.semanticSearchOnSite)
+  } catch (e) {
+    console.error('[admin/system/ai] PATCH features', e)
+    return NextResponse.json(
+      { success: false, error: e?.message || 'Failed to save settings' },
+      { status: 500 }
+    )
+  }
+
+  return NextResponse.json({
+    success: true,
+    data: { semanticSearchOnSite: body.semanticSearchOnSite },
   })
 }

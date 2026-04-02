@@ -12,7 +12,8 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
-import { Search, Users, Layers, MapPin, Home, Bike, Anchor, Baby } from 'lucide-react'
+import { Search, Users, Layers, MapPin, Home, Bike, Anchor, Baby, Sparkles } from 'lucide-react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -53,6 +54,13 @@ export function UnifiedSearchBar({
   onSearch,
   /** Мобильный hero: мгновенный переход в /listings с выбранной категорией */
   onQuickCategorySearch,
+  /** Текстовый поиск + умный поиск (semantic=1); если setTextQuery не передан — строка скрыта */
+  textQuery = '',
+  setTextQuery,
+  smartSearchOn = true,
+  setSmartSearchOn,
+  /** Сайтовый фича-флаг из /api/v2/site-features */
+  semanticSearchFeatureEnabled = true,
   // Hero-only
   liveCount = null,
   countLoading = false,
@@ -138,9 +146,70 @@ export function UnifiedSearchBar({
   const triggerBase = 'flex items-center gap-2 text-left hover:bg-slate-50 transition-colors'
   const triggerHero = 'px-4 py-3 border-r border-slate-200 min-w-0'
 
+  const showTextSearch = typeof setTextQuery === 'function'
+
+  const textSearchRow = showTextSearch ? (
+    <TooltipProvider delayDuration={250}>
+      <div
+        className={cn(
+          'flex min-w-0 items-center gap-2 border-b border-slate-200 bg-slate-50/80 px-3 py-2',
+          variant === 'filter' && 'border-t-0 border-x-0 bg-white',
+        )}
+      >
+        <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+        <Input
+          type="search"
+          value={textQuery}
+          onChange={(e) => setTextQuery(e.target.value)}
+          placeholder={getUIText('catalogTextSearchPlaceholder', language)}
+          className="h-9 min-w-0 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
+          aria-label={getUIText('catalogTextSearchPlaceholder', language)}
+        />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              disabled={!semanticSearchFeatureEnabled}
+              aria-pressed={smartSearchOn && semanticSearchFeatureEnabled}
+              onClick={() => {
+                if (!semanticSearchFeatureEnabled || !setSmartSearchOn) return
+                setSmartSearchOn(!smartSearchOn)
+                try {
+                  localStorage.setItem('gostaylo_smart_search', !smartSearchOn ? '1' : '0')
+                } catch {
+                  /* ignore */
+                }
+              }}
+              className={cn(
+                'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors',
+                !semanticSearchFeatureEnabled && 'cursor-not-allowed opacity-50',
+                semanticSearchFeatureEnabled &&
+                  smartSearchOn &&
+                  'border-violet-300 bg-violet-50 text-violet-700',
+                semanticSearchFeatureEnabled &&
+                  !smartSearchOn &&
+                  'border-slate-200 bg-white text-slate-400 hover:bg-slate-50',
+              )}
+            >
+              <Sparkles className="h-4 w-4" aria-hidden />
+              <span className="sr-only">{getUIText('smartSearchShortLabel', language)}</span>
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="max-w-[260px] text-center">
+            {semanticSearchFeatureEnabled
+              ? getUIText('smartSearchTooltip', language)
+              : getUIText('smartSearchDisabledByAdmin', language)}
+          </TooltipContent>
+        </Tooltip>
+      </div>
+    </TooltipProvider>
+  ) : null
+
   if (variant === 'filter') {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        {textSearchRow}
+        <div className="grid grid-cols-2 gap-2 border-t-0 p-2 md:grid-cols-4 md:p-2">
         {/* What - Category */}
         <Select value={category || 'all'} onValueChange={(v) => setCategory?.(v)}>
           <SelectTrigger className="h-9">
@@ -190,18 +259,37 @@ export function UnifiedSearchBar({
             ))}
           </SelectContent>
         </Select>
+        </div>
       </div>
     )
   }
 
   // Hero variant - 4 fields: What | Where | When | Who
   return (
-    <div className="box-border w-full min-w-0 max-w-full overflow-x-hidden bg-white rounded-2xl border border-slate-200 shadow-2xl md:overflow-visible md:rounded-full">
-      <div className="hidden md:flex items-center rounded-full overflow-visible">
+    <div
+      className={cn(
+        'box-border w-full min-w-0 max-w-full overflow-x-hidden border border-slate-200 bg-white shadow-2xl md:overflow-visible',
+        textSearchRow ? 'rounded-2xl' : 'rounded-2xl md:rounded-full',
+      )}
+    >
+      {textSearchRow ? <div className="overflow-hidden rounded-t-2xl">{textSearchRow}</div> : null}
+      <div
+        className={cn(
+          'hidden md:flex items-center overflow-hidden',
+          textSearchRow ? 'rounded-b-2xl' : 'rounded-full',
+        )}
+      >
         {/* What - Category */}
         <Popover open={categoryPopoverOpen} onOpenChange={setCategoryPopoverOpen}>
           <PopoverTrigger asChild>
-            <button className={`${triggerBase} ${triggerHero} flex-1 min-w-[120px] rounded-l-full`}>
+            <button
+              className={cn(
+                triggerBase,
+                triggerHero,
+                'flex-1 min-w-[120px]',
+                !textSearchRow && 'rounded-l-full',
+              )}
+            >
               <Layers className="h-4 w-4 text-teal-600 flex-shrink-0" />
               <span className="text-sm text-slate-700 truncate">{categoryLabel}</span>
             </button>
@@ -286,7 +374,14 @@ export function UnifiedSearchBar({
           </PopoverContent>
         </Popover>
 
-        <Button onClick={handleSearch} className="h-12 px-6 rounded-full bg-teal-600 hover:bg-teal-700 m-1" data-testid="unified-search-button">
+        <Button
+          onClick={handleSearch}
+          className={cn(
+            'h-12 px-6 m-1 bg-teal-600 hover:bg-teal-700',
+            textSearchRow ? 'rounded-br-2xl rounded-tr-2xl' : 'rounded-full',
+          )}
+          data-testid="unified-search-button"
+        >
           <Search className="h-4 w-4 mr-2" />{getUIText('findButton', language)}
         </Button>
       </div>

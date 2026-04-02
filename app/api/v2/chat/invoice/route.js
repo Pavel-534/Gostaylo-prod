@@ -16,6 +16,7 @@ import {
   effectiveRoleFromProfile,
   userParticipatesInConversation,
 } from '@/lib/services/chat/access'
+import { getEffectiveRate } from '@/lib/services/currency-helper'
 
 async function fetchProfile(userId) {
   const { data } = await supabaseAdmin
@@ -104,15 +105,24 @@ export async function POST(request) {
 
     const invoiceId = `inv-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
     const parsedAmount = parseFloat(amount)
-    const usdtAmount =
-      currency === 'THB' ? Math.round((parsedAmount / 35.5) * 100) / 100 : parsedAmount
+    const cur = String(currency || 'THB').toUpperCase()
+    let usdtAmount
+    let amountThb
+    if (cur === 'THB') {
+      const mult = await getEffectiveRate('THB', 'USDT')
+      usdtAmount = Math.round(parsedAmount * mult * 100) / 100
+      amountThb = parsedAmount
+    } else {
+      usdtAmount = parsedAmount
+      const mult = await getEffectiveRate('USDT', 'THB')
+      amountThb = Math.round(parsedAmount * mult)
+    }
 
     const invoice = {
       id: invoiceId,
       amount: parsedAmount,
       amount_usdt: usdtAmount,
-      amount_thb:
-        currency === 'THB' ? parsedAmount : Math.round(parsedAmount * 35.5),
+      amount_thb: amountThb,
       currency,
       payment_method: paymentMethod,
       status: 'PENDING',

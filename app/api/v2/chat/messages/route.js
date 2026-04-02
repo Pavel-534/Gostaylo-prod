@@ -19,6 +19,7 @@ import { normalizeMessageType } from '@/lib/services/chat/message-types'
 import { PushService } from '@/lib/services/push.service.js'
 import { getPublicSiteUrl } from '@/lib/site-url.js'
 import { registerTelegramReplyTarget } from '@/lib/services/telegram/telegram-reply-map.js'
+import { getEffectiveRate } from '@/lib/services/currency-helper'
 
 export const dynamic = 'force-dynamic'
 
@@ -312,7 +313,18 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'invoice type requires positive amount' }, { status: 400 })
     }
     const invoiceId = `inv-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
-    const usdtAmount = currency === 'THB' ? Math.round((amt / 35.5) * 100) / 100 : amt
+    let usdtAmount
+    let amountThbForPayload
+    const cur = String(currency || 'THB').toUpperCase()
+    if (cur === 'THB') {
+      const mult = await getEffectiveRate('THB', 'USDT')
+      usdtAmount = Math.round(amt * mult * 100) / 100
+      amountThbForPayload = amt
+    } else {
+      usdtAmount = amt
+      const mult = await getEffectiveRate('USDT', 'THB')
+      amountThbForPayload = Math.round(amt * mult)
+    }
     invoiceRow = {
       id: invoiceId,
       conversation_id: conversationId,
@@ -345,7 +357,7 @@ export async function POST(request) {
       id: invoiceId,
       amount: amt,
       amount_usdt: usdtAmount,
-      amount_thb: currency === 'THB' ? amt : Math.round(amt * 35.5),
+      amount_thb: amountThbForPayload,
       currency,
       payment_method: invoiceRow.metadata.payment_method,
       status: 'PENDING',

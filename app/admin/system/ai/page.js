@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 import {
   ArrowLeft,
   Bot,
@@ -70,6 +72,7 @@ export default function AdminSystemAiPage() {
   const [err, setErr] = useState(null)
   const [payload, setPayload] = useState(null)
   const [reindexing, setReindexing] = useState(false)
+  const [featureSaving, setFeatureSaving] = useState(false)
 
   const load = useCallback(async (p) => {
     setLoading(true)
@@ -108,6 +111,29 @@ export default function AdminSystemAiPage() {
   const vectorCoverageComplete =
     statsNumbersReady && inSearch === withSmart && inSearch > 0
   const vectorCoverageEmpty = statsNumbersReady && inSearch === 0 && withSmart === 0
+
+  async function saveSemanticSiteEnabled(checked) {
+    setFeatureSaving(true)
+    try {
+      const res = await fetch('/api/v2/admin/system/ai', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ semanticSearchOnSite: checked }),
+      })
+      const j = await res.json()
+      if (!res.ok || !j.success) {
+        toast.error(j.error || 'Не удалось сохранить')
+        return
+      }
+      setPayload((p) => (p ? { ...p, semanticSearchOnSite: checked } : p))
+      toast.success(checked ? 'Семантический поиск на сайте включён' : 'Семантический поиск на сайте выключен')
+    } catch (e) {
+      toast.error(e?.message || 'Сеть')
+    } finally {
+      setFeatureSaving(false)
+    }
+  }
 
   async function runReindexEmbeddings() {
     setReindexing(true)
@@ -221,6 +247,27 @@ export default function AdminSystemAiPage() {
                 </span>
               </span>
             </Button>
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-xl border border-amber-200/90 bg-white/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1 space-y-1">
+              <Label htmlFor="semantic-site-switch" className="text-sm font-medium text-amber-950">
+                Включить семантический поиск на сайте
+              </Label>
+              <p className="text-xs leading-relaxed text-amber-900/85">
+                Управляет добавлением параметра <code className="rounded bg-amber-100 px-1">semantic=1</code> к запросам каталога.
+                При выключении иконка «умного поиска» на витрине неактивна.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2 sm:pl-4">
+              <Switch
+                id="semantic-site-switch"
+                checked={payload?.semanticSearchOnSite !== false}
+                disabled={loading || !payload || featureSaving}
+                onCheckedChange={saveSemanticSiteEnabled}
+              />
+              {featureSaving ? <Loader2 className="h-4 w-4 animate-spin text-amber-700" aria-hidden /> : null}
+            </div>
           </div>
 
           {payload?.stats ? (
@@ -434,9 +481,17 @@ export default function AdminSystemAiPage() {
             {loading ? (
               <Loader2 className="h-8 w-8 animate-spin text-cyan-600" />
             ) : (
-              <p className="text-3xl font-bold tabular-nums text-cyan-950">
-                {formatUsd(payload?.searchQueryUsd)}
-              </p>
+              <>
+                <p className="text-3xl font-bold tabular-nums text-cyan-950">
+                  {formatUsd(payload?.searchQueryUsd)}
+                </p>
+                <p className="mt-3 border-t border-cyan-200/60 pt-3 text-sm text-cyan-950/90">
+                  <span className="font-semibold tabular-nums text-cyan-950">
+                    {payload?.searchQueryCount ?? 0}
+                  </span>
+                  <span className="text-cyan-800/90"> — всего поисковых запросов через ИИ за период</span>
+                </p>
+              </>
             )}
           </CardContent>
         </Card>

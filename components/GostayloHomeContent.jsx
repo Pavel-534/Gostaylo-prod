@@ -89,7 +89,10 @@ export function GostayloHomeContent() {
   const [where, setWhere] = useState('all')
   const [dateRange, setDateRange] = useState({ from: null, to: null })
   const [guests, setGuests] = useState('2')
-  
+  const [searchQuery, setSearchQuery] = useState('')
+  const [smartSearchOn, setSmartSearchOn] = useState(true)
+  const [semanticSiteEnabled, setSemanticSiteEnabled] = useState(true)
+
   // Live counter
   const [liveCount, setLiveCount] = useState(null)
   const [countLoading, setCountLoading] = useState(false)
@@ -104,6 +107,7 @@ export function GostayloHomeContent() {
   const debouncedDateRange = useDebounce(dateRange, 500)
   const debouncedWhere = useDebounce(where, 300)
   const debouncedGuests = useDebounce(guests, 300)
+  const debouncedSearchQuery = useDebounce(searchQuery, 400)
 
   // Sync user from auth context
   useEffect(() => {
@@ -124,14 +128,39 @@ export function GostayloHomeContent() {
     const g = searchParams?.get('guests')
     const ci = searchParams?.get('checkIn')
     const co = searchParams?.get('checkOut')
+    const qUrl = searchParams?.get('q')
+    const sem = searchParams?.get('semantic')
     if (cat) setSelectedCategory(cat)
     if (w) setWhere(w)
     if (g) setGuests(g)
+    if (qUrl) setSearchQuery(qUrl)
+    if (sem === '0') setSmartSearchOn(false)
+    else if (sem === '1') setSmartSearchOn(true)
+    else {
+      try {
+        const ls = localStorage.getItem('gostaylo_smart_search')
+        if (ls === '0') setSmartSearchOn(false)
+        else if (ls === '1') setSmartSearchOn(true)
+      } catch {
+        /* ignore */
+      }
+    }
     if (ci && co) {
       try {
         setDateRange({ from: new Date(ci), to: new Date(co) })
       } catch {}
     }
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/v2/site-features')
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && j.data && typeof j.data.semanticSearchOnSite === 'boolean') {
+          setSemanticSiteEnabled(j.data.semanticSearchOnSite)
+        }
+      })
+      .catch(() => {})
   }, [])
 
   // Handle URL params (login, verification)
@@ -213,6 +242,11 @@ export function GostayloHomeContent() {
         params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
       }
       if (guests && guests !== '1') params.set('guests', guests)
+      const qt = debouncedSearchQuery.trim()
+      if (qt.length >= 2) {
+        params.set('q', qt)
+        if (semanticSiteEnabled && smartSearchOn) params.set('semantic', '1')
+      }
       
       const response = await fetch(`/api/v2/search?${params.toString()}`)
       const data = await response.json()
@@ -228,7 +262,7 @@ export function GostayloHomeContent() {
       setLoading(false)
     }
     return 0
-  }, [selectedCategory, where, dateRange, guests])
+  }, [selectedCategory, where, dateRange, guests, debouncedSearchQuery, semanticSiteEnabled, smartSearchOn])
 
   // Initial load
   useEffect(() => {
@@ -238,7 +272,7 @@ export function GostayloHomeContent() {
   // Live updates
   useEffect(() => {
     if (!loading) fetchListingsData(false)
-  }, [debouncedDateRange, debouncedWhere, debouncedGuests, loading, fetchListingsData])
+  }, [debouncedDateRange, debouncedWhere, debouncedGuests, debouncedSearchQuery, smartSearchOn, semanticSiteEnabled, loading, fetchListingsData])
 
   // Live count fetch for search bar
   const fetchLiveCount = useCallback(async (dr, w, g, cat) => {
@@ -252,6 +286,11 @@ export function GostayloHomeContent() {
         params.set('checkOut', format(dr.to, 'yyyy-MM-dd'))
       }
       if (g && g !== '1') params.set('guests', g)
+      const qt = (searchQuery || '').trim()
+      if (qt.length >= 2) {
+        params.set('q', qt)
+        if (semanticSiteEnabled && smartSearchOn) params.set('semantic', '1')
+      }
       
       const response = await fetch(`${LISTINGS_SEARCH_API_PATH}?${params.toString()}`)
       const data = await response.json()
@@ -261,7 +300,7 @@ export function GostayloHomeContent() {
     } finally {
       setCountLoading(false)
     }
-  }, [])
+  }, [searchQuery, semanticSiteEnabled, smartSearchOn])
 
 
   // Price conversion
@@ -282,8 +321,11 @@ export function GostayloHomeContent() {
     if (dateRange.from) params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
     if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
     if (guests && guests !== '1') params.set('guests', guests)
+    const qt = searchQuery.trim()
+    if (qt.length >= 2) params.set('q', qt)
+    if (semanticSiteEnabled) params.set('semantic', smartSearchOn ? '1' : '0')
     router.push(params.toString() ? `/listings?${params.toString()}` : '/listings')
-  }, [selectedCategory, where, dateRange, guests, router])
+  }, [selectedCategory, where, dateRange, guests, searchQuery, semanticSiteEnabled, smartSearchOn, router])
 
   const handleQuickCategorySearch = useCallback(
     (slug) => {
@@ -296,9 +338,12 @@ export function GostayloHomeContent() {
         params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
       }
       if (guests && guests !== '1') params.set('guests', guests)
+      const qt = searchQuery.trim()
+      if (qt.length >= 2) params.set('q', qt)
+      if (semanticSiteEnabled) params.set('semantic', smartSearchOn ? '1' : '0')
       router.push(`/listings?${params.toString()}`)
     },
-    [where, dateRange, guests, router]
+    [where, dateRange, guests, searchQuery, semanticSiteEnabled, smartSearchOn, router]
   )
 
   const nights = dateRange.from && dateRange.to ? differenceInDays(dateRange.to, dateRange.from) : 0
@@ -311,6 +356,12 @@ export function GostayloHomeContent() {
       fetchLiveCount(newRange, where, guests, selectedCategory)
     }
   }, [where, guests, selectedCategory, fetchLiveCount])
+
+  useEffect(() => {
+    if (dateRange.from && dateRange.to) {
+      fetchLiveCount(dateRange, where, guests, selectedCategory)
+    }
+  }, [debouncedSearchQuery, smartSearchOn, semanticSiteEnabled, dateRange, where, guests, selectedCategory, fetchLiveCount])
 
   return (
     <div className='min-h-screen bg-white'>
@@ -341,6 +392,11 @@ export function GostayloHomeContent() {
               setGuests={setGuests}
               onSearch={handleSearch}
               onQuickCategorySearch={handleQuickCategorySearch}
+              textQuery={searchQuery}
+              setTextQuery={setSearchQuery}
+              smartSearchOn={smartSearchOn}
+              setSmartSearchOn={setSmartSearchOn}
+              semanticSearchFeatureEnabled={semanticSiteEnabled}
               liveCount={liveCount}
               countLoading={countLoading}
               nights={nights}
@@ -366,6 +422,9 @@ export function GostayloHomeContent() {
                   if (dateRange.from) params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
                   if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
                   if (guests !== '1') params.set('guests', guests)
+                  const qt = searchQuery.trim()
+                  if (qt.length >= 2) params.set('q', qt)
+                  if (semanticSiteEnabled) params.set('semantic', smartSearchOn ? '1' : '0')
                   router.push(`/listings?${params.toString()}`)
                 }}>
                   <div className='relative h-28 sm:h-40 overflow-hidden'>

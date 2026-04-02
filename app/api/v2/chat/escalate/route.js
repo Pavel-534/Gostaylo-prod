@@ -13,6 +13,8 @@ import {
   userParticipatesInConversation,
 } from '@/lib/services/chat/access'
 import { PushService } from '@/lib/services/push.service.js'
+import { sendMessage } from '@/lib/telegram'
+import { getPublicSiteUrl } from '@/lib/site-url.js'
 import {
   SUPPORT_REASONS,
   SUPPORT_DISPUTE_KINDS,
@@ -42,6 +44,13 @@ const hdrPatch = {
 
 const ALLOW_REASON = new Set(SUPPORT_REASONS.map((x) => x.slug))
 const ALLOW_DISPUTE = new Set(SUPPORT_DISPUTE_KINDS.map((x) => x.slug))
+
+function escHtml(s) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
 
 async function fetchProfileShort(userId) {
   const res = await fetch(
@@ -132,6 +141,32 @@ export async function POST(request) {
   if (!wasPriority) {
     await PushService.notifyStaffSupportEscalation(conversationId)
     notified = true
+
+    const supportTopicId = process.env.TELEGRAM_SUPPORT_TOPIC_ID
+    const adminGroupId = process.env.TELEGRAM_ADMIN_GROUP_ID
+    if (supportTopicId && adminGroupId && process.env.TELEGRAM_BOT_TOKEN) {
+      const threadId = parseInt(String(supportTopicId).trim(), 10)
+      if (Number.isFinite(threadId) && threadId > 0) {
+        const base = (getPublicSiteUrl() || '').replace(/\/$/, '')
+        const adminLink = `${base}/admin/messages/?open=${encodeURIComponent(conversationId)}`
+        const renterLabel =
+          conversation.renter_name ||
+          conversation.renter_id ||
+          '—'
+        const text =
+          `🆘 <b>Support escalation</b>\n\n` +
+          `<b>Conversation ID:</b> <code>${escHtml(conversationId)}</code>\n` +
+          `<b>Renter:</b> ${escHtml(renterLabel)}\n` +
+          `<a href="${adminLink}">Open in admin panel</a>`
+        const tg = await sendMessage(adminGroupId, text, {
+          message_thread_id: threadId,
+          disable_web_page_preview: true,
+        })
+        if (!tg?.ok) {
+          console.warn('[chat/escalate] Telegram support topic send failed:', tg?.description || tg?.error)
+        }
+      }
+    }
   }
 
   let ticketMessageId = null

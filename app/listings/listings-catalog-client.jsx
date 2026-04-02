@@ -79,6 +79,10 @@ function ListingsContent() {
       from: searchParams.get('checkIn') ? parseISO(searchParams.get('checkIn')) : null,
       to: searchParams.get('checkOut') ? parseISO(searchParams.get('checkOut')) : null,
     })
+    setSearchQuery(searchParams.get('q') || '')
+    const sem = searchParams.get('semantic')
+    if (sem === '0') setSmartSearchOn(false)
+    else if (sem === '1') setSmartSearchOn(true)
   }, [searchParamsKey])
 
   const [language, setLanguage] = useState('en')
@@ -90,6 +94,23 @@ function ListingsContent() {
   const [appliedBbox, setAppliedBbox] = useState(null)
   const [extraFilters, setExtraFilters] = useState(() => defaultExtraFilters())
   const [mapSelectedListingId, setMapSelectedListingId] = useState(null)
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '')
+  const [smartSearchOn, setSmartSearchOn] = useState(() => {
+    const sem = searchParams.get('semantic')
+    if (sem === '0') return false
+    if (sem === '1') return true
+    if (typeof window !== 'undefined') {
+      try {
+        const ls = localStorage.getItem('gostaylo_smart_search')
+        if (ls === '0') return false
+        if (ls === '1') return true
+      } catch {
+        /* ignore */
+      }
+    }
+    return true
+  })
+  const [semanticSiteEnabled, setSemanticSiteEnabled] = useState(true)
 
   const lastPushedSearchRef = useRef('')
   const didInitUrlHydrateRef = useRef(false)
@@ -133,6 +154,17 @@ function ListingsContent() {
     return () => clearTimeout(t)
   }, [mapSelectedListingId])
 
+  useEffect(() => {
+    fetch('/api/v2/site-features')
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && j.data && typeof j.data.semanticSearchOnSite === 'boolean') {
+          setSemanticSiteEnabled(j.data.semanticSearchOnSite)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   const handleSearchThisArea = useCallback((b) => {
     setAppliedBbox(b)
   }, [])
@@ -148,6 +180,10 @@ function ListingsContent() {
   const debouncedWhere = useDebounce(where)
   const debouncedGuests = useDebounce(guests)
   const debouncedDateRange = useDebounce(dateRange)
+  const debouncedSearchQuery = useDebounce(searchQuery, 400)
+
+  const useSemanticBlend =
+    semanticSiteEnabled && smartSearchOn && debouncedSearchQuery.trim().length >= 2
 
   const appliedBboxKey = useMemo(() => {
     if (!appliedBbox) return `none::${mapFitResetKey}`
@@ -179,6 +215,8 @@ function ListingsContent() {
     debouncedGuests,
     appliedMapBounds: appliedBbox,
     extraFilters,
+    debouncedTextQuery: debouncedSearchQuery,
+    useSemanticBlend,
     itemsPerPage: ITEMS_PER_PAGE,
   })
 
@@ -241,6 +279,8 @@ function ListingsContent() {
     selectedCategory,
     debouncedDateRange,
     debouncedGuests,
+    debouncedSearchQuery,
+    useSemanticBlend,
     appliedBbox,
     extraFilters,
   ])
@@ -256,6 +296,9 @@ function ListingsContent() {
     if (debouncedDateRange.from) params.set('checkIn', format(debouncedDateRange.from, 'yyyy-MM-dd'))
     if (debouncedDateRange.to) params.set('checkOut', format(debouncedDateRange.to, 'yyyy-MM-dd'))
     if (debouncedGuests !== '1') params.set('guests', debouncedGuests)
+    const qt = debouncedSearchQuery.trim()
+    if (qt.length >= 2) params.set('q', qt)
+    if (semanticSiteEnabled) params.set('semantic', smartSearchOn ? '1' : '0')
     bboxToSearchParams(appliedBbox, params)
     appendExtraFiltersToParams(params, extraFilters)
     const s = params.toString()
@@ -269,6 +312,9 @@ function ListingsContent() {
     debouncedWhere,
     debouncedDateRange,
     debouncedGuests,
+    debouncedSearchQuery,
+    smartSearchOn,
+    semanticSiteEnabled,
     appliedBbox,
     extraFilters,
   ])
@@ -382,6 +428,11 @@ function ListingsContent() {
         onExtraFiltersChange={setExtraFilters}
         listingsForFiltersHistogram={allListings}
         filterResultCount={allListings.length}
+        textQuery={searchQuery}
+        setTextQuery={setSearchQuery}
+        smartSearchOn={smartSearchOn}
+        setSmartSearchOn={setSmartSearchOn}
+        semanticSearchFeatureEnabled={semanticSiteEnabled}
       />
 
       <div className="container mx-auto px-4 py-6">
