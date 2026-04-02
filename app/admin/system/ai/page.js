@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   Bot,
   Brain,
+  CheckCircle2,
   Globe,
   Loader2,
   RefreshCw,
@@ -93,6 +94,17 @@ export default function AdminSystemAiPage() {
   useEffect(() => {
     load(period)
   }, [period, load])
+
+  const inSearch = payload?.stats?.activeListings
+  const withSmart = payload?.stats?.withEmbeddingEligible
+  const statsNumbersReady =
+    !loading &&
+    payload?.stats &&
+    typeof inSearch === 'number' &&
+    typeof withSmart === 'number'
+  const vectorCoverageComplete =
+    statsNumbersReady && inSearch === withSmart && inSearch > 0
+  const vectorCoverageEmpty = statsNumbersReady && inSearch === 0 && withSmart === 0
 
   async function runReindexEmbeddings() {
     setReindexing(true)
@@ -209,36 +221,110 @@ export default function AdminSystemAiPage() {
           </div>
 
           {payload?.stats ? (
-            <div className="grid grid-cols-1 gap-2 rounded-lg border border-amber-200/60 bg-white/70 p-3 sm:grid-cols-3">
-              <div className="rounded-md bg-amber-50/80 px-3 py-2">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-amber-800/80">
-                  Активные на сайте
-                </p>
-                <p className="text-xl font-bold tabular-nums text-amber-950">
-                  {loading ? '—' : payload.stats.activeListings ?? '—'}
-                </p>
-                <p className="text-[10px] text-amber-900/70">status = ACTIVE</p>
+            <div className="space-y-3">
+              <div
+                className={cn(
+                  'grid grid-cols-1 gap-3 rounded-xl border p-3 sm:grid-cols-3',
+                  vectorCoverageComplete &&
+                    'border-emerald-200/90 bg-gradient-to-b from-emerald-50/90 via-emerald-50/40 to-white shadow-sm shadow-emerald-900/5',
+                  vectorCoverageEmpty && 'border-slate-200/90 bg-slate-50/50',
+                  !vectorCoverageComplete &&
+                    !vectorCoverageEmpty &&
+                    'border-amber-200/60 bg-white/80',
+                )}
+              >
+                <div
+                  className={cn(
+                    'rounded-lg px-3 py-2.5',
+                    vectorCoverageComplete ? 'bg-white/70' : 'bg-amber-50/70',
+                  )}
+                >
+                  <p className="text-xs font-medium text-slate-700">Объявлений в поиске</p>
+                  <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+                    {loading ? '—' : payload.stats.activeListings ?? '—'}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                    Сколько объявлений сейчас в статусе ACTIVE и показываются в каталоге.
+                  </p>
+                </div>
+                <div
+                  className={cn(
+                    'rounded-lg px-3 py-2.5 ring-1 transition-colors',
+                    vectorCoverageComplete
+                      ? 'bg-emerald-50/80 ring-emerald-200/80'
+                      : 'bg-amber-50/70 ring-amber-100/80',
+                  )}
+                >
+                  <p className="text-xs font-medium text-slate-700">Объектов с умным поиском</p>
+                  <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+                    {loading ? '—' : payload.stats.withEmbeddingEligible ?? '—'}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                    Сколько из них уже получили вектор — понимают смысл запроса, а не только точные слова.
+                  </p>
+                </div>
+                <div
+                  className={cn(
+                    'rounded-lg px-3 py-2.5',
+                    vectorCoverageComplete ? 'bg-white/70' : 'bg-amber-50/70',
+                  )}
+                >
+                  <p className="text-xs font-medium text-slate-700">Операций ИИ</p>
+                  <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">
+                    {loading ? '—' : payload.stats.aiLogsLinkedToListing ?? '—'}
+                  </p>
+                  <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                    Общее число вызовов ИИ для улучшения текстов и построения поисковых индексов (по журналу).
+                  </p>
+                </div>
               </div>
-              <div className="rounded-md bg-amber-50/80 px-3 py-2">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-amber-800/80">
-                  С вектором поиска
-                </p>
-                <p className="text-xl font-bold tabular-nums text-amber-950">
-                  {loading ? '—' : payload.stats.withEmbeddingEligible ?? '—'}
-                </p>
-                <p className="text-[10px] text-amber-900/70">embedding заполнен, допустимый статус</p>
-              </div>
-              <div className="rounded-md bg-amber-50/80 px-3 py-2">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-amber-800/80">
-                  ИИ по объявлениям
-                </p>
-                <p className="text-xl font-bold tabular-nums text-amber-950">
-                  {loading ? '—' : payload.stats.aiLogsLinkedToListing ?? '—'}
-                </p>
-                <p className="text-[10px] text-amber-900/70">
-                  записей в логе (описание + эмбеддинг), не уникальные ID
-                </p>
-              </div>
+
+              {vectorCoverageComplete ? (
+                <div className="flex items-start gap-2 rounded-lg border border-emerald-200/80 bg-emerald-50/70 px-3 py-2.5 text-sm text-emerald-950">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" aria-hidden />
+                  <div>
+                    <p className="font-medium">Все данные актуальны</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-emerald-900/85">
+                      У каждого объявления в поиске уже есть векторный индекс — смысловой поиск готов к подключению на
+                      витрине.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
+              {vectorCoverageEmpty ? (
+                <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs leading-relaxed text-slate-600">
+                  В каталоге пока нет объявлений в статусе ACTIVE — счётчики совпадают; после появления витрины
+                  сравнивайте их снова.
+                </div>
+              ) : null}
+
+              <details className="group rounded-lg border border-amber-100/90 bg-white/60 px-3 py-2 text-xs text-slate-600">
+                <summary className="cursor-pointer list-none font-medium text-slate-700 marker:content-none [&::-webkit-details-marker]:hidden">
+                  <span className="underline decoration-amber-300/80 decoration-dotted underline-offset-2 group-open:no-underline">
+                    Поиск и семантика — заметка для архитектора
+                  </span>
+                </summary>
+                <div className="mt-2 space-y-2 leading-relaxed text-slate-600">
+                  <p>
+                    Основной каталожный поиск сейчас — <strong>GET /api/v2/search</strong> (параметр текстового поиска{' '}
+                    <code className="rounded bg-slate-100 px-1">q</code>): это подстроки в title/description/district, без
+                    векторов. Устаревший <strong>GET /api/v2/listings</strong> помечен deprecated и тоже только ilike.
+                  </p>
+                  <p>
+                    К семантике API <strong>ещё не подключён</strong>: нужен вызов эмбеддинга запроса и{' '}
+                    <code className="rounded bg-slate-100 px-1">match_listings</code> в БД. Удобнее вынести в{' '}
+                    <strong>отдельный эндпоинт</strong> (например <code className="rounded bg-slate-100 px-1">/api/v2/search/semantic</code>
+                    ) или добавить флаг <code className="rounded bg-slate-100 px-1">semantic=1</code> /{' '}
+                    <code className="rounded bg-slate-100 px-1">q_ai</code> к <strong>/api/v2/search</strong>, чтобы не
+                    ломать кэш и контракт для обычного <code className="rounded bg-slate-100 px-1">q</code>.
+                  </p>
+                  <p>
+                    Для пользователя на витрине: один инпут + переключатель «По смыслу» / «По словам», либо вкладки
+                    результатов; при пустых векторах — подсказка «Уточните запрос» или откат на обычный поиск.
+                  </p>
+                </div>
+              </details>
             </div>
           ) : null}
         </CardContent>
