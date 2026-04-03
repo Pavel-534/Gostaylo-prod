@@ -142,29 +142,31 @@ export async function POST(request) {
     await PushService.notifyStaffSupportEscalation(conversationId)
     notified = true
 
-    const supportTopicId = process.env.TELEGRAM_SUPPORT_TOPIC_ID
     const adminGroupId = process.env.TELEGRAM_ADMIN_GROUP_ID
-    if (supportTopicId && adminGroupId && process.env.TELEGRAM_BOT_TOKEN) {
-      const threadId = parseInt(String(supportTopicId).trim(), 10)
-      if (Number.isFinite(threadId) && threadId > 0) {
-        const base = (getPublicSiteUrl() || '').replace(/\/$/, '')
-        const adminLink = `${base}/admin/messages/?open=${encodeURIComponent(conversationId)}`
-        const renterLabel =
-          conversation.renter_name ||
-          conversation.renter_id ||
-          '—'
-        const text =
-          `🆘 <b>Support escalation</b>\n\n` +
-          `<b>Conversation ID:</b> <code>${escHtml(conversationId)}</code>\n` +
-          `<b>Renter:</b> ${escHtml(renterLabel)}\n` +
-          `<a href="${adminLink}">Open in admin panel</a>`
-        const tg = await sendMessage(adminGroupId, text, {
-          message_thread_id: threadId,
-          disable_web_page_preview: true,
-        })
-        if (!tg?.ok) {
-          console.warn('[chat/escalate] Telegram support topic send failed:', tg?.description || tg?.error)
-        }
+    const rawTopic = process.env.TELEGRAM_SUPPORT_TOPIC_ID
+    let threadId = 232
+    if (rawTopic != null && String(rawTopic).trim() !== '') {
+      const parsed = parseInt(String(rawTopic).trim(), 10)
+      if (Number.isFinite(parsed) && parsed > 0) threadId = parsed
+    }
+    if (adminGroupId && process.env.TELEGRAM_BOT_TOKEN) {
+      const base = (getPublicSiteUrl() || '').replace(/\/$/, '')
+      const adminLink = `${base}/admin/messages/?open=${encodeURIComponent(conversationId)}`
+      const renterLabel =
+        conversation.renter_name ||
+        conversation.renter_id ||
+        '—'
+      const text =
+        `🆘 <b>Support escalation</b>\n\n` +
+        `<b>Conversation ID:</b> <code>${escHtml(conversationId)}</code>\n` +
+        `<b>Renter:</b> ${escHtml(renterLabel)}\n` +
+        `<a href="${adminLink}">Open in admin panel</a>`
+      const tg = await sendMessage(adminGroupId, text, {
+        message_thread_id: threadId,
+        disable_web_page_preview: true,
+      })
+      if (!tg?.ok) {
+        console.warn('[chat/escalate] Telegram support topic send failed:', tg?.description || tg?.error)
       }
     }
   }

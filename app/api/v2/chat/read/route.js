@@ -9,6 +9,7 @@ import {
   effectiveRoleFromProfile,
   isStaffRole,
 } from '@/lib/services/chat/access'
+import { viewerConversationSide } from '@/lib/chat/read-receipts'
 
 export const dynamic = 'force-dynamic'
 
@@ -76,20 +77,39 @@ export async function POST(request) {
 
   /** Админ/модератор смотрит чат «наблюдателем» — не трогаем is_read (галочки у гостя/партнёра). */
   if (isStaffRole(accessRole)) {
+    console.log(
+      `[chat/read] Staff [${userId}] viewed conversation [${conversationId}] in stealth mode`
+    )
     return NextResponse.json({ success: true, skipped: true, reason: 'staff_observer' })
   }
 
   const uid = encodeURIComponent(String(userId))
   const cid = encodeURIComponent(String(conversationId))
 
-  const patchRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/messages?conversation_id=eq.${cid}&is_read=eq.false&sender_id=neq.${uid}`,
-    {
-      method: 'PATCH',
-      headers: hdr,
-      body: JSON.stringify({ is_read: true }),
-    }
-  )
+  const side = viewerConversationSide(userId, conversation)
+  const nowIso = new Date().toISOString()
+
+  let patchRes
+  if (side === 'renter' || side === 'partner') {
+    const readCol = side === 'renter' ? 'read_at_renter' : 'read_at_partner'
+    patchRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/messages?conversation_id=eq.${cid}&sender_id=neq.${uid}&${readCol}=is.null`,
+      {
+        method: 'PATCH',
+        headers: hdr,
+        body: JSON.stringify({ [readCol]: nowIso }),
+      }
+    )
+  } else {
+    patchRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/messages?conversation_id=eq.${cid}&is_read=eq.false&sender_id=neq.${uid}`,
+      {
+        method: 'PATCH',
+        headers: hdr,
+        body: JSON.stringify({ is_read: true }),
+      }
+    )
+  }
 
   if (!patchRes.ok) {
     const err = await patchRes.text()
@@ -113,39 +133,50 @@ export async function POST(request) {
  * Работает по принципу fire-and-forget — не блокирует ответ API.
  */
 async function syncBadgeCount(userId) {
-  // 1. Суммируем непрочитанные для пользователя (он может быть renter или partner)
-  const uid = encodeURIComponent(String(userId))
-  const [renterRes, partnerRes] = await Promise.all([
-    fetch(
-      `${SUPABASE_URL}/rest/v1/messages?is_read=eq.false&sender_id=neq.${uid}&select=id`,
-      { headers: hdr, cache: 'no-store' }
-    ),
-    // Второй запрос — через conversations где юзер является partner
-    fetch(
-      `${SUPABASE_URL}/rest/v1/messages?is_read=eq.false&sender_id=neq.${uid}&select=id&limit=1`,
-      { headers: hdr, cache: 'no-store' }
-    ),
-  ])
+  const uidEnc = encodeURIComponent(String(userId))
+  const uid = String(userId)
 
-  // Упрощённый подсчёт: все непрочитанные в любых беседах где userId участник
   const convRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/conversations?or=(renter_id.eq.${uid},partner_id.eq.${uid},owner_id.eq.${uid})&select=id`,
+    `${SUPABASE_URL}/rest/v1/conversations?or=(renter_id.eq.${uidEnc},partner_id.eq.${uidEnc},owner_id.eq.${uidEnc})&select=id,renter_id,partner_id,owner_id`,
     { headers: hdr, cache: 'no-store' }
   )
   const convRows = await convRes.json()
   if (!Array.isArray(convRows) || convRows.length === 0) return
 
-  const cids = convRows.map((c) => encodeURIComponent(c.id)).join(',')
-  const unreadRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/messages?conversation_id=in.(${cids})&is_read=eq.false&sender_id=neq.${uid}&select=id`,
-    { headers: hdr, cache: 'no-store' }
-  )
-  const unreadRows = await unreadRes.json()
-  const totalUnread = Array.isArray(unreadRows) ? unreadRows.length : 0
+  const renterCids = []
+  const hostCids = []
+  for (const c of convRows) {
+    const isRenter = String(c.renter_id) === uid
+    const isHostSide =
+      String(c.renter_id) !== uid &&
+      (String(c.partner_id) === uid || String(c.owner_id) === uid)
+    if (isRenter) renterCids.push(encodeURIComponent(c.id))
+    else if (isHostSide) hostCids.push(encodeURIComponent(c.id))
+  }
+
+  let totalUnread = 0
+  if (renterCids.length) {
+    const inR = renterCids.join(',')
+    const unreadRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/messages?conversation_id=in.(${inR})&sender_id=neq.${uidEnc}&read_at_renter=is.null&select=id`,
+      { headers: hdr, cache: 'no-store' }
+    )
+    const unreadRows = await unreadRes.json()
+    totalUnread += Array.isArray(unreadRows) ? unreadRows.length : 0
+  }
+  if (hostCids.length) {
+    const inH = hostCids.join(',')
+    const unreadRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/messages?conversation_id=in.(${inH})&sender_id=neq.${uidEnc}&read_at_partner=is.null&select=id`,
+      { headers: hdr, cache: 'no-store' }
+    )
+    const unreadRows = await unreadRes.json()
+    totalUnread += Array.isArray(unreadRows) ? unreadRows.length : 0
+  }
 
   // 2. Получаем FCM-токен пользователя
   const profileRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}&select=fcm_token`,
+    `${SUPABASE_URL}/rest/v1/profiles?id=eq.${uidEnc}&select=fcm_token`,
     { headers: hdr, cache: 'no-store' }
   )
   const profileRows = await profileRes.json()

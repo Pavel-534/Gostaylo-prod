@@ -49,7 +49,7 @@ export function BookingChatTimeline({ booking, language = 'ru' }) {
           ? getUIText('chatBookingStatus_DECLINED', language)
           : getUIText('chatBookingStatus_CANCELLED', language)
     return (
-      <div className="border-t border-slate-100 bg-rose-50/80 px-2 py-1.5 md:px-4 md:py-2">
+      <div className="border-t border-slate-100 bg-rose-50/80 px-2 py-1 md:px-3 md:py-1.5">
         <p className="text-center text-[10px] font-medium text-rose-900 md:text-xs">{banner}</p>
       </div>
     )
@@ -59,11 +59,11 @@ export function BookingChatTimeline({ booking, language = 'ru' }) {
   const title = getUIText('chatBookingTimelineTitle', language)
 
   return (
-    <div className="border-t border-slate-100 bg-slate-50/90 px-2 pb-2 pt-0.5 md:px-4 md:pb-3 md:pt-1">
-      <p className="mb-1 text-center text-[9px] font-semibold uppercase tracking-wide text-slate-500 md:mb-2 md:text-left md:text-[10px]">
+    <div className="border-t border-slate-100/90 bg-slate-50/80 px-2 pb-1.5 pt-1 backdrop-blur-[2px] md:px-3 md:pb-2 md:pt-1.5">
+      <p className="mb-0.5 text-center text-[8px] font-semibold uppercase tracking-wide text-slate-500 md:mb-1 md:text-left md:text-[9px]">
         {title}
       </p>
-      <div className="flex w-full max-w-xl items-start justify-center md:justify-start">
+      <div className="flex w-full max-w-none items-start justify-between gap-0.5 md:justify-start md:gap-1">
         {STEP_KEYS.map((stepKey, idx) => {
           const { done, current } = states[idx]
           const label = getUIText(stepKey, language)
@@ -71,27 +71,27 @@ export function BookingChatTimeline({ booking, language = 'ru' }) {
           const lineGreen = states[idx].done
 
           return (
-            <div key={stepKey} className="flex min-w-0 max-w-[4.25rem] flex-1 sm:max-w-none">
+            <div key={stepKey} className="flex min-w-0 flex-1">
               <div className="flex min-w-0 flex-1 flex-col items-center">
                 <div
                   className={cn(
-                    'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-[9px] font-bold transition-colors md:h-7 md:w-7 md:text-xs sm:h-8 sm:w-8',
+                    'flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 text-[7px] font-bold transition-colors sm:h-5 sm:w-5 sm:text-[8px] md:h-6 md:w-6 md:text-[10px]',
                     done
                       ? 'border-teal-600 bg-teal-600 text-white'
                       : current
-                        ? 'border-teal-500 bg-white text-teal-700 ring-1 ring-teal-200 md:ring-2'
+                        ? 'border-teal-500 bg-white text-teal-700 ring-1 ring-teal-200/80'
                         : 'border-slate-200 bg-white text-slate-400'
                   )}
                 >
                   {done ? (
-                    <Check className="h-2.5 w-2.5 md:h-3.5 md:w-3.5 sm:h-4 sm:w-4" strokeWidth={3} />
+                    <Check className="h-2 w-2 sm:h-2.5 sm:w-2.5 md:h-3 md:w-3" strokeWidth={3} />
                   ) : (
                     idx + 1
                   )}
                 </div>
                 <span
                   className={cn(
-                    'mt-0.5 w-full px-0.5 text-center text-[7px] font-medium leading-tight md:mt-1.5 md:text-[10px] sm:text-xs',
+                    'mt-0.5 w-full px-0.5 text-center text-[6px] font-medium leading-[1.1] sm:text-[7px] md:mt-1 md:text-[9px]',
                     done || current ? 'text-slate-800' : 'text-slate-400'
                   )}
                 >
@@ -101,7 +101,7 @@ export function BookingChatTimeline({ booking, language = 'ru' }) {
               {showLine ? (
                 <div
                   className={cn(
-                    'mt-2.5 h-0.5 min-w-[2px] flex-1 shrink rounded-full md:mt-3.5 sm:mt-4',
+                    'mt-2 h-px min-w-[2px] flex-1 shrink self-start rounded-full sm:mt-2.5 md:mt-3',
                     lineGreen ? 'bg-teal-500' : 'bg-slate-200'
                   )}
                   aria-hidden

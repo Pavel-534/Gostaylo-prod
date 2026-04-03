@@ -119,13 +119,24 @@ async function enrichConversationRows(rows, viewerUserId) {
   await Promise.all(
     rows.map(async (c) => {
       const cid = encodeURIComponent(c.id)
+      const viewerUid = String(viewerUserId)
+      const isRenter = String(c.renter_id) === viewerUid
+      const isHostSide =
+        String(c.renter_id) !== viewerUid &&
+        (String(c.partner_id) === viewerUid || String(c.owner_id) === viewerUid)
+      const unreadFilter =
+        isRenter
+          ? `read_at_renter=is.null`
+          : isHostSide
+            ? `read_at_partner=is.null`
+            : `is_read=eq.false`
       const [lastRes, unreadRes] = await Promise.all([
         fetch(
           `${SUPABASE_URL}/rest/v1/messages?conversation_id=eq.${cid}&order=created_at.desc&limit=1&select=*`,
           { headers: hdr, cache: 'no-store' }
         ),
         fetch(
-          `${SUPABASE_URL}/rest/v1/messages?conversation_id=eq.${cid}&is_read=eq.false&sender_id=neq.${uid}&select=id`,
+          `${SUPABASE_URL}/rest/v1/messages?conversation_id=eq.${cid}&${unreadFilter}&sender_id=neq.${uid}&select=id`,
           { headers: hdr, cache: 'no-store' }
         ),
       ])

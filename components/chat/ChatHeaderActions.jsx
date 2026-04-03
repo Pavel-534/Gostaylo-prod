@@ -59,6 +59,8 @@ export function ChatHeaderActions({
   language = 'ru',
   compact = false,
   groupDesktopTools = false,
+  /** Скрыть мобильную кнопку «Детали сделки» (рендерится в unified top bar) */
+  hideMobileDealInfo = false,
   children,
 }) {
   if (isAdminView) return null
@@ -282,7 +284,7 @@ export function ChatHeaderActions({
       ) : null}
 
       {/* Детали сделки — справа в ряду (мобиле); на lg+ панель в ChatThreadChrome */}
-      {onDealInfoClick ? (
+      {onDealInfoClick && !hideMobileDealInfo ? (
         <Button
           type="button"
           variant="outline"

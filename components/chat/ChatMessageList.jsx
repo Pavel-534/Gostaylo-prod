@@ -47,6 +47,7 @@ import { buildTransportListingsUrl } from '@/lib/chat-transport-upsell-url'
 import { ChatVoicePlayer } from '@/components/chat-voice-player'
 import { ChatImageCollage } from '@/components/chat-image-collage'
 import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
+import { SupportJoinedBanner } from '@/components/chat/SupportJoinedBanner'
 
 // ─── Вспомогательный блок: замаскированные контакты ─────────────────────────
 
@@ -119,6 +120,15 @@ function MessageItem({
         <div className="w-full max-w-lg">
           <ChatSupportTicketCard ticket={st} senderName={msg.sender_name} language={language} />
         </div>
+      </div>
+    )
+  }
+
+  // ── Support joined (banner, not milestone card) ───────────────────────────
+  if (msgType === 'system' && meta.system_key === 'support_joined') {
+    return (
+      <div className="flex w-full justify-center px-2 py-1 sm:px-4">
+        <SupportJoinedBanner message={msg} language={language} />
       </div>
     )
   }

@@ -70,6 +70,10 @@ export function StickyChatHeader({
   messagesListBackLabel = null,
   /** Когда «Назад» рендерит родитель (например слева от шапки), скрыть дублирующую кнопку */
   hideBackButton = false,
+  /** Мобиле: верхний ряд [Назад | заголовок по центру | mobileTopBarActions] — см. /messages/[id] */
+  unifiedMobileTopBar = false,
+  /** Иконки справа в unifiedMobileTopBar (Info, Архив и т.п.) */
+  mobileTopBarActions = null,
   /** Выход из «тупика» чата — ссылка на каталог / поиск */
   catalogHref = null,
   /** `replace` — не копить историю (универсальный /messages/[id]); `push` — явный переход в инбокс (партнёрский кабинет) */
@@ -120,6 +124,9 @@ export function StickyChatHeader({
   const img = listing?.images?.[0]
   const title = listing?.title || '—'
 
+  const showUnifiedTop =
+    Boolean(unifiedMobileTopBar && embedded && compact && messagesListHref && !hideBackButton && mobileTopBarActions)
+
   const from = booking?.check_in
   const to = booking?.check_out
   const status = booking?.status
@@ -152,7 +159,10 @@ export function StickyChatHeader({
       className={cn(
         'border-b bg-white',
         embedded
-          ? 'relative z-[15] shadow-none'
+          ? cn(
+              'relative z-[15] shadow-none',
+              showUnifiedTop && 'border-b border-slate-200/80 bg-white/88 backdrop-blur-md xl:border-0 xl:bg-transparent xl:backdrop-blur-none'
+            )
           : 'sticky top-0 z-20 bg-white/95 shadow-sm backdrop-blur',
         className
       )}
@@ -170,9 +180,10 @@ export function StickyChatHeader({
         <div className="hidden md:flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-2 py-1 sm:px-3">
           <Link
             href={catalogHref}
-            className="text-xs font-semibold text-teal-700 hover:text-teal-900 hover:underline truncate min-w-0"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-teal-700 hover:text-teal-900 hover:underline truncate min-w-0"
           >
-            {language === 'en' ? '← Back to search' : '← Назад к поиску'}
+            <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {language === 'en' ? 'Back to search' : 'Назад к поиску'}
           </Link>
           <Link
             href="/"
@@ -203,6 +214,46 @@ export function StickyChatHeader({
         </div>
       ) : null}
 
+      {showUnifiedTop ? (
+        <div className="flex w-full min-w-0 items-center gap-2 px-2 py-2 xl:hidden">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0 rounded-xl border border-white/55 bg-white/50 text-slate-700 shadow-[0_2px_12px_rgba(15,23,42,0.07)] backdrop-blur-md hover:bg-white/75"
+            aria-label={
+              messagesListBackLabel
+                ?? (language === 'en' ? 'Back to conversations' : 'К списку диалогов')
+            }
+            onClick={() => {
+              if (messagesListBackNavigation === 'push') {
+                router.push(messagesListHref, { scroll: false })
+              } else {
+                router.replace(messagesListHref, { scroll: false })
+              }
+            }}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-0 flex-1 px-1 text-center">
+            {listing?.id ? (
+              <Link
+                href={`/listings/${listing.id}`}
+                className="block truncate font-semibold text-slate-900 hover:text-teal-700 text-sm"
+              >
+                {title}
+              </Link>
+            ) : (
+              <p className="truncate font-semibold text-slate-900 text-sm">{title}</p>
+            )}
+            {listing?.district ? (
+              <p className="truncate text-[11px] text-slate-500">{listing.district}</p>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-1">{mobileTopBarActions}</div>
+        </div>
+      ) : null}
+
       {/* Основная строка: фото + инфо + кнопки */}
       <div
         className={cn(
@@ -210,7 +261,7 @@ export function StickyChatHeader({
           compact ? 'px-2 py-1.5 sm:px-3 sm:py-2' : 'px-4 py-3'
         )}
       >
-        {messagesListHref && !hideBackButton ? (
+        {messagesListHref && !hideBackButton && !showUnifiedTop ? (
           <Button
             type="button"
             variant="ghost"
@@ -260,19 +311,32 @@ export function StickyChatHeader({
               href={`/listings/${listing.id}`}
               className={cn(
                 'font-semibold text-slate-900 truncate block hover:text-teal-700',
-                compact && 'text-sm sm:text-base'
+                compact && 'text-sm sm:text-base',
+                showUnifiedTop && 'hidden xl:block'
               )}
             >
               {title}
             </Link>
           ) : (
-            <p className={cn('font-semibold text-slate-900 truncate', compact && 'text-sm sm:text-base')}>
+            <p
+              className={cn(
+                'font-semibold text-slate-900 truncate',
+                compact && 'text-sm sm:text-base',
+                showUnifiedTop && 'hidden xl:block'
+              )}
+            >
               {title}
             </p>
           )}
 
           {listing?.district ? (
-            <p className={cn('text-slate-500 truncate', compact ? 'text-[11px] sm:text-xs' : 'text-xs')}>
+            <p
+              className={cn(
+                'text-slate-500 truncate',
+                compact ? 'text-[11px] sm:text-xs' : 'text-xs',
+                showUnifiedTop && 'hidden xl:block'
+              )}
+            >
               {listing.district}
             </p>
           ) : null}
@@ -339,6 +403,7 @@ export function StickyChatHeader({
           language={language}
           compact={compact}
           groupDesktopTools={groupDesktopTools}
+          hideMobileDealInfo={showUnifiedTop}
         >
           {children}
         </ChatHeaderActions>

@@ -50,11 +50,22 @@ function buildMapperOpts(conv, userId, viewerRole, bookingState = null) {
     conv?.booking?.status ??
     conv?.bookingStatus ??
     null
+  const conversation = conv
+    ? {
+        renterId: conv.renterId,
+        renter_id: conv.renterId,
+        partnerId: conv.partnerId,
+        partner_id: conv.partnerId,
+        ownerId: conv.ownerId,
+        owner_id: conv.ownerId,
+      }
+    : null
   return {
     viewerUserId: userId ?? null,
     bookingStatus,
     viewerRole: viewerRole ?? null,
     listingCategory: conv?.listingCategory ?? null,
+    conversation,
   }
 }
 

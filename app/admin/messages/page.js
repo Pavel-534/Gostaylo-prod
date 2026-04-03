@@ -37,6 +37,7 @@ import { useChatTyping } from '@/hooks/use-chat-typing'
 import { cn } from '@/lib/utils'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
+import { SupportJoinedBanner } from '@/components/chat/SupportJoinedBanner'
 import { ChatBookingAnnouncement } from '@/components/chat-booking-announcement'
 
 function apiMessageToRow(m) {
@@ -78,6 +79,7 @@ function AdminMessagesPageContent() {
   const [threadLoading, setThreadLoading] = useState(false)
   /** На узком экране: true — показать переписку, false — список диалогов */
   const [mobileThread, setMobileThread] = useState(false)
+  const [joinSupportLoading, setJoinSupportLoading] = useState(false)
 
   const conversationId = selectedConv?.id
 
@@ -287,6 +289,42 @@ function AdminMessagesPageContent() {
       toast.error(error?.message || 'Не удалось загрузить файл')
     } finally {
       setSending(false)
+    }
+  }
+
+  const showJoinAsSupport =
+    !!selectedConv &&
+    !!me &&
+    String(selectedConv.adminId ?? selectedConv.admin_id ?? '') !== String(me.id)
+
+  async function handleJoinAsSupport() {
+    if (!selectedConv?.id || !me || joinSupportLoading) return
+    setJoinSupportLoading(true)
+    try {
+      const res = await fetch('/api/v2/chat/support/join', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: selectedConv.id,
+          lang: language === 'ru' ? 'ru' : 'en',
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        toast.error(json.error || (language === 'ru' ? 'Не удалось вступить в диалог' : 'Could not join'))
+        return
+      }
+      if (json.data?.alreadyJoined) {
+        toast.message(language === 'ru' ? 'Вы уже в этом диалоге' : 'You are already in this conversation')
+      } else {
+        toast.success(language === 'ru' ? 'Вы вступили в диалог' : 'You joined the conversation')
+      }
+      await loadMessages(selectedConv.id)
+    } catch (err) {
+      toast.error(err?.message || (language === 'ru' ? 'Ошибка сети' : 'Network error'))
+    } finally {
+      setJoinSupportLoading(false)
     }
   }
 
@@ -563,6 +601,28 @@ function AdminMessagesPageContent() {
               </span>
             </StickyChatHeader>
 
+            {showJoinAsSupport ? (
+              <div className="shrink-0 border-b border-slate-200/80 bg-slate-50/90 px-3 py-2 sm:px-4">
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="gap-1.5 border border-slate-200/90 bg-white/80 text-slate-700 shadow-sm hover:bg-slate-50"
+                    disabled={joinSupportLoading || threadLoading}
+                    onClick={() => void handleJoinAsSupport()}
+                  >
+                    {joinSupportLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Headphones className="h-4 w-4 text-teal-600" />
+                    )}
+                    {language === 'ru' ? 'Вступить в диалог' : 'Join as Support'}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
             <CardContent className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 bg-slate-50 min-h-0">
               {threadLoading ? (
                 <div className="flex flex-col items-center justify-center py-24 gap-2 text-slate-500">
@@ -622,6 +682,16 @@ function AdminMessagesPageContent() {
 
                 if (msgType === 'system') {
                   const sk = msg.metadata?.system_key
+                  if (sk === 'support_joined') {
+                    return (
+                      <Fragment key={msg.id}>
+                        {showDay ? <ChatDateSeparator label={dayLabel} /> : null}
+                        <div className="flex w-full justify-center px-2 py-1 sm:px-4">
+                          <SupportJoinedBanner message={msg} language={language} />
+                        </div>
+                      </Fragment>
+                    )
+                  }
                   if (
                     msg.metadata?.booking_announcement ||
                     sk === 'booking_confirmed' ||

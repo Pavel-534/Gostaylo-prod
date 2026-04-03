@@ -20,6 +20,7 @@ import { PushService } from '@/lib/services/push.service.js'
 import { getPublicSiteUrl } from '@/lib/site-url.js'
 import { registerTelegramReplyTarget } from '@/lib/services/telegram/telegram-reply-map.js'
 import { getEffectiveRate } from '@/lib/services/currency-helper'
+import { otherPartyHasReadRaw } from '@/lib/chat/read-receipts'
 
 export const dynamic = 'force-dynamic'
 
@@ -171,7 +172,9 @@ export async function GET(request) {
       message: m.message ?? m.content,
       type: m.type,
       metadata: m.metadata ?? null,
-      isRead: m.is_read,
+      readAtRenter: m.read_at_renter ?? null,
+      readAtPartner: m.read_at_partner ?? null,
+      isRead: otherPartyHasReadRaw(m, conversation),
       createdAt: m.created_at,
     })),
   })
@@ -492,7 +495,9 @@ export async function POST(request) {
       content: messageData.content,
       type: messageData.type,
       metadata: messageData.metadata,
-      isRead: messageData.is_read,
+      readAtRenter: null,
+      readAtPartner: null,
+      isRead: false,
       createdAt: messageData.created_at,
       invoice: invoiceRow,
     },

@@ -11,8 +11,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
-  Archive, ArrowLeft, Loader2,
-  LifeBuoy, Images, Search,
+  Archive, Loader2,
+  LifeBuoy, Images, Search, Info,
   Mic, MicOff, Paperclip, Send, Trash2, Plus,
 } from 'lucide-react'
 
@@ -21,6 +21,7 @@ import { ChatGrowingTextarea } from '@/components/chat-growing-textarea'
 import { detectUnsafePatterns, SafetyBanner } from '@/components/chat-safety'
 import { uploadChatVoice } from '@/lib/chat-upload'
 import { CHAT_COMPOSER_SHELL_CLASS } from '@/lib/chat-ui'
+import { cn } from '@/lib/utils'
 import { useVoiceRecorder } from '@/hooks/use-voice-recorder'
 import {
   DropdownMenu,
@@ -245,6 +246,18 @@ export default function UnifiedMessagesClient({ params }) {
   const inboxListHref = '/messages/'
   const archivedHallHref = '/messages/archived/'
 
+  const conversationForMapper = useMemo(() => {
+    if (!selectedConv) return null
+    return {
+      renterId: selectedConv.renterId,
+      renter_id: selectedConv.renterId,
+      partnerId: selectedConv.partnerId,
+      partner_id: selectedConv.partnerId,
+      ownerId: selectedConv.ownerId,
+      owner_id: selectedConv.ownerId,
+    }
+  }, [selectedConv])
+
   const chatContactName = useMemo(() => {
     if (!selectedConv) return ''
     if (selectedConv.adminId) return selectedConv.adminName || 'Поддержка'
@@ -407,6 +420,7 @@ export default function UnifiedMessagesClient({ params }) {
           viewerRole: viewerRoleForHook,
           bookingStatus: booking?.status ?? null,
           listingCategory: selectedConv?.listingCategory ?? null,
+          conversation: conversationForMapper,
         })
         if (mapped) setMessages((prev) => [...prev, mapped])
         inbox.refresh()
@@ -415,7 +429,7 @@ export default function UnifiedMessagesClient({ params }) {
       }
     } catch { toast.error('Ошибка сети') }
     finally { setSending(false) }
-  }, [selectedConv, user, peerOnline, booking?.status, setMessages, inbox, viewerRoleForHook])
+  }, [selectedConv, user, peerOnline, booking?.status, setMessages, inbox, viewerRoleForHook, conversationForMapper])
 
   const handleSendInvoice = useCallback(async (invoiceData) => {
     if (!selectedConv || !user) return
@@ -502,6 +516,7 @@ export default function UnifiedMessagesClient({ params }) {
           viewerRole: viewerRoleForHook,
           bookingStatus: booking?.status ?? null,
           listingCategory: selectedConv?.listingCategory ?? null,
+          conversation: conversationForMapper,
         })
         if (mapped) setMessages((prev) => [...prev, mapped])
         discardVoice()
@@ -511,7 +526,7 @@ export default function UnifiedMessagesClient({ params }) {
       }
     } catch { toast.error('Ошибка сети') }
     finally { setVoiceSending(false) }
-  }, [voiceBlob, user, selectedConv, voiceDuration, peerOnline, booking?.status, setMessages, discardVoice, inbox, viewerRoleForHook])
+  }, [voiceBlob, user, selectedConv, voiceDuration, peerOnline, booking?.status, setMessages, discardVoice, inbox, viewerRoleForHook, conversationForMapper])
 
   // ── Обработчик вкладки инбокса — с навигацией ────────────────────────────────
   const handleInboxTabChange = useCallback((next) => {
@@ -577,83 +592,88 @@ export default function UnifiedMessagesClient({ params }) {
     />
   )
 
+  const mobileHeaderIconClass =
+    'h-9 w-9 shrink-0 rounded-xl border border-white/55 bg-white/50 text-slate-700 shadow-[0_2px_12px_rgba(15,23,42,0.07)] backdrop-blur-md hover:bg-white/75'
+
   // Header
   const headerSlot = selectedConv ? (
-    <div className="flex min-w-0 items-stretch gap-2 border-b border-slate-200 bg-white px-1 py-1 sm:px-2 lg:border-0 lg:bg-transparent lg:px-0 lg:py-0">
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        className="h-8 w-8 shrink-0 self-center border-slate-200 text-slate-600 hover:bg-slate-50 xl:hidden"
-        aria-label={language === 'en' ? 'Back to conversations' : 'К списку диалогов'}
-        onClick={() => router.replace(inboxListHref, { scroll: false })}
-      >
-        <ArrowLeft className="h-4 w-4" />
-      </Button>
-      <div className="min-w-0 flex-1 overflow-x-hidden">
-        <StickyChatHeader
-          listing={listing}
-          booking={booking}
-          language={language}
-          isAdminView={false}
-          embedded
-          compact
-          groupDesktopTools={isPartnerAccount}
-          messagesListHref={inboxListHref}
-          hideBackButton
-          catalogHref="/listings"
-          className="border-0 shadow-none"
-          showBookingTimeline={Boolean(booking?.id && booking?.status)}
-          contactName={chatContactName}
-          presenceOnline={peerOnline}
-          lastSeenAt={peerLastSeenAt}
-          typingIndicator={typingLine}
-          typingGateWithPresence
-          onMediaGallery={() => setMediaGalleryOpen(true)}
-          onSearchToggle={() => { setSearchActive((v) => !v); setSearchQuery('') }}
-          searchActive={searchActive}
-          onDealInfoClick={() => setDealSheetOpen(true)}
-          partnerBookingActions={{
-            visible: isHosting && !!booking?.id && String(booking.status || '').toUpperCase() === 'PENDING',
-            loading: bookingActionLoading,
-            onConfirm: handleConfirmBooking,
-            onDecline: handleDeclineBooking,
-          }}
-          payNowHref={isHosting ? null : payNowHref}
-          onSupportClick={() => setSupportDialogOpen(true)}
-          supportPriorityActive={!!selectedConv?.isPriority}
-          supportLabel={language === 'ru' ? 'Поддержка' : 'Support'}
-        />
-      </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+    <StickyChatHeader
+      listing={listing}
+      booking={booking}
+      language={language}
+      isAdminView={false}
+      embedded
+      compact
+      groupDesktopTools={isPartnerAccount}
+      messagesListHref={inboxListHref}
+      hideBackButton={false}
+      unifiedMobileTopBar
+      mobileTopBarActions={
+        <>
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0 self-center border-slate-200 text-slate-600 hover:bg-slate-50"
-            title={language === 'ru' ? 'Архив диалогов' : 'Conversation archive'}
-            aria-label={language === 'ru' ? 'Архив' : 'Archive'}
+            className={cn(mobileHeaderIconClass)}
+            title={language === 'en' ? 'Deal details' : 'Детали сделки'}
+            aria-label={language === 'en' ? 'Deal details' : 'Детали сделки'}
+            onClick={() => setDealSheetOpen(true)}
           >
-            <Archive className="h-4 w-4" />
+            <Info className="h-4 w-4" strokeWidth={2} />
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuItem
-            className="gap-2 cursor-pointer"
-            onClick={() => void archiveConversation(selectedConv.id)}
-          >
-            <Archive className="h-4 w-4 shrink-0" />
-            {language === 'ru' ? 'Скрыть этот диалог' : 'Archive this chat'}
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href={archivedHallHref} className="cursor-pointer gap-2">
-              {language === 'ru' ? 'Все архивные диалоги' : 'All archived chats'}
-            </Link>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={cn(mobileHeaderIconClass)}
+                title={language === 'ru' ? 'Архив диалогов' : 'Conversation archive'}
+                aria-label={language === 'ru' ? 'Архив' : 'Archive'}
+              >
+                <Archive className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem
+                className="gap-2 cursor-pointer"
+                onClick={() => void archiveConversation(selectedConv.id)}
+              >
+                <Archive className="h-4 w-4 shrink-0" />
+                {language === 'ru' ? 'Скрыть этот диалог' : 'Archive this chat'}
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={archivedHallHref} className="cursor-pointer gap-2">
+                  {language === 'ru' ? 'Все архивные диалоги' : 'All archived chats'}
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </>
+      }
+      catalogHref="/listings"
+      className="border-b border-slate-200/80 bg-white/90 px-0 shadow-none backdrop-blur-md xl:border-0 xl:bg-transparent xl:backdrop-blur-none"
+      showBookingTimeline={Boolean(booking?.id && booking?.status)}
+      contactName={chatContactName}
+      presenceOnline={peerOnline}
+      lastSeenAt={peerLastSeenAt}
+      typingIndicator={typingLine}
+      typingGateWithPresence
+      onMediaGallery={() => setMediaGalleryOpen(true)}
+      onSearchToggle={() => { setSearchActive((v) => !v); setSearchQuery('') }}
+      searchActive={searchActive}
+      onDealInfoClick={() => setDealSheetOpen(true)}
+      partnerBookingActions={{
+        visible: isHosting && !!booking?.id && String(booking.status || '').toUpperCase() === 'PENDING',
+        loading: bookingActionLoading,
+        onConfirm: handleConfirmBooking,
+        onDecline: handleDeclineBooking,
+      }}
+      payNowHref={isHosting ? null : payNowHref}
+      onSupportClick={() => setSupportDialogOpen(true)}
+      supportPriorityActive={!!selectedConv?.isPriority}
+      supportLabel={language === 'ru' ? 'Поддержка' : 'Support'}
+    />
   ) : null
 
   // Search bar
@@ -698,24 +718,27 @@ export default function UnifiedMessagesClient({ params }) {
           <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
         </div>
       ) : (
-        <ChatMessageList
-          messages={messages}
-          userId={user?.id}
-          language={language}
-          isBookingPaid={isBookingPaid(booking?.status)}
-          searchHighlight={searchQuery.trim() || undefined}
-          ownVariant="teal"
-          userRole={isHosting ? 'partner' : 'renter'}
-          booking={booking}
-          listing={listing}
-          onInvoiceCancelled={(msgId) => {
-            setMessages((prev) => prev.map((m) =>
-              m.id === msgId
-                ? { ...m, metadata: { ...m.metadata, invoice: { ...m.metadata?.invoice, status: 'CANCELLED' } } }
-                : m
-            ))
-          }}
-        />
+        <>
+          {/* support_joined: banner inside ChatMessageList (POST /api/v2/chat/support/join) */}
+          <ChatMessageList
+            messages={messages}
+            userId={user?.id}
+            language={language}
+            isBookingPaid={isBookingPaid(booking?.status)}
+            searchHighlight={searchQuery.trim() || undefined}
+            ownVariant="teal"
+            userRole={isHosting ? 'partner' : 'renter'}
+            booking={booking}
+            listing={listing}
+            onInvoiceCancelled={(msgId) => {
+              setMessages((prev) => prev.map((m) =>
+                m.id === msgId
+                  ? { ...m, metadata: { ...m.metadata, invoice: { ...m.metadata?.invoice, status: 'CANCELLED' } } }
+                  : m
+              ))
+            }}
+          />
+        </>
       )}
     </>
   )
