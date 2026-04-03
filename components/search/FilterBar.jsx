@@ -35,6 +35,8 @@ export function FilterBar({
   smartSearchOn = true,
   setSmartSearchOn,
   semanticSearchFeatureEnabled = true,
+  /** Лупа / Enter в строке текста: полный поиск с ИИ (если включён) */
+  onSearchSubmit,
 }) {
   const locale = language === 'ru' ? ru : enUS;
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -102,6 +104,7 @@ export function FilterBar({
                 smartSearchOn={smartSearchOn}
                 setSmartSearchOn={setSmartSearchOn}
                 semanticSearchFeatureEnabled={semanticSearchFeatureEnabled}
+                onSearchSubmit={onSearchSubmit}
               />
             </div>
             <Button

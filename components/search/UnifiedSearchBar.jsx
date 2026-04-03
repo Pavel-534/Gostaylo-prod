@@ -61,6 +61,8 @@ export function UnifiedSearchBar({
   setSmartSearchOn,
   /** Сайтовый фича-флаг из /api/v2/site-features */
   semanticSearchFeatureEnabled = true,
+  /** Лупа / Enter / «Найти»: запуск полного поиска с semantic (если включён ИИ на сайте и в переключателе) */
+  onSearchSubmit,
   // Hero-only
   liveCount = null,
   countLoading = false,
@@ -125,7 +127,9 @@ export function UnifiedSearchBar({
     setGuestsDrawerOpen(false)
   }
 
-  const handleSearch = () => {
+  /** Кнопка «Найти» на hero: сначала commit семантики, затем переход/родитель */
+  const handleHeroFindClick = () => {
+    onSearchSubmit?.()
     onSearch?.()
   }
 
@@ -156,11 +160,24 @@ export function UnifiedSearchBar({
           variant === 'filter' && 'border-t-0 border-x-0 bg-white',
         )}
       >
-        <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+        <button
+          type="button"
+          onClick={() => onSearchSubmit?.()}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700"
+          aria-label={getUIText('findButton', language)}
+        >
+          <Search className="h-4 w-4" aria-hidden />
+        </button>
         <Input
           type="search"
           value={textQuery}
           onChange={(e) => setTextQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              onSearchSubmit?.()
+            }
+          }}
           placeholder={getUIText('catalogTextSearchPlaceholder', language)}
           className="h-9 min-w-0 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
           aria-label={getUIText('catalogTextSearchPlaceholder', language)}
@@ -181,21 +198,23 @@ export function UnifiedSearchBar({
                 }
               }}
               className={cn(
-                'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition-colors',
+                'flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 transition-colors',
                 !semanticSearchFeatureEnabled && 'cursor-not-allowed opacity-50',
                 semanticSearchFeatureEnabled &&
                   smartSearchOn &&
                   'border-violet-300 bg-violet-50 text-violet-700',
                 semanticSearchFeatureEnabled &&
                   !smartSearchOn &&
-                  'border-slate-200 bg-white text-slate-400 hover:bg-slate-50',
+                  'border-slate-200 bg-white text-slate-500 hover:bg-slate-50',
               )}
             >
-              <Sparkles className="h-4 w-4" aria-hidden />
-              <span className="sr-only">{getUIText('smartSearchShortLabel', language)}</span>
+              <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="text-xs font-semibold tracking-tight">
+                {language === 'ru' ? 'ИИ' : 'Smart'}
+              </span>
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom" className="max-w-[260px] text-center">
+          <TooltipContent side="bottom" className="max-w-[280px] text-center">
             {semanticSearchFeatureEnabled
               ? getUIText('smartSearchTooltip', language)
               : getUIText('smartSearchDisabledByAdmin', language)}
@@ -375,7 +394,7 @@ export function UnifiedSearchBar({
         </Popover>
 
         <Button
-          onClick={handleSearch}
+          onClick={handleHeroFindClick}
           className={cn(
             'h-12 px-6 m-1 bg-teal-600 hover:bg-teal-700',
             textSearchRow ? 'rounded-br-2xl rounded-tr-2xl' : 'rounded-full',
@@ -433,7 +452,7 @@ export function UnifiedSearchBar({
           </button>
         </div>
         <Button
-          onClick={handleSearch}
+          onClick={handleHeroFindClick}
           className="h-11 w-full rounded-xl bg-teal-600 hover:bg-teal-700"
           data-testid="unified-search-button"
         >

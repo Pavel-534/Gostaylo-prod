@@ -182,8 +182,13 @@ function ListingsContent() {
   const debouncedDateRange = useDebounce(dateRange)
   const debouncedSearchQuery = useDebounce(searchQuery, 400)
 
-  const useSemanticBlend =
-    semanticSiteEnabled && smartSearchOn && debouncedSearchQuery.trim().length >= 2
+  const [initialSemanticFromUrl] = useState(() => {
+    const s = searchParams.get('semantic')
+    const q = searchParams.get('q')
+    return s === '1' && (q || '').trim().length >= 2
+  })
+
+  const [aiSearchPending, setAiSearchPending] = useState(false)
 
   const appliedBboxKey = useMemo(() => {
     if (!appliedBbox) return `none::${mapFitResetKey}`
@@ -206,6 +211,7 @@ function ListingsContent() {
     error,
     isTransitioning,
     fetchListings,
+    commitSemanticSearch,
     loadMore,
     retry,
   } = useListingsFetch({
@@ -216,9 +222,23 @@ function ListingsContent() {
     appliedMapBounds: appliedBbox,
     extraFilters,
     debouncedTextQuery: debouncedSearchQuery,
-    useSemanticBlend,
+    liveTextQuery: searchQuery,
+    smartSearchOn,
+    semanticSiteEnabled,
+    initialSemanticFromUrl,
     itemsPerPage: ITEMS_PER_PAGE,
   })
+
+  const handleCatalogSearchSubmit = useCallback(() => {
+    if (smartSearchOn && semanticSiteEnabled && searchQuery.trim().length >= 2) {
+      setAiSearchPending(true)
+    }
+    commitSemanticSearch()
+  }, [smartSearchOn, semanticSiteEnabled, searchQuery, commitSemanticSearch])
+
+  useEffect(() => {
+    if (!loading) setAiSearchPending(false)
+  }, [loading])
 
   useEffect(() => {
     if (!mapSelectedListingId) return
@@ -280,7 +300,6 @@ function ListingsContent() {
     debouncedDateRange,
     debouncedGuests,
     debouncedSearchQuery,
-    useSemanticBlend,
     appliedBbox,
     extraFilters,
   ])
@@ -298,7 +317,6 @@ function ListingsContent() {
     if (debouncedGuests !== '1') params.set('guests', debouncedGuests)
     const qt = debouncedSearchQuery.trim()
     if (qt.length >= 2) params.set('q', qt)
-    if (semanticSiteEnabled) params.set('semantic', smartSearchOn ? '1' : '0')
     bboxToSearchParams(appliedBbox, params)
     appendExtraFiltersToParams(params, extraFilters)
     const s = params.toString()
@@ -313,8 +331,6 @@ function ListingsContent() {
     debouncedDateRange,
     debouncedGuests,
     debouncedSearchQuery,
-    smartSearchOn,
-    semanticSiteEnabled,
     appliedBbox,
     extraFilters,
   ])
@@ -433,6 +449,7 @@ function ListingsContent() {
         smartSearchOn={smartSearchOn}
         setSmartSearchOn={setSmartSearchOn}
         semanticSearchFeatureEnabled={semanticSiteEnabled}
+        onSearchSubmit={handleCatalogSearchSubmit}
       />
 
       <div className="container mx-auto px-4 py-6">
@@ -441,6 +458,7 @@ function ListingsContent() {
             <ListingSidebar
               listings={listings}
               loading={loading}
+              aiSearchPending={aiSearchPending}
               error={error}
               hasMore={hasMore}
               loadingMore={loadingMore}

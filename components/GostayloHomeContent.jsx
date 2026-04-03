@@ -8,7 +8,7 @@
  * @updated 2026-03-13
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
@@ -92,6 +92,8 @@ export function GostayloHomeContent() {
   const [searchQuery, setSearchQuery] = useState('')
   const [smartSearchOn, setSmartSearchOn] = useState(true)
   const [semanticSiteEnabled, setSemanticSiteEnabled] = useState(true)
+  const pendingHomeSemanticRef = useRef(false)
+  const [aiGridPending, setAiGridPending] = useState(false)
 
   // Live counter
   const [liveCount, setLiveCount] = useState(null)
@@ -242,12 +244,15 @@ export function GostayloHomeContent() {
         params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
       }
       if (guests && guests !== '1') params.set('guests', guests)
-      const qt = debouncedSearchQuery.trim()
+      const useSem =
+        pendingHomeSemanticRef.current && semanticSiteEnabled && smartSearchOn
+      const qt = (useSem ? searchQuery : debouncedSearchQuery).trim()
+      if (pendingHomeSemanticRef.current) pendingHomeSemanticRef.current = false
       if (qt.length >= 2) {
         params.set('q', qt)
-        if (semanticSiteEnabled && smartSearchOn) params.set('semantic', '1')
+        if (useSem) params.set('semantic', '1')
       }
-      
+
       const response = await fetch(`/api/v2/search?${params.toString()}`)
       const data = await response.json()
       
@@ -262,7 +267,7 @@ export function GostayloHomeContent() {
       setLoading(false)
     }
     return 0
-  }, [selectedCategory, where, dateRange, guests, debouncedSearchQuery, semanticSiteEnabled, smartSearchOn])
+  }, [selectedCategory, where, dateRange, guests, debouncedSearchQuery, searchQuery, semanticSiteEnabled, smartSearchOn])
 
   // Initial load
   useEffect(() => {
@@ -272,7 +277,7 @@ export function GostayloHomeContent() {
   // Live updates
   useEffect(() => {
     if (!loading) fetchListingsData(false)
-  }, [debouncedDateRange, debouncedWhere, debouncedGuests, debouncedSearchQuery, smartSearchOn, semanticSiteEnabled, loading, fetchListingsData])
+  }, [debouncedDateRange, debouncedWhere, debouncedGuests, debouncedSearchQuery, loading, fetchListingsData])
 
   // Live count fetch for search bar
   const fetchLiveCount = useCallback(async (dr, w, g, cat) => {
@@ -287,11 +292,8 @@ export function GostayloHomeContent() {
       }
       if (g && g !== '1') params.set('guests', g)
       const qt = (searchQuery || '').trim()
-      if (qt.length >= 2) {
-        params.set('q', qt)
-        if (semanticSiteEnabled && smartSearchOn) params.set('semantic', '1')
-      }
-      
+      if (qt.length >= 2) params.set('q', qt)
+
       const response = await fetch(`${LISTINGS_SEARCH_API_PATH}?${params.toString()}`)
       const data = await response.json()
       if (data.success) setLiveCount(data.data.meta.available)
@@ -300,7 +302,7 @@ export function GostayloHomeContent() {
     } finally {
       setCountLoading(false)
     }
-  }, [searchQuery, semanticSiteEnabled, smartSearchOn])
+  }, [searchQuery])
 
 
   // Price conversion
@@ -326,6 +328,18 @@ export function GostayloHomeContent() {
     if (semanticSiteEnabled) params.set('semantic', smartSearchOn ? '1' : '0')
     router.push(params.toString() ? `/listings?${params.toString()}` : '/listings')
   }, [selectedCategory, where, dateRange, guests, searchQuery, semanticSiteEnabled, smartSearchOn, router])
+
+  const handleHomeSearchSubmit = useCallback(() => {
+    if (smartSearchOn && semanticSiteEnabled && searchQuery.trim().length >= 2) {
+      setAiGridPending(true)
+    }
+    pendingHomeSemanticRef.current = true
+    fetchListingsData(false)
+  }, [smartSearchOn, semanticSiteEnabled, searchQuery, fetchListingsData])
+
+  useEffect(() => {
+    if (!listingsLoading) setAiGridPending(false)
+  }, [listingsLoading])
 
   const handleQuickCategorySearch = useCallback(
     (slug) => {
@@ -361,7 +375,7 @@ export function GostayloHomeContent() {
     if (dateRange.from && dateRange.to) {
       fetchLiveCount(dateRange, where, guests, selectedCategory)
     }
-  }, [debouncedSearchQuery, smartSearchOn, semanticSiteEnabled, dateRange, where, guests, selectedCategory, fetchLiveCount])
+  }, [debouncedSearchQuery, dateRange, where, guests, selectedCategory, fetchLiveCount])
 
   return (
     <div className='min-h-screen bg-white'>
@@ -397,6 +411,7 @@ export function GostayloHomeContent() {
               smartSearchOn={smartSearchOn}
               setSmartSearchOn={setSmartSearchOn}
               semanticSearchFeatureEnabled={semanticSiteEnabled}
+              onSearchSubmit={handleHomeSearchSubmit}
               liveCount={liveCount}
               countLoading={countLoading}
               nights={nights}
@@ -468,6 +483,15 @@ export function GostayloHomeContent() {
             </div>
             {listingsLoading && <Loader2 className='h-5 w-5 animate-spin text-teal-600' />}
           </div>
+
+          {aiGridPending && listingsLoading ? (
+            <div className="mb-4 flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50/90 px-4 py-3 text-sm font-medium text-violet-900 shadow-sm">
+              <span aria-hidden className="text-base">
+                ✨
+              </span>
+              {getUIText('aiSearchLoadingBanner', language)}
+            </div>
+          ) : null}
 
           {/* Skeleton Loading */}
           {loading ? (

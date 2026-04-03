@@ -101,29 +101,27 @@ export function GostayloListingCard({
   const typeLabel = getCategoryName(propertyType, language) || getCategoryName('property', language)
 
   return (
-    <Link 
-      href={detailUrl}
+    <article
       id={`listing-card-${id}`}
-      className={cn("block group scroll-mt-24", className)}
       data-testid={`listing-card-${id}`}
+      className={cn(
+        'group scroll-mt-24 overflow-hidden rounded-xl border bg-white transition-all duration-300 hover:shadow-xl md:group-hover:overflow-visible',
+        isMapHighlighted
+          ? 'relative z-0 border-teal-500 shadow-lg ring-2 ring-teal-500/40 ring-offset-2 hover:z-20'
+          : 'relative z-0 border-slate-100 hover:z-20 hover:border-teal-200',
+        className
+      )}
     >
-      <article
-        className={cn(
-          'bg-white rounded-xl overflow-hidden group-hover:overflow-visible transition-all duration-300 hover:shadow-xl border relative hover:z-20',
-          isMapHighlighted
-            ? 'border-teal-500 shadow-lg ring-2 ring-teal-500/40 ring-offset-2'
-            : 'border-slate-100 hover:border-teal-200'
-        )}
-      >
-        <CardImageCarousel
-          images={allImages}
-          title={title}
-          isFavorite={isFavorite}
-          onFavoriteClick={handleFavorite}
-        />
+      <CardImageCarousel
+        detailHref={detailUrl}
+        images={allImages}
+        title={title}
+        isFavorite={isFavorite}
+        onFavoriteClick={handleFavorite}
+      />
 
-        {/* Content */}
-        <div className="p-4">
+      {/* Текст и цена — отдельная ссылка; сердце не внутри anchor (валидный DOM) */}
+      <Link href={detailUrl} className="block p-4">
           {/* Title Row */}
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex-1 min-w-0">
@@ -198,8 +196,7 @@ export function GostayloListingCard({
               </span>
             )}
           </div>
-        </div>
-      </article>
-    </Link>
+      </Link>
+    </article>
   )
 }

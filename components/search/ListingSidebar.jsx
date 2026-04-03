@@ -19,6 +19,7 @@ import { isTransportListingCategory } from '@/lib/listing-category-slug';
 function ListingSidebarComponent({
   listings = [],
   loading = false,
+  aiSearchPending = false,
   error = null,
   hasMore = false,
   loadingMore = false,
@@ -68,7 +69,19 @@ function ListingSidebarComponent({
   
   // Loading State
   if (loading && !error) {
-    return <ListingGridSkeleton count={8} />;
+    return (
+      <>
+        {aiSearchPending ? (
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50/90 px-4 py-3 text-sm font-medium text-violet-900 shadow-sm">
+            <span aria-hidden className="text-base">
+              ✨
+            </span>
+            {getUIText('aiSearchLoadingBanner', language)}
+          </div>
+        ) : null}
+        <ListingGridSkeleton count={8} />
+      </>
+    );
   }
   
   // Empty State
