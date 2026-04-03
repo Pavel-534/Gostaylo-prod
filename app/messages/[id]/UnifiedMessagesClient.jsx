@@ -22,6 +22,7 @@ import { detectUnsafePatterns, SafetyBanner } from '@/components/chat-safety'
 import { uploadChatVoice } from '@/lib/chat-upload'
 import { CHAT_COMPOSER_SHELL_CLASS } from '@/lib/chat-ui'
 import { cn } from '@/lib/utils'
+import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 import { useVoiceRecorder } from '@/hooks/use-voice-recorder'
 import {
   DropdownMenu,
@@ -290,8 +291,12 @@ export default function UnifiedMessagesClient({ params }) {
 
   const unifiedDisplayName = useMemo(() => {
     if (!user) return language === 'ru' ? 'Гость' : 'Guest'
-    const n = [user.first_name, user.last_name].filter(Boolean).join(' ').trim()
-    return n || user.name || user.email || (language === 'ru' ? 'Гость' : 'Guest')
+    return formatPrivacyDisplayNameForParticipant(
+      user.first_name,
+      user.last_name,
+      user.email,
+      language === 'ru' ? 'Гость' : 'Guest'
+    )
   }, [user, language])
 
   const { peerTypingName, broadcastTyping } = useChatTyping(conversationId, user?.id, unifiedDisplayName)

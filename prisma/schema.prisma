@@ -280,6 +280,7 @@ model Review {
   rating          Int      // 1-5 stars
   comment         String
   photos          String[] // Array of photo URLs
+  isVerified      Boolean  @default(true) @map("is_verified")
   
   // Partner Reply
   partnerReply    String?

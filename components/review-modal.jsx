@@ -11,11 +11,13 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Star, X, Loader2, CheckCircle } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import { Star, X, Loader2, CheckCircle, ImagePlus } from 'lucide-react'
 import { toast } from 'sonner'
+import { processAndUploadReviewPhotos } from '@/lib/services/image-upload.service'
 
 const RATING_CATEGORIES = [
   { key: 'cleanliness', label: 'Cleanliness', icon: '🧹' },
@@ -55,7 +57,9 @@ function StarRating({ value, onChange, label }) {
   )
 }
 
-export function ReviewModal({ isOpen, onClose, booking, onSubmit, isSubmitting }) {
+const MAX_REVIEW_PHOTOS = 5
+
+export function ReviewModal({ isOpen, onClose, booking, userId, onSubmit, isSubmitting }) {
   const [ratings, setRatings] = useState({
     cleanliness: 0,
     accuracy: 0,
@@ -64,7 +68,9 @@ export function ReviewModal({ isOpen, onClose, booking, onSubmit, isSubmitting }
     value: 0
   })
   const [comment, setComment] = useState('')
+  const [photoFiles, setPhotoFiles] = useState([])
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const photoInputRef = useRef(null)
   
   if (!isOpen) return null
   
@@ -83,17 +89,39 @@ export function ReviewModal({ isOpen, onClose, booking, onSubmit, isSubmitting }
     }
     
     try {
-      await onSubmit({ ratings, comment })
+      let photos = []
+      if (photoFiles.length > 0 && userId && booking?.id) {
+        photos = await processAndUploadReviewPhotos(photoFiles, userId, booking.id)
+        if (photos.length !== photoFiles.length) {
+          toast.error('Some photos failed to upload. Try again or remove them.')
+          return
+        }
+      }
+      await onSubmit({ ratings, comment, photos })
       setSubmitSuccess(true)
       setTimeout(() => {
         onClose()
         setSubmitSuccess(false)
         setRatings({ cleanliness: 0, accuracy: 0, communication: 0, location: 0, value: 0 })
         setComment('')
+        setPhotoFiles([])
       }, 2000)
     } catch (error) {
       toast.error('Failed to submit review')
     }
+  }
+
+  function onPickPhotos(e) {
+    const picked = Array.from(e.target.files || []).filter((f) => f.type.startsWith('image/'))
+    if (!picked.length) return
+    setPhotoFiles((prev) => {
+      const next = [...prev, ...picked].slice(0, MAX_REVIEW_PHOTOS)
+      if (prev.length + picked.length > MAX_REVIEW_PHOTOS) {
+        toast.error(`At most ${MAX_REVIEW_PHOTOS} photos`)
+      }
+      return next
+    })
+    e.target.value = ''
   }
   
   const averageRating = Object.values(ratings).reduce((sum, r) => sum + r, 0) / 5
@@ -200,6 +228,39 @@ export function ReviewModal({ isOpen, onClose, booking, onSubmit, isSubmitting }
                 <p className="text-xs text-slate-500 mt-1">
                   {comment.length}/1000 characters
                 </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700">Photos (optional, max {MAX_REVIEW_PHOTOS})</Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="sr-only"
+                    onChange={onPickPhotos}
+                    disabled={photoFiles.length >= MAX_REVIEW_PHOTOS}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={photoFiles.length >= MAX_REVIEW_PHOTOS}
+                    onClick={() => photoInputRef.current?.click()}
+                  >
+                    <ImagePlus className="mr-1 h-4 w-4 inline" />
+                    Add photos
+                  </Button>
+                  {photoFiles.length > 0 && (
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setPhotoFiles([])}>
+                      Clear
+                    </Button>
+                  )}
+                </div>
+                {photoFiles.length > 0 && (
+                  <p className="text-xs text-slate-500">{photoFiles.length} image(s) selected (WebP compression on upload)</p>
+                )}
               </div>
               
               {/* Privacy Notice */}

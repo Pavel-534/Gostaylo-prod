@@ -12,7 +12,7 @@ import { getSessionPayload } from '@/lib/services/session-service'
 import { effectiveRoleFromProfile, isStaffRole } from '@/lib/services/chat/access'
 import { getPublicSiteUrl } from '@/lib/site-url.js'
 import { PushService } from '@/lib/services/push.service.js'
-import { stripLegacyModeratorMarker } from '@/lib/auth/display-name'
+import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,8 +41,7 @@ async function fetchProfileShort(userId) {
 
 function displayNameFromProfile(p) {
   if (!p) return 'Guest'
-  const n = [p.first_name, stripLegacyModeratorMarker(p.last_name)].filter(Boolean).join(' ').trim()
-  return n || p.email || 'User'
+  return formatPrivacyDisplayNameForParticipant(p.first_name, p.last_name, p.email, 'User')
 }
 
 function normalizeListingRow(L) {

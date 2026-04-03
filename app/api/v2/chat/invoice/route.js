@@ -17,7 +17,7 @@ import {
   userParticipatesInConversation,
 } from '@/lib/services/chat/access'
 import { getEffectiveRate } from '@/lib/services/currency-helper'
-import { stripLegacyModeratorMarker } from '@/lib/auth/display-name'
+import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 
 async function fetchProfile(userId) {
   const { data } = await supabaseAdmin
@@ -96,13 +96,12 @@ export async function POST(request) {
     }
 
     // ── Build invoice ─────────────────────────────────────────────────────
-    const senderName =
-      [profile?.first_name, stripLegacyModeratorMarker(profile?.last_name)]
-        .filter(Boolean)
-        .join(' ')
-        .trim() ||
-      profile?.email ||
+    const senderName = formatPrivacyDisplayNameForParticipant(
+      profile?.first_name,
+      profile?.last_name,
+      profile?.email,
       'Partner'
+    )
 
     const invoiceId = `inv-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
     const parsedAmount = parseFloat(amount)

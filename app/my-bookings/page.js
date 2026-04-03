@@ -11,6 +11,9 @@ import { Label } from '@/components/ui/label'
 import { Star, Calendar, MapPin, Loader2, ArrowLeft } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
+import { processAndUploadReviewPhotos } from '@/lib/services/image-upload.service'
+
+const MAX_REVIEW_PHOTOS = 5
 
 export default function MyBookings() {
   const [bookings, setBookings] = useState([])
@@ -22,6 +25,7 @@ export default function MyBookings() {
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [currentUserId, setCurrentUserId] = useState(null)
+  const [reviewPhotoFiles, setReviewPhotoFiles] = useState([])
 
   const loadBookings = useCallback(async () => {
     setLoading(true)
@@ -67,6 +71,7 @@ export default function MyBookings() {
     setSelectedBooking(booking)
     setRating(0)
     setComment('')
+    setReviewPhotoFiles([])
     setReviewModalOpen(true)
   }
 
@@ -99,6 +104,16 @@ export default function MyBookings() {
     setSubmitting(true)
 
     try {
+      let photos = []
+      if (reviewPhotoFiles.length > 0) {
+        photos = await processAndUploadReviewPhotos(reviewPhotoFiles, currentUserId, bookingId)
+        if (photos.length !== reviewPhotoFiles.length) {
+          toast.error('Не удалось загрузить все фото')
+          setSubmitting(false)
+          return
+        }
+      }
+
       const res = await fetch('/api/v2/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -108,6 +123,7 @@ export default function MyBookings() {
           bookingId,
           rating,
           comment: comment.trim(),
+          ...(photos.length ? { photos } : {}),
         }),
       })
 
@@ -116,6 +132,7 @@ export default function MyBookings() {
       if (res.ok && data.success) {
         toast.success('Отзыв опубликован! Спасибо за ваше мнение.')
         setReviewModalOpen(false)
+        setReviewPhotoFiles([])
         void loadBookings()
       } else {
         toast.error(data.error || 'Ошибка при публикации отзыва')
@@ -297,6 +314,40 @@ export default function MyBookings() {
                 <p className="text-xs text-slate-500 mt-2">
                   Имя в отзыве будет показано в формате «Имя Ф.» для конфиденциальности.
                 </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="review-photos-my-bookings" className="text-base font-semibold block">
+                  Фото (необязательно, до {MAX_REVIEW_PHOTOS})
+                </Label>
+                <input
+                  id="review-photos-my-bookings"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="text-sm text-slate-600 file:mr-2 file:rounded file:border file:border-slate-200 file:bg-white file:px-3 file:py-1"
+                  disabled={reviewPhotoFiles.length >= MAX_REVIEW_PHOTOS}
+                  onChange={(e) => {
+                    const picked = Array.from(e.target.files || []).filter((f) => f.type.startsWith('image/'))
+                    e.target.value = ''
+                    if (!picked.length) return
+                    setReviewPhotoFiles((prev) => {
+                      const next = [...prev, ...picked].slice(0, MAX_REVIEW_PHOTOS)
+                      if (prev.length + picked.length > MAX_REVIEW_PHOTOS) {
+                        toast.error(`Не более ${MAX_REVIEW_PHOTOS} фото`)
+                      }
+                      return next
+                    })
+                  }}
+                />
+                {reviewPhotoFiles.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500">{reviewPhotoFiles.length} файл(ов)</span>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setReviewPhotoFiles([])}>
+                      Сбросить
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3">

@@ -347,7 +347,7 @@ export default function RenterBookingsPage() {
   
   // Submit review mutation
   const submitReviewMutation = useMutation({
-    mutationFn: async ({ ratings, comment }) => {
+    mutationFn: async ({ ratings, comment, photos = [] }) => {
       const res = await fetch('/api/v2/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -356,7 +356,8 @@ export default function RenterBookingsPage() {
           listingId: selectedBooking.listing_id,
           bookingId: selectedBooking.id,
           ratings,
-          comment
+          comment,
+          ...(photos?.length ? { photos } : {}),
         })
       })
       
@@ -516,6 +517,7 @@ export default function RenterBookingsPage() {
         isOpen={reviewModalOpen}
         onClose={() => setReviewModalOpen(false)}
         booking={selectedBooking}
+        userId={userId}
         onSubmit={handleReviewSubmit}
         isSubmitting={submitReviewMutation.isPending}
       />

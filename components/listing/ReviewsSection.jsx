@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Star, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
+import { ReviewPhotosGallery } from '@/components/review-photos-gallery'
 
 export function ReviewsSection({ listing, reviews, language = 'en' }) {
   const [showAll, setShowAll] = useState(false)
@@ -58,6 +59,10 @@ export function ReviewsSection({ listing, reviews, language = 'en' }) {
                         <p className="text-slate-600 text-sm leading-relaxed">
                           {review.comment}
                         </p>
+                        <ReviewPhotosGallery
+                          photos={review.photos}
+                          className="mt-3"
+                        />
                       </div>
                     </div>
                   </CardContent>

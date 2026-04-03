@@ -8,8 +8,8 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Star, CheckCircle2, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Star, CheckCircle2, MessageSquare, ChevronDown, ChevronUp, ImagePlus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,8 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { ReviewPhotosGallery } from '@/components/review-photos-gallery';
+import { processAndUploadReviewPhotos } from '@/lib/services/image-upload.service';
 
 // Star rating display
 function StarRating({ rating, size = 'md' }) {
@@ -129,6 +131,8 @@ function ReviewCard({ review, language = 'ru' }) {
               {review.comment}
             </p>
           )}
+
+          <ReviewPhotosGallery photos={review.photos} className='mt-2' />
           
           {/* Partner Reply */}
           {review.partnerReply && (
@@ -160,12 +164,38 @@ function ReviewCard({ review, language = 'ru' }) {
   );
 }
 
+const MAX_REVIEW_PHOTOS = 5;
+
 // Write review dialog
 function WriteReviewDialog({ listingId, bookingId, onSuccess, language = 'ru' }) {
   const [open, setOpen] = useState(false);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [photoFiles, setPhotoFiles] = useState([]);
+  const [uploaderId, setUploaderId] = useState(null);
+  const photoInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) {
+      setUploaderId(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch('/api/v2/auth/me', { credentials: 'include' });
+        const j = await r.json();
+        if (!cancelled && j.success && j.user?.id) setUploaderId(j.user.id);
+        else if (!cancelled) setUploaderId(null);
+      } catch {
+        if (!cancelled) setUploaderId(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   const t = {
     ru: {
@@ -201,6 +231,21 @@ function WriteReviewDialog({ listingId, bookingId, onSuccess, language = 'ru' })
 
     setSubmitting(true);
     try {
+      let photos = [];
+      if (photoFiles.length > 0) {
+        if (!uploaderId) {
+          toast.error(language === 'ru' ? 'Войдите, чтобы загрузить фото' : 'Sign in to upload photos');
+          setSubmitting(false);
+          return;
+        }
+        photos = await processAndUploadReviewPhotos(photoFiles, uploaderId, bookingId);
+        if (photos.length !== photoFiles.length) {
+          toast.error(language === 'ru' ? 'Не удалось загрузить все фото' : 'Some photos failed to upload');
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const res = await fetch('/api/v2/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -209,7 +254,8 @@ function WriteReviewDialog({ listingId, bookingId, onSuccess, language = 'ru' })
           listingId,
           bookingId,
           rating,
-          comment
+          comment,
+          ...(photos.length ? { photos } : {}),
         })
       });
 
@@ -220,6 +266,7 @@ function WriteReviewDialog({ listingId, bookingId, onSuccess, language = 'ru' })
         setOpen(false);
         setRating(0);
         setComment('');
+        setPhotoFiles([]);
         onSuccess?.();
       } else {
         toast.error(data.error || 'Failed to submit review');
@@ -230,6 +277,19 @@ function WriteReviewDialog({ listingId, bookingId, onSuccess, language = 'ru' })
       setSubmitting(false);
     }
   };
+
+  function onPickPhotos(e) {
+    const picked = Array.from(e.target.files || []).filter((f) => f.type.startsWith('image/'));
+    if (!picked.length) return;
+    setPhotoFiles((prev) => {
+      const next = [...prev, ...picked].slice(0, MAX_REVIEW_PHOTOS);
+      if (prev.length + picked.length > MAX_REVIEW_PHOTOS) {
+        toast.error(language === 'ru' ? `Не более ${MAX_REVIEW_PHOTOS} фото` : `At most ${MAX_REVIEW_PHOTOS} photos`);
+      }
+      return next;
+    });
+    e.target.value = '';
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -262,6 +322,43 @@ function WriteReviewDialog({ listingId, bookingId, onSuccess, language = 'ru' })
               placeholder={t.commentPlaceholder}
               rows={4}
             />
+          </div>
+
+          <div className='space-y-2'>
+            <label className='text-sm font-medium text-slate-700 block'>
+              {language === 'ru' ? `Фото (необязательно, до ${MAX_REVIEW_PHOTOS})` : `Photos (optional, max ${MAX_REVIEW_PHOTOS})`}
+            </label>
+            <input
+              ref={photoInputRef}
+              type='file'
+              accept='image/*'
+              multiple
+              className='sr-only'
+              onChange={onPickPhotos}
+              disabled={photoFiles.length >= MAX_REVIEW_PHOTOS}
+            />
+            <div className='flex flex-wrap gap-2'>
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                disabled={photoFiles.length >= MAX_REVIEW_PHOTOS}
+                onClick={() => photoInputRef.current?.click()}
+              >
+                <ImagePlus className='h-4 w-4 mr-1' />
+                {language === 'ru' ? 'Добавить фото' : 'Add photos'}
+              </Button>
+              {photoFiles.length > 0 && (
+                <Button type='button' variant='ghost' size='sm' onClick={() => setPhotoFiles([])}>
+                  {language === 'ru' ? 'Сбросить' : 'Clear'}
+                </Button>
+              )}
+            </div>
+            {photoFiles.length > 0 && (
+              <p className='text-xs text-slate-500'>
+                {photoFiles.length} {language === 'ru' ? 'файл(ов)' : 'file(s)'}
+              </p>
+            )}
           </div>
           
           <Button 

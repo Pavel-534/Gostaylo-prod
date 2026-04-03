@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog'
 import { Star, MessageSquare, CheckCircle2, Loader2, Reply } from 'lucide-react'
 import { toast } from 'sonner'
+import { ReviewPhotosGallery } from '@/components/review-photos-gallery'
 
 // Star rating display
 function StarRating({ rating }) {
@@ -260,6 +261,7 @@ export default function PartnerReviewsPage() {
                     {review.comment && (
                       <p className='mt-3 text-slate-700'>{review.comment}</p>
                     )}
+                    <ReviewPhotosGallery photos={review.photos} className='mt-3' />
                     
                     {/* Partner Reply */}
                     {review.partnerReply && (

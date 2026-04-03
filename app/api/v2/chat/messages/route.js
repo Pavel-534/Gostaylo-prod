@@ -21,7 +21,7 @@ import { getPublicSiteUrl } from '@/lib/site-url.js'
 import { registerTelegramReplyTarget } from '@/lib/services/telegram/telegram-reply-map.js'
 import { getEffectiveRate } from '@/lib/services/currency-helper'
 import { otherPartyHasReadRaw } from '@/lib/chat/read-receipts'
-import { stripLegacyModeratorMarker } from '@/lib/auth/display-name'
+import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 
 export const dynamic = 'force-dynamic'
 
@@ -230,13 +230,12 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
   }
 
-  const senderName =
-    [profile?.first_name, stripLegacyModeratorMarker(profile?.last_name)]
-      .filter(Boolean)
-      .join(' ')
-      .trim() ||
-    profile?.email ||
+  const senderName = formatPrivacyDisplayNameForParticipant(
+    profile?.first_name,
+    profile?.last_name,
+    profile?.email,
     'User'
+  )
   const senderRole = accessRole
 
   let type = normalizeMessageType(rawType)

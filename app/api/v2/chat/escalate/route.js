@@ -20,7 +20,7 @@ import {
   SUPPORT_DISPUTE_KINDS,
   buildSupportTicketMessage,
 } from '@/lib/support-request-options'
-import { stripLegacyModeratorMarker } from '@/lib/auth/display-name'
+import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 
 export const dynamic = 'force-dynamic'
 
@@ -176,13 +176,12 @@ export async function POST(request) {
   if (wantsTicket) {
     const profile = await fetchProfileShort(userId)
     const senderRole = effectiveRoleFromProfile(profile)
-    const senderName =
-      [profile?.first_name, stripLegacyModeratorMarker(profile?.last_name)]
-        .filter(Boolean)
-        .join(' ')
-        .trim() ||
-      profile?.email ||
+    const senderName = formatPrivacyDisplayNameForParticipant(
+      profile?.first_name,
+      profile?.last_name,
+      profile?.email,
       'User'
+    )
     const ticket = {
       category: rawCategory,
       disputeType: rawDispute,

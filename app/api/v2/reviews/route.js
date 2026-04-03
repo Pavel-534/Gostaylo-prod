@@ -7,17 +7,21 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getUserIdFromSession } from '@/lib/services/session-service';
+import {
+  formatPrivacyDisplayName,
+  formatReviewerInitial,
+} from '@/lib/utils/name-formatter';
 
 export const dynamic = 'force-dynamic';
 
-// Format user name: "Pavel S." (First name + last initial only; privacy)
-function formatReviewerName(firstName, lastName) {
-  const first = typeof firstName === 'string' ? firstName.trim() : '';
-  if (!first) return 'Guest';
-  const last = typeof lastName === 'string' ? lastName.trim() : '';
-  if (!last) return first;
-  const initial = last[0];
-  return `${first} ${initial}.`;
+const MAX_REVIEW_PHOTOS = 5;
+
+function normalizeReviewPhotoUrl(u) {
+  const s = typeof u === 'string' ? u.trim() : '';
+  if (!s) return null;
+  if (s.startsWith('/_storage/review-images/')) return s;
+  if (s.includes('/review-images/')) return s;
+  return null;
 }
 
 export async function GET(request) {
@@ -86,8 +90,9 @@ export async function GET(request) {
         value: review.rating_value
       },
       comment: review.comment,
-      reviewerName: formatReviewerName(review.profiles?.first_name, review.profiles?.last_name),
-      reviewerInitial: review.profiles?.first_name?.[0]?.toUpperCase() || 'G',
+      reviewerName: formatPrivacyDisplayName(review.profiles?.first_name, review.profiles?.last_name),
+      reviewerInitial: formatReviewerInitial(review.profiles?.first_name),
+      photos: Array.isArray(review.photos) ? review.photos : [],
       createdAt: review.created_at,
       partnerReply: review.partner_reply,
       partnerReplyAt: review.partner_reply_at,
@@ -139,6 +144,7 @@ export async function POST(request) {
       rating,
       comment,
       ratings = null,
+      photos: photosRaw = null,
     } = body;
 
     if (!listingId) {
@@ -245,6 +251,35 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
+    let photos = [];
+    if (photosRaw != null) {
+      if (!Array.isArray(photosRaw)) {
+        return NextResponse.json(
+          { success: false, error: 'photos must be an array of URLs' },
+          { status: 400 }
+        );
+      }
+      const seen = new Set();
+      for (const item of photosRaw) {
+        const url = normalizeReviewPhotoUrl(item);
+        if (!url) {
+          return NextResponse.json(
+            { success: false, error: 'Invalid review photo URL' },
+            { status: 400 }
+          );
+        }
+        if (seen.has(url)) continue;
+        seen.add(url);
+        photos.push(url);
+        if (photos.length > MAX_REVIEW_PHOTOS) {
+          return NextResponse.json(
+            { success: false, error: `At most ${MAX_REVIEW_PHOTOS} photos allowed` },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     // Create review
     const reviewId = `review-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
@@ -257,6 +292,8 @@ export async function POST(request) {
         booking_id: trimmedBookingId,
         ...ratingData,
         comment: comment?.trim() || null,
+        photos: photos.length ? photos : [],
+        is_verified: true,
         created_at: new Date().toISOString()
       })
       .select()

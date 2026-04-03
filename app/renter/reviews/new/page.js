@@ -16,6 +16,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { processAndUploadReviewPhotos } from '@/lib/services/image-upload.service'
+
+const MAX_REVIEW_PHOTOS = 5
 
 function StarRow({ value, onChange, label }) {
   return (
@@ -49,6 +52,8 @@ function NewReviewContent() {
   const [submitting, setSubmitting] = useState(false)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
+  const [photoFiles, setPhotoFiles] = useState([])
+  const [uploadingPhotos, setUploadingPhotos] = useState(false)
 
   const load = useCallback(async () => {
     if (!bookingId) {
@@ -109,6 +114,18 @@ function NewReviewContent() {
     if (!me?.id || !listingId || !bookingId) return
     setSubmitting(true)
     try {
+      let photos = []
+      if (photoFiles.length > 0) {
+        setUploadingPhotos(true)
+        photos = await processAndUploadReviewPhotos(photoFiles, me.id, bookingId)
+        setUploadingPhotos(false)
+        if (photos.length !== photoFiles.length) {
+          toast.error('Не удалось загрузить все фото')
+          setSubmitting(false)
+          return
+        }
+      }
+
       const res = await fetch('/api/v2/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -118,6 +135,7 @@ function NewReviewContent() {
           bookingId,
           rating,
           comment: comment.trim() || undefined,
+          ...(photos.length ? { photos } : {}),
         }),
       })
       const json = await res.json()
@@ -134,6 +152,7 @@ function NewReviewContent() {
     } catch {
       toast.error('Ошибка сети')
     } finally {
+      setUploadingPhotos(false)
       setSubmitting(false)
     }
   }
@@ -262,15 +281,47 @@ function NewReviewContent() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="review-photos-new">Фото (необязательно, до {MAX_REVIEW_PHOTOS})</Label>
+              <input
+                id="review-photos-new"
+                type="file"
+                accept="image/*"
+                multiple
+                disabled={photoFiles.length >= MAX_REVIEW_PHOTOS}
+                className="block w-full text-sm text-slate-600 file:mr-2 file:rounded file:border file:border-slate-200 file:bg-white file:px-3 file:py-1"
+                onChange={(e) => {
+                  const picked = Array.from(e.target.files || []).filter((f) => f.type.startsWith('image/'))
+                  e.target.value = ''
+                  if (!picked.length) return
+                  setPhotoFiles((prev) => {
+                    const next = [...prev, ...picked].slice(0, MAX_REVIEW_PHOTOS)
+                    if (prev.length + picked.length > MAX_REVIEW_PHOTOS) {
+                      toast.error(`Не более ${MAX_REVIEW_PHOTOS} фото`)
+                    }
+                    return next
+                  })
+                }}
+              />
+              {photoFiles.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500">{photoFiles.length} файл(ов)</span>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setPhotoFiles([])}>
+                    Сбросить
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <Button
               type="submit"
               className="w-full bg-teal-600 hover:bg-teal-700"
-              disabled={submitting || rating < 1}
+              disabled={submitting || uploadingPhotos || rating < 1}
             >
-              {submitting ? (
+              {submitting || uploadingPhotos ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Отправка…
+                  {uploadingPhotos ? 'Загрузка фото…' : 'Отправка…'}
                 </>
               ) : (
                 'Отправить отзыв'
