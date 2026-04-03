@@ -6,7 +6,7 @@
  */
 export default function AdminMessagesLayout({ children }) {
   return (
-    <div className="flex min-h-0 w-full flex-col overflow-hidden max-lg:min-h-[calc(100dvh-3.5rem)] max-lg:max-h-[calc(100dvh-3.5rem)] lg:min-h-[min(720px,calc(100vh-9rem))] lg:max-h-[calc(100vh-9rem)]">
+    <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden lg:max-h-[calc(100vh-9rem)] lg:min-h-[min(720px,calc(100vh-9rem))]">
       {children}
     </div>
   )

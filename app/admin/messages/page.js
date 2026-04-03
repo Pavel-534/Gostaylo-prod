@@ -120,46 +120,57 @@ function AdminMessagesHallContent() {
     )
   }
 
-  const statChipClass = ({ active, tone = 'indigo' }) =>
+  const statRowClass = ({ active, tone = 'indigo', interactive = true }) =>
     cn(
-      'flex min-w-[9.5rem] max-w-[11rem] shrink-0 flex-col rounded-xl border bg-white px-3 py-2 text-left shadow-sm transition',
-      active && tone === 'indigo' && 'border-indigo-400 ring-2 ring-indigo-300/60',
-      active && tone === 'amber' && 'border-amber-400 ring-2 ring-amber-300/70',
-      !active && 'border-slate-200/90 hover:border-slate-300'
+      'flex w-full items-center gap-2.5 rounded-2xl border bg-gradient-to-br from-white to-slate-50/90 px-3 py-2 text-left shadow-[0_1px_0_rgba(15,23,42,0.04),0_4px_16px_rgba(15,23,42,0.06)] backdrop-blur-sm transition',
+      interactive && 'active:scale-[0.99]',
+      active && tone === 'indigo' && 'border-indigo-300/90 ring-1 ring-indigo-400/35',
+      active && tone === 'amber' && 'border-amber-300/90 ring-1 ring-amber-400/40',
+      !active && 'border-slate-200/70',
+      interactive && !active && 'hover:border-slate-300/80'
     )
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col gap-2 lg:gap-4">
-      {/* Мобиле: компактная полоса; тап «все» / «приоритет» */}
-      <div className="flex gap-2 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch] lg:hidden">
+      {/* Мобиле: узкий вертикальный список метрик (премиальный ряд, не горизонтальный скролл) */}
+      <div className="mx-auto flex w-full max-w-[17rem] shrink-0 flex-col gap-1.5 lg:hidden">
         <button
           type="button"
-          className={statChipClass({ active: !priorityOnly, tone: 'indigo' })}
+          className={statRowClass({ active: !priorityOnly, tone: 'indigo' })}
           onClick={() => setPriorityOnly(false)}
         >
-          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-            <Inbox className="h-3.5 w-3.5 text-indigo-600" />
-            {t('adminStatsTotalChats')}
-          </span>
-          <span className="text-xl font-bold tabular-nums leading-tight text-slate-900">{chatStats?.totalChats ?? '—'}</span>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10">
+            <Inbox className="h-4 w-4 text-indigo-600" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">{t('adminStatsTotalChats')}</p>
+            <p className="text-xs text-slate-500/90">{t('adminStatsTotalChatsHint')}</p>
+          </div>
+          <span className="text-lg font-bold tabular-nums text-slate-900">{chatStats?.totalChats ?? '—'}</span>
         </button>
-        <div className={cn(statChipClass({ active: false }), 'cursor-default opacity-95')}>
-          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-            <Activity className="h-3.5 w-3.5 text-emerald-600" />
-            {t('adminStatsActiveToday')}
-          </span>
-          <span className="text-xl font-bold tabular-nums leading-tight text-slate-900">{chatStats?.activeToday ?? '—'}</span>
+        <div className={statRowClass({ active: false, interactive: false })}>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10">
+            <Activity className="h-4 w-4 text-emerald-600" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">{t('adminStatsActiveToday')}</p>
+            <p className="text-xs text-slate-500/90">{t('adminStatsActiveTodayHint')}</p>
+          </div>
+          <span className="text-lg font-bold tabular-nums text-slate-900">{chatStats?.activeToday ?? '—'}</span>
         </div>
         <button
           type="button"
-          className={statChipClass({ active: priorityOnly, tone: 'amber' })}
+          className={statRowClass({ active: priorityOnly, tone: 'amber' })}
           onClick={() => setPriorityOnly(true)}
         >
-          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-            <Headphones className="h-3.5 w-3.5 text-amber-600" />
-            {t('adminStatsSupportNeeded')}
-          </span>
-          <span className="text-xl font-bold tabular-nums leading-tight text-slate-900">{chatStats?.supportNeeded ?? '—'}</span>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-500/10">
+            <Headphones className="h-4 w-4 text-amber-600" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[9px] font-semibold uppercase tracking-wide text-slate-500">{t('adminStatsSupportNeeded')}</p>
+            <p className="text-xs text-slate-500/90">{t('adminStatsSupportNeededHint')}</p>
+          </div>
+          <span className="text-lg font-bold tabular-nums text-slate-900">{chatStats?.supportNeeded ?? '—'}</span>
         </button>
       </div>
 

@@ -175,7 +175,14 @@ export default function AdminLayout({ children }) {
   const isAdminMessagesSection = pathname?.startsWith('/admin/messages');
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div
+      className={cn(
+        'flex flex-col bg-slate-50',
+        isAdminMessagesSection
+          ? 'max-lg:fixed max-lg:inset-0 max-lg:z-[1] max-lg:h-[100dvh] max-lg:max-h-[100dvh] max-lg:overflow-hidden lg:relative lg:inset-auto lg:z-auto lg:min-h-screen lg:h-auto lg:max-h-none lg:overflow-visible'
+          : 'min-h-screen',
+      )}
+    >
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div 
@@ -244,8 +251,8 @@ export default function AdminLayout({ children }) {
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <div className="flex flex-1">
+      {/* Main Content Area — min-h-0: дочерний main может сжиматься, скролл остаётся внутри чата */}
+      <div className={cn('flex min-h-0 flex-1', isAdminMessagesSection && 'overflow-hidden')}>
         {/* Sidebar - Premium Deep Sea Design */}
         <aside
           className={`${
@@ -331,8 +338,9 @@ export default function AdminLayout({ children }) {
       {/* Main Content */}
       <main
         className={cn(
-          'flex-1 lg:ml-64 pt-14 lg:pt-0 w-full max-w-full overflow-x-hidden',
-          isAdminMessagesSection && 'flex min-h-0 flex-col overflow-hidden'
+          'w-full max-w-full flex-1 overflow-x-hidden pt-14 lg:ml-64 lg:pt-0',
+          isAdminMessagesSection &&
+            'flex min-h-0 flex-col overflow-hidden max-lg:flex-1'
         )}
       >
         {/* Desktop Top Bar with Impersonation */}
@@ -397,7 +405,7 @@ export default function AdminLayout({ children }) {
           className={cn(
             'max-w-full overflow-x-hidden p-4 lg:p-8',
             isAdminMessagesSection &&
-              'flex min-h-0 flex-1 flex-col overflow-hidden p-0 lg:flex lg:flex-1 lg:flex-col lg:overflow-hidden lg:p-6'
+              'flex h-full min-h-0 flex-1 flex-col overflow-hidden p-0 lg:p-6'
           )}
         >
           {children}
