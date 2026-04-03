@@ -31,9 +31,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { formatPrice } from '@/lib/currency'
+import { fetchExchangeRates } from '@/lib/client-data'
 import { cn } from '@/lib/utils'
 import { INBOX_TAB_TRAVELING, setRenterInboxTabPreference } from '@/lib/chat-inbox-tabs'
 import { useChatContext } from '@/lib/context/ChatContext'
+import { useCommission } from '@/hooks/use-commission'
 
 const CHAT_CACHE_TTL = 5 * 60 * 1000 // 5 min
 
@@ -118,6 +120,7 @@ function PremiumListingContent({ params }) {
   const [hasUnreadFromHost, setHasUnreadFromHost] = useState(false)
 
   const { getConversationForListing, loaded: chatLoaded } = useChatContext()
+  const commissionHook = useCommission(listing?.ownerId ?? null)
   
   // Initialize from URL
   useEffect(() => {
@@ -145,6 +148,7 @@ function PremiumListingContent({ params }) {
     setLanguage(detectLanguage())
     loadListing()
     loadReviews()
+    fetchExchangeRates().then(setExchangeRates).catch(() => {})
   }, [params.id])
 
   // Sync language when user switches in header
@@ -277,19 +281,30 @@ function PremiumListingContent({ params }) {
         exchangeRates
       })
       
-      const serviceFeeRate = (listing.commissionRate || 15) / 100
+      const cr = Number(listing.commissionRate)
+      let commissionPct =
+        Number.isFinite(cr) && cr >= 0
+          ? cr
+          : commissionHook.loading
+            ? null
+            : Number(commissionHook.effectiveRate)
+      if (commissionPct == null || !Number.isFinite(commissionPct)) {
+        setPriceCalc(null)
+        return
+      }
+      const serviceFeeRate = commissionPct / 100
       const serviceFee = Math.round(calc.totalPrice * serviceFeeRate)
       
       setPriceCalc({
         ...calc,
         nights,
         subtotal: calc.totalPrice,
-        commissionRate: listing.commissionRate || 15,
+        commissionRate: commissionPct,
         serviceFee,
         finalTotal: calc.totalPrice + serviceFee
       })
     }
-  }, [listing, dateRange, currency, exchangeRates])
+  }, [listing, dateRange, currency, exchangeRates, commissionHook.loading, commissionHook.effectiveRate])
   
   async function loadListing() {
     try {
@@ -320,7 +335,7 @@ function PremiumListingContent({ params }) {
           latitude: l.latitude,
           longitude: l.longitude,
           basePriceThb: parseFloat(l.basePriceThb),
-          commissionRate: parseFloat(l.commissionRate) || 15,
+          commissionRate: parseFloat(l.commissionRate),
           images: l.images || [],
           coverImage: l.coverImage,
           metadata: l.metadata || {},

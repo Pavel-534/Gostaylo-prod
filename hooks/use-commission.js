@@ -1,46 +1,45 @@
 /**
  * useCommission Hook
- * Fetches the effective commission rate from the database
- * Falls back to 15% if API fails
+ * Fetches the effective commission rate from /api/v2/commission (backed by DB + CurrencyService).
  */
 
 import { useState, useEffect } from 'react'
 
 export function useCommission(partnerId = null) {
   const [commission, setCommission] = useState({
-    systemRate: 15,
+    systemRate: null,
     personalRate: null,
-    effectiveRate: 15,
-    partnerEarningsPercent: 85,
+    effectiveRate: null,
+    partnerEarningsPercent: null,
     loading: true,
-    error: null
+    error: null,
   })
 
   useEffect(() => {
     const fetchCommission = async () => {
       try {
-        const url = partnerId 
+        const url = partnerId
           ? `/api/v2/commission?partnerId=${partnerId}`
           : '/api/v2/commission'
-        
+
         const res = await fetch(url)
         const data = await res.json()
-        
-        if (data.success) {
+
+        if (data.success && data.data) {
           setCommission({
             ...data.data,
             loading: false,
-            error: null
+            error: null,
           })
         } else {
           throw new Error(data.error || 'Failed to fetch')
         }
       } catch (error) {
         console.error('useCommission error:', error)
-        setCommission(prev => ({
+        setCommission((prev) => ({
           ...prev,
           loading: false,
-          error: error.message
+          error: error.message,
         }))
       }
     }
@@ -58,22 +57,20 @@ export function useCommission(partnerId = null) {
 export async function getCommissionRate(partnerId = null) {
   try {
     const { createClient } = await import('@supabase/supabase-js')
-    
+    const { resolveDefaultCommissionPercent } = await import('@/lib/services/currency.service')
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     )
 
-    // Get system rate
-    const { data: settings } = await supabase
-      .from('system_settings')
-      .select('value')
-      .eq('key', 'general')
-      .single()
+    const { data: settings } = await supabase.from('system_settings').select('value').eq('key', 'general').single()
 
-    const systemRate = settings?.value?.defaultCommissionRate || 15
+    const raw = settings?.value?.defaultCommissionRate
+    const parsed = parseFloat(raw)
+    const systemRate =
+      Number.isFinite(parsed) && parsed >= 0 && parsed <= 100 ? parsed : await resolveDefaultCommissionPercent()
 
-    // Get personal rate if partnerId provided
     let personalRate = null
     if (partnerId) {
       const { data: profile } = await supabase
@@ -82,7 +79,7 @@ export async function getCommissionRate(partnerId = null) {
         .eq('id', partnerId)
         .single()
 
-      if (profile?.custom_commission_rate !== null) {
+      if (profile?.custom_commission_rate !== null && profile?.custom_commission_rate !== undefined) {
         personalRate = profile.custom_commission_rate
       }
     }
@@ -93,15 +90,17 @@ export async function getCommissionRate(partnerId = null) {
       systemRate,
       personalRate,
       effectiveRate,
-      partnerEarningsPercent: 100 - effectiveRate
+      partnerEarningsPercent: 100 - effectiveRate,
     }
   } catch (error) {
     console.error('getCommissionRate error:', error)
+    const { resolveDefaultCommissionPercent } = await import('@/lib/services/currency.service')
+    const fallback = await resolveDefaultCommissionPercent()
     return {
-      systemRate: 15,
+      systemRate: fallback,
       personalRate: null,
-      effectiveRate: 15,
-      partnerEarningsPercent: 85
+      effectiveRate: fallback,
+      partnerEarningsPercent: 100 - fallback,
     }
   }
 }

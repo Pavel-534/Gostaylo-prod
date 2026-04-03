@@ -99,17 +99,27 @@ export default function AdminDashboard() {
         'Authorization': `Bearer ${SUPABASE_KEY}`
       };
       
-      const [profilesRes, listingsRes, bookingsRes, activityRes] = await Promise.all([
+      const [profilesRes, listingsRes, bookingsRes, activityRes, fxRes, commRes] = await Promise.all([
         fetch(`/_db/profiles?select=id,role`, { headers }),
         fetch(`/_db/listings?select=id,status,base_price_thb,category_id`, { headers }),
         fetch(`/_db/bookings?select=id,status,price_thb,commission_thb`, { headers }),
-        fetch(`/_db/activity_log?select=*&order=created_at.desc&limit=8`, { headers })
+        fetch(`/_db/activity_log?select=*&order=created_at.desc&limit=8`, { headers }),
+        fetch(`/api/v2/exchange-rates`, { cache: 'no-store' }),
+        fetch(`/api/v2/commission`, { cache: 'no-store' }),
       ]);
       
       const profiles = await profilesRes.json();
       const listings = await listingsRes.json();
       const bookings = await bookingsRes.json();
       const activityData = await activityRes.json();
+      const fxJson = await fxRes.json().catch(() => ({}));
+      const commJson = await commRes.json().catch(() => ({}));
+      const thbPerUsdt =
+        fxJson.success && fxJson.rateMap?.USDT ? Number(fxJson.rateMap.USDT) : null;
+      const systemCommissionPct =
+        commJson.success && commJson.data?.systemRate != null
+          ? Number(commJson.data.systemRate)
+          : null;
       
       // Calculate stats
       const totalPartners = profiles.filter(p => p.role === 'PARTNER').length;
@@ -121,13 +131,19 @@ export default function AdminDashboard() {
       const activeBookings = bookings.filter(b => ['PENDING', 'CONFIRMED', 'PAID'].includes(b.status)).length;
       
       // Mock monthly revenue for chart
+      const febUsdt =
+        thbPerUsdt && totalRevenue > 0
+          ? Math.round(totalRevenue / thbPerUsdt)
+          : thbPerUsdt && (totalRevenue || 15000)
+            ? Math.round((totalRevenue || 15000) / thbPerUsdt)
+            : null;
       const monthlyRevenue = [
         { month: 'Сен', thb: 125000, usdt: 3500 },
         { month: 'Окт', thb: 185000, usdt: 5200 },
         { month: 'Ноя', thb: 220000, usdt: 6200 },
         { month: 'Дек', thb: 310000, usdt: 8700 },
         { month: 'Янв', thb: 280000, usdt: 7900 },
-        { month: 'Фев', thb: totalRevenue || 15000, usdt: Math.round(totalRevenue / 35.5) || 420 }
+        { month: 'Фев', thb: totalRevenue || 15000, usdt: febUsdt ?? 0 },
       ];
       
       // Category distribution
@@ -140,7 +156,8 @@ export default function AdminDashboard() {
       
       setStats({
         revenue: totalRevenue,
-        revenueUsdt: Math.round(totalRevenue / 35.5),
+        revenueUsdt:
+          thbPerUsdt && totalRevenue > 0 ? Math.round(totalRevenue / thbPerUsdt) : 0,
         commission: totalCommission,
         totalUsers,
         totalPartners,
@@ -148,7 +165,8 @@ export default function AdminDashboard() {
         activeBookings,
         totalBookings: bookings.length,
         monthlyRevenue,
-        categoryDistribution
+        categoryDistribution,
+        systemCommissionPct,
       });
       
       setActivity(activityData || []);
@@ -165,7 +183,8 @@ export default function AdminDashboard() {
         activeBookings: 0,
         totalBookings: 0,
         monthlyRevenue: [],
-        categoryDistribution: []
+        categoryDistribution: [],
+        systemCommissionPct: null,
       });
     } finally {
       setLoading(false);
@@ -248,7 +267,11 @@ export default function AdminDashboard() {
             <div className="text-2xl font-bold text-purple-900">
               {stats?.commission?.toLocaleString('ru-RU')} ₿
             </div>
-            <p className="text-xs text-green-600 mt-1 font-medium">+15% average</p>
+            <p className="text-xs text-green-600 mt-1 font-medium">
+              {stats?.systemCommissionPct != null && Number.isFinite(stats.systemCommissionPct)
+                ? `Глобальная ставка ${stats.systemCommissionPct}%`
+                : 'Ставка из настроек'}
+            </p>
           </CardContent>
         </Card>
 

@@ -29,6 +29,8 @@ interface BookingRequestEmailProps {
   totalPrice: number
   commission: number
   partnerEarnings: number
+  /** Percentage for labels (e.g. 15) */
+  commissionPercent: number
   bookingUrl: string
 }
 
@@ -46,6 +48,7 @@ export default function BookingRequestEmail({
   totalPrice = 104000,
   commission = 15600,
   partnerEarnings = 88400,
+  commissionPercent = 15,
   bookingUrl = 'https://funnyrent.com/partner/bookings',
 }: BookingRequestEmailProps) {
   return (
@@ -117,7 +120,7 @@ export default function BookingRequestEmail({
             </Row>
             
             <Row style={priceRow}>
-              <Column style={priceLabel}>Сервисный сбор (15%):</Column>
+              <Column style={priceLabel}>Сервисный сбор ({commissionPercent}%):</Column>
               <Column style={priceValueGreen}>+{commission.toLocaleString('ru-RU')} ₿</Column>
             </Row>
             
@@ -129,7 +132,7 @@ export default function BookingRequestEmail({
             </Row>
             
             <Text style={earningsNote}>
-              85% от стоимости проживания будет переведено на ваш счёт после check-in гостя.
+              {100 - commissionPercent}% от стоимости проживания будет переведено на ваш счёт после check-in гостя.
             </Text>
           </Section>
 

@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server'
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url'
 import { getPublicSiteUrl } from '@/lib/site-url.js'
+import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,7 +55,9 @@ export async function GET() {
       }
     )
     const settings = await settingsRes.json()
-    const systemCommission = settings?.[0]?.value?.defaultCommissionRate || 15
+    const raw = parseFloat(settings?.[0]?.value?.defaultCommissionRate)
+    const systemCommission =
+      Number.isFinite(raw) && raw >= 0 ? raw : await resolveDefaultCommissionPercent()
 
     // Add effective commission to each listing
     const listingsWithCommission = listings.map(listing => ({

@@ -12,6 +12,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,7 +38,12 @@ export async function GET(request) {
     )
     
     const settingsData = await settingsRes.json()
-    const systemRate = settingsData?.[0]?.value?.defaultCommissionRate || 15
+    const rawSystem = settingsData?.[0]?.value?.defaultCommissionRate
+    const parsedSystem = parseFloat(rawSystem)
+    const systemRate =
+      Number.isFinite(parsedSystem) && parsedSystem >= 0 && parsedSystem <= 100
+        ? parsedSystem
+        : await resolveDefaultCommissionPercent()
 
     // 2. If partnerId provided, check for personal rate
     let personalRate = null
@@ -75,15 +81,15 @@ export async function GET(request) {
 
   } catch (error) {
     console.error('Commission API error:', error)
-    return NextResponse.json({ 
-      success: false,
-      error: 'Failed to fetch commission rate',
+    const fallback = await resolveDefaultCommissionPercent()
+    return NextResponse.json({
+      success: true,
       data: {
-        systemRate: 15,
+        systemRate: fallback,
         personalRate: null,
-        effectiveRate: 15,
-        partnerEarningsPercent: 85
-      }
-    }, { status: 500 })
+        effectiveRate: fallback,
+        partnerEarningsPercent: 100 - fallback,
+      },
+    })
   }
 }

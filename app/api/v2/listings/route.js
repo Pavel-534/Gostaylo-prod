@@ -11,6 +11,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
 import { revalidateListingPaths } from '@/lib/revalidation';
 import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings';
 
@@ -86,7 +87,9 @@ export async function GET(request) {
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
-    
+
+    const defaultListingCommission = await resolveDefaultCommissionPercent();
+
     // Transform for frontend compatibility
     const transformed = listings.map(l => ({
       id: l.id,
@@ -98,7 +101,10 @@ export async function GET(request) {
       description: l.description,
       district: l.district,
       basePriceThb: parseFloat(l.base_price_thb),
-      commissionRate: parseFloat(l.commission_rate),
+      commissionRate: (() => {
+        const n = parseFloat(l.commission_rate);
+        return Number.isFinite(n) && n >= 0 ? n : defaultListingCommission;
+      })(),
       images: l.images || [],
       coverImage: l.cover_image,
       metadata: l.metadata || {},
@@ -139,13 +145,18 @@ export async function POST(request) {
       base_price_thb,
       images,
       metadata,
-      commissionRate = 15,
+      commissionRate: bodyCommissionRate,
       status: bodyStatus,
       available: bodyAvailable
     } = body;
-    
+
     const uid = ownerId || owner_id;
     const price = basePriceThb ?? base_price_thb ?? 0;
+    const parsedComm = parseFloat(bodyCommissionRate);
+    const commissionRate =
+      Number.isFinite(parsedComm) && parsedComm >= 0
+        ? parsedComm
+        : await resolveDefaultCommissionPercent();
     
     // Validate required fields (relaxed for drafts)
     if (!uid || !categoryId || !title) {

@@ -22,6 +22,18 @@ export default function FavoritesPage() {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [exchangeRates, setExchangeRates] = useState({ THB: 1 });
+
+  useEffect(() => {
+    fetch('/api/v2/exchange-rates', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && j.rateMap && typeof j.rateMap === 'object') {
+          setExchangeRates({ THB: 1, ...j.rateMap });
+        }
+      })
+      .catch(() => {});
+  }, []);
   
   const fetchFavorites = async () => {
     if (!user?.id) {
@@ -161,7 +173,7 @@ export default function FavoritesPage() {
                 listing={listing}
                 language={language}
                 currency="THB"
-                exchangeRates={{ THB: 1, USD: 35.5, RUB: 0.37 }}
+                exchangeRates={exchangeRates}
                 onFavorite={handleFavorite}
                 isFavorited={true}
               />

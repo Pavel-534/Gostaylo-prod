@@ -98,7 +98,7 @@
 - `/app/app/api/[[...path]]/route.js` - All API endpoints
 - `/app/lib/auth.js` - Mock auth system
 - `/app/lib/currency.js` - Currency utilities
-- `/app/lib/prisma.js` - Prisma client singleton
+- Runtime DB access uses Supabase (`@/lib/supabase`); `prisma/schema.prisma` is schema documentation only (no `lib/prisma.js` singleton).
 
 ---
 
@@ -317,7 +317,7 @@ yarn dev
 │   ├── layout.js                    ← Root layout
 │   └── globals.css                  ← Global styles
 ├── lib/
-│   ├── prisma.js                    ← Prisma client
+│   ├── supabase.js                  ← Supabase admin client
 │   ├── auth.js                      ← Mock auth system
 │   └── currency.js                  ← Currency utilities
 ├── prisma/

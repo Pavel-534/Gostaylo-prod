@@ -10,7 +10,7 @@ import { getSeasonColor } from '@/lib/price-calculator'
  * @param {Object} priceData - Result from calculateSeasonalPrice (if available)
  * @param {number} basePrice - Base price per day (fallback)
  * @param {number} days - Number of days (fallback)
- * @param {number} commissionRate - Commission percentage (default: 15)
+ * @param {number} commissionRate - Commission percentage (from API / booking snapshot)
  * @param {string} currency - Currency code
  * @param {string} className - Additional CSS classes
  * @param {boolean} showDetails - Show detailed breakdown (default: true)
@@ -19,15 +19,24 @@ export function PriceBreakdown({
   priceData = null,
   basePrice,
   days = 1,
-  commissionRate = 15,
+  commissionRate,
   currency = 'THB',
   className = '',
   showDetails = true,
 }) {
+  const ratePct = Number(commissionRate)
+  if (!Number.isFinite(ratePct) || ratePct < 0) {
+    return (
+      <div className={`rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-500 ${className}`}>
+        Загрузка тарифа…
+      </div>
+    )
+  }
+
   // If no seasonal data, fall back to simple calculation
   if (!priceData || !priceData.breakdown) {
     const totalBase = basePrice * days
-    const serviceFee = totalBase * (commissionRate / 100)
+    const serviceFee = totalBase * (ratePct / 100)
     const total = totalBase
 
     return (
@@ -41,7 +50,7 @@ export function PriceBreakdown({
           </span>
         </div>
         <div className="flex items-center justify-between text-sm">
-          <span className="text-slate-600">Сервисный сбор ({commissionRate}%)</span>
+          <span className="text-slate-600">Сервисный сбор ({ratePct}%)</span>
           <span className="font-medium text-green-600">
             {formatPrice(serviceFee, currency)}
           </span>
@@ -61,7 +70,7 @@ export function PriceBreakdown({
   
   // Enhanced breakdown with seasonal pricing
   const { totalPrice, breakdown, totalDays, isSeasonalApplied, averageDaily } = priceData
-  const commission = totalPrice * (commissionRate / 100)
+  const commission = totalPrice * (ratePct / 100)
   const total = totalPrice + commission
   
   return (
@@ -142,7 +151,7 @@ export function PriceBreakdown({
         
         <div className="flex justify-between text-sm">
           <span className="text-slate-600 flex items-center gap-1">
-            Сервисный сбор ({commissionRate}%)
+            Сервисный сбор ({ratePct}%)
             <Info className="h-3 w-3 text-slate-400" />
           </span>
           <span className="font-medium text-green-600">
@@ -184,7 +193,7 @@ export function PriceBreakdown({
           </span>
         </div>
         <p className="text-xs text-teal-700 mt-1">
-          85% от стоимости проживания (будет переведено после check-in)
+          {100 - ratePct}% от стоимости проживания (будет переведено после check-in)
         </p>
       </div>
     </div>

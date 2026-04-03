@@ -15,6 +15,7 @@ import { verifyPartnerAccess } from '@/lib/services/session-service';
 import { revalidateListingPaths } from '@/lib/revalidation';
 import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,7 +102,12 @@ export async function GET(request, context) {
   } catch (e) {
     console.warn('[PARTNER-LISTING] seasonal_prices error:', e?.message);
   }
-  
+
+  const rawComm = parseFloat(listing.commission_rate);
+  const defaultListingCommission = await resolveDefaultCommissionPercent();
+  const commissionRate =
+    Number.isFinite(rawComm) && rawComm >= 0 ? rawComm : defaultListingCommission;
+
   return NextResponse.json({
     success: true,
     data: {
@@ -115,7 +121,7 @@ export async function GET(request, context) {
       latitude: listing.latitude,
       longitude: listing.longitude,
       basePriceThb: parseFloat(listing.base_price_thb) || 0,
-      commissionRate: parseFloat(listing.commission_rate) || 15,
+      commissionRate,
       minBookingDays: listing.min_booking_days ?? 1,
       maxBookingDays: listing.max_booking_days ?? 90,
       images: mapPublicImageUrls(listing.images || []),
@@ -146,7 +152,7 @@ export async function GET(request, context) {
       latitude: listing.latitude,
       longitude: listing.longitude,
       basePriceThb: parseFloat(listing.base_price_thb) || 0,
-      commissionRate: parseFloat(listing.commission_rate) || 15,
+      commissionRate,
       minBookingDays: listing.min_booking_days ?? 1,
       maxBookingDays: listing.max_booking_days ?? 90,
       images: mapPublicImageUrls(listing.images || []),

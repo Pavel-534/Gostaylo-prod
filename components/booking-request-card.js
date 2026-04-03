@@ -7,14 +7,20 @@ import { formatPrice } from '@/lib/currency'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { useCommission } from '@/hooks/use-commission'
 
 export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingStatus }) {
   const [updating, setUpdating] = useState(false)
+  const commissionApi = useCommission()
   const metadata = message.metadata || {}
   const { checkIn, checkOut, serviceFee, totalPrice } = metadata
   const days = Math.max(1, Number(metadata.days) || 1)
   const basePrice = Number(metadata.basePrice) || 0
   const currentStatus = bookingStatus || 'PENDING'
+  const metaCr = Number(metadata.commissionRate)
+  const commissionRate = Number.isFinite(metaCr) && metaCr >= 0
+    ? metaCr
+    : commissionApi.effectiveRate
 
   async function handleAccept() {
     setUpdating(true)
@@ -114,7 +120,7 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
         <PriceBreakdown
           basePrice={days > 0 ? basePrice / days : basePrice}
           days={days}
-          commissionRate={15}
+          commissionRate={commissionRate}
           currency="THB"
           className="bg-white p-3 rounded-lg border"
         />

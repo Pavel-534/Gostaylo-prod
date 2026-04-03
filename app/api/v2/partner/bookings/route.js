@@ -12,6 +12,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url'
+import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -138,7 +139,8 @@ export async function GET(request) {
       }
       
       // Transform to camelCase
-      const transformed = filtered.map(transformBooking)
+      const dc = await resolveDefaultCommissionPercent()
+      const transformed = filtered.map((b) => transformBooking(b, dc))
       
       return NextResponse.json({
         status: 'success',
@@ -190,7 +192,8 @@ export async function GET(request) {
     }
     
     // 6. Transform to camelCase
-    const transformed = (bookings || []).map(transformBooking)
+    const dc = await resolveDefaultCommissionPercent()
+    const transformed = (bookings || []).map((b) => transformBooking(b, dc))
     
     console.log(`[PARTNER BOOKINGS] Found ${transformed.length} bookings for partner ${userId}`)
     
@@ -218,7 +221,8 @@ export async function GET(request) {
 /**
  * Transform booking from snake_case to camelCase
  */
-function transformBooking(booking) {
+function transformBooking(booking, defaultCommissionPercent) {
+  const dc = defaultCommissionPercent
   return {
     id: booking.id,
     listingId: booking.listing_id,
@@ -228,7 +232,10 @@ function transformBooking(booking) {
     checkIn: booking.check_in,
     checkOut: booking.check_out,
     priceThb: parseFloat(booking.price_thb) || 0,
-    commissionRate: parseFloat(booking.commission_rate) || 15,
+    commissionRate: (() => {
+      const n = parseFloat(booking.commission_rate)
+      return Number.isFinite(n) && n >= 0 ? n : dc
+    })(),
     commissionThb: parseFloat(booking.commission_thb) || 0,
     partnerEarningsThb: parseFloat(booking.partner_earnings_thb) || 0,
     guestName: booking.guest_name,
@@ -248,7 +255,10 @@ function transformBooking(booking) {
       images: mapPublicImageUrls(booking.listing.images || []),
       coverImage: booking.listing.cover_image ? toPublicImageUrl(booking.listing.cover_image) : null,
       basePriceThb: parseFloat(booking.listing.base_price_thb) || 0,
-      commissionRate: parseFloat(booking.listing.commission_rate) || 15
+      commissionRate: (() => {
+        const n = parseFloat(booking.listing.commission_rate)
+        return Number.isFinite(n) && n >= 0 ? n : dc
+      })(),
     } : null,
     renter: booking.renter ? {
       id: booking.renter.id,

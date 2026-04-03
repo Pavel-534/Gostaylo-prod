@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getDisplayRateMap } from '@/lib/services/currency.service';
 
 // Currency symbols mapping
 const CURRENCY_SYMBOLS = {
@@ -21,23 +22,30 @@ const CURRENCY_SYMBOLS = {
 
 export async function GET() {
   try {
+    const rateMap = await getDisplayRateMap();
+
     const { data: rates, error } = await supabaseAdmin
       .from('exchange_rates')
       .select('*');
-    
+
     if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      const transformed = Object.entries(rateMap)
+        .filter(([code]) => code !== 'THB')
+        .map(([code, rateToThb]) => ({
+          code,
+          rateToThb,
+          symbol: CURRENCY_SYMBOLS[code] || code,
+        }));
+      return NextResponse.json({ success: true, data: transformed, rateMap });
     }
-    
-    // Transform for frontend
-    const transformed = rates.map(r => ({
+
+    const transformed = rates.map((r) => ({
       code: r.currency_code,
       rateToThb: parseFloat(r.rate_to_thb),
-      symbol: CURRENCY_SYMBOLS[r.currency_code] || r.currency_code
+      symbol: CURRENCY_SYMBOLS[r.currency_code] || r.currency_code,
     }));
-    
-    return NextResponse.json({ success: true, data: transformed });
-    
+
+    return NextResponse.json({ success: true, data: transformed, rateMap });
   } catch (error) {
     console.error('[EXCHANGE RATES ERROR]', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

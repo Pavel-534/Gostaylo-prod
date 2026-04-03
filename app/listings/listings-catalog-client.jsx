@@ -87,7 +87,7 @@ function ListingsContent() {
 
   const [language, setLanguage] = useState('en')
   const [currency, setCurrency] = useState('THB')
-  const [exchangeRates, setExchangeRates] = useState({ THB: 1, USD: 35.5, RUB: 0.37 })
+  const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
   const [showMap, setShowMap] = useState(false)
   const [userFavorites, setUserFavorites] = useState(new Set())
   const [userBookings, setUserBookings] = useState([])

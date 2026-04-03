@@ -5,7 +5,7 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -158,12 +158,22 @@ export function SendInvoiceDialog({
   const open = controlledOpen !== undefined ? controlledOpen : uncontrolledOpen
   const setOpen = controlledOnOpenChange || setUncontrolledOpen
   const [sending, setSending] = useState(false)
+  const [thbPerUsdt, setThbPerUsdt] = useState(null)
   const [invoiceData, setInvoiceData] = useState({
     amount: booking?.price_thb || '',
     currency: 'THB',
     description: '',
     paymentMethod: 'CRYPTO'
   })
+
+  useEffect(() => {
+    fetch('/api/v2/exchange-rates', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && j.rateMap?.USDT) setThbPerUsdt(j.rateMap.USDT)
+      })
+      .catch(() => {})
+  }, [])
 
   const handleSend = async () => {
     if (!invoiceData.amount) return
@@ -187,10 +197,12 @@ export function SendInvoiceDialog({
     }
   }
 
-  // Calculate USDT amount
-  const usdtAmount = invoiceData.currency === 'THB' 
-    ? Math.round((parseFloat(invoiceData.amount) || 0) / 35.5 * 100) / 100
-    : invoiceData.amount
+  const usdtAmount =
+    invoiceData.currency === 'THB' && thbPerUsdt
+      ? Math.round(((parseFloat(invoiceData.amount) || 0) / thbPerUsdt) * 100) / 100
+      : invoiceData.currency === 'THB'
+        ? null
+        : invoiceData.amount
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -252,7 +264,7 @@ export function SendInvoiceDialog({
             </div>
             {invoiceData.currency === 'THB' && invoiceData.amount && (
               <p className="text-xs text-slate-500 mt-1">
-                ≈ {usdtAmount} USDT
+                ≈ {usdtAmount != null ? usdtAmount : '…'} USDT
               </p>
             )}
           </div>

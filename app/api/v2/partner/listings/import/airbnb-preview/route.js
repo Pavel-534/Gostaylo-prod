@@ -191,10 +191,13 @@ export async function POST(request) {
     console.log(`[airbnb-preview] ✅ Data fetched successfully. Source: ${source}`)
 
     const normalized = normalizeAirbnbPayloadForMapper(raw, url)
+    const { resolveDefaultCommissionPercent } = await import('@/lib/services/currency.service')
+    const defaultCommissionPercent = await resolveDefaultCommissionPercent()
     const { row, warnings } = mapExternalToInternal(normalized, 'airbnb', {
       ownerId: userId,
       categoryId,
       basePriceThbFallback,
+      defaultCommissionPercent,
     })
 
     // ── Диагностика по полям: предупреждения вместо ошибок ──────────────────

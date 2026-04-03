@@ -19,6 +19,7 @@ import {
   nearestPhuketDistrictName,
   type ImportSeoLocales,
 } from '@/lib/listings/airbnb-import-enrichment'
+import { parseEnvPositiveFloat } from '@/lib/services/currency.service'
 
 export interface MapExternalOptions {
   /** UUID владельца (обязателен для insert через API) */
@@ -27,6 +28,8 @@ export interface MapExternalOptions {
   categoryId: string
   /** Если цена пришла не в THB — задайте курс или конвертацию снаружи */
   basePriceThbFallback?: number
+  /** Процент комиссии для нового импорта (из PricingService / CurrencyService на сервере) */
+  defaultCommissionPercent?: number
 }
 
 export interface MappedListingRow {
@@ -313,6 +316,14 @@ export function mapExternalToInternal(
   }
 
   const metadata = { ...(partial.metadata || {}) } as ListingMetadata
+  const importedCommission =
+    options.defaultCommissionPercent ?? parseEnvPositiveFloat('DEFAULT_COMMISSION_PERCENT')
+  if (importedCommission == null || !Number.isFinite(importedCommission)) {
+    throw new Error(
+      'mapExternalToInternal: pass defaultCommissionPercent or set DEFAULT_COMMISSION_PERCENT',
+    )
+  }
+
   const sync_settings: ListingSyncSettings = {
     platform,
     external_listing_id: partial.import_external_id || undefined,
@@ -342,7 +353,7 @@ export function mapExternalToInternal(
     last_imported_at: now,
     status: 'PENDING',
     available: false,
-    commission_rate: 15,
+    commission_rate: importedCommission,
   }
 
   return { row, warnings }

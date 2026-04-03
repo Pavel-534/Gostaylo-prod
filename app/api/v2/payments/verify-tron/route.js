@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server';
 import { verifyTronTransaction, verifyTransactionWithBooking, getStatusBadge, GOSTAYLO_WALLET, thbToUsdt } from '@/lib/services/tron.service';
 import { supabaseAdmin } from '@/lib/supabase';
+import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,20 +32,21 @@ export async function POST(request) {
     if (bookingId && !expectedAmount) {
       const { data: booking } = await supabaseAdmin
         .from('bookings')
-        .select('price_thb')
+        .select('price_thb, commission_rate')
         .eq('id', bookingId)
         .single();
-      
+
       if (booking?.price_thb) {
-        // Add 15% service fee
-        const totalThb = parseFloat(booking.price_thb) * 1.15;
-        expectedAmount = thbToUsdt(totalThb);
+        const cr = parseFloat(booking.commission_rate);
+        const pct =
+          Number.isFinite(cr) && cr >= 0 ? cr : await resolveDefaultCommissionPercent();
+        const totalThb = parseFloat(booking.price_thb) * (1 + pct / 100);
+        expectedAmount = await thbToUsdt(totalThb);
       }
     }
-    
-    // Convert THB to USDT if provided
+
     if (expectedAmountThb && !expectedAmount) {
-      expectedAmount = thbToUsdt(parseFloat(expectedAmountThb));
+      expectedAmount = await thbToUsdt(parseFloat(expectedAmountThb));
     }
 
     // Verify transaction with amount check
@@ -113,13 +115,16 @@ export async function GET(request) {
   if (bookingId && !expectedUsdt) {
     const { data: booking } = await supabaseAdmin
       .from('bookings')
-      .select('price_thb')
+      .select('price_thb, commission_rate')
       .eq('id', bookingId)
       .single();
-    
+
     if (booking?.price_thb) {
-      const totalThb = parseFloat(booking.price_thb) * 1.15;
-      expectedUsdt = thbToUsdt(totalThb);
+      const cr = parseFloat(booking.commission_rate);
+      const pct =
+        Number.isFinite(cr) && cr >= 0 ? cr : await resolveDefaultCommissionPercent();
+      const totalThb = parseFloat(booking.price_thb) * (1 + pct / 100);
+      expectedUsdt = await thbToUsdt(totalThb);
     }
   }
 

@@ -12,6 +12,7 @@ import { addDays, format, parseISO } from 'date-fns'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { OCCUPYING_BOOKING_STATUSES } from '@/lib/booking-occupancy-statuses'
 import { mapCategorySlugToListingType } from '@/lib/partner-calendar-filters'
+import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,7 +61,15 @@ function calendarDateKey(value) {
   return s.length >= 10 ? s.slice(0, 10) : s
 }
 
-function processCalendarData(listings, bookings, blocks, seasonalPrices, startDate, endDate) {
+function processCalendarData(
+  listings,
+  bookings,
+  blocks,
+  seasonalPrices,
+  startDate,
+  endDate,
+  defaultListingCommission,
+) {
   const start = parseISO(startDate)
   const end = parseISO(endDate)
   
@@ -158,7 +167,10 @@ function processCalendarData(listings, bookings, blocks, seasonalPrices, startDa
         district: listing.district,
         coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
         basePriceThb: parseFloat(listing.base_price_thb) || 0,
-        commissionRate: parseFloat(listing.commission_rate) || 15,
+        commissionRate: (() => {
+          const n = parseFloat(listing.commission_rate)
+          return Number.isFinite(n) && n >= 0 ? n : defaultListingCommission
+        })(),
         categoryId: listing.category_id ?? null,
         category: cat
           ? {
@@ -350,13 +362,15 @@ export async function GET(request) {
           }
         }
         
+        const defaultListingCommission = await resolveDefaultCommissionPercent()
         const calendarData = processCalendarData(
           listings,
           Array.isArray(bookings) ? bookings : [],
           blocks,
           seasonalPrices,
           startDate,
-          endDate
+          endDate,
+          defaultListingCommission,
         )
         
         return NextResponse.json({

@@ -12,6 +12,7 @@ import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/sessio
 import { v4 as uuidv4 } from 'uuid'
 import { differenceInDays, parseISO } from 'date-fns'
 import { OCCUPYING_BOOKING_STATUSES } from '@/lib/booking-occupancy-statuses'
+import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -139,7 +140,9 @@ export async function POST(request) {
     
     // Calculate price if not provided
     const finalPrice = priceThb || (listing.base_price_thb * nights)
-    const commissionRate = listing.commission_rate || 15
+    const rawComm = parseFloat(listing.commission_rate)
+    const commissionRate =
+      Number.isFinite(rawComm) && rawComm >= 0 ? rawComm : await resolveDefaultCommissionPercent()
     const commissionThb = finalPrice * (commissionRate / 100)
     const partnerEarningsThb = finalPrice - commissionThb
     

@@ -125,7 +125,7 @@ export default function PremiumListingWizard() {
     priceMonthly: '',
     seasonType: 'NORMAL' 
   })
-  const [partnerCommissionRate, setPartnerCommissionRate] = useState(15) // Dynamic from DB
+  const [partnerCommissionRate, setPartnerCommissionRate] = useState(null)
   
   // Form data
   const [formData, setFormData] = useState({
@@ -137,7 +137,7 @@ export default function PremiumListingWizard() {
     latitude: null,
     longitude: null,
     basePriceThb: '',
-    commissionRate: 15, // Will be dynamically loaded from partner profile
+    commissionRate: '',
     minBookingDays: 1,
     maxBookingDays: 90,
     images: [],
@@ -187,9 +187,13 @@ export default function PremiumListingWizard() {
           const commissionRes = await fetch(`/api/v2/commission?partnerId=${userId}`, { credentials: 'include' })
           const commissionData = await commissionRes.json()
           if (commissionData.success && commissionData.data) {
-            const rate = commissionData.data.effectiveRate ?? commissionData.data.systemRate ?? 15
-            setPartnerCommissionRate(rate)
-            setFormData(prev => ({ ...prev, commissionRate: rate }))
+            const rate =
+              commissionData.data.effectiveRate ?? commissionData.data.systemRate
+            if (rate != null && Number.isFinite(Number(rate))) {
+              const n = Number(rate)
+              setPartnerCommissionRate(n)
+              setFormData((prev) => ({ ...prev, commissionRate: n }))
+            }
           }
         }
       } catch (error) {
@@ -656,7 +660,9 @@ export default function PremiumListingWizard() {
         status: 'PENDING',
         available: true,
         basePriceThb: parseFloat(formData.basePriceThb) || 0,
-        commissionRate: parseFloat(formData.commissionRate) || 15,
+        commissionRate: Number.isFinite(parseFloat(formData.commissionRate))
+          ? parseFloat(formData.commissionRate)
+          : partnerCommissionRate,
         minBookingDays: parseInt(formData.minBookingDays) || 1,
         maxBookingDays: parseInt(formData.maxBookingDays) || 90,
         metadata: publishMeta,

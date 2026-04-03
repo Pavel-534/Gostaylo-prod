@@ -11,6 +11,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { revalidateListingPaths } from '@/lib/revalidation';
 import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings';
 import PricingService from '@/lib/services/pricing.service';
+import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url';
 
 const STORAGE_BUCKETS = ['listing-images', 'listings'];
@@ -114,10 +115,10 @@ export async function GET(request, context) {
       try {
         const dummyPrice = 1000
         const commissionCalc = await PricingService.calculateCommission(dummyPrice, listing.owner_id)
-        return commissionCalc?.commissionRate ?? 15
+        return commissionCalc?.commissionRate ?? (await resolveDefaultCommissionPercent())
       } catch (e) {
         console.warn('[LISTING] commission error:', e?.message)
-        return 15
+        return await resolveDefaultCommissionPercent()
       }
     })()
 

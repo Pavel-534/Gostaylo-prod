@@ -2,8 +2,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PriceBreakdown } from '@/components/price-breakdown'
+import { useCommission } from '@/hooks/use-commission'
 
 export default function PriceBreakdownDemo() {
+  const { effectiveRate, loading } = useCommission()
   // Mock data: Booking that spans two seasons
   // 5 days in LOW season (8,000 THB/day) + 3 days in HIGH season (18,000 THB/day)
   const mockPriceData = {
@@ -48,12 +50,14 @@ export default function PriceBreakdownDemo() {
           </CardHeader>
         </Card>
 
-        <PriceBreakdown
-          priceData={mockPriceData}
-          commissionRate={15}
-          currency="THB"
-          showDetails={true}
-        />
+        {!loading && effectiveRate != null && (
+          <PriceBreakdown
+            priceData={mockPriceData}
+            commissionRate={effectiveRate}
+            currency="THB"
+            showDetails={true}
+          />
+        )}
 
         <Card className="bg-teal-50 border-teal-200">
           <CardContent className="py-6">
@@ -63,7 +67,7 @@ export default function PriceBreakdownDemo() {
               <li>• 3 days × 18,000 ₿ (Высокий сезон) = 54,000 ₿</li>
               <li className="font-semibold pt-2 border-t">• Total: 94,000 ₿</li>
               <li>• Average per day: 11,750 ₿</li>
-              <li>• Commission (15%): 14,100 ₿</li>
+              <li>• Commission (from API): see breakdown above</li>
               <li className="font-semibold text-teal-700">• Final Total: 108,100 ₿</li>
             </ul>
           </CardContent>

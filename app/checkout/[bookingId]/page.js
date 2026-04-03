@@ -15,6 +15,7 @@ import { ArrowLeft, CreditCard, Wallet, Loader2, CheckCircle2, Copy, ExternalLin
 import { formatPrice } from '@/lib/currency'
 import { toast } from 'sonner'
 import { QRCodeSVG } from 'qrcode.react'
+import { useCommission } from '@/hooks/use-commission'
 
 // Official GoStayLo USDT TRC-20 Wallet Address
 const GOSTAYLO_WALLET = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
@@ -42,10 +43,21 @@ function CheckoutPageInner({ params }) {
   const [promoDiscount, setPromoDiscount] = useState(null)
   const [promoLoading, setPromoLoading] = useState(false)
   const [chatConversationId, setChatConversationId] = useState(null)
+  const [thbPerUsdt, setThbPerUsdt] = useState(null)
+  const commissionFromApi = useCommission()
 
   useEffect(() => {
     loadPaymentStatus()
   }, [params.bookingId])
+
+  useEffect(() => {
+    fetch('/api/v2/exchange-rates', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && j.rateMap?.USDT) setThbPerUsdt(j.rateMap.USDT)
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     const pm = searchParams.get('pm')
@@ -135,7 +147,7 @@ function CheckoutPageInner({ params }) {
         specialRequests: b.special_requests,
         createdAt: b.created_at,
         metadata: b.metadata,
-        commissionRate: parseFloat(b.commission_rate) || 15,
+        commissionRate: parseFloat(b.commission_rate),
         partnerEarningsThb: parseFloat(b.partner_earnings_thb) || 0
       });
       
@@ -508,7 +520,18 @@ function CheckoutPageInner({ params }) {
     )
   }
 
-  const commissionRate = booking?.commissionRate || 15 // Use real rate from booking
+  const commissionRate = Number.isFinite(booking.commissionRate)
+    ? booking.commissionRate
+    : !commissionFromApi.loading && Number.isFinite(commissionFromApi.effectiveRate)
+      ? commissionFromApi.effectiveRate
+      : null
+  if (commissionRate == null) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
+      </div>
+    )
+  }
   const discountAmount = promoDiscount?.discountAmount || 0
   const priceAfterDiscount = booking.priceThb - discountAmount
   const serviceFee = priceAfterDiscount * (commissionRate / 100)
@@ -759,7 +782,11 @@ function CheckoutPageInner({ params }) {
                 <Label className="text-base font-semibold mb-2 block">Сумма к оплате</Label>
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                   <p className="text-2xl font-bold text-amber-900" data-testid="usdt-amount">
-                    {payment?.metadata?.amount || Math.ceil(totalWithFee / 35.5 * 100) / 100} USDT
+                    {payment?.metadata?.amount ??
+                      (thbPerUsdt
+                        ? Math.ceil((totalWithFee / thbPerUsdt) * 100) / 100
+                        : '—')}{' '}
+                    USDT
                   </p>
                   <p className="text-sm text-amber-700 mt-1">
                     ≈ {formatPrice(totalWithFee, 'THB')}

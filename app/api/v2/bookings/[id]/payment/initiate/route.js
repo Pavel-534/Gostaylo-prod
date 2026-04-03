@@ -6,14 +6,12 @@
 
 import { NextResponse } from 'next/server';
 import { getUserIdFromSession } from '@/lib/services/session-service';
+import { resolveThbPerUsdt, resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
 
 export const dynamic = 'force-dynamic';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-// Mock USDT exchange rate
-const USDT_TO_THB_RATE = 35.5;
 
 // Official GoStayLo USDT TRC-20 Wallet Address
 const TRON_WALLET_ADDRESS = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
@@ -70,12 +68,15 @@ export async function POST(request, { params }) {
     // Allow payment for PENDING, AWAITING_PAYMENT, CONFIRMED bookings
     // Remove restriction for CONFIRMED - user might want to see payment details
     
-    // Calculate amounts
+    // Calculate amounts (commission snapshot on booking, else system default)
     const priceThb = parseFloat(booking.price_thb);
-    const commissionRate = 15;
+    const cr = parseFloat(booking.commission_rate);
+    const commissionRate =
+      Number.isFinite(cr) && cr >= 0 ? cr : await resolveDefaultCommissionPercent();
     const serviceFee = priceThb * (commissionRate / 100);
     const totalThb = priceThb + serviceFee;
-    const totalUsdt = (totalThb / USDT_TO_THB_RATE).toFixed(2);
+    const usdtRate = await resolveThbPerUsdt();
+    const totalUsdt = (totalThb / usdtRate).toFixed(2);
     
     // Generate payment details
     const paymentId = `pay-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -96,7 +97,7 @@ export async function POST(request, { params }) {
         network: 'TRC-20',
         amount: totalUsdt,
         currency: 'USDT',
-        exchangeRate: USDT_TO_THB_RATE,
+        exchangeRate: usdtRate,
         expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 min expiry
       };
     } else if (method === 'CARD' || method === 'MIR') {

@@ -6,6 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 
 // Force dynamic rendering to prevent caching
 export const dynamic = 'force-dynamic'
@@ -62,8 +63,11 @@ export async function GET() {
     const data = settingsData[0]
     
     // Map from DB format to frontend format
+    const rawComm = parseFloat(data.value?.defaultCommissionRate)
     const settings = {
-      defaultCommissionRate: data.value?.defaultCommissionRate || 15,
+      defaultCommissionRate: Number.isFinite(rawComm) && rawComm >= 0
+        ? rawComm
+        : await resolveDefaultCommissionPercent(),
       maintenanceMode: data.value?.maintenanceMode || false,
       heroTitle: data.value?.heroTitle || '',
       heroSubtitle: data.value?.heroSubtitle || '',
@@ -88,9 +92,12 @@ export async function PUT(request) {
     // If Supabase is not configured, update mock settings
     if (!supabase) {
       console.log('[SETTINGS] Supabase not configured, updating mock settings')
+      const parsedMock = parseFloat(defaultCommissionRate)
       mockSettings = {
         ...mockSettings,
-        defaultCommissionRate: parseFloat(defaultCommissionRate) || 15,
+        defaultCommissionRate: Number.isFinite(parsedMock) && parsedMock >= 0
+          ? parsedMock
+          : await resolveDefaultCommissionPercent(),
         maintenanceMode: !!maintenanceMode,
         heroTitle: heroTitle || '',
         heroSubtitle: heroSubtitle || '',
@@ -106,9 +113,13 @@ export async function PUT(request) {
       .eq('key', 'general')
       .single()
 
+    const parsedPut = parseFloat(defaultCommissionRate)
+    const resolvedComm = Number.isFinite(parsedPut) && parsedPut >= 0
+      ? parsedPut
+      : await resolveDefaultCommissionPercent()
     const newValue = {
       ...(existing?.value || {}),
-      defaultCommissionRate: parseFloat(defaultCommissionRate) || 15,
+      defaultCommissionRate: resolvedComm,
       maintenanceMode: !!maintenanceMode,
       heroTitle: heroTitle || '',
       heroSubtitle: heroSubtitle || '',

@@ -28,7 +28,7 @@ export default function UserDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [systemCommission, setSystemCommission] = useState(15);
+  const [systemCommission, setSystemCommission] = useState(null);
   const [customCommission, setCustomCommission] = useState('');
 
   useEffect(() => {
@@ -41,7 +41,15 @@ export default function UserDetailPage() {
       const res = await fetch('/api/admin/settings');
       if (res.ok) {
         const data = await res.json();
-        setSystemCommission(data.data?.defaultCommissionRate || 15);
+        const r = parseFloat(data.data?.defaultCommissionRate);
+        if (Number.isFinite(r) && r >= 0) {
+          setSystemCommission(r);
+          return;
+        }
+      }
+      const cr = await fetch('/api/v2/commission', { cache: 'no-store' }).then((x) => x.json());
+      if (cr.success && cr.data?.systemRate != null) {
+        setSystemCommission(Number(cr.data.systemRate));
       }
     } catch (error) {
       console.error('Failed to load system settings:', error);
@@ -302,7 +310,8 @@ export default function UserDetailPage() {
     );
   }
 
-  const effectiveCommission = user.customCommissionRate ?? systemCommission;
+  const effectiveCommission =
+    user.customCommissionRate != null ? user.customCommissionRate : systemCommission;
 
   return (
     <div className="space-y-6">
@@ -571,7 +580,9 @@ export default function UserDetailPage() {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-600">Системная комиссия:</span>
-                    <span className="font-semibold">{systemCommission}%</span>
+                    <span className="font-semibold">
+                      {systemCommission != null ? `${systemCommission}%` : '—'}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Персональная комиссия:</span>
@@ -582,7 +593,9 @@ export default function UserDetailPage() {
                   <Separator className="my-3" />
                   <div className="flex items-center justify-between">
                     <span className="font-medium">Действующая ставка:</span>
-                    <span className="text-xl font-bold text-indigo-600">{effectiveCommission}%</span>
+                    <span className="text-xl font-bold text-indigo-600">
+                      {effectiveCommission != null ? `${effectiveCommission}%` : '—'}
+                    </span>
                   </div>
                 </div>
 

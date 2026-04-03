@@ -12,6 +12,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { getUserIdFromSession } from '@/lib/services/session-service';
 import { createListingSchema } from '@/lib/validations/listing';
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url';
+import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
 
 export async function GET(request) {
   try {
@@ -49,7 +50,9 @@ export async function GET(request) {
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
-    
+
+    const defaultListingCommission = await resolveDefaultCommissionPercent();
+
     // Transform for frontend
     const transformed = listings.map(l => ({
       id: l.id,
@@ -57,7 +60,10 @@ export async function GET(request) {
       status: l.status,
       district: l.district,
       basePriceThb: parseFloat(l.base_price_thb) || 0,
-      commissionRate: parseFloat(l.commission_rate) || 15,
+      commissionRate: (() => {
+        const n = parseFloat(l.commission_rate);
+        return Number.isFinite(n) && n >= 0 ? n : defaultListingCommission;
+      })(),
       images: mapPublicImageUrls(l.images || []),
       coverImage: l.cover_image ? toPublicImageUrl(l.cover_image) : null,
       available: l.available,
@@ -135,8 +141,14 @@ export async function POST(request) {
       .eq('key', 'general')
       .single();
     
-    const commissionRate = partner.custom_commission_rate || 
-      settings?.value?.defaultCommissionRate || 15;
+    const partnerComm = parseFloat(partner.custom_commission_rate);
+    const settingsComm = parseFloat(settings?.value?.defaultCommissionRate);
+    const commissionRate =
+      Number.isFinite(partnerComm) && partnerComm >= 0
+        ? partnerComm
+        : Number.isFinite(settingsComm) && settingsComm >= 0
+          ? settingsComm
+          : await resolveDefaultCommissionPercent();
     
     // Create listing
     const { data: listing, error } = await supabaseAdmin

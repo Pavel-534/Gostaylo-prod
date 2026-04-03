@@ -41,6 +41,7 @@ import { usePartnerBookings, useUpdateBookingStatus } from '@/lib/hooks/use-part
 import { differenceInDays, format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import Link from 'next/link'
+import { useCommission } from '@/hooks/use-commission'
 
 // Status configuration
 const STATUS_CONFIG = {
@@ -96,6 +97,7 @@ export default function PartnerBookings() {
   }, [user?.id])
 
   const partnerId = user?.id || fallbackPartnerId
+  const commissionHook = useCommission(partnerId || null)
 
   // TanStack Query hook for bookings
   const { 
@@ -434,7 +436,15 @@ export default function PartnerBookings() {
                           {formatPrice(booking.partnerEarningsThb || 0, 'THB')}
                         </p>
                         <p className="text-xs text-slate-500">
-                          Ваш доход ({100 - (booking.commissionRate || 15)}%)
+                          Ваш доход (
+                          {(() => {
+                            const cr = Number(booking.commissionRate)
+                            const pct = Number.isFinite(cr)
+                              ? cr
+                              : Number(commissionHook.effectiveRate)
+                            return Number.isFinite(pct) ? `${100 - pct}%` : '—'
+                          })()}
+                          )
                         </p>
                       </div>
                       <div className="text-right">
