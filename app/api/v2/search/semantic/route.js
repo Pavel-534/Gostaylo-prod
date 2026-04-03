@@ -44,6 +44,15 @@ export async function GET(request) {
     similarity: Math.round(similarity * 1_000_000) / 1_000_000,
   }))
 
+  console.log('[api/v2/search/semantic] diagnostic', {
+    query: trimmed,
+    isVillaProbe: trimmed.toLowerCase() === 'вилла',
+    hitsFromFetcher: hits.length,
+    returned: results.length,
+    sample: results.slice(0, 15),
+    minSimilarity: SEMANTIC_MIN_SIMILARITY,
+  })
+
   return NextResponse.json({
     success: true,
     data: {

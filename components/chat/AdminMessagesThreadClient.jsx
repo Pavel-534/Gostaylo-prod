@@ -64,7 +64,6 @@ export function AdminMessagesThreadClient({ conversationId, me, language = 'ru' 
   const {
     messages,
     isLoading: threadLoading,
-    isConnected,
     selectedConv,
     listing,
     booking,
@@ -81,6 +80,15 @@ export function AdminMessagesThreadClient({ conversationId, me, language = 'ru' 
 
   const { isOnline: peerOnline } = usePresence(conversationId, me?.id, null)
   useMarkConversationRead(conversationId, false, peerOnline)
+
+  const latestSupportTicket = useMemo(() => {
+    if (!messages?.length) return null
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const st = messages[i]?.metadata?.support_ticket
+      if (st?.category && st?.disputeType) return st
+    }
+    return null
+  }, [messages])
 
   const filteredConversations = useMemo(() => {
     const list = conversations
@@ -217,7 +225,8 @@ export function AdminMessagesThreadClient({ conversationId, me, language = 'ru' 
       showJoinAsSupport={showJoinAsSupport}
       joinSupportLoading={joinSupportLoading}
       onJoinAsSupport={handleJoinAsSupport}
-      isConnected={isConnected}
+      isPriority={Boolean(selectedConv.isPriority)}
+      supportTicket={latestSupportTicket}
     />
   ) : null
 
@@ -231,8 +240,12 @@ export function AdminMessagesThreadClient({ conversationId, me, language = 'ru' 
       className="rounded-none border-0 shadow-none"
       presenceOnline={peerOnline}
       showBookingTimeline={Boolean(booking?.id && booking?.status)}
+      bookingTimelineVariant="slim"
       messagesListHref="/admin/messages/"
       hideBackButton={false}
+      embedded
+      compact
+      unifiedMobileTopBar
     />
   ) : null
 
@@ -258,7 +271,7 @@ export function AdminMessagesThreadClient({ conversationId, me, language = 'ru' 
       staffThread
       booking={booking}
       listing={listing}
-      className="pb-8 sm:pb-10"
+      className="pb-4 sm:pb-6"
     />
   ) : (
     <div className="flex flex-col items-center justify-center gap-2 py-24 text-slate-500">

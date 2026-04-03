@@ -26,6 +26,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const MODERATOR_RESTRICTED_PREFIXES = [
   '/admin/finances',
@@ -170,6 +171,8 @@ export default function AdminLayout({ children }) {
   }
 
   if (!user) return null;
+
+  const isAdminMessagesSection = pathname?.startsWith('/admin/messages');
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -326,7 +329,12 @@ export default function AdminLayout({ children }) {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 w-full max-w-full overflow-x-hidden">
+      <main
+        className={cn(
+          'flex-1 lg:ml-64 pt-14 lg:pt-0 w-full max-w-full overflow-x-hidden',
+          isAdminMessagesSection && 'flex min-h-0 flex-col overflow-hidden'
+        )}
+      >
         {/* Desktop Top Bar with Impersonation */}
         <div className="hidden lg:block sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200/50 z-10">
           {/* Impersonation Banner - Desktop */}
@@ -385,7 +393,13 @@ export default function AdminLayout({ children }) {
         </div>
         
         {/* Page Content with proper padding */}
-        <div className="p-4 lg:p-8 max-w-full overflow-x-hidden">
+        <div
+          className={cn(
+            'max-w-full overflow-x-hidden p-4 lg:p-8',
+            isAdminMessagesSection &&
+              'flex min-h-0 flex-1 flex-col overflow-hidden p-0 lg:flex lg:flex-1 lg:flex-col lg:overflow-hidden lg:p-6'
+          )}
+        >
           {children}
         </div>
       </main>

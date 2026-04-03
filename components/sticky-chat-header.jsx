@@ -72,10 +72,12 @@ export function StickyChatHeader({
   messagesListBackLabel = null,
   /** Когда «Назад» рендерит родитель (например слева от шапки), скрыть дублирующую кнопку */
   hideBackButton = false,
-  /** Мобиле: верхний ряд [Назад | заголовок по центру | mobileTopBarActions] — см. /messages/[id] */
+  /** Мобиле: верхний ряд [Назад | заголовок по центру | mobileTopBarActions] — см. /messages/[id], /admin/messages/[id] */
   unifiedMobileTopBar = false,
-  /** Иконки справа в unifiedMobileTopBar (Info, Архив и т.п.) */
+  /** Иконки справа в unifiedMobileTopBar (опционально; пустой правый край — норма для админ-треда) */
   mobileTopBarActions = null,
+  /** Узкая шкала брони (админ-тред и т.п.) */
+  bookingTimelineVariant = 'default',
   /** Выход из «тупика» чата — ссылка на каталог / поиск */
   catalogHref = null,
   /** `replace` — не копить историю (универсальный /messages/[id]); `push` — явный переход в инбокс (партнёрский кабинет) */
@@ -126,8 +128,9 @@ export function StickyChatHeader({
   const img = listing?.images?.[0]
   const title = listing?.title || '—'
 
-  const showUnifiedTop =
-    Boolean(unifiedMobileTopBar && embedded && compact && messagesListHref && !hideBackButton && mobileTopBarActions)
+  const showUnifiedTop = Boolean(
+    unifiedMobileTopBar && embedded && compact && messagesListHref && !hideBackButton
+  )
 
   const from = booking?.check_in
   const to = booking?.check_out
@@ -252,7 +255,9 @@ export function StickyChatHeader({
               <p className="truncate text-[11px] text-slate-500">{listing.district}</p>
             ) : null}
           </div>
-          <div className="flex shrink-0 items-center gap-1">{mobileTopBarActions}</div>
+          <div className="flex min-h-9 min-w-9 shrink-0 items-center justify-end gap-1">
+            {mobileTopBarActions}
+          </div>
         </div>
       ) : null}
 
@@ -413,7 +418,11 @@ export function StickyChatHeader({
 
       {/* Шкала прогресса брони */}
       {showBookingTimeline && booking ? (
-        <BookingChatTimeline booking={booking} language={language} />
+        <BookingChatTimeline
+          booking={booking}
+          language={language}
+          variant={bookingTimelineVariant}
+        />
       ) : null}
     </div>
   )

@@ -10,6 +10,7 @@ import { ChatThreadChrome } from '@/components/chat/ChatThreadChrome'
 import { AdminConversationSidebar } from '@/components/chat/AdminConversationSidebar'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { cn } from '@/lib/utils'
 
 function AdminMessagesHallContent() {
   const { language } = useI18n()
@@ -119,48 +120,109 @@ function AdminMessagesHallContent() {
     )
   }
 
+  const statChipClass = ({ active, tone = 'indigo' }) =>
+    cn(
+      'flex min-w-[9.5rem] max-w-[11rem] shrink-0 flex-col rounded-xl border bg-white px-3 py-2 text-left shadow-sm transition',
+      active && tone === 'indigo' && 'border-indigo-400 ring-2 ring-indigo-300/60',
+      active && tone === 'amber' && 'border-amber-400 ring-2 ring-amber-300/70',
+      !active && 'border-slate-200/90 hover:border-slate-300'
+    )
+
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col gap-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Card className="border-indigo-100 shadow-sm">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="rounded-lg bg-indigo-50 p-2">
-              <Inbox className="h-5 w-5 text-indigo-600" />
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{t('adminStatsTotalChats')}</p>
-              <p className="text-2xl font-bold tabular-nums text-slate-900">{chatStats?.totalChats ?? '—'}</p>
-              <p className="text-xs text-slate-600">{t('adminStatsTotalChatsHint')}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-emerald-100 shadow-sm">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="rounded-lg bg-emerald-50 p-2">
-              <Activity className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{t('adminStatsActiveToday')}</p>
-              <p className="text-2xl font-bold tabular-nums text-slate-900">{chatStats?.activeToday ?? '—'}</p>
-              <p className="text-xs text-slate-600">{t('adminStatsActiveTodayHint')}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-amber-100 shadow-sm">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="rounded-lg bg-amber-50 p-2">
-              <Headphones className="h-5 w-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{t('adminStatsSupportNeeded')}</p>
-              <p className="text-2xl font-bold tabular-nums text-slate-900">{chatStats?.supportNeeded ?? '—'}</p>
-              <p className="text-xs text-slate-600">{t('adminStatsSupportNeededHint')}</p>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="flex h-full min-h-0 flex-1 flex-col gap-2 lg:gap-4">
+      {/* Мобиле: компактная полоса; тап «все» / «приоритет» */}
+      <div className="flex gap-2 overflow-x-auto pb-0.5 [-webkit-overflow-scrolling:touch] lg:hidden">
+        <button
+          type="button"
+          className={statChipClass({ active: !priorityOnly, tone: 'indigo' })}
+          onClick={() => setPriorityOnly(false)}
+        >
+          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <Inbox className="h-3.5 w-3.5 text-indigo-600" />
+            {t('adminStatsTotalChats')}
+          </span>
+          <span className="text-xl font-bold tabular-nums leading-tight text-slate-900">{chatStats?.totalChats ?? '—'}</span>
+        </button>
+        <div className={cn(statChipClass({ active: false }), 'cursor-default opacity-95')}>
+          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <Activity className="h-3.5 w-3.5 text-emerald-600" />
+            {t('adminStatsActiveToday')}
+          </span>
+          <span className="text-xl font-bold tabular-nums leading-tight text-slate-900">{chatStats?.activeToday ?? '—'}</span>
+        </div>
+        <button
+          type="button"
+          className={statChipClass({ active: priorityOnly, tone: 'amber' })}
+          onClick={() => setPriorityOnly(true)}
+        >
+          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+            <Headphones className="h-3.5 w-3.5 text-amber-600" />
+            {t('adminStatsSupportNeeded')}
+          </span>
+          <span className="text-xl font-bold tabular-nums leading-tight text-slate-900">{chatStats?.supportNeeded ?? '—'}</span>
+        </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="hidden gap-3 lg:grid lg:grid-cols-3">
+        <button
+          type="button"
+          className="text-left"
+          onClick={() => setPriorityOnly(false)}
+        >
+          <Card
+            className={cn(
+              'border-indigo-100 shadow-sm transition hover:shadow-md',
+              !priorityOnly && 'ring-2 ring-indigo-300/70'
+            )}
+          >
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="rounded-lg bg-indigo-50 p-2">
+                <Inbox className="h-5 w-5 text-indigo-600" />
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{t('adminStatsTotalChats')}</p>
+                <p className="text-2xl font-bold tabular-nums text-slate-900">{chatStats?.totalChats ?? '—'}</p>
+                <p className="text-xs text-slate-600">{t('adminStatsTotalChatsHint')}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </button>
+        <div>
+          <Card className="border-emerald-100 shadow-sm">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="rounded-lg bg-emerald-50 p-2">
+                <Activity className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{t('adminStatsActiveToday')}</p>
+                <p className="text-2xl font-bold tabular-nums text-slate-900">{chatStats?.activeToday ?? '—'}</p>
+                <p className="text-xs text-slate-600">{t('adminStatsActiveTodayHint')}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <button type="button" className="text-left" onClick={() => setPriorityOnly(true)}>
+          <Card
+            className={cn(
+              'border-amber-100 shadow-sm transition hover:shadow-md',
+              priorityOnly && 'ring-2 ring-amber-400/80'
+            )}
+          >
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="rounded-lg bg-amber-50 p-2">
+                <Headphones className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{t('adminStatsSupportNeeded')}</p>
+                <p className="text-2xl font-bold tabular-nums text-slate-900">{chatStats?.supportNeeded ?? '—'}</p>
+                <p className="text-xs text-slate-600">{t('adminStatsSupportNeededHint')}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </button>
+      </div>
+
+      <div className="hidden flex-wrap items-center gap-2 lg:flex">
         <Button
           type="button"
           variant={priorityOnly ? 'default' : 'outline'}
