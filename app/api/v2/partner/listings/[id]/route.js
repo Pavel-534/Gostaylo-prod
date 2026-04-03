@@ -14,12 +14,17 @@ import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url';
 import { verifyPartnerAccess } from '@/lib/services/session-service';
 import { revalidateListingPaths } from '@/lib/revalidation';
 import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings';
+import { getJwtSecret } from '@/lib/auth/jwt-secret';
 
 export const dynamic = 'force-dynamic';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
-
 async function getPartnerFromSession() {
+  let secret;
+  try {
+    secret = getJwtSecret();
+  } catch (e) {
+    return { error: NextResponse.json({ success: false, error: e.message }, { status: 500 }) };
+  }
   const cookieStore = cookies();
   const sessionCookie = cookieStore.get('gostaylo_session');
   if (!sessionCookie?.value) {
@@ -27,7 +32,7 @@ async function getPartnerFromSession() {
   }
   let decoded;
   try {
-    decoded = jwt.verify(sessionCookie.value, JWT_SECRET);
+    decoded = jwt.verify(sessionCookie.value, secret);
   } catch {
     return { error: NextResponse.json({ success: false, error: 'Invalid session' }, { status: 401 }) };
   }

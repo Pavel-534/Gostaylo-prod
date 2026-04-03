@@ -9,23 +9,28 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
+import { getJwtSecret } from '@/lib/auth/jwt-secret';
 
 export const dynamic = 'force-dynamic';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
-
 export async function GET(request) {
-  // Verify JWT from cookie
+  let jwtSecret;
+  try {
+    jwtSecret = getJwtSecret();
+  } catch (e) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
+
   const cookieStore = cookies();
   const sessionCookie = cookieStore.get('gostaylo_session');
-  
+
   if (!sessionCookie?.value) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
-  
+
   let decoded;
   try {
-    decoded = jwt.verify(sessionCookie.value, JWT_SECRET);
+    decoded = jwt.verify(sessionCookie.value, jwtSecret);
   } catch (error) {
     return NextResponse.json({ success: false, error: 'Invalid session' }, { status: 401 });
   }

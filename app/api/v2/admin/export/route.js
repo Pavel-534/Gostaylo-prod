@@ -8,20 +8,26 @@ import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
 import * as XLSX from 'xlsx';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getJwtSecret } from '@/lib/auth/jwt-secret';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
-
 function verifyAdmin() {
+  let secret;
+  try {
+    secret = getJwtSecret();
+  } catch (e) {
+    return { error: e.message, status: 500 };
+  }
+
   const cookieStore = cookies();
   const sessionCookie = cookieStore.get('gostaylo_session');
   if (!sessionCookie?.value) {
     return { error: 'Unauthorized', status: 401 };
   }
   try {
-    const decoded = jwt.verify(sessionCookie.value, JWT_SECRET);
+    const decoded = jwt.verify(sessionCookie.value, secret);
     if (decoded.role !== 'ADMIN') {
       return { error: 'Admin access required', status: 403 };
     }

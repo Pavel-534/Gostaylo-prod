@@ -9,12 +9,18 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { getJwtSecret } from '@/lib/auth/jwt-secret';
 
 export const dynamic = 'force-dynamic';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
-
 export async function POST(request) {
+  let jwtSecret;
+  try {
+    jwtSecret = getJwtSecret();
+  } catch (e) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
+
   console.log('[RESET-PASSWORD] ====== START ======');
   
   let body;
@@ -37,7 +43,7 @@ export async function POST(request) {
   // Verify token
   let decoded;
   try {
-    decoded = jwt.verify(token, JWT_SECRET);
+    decoded = jwt.verify(token, jwtSecret);
   } catch (error) {
     console.error('[RESET-PASSWORD] Invalid token:', error.message);
     return NextResponse.json({ success: false, error: 'Invalid or expired token' }, { status: 400 });

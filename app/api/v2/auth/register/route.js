@@ -11,17 +11,16 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { rateLimitCheck } from '@/lib/rate-limit';
 import { getTransactionalFromAddress } from '@/lib/email-env';
+import { getJwtSecret } from '@/lib/auth/jwt-secret';
 
 export const dynamic = 'force-dynamic';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
 
-// Generate verification token
-function generateVerificationToken(userId, email) {
+function generateVerificationToken(userId, email, jwtSecret) {
   return jwt.sign(
     { userId, email, type: 'email_verification' },
-    JWT_SECRET,
+    jwtSecret,
     { expiresIn: '24h' }
   );
 }
@@ -154,6 +153,13 @@ export async function POST(request) {
   if (!url || !serviceKey) {
     return NextResponse.json({ success: false, error: 'Database not configured' }, { status: 500 });
   }
+
+  let jwtSecret;
+  try {
+    jwtSecret = getJwtSecret();
+  } catch (e) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
   
   const supabase = createClient(url, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false }
@@ -225,7 +231,7 @@ export async function POST(request) {
   console.log('[REGISTER] User created:', user.id);
   
   // Generate verification token
-  const verificationToken = generateVerificationToken(user.id, user.email);
+  const verificationToken = generateVerificationToken(user.id, user.email, jwtSecret);
   
   // Send verification email
   const emailResult = await sendVerificationEmail(user, verificationToken);

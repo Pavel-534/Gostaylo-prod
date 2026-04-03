@@ -21,6 +21,7 @@ import { getPublicSiteUrl } from '@/lib/site-url.js'
 import { registerTelegramReplyTarget } from '@/lib/services/telegram/telegram-reply-map.js'
 import { getEffectiveRate } from '@/lib/services/currency-helper'
 import { otherPartyHasReadRaw } from '@/lib/chat/read-receipts'
+import { stripLegacyModeratorMarker } from '@/lib/auth/display-name'
 
 export const dynamic = 'force-dynamic'
 
@@ -230,7 +231,7 @@ export async function POST(request) {
   }
 
   const senderName =
-    [profile?.first_name, profile?.last_name?.replace(' [MODERATOR]', '')]
+    [profile?.first_name, stripLegacyModeratorMarker(profile?.last_name)]
       .filter(Boolean)
       .join(' ')
       .trim() ||

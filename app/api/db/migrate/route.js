@@ -10,7 +10,7 @@ const migrations = [
   CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
   
   DO $$ BEGIN
-    CREATE TYPE user_role AS ENUM ('RENTER', 'PARTNER', 'ADMIN');
+    CREATE TYPE user_role AS ENUM ('RENTER', 'PARTNER', 'ADMIN', 'MODERATOR');
   EXCEPTION WHEN duplicate_object THEN null; END $$;
   
   DO $$ BEGIN

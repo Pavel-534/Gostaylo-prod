@@ -75,16 +75,12 @@ export default function AdminLayout({ children }) {
       const storedUser = localStorage.getItem('gostaylo_user');
       if (storedUser) {
         const parsed = JSON.parse(storedUser);
-        // Check if user has moderator marker in lastName
-        const isModerator = parsed.isModerator || (parsed.lastName && parsed.lastName.includes('[MODERATOR]'));
-        
-        // Allow ADMIN and MODERATOR roles
-        if (parsed.role === 'ADMIN' || parsed.role === 'MODERATOR' || isModerator) {
-          // Update user state with correct isModerator flag
+        const isModerator = parsed.role === 'MODERATOR' || parsed.isModerator === true;
+
+        if (parsed.role === 'ADMIN' || parsed.role === 'MODERATOR') {
           const userWithModerator = { ...parsed, isModerator };
           setUser(userWithModerator);
-          
-          // HARD-BLOCK: If moderator tries to access restricted pages via URL
+
           if (isModerator) {
             const currentPath = window.location.pathname;
             if (MODERATOR_RESTRICTED_PREFIXES.some((path) => currentPath.startsWith(path))) {

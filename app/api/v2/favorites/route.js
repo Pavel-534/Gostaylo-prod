@@ -6,35 +6,30 @@
  */
 
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
-import jwt from 'jsonwebtoken';
+import { verifySessionFromCookies } from '@/lib/auth/session-from-cookie';
 
 export const dynamic = 'force-dynamic';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
-
-async function getUserFromSession() {
-  const cookieStore = cookies();
-  const sessionCookie = cookieStore.get('gostaylo_session');
-  
-  if (!sessionCookie?.value) {
-    return null;
+async function getUserOrError() {
+  const result = await verifySessionFromCookies();
+  if (!result.ok && result.reason === 'misconfigured') {
+    return { error: result.message, status: 500 };
   }
-  
-  try {
-    const decoded = jwt.verify(sessionCookie.value, JWT_SECRET);
-    return decoded;
-  } catch (error) {
-    return null;
+  if (!result.ok) {
+    return { user: null, status: 401 };
   }
+  return { user: result.payload, status: null };
 }
 
 // GET - Fetch user's favorites
 export async function GET() {
   try {
-    const user = await getUserFromSession();
-    
+    const session = await getUserOrError();
+    if (session.error) {
+      return NextResponse.json({ error: session.error }, { status: session.status });
+    }
+    const user = session.user;
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -87,8 +82,11 @@ export async function GET() {
 // POST - Add to favorites
 export async function POST(request) {
   try {
-    const user = await getUserFromSession();
-    
+    const session = await getUserOrError();
+    if (session.error) {
+      return NextResponse.json({ error: session.error }, { status: session.status });
+    }
+    const user = session.user;
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -145,8 +143,11 @@ export async function POST(request) {
 // DELETE - Remove from favorites
 export async function DELETE(request) {
   try {
-    const user = await getUserFromSession();
-    
+    const session = await getUserOrError();
+    if (session.error) {
+      return NextResponse.json({ error: session.error }, { status: session.status });
+    }
+    const user = session.user;
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

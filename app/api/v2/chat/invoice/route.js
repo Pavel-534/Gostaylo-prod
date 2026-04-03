@@ -17,6 +17,7 @@ import {
   userParticipatesInConversation,
 } from '@/lib/services/chat/access'
 import { getEffectiveRate } from '@/lib/services/currency-helper'
+import { stripLegacyModeratorMarker } from '@/lib/auth/display-name'
 
 async function fetchProfile(userId) {
   const { data } = await supabaseAdmin
@@ -96,7 +97,7 @@ export async function POST(request) {
 
     // ── Build invoice ─────────────────────────────────────────────────────
     const senderName =
-      [profile?.first_name, profile?.last_name?.replace(' [MODERATOR]', '')]
+      [profile?.first_name, stripLegacyModeratorMarker(profile?.last_name)]
         .filter(Boolean)
         .join(' ')
         .trim() ||

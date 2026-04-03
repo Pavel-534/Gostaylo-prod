@@ -9,7 +9,8 @@ datasource db {
   provider = "postgresql"
 }
 
-// User Profiles with Roles & Referral System
+// User Profiles — maps to Supabase `profiles` (snake_case columns in DB).
+// Role: PostgreSQL enum `user_role`. If MODERATOR is missing, run 013a then 013b in database/migrations/ (two separate Supabase runs).
 model Profile {
   id                String   @id @default(uuid())
   email             String   @unique
@@ -510,6 +511,7 @@ enum Role {
   RENTER
   PARTNER
   ADMIN
+  MODERATOR
 }
 
 enum VerificationStatus {

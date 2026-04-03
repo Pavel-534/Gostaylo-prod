@@ -11,12 +11,13 @@ import {
   isStaffRole,
 } from '@/lib/services/chat/access'
 import { supabaseAdmin } from '@/lib/supabase'
+import { stripLegacyModeratorMarker } from '@/lib/auth/display-name'
 
 export const dynamic = 'force-dynamic'
 
 function displayNameFromProfile(p) {
   if (!p) return 'Support'
-  const n = [p.first_name, p.last_name?.replace(' [MODERATOR]', '')].filter(Boolean).join(' ').trim()
+  const n = [p.first_name, stripLegacyModeratorMarker(p.last_name)].filter(Boolean).join(' ').trim()
   return n || p.email || 'Support'
 }
 

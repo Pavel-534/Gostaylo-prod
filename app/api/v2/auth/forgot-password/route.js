@@ -10,16 +10,23 @@ import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { rateLimitCheck } from '@/lib/rate-limit';
 import { getTransactionalFromAddress } from '@/lib/email-env';
+import { getJwtSecret } from '@/lib/auth/jwt-secret';
 
 export const dynamic = 'force-dynamic';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
 
 export async function POST(request) {
   const rl = rateLimitCheck(request, 'auth');
   if (rl) {
     return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers });
+  }
+
+  let jwtSecret;
+  try {
+    jwtSecret = getJwtSecret();
+  } catch (e) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 
   console.log('[FORGOT-PASSWORD] ====== START ======');
@@ -70,7 +77,7 @@ export async function POST(request) {
   // Токен: email в нижнем регистре — совпадение при сбросе без учёта регистра в БД
   const resetToken = jwt.sign(
     { userId: user.id, email: normalizedEmail, type: 'password_reset' },
-    JWT_SECRET,
+    jwtSecret,
     { expiresIn: '1h' }
   );
   

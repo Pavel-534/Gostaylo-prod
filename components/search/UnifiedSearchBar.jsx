@@ -226,8 +226,10 @@ export function UnifiedSearchBar({
 
   if (variant === 'filter') {
     return (
-      <div className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-        {textSearchRow}
+      <div className="flex min-w-0 flex-col overflow-visible rounded-lg border border-slate-200 bg-white shadow-sm">
+        {textSearchRow ? (
+          <div className="overflow-hidden rounded-t-lg">{textSearchRow}</div>
+        ) : null}
         <div className="grid grid-cols-2 gap-2 border-t-0 p-2 md:grid-cols-4 md:p-2">
         {/* What - Category */}
         <Select value={category || 'all'} onValueChange={(v) => setCategory?.(v)}>
@@ -294,7 +296,8 @@ export function UnifiedSearchBar({
       {textSearchRow ? <div className="overflow-hidden rounded-t-2xl">{textSearchRow}</div> : null}
       <div
         className={cn(
-          'hidden md:flex items-center overflow-hidden',
+          // overflow-visible: иначе WhereCombobox (absolute top-full) обрезается и подсказки «Куда» не видны
+          'hidden md:flex items-center overflow-visible',
           textSearchRow ? 'rounded-b-2xl' : 'rounded-full',
         )}
       >

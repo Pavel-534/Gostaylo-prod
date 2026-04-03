@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { getJwtSecret } from '@/lib/auth/jwt-secret';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,11 +59,7 @@ function escapeIcalText(s) {
     .replace(/\n/g, '\\n');
 }
 
-/**
- * Verify export token
- */
-function verifyExportToken(listingId, token) {
-  const secret = process.env.JWT_SECRET || 'gostaylo-secret';
+function verifyExportToken(listingId, token, secret) {
   const expected = crypto
     .createHmac('sha256', secret)
     .update(`ical-export-${listingId}`)
@@ -75,9 +72,15 @@ export async function GET(request, { params }) {
   const listingId = params.id;
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
-  
-  // Verify token
-  if (!token || !verifyExportToken(listingId, token)) {
+
+  let hmacSecret;
+  try {
+    hmacSecret = getJwtSecret();
+  } catch {
+    return new NextResponse('Server misconfigured', { status: 500 });
+  }
+
+  if (!token || !verifyExportToken(listingId, token, hmacSecret)) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
   

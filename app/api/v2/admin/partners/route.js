@@ -11,25 +11,32 @@ import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { getPublicSiteUrl } from '@/lib/site-url.js';
+import { getJwtSecret } from '@/lib/auth/jwt-secret';
 
 export const dynamic = 'force-dynamic';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const APP_URL = getPublicSiteUrl();
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
 // Verify admin access
 function verifyAdmin(request) {
+  let secret;
+  try {
+    secret = getJwtSecret();
+  } catch (e) {
+    return { error: e.message, status: 500 };
+  }
+
   const cookieStore = cookies();
   const sessionCookie = cookieStore.get('gostaylo_session');
-  
+
   if (!sessionCookie?.value) {
     return { error: 'Unauthorized', status: 401 };
   }
-  
+
   try {
-    const decoded = jwt.verify(sessionCookie.value, JWT_SECRET);
+    const decoded = jwt.verify(sessionCookie.value, secret);
     if (decoded.role !== 'ADMIN') {
       return { error: 'Admin access required', status: 403 };
     }

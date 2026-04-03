@@ -20,8 +20,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 // Route protection configuration
 const PROTECTED_ROUTES = {
   '/admin': ['ADMIN', 'MODERATOR'],
-  '/partner': ['PARTNER', 'ADMIN'],
-  '/renter': ['RENTER', 'ADMIN', 'PARTNER']  // PARTNER can also be a renter
+  '/partner': ['PARTNER', 'ADMIN', 'MODERATOR'],
+  '/renter': ['RENTER', 'ADMIN', 'PARTNER', 'MODERATOR'],
 } as const;
 
 /**

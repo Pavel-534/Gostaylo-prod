@@ -7,19 +7,25 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import jwt from 'jsonwebtoken'
 import { sumGlobalAiCostUsdForMonth } from '@/lib/ai/usage-log'
+import { getJwtSecret } from '@/lib/auth/jwt-secret'
 
 export const dynamic = 'force-dynamic'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production'
-
 function verifyAdminOnly() {
+  let secret
+  try {
+    secret = getJwtSecret()
+  } catch (e) {
+    return { error: NextResponse.json({ success: false, error: e.message }, { status: 500 }) }
+  }
+
   const cookieStore = cookies()
   const sessionCookie = cookieStore.get('gostaylo_session')
   if (!sessionCookie?.value) {
     return { error: NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 }) }
   }
   try {
-    const decoded = jwt.verify(sessionCookie.value, JWT_SECRET)
+    const decoded = jwt.verify(sessionCookie.value, secret)
     if (decoded.role !== 'ADMIN') {
       return {
         error: NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 }),

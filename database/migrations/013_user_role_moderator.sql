@@ -1,0 +1,11 @@
+-- =============================================================================
+-- MODERATOR role — split into TWO scripts (PostgreSQL / Supabase limitation).
+-- =============================================================================
+-- Do not run this file as one block. Execute in order:
+--
+--   1) 013a_user_role_add_moderator_enum.sql   → Run, wait for success
+--   2) 013b_user_role_migrate_legacy_moderator.sql → Run in a new execution
+--
+-- Reason: ALTER TYPE ... ADD VALUE cannot be in the same transaction as
+-- UPDATE ... role = 'MODERATOR'::user_role (error 55P04).
+-- =============================================================================

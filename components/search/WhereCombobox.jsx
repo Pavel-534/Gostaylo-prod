@@ -159,7 +159,7 @@ export function WhereCombobox({
   return (
     <div
       ref={containerRef}
-      className={cn('relative', showList && 'z-[80]', className)}
+      className={cn('relative', showList && 'z-[110]', className)}
     >
       <div
         className={cn(
@@ -216,7 +216,7 @@ export function WhereCombobox({
           id={listboxId}
           className={cn(
             // top-full обязателен: без top/left-базиса absolute ведёт себя как static и ломает flex-строку поиска
-            'absolute left-0 top-full z-[100] mt-1 bg-white shadow-xl border border-slate-200 rounded-xl overflow-y-auto max-h-72',
+            'absolute left-0 top-full z-[200] mt-1 bg-white shadow-xl border border-slate-200 rounded-xl overflow-y-auto max-h-72',
             isHero ? 'min-w-[min(100vw-2rem,22rem)] w-max max-w-[calc(100vw-2rem)]' : 'right-0'
           )}
           role="listbox"

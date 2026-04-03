@@ -20,6 +20,7 @@ import {
   SUPPORT_DISPUTE_KINDS,
   buildSupportTicketMessage,
 } from '@/lib/support-request-options'
+import { stripLegacyModeratorMarker } from '@/lib/auth/display-name'
 
 export const dynamic = 'force-dynamic'
 
@@ -176,7 +177,7 @@ export async function POST(request) {
     const profile = await fetchProfileShort(userId)
     const senderRole = effectiveRoleFromProfile(profile)
     const senderName =
-      [profile?.first_name, profile?.last_name?.replace(' [MODERATOR]', '')]
+      [profile?.first_name, stripLegacyModeratorMarker(profile?.last_name)]
         .filter(Boolean)
         .join(' ')
         .trim() ||

@@ -12,11 +12,11 @@ import {
   compactYmdToIsoDate,
   lastOccupiedDateFromExclusiveAllDayDtend,
 } from '@/lib/ical-all-day-range';
+import { getJwtSecret } from '@/lib/auth/jwt-secret';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ADMIN_TELEGRAM_ID = process.env.ADMIN_TELEGRAM_ID;
 
@@ -27,16 +27,35 @@ function getSupabase() {
 }
 
 function verifyAdmin() {
+  let secret;
+  try {
+    secret = getJwtSecret();
+  } catch (e) {
+    return {
+      err: NextResponse.json({ success: false, error: e.message }, { status: 500 }),
+    };
+  }
+
   const cookieStore = cookies();
   const session = cookieStore.get('gostaylo_session');
-  if (!session?.value) return null;
-  
+  if (!session?.value) {
+    return {
+      err: NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 }),
+    };
+  }
+
   try {
-    const decoded = jwt.verify(session.value, JWT_SECRET);
-    if (decoded.role !== 'ADMIN') return null;
-    return decoded;
+    const decoded = jwt.verify(session.value, secret);
+    if (decoded.role !== 'ADMIN') {
+      return {
+        err: NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 }),
+      };
+    }
+    return { decoded };
   } catch {
-    return null;
+    return {
+      err: NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 }),
+    };
   }
 }
 
@@ -169,11 +188,9 @@ async function syncSource(supabase, listingId, listingTitle, source) {
  * GET - Get sync logs
  */
 export async function GET(request) {
-  const auth = verifyAdmin();
-  if (!auth) {
-    return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
-  }
-  
+  const v = verifyAdmin();
+  if (v.err) return v.err;
+
   const { searchParams } = new URL(request.url);
   const errorsOnly = searchParams.get('errors_only') === 'true';
   const limit = parseInt(searchParams.get('limit') || '50');
@@ -227,11 +244,9 @@ export async function GET(request) {
  * POST - Trigger manual sync
  */
 export async function POST(request) {
-  const auth = verifyAdmin();
-  if (!auth) {
-    return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
-  }
-  
+  const v = verifyAdmin();
+  if (v.err) return v.err;
+
   let body;
   try {
     body = await request.json();

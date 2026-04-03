@@ -13,10 +13,9 @@ import jwt from 'jsonwebtoken';
 import { generateExportToken } from '@/lib/ical-export-token';
 import { getPublicSiteUrl } from '@/lib/site-url.js';
 import { verifyPartnerAccess } from '@/lib/services/session-service';
+import { getJwtSecret } from '@/lib/auth/jwt-secret';
 
 export const dynamic = 'force-dynamic';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
 
 function getPublicBaseUrl() {
   if (process.env.VERCEL_URL && !process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_BASE_URL) {
@@ -29,6 +28,13 @@ export async function GET(request, context) {
   const params = await Promise.resolve(context.params);
   const listingId = params.id;
 
+  let jwtSecret;
+  try {
+    jwtSecret = getJwtSecret();
+  } catch (e) {
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+  }
+
   const cookieStore = cookies();
   const sessionCookie = cookieStore.get('gostaylo_session');
   if (!sessionCookie?.value) {
@@ -37,7 +43,7 @@ export async function GET(request, context) {
 
   let decoded;
   try {
-    decoded = jwt.verify(sessionCookie.value, JWT_SECRET);
+    decoded = jwt.verify(sessionCookie.value, jwtSecret);
   } catch {
     return NextResponse.json({ success: false, error: 'Invalid session' }, { status: 401 });
   }

@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Shield, User, Users as UsersIcon, Search, Mail, Phone, LogIn, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
+import { stripLegacyModeratorMarker } from '@/lib/auth/display-name';
 
 export default function UsersPage() {
   const router = useRouter();
@@ -42,10 +43,10 @@ export default function UsersPage() {
         const formattedUsers = data.map(u => ({
           id: u.id,
           email: u.email,
-          name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email,
+          name: `${u.first_name || ''} ${stripLegacyModeratorMarker(u.last_name)}`.trim() || u.email,
           firstName: u.first_name,
-          lastName: u.last_name,
-          role: u.last_name?.includes('[MODERATOR]') ? 'MODERATOR' : u.role,
+          lastName: stripLegacyModeratorMarker(u.last_name),
+          role: u.role,
           isVerified: u.is_verified,
           verificationStatus: u.verification_status,
           customCommissionRate: u.custom_commission_rate,
@@ -98,7 +99,7 @@ export default function UsersPage() {
       firstName: targetUser.firstName,
       lastName: targetUser.lastName,
       name: targetUser.name,
-      isModerator: targetUser.role === 'MODERATOR' || (targetUser.lastName && targetUser.lastName.includes('[MODERATOR]')),
+      isModerator: targetUser.role === 'MODERATOR',
       isImpersonated: true
     };
     
@@ -109,7 +110,7 @@ export default function UsersPage() {
       window.location.href = '/partner/dashboard';
     } else if (targetUser.role === 'RENTER') {
       window.location.href = '/';
-    } else if (targetUser.role === 'MODERATOR' || (targetUser.lastName && targetUser.lastName.includes('[MODERATOR]'))) {
+    } else if (targetUser.role === 'MODERATOR') {
       window.location.href = '/admin/dashboard';
     } else {
       window.location.href = '/admin/dashboard';

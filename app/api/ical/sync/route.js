@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { lastOccupiedNightIsoFromDtendDate } from '@/lib/ical-all-day-range';
+import { getJwtSecret } from '@/lib/auth/jwt-secret';
 
 /**
  * @deprecated DEPRECATED: This endpoint will be replaced by /api/v2/calendar
@@ -34,14 +35,18 @@ function getSupabase() {
   });
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
-
 function verifyAuth() {
+  let secret;
+  try {
+    secret = getJwtSecret();
+  } catch {
+    return { misconfigured: true };
+  }
   const cookieStore = cookies();
   const session = cookieStore.get('gostaylo_session');
   if (!session?.value) return null;
   try {
-    return jwt.verify(session.value, JWT_SECRET);
+    return jwt.verify(session.value, secret);
   } catch {
     return null;
   }
@@ -253,6 +258,9 @@ export async function POST(request) {
     // Sync single listing
     if (action === 'sync' && listingId) {
       const auth = verifyAuth();
+      if (auth?.misconfigured) {
+        return NextResponse.json({ success: false, error: 'Server misconfigured: JWT_SECRET is missing' }, { status: 500 });
+      }
       if (!auth) {
         return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
       }
@@ -311,6 +319,9 @@ export async function POST(request) {
     // Sync all listings (admin only)
     if (action === 'sync-all') {
       const auth = verifyAuth();
+      if (auth?.misconfigured) {
+        return NextResponse.json({ success: false, error: 'Server misconfigured: JWT_SECRET is missing' }, { status: 500 });
+      }
       if (!auth || auth.role !== 'ADMIN') {
         return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
       }

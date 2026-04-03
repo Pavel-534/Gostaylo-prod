@@ -9,10 +9,9 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
+import { getJwtSecret } from '@/lib/auth/jwt-secret';
 
 export const dynamic = 'force-dynamic';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -21,12 +20,18 @@ function getSupabase() {
 }
 
 function verifyAuth() {
+  let secret;
+  try {
+    secret = getJwtSecret();
+  } catch {
+    return { misconfigured: true };
+  }
   const cookieStore = cookies();
   const session = cookieStore.get('gostaylo_session');
   if (!session?.value) return null;
-  
+
   try {
-    return jwt.verify(session.value, JWT_SECRET);
+    return jwt.verify(session.value, secret);
   } catch {
     return null;
   }
@@ -37,6 +42,9 @@ function verifyAuth() {
  */
 export async function GET(request, { params }) {
   const auth = verifyAuth();
+  if (auth?.misconfigured) {
+    return NextResponse.json({ success: false, error: 'Server misconfigured: JWT_SECRET is missing' }, { status: 500 });
+  }
   if (!auth) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
@@ -94,6 +102,9 @@ export async function GET(request, { params }) {
  */
 export async function POST(request, { params }) {
   const auth = verifyAuth();
+  if (auth?.misconfigured) {
+    return NextResponse.json({ success: false, error: 'Server misconfigured: JWT_SECRET is missing' }, { status: 500 });
+  }
   if (!auth) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
@@ -169,6 +180,9 @@ export async function POST(request, { params }) {
  */
 export async function DELETE(request, { params }) {
   const auth = verifyAuth();
+  if (auth?.misconfigured) {
+    return NextResponse.json({ success: false, error: 'Server misconfigured: JWT_SECRET is missing' }, { status: 500 });
+  }
   if (!auth) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }

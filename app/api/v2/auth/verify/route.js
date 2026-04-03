@@ -9,12 +9,20 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { getPublicSiteUrl } from '@/lib/site-url.js';
+import { getJwtSecret } from '@/lib/auth/jwt-secret';
 
 export const dynamic = 'force-dynamic';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'gostaylo-secret-key-change-in-production';
-
 export async function GET(request) {
+  let jwtSecret;
+  try {
+    jwtSecret = getJwtSecret();
+  } catch (e) {
+    console.error('[VERIFY]', e.message);
+    const siteBase = getPublicSiteUrl();
+    return NextResponse.redirect(`${siteBase}/?auth_error=server_error`);
+  }
+
   const { searchParams } = new URL(request.url);
   const token = searchParams.get('token');
   
@@ -27,7 +35,7 @@ export async function GET(request) {
   // Verify JWT token
   let decoded;
   try {
-    decoded = jwt.verify(token, JWT_SECRET);
+    decoded = jwt.verify(token, jwtSecret);
   } catch (error) {
     console.error('[VERIFY] Invalid token:', error.message);
     return NextResponse.redirect(`${siteBase}/?auth_error=invalid_or_expired_token`);
@@ -76,18 +84,17 @@ export async function GET(request) {
     return NextResponse.redirect(`${siteBase}/?auth_error=user_not_found`);
   }
   
-  // Determine effective role (supports "[MODERATOR]" marker)
-  const effectiveRole = user.last_name?.includes('[MODERATOR]') ? 'MODERATOR' : user.role;
+  const role = String(user.role || 'RENTER').toUpperCase();
 
   // Generate session JWT (30 days)
   const sessionToken = jwt.sign(
     {
       userId: user.id,
       email: user.email,
-      role: effectiveRole,
+      role,
       firstName: user.first_name
     },
-    JWT_SECRET,
+    jwtSecret,
     { expiresIn: '30d' }
   );
   
