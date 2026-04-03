@@ -102,7 +102,8 @@ export function useChatThreadMessages({
 }) {
   // ── Стейт ───────────────────────────────────────────────────────────────────
   const [messages, setMessages] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
+  /** true с первого кадра при открытом треде — избегаем «мигания» not-found до старта loadThread */
+  const [isLoading, setIsLoading] = useState(() => Boolean(conversationId && userId))
   const [selectedConv, setSelectedConv] = useState(null)
   const [listing, setListing] = useState(null)
   const [booking, setBooking] = useState(null)

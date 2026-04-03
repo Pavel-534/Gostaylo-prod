@@ -43,6 +43,8 @@ export function StickyChatHeader({
   listing,
   booking,
   isAdminView = false,
+  /** Не рендерить баннер Admin View и блок участников (вынесены в pinnedAboveMessagesSlot) */
+  suppressAdminMeta = false,
   contactName,
   presenceOnline = null,
   lastSeenAt = null,
@@ -168,12 +170,12 @@ export function StickyChatHeader({
       )}
     >
       {/* Admin View banner */}
-      {isAdminView && (
+      {isAdminView && !suppressAdminMeta ? (
         <div className="bg-amber-50 border-b border-amber-200/80 px-4 py-2 text-center text-xs font-medium text-amber-950 flex items-center justify-center gap-2">
           <Shield className="h-3.5 w-3.5 shrink-0" aria-hidden />
           <span>Admin View — доступ супервизора ко всем сообщениям в этом диалоге</span>
         </div>
-      )}
+      ) : null}
 
       {/* Admin participants list */}
       {catalogHref ? (
@@ -194,7 +196,7 @@ export function StickyChatHeader({
         </div>
       ) : null}
 
-      {isAdminView && adminParticipants ? (
+      {isAdminView && adminParticipants && !suppressAdminMeta ? (
         <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200/80 text-xs text-slate-700 leading-relaxed">
           <p className="font-semibold text-slate-800 mb-1">Участники диалога</p>
           <ul className="list-disc list-inside space-y-0.5">

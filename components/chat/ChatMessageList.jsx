@@ -48,6 +48,7 @@ import { ChatVoicePlayer } from '@/components/chat-voice-player'
 import { ChatImageCollage } from '@/components/chat-image-collage'
 import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
 import { SupportJoinedBanner } from '@/components/chat/SupportJoinedBanner'
+import { BookingRequestCard, SystemMessage } from '@/components/booking-request-card'
 
 // ─── Вспомогательный блок: замаскированные контакты ─────────────────────────
 
@@ -88,6 +89,7 @@ function MessageItem({
   onInvoiceCancelled,
   booking,
   listing,
+  staffThread = false,
 }) {
   // ── Группа изображений (коллаж) ────────────────────────────────────────────
   if (item._imageGroup) {
@@ -110,7 +112,34 @@ function MessageItem({
   const msg = item
   const isOwn = String(msg.sender_id) === String(userId)
   const msgType = String(msg.type || '').toLowerCase()
+  const rawTypeUpper = String(msg.type || '').toUpperCase()
   const meta = msg.metadata || {}
+
+  if (staffThread && rawTypeUpper === 'BOOKING_REQUEST') {
+    return (
+      <div className="flex justify-center px-1">
+        <div className="w-full max-w-lg">
+          <BookingRequestCard
+            message={{
+              ...msg,
+              conversationId: msg.conversation_id ?? msg.conversationId,
+              bookingId: meta.booking_id ?? msg.bookingId,
+            }}
+            userRole="ADMIN"
+            bookingStatus={booking?.status}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  if (
+    staffThread &&
+    String(msg.sender_role || '').toUpperCase() === 'SYSTEM' &&
+    msgType !== 'system'
+  ) {
+    return <SystemMessage message={msg} />
+  }
 
   // ── Support ticket ────────────────────────────────────────────────────────
   const st = meta.support_ticket
@@ -176,7 +205,7 @@ function MessageItem({
         <InvoiceBubble
           invoice={meta.invoice}
           isOwn={isOwn}
-          showPay={!isOwn}
+          showPay={staffThread ? false : !isOwn}
           paymentMethod={meta.invoice.payment_method}
           messageId={isOwn ? msg.id : undefined}
           language={language}
@@ -234,6 +263,7 @@ function MessageItem({
  * @param {Function} [props.onInvoiceCancelled] — (messageId) => void — отмена инвойса
  * @param {object}   [props.booking] — бронь треда (даты, listings.district) для upsell «Транспорт»
  * @param {object}   [props.listing] — листинг диалога
+ * @param {boolean}  [props.staffThread] — режим админ/модератор: BOOKING_REQUEST, SYSTEM, без Pay в инвойсе
  * @param {string}   [props.className]
  */
 export function ChatMessageList({
@@ -248,6 +278,7 @@ export function ChatMessageList({
   onInvoiceCancelled,
   booking,
   listing,
+  staffThread = false,
   className,
 }) {
   const bottomRef = useRef(null)
@@ -309,6 +340,7 @@ export function ChatMessageList({
                 onInvoiceCancelled={onInvoiceCancelled}
                 booking={booking}
                 listing={listing}
+                staffThread={staffThread}
               />
             </div>
           </Fragment>

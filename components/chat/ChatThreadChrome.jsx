@@ -45,6 +45,7 @@ import { MessageSquare } from 'lucide-react'
  * @param {React.ReactNode} [props.headerSlot]    — шапка треда (StickyChatHeader)
  * @param {React.ReactNode} [props.actionBarSlot] — панель действий под шапкой
  * @param {React.ReactNode} [props.searchBarSlot] — строка поиска (под шапкой)
+ * @param {React.ReactNode} [props.pinnedAboveMessagesSlot] — под шапкой, над прокруткой ленты (баннер админа и т.п.)
  * @param {React.ReactNode} [props.messagesSlot]  — лента сообщений (ChatMessageList)
  * @param {React.ReactNode} [props.composerSlot]  — поле ввода (Composer)
  * @param {React.ReactNode} [props.emptySlot]     — placeholder когда тред не выбран
@@ -58,6 +59,7 @@ export function ChatThreadChrome({
   headerSlot,
   actionBarSlot,
   searchBarSlot,
+  pinnedAboveMessagesSlot,
   messagesSlot,
   composerSlot,
   emptySlot,
@@ -112,6 +114,12 @@ export function ChatThreadChrome({
                   {searchBarSlot}
                 </div>
               )}
+
+              {pinnedAboveMessagesSlot ? (
+                <div className="flex-shrink-0 border-b border-slate-100 bg-white">
+                  {pinnedAboveMessagesSlot}
+                </div>
+              ) : null}
 
               <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
                 {messagesSlot}

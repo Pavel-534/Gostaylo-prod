@@ -9,9 +9,10 @@ COMMENT ON COLUMN messages.read_at_renter IS 'Renter has read this message (typi
 COMMENT ON COLUMN messages.read_at_partner IS 'Host/partner side has read this message (typically sent by renter).';
 
 -- Legacy is_read meant "the recipient has read". Map to the correct side.
+-- (messages has created_at, not updated_at — do not use m.updated_at.)
 UPDATE messages m
 SET
-  read_at_partner = COALESCE(m.read_at_partner, m.updated_at, now())
+  read_at_partner = COALESCE(m.read_at_partner, m.created_at, now())
 FROM conversations p
 WHERE p.id = m.conversation_id
   AND m.is_read IS TRUE
@@ -20,7 +21,7 @@ WHERE p.id = m.conversation_id
 
 UPDATE messages m
 SET
-  read_at_renter = COALESCE(m.read_at_renter, m.updated_at, now())
+  read_at_renter = COALESCE(m.read_at_renter, m.created_at, now())
 FROM conversations p
 WHERE p.id = m.conversation_id
   AND m.is_read IS TRUE
