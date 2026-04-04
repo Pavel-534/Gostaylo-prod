@@ -32,7 +32,9 @@ export function BookingModal({
   exchangeRates,
   language,
   submitting,
-  onSubmit
+  onSubmit,
+  /** 'book' | 'private' | 'special' — inquiry flows create INQUIRY + chat */
+  modalIntent = 'book',
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -44,8 +46,25 @@ export function BookingModal({
       >
         <DialogHeader className="shrink-0 border-b border-slate-100 px-4 pb-3 pt-2 pr-12 text-left sm:px-6 sm:pb-4 sm:pt-4 sm:pr-12">
           <DialogTitle>
-            {language === 'ru' ? 'Подтвердите бронирование' : 'Confirm Booking'}
+            {modalIntent === 'book'
+              ? language === 'ru'
+                ? 'Подтвердите бронирование'
+                : 'Confirm booking'
+              : modalIntent === 'private'
+                ? language === 'ru'
+                  ? 'Запрос приватного тура'
+                  : 'Private trip request'
+                : language === 'ru'
+                  ? 'Запрос особой цены'
+                  : 'Special price request'}
           </DialogTitle>
+          {modalIntent !== 'book' && (
+            <p className="text-sm text-slate-500 font-normal mt-1 pr-2">
+              {language === 'ru'
+                ? 'Мы создадим чат с хозяином и запрос цены. Итоговая сумма по счёту в чате.'
+                : 'We will open a chat with the host for a custom quote. Final amount via invoice in chat.'}
+            </p>
+          )}
         </DialogHeader>
 
         <form
@@ -106,10 +125,19 @@ export function BookingModal({
                     {format(dateRange.to, 'd MMM', { locale: ru })}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm font-semibold">
-                  <span>{language === 'ru' ? 'Итого' : 'Total'}:</span>
-                  <span>{formatPrice(priceCalc.finalTotal, currency, exchangeRates)}</span>
-                </div>
+                {modalIntent === 'book' ? (
+                  <div className="flex justify-between text-sm font-semibold">
+                    <span>{language === 'ru' ? 'Итого' : 'Total'}:</span>
+                    <span>{formatPrice(priceCalc.finalTotal, currency, exchangeRates)}</span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-600 pt-1">
+                    {language === 'ru' ? 'Ориентир' : 'Guide price'}:{' '}
+                    <span className="font-semibold">
+                      {formatPrice(priceCalc.finalTotal, currency, exchangeRates)}
+                    </span>
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -130,10 +158,16 @@ export function BookingModal({
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   {language === 'ru' ? 'Отправка...' : 'Submitting...'}
                 </>
+              ) : modalIntent === 'book' ? (
+                language === 'ru' ? (
+                  'Подтвердить'
+                ) : (
+                  'Confirm booking'
+                )
               ) : language === 'ru' ? (
-                'Подтвердить'
+                'Отправить запрос'
               ) : (
-                'Confirm Booking'
+                'Send request'
               )}
             </Button>
           </div>

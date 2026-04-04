@@ -75,6 +75,7 @@ export async function POST(request) {
       promoCode,
       guestsCount,
       privateTrip,
+      negotiationRequest,
     } = parseResult.data;
 
     const checkInDate = new Date(checkIn);
@@ -114,7 +115,10 @@ export async function POST(request) {
     }
 
     const minRem = availabilityCheck.min_remaining_spots ?? 0;
-    const needsInquiry = privateTrip === true || guestsCount > minRem;
+    const needsInquiry =
+      privateTrip === true ||
+      negotiationRequest === true ||
+      guestsCount > minRem;
 
     if (needsInquiry) {
       const result = await BookingService.createInquiryBooking({
@@ -130,6 +134,7 @@ export async function POST(request) {
         promoCode,
         guestsCount,
         privateTrip: privateTrip === true,
+        negotiationRequest: negotiationRequest === true,
         minRemainingSpots: minRem,
       });
 

@@ -14,7 +14,12 @@ import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, Loader2, Heart } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { BentoGallery } from '@/components/listing/BentoGallery'
-import { DesktopBookingWidget, MobileBookingBar } from '@/components/listing/BookingWidget'
+import {
+  DesktopBookingWidget,
+  MobileBookingBar,
+  PriceBreakdownBlock,
+} from '@/components/listing/BookingWidget'
+import { getListingBookingUiMode } from '@/lib/listing-booking-ui'
 import { AmenitiesGrid } from '@/components/listing/AmenitiesGrid'
 import { ListingInfo } from '@/components/listing/ListingInfo'
 import { ReviewsSection } from '@/components/listing/ReviewsSection'
@@ -22,7 +27,11 @@ import { GalleryModal } from '@/components/listing/GalleryModal'
 import { BookingModal } from '@/components/listing/BookingModal'
 import { toast } from 'sonner'
 import { detectLanguage, getUIText } from '@/lib/translations'
-import { PricingService } from '@/lib/services/pricing.service'
+import {
+  PricingService,
+  parseDurationDiscountTiers,
+  computeBestDurationDiscountPercent,
+} from '@/lib/services/pricing.service'
 import { useAuth } from '@/contexts/auth-context'
 import { GostayloCalendar } from '@/components/gostaylo-calendar'
 import { useRecentlyViewed } from '@/lib/hooks/use-recently-viewed'
@@ -118,6 +127,9 @@ function PremiumListingContent({ params }) {
   const [existingConvId, setExistingConvId] = useState(null)
   const [lastMessagePreview, setLastMessagePreview] = useState(null)
   const [hasUnreadFromHost, setHasUnreadFromHost] = useState(false)
+  const [availabilitySnapshot, setAvailabilitySnapshot] = useState(null)
+  const [availabilityLoading, setAvailabilityLoading] = useState(false)
+  const [bookingModalIntent, setBookingModalIntent] = useState('book')
 
   const { getConversationForListing, loaded: chatLoaded } = useChatContext()
   const commissionHook = useCommission(listing?.ownerId ?? null)
@@ -238,6 +250,34 @@ function PremiumListingContent({ params }) {
       })
       .catch(() => {})
   }, [user?.id, listing?.id, listing?.ownerId, chatLoaded, getConversationForListing])
+
+  useEffect(() => {
+    if (!listing?.id || !dateRange?.from || !dateRange?.to) {
+      setAvailabilitySnapshot(null)
+      setAvailabilityLoading(false)
+      return
+    }
+    const start = format(dateRange.from, 'yyyy-MM-dd')
+    const end = format(dateRange.to, 'yyyy-MM-dd')
+    const ac = new AbortController()
+    setAvailabilityLoading(true)
+    fetch(
+      `/api/v2/listings/${encodeURIComponent(listing.id)}/availability?startDate=${start}&endDate=${end}&guests=${guests}`,
+      { signal: ac.signal, credentials: 'omit' }
+    )
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) setAvailabilitySnapshot(data)
+        else setAvailabilitySnapshot(null)
+      })
+      .catch(() => {
+        if (!ac.signal.aborted) setAvailabilitySnapshot(null)
+      })
+      .finally(() => {
+        if (!ac.signal.aborted) setAvailabilityLoading(false)
+      })
+    return () => ac.abort()
+  }, [listing?.id, dateRange?.from, dateRange?.to, guests])
   
   // Track recently viewed
   useEffect(() => {
@@ -275,13 +315,14 @@ function PremiumListingContent({ params }) {
       const calc = PricingService.calculatePrice({
         basePriceThb: listing.basePriceThb,
         seasonalPricing: listing.seasonalPricing || [],
+        dbSeasonalPrices: listing.dbSeasonalPrices || [],
         metadata: listing.metadata || {},
         checkIn: format(dateRange.from, 'yyyy-MM-dd'),
         checkOut: format(dateRange.to, 'yyyy-MM-dd'),
         currency,
         exchangeRates,
       })
-      
+
       const cr = Number(listing.commissionRate)
       let commissionPct =
         Number.isFinite(cr) && cr >= 0
@@ -295,14 +336,19 @@ function PremiumListingContent({ params }) {
       }
       const serviceFeeRate = commissionPct / 100
       const serviceFee = Math.round(calc.totalPrice * serviceFeeRate)
-      
+      const baseRawSubtotal = Math.round(listing.basePriceThb * nights)
+      const seasonalAdjustment = calc.originalPrice - baseRawSubtotal
+
       setPriceCalc({
         ...calc,
         nights,
+        baseRawSubtotal,
+        seasonalAdjustment,
         subtotal: calc.totalPrice,
+        subtotalBeforeFee: calc.totalPrice,
         commissionRate: commissionPct,
         serviceFee,
-        finalTotal: calc.totalPrice + serviceFee
+        finalTotal: calc.totalPrice + serviceFee,
       })
     }
   }, [listing, dateRange, currency, exchangeRates, commissionHook.loading, commissionHook.effectiveRate])
@@ -326,6 +372,7 @@ function PremiumListingContent({ params }) {
               priceMultiplier: sp.priceMultiplier,
             }))
           : []
+        const seasonalPricesRaw = l.seasonalPrices || []
         setListing({
           id: l.id,
           ownerId: l.ownerId,
@@ -343,10 +390,18 @@ function PremiumListingContent({ params }) {
           rating: parseFloat(l.rating) || 0,
           reviewsCount: l.reviewsCount || 0,
           seasonalPricing,
+          dbSeasonalPrices: seasonalPricesRaw.map((sp) => ({
+            start_date: String(sp.startDate || sp.start_date || '').slice(0, 10),
+            end_date: String(sp.endDate || sp.end_date || '').slice(0, 10),
+            price_daily: parseFloat(sp.priceDaily ?? sp.price_daily) || 0,
+            label: sp.label,
+            season_type: sp.seasonType || sp.season_type,
+          })),
           minStay: l.minBookingDays || 1,
           city: l.city,
           category_id: l.categoryId,
           categorySlug: l.category?.slug || null,
+          maxCapacity: Math.max(1, parseInt(l.maxCapacity ?? l.max_capacity, 10) || 1),
         })
       }
       setLoading(false)
@@ -443,45 +498,57 @@ function PremiumListingContent({ params }) {
   
   async function handleBookingSubmit(e) {
     e.preventDefault()
-    
+
     if (!user) {
       openLoginModal()
       return
     }
-    
+
     if (!dateRange.from || !dateRange.to) {
       toast.error(language === 'ru' ? 'Выберите даты' : 'Select dates')
       return
     }
-    
+
     setSubmitting(true)
-    
+
     try {
+      const payload = {
+        listingId: listing.id,
+        renterId: user.id,
+        checkIn: format(dateRange.from, 'yyyy-MM-dd'),
+        checkOut: format(dateRange.to, 'yyyy-MM-dd'),
+        guestName,
+        guestEmail,
+        guestPhone,
+        specialRequests: message?.trim() ? message.trim() : undefined,
+        currency: 'THB',
+        guestsCount: guests,
+      }
+      if (bookingModalIntent === 'private') payload.privateTrip = true
+      if (bookingModalIntent === 'special') payload.negotiationRequest = true
+
       const res = await fetch('/api/v2/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          listingId: listing.id,
-          renterId: user.id,
-          checkIn: format(dateRange.from, 'yyyy-MM-dd'),
-          checkOut: format(dateRange.to, 'yyyy-MM-dd'),
-          guestName,
-          guestEmail,
-          guestPhone,
-          specialRequests: message?.trim() ? message.trim() : undefined,
-          currency: 'THB'
-        })
+        body: JSON.stringify(payload),
       })
-      
+
       const data = await res.json()
-      
+
       if (data.success) {
-        toast.success(language === 'ru' ? 'Бронирование создано!' : 'Booking created!')
+        if (data.inquiry) {
+          toast.success(
+            language === 'ru' ? 'Запрос отправлен — откроем чат с хозяином' : 'Request sent — opening chat'
+          )
+        } else {
+          toast.success(language === 'ru' ? 'Бронирование создано!' : 'Booking created!')
+        }
         setBookingModalOpen(false)
+        setBookingModalIntent('book')
         const cid = data.conversationId
         if (cid) {
           router.push(`/messages/${encodeURIComponent(cid)}`, { scroll: false })
-        } else {
+        } else if (!data.inquiry) {
           router.push('/renter/bookings', { scroll: false })
         }
       } else {
@@ -494,8 +561,63 @@ function PremiumListingContent({ params }) {
     }
   }
   
-  const maxGuests = listing?.metadata?.max_guests || listing?.metadata?.guests || 4
+  const maxGuests =
+    listing?.metadata?.max_guests ||
+    listing?.metadata?.guests ||
+    listing?.maxCapacity ||
+    10
   const amenities = listing?.metadata?.amenities || []
+
+  const bookingUiMode = useMemo(
+    () => getListingBookingUiMode(listing?.categorySlug, listing?.maxCapacity),
+    [listing?.categorySlug, listing?.maxCapacity]
+  )
+
+  const durationDiscountPercentActive = useMemo(() => {
+    if (!listing?.metadata?.discounts || !dateRange?.from || !dateRange?.to) return 0
+    const nights = differenceInDays(dateRange.to, dateRange.from)
+    if (nights < 1) return 0
+    const tiers = parseDurationDiscountTiers(listing.metadata.discounts)
+    return computeBestDurationDiscountPercent(nights, tiers)
+  }, [listing?.metadata?.discounts, dateRange?.from, dateRange?.to])
+
+  const hasDurationDiscountTiers = useMemo(() => {
+    const tiers = parseDurationDiscountTiers(listing?.metadata?.discounts)
+    return tiers.length > 0
+  }, [listing?.metadata?.discounts])
+
+  const exclusiveDatesUnavailable =
+    bookingUiMode === 'exclusive' &&
+    !availabilityLoading &&
+    !!availabilitySnapshot &&
+    !!dateRange?.from &&
+    !!dateRange?.to &&
+    availabilitySnapshot.available === false
+
+  const canInstantBook = useMemo(() => {
+    if (!dateRange?.from || !dateRange?.to || availabilityLoading) return false
+    if (!availabilitySnapshot) return false
+    if (bookingUiMode === 'exclusive') return !!availabilitySnapshot.available
+    const rem = availabilitySnapshot.remaining_spots ?? 0
+    return !!availabilitySnapshot.available && guests <= rem
+  }, [dateRange, availabilityLoading, availabilitySnapshot, bookingUiMode, guests])
+
+  function openBookModal(intent = 'book') {
+    setBookingModalIntent(intent)
+    setBookingModalOpen(true)
+  }
+
+  function handleAskPartnerUnavailable() {
+    if (!dateRange?.from || !dateRange?.to) {
+      toast.error(language === 'ru' ? 'Выберите даты' : 'Select dates')
+      return
+    }
+    if (!user) {
+      openLoginModal()
+      return
+    }
+    openBookModal('special')
+  }
   
   async function handleFavoriteClick() {
     if (!user) {
@@ -634,14 +756,79 @@ function PremiumListingContent({ params }) {
                         className="h-12"
                       />
                     </div>
+                    {hasDurationDiscountTiers && durationDiscountPercentActive > 0 && (
+                      <div className="flex gap-2 rounded-lg border border-emerald-200 bg-emerald-50/90 px-3 py-2 text-sm text-emerald-900">
+                        <span>
+                          {language === 'ru' ? (
+                            <>
+                              Дольше — выгоднее! Скидка: <strong>{durationDiscountPercentActive}%</strong>
+                            </>
+                          ) : (
+                            <>
+                              Stay longer, save more! Your discount:{' '}
+                              <strong>{durationDiscountPercentActive}%</strong>
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    )}
+                    {bookingUiMode === 'shared' && dateRange?.from && dateRange?.to && (
+                      <div className="text-sm text-teal-900 bg-teal-50/80 border border-teal-100 rounded-lg px-3 py-2">
+                        {availabilityLoading ? (
+                          <span>{language === 'ru' ? 'Проверяем места…' : 'Checking spots…'}</span>
+                        ) : availabilitySnapshot?.remaining_spots != null ? (
+                          <span>
+                            {language === 'ru' ? 'Свободных мест' : 'Spots remaining'}:{' '}
+                            <strong>{availabilitySnapshot.remaining_spots}</strong>
+                            {listing.maxCapacity > 1 ? ` / ${listing.maxCapacity}` : ''}
+                          </span>
+                        ) : null}
+                      </div>
+                    )}
+                    {exclusiveDatesUnavailable && (
+                      <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-900">
+                        {language === 'ru' ? 'Даты заняты.' : 'Dates unavailable.'}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="w-full mt-2 border-teal-300"
+                          onClick={handleAskPartnerUnavailable}
+                        >
+                          {language === 'ru' ? 'Спросить у хозяина в чате' : 'Ask partner in chat'}
+                        </Button>
+                      </div>
+                    )}
+                    {bookingUiMode === 'shared' && dateRange?.from && dateRange?.to && (
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          className="w-full border border-teal-200"
+                          onClick={() => (user ? openBookModal('private') : openLoginModal())}
+                        >
+                          {language === 'ru'
+                            ? 'Приватный тур / индивидуальная цена'
+                            : 'Private trip / individual price'}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full border-dashed"
+                          onClick={() => (user ? openBookModal('special') : openLoginModal())}
+                        >
+                          {language === 'ru' ? 'Особая цена' : 'Special price'}
+                        </Button>
+                      </div>
+                    )}
                     {priceCalc && (
                       <div className="bg-white p-4 rounded-lg">
-                        <div className="flex justify-between text-sm">
-                          <span>
-                            {formatPrice(priceCalc.avgPricePerNight, currency, exchangeRates)} × {priceCalc.nights} {getUIText('nights', language)}
-                          </span>
-                          <span className="font-medium">{formatPrice(priceCalc.finalTotal, currency, exchangeRates)}</span>
-                        </div>
+                        <PriceBreakdownBlock
+                          priceCalc={priceCalc}
+                          currency={currency}
+                          exchangeRates={exchangeRates}
+                          language={language}
+                        />
                       </div>
                     )}
                   </CardContent>
@@ -688,15 +875,45 @@ function PremiumListingContent({ params }) {
                 exchangeRates={exchangeRates}
                 language={language}
                 calendarKey={calendarKey}
-                onBookingClick={() => setBookingModalOpen(true)}
-                showAskPartner={showContactPartner}
+                onBookingClick={() => openBookModal('book')}
+                showAskPartner={showContactPartner && !exclusiveDatesUnavailable}
                 onAskPartner={handleContactPartner}
+                onAskPartnerUnavailable={handleAskPartnerUnavailable}
                 askPartnerLoading={contactPartnerLoading}
                 hasExistingConversation={!!existingConvId}
                 lastMessagePreview={lastMessagePreview}
                 hasUnreadFromHost={hasUnreadFromHost}
+                bookingUiMode={bookingUiMode}
+                availabilityLoading={availabilityLoading}
+                availabilitySnapshot={availabilitySnapshot}
+                durationDiscountPercentActive={durationDiscountPercentActive}
+                showDurationDiscountTeaser={hasDurationDiscountTiers}
+                onPrivateTripClick={
+                  bookingUiMode === 'shared'
+                    ? () => {
+                        if (!user) {
+                          openLoginModal()
+                          return
+                        }
+                        openBookModal('private')
+                      }
+                    : undefined
+                }
+                onSpecialPriceClick={
+                  bookingUiMode === 'shared'
+                    ? () => {
+                        if (!user) {
+                          openLoginModal()
+                          return
+                        }
+                        openBookModal('special')
+                      }
+                    : undefined
+                }
+                canInstantBook={canInstantBook}
+                exclusiveDatesUnavailable={exclusiveDatesUnavailable}
               />
-              
+
               <MobileBookingBar
                 listing={listing}
                 priceCalc={priceCalc}
@@ -704,13 +921,40 @@ function PremiumListingContent({ params }) {
                 currency={currency}
                 exchangeRates={exchangeRates}
                 language={language}
-                onBookingClick={() => setBookingModalOpen(true)}
-                showAskPartner={showContactPartner}
+                onBookingClick={() => openBookModal('book')}
+                showAskPartner={showContactPartner && !exclusiveDatesUnavailable}
                 onAskPartner={handleContactPartner}
+                onAskPartnerUnavailable={handleAskPartnerUnavailable}
                 askPartnerLoading={contactPartnerLoading}
                 hasExistingConversation={!!existingConvId}
                 lastMessagePreview={lastMessagePreview}
                 hasUnreadFromHost={hasUnreadFromHost}
+                bookingUiMode={bookingUiMode}
+                availabilityLoading={availabilityLoading}
+                canInstantBook={canInstantBook}
+                exclusiveDatesUnavailable={exclusiveDatesUnavailable}
+                onPrivateTripClick={
+                  bookingUiMode === 'shared'
+                    ? () => {
+                        if (!user) {
+                          openLoginModal()
+                          return
+                        }
+                        openBookModal('private')
+                      }
+                    : undefined
+                }
+                onSpecialPriceClick={
+                  bookingUiMode === 'shared'
+                    ? () => {
+                        if (!user) {
+                          openLoginModal()
+                          return
+                        }
+                        openBookModal('special')
+                      }
+                    : undefined
+                }
               />
             </div>
           </div>
@@ -727,7 +971,10 @@ function PremiumListingContent({ params }) {
         
         <BookingModal
           open={bookingModalOpen}
-          onOpenChange={setBookingModalOpen}
+          onOpenChange={(open) => {
+            setBookingModalOpen(open)
+            if (!open) setBookingModalIntent('book')
+          }}
           guestName={guestName}
           setGuestName={setGuestName}
           guestEmail={guestEmail}
@@ -743,6 +990,7 @@ function PremiumListingContent({ params }) {
           language={language}
           submitting={submitting}
           onSubmit={handleBookingSubmit}
+          modalIntent={bookingModalIntent}
         />
       </div>
     </>
