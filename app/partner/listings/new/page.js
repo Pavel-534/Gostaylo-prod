@@ -47,6 +47,7 @@ import {
   partnerMetadataStateFromServer,
   isPartnerListingHousingCategory,
 } from '@/lib/partner/listing-wizard-metadata'
+import { isTransportListingCategory } from '@/lib/listing-category-slug'
 import {
   pickPartnerFormDescription,
   buildListingDescriptionForDb,
@@ -92,20 +93,14 @@ export default function PremiumListingWizard() {
   const editId = searchParams.get('edit')
   const isEditMode = !!editId
   const fileInputRef = useRef(null)
-
-  const STEPS = [
-    { id: 1, label: t('basics'), icon: Home },
-    { id: 2, label: t('location'), icon: MapIcon },
-    { id: 3, label: t('specs'), icon: Building },
-    { id: 4, label: t('pricing'), icon: DollarSign },
-    { id: 5, label: t('gallery'), icon: ImageIcon }
-  ]
+  const uploadFolderRef = useRef(null)
   
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [savingDraft, setSavingDraft] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [geocoding, setGeocoding] = useState(false)
   const [aiDescriptionLoading, setAiDescriptionLoading] = useState(false)
   const [aiDescQuota, setAiDescQuota] = useState({
@@ -158,12 +153,31 @@ export default function PremiumListingWizard() {
       transmission: '',
       fuel_type: '',
       engine_cc: '',
+      vehicle_year: '',
+      seats: '',
       languages: [],
       experience_years: '',
       specialization: '',
     },
     seasonalPricing: []
   })
+
+  const listingCategorySlug = useMemo(
+    () => categories.find((c) => c.id === formData.categoryId)?.slug ?? '',
+    [categories, formData.categoryId],
+  )
+  const transportWizard = isTransportListingCategory(listingCategorySlug)
+
+  const STEPS = useMemo(
+    () => [
+      { id: 1, label: t('basics'), icon: Home },
+      { id: 2, label: t('location'), icon: MapIcon },
+      { id: 3, label: t('specs'), icon: transportWizard ? Bike : Building },
+      { id: 4, label: t('pricing'), icon: DollarSign },
+      { id: 5, label: t('gallery'), icon: ImageIcon },
+    ],
+    [t, transportWizard],
+  )
   
   // Load categories and partner commission
   useEffect(() => {
@@ -181,7 +195,10 @@ export default function PremiumListingWizard() {
         if (!userId) {
           const meRes = await fetch('/api/v2/auth/me', { credentials: 'include' })
           const meData = await meRes.json()
-          if (meData.success && meData.user?.id) userId = meData.user.id
+          if (meData.success && meData.user?.id) {
+            userId = String(meData.user.id)
+            localStorage.setItem('gostaylo_user_id', userId)
+          }
         }
         if (userId) {
           const commissionRes = await fetch(`/api/v2/commission?partnerId=${userId}`, { credentials: 'include' })
@@ -283,6 +300,8 @@ export default function PremiumListingWizard() {
             transmission: '',
             fuel_type: '',
             engine_cc: '',
+            vehicle_year: '',
+            seats: '',
             languages: [],
             experience_years: '',
             specialization: '',
@@ -298,6 +317,8 @@ export default function PremiumListingWizard() {
             transmission: shapedMeta.transmission ?? '',
             fuel_type: shapedMeta.fuel_type ?? '',
             engine_cc: shapedMeta.engine_cc ?? '',
+            vehicle_year: shapedMeta.vehicle_year ?? '',
+            seats: shapedMeta.seats ?? '',
             specialization: shapedMeta.specialization ?? '',
           },
           seasonalPricing: seasonal || listing.seasonalPricing || listing.seasonalPrices || [],
@@ -420,37 +441,48 @@ export default function PremiumListingWizard() {
     }))
   }
 
-  // Image upload via API
+  async function resolvePartnerUserId() {
+    let userId = localStorage.getItem('gostaylo_user_id')
+    if (userId) return userId
+    try {
+      const meRes = await fetch('/api/v2/auth/me', { credentials: 'include' })
+      const meData = await meRes.json()
+      if (meData.success && meData.user?.id) {
+        const id = String(meData.user.id)
+        localStorage.setItem('gostaylo_user_id', id)
+        return id
+      }
+    } catch {
+      /* ignore */
+    }
+    return null
+  }
+
+  // Image upload: listing-images bucket + compression (same as edit listing page)
   async function handleImageUpload(files) {
-    const fileList = Array.from(files || [])
+    const fileList = Array.from(files || []).filter((f) => f.type?.startsWith('image/'))
     if (fileList.length === 0) return
     setUploading(true)
-    const folder = editId || `temp-${Date.now()}`
-    const newUrls = []
+    setUploadProgress(0)
+    const listingId = editId || (uploadFolderRef.current ||= `wizard-${Date.now()}`)
     try {
-      for (const file of fileList) {
-        if (!file.type?.startsWith('image/')) continue
-        const fd = new FormData()
-        fd.append('file', file)
-        fd.append('bucket', 'listings')
-        fd.append('folder', folder)
-        const res = await fetch('/api/v2/upload', {
-          method: 'POST',
-          credentials: 'include',
-          body: fd
-        })
-        const data = await res.json()
-        if (data.success && data.url) newUrls.push(data.url)
+      const { processAndUploadImages } = await import('@/lib/services/image-upload.service')
+      const uploadedUrls = await processAndUploadImages(fileList, listingId, (p) =>
+        setUploadProgress(p),
+      )
+      if (uploadedUrls.length > 0) {
+        setFormData((prev) => ({ ...prev, images: [...(prev.images || []), ...uploadedUrls] }))
+        toast.success(`+${uploadedUrls.length} ${t('photosUploadedToast')}`)
       }
-      if (newUrls.length > 0) {
-        setFormData(prev => ({ ...prev, images: [...(prev.images || []), ...newUrls] }))
-        toast.success(`+${newUrls.length} ${t('photosUploadedToast')}`)
+      if (uploadedUrls.length < fileList.length) {
+        toast.error(t('uploadFailedToast'))
       }
     } catch (e) {
       console.error(e)
       toast.error(t('uploadFailedToast'))
     } finally {
       setUploading(false)
+      setUploadProgress(0)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
@@ -513,7 +545,7 @@ export default function PremiumListingWizard() {
       default:
         return false
     }
-  }, [currentStep, formData])
+  }, [currentStep, formData, coordsValid])
   
   // Navigation
   const goNext = () => {
@@ -532,13 +564,13 @@ export default function PremiumListingWizard() {
   const saveDraft = async () => {
     setSavingDraft(true)
     try {
-      const userId = localStorage.getItem('gostaylo_user_id')
+      const userId = await resolvePartnerUserId()
       if (!userId) {
         toast.error(t('pleaseLogIn'))
         return
       }
 
-      const categorySlug = categories.find((c) => c.id === formData.categoryId)?.slug ?? ''
+      const categorySlug = listingCategorySlug
       const descTranslations = mergeDescriptionTranslationsForSave(formData, language)
       const descriptionDb = buildListingDescriptionForDb(
         { ...formData, metadata: { ...formData.metadata, description_translations: descTranslations } },
@@ -603,7 +635,7 @@ export default function PremiumListingWizard() {
           credentials: 'include',
           body: JSON.stringify(payload)
         })
-        const data = await res.json()
+        const data = await res.json().catch(() => ({}))
         if (data.success) {
           const lid = data.data?.id
           const mig = await migrateExternalImagesAfterSave(lid, formData.images)
@@ -636,13 +668,13 @@ export default function PremiumListingWizard() {
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      const userId = localStorage.getItem('gostaylo_user_id')
+      const userId = await resolvePartnerUserId()
       if (!userId) {
         toast.error(t('pleaseLogIn'))
         return
       }
       
-      const categorySlug = categories.find((c) => c.id === formData.categoryId)?.slug ?? ''
+      const categorySlug = listingCategorySlug
       const descTranslations = mergeDescriptionTranslationsForSave(formData, language)
       const descriptionDb = buildListingDescriptionForDb(
         { ...formData, metadata: { ...formData.metadata, description_translations: descTranslations } },
@@ -729,15 +761,10 @@ export default function PremiumListingWizard() {
     }
   }
 
-  const mapCategorySlug = useMemo(
-    () => categories.find((c) => c.id === formData.categoryId)?.slug ?? '',
-    [categories, formData.categoryId]
-  )
-
   // Dynamic fields based on category
   const renderSpecs = () => {
     const categoryName = formData.categoryName?.toLowerCase() || ''
-    const slug = (mapCategorySlug || '').toLowerCase()
+    const slug = (listingCategorySlug || '').toLowerCase()
 
     if (slug === 'yachts' || categoryName.includes('yacht') || categoryName.includes('boat')) {
       return (
@@ -829,9 +856,27 @@ export default function PremiumListingWizard() {
               <Select 
                 value={formData.categoryId} 
                 onValueChange={(value) => {
-                  const cat = categories.find(c => c.id === value)
-                  updateField('categoryId', value)
-                  updateField('categoryName', cat?.name || '')
+                  const cat = categories.find((c) => c.id === value)
+                  const slug = String(cat?.slug || '').toLowerCase()
+                  setFormData((prev) => {
+                    const next = {
+                      ...prev,
+                      categoryId: value,
+                      categoryName: cat?.name || '',
+                    }
+                    if (isTransportListingCategory(slug)) {
+                      next.metadata = {
+                        ...prev.metadata,
+                        bedrooms: 0,
+                        bathrooms: 0,
+                        max_guests: 2,
+                        area: 0,
+                        amenities: [],
+                        property_type: '',
+                      }
+                    }
+                    return next
+                  })
                 }}
               >
                 <SelectTrigger className="mt-2 h-12">
@@ -951,8 +996,12 @@ export default function PremiumListingWizard() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-semibold mb-2">{t('whereIsListing')}</h2>
-              <p className="text-slate-600">{t('helpGuestsFind')}</p>
+              <h2 className="text-2xl font-semibold mb-2">
+                {transportWizard ? t('whereIsListingTransport') : t('whereIsListing')}
+              </h2>
+              <p className="text-slate-600">
+                {transportWizard ? t('helpGuestsFindTransport') : t('helpGuestsFind')}
+              </p>
             </div>
             
             <div>
@@ -1004,12 +1053,16 @@ export default function PremiumListingWizard() {
             
             {/* Interactive map */}
             <div>
-              <Label className="text-base font-medium">{t('mapLocation')}</Label>
-              <p className="text-xs text-slate-500 mt-1">{t('clickToPin')}</p>
+              <Label className="text-base font-medium">
+                {transportWizard ? t('mapLocationTransport') : t('mapLocation')}
+              </Label>
+              <p className="text-xs text-slate-500 mt-1">
+                {transportWizard ? t('clickToPinTransport') : t('clickToPin')}
+              </p>
               <div className="mt-2">
                 <MapPicker
                   categoryId={formData.categoryId}
-                  categorySlug={mapCategorySlug}
+                  categorySlug={listingCategorySlug}
                   language={language}
                   latitude={formData.latitude}
                   longitude={formData.longitude}
@@ -1065,43 +1118,48 @@ export default function PremiumListingWizard() {
         return (
           <div className="space-y-8">
             <div className="space-y-2">
-              <h2 className="text-2xl font-semibold tracking-tight">{t('listingSpecs')}</h2>
+              <h2 className="text-2xl font-semibold tracking-tight">
+                {transportWizard ? t('listingSpecsTransport') : t('listingSpecs')}
+              </h2>
               <p className="text-slate-600 leading-relaxed">
-                {t('addDetailsFor')}{' '}
-                {getCategoryName(mapCategorySlug, language) || formData.categoryName || ''}.
+                {transportWizard
+                  ? t('addDetailsForTransport')
+                  : `${t('addDetailsFor')} ${getCategoryName(listingCategorySlug, language) || formData.categoryName || ''}.`}
               </p>
             </div>
 
             {renderSpecs()}
 
-            <div className="space-y-3 pt-2">
-              <Label className="text-base font-medium text-slate-800">{t('amenities')}</Label>
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-                {AMENITY_SLUGS.map((slug) => {
-                  const selected = formData.metadata.amenities?.includes(slug)
-                  return (
-                    <Button
-                      key={slug}
-                      variant={selected ? 'default' : 'outline'}
-                      size="sm"
-                      type="button"
-                      onClick={() => {
-                        const current = formData.metadata.amenities || []
-                        const updated = selected
-                          ? current.filter((a) => a !== slug)
-                          : [...current, slug]
-                        updateMetadata('amenities', updated)
-                      }}
-                      className={`h-auto min-h-10 whitespace-normal px-3 py-2 text-center text-sm leading-snug ${
-                        selected ? 'bg-teal-600 hover:bg-teal-700' : ''
-                      }`}
-                    >
-                      {getAmenityName(slug, language, slug)}
-                    </Button>
-                  )
-                })}
+            {!transportWizard && (
+              <div className="space-y-3 pt-2">
+                <Label className="text-base font-medium text-slate-800">{t('amenities')}</Label>
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                  {AMENITY_SLUGS.map((slug) => {
+                    const selected = formData.metadata.amenities?.includes(slug)
+                    return (
+                      <Button
+                        key={slug}
+                        variant={selected ? 'default' : 'outline'}
+                        size="sm"
+                        type="button"
+                        onClick={() => {
+                          const current = formData.metadata.amenities || []
+                          const updated = selected
+                            ? current.filter((a) => a !== slug)
+                            : [...current, slug]
+                          updateMetadata('amenities', updated)
+                        }}
+                        className={`h-auto min-h-10 whitespace-normal px-3 py-2 text-center text-sm leading-snug ${
+                          selected ? 'bg-teal-600 hover:bg-teal-700' : ''
+                        }`}
+                      >
+                        {getAmenityName(slug, language, slug)}
+                      </Button>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )
       
@@ -1115,7 +1173,9 @@ export default function PremiumListingWizard() {
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
-                <Label className="text-base font-medium text-slate-800">{t('basePrice')}</Label>
+                <Label className="text-base font-medium text-slate-800">
+                  {transportWizard ? t('basePriceVehicle') : t('basePrice')}
+                </Label>
                 <Input
                   inputMode="numeric"
                   autoComplete="off"
@@ -1136,7 +1196,9 @@ export default function PremiumListingWizard() {
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
-                <Label className="text-base font-medium text-slate-800">{t('minStay')}</Label>
+                <Label className="text-base font-medium text-slate-800">
+                  {transportWizard ? t('minStayVehicle') : t('minStay')}
+                </Label>
                 <Input
                   inputMode="numeric"
                   autoComplete="off"
@@ -1148,7 +1210,9 @@ export default function PremiumListingWizard() {
                 />
               </div>
               <div>
-                <Label className="text-base font-medium text-slate-800">{t('maxStay')}</Label>
+                <Label className="text-base font-medium text-slate-800">
+                  {transportWizard ? t('maxStayVehicle') : t('maxStay')}
+                </Label>
                 <Input
                   inputMode="numeric"
                   autoComplete="off"
@@ -1303,7 +1367,7 @@ export default function PremiumListingWizard() {
                           <span className="text-sm leading-snug">
                             {s.label} ({s.seasonType || 'NORMAL'}): {s.startDate} — {s.endDate} • ฿
                             {s.priceDaily}
-                            {t('perNightShort')}
+                            {transportWizard ? t('perBookingDayShort') : t('perNightShort')}
                             {s.priceMonthly ? ` • ฿${s.priceMonthly}${t('perMonthShort')}` : ''}
                           </span>
                           <Button
@@ -1357,6 +1421,12 @@ export default function PremiumListingWizard() {
                 {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('selectFiles')}
               </Button>
             </div>
+            {uploading && uploadProgress > 0 && (
+              <div className="space-y-1">
+                <Progress value={uploadProgress} className="h-2" />
+                <p className="text-center text-xs text-slate-500">{uploadProgress}%</p>
+              </div>
+            )}
             
             {formData.images.length > 0 && (
               <div className="grid grid-cols-4 gap-4">

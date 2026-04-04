@@ -55,7 +55,11 @@ export function PartnerListingSearchMetadataFields({
 
   const hint = (
     <p className="rounded-r-md border-l-[3px] border-teal-500 bg-teal-50/50 py-2 pl-3 text-sm leading-relaxed text-slate-600">
-      {variant === 'edit' ? t('partnerEdit_searchMetadataHint') : t('wizardSpecsSearchHint')}
+      {isTransportListingCategory(slug)
+        ? t('wizardSpecsVehicleSearchHint')
+        : variant === 'edit'
+          ? t('partnerEdit_searchMetadataHint')
+          : t('wizardSpecsSearchHint')}
     </p>
   )
 
@@ -203,6 +207,44 @@ export function PartnerListingSearchMetadataFields({
           className="mt-2 h-11"
         />
       </div>
+      {isTransportListingCategory(slug) && (
+        <div className="grid grid-cols-1 gap-5 sm:col-span-2 sm:grid-cols-2">
+          <div>
+            <Label className="text-sm font-medium text-slate-700">{t('fieldVehicleYear')}</Label>
+            <Input
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="2022"
+              value={
+                metadata.vehicle_year != null && metadata.vehicle_year !== ''
+                  ? String(metadata.vehicle_year)
+                  : ''
+              }
+              onChange={(e) => {
+                const v = clampIntFromDigits(e.target.value, 1950, 2100, undefined)
+                if (v === undefined) updateMetadata('vehicle_year', '')
+                else updateMetadata('vehicle_year', v)
+              }}
+              className="mt-2 h-11"
+            />
+          </div>
+          <div>
+            <Label className="text-sm font-medium text-slate-700">{t('fieldVehicleSeats')}</Label>
+            <Input
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="4"
+              value={metadata.seats != null && metadata.seats !== '' ? String(metadata.seats) : ''}
+              onChange={(e) => {
+                const v = clampIntFromDigits(e.target.value, 1, 99, undefined)
+                if (v === undefined) updateMetadata('seats', '')
+                else updateMetadata('seats', v)
+              }}
+              className="mt-2 h-11"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 
