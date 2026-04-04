@@ -54,6 +54,7 @@ import {
   mergeDescriptionTranslationsForSave,
 } from '@/lib/partner/listing-description-i18n'
 import { PartnerListingSearchMetadataFields } from '@/components/partner/PartnerListingSearchMetadataFields'
+import { PartnerListingDurationDiscountFields } from '@/components/partner/PartnerListingDurationDiscountFields'
 import {
   migrateExternalImagesAfterSave,
   mapCoverUrlAfterMigration,
@@ -439,6 +440,27 @@ export default function PremiumListingWizard() {
       ...prev,
       metadata: { ...prev.metadata, [field]: value }
     }))
+  }
+
+  function updateDurationDiscountPercent(field, raw) {
+    setFormData((fd) => {
+      const meta = fd.metadata && typeof fd.metadata === 'object' ? { ...fd.metadata } : {}
+      const prev =
+        meta.discounts && typeof meta.discounts === 'object' && !Array.isArray(meta.discounts)
+          ? { ...meta.discounts }
+          : {}
+      const trimmed = String(raw ?? '').replace(',', '.').trim()
+      if (trimmed === '') {
+        delete prev[field]
+      } else {
+        const n = parseFloat(trimmed)
+        if (!Number.isFinite(n) || n <= 0) delete prev[field]
+        else prev[field] = Math.min(100, Math.round(n))
+      }
+      if (Object.keys(prev).length === 0) delete meta.discounts
+      else meta.discounts = prev
+      return { ...fd, metadata: meta }
+    })
   }
 
   async function resolvePartnerUserId() {
@@ -1225,6 +1247,12 @@ export default function PremiumListingWizard() {
               </div>
             </div>
 
+            <PartnerListingDurationDiscountFields
+              metadata={formData.metadata}
+              language={language}
+              onChangeDiscount={updateDurationDiscountPercent}
+            />
+
             <div className="space-y-3">
               <Label className="text-base font-medium text-slate-800">{t('seasonalPricing')}</Label>
               <p className="text-sm text-slate-500 leading-relaxed">{t('seasonalPricingDesc')}</p>
@@ -1579,6 +1607,8 @@ export default function PremiumListingWizard() {
                       id: 'preview',
                       title: formData.title || t('previewTitlePlaceholder'),
                       district: formData.district || t('previewDistrictPlaceholder'),
+                      categorySlug: listingCategorySlug,
+                      category: { slug: listingCategorySlug },
                       basePriceThb: parseFloat(formData.basePriceThb) || 0,
                       base_price_thb: parseFloat(formData.basePriceThb) || 0,
                       coverImage: formData.images[0] || 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image',

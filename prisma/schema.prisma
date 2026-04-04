@@ -116,6 +116,7 @@ model Listing {
   // For Vehicles: { brand: "Honda", model: "PCX", year: 2023, seats: 2 }
   // For Tours: { duration: "4 hours", groupSize: 10, included: [] }
   // For Yachts: { length: 45, capacity: 12, crew: true }
+  // Length-of-stay discounts (optional): metadata.discounts = { "weekly": 7, "monthly": 20 } — % off stay subtotal from 7 / 30 nights
   
   // Availability
   available       Boolean       @default(true)

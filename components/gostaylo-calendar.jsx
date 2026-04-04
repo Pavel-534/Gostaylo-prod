@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getUIText } from "@/lib/translations"
+import { formatRentalSpanLabel } from "@/lib/rental-period-labels"
 import { toListingDate } from "@/lib/listing-date"
 import {
   Drawer,
@@ -251,6 +252,8 @@ export function GostayloCalendar({
   className,
   onPriceCalculated,
   guests = 1,
+  /** 'night' — жильё; 'day' — транспорт (сутки) */
+  rentalPeriodMode = "night",
 }) {
   const [calendarData, setCalendarData] = React.useState(new Map())
   const [loading, setLoading] = React.useState(true)
@@ -400,15 +403,11 @@ export function GostayloCalendar({
     }
     
     const nights = differenceInDays(value.to, value.from)
-    const nightWord = language === 'ru'
-      ? (nights === 1 ? 'ночь' : nights < 5 ? 'ночи' : 'ночей')
-      : language === 'zh' ? '晚'
-      : language === 'th' ? 'คืน'
-      : (nights === 1 ? 'night' : 'nights')
-    const nightsText = `${nights} ${nightWord}`
-    
+    const spanMode = rentalPeriodMode === "day" ? "day" : "night"
+    const nightsText = formatRentalSpanLabel(nights, spanMode, language)
+
     return `${format(value.from, 'd MMM', { locale: locales[locale] })} — ${format(value.to, 'd MMM', { locale: locales[locale] })} (${nightsText})`
-  }, [value, locale, language, loading])
+  }, [value, locale, language, loading, rentalPeriodMode])
   
   // Trigger button
   const TriggerButton = (

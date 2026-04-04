@@ -41,6 +41,7 @@ import {
   mergeDescriptionTranslationsForSave,
 } from '@/lib/partner/listing-description-i18n'
 import { PartnerListingSearchMetadataFields } from '@/components/partner/PartnerListingSearchMetadataFields'
+import { PartnerListingDurationDiscountFields } from '@/components/partner/PartnerListingDurationDiscountFields'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
@@ -516,6 +517,27 @@ export default function EditListing({ params }) {
     toast.success(t('partnerEdit_coverSet'))
   }
 
+  function updateDurationDiscountPercent(field, raw) {
+    setFormData((fd) => {
+      const meta = fd.metadata && typeof fd.metadata === 'object' ? { ...fd.metadata } : {}
+      const prev =
+        meta.discounts && typeof meta.discounts === 'object' && !Array.isArray(meta.discounts)
+          ? { ...meta.discounts }
+          : {}
+      const trimmed = String(raw ?? '').replace(',', '.').trim()
+      if (trimmed === '') {
+        delete prev[field]
+      } else {
+        const n = parseFloat(trimmed)
+        if (!Number.isFinite(n) || n <= 0) delete prev[field]
+        else prev[field] = Math.min(100, Math.round(n))
+      }
+      if (Object.keys(prev).length === 0) delete meta.discounts
+      else meta.discounts = prev
+      return { ...fd, metadata: meta }
+    })
+  }
+
   // Check if can publish
   const canPublish =
     !!formData.title &&
@@ -803,6 +825,12 @@ export default function EditListing({ params }) {
                 />
               </div>
             </div>
+
+            <PartnerListingDurationDiscountFields
+              metadata={formData.metadata}
+              language={language}
+              onChangeDiscount={updateDurationDiscountPercent}
+            />
 
             <div className="space-y-3 border-t border-slate-100 pt-5">
               <Label className="text-sm font-medium text-slate-800">{t('partnerEdit_mapSection')}</Label>

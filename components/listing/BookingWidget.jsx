@@ -16,6 +16,9 @@ import { format } from 'date-fns'
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
 import { isWholeVesselListing } from '@/lib/listing-booking-ui'
+import { isTransportListingCategory } from '@/lib/listing-category-slug'
+import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
+import { formatRentalSpanLabel } from '@/lib/rental-period-labels'
 import { GostayloCalendar } from '@/components/gostaylo-calendar'
 import { cn } from '@/lib/utils'
 
@@ -45,33 +48,80 @@ function ChatPreviewBadge({ preview, hasUnread, language }) {
   )
 }
 
-export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, language }) {
+function durationStayDiscountLabel(priceCalc, language, rentalPeriodMode) {
+  const min = priceCalc.durationDiscountMinNights
+  const pct = priceCalc.durationDiscountPercent
+  if (!min || !pct) {
+    return language === 'ru' ? 'Скидка за длительность' : 'Length-of-stay discount'
+  }
+  const unit =
+    rentalPeriodMode === 'day'
+      ? language === 'ru'
+        ? 'суток'
+        : language === 'zh'
+          ? '天'
+          : language === 'th'
+            ? 'วัน'
+            : 'days'
+      : language === 'ru'
+        ? 'ночей'
+        : language === 'zh'
+          ? '晚'
+          : language === 'th'
+            ? 'คืน'
+            : 'nights'
+  if (language === 'ru') {
+    return `Скидка за ${min}+ ${unit}`
+  }
+  if (language === 'zh') {
+    return `${min}+${unit}折扣`
+  }
+  if (language === 'th') {
+    return `ส่วนลด ${min}+ ${unit}`
+  }
+  return `Discount (${min}+ ${unit})`
+}
+
+export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, language, rentalPeriodMode = 'night' }) {
   if (!priceCalc) return null
   const baseRaw = priceCalc.baseRawSubtotal
   const seasonalAdj = priceCalc.seasonalAdjustment
   const dur = priceCalc.durationDiscountAmount
   const hasSeasonal = seasonalAdj !== 0 && seasonalAdj != null
   const hasDur = dur > 0
+  const seasonalIsDiscount = hasSeasonal && seasonalAdj < 0
+  const baseLineLabel =
+    rentalPeriodMode === 'day'
+      ? getUIText('breakdownBaseTimesDays', language)
+      : language === 'ru'
+        ? 'База × ночей'
+        : 'Base rate × nights'
 
   return (
     <div className="space-y-2 pt-4 border-t text-sm">
       {baseRaw != null && (
         <div className="flex justify-between gap-2">
           <span className="text-slate-600">
-            {language === 'ru' ? 'База × ночей' : 'Base rate × nights'}
+            {baseLineLabel}
           </span>
           <span className="font-medium tabular-nums">{formatPrice(baseRaw, currency, exchangeRates)}</span>
         </div>
       )}
       {hasSeasonal && (
         <div className="flex justify-between gap-2">
-          <span className="text-slate-600">
-            {language === 'ru' ? 'Сезонная корректировка' : 'Seasonal adjustment'}
+          <span
+            className={cn(
+              seasonalIsDiscount ? 'font-medium text-emerald-600' : 'text-slate-600',
+            )}
+          >
+            {seasonalIsDiscount
+              ? getUIText('breakdownSeasonalDiscount', language)
+              : getUIText('breakdownSeasonalExtra', language)}
           </span>
           <span
             className={cn(
-              'font-medium tabular-nums',
-              seasonalAdj > 0 ? 'text-amber-800' : 'text-emerald-700'
+              'font-semibold tabular-nums',
+              seasonalIsDiscount ? 'text-emerald-600' : 'text-amber-800',
             )}
           >
             {seasonalAdj > 0 ? '+' : ''}
@@ -81,10 +131,10 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
       )}
       {hasDur && (
         <div className="flex justify-between gap-2">
-          <span className="text-slate-600">
-            {language === 'ru' ? 'Скидка за длительность' : 'Duration discount'}
+          <span className="font-medium text-emerald-600">
+            {durationStayDiscountLabel(priceCalc, language, rentalPeriodMode)}
           </span>
-          <span className="font-medium text-emerald-700 tabular-nums">
+          <span className="font-semibold tabular-nums text-emerald-600">
             −{formatPrice(dur, currency, exchangeRates)}
             {priceCalc.durationDiscountPercent > 0
               ? ` (${priceCalc.durationDiscountPercent}%)`
@@ -144,8 +194,12 @@ export function DesktopBookingWidget({
   canInstantBook = true,
   exclusiveDatesUnavailable = false,
 }) {
-  const maxGuests =
-    listing?.metadata?.max_guests || listing?.metadata?.guests || listing?.max_guests || listing?.maxCapacity || 50
+  const rentalPeriodMode = isTransportListingCategory(
+    listing?.categorySlug || listing?.category?.slug,
+  )
+    ? 'day'
+    : 'night'
+  const maxGuests = Math.max(1, resolveListingGuestCapacity(listing))
   const maxCap = listing?.maxCapacity ?? availabilitySnapshot?.max_capacity ?? 1
   const remaining = availabilitySnapshot?.remaining_spots
   const sharedMode = bookingUiMode === 'shared'
@@ -160,7 +214,9 @@ export function DesktopBookingWidget({
               <div className="text-3xl font-bold text-slate-900">
                 {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates)}
               </div>
-              <p className="text-sm text-slate-500">{getUIText('perNight', language)}</p>
+              <p className="text-sm text-slate-500">
+                {getUIText(rentalPeriodMode === 'day' ? 'perBookingDay' : 'perNight', language)}
+              </p>
             </div>
             {(listing.rating > 0 || (listing.reviewsCount || listing.reviews_count || 0) > 0) && (
               <div className="flex items-center gap-1 text-sm">
@@ -237,7 +293,9 @@ export function DesktopBookingWidget({
           )}
 
           <div>
-            <Label className="text-sm font-medium mb-2 block">{getUIText('travelDates', language)}</Label>
+            <Label className="text-sm font-medium mb-2 block">
+              {getUIText(rentalPeriodMode === 'day' ? 'travelDatesRental' : 'travelDates', language)}
+            </Label>
             <GostayloCalendar
               key={calendarKey}
               listingId={listing.id}
@@ -246,11 +304,14 @@ export function DesktopBookingWidget({
               minStay={listing.minStay}
               language={language}
               guests={guests}
+              rentalPeriodMode={rentalPeriodMode}
             />
           </div>
 
           <div>
-            <Label className="text-sm font-medium mb-2 block">{getUIText('numberOfGuests', language)}</Label>
+            <Label className="text-sm font-medium mb-2 block">
+              {getUIText(rentalPeriodMode === 'day' ? 'numberOfSeats' : 'numberOfGuests', language)}
+            </Label>
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-slate-400" />
               <Input
@@ -269,6 +330,7 @@ export function DesktopBookingWidget({
             currency={currency}
             exchangeRates={exchangeRates}
             language={language}
+            rentalPeriodMode={rentalPeriodMode}
           />
 
           <Button
@@ -385,6 +447,11 @@ export function MobileBookingBar({
   onPrivateTripClick,
   onSpecialPriceClick,
 }) {
+  const rentalPeriodMode = isTransportListingCategory(
+    listing?.categorySlug || listing?.category?.slug,
+  )
+    ? 'day'
+    : 'night'
   const askLabel = askPartnerLoading
     ? getUIText('loading', language)
     : hasExistingConversation
@@ -435,8 +502,14 @@ export function MobileBookingBar({
             {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates)}
           </div>
           <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
-            {getUIText('perNight', language)}
-            {priceCalc && ` • ${priceCalc.nights} ${getUIText('nights', language)}`}
+            {getUIText(rentalPeriodMode === 'day' ? 'perBookingDay' : 'perNight', language)}
+            {priceCalc
+              ? ` • ${formatRentalSpanLabel(
+                  priceCalc.nights,
+                  rentalPeriodMode === 'day' ? 'day' : 'night',
+                  language,
+                )}`
+              : ''}
           </p>
         </div>
 

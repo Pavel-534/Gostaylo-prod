@@ -9,12 +9,17 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { MapPin, Star, Bed, Bath, Users, Square, User } from 'lucide-react'
 import { getUIText, getListingText } from '@/lib/translations'
+import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
+import { isTransportListingCategory } from '@/lib/listing-category-slug'
 
 export function ListingInfo({ listing, language = 'en' }) {
   const bedrooms = listing?.metadata?.bedrooms || 0
   const bathrooms = listing?.metadata?.bathrooms || 0
-  const maxGuests = listing?.metadata?.max_guests || listing?.metadata?.guests || 4
+  const categorySlug = String(listing?.categorySlug || listing?.category?.slug || '').toLowerCase()
+  const transportListing = isTransportListingCategory(categorySlug)
+  const maxGuests = resolveListingGuestCapacity(listing)
   const area = listing?.metadata?.area || 0
+  const vehicleYear = listing?.metadata?.vehicle_year
   
   return (
     <div className="space-y-8">
@@ -47,24 +52,35 @@ export function ListingInfo({ listing, language = 'en' }) {
         </div>
         
         {/* Specs */}
-        <div className="flex items-center gap-6 text-slate-700 py-4 border-y border-slate-100">
-          {bedrooms > 0 && (
+        <div className="flex items-center gap-6 text-slate-700 py-4 border-y border-slate-100 flex-wrap">
+          {!transportListing && bedrooms > 0 && (
             <div className="flex items-center gap-2">
               <Bed className="h-5 w-5 text-slate-400" />
               <span>{bedrooms} {language === 'ru' ? 'спален' : 'bedrooms'}</span>
             </div>
           )}
-          {bathrooms > 0 && (
+          {!transportListing && bathrooms > 0 && (
             <div className="flex items-center gap-2">
               <Bath className="h-5 w-5 text-slate-400" />
               <span>{bathrooms} {getUIText('bathrooms', language)}</span>
             </div>
           )}
+          {transportListing && vehicleYear != null && String(vehicleYear).trim() !== '' && (
+            <div className="flex items-center gap-2 text-slate-700">
+              <span>
+                {getUIText('listingModelYear', language)}:{' '}
+                <span className="font-medium tabular-nums">{vehicleYear}</span>
+              </span>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-slate-400" />
-            <span>{maxGuests} {getUIText('guests', language)}</span>
+            <span>
+              {maxGuests}{' '}
+              {transportListing ? getUIText('seats', language) : getUIText('guests', language)}
+            </span>
           </div>
-          {area > 0 && (
+          {!transportListing && area > 0 && (
             <div className="flex items-center gap-2">
               <Square className="h-5 w-5 text-slate-400" />
               <span>{area} m²</span>

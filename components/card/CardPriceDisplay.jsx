@@ -9,6 +9,8 @@ import { useMemo, useCallback } from 'react'
 import { differenceInDays } from 'date-fns'
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
+import { isTransportListingCategory } from '@/lib/listing-category-slug'
+import { formatRentalSpanLabel } from '@/lib/rental-period-labels'
 
 export function CardPriceDisplay({
   basePrice,
@@ -16,7 +18,8 @@ export function CardPriceDisplay({
   initialDates,
   currency,
   exchangeRates,
-  language = 'en'
+  language = 'en',
+  categorySlug = '',
 }) {
   // Calculate nights
   const nights = useMemo(() => {
@@ -54,17 +57,19 @@ export function CardPriceDisplay({
     const rate = exchangeRates[currency]
     return rate ? priceThb / rate : priceThb
   }, [currency, exchangeRates])
-  
+
+  const dayUnit = isTransportListingCategory(categorySlug)
+  const spanMode = dayUnit ? 'day' : 'night'
+
   return (
     <div className="flex items-baseline gap-1">
       <span className="text-lg font-semibold text-slate-900">
         {formatPrice(convertPrice(displayPrice), currency, exchangeRates)}
       </span>
       <span className="text-sm text-slate-500">
-        {nights > 0 
-          ? `/ ${nights} ${getUIText('nights', language)}`
-          : `/ ${getUIText('night', language)}`
-        }
+        {nights > 0
+          ? `/ ${formatRentalSpanLabel(nights, spanMode, language)}`
+          : `/ ${getUIText(dayUnit ? 'listingPriceUnitDay' : 'night', language)}`}
       </span>
     </div>
   )

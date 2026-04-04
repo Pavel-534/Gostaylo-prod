@@ -221,9 +221,21 @@ export function PartnerListingSearchMetadataFields({
                   : ''
               }
               onChange={(e) => {
-                const v = clampIntFromDigits(e.target.value, 1950, 2100, undefined)
-                if (v === undefined) updateMetadata('vehicle_year', '')
-                else updateMetadata('vehicle_year', v)
+                const d = String(e.target.value ?? '').replace(/\D/g, '').slice(0, 4)
+                updateMetadata('vehicle_year', d)
+              }}
+              onBlur={() => {
+                const raw = String(metadata.vehicle_year ?? '').replace(/\D/g, '')
+                if (!raw) {
+                  updateMetadata('vehicle_year', '')
+                  return
+                }
+                const n = parseInt(raw, 10)
+                if (!Number.isFinite(n) || n < 1950) {
+                  updateMetadata('vehicle_year', '')
+                  return
+                }
+                updateMetadata('vehicle_year', Math.min(2100, n))
               }}
               className="mt-2 h-11"
             />

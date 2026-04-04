@@ -84,6 +84,8 @@ export async function GET(request, { params }) {
         discountedPrice: priceRow.error ? null : priceRow.discountedPrice,
         durationDiscountPercent: priceRow.error ? null : priceRow.durationDiscountPercent,
         durationDiscountAmount: priceRow.error ? null : priceRow.durationDiscountAmount,
+        durationDiscountMinNights: priceRow.error ? null : priceRow.durationDiscountMinNights ?? null,
+        durationDiscountSourceKey: priceRow.error ? null : priceRow.durationDiscountSourceKey ?? null,
         data: {
           blockedNights,
           listingActive,

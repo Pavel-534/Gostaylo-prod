@@ -45,6 +45,8 @@ import { cn } from '@/lib/utils'
 import { INBOX_TAB_TRAVELING, setRenterInboxTabPreference } from '@/lib/chat-inbox-tabs'
 import { useChatContext } from '@/lib/context/ChatContext'
 import { useCommission } from '@/hooks/use-commission'
+import { isTransportListingCategory } from '@/lib/listing-category-slug'
+import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 
 const CHAT_CACHE_TTL = 5 * 60 * 1000 // 5 min
 
@@ -561,11 +563,12 @@ function PremiumListingContent({ params }) {
     }
   }
   
-  const maxGuests =
-    listing?.metadata?.max_guests ||
-    listing?.metadata?.guests ||
-    listing?.maxCapacity ||
-    10
+  const maxGuests = listing ? resolveListingGuestCapacity(listing) : 10
+
+  const listingRentalPeriodMode = useMemo(
+    () => (listing && isTransportListingCategory(listing.categorySlug) ? 'day' : 'night'),
+    [listing?.categorySlug],
+  )
   const amenities = listing?.metadata?.amenities || []
 
   const bookingUiMode = useMemo(
@@ -737,7 +740,10 @@ function PremiumListingContent({ params }) {
                   <CardContent className="p-4 space-y-4">
                     <div>
                       <Label className="text-sm font-medium mb-2 block">
-                        {language === 'ru' ? 'Даты проживания' : 'Travel Dates'}
+                        {getUIText(
+                          listingRentalPeriodMode === 'day' ? 'travelDatesRental' : 'travelDates',
+                          language,
+                        )}
                       </Label>
                       <GostayloCalendar
                         key={calendarKey}
@@ -747,11 +753,15 @@ function PremiumListingContent({ params }) {
                         minStay={listing.minStay}
                         language={language}
                         guests={guests}
+                        rentalPeriodMode={listingRentalPeriodMode}
                       />
                     </div>
                     <div>
                       <Label className="text-sm font-medium mb-2 block">
-                        {getUIText('numberOfGuests', language)}
+                        {getUIText(
+                          listingRentalPeriodMode === 'day' ? 'numberOfSeats' : 'numberOfGuests',
+                          language,
+                        )}
                       </Label>
                       <Input
                         type="number"
@@ -851,6 +861,7 @@ function PremiumListingContent({ params }) {
                           currency={currency}
                           exchangeRates={exchangeRates}
                           language={language}
+                          rentalPeriodMode={listingRentalPeriodMode}
                         />
                       </div>
                     )}

@@ -12,6 +12,8 @@ import { CardImageCarousel } from '@/components/card/CardImageCarousel'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
 import { cn } from '@/lib/utils'
 import { getUIText, getCategoryName } from '@/lib/translations'
+import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
+import { isTransportListingCategory } from '@/lib/listing-category-slug'
 
 export function GostayloListingCard({
   listing,
@@ -50,7 +52,8 @@ export function GostayloListingCard({
     is_featured = false,
     metadata = {},
     pricing = null,
-    category
+    category,
+    categorySlug: listingCategorySlug,
   } = listing
   
   const basePrice = basePriceThb || base_price_thb || 0
@@ -62,7 +65,9 @@ export function GostayloListingCard({
   // Extract metadata
   const bedrooms = metadata?.bedrooms || 0
   const bathrooms = metadata?.bathrooms || 0
-  const maxGuests = metadata?.max_guests || metadata?.guests || 4
+  const categorySlugForCard = listingCategorySlug || category?.slug || ''
+  const transportCard = isTransportListingCategory(categorySlugForCard)
+  const maxGuests = resolveListingGuestCapacity(listing)
   const area = metadata?.area || 0
   const propertyType = metadata?.property_type || category?.slug || 'default'
   
@@ -147,23 +152,26 @@ export function GostayloListingCard({
 
           {/* Specs Row */}
           <div className="flex items-center gap-4 text-sm text-slate-500 mb-3">
-            {bedrooms > 0 && (
+            {!transportCard && bedrooms > 0 && (
               <div className="flex items-center gap-1" title={getUIText('bedrooms', language)}>
                 <BedDouble className="h-4 w-4" />
                 <span>{bedrooms}</span>
               </div>
             )}
-            {bathrooms > 0 && (
+            {!transportCard && bathrooms > 0 && (
               <div className="flex items-center gap-1" title={getUIText('bathrooms', language)}>
                 <Bath className="h-4 w-4" />
                 <span>{bathrooms}</span>
               </div>
             )}
-            <div className="flex items-center gap-1" title={getUIText('guests', language)}>
+            <div
+              className="flex items-center gap-1"
+              title={transportCard ? getUIText('numberOfSeats', language) : getUIText('guests', language)}
+            >
               <Users className="h-4 w-4" />
               <span>{maxGuests}</span>
             </div>
-            {area > 0 && (
+            {!transportCard && area > 0 && (
               <div className="flex items-center gap-1" title={getUIText('area', language)}>
                 <Maximize className="h-4 w-4" />
                 <span>{area}м²</span>
@@ -188,6 +196,7 @@ export function GostayloListingCard({
               currency={currency}
               exchangeRates={exchangeRates}
               language={language}
+              categorySlug={categorySlugForCard}
             />
             {actualIsFeatured && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-semibold">
