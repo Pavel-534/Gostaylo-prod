@@ -10,6 +10,7 @@ import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { CalendarService } from '@/lib/services/calendar.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,7 +116,7 @@ export async function POST(request, { params }) {
   // Verify ownership
   const { data: listing } = await supabase
     .from('listings')
-    .select('owner_id')
+    .select('owner_id, max_capacity')
     .eq('id', listingId)
     .single();
   
@@ -134,7 +135,15 @@ export async function POST(request, { params }) {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
   }
   
-  const { startDate, endDate, reason } = body;
+  const { startDate, endDate, reason, unitsBlocked: rawUnits, units_blocked: rawSnake } = body;
+  const maxCap = Math.max(1, parseInt(listing.max_capacity, 10) || 1);
+  let unitsBlocked = Math.max(1, parseInt(rawUnits ?? rawSnake ?? 1, 10) || 1);
+  if (unitsBlocked > maxCap) {
+    return NextResponse.json(
+      { success: false, error: `unitsBlocked cannot exceed max_capacity (${maxCap})` },
+      { status: 400 }
+    );
+  }
   
   if (!startDate || !endDate) {
     return NextResponse.json({ success: false, error: 'Start and end dates required' }, { status: 400 });
@@ -147,6 +156,23 @@ export async function POST(request, { params }) {
   if (start > end) {
     return NextResponse.json({ success: false, error: 'Start date must be before end date' }, { status: 400 });
   }
+
+  const blockFit = await CalendarService.validateManualBlockFits(
+    listingId,
+    startDate,
+    endDate,
+    unitsBlocked
+  );
+  if (!blockFit.success) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: blockFit.error || 'Block does not fit current occupancy',
+        conflicts: blockFit.conflicts || null,
+      },
+      { status: 409 }
+    );
+  }
   
   // Insert block
   const { data: block, error } = await supabase
@@ -156,7 +182,8 @@ export async function POST(request, { params }) {
       start_date: startDate,
       end_date: endDate,
       reason: reason || 'Ручная блокировка',
-      source: 'manual'
+      source: 'manual',
+      units_blocked: unitsBlocked,
     })
     .select()
     .single();

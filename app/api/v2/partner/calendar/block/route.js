@@ -11,7 +11,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { v4 as uuidv4 } from 'uuid'
-import { OCCUPYING_BOOKING_STATUSES } from '@/lib/booking-occupancy-statuses'
+import { CalendarService } from '@/lib/services/calendar.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,7 +47,19 @@ export async function POST(request) {
     }
     
     const body = await request.json()
-    const { listingId, startDate, endDate, reason, type = 'OWNER_USE' } = body
+    const {
+      listingId,
+      startDate,
+      endDate,
+      reason,
+      type = 'OWNER_USE',
+      unitsBlocked: rawUnits,
+      units_blocked: rawUnitsSnake,
+    } = body
+    const unitsBlocked = Math.max(
+      1,
+      parseInt(rawUnits ?? rawUnitsSnake ?? 1, 10) || 1
+    )
     
     if (!listingId || !startDate || !endDate) {
       return NextResponse.json({
@@ -67,6 +79,7 @@ export async function POST(request) {
         endDate,
         reason: reason || 'Заблокировано владельцем',
         type,
+        unitsBlocked,
         createdAt: new Date().toISOString()
       }
       mockBlocks.push(newBlock)
@@ -81,7 +94,7 @@ export async function POST(request) {
     // Verify listing ownership
     const { data: listing, error: listingError } = await supabaseAdmin
       .from('listings')
-      .select('id, owner_id')
+      .select('id, owner_id, max_capacity')
       .eq('id', listingId)
       .eq('owner_id', userId)
       .single()
@@ -93,21 +106,34 @@ export async function POST(request) {
       }, { status: 404 })
     }
     
-    // Check for conflicting bookings
-    const { data: conflicts } = await supabaseAdmin
-      .from('bookings')
-      .select('id')
-      .eq('listing_id', listingId)
-      .in('status', OCCUPYING_BOOKING_STATUSES)
-      .or(`and(check_in.lte.${endDate},check_out.gte.${startDate})`)
-    
-    if (conflicts && conflicts.length > 0) {
-      return NextResponse.json({
-        status: 'error',
-        error: 'Невозможно заблокировать - есть активные бронирования в этом периоде'
-      }, { status: 409 })
+    const maxCap = Math.max(1, parseInt(listing.max_capacity, 10) || 1)
+    if (unitsBlocked > maxCap) {
+      return NextResponse.json(
+        {
+          status: 'error',
+          error: `unitsBlocked cannot exceed listing max_capacity (${maxCap})`,
+        },
+        { status: 400 }
+      )
     }
-    
+
+    const blockFit = await CalendarService.validateManualBlockFits(
+      listingId,
+      startDate,
+      endDate,
+      unitsBlocked
+    )
+    if (!blockFit.success) {
+      const msg =
+        blockFit.error === 'INSUFFICIENT_CAPACITY_FOR_BLOCK'
+          ? 'Недостаточно свободных мест для такой блокировки на одну или несколько дат'
+          : blockFit.error || 'Block does not fit inventory'
+      return NextResponse.json(
+        { status: 'error', error: msg, conflicts: blockFit.conflicts || null },
+        { status: 409 }
+      )
+    }
+
     // SSOT: same table as iCal import + CalendarService (not availability_blocks)
     const reasonText =
       type && type !== 'OWNER_USE'
@@ -122,6 +148,7 @@ export async function POST(request) {
         end_date: endDate,
         reason: reasonText,
         source: 'manual',
+        units_blocked: unitsBlocked,
       })
       .select()
       .single()
@@ -143,6 +170,7 @@ export async function POST(request) {
         endDate: block.end_date,
         reason: block.reason,
         type,
+        unitsBlocked: block.units_blocked ?? unitsBlocked,
       },
       message: 'Даты заблокированы'
     })

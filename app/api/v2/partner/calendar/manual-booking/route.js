@@ -11,8 +11,8 @@ import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { v4 as uuidv4 } from 'uuid'
 import { differenceInDays, parseISO } from 'date-fns'
-import { OCCUPYING_BOOKING_STATUSES } from '@/lib/booking-occupancy-statuses'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
+import { CalendarService } from '@/lib/services/calendar.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,16 +39,22 @@ export async function POST(request) {
     }
     
     const body = await request.json()
-    const { 
-      listingId, 
-      checkIn, 
-      checkOut, 
-      guestName, 
-      guestPhone, 
+    const {
+      listingId,
+      checkIn,
+      checkOut,
+      guestName,
+      guestPhone,
       guestEmail,
       priceThb,
-      notes 
+      notes,
+      guestsCount: rawGuests,
+      guests_count: rawGuestsSnake,
     } = body
+    const guestsCount = Math.max(
+      1,
+      parseInt(rawGuests ?? rawGuestsSnake ?? 1, 10) || 1
+    )
     
     // Validation
     if (!listingId || !checkIn || !checkOut || !guestName) {
@@ -81,6 +87,7 @@ export async function POST(request) {
         guestEmail: guestEmail || null,
         priceThb: parseFloat(priceThb) || 0,
         notes,
+        guestsCount,
         status: 'CONFIRMED',
         source: 'MANUAL',
         createdAt: new Date().toISOString()
@@ -97,7 +104,7 @@ export async function POST(request) {
     // Verify listing ownership
     const { data: listing, error: listingError } = await supabaseAdmin
       .from('listings')
-      .select('id, owner_id, base_price_thb, commission_rate')
+      .select('id, owner_id, base_price_thb, commission_rate, max_capacity')
       .eq('id', listingId)
       .eq('owner_id', userId)
       .single()
@@ -109,35 +116,37 @@ export async function POST(request) {
       }, { status: 404 })
     }
     
-    // Check for conflicting bookings
-    const { data: conflicts } = await supabaseAdmin
-      .from('bookings')
-      .select('id')
-      .eq('listing_id', listingId)
-      .in('status', OCCUPYING_BOOKING_STATUSES)
-      .or(`and(check_in.lt.${checkOut},check_out.gt.${checkIn})`)
-    
-    if (conflicts && conflicts.length > 0) {
-      return NextResponse.json({
-        status: 'error',
-        error: 'Даты уже заняты другим бронированием'
-      }, { status: 409 })
+    const maxCap = Math.max(1, parseInt(listing.max_capacity, 10) || 1)
+    if (guestsCount > maxCap) {
+      return NextResponse.json(
+        {
+          status: 'error',
+          error: `Party size exceeds listing capacity (${maxCap})`,
+        },
+        { status: 400 }
+      )
     }
-    
-    // Check for conflicting blocks
-    const { data: blockConflicts } = await supabaseAdmin
-      .from('calendar_blocks')
-      .select('id')
-      .eq('listing_id', listingId)
-      .or(`and(start_date.lt.${checkOut},end_date.gt.${checkIn})`)
-    
-    if (blockConflicts && blockConflicts.length > 0) {
-      return NextResponse.json({
-        status: 'error',
-        error: 'Даты заблокированы'
-      }, { status: 409 })
+
+    const avail = await CalendarService.checkAvailability(listingId, checkIn, checkOut, {
+      guestsCount,
+    })
+    if (!avail.success) {
+      return NextResponse.json(
+        { status: 'error', error: avail.error || 'Availability check failed' },
+        { status: 500 }
+      )
     }
-    
+    if (!avail.available) {
+      return NextResponse.json(
+        {
+          status: 'error',
+          error: 'Недостаточно мест на выбранные даты',
+          conflicts: avail.conflicts || [],
+        },
+        { status: 409 }
+      )
+    }
+
     // Calculate price if not provided
     const finalPrice = priceThb || (listing.base_price_thb * nights)
     const rawComm = parseFloat(listing.commission_rate)
@@ -163,6 +172,7 @@ export async function POST(request) {
         commission_thb: commissionThb,
         partner_earnings_thb: partnerEarningsThb,
         notes,
+        guests_count: guestsCount,
         status: 'CONFIRMED',
         source: 'MANUAL',
         confirmed_at: new Date().toISOString(),

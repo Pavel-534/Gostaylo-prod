@@ -72,61 +72,116 @@ export async function POST(request) {
       guestEmail,
       specialRequests,
       currency,
-      promoCode
+      promoCode,
+      guestsCount,
+      privateTrip,
     } = parseResult.data;
-    
-    // ========================================
-    // SECURITY LOCK: Server-Side Availability Check
-    // Prevents double-bookings even if frontend is bypassed
-    // ========================================
-    const availabilityCheck = await CalendarService.checkAvailability(listingId, checkIn, checkOut);
-    
-    if (!availabilityCheck.success) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Failed to check availability' 
-      }, { status: 500 });
-    }
-    
-    if (!availabilityCheck.available) {
-      // 409 Conflict - dates were just taken by another user
-      console.log(`[BOOKING CONFLICT] Attempted booking for ${listingId}: ${checkIn} to ${checkOut}`);
-      console.log(`[BOOKING CONFLICT] Conflicts:`, availabilityCheck.conflicts);
-      
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Sorry, these dates were JUST taken by another user. Please select different dates.',
-        code: 'DATES_CONFLICT',
-        conflicts: availabilityCheck.conflicts
-      }, { status: 409 });
-    }
-    
-    // Validate minimum stay duration
+
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
     const nights = Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
-    
-    // Fetch listing to get min_stay
+
     const { data: listingData } = await supabaseAdmin
       .from('listings')
-      .select('min_booking_days, title')
+      .select('min_booking_days, title, max_capacity')
       .eq('id', listingId)
       .single();
-    
+
     const minStay = listingData?.min_booking_days || 1;
-    
+
     if (nights < minStay) {
-      return NextResponse.json({ 
-        success: false, 
+      return NextResponse.json({
+        success: false,
         error: `Minimum stay for this property is ${minStay} night${minStay > 1 ? 's' : ''}. You selected ${nights} night${nights > 1 ? 's' : ''}.`,
         code: 'MIN_STAY_VIOLATION',
         minStay,
-        selectedNights: nights
+        selectedNights: nights,
       }, { status: 400 });
     }
-    // ========================================
-    
-    // Create booking using service
+
+    const availabilityCheck = await CalendarService.checkAvailability(listingId, checkIn, checkOut, {
+      guestsCount,
+    });
+
+    if (!availabilityCheck.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Failed to check availability',
+        },
+        { status: 500 }
+      );
+    }
+
+    const minRem = availabilityCheck.min_remaining_spots ?? 0;
+    const needsInquiry = privateTrip === true || guestsCount > minRem;
+
+    if (needsInquiry) {
+      const result = await BookingService.createInquiryBooking({
+        listingId,
+        renterId,
+        checkIn,
+        checkOut,
+        guestName,
+        guestPhone,
+        guestEmail,
+        specialRequests,
+        currency,
+        promoCode,
+        guestsCount,
+        privateTrip: privateTrip === true,
+        minRemainingSpots: minRem,
+      });
+
+      if (result.error) {
+        return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+      }
+
+      await NotificationService.dispatch(NotificationEvents.NEW_BOOKING_REQUEST, {
+        booking: { ...result.booking },
+        partner: result.partner ?? null,
+        listing: {
+          title: result.booking.listing?.title ?? null,
+          district: result.booking.listing?.district ?? null,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        inquiry: true,
+        booking: result.booking,
+        conversationId: result.conversationId ?? null,
+        code: 'INQUIRY_CREATED',
+      });
+    }
+
+    if (!availabilityCheck.available) {
+      console.log(`[BOOKING CONFLICT] ${listingId}: ${checkIn} to ${checkOut}`, availabilityCheck.conflicts);
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Sorry, these dates were JUST taken by another user. Please select different dates.',
+          code: 'DATES_CONFLICT',
+          conflicts: availabilityCheck.conflicts,
+        },
+        { status: 409 }
+      );
+    }
+
+    const maxCap = Math.max(1, parseInt(listingData?.max_capacity, 10) || 1);
+    if (guestsCount > maxCap) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `This listing allows at most ${maxCap} guest(s) per booking.`,
+          code: 'GUESTS_EXCEED_CAPACITY',
+          max_capacity: maxCap,
+        },
+        { status: 400 }
+      );
+    }
+
     const result = await BookingService.createBooking({
       listingId,
       renterId,
@@ -137,9 +192,10 @@ export async function POST(request) {
       guestEmail,
       specialRequests,
       currency,
-      promoCode
+      promoCode,
+      guestsCount,
     });
-    
+
     if (result.error) {
       return NextResponse.json({ success: false, error: result.error }, { status: 400 });
     }

@@ -18,6 +18,8 @@ import {
 } from '@/lib/services/chat/access'
 import { getEffectiveRate } from '@/lib/services/currency-helper'
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
+import { PricingService } from '@/lib/services/pricing.service'
+import { CalendarService } from '@/lib/services/calendar.service'
 
 async function fetchProfile(userId) {
   const { data } = await supabaseAdmin
@@ -49,7 +51,6 @@ export async function POST(request) {
     const body = await request.json()
     const {
       conversationId,
-      // senderId intentionally omitted — comes from session only
       amount,
       currency = 'THB',
       paymentMethod = 'CRYPTO',
@@ -59,6 +60,9 @@ export async function POST(request) {
       listingTitle,
       checkIn,
       checkOut,
+      holdHours: rawHoldHours,
+      guestsCount: rawHoldGuests,
+      guests_count: rawHoldGuestsSnake,
     } = body
 
     if (!conversationId || !amount) {
@@ -105,17 +109,88 @@ export async function POST(request) {
 
     const invoiceId = `inv-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
     const parsedAmount = parseFloat(amount)
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      return NextResponse.json({ success: false, error: 'amount must be a positive number' }, { status: 400 })
+    }
+
+    const holdHours = Math.min(168, Math.max(1, parseInt(rawHoldHours ?? 24, 10) || 24))
+    const holdMs = holdHours * 60 * 60 * 1000
+
     const cur = String(currency || 'THB').toUpperCase()
     let usdtAmount
     let amountThb
     if (cur === 'THB') {
       const mult = await getEffectiveRate('THB', 'USDT')
       usdtAmount = Math.round(parsedAmount * mult * 100) / 100
-      amountThb = parsedAmount
+      amountThb = Math.round(parsedAmount)
     } else {
       usdtAmount = parsedAmount
       const mult = await getEffectiveRate('USDT', 'THB')
       amountThb = Math.round(parsedAmount * mult)
+    }
+
+    const partnerIdForFee = conversation.partner_id || conversation.owner_id
+    const commission =
+      partnerIdForFee && amountThb > 0
+        ? await PricingService.calculateCommission(amountThb, partnerIdForFee)
+        : {
+            commissionRate: 0,
+            commissionThb: 0,
+            partnerEarnings: amountThb,
+            priceThb: amountThb,
+          }
+
+    const effectiveListingId = listingId || conversation.listing_id || null
+    const effectiveBookingId = bookingId || conversation.booking_id || null
+
+    let effCheckIn = checkIn ? String(checkIn).slice(0, 10) : null
+    let effCheckOut = checkOut ? String(checkOut).slice(0, 10) : null
+    let effGuests = Math.max(1, parseInt(rawHoldGuests ?? rawHoldGuestsSnake ?? 1, 10) || 1)
+
+    if (effectiveBookingId) {
+      const { data: bRow } = await supabaseAdmin
+        .from('bookings')
+        .select('check_in, check_out, guests_count')
+        .eq('id', effectiveBookingId)
+        .maybeSingle()
+      if (bRow) {
+        effCheckIn = effCheckIn || String(bRow.check_in).slice(0, 10)
+        effCheckOut = effCheckOut || String(bRow.check_out).slice(0, 10)
+        effGuests = Math.max(1, parseInt(bRow.guests_count, 10) || effGuests)
+      }
+    }
+
+    if (effectiveListingId && effCheckIn && effCheckOut) {
+      const fit = await CalendarService.validateManualBlockFits(
+        effectiveListingId,
+        effCheckIn,
+        effCheckOut,
+        effGuests
+      )
+      if (!fit.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: fit.error || 'Cannot soft-hold inventory for these dates',
+            conflicts: fit.conflicts || null,
+          },
+          { status: 409 }
+        )
+      }
+
+      const holdUntil = new Date(Date.now() + holdMs).toISOString()
+      const { error: holdErr } = await supabaseAdmin.from('calendar_blocks').insert({
+        listing_id: effectiveListingId,
+        start_date: effCheckIn,
+        end_date: effCheckOut,
+        source: 'invoice_hold',
+        units_blocked: effGuests,
+        reason: `Invoice ${invoiceId} — payment pending (${holdHours}h)`,
+        expires_at: holdUntil,
+      })
+      if (holdErr) {
+        console.warn('[invoice] soft-hold insert:', holdErr.message)
+      }
     }
 
     const invoice = {
@@ -127,12 +202,17 @@ export async function POST(request) {
       payment_method: paymentMethod,
       status: 'PENDING',
       description,
-      booking_id: bookingId || conversation.booking_id || null,
-      listing: { id: listingId || conversation.listing_id, title: listingTitle },
-      check_in: checkIn,
-      check_out: checkOut,
+      booking_id: effectiveBookingId,
+      listing: { id: effectiveListingId, title: listingTitle },
+      check_in: effCheckIn || checkIn,
+      check_out: effCheckOut || checkOut,
+      hold_hours: holdHours,
+      guests_held: effGuests,
+      commission_rate: commission.commissionRate,
+      commission_thb: commission.commissionThb,
+      partner_earnings_thb: commission.partnerEarnings,
       created_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      expires_at: new Date(Date.now() + holdMs).toISOString(),
     }
 
     const line = `💳 Invoice: ${currency === 'THB' ? '฿' : '$'}${parsedAmount.toLocaleString()} ${currency}`
@@ -149,8 +229,14 @@ export async function POST(request) {
         payment_method: paymentMethod,
         description: description || null,
         listing: invoice.listing,
-        check_in: checkIn,
-        check_out: checkOut,
+        check_in: invoice.check_in,
+        check_out: invoice.check_out,
+        amount_thb: amountThb,
+        hold_hours: holdHours,
+        guests_held: effGuests,
+        commission_rate: commission.commissionRate,
+        commission_thb: commission.commissionThb,
+        partner_earnings_thb: commission.partnerEarnings,
       },
     })
 

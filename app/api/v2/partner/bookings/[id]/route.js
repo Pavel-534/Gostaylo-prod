@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-sync'
+import { BookingService } from '@/lib/services/booking.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +16,7 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_P
 
 const STATUS_TRANSITIONS = {
   PENDING: ['CONFIRMED', 'CANCELLED'],
+  INQUIRY: ['CONFIRMED', 'CANCELLED'],
   CONFIRMED: ['PAID', 'COMPLETED', 'CANCELLED'],
   PAID: ['COMPLETED', 'REFUNDED'],
   COMPLETED: [],
@@ -115,6 +117,24 @@ export async function PUT(request, { params }) {
         status: 'error',
         error: `Cannot transition from ${currentBooking.status} to ${newStatus}`
       }, { status: 400 })
+    }
+
+    if (newStatus === 'CONFIRMED') {
+      const inv = await BookingService.verifyInventoryBeforePartnerConfirm(id)
+      if (!inv.ok) {
+        const msg =
+          inv.error === 'INSUFFICIENT_CAPACITY'
+            ? 'Недостаточно свободных мест на эти даты (возможно, другая заявка заняла лимит).'
+            : inv.error || 'Inventory check failed'
+        return NextResponse.json(
+          {
+            status: 'error',
+            error: msg,
+            conflicts: inv.conflicts || null,
+          },
+          { status: 409 }
+        )
+      }
     }
     
     // 3. Build update

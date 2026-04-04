@@ -44,10 +44,13 @@ export async function GET(request, { params }) {
     const checkIn = searchParams.get('checkIn');
     const checkOut = searchParams.get('checkOut');
     const days = parseInt(searchParams.get('days')) || 180;
+    const guests = Math.max(1, parseInt(searchParams.get('guests') || '1', 10) || 1);
     
     // If specific dates provided, check availability
     if (checkIn && checkOut) {
-      const result = await CalendarService.checkAvailability(listingId, checkIn, checkOut);
+      const result = await CalendarService.checkAvailability(listingId, checkIn, checkOut, {
+        guestsCount: guests,
+      });
       return NextResponse.json(result, {
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate'

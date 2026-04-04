@@ -275,10 +275,11 @@ function PremiumListingContent({ params }) {
       const calc = PricingService.calculatePrice({
         basePriceThb: listing.basePriceThb,
         seasonalPricing: listing.seasonalPricing || [],
+        metadata: listing.metadata || {},
         checkIn: format(dateRange.from, 'yyyy-MM-dd'),
         checkOut: format(dateRange.to, 'yyyy-MM-dd'),
         currency,
-        exchangeRates
+        exchangeRates,
       })
       
       const cr = Number(listing.commissionRate)

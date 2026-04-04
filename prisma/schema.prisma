@@ -121,6 +121,8 @@ model Listing {
   available       Boolean       @default(true)
   minBookingDays  Int           @default(1)
   maxBookingDays  Int?
+  /// Concurrent inventory spots (1 = single-unit property; >1 for tours/yachts/fleet)
+  maxCapacity     Int           @default(1) @map("max_capacity")
   
   // Stats
   views           Int           @default(0)
@@ -141,6 +143,7 @@ model Listing {
   reviews         Review[]
   unavailableDates UnavailableDate[]
   seasonalPrices  SeasonalPrice[]
+  calendarBlocks  CalendarBlock[]
   
   @@index([ownerId])
   @@index([categoryId])
@@ -149,6 +152,24 @@ model Listing {
   @@index([available])
   @@index([basePriceThb])
   @@map("listings")
+}
+
+/// Manual + iCal blocks; units_blocked defaults to 1 (Supabase may use date or timestamptz columns)
+model CalendarBlock {
+  id           String    @id @default(uuid())
+  listingId    String   @map("listing_id")
+  startDate    DateTime @map("start_date")
+  endDate      DateTime @map("end_date")
+  reason       String?
+  source       String?
+  unitsBlocked Int      @default(1) @map("units_blocked")
+  /// Soft invoice hold: row ignored for occupancy after this instant
+  expiresAt    DateTime? @map("expires_at")
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@map("calendar_blocks")
 }
 
 // Bookings
@@ -177,6 +198,8 @@ model Booking {
   guestPhone      String
   guestEmail      String
   specialRequests String?
+  /// Party size / seats (inventory); default 1
+  guestsCount     Int       @default(1) @map("guests_count")
   
   // Timestamps
   createdAt       DateTime      @default(now())
@@ -538,6 +561,7 @@ enum ListingStatus {
 
 enum BookingStatus {
   PENDING
+  INQUIRY
   CONFIRMED
   PAID
   CANCELLED
