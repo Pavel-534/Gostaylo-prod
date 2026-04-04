@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { getUIText } from "@/lib/translations"
+import { toListingDate } from "@/lib/listing-date"
 import {
   Drawer,
   DrawerContent,
@@ -121,7 +122,7 @@ function DayCell({
         // Transition day - split visual (only when not selecting checkout)
         isTransition && !isSelected && !isInRange && !isSelectingCheckout && "transition-day-split"
       )}
-      data-date={format(date, 'yyyy-MM-dd')}
+      data-date={toListingDate(date) || format(date, 'yyyy-MM-dd')}
       data-status={status}
       data-transition={isTransition}
       data-clickable={isClickable}
@@ -204,7 +205,7 @@ function MonthGrid({
       <div className="grid grid-cols-7 grid-rows-6 gap-2 h-[200px] [&>*]:min-h-0">
         {weeks.flat().map((date, idx) => {
           if (!date) return <div key={idx} className="aspect-square min-w-0 min-h-0" />
-          const dateStr = format(date, 'yyyy-MM-dd')
+          const dateStr = toListingDate(date) || format(date, 'yyyy-MM-dd')
           const dayData = calendarData.get(dateStr)
           const isCurrentMonth = isSameMonth(date, month)
           
@@ -285,11 +286,11 @@ export function GostayloCalendar({
         )
         const data = await res.json()
         
-        if (data.success) {
-          // Convert array to Map for O(1) lookup
+        if (data.success && Array.isArray(data.data?.calendar)) {
+          // Convert array to Map for O(1) lookup (keys are listing TZ YYYY-MM-DD, same as toListingDate on client)
           const dataMap = new Map()
           for (const day of data.data.calendar) {
-            dataMap.set(day.date, day)
+            if (day?.date) dataMap.set(day.date, day)
           }
           setCalendarData(dataMap)
         } else {
@@ -319,7 +320,7 @@ export function GostayloCalendar({
     
     // Sum prices for each night (check-in to check-out - 1)
     while (current < end) {
-      const dateStr = format(current, 'yyyy-MM-dd')
+      const dateStr = toListingDate(current) || format(current, 'yyyy-MM-dd')
       const dayData = calendarData.get(dateStr)
       if (dayData) {
         totalPrice += dayData.price || 0
@@ -350,7 +351,7 @@ export function GostayloCalendar({
       // Validate: check all nights between check-in and check-out
       let current = new Date(value.from)
       while (current < date) {
-        const dateStr = format(current, 'yyyy-MM-dd')
+        const dateStr = toListingDate(current) || format(current, 'yyyy-MM-dd')
         const dayInfo = calendarData.get(dateStr)
         
         // If any night is blocked (and not transition), reset
