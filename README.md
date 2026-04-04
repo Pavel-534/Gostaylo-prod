@@ -320,3 +320,4 @@ For issues or questions about the database schema or implementation, refer to:
 ---
 
 **Built with ❤️ for Phuket luxury rentals**
+.
