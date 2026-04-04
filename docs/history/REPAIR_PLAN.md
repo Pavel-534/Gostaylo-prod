@@ -1,11 +1,11 @@
 # План ремонта системы отзывов и рейтингов
 
 ## Шаг 1: Загрузить SQL миграцию (ПОЛЬЗОВАТЕЛЬ)
-Файл: `/app/MIGRATION_RUN_THIS.sql`
+Файл: `docs/history/sql/MIGRATION_RUN_THIS.sql`
 
 1. Откройте Supabase Dashboard
 2. Перейдите в SQL Editor
-3. Скопируйте содержимое файла `/app/MIGRATION_RUN_THIS.sql`
+3. Скопируйте содержимое файла `docs/history/sql/MIGRATION_RUN_THIS.sql`
 4. Запустите скрипт
 5. Убедитесь что видите сообщение "✅ Migration complete!"
 

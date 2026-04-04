@@ -388,7 +388,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
   - Fixed "Бронирование не найдено" error on checkout page
 - **Dynamic Commission Label:** Service fee label on checkout page now shows real rate (was hardcoded to 15%)
 - **Tested:** Backend 100% (7/7), Frontend 100% - All 3 critical bugs verified fixed
-- **Test Report:** `/app/test_reports/iteration_8.json`
+- **Test Report:** `docs/history/test_reports/iteration_8.json`
 
 ### 16. Calendar Blocked Dates UI/UX Sync Fix (2026-03-11)
 - **Root Cause:** Availability API was NOT including `PENDING` status in booking query - only `CONFIRMED`, `PAID` were checked
@@ -404,7 +404,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
   - Submit button disabled if date conflict detected
 - **Validation Logic:** `hasBlockedDateInRange` function checks if any day in selected range is blocked
 - **Tested:** Backend 100% (7/7), Frontend 100%
-- **Test Report:** `/app/test_reports/iteration_9.json`
+- **Test Report:** `docs/history/test_reports/iteration_9.json`
 
 ### 17. Calendar Architecture Overhaul (2026-03-11)
 - **Unified Component:** `BookingDateRangePicker` in `/app/components/booking-date-picker.jsx`
@@ -425,7 +425,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
   - Uses standard disabled styling (gray, 50% opacity, not-allowed cursor)
   - Teal accent color (`#0d9488`) for selected dates
 - **Tested:** Backend 100%, Frontend 100%
-- **Test Report:** `/app/test_reports/iteration_10.json`
+- **Test Report:** `docs/history/test_reports/iteration_10.json`
 
 ### 18. Mobile Calendar UX Overhaul (2026-03-11)
 - **Mobile Drawer:** On mobile (<768px), date picker opens as bottom-sheet Drawer instead of Popover
@@ -442,7 +442,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Cell Size:** Increased to 2.5rem base for better touch targets
 - **Instant Data Invalidation:** After booking, `refreshAvailability()` is called to update blocked dates
 - **Tested:** Frontend verified - drawer stays open, range selection works
-- **Test Report:** `/app/test_reports/iteration_11.json`
+- **Test Report:** `docs/history/test_reports/iteration_11.json`
 
 ### 19. Visual Date Blocking Sync Fix (2026-03-11)
 - **Root Cause:** `CHECKED_IN` enum value used in queries but doesn't exist in `booking_status` enum
@@ -458,7 +458,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
   - Added console logging for debugging: `[AVAILABILITY] Loaded blocked dates: X`
 - **Verification:** API now returns correct blocked dates, calendar disables them
 - **Tested:** Backend 100% (11/11), Frontend 100%
-- **Test Report:** `/app/test_reports/iteration_12.json`
+- **Test Report:** `docs/history/test_reports/iteration_12.json`
 
 ### 20. Server-First Calendar Architecture (2026-03-12)
 - **Complete API Rewrite:** `/app/app/api/v2/listings/[id]/availability/route.js`
@@ -476,7 +476,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
   - Submit button disabled if `!dateRange.from || !dateRange.to || hasDateConflict || availabilityLoading`
   - Real-time availability check before submission (catches concurrent bookings)
 - **Tested:** Backend 100% (16/16), Frontend 100%
-- **Test Report:** `/app/test_reports/iteration_13.json`
+- **Test Report:** `docs/history/test_reports/iteration_13.json`
 
 ### 21. Interval/Night-Based Booking Logic (2026-03-12)
 - **Core Concept:** We book NIGHTS, not days (Booking.com style)
@@ -498,7 +498,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
   - April 5-7 available (back-to-back after April 1-5 booking)
   - April 4-6 not available (conflicts with night 4)
 - **Tested:** Backend 100% (14/14), Frontend 100% (8/8)
-- **Test Report:** `/app/test_reports/iteration_14.json`
+- **Test Report:** `docs/history/test_reports/iteration_14.json`
 
 ## RLS Policy Notes
 - RLS policies are defined in `/app/database/rls_policies.sql` and `/app/scripts/bookings-rls-fix.sql`
@@ -515,7 +515,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - ✅ `renters_insert_own_bookings` - Renters can INSERT their own bookings
 - **Script:** `/app/scripts/bookings-rls-fix.sql` (EXECUTED)
 - **Report:** `/app/docs/BOOKING_DEADLOCK_FIX_REPORT.md`
-- **Test Report:** `/app/test_reports/iteration_23.json` (100% backend, 100% frontend)
+- **Test Report:** `docs/history/test_reports/iteration_23.json` (100% backend, 100% frontend)
 
 ## Test Credentials
 - **Admin:** pavel_534@mail.ru / ChangeMe2025!
@@ -523,18 +523,18 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Partner (Production):** 86boa@mail.ru / az123456 (used for bug reproduction)
 
 ## Test Reports
-- `/app/test_reports/iteration_1.json` - Partner application flow tests (13/13 passed)
-- `/app/test_reports/iteration_3.json` - Profile page bug fix verification (100% frontend pass)
-- `/app/test_reports/iteration_8.json` - Booking flow 400 error fixes (7/7 passed)
-- `/app/test_reports/iteration_9.json` - Calendar blocked dates UI/UX sync (7/7 passed)
-- `/app/test_reports/iteration_10.json` - Calendar architecture overhaul (7/7 passed)
-- `/app/test_reports/iteration_11.json` - Mobile calendar UX (Drawer + seamless range selection)
-- `/app/test_reports/iteration_12.json` - Visual date blocking sync fix (11/11 passed)
-- `/app/test_reports/iteration_13.json` - Server-First Calendar Architecture (16/16 passed)
-- `/app/test_reports/iteration_14.json` - Night-Based Booking Logic (14/14 backend, 8/8 frontend)
-- `/app/test_reports/iteration_15.json` - Visual Calendar Blocking (7/7 frontend - all verified)
-- `/app/test_reports/iteration_16.json` - Search Context Inheritance (5/5 frontend - all verified)
-- `/app/test_reports/iteration_23.json` - **Booking Deadlock Fix (E2E)** (6/6 backend, 5/5 frontend - 100% PASS)
+- `docs/history/test_reports/iteration_1.json` - Partner application flow tests (13/13 passed)
+- `docs/history/test_reports/iteration_3.json` - Profile page bug fix verification (100% frontend pass)
+- `docs/history/test_reports/iteration_8.json` - Booking flow 400 error fixes (7/7 passed)
+- `docs/history/test_reports/iteration_9.json` - Calendar blocked dates UI/UX sync (7/7 passed)
+- `docs/history/test_reports/iteration_10.json` - Calendar architecture overhaul (7/7 passed)
+- `docs/history/test_reports/iteration_11.json` - Mobile calendar UX (Drawer + seamless range selection)
+- `docs/history/test_reports/iteration_12.json` - Visual date blocking sync fix (11/11 passed)
+- `docs/history/test_reports/iteration_13.json` - Server-First Calendar Architecture (16/16 passed)
+- `docs/history/test_reports/iteration_14.json` - Night-Based Booking Logic (14/14 backend, 8/8 frontend)
+- `docs/history/test_reports/iteration_15.json` - Visual Calendar Blocking (7/7 frontend - all verified)
+- `docs/history/test_reports/iteration_16.json` - Search Context Inheritance (5/5 frontend - all verified)
+- `docs/history/test_reports/iteration_23.json` - **Booking Deadlock Fix (E2E)** (6/6 backend, 5/5 frontend - 100% PASS)
 
 ### 24. Search Architecture Cleanup (2026-03-12)
 - **Sterilization:** Legacy search code marked deprecated, new architecture documented
@@ -574,7 +574,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **Files Modified:**
   - `/app/components/booking-date-picker.jsx` - Full rewrite with custom DayPicker
 - **Tested:** Frontend 100% (7/7 features verified)
-- **Test Report:** `/app/test_reports/iteration_15.json`
+- **Test Report:** `docs/history/test_reports/iteration_15.json`
 
 ### 23. Search Engine Refactor - Stage 2: Context Inheritance (2026-03-12)
 - **P0 Feature:** Dates from search seamlessly carry to booking calendar
@@ -607,7 +607,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
   - `/app/app/listings/[id]/page.js` - useSearchParams, dateRange initialization, Suspense wrapper
   - `/app/components/gostaylo-calendar.jsx` - currentMonth from value.from
 - **Tested:** Frontend 100% (5/5 features verified)
-- **Test Report:** `/app/test_reports/iteration_16.json`
+- **Test Report:** `docs/history/test_reports/iteration_16.json`
 
 ### 25. Search Engine Stage 3: Smart Home Page & Premium Mobile UI (2026-03-12)
 - **P0 Feature:** Home page now uses unified `/api/v2/search` API with live updates

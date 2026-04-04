@@ -366,14 +366,14 @@ yarn dev
 ## 📞 Support & Documentation
 
 **Key Files to Reference:**
-- Technical: `/app/DATABASE_SCHEMA.md`
-- Project Overview: `/app/README.md`
-- API Routes: `/app/app/api/[[...path]]/route.js`
-- Schema: `/app/prisma/schema.prisma`
-- Migration: `/app/prisma/migrations/001_initial_schema.sql`
+- Technical: `docs/DATABASE_SCHEMA.md`
+- Project Overview: `README.md`
+- API Routes: `app/api/` (versioned handlers under `app/api/v2/`, etc.)
+- Schema: `prisma/schema.prisma`
+- Migration: `prisma/migrations/001_initial_schema.sql` (and newer SQL files in the same folder)
 
 **Testing Results:**
-- See: `/app/test_result.md`
+- See: `docs/history/test_result.md`
 - All backend endpoints: ✅ 100% working
 
 ---

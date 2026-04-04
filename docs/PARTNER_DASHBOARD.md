@@ -515,7 +515,7 @@ const netEarnings = booking.priceThb - commission
 - Referrals: `/app/app/partner/referrals/page.js`
 
 **Testing:**
-- Test Results: `/app/test_result.md`
+- Test Results: `docs/history/test_result.md`
 - All endpoints: ✅ 100% working
 
 ---

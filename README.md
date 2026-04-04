@@ -138,6 +138,12 @@ Gostaylo is a premium rental and services aggregator platform for Phuket, Thaila
 - Automatic calculation on bookings
 - Monthly tracking and payout management
 
+## 📚 Documentation
+
+- **Architecture and rules:** `ARCHITECTURAL_DECISIONS.md` (root)
+- **Operational guides and audits:** `docs/` (e.g. `docs/DATABASE_SCHEMA.md`, `docs/ARCHITECTURAL_PASSPORT.md`)
+- **Archived phase reports, manual test notes, one-off SQL:** `docs/history/` — start with `docs/history/README.md` for a full index
+
 ## 📁 Project Structure
 
 ```

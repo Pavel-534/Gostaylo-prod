@@ -168,7 +168,7 @@ const listing = booking.listing || booking.listings || {}
 
 ## 🚀 Test Report
 **Testing Method:** `testing_agent_v3_fork` (Full E2E + Backend API tests)  
-**Test Report:** `/app/test_reports/iteration_23.json`  
+**Test Report:** `docs/history/test_reports/iteration_23.json`  
 **Success Rate:** 
 - Backend: 100% (6/6 tests pass)
 - Frontend: 100% (5/5 tests pass after fix)
