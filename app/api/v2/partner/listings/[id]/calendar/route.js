@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { CalendarService } from '@/lib/services/calendar.service';
+import { toListingDate, addListingDays } from '@/lib/listing-date';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,11 +83,14 @@ export async function GET(request, { params }) {
   
   // Transform dates to array format for calendar component
   const blockedDates = [];
-  (blocks || []).forEach(block => {
-    const start = new Date(block.start_date);
-    const end = new Date(block.end_date);
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      blockedDates.push(d.toISOString().split('T')[0]);
+  (blocks || []).forEach((block) => {
+    const startStr = toListingDate(block.start_date);
+    const endStr = toListingDate(block.end_date);
+    if (!startStr || !endStr) return;
+    let cur = startStr;
+    while (cur <= endStr) {
+      blockedDates.push(cur);
+      cur = addListingDays(cur, 1);
     }
   });
   

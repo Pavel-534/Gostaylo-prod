@@ -15,6 +15,7 @@ import { Users, Star, ArrowRight, MessageCircle, Loader2, Sparkles } from 'lucid
 import { format } from 'date-fns'
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
+import { isWholeVesselListing } from '@/lib/listing-booking-ui'
 import { GostayloCalendar } from '@/components/gostaylo-calendar'
 import { cn } from '@/lib/utils'
 
@@ -148,6 +149,7 @@ export function DesktopBookingWidget({
   const maxCap = listing?.maxCapacity ?? availabilitySnapshot?.max_capacity ?? 1
   const remaining = availabilitySnapshot?.remaining_spots
   const sharedMode = bookingUiMode === 'shared'
+  const wholeVessel = isWholeVesselListing(listing?.categorySlug, listing?.metadata)
 
   return (
     <div className="hidden lg:block sticky top-24">
@@ -173,7 +175,28 @@ export function DesktopBookingWidget({
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {sharedMode && dateRange?.from && dateRange?.to && (
+          {wholeVessel && dateRange?.from && dateRange?.to && (
+            <div className="rounded-lg border border-teal-100 bg-teal-50/80 px-3 py-2 text-sm text-teal-900">
+              {availabilityLoading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {language === 'ru' ? 'Проверяем доступность…' : 'Checking availability…'}
+                </span>
+              ) : availabilitySnapshot != null ? (
+                <span>
+                  {availabilitySnapshot.available
+                    ? language === 'ru'
+                      ? 'Судно свободно на выбранные даты'
+                      : 'Vessel available for these dates'
+                    : language === 'ru'
+                      ? 'Судно недоступно на эти даты'
+                      : 'Vessel not available for these dates'}
+                </span>
+              ) : null}
+            </div>
+          )}
+
+          {sharedMode && !wholeVessel && dateRange?.from && dateRange?.to && (
             <div className="rounded-lg border border-teal-100 bg-teal-50/80 px-3 py-2 text-sm text-teal-900">
               {availabilityLoading ? (
                 <span className="flex items-center gap-2">
@@ -222,6 +245,7 @@ export function DesktopBookingWidget({
               onChange={setDateRange}
               minStay={listing.minStay}
               language={language}
+              guests={guests}
             />
           </div>
 

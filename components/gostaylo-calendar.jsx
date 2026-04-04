@@ -248,7 +248,8 @@ export function GostayloCalendar({
   onChange,
   language = "ru",
   className,
-  onPriceCalculated
+  onPriceCalculated,
+  guests = 1,
 }) {
   const [calendarData, setCalendarData] = React.useState(new Map())
   const [loading, setLoading] = React.useState(true)
@@ -268,7 +269,9 @@ export function GostayloCalendar({
   // Is selecting checkout? (check-in already selected)
   const isSelectingCheckout = value?.from && !value?.to
   
-  // Fetch calendar data
+  const guestsCount = Math.max(1, parseInt(guests, 10) || 1)
+
+  // Fetch calendar data (guest-aware: greys out days that cannot fit the party)
   React.useEffect(() => {
     if (!listingId) return
     
@@ -277,7 +280,9 @@ export function GostayloCalendar({
       setError(null)
       
       try {
-        const res = await fetch(`/api/v2/listings/${listingId}/calendar?days=180`)
+        const res = await fetch(
+          `/api/v2/listings/${listingId}/calendar?days=180&guests=${guestsCount}`
+        )
         const data = await res.json()
         
         if (data.success) {
@@ -298,7 +303,7 @@ export function GostayloCalendar({
     }
     
     fetchCalendar()
-  }, [listingId])
+  }, [listingId, guestsCount])
   
   // Calculate price when selection changes
   React.useEffect(() => {

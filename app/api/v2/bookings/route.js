@@ -105,12 +105,14 @@ export async function POST(request) {
     });
 
     if (!availabilityCheck.success) {
+      const isBadRange = availabilityCheck.error === 'INVALID_DATE_RANGE';
       return NextResponse.json(
         {
           success: false,
-          error: 'Failed to check availability',
+          error: isBadRange ? 'Invalid check-in / check-out dates' : 'Failed to check availability',
+          code: isBadRange ? 'INVALID_DATE_RANGE' : undefined,
         },
-        { status: 500 }
+        { status: isBadRange ? 400 : 500 }
       );
     }
 

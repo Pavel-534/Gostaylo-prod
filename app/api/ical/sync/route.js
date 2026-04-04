@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { lastOccupiedNightIsoFromDtendDate } from '@/lib/ical-all-day-range';
+import { toListingDate } from '@/lib/listing-date';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { isIcalSyncSourceEnabled } from '@/lib/ical-sync-source-enabled';
 
@@ -169,12 +170,6 @@ async function fetchICal(url) {
   }
 }
 
-// Format date to YYYY-MM-DD
-function formatDate(date) {
-  const d = new Date(date);
-  return d.toISOString().split('T')[0];
-}
-
 // Sync single source - writes to calendar_blocks (unified with Cron, Admin)
 async function syncSource(listingId, sourceConfig) {
   const { url, source, id: sourceId } = sourceConfig;
@@ -206,13 +201,20 @@ async function syncSource(listingId, sourceConfig) {
   let eventsCreated = 0;
   if (futureEvents.length > 0) {
     const platformName = source || sourceConfig.platform || 'External';
-    const blocks = futureEvents.map(e => ({
-      listing_id: listingId,
-      start_date: formatDate(e.dtstart),
-      end_date: lastOccupiedNightIsoFromDtendDate(e.dtend),
-      reason: e.summary || `${platformName} booking`,
-      source: url
-    }));
+    const blocks = futureEvents
+      .map((e) => {
+        const start = toListingDate(e.dtstart);
+        const end = lastOccupiedNightIsoFromDtendDate(e.dtend);
+        if (!start || !end) return null;
+        return {
+          listing_id: listingId,
+          start_date: start,
+          end_date: end,
+          reason: e.summary || `${platformName} booking`,
+          source: url,
+        };
+      })
+      .filter(Boolean);
     
     const { error: insertError } = await supabase.from('calendar_blocks').insert(blocks);
     if (insertError) {

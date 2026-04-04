@@ -19,7 +19,7 @@ import {
   MobileBookingBar,
   PriceBreakdownBlock,
 } from '@/components/listing/BookingWidget'
-import { getListingBookingUiMode } from '@/lib/listing-booking-ui'
+import { getListingBookingUiMode, isWholeVesselListing } from '@/lib/listing-booking-ui'
 import { AmenitiesGrid } from '@/components/listing/AmenitiesGrid'
 import { ListingInfo } from '@/components/listing/ListingInfo'
 import { ReviewsSection } from '@/components/listing/ReviewsSection'
@@ -569,8 +569,13 @@ function PremiumListingContent({ params }) {
   const amenities = listing?.metadata?.amenities || []
 
   const bookingUiMode = useMemo(
-    () => getListingBookingUiMode(listing?.categorySlug, listing?.maxCapacity),
-    [listing?.categorySlug, listing?.maxCapacity]
+    () => getListingBookingUiMode(listing?.categorySlug, listing?.maxCapacity, listing?.metadata),
+    [listing?.categorySlug, listing?.maxCapacity, listing?.metadata]
+  )
+
+  const wholeVesselListing = useMemo(
+    () => isWholeVesselListing(listing?.categorySlug, listing?.metadata),
+    [listing?.categorySlug, listing?.metadata]
   )
 
   const durationDiscountPercentActive = useMemo(() => {
@@ -741,6 +746,7 @@ function PremiumListingContent({ params }) {
                         onChange={setDateRange}
                         minStay={listing.minStay}
                         language={language}
+                        guests={guests}
                       />
                     </div>
                     <div>
@@ -772,7 +778,24 @@ function PremiumListingContent({ params }) {
                         </span>
                       </div>
                     )}
-                    {bookingUiMode === 'shared' && dateRange?.from && dateRange?.to && (
+                    {wholeVesselListing && dateRange?.from && dateRange?.to && (
+                      <div className="text-sm text-teal-900 bg-teal-50/80 border border-teal-100 rounded-lg px-3 py-2">
+                        {availabilityLoading ? (
+                          <span>{language === 'ru' ? 'Проверяем доступность…' : 'Checking availability…'}</span>
+                        ) : availabilitySnapshot != null ? (
+                          <span>
+                            {availabilitySnapshot.available
+                              ? language === 'ru'
+                                ? 'Судно свободно на выбранные даты'
+                                : 'Vessel available for these dates'
+                              : language === 'ru'
+                                ? 'Судно недоступно на эти даты'
+                                : 'Vessel not available for these dates'}
+                          </span>
+                        ) : null}
+                      </div>
+                    )}
+                    {bookingUiMode === 'shared' && !wholeVesselListing && dateRange?.from && dateRange?.to && (
                       <div className="text-sm text-teal-900 bg-teal-50/80 border border-teal-100 rounded-lg px-3 py-2">
                         {availabilityLoading ? (
                           <span>{language === 'ru' ? 'Проверяем места…' : 'Checking spots…'}</span>

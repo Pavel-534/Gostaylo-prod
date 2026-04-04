@@ -14,6 +14,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { PushService } from '@/lib/services/push.service';
 import { NotificationService } from '@/lib/services/notification.service';
+import { listingDateToday } from '@/lib/listing-date';
 
 const CRON_SECRET = process.env.CRON_SECRET || 'gostaylo-cron-2026';
 
@@ -33,7 +34,7 @@ export async function POST(request) {
     console.log('[CRON CHECK-IN] Sending check-in reminders...');
     
     // Get today's check-ins with PAID or PAID_ESCROW status
-    const today = new Date().toISOString().split('T')[0];
+    const today = listingDateToday();
     
     const { data: bookings, error } = await supabaseAdmin
       .from('bookings')
@@ -117,7 +118,7 @@ export async function GET(request) {
   }
 
   // Get today's check-ins
-  const today = new Date().toISOString().split('T')[0];
+  const today = listingDateToday();
   
   const { data: bookings } = await supabaseAdmin
     .from('bookings')

@@ -45,7 +45,7 @@ export async function GET(request, { params }) {
     const checkOut = searchParams.get('checkOut');
     const days = parseInt(searchParams.get('days')) || 180;
     const guests = Math.max(1, parseInt(searchParams.get('guests') || '1', 10) || 1);
-    
+
     // If specific dates provided, check availability
     if (checkIn && checkOut) {
       const result = await CalendarService.checkAvailability(listingId, checkIn, checkOut, {
@@ -57,9 +57,9 @@ export async function GET(request, { params }) {
         }
       });
     }
-    
-    // Otherwise return full calendar
-    const result = await CalendarService.getCalendar(listingId, days);
+
+    // Full calendar: guest-aware can_check_in / status when guests > 1
+    const result = await CalendarService.getCalendar(listingId, days, { requestedGuests: guests });
     
     return NextResponse.json(result, {
       headers: {

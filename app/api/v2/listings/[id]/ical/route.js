@@ -11,6 +11,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { listingDateToday, toListingDate } from '@/lib/listing-date';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,8 +36,8 @@ function formatICalDateOnly(date) {
   if (typeof date === 'string' && /^\d{4}-\d{2}-\d{2}/.test(date)) {
     return date.split('T')[0].replace(/-/g, '');
   }
-  const d = new Date(date);
-  return d.toISOString().split('T')[0].replace(/-/g, '');
+  const ymd = toListingDate(date);
+  return ymd ? ymd.replace(/-/g, '') : '';
 }
 
 /** Inclusive calendar date (YYYY-MM-DD) → next day as YYYYMMDD (iCal all-day DTEND exclusive). */
@@ -113,9 +114,9 @@ export async function GET(request, { params }) {
     .select('id, check_in, check_out, guest_name, status')
     .eq('listing_id', listingId)
     .in('status', ICAL_EXPORT_BOOKING_STATUSES)
-    .gte('check_out', new Date().toISOString().split('T')[0]);
-  
-  const todayYmd = new Date().toISOString().split('T')[0];
+    .gte('check_out', listingDateToday());
+
+  const todayYmd = listingDateToday();
 
   const { data: blocks } = await supabase
     .from('calendar_blocks')
@@ -146,7 +147,7 @@ export async function GET(request, { params }) {
   if (!publiclyBookable) {
     const farEnd = new Date();
     farEnd.setUTCMonth(farEnd.getUTCMonth() + 18);
-    const endInc = farEnd.toISOString().split('T')[0];
+    const endInc = toListingDate(farEnd) || todayYmd;
     ical.push(
       'BEGIN:VEVENT',
       `UID:listing-unavailable-${listingId}@gostaylo.com`,

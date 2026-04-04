@@ -20,7 +20,7 @@ export async function GET(request, { params }) {
   const guestsCount = Math.max(1, parseInt(guestsParam || '1', 10) || 1);
 
   try {
-    const calResult = await CalendarService.getCalendar(listingId, 400);
+    const calResult = await CalendarService.getCalendar(listingId, 400, { requestedGuests: guestsCount });
 
     if (!calResult.success) {
       return NextResponse.json(
@@ -40,7 +40,7 @@ export async function GET(request, { params }) {
           d.date >= rangeStart &&
           d.date <= rangeEnd &&
           d.status !== 'PAST' &&
-          (d.remaining_spots ?? 0) <= 0
+          d.can_check_in === false
       )
       .map((d) => d.date)
       .sort();
