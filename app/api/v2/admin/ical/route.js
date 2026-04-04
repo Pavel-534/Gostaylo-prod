@@ -13,6 +13,7 @@ import {
   lastOccupiedDateFromExclusiveAllDayDtend,
 } from '@/lib/ical-all-day-range';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { isIcalSyncSourceEnabled } from '@/lib/ical-sync-source-enabled';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -295,7 +296,7 @@ export async function POST(request) {
     
     const results = [];
     for (const source of listing.sync_settings.sources) {
-      if (!source.url || !source.active) continue;
+      if (!isIcalSyncSourceEnabled(source)) continue;
       const result = await syncSource(supabase, listing.id, listing.title, source);
       results.push(result);
     }
@@ -341,7 +342,7 @@ export async function POST(request) {
     
     for (const listing of toSync) {
       for (const source of listing.sync_settings.sources) {
-        if (!source.url || !source.active) {
+        if (!isIcalSyncSourceEnabled(source)) {
           results.skipped++;
           continue;
         }

@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { lastOccupiedNightIsoFromDtendDate } from '@/lib/ical-all-day-range';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { isIcalSyncSourceEnabled } from '@/lib/ical-sync-source-enabled';
 
 /**
  * @deprecated DEPRECATED: This endpoint will be replaced by /api/v2/calendar
@@ -223,6 +224,31 @@ async function syncSource(listingId, sourceConfig) {
   return { success: true, eventsProcessed: futureEvents.length, eventsCreated, eventsRemoved: 0 };
 }
 
+/** Persist audit row for partner/admin manual sync (same table as cron). */
+async function syncSourceWithLog(listingId, sourceConfig) {
+  const result = await syncSource(listingId, sourceConfig);
+  try {
+    const supabase = getSupabase();
+    const eventsCount =
+      typeof result.eventsProcessed === 'number'
+        ? result.eventsProcessed
+        : typeof result.eventsCreated === 'number'
+          ? result.eventsCreated
+          : 0;
+    await supabase.from('ical_sync_logs').insert({
+      listing_id: listingId,
+      source_url: sourceConfig?.url ?? null,
+      status: result.success ? 'success' : 'error',
+      events_count: eventsCount,
+      error_message: result.success ? null : result.error ?? null,
+      synced_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.error('[ICAL /api/ical/sync] ical_sync_logs insert failed:', e?.message || e);
+  }
+  return result;
+}
+
 // POST handler
 export async function POST(request) {
   try {
@@ -293,8 +319,8 @@ export async function POST(request) {
       let totalEventsProcessed = 0;
       
       for (const source of syncSources) {
-        if (source.enabled !== false) {
-          const result = await syncSource(listingId, source);
+        if (isIcalSyncSourceEnabled(source)) {
+          const result = await syncSourceWithLog(listingId, source);
           results.push({ sourceId: source.id, source: source.source || source.platform, ...result });
           if (result.eventsProcessed) totalEventsProcessed += result.eventsProcessed;
         }
@@ -358,8 +384,8 @@ export async function POST(request) {
           }
           
           for (const source of syncSources) {
-            if (source.url && source.enabled !== false) {
-              const result = await syncSource(listing.id, source);
+            if (isIcalSyncSourceEnabled(source)) {
+              const result = await syncSourceWithLog(listing.id, source);
               if (result.eventsProcessed) totalEvents += result.eventsProcessed;
             }
           }

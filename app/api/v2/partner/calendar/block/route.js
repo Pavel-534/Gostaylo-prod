@@ -108,18 +108,20 @@ export async function POST(request) {
       }, { status: 409 })
     }
     
-    // Create block
+    // SSOT: same table as iCal import + CalendarService (not availability_blocks)
+    const reasonText =
+      type && type !== 'OWNER_USE'
+        ? `${reason || 'Заблокировано владельцем'} (${type})`
+        : reason || 'Заблокировано владельцем';
+
     const { data: block, error: blockError } = await supabaseAdmin
-      .from('availability_blocks')
+      .from('calendar_blocks')
       .insert({
-        id: `blk-${uuidv4().slice(0, 8)}`,
         listing_id: listingId,
         start_date: startDate,
         end_date: endDate,
-        reason: reason || 'Заблокировано владельцем',
-        type,
-        created_by: userId,
-        created_at: new Date().toISOString()
+        reason: reasonText,
+        source: 'manual',
       })
       .select()
       .single()
@@ -140,7 +142,7 @@ export async function POST(request) {
         startDate: block.start_date,
         endDate: block.end_date,
         reason: block.reason,
-        type: block.type
+        type,
       },
       message: 'Даты заблокированы'
     })
@@ -186,26 +188,34 @@ export async function DELETE(request) {
       })
     }
     
-    // Verify ownership through listing
-    const { data: block, error: blockError } = await supabaseAdmin
-      .from('availability_blocks')
-      .select(`
-        id,
-        listing:listings!inner(owner_id)
-      `)
+    const { data: blockRow, error: blockError } = await supabaseAdmin
+      .from('calendar_blocks')
+      .select('id, listing_id')
       .eq('id', blockId)
-      .single()
-    
-    if (blockError || !block || block.listing?.owner_id !== userId) {
+      .maybeSingle()
+
+    if (blockError || !blockRow) {
       return NextResponse.json({
         status: 'error',
         error: 'Block not found or access denied'
       }, { status: 404 })
     }
-    
-    // Delete block
+
+    const { data: listingRow } = await supabaseAdmin
+      .from('listings')
+      .select('owner_id')
+      .eq('id', blockRow.listing_id)
+      .single()
+
+    if (!listingRow || listingRow.owner_id !== userId) {
+      return NextResponse.json({
+        status: 'error',
+        error: 'Block not found or access denied'
+      }, { status: 404 })
+    }
+
     const { error: deleteError } = await supabaseAdmin
-      .from('availability_blocks')
+      .from('calendar_blocks')
       .delete()
       .eq('id', blockId)
     

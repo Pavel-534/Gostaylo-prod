@@ -15,6 +15,7 @@ import {
   compactYmdToIsoDate,
   lastOccupiedDateFromExclusiveAllDayDtend,
 } from '@/lib/ical-all-day-range';
+import { isIcalSyncSourceEnabled } from '@/lib/ical-sync-source-enabled';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // 60 seconds max for Vercel
@@ -193,7 +194,7 @@ async function runSync() {
     const sources = listing.sync_settings?.sources || [];
     
     for (const source of sources) {
-      if (!source.url || !source.active) continue;
+      if (!isIcalSyncSourceEnabled(source)) continue;
       
       const result = await syncSource(supabase, listing.id, source);
       

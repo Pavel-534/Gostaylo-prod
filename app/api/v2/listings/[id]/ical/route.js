@@ -99,13 +99,20 @@ export async function GET(request, { params }) {
   const statusUp = String(listing.status || '').toUpperCase();
   const publiclyBookable = statusUp === 'ACTIVE' && listing.available !== false;
   
-  // Get confirmed bookings
-  // Valid booking_status enum values: PENDING, CONFIRMED, PAID, CANCELLED, COMPLETED, REFUNDED
+  // Occupying / in-progress stays: OTAs must see BUSY as soon as a request exists on GoStayLo
+  // (PENDING, PAID_ESCROW) plus paid/confirmed/completed. Excludes CANCELLED/REFUNDED/DECLINED etc.
+  const ICAL_EXPORT_BOOKING_STATUSES = [
+    'PENDING',
+    'PAID_ESCROW',
+    'CONFIRMED',
+    'PAID',
+    'COMPLETED',
+  ];
   const { data: bookings } = await supabase
     .from('bookings')
     .select('id, check_in, check_out, guest_name, status')
     .eq('listing_id', listingId)
-    .in('status', ['CONFIRMED', 'PAID', 'COMPLETED'])
+    .in('status', ICAL_EXPORT_BOOKING_STATUSES)
     .gte('check_out', new Date().toISOString().split('T')[0]);
   
   const todayYmd = new Date().toISOString().split('T')[0];
@@ -154,16 +161,25 @@ export async function GET(request, { params }) {
     );
   }
 
-  (bookings || []).forEach(booking => {
+  (bookings || []).forEach((booking) => {
     const uid = `booking-${booking.id}@gostaylo.com`;
+    const st = String(booking.status || '').toUpperCase();
+    const summaryGuest =
+      st === 'PENDING' || st === 'PAID_ESCROW' ? 'Guest' : booking.guest_name || 'Guest';
+    const summary =
+      st === 'PENDING'
+        ? `GoStayLo — Pending request`
+        : st === 'PAID_ESCROW'
+          ? `GoStayLo — Escrow / paid hold`
+          : `GoStayLo Booking - ${summaryGuest}`;
     ical.push(
       'BEGIN:VEVENT',
       `UID:${uid}`,
       `DTSTAMP:${now}`,
       `DTSTART;VALUE=DATE:${formatICalDateOnly(booking.check_in)}`,
       `DTEND;VALUE=DATE:${formatICalDateOnly(booking.check_out)}`,
-      `SUMMARY:GoStayLo Booking - ${booking.guest_name || 'Guest'}`,
-      `DESCRIPTION:Booking via GoStayLo`,
+      `SUMMARY:${escapeIcalText(summary)}`,
+      `DESCRIPTION:${escapeIcalText(`GoStayLo ${st}. Blocks calendar on external platforms.`)}`,
       'STATUS:CONFIRMED',
       'TRANSP:OPAQUE',
       'END:VEVENT'

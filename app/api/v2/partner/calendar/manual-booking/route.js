@@ -126,7 +126,7 @@ export async function POST(request) {
     
     // Check for conflicting blocks
     const { data: blockConflicts } = await supabaseAdmin
-      .from('availability_blocks')
+      .from('calendar_blocks')
       .select('id')
       .eq('listing_id', listingId)
       .or(`and(start_date.lt.${checkOut},end_date.gt.${checkIn})`)
