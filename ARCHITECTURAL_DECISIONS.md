@@ -12,6 +12,8 @@
 
 Перед выполнением **любой** нетривиальной задачи сверяйся с этим документом. Если в коде встречается или предлагается хардкод вроде **15%** комиссии или **35.5** для курса — **не добавляй и не размножай**: бери данные из **`system_settings`**, **`exchange_rates`**, **`profiles`**, полей **бронирования** (снимок на момент создания), **`JWT_SECRET` / FX-ключей из env** и существующих хелперов (`PricingService`, **`lib/services/currency.service.js`**, `getJwtSecret` и т.д.). Числовые аварии только через **`lib/services/currency-last-resort.js`** + env / опциональное поле `general.fallbackThbPerUsdt` (см. Golden rule §2).
 
+**Явный отказ от магических чисел в прод-коде CurrencyService:** запрещено снова вводить в **`currency.service.js`** (и размножать по UI) фиксированные курсы вроде **35.5** THB/USDT и фиксированный множитель **1.02** для чат-счетов. Канон: **`exchange_rates`** + API/env/`general.fallbackThbPerUsdt` для USDT; для чата — **`general.chatInvoiceRateMultiplier`** (админка) → **`CHAT_INVOICE_RATE_MULTIPLIER`** → единственный числовой дефолт множителя в **`platformDefaultChatInvoiceRateMultiplier()`** внутри **`currency-last-resort.js`**.
+
 ---
 
 This document is the **project manifesto**: how we build, what is allowed, and what to fix when drift appears.
@@ -45,7 +47,8 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 
 - **Commissions** must come from **`profiles.custom_commission_rate`**, **`system_settings`** (e.g. `general.defaultCommissionRate`), **`DEFAULT_COMMISSION_PERCENT`** env, or **values snapshotted on the booking row** — not magic numbers in UI or payment stubs. В **`currency.service.js`** нет числовых запасных констант: при полном отсутствии источников выбрасывается **ошибка** с понятным логом.
 - **Exchange rates** must come from **`exchange_rates`** and/or the **approved FX service** using **env-provided API keys** — не вносить литералы курсов в `currency.service.js`. Аварийный порядок: **`FALLBACK_THB_PER_USDT`** env и/или **`system_settings.general.fallbackThbPerUsdt`** (см. **`currency-last-resort.js`**).
-- **Множитель курса для счетов в чате (THB↔USDT):** **`system_settings.general.chatInvoiceRateMultiplier`** (админка `/admin/settings`) → env **`CHAT_INVOICE_RATE_MULTIPLIER`** → дефолт платформы только в **`currency-last-resort.js`** (`platformDefaultChatInvoiceRateMultiplier`). В **`currency.service.js`** не хранить жёсткий множитель.
+- **Множитель курса для счетов в чате (THB↔USDT):** **`system_settings.general.chatInvoiceRateMultiplier`** (админка `/admin/settings`) → env **`CHAT_INVOICE_RATE_MULTIPLIER`** → дефолт платформы только в **`currency-last-resort.js`** (`platformDefaultChatInvoiceRateMultiplier`; исторически это замена захардкоженного **1.02**). В **`currency.service.js`** не хранить жёсткий множитель.
+- **Курсы THB/USDT и кресты:** не использовать в проде захардкоженные значения вроде **35.5** — только **`exchange_rates`**, утверждённый FX API с ключом из env и цепочка **`currency-last-resort.js`** / **`general.fallbackThbPerUsdt`**.
 - **Allowed exception:** единый модуль **`currency-last-resort.js`** читает только **env / JSON settings**, без дублирования магических чисел по проекту.
 
 ### 3. Booking logic lives in service layers
