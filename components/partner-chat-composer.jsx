@@ -91,11 +91,11 @@ export function PartnerChatComposer({
           type="button"
           variant="outline"
           size="icon"
-          className="h-10 w-10 shrink-0 border-slate-200"
+          className="h-12 w-12 shrink-0 border-slate-200"
           aria-label={isRu ? 'Вложения и действия' : 'Attachments & actions'}
           disabled={disabled}
         >
-          <Plus className="h-5 w-5" />
+          <Plus className="h-6 w-6" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
@@ -158,12 +158,12 @@ export function PartnerChatComposer({
         type="button"
         variant="outline"
         size="icon"
-        className="h-10 w-10 shrink-0 border-slate-200"
+        className="h-12 w-12 shrink-0 border-slate-200"
         disabled={disabled || attachBusy}
         aria-label={isRu ? 'Прикрепить файл' : 'Attach file'}
         onClick={() => fileRef.current?.click()}
       >
-        {attachBusy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Paperclip className="h-5 w-5" />}
+        {attachBusy ? <Loader2 className="h-6 w-6 animate-spin" /> : <Paperclip className="h-6 w-6" />}
       </Button>
     ) : null
 
@@ -197,12 +197,12 @@ export function PartnerChatComposer({
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="h-10 w-10 shrink-0 border-amber-200 text-amber-600 hover:border-amber-300 hover:bg-amber-50"
+                    className="h-12 w-12 shrink-0 border-amber-200 text-amber-600 hover:border-amber-300 hover:bg-amber-50"
                     aria-label={isRu ? 'Быстрые ответы' : 'Quick replies'}
                     disabled={disabled}
                     title={isRu ? 'Быстрые ответы' : 'Quick replies'}
                   >
-                    <Zap className="h-4 w-4" />
+                    <Zap className="h-5 w-5" />
                   </Button>
                 </PopoverTrigger>
                 {!voiceActive ? (
@@ -287,9 +287,9 @@ export function PartnerChatComposer({
           <Button
             type="submit"
             disabled={!newMessage.trim() || sending || disabled}
-            className="h-10 w-10 shrink-0 bg-teal-600 hover:bg-teal-700 sm:w-auto sm:px-4"
+            className="h-12 w-12 min-h-[48px] min-w-[48px] shrink-0 rounded-xl bg-teal-600 hover:bg-teal-700 sm:h-11 sm:w-auto sm:min-h-0 sm:min-w-0 sm:rounded-md sm:px-4"
           >
-            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {sending ? <Loader2 className="h-5 w-5 animate-spin sm:h-4 sm:w-4" /> : <Send className="h-5 w-5 sm:h-4 sm:w-4" />}
           </Button>
         ) : null}
       </form>

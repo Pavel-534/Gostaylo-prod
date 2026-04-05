@@ -304,7 +304,7 @@ export function ChatMessageList({
   return (
     <div
       className={cn(
-        'flex w-full min-w-0 max-w-full flex-col gap-0 px-2.5 py-2 pb-24 sm:px-4 sm:py-3 sm:pb-24',
+        'flex w-full min-w-0 max-w-full flex-col gap-0 px-4 py-3 pb-28 sm:px-5 sm:py-4 sm:pb-24',
         className,
       )}
     >
@@ -328,7 +328,7 @@ export function ChatMessageList({
         return (
           <Fragment key={item._imageGroup ? item.id : item.id}>
             {showDay && <ChatDateSeparator label={dayLabel} />}
-            <div className="py-0.5">
+            <div className="py-1">
               <MessageItem
                 item={item}
                 userId={userId}

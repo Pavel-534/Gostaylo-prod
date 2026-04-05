@@ -21,6 +21,7 @@ import {
 } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
+import { subscribeRealtimeWithBackoff } from '@/lib/chat/realtime-subscribe-with-backoff'
 
 const ChatContext = createContext(null)
 
@@ -148,88 +149,87 @@ export function ChatProvider({ children }) {
     }
   }, [])
 
-  // ─── Smart Realtime ───────────────────────────────────────────────────────
+  // ─── Smart Realtime (с backoff при обрыве) ───────────────────────────────
   useEffect(() => {
     if (!supabase || !userId) return
 
-    // Channel 1: изменения в таблице conversations (point merge)
-    const convChannel = supabase
-      .channel(`ctx-convs:${userId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'conversations' },
-        (payload) => {
-          if (payload.eventType === 'UPDATE') {
-            setConversations((prev) => {
-              const idx = prev.findIndex((c) => c.id === payload.new.id)
-              if (idx === -1) return prev
-              const next = [...prev]
-              next[idx] = mergeRawConvUpdate(prev[idx], payload.new)
-              return next
-            })
-          } else if (payload.eventType === 'INSERT') {
-            // Новая беседа — нужно обогащение через API
-            fetchOneConversation(payload.new.id)
-          }
-        },
-      )
-      .subscribe()
+    const onConvPayload = (payload) => {
+      if (payload.eventType === 'UPDATE') {
+        setConversations((prev) => {
+          const idx = prev.findIndex((c) => c.id === payload.new.id)
+          if (idx === -1) return prev
+          const next = [...prev]
+          next[idx] = mergeRawConvUpdate(prev[idx], payload.new)
+          return next
+        })
+      } else if (payload.eventType === 'INSERT') {
+        fetchOneConversation(payload.new.id)
+      }
+    }
 
-    // Channel 2: новые сообщения → обновляем lastMessage + unreadCount + sort
-    const msgChannel = supabase
-      .channel(`ctx-messages:${userId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload) => {
-          const msg = payload.new
-          const convId = msg.conversation_id
-          const uid = userIdRef.current
-          if (!convId || !uid) return
+    const onMsgPayload = (payload) => {
+      const msg = payload.new
+      const convId = msg.conversation_id
+      const uid = userIdRef.current
+      if (!convId || !uid) return
 
-          setConversations((prev) => {
-            const idx = prev.findIndex((c) => c.id === convId)
-            if (idx === -1) return prev // беседа не в нашем списке
+      setConversations((prev) => {
+        const idx = prev.findIndex((c) => c.id === convId)
+        if (idx === -1) return prev
 
-            const conv = prev[idx]
-            const isFromMe = String(msg.sender_id) === String(uid)
+        const conv = prev[idx]
+        const isFromMe = String(msg.sender_id) === String(uid)
+        const iAmRenter = String(conv.renterId) === String(uid)
+        const iAmPartner = String(conv.partnerId) === String(uid)
+        const wasArchivedByMe =
+          (!isFromMe && iAmRenter && conv.renterArchivedAt) ||
+          (!isFromMe && iAmPartner && conv.partnerArchivedAt)
 
-            // Проверяем: нужно ли разархивировать?
-            const iAmRenter = String(conv.renterId) === String(uid)
-            const iAmPartner = String(conv.partnerId) === String(uid)
-            const wasArchivedByMe =
-              (!isFromMe && iAmRenter && conv.renterArchivedAt) ||
-              (!isFromMe && iAmPartner && conv.partnerArchivedAt)
+        const updated = {
+          ...conv,
+          lastMessage: rawMsgToLastMessage(msg),
+          lastMessageAt: msg.created_at,
+          unreadCount: isFromMe ? conv.unreadCount || 0 : (conv.unreadCount || 0) + 1,
+          renterArchivedAt: !isFromMe && iAmRenter ? null : conv.renterArchivedAt,
+          partnerArchivedAt: !isFromMe && iAmPartner ? null : conv.partnerArchivedAt,
+        }
 
-            const updated = {
-              ...conv,
-              lastMessage: rawMsgToLastMessage(msg),
-              lastMessageAt: msg.created_at,
-              // Инкрементируем unread только если сообщение не от нас
-              unreadCount: isFromMe ? conv.unreadCount || 0 : (conv.unreadCount || 0) + 1,
-              // Авто-разархивирование при входящем сообщении
-              renterArchivedAt:
-                !isFromMe && iAmRenter ? null : conv.renterArchivedAt,
-              partnerArchivedAt:
-                !isFromMe && iAmPartner ? null : conv.partnerArchivedAt,
-            }
+        if (wasArchivedByMe) {
+          unarchiveConversation(convId)
+        }
 
-            // Fire-and-forget патч на бэкенд при разархивировании
-            if (wasArchivedByMe) {
-              unarchiveConversation(convId)
-            }
+        const next = prev.filter((c) => c.id !== convId)
+        return [updated, ...next]
+      })
+    }
 
-            // Поднимаем беседу в начало списка
-            const next = prev.filter((c) => c.id !== convId)
-            return [updated, ...next]
-          })
-        },
-      )
-      .subscribe()
+    const stopConv = subscribeRealtimeWithBackoff({
+      supabase,
+      createChannel: (attempt) =>
+        supabase
+          .channel(`ctx-convs:${userId}:${attempt}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'conversations' },
+            onConvPayload,
+          ),
+    })
+
+    const stopMsg = subscribeRealtimeWithBackoff({
+      supabase,
+      createChannel: (attempt) =>
+        supabase
+          .channel(`ctx-messages:${userId}:${attempt}`)
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'messages' },
+            onMsgPayload,
+          ),
+    })
 
     return () => {
-      supabase.removeChannel(convChannel)
-      supabase.removeChannel(msgChannel)
+      stopConv()
+      stopMsg()
     }
   }, [userId, fetchOneConversation, unarchiveConversation])
 

@@ -33,6 +33,7 @@ export function ChatGrowingTextarea({
   return (
     <textarea
       ref={ref}
+      data-testid="chat-composer-textarea"
       value={value}
       rows={1}
       disabled={disabled}

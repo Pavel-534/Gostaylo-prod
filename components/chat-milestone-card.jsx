@@ -191,6 +191,8 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole }) {
     null
 
   // Специфические данные о бронировании
+  const listingTitle = meta.listing_title ? String(meta.listing_title) : null
+
   const bookingDates = meta.check_in && meta.check_out
     ? `${meta.check_in} — ${meta.check_out}`
     : null
@@ -219,47 +221,61 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole }) {
     : null
 
   return (
-    <div className="flex justify-center w-full px-4 my-1">
+    <div
+      className="flex justify-center w-full px-4 my-2 sm:px-5 sm:my-2.5"
+      data-testid="chat-milestone-wrap"
+    >
       <div
+        data-testid="chat-milestone-card"
+        data-system-key={sk || ''}
         className={cn(
-          'inline-flex flex-col gap-2 rounded-xl border px-4 py-2.5 max-w-sm w-full text-left shadow-sm',
+          'inline-flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-slate-200/80 px-4 py-4 text-left',
+          'shadow-[0_4px_24px_-6px_rgba(15,23,42,0.12),0_2px_10px_-4px_rgba(15,23,42,0.07)]',
           cfg.bg,
-          cfg.border,
         )}
       >
-        <div className="flex items-start gap-2.5">
-          <Icon className={cn('h-4 w-4 mt-0.5 shrink-0', cfg.iconColor)} />
-          <div className="min-w-0 flex-1">
-            <p className={cn('text-xs font-semibold leading-tight', cfg.textColor)}>
+        <div className="flex items-start gap-3">
+          <Icon className={cn('h-5 w-5 mt-0.5 shrink-0', cfg.iconColor)} />
+          <div className="min-w-0 flex-1 space-y-1.5">
+            {listingTitle ? (
+              <p className="text-base font-bold leading-snug tracking-tight text-slate-900">
+                {listingTitle}
+              </p>
+            ) : null}
+            <p className={cn('text-[11px] font-bold uppercase tracking-wide', cfg.textColor)}>
               {cfg.label[lang]}
             </p>
             {bodyText && (
-              <p className={cn('text-xs mt-0.5 leading-snug opacity-80', cfg.textColor)}>
-                {bodyText}
-              </p>
+              <p className="text-sm leading-snug text-slate-700">{bodyText}</p>
             )}
             {(bookingDates || price) && (
-              <p className={cn('text-xs mt-0.5 opacity-70', cfg.textColor)}>
-                {[bookingDates, price].filter(Boolean).join(' · ')}
-              </p>
+              <div className="space-y-1 border-t border-slate-200/60 pt-2.5">
+                {bookingDates ? (
+                  <p className="text-sm font-semibold text-slate-800">{bookingDates}</p>
+                ) : null}
+                {price ? (
+                  <p className="text-lg font-bold tabular-nums text-slate-900">{price}</p>
+                ) : null}
+              </div>
             )}
             {timeLabel && (
-              <p className="text-[10px] text-slate-400 mt-1">{timeLabel}</p>
+              <p className="text-[11px] text-slate-500">{timeLabel}</p>
             )}
           </div>
         </div>
 
-        {/* Review CTA для рентера после завершения поездки */}
         {showReviewCta && (
-          <div className="border-t border-yellow-200 pt-2 mt-0.5">
-            <p className="text-xs text-yellow-800 mb-1.5">
-              {lang === 'ru' ? 'Как прошёл ваш отдых? Поделитесь впечатлениями!' : 'How was your stay? Share your experience!'}
+          <div className="border-t border-amber-200/80 pt-3">
+            <p className="mb-3 text-sm font-medium text-amber-950">
+              {lang === 'ru'
+                ? 'Как прошёл ваш отдых? Поделитесь впечатлениями!'
+                : 'How was your stay? Share your experience!'}
             </p>
             <Link
               href={reviewHref}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-yellow-500 hover:bg-yellow-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-amber-600"
             >
-              <Star className="h-3.5 w-3.5 fill-white" />
+              <Star className="h-4 w-4 shrink-0 fill-white" />
               {lang === 'ru' ? 'Оценить отдых' : 'Rate your stay'}
             </Link>
           </div>

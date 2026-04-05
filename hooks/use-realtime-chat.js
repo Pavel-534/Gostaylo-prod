@@ -16,6 +16,10 @@ function debounce(fn, ms) {
   return debounced;
 }
 import { createClient } from '@supabase/supabase-js';
+import {
+  subscribeRealtimeWithBackoff,
+  REALTIME_RETRY_STATUSES,
+} from '@/lib/chat/realtime-subscribe-with-backoff';
 
 // Initialize Supabase client with realtime enabled
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -58,7 +62,6 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
   const [messages, setMessages] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState(null);
-  const channelRef = useRef(null);
   const onNewMessageRef = useRef(onNewMessage);
   const onMessageUpdateRef = useRef(onMessageUpdate);
 
@@ -72,85 +75,62 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
   useEffect(() => {
     if (!conversationId || !supabaseUrl || !supabaseAnonKey) return;
 
-    let cancelled = false;
-    let attempt = 0;
-    let retryTimer = null;
-
-    const subscribeOnce = () => {
-      if (cancelled) return;
-
-      const channel = supabase
-        .channel(`messages:${conversationId}:${attempt}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `conversation_id=eq.${conversationId}`,
-          },
-          (payload) => {
-            const newMessage = payload.new;
-            setMessages((prev) => {
-              if (prev.some((m) => m.id === newMessage.id)) {
-                return prev;
+    return subscribeRealtimeWithBackoff({
+      supabase,
+      createChannel: (attempt) =>
+        supabase
+          .channel(`messages:${conversationId}:${attempt}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'messages',
+              filter: `conversation_id=eq.${conversationId}`,
+            },
+            (payload) => {
+              const newMessage = payload.new;
+              setMessages((prev) => {
+                if (prev.some((m) => m.id === newMessage.id)) {
+                  return prev;
+                }
+                return [...prev, newMessage];
+              });
+              if (onNewMessageRef.current) {
+                onNewMessageRef.current(newMessage);
               }
-              return [...prev, newMessage];
-            });
-            if (onNewMessageRef.current) {
-              onNewMessageRef.current(newMessage);
-            }
-          },
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'messages',
-            filter: `conversation_id=eq.${conversationId}`,
-          },
-          (payload) => {
-            const row = payload.new;
-            if (onMessageUpdateRef.current) {
-              onMessageUpdateRef.current(row);
-            }
-          },
-        )
-        .on('presence', { event: 'sync' }, () => {
-          setIsConnected(true);
-        })
-        .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
+            },
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'messages',
+              filter: `conversation_id=eq.${conversationId}`,
+            },
+            (payload) => {
+              const row = payload.new;
+              if (onMessageUpdateRef.current) {
+                onMessageUpdateRef.current(row);
+              }
+            },
+          )
+          .on('presence', { event: 'sync' }, () => {
             setIsConnected(true);
-            setError(null);
-            attempt = 0;
-            return;
-          }
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            setError('Realtime reconnecting…');
-            setIsConnected(false);
-            if (cancelled) return;
-            supabase.removeChannel(channel);
-            const delay = Math.min(30_000, 1000 * 2 ** Math.min(attempt, 5));
-            attempt += 1;
-            retryTimer = setTimeout(subscribeOnce, delay);
-          }
-        });
-
-      channelRef.current = channel;
-    };
-
-    subscribeOnce();
-
-    return () => {
-      cancelled = true;
-      if (retryTimer) clearTimeout(retryTimer);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
+          }),
+      onChannelStatus: (status) => {
+        if (status === 'SUBSCRIBED') {
+          setIsConnected(true);
+          setError(null);
+          return;
+        }
+        if (REALTIME_RETRY_STATUSES.has(status)) {
+          setError('Realtime reconnecting…');
+          setIsConnected(false);
+        }
+      },
+    });
   }, [conversationId]);
 
   return { messages, setMessages, isConnected, error };
@@ -172,15 +152,9 @@ export function usePresence(conversationId, userId, peerUserId = null) {
   useEffect(() => {
     if (!conversationId || !userId) return;
 
-    const channel = supabase.channel(`presence:${conversationId}`, {
-      config: {
-        presence: {
-          key: userId,
-        },
-      },
-    });
-
     const syncPresence = () => {
+      const channel = channelRef.current;
+      if (!channel) return;
       const state = channel.presenceState();
       const rows = Object.values(state).flat();
       const ids = rows.map((p) => p.user_id).filter(Boolean);
@@ -193,25 +167,33 @@ export function usePresence(conversationId, userId, peerUserId = null) {
       }
     };
 
-    channel
-      .on('presence', { event: 'sync' }, syncPresence)
-      .on('presence', { event: 'join' }, syncPresence)
-      .on('presence', { event: 'leave' }, syncPresence)
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({
-            user_id: userId,
-            online_at: new Date().toISOString(),
-          });
-        }
-      });
-
-    channelRef.current = channel;
+    const stop = subscribeRealtimeWithBackoff({
+      supabase,
+      createChannel: (attempt) => {
+        const ch = supabase.channel(`presence:${conversationId}:${attempt}`, {
+          config: {
+            presence: {
+              key: userId,
+            },
+          },
+        });
+        channelRef.current = ch;
+        return ch
+          .on('presence', { event: 'sync' }, syncPresence)
+          .on('presence', { event: 'join' }, syncPresence)
+          .on('presence', { event: 'leave' }, syncPresence);
+      },
+      afterSubscribed: async (ch) => {
+        await ch.track({
+          user_id: userId,
+          online_at: new Date().toISOString(),
+        });
+      },
+    });
 
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
+      channelRef.current = null;
+      stop();
     };
   }, [conversationId, userId, peerUserId]);
 
@@ -234,7 +216,6 @@ export function usePresence(conversationId, userId, peerUserId = null) {
 export function useRealtimeConversations(userId, onUpdate = null) {
   const [conversations, setConversations] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const channelRef = useRef(null);
   const onUpdateRef = useRef(onUpdate);
   // Debounced wrapper so bursts of conversation-row changes trigger only one reload.
   const debouncedUpdateRef = useRef(null);
@@ -257,46 +238,39 @@ export function useRealtimeConversations(userId, onUpdate = null) {
   useEffect(() => {
     if (!userId) return;
 
-    const channel = supabase
-      .channel(`conversations:${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'conversations',
-        },
-        (payload) => {
-          // If a callback was provided, call it debounced so burst-updates only fire once.
-          if (onUpdateRef.current) {
-            debouncedUpdateRef.current?.(payload);
-            return;
-          }
+    return subscribeRealtimeWithBackoff({
+      supabase,
+      createChannel: (attempt) =>
+        supabase
+          .channel(`conversations:${userId}:${attempt}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'conversations',
+            },
+            (payload) => {
+              if (onUpdateRef.current) {
+                debouncedUpdateRef.current?.(payload);
+                return;
+              }
 
-          // Fallback: maintain raw conversations state locally.
-          setConversations(prev => {
-            if (payload.eventType === 'INSERT') {
-              return [...prev, payload.new];
-            }
-            if (payload.eventType === 'UPDATE') {
-              return prev.map(c => c.id === payload.new.id ? payload.new : c);
-            }
-            if (payload.eventType === 'DELETE') {
-              return prev.filter(c => c.id !== payload.old?.id);
-            }
-            return prev;
-          });
-        }
-      )
-      .subscribe();
-
-    channelRef.current = channel;
-
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
-    };
+              setConversations((prev) => {
+                if (payload.eventType === 'INSERT') {
+                  return [...prev, payload.new];
+                }
+                if (payload.eventType === 'UPDATE') {
+                  return prev.map((c) => (c.id === payload.new.id ? payload.new : c));
+                }
+                if (payload.eventType === 'DELETE') {
+                  return prev.filter((c) => c.id !== payload.old?.id);
+                }
+                return prev;
+              });
+            },
+          ),
+    });
   }, [userId]);
 
   return { conversations, setConversations, unreadCount };

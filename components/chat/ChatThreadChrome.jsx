@@ -70,7 +70,7 @@ export function ChatThreadChrome({
   return (
     <div
       className={cn(
-        'flex h-full min-h-0 w-full flex-1 overflow-hidden bg-white',
+        'flex h-full min-h-0 w-full flex-1 overflow-hidden bg-white text-slate-900',
         className,
       )}
     >
@@ -121,12 +121,15 @@ export function ChatThreadChrome({
                 </div>
               ) : null}
 
-              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+              <div
+                className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
+                data-testid="chat-thread-scroll"
+              >
                 {messagesSlot}
               </div>
 
               {composerSlot && (
-                <div className="flex-shrink-0 border-t border-slate-200/90 bg-white">
+                <div className="flex-shrink-0 border-t border-slate-100 bg-white">
                   {composerSlot}
                 </div>
               )}

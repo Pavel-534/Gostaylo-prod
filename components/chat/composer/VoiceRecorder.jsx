@@ -108,21 +108,21 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
           type="button"
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-red-500 hover:bg-red-50 shrink-0"
+          className="h-11 w-11 shrink-0 rounded-xl text-red-500 hover:bg-red-50"
           onClick={discardRecording}
           title={isRu ? 'Удалить' : 'Discard'}
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-5 w-5" />
         </Button>
         <Button
           type="button"
           disabled={voiceSending}
-          className="h-8 px-3 bg-teal-600 hover:bg-teal-700 shrink-0"
+          className="h-11 min-h-[44px] shrink-0 rounded-xl bg-teal-600 px-4 hover:bg-teal-700"
           onClick={handleSend}
         >
           {voiceSending
-            ? <Loader2 className="h-4 w-4 animate-spin" />
-            : <Send className="h-4 w-4" />}
+            ? <Loader2 className="h-5 w-5 animate-spin" />
+            : <Send className="h-5 w-5" />}
         </Button>
       </div>
     )
@@ -139,11 +139,11 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
         <Button
           type="button"
           size="icon"
-          className="h-8 w-8 bg-red-500 hover:bg-red-600 shrink-0"
+          className="h-11 w-11 shrink-0 rounded-xl bg-red-500 hover:bg-red-600"
           onClick={stopRecording}
           title={isRu ? 'Остановить' : 'Stop'}
         >
-          <MicOff className="h-4 w-4 text-white" />
+          <MicOff className="h-5 w-5 text-white" />
         </Button>
       </div>
     )
@@ -157,12 +157,12 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
       type="button"
       variant="outline"
       size="icon"
-      className="h-10 w-10 flex-shrink-0 border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600"
+      className="h-12 w-12 shrink-0 rounded-xl border-slate-200 text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
       disabled={disabled}
       onClick={startRecording}
       title={isRu ? 'Голосовое сообщение' : 'Voice message'}
     >
-      <Mic className="h-4 w-4" />
+      <Mic className="h-5 w-5" />
     </Button>
   )
 }

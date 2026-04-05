@@ -11,7 +11,7 @@ const AUTH = {
  * RBAC: `tests/e2e/role-access.spec.ts` + `tests/auth.setup.ts` → `playwright/.auth/*.json`.
  * Legacy smoke: `tests/example.spec.ts`.
  *
- * `npx playwright test` — все проекты; только RBAC: `npx playwright test --project rbac-partner --project rbac-admin --project rbac-renter`
+ * `npx playwright test` — все проекты; RBAC: `--project rbac-*`; чат: `--project chat-mobile-iphone --project chat-mobile-pixel --project chat-stress`
  *
  * BASE_URL / PLAYWRIGHT_BASE_URL — origin приложения (по умолчанию localhost:3000).
  */
@@ -77,6 +77,36 @@ export default defineConfig({
       testDir: './tests',
       testMatch: '**/example.spec.ts',
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'chat-mobile-iphone',
+      dependencies: ['setup'],
+      testDir: './tests/e2e',
+      testMatch: '**/mobile-chat.spec.ts',
+      use: {
+        ...devices['iPhone 14'],
+        storageState: AUTH.partner,
+      },
+    },
+    {
+      name: 'chat-mobile-pixel',
+      dependencies: ['setup'],
+      testDir: './tests/e2e',
+      testMatch: '**/mobile-chat.spec.ts',
+      use: {
+        ...devices['Pixel 7'],
+        storageState: AUTH.partner,
+      },
+    },
+    {
+      name: 'chat-stress',
+      dependencies: ['setup'],
+      testDir: './tests/e2e',
+      testMatch: '**/chat-stress.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: AUTH.partner,
+      },
     },
   ],
   webServer: process.env.CI

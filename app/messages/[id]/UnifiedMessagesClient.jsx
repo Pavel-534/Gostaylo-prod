@@ -788,11 +788,11 @@ export default function UnifiedMessagesClient({ params }) {
               type="button"
               variant="outline"
               size="icon"
-              className="h-10 w-10 shrink-0 border-slate-200"
+              className="h-12 w-12 shrink-0 rounded-xl border-slate-200"
               disabled={sending}
               aria-label={language === 'ru' ? 'Вложения' : 'Attachments'}
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-6 w-6" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
@@ -822,11 +822,11 @@ export default function UnifiedMessagesClient({ params }) {
               />
             </div>
             <span className="shrink-0 text-xs font-medium tabular-nums text-teal-700">{voiceDurationLabel}</span>
-            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-red-500 hover:bg-red-50" onClick={discardVoice}>
-              <Trash2 className="h-4 w-4" />
+            <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-xl text-red-500 hover:bg-red-50" onClick={discardVoice}>
+              <Trash2 className="h-5 w-5" />
             </Button>
-            <Button type="button" disabled={voiceSending} className="h-8 shrink-0 bg-teal-600 px-3 hover:bg-teal-700" onClick={() => void handleGuestVoiceBlobSend()}>
-              {voiceSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            <Button type="button" disabled={voiceSending} className="h-11 min-h-[44px] shrink-0 rounded-xl bg-teal-600 px-4 hover:bg-teal-700" onClick={() => void handleGuestVoiceBlobSend()}>
+              {voiceSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
             </Button>
           </div>
         ) : voiceRecording ? (
@@ -835,8 +835,8 @@ export default function UnifiedMessagesClient({ params }) {
             <span className="flex-1 text-sm font-medium text-red-700">
               {language === 'ru' ? 'Запись...' : 'Recording...'} {voiceDurationLabel}
             </span>
-            <Button type="button" size="icon" className="h-8 w-8 shrink-0 bg-red-500 hover:bg-red-600" onClick={stopVoice}>
-              <MicOff className="h-4 w-4 text-white" />
+            <Button type="button" size="icon" className="h-11 w-11 shrink-0 rounded-xl bg-red-500 hover:bg-red-600" onClick={stopVoice}>
+              <MicOff className="h-5 w-5 text-white" />
             </Button>
           </div>
         ) : (
@@ -856,20 +856,20 @@ export default function UnifiedMessagesClient({ params }) {
                 type="button"
                 variant="outline"
                 size="icon"
-                className="h-10 w-10 shrink-0 border-slate-200 text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                className="h-12 w-12 shrink-0 rounded-xl border-slate-200 text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
                 disabled={sending}
                 onClick={startVoice}
                 title={language === 'ru' ? 'Голосовое сообщение' : 'Voice message'}
               >
-                <Mic className="h-4 w-4" />
+                <Mic className="h-5 w-5" />
               </Button>
             )}
             <Button
               type="submit"
               disabled={!newMessage.trim() || sending}
-              className="h-10 w-10 shrink-0 bg-teal-600 hover:bg-teal-700 sm:w-auto sm:px-4"
+              className="h-12 w-12 min-h-[48px] min-w-[48px] shrink-0 rounded-xl bg-teal-600 hover:bg-teal-700 sm:h-10 sm:w-auto sm:min-h-0 sm:min-w-0 sm:rounded-md sm:px-4"
             >
-              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {sending ? <Loader2 className="h-5 w-5 animate-spin sm:h-4 sm:w-4" /> : <Send className="h-5 w-5 sm:h-4 sm:w-4" />}
             </Button>
           </>
         )}

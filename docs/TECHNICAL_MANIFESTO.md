@@ -83,7 +83,7 @@
 - **Системные сообщения:** тип **`system`** — по умолчанию только **ADMIN/MODERATOR**; у партнёра — узкий whitelist **`metadata.system_key`** (`passport_request`, `booking_confirmed`, `booking_declined`) при участии в диалоге. Renter/USER не могут эмулировать «Систему» или чужую роль через API.
 - **Транзакционные события (бронь, счёт, статусы):** серверные вставки в **`messages`** из **`lib/services/booking.service.js`**, **`lib/booking-status-chat-sync.js`**, **`app/api/v2/chat/support/join/route.js`** и т.д. — обходят HTTP-роут там, где нужна атомарность с бизнес-операцией; клиентский путь остаётся единым для пользовательского текста/медиа/счетов из кабинета.
 - **Уведомления после сообщения:** **`PushService.sendToUser`** (FCM) для контрагента в диалоге; ошибки FCM **логируются, не ломают** ответ API (**`.catch`** в роуте). Опциональный **Telegram ping** только если **`recipientTelegramId`** принадлежит **участнику этой беседы** (не произвольному пользователю). Текстовые сообщения при включённых prefs могут дублироваться в Telegram без явного **`notifyTelegram`**.
-- **Realtime (Supabase):** **`hooks/use-realtime-chat.js`** — подписка на **`messages`** с **повтором при `CHANNEL_ERROR` / `TIMED_OUT` / `CLOSED`** (экспоненциальная задержка, max 30s). Источник истины для доставки — **POST в API**; при обрыве канала клиент догружает историю через **`GET /api/v2/chat/messages`**. Отдельной серверной «очереди исходящих» в браузере нет — при необходимости повторяют отправку пользовательские хуки (optimistic UI).
+- **Realtime (Supabase) — единая стратегия переподключения:** модуль **`lib/chat/realtime-subscribe-with-backoff.js`** (`subscribeRealtimeWithBackoff`). Любой Realtime-канал чата пересоздаётся при статусах **`CHANNEL_ERROR`**, **`TIMED_OUT`**, **`CLOSED`** с задержкой **`min(30s, 1000 × 2^min(attempt,5))`**. Имена каналов включают **`attempt`**, чтобы не конфликтовать с «зависшими» подписками. Потребители: **`lib/context/ChatContext.jsx`** (два канала: `conversations` + `messages` для списка диалогов), **`hooks/use-realtime-chat.js`** (`useRealtimeMessages`, `useRealtimeConversations`, **`usePresence`** — после `SUBSCRIBED` вызывается **`channel.track`**). Источник истины для текста сообщений — **POST** в API; при длительном офлайне список/тред догружаются через **`GET /api/v2/chat/conversations`** и **`GET /api/v2/chat/messages`**. Очереди исходящих в браузере нет (кроме optimistic UI в отдельных хуках).
 
 ---
 
@@ -100,7 +100,7 @@
 | Туры: metadata группы + миграция | `lib/partner/listing-wizard-metadata.js` |
 | Чат + статусы брони | `app/api/v2/chat/messages/route.js`, `lib/services/chat/access.js`, `lib/booking-status-chat-sync.js` |
 | Auth edge + login | `middleware.ts`, `app/login/page.js`, `app/admin/layout.js` |
-| Realtime чат | `hooks/use-realtime-chat.js`, `lib/context/ChatContext.jsx` |
+| Realtime чат (backoff) | `lib/chat/realtime-subscribe-with-backoff.js`, `hooks/use-realtime-chat.js`, `lib/context/ChatContext.jsx` |
 | Платежи / эскроу | `lib/services/payment.service.js`, `lib/services/escrow.service.js`, `app/api/cron/payouts` |
 
 ---

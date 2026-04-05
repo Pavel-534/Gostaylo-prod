@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Check, X, Loader2, CreditCard } from 'lucide-react'
 import { PriceBreakdown } from './price-breakdown'
@@ -72,28 +71,32 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
   }
 
   return (
-    <Card className="p-4 bg-blue-50 border-blue-200">
-      <div className="space-y-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-blue-600" />
-            <span className="font-semibold text-slate-900">Запрос на бронирование</span>
+    <div className="w-full max-w-full rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_4px_20px_-6px_rgba(15,23,42,0.1),0_2px_8px_-3px_rgba(15,23,42,0.06)] sm:p-5">
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="rounded-xl bg-teal-50 p-2">
+              <Calendar className="h-5 w-5 text-teal-600" />
+            </div>
+            <span className="text-base font-bold leading-tight text-slate-900">Запрос на бронирование</span>
           </div>
-          <Badge className="bg-yellow-100 text-yellow-700">Ожидает ответа</Badge>
+          <Badge className="shrink-0 bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-950">
+            Ожидает ответа
+          </Badge>
         </div>
 
         <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-slate-600">Даты:</span>
-            <span className="font-medium">
+          <div className="flex justify-between gap-3">
+            <span className="font-medium text-slate-600">Даты</span>
+            <span className="text-right font-bold text-slate-900">
               {checkIn && checkOut
-                ? `${new Date(checkIn).toLocaleDateString('ru-RU')} - ${new Date(checkOut).toLocaleDateString('ru-RU')}`
+                ? `${new Date(checkIn).toLocaleDateString('ru-RU')} — ${new Date(checkOut).toLocaleDateString('ru-RU')}`
                 : '—'}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-slate-600">Дней:</span>
-            <span className="font-medium">{days}</span>
+          <div className="flex justify-between gap-3">
+            <span className="font-medium text-slate-600">Дней</span>
+            <span className="font-bold text-slate-900">{days}</span>
           </div>
         </div>
 
@@ -102,21 +105,21 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
           days={days}
           commissionRate={commissionRate}
           currency="THB"
-          className="bg-white p-3 rounded-lg border"
+          className="rounded-xl border border-slate-100 bg-slate-50/80 p-3 sm:p-4"
         />
 
         {userRole === 'PARTNER' && (
-          <div className="flex gap-2 pt-2">
+          <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:gap-3">
             <Button
               onClick={handleAccept}
               disabled={updating}
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="h-12 min-h-[48px] w-full flex-1 rounded-xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700 sm:w-auto"
             >
               {updating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>
-                  <Check className="h-4 w-4 mr-2" />
+                  <Check className="mr-2 h-5 w-5" />
                   Принять
                 </>
               )}
@@ -125,13 +128,13 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
               onClick={handleDecline}
               disabled={updating}
               variant="outline"
-              className="flex-1 border-red-200 text-red-600 hover:bg-red-50"
+              className="h-12 min-h-[48px] w-full flex-1 rounded-xl border-2 border-red-200 text-base font-bold text-red-700 hover:bg-red-50 sm:w-auto"
             >
               {updating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>
-                  <X className="h-4 w-4 mr-2" />
+                  <X className="mr-2 h-5 w-5" />
                   Отклонить
                 </>
               )}
@@ -140,9 +143,9 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
         )}
 
         {userRole === 'RENTER' && currentStatus === 'CONFIRMED' && (
-          <Link href={`/checkout/${message.bookingId}`}>
-            <Button className="w-full bg-teal-600 hover:bg-teal-700">
-              <CreditCard className="h-4 w-4 mr-2" />
+          <Link href={`/checkout/${message.bookingId}`} className="block w-full">
+            <Button className="h-12 min-h-[48px] w-full rounded-xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700">
+              <CreditCard className="mr-2 h-5 w-5" />
               Оплатить бронирование
             </Button>
           </Link>
@@ -154,7 +157,7 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
           </div>
         )}
       </div>
-    </Card>
+    </div>
   )
 }
 

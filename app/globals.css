@@ -145,6 +145,11 @@ code {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Чат: композер не прилипает к home indicator (минимум 1rem + inset) */
+.pb-safe-chat-composer {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+}
+
 /* Ensure main content doesn't get hidden behind fixed elements */
 @layer utilities {
   .pt-header {
