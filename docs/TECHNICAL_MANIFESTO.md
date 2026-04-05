@@ -15,7 +15,7 @@
 - **Счета в чате (THB ↔ USDT):** **`getEffectiveRate`** умножает курс на **`resolveChatInvoiceRateMultiplier`**: `general.chatInvoiceRateMultiplier` (админка **`/admin/settings`**) → **`CHAT_INVOICE_RATE_MULTIPLIER`** → дефолт только в **`platformDefaultChatInvoiceRateMultiplier()`** в **`currency-last-resort.js`**. В **`currency.service.js`** нет литерала **1.02**.
 - **Цена брони по датам:** **`lib/services/pricing.service.js`** (ночи/дни, сезонные ставки, скидки за длительность из `metadata.discounts`). Снимок на бронь: **`lib/booking-pricing-snapshot.js`** + колонка **`bookings.pricing_snapshot`**.
 
-**Важно (долг):** параллельно живёт **`lib/services/forex.service.js`** + **`GET /api/v2/forex`** (свой кеш и маркап **1.035**), на него смотрит **`hooks/use-currency.js`**. Это **второй** FX-пайплайн рядом с CurrencyService — не смешивать с каноном отображения без ревью.
+**Единый FX-канал:** **`lib/services/forex.service.js`** и **`GET /api/v2/forex`** **удалены**. Все курсы для UI, гео и **`hooks/use-currency.js`** — через **`CurrencyService`** и **`GET /api/v2/exchange-rates`** (`rateMap`). Скрытая наценка **3.5%** (FunnyRate) снята; отдельный множитель для «витрины», если понадобится снова, — только **`system_settings` / env** по тому же принципу, что чат-счета, без второго FX-движка.
 
 ---
 

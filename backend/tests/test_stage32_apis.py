@@ -1,8 +1,7 @@
 """
 Stage 32 Backend API Tests
-- Forex API /api/v2/forex returns live exchange rates
-- Forex conversion with FunnyRate markup (THB to RUB, USD, CNY)
-- Geo API /api/v2/geo detects user location and recommends currency
+- GET /api/v2/exchange-rates — rateMap (THB за 1 ед. валюты), канон CurrencyService
+- Geo API /api/v2/geo — гео + пример форматирования через тот же курс
 - Push API /api/v2/push returns template list
 - Payout cron /api/cron/payouts?secret=funnyrent-cron-2026 returns 24H rule status
 - Check-in reminder cron /api/cron/checkin-reminder?secret=funnyrent-cron-2026 works
@@ -16,134 +15,27 @@ import time
 BASE_URL = 'http://localhost:3000'  # Use localhost for testing since preview has 502 errors
 CRON_SECRET = "funnyrent-cron-2026"
 
-# FunnyRate markup is 3.5%
-FUNNYRATE_MARKUP = 1.035
 
+class TestExchangeRatesAPI:
+    """Tests for GET /api/v2/exchange-rates (CurrencyService.getDisplayRateMap)."""
 
-class TestForexAPI:
-    """Tests for /api/v2/forex endpoint - Exchange rate service"""
-    
-    def test_forex_get_all_rates(self):
-        """Test GET /api/v2/forex returns live exchange rates"""
-        response = requests.get(f"{BASE_URL}/api/v2/forex", timeout=30)
-        
+    def test_exchange_rates_returns_rate_map(self):
+        response = requests.get(f"{BASE_URL}/api/v2/exchange-rates", timeout=30)
+
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
-        
+
         data = response.json()
-        assert data.get('success') == True, f"API did not return success: {data}"
-        assert data.get('baseCurrency') == 'THB', "Base currency should be THB"
-        
-        # Verify rates object exists and has expected currencies
-        rates = data.get('rates', {})
-        assert 'USD' in rates, "USD rate missing"
-        assert 'RUB' in rates, "RUB rate missing"
-        assert 'CNY' in rates, "CNY rate missing"
-        assert 'EUR' in rates, "EUR rate missing"
-        
-        # Verify currencies list exists with FunnyRate
-        currencies = data.get('currencies', [])
-        assert len(currencies) > 0, "Currencies list should not be empty"
-        
-        # Check that funnyRate markup info is present
-        assert 'markup' in data or '3.5%' in str(data.get('markup', '')), "FunnyRate markup info should be present"
-        
-        print(f"✅ Forex API returned {len(rates)} rates, baseCurrency: THB")
-        print(f"   Sample rates: USD={rates.get('USD')}, RUB={rates.get('RUB')}, CNY={rates.get('CNY')}")
-    
-    def test_forex_conversion_thb_to_usd(self):
-        """Test THB to USD conversion with FunnyRate markup"""
-        amount = 10000  # 10,000 THB
-        response = requests.get(
-            f"{BASE_URL}/api/v2/forex",
-            params={'convert': amount, 'from': 'THB', 'to': 'USD'},
-            timeout=30
-        )
-        
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
-        
-        data = response.json()
-        assert data.get('success') == True, f"Conversion failed: {data}"
-        
-        # Verify original amount
-        assert data.get('original', {}).get('amount') == amount, "Original amount mismatch"
-        assert data.get('original', {}).get('currency') == 'THB', "Original currency should be THB"
-        
-        # Verify conversion result
-        converted = data.get('converted', {})
-        assert converted.get('currency') == 'USD', "Target currency should be USD"
-        assert converted.get('amount') > 0, "Converted amount should be positive"
-        
-        # Verify FunnyRate is applied (funnyRate should be ~3.5% higher than market rate)
-        market_rate = data.get('rate')
-        funny_rate = data.get('funnyRate')
-        if market_rate and funny_rate:
-            expected_funny_rate = market_rate * FUNNYRATE_MARKUP
-            # Allow small floating point tolerance
-            assert abs(funny_rate - expected_funny_rate) < 0.0001, f"FunnyRate markup not applied correctly: {funny_rate} vs expected {expected_funny_rate}"
-        
-        print(f"✅ THB to USD conversion: {amount} THB → {converted.get('amount')} USD")
-        print(f"   Market rate: {market_rate}, FunnyRate: {funny_rate}")
-    
-    def test_forex_conversion_thb_to_rub(self):
-        """Test THB to RUB conversion with FunnyRate markup"""
-        amount = 10000  # 10,000 THB
-        response = requests.get(
-            f"{BASE_URL}/api/v2/forex",
-            params={'convert': amount, 'from': 'THB', 'to': 'RUB'},
-            timeout=30
-        )
-        
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
-        
-        data = response.json()
-        assert data.get('success') == True, f"Conversion failed: {data}"
-        
-        converted = data.get('converted', {})
-        assert converted.get('currency') == 'RUB', "Target currency should be RUB"
-        assert converted.get('amount') > 0, "Converted amount should be positive"
-        
-        # RUB should be larger number than THB (1 THB ~ 2.5 RUB)
-        assert converted.get('amount') > amount * 2, f"RUB conversion seems too low: {converted.get('amount')}"
-        
-        print(f"✅ THB to RUB conversion: {amount} THB → {converted.get('amount')} RUB")
-    
-    def test_forex_conversion_thb_to_cny(self):
-        """Test THB to CNY conversion with FunnyRate markup"""
-        amount = 10000  # 10,000 THB
-        response = requests.get(
-            f"{BASE_URL}/api/v2/forex",
-            params={'convert': amount, 'from': 'THB', 'to': 'CNY'},
-            timeout=30
-        )
-        
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
-        
-        data = response.json()
-        assert data.get('success') == True, f"Conversion failed: {data}"
-        
-        converted = data.get('converted', {})
-        assert converted.get('currency') == 'CNY', "Target currency should be CNY"
-        assert converted.get('amount') > 0, "Converted amount should be positive"
-        
-        # Verify formatted price exists
-        assert converted.get('formatted'), "Formatted price should exist"
-        
-        print(f"✅ THB to CNY conversion: {amount} THB → {converted.get('amount')} CNY ({converted.get('formatted')})")
-    
-    def test_forex_auto_detect_currency(self):
-        """Test auto-detect currency feature"""
-        response = requests.get(
-            f"{BASE_URL}/api/v2/forex",
-            params={'auto': 'true'},
-            timeout=30
-        )
-        
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
-        
-        data = response.json()
-        assert data.get('success') == True, f"API failed: {data}"
-        
-        print(f"✅ Forex API auto-detect: geoDetected={data.get('geoDetected')}")
+        assert data.get('success') is True, f"API did not return success: {data}"
+
+        rate_map = data.get('rateMap') or {}
+        assert isinstance(rate_map, dict) and len(rate_map) > 0, "rateMap should be a non-empty object"
+        assert rate_map.get('THB') == 1, "THB baseline should be 1 in rateMap"
+
+        for code in ('USD', 'RUB', 'EUR'):
+            if code in rate_map:
+                assert float(rate_map[code]) > 0, f"{code} rate should be positive"
+
+        print(f"✅ exchange-rates keys sample: USD={rate_map.get('USD')}, RUB={rate_map.get('RUB')}")
 
 
 class TestGeoAPI:
@@ -165,13 +57,13 @@ class TestGeoAPI:
         assert currency.get('symbol'), "Currency symbol should exist"
         assert currency.get('name'), "Currency name should exist"
         
-        # Verify sample conversion exists
+        # Пример: только formatted строка (курс из CurrencyService, без отдельного Forex)
         sample = data.get('sample', {})
         assert sample.get('thb') == 10000, "Sample should be 10000 THB"
-        assert sample.get('converted') > 0, "Sample converted amount should be positive"
-        
+        assert sample.get('formatted'), "Sample formatted price should exist"
+
         print(f"✅ Geo API detected: country={data.get('location', {}).get('country')}, currency={currency.get('code')}")
-        print(f"   Sample: 10000 THB = {sample.get('formatted')}")
+        print(f"   Sample: 10000 THB → {sample.get('formatted')}")
     
     def test_geo_returns_fallback_on_error(self):
         """Test that Geo API returns fallback USD on error"""
@@ -386,28 +278,30 @@ class TestCheckInReminderCronAPI:
 class TestIntegration:
     """Integration tests for Stage 32 features"""
     
-    def test_forex_and_geo_integration(self):
-        """Test that geo-detected currency can be used for forex conversion"""
-        # First get geo recommendation
+    def test_geo_and_exchange_rates_integration(self):
+        """Geo sample uses same rate source as /api/v2/exchange-rates (CurrencyService)."""
         geo_response = requests.get(f"{BASE_URL}/api/v2/geo", timeout=30)
         assert geo_response.status_code == 200
-        
+
         geo_data = geo_response.json()
         recommended_currency = geo_data.get('currency', {}).get('code', 'USD')
-        
-        # Then use that currency for forex conversion
-        forex_response = requests.get(
-            f"{BASE_URL}/api/v2/forex",
-            params={'convert': 5000, 'from': 'THB', 'to': recommended_currency},
-            timeout=30
+        sample = geo_data.get('sample', {})
+        assert sample.get('thb') == 10000
+        assert sample.get('formatted'), "Geo sample should include formatted price"
+
+        er = requests.get(f"{BASE_URL}/api/v2/exchange-rates", timeout=30)
+        assert er.status_code == 200
+        er_data = er.json()
+        assert er_data.get('success') is True
+        rate_map = er_data.get('rateMap') or {}
+        if recommended_currency not in rate_map and recommended_currency != 'THB':
+            print(
+                f"⚠️ Geo recommends {recommended_currency} but display rateMap may omit it; geo sample falls back to THB formatting"
+            )
+
+        print(
+            f"✅ Integration: Geo → {recommended_currency}, sample formatted={sample.get('formatted')!r}"
         )
-        
-        assert forex_response.status_code == 200
-        forex_data = forex_response.json()
-        assert forex_data.get('success') == True
-        assert forex_data.get('converted', {}).get('currency') == recommended_currency
-        
-        print(f"✅ Integration: Geo recommended {recommended_currency}, Forex converted 5000 THB → {forex_data.get('converted', {}).get('amount')} {recommended_currency}")
 
 
 if __name__ == '__main__':

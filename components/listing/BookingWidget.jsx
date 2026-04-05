@@ -224,6 +224,7 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
             'tabular-nums font-bold tracking-tight',
             highlightTotalForDiscount ? 'text-xl text-emerald-700 sm:text-2xl' : 'text-lg text-slate-900',
           )}
+          data-testid="booking-price-total"
         >
           {formatPrice(priceCalc.finalTotal, currency, exchangeRates)}
         </span>
@@ -277,7 +278,10 @@ export function DesktopBookingWidget({
               <div className="text-3xl font-bold text-slate-900">
                 {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates)}
               </div>
-              <p className="text-sm text-slate-500">
+              <p
+                className="text-sm text-slate-500"
+                data-testid="booking-per-period-label"
+              >
                 {getUIText(rentalPeriodMode === 'day' ? 'perBookingDay' : 'perNight', language)}
               </p>
             </div>

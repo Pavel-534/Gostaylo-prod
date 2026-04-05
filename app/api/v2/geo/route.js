@@ -1,31 +1,37 @@
 /**
  * GoStayLo - Geo Detection API
  * GET /api/v2/geo - Detect user's location and recommended currency
+ * Конвертация примера: единый курс из CurrencyService (`getDisplayRateMap`), без отдельного ForexService.
  */
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
-import { NextResponse } from 'next/server';
-import { GeoService } from '@/lib/services/geo.service';
-import { ForexService, SUPPORTED_CURRENCIES } from '@/lib/services/forex.service';
+import { NextResponse } from 'next/server'
+import { GeoService } from '@/lib/services/geo.service'
+import { getDisplayRateMap } from '@/lib/services/currency.service'
+import { formatPrice, getCurrencyDisplayMeta } from '@/lib/currency'
 
 export async function GET(request) {
   try {
-    // Try to get IP from various headers
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-               request.headers.get('x-real-ip') ||
-               request.headers.get('cf-connecting-ip');
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0] ||
+      request.headers.get('x-real-ip') ||
+      request.headers.get('cf-connecting-ip')
 
-    // Detect location
-    const geoResult = await GeoService.detectLocation(ip);
-    
-    // Get currency info
-    const recommendedCurrency = geoResult.recommendedCurrency;
-    const currencyInfo = SUPPORTED_CURRENCIES[recommendedCurrency] || SUPPORTED_CURRENCIES.USD;
+    const geoResult = await GeoService.detectLocation(ip)
 
-    // Get sample conversion
-    const sampleThb = 10000;
-    const conversion = await ForexService.convertFromThb(sampleThb, recommendedCurrency);
+    const recommendedCurrency = geoResult.recommendedCurrency
+    const currencyInfo = getCurrencyDisplayMeta(recommendedCurrency)
+
+    const rateMap = await getDisplayRateMap()
+    const sampleThb = 10000
+    const r = rateMap[recommendedCurrency]
+    const canConvert =
+      recommendedCurrency === 'THB' ||
+      (r != null && Number.isFinite(Number(r)) && Number(r) > 0)
+    const formatted = canConvert
+      ? formatPrice(sampleThb, recommendedCurrency, rateMap)
+      : formatPrice(sampleThb, 'THB', rateMap)
 
     return NextResponse.json({
       success: geoResult.success,
@@ -34,34 +40,35 @@ export async function GET(request) {
         countryCode: geoResult.countryCode,
         city: geoResult.city,
         region: geoResult.region,
-        timezone: geoResult.timezone
+        timezone: geoResult.timezone,
       },
       currency: {
         code: recommendedCurrency,
         symbol: currencyInfo.symbol,
         name: currencyInfo.name,
-        flag: currencyInfo.flag
+        flag: currencyInfo.flag,
       },
       sample: {
         thb: sampleThb,
-        converted: conversion.converted,
-        formatted: ForexService.formatPrice(conversion.converted, recommendedCurrency)
+        formatted,
       },
       cached: geoResult.cached || false,
-      timestamp: new Date().toISOString()
-    });
-
+      timestamp: new Date().toISOString(),
+    })
   } catch (error) {
-    console.error('[GEO API ERROR]', error);
-    return NextResponse.json({
-      success: false,
-      error: error.message,
-      currency: {
-        code: 'USD',
-        symbol: '$',
-        name: 'US Dollar',
-        flag: '🇺🇸'
-      }
-    }, { status: 200 }); // Still return 200 with fallback
+    console.error('[GEO API ERROR]', error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message,
+        currency: {
+          code: 'USD',
+          symbol: '$',
+          name: 'US Dollar',
+          flag: '🇺🇸',
+        },
+      },
+      { status: 200 },
+    )
   }
 }
