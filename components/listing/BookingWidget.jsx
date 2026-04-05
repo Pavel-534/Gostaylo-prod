@@ -8,10 +8,9 @@
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { Users, Star, ArrowRight, MessageCircle, Loader2, Sparkles } from 'lucide-react'
+import { Star, ArrowRight, MessageCircle, Loader2, Sparkles } from 'lucide-react'
 import { format } from 'date-fns'
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
@@ -20,6 +19,7 @@ import { isTransportListingCategory } from '@/lib/listing-category-slug'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import { formatRentalSpanLabel } from '@/lib/rental-period-labels'
 import { GostayloCalendar } from '@/components/gostaylo-calendar'
+import { GuestCountStepper } from '@/components/listing/GuestCountStepper'
 import { cn } from '@/lib/utils'
 
 function ChatPreviewBadge({ preview, hasUnread, language }) {
@@ -111,7 +111,7 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
         <div className="flex justify-between gap-2">
           <span
             className={cn(
-              seasonalIsDiscount ? 'font-medium text-emerald-600' : 'text-slate-600',
+              seasonalIsDiscount ? 'font-semibold !text-emerald-600' : 'text-slate-600',
             )}
           >
             {seasonalIsDiscount
@@ -121,7 +121,7 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
           <span
             className={cn(
               'font-semibold tabular-nums',
-              seasonalIsDiscount ? 'text-emerald-600' : 'text-amber-800',
+              seasonalIsDiscount ? '!text-emerald-600' : 'text-amber-800',
             )}
           >
             {seasonalAdj > 0 ? '+' : ''}
@@ -312,17 +312,12 @@ export function DesktopBookingWidget({
             <Label className="text-sm font-medium mb-2 block">
               {getUIText(rentalPeriodMode === 'day' ? 'numberOfSeats' : 'numberOfGuests', language)}
             </Label>
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-slate-400" />
-              <Input
-                type="number"
-                min="1"
-                max={maxGuests}
-                value={guests}
-                onChange={(e) => setGuests(parseInt(e.target.value, 10) || 1)}
-                className="h-12"
-              />
-            </div>
+            <GuestCountStepper
+              value={guests}
+              onChange={setGuests}
+              min={1}
+              max={maxGuests}
+            />
           </div>
 
           <PriceBreakdownBlock

@@ -305,14 +305,6 @@ export function GostayloHomeContent() {
   }, [searchQuery])
 
 
-  // Price conversion
-  const convertPrice = useCallback((priceThb) => {
-    if (!priceThb) return 0
-    if (currency === 'THB') return priceThb
-    const rate = exchangeRates[currency]
-    return rate ? priceThb / rate : priceThb
-  }, [currency, exchangeRates])
-
   const categoryIcons = { property: Home, vehicles: Bike, tours: Map, yachts: Anchor }
 
   // URL Bridge Search - 4 params: What, Where, When, Who
@@ -539,7 +531,13 @@ export function GostayloHomeContent() {
                           </div>
                         )}
                         <div className='mt-auto flex items-baseline justify-between'>
-                          <span className='text-lg font-bold text-teal-600'>{formatPrice(convertPrice(listing.pricing?.totalPrice || listing.basePriceThb), currency)}</span>
+                          <span className='text-lg font-bold text-teal-600'>
+                            {formatPrice(
+                              listing.pricing?.totalPrice || listing.basePriceThb,
+                              currency,
+                              exchangeRates,
+                            )}
+                          </span>
                           <span className='text-xs text-slate-400'>/{listing.pricing ? `${nights}н.` : (language === 'ru' ? 'ночь' : 'night')}</span>
                         </div>
                       </div>

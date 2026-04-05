@@ -5,7 +5,7 @@
 
 'use client'
 
-import { useMemo, useCallback } from 'react'
+import { useMemo } from 'react'
 import { differenceInDays } from 'date-fns'
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
@@ -50,21 +50,13 @@ export function CardPriceDisplay({
     return basePrice
   }, [pricing, basePrice])
   
-  // Price conversion
-  const convertPrice = useCallback((priceThb) => {
-    if (!priceThb) return 0
-    if (currency === 'THB') return priceThb
-    const rate = exchangeRates[currency]
-    return rate ? priceThb / rate : priceThb
-  }, [currency, exchangeRates])
-
   const dayUnit = isTransportListingCategory(categorySlug)
   const spanMode = dayUnit ? 'day' : 'night'
 
   return (
     <div className="flex items-baseline gap-1">
       <span className="text-lg font-semibold text-slate-900">
-        {formatPrice(convertPrice(displayPrice), currency, exchangeRates)}
+        {formatPrice(displayPrice, currency, exchangeRates)}
       </span>
       <span className="text-sm text-slate-500">
         {nights > 0

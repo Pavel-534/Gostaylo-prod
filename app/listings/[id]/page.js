@@ -38,7 +38,7 @@ import { useRecentlyViewed } from '@/lib/hooks/use-recently-viewed'
 import { format, differenceInDays } from 'date-fns'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
+import { GuestCountStepper } from '@/components/listing/GuestCountStepper'
 import { formatPrice } from '@/lib/currency'
 import { fetchExchangeRates } from '@/lib/client-data'
 import { cn } from '@/lib/utils'
@@ -160,10 +160,24 @@ function PremiumListingContent({ params }) {
   // Load data
   useEffect(() => {
     setLanguage(detectLanguage())
+    try {
+      const stored = localStorage.getItem('gostaylo_currency')
+      if (stored) setCurrency(stored)
+    } catch {
+      /* ignore */
+    }
     loadListing()
     loadReviews()
     fetchExchangeRates().then(setExchangeRates).catch(() => {})
   }, [params.id])
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (e?.detail) setCurrency(e.detail)
+    }
+    window.addEventListener('currency-change', handler)
+    return () => window.removeEventListener('currency-change', handler)
+  }, [])
 
   // Sync language when user switches in header
   useEffect(() => {
@@ -321,8 +335,6 @@ function PremiumListingContent({ params }) {
         metadata: listing.metadata || {},
         checkIn: format(dateRange.from, 'yyyy-MM-dd'),
         checkOut: format(dateRange.to, 'yyyy-MM-dd'),
-        currency,
-        exchangeRates,
       })
 
       const cr = Number(listing.commissionRate)
@@ -353,7 +365,7 @@ function PremiumListingContent({ params }) {
         finalTotal: calc.totalPrice + serviceFee,
       })
     }
-  }, [listing, dateRange, currency, exchangeRates, commissionHook.loading, commissionHook.effectiveRate])
+  }, [listing, dateRange, commissionHook.loading, commissionHook.effectiveRate])
   
   async function loadListing() {
     try {
@@ -763,13 +775,11 @@ function PremiumListingContent({ params }) {
                           language,
                         )}
                       </Label>
-                      <Input
-                        type="number"
-                        min="1"
-                        max={maxGuests}
+                      <GuestCountStepper
                         value={guests}
-                        onChange={(e) => setGuests(parseInt(e.target.value) || 1)}
-                        className="h-12"
+                        onChange={setGuests}
+                        min={1}
+                        max={maxGuests}
                       />
                     </div>
                     {hasDurationDiscountTiers && durationDiscountPercentActive > 0 && (

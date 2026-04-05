@@ -60,6 +60,7 @@ import {
   mapCoverUrlAfterMigration,
   patchPartnerListingCoverImage,
 } from '@/lib/partner/migrate-external-images-client'
+import { applyDurationDiscountField } from '@/lib/partner/duration-discount-helpers'
 import dynamic from 'next/dynamic'
 import { DayPicker } from 'react-day-picker'
 import { format } from 'date-fns'
@@ -445,21 +446,11 @@ export default function PremiumListingWizard() {
   function updateDurationDiscountPercent(field, raw) {
     setFormData((fd) => {
       const meta = fd.metadata && typeof fd.metadata === 'object' ? { ...fd.metadata } : {}
-      const prev =
-        meta.discounts && typeof meta.discounts === 'object' && !Array.isArray(meta.discounts)
-          ? { ...meta.discounts }
-          : {}
-      const trimmed = String(raw ?? '').replace(',', '.').trim()
-      if (trimmed === '') {
-        delete prev[field]
-      } else {
-        const n = parseFloat(trimmed)
-        if (!Number.isFinite(n) || n <= 0) delete prev[field]
-        else prev[field] = Math.min(100, Math.round(n))
+      const { metadata, warnOrder } = applyDurationDiscountField(meta, field, raw)
+      if (warnOrder) {
+        queueMicrotask(() => toast.warning(t('partnerDurationDiscountOrderWarning')))
       }
-      if (Object.keys(prev).length === 0) delete meta.discounts
-      else meta.discounts = prev
-      return { ...fd, metadata: meta }
+      return { ...fd, metadata }
     })
   }
 

@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { getListingLocationDisplayMode } from '@/lib/listing-location-privacy'
-import { convertFromThb, formatPrice } from '@/lib/currency'
+import { formatPrice } from '@/lib/currency'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -326,8 +326,7 @@ export default function InteractiveSearchMap({
   const priceForMarker = useCallback(
     (listing) => {
       const thb = parseFloat(listing.basePriceThb ?? listing.base_price_thb ?? 0) || 0
-      const converted = convertFromThb(thb, currency, exchangeRates)
-      return formatPrice(converted, currency)
+      return formatPrice(thb, currency, exchangeRates)
     },
     [currency, exchangeRates]
   )

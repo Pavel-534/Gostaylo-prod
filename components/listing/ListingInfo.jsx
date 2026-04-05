@@ -76,8 +76,9 @@ export function ListingInfo({ listing, language = 'en' }) {
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-slate-400" />
             <span>
-              {maxGuests}{' '}
-              {transportListing ? getUIText('seats', language) : getUIText('guests', language)}
+              {transportListing
+                ? `${maxGuests} ${getUIText('seats', language)}`
+                : getUIText('listingUpToGuests', language).replace(/\{\{n\}\}/g, String(maxGuests))}
             </span>
           </div>
           {!transportListing && area > 0 && (
