@@ -222,9 +222,11 @@ export default function UnifiedMessagesClient({ params }) {
     if (!selectedConv?.id || String(selectedConv.id) !== String(conversationId)) return
     if (tabSyncedForConvRef.current === conversationId) return
     tabSyncedForConvRef.current = conversationId
-    const isHost = String(selectedConv.partnerId) === String(user.id)
+    const uid = String(user.id)
+    const isHost =
+      String(selectedConv.partnerId) === uid || String(selectedConv.ownerId) === uid
     inbox.setInboxTab(isHost ? INBOX_TAB_HOSTING : INBOX_TAB_TRAVELING)
-  }, [conversationId, selectedConv?.id, selectedConv?.partnerId, user?.id])
+  }, [conversationId, selectedConv?.id, selectedConv?.partnerId, selectedConv?.ownerId, user?.id])
 
   useEffect(() => {
     if (!messages.length || safetyWarningShown) return
@@ -238,10 +240,13 @@ export default function UnifiedMessagesClient({ params }) {
   }, [messages, safetyWarningShown])
 
   // ── Роли в диалоге ──────────────────────────────────────────────────────────
-  const isHosting = useMemo(
-    () => !!(selectedConv?.id && user?.id && String(selectedConv.partnerId) === String(user.id)),
-    [selectedConv, user]
-  )
+  const isHosting = useMemo(() => {
+    if (!selectedConv?.id || !user?.id) return false
+    const uid = String(user.id)
+    return (
+      String(selectedConv.partnerId) === uid || String(selectedConv.ownerId) === uid
+    )
+  }, [selectedConv, user])
   const isTraveling = !isHosting
 
   const inboxListHref = '/messages/'

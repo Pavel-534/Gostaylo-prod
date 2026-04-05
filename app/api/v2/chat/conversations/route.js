@@ -95,7 +95,7 @@ async function enrichConversationRows(rows, viewerUserId) {
   if (listingIds.length) {
     const inList = listingIds.map((id) => encodeURIComponent(id)).join(',')
     const lr = await fetch(
-      `${SUPABASE_URL}/rest/v1/listings?id=in.(${inList})&select=id,title,images,district,base_price_thb,category_id,categories(slug)`,
+      `${SUPABASE_URL}/rest/v1/listings?id=in.(${inList})&select=id,title,images,district,base_price_thb,category_id`,
       { headers: hdr, cache: 'no-store' }
     )
     const list = await lr.json()
@@ -109,7 +109,7 @@ async function enrichConversationRows(rows, viewerUserId) {
   if (bookingIds.length) {
     const inB = bookingIds.map((id) => encodeURIComponent(id)).join(',')
     const br = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=in.(${inB})&select=id,check_in,check_out,status,guest_name,price_thb,guests_count`,
+      `${SUPABASE_URL}/rest/v1/bookings?id=in.(${inB})&select=id,check_in,check_out,status,guest_name`,
       { headers: hdr, cache: 'no-store' }
     )
     const bl = await br.json()

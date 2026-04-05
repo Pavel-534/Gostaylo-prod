@@ -83,7 +83,9 @@ export function ChatActionBar({
   if (isHosting) {
     if (bookingStatus === 'PENDING' && (onConfirm || onDecline)) {
       return (
-        <div className={`${barShell} flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4`}>
+        <div
+          className={`${barShell} flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:hidden`}
+        >
           <span className="text-sm font-semibold leading-snug text-slate-800 sm:min-w-0 sm:flex-1">
             {language === 'en' ? 'New booking request' : 'Новый запрос на бронирование'}
           </span>
@@ -138,7 +140,9 @@ export function ChatActionBar({
 
     if (bookingStatus === 'CONFIRMED' && typeof onOpenInvoice === 'function') {
       return (
-        <div className={`${barShell} flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4`}>
+        <div
+          className={`${barShell} flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:hidden`}
+        >
           <span className="text-sm font-semibold leading-snug text-slate-800 sm:min-w-0 sm:flex-1">
             {language === 'en'
               ? 'Booking confirmed — ready to invoice'

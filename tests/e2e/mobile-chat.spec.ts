@@ -77,7 +77,11 @@ test.describe('Mobile chat UI', () => {
     await openThread(page, baseURL)
 
     const cards = page.getByTestId('chat-milestone-card')
-    test.skip((await cards.count()) === 0, 'В треде нет системных карточек')
+    try {
+      await expect(cards.first()).toBeVisible({ timeout: 30_000 })
+    } catch {
+      test.skip(true, 'В треде нет системных карточек')
+    }
     const milestone = cards.first()
     await milestone.scrollIntoViewIfNeeded()
     const w = (await milestone.boundingBox())?.width ?? 0
@@ -128,6 +132,8 @@ test.describe('Mobile chat UI', () => {
 
     const confirmedCard = page.locator('[data-testid="chat-milestone-card"][data-system-key="booking_confirmed"]')
     await expect(confirmedCard.first()).toBeVisible({ timeout: 45_000 })
-    await expect(confirmedCard.getByText('Бронирование подтверждено', { exact: false })).toBeVisible()
+    await expect(
+      confirmedCard.first().getByText('Бронирование подтверждено', { exact: false }),
+    ).toBeVisible()
   })
 })
