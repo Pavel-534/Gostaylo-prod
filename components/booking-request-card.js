@@ -6,15 +6,16 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { useCommission } from '@/hooks/use-commission'
+import { resolveChatBookingBreakdown } from '@/lib/chat-booking-totals'
 
-export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingStatus }) {
+export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingStatus, listing = null }) {
   const [updating, setUpdating] = useState(false)
   const commissionApi = useCommission()
   const metadata = message.metadata || {}
-  const { checkIn, checkOut, serviceFee, totalPrice } = metadata
-  const days = Math.max(1, Number(metadata.days) || 1)
-  const basePrice = Number(metadata.basePrice) || 0
+  const { checkIn, checkOut } = metadata
   const currentStatus = bookingStatus || 'PENDING'
+  const categorySlug = listing?.category_slug || metadata.listing_category_slug || ''
+  const bd = resolveChatBookingBreakdown({ metadata, listingCategorySlug: categorySlug })
   const metaCr = Number(metadata.commissionRate)
   const commissionRate = Number.isFinite(metaCr) && metaCr >= 0
     ? metaCr
@@ -95,14 +96,17 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
             </span>
           </div>
           <div className="flex justify-between gap-3">
-            <span className="font-medium text-slate-600">Дней</span>
-            <span className="font-bold text-slate-900">{days}</span>
+            <span className="font-medium text-slate-600">
+              {bd.mode === 'tour' ? 'Гостей' : 'Дней'}
+            </span>
+            <span className="font-bold text-slate-900">{bd.quantity}</span>
           </div>
         </div>
 
         <PriceBreakdown
-          basePrice={days > 0 ? basePrice / days : basePrice}
-          days={days}
+          basePrice={bd.unitPriceThb}
+          days={bd.quantity}
+          quantityLabel={bd.quantityLabelRu}
           commissionRate={commissionRate}
           currency="THB"
           className="rounded-xl border border-slate-100 bg-slate-50/80 p-3 sm:p-4"

@@ -68,6 +68,8 @@ export function DealDetailsCard({ listing = null, booking = null, language = 'ru
   const amount =
     booking?.total_price_thb ??
     booking?.totalPriceThb ??
+    booking?.price_thb ??
+    booking?.priceThb ??
     booking?.total_amount ??
     booking?.totalAmount ??
     listing?.base_price_thb ??

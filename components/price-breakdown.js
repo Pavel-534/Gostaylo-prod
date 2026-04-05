@@ -14,6 +14,7 @@ import { getSeasonColor } from '@/lib/price-calculator'
  * @param {string} currency - Currency code
  * @param {string} className - Additional CSS classes
  * @param {boolean} showDetails - Show detailed breakdown (default: true)
+ * @param {string} [quantityLabel] — подпись к множителю (напр. «гостей» для туров вместо «дней»)
  */
 export function PriceBreakdown({ 
   priceData = null,
@@ -23,6 +24,7 @@ export function PriceBreakdown({
   currency = 'THB',
   className = '',
   showDetails = true,
+  quantityLabel = '',
 }) {
   const ratePct = Number(commissionRate)
   if (!Number.isFinite(ratePct) || ratePct < 0) {
@@ -38,12 +40,13 @@ export function PriceBreakdown({
     const totalBase = basePrice * days
     const serviceFee = totalBase * (ratePct / 100)
     const total = totalBase
+    const qtySuffix = quantityLabel ? quantityLabel : getDaysLabel(days)
 
     return (
       <div className={`space-y-3 ${className}`}>
         <div className="flex items-center justify-between text-sm">
           <span className="text-slate-600">
-            {formatPrice(basePrice, currency)} × {days} {getDaysLabel(days)}
+            {formatPrice(basePrice, currency)} × {days} {qtySuffix}
           </span>
           <span className="font-medium text-slate-900">
             {formatPrice(totalBase, currency)}

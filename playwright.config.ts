@@ -14,6 +14,7 @@ const AUTH = {
  * `npx playwright test` — все проекты; RBAC: `--project rbac-*`; чат: `--project chat-mobile-iphone --project chat-mobile-pixel --project chat-stress`
  *
  * BASE_URL / PLAYWRIGHT_BASE_URL — origin приложения (по умолчанию localhost:3000).
+ * Mobile-chat с авто-бронью: тот же **`E2E_FIXTURE_SECRET`** в `.env.local` (dev) и в shell при `npx playwright test`, иначе часть сценариев скипнется.
  */
 export default defineConfig({
   fullyParallel: true,

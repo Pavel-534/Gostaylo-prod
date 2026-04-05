@@ -127,6 +127,7 @@ function MessageItem({
             }}
             userRole="ADMIN"
             bookingStatus={booking?.status}
+            listing={listing}
           />
         </div>
       </div>

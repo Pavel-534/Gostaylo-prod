@@ -56,7 +56,13 @@ function normalizeListingRow(L) {
     }
   }
   if (!Array.isArray(images)) images = []
-  return { ...L, images }
+  let category_slug = ''
+  if (L.categories) {
+    const c = Array.isArray(L.categories) ? L.categories[0] : L.categories
+    if (c && c.slug) category_slug = String(c.slug)
+  }
+  const { categories: _c, ...rest } = L
+  return { ...rest, images, category_slug }
 }
 
 function mapConversationRow(c) {
@@ -89,7 +95,7 @@ async function enrichConversationRows(rows, viewerUserId) {
   if (listingIds.length) {
     const inList = listingIds.map((id) => encodeURIComponent(id)).join(',')
     const lr = await fetch(
-      `${SUPABASE_URL}/rest/v1/listings?id=in.(${inList})&select=id,title,images,district,base_price_thb,category_id`,
+      `${SUPABASE_URL}/rest/v1/listings?id=in.(${inList})&select=id,title,images,district,base_price_thb,category_id,categories(slug)`,
       { headers: hdr, cache: 'no-store' }
     )
     const list = await lr.json()
@@ -103,7 +109,7 @@ async function enrichConversationRows(rows, viewerUserId) {
   if (bookingIds.length) {
     const inB = bookingIds.map((id) => encodeURIComponent(id)).join(',')
     const br = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=in.(${inB})&select=id,check_in,check_out,status,guest_name`,
+      `${SUPABASE_URL}/rest/v1/bookings?id=in.(${inB})&select=id,check_in,check_out,status,guest_name,price_thb,guests_count`,
       { headers: hdr, cache: 'no-store' }
     )
     const bl = await br.json()
