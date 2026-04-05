@@ -1,7 +1,9 @@
 /**
  * GoStayLo - Exchange Rates API (v2)
- * GET /api/v2/exchange-rates - Get currency rates from Supabase
- * POST /api/v2/exchange-rates - Add/update currency rate (Admin only)
+ * GET /api/v2/exchange-rates — `rateMap`: THB за 1 единицу валюты.
+ * Сервер: сначала Supabase `exchange_rates`; ExchangeRate-API не чаще 1× / 6 ч,
+ * после ответа — upsert в БД (`getDisplayRateMap`, `EXCHANGE_RATES_DB_TTL_MS`).
+ * POST /api/v2/exchange-rates — ручная правка (admin).
  */
 
 import { NextResponse } from 'next/server';

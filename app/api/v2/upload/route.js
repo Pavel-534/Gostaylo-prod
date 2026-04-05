@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-const ALLOWED_BUCKETS = ['verification_documents', 'listing-images', 'chat-attachments', 'review-images']
+const ALLOWED_BUCKETS = ['verification_documents', 'listing-images', 'chat-attachments', 'review-images', 'avatars']
 
 function publicUrlToProxyPath(publicUrl, supabaseProjectUrl) {
   if (!publicUrl || !supabaseProjectUrl) return publicUrl
@@ -86,6 +86,7 @@ export async function POST(request) {
     
     const isChatBucket = bucket === 'chat-attachments'
     const isReviewBucket = bucket === 'review-images'
+    const isAvatarBucket = bucket === 'avatars'
     const chatImageAndDocTypes = [
       'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf',
     ]
@@ -97,7 +98,7 @@ export async function POST(request) {
     const allowed =
       isChatBucket
         ? (chatImageAndDocTypes.includes(type) || looksLikeAudio)
-        : isReviewBucket
+        : isReviewBucket || isAvatarBucket
           ? reviewImageTypes.includes(type)
           : ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(type)
     if (!allowed) {
@@ -106,8 +107,10 @@ export async function POST(request) {
           success: false,
           error: isChatBucket
             ? 'Для чата: изображения, PDF или голосовые (audio/*)'
-            : isReviewBucket
-              ? 'Для отзыва: только изображения JPG, PNG, WebP или GIF'
+            : isReviewBucket || isAvatarBucket
+              ? isAvatarBucket
+                ? 'Для аватара: только JPG, PNG, WebP или GIF'
+                : 'Для отзыва: только изображения JPG, PNG, WebP или GIF'
               : 'Неподдерживаемый формат файла. Используйте JPG, PNG, WebP или PDF',
         },
         { status: 400 }

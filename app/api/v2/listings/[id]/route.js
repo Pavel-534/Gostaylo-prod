@@ -13,6 +13,8 @@ import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings';
 import PricingService from '@/lib/services/pricing.service';
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url';
+import { getSessionPayload } from '@/lib/services/session-service';
+import { isStaffRole } from '@/lib/services/chat/access';
 
 const STORAGE_BUCKETS = ['listing-images', 'listings'];
 
@@ -61,7 +63,7 @@ export async function GET(request, context) {
       .select(`
         *,
         categories (id, name, slug, icon),
-        owner:profiles!owner_id (id, first_name, last_name, email)
+        owner:profiles!owner_id (id, first_name, last_name, is_verified, verification_status, avatar, email, phone)
       `)
       .eq('id', id)
       .single();
@@ -127,6 +129,13 @@ export async function GET(request, context) {
       reviewsCountPromise,
       commissionRatePromise
     ])
+
+    const session = await getSessionPayload()
+    const viewerId = session?.userId ? String(session.userId) : null
+    const viewerRole = String(session?.role || '').toUpperCase()
+    const canSeeOwnerPii =
+      viewerId &&
+      (viewerId === String(listing.owner_id) || isStaffRole(viewerRole))
     
     // Transform for frontend
     const transformed = {
@@ -156,7 +165,22 @@ export async function GET(request, context) {
       rating: parseFloat(listing.rating) || 0,
       reviewsCount: reviewsCount || 0,
       createdAt: listing.created_at,
-      owner: listing.owner,
+      owner: listing.owner
+        ? {
+            id: listing.owner.id,
+            first_name: listing.owner.first_name,
+            last_name: listing.owner.last_name,
+            is_verified: listing.owner.is_verified,
+            verification_status: listing.owner.verification_status,
+            avatar: listing.owner.avatar ? toPublicImageUrl(listing.owner.avatar) : null,
+            ...(canSeeOwnerPii
+              ? {
+                  email: listing.owner.email ?? null,
+                  phone: listing.owner.phone ?? null,
+                }
+              : {}),
+          }
+        : null,
       seasonalPrices: (seasonalPrices || [])?.map(sp => ({
         id: sp.id,
         startDate: sp.start_date,

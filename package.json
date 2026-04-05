@@ -12,7 +12,8 @@
         "start": "next start",
         "vercel-build": "next build",
         "lint": "eslint . --max-warnings 50",
-        "lint:fix": "eslint . --fix"
+        "lint:fix": "eslint . --fix",
+        "verify:currency": "node scripts/verify-format-price.mjs"
     },
     "dependencies": {
         "@hookform/resolvers": "^5.1.1",

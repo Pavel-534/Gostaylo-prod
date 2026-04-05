@@ -41,7 +41,8 @@ import {
   ExternalLink
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { toPublicImageUrl } from '@/lib/public-image-url'
 import { Badge } from '@/components/ui/badge'
 import { Toaster } from 'sonner'
 // Sidebar navigation items with universal business icons
@@ -126,6 +127,42 @@ export default function PartnerLayout({ children }) {
     }
   }, [pathname])
 
+  useEffect(() => {
+    const syncUserFromSession = async () => {
+      try {
+        const res = await fetch('/api/v2/auth/me', { credentials: 'include' })
+        const data = await res.json()
+        if (res.ok && data.success && data.user) {
+          const u = data.user
+          const merged = {
+            id: u.id,
+            email: u.email,
+            role: u.role,
+            name: u.name,
+            first_name: u.first_name,
+            last_name: u.last_name,
+            phone: u.phone,
+            avatar: u.avatar,
+            referral_code: u.referral_code,
+            is_verified: u.is_verified,
+            telegram_id: u.telegram_id,
+            telegram_username: u.telegram_username,
+          }
+          localStorage.setItem('gostaylo_user', JSON.stringify(merged))
+          setUser((prev) => (prev?.isImpersonated ? prev : merged))
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    window.addEventListener('gostaylo-refresh-session', syncUserFromSession)
+    window.addEventListener('auth-change', syncUserFromSession)
+    return () => {
+      window.removeEventListener('gostaylo-refresh-session', syncUserFromSession)
+      window.removeEventListener('auth-change', syncUserFromSession)
+    }
+  }, [])
+
   // Partner access from DB via /auth/me (fixes stale localStorage after role change); keep impersonation path
   useEffect(() => {
     let cancelled = false
@@ -169,9 +206,11 @@ export default function PartnerLayout({ children }) {
             first_name: u.first_name,
             last_name: u.last_name,
             phone: u.phone,
+            avatar: u.avatar,
             referral_code: u.referral_code,
             is_verified: u.is_verified,
             telegram_id: u.telegram_id,
+            telegram_username: u.telegram_username,
           }
           localStorage.setItem('gostaylo_user', JSON.stringify(merged))
           setUser(merged)
@@ -429,7 +468,10 @@ export default function PartnerLayout({ children }) {
           {/* User Info */}
           <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
             <div className="flex items-center gap-3">
-              <Avatar className="h-9 w-9">
+              <Avatar className="h-9 w-9 border border-slate-200">
+                {user?.avatar ? (
+                  <AvatarImage src={toPublicImageUrl(user.avatar)} alt="" className="object-cover" />
+                ) : null}
                 <AvatarFallback className="bg-teal-100 text-teal-700 text-sm font-semibold">
                   {user?.name?.[0]?.toUpperCase() || 'P'}
                 </AvatarFallback>

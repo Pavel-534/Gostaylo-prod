@@ -23,7 +23,9 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
+import { toPublicImageUrl } from '@/lib/public-image-url'
 import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
 import { useChatContext } from '@/lib/context/ChatContext'
 
@@ -164,6 +166,23 @@ export default function RenterLayout({ children }) {
     checkAuth()
   }, [])
 
+  useEffect(() => {
+    const onSync = () => {
+      try {
+        const raw = localStorage.getItem('gostaylo_user')
+        if (raw) setUser(JSON.parse(raw))
+      } catch {
+        /* ignore */
+      }
+    }
+    window.addEventListener('gostaylo-refresh-session', onSync)
+    window.addEventListener('auth-change', onSync)
+    return () => {
+      window.removeEventListener('gostaylo-refresh-session', onSync)
+      window.removeEventListener('auth-change', onSync)
+    }
+  }, [])
+
   // Handle logout
   const handleLogout = () => {
     localStorage.removeItem('gostaylo_user')
@@ -271,6 +290,14 @@ export default function RenterLayout({ children }) {
 
               {/* User Menu */}
               <div className="flex items-center gap-3">
+                <Avatar className="h-9 w-9 border border-slate-200 hidden sm:flex">
+                  {user?.avatar ? (
+                    <AvatarImage src={toPublicImageUrl(user.avatar)} alt="" className="object-cover" />
+                  ) : null}
+                  <AvatarFallback className="bg-teal-100 text-teal-800 text-sm font-semibold">
+                    {(user?.first_name?.[0] || user?.name?.[0] || user?.email?.[0] || 'G').toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 {/* User Info */}
                 <div className="hidden lg:block text-right">
                   <p className="text-sm font-medium text-slate-900">

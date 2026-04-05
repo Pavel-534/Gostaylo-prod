@@ -20,43 +20,40 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { 
-  User, Mail, Phone, Calendar, MapPin,
+  Mail, Phone, Calendar,
   Home, Heart, Settings, LogOut,
   Send, Shield, TrendingUp, Clock, Zap,
-  CheckCircle, XCircle, Loader2, AlertCircle,
+  CheckCircle, XCircle, Loader2,
   Sparkles
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { ru, enUS } from 'date-fns/locale'
 import { useI18n } from '@/contexts/i18n-context'
+import { useAuth } from '@/contexts/auth-context'
 import { getUIText } from '@/lib/translations'
 import { telegramAccountLinkUrl } from '@/lib/telegram-bot-public'
+import { toPublicImageUrl } from '@/lib/public-image-url'
+import { signOut } from '@/lib/auth'
 
-// Profile completion calculation
+/** Profile completion: only real fields (25% each) */
 function calculateProfileCompletion(user) {
   if (!user) return 0
-  
   let score = 0
-  const maxScore = 100
-  
-  // Basic info (40%)
-  if (user.first_name || user.name) score += 15
-  if (user.email) score += 10
-  if (user.phone) score += 15
-  
-  // Advanced (30%)
-  if (user.telegram_id || user.telegram_username) score += 20
-  if (user.avatar) score += 10
-  
-  // Engagement (30%)
-  // Will be calculated based on bookings, reviews etc in future
-  score += 30
-  
-  return Math.min(score, maxScore)
+  if (user.email && String(user.email).trim()) score += 25
+  if (user.phone && String(user.phone).trim()) score += 25
+  if (user.telegram_id || user.telegram_username) score += 25
+  if (user.avatar && String(user.avatar).trim()) score += 25
+  return score
+}
+
+function roleUiKey(role) {
+  const r = String(role || 'USER').toUpperCase()
+  const map = { RENTER: 'uiRoleRENTER', PARTNER: 'uiRolePARTNER', MODERATOR: 'uiRoleMODERATOR', ADMIN: 'uiRoleADMIN', USER: 'uiRoleUSER' }
+  return map[r] || 'uiRoleUSER'
 }
 
 // Partner Application Form Modal
@@ -117,7 +114,7 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
                 required
                 value={formData.experience}
                 onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
-                placeholder="e.g., 3 years of hosting, 5 properties on Airbnb..."
+                placeholder={getUIText('partnerAppExperiencePlaceholder', language)}
                 rows={3}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
               />
@@ -125,26 +122,26 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
             
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Social Media / Telegram
+                {getUIText('partnerAppSocialLabel', language)}
               </label>
               <input
                 type="text"
                 value={formData.socialLink}
                 onChange={(e) => setFormData({ ...formData, socialLink: e.target.value })}
-                placeholder="@your_telegram or social link"
+                placeholder={language === 'ru' ? '@username или ссылка' : '@username or link'}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
               />
             </div>
             
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                Portfolio / Listings
+                {getUIText('partnerAppPortfolioLabel', language)}
               </label>
               <input
                 type="url"
                 value={formData.portfolio}
                 onChange={(e) => setFormData({ ...formData, portfolio: e.target.value })}
-                placeholder="https://airbnb.com/users/..."
+                placeholder="https://…"
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
               />
             </div>
@@ -187,6 +184,7 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
 export default function RenterProfilePage() {
   const router = useRouter()
   const { language } = useI18n()
+  const { refreshUserFromServer } = useAuth()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [applicationStatus, setApplicationStatus] = useState(null)
@@ -198,27 +196,56 @@ export default function RenterProfilePage() {
   const [submittingApplication, setSubmittingApplication] = useState(false)
 
   const dateLocale = language === 'ru' ? ru : enUS
-  
-  // Get user from localStorage
-  useEffect(() => {
-    const storedUser = localStorage.getItem('gostaylo_user')
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser)
-        setUser(parsed)
-        setTelegramLinked(!!(parsed.telegram_id || parsed.telegram_username))
-      } catch (e) {
-        console.error('[PROFILE] Failed to parse user', e)
-      }
+
+  const applyUser = (u) => {
+    if (!u) {
+      setUser(null)
+      setTelegramLinked(false)
+      return
     }
-    setLoading(false)
-  }, [])
+    setUser(u)
+    setTelegramLinked(!!(u.telegram_id || u.telegram_username))
+  }
+
+  // Sync profile from Supabase via session (same source as /api/v2/auth/me)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      setLoading(true)
+      try {
+        const u = await refreshUserFromServer()
+        if (!cancelled) applyUser(u)
+      } catch (e) {
+        console.error('[PROFILE] refresh failed', e)
+        if (!cancelled) applyUser(null)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [refreshUserFromServer])
+
+  useEffect(() => {
+    const sync = () => {
+      refreshUserFromServer().then((u) => applyUser(u))
+    }
+    window.addEventListener('gostaylo-refresh-session', sync)
+    window.addEventListener('auth-change', sync)
+    return () => {
+      window.removeEventListener('gostaylo-refresh-session', sync)
+      window.removeEventListener('auth-change', sync)
+    }
+  }, [refreshUserFromServer])
   
   // Fetch application status
   useEffect(() => {
     if (user && user.role !== 'PARTNER') {
+      setLoadingApplication(true)
       fetchApplicationStatus()
     } else {
+      setApplicationStatus(null)
       setLoadingApplication(false)
     }
   }, [user])
@@ -238,6 +265,8 @@ export default function RenterProfilePage() {
           created_at: data.appliedAt,
           reviewed_at: data.reviewedAt
         })
+      } else {
+        setApplicationStatus(null)
       }
     } catch (error) {
       console.error('[PROFILE] Failed to fetch application status', error)
@@ -265,23 +294,22 @@ export default function RenterProfilePage() {
       const data = await res.json()
       
       if (data.success) {
-        toast.success('Application submitted! We\'ll review it within 24h.')
+        toast.success(getUIText('renterToastApplicationSubmitted', language))
         setShowApplicationModal(false)
         fetchApplicationStatus() // Refresh status
       } else {
-        toast.error(data.error || 'Failed to submit application')
+        toast.error(data.error || getUIText('renterToastApplicationFailed', language))
       }
     } catch (error) {
       console.error('[APPLICATION] Submit error', error)
-      toast.error('Failed to submit application')
+      toast.error(getUIText('renterToastApplicationSubmitError', language))
     } finally {
       setSubmittingApplication(false)
     }
   }
   
-  // Handle logout
-  function handleLogout() {
-    localStorage.removeItem('gostaylo_user')
+  async function handleLogout() {
+    await signOut()
     router.push('/')
   }
   
@@ -299,13 +327,20 @@ export default function RenterProfilePage() {
   if (!user) {
     return (
       <div className="text-center py-12">
-        <p className="text-slate-600 mb-4">Please log in to view your profile</p>
+        <p className="text-slate-600 mb-4">{getUIText('renterProfileLoginPrompt', language)}</p>
         <Button asChild className="bg-teal-600 hover:bg-teal-700">
-          <Link href="/profile?login=true">Log In</Link>
+          <Link href="/profile?login=true">{getUIText('renterProfileLogIn', language)}</Link>
         </Button>
       </div>
     )
   }
+
+  const displayName =
+    [user.first_name, user.last_name].filter(Boolean).join(' ').trim() ||
+    user.name ||
+    (language === 'ru' ? 'Гость' : 'Guest')
+  const initialLetter =
+    (user.first_name?.charAt(0) || user.last_name?.charAt(0) || user.name?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()
   
   return (
     <div className="space-y-6">
@@ -314,9 +349,16 @@ export default function RenterProfilePage() {
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             {/* Avatar */}
-            <Avatar className="w-24 h-24">
+            <Avatar className="w-24 h-24 border border-slate-200">
+              {user.avatar ? (
+                <AvatarImage
+                  src={toPublicImageUrl(user.avatar)}
+                  alt=""
+                  className="object-cover"
+                />
+              ) : null}
               <AvatarFallback className="bg-gradient-to-br from-teal-500 to-teal-600 text-white text-3xl font-bold">
-                {user.name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U'}
+                {initialLetter}
               </AvatarFallback>
             </Avatar>
             
@@ -324,34 +366,37 @@ export default function RenterProfilePage() {
             <div className="flex-1 text-center sm:text-left">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
                 <h1 className="text-2xl font-bold text-slate-900">
-                  {user.name || user.first_name || 'Guest User'}
+                  {displayName}
                 </h1>
                 <Badge className={
                   user.role === 'PARTNER' 
                     ? 'bg-teal-100 text-teal-800 border-teal-300'
                     : 'bg-slate-100 text-slate-800 border-slate-300'
                 }>
-                  {user.role}
+                  {getUIText(roleUiKey(user.role), language)}
                 </Badge>
               </div>
               
               <div className="space-y-1 text-sm text-slate-600">
                 <div className="flex items-center justify-center sm:justify-start gap-2">
-                  <Mail className="h-4 w-4" />
+                  <Mail className="h-4 w-4 shrink-0" />
                   {user.email}
                 </div>
                 {user.phone && (
                   <div className="flex items-center justify-center sm:justify-start gap-2">
-                    <Phone className="h-4 w-4" />
+                    <Phone className="h-4 w-4 shrink-0" />
                     {user.phone}
                   </div>
                 )}
                 {user.created_at && (
                   <div className="flex items-center justify-center sm:justify-start gap-2">
-                    <Calendar className="h-4 w-4" />
+                    <Calendar className="h-4 w-4 shrink-0" />
                     {getUIText('memberSince', language)} {format(new Date(user.created_at), 'MMM yyyy', { locale: dateLocale })}
                   </div>
                 )}
+                <p className="text-xs text-slate-500 pt-1 max-w-md mx-auto sm:mx-0">
+                  {getUIText('renterProfilePrivacyHint', language)}
+                </p>
               </div>
             </div>
           </div>
@@ -438,8 +483,8 @@ export default function RenterProfilePage() {
                       <>
                         <Clock className="h-6 w-6 text-amber-600" />
                         <div>
-                          <p className="font-semibold text-amber-900">Application Under Review</p>
-                          <p className="text-sm text-amber-700">We'll respond within 24 hours</p>
+                          <p className="font-semibold text-amber-900">{getUIText('renterApplicationPendingTitle', language)}</p>
+                          <p className="text-sm text-amber-700">{getUIText('renterApplicationPendingDesc', language)}</p>
                         </div>
                       </>
                     )}
@@ -447,8 +492,8 @@ export default function RenterProfilePage() {
                       <>
                         <CheckCircle className="h-6 w-6 text-green-600" />
                         <div>
-                          <p className="font-semibold text-green-900">Approved!</p>
-                          <p className="text-sm text-green-700">Refresh to access Partner Portal</p>
+                          <p className="font-semibold text-green-900">{getUIText('renterApplicationApprovedTitle', language)}</p>
+                          <p className="text-sm text-green-700">{getUIText('renterApplicationApprovedDesc', language)}</p>
                         </div>
                       </>
                     )}
@@ -467,7 +512,7 @@ export default function RenterProfilePage() {
                   
                   {applicationStatus.status === 'APPROVED' && (
                     <Button onClick={() => window.location.reload()} className="bg-green-600 hover:bg-green-700">
-                      Refresh
+                      {getUIText('renterApplicationRefresh', language)}
                     </Button>
                   )}
                   
@@ -504,9 +549,11 @@ export default function RenterProfilePage() {
             <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
               <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0" />
               <div>
-                <p className="font-semibold text-green-900">Telegram Connected!</p>
+                <p className="font-semibold text-green-900">{getUIText('renterTelegramConnectedTitle', language)}</p>
                 <p className="text-sm text-green-700">
-                  {user.telegram_username ? `@${user.telegram_username.replace('@', '')}` : 'Linked'}
+                  {user.telegram_username
+                    ? `@${String(user.telegram_username).replace(/^@/, '')}`
+                    : getUIText('renterTelegramConnectedNoUsername', language)}
                 </p>
               </div>
             </div>
@@ -564,7 +611,7 @@ export default function RenterProfilePage() {
               variant="outline"
               className="flex flex-col h-auto py-4"
             >
-              <Link href="/renter/profile">
+              <Link href="/renter/settings">
                 <Settings className="h-6 w-6 mb-2" />
                 <span className="text-sm">{getUIText('settings', language)}</span>
               </Link>

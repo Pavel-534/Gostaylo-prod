@@ -18,7 +18,8 @@ import {
   Briefcase, Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { toPublicImageUrl } from '@/lib/public-image-url';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -139,6 +140,13 @@ export function UniversalHeader() {
                 <DropdownMenuTrigger asChild>
                   <Button variant='ghost' size='sm' className='flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-1.5 sm:px-2 rounded-full hover:bg-slate-100 border border-slate-200'>
                     <Avatar className='h-6 w-6 sm:h-7 sm:w-7'>
+                      {user.avatar ? (
+                        <AvatarImage
+                          src={toPublicImageUrl(user.avatar)}
+                          alt=''
+                          className='object-cover'
+                        />
+                      ) : null}
                       <AvatarFallback className={`text-xs font-semibold text-white ${
                         isAdmin ? 'bg-indigo-600' : isPartner ? 'bg-teal-600' : 'bg-slate-500'
                       }`}>

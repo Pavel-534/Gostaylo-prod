@@ -550,6 +550,9 @@ enum Currency {
   RUB
   USD
   USDT
+  EUR
+  GBP
+  CNY
 }
 
 enum ListingStatus {

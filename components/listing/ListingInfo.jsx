@@ -5,9 +5,13 @@
 
 'use client'
 
+import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { MapPin, Star, Bed, Bath, Users, Square, User } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { MapPin, Star, Bed, Bath, Users, Square, ShieldCheck } from 'lucide-react'
+import { toPublicImageUrl } from '@/lib/public-image-url'
 import { getUIText, getListingText } from '@/lib/translations'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import { isTransportListingCategory } from '@/lib/listing-category-slug'
@@ -113,19 +117,41 @@ export function ListingInfo({ listing, language = 'en' }) {
             </h2>
             <Card className="border-slate-200">
               <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center">
-                    <User className="h-8 w-8 text-teal-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-lg">
-                      {listing.owner.first_name} {listing.owner.last_name}
+                <Link
+                  href={listing.owner?.id ? `/u/${listing.owner.id}` : '#'}
+                  className={`group flex items-center gap-4 rounded-xl -m-2 p-2 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
+                    listing.owner?.id ? 'hover:bg-slate-50' : 'pointer-events-none opacity-80'
+                  }`}
+                  aria-label={getUIText('publicProfileOpenHostHint', language)}
+                >
+                  <Avatar className="h-16 w-16 border border-slate-200">
+                    {listing.owner.avatar ? (
+                      <AvatarImage
+                        src={toPublicImageUrl(listing.owner.avatar)}
+                        alt=""
+                        className="object-cover"
+                      />
+                    ) : null}
+                    <AvatarFallback className="bg-teal-100 text-teal-700 text-lg font-semibold">
+                      {(listing.owner.first_name?.charAt(0) || listing.owner.last_name?.charAt(0) || '?').toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1">
+                    <h3 className="font-medium text-lg text-slate-900 group-hover:text-teal-800">
+                      {[listing.owner.first_name, listing.owner.last_name].filter(Boolean).join(' ').trim() ||
+                        getUIText('hostNamePlaceholder', language)}
                     </h3>
                     <p className="text-sm text-slate-500">
                       {getUIText('propertyOwner', language)}
                     </p>
+                    {listing.owner.is_verified ? (
+                      <Badge variant="secondary" className="gap-1 bg-teal-50 text-teal-800 border-teal-200 font-normal">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        {getUIText('hostIdentityVerified', language)}
+                      </Badge>
+                    ) : null}
                   </div>
-                </div>
+                </Link>
               </CardContent>
             </Card>
           </div>

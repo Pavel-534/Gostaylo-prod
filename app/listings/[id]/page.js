@@ -7,8 +7,8 @@
  * Clean modular architecture with extracted components
  */
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, Loader2, Heart } from 'lucide-react'
@@ -100,7 +100,9 @@ const ListingMap = dynamic(
 
 function PremiumListingContent({ params }) {
   const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
+  const urlBookingSyncEnabledRef = useRef(false)
   const { user, openLoginModal } = useAuth()
   const { addToRecent } = useRecentlyViewed()
   
@@ -156,6 +158,52 @@ function PremiumListingContent({ params }) {
     
     if (guestsParam) setGuests(parseInt(guestsParam) || 2)
   }, [searchParams])
+
+  // Allow state→URL sync only after URL query is reflected in state (avoid clobbering deep links on first paint).
+  useEffect(() => {
+    const cin = searchParams.get('checkIn')
+    const cout = searchParams.get('checkOut')
+    if (!cin || !cout) {
+      urlBookingSyncEnabledRef.current = true
+      return
+    }
+    const from = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : ''
+    const to = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : ''
+    if (from === cin && to === cout) {
+      urlBookingSyncEnabledRef.current = true
+      return
+    }
+    try {
+      const fromD = new Date(`${cin}T00:00:00`)
+      const toD = new Date(`${cout}T00:00:00`)
+      if (fromD < new Date() || !(toD > fromD)) {
+        urlBookingSyncEnabledRef.current = true
+      }
+    } catch {
+      urlBookingSyncEnabledRef.current = true
+    }
+  }, [searchParams, dateRange])
+
+  // Keep shareable URL in sync with calendar + guest stepper (BookingWidget / mobile card).
+  useEffect(() => {
+    if (!listing?.id || !pathname || !urlBookingSyncEnabledRef.current) return
+    const wantIn = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : ''
+    const wantOut = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : ''
+    const wantG = String(Math.max(1, Number(guests) || 1))
+    const curIn = searchParams.get('checkIn') || ''
+    const curOut = searchParams.get('checkOut') || ''
+    const curG = searchParams.get('guests') || ''
+    if (wantIn === curIn && wantOut === curOut && wantG === curG) return
+
+    const p = new URLSearchParams()
+    if (wantIn && wantOut) {
+      p.set('checkIn', wantIn)
+      p.set('checkOut', wantOut)
+    }
+    p.set('guests', wantG)
+    const qs = p.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }, [dateRange, guests, listing?.id, pathname, router, searchParams])
   
   // Load data
   useEffect(() => {

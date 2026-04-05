@@ -110,6 +110,7 @@ export async function POST(request) {
   await supabase.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('id', user.id);
 
   const displayLast = stripLegacyModeratorMarker(user.last_name);
+  const rawAvatar = user.avatar && String(user.avatar).trim();
 
   const token = jwt.sign(
     {
@@ -134,6 +135,7 @@ export async function POST(request) {
       lastName: displayLast,
       name: `${user.first_name || ''} ${displayLast}`.trim(),
       phone: user.phone || null,
+      avatar: rawAvatar || null,
       referralCode: user.referral_code,
       isVerified: user.is_verified,
       preferredCurrency: user.preferred_currency,

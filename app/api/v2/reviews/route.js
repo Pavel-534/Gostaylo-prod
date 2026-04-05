@@ -29,12 +29,13 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const listingId = searchParams.get('listing_id');
     const partnerId = searchParams.get('partner_id');
+    const reviewerUserId = searchParams.get('reviewer_id');
 
     let query = supabaseAdmin
       .from('reviews')
       .select(`
         *,
-        profiles:user_id (first_name, last_name, email),
+        profiles:user_id (first_name, last_name, is_verified),
         bookings:booking_id (id, check_in, check_out)
       `)
       .order('created_at', { ascending: false });
@@ -44,16 +45,27 @@ export async function GET(request) {
     }
     
     if (partnerId) {
-      // Get all listings for this partner first
       const { data: listings } = await supabaseAdmin
         .from('listings')
         .select('id')
         .eq('owner_id', partnerId);
-      
-      if (listings?.length) {
-        const listingIds = listings.map(l => l.id);
-        query = query.in('listing_id', listingIds);
+
+      if (!listings?.length) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            reviews: [],
+            stats: { total: 0, averageRating: 0 },
+          },
+        });
       }
+
+      const listingIds = listings.map((l) => l.id);
+      query = query.in('listing_id', listingIds);
+    }
+
+    if (reviewerUserId) {
+      query = query.eq('user_id', reviewerUserId);
     }
 
     const { data: reviews, error } = await query;
