@@ -10,7 +10,7 @@
 
 ## Перед задачей (команда: человек + AI)
 
-Перед выполнением **любой** нетривиальной задачи сверяйся с этим документом. Если в коде встречается или предлагается хардкод вроде **15%** комиссии или **35.5** для курса — **не добавляй и не размножай**: бери данные из **`system_settings`**, **`exchange_rates`**, **`profiles`**, полей **бронирования** (снимок на момент создания), **`JWT_SECRET` / FX-ключей из env** и существующих хелперов (`PricingService`, `currency-helper`, `getJwtSecret` и т.д.). Исключение — один согласованный last-resort fallback в общем модуле (см. Golden rule §2).
+Перед выполнением **любой** нетривиальной задачи сверяйся с этим документом. Если в коде встречается или предлагается хардкод вроде **15%** комиссии или **35.5** для курса — **не добавляй и не размножай**: бери данные из **`system_settings`**, **`exchange_rates`**, **`profiles`**, полей **бронирования** (снимок на момент создания), **`JWT_SECRET` / FX-ключей из env** и существующих хелперов (`PricingService`, **`lib/services/currency.service.js`**, `getJwtSecret` и т.д.). Числовые аварии только через **`lib/services/currency-last-resort.js`** + env / опциональное поле `general.fallbackThbPerUsdt` (см. Golden rule §2).
 
 ---
 
@@ -28,7 +28,7 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 | **ORM / schema** | **Prisma `schema.prisma`** as **documentation and typing reference** for tables/enums — **not** the primary runtime data layer |
 | **Realtime / storage** | Supabase (where configured): Realtime, Storage |
 | **Email** | Resend (when `RESEND_API_KEY` is set) |
-| **FX (partial)** | ExchangeRate-API v6 (via env keys), `exchange_rates` table, helpers in `lib/services/currency-helper.js` |
+| **FX / комиссия (канон)** | **`lib/services/currency.service.js`** (`getDisplayRateMap`, `resolveThbPerUsdt`, `resolveDefaultCommissionPercent`, `getEffectiveRate`, `resolveChatInvoiceRateMultiplier` для чат-счетов). **`lib/services/currency-helper.js`** — тонкий re-export (deprecated). **`lib/services/currency-last-resort.js`** — env / `general.fallbackThbPerUsdt`, **`CHAT_INVOICE_RATE_MULTIPLIER`**, платформенный дефолт множителя чата — без литералов курсов/комиссий в `currency.service`. Таблица **`exchange_rates`**, ExchangeRate-API v6. |
 | **Deploy** | Typical: Vercel + Supabase project |
 
 ---
@@ -43,9 +43,10 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 
 ### 2. No hardcoded commissions or exchange rates
 
-- **Commissions** must come from **`profiles.custom_commission_rate`**, **`system_settings`** (e.g. `general.defaultCommissionRate`), or **values snapshotted on the booking row** — not magic numbers in UI or payment stubs.
-- **Exchange rates** must come from **`exchange_rates`** and/or the **approved FX service** using **env-provided API keys** — not literals like `35.5` in payment or display code.
-- **Allowed exception (temporary):** a single, documented **last-resort fallback** in one shared module (e.g. when DB and API both fail), logged and monitored — never scattered copy-paste defaults.
+- **Commissions** must come from **`profiles.custom_commission_rate`**, **`system_settings`** (e.g. `general.defaultCommissionRate`), **`DEFAULT_COMMISSION_PERCENT`** env, or **values snapshotted on the booking row** — not magic numbers in UI or payment stubs. В **`currency.service.js`** нет числовых запасных констант: при полном отсутствии источников выбрасывается **ошибка** с понятным логом.
+- **Exchange rates** must come from **`exchange_rates`** and/or the **approved FX service** using **env-provided API keys** — не вносить литералы курсов в `currency.service.js`. Аварийный порядок: **`FALLBACK_THB_PER_USDT`** env и/или **`system_settings.general.fallbackThbPerUsdt`** (см. **`currency-last-resort.js`**).
+- **Множитель курса для счетов в чате (THB↔USDT):** **`system_settings.general.chatInvoiceRateMultiplier`** (админка `/admin/settings`) → env **`CHAT_INVOICE_RATE_MULTIPLIER`** → дефолт платформы только в **`currency-last-resort.js`** (`platformDefaultChatInvoiceRateMultiplier`). В **`currency.service.js`** не хранить жёсткий множитель.
+- **Allowed exception:** единый модуль **`currency-last-resort.js`** читает только **env / JSON settings**, без дублирования магических чисел по проекту.
 
 ### 3. Booking logic lives in service layers
 
@@ -86,13 +87,16 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 
 ### Pricing & Discounts (длительность)
 
-- **Где хранится:** `listings.metadata.discounts` — объект вида `{ "7_days": 10, "30_days": 15 }` (допускаются ключи `N_days` / `N`); парсинг и выбор лучшего tier по числу ночей — `parseDurationDiscountTiers`, `computeBestDurationDiscountPercent`, `applyDurationDiscountToSubtotal` в `lib/services/pricing.service.js`.
+- **Где хранится:** `listings.metadata.discounts` — канонический ввод партнёра: **`{ "weekly": 7, "monthly": 20 }`** (7 и 30 ночей соответственно); дополнительно поддерживаются **legacy**-ключи `N_days` / `N` (см. `parseDurationDiscountTiers` в `lib/services/pricing.service.js`).
 - **Когда считается:** процент скидки применяется к **субтоталу после ночных/сезонных ставок** (не к базе за одну ночь в отрыве от дат). «Лучший» подходящий порог (max % среди tier’ов с `nights >= minNights`) побеждает.
-- **Партнёрский ввод:** форма «Скидки за длительность» (`PartnerListingDurationDiscountFields`) на `/partner/listings/new` и `/partner/listings/[id]` пишет в тот же `metadata.discounts` (через `applyDurationDiscountField` / `duration-discount-helpers`).
-- **Публичный UI:** разбивка цены и строка скидки за длительность на странице листинга — после выбора дат; отдельной «лестницы» до выбора дат в виджете нет.
+- **Партнёрский ввод:** форма «Скидки за длительность» (`PartnerListingDurationDiscountFields`) на `/partner/listings/new` и `/partner/listings/[id]` пишет **`weekly` / `monthly`** (через `applyDurationDiscountField` / `duration-discount-helpers`).
+- **Публичный UI:** блок **«Special offers»** (`DurationDiscountOffersBlock` в `components/listing/BookingWidget.jsx`) показывает настроенные уровни **до** выбора дат (включая legacy-пороги **3+, 5+** и т.д., не только 7/30); после выбора дат — разбивка цены, строка скидки за длительность и усиленная строка **«Итого»**, если применилась скидка (длительность или сезонная скидка по ставкам).
+- **Транспорт, яхты и туры (подписи):** **`getListingRentalPeriodMode`** в `lib/listing-booking-ui.js` — режим **`day`** для **vehicles**, **yacht/boat** в slug и **tours** / подстроки **tour**; в виджете бронирования — **сутки/дни**, не «ночи».
 
 ### Currency System
 
+- **Канон:** один серверный модуль **`lib/services/currency.service.js`** (курсы, USDT, дефолтная комиссия, **`getEffectiveRate`** с **`resolveChatInvoiceRateMultiplier`** для счетов в чате). Файл **`lib/services/currency-helper.js`** помечен **@deprecated** и реэкспортит API для старых импортов.
+- **Last-resort без литералов в CurrencyService:** **`lib/services/currency-last-resort.js`** — `FALLBACK_THB_PER_USDT`, `DEFAULT_COMMISSION_PERCENT`, `CHAT_INVOICE_RATE_MULTIPLIER`, опционально **`general.fallbackThbPerUsdt`** в `system_settings`; дефолт множителя чата — **`platformDefaultChatInvoiceRateMultiplier`**.
 - **Источник истины для курсов отображения:** таблица **`exchange_rates`** в Supabase (`rate_to_thb` = сколько THB за **1** единицу валюты). Символы и список валют селектора: `lib/currency.js` (`CURRENCIES`), API: `GET /api/v2/exchange-rates` (`app/api/v2/exchange-rates/route.js`).
 - **Серверный TTL «свежести» БД:** `EXCHANGE_RATES_DB_TTL_MS` = **6 часов** в `lib/services/currency.service.js` — пока строки не старше TTL, внешний **ExchangeRate-API** не дергается; при необходимости обновления выполняется запрос и **upsert** в `exchange_rates` (ключи `EXCHANGE_RATE_KEY` / `EXCHANGE_API_KEY`).
 - **Клиент:** `fetchExchangeRates()` в `lib/client-data.js` ходит на тот же API и кеширует `rateMap` в **localStorage** с TTL, **согласованным с 6 часами** (тот же горизонт, что и серверный TTL БД), чтобы не долбить `/api/v2/exchange-rates` на каждом монтировании.
@@ -102,7 +106,7 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 
 - **Календарные даты листингов (день без времени):** каноническая таймзона — **`Asia/Bangkok`** через `lib/listing-date.js` (`LISTING_DATE_TZ` / `NEXT_PUBLIC_LISTING_DATE_TZ`).
 - **Доступность и блокировки:** единая модель **`calendar_blocks`** + `CalendarService` (см. Golden rule §8); устаревший путь **`availability_blocks`** не использовать для записи из партнёрских API.
-- **iCal:** экспорт с `X-WR-TIMEZONE:Asia/Bangkok` — `app/api/v2/listings/[id]/ical/route.js`; импорт/синхронизация — `lib/services/ical-sync.service.js` (логика TZ задокументирована в файле), плюс cron/proxy `app/api/cron/ical-sync` (помечен deprecated в пользу CalendarService — проверять актуальный пайплайн перед изменениями).
+- **iCal (прод, синхронизация внешних календарей → `calendar_blocks`):** единый модуль **`lib/services/ical-calendar-blocks-sync.js`** (разбор VEVENT с unfold строк, all-day и datetime, запись в **`calendar_blocks`**, логи **`ical_sync_logs`**). Его вызывают **`GET/POST /api/cron/ical-sync`** (Vercel Cron по **`vercel.json`**), **`app/api/ical/sync/route.js`**, **`app/api/v2/admin/ical/route.js`**; включение источников — **`isIcalSyncSourceEnabled`**. **Экспорт** подписного `.ics` для гостя: **`app/api/v2/listings/[id]/ical/route.js`** (`X-WR-TIMEZONE:Asia/Bangkok`). Файл **`lib/services/ical-sync.service.js`** **удалён** (был не подключён к роутам; дублировал логику).
 - **Операционные кроны** (время в комментариях к route): payouts / check-in reminder завязаны на **Bangkok** как продуктовый локальный день.
 
 ### Booking Snapshots (расчёт в БД)

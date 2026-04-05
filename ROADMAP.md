@@ -7,7 +7,7 @@ Canonical engineering rules live in [`ARCHITECTURAL_DECISIONS.md`](./ARCHITECTUR
 ### 1.1 The Great Cleanup — **COMPLETED**
 
 - **P0:** FX API keys only via env (`EXCHANGE_RATE_KEY` / `EXCHANGE_API_KEY`); no committed secrets in `forex.service.js`.
-- **Currency & commission:** Central `CurrencyService` / `getDisplayRateMap` / `resolveDefaultCommissionPercent` / `resolveThbPerUsdt`; UI and routes consume APIs or SSR helpers — no scattered `35.5` / `15%` literals (emergency numeric fallbacks only inside `currency.service.js`, per ADR).
+- **Currency & commission:** Central `CurrencyService` / `getDisplayRateMap` / `resolveDefaultCommissionPercent` / `resolveThbPerUsdt`; UI and routes consume APIs or SSR helpers — no scattered literals; аварии через `currency-last-resort.js` + env / `system_settings` (см. ADR).
 - **Repo hygiene:** Removed `.backup` files, `middleware.ts.disabled`, and `archive/`.
 - **Prisma runtime:** Removed unused `lib/prisma.js`; production paths use Supabase-js.
 - **Docs:** `.env.example` documents FX and commission-related optional env vars.

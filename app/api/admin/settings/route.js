@@ -7,6 +7,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
+import { platformDefaultChatInvoiceRateMultiplier } from '@/lib/services/currency-last-resort'
 
 // Force dynamic rendering to prevent caching
 export const dynamic = 'force-dynamic'
@@ -14,6 +15,7 @@ export const dynamic = 'force-dynamic'
 // Mock settings for when Supabase is not configured
 let mockSettings = {
   defaultCommissionRate: 15,
+  chatInvoiceRateMultiplier: platformDefaultChatInvoiceRateMultiplier(),
   maintenanceMode: false,
   heroTitle: 'Luxury Rentals in Phuket',
   heroSubtitle: 'Villas, Bikes, Yachts & Tours',
@@ -64,10 +66,15 @@ export async function GET() {
     
     // Map from DB format to frontend format
     const rawComm = parseFloat(data.value?.defaultCommissionRate)
+    const rawChatMult = parseFloat(data.value?.chatInvoiceRateMultiplier)
     const settings = {
       defaultCommissionRate: Number.isFinite(rawComm) && rawComm >= 0
         ? rawComm
         : await resolveDefaultCommissionPercent(),
+      chatInvoiceRateMultiplier:
+        Number.isFinite(rawChatMult) && rawChatMult >= 1 && rawChatMult <= 1.5
+          ? rawChatMult
+          : platformDefaultChatInvoiceRateMultiplier(),
       maintenanceMode: data.value?.maintenanceMode || false,
       heroTitle: data.value?.heroTitle || '',
       heroSubtitle: data.value?.heroSubtitle || '',
@@ -85,7 +92,8 @@ export async function GET() {
 export async function PUT(request) {
   try {
     const body = await request.json()
-    const { defaultCommissionRate, maintenanceMode, heroTitle, heroSubtitle, sitePhone } = body
+    const { defaultCommissionRate, chatInvoiceRateMultiplier, maintenanceMode, heroTitle, heroSubtitle, sitePhone } =
+      body
     
     const supabase = getSupabaseClient()
     
@@ -93,11 +101,23 @@ export async function PUT(request) {
     if (!supabase) {
       console.log('[SETTINGS] Supabase not configured, updating mock settings')
       const parsedMock = parseFloat(defaultCommissionRate)
+      const parsedMockChat =
+        chatInvoiceRateMultiplier != null && chatInvoiceRateMultiplier !== ''
+          ? parseFloat(chatInvoiceRateMultiplier)
+          : NaN
+      const prevChat = parseFloat(mockSettings.chatInvoiceRateMultiplier)
+      const nextChatMult =
+        Number.isFinite(parsedMockChat) && parsedMockChat >= 1 && parsedMockChat <= 1.5
+          ? parsedMockChat
+          : Number.isFinite(prevChat) && prevChat >= 1 && prevChat <= 1.5
+            ? prevChat
+            : platformDefaultChatInvoiceRateMultiplier()
       mockSettings = {
         ...mockSettings,
         defaultCommissionRate: Number.isFinite(parsedMock) && parsedMock >= 0
           ? parsedMock
           : await resolveDefaultCommissionPercent(),
+        chatInvoiceRateMultiplier: nextChatMult,
         maintenanceMode: !!maintenanceMode,
         heroTitle: heroTitle || '',
         heroSubtitle: heroSubtitle || '',
@@ -117,9 +137,21 @@ export async function PUT(request) {
     const resolvedComm = Number.isFinite(parsedPut) && parsedPut >= 0
       ? parsedPut
       : await resolveDefaultCommissionPercent()
+    const parsedChat =
+      chatInvoiceRateMultiplier != null && chatInvoiceRateMultiplier !== ''
+        ? parseFloat(chatInvoiceRateMultiplier)
+        : NaN
+    const existingChat = parseFloat(existing?.value?.chatInvoiceRateMultiplier)
+    const resolvedChatMult =
+      Number.isFinite(parsedChat) && parsedChat >= 1 && parsedChat <= 1.5
+        ? parsedChat
+        : Number.isFinite(existingChat) && existingChat >= 1 && existingChat <= 1.5
+          ? existingChat
+          : platformDefaultChatInvoiceRateMultiplier()
     const newValue = {
       ...(existing?.value || {}),
       defaultCommissionRate: resolvedComm,
+      chatInvoiceRateMultiplier: resolvedChatMult,
       maintenanceMode: !!maintenanceMode,
       heroTitle: heroTitle || '',
       heroSubtitle: heroSubtitle || '',

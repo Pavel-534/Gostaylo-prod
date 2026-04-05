@@ -19,7 +19,7 @@ import { normalizeMessageType } from '@/lib/services/chat/message-types'
 import { PushService } from '@/lib/services/push.service.js'
 import { getPublicSiteUrl } from '@/lib/site-url.js'
 import { registerTelegramReplyTarget } from '@/lib/services/telegram/telegram-reply-map.js'
-import { getEffectiveRate } from '@/lib/services/currency-helper'
+import { getEffectiveRate } from '@/lib/services/currency.service'
 import { otherPartyHasReadRaw } from '@/lib/chat/read-receipts'
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 

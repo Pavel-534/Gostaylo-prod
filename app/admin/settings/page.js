@@ -14,6 +14,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [settings, setSettings] = useState({
     defaultCommissionRate: 15,
+    chatInvoiceRateMultiplier: 1.02,
     maintenanceMode: false,
     heroTitle: '',
     heroSubtitle: '',
@@ -169,6 +170,35 @@ export default function SettingsPage() {
             </div>
             <p className="text-xs sm:text-sm text-gray-600 mt-2">
               Партнеры получают {100 - settings.defaultCommissionRate}%
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="chatInvoiceMult" className="text-sm sm:text-base">
+              Маржа по курсу в чат-счетах (THB ↔ USDT)
+            </Label>
+            <div className="flex items-center gap-3 sm:gap-4 mt-2 sm:mt-3">
+              <Input
+                id="chatInvoiceMult"
+                type="number"
+                min="1"
+                max="1.5"
+                step="0.001"
+                value={settings.chatInvoiceRateMultiplier ?? 1.02}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value)
+                  setSettings({
+                    ...settings,
+                    chatInvoiceRateMultiplier: Number.isFinite(v) ? v : settings.chatInvoiceRateMultiplier,
+                  })
+                }}
+                className="max-w-[120px] sm:max-w-xs text-base sm:text-lg font-semibold"
+              />
+              <span className="text-sm text-gray-600">× к рыночному курсу (1.0 = без надбавки)</span>
+            </div>
+            <p className="text-xs sm:text-sm text-gray-600 mt-2">
+              Хранится в <code className="text-xs">system_settings.general.chatInvoiceRateMultiplier</code>; запасной
+              вариант — env <code className="text-xs">CHAT_INVOICE_RATE_MULTIPLIER</code>.
             </p>
           </div>
         </CardContent>

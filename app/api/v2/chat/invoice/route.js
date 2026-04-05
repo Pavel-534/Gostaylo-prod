@@ -16,7 +16,7 @@ import {
   effectiveRoleFromProfile,
   userParticipatesInConversation,
 } from '@/lib/services/chat/access'
-import { getEffectiveRate } from '@/lib/services/currency-helper'
+import { getEffectiveRate } from '@/lib/services/currency.service'
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 import { PricingService } from '@/lib/services/pricing.service'
 import { CalendarService } from '@/lib/services/calendar.service'

@@ -4,71 +4,68 @@
  * POST /api/v2/admin/ical - Trigger manual sync for a listing or all listings
  */
 
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { createClient } from '@supabase/supabase-js';
-import jwt from 'jsonwebtoken';
+import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
+import jwt from 'jsonwebtoken'
+import { getJwtSecret } from '@/lib/auth/jwt-secret'
+import { isIcalSyncSourceEnabled } from '@/lib/ical-sync-source-enabled'
 import {
-  compactYmdToIsoDate,
-  lastOccupiedDateFromExclusiveAllDayDtend,
-} from '@/lib/ical-all-day-range';
-import { getJwtSecret } from '@/lib/auth/jwt-secret';
-import { isIcalSyncSourceEnabled } from '@/lib/ical-sync-source-enabled';
+  insertIcalSyncLog,
+  syncIcalSourceToCalendarBlocks,
+} from '@/lib/services/ical-calendar-blocks-sync'
 
-export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const ADMIN_TELEGRAM_ID = process.env.ADMIN_TELEGRAM_ID;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
+const ADMIN_TELEGRAM_ID = process.env.ADMIN_TELEGRAM_ID
 
 function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
 }
 
 function verifyAdmin() {
-  let secret;
+  let secret
   try {
-    secret = getJwtSecret();
+    secret = getJwtSecret()
   } catch (e) {
     return {
       err: NextResponse.json({ success: false, error: e.message }, { status: 500 }),
-    };
+    }
   }
 
-  const cookieStore = cookies();
-  const session = cookieStore.get('gostaylo_session');
+  const cookieStore = cookies()
+  const session = cookieStore.get('gostaylo_session')
   if (!session?.value) {
     return {
       err: NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 }),
-    };
+    }
   }
 
   try {
-    const decoded = jwt.verify(session.value, secret);
+    const decoded = jwt.verify(session.value, secret)
     if (decoded.role !== 'ADMIN') {
       return {
         err: NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 }),
-      };
+      }
     }
-    return { decoded };
+    return { decoded }
   } catch {
     return {
       err: NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 }),
-    };
+    }
   }
 }
 
-/**
- * Send Telegram alert to admin
- */
 async function sendTelegramAlert(message) {
   if (!TELEGRAM_BOT_TOKEN || !ADMIN_TELEGRAM_ID) {
-    console.log('[ICAL] Telegram not configured, skipping alert');
-    return;
+    console.log('[ICAL] Telegram not configured, skipping alert')
+    return
   }
-  
+
   try {
     await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
@@ -76,320 +73,230 @@ async function sendTelegramAlert(message) {
       body: JSON.stringify({
         chat_id: ADMIN_TELEGRAM_ID,
         text: message,
-        parse_mode: 'HTML'
-      })
-    });
+        parse_mode: 'HTML',
+      }),
+    })
   } catch (err) {
-    console.error('[ICAL] Failed to send Telegram alert:', err);
+    console.error('[ICAL] Failed to send Telegram alert:', err)
   }
 }
 
-/**
- * Parse iCal data and extract events
- */
-function parseICalEvents(icalData) {
-  const events = [];
-  
-  try {
-    const eventBlocks = icalData.split('BEGIN:VEVENT');
-    
-    for (let i = 1; i < eventBlocks.length; i++) {
-      const block = eventBlocks[i].split('END:VEVENT')[0];
-      
-      const dtstart = block.match(/DTSTART[^:]*:(\d{8})/)?.[1];
-      const dtend = block.match(/DTEND[^:]*:(\d{8})/)?.[1];
-      const summary = block.match(/SUMMARY:(.+)/)?.[1]?.trim();
-      
-      if (dtstart && dtend) {
-        const startDate = compactYmdToIsoDate(dtstart);
-        const endDate = lastOccupiedDateFromExclusiveAllDayDtend(dtend);
-        if (startDate && endDate && startDate <= endDate) {
-          events.push({
-            start_date: startDate,
-            end_date: endDate,
-            summary: summary || 'Blocked'
-          });
-        }
-      }
-    }
-  } catch (err) {
-    console.error('[ICAL] Parse error:', err.message);
-  }
-  
-  return events;
-}
-
-/**
- * Sync a single source
- */
 async function syncSource(supabase, listingId, listingTitle, source) {
+  const result = await syncIcalSourceToCalendarBlocks(supabase, listingId, source, {
+    timeoutMs: 10000,
+    onlyFutureEnding: true,
+  })
+
   const logEntry = {
     listing_id: listingId,
     listing_title: listingTitle,
     source_url: source.url,
-    status: 'pending',
-    events_count: 0,
-    error_message: null,
-    synced_at: new Date().toISOString()
-  };
-  
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-    
-    const response = await fetch(source.url, {
-      signal: controller.signal,
-      headers: { 'User-Agent': 'GoStayLo-Calendar-Sync/1.0' }
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    
-    const icalData = await response.text();
-    const events = parseICalEvents(icalData);
-    
-    // Remove old iCal blocks for this source
-    await supabase
-      .from('calendar_blocks')
-      .delete()
-      .eq('listing_id', listingId)
-      .eq('source', source.url);
-    
-    // Insert new blocks
-    if (events.length > 0) {
-      const blocks = events.map(e => ({
-        listing_id: listingId,
-        start_date: e.start_date,
-        end_date: e.end_date,
-        reason: e.summary || `${source.platform || 'External'} booking`,
-        source: source.url
-      }));
-      
-      await supabase.from('calendar_blocks').insert(blocks);
-    }
-    
-    logEntry.status = 'success';
-    logEntry.events_count = events.length;
-    
-  } catch (err) {
-    logEntry.status = 'error';
-    logEntry.error_message = err.name === 'AbortError' ? 'Timeout' : err.message;
+    status: result.status,
+    events_count: result.events_count,
+    error_message: result.error_message,
+    synced_at: new Date().toISOString(),
   }
-  
-  // Save log entry
-  await supabase.from('ical_sync_logs').insert(logEntry);
-  
-  return logEntry;
+
+  try {
+    await insertIcalSyncLog(supabase, logEntry)
+  } catch (e) {
+    console.error('[ICAL-ADMIN] ical_sync_logs insert failed:', e?.message || e)
+  }
+
+  return logEntry
 }
 
-/**
- * GET - Get sync logs
- */
 export async function GET(request) {
-  const v = verifyAdmin();
-  if (v.err) return v.err;
+  const v = verifyAdmin()
+  if (v.err) return v.err
 
-  const { searchParams } = new URL(request.url);
-  const errorsOnly = searchParams.get('errors_only') === 'true';
-  const limit = parseInt(searchParams.get('limit') || '50');
-  const listingId = searchParams.get('listing_id');
-  
-  const supabase = getSupabase();
-  
-  // Get logs with listing titles
+  const { searchParams } = new URL(request.url)
+  const errorsOnly = searchParams.get('errors_only') === 'true'
+  const limit = parseInt(searchParams.get('limit') || '50', 10)
+  const listingId = searchParams.get('listing_id')
+
+  const supabase = getSupabase()
+
   let query = supabase
     .from('ical_sync_logs')
     .select('*')
     .order('synced_at', { ascending: false })
-    .limit(limit);
-  
+    .limit(limit)
+
   if (errorsOnly) {
-    query = query.eq('status', 'error');
+    query = query.eq('status', 'error')
   }
-  
+
   if (listingId) {
-    query = query.eq('listing_id', listingId);
+    query = query.eq('listing_id', listingId)
   }
-  
-  const { data: logs, error } = await query;
-  
+
+  const { data: logs, error } = await query
+
   if (error) {
-    console.error('[ICAL-ADMIN] Error fetching logs:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('[ICAL-ADMIN] Error fetching logs:', error)
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
-  
-  // Get summary stats for last 24 hours
+
   const { data: stats } = await supabase
     .from('ical_sync_logs')
     .select('status')
-    .gte('synced_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
-  
-  const successCount = stats?.filter(s => s.status === 'success').length || 0;
-  const errorCount = stats?.filter(s => s.status === 'error').length || 0;
-  
+    .gte('synced_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+
+  const successCount = stats?.filter((s) => s.status === 'success').length || 0
+  const errorCount = stats?.filter((s) => s.status === 'error').length || 0
+
   return NextResponse.json({
     success: true,
     logs: logs || [],
     stats: {
       total_24h: stats?.length || 0,
       success_24h: successCount,
-      errors_24h: errorCount
-    }
-  });
+      errors_24h: errorCount,
+    },
+  })
 }
 
-/**
- * POST - Trigger manual sync
- */
 export async function POST(request) {
-  const v = verifyAdmin();
-  if (v.err) return v.err;
+  const v = verifyAdmin()
+  if (v.err) return v.err
 
-  let body;
+  let body
   try {
-    body = await request.json();
+    body = await request.json()
   } catch {
-    return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 })
   }
-  
-  const { action, listingId } = body;
-  const supabase = getSupabase();
-  
-  // Get listings with sync enabled
+
+  const { action, listingId } = body
+  const supabase = getSupabase()
+
   if (action === 'get_sync_enabled') {
     const { data: listings, error } = await supabase
       .from('listings')
       .select('id, title, owner_id, sync_settings')
       .not('sync_settings', 'is', null)
-      .eq('status', 'ACTIVE');
-    
+      .eq('status', 'ACTIVE')
+
     if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
-    
-    const withSources = (listings || []).filter(l => {
-      const settings = l.sync_settings;
-      return settings?.sources?.length > 0;
-    });
-    
+
+    const withSources = (listings || []).filter((l) => {
+      const settings = l.sync_settings
+      return settings?.sources?.length > 0
+    })
+
     return NextResponse.json({
       success: true,
       listings: withSources,
-      count: withSources.length
-    });
+      count: withSources.length,
+    })
   }
-  
-  // Sync single listing
+
   if (action === 'sync' && listingId) {
     const { data: listing } = await supabase
       .from('listings')
       .select('id, title, sync_settings')
       .eq('id', listingId)
-      .single();
-    
+      .single()
+
     if (!listing || !listing.sync_settings?.sources?.length) {
-      return NextResponse.json({ success: false, error: 'No sync sources configured' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'No sync sources configured' }, { status: 400 })
     }
-    
-    const results = [];
+
+    const results = []
     for (const source of listing.sync_settings.sources) {
-      if (!isIcalSyncSourceEnabled(source)) continue;
-      const result = await syncSource(supabase, listing.id, listing.title, source);
-      results.push(result);
+      if (!isIcalSyncSourceEnabled(source)) continue
+      const result = await syncSource(supabase, listing.id, listing.title, source)
+      results.push(result)
     }
-    
-    // Update last_sync
+
     await supabase
       .from('listings')
       .update({
         sync_settings: {
           ...listing.sync_settings,
-          last_sync: new Date().toISOString()
-        }
+          last_sync: new Date().toISOString(),
+        },
       })
-      .eq('id', listingId);
-    
+      .eq('id', listingId)
+
     return NextResponse.json({
       success: true,
       message: 'Sync completed',
-      results
-    });
+      results,
+    })
   }
-  
-  // Sync all listings
+
   if (action === 'sync_all') {
-    const startTime = Date.now();
-    
+    const startTime = Date.now()
+
     const { data: listings } = await supabase
       .from('listings')
       .select('id, title, sync_settings')
       .not('sync_settings', 'is', null)
-      .eq('status', 'ACTIVE');
-    
-    const toSync = (listings || []).filter(l => l.sync_settings?.sources?.length > 0);
-    
+      .eq('status', 'ACTIVE')
+
+    const toSync = (listings || []).filter((l) => l.sync_settings?.sources?.length > 0)
+
     const results = {
       total: toSync.length,
       synced: 0,
       errors: 0,
-      skipped: 0
-    };
-    
-    const errorListings = [];
-    
+      skipped: 0,
+    }
+
+    const errorListings = []
+
     for (const listing of toSync) {
       for (const source of listing.sync_settings.sources) {
         if (!isIcalSyncSourceEnabled(source)) {
-          results.skipped++;
-          continue;
+          results.skipped++
+          continue
         }
-        
-        const result = await syncSource(supabase, listing.id, listing.title, source);
-        
+
+        const result = await syncSource(supabase, listing.id, listing.title, source)
+
         if (result.status === 'success') {
-          results.synced++;
+          results.synced++
         } else {
-          results.errors++;
+          results.errors++
           errorListings.push({
             title: listing.title,
-            error: result.error_message
-          });
+            error: result.error_message,
+          })
         }
       }
-      
-      // Update last_sync
+
       await supabase
         .from('listings')
         .update({
           sync_settings: {
             ...listing.sync_settings,
-            last_sync: new Date().toISOString()
-          }
+            last_sync: new Date().toISOString(),
+          },
         })
-        .eq('id', listing.id);
+        .eq('id', listing.id)
     }
-    
-    results.duration = Date.now() - startTime;
-    
-    // Send Telegram alert if more than 5 errors
+
+    results.duration = Date.now() - startTime
+
     if (results.errors >= 5) {
-      const errorList = errorListings.slice(0, 5).map(e => `• ${e.title}: ${e.error}`).join('\n');
+      const errorList = errorListings.slice(0, 5).map((e) => `• ${e.title}: ${e.error}`).join('\n')
       await sendTelegramAlert(
         `⚠️ <b>iCal Sync Alert</b>\n\n` +
-        `Синхронизация завершилась с ${results.errors} ошибками из ${results.total} источников.\n\n` +
-        `<b>Последние ошибки:</b>\n${errorList}\n\n` +
-        `Время: ${new Date().toLocaleString('ru-RU')}`
-      );
+          `Синхронизация завершилась с ${results.errors} ошибками из ${results.total} источников.\n\n` +
+          `<b>Последние ошибки:</b>\n${errorList}\n\n` +
+          `Время: ${new Date().toLocaleString('ru-RU')}`,
+      )
     }
-    
+
     return NextResponse.json({
       success: true,
-      ...results
-    });
+      ...results,
+    })
   }
-  
-  return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
+
+  return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 })
 }

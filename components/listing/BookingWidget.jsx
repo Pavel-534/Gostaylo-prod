@@ -14,8 +14,8 @@ import { Star, ArrowRight, MessageCircle, Loader2, Sparkles } from 'lucide-react
 import { format } from 'date-fns'
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
-import { isWholeVesselListing } from '@/lib/listing-booking-ui'
-import { isTransportListingCategory } from '@/lib/listing-category-slug'
+import { parseDurationDiscountTiers } from '@/lib/services/pricing.service'
+import { getListingRentalPeriodMode, isWholeVesselListing } from '@/lib/listing-booking-ui'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import { formatRentalSpanLabel } from '@/lib/rental-period-labels'
 import { GostayloCalendar } from '@/components/gostaylo-calendar'
@@ -44,6 +44,52 @@ function ChatPreviewBadge({ preview, hasUnread, language }) {
             : 'Last: '}
         <span className="font-medium">{label}</span>
       </span>
+    </div>
+  )
+}
+
+function formatSpecialOfferLine(tier, language, rentalPeriodMode) {
+  const pct = Math.round(Number(tier.percent) || 0)
+  const n = tier.minNights
+  const key = rentalPeriodMode === 'day' ? 'specialOfferDay' : 'specialOfferNight'
+  return getUIText(key, language)
+    .replace(/\{\{pct\}\}/g, String(pct))
+    .replace(/\{\{n\}\}/g, String(n))
+}
+
+/** Marketing: show configured duration tiers before guest picks dates (weekly/monthly + legacy keys). */
+export function DurationDiscountOffersBlock({ discounts, language, rentalPeriodMode = 'night', className }) {
+  const tiers = parseDurationDiscountTiers(discounts)
+  if (!tiers.length) return null
+
+  return (
+    <div
+      className={cn(
+        'rounded-xl border border-amber-200/90 bg-gradient-to-br from-amber-50 via-orange-50/80 to-rose-50/60 px-3 py-3 shadow-sm',
+        className,
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-4 w-4 shrink-0 text-amber-600" aria-hidden />
+        <span className="text-sm font-semibold tracking-tight text-amber-950">
+          {getUIText('specialOffersTitle', language)}
+        </span>
+      </div>
+      <p className="mt-1 text-xs leading-snug text-amber-900/85">
+        {getUIText(rentalPeriodMode === 'day' ? 'specialOffersTeaserRental' : 'specialOffersTeaser', language)}
+      </p>
+      <ul className="mt-2.5 flex flex-col gap-2">
+        {tiers.map((t) => (
+          <li key={`${t.minNights}-${t.percent}-${t.sourceKey || ''}`}>
+            <span
+              className="inline-flex w-full items-center justify-center rounded-lg border border-emerald-300/70 bg-white/95 px-3 py-2 text-center text-xs font-bold leading-tight text-emerald-900 shadow-sm sm:text-sm"
+              role="status"
+            >
+              {formatSpecialOfferLine(t, language, rentalPeriodMode)}
+            </span>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }
@@ -90,6 +136,7 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
   const hasSeasonal = seasonalAdj !== 0 && seasonalAdj != null
   const hasDur = dur > 0
   const seasonalIsDiscount = hasSeasonal && seasonalAdj < 0
+  const highlightTotalForDiscount = hasDur || seasonalIsDiscount
   const baseLineLabel =
     rentalPeriodMode === 'day'
       ? getUIText('breakdownBaseTimesDays', language)
@@ -143,7 +190,7 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
         </div>
       )}
       <div className="flex justify-between gap-2 pt-1">
-        <span className="text-slate-600">{language === 'ru' ? 'Промежуточно' : 'Subtotal'}</span>
+        <span className="text-slate-600">{getUIText('subtotal', language)}</span>
         <span className="font-medium tabular-nums">
           {formatPrice(priceCalc.subtotalBeforeFee ?? priceCalc.totalPrice, currency, exchangeRates)}
         </span>
@@ -157,9 +204,29 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
         </div>
       )}
       <Separator />
-      <div className="flex justify-between text-lg font-bold">
-        <span>{getUIText('total', language)}</span>
-        <span className="tabular-nums">{formatPrice(priceCalc.finalTotal, currency, exchangeRates)}</span>
+      <div
+        className={cn(
+          'flex justify-between items-baseline gap-2 pt-0.5',
+          highlightTotalForDiscount &&
+            'rounded-lg border border-emerald-200 bg-emerald-50/95 px-2.5 py-2.5 -mx-0.5 shadow-sm',
+        )}
+      >
+        <span
+          className={cn(
+            'shrink-0',
+            highlightTotalForDiscount ? 'text-base font-bold text-emerald-900' : 'text-lg font-bold text-slate-900',
+          )}
+        >
+          {getUIText('total', language)}
+        </span>
+        <span
+          className={cn(
+            'tabular-nums font-bold tracking-tight',
+            highlightTotalForDiscount ? 'text-xl text-emerald-700 sm:text-2xl' : 'text-lg text-slate-900',
+          )}
+        >
+          {formatPrice(priceCalc.finalTotal, currency, exchangeRates)}
+        </span>
       </div>
     </div>
   )
@@ -194,11 +261,7 @@ export function DesktopBookingWidget({
   canInstantBook = true,
   exclusiveDatesUnavailable = false,
 }) {
-  const rentalPeriodMode = isTransportListingCategory(
-    listing?.categorySlug || listing?.category?.slug,
-  )
-    ? 'day'
-    : 'night'
+  const rentalPeriodMode = getListingRentalPeriodMode(listing?.categorySlug || listing?.category?.slug)
   const maxGuests = Math.max(1, resolveListingGuestCapacity(listing))
   const maxCap = listing?.maxCapacity ?? availabilitySnapshot?.max_capacity ?? 1
   const remaining = availabilitySnapshot?.remaining_spots
@@ -275,19 +338,20 @@ export function DesktopBookingWidget({
             </div>
           )}
 
+          <DurationDiscountOffersBlock
+            discounts={listing?.metadata?.discounts}
+            language={language}
+            rentalPeriodMode={rentalPeriodMode}
+          />
+
           {showDurationDiscountTeaser && durationDiscountPercentActive > 0 && (
             <div className="flex gap-2 rounded-lg border border-emerald-200 bg-emerald-50/90 px-3 py-2 text-sm text-emerald-900">
               <Sparkles className="h-4 w-4 shrink-0 mt-0.5" />
               <p>
-                {language === 'ru' ? (
-                  <>
-                    Дольше — выгоднее! Ваша скидка: <strong>{durationDiscountPercentActive}%</strong>
-                  </>
-                ) : (
-                  <>
-                    Stay longer, save more! Your discount: <strong>{durationDiscountPercentActive}%</strong>
-                  </>
-                )}
+                {getUIText(
+                  rentalPeriodMode === 'day' ? 'durationDiscountTeaserActiveDay' : 'durationDiscountTeaserActiveNight',
+                  language,
+                ).replace(/\{\{pct\}\}/g, String(durationDiscountPercentActive))}
               </p>
             </div>
           )}
@@ -442,11 +506,7 @@ export function MobileBookingBar({
   onPrivateTripClick,
   onSpecialPriceClick,
 }) {
-  const rentalPeriodMode = isTransportListingCategory(
-    listing?.categorySlug || listing?.category?.slug,
-  )
-    ? 'day'
-    : 'night'
+  const rentalPeriodMode = getListingRentalPeriodMode(listing?.categorySlug || listing?.category?.slug)
   const askLabel = askPartnerLoading
     ? getUIText('loading', language)
     : hasExistingConversation
@@ -456,12 +516,29 @@ export function MobileBookingBar({
       : getUIText('askListingQuestion', language)
 
   const sharedMode = bookingUiMode === 'shared'
+  const mobileOfferTiers = parseDurationDiscountTiers(listing?.metadata?.discounts)
 
   return (
     <div
       className="lg:hidden fixed z-50 bg-white border-t border-slate-200 py-3 shadow-2xl left-[max(0px,env(safe-area-inset-left))] right-[max(0px,env(safe-area-inset-right))] pb-[max(0.75rem,env(safe-area-inset-bottom))] px-3"
       style={{ bottom: 'calc(4.25rem + env(safe-area-inset-bottom, 0px))' }}
     >
+      {mobileOfferTiers.length > 0 && (
+        <div className="mb-2 flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-800/90">
+            {getUIText('specialOffersTitle', language)}
+          </span>
+          {mobileOfferTiers.map((t) => (
+            <span
+              key={`mb-${t.minNights}-${t.percent}`}
+              className="inline-flex max-w-full rounded-full border border-emerald-400/70 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold leading-tight text-emerald-900"
+            >
+              {formatSpecialOfferLine(t, language, rentalPeriodMode)}
+            </span>
+          ))}
+        </div>
+      )}
+
       {sharedMode && dateRange?.from && dateRange?.to && (
         <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-600">
           {availabilityLoading && (

@@ -19,7 +19,11 @@ import {
   MobileBookingBar,
   PriceBreakdownBlock,
 } from '@/components/listing/BookingWidget'
-import { getListingBookingUiMode, isWholeVesselListing } from '@/lib/listing-booking-ui'
+import {
+  getListingBookingUiMode,
+  getListingRentalPeriodMode,
+  isWholeVesselListing,
+} from '@/lib/listing-booking-ui'
 import { AmenitiesGrid } from '@/components/listing/AmenitiesGrid'
 import { ListingInfo } from '@/components/listing/ListingInfo'
 import { ReviewsSection } from '@/components/listing/ReviewsSection'
@@ -45,7 +49,6 @@ import { cn } from '@/lib/utils'
 import { INBOX_TAB_TRAVELING, setRenterInboxTabPreference } from '@/lib/chat-inbox-tabs'
 import { useChatContext } from '@/lib/context/ChatContext'
 import { useCommission } from '@/hooks/use-commission'
-import { isTransportListingCategory } from '@/lib/listing-category-slug'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 
 const CHAT_CACHE_TTL = 5 * 60 * 1000 // 5 min
@@ -626,7 +629,7 @@ function PremiumListingContent({ params }) {
   const maxGuests = listing ? resolveListingGuestCapacity(listing) : 10
 
   const listingRentalPeriodMode = useMemo(
-    () => (listing && isTransportListingCategory(listing.categorySlug) ? 'day' : 'night'),
+    () => (listing ? getListingRentalPeriodMode(listing.categorySlug) : 'night'),
     [listing?.categorySlug],
   )
   const amenities = listing?.metadata?.amenities || []
@@ -833,16 +836,12 @@ function PremiumListingContent({ params }) {
                     {hasDurationDiscountTiers && durationDiscountPercentActive > 0 && (
                       <div className="flex gap-2 rounded-lg border border-emerald-200 bg-emerald-50/90 px-3 py-2 text-sm text-emerald-900">
                         <span>
-                          {language === 'ru' ? (
-                            <>
-                              Дольше — выгоднее! Скидка: <strong>{durationDiscountPercentActive}%</strong>
-                            </>
-                          ) : (
-                            <>
-                              Stay longer, save more! Your discount:{' '}
-                              <strong>{durationDiscountPercentActive}%</strong>
-                            </>
-                          )}
+                          {getUIText(
+                            listingRentalPeriodMode === 'day'
+                              ? 'durationDiscountTeaserActiveDay'
+                              : 'durationDiscountTeaserActiveNight',
+                            language,
+                          ).replace(/\{\{pct\}\}/g, String(durationDiscountPercentActive))}
                         </span>
                       </div>
                     )}
