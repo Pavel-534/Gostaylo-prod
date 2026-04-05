@@ -151,8 +151,8 @@ export function PartnerListingSearchMetadataFields({
       </div>
     ))
 
-  const vehiclesBlock = showVehicles && (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+  const transmissionFuelRow = (
+    <>
       <div>
         <Label className="text-sm font-medium text-slate-700">{t('fieldTransmission')}</Label>
         <Select
@@ -188,73 +188,92 @@ export function PartnerListingSearchMetadataFields({
           </SelectContent>
         </Select>
       </div>
-      <div className="sm:col-span-2">
-        <Label className="text-sm font-medium text-slate-700">{t('fieldEngineCc')}</Label>
+    </>
+  )
+
+  const engineCcField = (
+    <div className={isTransportListingCategory(slug) ? '' : 'sm:col-span-2'}>
+      <Label className="text-sm font-medium text-slate-700">{t('fieldEngineCc')}</Label>
+      <Input
+        inputMode="numeric"
+        autoComplete="off"
+        placeholder="125"
+        value={
+          metadata.engine_cc != null && metadata.engine_cc !== '' ? String(metadata.engine_cc) : ''
+        }
+        onChange={(e) => {
+          const v = clampIntFromDigits(e.target.value, 0, 500_000, undefined)
+          if (v === undefined) updateMetadata('engine_cc', '')
+          else updateMetadata('engine_cc', v)
+        }}
+        className="mt-2 h-11"
+      />
+    </div>
+  )
+
+  const vehicleYearSeatsRow = isTransportListingCategory(slug) && (
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+      <div>
+        <Label className="text-sm font-medium text-slate-700">{t('fieldVehicleYear')}</Label>
         <Input
           inputMode="numeric"
           autoComplete="off"
-          placeholder="125"
+          placeholder="2022"
           value={
-            metadata.engine_cc != null && metadata.engine_cc !== ''
-              ? String(metadata.engine_cc)
+            metadata.vehicle_year != null && metadata.vehicle_year !== ''
+              ? String(metadata.vehicle_year)
               : ''
           }
           onChange={(e) => {
-            const v = clampIntFromDigits(e.target.value, 0, 500_000, undefined)
-            if (v === undefined) updateMetadata('engine_cc', '')
-            else updateMetadata('engine_cc', v)
+            const d = String(e.target.value ?? '').replace(/\D/g, '').slice(0, 4)
+            updateMetadata('vehicle_year', d)
+          }}
+          onBlur={() => {
+            const raw = String(metadata.vehicle_year ?? '').replace(/\D/g, '')
+            if (!raw) {
+              updateMetadata('vehicle_year', '')
+              return
+            }
+            const n = parseInt(raw, 10)
+            if (!Number.isFinite(n) || n < 1985) {
+              updateMetadata('vehicle_year', '')
+              return
+            }
+            updateMetadata('vehicle_year', Math.min(2100, n))
           }}
           className="mt-2 h-11"
         />
       </div>
-      {isTransportListingCategory(slug) && (
-        <div className="grid grid-cols-1 gap-5 sm:col-span-2 sm:grid-cols-2">
-          <div>
-            <Label className="text-sm font-medium text-slate-700">{t('fieldVehicleYear')}</Label>
-            <Input
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="2022"
-              value={
-                metadata.vehicle_year != null && metadata.vehicle_year !== ''
-                  ? String(metadata.vehicle_year)
-                  : ''
-              }
-              onChange={(e) => {
-                const d = String(e.target.value ?? '').replace(/\D/g, '').slice(0, 4)
-                updateMetadata('vehicle_year', d)
-              }}
-              onBlur={() => {
-                const raw = String(metadata.vehicle_year ?? '').replace(/\D/g, '')
-                if (!raw) {
-                  updateMetadata('vehicle_year', '')
-                  return
-                }
-                const n = parseInt(raw, 10)
-                if (!Number.isFinite(n) || n < 1950) {
-                  updateMetadata('vehicle_year', '')
-                  return
-                }
-                updateMetadata('vehicle_year', Math.min(2100, n))
-              }}
-              className="mt-2 h-11"
-            />
-          </div>
-          <div>
-            <Label className="text-sm font-medium text-slate-700">{t('fieldVehicleSeats')}</Label>
-            <Input
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="4"
-              value={metadata.seats != null && metadata.seats !== '' ? String(metadata.seats) : ''}
-              onChange={(e) => {
-                const v = clampIntFromDigits(e.target.value, 1, 99, undefined)
-                if (v === undefined) updateMetadata('seats', '')
-                else updateMetadata('seats', v)
-              }}
-              className="mt-2 h-11"
-            />
-          </div>
+      <div>
+        <Label className="text-sm font-medium text-slate-700">{t('fieldVehicleSeats')}</Label>
+        <Input
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="4"
+          value={metadata.seats != null && metadata.seats !== '' ? String(metadata.seats) : ''}
+          onChange={(e) => {
+            const v = clampIntFromDigits(e.target.value, 1, 99, undefined)
+            if (v === undefined) updateMetadata('seats', '')
+            else updateMetadata('seats', v)
+          }}
+          className="mt-2 h-11"
+        />
+      </div>
+    </div>
+  )
+
+  const vehiclesBlock = showVehicles && (
+    <div className="space-y-5">
+      {isTransportListingCategory(slug) ? (
+        <>
+          {vehicleYearSeatsRow}
+          {engineCcField}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">{transmissionFuelRow}</div>
+        </>
+      ) : (
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {transmissionFuelRow}
+          {engineCcField}
         </div>
       )}
     </div>

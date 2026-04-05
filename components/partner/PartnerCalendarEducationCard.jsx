@@ -13,9 +13,25 @@ import { getUIText } from '@/lib/translations'
 import { CalendarSync, ArrowRight, CheckCircle2, Link2, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export function PartnerCalendarEducationCard({ variant = 'wizard', className = '' }) {
+export function PartnerCalendarEducationCard({
+  variant = 'wizard',
+  className = '',
+  /** Транспорт: без промо OTA/iCal — только ручная занятость */
+  manualCalendarOnly = false,
+}) {
   const { language } = useI18n()
   const tr = (k) => getUIText(k, language)
+
+  if (manualCalendarOnly) {
+    return (
+      <Card className={cn('border-slate-200 bg-slate-50/80', className)}>
+        <CardContent className="p-4 sm:p-5 space-y-2">
+          <h3 className="font-semibold text-slate-900">{tr('partnerCal_eduVehicleTitle')}</h3>
+          <p className="text-sm text-slate-600 leading-relaxed">{tr('partnerCal_eduVehicleBody')}</p>
+        </CardContent>
+      </Card>
+    )
+  }
 
   if (variant === 'calendar-page') {
     return (

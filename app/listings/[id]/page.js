@@ -139,7 +139,13 @@ function PremiumListingContent({ params }) {
   const [bookingModalIntent, setBookingModalIntent] = useState('book')
 
   const { getConversationForListing, loaded: chatLoaded } = useChatContext()
-  const commissionHook = useCommission(listing?.ownerId ?? null)
+
+  const listingPartnerId = useMemo(
+    () => listing?.ownerId ?? listing?.owner?.id ?? null,
+    [listing?.ownerId, listing?.owner?.id],
+  )
+
+  const commissionHook = useCommission(listingPartnerId)
   
   // Initialize from URL
   useEffect(() => {
@@ -257,7 +263,7 @@ function PremiumListingContent({ params }) {
   // Smart pre-check: does the user already have a conversation for this listing?
   // Priority: 1) ChatContext (free), 2) localStorage cache (5 min TTL), 3) API fallback
   useEffect(() => {
-    if (!user?.id || !listing?.id || String(user.id) === String(listing.ownerId)) {
+    if (!user?.id || !listing?.id || String(user.id) === String(listingPartnerId)) {
       setExistingConvId(null)
       setLastMessagePreview(null)
       setHasUnreadFromHost(false)
@@ -273,7 +279,7 @@ function PremiumListingContent({ params }) {
       }
       const preview = conv.lastMessage?.content || conv.lastMessage?.message || null
       const unread = Number(conv.unreadCount || 0) > 0 &&
-        String(conv.partnerId || conv.partner_id || '') === String(listing.ownerId || '')
+        String(conv.partnerId || conv.partner_id || '') === String(listingPartnerId || '')
       setExistingConvId(conv.id)
       setLastMessagePreview(preview ? String(preview).slice(0, 80) : null)
       setHasUnreadFromHost(unread)
@@ -316,7 +322,7 @@ function PremiumListingContent({ params }) {
         applyConvData(conv)
       })
       .catch(() => {})
-  }, [user?.id, listing?.id, listing?.ownerId, chatLoaded, getConversationForListing])
+  }, [user?.id, listing?.id, listingPartnerId, chatLoaded, getConversationForListing])
 
   useEffect(() => {
     if (!listing?.id || !dateRange?.from || !dateRange?.to) {
@@ -440,7 +446,7 @@ function PremiumListingContent({ params }) {
         const seasonalPricesRaw = l.seasonalPrices || []
         setListing({
           id: l.id,
-          ownerId: l.ownerId,
+          ownerId: l.ownerId ?? l.owner?.id ?? null,
           owner: l.owner,
           title: l.title,
           description: l.description,
@@ -477,10 +483,11 @@ function PremiumListingContent({ params }) {
   }
   
   const showContactPartner =
-    !!listing?.ownerId && String(user?.id || '') !== String(listing.ownerId)
+    !!listingPartnerId && String(user?.id || '') !== String(listingPartnerId)
 
   async function handleContactPartner() {
-    if (!listing?.ownerId) {
+    const partnerId = listing?.ownerId ?? listing?.owner?.id
+    if (!partnerId) {
       toast.error(language === 'ru' ? 'Объявление недоступно' : 'Listing unavailable')
       return
     }
@@ -488,7 +495,7 @@ function PremiumListingContent({ params }) {
       openLoginModal()
       return
     }
-    if (String(user.id) === String(listing.ownerId)) return
+    if (String(user.id) === String(partnerId)) return
 
     // If we already know the conversation ID — go straight there
     if (existingConvId) {
@@ -505,7 +512,7 @@ function PremiumListingContent({ params }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           listingId: listing.id,
-          partnerId: listing.ownerId,
+          partnerId,
           sendIntro: false,
         }),
       })

@@ -20,7 +20,11 @@ import { useRouter } from 'next/navigation'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText, getCategoryName, getAmenityName } from '@/lib/translations'
 import { clampIntFromDigits, sanitizeThbDigits } from '@/lib/listing-wizard-numeric'
-import { AMENITY_SLUGS, normalizeWizardAmenities } from '@/lib/listing-wizard-amenities'
+import {
+  normalizeWizardAmenities,
+  amenitySlugsForPartnerCategory,
+  filterAmenitiesForPartnerCategory,
+} from '@/lib/listing-wizard-amenities'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -45,9 +49,10 @@ import { mergeAirbnbPreviewWizard } from '@/lib/partner/listing-import-merge'
 import {
   normalizePartnerListingMetadata,
   partnerMetadataStateFromServer,
+  mergeTourGroupMetadataFromListingColumns,
   isPartnerListingHousingCategory,
 } from '@/lib/partner/listing-wizard-metadata'
-import { isTransportListingCategory } from '@/lib/listing-category-slug'
+import { isTransportListingCategory, isTourListingCategory } from '@/lib/listing-category-slug'
 import {
   pickPartnerFormDescription,
   buildListingDescriptionForDb,
@@ -160,6 +165,8 @@ export default function PremiumListingWizard() {
       languages: [],
       experience_years: '',
       specialization: '',
+      group_size_min: 1,
+      group_size_max: 10,
     },
     seasonalPricing: []
   })
@@ -169,6 +176,17 @@ export default function PremiumListingWizard() {
     [categories, formData.categoryId],
   )
   const transportWizard = isTransportListingCategory(listingCategorySlug)
+  const toursWizard = isTourListingCategory(listingCategorySlug)
+  const hideAirbnbImportBlock = transportWizard || toursWizard
+  const partnerAmenitySlugs = useMemo(
+    () => amenitySlugsForPartnerCategory(listingCategorySlug),
+    [listingCategorySlug],
+  )
+  const amenitiesHintKey = transportWizard
+    ? 'partnerEdit_amenitiesHintVehicle'
+    : toursWizard
+      ? 'partnerEdit_amenitiesHintTour'
+      : 'partnerEdit_amenitiesHint'
 
   const STEPS = useMemo(
     () => [
@@ -261,6 +279,15 @@ export default function PremiumListingWizard() {
         }))
         const rawMeta = listing.metadata || {}
         const shapedMeta = partnerMetadataStateFromServer(rawMeta)
+        const catSlug = cat?.slug || ''
+        const tourCat = isTourListingCategory(catSlug)
+        const metaForForm = tourCat
+          ? mergeTourGroupMetadataFromListingColumns(
+              shapedMeta,
+              listing.minBookingDays ?? listing.min_booking_days,
+              listing.maxBookingDays ?? listing.max_booking_days,
+            )
+          : shapedMeta
         const listingDesc = listing.description || ''
         setFormData({
           categoryId: listing.categoryId || listing.category_id || '',
@@ -274,18 +301,22 @@ export default function PremiumListingWizard() {
             sanitizeThbDigits((listing.basePriceThb ?? listing.base_price_thb)?.toString() || '') ||
             '',
           commissionRate: listing.commissionRate ?? listing.commission_rate ?? partnerCommissionRate,
-          minBookingDays: clampIntFromDigits(
-            listing.minBookingDays ?? listing.min_booking_days ?? 1,
-            1,
-            365,
-            1,
-          ),
-          maxBookingDays: clampIntFromDigits(
-            listing.maxBookingDays ?? listing.max_booking_days ?? 90,
-            1,
-            730,
-            90,
-          ),
+          minBookingDays: tourCat
+            ? 1
+            : clampIntFromDigits(
+                listing.minBookingDays ?? listing.min_booking_days ?? 1,
+                1,
+                365,
+                1,
+              ),
+          maxBookingDays: tourCat
+            ? 730
+            : clampIntFromDigits(
+                listing.maxBookingDays ?? listing.max_booking_days ?? 90,
+                1,
+                730,
+                90,
+              ),
           images: listing.images || [],
           coverImage: listing.coverImage || listing.cover_image || '',
           metadata: {
@@ -307,21 +338,36 @@ export default function PremiumListingWizard() {
             languages: [],
             experience_years: '',
             specialization: '',
-            ...shapedMeta,
-            bedrooms: clampIntFromDigits(shapedMeta.bedrooms ?? 0, 0, 99, 0),
-            bathrooms: clampIntFromDigits(shapedMeta.bathrooms ?? 0, 0, 99, 0),
-            max_guests: clampIntFromDigits(shapedMeta.max_guests ?? 2, 1, 999, 1),
-            area: clampIntFromDigits(shapedMeta.area ?? 0, 0, 9_999_999, 0),
-            passengers: clampIntFromDigits(shapedMeta.passengers ?? rawMeta.passengers ?? 0, 0, 999, 0),
-            amenities: normalizeWizardAmenities(rawMeta.amenities || []),
-            languages: Array.isArray(shapedMeta.languages) ? shapedMeta.languages : [],
-            experience_years: shapedMeta.experience_years ?? '',
-            transmission: shapedMeta.transmission ?? '',
-            fuel_type: shapedMeta.fuel_type ?? '',
-            engine_cc: shapedMeta.engine_cc ?? '',
-            vehicle_year: shapedMeta.vehicle_year ?? '',
-            seats: shapedMeta.seats ?? '',
-            specialization: shapedMeta.specialization ?? '',
+            ...metaForForm,
+            bedrooms: clampIntFromDigits(metaForForm.bedrooms ?? 0, 0, 99, 0),
+            bathrooms: clampIntFromDigits(metaForForm.bathrooms ?? 0, 0, 99, 0),
+            max_guests: clampIntFromDigits(metaForForm.max_guests ?? 2, 1, 999, 1),
+            area: clampIntFromDigits(metaForForm.area ?? 0, 0, 9_999_999, 0),
+            passengers: clampIntFromDigits(metaForForm.passengers ?? rawMeta.passengers ?? 0, 0, 999, 0),
+            amenities: filterAmenitiesForPartnerCategory(
+              cat?.slug || '',
+              normalizeWizardAmenities(rawMeta.amenities || []),
+            ),
+            languages: Array.isArray(metaForForm.languages) ? metaForForm.languages : [],
+            experience_years: metaForForm.experience_years ?? '',
+            transmission: metaForForm.transmission ?? '',
+            fuel_type: metaForForm.fuel_type ?? '',
+            engine_cc: metaForForm.engine_cc ?? '',
+            vehicle_year: metaForForm.vehicle_year ?? '',
+            seats: metaForForm.seats ?? '',
+            specialization: metaForForm.specialization ?? '',
+            group_size_min: clampIntFromDigits(
+              metaForForm.group_size_min ?? 1,
+              1,
+              999,
+              1,
+            ),
+            group_size_max: clampIntFromDigits(
+              metaForForm.group_size_max ?? Math.max(metaForForm.group_size_min ?? 1, 10),
+              1,
+              999,
+              Math.max(clampIntFromDigits(metaForForm.group_size_min ?? 1, 1, 999, 1), 10),
+            ),
           },
           seasonalPricing: seasonal || listing.seasonalPricing || listing.seasonalPrices || [],
         })
@@ -584,6 +630,13 @@ export default function PremiumListingWizard() {
       }
 
       const categorySlug = listingCategorySlug
+      const tourCat = isTourListingCategory(categorySlug)
+      const bookingDaysPayload = tourCat
+        ? { minBookingDays: 1, maxBookingDays: 730 }
+        : {
+            minBookingDays: parseInt(formData.minBookingDays, 10) || 1,
+            maxBookingDays: parseInt(formData.maxBookingDays, 10) || 90,
+          }
       const descTranslations = mergeDescriptionTranslationsForSave(formData, language)
       const descriptionDb = buildListingDescriptionForDb(
         { ...formData, metadata: { ...formData.metadata, description_translations: descTranslations } },
@@ -598,6 +651,7 @@ export default function PremiumListingWizard() {
         // Update existing draft/listing
         const payload = {
           ...formData,
+          ...bookingDaysPayload,
           description: descriptionDb,
           status: formData.status || 'INACTIVE',
           available: false,
@@ -688,6 +742,13 @@ export default function PremiumListingWizard() {
       }
       
       const categorySlug = listingCategorySlug
+      const tourCat = isTourListingCategory(categorySlug)
+      const bookingDaysPayload = tourCat
+        ? { minBookingDays: 1, maxBookingDays: 730 }
+        : {
+            minBookingDays: parseInt(formData.minBookingDays, 10) || 1,
+            maxBookingDays: parseInt(formData.maxBookingDays, 10) || 90,
+          }
       const descTranslations = mergeDescriptionTranslationsForSave(formData, language)
       const descriptionDb = buildListingDescriptionForDb(
         { ...formData, metadata: { ...formData.metadata, description_translations: descTranslations } },
@@ -708,8 +769,7 @@ export default function PremiumListingWizard() {
         commissionRate: Number.isFinite(parseFloat(formData.commissionRate))
           ? parseFloat(formData.commissionRate)
           : partnerCommissionRate,
-        minBookingDays: parseInt(formData.minBookingDays) || 1,
-        maxBookingDays: parseInt(formData.maxBookingDays) || 90,
+        ...bookingDaysPayload,
         metadata: publishMeta,
       }
       
@@ -827,8 +887,11 @@ export default function PremiumListingWizard() {
       )
     }
 
+    if (isTransportListingCategory(slug)) {
+      return null
+    }
+
     if (
-      slug === 'vehicles' ||
       slug === 'nanny' ||
       slug === 'babysitter' ||
       isPartnerListingHousingCategory(slug, formData.categoryName)
@@ -872,6 +935,11 @@ export default function PremiumListingWizard() {
                   const cat = categories.find((c) => c.id === value)
                   const slug = String(cat?.slug || '').toLowerCase()
                   setFormData((prev) => {
+                    const baseMeta = { ...prev.metadata }
+                    const amenityFiltered = filterAmenitiesForPartnerCategory(
+                      slug,
+                      Array.isArray(baseMeta.amenities) ? baseMeta.amenities : [],
+                    )
                     const next = {
                       ...prev,
                       categoryId: value,
@@ -879,13 +947,37 @@ export default function PremiumListingWizard() {
                     }
                     if (isTransportListingCategory(slug)) {
                       next.metadata = {
-                        ...prev.metadata,
+                        ...baseMeta,
                         bedrooms: 0,
                         bathrooms: 0,
                         max_guests: 2,
                         area: 0,
-                        amenities: [],
+                        amenities: amenityFiltered,
                         property_type: '',
+                      }
+                    } else if (isTourListingCategory(slug)) {
+                      const { discounts: _d, ...restMeta } = baseMeta
+                      const gmin =
+                        restMeta.group_size_min != null && restMeta.group_size_min !== ''
+                          ? clampIntFromDigits(restMeta.group_size_min, 1, 999, 1)
+                          : 1
+                      let gmax =
+                        restMeta.group_size_max != null && restMeta.group_size_max !== ''
+                          ? clampIntFromDigits(restMeta.group_size_max, 1, 999, Math.max(gmin, 10))
+                          : Math.max(gmin, 10)
+                      if (gmax < gmin) gmax = gmin
+                      next.minBookingDays = 1
+                      next.maxBookingDays = 730
+                      next.metadata = {
+                        ...restMeta,
+                        group_size_min: gmin,
+                        group_size_max: gmax,
+                        amenities: filterAmenitiesForPartnerCategory(slug, baseMeta.amenities || []),
+                      }
+                    } else {
+                      next.metadata = {
+                        ...baseMeta,
+                        amenities: filterAmenitiesForPartnerCategory(slug, baseMeta.amenities || []),
                       }
                     }
                     return next
@@ -905,6 +997,18 @@ export default function PremiumListingWizard() {
               </Select>
             </div>
 
+            {transportWizard && formData.categoryId ? (
+              <PartnerListingSearchMetadataFields
+                categorySlug={listingCategorySlug}
+                categoryNameFallback={formData.categoryName}
+                language={language}
+                metadata={formData.metadata}
+                updateMetadata={updateMetadata}
+                variant="wizard"
+              />
+            ) : null}
+
+            {formData.categoryId && !hideAirbnbImportBlock ? (
             <PartnerListingImportBlock
               categoryId={formData.categoryId}
               variant="wizard"
@@ -913,11 +1017,16 @@ export default function PremiumListingWizard() {
               onApplyPreview={(preview) => {
                 setFormData((prev) => {
                   const { nextFormData, customDistrictsToAdd } = mergeAirbnbPreviewWizard(prev, preview)
+                  const cat = categories.find((c) => c.id === prev.categoryId)
+                  const slug = String(cat?.slug || '').toLowerCase()
                   const merged = {
                     ...nextFormData,
                     metadata: {
                       ...nextFormData.metadata,
-                      amenities: normalizeWizardAmenities(nextFormData.metadata?.amenities || []),
+                      amenities: filterAmenitiesForPartnerCategory(
+                        slug,
+                        normalizeWizardAmenities(nextFormData.metadata?.amenities || []),
+                      ),
                     },
                   }
                   if (customDistrictsToAdd.length) {
@@ -935,6 +1044,7 @@ export default function PremiumListingWizard() {
                 })
               }}
             />
+            ) : null}
             
             <div>
               <Label className="text-base font-medium text-slate-800">{t('listingTitleLabel')}</Label>
@@ -1139,15 +1249,19 @@ export default function PremiumListingWizard() {
                   ? t('addDetailsForTransport')
                   : `${t('addDetailsFor')} ${getCategoryName(listingCategorySlug, language) || formData.categoryName || ''}.`}
               </p>
+              {transportWizard ? (
+                <p className="text-sm text-slate-500 leading-relaxed">{t('wizardVehicleSpecsOnStep1Reminder')}</p>
+              ) : null}
             </div>
 
             {renderSpecs()}
 
-            {!transportWizard && (
+            {partnerAmenitySlugs.length > 0 && (
               <div className="space-y-3 pt-2">
                 <Label className="text-base font-medium text-slate-800">{t('amenities')}</Label>
+                <p className="text-xs leading-relaxed text-slate-500">{t(amenitiesHintKey)}</p>
                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-                  {AMENITY_SLUGS.map((slug) => {
+                  {partnerAmenitySlugs.map((slug) => {
                     const selected = formData.metadata.amenities?.includes(slug)
                     return (
                       <Button
@@ -1187,12 +1301,14 @@ export default function PremiumListingWizard() {
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <Label className="text-base font-medium text-slate-800">
-                  {transportWizard ? t('basePriceVehicle') : t('basePrice')}
+                  {transportWizard ? t('basePriceVehicle') : toursWizard ? t('basePriceTour') : t('basePrice')}
                 </Label>
                 <Input
                   inputMode="numeric"
                   autoComplete="off"
-                  placeholder={t('basePricePlaceholder')}
+                  placeholder={
+                    toursWizard ? t('basePriceTourPlaceholder') : t('basePricePlaceholder')
+                  }
                   value={formData.basePriceThb}
                   onChange={(e) => updateField('basePriceThb', sanitizeThbDigits(e.target.value))}
                   className="mt-2 h-12"
@@ -1210,39 +1326,84 @@ export default function PremiumListingWizard() {
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
                 <Label className="text-base font-medium text-slate-800">
-                  {transportWizard ? t('minStayVehicle') : t('minStay')}
+                  {transportWizard
+                    ? t('minStayVehicle')
+                    : toursWizard
+                      ? t('minStayTourGroup')
+                      : t('minStay')}
                 </Label>
                 <Input
                   inputMode="numeric"
                   autoComplete="off"
-                  value={String(formData.minBookingDays)}
-                  onChange={(e) =>
-                    updateField('minBookingDays', clampIntFromDigits(e.target.value, 1, 365, 1))
+                  value={
+                    toursWizard
+                      ? String(formData.metadata?.group_size_min ?? 1)
+                      : String(formData.minBookingDays)
                   }
+                  onChange={(e) => {
+                    if (toursWizard) {
+                      const v = clampIntFromDigits(e.target.value, 1, 999, 1)
+                      updateMetadata('group_size_min', v)
+                      const curMax = clampIntFromDigits(
+                        formData.metadata?.group_size_max ?? v,
+                        1,
+                        999,
+                        Math.max(v, 10),
+                      )
+                      if (curMax < v) updateMetadata('group_size_max', v)
+                    } else {
+                      updateField('minBookingDays', clampIntFromDigits(e.target.value, 1, 365, 1))
+                    }
+                  }}
                   className="mt-2 h-12"
                 />
               </div>
               <div>
                 <Label className="text-base font-medium text-slate-800">
-                  {transportWizard ? t('maxStayVehicle') : t('maxStay')}
+                  {transportWizard
+                    ? t('maxStayVehicle')
+                    : toursWizard
+                      ? t('maxStayTourGroup')
+                      : t('maxStay')}
                 </Label>
                 <Input
                   inputMode="numeric"
                   autoComplete="off"
-                  value={String(formData.maxBookingDays)}
-                  onChange={(e) =>
-                    updateField('maxBookingDays', clampIntFromDigits(e.target.value, 1, 730, 90))
+                  value={
+                    toursWizard
+                      ? String(
+                          formData.metadata?.group_size_max ??
+                            Math.max(formData.metadata?.group_size_min ?? 1, 10),
+                        )
+                      : String(formData.maxBookingDays)
                   }
+                  onChange={(e) => {
+                    if (toursWizard) {
+                      const gmin = clampIntFromDigits(formData.metadata?.group_size_min ?? 1, 1, 999, 1)
+                      const raw = clampIntFromDigits(e.target.value, 1, 999, Math.max(gmin, 10))
+                      updateMetadata('group_size_max', Math.max(gmin, raw))
+                    } else {
+                      updateField('maxBookingDays', clampIntFromDigits(e.target.value, 1, 730, 90))
+                    }
+                  }}
                   className="mt-2 h-12"
                 />
               </div>
             </div>
+            {toursWizard ? (
+              <p className="text-xs leading-relaxed text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                {t('partnerTourMinMaxBackendHint')}
+              </p>
+            ) : null}
 
-            <PartnerListingDurationDiscountFields
-              metadata={formData.metadata}
-              language={language}
-              onChangeDiscount={updateDurationDiscountPercent}
-            />
+            {!toursWizard ? (
+              <PartnerListingDurationDiscountFields
+                metadata={formData.metadata}
+                language={language}
+                onChangeDiscount={updateDurationDiscountPercent}
+                rentalPeriodDays={transportWizard}
+              />
+            ) : null}
 
             <div className="space-y-3">
               <Label className="text-base font-medium text-slate-800">{t('seasonalPricing')}</Label>
@@ -1468,7 +1629,11 @@ export default function PremiumListingWizard() {
               </div>
             )}
 
-            <PartnerCalendarEducationCard variant="wizard" className="mt-8" />
+            <PartnerCalendarEducationCard
+              variant="wizard"
+              className="mt-8"
+              manualCalendarOnly={transportWizard}
+            />
           </div>
         )
       

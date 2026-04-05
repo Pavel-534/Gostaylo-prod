@@ -147,7 +147,9 @@ export async function POST(request) {
       metadata,
       commissionRate: bodyCommissionRate,
       status: bodyStatus,
-      available: bodyAvailable
+      available: bodyAvailable,
+      minBookingDays,
+      maxBookingDays,
     } = body;
 
     const uid = ownerId || owner_id;
@@ -171,23 +173,31 @@ export async function POST(request) {
     const status = bodyStatus || (isDraft ? 'INACTIVE' : 'PENDING');
     const available = bodyAvailable !== undefined ? bodyAvailable : false;
     
+    const insertRow = {
+      owner_id: uid,
+      category_id: categoryId,
+      status,
+      title,
+      description: description || '',
+      district: district || null,
+      base_price_thb: parseFloat(price) || 0,
+      commission_rate: commissionRate,
+      images: images || [],
+      cover_image: images?.[0] || null,
+      metadata: metadata || {},
+      available,
+    };
+    if (minBookingDays !== undefined && minBookingDays !== null) {
+      insertRow.min_booking_days = parseInt(minBookingDays, 10) || 1;
+    }
+    if (maxBookingDays !== undefined && maxBookingDays !== null) {
+      insertRow.max_booking_days = parseInt(maxBookingDays, 10) || null;
+    }
+
     // Create listing
     const { data: listing, error } = await supabaseAdmin
       .from('listings')
-      .insert({
-        owner_id: uid,
-        category_id: categoryId,
-        status,
-        title,
-        description: description || '',
-        district: district || null,
-        base_price_thb: parseFloat(price) || 0,
-        commission_rate: commissionRate,
-        images: images || [],
-        cover_image: images?.[0] || null,
-        metadata: metadata || {},
-        available
-      })
+      .insert(insertRow)
       .select()
       .single();
     

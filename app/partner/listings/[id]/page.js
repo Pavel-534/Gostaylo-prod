@@ -22,8 +22,13 @@ import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText, getAmenityName } from '@/lib/translations'
-import { sanitizeThbDigits } from '@/lib/listing-wizard-numeric'
-import { AMENITY_SLUGS, normalizeWizardAmenities } from '@/lib/listing-wizard-amenities'
+import { sanitizeThbDigits, clampIntFromDigits } from '@/lib/listing-wizard-numeric'
+import {
+  normalizeWizardAmenities,
+  amenitySlugsForPartnerCategory,
+  filterAmenitiesForPartnerCategory,
+} from '@/lib/listing-wizard-amenities'
+import { isTransportListingCategory, isTourListingCategory } from '@/lib/listing-category-slug'
 import { ProxiedImage } from '@/components/proxied-image'
 import { PartnerListingImportBlock } from '@/components/partner/PartnerListingImportBlock'
 import { mergeAirbnbPreviewEdit } from '@/lib/partner/listing-import-merge'
@@ -34,6 +39,7 @@ import {
 import {
   normalizePartnerListingMetadata,
   partnerMetadataStateFromServer,
+  mergeTourGroupMetadataFromListingColumns,
 } from '@/lib/partner/listing-wizard-metadata'
 import {
   pickPartnerFormDescription,
@@ -166,6 +172,22 @@ export default function EditListing({ params }) {
         
         const rawMeta = l.metadata && typeof l.metadata === 'object' ? { ...l.metadata } : {}
         const shaped = partnerMetadataStateFromServer(rawMeta)
+        const catSlug = l.category?.slug ?? ''
+        let metadataLoaded = {
+          ...shaped,
+          amenities: filterAmenitiesForPartnerCategory(
+            catSlug,
+            normalizeWizardAmenities(rawMeta.amenities || []),
+          ),
+        }
+        if (isTourListingCategory(catSlug)) {
+          delete metadataLoaded.discounts
+          metadataLoaded = mergeTourGroupMetadataFromListingColumns(
+            metadataLoaded,
+            l.min_booking_days ?? l.minBookingDays,
+            l.max_booking_days ?? l.maxBookingDays,
+          )
+        }
         setFormData({
           title: l.title || '',
           description: pickPartnerFormDescription(language, l.description || '', rawMeta),
@@ -175,10 +197,7 @@ export default function EditListing({ params }) {
           longitude: l.longitude != null && l.longitude !== '' ? String(l.longitude) : '',
           images: images,
           coverIndex: coverIndex >= 0 ? coverIndex : 0,
-          metadata: {
-            ...shaped,
-            amenities: normalizeWizardAmenities(rawMeta.amenities || []),
-          },
+          metadata: metadataLoaded,
         })
         
         // Seasonal prices loaded by SeasonalPriceManager from API
@@ -302,6 +321,11 @@ export default function EditListing({ params }) {
             )
           : undefined
 
+      const tourBd =
+        categorySlug && isTourListingCategory(categorySlug)
+          ? { minBookingDays: 1, maxBookingDays: 730 }
+          : {}
+
       const res = await fetch(`/api/v2/partner/listings/${listingId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -316,6 +340,7 @@ export default function EditListing({ params }) {
           images: formData.images,
           coverImage: coverImage,
           metadata,
+          ...tourBd,
         })
       })
       
@@ -391,6 +416,11 @@ export default function EditListing({ params }) {
           : {}),
       }
 
+      const tourBd =
+        categorySlug && isTourListingCategory(categorySlug)
+          ? { minBookingDays: 1, maxBookingDays: 730 }
+          : {}
+
       // Save and change status to PENDING
       const res = await fetch(`/api/v2/partner/listings/${listingId}`, {
         method: 'PATCH',
@@ -407,6 +437,7 @@ export default function EditListing({ params }) {
           coverImage: coverImage,
           status: 'PENDING',
           metadata: normalizePartnerListingMetadata(mergedMeta, categorySlug),
+          ...tourBd,
         })
       })
       
@@ -586,6 +617,42 @@ export default function EditListing({ params }) {
     INACTIVE: 'bg-slate-100 text-slate-700',
   }
 
+  const categorySlug = listing?.category?.slug ?? ''
+  const toursCategory = isTourListingCategory(categorySlug)
+  const hideAirbnbImportBlock = isTransportListingCategory(categorySlug) || toursCategory
+  const partnerAmenitySlugs = amenitySlugsForPartnerCategory(categorySlug)
+  const showExternalCalendarSync = !isTransportListingCategory(categorySlug)
+  const vehicleRentalDayCopy = isTransportListingCategory(categorySlug)
+  const amenitiesHintKey = vehicleRentalDayCopy
+    ? 'partnerEdit_amenitiesHintVehicle'
+    : toursCategory
+      ? 'partnerEdit_amenitiesHintTour'
+      : 'partnerEdit_amenitiesHint'
+  const basePriceLabelKey = vehicleRentalDayCopy
+    ? 'basePriceVehicle'
+    : toursCategory
+      ? 'basePriceTour'
+      : 'basePrice'
+  const basePricePlaceholderKey = toursCategory ? 'basePriceTourPlaceholder' : 'basePricePlaceholder'
+
+  const searchMetadataFields =
+    listing?.category?.slug != null && listing.category.slug !== '' ? (
+      <PartnerListingSearchMetadataFields
+        categorySlug={listing.category.slug}
+        categoryNameFallback={listing.category?.name}
+        language={language}
+        metadata={formData.metadata}
+        updateMetadata={(field, value) =>
+          setFormData((fd) => ({
+            ...fd,
+            metadata: { ...fd.metadata, [field]: value },
+          }))
+        }
+        variant="edit"
+        showWizardExtraHousingFields={false}
+      />
+    ) : null
+
   return (
     <div className="min-h-screen bg-slate-50 pb-24 lg:pb-8">
       {/* Header */}
@@ -648,7 +715,7 @@ export default function EditListing({ params }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {listing?.categoryId && (
+            {listing?.categoryId && !hideAirbnbImportBlock && (
               <PartnerListingImportBlock
                 categoryId={listing.categoryId}
                 variant="edit"
@@ -657,18 +724,24 @@ export default function EditListing({ params }) {
                 onApplyPreview={(preview) => {
                   setFormData((prev) => {
                     const { nextFormData } = mergeAirbnbPreviewEdit(prev, preview)
+                    const slug = listing?.category?.slug ?? ''
                     return {
                       ...nextFormData,
                       basePriceThb: sanitizeThbDigits(nextFormData.basePriceThb || ''),
                       metadata: {
                         ...nextFormData.metadata,
-                        amenities: normalizeWizardAmenities(nextFormData.metadata?.amenities || []),
+                        amenities: filterAmenitiesForPartnerCategory(
+                          slug,
+                          normalizeWizardAmenities(nextFormData.metadata?.amenities || []),
+                        ),
                       },
                     }
                   })
                 }}
               />
             )}
+
+            {vehicleRentalDayCopy && searchMetadataFields}
 
             <div className="space-y-2">
               <Label htmlFor="title" className="text-sm font-medium text-slate-800">
@@ -735,28 +808,16 @@ export default function EditListing({ params }) {
               />
             </div>
 
-            {listing?.category?.slug ? (
-              <PartnerListingSearchMetadataFields
-                categorySlug={listing.category.slug}
-                categoryNameFallback={listing.category?.name}
-                language={language}
-                metadata={formData.metadata}
-                updateMetadata={(field, value) =>
-                  setFormData((fd) => ({
-                    ...fd,
-                    metadata: { ...fd.metadata, [field]: value },
-                  }))
-                }
-                variant="edit"
-                showWizardExtraHousingFields={false}
-              />
-            ) : null}
+            {!vehicleRentalDayCopy && searchMetadataFields}
 
             <div className="space-y-3">
               <Label className="text-sm font-medium text-slate-800">{t('amenities')}</Label>
-              <p className="text-xs leading-relaxed text-slate-500">{t('partnerEdit_amenitiesHint')}</p>
+              <p className="text-xs leading-relaxed text-slate-500">{t(amenitiesHintKey)}</p>
+              {partnerAmenitySlugs.length === 0 ? (
+                <p className="text-sm text-slate-500">{t('notSet')}</p>
+              ) : (
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
-                {AMENITY_SLUGS.map((slug) => {
+                {partnerAmenitySlugs.map((slug) => {
                   const selected =
                     Array.isArray(formData.metadata?.amenities) && formData.metadata.amenities.includes(slug)
                   return (
@@ -784,12 +845,13 @@ export default function EditListing({ params }) {
                   )
                 })}
               </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 gap-5 sm:gap-6">
               <div className="space-y-2 min-w-0">
                 <Label htmlFor="price" className="text-sm font-medium text-slate-800">
-                  {t('basePrice')}
+                  {t(basePriceLabelKey)}
                 </Label>
                 <Input
                   id="price"
@@ -799,7 +861,7 @@ export default function EditListing({ params }) {
                   onChange={(e) =>
                     setFormData({ ...formData, basePriceThb: sanitizeThbDigits(e.target.value) })
                   }
-                  placeholder={t('basePricePlaceholder')}
+                  placeholder={t(basePricePlaceholderKey)}
                   className="h-11"
                 />
               </div>
@@ -817,11 +879,75 @@ export default function EditListing({ params }) {
               </div>
             </div>
 
-            <PartnerListingDurationDiscountFields
-              metadata={formData.metadata}
-              language={language}
-              onChangeDiscount={updateDurationDiscountPercent}
-            />
+            {toursCategory ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="space-y-2 min-w-0">
+                    <Label htmlFor="tourGroupMin" className="text-sm font-medium text-slate-800">
+                      {t('minStayTourGroup')}
+                    </Label>
+                    <Input
+                      id="tourGroupMin"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={String(formData.metadata?.group_size_min ?? 1)}
+                      onChange={(e) => {
+                        const v = clampIntFromDigits(e.target.value, 1, 999, 1)
+                        setFormData((fd) => {
+                          const meta = { ...(fd.metadata || {}) }
+                          const curMax = clampIntFromDigits(
+                            meta.group_size_max ?? v,
+                            1,
+                            999,
+                            Math.max(v, 10),
+                          )
+                          meta.group_size_min = v
+                          if (curMax < v) meta.group_size_max = v
+                          return { ...fd, metadata: meta }
+                        })
+                      }}
+                      className="h-11"
+                    />
+                  </div>
+                  <div className="space-y-2 min-w-0">
+                    <Label htmlFor="tourGroupMax" className="text-sm font-medium text-slate-800">
+                      {t('maxStayTourGroup')}
+                    </Label>
+                    <Input
+                      id="tourGroupMax"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={String(
+                        formData.metadata?.group_size_max ??
+                          Math.max(formData.metadata?.group_size_min ?? 1, 10),
+                      )}
+                      onChange={(e) => {
+                        setFormData((fd) => {
+                          const meta = { ...(fd.metadata || {}) }
+                          const gmin = clampIntFromDigits(meta.group_size_min ?? 1, 1, 999, 1)
+                          const raw = clampIntFromDigits(e.target.value, 1, 999, Math.max(gmin, 10))
+                          meta.group_size_max = Math.max(gmin, raw)
+                          return { ...fd, metadata: meta }
+                        })
+                      }}
+                      className="h-11"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs leading-relaxed text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                  {t('partnerTourMinMaxBackendHint')}
+                </p>
+              </div>
+            ) : null}
+
+            {!toursCategory ? (
+              <PartnerListingDurationDiscountFields
+                metadata={formData.metadata}
+                language={language}
+                onChangeDiscount={updateDurationDiscountPercent}
+                rentalPeriodDays={vehicleRentalDayCopy}
+              />
+            ) : null}
 
             <div className="space-y-3 border-t border-slate-100 pt-5">
               <Label className="text-sm font-medium text-slate-800">{t('partnerEdit_mapSection')}</Label>
@@ -990,11 +1116,10 @@ export default function EditListing({ params }) {
           </CardContent>
         </Card>
 
-        {/* iCal: импорт занятости с Airbnb/Booking и экспорт .ics для других площадок */}
-        <CalendarSyncManager 
-          listingId={listingId}
-          onSync={() => {}}
-        />
+        {/* iCal / OTA sync — не для аренды транспорта (только ручная блокировка в календаре ниже) */}
+        {showExternalCalendarSync ? (
+          <CalendarSyncManager listingId={listingId} onSync={() => {}} />
+        ) : null}
 
         {/* Manual Availability Calendar */}
         <AvailabilityCalendar 

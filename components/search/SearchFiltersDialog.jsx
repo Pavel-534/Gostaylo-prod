@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { getSearchFilterPanelKind } from '@/lib/search/search-filter-panel-kind'
-import { AMENITY_SLUGS } from '@/lib/listing-wizard-amenities'
+import { PROPERTY_PARTNER_AMENITY_SLUGS } from '@/lib/listing-wizard-amenities'
 import { amenityTranslations } from '@/lib/translations/categories'
 import {
   LISTINGS_PRICE_SLIDER_MAX_THB,
@@ -217,7 +217,7 @@ export function SearchFiltersDialog({
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-800">{t('Удобства', 'Amenities')}</Label>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {AMENITY_SLUGS.map((slug) => {
+                  {PROPERTY_PARTNER_AMENITY_SLUGS.map((slug) => {
                     const checked = extraFilters.amenities?.includes(slug)
                     return (
                       <label

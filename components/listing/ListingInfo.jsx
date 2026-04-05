@@ -15,6 +15,7 @@ import { toPublicImageUrl } from '@/lib/public-image-url'
 import { getUIText, getListingText } from '@/lib/translations'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import { isTransportListingCategory } from '@/lib/listing-category-slug'
+import { normalizeVehicleModelYearForDisplay } from '@/lib/listing-vehicle-year'
 
 export function ListingInfo({ listing, language = 'en' }) {
   const bedrooms = listing?.metadata?.bedrooms || 0
@@ -23,7 +24,7 @@ export function ListingInfo({ listing, language = 'en' }) {
   const transportListing = isTransportListingCategory(categorySlug)
   const maxGuests = resolveListingGuestCapacity(listing)
   const area = listing?.metadata?.area || 0
-  const vehicleYear = listing?.metadata?.vehicle_year
+  const vehicleYear = normalizeVehicleModelYearForDisplay(listing?.metadata?.vehicle_year)
   
   return (
     <div className="space-y-8">
@@ -69,7 +70,7 @@ export function ListingInfo({ listing, language = 'en' }) {
               <span>{bathrooms} {getUIText('bathrooms', language)}</span>
             </div>
           )}
-          {transportListing && vehicleYear != null && String(vehicleYear).trim() !== '' && (
+          {transportListing && vehicleYear != null && (
             <div className="flex items-center gap-2 text-slate-700">
               <span>
                 {getUIText('listingModelYear', language)}:{' '}

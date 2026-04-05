@@ -84,20 +84,75 @@ export async function POST(request) {
 
     const { data: listingData } = await supabaseAdmin
       .from('listings')
-      .select('min_booking_days, title, max_capacity')
+      .select('min_booking_days, max_booking_days, title, max_capacity, metadata, category_id')
       .eq('id', listingId)
       .single();
 
-    const minStay = listingData?.min_booking_days || 1;
+    let listingCategorySlug = '';
+    if (listingData?.category_id) {
+      const { data: catRow } = await supabaseAdmin
+        .from('categories')
+        .select('slug')
+        .eq('id', listingData.category_id)
+        .maybeSingle();
+      listingCategorySlug = String(catRow?.slug || '').toLowerCase();
+    }
 
-    if (nights < minStay) {
-      return NextResponse.json({
-        success: false,
-        error: `Minimum stay for this property is ${minStay} night${minStay > 1 ? 's' : ''}. You selected ${nights} night${nights > 1 ? 's' : ''}.`,
-        code: 'MIN_STAY_VIOLATION',
-        minStay,
-        selectedNights: nights,
-      }, { status: 400 });
+    const isTourListing = listingCategorySlug === 'tours';
+
+    if (isTourListing) {
+      const meta =
+        listingData?.metadata && typeof listingData.metadata === 'object' && !Array.isArray(listingData.metadata)
+          ? listingData.metadata
+          : {};
+      let groupMin = parseInt(meta.group_size_min, 10);
+      if (!Number.isFinite(groupMin) || groupMin < 1) groupMin = 1;
+      let groupMax = parseInt(meta.group_size_max, 10);
+      const maxCap = Math.max(0, parseInt(listingData?.max_capacity, 10) || 0);
+      if (!Number.isFinite(groupMax) || groupMax < 1) {
+        groupMax = maxCap > 0 ? maxCap : 999;
+      }
+      groupMax = Math.max(groupMin, groupMax);
+      if (maxCap > 0) {
+        groupMax = Math.min(groupMax, maxCap);
+      }
+
+      if (guestsCount < groupMin) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `This tour requires at least ${groupMin} guest(s). You selected ${guestsCount}.`,
+            code: 'TOUR_GROUP_MIN_VIOLATION',
+            group_size_min: groupMin,
+            guestsCount,
+          },
+          { status: 400 },
+        );
+      }
+      if (guestsCount > groupMax) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `This tour allows at most ${groupMax} guest(s) per booking. You selected ${guestsCount}.`,
+            code: 'TOUR_GROUP_MAX_VIOLATION',
+            group_size_max: groupMax,
+            guestsCount,
+          },
+          { status: 400 },
+        );
+      }
+    } else {
+      const minStay = listingData?.min_booking_days || 1;
+
+      if (nights < minStay) {
+        return NextResponse.json({
+          success: false,
+          error: `Minimum stay for this property is ${minStay} night${minStay > 1 ? 's' : ''}. You selected ${nights} night${nights > 1 ? 's' : ''}.`,
+          code: 'MIN_STAY_VIOLATION',
+          minStay,
+          selectedNights: nights,
+        }, { status: 400 });
+      }
     }
 
     const availabilityCheck = await CalendarService.checkAvailability(listingId, checkIn, checkOut, {
@@ -176,17 +231,32 @@ export async function POST(request) {
       );
     }
 
-    const maxCap = Math.max(1, parseInt(listingData?.max_capacity, 10) || 1);
-    if (guestsCount > maxCap) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `This listing allows at most ${maxCap} guest(s) per booking.`,
-          code: 'GUESTS_EXCEED_CAPACITY',
-          max_capacity: maxCap,
-        },
-        { status: 400 }
-      );
+    const rawMaxCap = parseInt(listingData?.max_capacity, 10);
+    if (isTourListing) {
+      if (Number.isFinite(rawMaxCap) && rawMaxCap > 0 && guestsCount > rawMaxCap) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `This listing allows at most ${rawMaxCap} guest(s) per booking.`,
+            code: 'GUESTS_EXCEED_CAPACITY',
+            max_capacity: rawMaxCap,
+          },
+          { status: 400 },
+        );
+      }
+    } else {
+      const maxCap = Math.max(1, Number.isFinite(rawMaxCap) && rawMaxCap > 0 ? rawMaxCap : 1);
+      if (guestsCount > maxCap) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `This listing allows at most ${maxCap} guest(s) per booking.`,
+            code: 'GUESTS_EXCEED_CAPACITY',
+            max_capacity: maxCap,
+          },
+          { status: 400 },
+        );
+      }
     }
 
     const result = await BookingService.createBooking({

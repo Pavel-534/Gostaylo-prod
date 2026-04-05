@@ -396,6 +396,35 @@ export function DesktopBookingWidget({
             rentalPeriodMode={rentalPeriodMode}
           />
 
+          {showAskPartner && onAskPartner && !exclusiveDatesUnavailable && (
+            <div className="space-y-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onAskPartner}
+                disabled={askPartnerLoading}
+                data-testid="booking-contact-host"
+                className={`w-full h-12 text-base border-teal-200 text-teal-800 hover:bg-teal-50 ${
+                  hasUnreadFromHost ? 'border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900' : ''
+                }`}
+              >
+                <MessageCircle className="mr-2 h-4 w-4" />
+                {askPartnerLoading
+                  ? getUIText('loading', language)
+                  : hasExistingConversation
+                    ? language === 'ru'
+                      ? 'Продолжить диалог'
+                      : 'Continue chat'
+                    : getUIText('askListingQuestion', language)}
+              </Button>
+              <ChatPreviewBadge
+                preview={lastMessagePreview}
+                hasUnread={hasUnreadFromHost}
+                language={language}
+              />
+            </div>
+          )}
+
           <Button
             onClick={onBookingClick}
             disabled={!dateRange?.from || !dateRange?.to || !canInstantBook || availabilityLoading}
@@ -445,38 +474,11 @@ export function DesktopBookingWidget({
               className="w-full h-12 border-teal-300 text-teal-900 hover:bg-teal-50"
               onClick={onAskPartnerUnavailable || onAskPartner}
               disabled={askPartnerLoading}
+              data-testid="booking-contact-host-unavailable"
             >
               <MessageCircle className="mr-2 h-4 w-4" />
               {language === 'ru' ? 'Спросить у хозяина в чате' : 'Ask partner in chat'}
             </Button>
-          )}
-
-          {showAskPartner && onAskPartner && !exclusiveDatesUnavailable && (
-            <div className="space-y-1.5">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onAskPartner}
-                disabled={askPartnerLoading}
-                className={`w-full h-12 text-base border-teal-200 text-teal-800 hover:bg-teal-50 ${
-                  hasUnreadFromHost ? 'border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900' : ''
-                }`}
-              >
-                <MessageCircle className="mr-2 h-4 w-4" />
-                {askPartnerLoading
-                  ? getUIText('loading', language)
-                  : hasExistingConversation
-                    ? language === 'ru'
-                      ? 'Продолжить диалог'
-                      : 'Continue chat'
-                    : getUIText('askListingQuestion', language)}
-              </Button>
-              <ChatPreviewBadge
-                preview={lastMessagePreview}
-                hasUnread={hasUnreadFromHost}
-                language={language}
-              />
-            </div>
           )}
 
           {(!dateRange?.from || !dateRange?.to) && (
