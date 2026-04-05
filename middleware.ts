@@ -87,26 +87,31 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Fail closed if server is misconfigured
+  /** Нет сессии / битая сессия → единая точка входа (см. TECHNICAL_MANIFESTO). */
+  function redirectToLogin(): NextResponse {
+    const dest = pathname + request.nextUrl.search;
+    const url = new URL('/login', request.url);
+    url.searchParams.set('redirect', dest);
+    return NextResponse.redirect(url);
+  }
+
+  // Fail closed if server is misconfigured (браузерным маршрутам — на /login)
   if (!JWT_SECRET) {
-    return NextResponse.json({ success: false, error: 'Server misconfigured: JWT_SECRET is missing' }, { status: 500 });
+    return redirectToLogin();
   }
   
   // Protected route - verify authentication
   const token = request.cookies.get('gostaylo_session')?.value;
   
   if (!token) {
-    // No token - redirect to home
-    return NextResponse.redirect(new URL('/', request.url));
+    return redirectToLogin();
   }
   
   // Verify token
   const decoded = await verifyToken(token);
   
   if (!decoded) {
-    // Invalid token - redirect to home
-    const response = NextResponse.redirect(new URL('/', request.url));
-    // Clear invalid cookie
+    const response = redirectToLogin();
     response.cookies.delete('gostaylo_session');
     return response;
   }
@@ -115,7 +120,7 @@ export async function middleware(request: NextRequest) {
   const allowedRoles = PROTECTED_ROUTES[matchedRoute as keyof typeof PROTECTED_ROUTES];
   
   if (!allowedRoles.includes(decoded.role as any)) {
-    // Unauthorized role - redirect to home
+    // Сессия есть, но роль не подходит для зоны — на главную (не путать с «нет сессии»)
     return NextResponse.redirect(new URL('/', request.url));
   }
   

@@ -30,7 +30,7 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 | **ORM / schema** | **Prisma `schema.prisma`** as **documentation and typing reference** for tables/enums — **not** the primary runtime data layer |
 | **Realtime / storage** | Supabase (where configured): Realtime, Storage |
 | **Email** | Resend (when `RESEND_API_KEY` is set) |
-| **FX / комиссия (канон)** | **`lib/services/currency.service.js`** (`getDisplayRateMap`, `resolveThbPerUsdt`, `resolveDefaultCommissionPercent`, `getEffectiveRate`, `resolveChatInvoiceRateMultiplier` для чат-счетов). **`lib/services/currency-helper.js`** — тонкий re-export (deprecated). **`lib/services/currency-last-resort.js`** — env / `general.fallbackThbPerUsdt`, **`CHAT_INVOICE_RATE_MULTIPLIER`**, платформенный дефолт множителя чата — без литералов курсов/комиссий в `currency.service`. Таблица **`exchange_rates`**, ExchangeRate-API v6. |
+| **FX / комиссия (канон)** | **`lib/services/currency.service.js`** (`getDisplayRateMap`, `resolveThbPerUsdt`, `resolveDefaultCommissionPercent`, `getEffectiveRate`, `resolveChatInvoiceRateMultiplier` для чат-счетов). **`lib/services/currency-last-resort.js`** — env / `general.fallbackThbPerUsdt`, **`CHAT_INVOICE_RATE_MULTIPLIER`**, платформенный дефолт множителя чата — без литералов курсов/комиссий в `currency.service`. Таблица **`exchange_rates`**, ExchangeRate-API v6. |
 | **Deploy** | Typical: Vercel + Supabase project |
 
 ---
@@ -95,15 +95,17 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 - **Партнёрский ввод:** форма «Скидки за длительность» (`PartnerListingDurationDiscountFields`) на `/partner/listings/new` и `/partner/listings/[id]` пишет **`weekly` / `monthly`** (через `applyDurationDiscountField` / `duration-discount-helpers`).
 - **Публичный UI:** блок **«Special offers»** (`DurationDiscountOffersBlock` в `components/listing/BookingWidget.jsx`) показывает настроенные уровни **до** выбора дат (включая legacy-пороги **3+, 5+** и т.д., не только 7/30); после выбора дат — разбивка цены, строка скидки за длительность и усиленная строка **«Итого»**, если применилась скидка (длительность или сезонная скидка по ставкам).
 - **Транспорт, яхты и туры (подписи):** **`getListingRentalPeriodMode`** в `lib/listing-booking-ui.js` — режим **`day`** для **vehicles**, **yacht/boat** в slug и **tours** / подстроки **tour**; в виджете бронирования — **сутки/дни**, не «ночи».
+- **Туры — размер группы и дни в БД:** лимит гостей задаётся в **`listings.metadata.group_size_min` / `group_size_max`**; при создании брони **`POST /api/v2/bookings`** для `categories.slug === 'tours'` проверяется **`guestsCount`**, а не длина периода против min/max дней. Колонки **`min_booking_days` / `max_booking_days`** для туров в партнёрском потоке выставляются в **1 / 730** (не семантика «группа»). Миграция старых значений из колонок в metadata: **`mergeTourGroupMetadataFromListingColumns`** в **`lib/partner/listing-wizard-metadata.js`**. Подробная таблица — **`docs/TECHNICAL_MANIFESTO.md`** §3.
+- **Чат:** отправка сообщений с клиента — **`POST /api/v2/chat/messages`**. Роута **`/api/messages`** в App Router нет; системные сообщения о статусе брони пишет сервер через **`syncBookingStatusToConversationChat`** (**`lib/booking-status-chat-sync.js`**), а не отдельный устаревший HTTP-вызов с фронта.
 
 ### Currency System
 
-- **Канон:** один серверный модуль **`lib/services/currency.service.js`** (курсы, USDT, дефолтная комиссия, **`getEffectiveRate`** с **`resolveChatInvoiceRateMultiplier`** для счетов в чате). Файл **`lib/services/currency-helper.js`** помечен **@deprecated** и реэкспортит API для старых импортов.
+- **Канон:** один серверный модуль **`lib/services/currency.service.js`** (курсы, USDT, дефолтная комиссия, **`getEffectiveRate`** с **`resolveChatInvoiceRateMultiplier`** для счетов в чате). Устаревший реэкспорт **`currency-helper.js`** удалён — импорты только из **`currency.service.js`**.
 - **Last-resort без литералов в CurrencyService:** **`lib/services/currency-last-resort.js`** — `FALLBACK_THB_PER_USDT`, `DEFAULT_COMMISSION_PERCENT`, `CHAT_INVOICE_RATE_MULTIPLIER`, опционально **`general.fallbackThbPerUsdt`** в `system_settings`; дефолт множителя чата — **`platformDefaultChatInvoiceRateMultiplier`**.
 - **Источник истины для курсов отображения:** таблица **`exchange_rates`** в Supabase (`rate_to_thb` = сколько THB за **1** единицу валюты). Символы и список валют селектора: `lib/currency.js` (`CURRENCIES`), API: `GET /api/v2/exchange-rates` (`app/api/v2/exchange-rates/route.js`).
 - **Серверный TTL «свежести» БД:** `EXCHANGE_RATES_DB_TTL_MS` = **6 часов** в `lib/services/currency.service.js` — пока строки не старше TTL, внешний **ExchangeRate-API** не дергается; при необходимости обновления выполняется запрос и **upsert** в `exchange_rates` (ключи `EXCHANGE_RATE_KEY` / `EXCHANGE_API_KEY`).
 - **Клиент:** `fetchExchangeRates()` в `lib/client-data.js` ходит на тот же API и кеширует `rateMap` в **localStorage** с TTL, **согласованным с 6 часами** (тот же горизонт, что и серверный TTL БД), чтобы не долбить `/api/v2/exchange-rates` на каждом монтировании.
-- **Отображение сумм:** `formatPrice(amountThb, currency, exchangeRates)` дели THB на `exchangeRates[code]` для не-THB (см. `lib/currency.js`).
+- **Отображение сумм:** `formatPrice` в **`lib/currency.js`** использует только переданный **`exchangeRates`** (как `rateMap` с API); в модуле **нет** захардкоженной таблицы курсов для отображения (удалены неиспользуемые `convertFromThb` / `convertToThb` с литералами).
 
 ### Calendar & Timezones
 
@@ -128,6 +130,12 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 - **Аватары (загрузка):** файлы уходят в **`POST /api/v2/upload`** с бакетом **`listing-images`** и префиксом пути **`avatars/{userId}/`**; в **`profiles.avatar`** сохраняется **публичный URL** объекта в Storage. Опционально в allowlist добавлен бакет **`avatars`** (изображения только). Отображение везде через **`toPublicImageUrl`** для единообразия с остальным медиа.
 - **UI-навигация к профилю:** в **`components/listing/ListingInfo.jsx`** клик по **фото/имени хозяина** ведёт на **`/u/{owner.id}`** (при наличии `owner.id`).
 - **Экраны настроек:** **рентер** — **`/renter/settings`** (имя, фото, часть notification preferences); **партнёр** — **`/partner/settings`** (фото, телефон, prefs). Локализация новых строк — **`lib/translations/ui.js`** (в т.ч. ключи **`publicProfile*`**).
+
+---
+
+## Completed roadmap items (reference)
+
+- **Category Unification & Tours Logic Fix** — **COMPLETED** (see **`ROADMAP.md`** §1.3, **`docs/TECHNICAL_MANIFESTO.md`** §3.1–3.2).
 
 ---
 

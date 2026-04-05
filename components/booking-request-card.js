@@ -3,7 +3,6 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Check, X, Loader2, CreditCard } from 'lucide-react'
 import { PriceBreakdown } from './price-breakdown'
-import { formatPrice } from '@/lib/currency'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -25,29 +24,19 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
   async function handleAccept() {
     setUpdating(true)
     try {
-      const res = await fetch(`/api/partner/bookings/${message.bookingId}/status`, {
+      const res = await fetch(`/api/v2/partner/bookings/${message.bookingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ status: 'CONFIRMED' }),
       })
 
       const data = await res.json()
-      if (data.success) {
-        // Send system message
-        await fetch('/api/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId: message.conversationId,
-            senderId: 'system',
-            senderRole: 'SYSTEM',
-            message: 'Бронирование подтверждено владельцем ✓',
-            type: 'BOOKING_CONFIRMED',
-          }),
-        })
-
+      if (data.status === 'success') {
         toast.success('Бронирование подтверждено!')
         onStatusUpdate?.('CONFIRMED')
+      } else {
+        toast.error(data.error || 'Не удалось подтвердить')
       }
     } catch (error) {
       console.error('Failed to accept booking:', error)
@@ -60,28 +49,19 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
   async function handleDecline() {
     setUpdating(true)
     try {
-      const res = await fetch(`/api/partner/bookings/${message.bookingId}/status`, {
+      const res = await fetch(`/api/v2/partner/bookings/${message.bookingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ status: 'CANCELLED' }),
       })
 
       const data = await res.json()
-      if (data.success) {
-        await fetch('/api/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId: message.conversationId,
-            senderId: 'system',
-            senderRole: 'SYSTEM',
-            message: 'Бронирование отклонено владельцем',
-            type: 'BOOKING_CANCELLED',
-          }),
-        })
-
+      if (data.status === 'success') {
         toast.info('Бронирование отклонено')
         onStatusUpdate?.('CANCELLED')
+      } else {
+        toast.error(data.error || 'Не удалось отклонить')
       }
     } catch (error) {
       console.error('Failed to decline booking:', error)

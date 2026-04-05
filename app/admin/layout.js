@@ -62,57 +62,95 @@ export default function AdminLayout({ children }) {
     }
   }, [pathname, user?.isModerator, router]);
 
+  /**
+   * Доступ: только cookie-сессия + GET /api/v2/auth/me (роль из БД).
+   * localStorage не используется для решения «пускать / не пускать».
+   * Исключение: режим «войти как» — в JWT остаётся ADMIN; UI берётся из localStorage
+   * только если сервер подтвердил роль ADMIN (см. app/admin/users/page.js).
+   */
   useEffect(() => {
+    let cancelled = false;
+
+    async function checkAdminAccess() {
+      try {
+        let parsedImpersonation = null;
+        try {
+          const raw = localStorage.getItem('gostaylo_user');
+          if (raw) parsedImpersonation = JSON.parse(raw);
+        } catch {
+          /* ignore */
+        }
+
+        const res = await fetch('/api/v2/auth/me', { credentials: 'include' });
+        const data = await res.json().catch(() => ({}));
+
+        if (cancelled) return;
+
+        if (!res.ok || !data.success || !data.user) {
+          const loc = typeof window !== 'undefined' ? window.location : null;
+          const path = loc ? encodeURIComponent(`${loc.pathname || ''}${loc.search || ''}`) : '';
+          router.replace(path ? `/login?redirect=${path}` : '/login');
+          return;
+        }
+
+        const u = data.user;
+        const serverRole = String(u.role || '').toUpperCase();
+
+        if (!['ADMIN', 'MODERATOR'].includes(serverRole)) {
+          router.replace('/');
+          return;
+        }
+
+        if (parsedImpersonation?.isImpersonated && serverRole === 'ADMIN') {
+          const r = String(parsedImpersonation.role || '').toUpperCase();
+          setUser({
+            id: parsedImpersonation.id,
+            email: parsedImpersonation.email,
+            role: r,
+            name: parsedImpersonation.name || parsedImpersonation.email || '',
+            isModerator: r === 'MODERATOR' || parsedImpersonation.isModerator === true,
+            isImpersonated: true,
+          });
+          setIsImpersonating(true);
+          try {
+            const saved = localStorage.getItem('gostaylo_original_admin');
+            setOriginalAdmin(saved ? JSON.parse(saved) : null);
+          } catch {
+            setOriginalAdmin(null);
+          }
+        } else {
+          setUser({
+            id: u.id,
+            email: u.email,
+            role: serverRole,
+            name: u.name || u.email || '',
+            isModerator: serverRole === 'MODERATOR' || u.isModerator === true,
+          });
+          setIsImpersonating(false);
+          setOriginalAdmin(null);
+          try {
+            localStorage.setItem('gostaylo_user', JSON.stringify(u));
+          } catch {
+            /* ignore */
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check admin access:', error);
+        if (!cancelled) router.replace('/login');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
     checkAdminAccess();
-    // Set initial sidebar state based on screen width
     if (typeof window !== 'undefined') {
       setSidebarOpen(window.innerWidth >= 1024);
     }
-  }, []);
 
-  const checkAdminAccess = async () => {
-    try {
-      const storedUser = localStorage.getItem('gostaylo_user');
-      if (storedUser) {
-        const parsed = JSON.parse(storedUser);
-        const isModerator = parsed.role === 'MODERATOR' || parsed.isModerator === true;
-
-        if (parsed.role === 'ADMIN' || parsed.role === 'MODERATOR') {
-          const userWithModerator = { ...parsed, isModerator };
-          setUser(userWithModerator);
-
-          if (isModerator) {
-            const currentPath = window.location.pathname;
-            if (MODERATOR_RESTRICTED_PREFIXES.some((path) => currentPath.startsWith(path))) {
-              // Redirect moderator away from restricted pages
-              window.location.href = '/admin/dashboard';
-              return;
-            }
-          }
-          
-          // Check for impersonation state
-          if (parsed.isImpersonated) {
-            setIsImpersonating(true);
-            const savedAdmin = localStorage.getItem('gostaylo_original_admin');
-            if (savedAdmin) {
-              setOriginalAdmin(JSON.parse(savedAdmin));
-            }
-          }
-          setLoading(false);
-          return;
-        }
-      }
-      
-      router.push('/');
-      return;
-      
-    } catch (error) {
-      console.error('Failed to check admin access:', error);
-      router.push('/');
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   const handleReturnToAdmin = () => {
     if (originalAdmin) {
@@ -123,10 +161,14 @@ export default function AdminLayout({ children }) {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/v2/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch {
+      /* ignore */
+    }
     localStorage.removeItem('gostaylo_user');
     localStorage.removeItem('gostaylo_original_admin');
-    // Force full page reload
     window.location.href = '/';
   };
 

@@ -107,30 +107,6 @@ export async function POST(request) {
         }, { status: 500 })
       }
       
-      // Send automated confirmation message to conversation
-      const booking = confirmData.data.booking
-      const listingId = booking?.listingId
-      
-      if (listingId) {
-        // Send system message to chat
-        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/messages`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId: `conv-${listingId}-${booking.renterId}`,
-            senderId: 'system',
-            senderRole: 'SYSTEM',
-            message: `✅ Крипто-платёж подтверждён! TXID: ${txid.slice(0, 20)}... | Статус бронирования: ОПЛАЧЕНО`,
-            type: 'PAYMENT_CONFIRMED',
-            metadata: {
-              txid,
-              amount: verification.data.amount,
-              confirmations: verification.data.confirmations,
-            },
-          }),
-        }).catch(err => console.log('[CRYPTO] Failed to send chat message:', err.message))
-      }
-      
       // Mock Telegram notification
       console.log(`[TELEGRAM] 💰 Крипто-платёж подтверждён для бронирования #${bookingId}!`)
       

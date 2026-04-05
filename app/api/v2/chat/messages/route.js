@@ -199,6 +199,13 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 })
   }
 
+  // Клиент не может подменить отправителя — игнорируем поля, если прислали.
+  if (body && typeof body === 'object') {
+    delete body.sender_id
+    delete body.sender_role
+    delete body.sender_name
+  }
+
   const {
     conversationId,
     content: bodyContent,
@@ -253,7 +260,10 @@ export async function POST(request) {
       ['booking_confirmed', 'booking_declined'].includes(finalMetadata?.system_key) &&
       userParticipatesInConversation(userId, conversation)
     if (!allowPartnerPassport && !allowPartnerBooking) {
-      return NextResponse.json({ success: false, error: 'Only staff can send system messages' }, { status: 403 })
+      return NextResponse.json(
+        { success: false, error: 'System messages are restricted to staff or allowed partner flows' },
+        { status: 403 },
+      )
     }
     if (allowPartnerPassport) {
       if (!content || !String(content).trim()) {
@@ -440,7 +450,11 @@ export async function POST(request) {
   if (notifyTelegram && recipientTelegramId) {
     const recipRow = await fetchProfileIdByTelegramChatId(recipientTelegramId)
     const recipId = recipRow?.id
-    if (recipId) {
+    const telegramTargetOk =
+      recipId &&
+      userParticipatesInConversation(recipId, conversation) &&
+      String(recipId) !== String(userId)
+    if (telegramTargetOk) {
       telegramSent = await sendNewMessageTelegramPing({
         recipientTelegramChatId: recipientTelegramId,
         recipientUserId: recipId,

@@ -70,64 +70,85 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
   }, [onMessageUpdate])
 
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || !supabaseUrl || !supabaseAnonKey) return;
 
-    const channel = supabase
-      .channel(`messages:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`
-        },
-        (payload) => {
-          const newMessage = payload.new;
-          setMessages(prev => {
-            if (prev.some(m => m.id === newMessage.id)) {
-              return prev;
+    let cancelled = false;
+    let attempt = 0;
+    let retryTimer = null;
+
+    const subscribeOnce = () => {
+      if (cancelled) return;
+
+      const channel = supabase
+        .channel(`messages:${conversationId}:${attempt}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${conversationId}`,
+          },
+          (payload) => {
+            const newMessage = payload.new;
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === newMessage.id)) {
+                return prev;
+              }
+              return [...prev, newMessage];
+            });
+            if (onNewMessageRef.current) {
+              onNewMessageRef.current(newMessage);
             }
-            return [...prev, newMessage];
-          });
-          if (onNewMessageRef.current) {
-            onNewMessageRef.current(newMessage);
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`
-        },
-        (payload) => {
-          const row = payload.new
-          if (onMessageUpdateRef.current) {
-            onMessageUpdateRef.current(row)
-          }
-        }
-      )
-      .on('presence', { event: 'sync' }, () => {
-        setIsConnected(true);
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${conversationId}`,
+          },
+          (payload) => {
+            const row = payload.new;
+            if (onMessageUpdateRef.current) {
+              onMessageUpdateRef.current(row);
+            }
+          },
+        )
+        .on('presence', { event: 'sync' }, () => {
           setIsConnected(true);
-          setError(null);
-        } else if (status === 'CHANNEL_ERROR') {
-          setError('Connection failed');
-          setIsConnected(false);
-        }
-      });
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            setIsConnected(true);
+            setError(null);
+            attempt = 0;
+            return;
+          }
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            setError('Realtime reconnecting…');
+            setIsConnected(false);
+            if (cancelled) return;
+            supabase.removeChannel(channel);
+            const delay = Math.min(30_000, 1000 * 2 ** Math.min(attempt, 5));
+            attempt += 1;
+            retryTimer = setTimeout(subscribeOnce, delay);
+          }
+        });
 
-    channelRef.current = channel;
+      channelRef.current = channel;
+    };
+
+    subscribeOnce();
 
     return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
     };
   }, [conversationId]);
