@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 
 // Mock Trongrid API verification
 // In production: Use real Trongrid API or Tatum API
@@ -55,10 +56,24 @@ async function verifyTronTransaction(txid, expectedAmount, targetWallet) {
 
 export async function POST(request) {
   try {
-    const body = await request.json()
+    let body
+    try {
+      body = await request.json()
+    } catch (parseErr) {
+      void notifySystemAlert(
+        `🔌 <b>Webhook: crypto/confirm</b> — невалидный JSON\n<code>${escapeSystemAlertHtml(parseErr?.message || parseErr)}</code>`,
+      )
+      return NextResponse.json(
+        { success: false, error: 'Invalid JSON body' },
+        { status: 400 },
+      )
+    }
     const { txid, bookingId, expectedAmount, targetWallet } = body
     
     if (!txid || !bookingId) {
+      void notifySystemAlert(
+        `🔌 <b>Webhook: crypto/confirm</b> — некорректное тело (нет txid/bookingId)\n<code>${escapeSystemAlertHtml(JSON.stringify(body).slice(0, 500))}</code>`,
+      )
       return NextResponse.json(
         { success: false, error: 'Missing txid or bookingId' },
         { status: 400 }
@@ -100,6 +115,11 @@ export async function POST(request) {
       
       if (!confirmData.success) {
         console.error('[CRYPTO CONFIRM] Failed to update booking:', confirmData.error)
+        void notifySystemAlert(
+          `🔌 <b>Webhook: crypto/confirm</b> — верификация OK, бронь не обновилась\n` +
+            `booking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n` +
+            `<code>${escapeSystemAlertHtml(String(confirmData.error || '').slice(0, 600))}</code>`,
+        )
         return NextResponse.json({
           success: false,
           error: 'Payment verified but failed to update booking',
@@ -128,6 +148,10 @@ export async function POST(request) {
       
     } catch (apiError) {
       console.error('[CRYPTO CONFIRM] API call error:', apiError)
+      void notifySystemAlert(
+        `🔌 <b>Webhook: crypto/confirm</b> — сбой вызова payment API\n` +
+          `<code>${escapeSystemAlertHtml(apiError?.message || apiError)}</code>`,
+      )
       return NextResponse.json({
         success: false,
         error: 'Failed to connect to payment API',
@@ -137,6 +161,9 @@ export async function POST(request) {
     
   } catch (error) {
     console.error('Crypto webhook error:', error)
+    void notifySystemAlert(
+      `🔌 <b>Webhook: crypto/confirm</b> — необработанная ошибка\n<code>${escapeSystemAlertHtml(error?.message || error)}</code>`,
+    )
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 }

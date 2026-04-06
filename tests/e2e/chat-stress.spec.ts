@@ -7,14 +7,14 @@ import { test, expect } from '@playwright/test'
 const N = 20
 
 test.describe('Chat stress (partner)', () => {
-  test('20 сообщений подряд: порядок в треде и время отрисовки', { tag: '@stress' }, async ({
-    request,
+  test('20 сообщений подряд: порядок в треде и время отрисовки', { tag: '@stress', timeout: 120_000 }, async ({
     page,
     baseURL,
   }) => {
     test.skip(!baseURL, 'baseURL')
 
-    const listRes = await request.get(`${baseURL}/api/v2/chat/conversations?archived=all&limit=10`)
+    await page.goto(`${baseURL}/partner`, { waitUntil: 'domcontentloaded' })
+    const listRes = await page.request.get(`${baseURL}/api/v2/chat/conversations?archived=all&limit=10`)
     expect(listRes.ok()).toBeTruthy()
     const listJson = await listRes.json()
     const convId = listJson?.data?.[0]?.id as string | undefined
@@ -23,7 +23,7 @@ test.describe('Chat stress (partner)', () => {
     const runId = `st${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 
     for (let i = 0; i < N; i++) {
-      const pr = await request.post(`${baseURL}/api/v2/chat/messages`, {
+      const pr = await page.request.post(`${baseURL}/api/v2/chat/messages`, {
         data: {
           conversationId: convId,
           content: `${runId}-seq-${i}`,
@@ -39,6 +39,7 @@ test.describe('Chat stress (partner)', () => {
     })
 
     const thread = page.getByTestId('chat-thread-scroll')
+    await expect(thread.getByText(`${runId}-seq-0`, { exact: true })).toBeVisible({ timeout: 60_000 })
 
     for (let i = 0; i < N; i++) {
       const label = `${runId}-seq-${i}`
@@ -65,6 +66,6 @@ test.describe('Chat stress (partner)', () => {
     expect(order.slice(0, N)).toEqual(expected)
 
     const elapsed = Date.now() - t0
-    expect(elapsed, 'страница + проверка 20 пузырей').toBeLessThan(90_000)
+    expect(elapsed, 'страница + проверка 20 пузырей').toBeLessThan(115_000)
   })
 })

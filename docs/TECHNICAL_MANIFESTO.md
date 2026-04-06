@@ -66,8 +66,7 @@
 ### 1.6 Admin Health Alerts (дисплей-FX)
 
 - **Когда:** при загрузке карты курсов для витрины **`CurrencyService.getDisplayRateMap`** оценивает «свежесть» строк **`exchange_rates`** (в т.ч. USDT с **`updated_at`**). Если для любой из ожидаемых валют в карте **нет** `updated_at` или возраст **`updated_at` &gt; 24 ч** (`DISPLAY_FX_STALE_ALERT_MS`), состояние считается **stale**.
-- **Лог + Telegram админу:** **`maybeAlertStaleDisplayRates`** пишет **`console.warn`**, затем **`NotificationService.sendToAdmin`** с текстом вида **«КРИТИЧНО: Курсы валют устарели»** и подписью последнего обновления (Bangkok TZ). Повторная отправка не чаще чем раз в **1 ч** (`DISPLAY_FX_STALE_ALERT_COOLDOWN_MS`), чтобы не спамить при частых запросах.
-- **Куда уходит `sendToAdmin`:** приоритет — личка **`TELEGRAM_ADMIN_DM_CHAT_ID`** или **`ADMIN_TELEGRAM_ID`**; иначе — админ-топик (как у прочих admin Telegram-сообщений). Реализация — **`lib/services/notification.service.js`**.
+- **Лог + Telegram:** **`maybeAlertStaleDisplayRates`** пишет **`console.warn`**, затем **`notifySystemAlert`** → топик **`TELEGRAM_SYSTEM_ALERTS_TOPIC_ID`** (fallback — **`sendToAdmin`**: личка или топик FINANCE). Текст вида **«КРИТИЧНО: Курсы валют устарели»** (Bangkok TZ). Повтор не чаще **1 ч** (`DISPLAY_FX_STALE_ALERT_COOLDOWN_MS`).
 - **Дашборд админа:** **`GET /api/v2/admin/exchange-rates-health`** (JWT **ADMIN**, cookie `gostaylo_session`) отдаёт **`{ stale, staleCodes, lastUpdateLabel, oldestStaleIso }`** из **`getDisplayFxStaleHealthFromDb`** без вызова внешнего FX API. Клиент **`app/admin/dashboard/page.js`** поднимает **красный баннер** при **`stale === true`** (`data-testid="admin-fx-stale-banner"`).
 
 ### 1.7 Traceability: листинг → карточка в чате
@@ -84,6 +83,7 @@
 
 - **Истина:** **`calendar_blocks`** + **`lib/services/calendar.service.js`**.
 - **iCal → блоки:** **`lib/services/ical-calendar-blocks-sync.js`**. Вызовы: **`/api/cron/ical-sync`**, **`/api/ical/sync`**, **`/api/v2/admin/ical`**. Логи: **`ical_sync_logs`**. Экспорт `.ics`: **`/api/v2/listings/[id]/ical`**.
+- **Надёжность импорта:** при ошибке **fetch/parse/insert** существующие блоки источника **не затираются** (вставка новых строк выполняется до удаления старых; при сбое удаления — откат вставленных id). Ошибки синхронизации в cron агрегируются и уходят в **системный Telegram** (**`notifySystemAlert`** в **`app/api/cron/ical-sync/route.js`** при **`errors > 0`**).
 - **День листинга:** **`Asia/Bangkok`** — **`lib/listing-date.js`**. All-day iCal: **`lib/ical-all-day-range.js`**.
 - **Не использовать** для прод-записи партнёрами: **`availability_blocks`**.
 
@@ -138,21 +138,72 @@
 
 ### 5.1 Mobile Design System (Premium Unified)
 
-- **Скругления:** базовый радиус интерфейса через `--radius: 1rem` в **`app/globals.css`**; в мобильном чате все ключевые блоки (`ChatMessageList`, `ChatMilestoneCard`, `BookingRequestCard`, `ChatActionBar`, оба composer) используют **`rounded-2xl`**.
-- **Палитра:** нейтральная база **`bg-white`** + **`bg-slate-50`**; основной акцент в интерактивах — **teal** (`bg-teal-600`, hover `bg-teal-700`) для primary-кнопок (`Оплатить`, `Подтвердить`, `Отправить`).
-- **Отступы и safe areas:** контейнеры ленты/композера и вставки баннеров соблюдают боковые **`px-4`** на мобиле и **`sm:px-5`**; нижний safe-area — через **`CHAT_COMPOSER_SHELL_CLASS`** (`pb-[max(1rem, env(safe-area-inset-bottom,0px))]`).
-- **Ширина мобильных CTA:** action buttons и booking CTA идут **`w-full`** на мобильном брейкпоинте, с переходом в `sm:w-auto` только на больших экранах.
+- **Скругления 16px:** ключевые блоки чата и связанный UI используют **`rounded-2xl`** (Tailwind = **16px**): лента (`ChatMessageList`), карточки вех/запроса (`ChatMilestoneCard`, **`BookingRequestCard`**), **`ChatActionBar`**, **`ChatSearchBar`** (внутренний контейнер поиска), композеры, статусные бейджи в инбоксе (**`ConversationList`** / `StatusBadge`). Глобально кнопки shadcn — **`rounded-lg`** = **`var(--radius)`** (**`1rem`**) в **`app/globals.css`**.
+- **Палитра:** нейтральная база **`bg-white`**; акцент **teal** для primary CTA.
+- **Горизонтальные отступы:** минимум **`px-4`** (16px) у оболочек чата, поиска, списка диалогов; лента — **`px-4` / `sm:px-5`**; нижний safe-area — **`CHAT_COMPOSER_SHELL_CLASS`**.
+- **Ширина мобильных CTA:** **`w-full`** на мобиле, **`sm:w-auto`** на больших экранах.
 
-### 5.2 Telegram бот и admin alerts
+### 5.2 Telegram: продуктовые события и личка админа
 
-- **Единый диспетчер:** `NotificationService.dispatch(event, data)` маппит события (`NEW_BOOKING_REQUEST`, `BOOKING_CONFIRMED`, `PAYMENT_*`, `PAYOUT_*`) на обработчики e-mail + Telegram.
-- **Канал админа:** `NotificationService.sendToAdmin` отправляет в приоритете личный чат (`TELEGRAM_ADMIN_DM_CHAT_ID` или `ADMIN_TELEGRAM_ID`), fallback — админ-топик (`sendToAdminTopic`).
-- **Системные health-alerts:** `CurrencyService.maybeAlertStaleDisplayRates` поднимает Telegram-алерт при stale FX (`>24h`), с cooldown 1 час, плюс admin API **`/api/v2/admin/exchange-rates-health`** для UI-баннера.
-- **Куда расширять «системные проблемы»:** текущий слой уже подходит для новых событий типа `EXTERNAL_API_DOWN`, `PAYMENT_GATEWAY_DEGRADED`, `CRON_STUCK` — достаточно добавить событие в `NotificationEvents`, handler в `NotificationService` и единый вызов из места детекта.
+- **`NotificationService.dispatch`** — брони, оплаты, письма партнёрам/гостям, топики форума (**`sendToAdminTopic`**).
+- **`sendToAdmin`** — личка (`TELEGRAM_ADMIN_DM_CHAT_ID` / `ADMIN_TELEGRAM_ID`) или fallback топик FINANCE.
+
+### 5.3 Системные алерты (топик `TELEGRAM_SYSTEM_ALERTS_TOPIC_ID`)
+
+Единая точка: **`NotificationService.sendSystemAlert`** и обёртка **`notifySystemAlert`** (`lib/services/system-alert-notify.js`). При отсутствии или неверном `TELEGRAM_SYSTEM_ALERTS_TOPIC_ID` — fallback на **`sendToAdmin`**.
+
+| Категория | Примеры условий |
+|-----------|-----------------|
+| **FX / витрина** | Устаревшие дисплей-курсы (`CurrencyService.maybeAlertStaleDisplayRates`) |
+| **Бронирования** | Ошибка INSERT; бронь без чата; необработанное исключение `POST /api/v2/bookings`; ручное бронирование календаря — ошибка БД |
+| **Гонка дат** | Повторная **`checkAvailability`** непосредственно перед INSERT в **`BookingService.createBooking`**; при конфликте — **`code: 'DATES_CONFLICT'`**, HTTP **409** из API (полная атомарность возможна только constraint/lock в Postgres) |
+| **Чат** | Сбой записи сообщения или инвойса (`POST /api/v2/chat/messages`) |
+| **Платежи** | Initiate/confirm PATCH; `PaymentService.initializePayment` / `submitTxid` |
+| **Resend** | Ошибки HTTP/исключения в `NotificationService.sendEmail`, `EmailService`, `lib/mail` (prod), `admin/partners` |
+| **Cron** | `payouts`, `checkin-reminder`, `draft-digest`, `cleanup-drafts`, `ical-sync` (ошибка или исключение) |
+| **Webhooks** | `POST /api/webhooks/crypto/confirm` (JSON, тело, confirm API); `POST /api/webhooks/supabase/booking-status` (JSON, валидация, исключения) |
+
+**Чат — «тупики» UI:** при **`CANCELLED` / `REFUNDED` / `PAID` / `COMPLETED` / `PAID_ESCROW`** гость не видит панель оплаты (**`ChatActionBar`**, **`payNowHref`** в **`UnifiedMessagesClient`**). Карточка **`BookingRequestCard`**: кнопки партнёра только при **`PENDING`**; бейдж статуса синхронизирован с **`bookingStatus`**.
+
+**Оптимистичный UI (тактильный отклик):** **`Подтвердить` / `Отклонить`** — мгновенное обновление **`booking.status`** в **`UnifiedMessagesClient`** с откатом при ошибке API; панель хоста исчезает без спиннеров. **`Оплатить`** — по клику скрываются **`ChatActionBar`** и десктопная кнопка в **`ChatHeaderActions`** (**`payBarSuppressed`** + **`onPayNowClick`**).
+
+### 5.4 Playwright (локальная среда)
+
+- В **`playwright.config.ts`**: **`loadEnvConfig`** подхватывает **`.env.local`** и **`.env`** (как Next).
+- **`globalSetup`:** **`tests/global-setup.ts`** печатает **`[Playwright] E2E_FIXTURE_SECRET: LOADED | MISSING`** для диагностики скипов.
+- **`use.baseURL`:** по умолчанию **`http://localhost:3000`**; переопределение: **`PLAYWRIGHT_BASE_URL`** или **`BASE_URL`**.
 
 ---
 
-## 6. Указатель на ядро (файлы)
+## 6. План масштабирования базы данных и запросов
+
+### 6.1 Индексы (рекомендуемые SQL, когда объёмы &gt; ~1000 строк и растут)
+
+**`messages`** — история по треду: каноническая миграция **`database/migrations/019_messages_thread_and_listings_map_indexes.sql`** (составной **`conversation_id`, `created_at DESC`**). Для больших таблиц в проде при отдельном окне обслуживания допустима замена на **`CREATE INDEX CONCURRENTLY`**.
+
+**`listings`** — каталог + гео-фильтры:
+
+- Уже полезны: **`district`**, **`status`**, **`available`**, **`category_id`** (см. `prisma/schema.prisma`).
+- **Карта:** в той же миграции **019** — частичный B-tree **`(latitude, longitude) WHERE … IS NOT NULL`**; для «точки в полигоне» без PostGIS остаётся фильтр в приложении; при переходе на **PostGIS** — **`GIST`** по **`geography(point)`** / **`ST_MakePoint(longitude, latitude)`**.
+- Полнотекст / вектор: см. миграции embedding (**`004_listings_embedding.sql`**); для поиска по названию — **`GIN`** по `to_tsvector` при росте нагрузки.
+
+**`bookings`** — календарь и анти-овербукинг на уровне БД (долгосрочно): уникальность пересечений для **`listing_id` с max_capacity = 1** задаётся через **EXCLUDE** / триггеры или сериализуемые транзакции — вынести в отдельную миграцию после продуктового решения.
+
+### 6.2 N+1 и тяжёлые циклы в `lib/services/`
+
+- **`EscrowService.processAllPayoutsForToday`**: выплаты обрабатываются пулом с ограниченным параллелизмом (**`mapWithConcurrency`**, **`PAYOUT_CRON_CONCURRENCY = 5`**) — без полного **`Promise.all`** и без строго последовательного цикла; каждый шаг по-прежнему **`processPayout(bookingId)`** (идемпотентность по статусу брони).
+- **`app/api/cron/ical-sync`**: вложенные циклы листинги × источники — ожидаемо; оптимизация — батчить листинги с одинаковым интервалом, кэшировать HTTP iCal.
+- **`CalendarService.getCalendar`**: один проход по датам после загрузки блоков/броней — не N+1 к БД внутри цикла по дням; держать окно **`getCalendar(listingId, 365, …)`** осознанным.
+
+### 6.3 Наблюдения по предыдущим этапам (кратко)
+
+- Системные алерты завязаны на env; на staging проверить **`TELEGRAM_SYSTEM_ALERTS_TOPIC_ID`** и лимиты Telegram.
+- Финальная **`checkAvailability`** перед INSERT снижает, но не устраняет гонку — зафиксировано выше.
+- **Zero skip (бронь / RBAC):** в **`.env.local`** или **`.env`** задайте **`E2E_FIXTURE_SECRET`** (тот же секрет должен быть в env приложения для internal fixture API), профили **`E2E_PARTNER_EMAIL` / `E2E_RENTER_EMAIL`**, данные листингов из **`tests/e2e/role-access.spec.ts`**. Строка **`[Playwright] E2E_FIXTURE_SECRET: LOADED`** в логе первого прогона подтверждает подхват; при **MISSING** сценарии с фикстурами помечаются **skipped**.
+
+---
+
+## 7. Указатель на ядро (файлы)
 
 | Область | Файл(ы) |
 |--------|---------|
@@ -171,7 +222,9 @@
 | Auth edge + login | `middleware.ts`, `app/login/page.js`, `app/admin/layout.js` |
 | Realtime чат (backoff) | `lib/chat/realtime-subscribe-with-backoff.js`, `hooks/use-realtime-chat.js`, `lib/context/ChatContext.jsx` |
 | Платежи / эскроу | `lib/services/payment.service.js`, `lib/services/escrow.service.js`, `app/api/cron/payouts` |
+| Системные TG-алерты | `lib/services/system-alert-notify.js`, `NotificationService.sendSystemAlert` |
+| Playwright env + лог секрета | `playwright.config.ts`, `tests/global-setup.ts` |
 
 ---
 
-**Версия:** апрель 2026 — единый стандарт cookie-auth + `/login`, админка без gate на `localStorage`, усиление `POST /api/v2/chat/messages`, устойчивый Realtime-reconnect; плюс CurrencyService, схема Properties / Vehicles / Tours и `group_size`.
+**Версия:** апрель 2026 — Premium UI 16px, системный топик Telegram, финальная проверка слотов перед созданием брони, манифест по масштабированию БД; cookie-auth, чат, CurrencyService, туры / `group_size`.

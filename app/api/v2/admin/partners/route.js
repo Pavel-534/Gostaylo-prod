@@ -12,6 +12,7 @@ import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { getPublicSiteUrl } from '@/lib/site-url.js';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,9 +71,22 @@ async function sendEmail(to, subject, html) {
     
     const result = await res.json();
     console.log('[EMAIL] Sent to:', to, result);
+    if (!res.ok) {
+      void notifySystemAlert(
+        `📧 <b>Resend: ошибка</b> (admin/partners)\n` +
+          `subject: <code>${escapeSystemAlertHtml(subject)}</code>\n` +
+          `to: <code>${escapeSystemAlertHtml(String(to).slice(0, 120))}</code>\n` +
+          `<code>${escapeSystemAlertHtml(result?.message || JSON.stringify(result).slice(0, 600))}</code>`,
+      )
+    }
     return res.ok;
   } catch (e) {
     console.error('[EMAIL] Error:', e.message);
+    void notifySystemAlert(
+      `📧 <b>Resend: исключение</b> (admin/partners)\n` +
+        `subject: <code>${escapeSystemAlertHtml(subject)}</code>\n` +
+        `<code>${escapeSystemAlertHtml(e?.message || e)}</code>`,
+    )
     return false;
   }
 }

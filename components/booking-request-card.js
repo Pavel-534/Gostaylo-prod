@@ -8,12 +8,30 @@ import Link from 'next/link'
 import { useCommission } from '@/hooks/use-commission'
 import { resolveChatBookingBreakdown } from '@/lib/chat-booking-totals'
 
-export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingStatus, listing = null }) {
+export function BookingRequestCard({
+  message,
+  userRole,
+  onStatusUpdate,
+  bookingStatus,
+  listing = null,
+  language = 'ru',
+}) {
   const [updating, setUpdating] = useState(false)
   const commissionApi = useCommission()
   const metadata = message.metadata || {}
   const { checkIn, checkOut } = metadata
-  const currentStatus = bookingStatus || 'PENDING'
+  const currentStatus = String(bookingStatus || 'PENDING').toUpperCase()
+
+  const statusBadgeCopy =
+    currentStatus === 'CANCELLED' || currentStatus === 'REFUNDED'
+      ? { ru: 'Отменено', en: 'Cancelled' }
+      : currentStatus === 'CONFIRMED'
+        ? { ru: 'Подтверждено', en: 'Confirmed' }
+        : currentStatus === 'PAID' || currentStatus === 'PAID_ESCROW'
+          ? { ru: 'Оплачено', en: 'Paid' }
+          : currentStatus === 'COMPLETED'
+            ? { ru: 'Завершено', en: 'Completed' }
+            : { ru: 'Ожидает ответа', en: 'Awaiting response' }
   const categorySlug = listing?.category_slug || metadata.listing_category_slug || ''
   const bd = resolveChatBookingBreakdown({ metadata, listingCategorySlug: categorySlug })
   const metaCr = Number(metadata.commissionRate)
@@ -81,8 +99,8 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
             </div>
             <span className="text-base font-bold leading-tight text-slate-900">Запрос на бронирование</span>
           </div>
-          <Badge className="shrink-0 bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
-            Ожидает ответа
+          <Badge className="shrink-0 rounded-2xl bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+            {language === 'en' ? statusBadgeCopy.en : statusBadgeCopy.ru}
           </Badge>
         </div>
 
@@ -112,7 +130,7 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
           className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4"
         />
 
-        {userRole === 'PARTNER' && (
+        {userRole === 'PARTNER' && currentStatus === 'PENDING' && (
           <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:gap-3">
             <Button
               onClick={handleAccept}

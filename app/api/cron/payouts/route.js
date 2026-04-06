@@ -15,6 +15,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { EscrowService } from '@/lib/services/escrow.service';
 import { NotificationService } from '@/lib/services/notification.service';
+import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 
 // Security - check Vercel cron header or custom secret
 const CRON_SECRET = process.env.CRON_SECRET || 'gostaylo-cron-2026';
@@ -76,6 +77,9 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('[CRON PAYOUT ERROR]', error);
+    void notifySystemAlert(
+      `⏰ <b>Cron: payouts</b> — сбой\n<code>${escapeSystemAlertHtml(error?.message || error)}</code>`,
+    )
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 }

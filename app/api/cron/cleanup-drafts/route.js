@@ -16,6 +16,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -113,6 +114,9 @@ export async function POST(request) {
     if (!listingsRes.ok) {
       const error = await listingsRes.text();
       console.error('[CLEANUP] Failed to fetch listings:', error);
+      void notifySystemAlert(
+        `⏰ <b>Cron: cleanup-drafts</b> — не удалось загрузить листинги\n<code>${escapeSystemAlertHtml(error.slice(0, 800))}</code>`,
+      )
       return NextResponse.json({ error: 'Failed to fetch listings' }, { status: 500 });
     }
     
@@ -199,6 +203,9 @@ export async function POST(request) {
     
   } catch (error) {
     console.error('[CLEANUP ERROR]', error);
+    void notifySystemAlert(
+      `⏰ <b>Cron: cleanup-drafts</b> (POST)\n<code>${escapeSystemAlertHtml(error?.message || error)}</code>`,
+    )
     return NextResponse.json({ 
       error: 'Cleanup job failed', 
       message: error.message 
@@ -253,6 +260,9 @@ export async function GET(request) {
     });
     
   } catch (error) {
+    void notifySystemAlert(
+      `⏰ <b>Cron: cleanup-drafts</b> (GET dry-run)\n<code>${escapeSystemAlertHtml(error?.message || error)}</code>`,
+    )
     return NextResponse.json({ 
       error: 'Failed to check drafts',
       message: error.message 

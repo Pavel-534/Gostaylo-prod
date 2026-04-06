@@ -9,6 +9,7 @@
 
 import { NextResponse } from 'next/server'
 import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-sync'
+import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +28,10 @@ export async function POST(request) {
     let body
     try {
       body = await request.json()
-    } catch {
+    } catch (e) {
+      void notifySystemAlert(
+        `🔌 <b>Webhook: Supabase booking-status</b> — невалидный JSON\n<code>${escapeSystemAlertHtml(e?.message || e)}</code>`,
+      )
       return NextResponse.json({ ok: false, error: 'Invalid JSON' }, { status: 400 })
     }
 
@@ -38,6 +42,9 @@ export async function POST(request) {
     const previousStatus = oldRecord?.status
 
     if (!bookingId || !newStatus) {
+      void notifySystemAlert(
+        `🔌 <b>Webhook: Supabase booking-status</b> — неполное тело\n<code>${escapeSystemAlertHtml(JSON.stringify(body).slice(0, 600))}</code>`,
+      )
       return NextResponse.json({ ok: false, error: 'Missing id or status' }, { status: 400 })
     }
 
@@ -62,6 +69,9 @@ export async function POST(request) {
     return NextResponse.json({ ok: true, ...result })
   } catch (e) {
     console.error('[webhook booking-status]', e)
+    void notifySystemAlert(
+      `🔌 <b>Webhook: Supabase booking-status</b> — сбой обработки\n<code>${escapeSystemAlertHtml(e?.message || e)}</code>`,
+    )
     return NextResponse.json({ ok: false, error: e.message }, { status: 500 })
   }
 }

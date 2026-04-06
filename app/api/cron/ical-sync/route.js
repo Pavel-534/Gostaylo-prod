@@ -13,6 +13,7 @@ import {
   insertIcalSyncLog,
   syncIcalSourceToCalendarBlocks,
 } from '@/lib/services/ical-calendar-blocks-sync'
+import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -83,6 +84,9 @@ async function runSync() {
     skipped: 0,
   }
 
+  /** @type {{ listing_id: string, source_url: string, error_message: string|null }[]} */
+  const failedSamples = []
+
   for (const listing of toSync) {
     if (Date.now() - startTime > MAX_RUNTIME) {
       console.log('[ICAL-SYNC] Time limit reached, stopping')
@@ -101,6 +105,13 @@ async function runSync() {
         results.synced++
       } else {
         results.errors++
+        if (failedSamples.length < 8) {
+          failedSamples.push({
+            listing_id: listing.id,
+            source_url: result.source_url,
+            error_message: result.error_message,
+          })
+        }
       }
     }
 
@@ -118,6 +129,18 @@ async function runSync() {
   const duration = Date.now() - startTime
   console.log(`[ICAL-SYNC] Completed in ${duration}ms:`, results)
 
+  if (failedSamples.length > 0) {
+    const lines = failedSamples
+      .map(
+        (f) =>
+          `• <code>${escapeSystemAlertHtml(f.listing_id)}</code> ${escapeSystemAlertHtml(f.source_url || '')}: ${escapeSystemAlertHtml(f.error_message || 'unknown')}`,
+      )
+      .join('\n')
+    void notifySystemAlert(
+      `⏰ <b>Cron: ical-sync</b> — ошибки синхронизации (${results.errors})\n${lines}`,
+    )
+  }
+
   return {
     success: true,
     duration,
@@ -133,8 +156,21 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const result = await runSync()
-  return NextResponse.json(result)
+  try {
+    const result = await runSync()
+    if (result && result.success === false && result.error) {
+      void notifySystemAlert(
+        `⏰ <b>Cron: ical-sync</b> (GET)\n<code>${escapeSystemAlertHtml(result.error)}</code>`,
+      )
+    }
+    return NextResponse.json(result)
+  } catch (e) {
+    console.error('[CRON ICAL-SYNC GET]', e)
+    void notifySystemAlert(
+      `⏰ <b>Cron: ical-sync</b> (GET) — исключение\n<code>${escapeSystemAlertHtml(e?.message || e)}</code>`,
+    )
+    return NextResponse.json({ success: false, error: e?.message || 'error' }, { status: 500 })
+  }
 }
 
 export async function POST(request) {
@@ -144,6 +180,19 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const result = await runSync()
-  return NextResponse.json(result)
+  try {
+    const result = await runSync()
+    if (result && result.success === false && result.error) {
+      void notifySystemAlert(
+        `⏰ <b>Cron: ical-sync</b> (POST)\n<code>${escapeSystemAlertHtml(result.error)}</code>`,
+      )
+    }
+    return NextResponse.json(result)
+  } catch (e) {
+    console.error('[CRON ICAL-SYNC POST]', e)
+    void notifySystemAlert(
+      `⏰ <b>Cron: ical-sync</b> (POST) — исключение\n<code>${escapeSystemAlertHtml(e?.message || e)}</code>`,
+    )
+    return NextResponse.json({ success: false, error: e?.message || 'error' }, { status: 500 })
+  }
 }

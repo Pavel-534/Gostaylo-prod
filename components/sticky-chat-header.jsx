@@ -60,6 +60,7 @@ export function StickyChatHeader({
   language = 'ru',
   showBookingTimeline = true,
   payNowHref = null,
+  onPayNowClick = null,
   onMediaGallery = null,
   onSearchToggle = null,
   /** Мобиле: открыть детали сделки (Sheet); на lg+ кнопка скрыта — панель в ChatThreadChrome */
@@ -398,6 +399,7 @@ export function StickyChatHeader({
           isAdminView={isAdminView}
           partnerBookingActions={partnerBookingActions}
           payNowHref={payNowHref}
+          onPayNowClick={onPayNowClick}
           onSupportClick={onSupportClick}
           supportLoading={supportLoading}
           supportPriorityActive={supportPriorityActive}

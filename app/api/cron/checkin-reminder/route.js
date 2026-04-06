@@ -15,6 +15,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { PushService } from '@/lib/services/push.service';
 import { NotificationService } from '@/lib/services/notification.service';
 import { listingDateToday } from '@/lib/listing-date';
+import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 
 const CRON_SECRET = process.env.CRON_SECRET || 'gostaylo-cron-2026';
 
@@ -51,6 +52,9 @@ export async function POST(request) {
 
     if (error) {
       console.error('[CRON CHECK-IN] Query error:', error);
+      void notifySystemAlert(
+        `⏰ <b>Cron: checkin-reminder</b> — ошибка запроса БД\n<code>${escapeSystemAlertHtml(error.message)}</code>`,
+      )
       return NextResponse.json(
         { success: false, error: error.message },
         { status: 500 }
@@ -98,6 +102,9 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('[CRON CHECK-IN ERROR]', error);
+    void notifySystemAlert(
+      `⏰ <b>Cron: checkin-reminder</b> — исключение\n<code>${escapeSystemAlertHtml(error?.message || error)}</code>`,
+    )
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 }

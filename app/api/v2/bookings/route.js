@@ -275,7 +275,16 @@ export async function POST(request) {
     });
 
     if (result.error) {
-      return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+      const conflict = result.code === 'DATES_CONFLICT';
+      return NextResponse.json(
+        {
+          success: false,
+          error: result.error,
+          code: result.code,
+          conflicts: result.conflictingBookings,
+        },
+        { status: conflict ? 409 : 400 },
+      );
     }
 
     // Emails + Telegram (guest, partner, admin topic) — всегда после успешного create;

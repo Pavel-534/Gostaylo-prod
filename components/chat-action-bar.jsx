@@ -11,7 +11,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, XCircle, Receipt, CreditCard, Loader2 } from 'lucide-react'
+import { CheckCircle2, XCircle, Receipt, CreditCard } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const T = {
@@ -28,14 +28,28 @@ const barShell =
 
 const tactile = 'transition-[opacity,transform] duration-100 ease-out active:opacity-70 active:scale-[0.98]'
 
+/** Нет смысла показывать оплату / «ожидаем оплату» для финальных статусов */
+const NO_PAY_TRAVEL_STATUSES = new Set([
+  'CANCELLED',
+  'REFUNDED',
+  'COMPLETED',
+  'PAID',
+  'PAID_ESCROW',
+])
+
 export function ChatActionBar({
   isHosting = false,
   isTraveling = false,
   booking = null,
   payNowHref = null,
+  /** Сразу скрыть панель гостя после нажатия «Оплатить» (оптимистичный UI). */
+  suppressTravelPayBar = false,
+  /** Вызывается перед переходом на checkout (клик по «Оплатить»). */
+  onPayNowClick,
   onConfirm,
   onDecline,
   onOpenInvoice,
+  /** Устарело для хоста: кнопки скрываются оптимистично по статусу брони; оставлено для совместимости. */
   loading = false,
   language = 'ru',
 }) {
@@ -46,6 +60,8 @@ export function ChatActionBar({
   const [pressInvoice, setPressInvoice] = useState(false)
 
   if (isTraveling && !isHosting) {
+    if (suppressTravelPayBar) return null
+    if (NO_PAY_TRAVEL_STATUSES.has(bookingStatus)) return null
     if (!payNowHref && bookingStatus !== 'CONFIRMED') return null
 
     return (
@@ -66,6 +82,7 @@ export function ChatActionBar({
               href={payNowHref}
               data-testid="chat-action-pay"
               data-pressing={pressPay ? 'true' : 'false'}
+              onClick={() => onPayNowClick?.()}
               onPointerDown={() => setPressPay(true)}
               onPointerUp={() => setPressPay(false)}
               onPointerCancel={() => setPressPay(false)}
@@ -81,6 +98,8 @@ export function ChatActionBar({
   }
 
   if (isHosting) {
+    if (bookingStatus === 'CANCELLED' || bookingStatus === 'REFUNDED') return null
+
     if (bookingStatus === 'PENDING' && (onConfirm || onDecline)) {
       return (
         <div
@@ -108,7 +127,7 @@ export function ChatActionBar({
                   pressDecline && 'opacity-70 scale-[0.98]',
                 )}
               >
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <XCircle className="h-5 w-5" />}
+                <XCircle className="h-5 w-5" />
                 {t('decline', language)}
               </Button>
             )}
@@ -129,7 +148,7 @@ export function ChatActionBar({
                   pressConfirm && 'opacity-70 scale-[0.98]',
                 )}
               >
-                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
+                <CheckCircle2 className="h-5 w-5" />
                 {t('confirm', language)}
               </Button>
             )}

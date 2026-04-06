@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { NotificationService } from '@/lib/services/notification.service'
+import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 
 const CRON_SECRET = process.env.CRON_SECRET || 'gostaylo-cron-2026'
 
@@ -36,6 +37,9 @@ export async function GET(request) {
     return await runAndRespond()
   } catch (e) {
     console.error('[CRON DRAFT DIGEST GET]', e)
+    void notifySystemAlert(
+      `⏰ <b>Cron: draft-digest</b> (GET)\n<code>${escapeSystemAlertHtml(e?.message || e)}</code>`,
+    )
     return NextResponse.json({ success: false, error: e?.message || 'error' }, { status: 500 })
   }
 }
@@ -48,6 +52,9 @@ export async function POST(request) {
     return await runAndRespond()
   } catch (e) {
     console.error('[CRON DRAFT DIGEST POST]', e)
+    void notifySystemAlert(
+      `⏰ <b>Cron: draft-digest</b> (POST)\n<code>${escapeSystemAlertHtml(e?.message || e)}</code>`,
+    )
     return NextResponse.json({ success: false, error: e?.message || 'error' }, { status: 500 })
   }
 }

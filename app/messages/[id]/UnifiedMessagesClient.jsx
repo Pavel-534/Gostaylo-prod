@@ -155,7 +155,10 @@ export default function UnifiedMessagesClient({ params }) {
   const [declineOpen, setDeclineOpen] = useState(false)
   const [declinePreset, setDeclinePreset] = useState('occupied')
   const [declineOtherDetail, setDeclineOtherDetail] = useState('')
-  const [bookingActionLoading, setBookingActionLoading] = useState(false)
+  /** Блок повторных PUT до завершения запроса (без спиннеров — статус меняется оптимистично). */
+  const bookingMutationRef = useRef(false)
+  /** Сразу скрыть гостевую панель «Оплатить» после клика. */
+  const [payBarSuppressed, setPayBarSuppressed] = useState(false)
   const [sending, setSending] = useState(false)
   const [newMessage, setNewMessage] = useState('')
   const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
@@ -211,6 +214,10 @@ export default function UnifiedMessagesClient({ params }) {
   useEffect(() => {
     if (conversationId) markGlobalRead(conversationId)
   }, [conversationId, markGlobalRead])
+
+  useEffect(() => {
+    setPayBarSuppressed(false)
+  }, [conversationId, booking?.id])
 
   // Вкладка «Сдаю / Снимаю» — только при смене открытого диалога (не перетирать ручной выбор при refresh)
   const tabSyncedForConvRef = useRef(null)
@@ -314,7 +321,9 @@ export default function UnifiedMessagesClient({ params }) {
   // ── Pay now href ─────────────────────────────────────────────────────────────
   const payNowHref = useMemo(() => {
     if (isHosting || !booking?.id) return null
-    if (String(booking.status || '').toUpperCase() !== 'CONFIRMED') return null
+    const st = String(booking.status || '').toUpperCase()
+    if (['CANCELLED', 'REFUNDED', 'COMPLETED', 'PAID', 'PAID_ESCROW'].includes(st)) return null
+    if (st !== 'CONFIRMED') return null
     for (let i = messages.length - 1; i >= 0; i--) {
       const inv = messages[i]?.metadata?.invoice
       if (!inv || String(inv.booking_id || '') !== String(booking.id)) continue
@@ -339,8 +348,11 @@ export default function UnifiedMessagesClient({ params }) {
   // ── Booking actions (Confirm / Decline) ─────────────────────────────────────
   const handleConfirmBooking = useCallback(async () => {
     const bid = booking?.id
-    if (!bid || !selectedConv?.id || bookingActionLoading) return
-    setBookingActionLoading(true)
+    if (!bid || !selectedConv?.id || bookingMutationRef.current) return
+    if (String(booking?.status || '').toUpperCase() !== 'PENDING') return
+    bookingMutationRef.current = true
+    const prevBooking = booking
+    setBooking((b) => (b ? { ...b, status: 'CONFIRMED' } : b))
     try {
       const res = await fetch(`/api/v2/partner/bookings/${encodeURIComponent(bid)}`, {
         method: 'PUT',
@@ -349,14 +361,21 @@ export default function UnifiedMessagesClient({ params }) {
         body: JSON.stringify({ status: 'CONFIRMED' }),
       })
       const json = await res.json()
-      if (json.status !== 'success') { toast.error(json.error || 'Ошибка'); return }
-      setBooking((b) => b ? { ...b, status: 'CONFIRMED' } : b)
+      if (json.status !== 'success') {
+        setBooking(prevBooking)
+        toast.error(json.error || 'Ошибка')
+        return
+      }
       inbox.refresh()
       reloadThread()
       toast.success(json.message || (language === 'ru' ? 'Бронирование подтверждено' : 'Booking confirmed'))
-    } catch { toast.error('Ошибка сети') }
-    finally { setBookingActionLoading(false) }
-  }, [booking?.id, selectedConv?.id, bookingActionLoading, setBooking, inbox, reloadThread, language])
+    } catch {
+      setBooking(prevBooking)
+      toast.error('Ошибка сети')
+    } finally {
+      bookingMutationRef.current = false
+    }
+  }, [booking, selectedConv?.id, setBooking, inbox, reloadThread, language])
 
   const handleDeclineBooking = useCallback(() => {
     setDeclinePreset('occupied')
@@ -366,12 +385,16 @@ export default function UnifiedMessagesClient({ params }) {
 
   const confirmDecline = useCallback(async () => {
     const bid = booking?.id
-    if (!bid || !selectedConv?.id || bookingActionLoading) return
+    if (!bid || !selectedConv?.id || bookingMutationRef.current) return
+    if (String(booking?.status || '').toUpperCase() !== 'PENDING') return
     if (declinePreset === 'other' && !declineOtherDetail.trim()) {
       toast.error(language === 'ru' ? 'Укажите комментарий' : 'Please add details')
       return
     }
-    setBookingActionLoading(true)
+    bookingMutationRef.current = true
+    const prevBooking = booking
+    setBooking((b) => (b ? { ...b, status: 'CANCELLED' } : b))
+    setDeclineOpen(false)
     try {
       const res = await fetch(`/api/v2/partner/bookings/${encodeURIComponent(bid)}`, {
         method: 'PUT',
@@ -384,15 +407,23 @@ export default function UnifiedMessagesClient({ params }) {
         }),
       })
       const json = await res.json()
-      if (json.status !== 'success') { toast.error(json.error || 'Ошибка'); return }
-      setBooking((b) => b ? { ...b, status: 'CANCELLED' } : b)
-      setDeclineOpen(false)
+      if (json.status !== 'success') {
+        setBooking(prevBooking)
+        setDeclineOpen(true)
+        toast.error(json.error || 'Ошибка')
+        return
+      }
       inbox.refresh()
       reloadThread()
       toast.success(json.message || (language === 'ru' ? 'Бронирование отклонено' : 'Booking declined'))
-    } catch { toast.error('Ошибка сети') }
-    finally { setBookingActionLoading(false) }
-  }, [booking?.id, selectedConv?.id, bookingActionLoading, declinePreset, declineOtherDetail, setBooking, inbox, reloadThread, language])
+    } catch {
+      setBooking(prevBooking)
+      setDeclineOpen(true)
+      toast.error('Ошибка сети')
+    } finally {
+      bookingMutationRef.current = false
+    }
+  }, [booking, selectedConv?.id, declinePreset, declineOtherDetail, setBooking, inbox, reloadThread, language])
 
   // ── Send handlers ────────────────────────────────────────────────────────────
   const handleSendText = useCallback(async (e) => {
@@ -675,11 +706,12 @@ export default function UnifiedMessagesClient({ params }) {
       onDealInfoClick={() => setDealSheetOpen(true)}
       partnerBookingActions={{
         visible: isHosting && !!booking?.id && String(booking.status || '').toUpperCase() === 'PENDING',
-        loading: bookingActionLoading,
+        loading: false,
         onConfirm: handleConfirmBooking,
         onDecline: handleDeclineBooking,
       }}
-      payNowHref={isHosting ? null : payNowHref}
+      payNowHref={isHosting ? null : payBarSuppressed ? null : payNowHref}
+      onPayNowClick={() => setPayBarSuppressed(true)}
       onSupportClick={() => setSupportDialogOpen(true)}
       supportPriorityActive={!!selectedConv?.isPriority}
       supportLabel={language === 'ru' ? 'Поддержка' : 'Support'}
@@ -704,10 +736,12 @@ export default function UnifiedMessagesClient({ params }) {
       isTraveling={isTraveling}
       booking={booking}
       payNowHref={payNowHref}
+      suppressTravelPayBar={payBarSuppressed}
+      onPayNowClick={() => setPayBarSuppressed(true)}
       onConfirm={isHosting ? handleConfirmBooking : undefined}
       onDecline={isHosting ? handleDeclineBooking : undefined}
       onOpenInvoice={isHosting ? () => setInvoiceDialogOpen(true) : undefined}
-      loading={bookingActionLoading}
+      loading={false}
       language={language}
     />
   )
@@ -1019,8 +1053,8 @@ export default function UnifiedMessagesClient({ params }) {
             <Button type="button" variant="outline" onClick={() => setDeclineOpen(false)}>
               {language === 'ru' ? 'Отмена' : 'Cancel'}
             </Button>
-            <Button type="button" variant="destructive" disabled={bookingActionLoading} onClick={() => void confirmDecline()}>
-              {bookingActionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : language === 'ru' ? 'Отклонить' : 'Decline'}
+            <Button type="button" variant="destructive" onClick={() => void confirmDecline()}>
+              {language === 'ru' ? 'Отклонить' : 'Decline'}
             </Button>
           </DialogFooter>
         </DialogContent>

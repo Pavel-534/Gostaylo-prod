@@ -39,7 +39,8 @@ export function ChatSearchBar({ value, onChange, resultCount, onClose, language 
   const hasResults = resultCount !== null && resultCount > 0
 
   return (
-    <div className="border-b bg-slate-50 px-3 py-2.5 flex items-center gap-2">
+    <div className="border-b border-slate-100 bg-white px-4 py-2.5">
+      <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-2">
       <Search className="h-4 w-4 text-slate-400 shrink-0" />
       <input
         ref={inputRef}
@@ -47,7 +48,7 @@ export function ChatSearchBar({ value, onChange, resultCount, onClose, language 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={l(language, 'placeholder')}
-        className="flex-1 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 outline-none"
+        className="flex-1 min-w-0 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 outline-none"
       />
       {hasQuery && (
         <span
@@ -63,12 +64,13 @@ export function ChatSearchBar({ value, onChange, resultCount, onClose, language 
       )}
       <button
         type="button"
-        className="shrink-0 rounded-full p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+        className="shrink-0 rounded-2xl p-1.5 text-slate-400 hover:bg-slate-200/80 hover:text-slate-700"
         onClick={onClose}
         aria-label="Close search"
       >
         <X className="h-4 w-4" />
       </button>
+      </div>
     </div>
   )
 }

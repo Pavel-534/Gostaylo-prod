@@ -1,4 +1,9 @@
+import path from 'path'
 import { defineConfig, devices } from '@playwright/test'
+import { loadEnvConfig } from '@next/env'
+
+// Как у Next.js: подхватываем .env.local и .env (E2E_FIXTURE_SECRET, BASE_URL и т.д.)
+loadEnvConfig(path.resolve(process.cwd()))
 
 const AUTH = {
   admin: 'playwright/.auth/admin.json',
@@ -14,9 +19,10 @@ const AUTH = {
  * `npx playwright test` — все проекты; RBAC: `--project rbac-*`; чат: `--project chat-mobile-iphone --project chat-mobile-pixel --project chat-stress`
  *
  * BASE_URL / PLAYWRIGHT_BASE_URL — origin приложения (по умолчанию localhost:3000).
- * Mobile-chat с авто-бронью: тот же **`E2E_FIXTURE_SECRET`** в `.env.local` (dev) и в shell при `npx playwright test`, иначе часть сценариев скипнется.
+ * Mobile-chat с авто-бронью: **`E2E_FIXTURE_SECRET`** в `.env.local` или `.env` (подхватывается через `loadEnvConfig` выше), либо в shell при `npx playwright test`.
  */
 export default defineConfig({
+  globalSetup: './tests/global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -24,6 +30,7 @@ export default defineConfig({
   reporter: 'html',
   timeout: 90_000,
   use: {
+    /** По умолчанию локальный dev-сервер; переопределение: PLAYWRIGHT_BASE_URL или BASE_URL */
     baseURL: process.env.PLAYWRIGHT_BASE_URL || process.env.BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     locale: 'ru-RU',

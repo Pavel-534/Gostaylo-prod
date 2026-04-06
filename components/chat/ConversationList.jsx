@@ -60,7 +60,7 @@ function StatusBadge({ statusLabel, lang = 'ru' }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center text-[10px] font-semibold px-1.5 py-0.5 rounded border shrink-0',
+        'inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-2xl border shrink-0',
         cfg.cls,
       )}
     >

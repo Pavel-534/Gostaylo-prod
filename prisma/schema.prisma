@@ -152,6 +152,7 @@ model Listing {
   @@index([district])
   @@index([available])
   @@index([basePriceThb])
+  @@index([latitude, longitude]) // карта; частичный индекс в SQL — см. 019_messages_thread_and_listings_map_indexes.sql
   @@map("listings")
 }
 
@@ -500,6 +501,7 @@ model Message {
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
+  @@index([conversationId, createdAt(sort: Desc)]) // см. database/migrations/019_messages_thread_and_listings_map_indexes.sql
   @@index([senderId])
   @@index([isRead])
   @@index([createdAt])

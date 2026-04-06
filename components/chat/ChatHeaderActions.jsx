@@ -18,6 +18,7 @@
  * @param {boolean}  [props.isAdminView]
  * @param {Object}   [props.partnerBookingActions]   — { visible, loading, onConfirm, onDecline }
  * @param {string}   [props.payNowHref]
+ * @param {Function} [props.onPayNowClick] — перед переходом на checkout (оптимистичный UI)
  * @param {Function} [props.onSupportClick]
  * @param {boolean}  [props.supportLoading]
  * @param {boolean}  [props.supportPriorityActive]
@@ -47,6 +48,7 @@ export function ChatHeaderActions({
   isAdminView = false,
   partnerBookingActions = null,
   payNowHref = null,
+  onPayNowClick = null,
   onSupportClick = null,
   supportLoading = false,
   supportPriorityActive = false,
@@ -103,14 +105,10 @@ export function ChatHeaderActions({
             disabled={partnerBookingActions.loading}
             onClick={partnerBookingActions.onConfirm}
           >
-            {partnerBookingActions.loading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <>
-                <Check className="h-3.5 w-3.5 mr-1" />
-                Confirm Booking
-              </>
-            )}
+            <>
+              <Check className="h-3.5 w-3.5 mr-1" />
+              Confirm Booking
+            </>
           </Button>
           <Button
             type="button"
@@ -133,7 +131,7 @@ export function ChatHeaderActions({
           size="sm"
           className="hidden lg:inline-flex h-8 px-3 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white border-0 shadow-sm shrink-0"
         >
-          <Link href={payNowHref}>
+          <Link href={payNowHref} onClick={() => onPayNowClick?.()}>
             <CreditCard className="h-3.5 w-3.5 mr-1.5 shrink-0" />
             {language === 'en' ? 'Pay now' : 'Оплатить'}
           </Link>
