@@ -37,23 +37,18 @@ export function ChatBookingAnnouncement({ message, language = 'ru' }) {
   return (
     <div
       className={cn(
-        'max-w-lg mx-auto rounded-xl border px-4 py-3 shadow-sm',
-        confirmed
-          ? 'bg-gradient-to-br from-emerald-50 to-teal-50 border-emerald-200/90'
-          : danger
-            ? 'bg-gradient-to-br from-rose-50 to-orange-50 border-rose-200/90'
-            : 'bg-gradient-to-br from-sky-50 to-indigo-50 border-sky-200/90'
+        'mx-auto max-w-lg rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm',
       )}
     >
       <div className="flex items-start gap-3">
         <div
           className={cn(
-            'rounded-full p-2 shrink-0',
+            'shrink-0 rounded-2xl bg-slate-50 p-2',
             confirmed
-              ? 'bg-emerald-100 text-emerald-700'
+              ? 'text-teal-600'
               : danger
-                ? 'bg-rose-100 text-rose-700'
-                : 'bg-sky-100 text-sky-700'
+                ? 'text-slate-500'
+                : 'text-slate-500'
           )}
         >
           {confirmed ? (

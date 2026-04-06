@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-sync'
 import { BookingService } from '@/lib/services/booking.service'
+import { NotificationService, NotificationEvents } from '@/lib/services/notification.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -188,6 +189,21 @@ export async function PUT(request, { params }) {
       })
     } catch (e) {
       console.error('[BOOKING UPDATE] chat sync', e)
+    }
+
+    if (newStatus === 'CONFIRMED') {
+      try {
+        const full = await BookingService.getBookingById(id)
+        if (full) {
+          await NotificationService.dispatch(NotificationEvents.BOOKING_CONFIRMED, {
+            booking: full,
+            renter: full.renter,
+            listing: full.listings,
+          })
+        }
+      } catch (e) {
+        console.error('[BOOKING UPDATE] BOOKING_CONFIRMED notify', e)
+      }
     }
 
     return NextResponse.json({

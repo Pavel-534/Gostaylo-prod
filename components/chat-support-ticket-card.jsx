@@ -13,34 +13,34 @@ export function ChatSupportTicketCard({ ticket, senderName, language = 'ru' }) {
   const details = (ticket.details || '').trim()
 
   return (
-    <div className="rounded-xl border-2 border-amber-400/80 bg-gradient-to-br from-amber-50 to-orange-50/90 px-4 py-3 shadow-sm">
-      <div className="flex items-center gap-2 text-amber-950 font-semibold text-sm mb-2">
-        <LifeBuoy className="h-4 w-4 shrink-0" />
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
+        <LifeBuoy className="h-4 w-4 shrink-0 text-teal-600" />
         {isRu ? 'Обращение в поддержку' : 'Support request'}
       </div>
       <dl className="space-y-1.5 text-sm text-slate-800">
         <div>
-          <dt className="text-xs font-medium text-amber-900/80 uppercase tracking-wide">
+          <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
             {isRu ? 'Причина' : 'Reason'}
           </dt>
           <dd>{reasonLabel}</dd>
         </div>
         <div>
-          <dt className="text-xs font-medium text-amber-900/80 uppercase tracking-wide">
+          <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
             {isRu ? 'Суть' : 'Issue'}
           </dt>
           <dd>{disputeLabel}</dd>
         </div>
         {details ? (
           <div>
-            <dt className="text-xs font-medium text-amber-900/80 uppercase tracking-wide">
+            <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
               {isRu ? 'Комментарий' : 'Details'}
             </dt>
             <dd className="whitespace-pre-wrap break-words">{details}</dd>
           </div>
         ) : null}
         {senderName ? (
-          <p className="text-xs text-slate-500 pt-1 border-t border-amber-200/80 mt-2">
+          <p className="mt-2 border-t border-slate-200 pt-1 text-xs text-slate-500">
             {isRu ? 'От: ' : 'From: '}
             {senderName}
           </p>

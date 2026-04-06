@@ -85,16 +85,16 @@ export function SafetyBanner({ patterns = [], onDismiss, lang = 'ru' }) {
   const t = texts[lang] || texts.en
   
   return (
-    <div className='bg-amber-50 border border-amber-200 rounded-lg p-3 mx-4 mb-3 animate-in slide-in-from-top-2'>
+    <div className='mx-4 mb-3 animate-in slide-in-from-top-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:mx-5'>
       <div className='flex items-start gap-3'>
-        <Shield className='h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5' />
+        <Shield className='mt-0.5 h-5 w-5 flex-shrink-0 text-teal-600' />
         <div className='flex-1'>
-          <h4 className='text-sm font-medium text-amber-800'>{t.title}</h4>
-          <p className='text-xs text-amber-700 mt-1'>{t.body}</p>
+          <h4 className='text-sm font-medium text-slate-900'>{t.title}</h4>
+          <p className='mt-1 text-xs text-slate-600'>{t.body}</p>
         </div>
         <button 
           onClick={() => { setDismissed(true); onDismiss?.() }}
-          className='text-amber-600 hover:text-amber-800 p-1'
+          className='p-1 text-slate-500 hover:text-slate-700'
         >
           <X className='h-4 w-4' />
         </button>

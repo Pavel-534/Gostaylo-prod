@@ -14,12 +14,12 @@ export function ChatTransportUpsell({ href, language = 'ru', className }) {
   return (
     <div
       className={cn(
-        'w-full max-w-sm rounded-xl border border-teal-200 bg-gradient-to-br from-teal-50 to-slate-50 px-3 py-2.5 shadow-sm',
+        'w-full max-w-sm rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm',
         className,
       )}
     >
       <div className="flex items-start gap-2.5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-600 text-white">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-teal-600">
           <Car className="h-5 w-5" aria-hidden />
         </div>
         <div className="min-w-0 flex-1 pt-0.5">
@@ -34,7 +34,7 @@ export function ChatTransportUpsell({ href, language = 'ru', className }) {
           <Button
             asChild
             size="sm"
-            className="mt-2 h-8 w-full bg-teal-600 text-xs hover:bg-teal-700"
+              className="mt-2 h-10 w-full rounded-2xl bg-teal-600 text-xs hover:bg-teal-700"
           >
             <Link href={href}>{ru ? 'Смотреть транспорт' : 'Browse transport'}</Link>
           </Button>

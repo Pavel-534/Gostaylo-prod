@@ -24,7 +24,7 @@ const T = {
 const t = (key, lang) => T[key]?.[lang === 'en' ? 'en' : 'ru'] ?? ''
 
 const barShell =
-  'shrink-0 border-t border-slate-100 bg-white px-4 py-3 shadow-[0_-4px_24px_-8px_rgba(15,23,42,0.06)]'
+  'shrink-0 border-t border-slate-200 bg-white px-4 py-3 sm:px-5 shadow-[0_-4px_24px_-8px_rgba(15,23,42,0.06)]'
 
 const tactile = 'transition-[opacity,transform] duration-100 ease-out active:opacity-70 active:scale-[0.98]'
 
@@ -57,7 +57,7 @@ export function ChatActionBar({
           <Button
             asChild
             className={cn(
-              'h-12 min-h-[48px] w-full shrink-0 gap-2 rounded-xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700 sm:w-auto sm:min-w-[11rem]',
+              'h-12 min-h-[48px] w-full shrink-0 gap-2 rounded-2xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700 sm:w-auto sm:min-w-[11rem]',
               tactile,
               pressPay && 'opacity-70 scale-[0.98]',
             )}
@@ -103,7 +103,7 @@ export function ChatActionBar({
                 onPointerCancel={() => setPressDecline(false)}
                 onPointerLeave={() => setPressDecline(false)}
                 className={cn(
-                  'h-12 min-h-[48px] w-full gap-2 rounded-xl border-2 border-red-200 text-base font-bold text-red-700 hover:bg-red-50 sm:w-auto sm:min-w-[10rem]',
+                  'h-12 min-h-[48px] w-full gap-2 rounded-2xl border border-slate-200 bg-white text-base font-bold text-slate-700 hover:bg-slate-50 sm:w-auto sm:min-w-[10rem]',
                   tactile,
                   pressDecline && 'opacity-70 scale-[0.98]',
                 )}
@@ -124,7 +124,7 @@ export function ChatActionBar({
                 onPointerCancel={() => setPressConfirm(false)}
                 onPointerLeave={() => setPressConfirm(false)}
                 className={cn(
-                  'h-12 min-h-[48px] w-full gap-2 rounded-xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700 sm:w-auto sm:min-w-[10rem]',
+                  'h-12 min-h-[48px] w-full gap-2 rounded-2xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700 sm:w-auto sm:min-w-[10rem]',
                   tactile,
                   pressConfirm && 'opacity-70 scale-[0.98]',
                 )}
@@ -158,7 +158,7 @@ export function ChatActionBar({
             onPointerCancel={() => setPressInvoice(false)}
             onPointerLeave={() => setPressInvoice(false)}
             className={cn(
-              'h-12 min-h-[48px] w-full gap-2 rounded-xl border-2 border-slate-200 bg-white text-base font-bold text-slate-900 shadow-sm hover:bg-slate-50 sm:w-auto sm:min-w-[11rem]',
+              'h-12 min-h-[48px] w-full gap-2 rounded-2xl border border-slate-200 bg-white text-base font-bold text-slate-900 shadow-sm hover:bg-slate-50 sm:w-auto sm:min-w-[11rem]',
               tactile,
               pressInvoice && 'opacity-70 scale-[0.98]',
             )}

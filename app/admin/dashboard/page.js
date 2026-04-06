@@ -12,6 +12,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [telegramStatus, setTelegramStatus] = useState(null);
   const [sendingAlert, setSendingAlert] = useState(null);
+  const [fxHealth, setFxHealth] = useState(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -99,13 +100,14 @@ export default function AdminDashboard() {
         'Authorization': `Bearer ${SUPABASE_KEY}`
       };
       
-      const [profilesRes, listingsRes, bookingsRes, activityRes, fxRes, commRes] = await Promise.all([
+      const [profilesRes, listingsRes, bookingsRes, activityRes, fxRes, commRes, fxHealthRes] = await Promise.all([
         fetch(`/_db/profiles?select=id,role`, { headers }),
         fetch(`/_db/listings?select=id,status,base_price_thb,category_id`, { headers }),
         fetch(`/_db/bookings?select=id,status,price_thb,commission_thb`, { headers }),
         fetch(`/_db/activity_log?select=*&order=created_at.desc&limit=8`, { headers }),
         fetch(`/api/v2/exchange-rates`, { cache: 'no-store' }),
         fetch(`/api/v2/commission`, { cache: 'no-store' }),
+        fetch(`/api/v2/admin/exchange-rates-health`, { credentials: 'include', cache: 'no-store' }),
       ]);
       
       const profiles = await profilesRes.json();
@@ -114,6 +116,12 @@ export default function AdminDashboard() {
       const activityData = await activityRes.json();
       const fxJson = await fxRes.json().catch(() => ({}));
       const commJson = await commRes.json().catch(() => ({}));
+      const fxHealthJson = await fxHealthRes.json().catch(() => ({}));
+      if (fxHealthJson.success && fxHealthJson.data) {
+        setFxHealth(fxHealthJson.data);
+      } else {
+        setFxHealth(null);
+      }
       const thbPerUsdt =
         fxJson.success && fxJson.rateMap?.USDT ? Number(fxJson.rateMap.USDT) : null;
       const systemCommissionPct =
@@ -216,6 +224,30 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-4 lg:space-y-6">
+      {fxHealth?.stale ? (
+        <div
+          role="alert"
+          className="flex flex-col gap-2 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-red-950 sm:flex-row sm:items-center sm:justify-between"
+          data-testid="admin-fx-stale-banner"
+        >
+          <div className="flex items-start gap-2">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" aria-hidden />
+            <div>
+              <p className="font-bold">Курсы валют не актуальны (&gt;24 ч или нет даты обновления)</p>
+              <p className="text-sm text-red-900/90">
+                Последнее обновление (среди проблемных):{' '}
+                <span className="font-semibold">{fxHealth.lastUpdateLabel || 'неизвестно'}</span>
+                {fxHealth.staleCodes?.length ? (
+                  <span className="block text-xs mt-1 opacity-90">
+                    Коды: {fxHealth.staleCodes.join(', ')}
+                  </span>
+                ) : null}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>

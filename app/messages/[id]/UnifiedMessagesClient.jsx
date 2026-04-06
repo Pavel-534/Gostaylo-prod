@@ -603,7 +603,7 @@ export default function UnifiedMessagesClient({ params }) {
   )
 
   const mobileHeaderIconClass =
-    'h-9 w-9 shrink-0 rounded-xl border border-white/55 bg-white/50 text-slate-700 shadow-[0_2px_12px_rgba(15,23,42,0.07)] backdrop-blur-md hover:bg-white/75'
+    'h-9 w-9 shrink-0 rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-[0_2px_12px_rgba(15,23,42,0.07)] hover:bg-slate-50'
 
   // Header
   const headerSlot = selectedConv ? (
@@ -793,7 +793,7 @@ export default function UnifiedMessagesClient({ params }) {
               type="button"
               variant="outline"
               size="icon"
-              className="h-12 w-12 shrink-0 rounded-xl border-slate-200"
+              className="h-12 w-12 shrink-0 rounded-2xl border-slate-200 bg-white"
               disabled={sending}
               aria-label={language === 'ru' ? 'Вложения' : 'Attachments'}
             >
@@ -815,7 +815,7 @@ export default function UnifiedMessagesClient({ params }) {
         </DropdownMenu>
 
         {voiceBlob ? (
-          <div className="flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-2 py-1.5 sm:px-3 sm:py-2">
+          <div className="flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-2 py-1.5 sm:px-3 sm:py-2">
             <div className="min-w-0 flex-1 overflow-hidden">
               <audio
                 key={voicePreviewUrl || 'voice-preview'}
@@ -827,20 +827,20 @@ export default function UnifiedMessagesClient({ params }) {
               />
             </div>
             <span className="shrink-0 text-xs font-medium tabular-nums text-teal-700">{voiceDurationLabel}</span>
-            <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-xl text-red-500 hover:bg-red-50" onClick={discardVoice}>
+            <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-2xl text-slate-600 hover:bg-slate-100" onClick={discardVoice}>
               <Trash2 className="h-5 w-5" />
             </Button>
-            <Button type="button" disabled={voiceSending} className="h-11 min-h-[44px] shrink-0 rounded-xl bg-teal-600 px-4 hover:bg-teal-700" onClick={() => void handleGuestVoiceBlobSend()}>
+            <Button type="button" disabled={voiceSending} className="h-11 min-h-[44px] shrink-0 rounded-2xl bg-teal-600 px-4 hover:bg-teal-700" onClick={() => void handleGuestVoiceBlobSend()}>
               {voiceSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
             </Button>
           </div>
         ) : voiceRecording ? (
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
             <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
             <span className="flex-1 text-sm font-medium text-red-700">
               {language === 'ru' ? 'Запись...' : 'Recording...'} {voiceDurationLabel}
             </span>
-            <Button type="button" size="icon" className="h-11 w-11 shrink-0 rounded-xl bg-red-500 hover:bg-red-600" onClick={stopVoice}>
+            <Button type="button" size="icon" className="h-11 w-11 shrink-0 rounded-2xl bg-teal-600 hover:bg-teal-700" onClick={stopVoice}>
               <MicOff className="h-5 w-5 text-white" />
             </Button>
           </div>
@@ -861,7 +861,7 @@ export default function UnifiedMessagesClient({ params }) {
                 type="button"
                 variant="outline"
                 size="icon"
-                className="h-12 w-12 shrink-0 rounded-xl border-slate-200 text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                className="h-12 w-12 shrink-0 rounded-2xl border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                 disabled={sending}
                 onClick={startVoice}
                 title={language === 'ru' ? 'Голосовое сообщение' : 'Voice message'}
@@ -872,7 +872,7 @@ export default function UnifiedMessagesClient({ params }) {
             <Button
               type="submit"
               disabled={!newMessage.trim() || sending}
-              className="h-12 w-12 min-h-[48px] min-w-[48px] shrink-0 rounded-xl bg-teal-600 hover:bg-teal-700 sm:h-10 sm:w-auto sm:min-h-0 sm:min-w-0 sm:rounded-md sm:px-4"
+              className="h-12 w-12 min-h-[48px] min-w-[48px] shrink-0 rounded-2xl bg-teal-600 hover:bg-teal-700 sm:h-10 sm:w-auto sm:min-h-0 sm:min-w-0 sm:px-4"
             >
               {sending ? <Loader2 className="h-5 w-5 animate-spin sm:h-4 sm:w-4" /> : <Send className="h-5 w-5 sm:h-4 sm:w-4" />}
             </Button>

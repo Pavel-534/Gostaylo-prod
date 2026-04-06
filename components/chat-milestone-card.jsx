@@ -33,95 +33,95 @@ import { ru } from 'date-fns/locale'
 const MILESTONE_CFG = {
   booking_confirmed: {
     icon: CheckCircle2,
-    bg: 'bg-emerald-50',
-    border: 'border-emerald-200',
-    iconColor: 'text-emerald-600',
-    textColor: 'text-emerald-900',
+    bg: 'bg-white',
+    border: 'border-slate-200',
+    iconColor: 'text-teal-600',
+    textColor: 'text-slate-700',
     label: { ru: 'Бронирование подтверждено', en: 'Booking confirmed' },
   },
   booking_pending: {
     icon: Clock,
-    bg: 'bg-amber-50',
-    border: 'border-amber-200',
-    iconColor: 'text-amber-600',
-    textColor: 'text-amber-900',
+    bg: 'bg-white',
+    border: 'border-slate-200',
+    iconColor: 'text-slate-500',
+    textColor: 'text-slate-700',
     label: { ru: 'Ожидает подтверждения', en: 'Awaiting confirmation' },
   },
   booking_declined: {
     icon: XCircle,
-    bg: 'bg-red-50',
-    border: 'border-red-200',
-    iconColor: 'text-red-500',
-    textColor: 'text-red-900',
+    bg: 'bg-white',
+    border: 'border-slate-200',
+    iconColor: 'text-slate-500',
+    textColor: 'text-slate-700',
     label: { ru: 'Бронирование отклонено', en: 'Booking declined' },
   },
   booking_cancelled: {
     icon: XCircle,
-    bg: 'bg-red-50',
-    border: 'border-red-200',
-    iconColor: 'text-red-500',
-    textColor: 'text-red-900',
+    bg: 'bg-white',
+    border: 'border-slate-200',
+    iconColor: 'text-slate-500',
+    textColor: 'text-slate-700',
     label: { ru: 'Бронирование отменено', en: 'Booking cancelled' },
   },
   booking_paid: {
     icon: CreditCard,
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    iconColor: 'text-blue-600',
-    textColor: 'text-blue-900',
+    bg: 'bg-white',
+    border: 'border-slate-200',
+    iconColor: 'text-teal-600',
+    textColor: 'text-slate-700',
     label: { ru: 'Оплата получена', en: 'Payment received' },
   },
   paid: {
     icon: CreditCard,
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
-    iconColor: 'text-blue-600',
-    textColor: 'text-blue-900',
+    bg: 'bg-white',
+    border: 'border-slate-200',
+    iconColor: 'text-teal-600',
+    textColor: 'text-slate-700',
     label: { ru: 'Оплата получена', en: 'Payment received' },
   },
   check_in: {
     icon: Key,
-    bg: 'bg-teal-50',
-    border: 'border-teal-200',
+    bg: 'bg-white',
+    border: 'border-slate-200',
     iconColor: 'text-teal-600',
-    textColor: 'text-teal-900',
+    textColor: 'text-slate-700',
     label: { ru: 'Заезд', en: 'Check-in' },
   },
   check_in_today: {
     icon: Key,
-    bg: 'bg-teal-50',
-    border: 'border-teal-200',
+    bg: 'bg-white',
+    border: 'border-slate-200',
     iconColor: 'text-teal-600',
-    textColor: 'text-teal-900',
+    textColor: 'text-slate-700',
     label: { ru: 'Заезд сегодня', en: 'Check-in today' },
   },
   check_out: {
     icon: Home,
-    bg: 'bg-indigo-50',
-    border: 'border-indigo-200',
-    iconColor: 'text-indigo-600',
-    textColor: 'text-indigo-900',
+    bg: 'bg-white',
+    border: 'border-slate-200',
+    iconColor: 'text-slate-500',
+    textColor: 'text-slate-700',
     label: { ru: 'Выезд', en: 'Check-out' },
   },
   check_out_today: {
     icon: Home,
-    bg: 'bg-indigo-50',
-    border: 'border-indigo-200',
-    iconColor: 'text-indigo-600',
-    textColor: 'text-indigo-900',
+    bg: 'bg-white',
+    border: 'border-slate-200',
+    iconColor: 'text-slate-500',
+    textColor: 'text-slate-700',
     label: { ru: 'Выезд сегодня', en: 'Check-out today' },
   },
   completed: {
     icon: Star,
-    bg: 'bg-yellow-50',
-    border: 'border-yellow-200',
-    iconColor: 'text-yellow-600',
-    textColor: 'text-yellow-900',
+    bg: 'bg-white',
+    border: 'border-slate-200',
+    iconColor: 'text-teal-600',
+    textColor: 'text-slate-700',
     label: { ru: 'Поездка завершена', en: 'Trip completed' },
   },
   refund: {
     icon: RotateCcw,
-    bg: 'bg-slate-50',
+    bg: 'bg-white',
     border: 'border-slate-200',
     iconColor: 'text-slate-600',
     textColor: 'text-slate-800',
@@ -129,18 +129,18 @@ const MILESTONE_CFG = {
   },
   passport_request: {
     icon: FileText,
-    bg: 'bg-teal-50',
-    border: 'border-teal-200',
+    bg: 'bg-white',
+    border: 'border-slate-200',
     iconColor: 'text-teal-600',
-    textColor: 'text-teal-900',
+    textColor: 'text-slate-700',
     label: { ru: 'Запрос документов', en: 'Document request' },
   },
   booking_announcement: {
     icon: CalendarCheck,
-    bg: 'bg-emerald-50',
-    border: 'border-emerald-200',
-    iconColor: 'text-emerald-600',
-    textColor: 'text-emerald-900',
+    bg: 'bg-white',
+    border: 'border-slate-200',
+    iconColor: 'text-teal-600',
+    textColor: 'text-slate-700',
     label: { ru: 'Новое бронирование', en: 'New booking' },
   },
   booking_status_update: {
@@ -229,8 +229,9 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole }) {
         data-testid="chat-milestone-card"
         data-system-key={sk || ''}
         className={cn(
-          'inline-flex w-full max-w-sm flex-col gap-3 rounded-2xl border border-slate-200/80 px-4 py-4 text-left',
+          'inline-flex w-full max-w-sm flex-col gap-3 rounded-2xl border px-4 py-4 text-left',
           'shadow-[0_4px_24px_-6px_rgba(15,23,42,0.12),0_2px_10px_-4px_rgba(15,23,42,0.07)]',
+          cfg.border,
           cfg.bg,
         )}
       >
@@ -265,15 +266,15 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole }) {
         </div>
 
         {showReviewCta && (
-          <div className="border-t border-amber-200/80 pt-3">
-            <p className="mb-3 text-sm font-medium text-amber-950">
+          <div className="border-t border-slate-200 pt-3">
+            <p className="mb-3 text-sm font-medium text-slate-800">
               {lang === 'ru'
                 ? 'Как прошёл ваш отдых? Поделитесь впечатлениями!'
                 : 'How was your stay? Share your experience!'}
             </p>
             <Link
               href={reviewHref}
-              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-amber-600"
+              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-teal-600 px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-teal-700"
             >
               <Star className="h-4 w-4 shrink-0 fill-white" />
               {lang === 'ru' ? 'Оценить отдых' : 'Rate your stay'}

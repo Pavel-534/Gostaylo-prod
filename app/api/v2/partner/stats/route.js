@@ -27,6 +27,21 @@ function getSeasonalPriceForDate(seasonalPrices, listingId, date) {
   return seasonal?.price_daily || null
 }
 
+/** Доход партнёра без захардкоженного «85%» — только из снимка брони. */
+function partnerEarningsThbFromBooking(b) {
+  const pe = parseFloat(b.partner_earnings_thb)
+  if (Number.isFinite(pe)) return pe
+  const price = parseFloat(b.price_thb)
+  if (!Number.isFinite(price) || price <= 0) return 0
+  const commThb = parseFloat(b.commission_thb)
+  if (Number.isFinite(commThb) && commThb >= 0) return Math.max(0, price - commThb)
+  const cr = parseFloat(b.commission_rate)
+  if (Number.isFinite(cr) && cr >= 0 && cr <= 100) {
+    return Math.round(price * (1 - cr / 100))
+  }
+  return 0
+}
+
 function generateMockStats() {
   const today = new Date()
   
@@ -148,15 +163,9 @@ export async function GET(request) {
       const pendingBookings = allBookings.filter(b => pendingStatuses.includes(b.status))
       
       // Revenue
-      const confirmedRevenue = confirmedBookings.reduce((sum, b) => {
-        const earnings = parseFloat(b.partner_earnings_thb) || (parseFloat(b.price_thb) * 0.85)
-        return sum + earnings
-      }, 0)
+      const confirmedRevenue = confirmedBookings.reduce((sum, b) => sum + partnerEarningsThbFromBooking(b), 0)
       
-      const pendingRevenue = pendingBookings.reduce((sum, b) => {
-        const earnings = parseFloat(b.partner_earnings_thb) || (parseFloat(b.price_thb) * 0.85)
-        return sum + earnings
-      }, 0)
+      const pendingRevenue = pendingBookings.reduce((sum, b) => sum + partnerEarningsThbFromBooking(b), 0)
       
       // Occupancy (this month)
       const monthBookings = confirmedBookings.filter(b => {
@@ -219,7 +228,7 @@ export async function GET(request) {
         const dayStr = format(subDays(today, i), 'EEE')
         const dayRevenue = confirmedBookings
           .filter(b => b.check_in === date)
-          .reduce((sum, b) => sum + (parseFloat(b.partner_earnings_thb) || 0), 0)
+          .reduce((sum, b) => sum + partnerEarningsThbFromBooking(b), 0)
         trend.push({ day: dayStr, revenue: dayRevenue })
       }
       

@@ -5,7 +5,7 @@
  * Фикстура PENDING-брони: `E2E_FIXTURE_SECRET` в `.env.local` (и тот же секрет в окружении при запуске Playwright)
  * + `POST /api/v2/internal/e2e/pending-chat-booking`. См. `docs/TECHNICAL_MANIFESTO.md`.
  */
-import { test, expect } from '@playwright/test'
+import { test, expect, type APIRequestContext } from '@playwright/test'
 
 const LONG_TEXT =
   'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(18) +
@@ -28,6 +28,44 @@ async function createFixtureConversation(request: APIRequestContext): Promise<st
     return null
   }
   return j.data.conversationId
+}
+
+async function createTourBookingMathFixture(request: APIRequestContext): Promise<{
+  priceThb: number
+  basePriceThb: number
+  guestsCount: number
+  expectedTotalThb: number
+} | null> {
+  const secret = (process.env.E2E_FIXTURE_SECRET || '').trim()
+  if (!secret) return null
+  const res = await request.post('/api/v2/internal/e2e/tour-booking-math', {
+    headers: { 'x-e2e-fixture-secret': secret },
+    data: { guestsCount: 3 },
+  })
+  const j = (await res.json().catch(() => ({}))) as {
+    success?: boolean
+    data?: {
+      priceThb?: number
+      basePriceThb?: number
+      guestsCount?: number
+      expectedTotalThb?: number
+    }
+    error?: string
+  }
+  if (!res.ok() || !j.success || j.data == null) {
+    console.warn('[tour-booking-math fixture]', res.status(), j?.error || j)
+    return null
+  }
+  const { priceThb, basePriceThb, guestsCount, expectedTotalThb } = j.data
+  if (
+    typeof priceThb !== 'number' ||
+    typeof basePriceThb !== 'number' ||
+    typeof guestsCount !== 'number' ||
+    typeof expectedTotalThb !== 'number'
+  ) {
+    return null
+  }
+  return { priceThb, basePriceThb, guestsCount, expectedTotalThb }
 }
 
 test.describe.configure({ mode: 'serial' })
@@ -135,5 +173,13 @@ test.describe('Mobile chat UI', () => {
     await expect(
       confirmedCard.first().getByText('Бронирование подтверждено', { exact: false }),
     ).toBeVisible()
+  })
+
+  test('тур (фикстура): totalPrice = basePrice × 3 гостя', async ({ request }) => {
+    const d = await createTourBookingMathFixture(request)
+    test.skip(!d, 'Нужен E2E_FIXTURE_SECRET и тур у партнёра (см. tour-booking-math)')
+    expect(d!.guestsCount).toBe(3)
+    expect(d!.priceThb).toBe(d!.expectedTotalThb)
+    expect(d!.priceThb).toBe(Math.round(d!.basePriceThb * d!.guestsCount))
   })
 })

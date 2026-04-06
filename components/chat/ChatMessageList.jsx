@@ -63,7 +63,7 @@ function MaskedBadge({ language = 'ru' }) {
       : 'Контакт скрыт до оплаты бронирования на платформе'
   return (
     <span
-      className="inline-flex items-center gap-1 text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 mt-1 select-none"
+      className="mt-1 inline-flex select-none items-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] text-slate-600"
       title={label}
     >
       <Lock className="h-2.5 w-2.5 shrink-0" />
@@ -117,7 +117,7 @@ function MessageItem({
 
   if (staffThread && rawTypeUpper === 'BOOKING_REQUEST') {
     return (
-      <div className="flex justify-center px-1">
+      <div className="flex justify-center px-4 sm:px-5">
         <div className="w-full max-w-lg">
           <BookingRequestCard
             message={{
@@ -146,7 +146,7 @@ function MessageItem({
   const st = meta.support_ticket
   if (st?.category && st?.disputeType) {
     return (
-      <div className="flex justify-center px-1">
+      <div className="flex justify-center px-4 sm:px-5">
         <div className="w-full max-w-lg">
           <ChatSupportTicketCard ticket={st} senderName={msg.sender_name} language={language} />
         </div>
@@ -157,7 +157,7 @@ function MessageItem({
   // ── Support joined (banner, not milestone card) ───────────────────────────
   if (msgType === 'system' && meta.system_key === 'support_joined') {
     return (
-      <div className="flex w-full justify-center px-2 py-1 sm:px-4">
+      <div className="flex w-full justify-center px-4 py-1 sm:px-5">
         <SupportJoinedBanner message={msg} language={language} />
       </div>
     )
@@ -176,7 +176,7 @@ function MessageItem({
       <>
         <ChatMilestoneCard message={msg} language={language} userRole={userRole} />
         {transportHref ? (
-          <div className="mt-1 flex w-full justify-center px-2.5 sm:px-4">
+          <div className="mt-1 flex w-full justify-center px-4 sm:px-5">
             <ChatTransportUpsell href={transportHref} language={language} />
           </div>
         ) : null}

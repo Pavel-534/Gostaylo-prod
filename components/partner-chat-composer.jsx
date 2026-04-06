@@ -91,7 +91,7 @@ export function PartnerChatComposer({
           type="button"
           variant="outline"
           size="icon"
-          className="h-12 w-12 shrink-0 border-slate-200"
+          className="h-12 w-12 shrink-0 rounded-2xl border-slate-200 bg-white"
           aria-label={isRu ? 'Вложения и действия' : 'Attachments & actions'}
           disabled={disabled}
         >
@@ -158,7 +158,7 @@ export function PartnerChatComposer({
         type="button"
         variant="outline"
         size="icon"
-        className="h-12 w-12 shrink-0 border-slate-200"
+        className="h-12 w-12 shrink-0 rounded-2xl border-slate-200 bg-white"
         disabled={disabled || attachBusy}
         aria-label={isRu ? 'Прикрепить файл' : 'Attach file'}
         onClick={() => fileRef.current?.click()}
@@ -187,7 +187,7 @@ export function PartnerChatComposer({
             <PopoverAnchor asChild>
               <div
                 className={cn(
-                  'flex min-w-0 flex-1 items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-50/70 px-1 py-1 shadow-sm sm:gap-2 sm:px-1.5',
+                  'flex min-w-0 flex-1 items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-50 px-1 py-1 shadow-sm sm:gap-2 sm:px-1.5',
                   voiceActive && 'border-teal-200/80 bg-teal-50/40',
                 )}
               >
@@ -197,7 +197,7 @@ export function PartnerChatComposer({
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="h-12 w-12 shrink-0 border-amber-200 text-amber-600 hover:border-amber-300 hover:bg-amber-50"
+                    className="h-12 w-12 shrink-0 rounded-2xl border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                     aria-label={isRu ? 'Быстрые ответы' : 'Quick replies'}
                     disabled={disabled}
                     title={isRu ? 'Быстрые ответы' : 'Quick replies'}
@@ -234,7 +234,7 @@ export function PartnerChatComposer({
               align="start"
               sideOffset={8}
               collisionPadding={16}
-              className="z-[130] w-[min(100vw-1.5rem,20rem)] border border-slate-200 bg-popover p-0 shadow-xl outline-none"
+              className="z-[130] w-[min(100vw-1.5rem,20rem)] rounded-2xl border border-slate-200 bg-white p-0 shadow-xl outline-none"
               onOpenAutoFocus={(e) => e.preventDefault()}
               onCloseAutoFocus={(e) => e.preventDefault()}
             >
@@ -253,7 +253,7 @@ export function PartnerChatComposer({
         ) : (
           <div
             className={cn(
-              'flex min-w-0 flex-1 items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-50/70 px-1 py-1 shadow-sm sm:gap-2 sm:px-1.5',
+              'flex min-w-0 flex-1 items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-50 px-1 py-1 shadow-sm sm:gap-2 sm:px-1.5',
               voiceActive && 'border-teal-200/80 bg-teal-50/40',
             )}
           >
@@ -287,7 +287,7 @@ export function PartnerChatComposer({
           <Button
             type="submit"
             disabled={!newMessage.trim() || sending || disabled}
-            className="h-12 w-12 min-h-[48px] min-w-[48px] shrink-0 rounded-xl bg-teal-600 hover:bg-teal-700 sm:h-11 sm:w-auto sm:min-h-0 sm:min-w-0 sm:rounded-md sm:px-4"
+            className="h-12 w-12 min-h-[48px] min-w-[48px] shrink-0 rounded-2xl bg-teal-600 hover:bg-teal-700 sm:h-11 sm:w-auto sm:min-h-0 sm:min-w-0 sm:px-4"
           >
             {sending ? <Loader2 className="h-5 w-5 animate-spin sm:h-4 sm:w-4" /> : <Send className="h-5 w-5 sm:h-4 sm:w-4" />}
           </Button>

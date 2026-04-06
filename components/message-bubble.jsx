@@ -196,7 +196,7 @@ export function MessageBubble({
   if (rawType === 'image' && imgUrl && typeof imgUrl === 'string') {
     body = (
       <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="block max-w-[min(100%,280px)]">
-        <img src={imgUrl} alt="" className="rounded-lg max-h-64 w-full object-cover" />
+        <img src={imgUrl} alt="" className="rounded-2xl max-h-64 w-full object-cover" />
       </a>
     )
   } else if (rawType === 'file' && fileUrl) {
@@ -262,16 +262,16 @@ export function MessageBubble({
         ) : null}
         <div
           className={cn(
-            'px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl',
+            'px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl border',
             isRejection
-              ? 'bg-red-50 text-red-900 border border-red-200 rounded-tl-none'
+              ? 'bg-slate-50 text-slate-900 border-slate-200 rounded-tl-none'
               : isOwn
                 ? ownVariant === 'indigo'
-                  ? 'bg-indigo-600 text-white rounded-tr-none'
-                  : 'bg-teal-600 text-white rounded-tr-none'
+                  ? 'bg-indigo-600 text-white border-indigo-600 rounded-tr-none'
+                  : 'bg-teal-600 text-white border-teal-600 rounded-tr-none'
                 : isAdmin
-                  ? 'bg-indigo-50 text-indigo-900 border border-indigo-200 rounded-tl-none'
-                  : 'bg-white text-slate-900 rounded-tl-none shadow-sm border'
+                  ? 'bg-white text-slate-900 border-slate-200 rounded-tl-none'
+                  : 'bg-white text-slate-900 border-slate-200 rounded-tl-none shadow-sm'
           )}
         >
           {isRejection && (

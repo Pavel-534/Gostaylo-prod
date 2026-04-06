@@ -76,12 +76,12 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5">
-            <div className="rounded-xl bg-teal-50 p-2">
+            <div className="rounded-2xl bg-slate-50 p-2">
               <Calendar className="h-5 w-5 text-teal-600" />
             </div>
             <span className="text-base font-bold leading-tight text-slate-900">Запрос на бронирование</span>
           </div>
-          <Badge className="shrink-0 bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-950">
+          <Badge className="shrink-0 bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
             Ожидает ответа
           </Badge>
         </div>
@@ -109,7 +109,7 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
           quantityLabel={bd.quantityLabelRu}
           commissionRate={commissionRate}
           currency="THB"
-          className="rounded-xl border border-slate-100 bg-slate-50/80 p-3 sm:p-4"
+          className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4"
         />
 
         {userRole === 'PARTNER' && (
@@ -117,7 +117,7 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
             <Button
               onClick={handleAccept}
               disabled={updating}
-              className="h-12 min-h-[48px] w-full flex-1 rounded-xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700 sm:w-auto"
+              className="h-12 min-h-[48px] w-full flex-1 rounded-2xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700 sm:w-auto"
             >
               {updating ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -132,7 +132,7 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
               onClick={handleDecline}
               disabled={updating}
               variant="outline"
-              className="h-12 min-h-[48px] w-full flex-1 rounded-xl border-2 border-red-200 text-base font-bold text-red-700 hover:bg-red-50 sm:w-auto"
+              className="h-12 min-h-[48px] w-full flex-1 rounded-2xl border border-slate-200 bg-white text-base font-bold text-slate-700 hover:bg-slate-50 sm:w-auto"
             >
               {updating ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -148,7 +148,7 @@ export function BookingRequestCard({ message, userRole, onStatusUpdate, bookingS
 
         {userRole === 'RENTER' && currentStatus === 'CONFIRMED' && (
           <Link href={`/checkout/${message.bookingId}`} className="block w-full">
-            <Button className="h-12 min-h-[48px] w-full rounded-xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700">
+            <Button className="h-12 min-h-[48px] w-full rounded-2xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700">
               <CreditCard className="mr-2 h-5 w-5" />
               Оплатить бронирование
             </Button>
@@ -171,11 +171,11 @@ export function SystemMessage({ message }) {
 
   return (
     <div className="flex justify-center py-2">
-      <div className={`px-4 py-2 rounded-full text-sm font-medium ${
+      <div className={`px-4 py-2 rounded-2xl text-sm font-medium ${
         isConfirmed
-          ? 'bg-green-100 text-green-700'
+          ? 'bg-slate-100 text-slate-700'
           : isCancelled
-          ? 'bg-red-100 text-red-700'
+          ? 'bg-slate-100 text-slate-700'
           : 'bg-slate-100 text-slate-700'
       }`}>
         {message.message}

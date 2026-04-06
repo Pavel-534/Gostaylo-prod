@@ -2,7 +2,7 @@
  * GoStayLo - App Sidebar Navigation
  * Based on ARCHITECTURAL_PASSPORT.md requirements:
  * - System Settings (TG Bot, Webhooks, Maintenance, Commission)
- * - Finance Hub (3.5% Markup, 0.5% Tolerance)
+ * - Finance Hub (Real-time rates, live finance insights)
  * - Messages (Telegram Thread 18)
  * - Admin Moderation (Listings + Partner Applications)
  * - Role-based filtering (PENDING_PARTNER, INACTIVE listings)
@@ -69,7 +69,7 @@ const ADMIN_NAV = [
     label: 'Finance Hub', 
     href: '/admin/finances', 
     icon: DollarSign,
-    description: '3.5% Markup • 0.5% Tolerance',
+    description: 'Real-time rates • Live finance',
     badge: 'LIVE'
   },
   { 
