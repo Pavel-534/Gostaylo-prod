@@ -13,6 +13,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { differenceInDays, parseISO } from 'date-fns'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { CalendarService } from '@/lib/services/calendar.service'
+import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -183,6 +184,11 @@ export async function POST(request) {
     
     if (bookingError) {
       console.error('[MANUAL BOOKING] Error:', bookingError)
+      void notifySystemAlert(
+        `🧾 <b>Ручное бронирование: ошибка БД</b>\n` +
+          `<code>${escapeSystemAlertHtml(bookingError.message)}</code>\n` +
+          `partner: <code>${escapeSystemAlertHtml(userId)}</code>`,
+      )
       return NextResponse.json({
         status: 'error',
         error: bookingError.message

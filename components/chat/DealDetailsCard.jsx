@@ -89,9 +89,9 @@ export function DealDetailsCard({ listing = null, booking = null, language = 'ru
           {isEn ? 'Trip details' : 'Детали поездки'}
         </h3>
 
-        <Card className="overflow-hidden border-slate-200 shadow-sm">
+        <Card className="overflow-hidden rounded-2xl border-slate-200 shadow-sm">
           <div className="flex gap-3 p-3 bg-white">
-            <div className="h-16 w-16 shrink-0 rounded-xl overflow-hidden bg-slate-100 border border-slate-100">
+            <div className="h-16 w-16 shrink-0 rounded-2xl overflow-hidden bg-slate-100 border border-slate-100">
               {img ? (
                 <img src={img} alt="" className="h-full w-full object-cover" />
               ) : (
@@ -133,7 +133,7 @@ export function DealDetailsCard({ listing = null, booking = null, language = 'ru
             </div>
           </div>
 
-          <Card className="border-slate-200 bg-white shadow-sm">
+          <Card className="rounded-2xl border-slate-200 bg-white shadow-sm">
             <CardContent className="p-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs text-slate-500">{isEn ? 'Status' : 'Статус'}</span>

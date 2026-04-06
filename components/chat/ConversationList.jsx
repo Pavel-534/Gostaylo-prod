@@ -182,7 +182,7 @@ function ConversationRow({
       )}
     >
       <div className="flex gap-3">
-        <div className="flex-shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
+        <div className="flex-shrink-0 w-12 h-12 rounded-2xl overflow-hidden bg-slate-100 flex items-center justify-center">
           {coverImg ? (
             <img src={coverImg} alt={conv.listing?.title || ''} className="w-full h-full object-cover" />
           ) : isAdminChat ? (
@@ -298,7 +298,7 @@ function InboxSearchFilterBar({
     : [LIST_FILTER_ALL, LIST_FILTER_UNREAD]
 
   return (
-    <div className="flex shrink-0 items-center gap-2 border-b border-slate-100 bg-white px-2 py-2">
+    <div className="flex shrink-0 items-center gap-2 border-b border-slate-100 bg-white px-4 py-2">
       <div className="relative min-w-0 flex-1">
         <Search
           className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
@@ -404,12 +404,12 @@ export function ConversationListPanel({
     <div className={cn('flex min-h-0 h-full flex-col', className)}>
       <div className="flex shrink-0 flex-col border-b border-slate-200 bg-white">
         {catalogHref ? (
-          <div className="flex items-center gap-2 border-b border-slate-100 bg-teal-50/60 px-3 py-1.5">
+          <div className="flex items-center gap-2 border-b border-slate-100 bg-teal-50/60 px-4 py-1.5">
             <Link
               href={catalogHref}
-              className="inline-flex min-w-0 flex-1 items-center gap-2 rounded-md py-0.5 text-sm font-semibold text-teal-800 hover:text-teal-900"
+              className="inline-flex min-w-0 flex-1 items-center gap-2 rounded-lg py-0.5 text-sm font-semibold text-teal-800 hover:text-teal-900"
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-teal-600 text-xs font-bold text-white">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-600 text-xs font-bold text-white">
                 G
               </span>
               <House className="h-4 w-4 shrink-0 text-teal-700" aria-hidden />
@@ -417,7 +417,7 @@ export function ConversationListPanel({
             </Link>
           </div>
         ) : null}
-        <div className="flex items-center justify-between gap-2 px-3 py-2">
+        <div className="flex items-center justify-between gap-2 px-4 py-2">
           <div className="min-w-0">
             <h2 className="truncate text-base font-semibold leading-tight text-slate-900">
               {title || (isRu ? 'Сообщения' : 'Messages')}
@@ -437,7 +437,7 @@ export function ConversationListPanel({
           ) : null}
         </div>
         {inboxTab != null && typeof onInboxTabChange === 'function' ? (
-          <div className="border-t border-slate-100 bg-slate-50/90 px-2 py-1.5">
+          <div className="border-t border-slate-100 bg-white px-3 py-1.5 sm:px-4">
             <ChatInboxRoleTabs
               value={inboxTab}
               onChange={onInboxTabChange}

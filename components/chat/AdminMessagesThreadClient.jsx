@@ -334,7 +334,7 @@ export function AdminMessagesThreadClient({ conversationId, me, language = 'ru' 
 
   return (
     <ChatThreadChrome
-      hasTread={!!conversationId}
+      hasThread={!!conversationId}
       sidebarSlot={sidebarSlot}
       headerSlot={headerSlot}
       pinnedAboveMessagesSlot={pinnedFinal}

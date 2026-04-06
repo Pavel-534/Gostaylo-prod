@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server';
 import { getUserIdFromSession } from '@/lib/services/session-service';
 import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-sync';
+import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,7 +88,16 @@ export async function POST(request, { params }) {
     );
     
     if (!updateRes.ok) {
-      throw new Error('Failed to update booking');
+      const updText = await updateRes.text().catch(() => '')
+      void notifySystemAlert(
+        `💳 <b>Платёж: подтверждение не записалось в БД</b>\n` +
+          `booking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n` +
+          `<code>${escapeSystemAlertHtml(updText.slice(0, 800))}</code>`,
+      )
+      return NextResponse.json(
+        { success: false, error: 'Failed to confirm payment' },
+        { status: 502 },
+      )
     }
 
     try {
@@ -115,6 +125,11 @@ export async function POST(request, { params }) {
     
   } catch (error) {
     console.error('[PAYMENT-CONFIRM ERROR]', error);
+    void notifySystemAlert(
+      `💳 <b>Платёж: ошибка confirm</b>\n` +
+        `booking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n` +
+        `<code>${escapeSystemAlertHtml(error?.message || error)}</code>`,
+    )
     return NextResponse.json({ success: false, error: 'Failed to confirm payment' }, { status: 500 });
   }
 }

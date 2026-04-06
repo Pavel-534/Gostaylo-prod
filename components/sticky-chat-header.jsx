@@ -182,7 +182,7 @@ export function StickyChatHeader({
 
       {/* Admin participants list */}
       {catalogHref ? (
-        <div className="hidden md:flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-2 py-1 sm:px-3">
+        <div className="hidden md:flex items-center justify-between gap-2 border-b border-slate-100 bg-white px-4 py-1">
           <Link
             href={catalogHref}
             className="inline-flex items-center gap-1 text-xs font-semibold text-teal-700 hover:text-teal-900 hover:underline truncate min-w-0"
@@ -220,12 +220,12 @@ export function StickyChatHeader({
       ) : null}
 
       {showUnifiedTop ? (
-        <div className="flex w-full min-w-0 items-center gap-2 px-2 py-2 xl:hidden">
+        <div className="flex w-full min-w-0 items-center gap-2 px-4 py-2 xl:hidden">
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="h-9 w-9 shrink-0 rounded-xl border border-white/55 bg-white/50 text-slate-700 shadow-[0_2px_12px_rgba(15,23,42,0.07)] backdrop-blur-md hover:bg-white/75"
+            className="h-9 w-9 shrink-0 rounded-2xl border border-white/55 bg-white/50 text-slate-700 shadow-[0_2px_12px_rgba(15,23,42,0.07)] backdrop-blur-md hover:bg-white/75"
             aria-label={
               messagesListBackLabel
                 ?? (language === 'en' ? 'Back to conversations' : 'К списку диалогов')
@@ -265,7 +265,7 @@ export function StickyChatHeader({
       <div
         className={cn(
           'flex w-full min-w-0 gap-2 items-center overflow-x-hidden sm:gap-3 sm:items-start',
-          compact ? 'px-2 py-1.5 sm:px-3 sm:py-2' : 'px-4 py-3'
+          compact ? 'px-4 py-1.5 sm:px-4 sm:py-2' : 'px-4 py-3'
         )}
       >
         {messagesListHref && !hideBackButton && !showUnifiedTop ? (
@@ -296,14 +296,14 @@ export function StickyChatHeader({
             src={img}
             alt=""
             className={cn(
-              'rounded-lg object-cover shrink-0 border border-slate-100',
+              'rounded-2xl object-cover shrink-0 border border-slate-100',
               compact ? 'w-10 h-10 sm:w-14 sm:h-14' : 'w-14 h-14'
             )}
           />
         ) : (
           <div
             className={cn(
-              'rounded-lg bg-slate-100 flex items-center justify-center shrink-0',
+              'rounded-2xl bg-slate-100 flex items-center justify-center shrink-0',
               compact ? 'w-10 h-10 sm:w-14 sm:h-14' : 'w-14 h-14'
             )}
           >

@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server';
 import { getUserIdFromSession } from '@/lib/services/session-service';
 import { resolveThbPerUsdt, resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
+import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -109,7 +110,7 @@ export async function POST(request, { params }) {
     }
     
     // Update booking status to AWAITING_PAYMENT
-    await fetch(
+    const patchRes = await fetch(
       `${SUPABASE_URL}/rest/v1/bookings?id=eq.${bookingId}`,
       {
         method: 'PATCH',
@@ -129,6 +130,20 @@ export async function POST(request, { params }) {
         })
       }
     );
+
+    if (!patchRes.ok) {
+      const patchBody = await patchRes.text().catch(() => '')
+      void notifySystemAlert(
+        `💳 <b>Платёж: не удалось обновить бронь при инициализации</b>\n` +
+          `booking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n` +
+          `method: <code>${escapeSystemAlertHtml(method)}</code>\n` +
+          `<code>${escapeSystemAlertHtml(patchBody.slice(0, 800))}</code>`,
+      )
+      return NextResponse.json(
+        { success: false, error: 'Payment gateway bookkeeping failed' },
+        { status: 502 },
+      )
+    }
     
     return NextResponse.json({
       success: true,
@@ -137,6 +152,11 @@ export async function POST(request, { params }) {
     
   } catch (error) {
     console.error('[PAYMENT-INITIATE ERROR]', error);
+    void notifySystemAlert(
+      `💳 <b>Платёж: критическая ошибка initiate</b>\n` +
+        `booking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n` +
+        `<code>${escapeSystemAlertHtml(error?.message || error)}</code>`,
+    )
     return NextResponse.json({ success: false, error: 'Failed to initiate payment' }, { status: 500 });
   }
 }

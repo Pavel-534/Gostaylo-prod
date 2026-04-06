@@ -22,6 +22,7 @@ import { registerTelegramReplyTarget } from '@/lib/services/telegram/telegram-re
 import { getEffectiveRate } from '@/lib/services/currency.service'
 import { otherPartyHasReadRaw } from '@/lib/chat/read-receipts'
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
+import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -360,6 +361,11 @@ export async function POST(request) {
     if (!invRes.ok) {
       const err = await invRes.text()
       console.error('[chat/messages] invoice insert', err)
+      void notifySystemAlert(
+        `💬 <b>Supabase: не удалось записать инвойс (чат)</b>\n` +
+          `conversation: <code>${escapeSystemAlertHtml(conversationId)}</code>\n` +
+          `<code>${escapeSystemAlertHtml(err.slice(0, 800))}</code>`,
+      )
       return NextResponse.json(
         { success: false, error: 'Could not create invoice (run migration 005?)', details: err },
         { status: 400 }
@@ -419,6 +425,16 @@ export async function POST(request) {
 
   const msgData = await msgRes.json()
   if (!msgRes.ok) {
+    const detail =
+      typeof msgData === 'string'
+        ? msgData
+        : JSON.stringify(msgData).slice(0, 1200)
+    void notifySystemAlert(
+      `💬 <b>Supabase: сбой записи сообщения в чат</b>\n` +
+        `conversation: <code>${escapeSystemAlertHtml(conversationId)}</code>\n` +
+        `type: <code>${escapeSystemAlertHtml(type)}</code>\n` +
+        `<code>${escapeSystemAlertHtml(detail)}</code>`,
+    )
     return NextResponse.json({ success: false, error: msgData }, { status: 400 })
   }
 

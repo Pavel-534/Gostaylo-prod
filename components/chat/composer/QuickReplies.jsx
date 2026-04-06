@@ -140,7 +140,7 @@ export function QuickRepliesScrollablePanel({
               key={i}
               type="button"
               disabled={disabled}
-              className="flex w-full cursor-pointer flex-col items-start gap-1 rounded-md px-2 py-2.5 text-left outline-none hover:bg-slate-100 focus-visible:bg-slate-100 focus-visible:ring-2 focus-visible:ring-teal-500/30 disabled:pointer-events-none disabled:opacity-50"
+              className="flex w-full cursor-pointer flex-col items-start gap-1 rounded-2xl px-2 py-2.5 text-left outline-none hover:bg-slate-100 focus-visible:bg-slate-100 focus-visible:ring-2 focus-visible:ring-teal-500/30 disabled:pointer-events-none disabled:opacity-50"
               onClick={() => pick(isRu ? q.textRu : q.textEn)}
             >
               <span className="flex w-full items-center gap-2">
@@ -164,12 +164,12 @@ export function QuickRepliesScrollablePanel({
               {savedTemplates.map((tpl) => (
                 <div
                   key={tpl.id}
-                  className="flex items-start gap-1 rounded-md px-1 py-1 hover:bg-slate-50"
+                  className="flex items-start gap-1 rounded-2xl px-1 py-1 hover:bg-slate-50"
                 >
                   <button
                     type="button"
                     disabled={disabled}
-                    className="flex min-w-0 flex-1 cursor-pointer items-start gap-1 rounded-md px-1 py-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-teal-500/30 disabled:pointer-events-none disabled:opacity-50"
+                    className="flex min-w-0 flex-1 cursor-pointer items-start gap-1 rounded-2xl px-1 py-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-teal-500/30 disabled:pointer-events-none disabled:opacity-50"
                     onClick={() => pick(tpl.text)}
                   >
                     <Quote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-500" />
@@ -226,7 +226,7 @@ export function QuickRepliesScrollablePanel({
             ) : (
               <button
                 type="button"
-                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-left text-teal-700 outline-none hover:bg-teal-50 focus-visible:ring-2 focus-visible:ring-teal-500/30"
+                className="flex w-full cursor-pointer items-center gap-2 rounded-2xl px-2 py-2 text-left text-teal-700 outline-none hover:bg-teal-50 focus-visible:ring-2 focus-visible:ring-teal-500/30"
                 onClick={() => setShowSaveInput(true)}
               >
                 <BookmarkPlus className="h-3.5 w-3.5 shrink-0" />

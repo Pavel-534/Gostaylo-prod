@@ -77,10 +77,10 @@ export function AdminConversationSidebar({
                     <img
                       src={toPublicImageUrl(conv.listing.images[0]) || conv.listing.images[0]}
                       alt=""
-                      className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                      className="h-12 w-12 shrink-0 rounded-2xl object-cover"
                     />
                   ) : (
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-200">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-200">
                       <User className="h-6 w-6 text-slate-400" />
                     </div>
                   )}

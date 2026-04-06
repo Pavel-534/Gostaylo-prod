@@ -247,7 +247,7 @@ function AdminMessagesHallContent() {
 
       <div className="min-h-0 flex-1 overflow-hidden">
         <ChatThreadChrome
-          hasTread={false}
+          hasThread={false}
           sidebarSlot={
             <AdminConversationSidebar
               conversations={filteredConversations}

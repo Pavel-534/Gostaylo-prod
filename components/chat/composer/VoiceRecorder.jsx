@@ -92,7 +92,7 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
   // ── Состояние «предпросмотр» ─────────────────────────────────────────────
   if (audioBlob) {
     return (
-      <div className="flex w-full min-w-0 min-h-10 flex-1 items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-2 py-1.5 sm:px-3 sm:py-2">
+      <div className="flex w-full min-w-0 min-h-10 flex-1 items-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 px-2 py-1.5 sm:px-3 sm:py-2">
         <div className="min-w-0 flex-1 overflow-hidden">
           <audio
             key={audioUrl || 'preview'}
@@ -108,7 +108,7 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
           type="button"
           variant="ghost"
           size="icon"
-          className="h-11 w-11 shrink-0 rounded-xl text-red-500 hover:bg-red-50"
+          className="h-11 w-11 shrink-0 rounded-2xl text-red-500 hover:bg-red-50"
           onClick={discardRecording}
           title={isRu ? 'Удалить' : 'Discard'}
         >
@@ -117,7 +117,7 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
         <Button
           type="button"
           disabled={voiceSending}
-          className="h-11 min-h-[44px] shrink-0 rounded-xl bg-teal-600 px-4 hover:bg-teal-700"
+          className="h-11 min-h-[44px] shrink-0 rounded-2xl bg-teal-600 px-4 hover:bg-teal-700"
           onClick={handleSend}
         >
           {voiceSending
@@ -131,7 +131,7 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
   // ── Состояние «запись» ───────────────────────────────────────────────────
   if (isRecording) {
     return (
-      <div className="flex min-h-10 w-full min-w-0 flex-1 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-2 py-1.5 sm:px-3 sm:py-2">
+      <div className="flex min-h-10 w-full min-w-0 flex-1 items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-2 py-1.5 sm:px-3 sm:py-2">
         <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
         <span className="text-sm text-red-700 font-medium flex-1">
           {isRu ? 'Запись...' : 'Recording...'} {durationLabel}
@@ -139,7 +139,7 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
         <Button
           type="button"
           size="icon"
-          className="h-11 w-11 shrink-0 rounded-xl bg-red-500 hover:bg-red-600"
+          className="h-11 w-11 shrink-0 rounded-2xl bg-red-500 hover:bg-red-600"
           onClick={stopRecording}
           title={isRu ? 'Остановить' : 'Stop'}
         >
@@ -157,7 +157,7 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
       type="button"
       variant="outline"
       size="icon"
-      className="h-12 w-12 shrink-0 rounded-xl border-slate-200 text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+      className="h-12 w-12 shrink-0 rounded-2xl border-slate-200 text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
       disabled={disabled}
       onClick={startRecording}
       title={isRu ? 'Голосовое сообщение' : 'Voice message'}

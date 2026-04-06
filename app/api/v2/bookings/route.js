@@ -15,6 +15,7 @@ import { NotificationService, NotificationEvents } from '@/lib/services/notifica
 import { supabaseAdmin } from '@/lib/supabase';
 import { rateLimitCheck } from '@/lib/rate-limit';
 import { createBookingSchema } from '@/lib/validations/booking';
+import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 
 export async function GET(request) {
   try {
@@ -299,6 +300,9 @@ export async function POST(request) {
     
   } catch (error) {
     console.error('[BOOKINGS POST ERROR]', error);
+    void notifySystemAlert(
+      `🧾 <b>Критическая ошибка POST /api/v2/bookings</b>\n<code>${escapeSystemAlertHtml(error?.message || error)}</code>`,
+    )
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

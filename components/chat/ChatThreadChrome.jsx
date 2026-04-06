@@ -24,7 +24,7 @@
  * Использование (пример Фазы 4):
  * ```jsx
  * <ChatThreadChrome
- *   hasTread={!!conversationId}
+ *   hasThread={!!conversationId}
  *   sidebarSlot={<PartnerInboxPanel />}
  *   headerSlot={<StickyChatHeader ... />}
  *   messagesSlot={<ChatMessageList ... />}
@@ -40,7 +40,7 @@ import { MessageSquare } from 'lucide-react'
 
 /**
  * @param {Object}          props
- * @param {boolean}         props.hasTread        — true если открыт конкретный тред
+ * @param {boolean}         props.hasThread       — true если открыт конкретный тред
  * @param {React.ReactNode} [props.sidebarSlot]   — левая панель (список диалогов)
  * @param {React.ReactNode} [props.headerSlot]    — шапка треда (StickyChatHeader)
  * @param {React.ReactNode} [props.actionBarSlot] — панель действий под шапкой
@@ -54,7 +54,7 @@ import { MessageSquare } from 'lucide-react'
  * @param {string}          [props.className]
  */
 export function ChatThreadChrome({
-  hasTread = false,
+  hasThread = false,
   sidebarSlot,
   headerSlot,
   actionBarSlot,
@@ -79,7 +79,7 @@ export function ChatThreadChrome({
         className={cn(
           'flex h-full min-h-0 w-full flex-shrink-0 flex-col overflow-hidden',
           'lg:w-80',
-          hasTread ? 'hidden lg:flex' : 'flex',
+          hasThread ? 'hidden lg:flex' : 'flex',
           'border-r border-slate-200',
         )}
       >
@@ -92,15 +92,15 @@ export function ChatThreadChrome({
       <div
         className={cn(
           'grid flex-1 min-h-0 min-w-0 overflow-hidden',
-          hasTread && sidePanelSlot
+          hasThread && sidePanelSlot
             ? 'grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px]'
             : 'grid-cols-1',
-          hasTread ? 'grid' : 'hidden lg:grid',
+          hasThread ? 'grid' : 'hidden lg:grid',
         )}
       >
         {/* ── Область треда ──────────────────────────────────────────── */}
         <section className="flex min-h-0 min-w-0 flex-col overflow-hidden lg:min-w-0">
-          {hasTread ? (
+          {hasThread ? (
             <>
               {headerSlot && (
                 <div className="flex-shrink-0 z-10">
@@ -135,18 +135,18 @@ export function ChatThreadChrome({
               )}
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center bg-slate-50">
+            <div className="flex-1 flex items-center justify-center bg-white">
               {emptySlot ?? <DefaultEmptyState language={language} />}
             </div>
           )}
         </section>
 
         {/* ── Side panel: только lg+, мобиле — Sheet из шапки ─────────── */}
-        {hasTread && sidePanelSlot ? (
+        {hasThread && sidePanelSlot ? (
           <aside
             className={cn(
               'hidden min-h-0 min-w-0 flex-col border-l border-slate-200 lg:flex',
-              'w-full bg-slate-50/90 overflow-y-auto overscroll-contain lg:w-auto',
+              'w-full bg-white overflow-y-auto overscroll-contain lg:w-auto',
             )}
           >
             {sidePanelSlot}
