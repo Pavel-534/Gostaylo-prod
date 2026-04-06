@@ -67,7 +67,20 @@ export async function PUT(request, { params }) {
   try {
     const { id } = await params
     const userId = await getUserIdFromSession()
-    const body = await request.json()
+
+    let body = {}
+    try {
+      const raw = await request.text()
+      if (raw != null && String(raw).trim() !== '') {
+        body = JSON.parse(raw)
+      }
+    } catch {
+      return NextResponse.json(
+        { status: 'error', error: 'Invalid or empty JSON body' },
+        { status: 400 },
+      )
+    }
+
     const { status: newStatus, reason, declineReasonKey, declineReasonDetail } = body
     
     if (!userId) {

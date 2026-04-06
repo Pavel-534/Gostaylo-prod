@@ -159,7 +159,10 @@ export async function GET(request, context) {
       isFeatured: listing.is_featured,
       minBookingDays: listing.min_booking_days,
       maxBookingDays: listing.max_booking_days,
-      maxCapacity: Math.max(1, parseInt(listing.max_capacity, 10) || 1),
+      maxCapacity: (() => {
+        const n = parseInt(listing.max_capacity, 10)
+        return Number.isFinite(n) && n > 0 ? n : null
+      })(),
       views: (listing.views || 0) + 1,
       bookingsCount: listing.bookings_count || 0,
       rating: parseFloat(listing.rating) || 0,

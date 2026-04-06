@@ -10,11 +10,29 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { MapPin, Star, Bed, Bath, Users, Square, ShieldCheck } from 'lucide-react'
+import {
+  MapPin,
+  Star,
+  Bed,
+  Bath,
+  Users,
+  Square,
+  ShieldCheck,
+  Anchor,
+  Ship,
+  Clock,
+  Route,
+  Car,
+} from 'lucide-react'
 import { toPublicImageUrl } from '@/lib/public-image-url'
-import { getUIText, getListingText } from '@/lib/translations'
+import { getUIText, getListingText, getCategoryName } from '@/lib/translations'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
-import { isTransportListingCategory } from '@/lib/listing-category-slug'
+import {
+  isTransportListingCategory,
+  isTourListingCategory,
+  isYachtLikeCategory,
+  showsPropertyInteriorSpecs,
+} from '@/lib/listing-category-slug'
 import { normalizeVehicleModelYearForDisplay } from '@/lib/listing-vehicle-year'
 
 export function ListingInfo({ listing, language = 'en' }) {
@@ -22,9 +40,27 @@ export function ListingInfo({ listing, language = 'en' }) {
   const bathrooms = listing?.metadata?.bathrooms || 0
   const categorySlug = String(listing?.categorySlug || listing?.category?.slug || '').toLowerCase()
   const transportListing = isTransportListingCategory(categorySlug)
+  const propertyInterior = showsPropertyInteriorSpecs(categorySlug)
+  const yachtLike = isYachtLikeCategory(categorySlug)
+  const tourLike = isTourListingCategory(categorySlug)
   const maxGuests = resolveListingGuestCapacity(listing)
   const area = listing?.metadata?.area || 0
   const vehicleYear = normalizeVehicleModelYearForDisplay(listing?.metadata?.vehicle_year)
+  const cabins =
+    parseInt(
+      String(listing?.metadata?.cabins ?? listing?.metadata?.cabins_count ?? '').replace(/\D/g, ''),
+      10,
+    ) || 0
+  const durationHours =
+    parseInt(
+      String(listing?.metadata?.duration_hours ?? listing?.metadata?.tour_hours ?? '').replace(
+        /\D/g,
+        '',
+      ),
+      10,
+    ) || 0
+  const engineCc =
+    parseInt(String(listing?.metadata?.engine_cc ?? '').replace(/\D/g, ''), 10) || 0
   
   return (
     <div className="space-y-8">
@@ -58,19 +94,56 @@ export function ListingInfo({ listing, language = 'en' }) {
         
         {/* Specs */}
         <div className="flex items-center gap-6 text-slate-700 py-4 border-y border-slate-100 flex-wrap">
-          {!transportListing && bedrooms > 0 && (
+          {propertyInterior && bedrooms > 0 && (
             <div className="flex items-center gap-2">
               <Bed className="h-5 w-5 text-slate-400" />
               <span>{bedrooms} {language === 'ru' ? 'спален' : 'bedrooms'}</span>
             </div>
           )}
-          {!transportListing && bathrooms > 0 && (
+          {propertyInterior && bathrooms > 0 && (
             <div className="flex items-center gap-2">
               <Bath className="h-5 w-5 text-slate-400" />
               <span>{bathrooms} {getUIText('bathrooms', language)}</span>
             </div>
           )}
-          {transportListing && vehicleYear != null && (
+          {yachtLike && (
+            <div className="flex items-center gap-2">
+              <Anchor className="h-5 w-5 text-slate-400 shrink-0" aria-hidden />
+              <span className="font-medium">{getCategoryName('yachts', language, listing?.category?.name)}</span>
+            </div>
+          )}
+          {yachtLike && cabins > 0 && (
+            <div className="flex items-center gap-2">
+              <Ship className="h-5 w-5 text-slate-400 shrink-0" aria-hidden />
+              <span>
+                {cabins} {language === 'ru' ? 'кают' : 'cabins'}
+              </span>
+            </div>
+          )}
+          {tourLike && (
+            <div className="flex items-center gap-2">
+              <Route className="h-5 w-5 text-slate-400 shrink-0" aria-hidden />
+              <span className="font-medium">{getCategoryName('tours', language, listing?.category?.name)}</span>
+            </div>
+          )}
+          {tourLike && durationHours > 0 && (
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-slate-400 shrink-0" aria-hidden />
+              <span className="tabular-nums">
+                ~{durationHours} {language === 'ru' ? 'ч' : 'h'}
+              </span>
+            </div>
+          )}
+          {transportListing && !yachtLike && (
+            <div className="flex items-center gap-2">
+              <Car className="h-5 w-5 text-slate-400 shrink-0" aria-hidden />
+              <span className="font-medium">{getCategoryName('vehicles', language, listing?.category?.name)}</span>
+            </div>
+          )}
+          {transportListing && !yachtLike && engineCc > 0 && (
+            <span className="text-sm tabular-nums text-slate-600">{engineCc} cc</span>
+          )}
+          {transportListing && !yachtLike && vehicleYear != null && (
             <div className="flex items-center gap-2 text-slate-700">
               <span>
                 {getUIText('listingModelYear', language)}:{' '}
@@ -81,12 +154,12 @@ export function ListingInfo({ listing, language = 'en' }) {
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-slate-400" />
             <span>
-              {transportListing
+              {transportListing && !yachtLike
                 ? `${maxGuests} ${getUIText('seats', language)}`
                 : getUIText('listingUpToGuests', language).replace(/\{\{n\}\}/g, String(maxGuests))}
             </span>
           </div>
-          {!transportListing && area > 0 && (
+          {propertyInterior && area > 0 && (
             <div className="flex items-center gap-2">
               <Square className="h-5 w-5 text-slate-400" />
               <span>{area} m²</span>

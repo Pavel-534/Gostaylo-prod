@@ -7,13 +7,30 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
-import { Star, MapPin, BedDouble, Users, Bath, Maximize } from 'lucide-react'
+import {
+  Star,
+  MapPin,
+  BedDouble,
+  Users,
+  Bath,
+  Maximize,
+  Anchor,
+  Ship,
+  Clock,
+  Car,
+  Route,
+} from 'lucide-react'
 import { CardImageCarousel } from '@/components/card/CardImageCarousel'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
 import { cn } from '@/lib/utils'
 import { getUIText, getCategoryName } from '@/lib/translations'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
-import { isTransportListingCategory } from '@/lib/listing-category-slug'
+import {
+  isTransportListingCategory,
+  isTourListingCategory,
+  isYachtLikeCategory,
+  showsPropertyInteriorSpecs,
+} from '@/lib/listing-category-slug'
 
 export function GostayloListingCard({
   listing,
@@ -66,8 +83,18 @@ export function GostayloListingCard({
   const bedrooms = metadata?.bedrooms || 0
   const bathrooms = metadata?.bathrooms || 0
   const categorySlugForCard = listingCategorySlug || category?.slug || ''
-  const transportCard = isTransportListingCategory(categorySlugForCard)
+  const propertyInteriorCard = showsPropertyInteriorSpecs(categorySlugForCard)
+  const yachtCard = isYachtLikeCategory(categorySlugForCard)
+  const tourCard = isTourListingCategory(categorySlugForCard)
+  const vehicleCard = isTransportListingCategory(categorySlugForCard)
   const maxGuests = resolveListingGuestCapacity(listing)
+  const cabins =
+    parseInt(String(metadata?.cabins ?? metadata?.cabins_count ?? '').replace(/\D/g, ''), 10) || 0
+  const durationHours =
+    parseInt(String(metadata?.duration_hours ?? metadata?.tour_hours ?? '').replace(/\D/g, ''), 10) ||
+    0
+  const engineCc =
+    parseInt(String(metadata?.engine_cc ?? '').replace(/\D/g, ''), 10) || 0
   const area = metadata?.area || 0
   const propertyType = metadata?.property_type || category?.slug || 'default'
   
@@ -150,28 +177,65 @@ export function GostayloListingCard({
             )}
           </div>
 
-          {/* Specs Row */}
-          <div className="flex items-center gap-4 text-sm text-slate-500 mb-3">
-            {!transportCard && bedrooms > 0 && (
+          {/* Specs Row — жильё: спальни/ванные; яхта/тур/транспорт: свои признаки */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 mb-3">
+            {propertyInteriorCard && bedrooms > 0 && (
               <div className="flex items-center gap-1" title={getUIText('bedrooms', language)}>
                 <BedDouble className="h-4 w-4" />
                 <span>{bedrooms}</span>
               </div>
             )}
-            {!transportCard && bathrooms > 0 && (
+            {propertyInteriorCard && bathrooms > 0 && (
               <div className="flex items-center gap-1" title={getUIText('bathrooms', language)}>
                 <Bath className="h-4 w-4" />
                 <span>{bathrooms}</span>
               </div>
             )}
+            {yachtCard && (
+              <div className="flex items-center gap-1" title={getCategoryName('yachts', language)}>
+                <Anchor className="h-4 w-4" aria-hidden />
+              </div>
+            )}
+            {yachtCard && cabins > 0 && (
+              <div
+                className="flex items-center gap-1"
+                title={language === 'ru' ? 'Кают' : 'Cabins'}
+              >
+                <Ship className="h-4 w-4" aria-hidden />
+                <span>{cabins}</span>
+              </div>
+            )}
+            {tourCard && (
+              <div className="flex items-center gap-1" title={getCategoryName('tours', language)}>
+                <Route className="h-4 w-4" aria-hidden />
+              </div>
+            )}
+            {tourCard && durationHours > 0 && (
+              <div className="flex items-center gap-1" title={language === 'ru' ? 'Часы' : 'Hours'}>
+                <Clock className="h-4 w-4" aria-hidden />
+                <span>{durationHours}h</span>
+              </div>
+            )}
+            {vehicleCard && !yachtCard && (
+              <div className="flex items-center gap-1" title={getCategoryName('vehicles', language)}>
+                <Car className="h-4 w-4" aria-hidden />
+              </div>
+            )}
+            {vehicleCard && !yachtCard && engineCc > 0 && (
+              <span className="tabular-nums text-xs font-medium text-slate-600">{engineCc} cc</span>
+            )}
             <div
               className="flex items-center gap-1"
-              title={transportCard ? getUIText('numberOfSeats', language) : getUIText('guests', language)}
+              title={
+                vehicleCard && !yachtCard
+                  ? getUIText('numberOfSeats', language)
+                  : getUIText('guests', language)
+              }
             >
               <Users className="h-4 w-4" />
               <span>{maxGuests}</span>
             </div>
-            {!transportCard && area > 0 && (
+            {propertyInteriorCard && area > 0 && (
               <div className="flex items-center gap-1" title={getUIText('area', language)}>
                 <Maximize className="h-4 w-4" />
                 <span>{area}м²</span>

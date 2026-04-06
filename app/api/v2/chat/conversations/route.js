@@ -120,48 +120,47 @@ async function enrichConversationRows(rows, viewerUserId) {
 
   const lastById = {}
   const unreadById = {}
-  const uid = encodeURIComponent(String(viewerUserId))
-
-  await Promise.all(
-    rows.map(async (c) => {
-      const cid = encodeURIComponent(c.id)
-      const viewerUid = String(viewerUserId)
-      const isRenter = String(c.renter_id) === viewerUid
-      const isHostSide =
-        String(c.renter_id) !== viewerUid &&
-        (String(c.partner_id) === viewerUid || String(c.owner_id) === viewerUid)
-      const unreadFilter =
-        isRenter
-          ? `read_at_renter=is.null`
-          : isHostSide
-            ? `read_at_partner=is.null`
-            : `is_read=eq.false`
-      const [lastRes, unreadRes] = await Promise.all([
-        fetch(
-          `${SUPABASE_URL}/rest/v1/messages?conversation_id=eq.${cid}&order=created_at.desc&limit=1&select=*`,
-          { headers: hdr, cache: 'no-store' }
-        ),
-        fetch(
-          `${SUPABASE_URL}/rest/v1/messages?conversation_id=eq.${cid}&${unreadFilter}&sender_id=neq.${uid}&select=id`,
-          { headers: hdr, cache: 'no-store' }
-        ),
-      ])
-      const lastArr = await lastRes.json()
-      const unreadArr = await unreadRes.json()
-      const last = Array.isArray(lastArr) ? lastArr[0] : null
-      lastById[c.id] = last
-        ? {
-            id: last.id,
-            content: last.content ?? last.message,
-            message: last.message ?? last.content,
-            type: last.type,
-            createdAt: last.created_at,
-            created_at: last.created_at,
+  const viewerUid = String(viewerUserId)
+  const convById = new Map(rows.map((c) => [String(c.id), c]))
+  const conversationIds = [...convById.keys()]
+  if (conversationIds.length > 0) {
+    const inConversations = conversationIds.map((id) => encodeURIComponent(id)).join(',')
+    const msgRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/messages?conversation_id=in.(${inConversations})&order=created_at.desc&select=id,conversation_id,content,message,type,created_at,sender_id,read_at_renter,read_at_partner,is_read`,
+      { headers: hdr, cache: 'no-store' }
+    )
+    const msgRows = await msgRes.json()
+    if (Array.isArray(msgRows)) {
+      for (const m of msgRows) {
+        const cid = String(m.conversation_id || '')
+        if (!cid) continue
+        if (lastById[cid] == null) {
+          lastById[cid] = {
+            id: m.id,
+            content: m.content ?? m.message,
+            message: m.message ?? m.content,
+            type: m.type,
+            createdAt: m.created_at,
+            created_at: m.created_at,
           }
-        : null
-      unreadById[c.id] = Array.isArray(unreadArr) ? unreadArr.length : 0
-    })
-  )
+        }
+        const c = convById.get(cid)
+        if (!c) continue
+        if (String(m.sender_id || '') === viewerUid) continue
+        const isRenter = String(c.renter_id) === viewerUid
+        const isHostSide =
+          String(c.renter_id) !== viewerUid &&
+          (String(c.partner_id) === viewerUid || String(c.owner_id) === viewerUid)
+        const unread =
+          isRenter
+            ? m.read_at_renter == null
+            : isHostSide
+              ? m.read_at_partner == null
+              : m.is_read === false
+        if (unread) unreadById[cid] = (unreadById[cid] || 0) + 1
+      }
+    }
+  }
 
   return rows.map((c) => {
     const base = mapConversationRow(c)

@@ -392,6 +392,8 @@ function PremiumListingContent({ params }) {
         metadata: listing.metadata || {},
         checkIn: format(dateRange.from, 'yyyy-MM-dd'),
         checkOut: format(dateRange.to, 'yyyy-MM-dd'),
+        listingCategorySlug: listing.categorySlug || '',
+        guestsCount: guests,
       })
 
       const cr = Number(listing.commissionRate)
@@ -422,7 +424,7 @@ function PremiumListingContent({ params }) {
         finalTotal: calc.totalPrice + serviceFee,
       })
     }
-  }, [listing, dateRange, commissionHook.loading, commissionHook.effectiveRate])
+  }, [listing, dateRange, guests, commissionHook.loading, commissionHook.effectiveRate])
   
   async function loadListing() {
     try {
@@ -472,7 +474,11 @@ function PremiumListingContent({ params }) {
           city: l.city,
           category_id: l.categoryId,
           categorySlug: l.category?.slug || null,
-          maxCapacity: Math.max(1, parseInt(l.maxCapacity ?? l.max_capacity, 10) || 1),
+          maxCapacity: (() => {
+            const raw = l.maxCapacity ?? l.max_capacity
+            const n = parseInt(raw, 10)
+            return Number.isFinite(n) && n > 0 ? n : null
+          })(),
         })
       }
       setLoading(false)
@@ -584,6 +590,9 @@ function PremiumListingContent({ params }) {
     setSubmitting(true)
 
     try {
+      const isPrivateOrSpecial =
+        bookingModalIntent === 'private' || bookingModalIntent === 'special'
+
       const payload = {
         listingId: listing.id,
         renterId: user.id,
@@ -595,6 +604,15 @@ function PremiumListingContent({ params }) {
         specialRequests: message?.trim() ? message.trim() : undefined,
         currency: 'THB',
         guestsCount: guests,
+      }
+      if (!isPrivateOrSpecial) {
+        const sub = priceCalc?.subtotalBeforeFee ?? priceCalc?.totalPrice
+        if (sub == null || !Number.isFinite(Number(sub))) {
+          toast.error(language === 'ru' ? 'Не удалось рассчитать цену' : 'Could not calculate price')
+          setSubmitting(false)
+          return
+        }
+        payload.clientQuotedSubtotalThb = Math.round(Number(sub))
       }
       if (bookingModalIntent === 'private') payload.privateTrip = true
       if (bookingModalIntent === 'special') payload.negotiationRequest = true

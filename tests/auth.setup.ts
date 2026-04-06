@@ -8,15 +8,11 @@
 import { test as setup, expect } from '@playwright/test'
 import path from 'path'
 import fs from 'fs'
+import { E2E_EMAILS, E2E_PASSWORD, E2E_ROUTES } from './e2e/constants'
 
 const AUTH_DIR = path.join(process.cwd(), 'playwright', '.auth')
 
-const CREDENTIALS = {
-  admin: process.env.E2E_ADMIN_EMAIL || 'pavel_534@mail.ru',
-  partner: process.env.E2E_PARTNER_EMAIL || '86boa@mail.ru',
-  renter: process.env.E2E_RENTER_EMAIL || 'pavel29031983@gmail.com',
-}
-const PASSWORD = process.env.E2E_PASSWORD || 'az123456'
+const CREDENTIALS = E2E_EMAILS
 
 /**
  * Админ-лейаут (`app/admin/layout.js`) пускает только при `localStorage.gostaylo_user`
@@ -55,10 +51,10 @@ async function loginViaApi(
   appOrigin: string,
 ) {
   fs.mkdirSync(AUTH_DIR, { recursive: true })
-  const res = await request.post('/api/v2/auth/login', {
+  const res = await request.post(E2E_ROUTES.authLogin, {
     data: {
       email: email.toLowerCase().trim(),
-      password: PASSWORD,
+      password: E2E_PASSWORD,
     },
   })
   const body = await res.json().catch(() => ({}))
@@ -66,7 +62,7 @@ async function loginViaApi(
   expect(body?.success, `login success=false for ${email}`).toBeTruthy()
   await request.storageState({ path: outFile })
 
-  const me = await request.get('/api/v2/auth/me')
+  const me = await request.get(E2E_ROUTES.authMe)
   expect(me.ok(), `auth/me after login ${email}`).toBeTruthy()
   const meJson = (await me.json()) as { user?: Record<string, unknown> }
   const user = meJson?.user

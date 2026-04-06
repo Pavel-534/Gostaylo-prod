@@ -5,12 +5,13 @@
 import { test, expect } from '@playwright/test'
 import path from 'path'
 import fs from 'fs'
+import { E2E_ROUTES, E2E_STRINGS, E2E_TEST_IDS } from './constants'
 
 async function getAuthUserId(
   request: import('@playwright/test').APIRequestContext,
   baseURL: string,
 ): Promise<string | null> {
-  const r = await request.get(`${baseURL}/api/v2/auth/me`, { failOnStatusCode: false })
+  const r = await request.get(`${baseURL}${E2E_ROUTES.authMe}`, { failOnStatusCode: false })
   if (!r.ok()) return null
   const j = await r.json()
   return j?.user?.id ? String(j.user.id) : null
@@ -35,9 +36,7 @@ test.describe('Partner (кабинет партнёра)', () => {
     expect(listRes.ok()).toBeTruthy()
     const listJson = await listRes.json()
     const rows = (listJson?.data || []) as Array<{ id: string; title?: string }>
-    const bike = rows.find(
-      (l) => /pcx|honda/i.test(String(l.title || '')),
-    )
+    const bike = rows.find((l) => E2E_STRINGS.bikeTitleRegex.test(String(l.title || '')))
     test.skip(!bike?.id, 'Нет листинга Honda PCX у партнёра — пропуск')
     await page.goto(`${baseURL}/partner/listings/${bike.id}`)
     await expect(page.getByRole('heading', { name: /Редактирование|Edit listing/i })).toBeVisible({
@@ -61,7 +60,7 @@ test.describe('Partner (кабинет партнёра)', () => {
       id: string
       category?: { slug?: string }
     }>
-    const tour = rows.find((l) => String(l.category?.slug || '').toLowerCase() === 'tours')
+    const tour = rows.find((l) => String(l.category?.slug || '').toLowerCase() === E2E_STRINGS.toursSlug)
     test.skip(!tour?.id, 'Нет листинга категории tours у партнёра — пропуск')
 
     await page.goto(`${baseURL}/partner/listings/${tour.id}`)
@@ -116,12 +115,12 @@ test.describe('Renter', () => {
     test.skip(!baseURL, 'baseURL')
     await page.setViewportSize({ width: 1280, height: 900 })
     const lr = await request.get(
-      `${baseURL}/api/v2/listings?category=vehicles&limit=30&status=ACTIVE`,
+      `${baseURL}/api/v2/listings?category=${E2E_STRINGS.bikeCategory}&limit=30&status=ACTIVE`,
     )
     expect(lr.ok()).toBeTruthy()
     const lj = await lr.json()
     const data = (lj?.data || []) as Array<{ id: string; title?: string }>
-    const bike = data.find((x) => /pcx|honda/i.test(String(x.title || ''))) || data[0]
+    const bike = data.find((x) => E2E_STRINGS.bikeTitleRegex.test(String(x.title || ''))) || data[0]
     test.skip(!bike?.id, 'Нет активного vehicle в каталоге')
 
     const ratesRes = await request.get(`${baseURL}/api/v2/exchange-rates`)
@@ -136,14 +135,14 @@ test.describe('Renter', () => {
     page.on('pageerror', (err) => consoleErrors.push(err.message))
 
     await page.goto(`${baseURL}/listings/${bike.id}`, { waitUntil: 'domcontentloaded' })
-    await page.getByTestId('currency-selector').click()
+    await page.getByTestId(E2E_TEST_IDS.currencySelector).click()
     await page.getByTestId('currency-option-USD').click()
     await page.waitForTimeout(800)
 
     await expect(page.getByRole('button', { name: /Забронировать|Book now|จอง/i })).toBeVisible({
       timeout: 30_000,
     })
-    await expect(page.locator('[data-testid="booking-contact-host"]')).toBeVisible()
+    await expect(page.locator(`[data-testid="${E2E_TEST_IDS.bookingContactHost}"]`)).toBeVisible()
 
     const priceText = await page.locator('main').getByText(/\$\d|USD/).first().textContent().catch(() => '')
     expect(String(priceText).length).toBeGreaterThan(0)

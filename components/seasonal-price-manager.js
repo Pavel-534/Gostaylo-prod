@@ -346,11 +346,14 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
       </Card>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="w-[calc(100vw-1.5rem)] max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
-          <DialogHeader>
-            <DialogTitle>{editingPrice ? t('seasonalMgr_titleEdit') : t('seasonalMgr_titleAdd')}</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="flex h-[min(92dvh,calc(100vh-1rem))] w-[calc(100vw-1.5rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:h-auto sm:max-h-[min(90dvh,720px)] sm:w-full">
+          <div className="shrink-0 border-b px-4 pb-3 pt-12 sm:px-6 sm:pt-14">
+            <DialogHeader className="text-left">
+              <DialogTitle>{editingPrice ? t('seasonalMgr_titleEdit') : t('seasonalMgr_titleAdd')}</DialogTitle>
+            </DialogHeader>
+          </div>
 
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6">
           <div className="space-y-6">
             <div className="space-y-2">
               <Label className="font-semibold">{t('seasonalMgr_selectRange')}</Label>
@@ -489,24 +492,27 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
               </div>
             </div>
           </div>
+          </div>
 
-          <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button variant="outline" onClick={() => setModalOpen(false)} disabled={saving} className="w-full sm:w-auto">
-              {t('seasonalMgr_cancel')}
-            </Button>
-            <Button onClick={handleSave} disabled={saving} className="w-full bg-teal-600 hover:bg-teal-700 sm:w-auto">
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {t('seasonalMgr_saving')}
-                </>
-              ) : editingPrice ? (
-                t('seasonalMgr_update')
-              ) : (
-                t('seasonalMgr_create')
-              )}
-            </Button>
-          </DialogFooter>
+          <div className="shrink-0 border-t bg-background px-4 py-3 sm:px-6">
+            <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2">
+              <Button variant="outline" onClick={() => setModalOpen(false)} disabled={saving} className="w-full sm:w-auto">
+                {t('seasonalMgr_cancel')}
+              </Button>
+              <Button onClick={handleSave} disabled={saving} className="w-full bg-teal-600 hover:bg-teal-700 sm:w-auto">
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {t('seasonalMgr_saving')}
+                  </>
+                ) : editingPrice ? (
+                  t('seasonalMgr_update')
+                ) : (
+                  t('seasonalMgr_create')
+                )}
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -6,16 +6,16 @@
  * + `POST /api/v2/internal/e2e/pending-chat-booking`. См. `docs/TECHNICAL_MANIFESTO.md`.
  */
 import { test, expect, type APIRequestContext } from '@playwright/test'
+import { E2E_FIXTURE_SECRET, E2E_HEADERS, E2E_ROUTES, E2E_TEST_IDS } from './constants'
 
 const LONG_TEXT =
   'Lorem ipsum dolor sit amet, consectetur adipiscing elit. '.repeat(18) +
   'Проверка длинного текста в композере без перекрытия области ввода на узком экране.'
 
 async function createFixtureConversation(request: APIRequestContext): Promise<string | null> {
-  const secret = (process.env.E2E_FIXTURE_SECRET || '').trim()
-  if (!secret) return null
-  const res = await request.post('/api/v2/internal/e2e/pending-chat-booking', {
-    headers: { 'x-e2e-fixture-secret': secret },
+  if (!E2E_FIXTURE_SECRET) return null
+  const res = await request.post(E2E_ROUTES.pendingChatBookingFixture, {
+    headers: { [E2E_HEADERS.fixtureSecretHeader]: E2E_FIXTURE_SECRET },
     data: {},
   })
   const j = (await res.json().catch(() => ({}))) as {
@@ -36,10 +36,9 @@ async function createTourBookingMathFixture(request: APIRequestContext): Promise
   guestsCount: number
   expectedTotalThb: number
 } | null> {
-  const secret = (process.env.E2E_FIXTURE_SECRET || '').trim()
-  if (!secret) return null
-  const res = await request.post('/api/v2/internal/e2e/tour-booking-math', {
-    headers: { 'x-e2e-fixture-secret': secret },
+  if (!E2E_FIXTURE_SECRET) return null
+  const res = await request.post(E2E_ROUTES.tourBookingMathFixture, {
+    headers: { [E2E_HEADERS.fixtureSecretHeader]: E2E_FIXTURE_SECRET },
     data: { guestsCount: 3 },
   })
   const j = (await res.json().catch(() => ({}))) as {
@@ -98,7 +97,7 @@ test.describe('Mobile chat UI', () => {
   }) => {
     await openThread(page, baseURL)
 
-    const ta = page.getByTestId('chat-composer-textarea')
+    const ta = page.getByTestId(E2E_TEST_IDS.chatComposerTextarea)
     await expect(ta).toBeVisible({ timeout: 30_000 })
     await ta.fill(LONG_TEXT)
     await ta.scrollIntoViewIfNeeded()
@@ -114,7 +113,7 @@ test.describe('Mobile chat UI', () => {
     await page.setViewportSize({ width: 375, height: 812 })
     await openThread(page, baseURL)
 
-    const cards = page.getByTestId('chat-milestone-card')
+    const cards = page.getByTestId(E2E_TEST_IDS.chatMilestoneCard)
     try {
       await expect(cards.first()).toBeVisible({ timeout: 30_000 })
     } catch {
@@ -135,8 +134,8 @@ test.describe('Mobile chat UI', () => {
     test.skip(!baseURL, 'baseURL')
     await openThread(page, baseURL)
 
-    const confirm = page.getByTestId('chat-action-confirm')
-    const decline = page.getByTestId('chat-action-decline')
+    const confirm = page.getByTestId(E2E_TEST_IDS.chatActionConfirm)
+    const decline = page.getByTestId(E2E_TEST_IDS.chatActionDecline)
     await confirm.scrollIntoViewIfNeeded()
     await expect(confirm).toBeVisible({ timeout: 30_000 })
     await expect(confirm).toBeEnabled()
@@ -158,7 +157,7 @@ test.describe('Mobile chat UI', () => {
     test.skip(!baseURL, 'baseURL')
     await openThread(page, baseURL)
 
-    const confirm = page.getByTestId('chat-action-confirm')
+    const confirm = page.getByTestId(E2E_TEST_IDS.chatActionConfirm)
     await confirm.scrollIntoViewIfNeeded()
     await expect(confirm).toBeVisible({ timeout: 30_000 })
     await expect(confirm).toBeEnabled()
@@ -166,9 +165,11 @@ test.describe('Mobile chat UI', () => {
     await confirm.click()
 
     await expect(confirm).toBeHidden({ timeout: 45_000 })
-    await expect(page.getByTestId('chat-action-decline')).toBeHidden()
+    await expect(page.getByTestId(E2E_TEST_IDS.chatActionDecline)).toBeHidden()
 
-    const confirmedCard = page.locator('[data-testid="chat-milestone-card"][data-system-key="booking_confirmed"]')
+    const confirmedCard = page.locator(
+      `[data-testid="${E2E_TEST_IDS.chatMilestoneCard}"][data-system-key="booking_confirmed"]`,
+    )
     await expect(confirmedCard.first()).toBeVisible({ timeout: 45_000 })
     await expect(
       confirmedCard.first().getByText('Бронирование подтверждено', { exact: false }),

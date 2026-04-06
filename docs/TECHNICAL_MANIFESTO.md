@@ -55,11 +55,17 @@
 | **Vehicles (транспорт)** | За сутки | Тот же цикл по ночам между датами → число суток = обычно **checkout − checkin** в днях; сезоны — как у жилья. |
 | **Tours (туры)** | За человека / билет | Базовый расчёт периода (сезоны + скидка длительности) затем **множитель по группе**: **`totalPrice = discountedPrice × guestsCount`**. `guestsCount` для туров валидируется как минимум **1** (0 недопустим). |
 
+### 1.4a Защита цены при создании брони (client attestation)
+
+- Клиент передаёт **`clientQuotedSubtotalThb`** (THB, до промокода), витрина считает ту же сумму через **`PricingService.calculatePrice`** / **`calculateBookingPriceSync`** (в т.ч. тур × **`guestsCount`**).
+- **`BookingService.createBooking`** и **`createInquiryBooking`** (кроме **`privateTrip`** / **`negotiationRequest`**) сверяют **`Math.round(clientQuotedSubtotalThb)`** с **`Math.round(PricingService.calculateBookingPrice(…).totalPrice)`** до применения промокода. Расхождение → отказ (**`code: 'PRICE_MISMATCH'`**), **`notifySystemAlert`** с меткой **«ATTEMPTED PRICE MANIPULATION»**.
+- Схема тела: **`lib/validations/booking.js`**; публичный вход — **`POST /api/v2/bookings`**.
+
 ### 1.5 Витринные курсы, снимок брони, оплата
 
 - **Единый источник курсов для витрины и полей `price_paid` / `exchange_rate` при создании брони:** **`CurrencyService.getDisplayRateMap()`**. Конвертация в список для поиска по коду — **`PricingService.getExchangeRates()`** (динамический импорт **`currency.service.js`**).
 - **При INSERT в `bookings`:** `exchange_rate` = **`rateToThb`** выбранной валюты запроса (THB за 1 единицу); **`price_paid`** = **`price_thb / exchange_rate`**. Для **`currency === 'THB'`** курс **1**.
-- **Пересчёта при переходе в PAID нет:** **`BookingService.updateStatus`** и **`PUT /api/v2/partner/bookings/[id]`** меняют только **`status`** и временные метки (**`checked_in_at`** для PAID в partner flow), не трогая **`price_thb`**, **`exchange_rate`**, **`commission_*`**.
+- **Пересчёта при переходе в PAID нет:** **`BookingService.updateStatus`** и **`PUT /api/v2/partner/bookings/[id]`** меняют только **`status`** и временные метки (**`checked_in_at`** для PAID в partner flow), не трогая **`price_thb`**, **`exchange_rate`**, **`commission_*`**. Тело **PUT** парсится через **`request.text()`** + **`JSON.parse`**; пустое или невалидное JSON → **400**, не **500**.
 - **USDT в момент оплаты:** **`resolveThbPerUsdt()`** (цепочка **`exchange_rates` → API → env / `system_settings`**) используется в **`payment/initiate`**, **`payment.service`**, верификации Tron — это **операционный курс оплаты**, не обязано совпадать с **`bookings.exchange_rate`** (который про валюту запроса USD/RUB/CNY). Счета в чате THB↔USDT — **`getEffectiveRate`** + **`resolveChatInvoiceRateMultiplier`** (отдельно от **`getDisplayRateMap`**).
 - **Скан на «магические» курсы:** литералов **1.035 / 0.965** в финансовом ядре нет. Число **1.02** — только как платформенный дефолт **`chatInvoiceRateMultiplier`** в **`currency-last-resort.js`** / placeholder админки, не как множитель витринного **`getDisplayRateMap`**. **`GET /api/v2/partner/stats`:** доход партнёра из **`partner_earnings_thb`**, иначе **`price_thb − commission_thb`**, иначе **`price_thb × (1 − commission_rate/100)`** — без фиксированного **0.85**.
 
@@ -170,7 +176,7 @@
 ### 5.4 Playwright (локальная среда)
 
 - В **`playwright.config.ts`**: **`loadEnvConfig`** подхватывает **`.env.local`** и **`.env`** (как Next).
-- **`globalSetup`:** **`tests/global-setup.ts`** печатает **`[Playwright] E2E_FIXTURE_SECRET: LOADED | MISSING`** для диагностики скипов.
+- **`globalSetup`:** **`tests/global-setup.ts`** печатает **`[Playwright] E2E_FIXTURE_SECRET: LOADED | MISSING`**; при **LOADED** вызывается **`tests/e2e/seed-e2e-tour.ts`** — при отсутствии листинга **tours** у **`E2E_PARTNER_EMAIL`** создаётся один сид (лог **`E2E tours listing: seeded | already present`**), чтобы сценарии туров и RBAC не скипались.
 - **`use.baseURL`:** по умолчанию **`http://localhost:3000`**; переопределение: **`PLAYWRIGHT_BASE_URL`** или **`BASE_URL`**.
 
 ---
@@ -199,7 +205,7 @@
 
 - Системные алерты завязаны на env; на staging проверить **`TELEGRAM_SYSTEM_ALERTS_TOPIC_ID`** и лимиты Telegram.
 - Финальная **`checkAvailability`** перед INSERT снижает, но не устраняет гонку — зафиксировано выше.
-- **Zero skip (бронь / RBAC):** в **`.env.local`** или **`.env`** задайте **`E2E_FIXTURE_SECRET`** (тот же секрет должен быть в env приложения для internal fixture API), профили **`E2E_PARTNER_EMAIL` / `E2E_RENTER_EMAIL`**, данные листингов из **`tests/e2e/role-access.spec.ts`**. Строка **`[Playwright] E2E_FIXTURE_SECRET: LOADED`** в логе первого прогона подтверждает подхват; при **MISSING** сценарии с фикстурами помечаются **skipped**.
+- **Zero skip (бронь / RBAC / туры):** **`E2E_FIXTURE_SECRET`**, **`SUPABASE_SERVICE_ROLE_KEY`** и **`NEXT_PUBLIC_SUPABASE_URL`** должны быть доступны процессу Playwright (те же **`.env.local` / `.env`**, что подхватывает **`loadEnvConfig`** в **`globalSetup`**), иначе сид тура не выполнится. Профили **`E2E_PARTNER_EMAIL` / `E2E_RENTER_EMAIL`** (дефолт партнёра совпадает с **`tests/auth.setup.ts`**). Строка **`[Playwright] E2E_FIXTURE_SECRET: LOADED`** и лог **`E2E tours listing: seeded | already present`** подтверждают готовность; при **MISSING** секрета или без service role часть сценариев остаётся **skipped**.
 
 ---
 
@@ -223,7 +229,7 @@
 | Realtime чат (backoff) | `lib/chat/realtime-subscribe-with-backoff.js`, `hooks/use-realtime-chat.js`, `lib/context/ChatContext.jsx` |
 | Платежи / эскроу | `lib/services/payment.service.js`, `lib/services/escrow.service.js`, `app/api/cron/payouts` |
 | Системные TG-алерты | `lib/services/system-alert-notify.js`, `NotificationService.sendSystemAlert` |
-| Playwright env + лог секрета | `playwright.config.ts`, `tests/global-setup.ts` |
+| Playwright env + лог секрета + сид tours | `playwright.config.ts`, `tests/global-setup.ts`, `tests/e2e/seed-e2e-tour.ts` |
 
 ---
 

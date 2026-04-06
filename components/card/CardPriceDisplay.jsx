@@ -9,7 +9,7 @@ import { useMemo } from 'react'
 import { differenceInDays } from 'date-fns'
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
-import { isTransportListingCategory } from '@/lib/listing-category-slug'
+import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
 import { formatRentalSpanLabel } from '@/lib/rental-period-labels'
 
 export function CardPriceDisplay({
@@ -50,8 +50,8 @@ export function CardPriceDisplay({
     return basePrice
   }, [pricing, basePrice])
   
-  const dayUnit = isTransportListingCategory(categorySlug)
-  const spanMode = dayUnit ? 'day' : 'night'
+  const spanMode = getListingRentalPeriodMode(categorySlug)
+  const dayUnit = spanMode === 'day'
 
   return (
     <div className="flex items-baseline gap-1">

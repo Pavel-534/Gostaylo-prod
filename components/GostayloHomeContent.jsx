@@ -12,20 +12,48 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
-import { MapPin, Home, Bike, Map, Anchor, Loader2, BedDouble, Bath } from 'lucide-react'
+import {
+  MapPin,
+  Home,
+  Bike,
+  Map,
+  Anchor,
+  Loader2,
+  BedDouble,
+  Bath,
+  Users,
+  Ship,
+  Clock,
+  Route,
+  Car,
+} from 'lucide-react'
 import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/currency'
 import { fetchCategories, fetchExchangeRates } from '@/lib/client-data'
-import { detectLanguage, setLanguage as persistLanguage, getCategoryName, getUIText, getListingText } from '@/lib/translations'
+import {
+  detectLanguage,
+  setLanguage as persistLanguage,
+  getCategoryName,
+  getUIText,
+  getListingText,
+} from '@/lib/translations'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton'
 import { proxifyUnsplashUrl } from '@/lib/proxify-unsplash-url'
 import { format, isSameDay, differenceInDays } from 'date-fns'
 import { LISTINGS_SEARCH_API_PATH } from '@/lib/search-endpoints'
+import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
+import {
+  isTransportListingCategory,
+  isTourListingCategory,
+  isYachtLikeCategory,
+  showsPropertyInteriorSpecs,
+} from '@/lib/listing-category-slug'
+import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import { ru, enUS } from 'date-fns/locale'
 
 // Debounce hook
@@ -524,12 +552,80 @@ export function GostayloHomeContent() {
                         <div className='flex items-center gap-1 text-xs text-slate-500 mb-2'>
                           <MapPin className='h-3 w-3' /><span>{listing.district}</span>
                         </div>
-                        {(listing.bedrooms || listing.bathrooms) && (
-                          <div className='flex items-center gap-3 text-xs text-slate-400 mb-2'>
-                            {listing.bedrooms > 0 && <span className='flex items-center gap-0.5'><BedDouble className='h-3 w-3' />{listing.bedrooms}</span>}
-                            {listing.bathrooms > 0 && <span className='flex items-center gap-0.5'><Bath className='h-3 w-3' />{listing.bathrooms}</span>}
-                          </div>
-                        )}
+                        {(() => {
+                          const slug =
+                            listing.categorySlug || listing.category?.slug || listing.metadata?.category_slug || ''
+                          const propertyInterior = showsPropertyInteriorSpecs(slug)
+                          const yachtCard = isYachtLikeCategory(slug)
+                          const tourCard = isTourListingCategory(slug)
+                          const vehicleCard = isTransportListingCategory(slug)
+                          const meta = listing.metadata || {}
+                          const cabins =
+                            parseInt(String(meta.cabins ?? meta.cabins_count ?? '').replace(/\D/g, ''), 10) || 0
+                          const durationHours =
+                            parseInt(String(meta.duration_hours ?? meta.tour_hours ?? '').replace(/\D/g, ''), 10) ||
+                            0
+                          const engineCc =
+                            parseInt(String(meta.engine_cc ?? '').replace(/\D/g, ''), 10) || 0
+                          const cap = resolveListingGuestCapacity(listing)
+                          const showSpecs =
+                            (propertyInterior && (listing.bedrooms > 0 || listing.bathrooms > 0)) ||
+                            yachtCard ||
+                            tourCard ||
+                            vehicleCard ||
+                            cap > 0
+                          if (!showSpecs) return null
+                          return (
+                            <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mb-2'>
+                              {propertyInterior && listing.bedrooms > 0 && (
+                                <span className='flex items-center gap-0.5'>
+                                  <BedDouble className='h-3 w-3 shrink-0' aria-hidden />
+                                  {listing.bedrooms}
+                                </span>
+                              )}
+                              {propertyInterior && listing.bathrooms > 0 && (
+                                <span className='flex items-center gap-0.5'>
+                                  <Bath className='h-3 w-3 shrink-0' aria-hidden />
+                                  {listing.bathrooms}
+                                </span>
+                              )}
+                              {yachtCard && (
+                                <span className='flex items-center gap-0.5' title={getCategoryName('yachts', language)}>
+                                  <Anchor className='h-3 w-3 shrink-0' aria-hidden />
+                                </span>
+                              )}
+                              {yachtCard && cabins > 0 && (
+                                <span className='flex items-center gap-0.5'>
+                                  <Ship className='h-3 w-3 shrink-0' aria-hidden />
+                                  {cabins}
+                                </span>
+                              )}
+                              {tourCard && (
+                                <span className='flex items-center gap-0.5' title={getCategoryName('tours', language)}>
+                                  <Route className='h-3 w-3 shrink-0' aria-hidden />
+                                </span>
+                              )}
+                              {tourCard && durationHours > 0 && (
+                                <span className='flex items-center gap-0.5'>
+                                  <Clock className='h-3 w-3 shrink-0' aria-hidden />
+                                  {durationHours}h
+                                </span>
+                              )}
+                              {vehicleCard && !yachtCard && (
+                                <span className='flex items-center gap-0.5' title={getCategoryName('vehicles', language)}>
+                                  <Car className='h-3 w-3 shrink-0' aria-hidden />
+                                </span>
+                              )}
+                              {vehicleCard && !yachtCard && engineCc > 0 && (
+                                <span className='tabular-nums font-medium text-slate-500'>{engineCc}cc</span>
+                              )}
+                              <span className='flex items-center gap-0.5'>
+                                <Users className='h-3 w-3 shrink-0' aria-hidden />
+                                {cap}
+                              </span>
+                            </div>
+                          )
+                        })()}
                         <div className='mt-auto flex items-baseline justify-between'>
                           <span className='text-lg font-bold text-teal-600'>
                             {formatPrice(
@@ -538,7 +634,16 @@ export function GostayloHomeContent() {
                               exchangeRates,
                             )}
                           </span>
-                          <span className='text-xs text-slate-400'>/{listing.pricing ? `${nights}н.` : (language === 'ru' ? 'ночь' : 'night')}</span>
+                          <span className='text-xs text-slate-400'>
+                            /
+                            {listing.pricing
+                              ? `${nights}${language === 'ru' ? 'н.' : 'n'}`
+                              : getListingRentalPeriodMode(
+                                  listing.categorySlug || listing.category?.slug || '',
+                                ) === 'day'
+                                ? getUIText('listingPriceUnitDay', language)
+                                : getUIText('night', language)}
+                          </span>
                         </div>
                       </div>
                     </Card>

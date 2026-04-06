@@ -77,6 +77,7 @@ export async function POST(request) {
       guestsCount,
       privateTrip,
       negotiationRequest,
+      clientQuotedSubtotalThb,
     } = parseResult.data;
 
     const checkInDate = new Date(checkIn);
@@ -194,6 +195,7 @@ export async function POST(request) {
         privateTrip: privateTrip === true,
         negotiationRequest: negotiationRequest === true,
         minRemainingSpots: minRem,
+        clientQuotedSubtotalThb,
       });
 
       if (result.error) {
@@ -272,6 +274,7 @@ export async function POST(request) {
       currency,
       promoCode,
       guestsCount,
+      clientQuotedSubtotalThb,
     });
 
     if (result.error) {
