@@ -13,7 +13,7 @@
 
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -27,7 +27,7 @@ import {
   Home, Heart, Settings, LogOut,
   Send, Shield, TrendingUp, Clock, Zap,
   CheckCircle, XCircle, Loader2,
-  Sparkles
+  Sparkles, Circle
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
@@ -48,6 +48,37 @@ function calculateProfileCompletion(user) {
   if (user.telegram_id || user.telegram_username) score += 25
   if (user.avatar && String(user.avatar).trim()) score += 25
   return score
+}
+
+/** Чеклист для UI: что ещё не заполнено */
+function getProfileCompletionItems(user) {
+  if (!user) return []
+  return [
+    {
+      id: 'email',
+      done: !!(user.email && String(user.email).trim()),
+      labelKey: 'profileItemEmail',
+      settingsHref: '/renter/settings',
+    },
+    {
+      id: 'phone',
+      done: !!(user.phone && String(user.phone).trim()),
+      labelKey: 'profileItemPhone',
+      settingsHref: '/renter/settings',
+    },
+    {
+      id: 'telegram',
+      done: !!(user.telegram_id || user.telegram_username),
+      labelKey: 'profileItemTelegram',
+      settingsHref: '#telegram-connect',
+    },
+    {
+      id: 'avatar',
+      done: !!(user.avatar && String(user.avatar).trim()),
+      labelKey: 'profileItemAvatar',
+      settingsHref: '/renter/settings',
+    },
+  ]
 }
 
 function roleUiKey(role) {
@@ -188,8 +219,10 @@ export default function RenterProfilePage() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [applicationStatus, setApplicationStatus] = useState(null)
-  const [loadingApplication, setLoadingApplication] = useState(true)
+  const [loadingApplication, setLoadingApplication] = useState(false)
   const [telegramLinked, setTelegramLinked] = useState(false)
+  /** После первой успешной проверки заявки для этого user.id — повторные не показывают спиннер (убирает мерцание от auth-change). */
+  const partnerAppHydratedForUserId = useRef(null)
   
   // Modal states
   const [showApplicationModal, setShowApplicationModal] = useState(false)
@@ -239,41 +272,44 @@ export default function RenterProfilePage() {
     }
   }, [refreshUserFromServer])
   
-  // Fetch application status
-  useEffect(() => {
-    if (user && user.role !== 'PARTNER') {
-      setLoadingApplication(true)
-      fetchApplicationStatus()
-    } else {
-      setApplicationStatus(null)
-      setLoadingApplication(false)
-    }
-  }, [user])
-  
-  async function fetchApplicationStatus() {
+  const loadPartnerApplicationStatus = useCallback(async (userId, { silent = false } = {}) => {
+    if (!userId) return
+    if (!silent) setLoadingApplication(true)
     try {
       const res = await fetch('/api/v2/partner/application-status', {
-        credentials: 'include'
+        credentials: 'include',
       })
-      const data = await res.json()
-      
-      // API returns: { success, hasApplication, status, rejectionReason, appliedAt, reviewedAt }
+      const data = await res.json().catch(() => ({}))
+
       if (data.success && data.hasApplication) {
         setApplicationStatus({
           status: data.status,
           rejection_reason: data.rejectionReason,
           created_at: data.appliedAt,
-          reviewed_at: data.reviewedAt
+          reviewed_at: data.reviewedAt,
         })
       } else {
         setApplicationStatus(null)
       }
+      partnerAppHydratedForUserId.current = userId
     } catch (error) {
       console.error('[PROFILE] Failed to fetch application status', error)
     } finally {
-      setLoadingApplication(false)
+      if (!silent) setLoadingApplication(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (!user?.id || user.role === 'PARTNER') {
+      setApplicationStatus(null)
+      setLoadingApplication(false)
+      partnerAppHydratedForUserId.current = null
+      return
+    }
+    const uid = user.id
+    const silent = partnerAppHydratedForUserId.current === uid
+    void loadPartnerApplicationStatus(uid, { silent })
+  }, [user?.id, user?.role, loadPartnerApplicationStatus])
   
   // Handle partner application submission
   async function handleApplicationSubmit(formData) {
@@ -296,7 +332,7 @@ export default function RenterProfilePage() {
       if (data.success) {
         toast.success(getUIText('renterToastApplicationSubmitted', language))
         setShowApplicationModal(false)
-        fetchApplicationStatus() // Refresh status
+        await loadPartnerApplicationStatus(user.id, { silent: true })
       } else {
         toast.error(data.error || getUIText('renterToastApplicationFailed', language))
       }
@@ -315,6 +351,7 @@ export default function RenterProfilePage() {
   
   // Profile completion
   const profileCompletion = useMemo(() => calculateProfileCompletion(user), [user])
+  const profileItems = useMemo(() => getProfileCompletionItems(user), [user])
   
   if (loading) {
     return (
@@ -414,6 +451,39 @@ export default function RenterProfilePage() {
                 ? getUIText('completeProfileToUnlock', language)
                 : getUIText('profileComplete', language)}
             </p>
+            {profileCompletion < 100 && (
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 sm:p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                  {getUIText('profileCompletionChecklist', language)}
+                </p>
+                <ul className="space-y-2">
+                  {profileItems.map((item) => (
+                    <li key={item.id} className="flex items-start gap-2 text-sm">
+                      {item.done ? (
+                        <CheckCircle className="h-4 w-4 shrink-0 text-teal-600 mt-0.5" aria-hidden />
+                      ) : (
+                        <Circle className="h-4 w-4 shrink-0 text-slate-300 mt-0.5" aria-hidden />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <span className={item.done ? 'text-slate-600' : 'text-slate-900 font-medium'}>
+                          {getUIText(item.labelKey, language)}
+                        </span>
+                        {!item.done && item.settingsHref && (
+                          <div className="mt-0.5">
+                            <Link
+                              href={item.settingsHref}
+                              className="text-xs font-medium text-teal-600 hover:text-teal-700 underline-offset-2 hover:underline"
+                            >
+                              {getUIText('profileItemAddInSettings', language)}
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -464,11 +534,16 @@ export default function RenterProfilePage() {
               </div>
             </div>
             
-            {/* Application Status or CTA */}
-            {loadingApplication ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
-              </div>
+            {/* Application Status or CTA — без «пустого» спиннера: стабильная высота, нет мерцания */}
+            {loadingApplication && !applicationStatus ? (
+              <Button
+                type="button"
+                disabled
+                className="w-full bg-teal-600/80 text-lg py-6 cursor-wait opacity-90"
+              >
+                <Loader2 className="h-5 w-5 mr-2 animate-spin shrink-0" />
+                {getUIText('partnerAppStatusLoading', language)}
+              </Button>
             ) : applicationStatus ? (
               <div className={`p-4 rounded-lg border-2 ${
                 applicationStatus.status === 'PENDING'
@@ -537,7 +612,7 @@ export default function RenterProfilePage() {
       )}
       
       {/* Connect Telegram */}
-      <Card>
+      <Card id="telegram-connect" className="scroll-mt-24 md:scroll-mt-8">
         <CardHeader>
           <CardTitle className="text-lg">{getUIText('telegramNotifications', language)}</CardTitle>
           <CardDescription>

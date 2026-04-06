@@ -230,11 +230,12 @@ export default function RenterLayout({ children }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-slate-50 flex flex-col">
         <Toaster position="top-right" richColors />
-        
+        {/* На мобиле fixed надёжнее sticky (Yandex/Chrome); отступ под шапку только &lt;md */}
+        <div className="h-16 shrink-0 md:hidden" aria-hidden="true" />
         {/* Top Navigation Bar */}
-        <div className="bg-white border-b sticky top-0 z-40 shadow-sm">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm md:static md:z-auto">
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between h-16">
               {/* Logo */}
@@ -405,7 +406,7 @@ export default function RenterLayout({ children }) {
         </div>
 
         {/* Main Content */}
-        <main className="container mx-auto px-4 py-6">
+        <main className="container mx-auto px-4 py-6 flex-1 min-h-0 pb-bottom-nav">
           {children}
         </main>
 
