@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+const { FONT_STACK_PARTS } = require('./lib/theme/font-stack.cjs')
+
 module.exports = {
   darkMode: ["class"],
   content: [
@@ -17,6 +19,9 @@ module.exports = {
       }
     },
     extend: {
+      fontFamily: {
+        sans: FONT_STACK_PARTS,
+      },
       colors: {
         // GoStayLo brand colors - modern travel
         teal: {

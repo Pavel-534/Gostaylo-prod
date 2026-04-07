@@ -13,6 +13,7 @@ import {
   Row,
   Column,
 } from '@react-email/components'
+import { theme } from '@/lib/theme/constants'
 
 interface PaymentSuccessEmailProps {
   guestName: string
@@ -51,18 +52,12 @@ export default function PaymentSuccessEmail({
       <Preview>Оплата подтверждена! Ваше бронирование #{bookingId}</Preview>
       <Body style={main}>
         <Container style={container}>
-          {/* Logo */}
           <Section style={logoSection}>
-            <div style={logoBox}>
-              <Text style={logoText}>FR</Text>
-            </div>
-            <Heading style={mainHeading}>Gostaylo</Heading>
+            <Heading style={mainHeading}>GoStayLo</Heading>
           </Section>
 
-          {/* Success Badge */}
           <Section style={successBadge}>
-            <Text style={successIcon}>✅</Text>
-            <Heading style={h1}>Оплата успешно подтверждена!</Heading>
+            <Heading style={h1}>Оплата подтверждена</Heading>
           </Section>
           
           <Text style={text}>
@@ -163,7 +158,7 @@ export default function PaymentSuccessEmail({
 
           <Text style={footer}>
             Желаем вам прекрасного отдыха на Пхукете! 🌴<br />
-            Команда <strong>Gostaylo</strong>
+            Команда <strong>GoStayLo</strong>
           </Text>
 
           <Text style={footerSmall}>
@@ -175,95 +170,78 @@ export default function PaymentSuccessEmail({
   )
 }
 
-// Styles
+const { colors, borderRadius, fonts, shadows } = theme
+
 const main = {
-  backgroundColor: '#f1f5f9',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  backgroundColor: colors.canvas,
+  fontFamily: fonts.main,
 }
 
 const container = {
-  backgroundColor: '#ffffff',
+  backgroundColor: colors.background,
   margin: '0 auto',
   padding: '40px 20px',
   maxWidth: '600px',
-  borderRadius: '12px',
+  borderRadius,
+  border: `1px solid ${colors.border}`,
+  boxShadow: shadows.cardBox,
 }
 
 const logoSection = {
   textAlign: 'center' as const,
-  marginBottom: '24px',
-}
-
-const logoBox = {
-  width: '64px',
-  height: '64px',
-  background: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)',
-  borderRadius: '12px',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginBottom: '12px',
-}
-
-const logoText = {
-  color: '#ffffff',
-  fontSize: '28px',
-  fontWeight: 'bold',
-  margin: '0',
+  marginBottom: '20px',
+  paddingBottom: '20px',
+  borderBottom: `1px solid ${colors.divider}`,
 }
 
 const mainHeading = {
   fontSize: '24px',
   fontWeight: 'bold',
-  color: '#0d9488',
+  color: colors.primary,
   margin: '0',
 }
 
 const successBadge = {
   textAlign: 'center' as const,
-  margin: '24px 0',
-}
-
-const successIcon = {
-  fontSize: '64px',
-  margin: '0',
+  margin: '20px 0',
 }
 
 const h1 = {
-  color: '#10b981',
-  fontSize: '28px',
+  color: colors.text,
+  fontSize: '26px',
   fontWeight: 'bold',
   textAlign: 'center' as const,
-  margin: '16px 0 24px',
+  margin: '0 0 24px',
 }
 
 const text = {
-  color: '#475569',
+  color: colors.muted,
   fontSize: '16px',
   lineHeight: '24px',
   margin: '16px 0',
 }
 
 const summaryBox = {
-  backgroundColor: '#f8fafc',
-  border: '1px solid #e2e8f0',
-  borderRadius: '8px',
+  backgroundColor: colors.canvas,
+  border: `1px solid ${colors.border}`,
+  borderRadius,
   padding: '24px',
   margin: '24px 0',
+  boxShadow: shadows.softBox,
 }
 
 const paymentBox = {
-  backgroundColor: '#f0fdf4',
-  border: '2px solid #10b981',
-  borderRadius: '8px',
+  backgroundColor: colors.tint,
+  border: `1px solid ${colors.border}`,
+  borderRadius,
   padding: '24px',
   margin: '24px 0',
 }
 
 const instructionsBox = {
-  backgroundColor: '#fff7ed',
-  border: '2px solid #f97316',
-  borderRadius: '8px',
+  backgroundColor: colors.canvas,
+  border: `1px solid ${colors.border}`,
+  borderRadius,
   padding: '24px',
   margin: '24px 0',
 }
@@ -271,7 +249,7 @@ const instructionsBox = {
 const boxHeading = {
   fontSize: '18px',
   fontWeight: 'bold',
-  color: '#1e293b',
+  color: colors.text,
   margin: '0 0 16px',
 }
 
@@ -280,20 +258,20 @@ const summaryRow = {
 }
 
 const summaryLabel = {
-  color: '#64748b',
+  color: colors.muted,
   fontSize: '14px',
   width: '45%',
 }
 
 const summaryValue = {
-  color: '#1e293b',
+  color: colors.text,
   fontSize: '14px',
   width: '55%',
   textAlign: 'right' as const,
 }
 
 const summaryValueBold = {
-  color: '#1e293b',
+  color: colors.text,
   fontSize: '14px',
   fontWeight: '600',
   width: '55%',
@@ -305,13 +283,13 @@ const paymentRow = {
 }
 
 const paymentLabel = {
-  color: '#166534',
+  color: colors.muted,
   fontSize: '14px',
   width: '50%',
 }
 
 const paymentValue = {
-  color: '#166534',
+  color: colors.text,
   fontSize: '14px',
   fontWeight: '600',
   width: '50%',
@@ -319,7 +297,7 @@ const paymentValue = {
 }
 
 const totalPaidValue = {
-  color: '#10b981',
+  color: colors.primary,
   fontSize: '24px',
   fontWeight: 'bold',
   width: '50%',
@@ -327,21 +305,21 @@ const totalPaidValue = {
 }
 
 const paymentNote = {
-  color: '#166534',
+  color: colors.muted,
   fontSize: '12px',
   marginTop: '12px',
   fontStyle: 'italic',
 }
 
 const instructionText = {
-  color: '#9a3412',
+  color: colors.text,
   fontSize: '14px',
   lineHeight: '20px',
   margin: '8px 0',
 }
 
 const divider = {
-  borderColor: '#cbd5e1',
+  borderColor: colors.divider,
   margin: '12px 0',
 }
 
@@ -351,9 +329,9 @@ const buttonSection = {
 }
 
 const button = {
-  backgroundColor: '#0d9488',
-  borderRadius: '8px',
-  color: '#fff',
+  backgroundColor: colors.primary,
+  borderRadius,
+  color: colors.primaryForeground,
   fontSize: '16px',
   fontWeight: '600',
   textDecoration: 'none',
@@ -364,10 +342,10 @@ const button = {
 }
 
 const buttonOutline = {
-  backgroundColor: '#ffffff',
-  border: '2px solid #0d9488',
-  borderRadius: '8px',
-  color: '#0d9488',
+  backgroundColor: colors.background,
+  border: `1px solid ${colors.border}`,
+  borderRadius,
+  color: colors.text,
   fontSize: '16px',
   fontWeight: '600',
   textDecoration: 'none',
@@ -377,12 +355,12 @@ const buttonOutline = {
 }
 
 const hr = {
-  borderColor: '#e2e8f0',
+  borderColor: colors.divider,
   margin: '32px 0',
 }
 
 const footer = {
-  color: '#64748b',
+  color: colors.muted,
   fontSize: '14px',
   lineHeight: '20px',
   textAlign: 'center' as const,
@@ -390,13 +368,13 @@ const footer = {
 }
 
 const footerSmall = {
-  color: '#94a3b8',
+  color: colors.subtle,
   fontSize: '12px',
   textAlign: 'center' as const,
   margin: '16px 0',
 }
 
 const link = {
-  color: '#0d9488',
+  color: colors.primary,
   textDecoration: 'underline',
 }

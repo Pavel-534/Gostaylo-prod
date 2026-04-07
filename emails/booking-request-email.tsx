@@ -13,6 +13,7 @@ import {
   Row,
   Column,
 } from '@react-email/components'
+import { theme } from '@/lib/theme/constants'
 
 interface BookingRequestEmailProps {
   partnerName: string
@@ -57,12 +58,8 @@ export default function BookingRequestEmail({
       <Preview>Новый запрос на бронирование: {listingTitle}</Preview>
       <Body style={main}>
         <Container style={container}>
-          {/* Logo */}
           <Section style={logoSection}>
-            <div style={logoBox}>
-              <Text style={logoText}>FR</Text>
-            </div>
-            <Heading style={mainHeading}>Gostaylo</Heading>
+            <Heading style={mainHeading}>GoStayLo</Heading>
           </Section>
 
           {/* Main Heading */}
@@ -147,7 +144,7 @@ export default function BookingRequestEmail({
 
           <Text style={footer}>
             С уважением,<br />
-            Команда <strong>Gostaylo</strong>
+            Команда <strong>GoStayLo</strong>
           </Text>
         </Container>
       </Body>
@@ -155,52 +152,39 @@ export default function BookingRequestEmail({
   )
 }
 
-// Styles
+const { colors, borderRadius, fonts, shadows } = theme
+
 const main = {
-  backgroundColor: '#f1f5f9',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  backgroundColor: colors.canvas,
+  fontFamily: fonts.main,
 }
 
 const container = {
-  backgroundColor: '#ffffff',
+  backgroundColor: colors.background,
   margin: '0 auto',
   padding: '40px 20px',
   maxWidth: '600px',
-  borderRadius: '12px',
+  borderRadius,
+  border: `1px solid ${colors.border}`,
+  boxShadow: shadows.cardBox,
 }
 
 const logoSection = {
   textAlign: 'center' as const,
-  marginBottom: '32px',
-}
-
-const logoBox = {
-  width: '64px',
-  height: '64px',
-  background: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)',
-  borderRadius: '12px',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginBottom: '12px',
-}
-
-const logoText = {
-  color: '#ffffff',
-  fontSize: '28px',
-  fontWeight: 'bold',
-  margin: '0',
+  marginBottom: '24px',
+  paddingBottom: '20px',
+  borderBottom: `1px solid ${colors.divider}`,
 }
 
 const mainHeading = {
   fontSize: '24px',
   fontWeight: 'bold',
-  color: '#0d9488',
+  color: colors.primary,
   margin: '0',
 }
 
 const h1 = {
-  color: '#1e293b',
+  color: colors.text,
   fontSize: '28px',
   fontWeight: 'bold',
   textAlign: 'center' as const,
@@ -208,32 +192,34 @@ const h1 = {
 }
 
 const text = {
-  color: '#475569',
+  color: colors.muted,
   fontSize: '16px',
   lineHeight: '24px',
   margin: '16px 0',
 }
 
 const detailsBox = {
-  backgroundColor: '#f8fafc',
-  border: '1px solid #e2e8f0',
-  borderRadius: '8px',
+  backgroundColor: colors.canvas,
+  border: `1px solid ${colors.border}`,
+  borderRadius,
   padding: '24px',
   margin: '24px 0',
+  boxShadow: shadows.softBox,
 }
 
 const priceBox = {
-  backgroundColor: '#f0fdfa',
-  border: '2px solid #0d9488',
-  borderRadius: '8px',
+  backgroundColor: colors.background,
+  border: `1px solid ${colors.border}`,
+  borderRadius,
   padding: '24px',
   margin: '24px 0',
+  boxShadow: shadows.softBox,
 }
 
 const boxHeading = {
   fontSize: '18px',
   fontWeight: 'bold',
-  color: '#1e293b',
+  color: colors.text,
   margin: '0 0 16px',
 }
 
@@ -242,13 +228,13 @@ const detailRow = {
 }
 
 const detailLabel = {
-  color: '#64748b',
+  color: colors.muted,
   fontSize: '14px',
   width: '40%',
 }
 
 const detailValue = {
-  color: '#1e293b',
+  color: colors.text,
   fontSize: '14px',
   fontWeight: '600',
   width: '60%',
@@ -260,27 +246,27 @@ const priceRow = {
 }
 
 const priceLabel = {
-  color: '#475569',
+  color: colors.muted,
   fontSize: '14px',
   width: '70%',
 }
 
 const priceLabelBold = {
-  color: '#1e293b',
+  color: colors.text,
   fontSize: '14px',
   fontWeight: '600',
   width: '70%',
 }
 
 const priceValue = {
-  color: '#475569',
+  color: colors.muted,
   fontSize: '14px',
   textAlign: 'right' as const,
   width: '30%',
 }
 
 const priceValueBold = {
-  color: '#1e293b',
+  color: colors.text,
   fontSize: '14px',
   fontWeight: '600',
   textAlign: 'right' as const,
@@ -288,7 +274,7 @@ const priceValueBold = {
 }
 
 const priceValueGreen = {
-  color: '#10b981',
+  color: colors.primary,
   fontSize: '14px',
   fontWeight: '600',
   textAlign: 'right' as const,
@@ -300,14 +286,14 @@ const earningsRow = {
 }
 
 const earningsLabel = {
-  color: '#0f766e',
+  color: colors.muted,
   fontSize: '16px',
   fontWeight: 'bold',
   width: '50%',
 }
 
 const earningsValue = {
-  color: '#0d9488',
+  color: colors.primary,
   fontSize: '24px',
   fontWeight: 'bold',
   textAlign: 'right' as const,
@@ -315,14 +301,14 @@ const earningsValue = {
 }
 
 const earningsNote = {
-  color: '#0f766e',
+  color: colors.muted,
   fontSize: '12px',
   marginTop: '12px',
   fontStyle: 'italic',
 }
 
 const divider = {
-  borderColor: '#cbd5e1',
+  borderColor: colors.divider,
   margin: '12px 0',
 }
 
@@ -332,9 +318,9 @@ const buttonSection = {
 }
 
 const button = {
-  backgroundColor: '#0d9488',
-  borderRadius: '8px',
-  color: '#fff',
+  backgroundColor: colors.primary,
+  borderRadius,
+  color: colors.primaryForeground,
   fontSize: '16px',
   fontWeight: '600',
   textDecoration: 'none',
@@ -344,12 +330,12 @@ const button = {
 }
 
 const hr = {
-  borderColor: '#e2e8f0',
+  borderColor: colors.divider,
   margin: '32px 0',
 }
 
 const footer = {
-  color: '#64748b',
+  color: colors.muted,
   fontSize: '14px',
   lineHeight: '20px',
   textAlign: 'center' as const,

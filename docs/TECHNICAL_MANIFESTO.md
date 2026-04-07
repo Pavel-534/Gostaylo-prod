@@ -187,7 +187,7 @@
 | **Гонка дат** | Повторная **`checkAvailability`** непосредственно перед INSERT в **`BookingService.createBooking`**; при конфликте — **`code: 'DATES_CONFLICT'`**, HTTP **409** из API (полная атомарность возможна только constraint/lock в Postgres) |
 | **Чат** | Сбой записи сообщения или инвойса (`POST /api/v2/chat/messages`) |
 | **Платежи** | Initiate/confirm PATCH; `PaymentService.initializePayment` / `submitTxid` |
-| **Resend** | Ошибки HTTP/исключения в `NotificationService.sendEmail`, `EmailService`, `lib/mail` (prod), `admin/partners` |
+| **Resend** | Ошибки HTTP/исключения в `NotificationService.sendEmail`, `EmailService`, `admin/partners` |
 | **Cron** | `payouts`, `checkin-reminder`, `draft-digest`, `cleanup-drafts`, `ical-sync` (ошибка или исключение) |
 | **Webhooks** | `POST /api/webhooks/crypto/confirm` (JSON, тело, confirm API); `POST /api/webhooks/supabase/booking-status` (JSON, валидация, исключения) |
 

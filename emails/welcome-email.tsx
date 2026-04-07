@@ -11,6 +11,7 @@ import {
   Text,
   Hr,
 } from '@react-email/components'
+import { theme } from '@/lib/theme/constants'
 
 interface WelcomeEmailProps {
   userName: string
@@ -26,15 +27,12 @@ export default function WelcomeEmail({
   return (
     <Html>
       <Head />
-      <Preview>Добро пожаловать в Gostaylo! 🏝️</Preview>
+      <Preview>Добро пожаловать в GoStayLo</Preview>
       <Body style={main}>
         <Container style={container}>
-          {/* Logo Section */}
           <Section style={logoSection}>
-            <div style={logoBox}>
-              <Text style={logoText}>FR</Text>
-            </div>
-            <Heading style={mainHeading}>Gostaylo</Heading>
+            <Heading style={mainHeading}>GoStayLo</Heading>
+            <Text style={tagline}>Premium rentals in Phuket</Text>
           </Section>
 
           {/* Welcome Message */}
@@ -45,8 +43,8 @@ export default function WelcomeEmail({
           </Text>
 
           <Text style={text}>
-            Спасибо за регистрацию в <strong>Gostaylo</strong> — вашем надёжном партнёре для роскошной аренды на Пхукете. 
-            Виллы, яхты, транспорт и экскурсии — всё в одном месте!
+            Спасибо за регистрацию в <strong>GoStayLo</strong> — вашем надёжном партнёре для аренды на Пхукете.
+            Виллы, яхты, транспорт и экскурсии — всё в одном месте.
           </Text>
 
           {/* Referral Code Box */}
@@ -70,7 +68,7 @@ export default function WelcomeEmail({
           {/* Footer */}
           <Text style={footer}>
             С уважением,<br />
-            Команда <strong>Gostaylo</strong>
+            Команда <strong>GoStayLo</strong>
           </Text>
 
           <Text style={footerSmall}>
@@ -82,52 +80,45 @@ export default function WelcomeEmail({
   )
 }
 
-// Styles (Teal Tropical Theme)
+const { colors, borderRadius, fonts, shadows } = theme
+
 const main = {
-  backgroundColor: '#f1f5f9',
-  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  backgroundColor: colors.canvas,
+  fontFamily: fonts.main,
 }
 
 const container = {
-  backgroundColor: '#ffffff',
+  backgroundColor: colors.background,
   margin: '0 auto',
   padding: '40px 20px',
   maxWidth: '600px',
-  borderRadius: '12px',
+  borderRadius,
+  border: `1px solid ${colors.border}`,
+  boxShadow: shadows.cardBox,
 }
 
 const logoSection = {
   textAlign: 'center' as const,
-  marginBottom: '32px',
-}
-
-const logoBox = {
-  width: '64px',
-  height: '64px',
-  background: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 100%)',
-  borderRadius: '12px',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginBottom: '12px',
-}
-
-const logoText = {
-  color: '#ffffff',
-  fontSize: '28px',
-  fontWeight: 'bold',
-  margin: '0',
+  marginBottom: '28px',
+  paddingBottom: '24px',
+  borderBottom: `1px solid ${colors.divider}`,
 }
 
 const mainHeading = {
   fontSize: '24px',
   fontWeight: 'bold',
-  color: '#0d9488',
+  color: colors.primary,
   margin: '0',
 }
 
+const tagline = {
+  margin: '8px 0 0',
+  fontSize: '13px',
+  color: colors.muted,
+}
+
 const h1 = {
-  color: '#1e293b',
+  color: colors.text,
   fontSize: '28px',
   fontWeight: 'bold',
   textAlign: 'center' as const,
@@ -135,30 +126,31 @@ const h1 = {
 }
 
 const text = {
-  color: '#475569',
+  color: colors.muted,
   fontSize: '16px',
   lineHeight: '24px',
   margin: '16px 0',
 }
 
 const codeBox = {
-  backgroundColor: '#f0fdfa',
-  border: '2px solid #0d9488',
-  borderRadius: '8px',
+  backgroundColor: colors.tint,
+  border: `1px solid ${colors.border}`,
+  borderRadius,
   padding: '24px',
   textAlign: 'center' as const,
   margin: '32px 0',
+  boxShadow: shadows.softBox,
 }
 
 const codeLabel = {
-  color: '#0f766e',
+  color: colors.muted,
   fontSize: '14px',
   fontWeight: '600',
   margin: '0 0 8px',
 }
 
 const codeText = {
-  color: '#0d9488',
+  color: colors.primary,
   fontSize: '32px',
   fontWeight: 'bold',
   letterSpacing: '4px',
@@ -166,7 +158,7 @@ const codeText = {
 }
 
 const codeDescription = {
-  color: '#0f766e',
+  color: colors.muted,
   fontSize: '14px',
   margin: '12px 0 0',
 }
@@ -177,9 +169,9 @@ const buttonSection = {
 }
 
 const button = {
-  backgroundColor: '#0d9488',
-  borderRadius: '8px',
-  color: '#fff',
+  backgroundColor: colors.primary,
+  borderRadius,
+  color: colors.primaryForeground,
   fontSize: '16px',
   fontWeight: '600',
   textDecoration: 'none',
@@ -189,12 +181,12 @@ const button = {
 }
 
 const hr = {
-  borderColor: '#e2e8f0',
+  borderColor: colors.divider,
   margin: '32px 0',
 }
 
 const footer = {
-  color: '#64748b',
+  color: colors.muted,
   fontSize: '14px',
   lineHeight: '20px',
   textAlign: 'center' as const,
@@ -202,13 +194,13 @@ const footer = {
 }
 
 const footerSmall = {
-  color: '#94a3b8',
+  color: colors.subtle,
   fontSize: '12px',
   textAlign: 'center' as const,
   margin: '16px 0',
 }
 
 const link = {
-  color: '#0d9488',
+  color: colors.primary,
   textDecoration: 'underline',
 }
