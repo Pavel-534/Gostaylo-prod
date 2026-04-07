@@ -2,9 +2,11 @@ import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { MapPin, Calendar } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
-import { toPublicImageUrl } from '@/lib/public-image-url'
+import { toPublicImageUrl, isRemoteHttpImageSrc } from '@/lib/public-image-url'
+import { getListingCardBlurDataURL } from '@/lib/listing-image-blur'
+import { languageToNumberLocale } from '@/lib/currency'
 
-export function ListingContextCard({ listing, checkIn, checkOut, className = '' }) {
+export function ListingContextCard({ listing, checkIn, checkOut, className = '', language = 'ru' }) {
   if (!listing) return null
 
   const days = checkIn && checkOut
@@ -25,6 +27,9 @@ export function ListingContextCard({ listing, checkIn, checkOut, className = '' 
             width={80}
             height={80}
             className="object-cover"
+            placeholder="blur"
+            blurDataURL={getListingCardBlurDataURL(listing)}
+            unoptimized={isRemoteHttpImageSrc(thumb)}
           />
         </div>
         <div className="flex-1 min-w-0">
@@ -39,13 +44,13 @@ export function ListingContextCard({ listing, checkIn, checkOut, className = '' 
             <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
               <Calendar className="h-3 w-3" />
               <span>
-                {new Date(checkIn).toLocaleDateString('ru-RU')} -
-                {new Date(checkOut).toLocaleDateString('ru-RU')}
+                {new Date(checkIn).toLocaleDateString(languageToNumberLocale(language))} –
+                {new Date(checkOut).toLocaleDateString(languageToNumberLocale(language))}
               </span>
             </div>
           )}
           <div className="mt-2 font-semibold text-teal-600 text-sm">
-            {formatPrice((listing.basePriceThb || listing.base_price_thb || 0) * days, 'THB')}
+            {formatPrice((listing.basePriceThb || listing.base_price_thb || 0) * days, 'THB', { THB: 1 }, language)}
           </div>
         </div>
       </div>

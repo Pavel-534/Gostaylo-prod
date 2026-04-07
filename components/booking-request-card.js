@@ -7,6 +7,24 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { useCommission } from '@/hooks/use-commission'
 import { resolveChatBookingBreakdown } from '@/lib/chat-booking-totals'
+import { getUIText } from '@/lib/translations'
+import { languageToNumberLocale } from '@/lib/currency'
+
+function statusLabelKey(status) {
+  const s = String(status || 'PENDING').toUpperCase()
+  const map = {
+    CANCELLED: 'chatBookingStatus_CANCELLED',
+    REFUNDED: 'chatBookingStatus_REFUNDED',
+    CONFIRMED: 'chatBookingStatus_CONFIRMED',
+    PAID: 'chatBookingStatus_PAID',
+    PAID_ESCROW: 'chatBookingStatus_PAID_ESCROW',
+    COMPLETED: 'chatBookingStatus_COMPLETED',
+    DECLINED: 'chatBookingStatus_DECLINED',
+    CHECKED_IN: 'chatBookingStatus_CHECKED_IN',
+    PENDING: 'chatBookingStatus_PENDING',
+  }
+  return map[s] || 'chatBookingStatus_PENDING'
+}
 
 export function BookingRequestCard({
   message,
@@ -15,6 +33,7 @@ export function BookingRequestCard({
   bookingStatus,
   listing = null,
   language = 'ru',
+  exchangeRates = { THB: 1 },
 }) {
   const [updating, setUpdating] = useState(false)
   const commissionApi = useCommission()
@@ -22,22 +41,19 @@ export function BookingRequestCard({
   const { checkIn, checkOut } = metadata
   const currentStatus = String(bookingStatus || 'PENDING').toUpperCase()
 
-  const statusBadgeCopy =
-    currentStatus === 'CANCELLED' || currentStatus === 'REFUNDED'
-      ? { ru: 'Отменено', en: 'Cancelled' }
-      : currentStatus === 'CONFIRMED'
-        ? { ru: 'Подтверждено', en: 'Confirmed' }
-        : currentStatus === 'PAID' || currentStatus === 'PAID_ESCROW'
-          ? { ru: 'Оплачено', en: 'Paid' }
-          : currentStatus === 'COMPLETED'
-            ? { ru: 'Завершено', en: 'Completed' }
-            : { ru: 'Ожидает ответа', en: 'Awaiting response' }
   const categorySlug = listing?.category_slug || metadata.listing_category_slug || ''
   const bd = resolveChatBookingBreakdown({ metadata, listingCategorySlug: categorySlug })
   const metaCr = Number(metadata.commissionRate)
   const commissionRate = Number.isFinite(metaCr) && metaCr >= 0
     ? metaCr
     : commissionApi.effectiveRate
+
+  const dateLoc = languageToNumberLocale(language)
+  const qtyLabel =
+    bd.mode === 'tour'
+      ? getUIText('chatBookingCard_guestsLabel', language)
+      : getUIText('chatBookingCard_nightsLabel', language)
+  const quantityLabel = `${bd.quantity} ${qtyLabel}`
 
   async function handleAccept() {
     setUpdating(true)
@@ -51,14 +67,14 @@ export function BookingRequestCard({
 
       const data = await res.json()
       if (data.status === 'success') {
-        toast.success('Бронирование подтверждено!')
+        toast.success(getUIText('chatPartner_toastBookingConfirmed', language))
         onStatusUpdate?.('CONFIRMED')
       } else {
-        toast.error(data.error || 'Не удалось подтвердить')
+        toast.error(data.error || getUIText('chatPartner_toastBookingConfirmFail', language))
       }
     } catch (error) {
       console.error('Failed to accept booking:', error)
-      toast.error('Ошибка при подтверждении')
+      toast.error(getUIText('chatPartner_toastBookingConfirmError', language))
     } finally {
       setUpdating(false)
     }
@@ -76,14 +92,14 @@ export function BookingRequestCard({
 
       const data = await res.json()
       if (data.status === 'success') {
-        toast.info('Бронирование отклонено')
+        toast.info(getUIText('chatPartner_toastBookingDeclined', language))
         onStatusUpdate?.('CANCELLED')
       } else {
-        toast.error(data.error || 'Не удалось отклонить')
+        toast.error(data.error || getUIText('chatPartner_toastBookingDeclineFail', language))
       }
     } catch (error) {
       console.error('Failed to decline booking:', error)
-      toast.error('Ошибка при отклонении')
+      toast.error(getUIText('chatPartner_toastBookingDeclineError', language))
     } finally {
       setUpdating(false)
     }
@@ -97,26 +113,28 @@ export function BookingRequestCard({
             <div className="rounded-2xl bg-slate-50 p-2">
               <Calendar className="h-5 w-5 text-teal-600" />
             </div>
-            <span className="text-base font-bold leading-tight text-slate-900">Запрос на бронирование</span>
+            <span className="text-base font-bold leading-tight text-slate-900">
+              {getUIText('chatBookingRequestCardTitle', language)}
+            </span>
           </div>
           <Badge className="shrink-0 rounded-2xl bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-            {language === 'en' ? statusBadgeCopy.en : statusBadgeCopy.ru}
+            {getUIText(statusLabelKey(currentStatus), language)}
           </Badge>
         </div>
 
         <div className="space-y-2 text-sm">
           <div className="flex justify-between gap-3">
-            <span className="font-medium text-slate-600">Даты</span>
+            <span className="font-medium text-slate-600">
+              {getUIText('chatBookingCard_datesLabel', language)}
+            </span>
             <span className="text-right font-bold text-slate-900">
               {checkIn && checkOut
-                ? `${new Date(checkIn).toLocaleDateString('ru-RU')} — ${new Date(checkOut).toLocaleDateString('ru-RU')}`
+                ? `${new Date(checkIn).toLocaleDateString(dateLoc)} — ${new Date(checkOut).toLocaleDateString(dateLoc)}`
                 : '—'}
             </span>
           </div>
           <div className="flex justify-between gap-3">
-            <span className="font-medium text-slate-600">
-              {bd.mode === 'tour' ? 'Гостей' : 'Дней'}
-            </span>
+            <span className="font-medium text-slate-600">{qtyLabel}</span>
             <span className="font-bold text-slate-900">{bd.quantity}</span>
           </div>
         </div>
@@ -124,9 +142,11 @@ export function BookingRequestCard({
         <PriceBreakdown
           basePrice={bd.unitPriceThb}
           days={bd.quantity}
-          quantityLabel={bd.quantityLabelRu}
+          quantityLabel={quantityLabel}
           commissionRate={commissionRate}
           currency="THB"
+          language={language || 'ru'}
+          exchangeRates={exchangeRates}
           className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4"
         />
 
@@ -142,7 +162,7 @@ export function BookingRequestCard({
               ) : (
                 <>
                   <Check className="mr-2 h-5 w-5" />
-                  Принять
+                  {getUIText('chatBookingCard_accept', language)}
                 </>
               )}
             </Button>
@@ -157,7 +177,7 @@ export function BookingRequestCard({
               ) : (
                 <>
                   <X className="mr-2 h-5 w-5" />
-                  Отклонить
+                  {getUIText('chatBookingCard_decline', language)}
                 </>
               )}
             </Button>
@@ -168,14 +188,14 @@ export function BookingRequestCard({
           <Link href={`/checkout/${message.bookingId}`} className="block w-full">
             <Button className="h-12 min-h-[48px] w-full rounded-2xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700">
               <CreditCard className="mr-2 h-5 w-5" />
-              Оплатить бронирование
+              {getUIText('chatBookingCard_payNow', language)}
             </Button>
           </Link>
         )}
 
         {userRole === 'RENTER' && currentStatus === 'PENDING' && (
           <div className="text-sm text-slate-600 text-center py-2">
-            Ожидаем ответа владельца...
+            {getUIText('chatBookingCard_waitingHost', language)}
           </div>
         )}
       </div>
@@ -183,20 +203,25 @@ export function BookingRequestCard({
   )
 }
 
-export function SystemMessage({ message }) {
-  const isConfirmed = message.type === 'BOOKING_CONFIRMED'
-  const isCancelled = message.type === 'BOOKING_CANCELLED'
+export function SystemMessage({ message, language = 'ru' }) {
+  const t = String(message.type || '').toUpperCase()
+  let text = message.message
+  if (t === 'BOOKING_CONFIRMED') {
+    text = getUIText('chatSystem_bookingConfirmed', language)
+  } else if (t === 'BOOKING_CANCELLED') {
+    text = getUIText('chatSystem_bookingCancelled', language)
+  }
 
   return (
     <div className="flex justify-center py-2">
-      <div className={`px-4 py-2 rounded-2xl text-sm font-medium ${
-        isConfirmed
-          ? 'bg-slate-100 text-slate-700'
-          : isCancelled
-          ? 'bg-slate-100 text-slate-700'
-          : 'bg-slate-100 text-slate-700'
-      }`}>
-        {message.message}
+      <div
+        className={`px-4 py-2 rounded-2xl text-sm font-medium ${
+          t === 'BOOKING_CONFIRMED' || t === 'BOOKING_CANCELLED'
+            ? 'bg-slate-100 text-slate-700'
+            : 'bg-slate-100 text-slate-700'
+        }`}
+      >
+        {text}
       </div>
     </div>
   )

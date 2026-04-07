@@ -151,7 +151,7 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
           <span className="text-slate-600">
             {baseLineLabel}
           </span>
-          <span className="font-medium tabular-nums">{formatPrice(baseRaw, currency, exchangeRates)}</span>
+          <span className="font-medium tabular-nums">{formatPrice(baseRaw, currency, exchangeRates, language)}</span>
         </div>
       )}
       {hasSeasonal && (
@@ -172,7 +172,7 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
             )}
           >
             {seasonalAdj > 0 ? '+' : ''}
-            {formatPrice(seasonalAdj, currency, exchangeRates)}
+            {formatPrice(seasonalAdj, currency, exchangeRates, language)}
           </span>
         </div>
       )}
@@ -182,7 +182,7 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
             {durationStayDiscountLabel(priceCalc, language, rentalPeriodMode)}
           </span>
           <span className="font-semibold tabular-nums text-emerald-600">
-            −{formatPrice(dur, currency, exchangeRates)}
+            −{formatPrice(dur, currency, exchangeRates, language)}
             {priceCalc.durationDiscountPercent > 0
               ? ` (${priceCalc.durationDiscountPercent}%)`
               : ''}
@@ -192,14 +192,14 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
       <div className="flex justify-between gap-2 pt-1">
         <span className="text-slate-600">{getUIText('subtotal', language)}</span>
         <span className="font-medium tabular-nums">
-          {formatPrice(priceCalc.subtotalBeforeFee ?? priceCalc.totalPrice, currency, exchangeRates)}
+          {formatPrice(priceCalc.subtotalBeforeFee ?? priceCalc.totalPrice, currency, exchangeRates, language)}
         </span>
       </div>
       {priceCalc.serviceFee > 0 && (
         <div className="flex justify-between gap-2">
           <span className="text-slate-600">{getUIText('serviceFee', language)}</span>
           <span className="font-medium tabular-nums">
-            {formatPrice(priceCalc.serviceFee, currency, exchangeRates)}
+            {formatPrice(priceCalc.serviceFee, currency, exchangeRates, language)}
           </span>
         </div>
       )}
@@ -226,7 +226,7 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
           )}
           data-testid="booking-price-total"
         >
-          {formatPrice(priceCalc.finalTotal, currency, exchangeRates)}
+          {formatPrice(priceCalc.finalTotal, currency, exchangeRates, language)}
         </span>
       </div>
     </div>
@@ -276,7 +276,7 @@ export function DesktopBookingWidget({
           <div className="flex items-center justify-between mb-2">
             <div>
               <div className="text-3xl font-bold text-slate-900">
-                {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates)}
+                {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates, language)}
               </div>
               <p
                 className="text-sm text-slate-500"
@@ -372,6 +372,7 @@ export function DesktopBookingWidget({
               minStay={listing.minStay}
               language={language}
               guests={guests}
+              listingMaxCapacity={listing.maxCapacity}
               rentalPeriodMode={rentalPeriodMode}
             />
           </div>
@@ -577,7 +578,7 @@ export function MobileBookingBar({
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">
           <div className="text-xl sm:text-2xl font-bold text-slate-900 tabular-nums leading-tight">
-            {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates)}
+            {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates, language)}
           </div>
           <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
             {getUIText(rentalPeriodMode === 'day' ? 'perBookingDay' : 'perNight', language)}

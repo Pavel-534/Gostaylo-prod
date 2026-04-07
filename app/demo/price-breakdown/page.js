@@ -55,6 +55,8 @@ export default function PriceBreakdownDemo() {
             priceData={mockPriceData}
             commissionRate={effectiveRate}
             currency="THB"
+            language="ru"
+            exchangeRates={{ THB: 1 }}
             showDetails={true}
           />
         )}

@@ -50,6 +50,7 @@ import { INBOX_TAB_TRAVELING, setRenterInboxTabPreference } from '@/lib/chat-inb
 import { useChatContext } from '@/lib/context/ChatContext'
 import { useCommission } from '@/hooks/use-commission'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
+import { getBookingApiUserMessage } from '@/lib/booking-error-message'
 
 const CHAT_CACHE_TTL = 5 * 60 * 1000 // 5 min
 
@@ -125,6 +126,7 @@ function PremiumListingContent({ params }) {
   const [guestPhone, setGuestPhone] = useState('')
   const [dateRange, setDateRange] = useState({ from: null, to: null })
   const [guests, setGuests] = useState(2)
+  const [debouncedGuestsAvail, setDebouncedGuestsAvail] = useState(2)
   const [message, setMessage] = useState('')
   const [priceCalc, setPriceCalc] = useState(null)
   const [calendarKey, setCalendarKey] = useState(0)
@@ -135,7 +137,7 @@ function PremiumListingContent({ params }) {
   const [lastMessagePreview, setLastMessagePreview] = useState(null)
   const [hasUnreadFromHost, setHasUnreadFromHost] = useState(false)
   const [availabilitySnapshot, setAvailabilitySnapshot] = useState(null)
-  const [availabilityLoading, setAvailabilityLoading] = useState(false)
+  const [availabilityFetchLoading, setAvailabilityFetchLoading] = useState(false)
   const [bookingModalIntent, setBookingModalIntent] = useState('book')
 
   const { getConversationForListing, loaded: chatLoaded } = useChatContext()
@@ -146,7 +148,17 @@ function PremiumListingContent({ params }) {
   )
 
   const commissionHook = useCommission(listingPartnerId)
-  
+
+  const AVAILABILITY_GUESTS_DEBOUNCE_MS = 420
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedGuestsAvail(guests), AVAILABILITY_GUESTS_DEBOUNCE_MS)
+    return () => clearTimeout(t)
+  }, [guests])
+
+  const guestsAvailabilityPendingSync = debouncedGuestsAvail !== guests
+  const availabilityLoading = availabilityFetchLoading || guestsAvailabilityPendingSync
+
   // Initialize from URL
   useEffect(() => {
     const checkInParam = searchParams.get('checkIn')
@@ -327,15 +339,18 @@ function PremiumListingContent({ params }) {
   useEffect(() => {
     if (!listing?.id || !dateRange?.from || !dateRange?.to) {
       setAvailabilitySnapshot(null)
-      setAvailabilityLoading(false)
+      setAvailabilityFetchLoading(false)
+      return
+    }
+    if (guestsAvailabilityPendingSync) {
       return
     }
     const start = format(dateRange.from, 'yyyy-MM-dd')
     const end = format(dateRange.to, 'yyyy-MM-dd')
     const ac = new AbortController()
-    setAvailabilityLoading(true)
+    setAvailabilityFetchLoading(true)
     fetch(
-      `/api/v2/listings/${encodeURIComponent(listing.id)}/availability?startDate=${start}&endDate=${end}&guests=${guests}`,
+      `/api/v2/listings/${encodeURIComponent(listing.id)}/availability?startDate=${start}&endDate=${end}&guests=${debouncedGuestsAvail}`,
       { signal: ac.signal, credentials: 'omit' }
     )
       .then((r) => r.json())
@@ -347,10 +362,16 @@ function PremiumListingContent({ params }) {
         if (!ac.signal.aborted) setAvailabilitySnapshot(null)
       })
       .finally(() => {
-        if (!ac.signal.aborted) setAvailabilityLoading(false)
+        if (!ac.signal.aborted) setAvailabilityFetchLoading(false)
       })
     return () => ac.abort()
-  }, [listing?.id, dateRange?.from, dateRange?.to, guests])
+  }, [
+    listing?.id,
+    dateRange?.from,
+    dateRange?.to,
+    debouncedGuestsAvail,
+    guestsAvailabilityPendingSync,
+  ])
   
   // Track recently viewed
   useEffect(() => {
@@ -583,7 +604,7 @@ function PremiumListingContent({ params }) {
     }
 
     if (!dateRange.from || !dateRange.to) {
-      toast.error(language === 'ru' ? 'Выберите даты' : 'Select dates')
+      toast.error(getUIText('listingToast_selectDates', language))
       return
     }
 
@@ -608,7 +629,7 @@ function PremiumListingContent({ params }) {
       if (!isPrivateOrSpecial) {
         const sub = priceCalc?.subtotalBeforeFee ?? priceCalc?.totalPrice
         if (sub == null || !Number.isFinite(Number(sub))) {
-          toast.error(language === 'ru' ? 'Не удалось рассчитать цену' : 'Could not calculate price')
+          toast.error(getUIText('listingToast_priceCalc', language))
           setSubmitting(false)
           return
         }
@@ -619,7 +640,12 @@ function PremiumListingContent({ params }) {
 
       const res = await fetch('/api/v2/bookings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          Pragma: 'no-cache',
+        },
+        cache: 'no-store',
         body: JSON.stringify(payload),
       })
 
@@ -627,11 +653,9 @@ function PremiumListingContent({ params }) {
 
       if (data.success) {
         if (data.inquiry) {
-          toast.success(
-            language === 'ru' ? 'Запрос отправлен — откроем чат с хозяином' : 'Request sent — opening chat'
-          )
+          toast.success(getUIText('listingToast_bookingInquiry', language))
         } else {
-          toast.success(language === 'ru' ? 'Бронирование создано!' : 'Booking created!')
+          toast.success(getUIText('listingToast_bookingCreated', language))
         }
         setBookingModalOpen(false)
         setBookingModalIntent('book')
@@ -642,10 +666,10 @@ function PremiumListingContent({ params }) {
           router.push('/renter/bookings', { scroll: false })
         }
       } else {
-        toast.error(data.error || 'Booking failed')
+        toast.error(getBookingApiUserMessage(data, language))
       }
     } catch (error) {
-      toast.error('Something went wrong')
+      toast.error(getUIText('listingToast_network', language))
     } finally {
       setSubmitting(false)
     }
@@ -841,6 +865,7 @@ function PremiumListingContent({ params }) {
                         minStay={listing.minStay}
                         language={language}
                         guests={guests}
+                        listingMaxCapacity={listing.maxCapacity}
                         rentalPeriodMode={listingRentalPeriodMode}
                       />
                     </div>

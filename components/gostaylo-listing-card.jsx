@@ -31,6 +31,7 @@ import {
   isYachtLikeCategory,
   showsPropertyInteriorSpecs,
 } from '@/lib/listing-category-slug'
+import { getListingCardBlurDataURL } from '@/lib/listing-image-blur'
 
 export function GostayloListingCard({
   listing,
@@ -150,6 +151,7 @@ export function GostayloListingCard({
         title={title}
         isFavorite={isFavorite}
         onFavoriteClick={handleFavorite}
+        blurDataURL={getListingCardBlurDataURL(listing)}
       />
 
       {/* Текст и цена — отдельная ссылка; сердце не внутри anchor (валидный DOM) */}

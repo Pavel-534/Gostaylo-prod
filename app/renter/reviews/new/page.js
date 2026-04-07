@@ -8,7 +8,7 @@ import { Suspense, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { ru, enUS, zhCN, th } from 'date-fns/locale'
 import { Loader2, Star, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -17,6 +17,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { processAndUploadReviewPhotos } from '@/lib/services/image-upload.service'
+import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
+
+const DF_LOCALE = { ru, en: enUS, zh: zhCN, th }
+
+function tf(lang, key, vars = {}) {
+  let s = getUIText(key, lang)
+  Object.entries(vars).forEach(([k, v]) => {
+    s = s.split(`{${k}}`).join(String(v))
+  })
+  return s
+}
 
 const MAX_REVIEW_PHOTOS = 5
 
@@ -44,7 +56,9 @@ function StarRow({ value, onChange, label }) {
 function NewReviewContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { language } = useI18n()
   const bookingId = searchParams.get('bookingId')?.trim()
+  const dfLocale = DF_LOCALE[language] || enUS
 
   const [me, setMe] = useState(null)
   const [booking, setBooking] = useState(null)
@@ -70,7 +84,7 @@ function NewReviewContent() {
       const bookJson = await bookRes.json().catch(() => ({}))
 
       if (!meRes.ok || !meJson.success || !meJson.user) {
-        toast.error('Войдите в аккаунт')
+        toast.error(getUIText('renterReviewLoginRequired', language))
         setMe(null)
         setBooking(null)
         return
@@ -78,18 +92,18 @@ function NewReviewContent() {
       setMe(meJson.user)
 
       if (!bookRes.ok || !bookJson.success || !bookJson.data) {
-        toast.error('Бронирование не найдено')
+        toast.error(getUIText('renterReviewBookingNotFound', language))
         setBooking(null)
         return
       }
       setBooking(bookJson.data)
     } catch {
-      toast.error('Ошибка загрузки')
+      toast.error(getUIText('renterReviewLoadError', language))
       setBooking(null)
     } finally {
       setLoading(false)
     }
-  }, [bookingId])
+  }, [bookingId, language])
 
   useEffect(() => {
     void load()
@@ -97,13 +111,13 @@ function NewReviewContent() {
 
   const listing = booking?.listings
   const listingId = booking?.listing_id
-  const title = listing?.title || 'Объект'
+  const title = listing?.title || getUIText('listing', language)
   const from = booking?.check_in
   const to = booking?.check_out
   let dateLine = ''
   try {
     if (from && to) {
-      dateLine = `${format(new Date(from), 'd MMM', { locale: ru })} — ${format(new Date(to), 'd MMM yyyy', { locale: ru })}`
+      dateLine = `${format(new Date(from), 'd MMM', { locale: dfLocale })} — ${format(new Date(to), 'd MMM yyyy', { locale: dfLocale })}`
     }
   } catch {
     dateLine = ''
@@ -120,7 +134,7 @@ function NewReviewContent() {
         photos = await processAndUploadReviewPhotos(photoFiles, me.id, bookingId)
         setUploadingPhotos(false)
         if (photos.length !== photoFiles.length) {
-          toast.error('Не удалось загрузить все фото')
+          toast.error(getUIText('renterReviewPhotoUploadPartial', language))
           setSubmitting(false)
           return
         }
@@ -140,17 +154,17 @@ function NewReviewContent() {
       })
       const json = await res.json()
       if (!res.ok || !json.success) {
-        toast.error(json.error || 'Не удалось отправить отзыв')
+        toast.error(json.error || getUIText('renterReviewSubmitError', language))
         return
       }
-      toast.success('Ваш отзыв опубликован. Спасибо!')
+      toast.success(getUIText('renterReviewSuccess', language))
       if (listingId) {
         router.push(`/listings/${encodeURIComponent(listingId)}`)
       } else {
         router.push('/renter/bookings')
       }
     } catch {
-      toast.error('Ошибка сети')
+      toast.error(getUIText('renterReviewNetworkError', language))
     } finally {
       setUploadingPhotos(false)
       setSubmitting(false)
@@ -161,12 +175,12 @@ function NewReviewContent() {
     return (
       <Card className="max-w-lg mx-auto mt-8">
         <CardHeader>
-          <CardTitle>Отзыв</CardTitle>
-          <CardDescription>Откройте ссылку «Оценить отдых» из чата после завершения поездки.</CardDescription>
+          <CardTitle>{getUIText('renterReviewFlow_title', language)}</CardTitle>
+          <CardDescription>{getUIText('renterReviewFlow_noLinkDesc', language)}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button asChild variant="outline">
-            <Link href="/messages/">К сообщениям</Link>
+            <Link href="/messages/">{getUIText('renterReviewFlow_toMessages', language)}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -185,12 +199,12 @@ function NewReviewContent() {
     return (
       <Card className="max-w-lg mx-auto mt-8">
         <CardHeader>
-          <CardTitle>Нужен вход</CardTitle>
+          <CardTitle>{getUIText('renterReviewFlow_needLogin', language)}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <Button asChild className="bg-teal-600 hover:bg-teal-700">
             <Link href={`/profile?login=true&redirect=${encodeURIComponent(`/renter/reviews/new?bookingId=${bookingId}`)}`}>
-              Войти
+              {getUIText('renterReviewFlow_signIn', language)}
             </Link>
           </Button>
         </CardContent>
@@ -202,11 +216,11 @@ function NewReviewContent() {
     return (
       <Card className="max-w-lg mx-auto mt-8">
         <CardHeader>
-          <CardTitle>Бронирование не найдено</CardTitle>
+          <CardTitle>{getUIText('renterReviewFlow_notFound', language)}</CardTitle>
         </CardHeader>
         <CardContent>
           <Button asChild variant="outline">
-            <Link href="/renter/bookings">Мои бронирования</Link>
+            <Link href="/renter/bookings">{getUIText('renterReviewFlow_myBookings', language)}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -217,12 +231,12 @@ function NewReviewContent() {
     return (
       <Card className="max-w-lg mx-auto mt-8 border-red-200 bg-red-50/40">
         <CardHeader>
-          <CardTitle>Нет доступа</CardTitle>
-          <CardDescription>Отзыв можно оставить только по своей брони.</CardDescription>
+          <CardTitle>{getUIText('renterReviewFlow_noAccess', language)}</CardTitle>
+          <CardDescription>{getUIText('renterReviewFlow_noAccessDesc', language)}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button asChild variant="outline">
-            <Link href="/renter/bookings">Мои бронирования</Link>
+            <Link href="/renter/bookings">{getUIText('renterReviewFlow_myBookings', language)}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -234,14 +248,14 @@ function NewReviewContent() {
     return (
       <Card className="max-w-lg mx-auto mt-8 border-amber-200 bg-amber-50/50">
         <CardHeader>
-          <CardTitle>Отзыв пока недоступен</CardTitle>
+          <CardTitle>{getUIText('renterReviewFlow_notYet', language)}</CardTitle>
           <CardDescription>
-            Оставить отзыв можно после статуса «Завершено». Сейчас: {status || '—'}
+            {getUIText('renterReviewFlow_notYetDesc', language)} {status || '—'}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button asChild variant="outline">
-            <Link href="/messages/">К диалогу</Link>
+            <Link href="/messages/">{getUIText('renterReviewFlow_toDialog', language)}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -253,13 +267,13 @@ function NewReviewContent() {
       <Button asChild variant="ghost" size="sm" className="mb-4 -ml-2 text-slate-600">
         <Link href="/renter/bookings">
           <ArrowLeft className="mr-1 h-4 w-4" />
-          Назад
+          {getUIText('renterReviewFlow_back', language)}
         </Link>
       </Button>
 
       <Card>
         <CardHeader>
-          <CardTitle>Оцените поездку</CardTitle>
+          <CardTitle>{getUIText('renterReviewFlow_rateTitle', language)}</CardTitle>
           <CardDescription>
             {title}
             {dateLine ? ` · ${dateLine}` : ''}
@@ -267,22 +281,22 @@ function NewReviewContent() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <StarRow value={rating} onChange={setRating} label="Общая оценка" />
+            <StarRow value={rating} onChange={setRating} label={getUIText('renterReviewOverallRating', language)} />
 
             <div className="space-y-2">
-              <Label htmlFor="review-comment">Комментарий (необязательно)</Label>
+              <Label htmlFor="review-comment">{getUIText('renterReviewFlow_commentLabel', language)}</Label>
               <Textarea
                 id="review-comment"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 rows={4}
-                placeholder="Что понравилось, что улучшить?"
+                placeholder={getUIText('renterReviewCommentPlaceholder', language)}
                 className="resize-y min-h-[100px]"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="review-photos-new">Фото (необязательно, до {MAX_REVIEW_PHOTOS})</Label>
+              <Label htmlFor="review-photos-new">{tf(language, 'renterReviewFlow_photosLabel', { max: MAX_REVIEW_PHOTOS })}</Label>
               <input
                 id="review-photos-new"
                 type="file"
@@ -297,7 +311,7 @@ function NewReviewContent() {
                   setPhotoFiles((prev) => {
                     const next = [...prev, ...picked].slice(0, MAX_REVIEW_PHOTOS)
                     if (prev.length + picked.length > MAX_REVIEW_PHOTOS) {
-                      toast.error(`Не более ${MAX_REVIEW_PHOTOS} фото`)
+                      toast.error(tf(language, 'renterReviewFlow_maxPhotos', { max: MAX_REVIEW_PHOTOS }))
                     }
                     return next
                   })
@@ -305,9 +319,9 @@ function NewReviewContent() {
               />
               {photoFiles.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500">{photoFiles.length} файл(ов)</span>
+                  <span className="text-xs text-slate-500">{tf(language, 'renterReviewFlow_filesCount', { n: photoFiles.length })}</span>
                   <Button type="button" variant="ghost" size="sm" onClick={() => setPhotoFiles([])}>
-                    Сбросить
+                    {getUIText('renterReviewFlow_clearPhotos', language)}
                   </Button>
                 </div>
               )}
@@ -321,10 +335,10 @@ function NewReviewContent() {
               {submitting || uploadingPhotos ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {uploadingPhotos ? 'Загрузка фото…' : 'Отправка…'}
+                  {uploadingPhotos ? getUIText('renterReviewUploading', language) : getUIText('renterReviewSubmitting', language)}
                 </>
               ) : (
-                'Отправить отзыв'
+                getUIText('renterReviewSubmit', language)
               )}
             </Button>
           </form>

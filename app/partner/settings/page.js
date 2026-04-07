@@ -151,7 +151,7 @@ export default function PartnerSettings() {
 
   async function handleSaveSettings() {
     if (!user?.id) {
-      toast.error('Пользователь не авторизован')
+      toast.error(getUIText('partnerSettingsUnauthorized', language))
       return
     }
 
@@ -174,7 +174,7 @@ export default function PartnerSettings() {
       const data = await res.json()
 
       if (res.ok && data.success && data.user) {
-        toast.success('Настройки сохранены!')
+        toast.success(getUIText('partnerSettingsSaved', language))
         localStorage.setItem('gostaylo_user', JSON.stringify(data.user))
         setUser(data.user)
         setAvatarRaw(
@@ -193,12 +193,12 @@ export default function PartnerSettings() {
         }))
         window.dispatchEvent(new CustomEvent('gostaylo-refresh-session'))
       } else if (res.ok) {
-        toast.success('Настройки сохранены!')
+        toast.success(getUIText('partnerSettingsSaved', language))
       } else {
         toast.error(data.error || 'Ошибка сохранения')
       }
     } catch (error) {
-      toast.error('Ошибка: ' + error.message)
+      toast.error(`${getUIText('partnerSettingsSaveFailed', language)} ${error.message}`)
     } finally {
       setSaving(false)
     }
@@ -429,10 +429,10 @@ export default function PartnerSettings() {
           {saving ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Сохранение...
+              {getUIText('renterSettingsSaving', language)}
             </>
           ) : (
-            'Сохранить изменения'
+            getUIText('partnerSettingsSaveChanges', language)
           )}
         </Button>
       </div>

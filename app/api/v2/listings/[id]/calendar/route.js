@@ -60,11 +60,13 @@ export async function GET(request, { params }) {
 
     // Full calendar: guest-aware can_check_in / status when guests > 1
     const result = await CalendarService.getCalendar(listingId, days, { requestedGuests: guests });
-    
+
+    // Private short TTL: снижает повторные запросы к БД при возврате на страницу / быстром переключении
+    // (не шэрится между пользователями). Диапазон checkIn/checkOut выше остаётся без кэша.
     return NextResponse.json(result, {
       headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
-      }
+        'Cache-Control': 'private, max-age=25, stale-while-revalidate=90',
+      },
     });
     
   } catch (error) {

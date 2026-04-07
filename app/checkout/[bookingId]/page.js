@@ -12,8 +12,17 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, CreditCard, Wallet, Loader2, CheckCircle2, Copy, ExternalLink, AlertCircle, Smartphone } from 'lucide-react'
-import { formatPrice } from '@/lib/currency'
+import { formatPrice, languageToNumberLocale } from '@/lib/currency'
 import { toast } from 'sonner'
+import { detectLanguage, getUIText } from '@/lib/translations'
+
+function interpolateTemplate(str, vars = {}) {
+  let s = String(str)
+  for (const [k, v] of Object.entries(vars)) {
+    s = s.split(`{{${k}}}`).join(String(v))
+  }
+  return s
+}
 import { QRCodeSVG } from 'qrcode.react'
 import { useCommission } from '@/hooks/use-commission'
 
@@ -45,16 +54,35 @@ function CheckoutPageInner({ params }) {
   const [chatConversationId, setChatConversationId] = useState(null)
   const [thbPerUsdt, setThbPerUsdt] = useState(null)
   const commissionFromApi = useCommission()
+  const [language, setLanguage] = useState('ru')
+  const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
 
   useEffect(() => {
     loadPaymentStatus()
   }, [params.bookingId])
 
   useEffect(() => {
+    const lang = detectLanguage()
+    setLanguage(lang)
+    const h = (e) => {
+      if (e?.detail) setLanguage(e.detail)
+    }
+    window.addEventListener('language-change', h)
+    window.addEventListener('languageChange', h)
+    return () => {
+      window.removeEventListener('language-change', h)
+      window.removeEventListener('languageChange', h)
+    }
+  }, [])
+
+  useEffect(() => {
     fetch('/api/v2/exchange-rates', { cache: 'no-store' })
       .then((r) => r.json())
       .then((j) => {
-        if (j.success && j.rateMap?.USDT) setThbPerUsdt(j.rateMap.USDT)
+        if (j.success && j.rateMap && typeof j.rateMap === 'object') {
+          setExchangeRates({ THB: 1, ...j.rateMap })
+          if (j.rateMap.USDT != null) setThbPerUsdt(j.rateMap.USDT)
+        }
       })
       .catch(() => {})
   }, [])
@@ -81,7 +109,7 @@ function CheckoutPageInner({ params }) {
 
   async function handleApplyPromoCode() {
     if (!promoCode.trim()) {
-      toast.error('Введите промокод')
+      toast.error(getUIText('checkout_toast_promoEmpty', language))
       return
     }
 
@@ -100,14 +128,18 @@ function CheckoutPageInner({ params }) {
 
       if (data.success) {
         setPromoDiscount(data.data)
-        toast.success(`🎉 Промокод применён! Скидка: ${data.data.discountAmount} ฿`)
+        toast.success(
+          interpolateTemplate(getUIText('checkout_toast_promoOk', language), {
+            amount: String(data.data.discountAmount),
+          }),
+        )
       } else {
-        toast.error(data.error || 'Промокод недействителен')
+        toast.error(data.error || getUIText('checkout_toast_promoInvalid', language))
         setPromoDiscount(null)
       }
     } catch (error) {
       console.error('Failed to apply promo code:', error)
-      toast.error('Ошибка при проверке промокода')
+      toast.error(getUIText('checkout_toast_promoCheckFail', language))
     } finally {
       setPromoLoading(false)
     }
@@ -223,17 +255,17 @@ function CheckoutPageInner({ params }) {
           setCryptoModalOpen(true)
         } else {
           // Mock card/MIR payment - auto-confirm after 2 seconds
-          toast.success('Mock: Перенаправление на платёжный шлюз...')
+          toast.success(getUIText('checkout_toast_mockRedirect', language))
           setTimeout(() => {
             handleConfirmPayment(null, `MOCK-${Date.now()}`)
           }, 2000)
         }
       } else {
-        toast.error(data.error || 'Ошибка при инициализации платежа')
+        toast.error(data.error || getUIText('checkout_toast_paymentInitFail', language))
       }
     } catch (error) {
       console.error('Failed to initiate payment:', error)
-      toast.error('Ошибка при инициализации платежа')
+      toast.error(getUIText('checkout_toast_paymentInitFail', language))
     } finally {
       setProcessing(false)
     }
@@ -247,7 +279,7 @@ function CheckoutPageInner({ params }) {
       
       try {
         // Step 1: TXID Received
-        toast.info('📥 TXID получен, начинаем проверку...')
+        toast.info(getUIText('checkout_toast_txReceived', language))
         await new Promise(resolve => setTimeout(resolve, 1000))
         
         // Step 2: Verifying on blockchain
@@ -274,7 +306,7 @@ function CheckoutPageInner({ params }) {
         const verifyData = await verifyRes.json()
         
         if (!verifyData.verified) {
-          toast.error(verifyData.error || 'Транзакция не подтверждена')
+          toast.error(verifyData.error || getUIText('checkout_toast_txNotVerified', language))
           setVerifying(false)
           setVerificationStep(0)
           return
@@ -282,7 +314,7 @@ function CheckoutPageInner({ params }) {
         
         // Step 3: Verified!
         setVerificationStep(3)
-        toast.success('✅ Транзакция подтверждена блокчейном!')
+        toast.success(getUIText('checkout_toast_chainOk', language))
         await new Promise(resolve => setTimeout(resolve, 500))
         
         // Now confirm payment in our system
@@ -306,11 +338,11 @@ function CheckoutPageInner({ params }) {
             handleCheckInConfirm()
           }, 1000)
         } else {
-          toast.error(data.error || 'Ошибка подтверждения платежа')
+          toast.error(data.error || getUIText('checkout_toast_paymentConfirmFail', language))
         }
       } catch (error) {
         console.error('Failed to verify crypto payment:', error)
-        toast.error('Ошибка верификации платежа')
+        toast.error(getUIText('checkout_toast_verifyPaymentFail', language))
         setVerificationStep(0)
       } finally {
         setVerifying(false)
@@ -332,7 +364,7 @@ function CheckoutPageInner({ params }) {
       const data = await res.json()
 
       if (data.success) {
-        toast.success('✅ Оплата успешно подтверждена!')
+        toast.success(getUIText('checkout_toast_paymentOk', language))
         setPaymentSuccess(true)
         setCryptoModalOpen(false)
         
@@ -340,11 +372,11 @@ function CheckoutPageInner({ params }) {
           handleCheckInConfirm()
         }, 1000)
       } else {
-        toast.error(data.error || 'Ошибка подтверждения платежа')
+        toast.error(data.error || getUIText('checkout_toast_paymentConfirmFail', language))
       }
     } catch (error) {
       console.error('Failed to confirm payment:', error)
-      toast.error('Ошибка подтверждения платежа')
+      toast.error(getUIText('checkout_toast_paymentConfirmFail', language))
     }
   }
 
@@ -367,13 +399,13 @@ function CheckoutPageInner({ params }) {
 
   function copyToClipboard(text) {
     navigator.clipboard.writeText(text)
-    toast.success('Скопировано!')
+    toast.success(getUIText('checkout_copySuccess', language))
   }
 
   // Verify TXID via TronScan API
   async function handleVerifyTxid() {
     if (!txId.trim() || txId.length < 60) {
-      toast.error('TXID должен быть не менее 64 символов')
+      toast.error(getUIText('checkout_toast_txidShort', language))
       return
     }
 
@@ -391,17 +423,17 @@ function CheckoutPageInner({ params }) {
       setLiveVerification(data)
 
       if (data.success) {
-        toast.success('✅ Транзакция найдена и подтверждена!')
+        toast.success(getUIText('checkout_toast_txFound', language))
       } else if (data.status === 'PENDING') {
-        toast.info('⏳ Транзакция ожидает подтверждения')
+        toast.info(getUIText('checkout_toast_txPending', language))
       } else if (data.status === 'NOT_FOUND') {
-        toast.warning('Транзакция не найдена на блокчейне')
+        toast.warning(getUIText('checkout_toast_txNotFound', language))
       } else {
-        toast.error(data.error || 'Ошибка верификации')
+        toast.error(data.error || getUIText('checkout_toast_verifyError', language))
       }
     } catch (error) {
       console.error('Verification error:', error)
-      toast.error('Ошибка при проверке транзакции')
+      toast.error(getUIText('checkout_toast_checkTxFail', language))
     } finally {
       setVerifying(false)
     }
@@ -410,7 +442,7 @@ function CheckoutPageInner({ params }) {
   // Submit TXID to admin for verification
   async function handleSubmitTxid() {
     if (!txId.trim() || txId.length < 60) {
-      toast.error('TXID должен быть не менее 64 символов')
+      toast.error(getUIText('checkout_toast_txidShort', language))
       return
     }
 
@@ -430,14 +462,14 @@ function CheckoutPageInner({ params }) {
       const data = await res.json()
 
       if (data.success) {
-        toast.success('✅ TXID отправлен на проверку!')
+        toast.success(getUIText('checkout_toast_txSubmitOk', language))
         setTxidSubmitted(true)
       } else {
-        toast.error(data.error || 'Ошибка при отправке TXID')
+        toast.error(data.error || getUIText('checkout_toast_txSubmitFail', language))
       }
     } catch (error) {
       console.error('Submit TXID error:', error)
-      toast.error('Ошибка при отправке TXID')
+      toast.error(getUIText('checkout_toast_txSubmitFail', language))
     } finally {
       setVerifying(false)
     }
@@ -456,16 +488,16 @@ function CheckoutPageInner({ params }) {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="pt-6 text-center">
-            <h3 className="text-xl font-semibold mb-2">Доступ запрещён</h3>
+            <h3 className="text-xl font-semibold mb-2">{getUIText('checkout_accessDeniedTitle', language)}</h3>
             <p className="text-slate-600 mb-4">
-              Вы можете оплатить только своё бронирование. Войдите в аккаунт, с которым создавали бронирование.
+              {getUIText('checkout_accessDeniedBody', language)}
             </p>
             <div className="flex gap-2 justify-center">
               <Button asChild>
-                <Link href="/">На главную</Link>
+                <Link href="/">{getUIText('checkout_home', language)}</Link>
               </Button>
               <Button variant="outline" onClick={() => window.location.reload()}>
-                Обновить
+                {getUIText('checkout_refresh', language)}
               </Button>
             </div>
           </CardContent>
@@ -479,10 +511,10 @@ function CheckoutPageInner({ params }) {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="pt-6 text-center">
-            <h3 className="text-xl font-semibold mb-2">Бронирование недоступно</h3>
-            <p className="text-slate-600 mb-4">Это бронирование было отменено или не найдено.</p>
+            <h3 className="text-xl font-semibold mb-2">{getUIText('checkout_unavailableTitle', language)}</h3>
+            <p className="text-slate-600 mb-4">{getUIText('checkout_unavailableBody', language)}</p>
             <Button asChild>
-              <Link href="/">На главную</Link>
+              <Link href="/">{getUIText('checkout_home', language)}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -497,21 +529,21 @@ function CheckoutPageInner({ params }) {
         <Card className="max-w-md w-full mx-4">
           <CardContent className="pt-6 text-center">
             <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold mb-2">Оплата успешна!</h3>
+            <h3 className="text-2xl font-bold mb-2">{getUIText('checkout_successTitle', language)}</h3>
             <p className="text-slate-600 mb-6">
-              Ваше бронирование оплачено. Деньги переведены партнёру после подтверждения check-in.
+              {getUIText('checkout_successBody', language)}
             </p>
             <div className="space-y-3">
               {chatHref && (
                 <Button asChild className="w-full bg-teal-600 hover:bg-teal-700">
-                  <Link href={chatHref}>💬 Написать хозяину</Link>
+                  <Link href={chatHref}>{getUIText('checkout_chatHost', language)}</Link>
                 </Button>
               )}
               <Button asChild variant={chatHref ? 'outline' : 'default'} className={`w-full${chatHref ? '' : ' bg-teal-600 hover:bg-teal-700'}`}>
-                <Link href="/">На главную</Link>
+                <Link href="/">{getUIText('checkout_home', language)}</Link>
               </Button>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/my-bookings">Мои бронирования</Link>
+                <Link href="/my-bookings">{getUIText('checkout_myBookings', language)}</Link>
               </Button>
             </div>
           </CardContent>
@@ -543,10 +575,10 @@ function CheckoutPageInner({ params }) {
         {/* Header */}
         <Link href="/" className="inline-flex items-center text-teal-600 hover:text-teal-700 mb-6">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Назад
+          {getUIText('checkout_back', language)}
         </Link>
 
-        <h1 className="text-3xl font-bold text-slate-900 mb-8">Оплата бронирования</h1>
+        <h1 className="text-3xl font-bold text-slate-900 mb-8">{getUIText('checkout_title', language)}</h1>
 
         {/* Баннер для подтверждённого, но неоплаченного бронирования */}
         {booking?.status === 'CONFIRMED' && (
@@ -554,10 +586,10 @@ function CheckoutPageInner({ params }) {
             <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
             <div>
               <p className="font-semibold text-emerald-900 text-sm">
-                Бронирование подтверждено партнёром!
+                {getUIText('checkout_confirmedBannerTitle', language)}
               </p>
               <p className="text-sm text-emerald-700 mt-0.5">
-                Чтобы окончательно закрепить даты, завершите оплату.
+                {getUIText('checkout_confirmedBannerBody', language)}
               </p>
             </div>
           </div>
@@ -569,7 +601,7 @@ function CheckoutPageInner({ params }) {
             {/* Payment Method Selection */}
             <Card>
               <CardHeader>
-                <CardTitle>Выберите способ оплаты</CardTitle>
+                <CardTitle>{getUIText('checkout_selectMethod', language)}</CardTitle>
               </CardHeader>
               <CardContent>
                 <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
@@ -578,8 +610,8 @@ function CheckoutPageInner({ params }) {
                     <Label htmlFor="card" className="flex items-center gap-3 cursor-pointer flex-1">
                       <CreditCard className="h-5 w-5 text-slate-600" />
                       <div>
-                        <p className="font-semibold">Банковская карта</p>
-                        <p className="text-sm text-slate-500">Visa, Mastercard, UnionPay (Stripe)</p>
+                        <p className="font-semibold">{getUIText('checkout_methodCard', language)}</p>
+                        <p className="text-sm text-slate-500">{getUIText('checkout_methodCardDesc', language)}</p>
                       </div>
                     </Label>
                   </div>
@@ -589,8 +621,8 @@ function CheckoutPageInner({ params }) {
                     <Label htmlFor="mir" className="flex items-center gap-3 cursor-pointer flex-1">
                       <CreditCard className="h-5 w-5 text-blue-600" />
                       <div>
-                        <p className="font-semibold">Карта МИР</p>
-                        <p className="text-sm text-slate-500">Для граждан РФ (RUB → THB)</p>
+                        <p className="font-semibold">{getUIText('checkout_methodMir', language)}</p>
+                        <p className="text-sm text-slate-500">{getUIText('checkout_methodMirDesc', language)}</p>
                       </div>
                     </Label>
                   </div>
@@ -600,8 +632,8 @@ function CheckoutPageInner({ params }) {
                     <Label htmlFor="crypto" className="flex items-center gap-3 cursor-pointer flex-1">
                       <Wallet className="h-5 w-5 text-amber-600" />
                       <div>
-                        <p className="font-semibold">Криптовалюта</p>
-                        <p className="text-sm text-slate-500">USDT TRC-20</p>
+                        <p className="font-semibold">{getUIText('checkout_methodCrypto', language)}</p>
+                        <p className="text-sm text-slate-500">{getUIText('checkout_methodCryptoDesc', language)}</p>
                       </div>
                     </Label>
                   </div>
@@ -612,12 +644,12 @@ function CheckoutPageInner({ params }) {
             {/* Promo Code Section */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Промокод</CardTitle>
+                <CardTitle className="text-base">{getUIText('checkout_promoTitle', language)}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-2">
                   <Input
-                    placeholder="Введите промокод"
+                    placeholder={getUIText('checkout_promoPlaceholder', language)}
                     value={promoCode}
                     onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                     disabled={promoDiscount !== null}
@@ -633,17 +665,19 @@ function CheckoutPageInner({ params }) {
                     ) : promoDiscount ? (
                       '✓'
                     ) : (
-                      'Применить'
+                      getUIText('checkout_apply', language)
                     )}
                   </Button>
                 </div>
                 {promoDiscount && (
                   <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                     <p className="text-sm font-medium text-green-900">
-                      🎉 Промокод "{promoDiscount.code}" применён!
+                      {interpolateTemplate(getUIText('checkout_applied', language), {
+                        code: promoDiscount.code,
+                      })}
                     </p>
                     <p className="text-xs text-green-700 mt-1">
-                      Скидка: -{formatPrice(promoDiscount.discountAmount, 'THB')}
+                      −{formatPrice(promoDiscount.discountAmount, 'THB', exchangeRates, language)}
                     </p>
                   </div>
                 )}
@@ -659,10 +693,12 @@ function CheckoutPageInner({ params }) {
               {processing ? (
                 <>
                   <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Обработка...
+                  {getUIText('checkout_payProcessing', language)}
                 </>
               ) : (
-                `Оплатить ${formatPrice(totalWithFee, booking.currency)}`
+                interpolateTemplate(getUIText('checkout_payCta', language), {
+                  amount: formatPrice(totalWithFee, booking.currency, exchangeRates, language),
+                })
               )}
             </Button>
           </div>
@@ -671,36 +707,45 @@ function CheckoutPageInner({ params }) {
           <div>
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Детали заказа</CardTitle>
+                <CardTitle className="text-lg">{getUIText('checkout_orderTitle', language)}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
                   <p className="font-semibold text-slate-900">{listing?.title}</p>
                   <p className="text-sm text-slate-600 mt-1">
-                    {new Date(booking.checkIn).toLocaleDateString('ru-RU')} - {new Date(booking.checkOut).toLocaleDateString('ru-RU')}
+                    {new Date(booking.checkIn).toLocaleDateString(languageToNumberLocale(language))} –{' '}
+                    {new Date(booking.checkOut).toLocaleDateString(languageToNumberLocale(language))}
                   </p>
                 </div>
 
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">Стоимость аренды</span>
-                    <span className="font-medium">{formatPrice(booking.priceThb, 'THB')}</span>
+                    <span className="text-slate-600">{getUIText('checkout_subtotal', language)}</span>
+                    <span className="font-medium">{formatPrice(booking.priceThb, 'THB', exchangeRates, language)}</span>
                   </div>
                   {promoDiscount && (
                     <div className="flex justify-between text-sm text-green-600">
                       <span className="flex items-center gap-1">
-                        🎉 Скидка ({promoDiscount.code})
+                        {interpolateTemplate(getUIText('checkout_discountLine', language), {
+                          code: promoDiscount.code,
+                        })}
                       </span>
-                      <span className="font-medium">-{formatPrice(discountAmount, 'THB')}</span>
+                      <span className="font-medium">
+                        −{formatPrice(discountAmount, 'THB', exchangeRates, language)}
+                      </span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">Сервисный сбор ({commissionRate}%)</span>
-                    <span className="font-medium">{formatPrice(serviceFee, 'THB')}</span>
+                    <span className="text-slate-600">
+                      {interpolateTemplate(getUIText('checkout_serviceFeeLine', language), {
+                        pct: String(commissionRate),
+                      })}
+                    </span>
+                    <span className="font-medium">{formatPrice(serviceFee, 'THB', exchangeRates, language)}</span>
                   </div>
                   <div className="flex justify-between text-lg font-bold border-t pt-2">
-                    <span>Итого</span>
-                    <span className="text-teal-600">{formatPrice(totalWithFee, 'THB')}</span>
+                    <span>{getUIText('checkout_total', language)}</span>
+                    <span className="text-teal-600">{formatPrice(totalWithFee, 'THB', exchangeRates, language)}</span>
                   </div>
                 </div>
               </CardContent>
@@ -714,7 +759,7 @@ function CheckoutPageInner({ params }) {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-amber-600" />
-                Оплата криптовалютой (USDT TRC-20)
+                {getUIText('checkout_cryptoModalTitle', language)}
               </DialogTitle>
             </DialogHeader>
 
@@ -723,12 +768,11 @@ function CheckoutPageInner({ params }) {
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <AlertCircle className="h-5 w-5 text-amber-600" />
-                  <span className="text-lg font-bold text-amber-800">Важно!</span>
+                  <span className="text-lg font-bold text-amber-800">
+                    {getUIText('checkout_cryptoWarnTitle', language)}
+                  </span>
                 </div>
-                <p className="text-sm text-amber-700">
-                  Отправляйте <strong>только USDT</strong> через сеть <strong>TRC-20 (Tron)</strong>. 
-                  Перевод других токенов или через другие сети приведёт к потере средств.
-                </p>
+                <p className="text-sm text-amber-700">{getUIText('checkout_cryptoWarnBody', language)}</p>
               </div>
 
               {/* QR Code Section */}
@@ -744,14 +788,14 @@ function CheckoutPageInner({ params }) {
                 </div>
                 <div className="mt-3 flex items-center gap-2 text-slate-600">
                   <Smartphone className="h-4 w-4" />
-                  <span className="text-sm">Сканируйте кошельком (TRC-20)</span>
+                  <span className="text-sm">{getUIText('checkout_scanHint', language)}</span>
                 </div>
               </div>
 
               {/* Wallet Address with Copy */}
               <div>
                 <Label className="text-base font-semibold mb-2 block">
-                  Адрес кошелька GoStayLo (TRC-20)
+                  {getUIText('checkout_walletLabel', language)}
                 </Label>
                 <div className="flex items-center gap-2">
                   <Input
@@ -768,18 +812,24 @@ function CheckoutPageInner({ params }) {
                     className="flex items-center gap-1"
                   >
                     <Copy className="h-4 w-4" />
-                    Copy
+                    {getUIText('checkout_copy', language)}
                   </Button>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
-                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">Сеть: TRC-20</Badge>
-                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700">Токен: USDT</Badge>
+                  <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                    {getUIText('checkout_networkBadge', language)}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
+                    {getUIText('checkout_tokenBadge', language)}
+                  </Badge>
                 </div>
               </div>
 
               {/* Amount to Pay */}
               <div>
-                <Label className="text-base font-semibold mb-2 block">Сумма к оплате</Label>
+                <Label className="text-base font-semibold mb-2 block">
+                  {getUIText('checkout_amountLabel', language)}
+                </Label>
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                   <p className="text-2xl font-bold text-amber-900" data-testid="usdt-amount">
                     {payment?.metadata?.amount ??
@@ -789,7 +839,7 @@ function CheckoutPageInner({ params }) {
                     USDT
                   </p>
                   <p className="text-sm text-amber-700 mt-1">
-                    ≈ {formatPrice(totalWithFee, 'THB')}
+                    ≈ {formatPrice(totalWithFee, 'THB', exchangeRates, language)}
                   </p>
                 </div>
               </div>
@@ -800,9 +850,11 @@ function CheckoutPageInner({ params }) {
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0" />
                     <div>
-                      <p className="font-semibold text-green-900">TXID отправлен на проверку!</p>
+                      <p className="font-semibold text-green-900">
+                        {getUIText('checkout_txidSentTitle', language)}
+                      </p>
                       <p className="text-sm text-green-700 mt-1">
-                        Платёж проходит верификацию. Администратор проверит транзакцию и подтвердит оплату.
+                        {getUIText('checkout_txidSentBody', language)}
                       </p>
                       <p className="text-xs text-green-600 mt-2 font-mono break-all">
                         TXID: {txId}
@@ -823,7 +875,7 @@ function CheckoutPageInner({ params }) {
                         className="flex items-center justify-center gap-1"
                       >
                         <ExternalLink className="h-4 w-4" />
-                        View on TronScan
+                        {getUIText('checkout_viewExplorer', language)}
                       </a>
                     </Button>
                     <Button
@@ -832,7 +884,7 @@ function CheckoutPageInner({ params }) {
                       className="flex-1 bg-teal-600 hover:bg-teal-700"
                       onClick={() => setCryptoModalOpen(false)}
                     >
-                      Закрыть
+                      {getUIText('checkout_close', language)}
                     </Button>
                   </div>
                 </div>
@@ -868,10 +920,21 @@ function CheckoutPageInner({ params }) {
                   </div>
                   {liveVerification.data && (
                     <div className="text-sm space-y-1">
-                      <p>От: <code className="text-xs">{liveVerification.data.from}</code></p>
-                      <p>Кому: <code className="text-xs">{liveVerification.data.to}</code></p>
+                      <p>
+                        {getUIText('checkout_verify_from', language)}{' '}
+                        <code className="text-xs">{liveVerification.data.from}</code>
+                      </p>
+                      <p>
+                        {getUIText('checkout_verify_to', language)}{' '}
+                        <code className="text-xs">{liveVerification.data.to}</code>
+                      </p>
                       {liveVerification.data.amount > 0 && (
-                        <p>Сумма: <strong>{liveVerification.data.amount} {liveVerification.data.token}</strong></p>
+                        <p>
+                          {getUIText('checkout_verify_amount', language)}{' '}
+                          <strong>
+                            {liveVerification.data.amount} {liveVerification.data.token}
+                          </strong>
+                        </p>
                       )}
                       {/* Amount Verification Details */}
                       {liveVerification.amountVerification && (
@@ -879,22 +942,28 @@ function CheckoutPageInner({ params }) {
                           liveVerification.amountVerification.sufficient ? 'bg-green-100' : 'bg-red-100'
                         }`}>
                           <p className="text-xs font-medium">
-                            Получено: {liveVerification.amountVerification.received} USDT
+                            {getUIText('checkout_verify_received', language)}{' '}
+                            {liveVerification.amountVerification.received} USDT
                           </p>
                           {liveVerification.amountVerification.expected && (
                             <p className="text-xs">
-                              Ожидалось: {liveVerification.amountVerification.expected} USDT
+                              {getUIText('checkout_verify_expected', language)}{' '}
+                              {liveVerification.amountVerification.expected} USDT
                             </p>
                           )}
                           {liveVerification.amountVerification.difference !== 0 && (
                             <p className={`text-xs ${liveVerification.amountVerification.difference > 0 ? 'text-green-700' : 'text-red-700'}`}>
-                              Разница: {liveVerification.amountVerification.difference > 0 ? '+' : ''}{liveVerification.amountVerification.difference} USDT
+                              {getUIText('checkout_verify_diff', language)}{' '}
+                              {liveVerification.amountVerification.difference > 0 ? '+' : ''}
+                              {liveVerification.amountVerification.difference} USDT
                             </p>
                           )}
                         </div>
                       )}
                       {!liveVerification.data.isCorrectWallet && (
-                        <p className="text-orange-600 font-medium">⚠️ Неверный адрес получателя!</p>
+                        <p className="text-orange-600 font-medium">
+                          ⚠️ {getUIText('checkout_verify_wrongWallet', language)}
+                        </p>
                       )}
                     </div>
                   )}
@@ -909,7 +978,7 @@ function CheckoutPageInner({ params }) {
                 <>
                   <div>
                     <Label htmlFor="txid" className="text-base font-semibold mb-2 block">
-                      Transaction ID (TXID) *
+                      {getUIText('checkout_txidLabel', language)}
                     </Label>
                     <Input
                       id="txid"
@@ -918,12 +987,12 @@ function CheckoutPageInner({ params }) {
                         setTxId(e.target.value);
                         setLiveVerification(null);
                       }}
-                      placeholder="Вставьте TXID вашей транзакции (64 символа)"
+                      placeholder={getUIText('checkout_txidPh', language)}
                       className="font-mono text-sm"
                       data-testid="txid-input"
                     />
                     <p className="text-xs text-slate-500 mt-1">
-                      После отправки USDT вставьте сюда Transaction ID для подтверждения
+                      {getUIText('checkout_txidHelp', language)}
                     </p>
                   </div>
 
@@ -939,12 +1008,12 @@ function CheckoutPageInner({ params }) {
                       {verifying ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Проверка...
+                          {getUIText('checkout_verifying', language)}
                         </>
                       ) : (
                         <>
                           <ExternalLink className="h-4 w-4 mr-2" />
-                          Проверить на TronScan
+                          {getUIText('checkout_verifyBtn', language)}
                         </>
                       )}
                     </Button>
@@ -954,7 +1023,7 @@ function CheckoutPageInner({ params }) {
                       className="flex-1 bg-teal-600 hover:bg-teal-700"
                       data-testid="submit-txid-btn"
                     >
-                      Отправить TXID
+                      {getUIText('checkout_submitTxid', language)}
                     </Button>
                   </div>
                 </>

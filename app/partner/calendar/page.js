@@ -23,6 +23,7 @@ import { CalendarMobileAgenda } from '@/components/calendar/CalendarMobileAgenda
 import { ActionModals } from '@/components/calendar/ActionModals'
 import { PartnerCalendarEducationCard } from '@/components/partner/PartnerCalendarEducationCard'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { detectLanguage, getUIText } from '@/lib/translations'
 
 // Day width options
 const DAY_WIDTHS = {
@@ -56,6 +57,21 @@ function MasterCalendarContent() {
   const todayAgendaRef = useRef(null)
   const isNarrowCalendar = useMediaQuery('(max-width: 1023px)')
   const appliedFocusDateRef = useRef(false)
+  const [language, setLanguage] = useState('ru')
+
+  useEffect(() => {
+    const lang = detectLanguage()
+    setLanguage(lang)
+    const h = (e) => {
+      if (e?.detail) setLanguage(e.detail)
+    }
+    window.addEventListener('language-change', h)
+    window.addEventListener('languageChange', h)
+    return () => {
+      window.removeEventListener('language-change', h)
+      window.removeEventListener('languageChange', h)
+    }
+  }, [])
   
   // Get partner ID (useAuth or localStorage fallback)
   const [partnerId, setPartnerId] = useState(null)
@@ -389,8 +405,7 @@ function MasterCalendarContent() {
 
       <div className="mx-auto max-w-[1600px] lg:hidden">
         <p className="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-          Объекты в списке: фильтр и поиск сверху. Нажмите карточку, чтобы развернуть даты; строку дня — для
-          блокировки, брони или цены.
+          {getUIText('partnerCal_agendaHint', language)}
         </p>
         <CalendarMobileAgenda
           dates={dates}
@@ -419,6 +434,8 @@ function MasterCalendarContent() {
         createBlockMutation={createBlockMutation}
         createBookingMutation={createBookingMutation}
         upsertSeasonalPriceMutation={upsertSeasonalPriceMutation}
+        language={language}
+        exchangeRates={{ THB: 1 }}
       />
     </div>
   )

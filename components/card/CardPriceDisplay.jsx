@@ -21,6 +21,7 @@ export function CardPriceDisplay({
   language = 'en',
   categorySlug = '',
 }) {
+  const rates = exchangeRates && typeof exchangeRates === 'object' ? exchangeRates : { THB: 1 }
   // Calculate nights
   const nights = useMemo(() => {
     if (initialDates?.checkIn && initialDates?.checkOut) {
@@ -56,7 +57,7 @@ export function CardPriceDisplay({
   return (
     <div className="flex items-baseline gap-1">
       <span className="text-lg font-semibold text-slate-900">
-        {formatPrice(displayPrice, currency, exchangeRates)}
+        {formatPrice(displayPrice, currency, rates, language)}
       </span>
       <span className="text-sm text-slate-500">
         {nights > 0

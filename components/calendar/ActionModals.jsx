@@ -6,7 +6,7 @@
 'use client'
 
 import { format, parseISO, addDays } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { ru as ruLocale, enUS, zhCN, th as thLocale } from 'date-fns/locale'
 import { 
   Lock, User, Check, Loader2, X, DollarSign 
 } from 'lucide-react'
@@ -30,6 +30,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { formatPrice } from '@/lib/currency'
+import { getUIText } from '@/lib/translations'
+
+const DF_LOCALE = { ru: ruLocale, en: enUS, zh: zhCN, th: thLocale }
 
 export function ActionModals({
   actionModal,
@@ -48,8 +51,14 @@ export function ActionModals({
   onPriceSubmit,
   createBlockMutation,
   createBookingMutation,
-  upsertSeasonalPriceMutation
+  upsertSeasonalPriceMutation,
+  language = 'ru',
+  exchangeRates = { THB: 1 },
 }) {
+  const dfLoc = DF_LOCALE[String(language || 'ru').slice(0, 2)] || ruLocale
+  const fp = (amountThb) => formatPrice(amountThb, 'THB', exchangeRates, language)
+  const t = (key) => getUIText(key, language)
+
   return (
     <>
       {/* Action Modal (Block/Booking Selection) */}
@@ -62,10 +71,10 @@ export function ActionModals({
           {actionModal.type === 'select' && (
             <>
               <DialogHeader className="space-y-2 pr-8 text-left">
-                <DialogTitle className="leading-snug">Выберите действие</DialogTitle>
+                <DialogTitle className="leading-snug">{t('partnerCal_selectAction')}</DialogTitle>
                 <DialogDescription className="break-words text-left leading-snug">
                   {actionModal.listing?.title} •{' '}
-                  {actionModal.date && format(parseISO(actionModal.date), 'd MMMM yyyy', { locale: ru })}
+                  {actionModal.date && format(parseISO(actionModal.date), 'd MMMM yyyy', { locale: dfLoc })}
                 </DialogDescription>
               </DialogHeader>
 
@@ -78,9 +87,9 @@ export function ActionModals({
                   <span className="flex w-full min-w-0 items-start gap-3 text-left">
                     <Lock className="mt-0.5 shrink-0 text-slate-500" aria-hidden />
                     <span className="min-w-0 flex-1">
-                      <span className="block font-medium leading-snug">Заблокировать даты</span>
+                      <span className="block font-medium leading-snug">{t('partnerCal_blockTitleBtn')}</span>
                       <span className="mt-0.5 block text-xs font-normal leading-snug text-slate-500">
-                        Для обслуживания или личного использования
+                        {t('partnerCal_blockHintBtn')}
                       </span>
                     </span>
                   </span>
@@ -94,9 +103,9 @@ export function ActionModals({
                   <span className="flex w-full min-w-0 items-start gap-3 text-left">
                     <User className="mt-0.5 shrink-0 text-teal-600" aria-hidden />
                     <span className="min-w-0 flex-1">
-                      <span className="block font-medium leading-snug">Создать бронирование</span>
+                      <span className="block font-medium leading-snug">{t('partnerCal_bookingTitleBtn')}</span>
                       <span className="mt-0.5 block text-xs font-normal leading-snug text-slate-500">
-                        Для офлайн продаж
+                        {t('partnerCal_bookingHintBtn')}
                       </span>
                     </span>
                   </span>
@@ -111,7 +120,7 @@ export function ActionModals({
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Lock className="h-5 w-5 text-slate-500" />
-                  Заблокировать даты
+                  {t('partnerCal_blockModalTitle')}
                 </DialogTitle>
                 <DialogDescription>
                   {actionModal.listing?.title}
@@ -121,7 +130,7 @@ export function ActionModals({
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <Label>Начало</Label>
+                    <Label>{t('partnerCal_labelStart')}</Label>
                     <Input 
                       type="date" 
                       value={actionModal.date || ''} 
@@ -130,7 +139,7 @@ export function ActionModals({
                     />
                   </div>
                   <div>
-                    <Label>Конец</Label>
+                    <Label>{t('partnerCal_labelEnd')}</Label>
                     <Input 
                       type="date" 
                       value={blockForm.endDate}
@@ -142,7 +151,7 @@ export function ActionModals({
                 </div>
                 
                 <div>
-                  <Label>Тип блокировки</Label>
+                  <Label>{t('partnerCal_blockType')}</Label>
                   <Select 
                     value={blockForm.type} 
                     onValueChange={(v) => setBlockForm(prev => ({ ...prev, type: v }))}
@@ -151,19 +160,19 @@ export function ActionModals({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="OWNER_USE">Личное использование</SelectItem>
-                      <SelectItem value="MAINTENANCE">Техническое обслуживание</SelectItem>
-                      <SelectItem value="OTHER">Другое</SelectItem>
+                      <SelectItem value="OWNER_USE">{t('partnerCal_typeOwner')}</SelectItem>
+                      <SelectItem value="MAINTENANCE">{t('partnerCal_typeMaintenance')}</SelectItem>
+                      <SelectItem value="OTHER">{t('partnerCal_typeOther')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 
                 <div>
-                  <Label>Причина (необязательно)</Label>
+                  <Label>{t('partnerCal_reasonOptional')}</Label>
                   <Textarea
                     value={blockForm.reason}
                     onChange={(e) => setBlockForm(prev => ({ ...prev, reason: e.target.value }))}
-                    placeholder="Укажите причину блокировки..."
+                    placeholder={t('partnerCal_reasonPh')}
                     className="mt-1"
                   />
                 </div>
@@ -174,7 +183,7 @@ export function ActionModals({
                   variant="outline" 
                   onClick={() => setActionModal(prev => ({ ...prev, type: 'select' }))}
                 >
-                  Назад
+                  {t('partnerCal_back')}
                 </Button>
                 <Button 
                   onClick={onBlockSubmit}
@@ -186,7 +195,7 @@ export function ActionModals({
                   ) : (
                     <Lock className="h-4 w-4 mr-2" />
                   )}
-                  Заблокировать
+                  {t('partnerCal_blockSubmit')}
                 </Button>
               </DialogFooter>
             </>
@@ -198,7 +207,7 @@ export function ActionModals({
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <User className="h-5 w-5 text-teal-600" />
-                  Создать бронирование
+                  {t('partnerCal_bookingModalTitle')}
                 </DialogTitle>
                 <DialogDescription>
                   {actionModal.listing?.title}
@@ -208,7 +217,7 @@ export function ActionModals({
               <div className="grid max-h-[60vh] gap-4 overflow-y-auto py-4">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <Label>Заезд</Label>
+                    <Label>{t('partnerCal_labelCheckIn')}</Label>
                     <Input 
                       type="date" 
                       value={actionModal.date || ''} 
@@ -217,7 +226,7 @@ export function ActionModals({
                     />
                   </div>
                   <div>
-                    <Label>Выезд *</Label>
+                    <Label>{t('partnerCal_labelCheckOut')}</Label>
                     <Input 
                       type="date" 
                       value={bookingForm.checkOut}
@@ -229,55 +238,58 @@ export function ActionModals({
                 </div>
                 
                 <div>
-                  <Label>Имя гостя *</Label>
+                  <Label>{t('partnerCal_guestName')}</Label>
                   <Input 
                     value={bookingForm.guestName}
                     onChange={(e) => setBookingForm(prev => ({ ...prev, guestName: e.target.value }))}
-                    placeholder="Иван Петров"
+                    placeholder={t('partnerCal_guestNamePh')}
                     className="mt-1"
                   />
                 </div>
                 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <Label>Телефон</Label>
+                    <Label>{t('partnerCal_phone')}</Label>
                     <Input 
                       type="tel"
                       value={bookingForm.guestPhone}
                       onChange={(e) => setBookingForm(prev => ({ ...prev, guestPhone: e.target.value }))}
-                      placeholder="+7 999 123 4567"
+                      placeholder={t('partnerCal_phonePh')}
                       className="mt-1"
                     />
                   </div>
                   <div>
-                    <Label>Email</Label>
+                    <Label>{t('partnerCal_email')}</Label>
                     <Input 
                       type="email"
                       value={bookingForm.guestEmail}
                       onChange={(e) => setBookingForm(prev => ({ ...prev, guestEmail: e.target.value }))}
-                      placeholder="email@example.com"
+                      placeholder={t('partnerCal_emailPh')}
                       className="mt-1"
                     />
                   </div>
                 </div>
                 
                 <div>
-                  <Label>Сумма (THB)</Label>
+                  <Label>{t('partnerCal_amountThb')}</Label>
                   <Input 
                     type="number"
                     value={bookingForm.priceThb}
                     onChange={(e) => setBookingForm(prev => ({ ...prev, priceThb: e.target.value }))}
-                    placeholder={`Базовая цена: ${formatPrice(actionModal.listing?.basePriceThb || 0, 'THB')}/ночь`}
+                    placeholder={getUIText('partnerCal_basePriceHint', language).replace(
+                      '{{price}}',
+                      fp(actionModal.listing?.basePriceThb || 0),
+                    )}
                     className="mt-1"
                   />
                 </div>
                 
                 <div>
-                  <Label>Заметки</Label>
+                  <Label>{t('partnerCal_notes')}</Label>
                   <Textarea
                     value={bookingForm.notes}
                     onChange={(e) => setBookingForm(prev => ({ ...prev, notes: e.target.value }))}
-                    placeholder="Дополнительная информация..."
+                    placeholder={t('partnerCal_notesPh')}
                     className="mt-1"
                   />
                 </div>
@@ -288,7 +300,7 @@ export function ActionModals({
                   variant="outline" 
                   onClick={() => setActionModal(prev => ({ ...prev, type: 'select' }))}
                 >
-                  Назад
+                  {t('partnerCal_back')}
                 </Button>
                 <Button 
                   onClick={onBookingSubmit}
@@ -300,7 +312,7 @@ export function ActionModals({
                   ) : (
                     <Check className="h-4 w-4 mr-2" />
                   )}
-                  Создать
+                  {t('partnerCal_create')}
                 </Button>
               </DialogFooter>
             </>
@@ -317,17 +329,17 @@ export function ActionModals({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-teal-600" />
-              Управление сезонными ценами
+              {t('partnerCal_seasonTitle')}
             </DialogTitle>
             <DialogDescription>
-              Установите цены для выбранного периода. Система автоматически разрешит конфликты дат.
+              {t('partnerCal_seasonDesc')}
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
             {/* Listing Selection */}
             <div>
-              <Label>Объект</Label>
+              <Label>{t('partnerCal_listing')}</Label>
               <Select 
                 value={priceForm.listingId} 
                 onValueChange={(v) => setPriceForm(prev => ({ ...prev, listingId: v }))}
@@ -336,7 +348,7 @@ export function ActionModals({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Все объекты</SelectItem>
+                  <SelectItem value="all">{t('partnerCal_allListings')}</SelectItem>
                   {listings.map((item) => (
                     <SelectItem key={item.listing.id} value={item.listing.id}>
                       {item.listing.title}
@@ -349,7 +361,7 @@ export function ActionModals({
             {/* Date Range */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Начало периода</Label>
+                <Label>{t('partnerCal_periodStart')}</Label>
                 <Input 
                   type="date" 
                   value={priceForm.startDate}
@@ -358,7 +370,7 @@ export function ActionModals({
                 />
               </div>
               <div>
-                <Label>Конец периода</Label>
+                <Label>{t('partnerCal_periodEnd')}</Label>
                 <Input 
                   type="date" 
                   value={priceForm.endDate}
@@ -372,17 +384,17 @@ export function ActionModals({
             {/* Price and Season Type */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>Цена (THB/день) *</Label>
+                <Label>{t('partnerCal_pricePerDay')}</Label>
                 <Input 
                   type="number"
                   value={priceForm.priceDaily}
                   onChange={(e) => setPriceForm(prev => ({ ...prev, priceDaily: e.target.value }))}
-                  placeholder="3500"
+                  placeholder={t('partnerCal_pricePh')}
                   className="mt-1"
                 />
               </div>
               <div>
-                <Label>Тип сезона</Label>
+                <Label>{t('partnerCal_seasonType')}</Label>
                 <Select 
                   value={priceForm.seasonType} 
                   onValueChange={(v) => setPriceForm(prev => ({ ...prev, seasonType: v }))}
@@ -391,9 +403,9 @@ export function ActionModals({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="LOW">Низкий сезон</SelectItem>
-                    <SelectItem value="HIGH">Высокий сезон</SelectItem>
-                    <SelectItem value="PEAK">Пиковый сезон</SelectItem>
+                    <SelectItem value="LOW">{t('partnerCal_seasonLow')}</SelectItem>
+                    <SelectItem value="HIGH">{t('partnerCal_seasonHigh')}</SelectItem>
+                    <SelectItem value="PEAK">{t('partnerCal_seasonPeak')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -401,7 +413,7 @@ export function ActionModals({
             
             {/* Min Stay */}
             <div>
-              <Label>Минимум ночей</Label>
+              <Label>{t('partnerCal_minNights')}</Label>
               <Input 
                 type="number"
                 min="1"
@@ -411,26 +423,26 @@ export function ActionModals({
                 className="mt-1"
               />
               <p className="text-xs text-slate-500 mt-1">
-                Гости должны забронировать минимум указанное количество ночей
+                {t('partnerCal_minNightsHint')}
               </p>
             </div>
             
             {/* Label */}
             <div>
-              <Label>Название (необязательно)</Label>
+              <Label>{t('partnerCal_labelNameOptional')}</Label>
               <Input 
                 value={priceForm.label}
                 onChange={(e) => setPriceForm(prev => ({ ...prev, label: e.target.value }))}
-                placeholder="Новый год, Рождество..."
+                placeholder={t('partnerCal_labelNamePh')}
                 className="mt-1"
               />
             </div>
             
             {/* Info Box */}
             <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 text-sm text-teal-900">
-              <p className="font-medium mb-1">🔧 Автоматическое разрешение конфликтов</p>
+              <p className="font-medium mb-1">🔧 {t('partnerCal_conflictTitle')}</p>
               <p className="text-xs text-teal-700">
-                Если выбранный период пересекается с существующими ценами, система автоматически разделит или обрежет старые диапазоны. Перекрытий не будет.
+                {t('partnerCal_conflictBody')}
               </p>
             </div>
           </div>
@@ -440,7 +452,7 @@ export function ActionModals({
               variant="outline" 
               onClick={() => setPriceModal({ open: false })}
             >
-              Отмена
+              {t('partnerCal_cancel')}
             </Button>
             <Button 
               onClick={onPriceSubmit}
@@ -452,7 +464,7 @@ export function ActionModals({
               ) : (
                 <Check className="h-4 w-4 mr-2" />
               )}
-              Применить
+              {t('partnerCal_apply')}
             </Button>
           </DialogFooter>
         </DialogContent>

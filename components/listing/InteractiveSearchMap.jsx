@@ -326,9 +326,9 @@ export default function InteractiveSearchMap({
   const priceForMarker = useCallback(
     (listing) => {
       const thb = parseFloat(listing.basePriceThb ?? listing.base_price_thb ?? 0) || 0
-      return formatPrice(thb, currency, exchangeRates)
+      return formatPrice(thb, currency, exchangeRates, language)
     },
-    [currency, exchangeRates]
+    [currency, exchangeRates, language]
   )
 
   if (!mounted) {

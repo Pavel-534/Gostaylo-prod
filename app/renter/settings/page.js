@@ -222,19 +222,19 @@ export default function RenterSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{language === 'ru' ? 'Уведомления' : 'Notifications'}</CardTitle>
+          <CardTitle>{getUIText('renterSettingsNotificationsTitle', language)}</CardTitle>
           <CardDescription>
-            {language === 'ru' ? 'Сохраняются в вашем профиле' : 'Stored on your profile'}
+            {getUIText('renterSettingsNotificationsHint', language)}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
               <Label className="text-sm font-medium">
-                {language === 'ru' ? 'Маркетинговые рассылки' : 'Marketing emails'}
+                {getUIText('renterSettingsMarketingEmails', language)}
               </Label>
               <p className="text-xs text-slate-500">
-                {language === 'ru' ? 'Акции и подборки от GoStayLo' : 'Promos and curated picks from GoStayLo'}
+                {getUIText('renterSettingsMarketingEmailsHint', language)}
               </p>
             </div>
             <Switch checked={marketing} onCheckedChange={setMarketing} />
@@ -242,10 +242,10 @@ export default function RenterSettingsPage() {
           <div className="flex items-center justify-between gap-4">
             <div className="space-y-1">
               <Label className="text-sm font-medium">
-                {language === 'ru' ? 'Уведомления в Telegram' : 'Telegram notifications'}
+                {getUIText('renterSettingsTelegramNotif', language)}
               </Label>
               <p className="text-xs text-slate-500">
-                {language === 'ru' ? 'Если Telegram привязан к аккаунту' : 'When Telegram is linked to your account'}
+                {getUIText('renterSettingsTelegramNotifHint', language)}
               </p>
             </div>
             <Switch checked={telegramPref} onCheckedChange={setTelegramPref} />

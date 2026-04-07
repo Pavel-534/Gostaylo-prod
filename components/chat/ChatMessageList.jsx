@@ -49,6 +49,7 @@ import { ChatImageCollage } from '@/components/chat-image-collage'
 import { ChatSupportTicketCard } from '@/components/chat-support-ticket-card'
 import { SupportJoinedBanner } from '@/components/chat/SupportJoinedBanner'
 import { BookingRequestCard, SystemMessage } from '@/components/booking-request-card'
+import { getUIText } from '@/lib/translations'
 
 // ─── Вспомогательный блок: замаскированные контакты ─────────────────────────
 
@@ -57,17 +58,14 @@ import { BookingRequestCard, SystemMessage } from '@/components/booking-request-
  * то есть маппер заменил контакты в этом сообщении.
  */
 function MaskedBadge({ language = 'ru' }) {
-  const label =
-    language === 'en'
-      ? 'Contact hidden until booking is paid on the platform'
-      : 'Контакт скрыт до оплаты бронирования на платформе'
+  const label = getUIText('chatMasked_tooltip', language)
   return (
     <span
       className="mt-1 inline-flex select-none items-center gap-1 rounded-2xl border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] text-slate-600"
       title={label}
     >
       <Lock className="h-2.5 w-2.5 shrink-0" />
-      {language === 'en' ? 'Hidden' : 'Скрыто'}
+      {getUIText('chatMasked_hidden', language)}
     </span>
   )
 }
@@ -129,6 +127,7 @@ function MessageItem({
             bookingStatus={booking?.status}
             listing={listing}
             language={language}
+            exchangeRates={{ THB: 1 }}
           />
         </div>
       </div>
@@ -140,7 +139,7 @@ function MessageItem({
     String(msg.sender_role || '').toUpperCase() === 'SYSTEM' &&
     msgType !== 'system'
   ) {
-    return <SystemMessage message={msg} />
+    return <SystemMessage message={msg} language={language} />
   }
 
   // ── Support ticket ────────────────────────────────────────────────────────
@@ -233,7 +232,7 @@ function MessageItem({
         isAdmin={isAdmin}
         isRejection={isRejection}
         showSenderName={!isOwn}
-        senderName={msg.sender_name || (language === 'ru' ? 'Пользователь' : 'User')}
+        senderName={msg.sender_name || getUIText('adminGuestLabel', language)}
         // Маскировка уже применена маппером; передаём false чтобы не маскировать дважды
         maskContacts={false}
         searchHighlight={searchHighlight}

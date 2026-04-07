@@ -44,70 +44,17 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { Badge } from '@/components/ui/badge'
-import { Toaster } from 'sonner'
-// Sidebar navigation items with universal business icons
-const SIDEBAR_ITEMS = [
-  { 
-    name: 'Обзор', 
-    href: '/partner/dashboard', 
-    icon: LayoutDashboard,
-    description: 'Статистика и быстрые действия'
-  },
-  { 
-    name: 'Объекты', 
-    href: '/partner/listings', 
-    icon: Briefcase,
-    description: 'Управление объявлениями'
-  },
-  { 
-    name: 'Календарь', 
-    href: '/partner/calendar', 
-    icon: Calendar,
-    description: 'Доступность и iCal синхронизация'
-  },
-  { 
-    name: 'Бронирования', 
-    href: '/partner/bookings', 
-    icon: Inbox,
-    description: 'Входящие запросы'
-  },
-  { 
-    name: 'Сообщения', 
-    href: '/messages', 
-    icon: MessageSquare,
-    description: 'Чат с арендаторами',
-    badge: null // Future: unread count from Firebase
-  },
-  { 
-    name: 'Финансы', 
-    href: '/partner/finances', 
-    icon: Banknote,
-    description: 'Доходы и выплаты'
-  },
-  { 
-    name: 'Настройки', 
-    href: '/partner/settings', 
-    icon: Settings,
-    description: 'Уведомления и профиль'
-  },
-]
+import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
 
-// Breadcrumb mapping for human-readable names
-const BREADCRUMB_NAMES = {
-  'partner': 'Партнёр',
-  'dashboard': 'Обзор',
-  'listings': 'Объекты',
-  'calendar': 'Календарь',
-  'bookings': 'Бронирования',
-  'messages': 'Сообщения',
-  'archived': 'Архив',
-  'finances': 'Финансы',
-  'settings': 'Настройки',
-  'new': 'Создание',
-  'edit': 'Редактирование',
-  'referrals': 'Рефералы',
-  'reviews': 'Отзывы',
-}
+const SIDEBAR_CONFIG = [
+  { nameKey: 'partnerNav_dashboard', href: '/partner/dashboard', icon: LayoutDashboard, descKey: 'partnerNav_dashboardDesc' },
+  { nameKey: 'partnerNav_listings', href: '/partner/listings', icon: Briefcase, descKey: 'partnerNav_listingsDesc' },
+  { nameKey: 'partnerNav_calendar', href: '/partner/calendar', icon: Calendar, descKey: 'partnerNav_calendarDesc' },
+  { nameKey: 'partnerNav_bookings', href: '/partner/bookings', icon: Inbox, descKey: 'partnerNav_bookingsDesc' },
+  { nameKey: 'partnerNav_messages', href: '/messages', icon: MessageSquare, descKey: 'partnerNav_messagesDesc', badge: null },
+  { nameKey: 'partnerNav_finances', href: '/partner/finances', icon: Banknote, descKey: 'partnerNav_financesDesc' },
+  { nameKey: 'partnerNav_settings', href: '/partner/settings', icon: Settings, descKey: 'partnerNav_settingsDesc' },
+]
 
 export default function PartnerLayout({ children }) {
   const pathname = usePathname()
@@ -119,6 +66,37 @@ export default function PartnerLayout({ children }) {
   const [accessDenied, setAccessDenied] = useState(false)
   const [isNotLoggedIn, setIsNotLoggedIn] = useState(false)
   const { totalUnread } = useChatContext()
+  const [language, setLanguage] = useState('ru')
+
+  useEffect(() => {
+    const initial = detectLanguage()
+    setLanguage(initial)
+    persistLanguage(initial)
+    if (typeof document !== 'undefined') document.documentElement.lang = initial
+    const handleLang = (e) => {
+      const next = e?.detail
+      if (!next) return
+      setLanguage(next)
+      persistLanguage(next)
+      document.documentElement.lang = next
+    }
+    window.addEventListener('language-change', handleLang)
+    window.addEventListener('languageChange', handleLang)
+    return () => {
+      window.removeEventListener('language-change', handleLang)
+      window.removeEventListener('languageChange', handleLang)
+    }
+  }, [])
+
+  const sidebarItems = useMemo(
+    () =>
+      SIDEBAR_CONFIG.map((item) => ({
+        ...item,
+        name: getUIText(item.nameKey, language),
+        description: getUIText(item.descKey, language),
+      })),
+    [language],
+  )
 
   // Close sidebar on mobile when route changes
   useEffect(() => {
@@ -274,8 +252,14 @@ export default function PartnerLayout({ children }) {
       // Skip UUID-like segments for cleaner breadcrumbs
       const isUUID = segment.match(/^[a-z]+-[a-z0-9]+-[a-z0-9]+$/i) || segment.match(/^lst-/)
       
+      const crumbKey = !isUUID && segment ? `partnerBreadcrumb_${segment}` : null
+      const label = isUUID
+        ? getUIText('partnerBreadcrumb_details', language)
+        : crumbKey && getUIText(crumbKey, language) !== crumbKey
+          ? getUIText(crumbKey, language)
+          : segment
       crumbs.push({
-        name: isUUID ? 'Детали' : (BREADCRUMB_NAMES[segment] || segment),
+        name: label,
         href: currentPath,
         isLast: index === segments.length - 1
       })
@@ -286,7 +270,7 @@ export default function PartnerLayout({ children }) {
     })
 
     return crumbs
-  }, [pathname])
+  }, [pathname, language])
 
   // Handlers
   const handleLoginRedirect = () => {
@@ -315,7 +299,7 @@ export default function PartnerLayout({ children }) {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600 mx-auto mb-3"></div>
-          <p className="text-slate-500 text-sm">Загрузка...</p>
+          <p className="text-slate-500 text-sm">{getUIText('loading', language)}</p>
         </div>
       </div>
     )
@@ -328,12 +312,12 @@ export default function PartnerLayout({ children }) {
         <div className="text-center max-w-md">
           <Shield className="h-16 w-16 text-slate-300 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-slate-900 mb-2">
-            {isNotLoggedIn ? 'Требуется авторизация' : 'Доступ ограничен'}
+            {isNotLoggedIn ? getUIText('partnerLayout_authRequired', language) : getUIText('partnerLayout_accessLimited', language)}
           </h1>
           <p className="text-slate-500 mb-6">
             {isNotLoggedIn 
-              ? 'Войдите в аккаунт, чтобы просмотреть эту страницу' 
-              : 'Эта страница доступна только партнёрам GoStayLo'}
+              ? getUIText('partnerLayout_signInBody', language) 
+              : getUIText('partnerLayout_partnersOnly', language)}
           </p>
           <div className="space-y-3">
             {isNotLoggedIn ? (
@@ -344,21 +328,21 @@ export default function PartnerLayout({ children }) {
                   data-testid="access-denied-login-btn"
                 >
                   <LogIn className="h-4 w-4 mr-2" />
-                  Войти в аккаунт
+                  {getUIText('partnerLayout_signInCta', language)}
                 </Button>
                 <p className="text-xs text-slate-400">
-                  После входа вы будете перенаправлены обратно
+                  {getUIText('partnerLayout_redirectAfterLogin', language)}
                 </p>
               </>
             ) : (
               <Button asChild className="bg-teal-600 hover:bg-teal-700 w-full">
                 <Link href="/profile" data-testid="access-denied-become-partner-btn">
-                  Стать партнёром
+                  {getUIText('partnerLayout_becomePartner', language)}
                 </Link>
               </Button>
             )}
             <Button variant="ghost" asChild className="w-full">
-              <Link href="/">На главную</Link>
+              <Link href="/">{getUIText('partnerLayout_home', language)}</Link>
             </Button>
           </div>
         </div>
@@ -372,8 +356,6 @@ export default function PartnerLayout({ children }) {
   return (
     <QueryClientProvider client={queryClient}>
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Toaster position="top-right" richColors />
-      
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div 
@@ -388,7 +370,7 @@ export default function PartnerLayout({ children }) {
         {isImpersonating && (
           <div className="bg-amber-500 text-amber-900 px-3 py-2 flex items-center justify-between">
             <span className="text-xs font-medium truncate flex-1">
-              👤 Режим: {user?.name}
+              👤 {getUIText('partnerLayout_impersonationMode', language)} {user?.name}
             </span>
             <Button
               size="sm"
@@ -398,7 +380,7 @@ export default function PartnerLayout({ children }) {
               data-testid="return-to-admin-mobile"
             >
               <ArrowLeft className="w-3 h-3 mr-1" />
-              Назад
+              {getUIText('partnerLayout_back', language)}
             </Button>
           </div>
         )}
@@ -418,7 +400,7 @@ export default function PartnerLayout({ children }) {
               <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-lg flex items-center justify-center">
                 <span className="text-white text-xs font-bold">GS</span>
               </div>
-              <span className="font-semibold text-slate-900">Partner</span>
+              <span className="font-semibold text-slate-900">{getUIText('partnerLayout_brandPartner', language)}</span>
             </Link>
           </div>
           
@@ -427,7 +409,7 @@ export default function PartnerLayout({ children }) {
             <Link 
               href="/"
               className="p-2 hover:bg-slate-100 rounded-lg transition-all"
-              aria-label="На сайт"
+              aria-label={getUIText('partnerLayout_backToSiteAria', language)}
             >
               <Home className="w-5 h-5 text-slate-500" />
             </Link>
@@ -494,14 +476,14 @@ export default function PartnerLayout({ children }) {
             >
               <Link href="/partner/listings/new">
                 <Plus className="w-4 h-4 mr-2" />
-                Создать объявление
+                {getUIText('partnerNav_createListing', language)}
               </Link>
             </Button>
           </div>
 
           {/* Navigation */}
           <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
-            {SIDEBAR_ITEMS.map((item) => {
+            {sidebarItems.map((item) => {
               const Icon = item.icon
               const isMessagesItem = item.href === '/messages'
               const isActive = isMessagesItem
@@ -558,14 +540,14 @@ export default function PartnerLayout({ children }) {
               className="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all text-sm"
             >
               <ExternalLink className="w-4 h-4" />
-              <span>На сайт</span>
+              <span>{getUIText('partnerNav_publicSite', language)}</span>
             </Link>
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 px-3 py-2 rounded-lg text-red-500 hover:bg-red-50 transition-all w-full text-sm"
             >
               <LogOut className="w-4 h-4" />
-              <span>Выйти</span>
+              <span>{getUIText('logout', language)}</span>
             </button>
           </div>
         </aside>
@@ -580,7 +562,7 @@ export default function PartnerLayout({ children }) {
                 <div className="flex items-center gap-2">
                   <Shield className="w-4 h-4" />
                   <span className="text-sm font-medium">
-                    Режим просмотра: <strong>{user?.name}</strong>
+                    {getUIText('partnerLayout_impersonationView', language)} <strong>{user?.name}</strong>
                   </span>
                 </div>
                 <Button
@@ -591,7 +573,7 @@ export default function PartnerLayout({ children }) {
                   data-testid="return-to-admin-desktop"
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Вернуться в Admin
+                  {getUIText('partnerLayout_returnAdmin', language)}
                 </Button>
               </div>
             )}

@@ -1,11 +1,8 @@
 'use client'
 
 import Image from 'next/image'
-import { toPublicImageUrl } from '@/lib/public-image-url'
-
-function isAbsoluteHttpUrl(url) {
-  return typeof url === 'string' && (url.startsWith('http://') || url.startsWith('https://'))
-}
+import { toPublicImageUrl, isRemoteHttpImageSrc } from '@/lib/public-image-url'
+import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
 
 /**
  * next/image + путь /_storage/... для объектов из Supabase Storage.
@@ -24,8 +21,7 @@ export function ProxiedImage({
 }) {
   const raw = src || '/placeholder.svg'
   const u = raw === '/placeholder.svg' ? raw : toPublicImageUrl(raw) || raw
-  const effectiveUnoptimized =
-    unoptimized !== undefined ? unoptimized : isAbsoluteHttpUrl(u)
+  const effectiveUnoptimized = unoptimized !== undefined ? unoptimized : isRemoteHttpImageSrc(u)
   if (fill) {
     return (
       <Image
@@ -35,6 +31,8 @@ export function ProxiedImage({
         className={className}
         sizes={sizes}
         priority={priority}
+        placeholder="blur"
+        blurDataURL={LISTING_CARD_BLUR_DATA_URL}
         unoptimized={effectiveUnoptimized}
       />
     )
@@ -47,6 +45,8 @@ export function ProxiedImage({
       height={height ?? 80}
       className={className}
       priority={priority}
+      placeholder="blur"
+      blurDataURL={LISTING_CARD_BLUR_DATA_URL}
       unoptimized={effectiveUnoptimized}
     />
   )

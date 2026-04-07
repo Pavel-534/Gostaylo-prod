@@ -10,7 +10,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ChevronLeft, ChevronRight, Heart } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { mapPublicImageUrls } from '@/lib/public-image-url'
+import { mapPublicImageUrls, isRemoteHttpImageSrc } from '@/lib/public-image-url'
+import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
 
 const PLACEHOLDER = '/placeholder.svg'
 
@@ -22,6 +23,8 @@ export function CardImageCarousel({
   onImageLoad,
   /** Ссылка на карточку: прозрачный оверлей под сердцем и стрелками (кнопки не внутри одного anchor). */
   detailHref = null,
+  /** Низкокачественный плейсхолдер (LQIP), иначе нейтральный blur. */
+  blurDataURL = LISTING_CARD_BLUR_DATA_URL,
 }) {
   const imagesProxied = useMemo(() => mapPublicImageUrls(images), [images])
 
@@ -54,6 +57,7 @@ export function CardImageCarousel({
 
   const rawSrc = imagesProxied[currentIndex]
   const displaySrc = failed[currentIndex] ? PLACEHOLDER : rawSrc
+  const unoptimized = isRemoteHttpImageSrc(displaySrc)
 
   return (
     <div 
@@ -66,6 +70,9 @@ export function CardImageCarousel({
         alt={`${title} - Photo ${currentIndex + 1}`}
         fill
         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        placeholder="blur"
+        blurDataURL={blurDataURL}
+        unoptimized={unoptimized}
         className={cn(
           'object-cover transition-all duration-500',
           imageLoaded ? 'opacity-100' : 'opacity-0',

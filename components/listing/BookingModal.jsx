@@ -128,13 +128,13 @@ export function BookingModal({
                 {modalIntent === 'book' ? (
                   <div className="flex justify-between text-sm font-semibold">
                     <span>{language === 'ru' ? 'Итого' : 'Total'}:</span>
-                    <span>{formatPrice(priceCalc.finalTotal, currency, exchangeRates)}</span>
+                    <span>{formatPrice(priceCalc.finalTotal, currency, exchangeRates, language)}</span>
                   </div>
                 ) : (
                   <p className="text-xs text-slate-600 pt-1">
                     {language === 'ru' ? 'Ориентир' : 'Guide price'}:{' '}
                     <span className="font-semibold">
-                      {formatPrice(priceCalc.finalTotal, currency, exchangeRates)}
+                      {formatPrice(priceCalc.finalTotal, currency, exchangeRates, language)}
                     </span>
                   </p>
                 )}

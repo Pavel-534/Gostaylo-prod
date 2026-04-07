@@ -16,7 +16,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Toaster } from 'sonner'
 import { 
   Home, Calendar, MessageSquare, Heart, User, 
   Menu, X, LogOut, Loader2, MapPin, Settings
@@ -116,12 +115,12 @@ export default function RenterLayout({ children }) {
 
   const navItems = useMemo(() => {
     const desc = {
-      dashboardDesc: language === 'ru' ? 'Обзор и быстрые действия' : 'Overview & quick actions',
-      bookingsDesc: language === 'ru' ? 'Все ваши бронирования' : 'All reservations',
-      messagesDesc: language === 'ru' ? 'Чат с хозяевами' : 'Chat with hosts',
-      favoritesDesc: language === 'ru' ? 'Сохранённые объекты' : 'Saved properties',
-      profileDesc: language === 'ru' ? 'Данные аккаунта' : 'Account details',
-      settingsDesc: language === 'ru' ? 'Уведомления и приватность' : 'Notifications & privacy',
+      dashboardDesc: getUIText('renterNav_dashboardDesc', language),
+      bookingsDesc: getUIText('renterNav_bookingsDesc', language),
+      messagesDesc: getUIText('renterNav_messagesDesc', language),
+      favoritesDesc: getUIText('renterNav_favoritesDesc', language),
+      profileDesc: getUIText('renterNav_profileDesc', language),
+      settingsDesc: getUIText('renterNav_settingsDesc', language),
     }
     return NAV_ITEMS.map(i => ({
       ...i,
@@ -195,7 +194,7 @@ export default function RenterLayout({ children }) {
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
           <Loader2 className="h-12 w-12 animate-spin text-teal-600 mx-auto mb-4" />
-          <p className="text-slate-600">Загрузка...</p>
+          <p className="text-slate-600">{getUIText('loading', language)}</p>
         </div>
       </div>
     )
@@ -210,17 +209,17 @@ export default function RenterLayout({ children }) {
             <X className="h-8 w-8 text-red-600" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">
-            Требуется авторизация
+            {getUIText('renterPortal_signInTitle', language)}
           </h2>
           <p className="text-slate-600 mb-6">
-            Пожалуйста, войдите в систему для доступа к личному кабинету.
+            {getUIText('renterPortal_signInBody', language)}
           </p>
           <Button 
             asChild 
             className="bg-teal-600 hover:bg-teal-700 w-full"
           >
             <Link href="/profile?login=true">
-              Войти
+              {getUIText('renterPortal_signInCta', language)}
             </Link>
           </Button>
         </div>
@@ -231,7 +230,6 @@ export default function RenterLayout({ children }) {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-slate-50 flex flex-col">
-        <Toaster position="top-right" richColors />
         {/* На мобиле fixed надёжнее sticky (Yandex/Chrome); отступ под шапку только &lt;md */}
         <div className="h-16 shrink-0 md:hidden" aria-hidden="true" />
         {/* Top Navigation Bar */}

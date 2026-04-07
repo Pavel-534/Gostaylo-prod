@@ -25,7 +25,7 @@
 
 ### 1.2 UI: откуда берутся цифры на экране
 
-- **`formatPrice(amountThb, currency, exchangeRates)`** в **`lib/currency.js`** — для валюты ≠ THB **делит** сумму в THB на **`exchangeRates[currency]`**, **только если** в переданной карте есть конечный положительный курс. Иначе отображается число в THB с символом выбранной валюты (без выдуманного кросса). **Таблицы курсов в `lib/currency.js` нет** (удалены неиспользуемые конвертеры с литералами).
+- **`formatPrice(amountThb, currency, exchangeRates, language)`** в **`lib/currency.js`** — для валюты ≠ THB **делит** сумму в THB на **`exchangeRates[currency]`**, **только если** в переданной карте есть конечный положительный курс. Иначе отображается число в THB с символом выбранной валюты (без выдуманного кросса). Четвёртый аргумент — язык UI для **`toLocaleString`** (группировка разрядов). **Таблицы курсов в `lib/currency.js` нет** (удалены неиспользуемые конвертеры с литералами).
 - Витрина подгружает курсы через **`fetchExchangeRates()`** или **`hooks/use-currency.js`** (оба — **`/api/v2/exchange-rates`**).
 - Значение по умолчанию **`{ THB: 1 }`** у пропа `exchangeRates` — это **нейтральный множитель для THB**, не курс «доллара».
 - Гео-подсказка валюты: **`GET /api/v2/geo`** использует **`getDisplayRateMap`** (тот же канон, без отдельного Forex-модуля).
@@ -60,6 +60,28 @@
 - Клиент передаёт **`clientQuotedSubtotalThb`** (THB, до промокода), витрина считает ту же сумму через **`PricingService.calculatePrice`** / **`calculateBookingPriceSync`** (в т.ч. тур × **`guestsCount`**).
 - **`BookingService.createBooking`** и **`createInquiryBooking`** (кроме **`privateTrip`** / **`negotiationRequest`**) сверяют **`Math.round(clientQuotedSubtotalThb)`** с **`Math.round(PricingService.calculateBookingPrice(…).totalPrice)`** до применения промокода. Расхождение → отказ (**`code: 'PRICE_MISMATCH'`**), **`notifySystemAlert`** с меткой **«ATTEMPTED PRICE MANIPULATION»**.
 - Схема тела: **`lib/validations/booking.js`**; публичный вход — **`POST /api/v2/bookings`**.
+- **Финальный POST с клиента** (кнопка «Забронировать»): заголовки **`Cache-Control: no-cache`** и **`Pragma: no-cache`**, чтобы промежуточный HTTP-кэш (в т.ч. после **`private` TTL календаря**) не подставил устаревшую картину занятости; сервер всё равно делает **повторную проверку доступности** в **`BookingService`** непосредственно перед INSERT.
+- **Конфликт дат после кэша:** ответ **`code: 'DATES_CONFLICT'`** → пользователю **`getBookingApiUserMessage`** / **`bookingErr_datesConflict`** (локализовано в **`lib/translations/errors.js`**).
+
+### 1.4b Deep links (мобильные уведомления / внешние приложения)
+
+Канонические экраны: **`/messages/[id]`** (чат), **`/checkout/[bookingId]`** (оплата). Для коротких URL в push / Telegram / будущем нативном shell:
+
+| Алиас | Редирект |
+|-------|-----------|
+| **`/chat/[id]`** | **`/messages/[id]`** — **`app/chat/[id]/page.js`** |
+| **`/bookings/[id]`** | **`/checkout/[id]`** — **`app/bookings/[id]/page.js`** |
+
+При появлении нативного приложения те же пути можно зарегистрировать как **universal links** / **app links** без смены серверных маршрутов.
+
+### 1.4c Критические сигналы (Telegram system topic)
+
+- Повторяющиеся **`PRICE_MISMATCH`**: **`lib/critical-telemetry.js`** (`recordCriticalSignal`) — при превышении порога за окно времени дополнительное сообщение в системный топик с префиксом **`[FRAUD_DETECTION]`** (дополняет поштучные **`notifySystemAlert`** из **`booking.service.js`**). При наличии **`banUserId`** в опциях — в сообщение добавляется **inline URL-кнопка** «Забанить пользователя …» (**`buildFraudBanReplyMarkup`**, **`lib/services/fraud-telegram-ban-button.js`**).
+- Тексты манипуляции ценой в алертах также помечены **`[FRAUD_DETECTION]`**; мгновенная кнопка бана дублируется и на поштучном **`notifySystemAlert`** из **`booking.service.js`**, если известен **`renter_id`**.
+
+### 1.4d LQIP карточек листинга
+
+- Плейсхолдер **`next/image`**: по умолчанию нейтральный blur (**`LISTING_CARD_BLUR_DATA_URL`**). Если в **`listings.metadata`** задано **`card_blur_data_url`** или **`blur_data_url`** (data URL крошечного превью), используется **`getListingCardBlurDataURL`** (**`lib/listing-image-blur.js`**) в **`CardImageCarousel`** / контекст-карточке.
 
 ### 1.5 Витринные курсы, снимок брони, оплата
 
@@ -228,9 +250,29 @@
 | Auth edge + login | `middleware.ts`, `app/login/page.js`, `app/admin/layout.js` |
 | Realtime чат (backoff) | `lib/chat/realtime-subscribe-with-backoff.js`, `hooks/use-realtime-chat.js`, `lib/context/ChatContext.jsx` |
 | Платежи / эскроу | `lib/services/payment.service.js`, `lib/services/escrow.service.js`, `app/api/cron/payouts` |
-| Системные TG-алерты | `lib/services/system-alert-notify.js`, `NotificationService.sendSystemAlert` |
+| Системные TG-алерты | `lib/services/system-alert-notify.js`, `NotificationService.sendSystemAlert`, `lib/critical-telemetry.js`, `lib/services/fraud-telegram-ban-button.js` |
+| Admin: бан пользователя (TG link + API) | `POST/GET /api/v2/admin/users/ban`, `lib/auth/telegram-ban-link.js` |
+| i18n UI | `lib/translations/index.js`, `getUIText`, `app/listings/[id]/layout.js` (metadata + цена) |
 | Playwright env + лог секрета + сид tours | `playwright.config.ts`, `tests/global-setup.ts`, `tests/e2e/seed-e2e-tour.ts` |
 
 ---
 
-**Версия:** апрель 2026 — Premium UI 16px, системный топик Telegram, финальная проверка слотов перед созданием брони, манифест по масштабированию БД; cookie-auth, чат, CurrencyService, туры / `group_size`.
+## 8. Security & Admin Controls
+
+### 8.1 Мгновенное реагирование через Telegram
+
+- Системные алерты (**`notifySystemAlert`** → **`NotificationService.sendSystemAlert`**) уходят в топик **`TELEGRAM_SYSTEM_ALERTS_TOPIC_ID`** (или fallback **`sendToAdmin`**). Для сценариев **`[FRAUD_DETECTION]`** с известным пользователем в алерте добавляется **inline keyboard** со ссылкой на **`GET /api/v2/admin/users/ban?t=…`**: токен подписан HMAC (**`lib/auth/telegram-ban-link.js`**, секрет **`TELEGRAM_ADMIN_BAN_SECRET`** или fallback **`JWT_SECRET`**).
+- **`POST /api/v2/admin/users/ban`** принимает JSON **`{ userId, banToken? }`**: либо сессия **ADMIN** (`gostaylo_session`), либо валидный **`banToken`** для того же **`userId`**. Действие: **`profiles.is_banned = true`** (миграция **`database/migrations/020_profiles_is_banned.sql`**) и **`supabase.auth.admin.updateUserById(…, { ban_duration })`** — аннулирование сессий Supabase Auth; параллельно **middleware** (`middleware.ts`) при каждом заходе в защищённые зоны опрашивает **`profiles.is_banned`** через REST (service role), при **`true`** сбрасывает cookie и отправляет на логин. Логин и **`GET /api/v2/auth/me`** отклоняют забаненных.
+
+### 8.2 Critical Telemetry (архитектура)
+
+- **`lib/critical-telemetry.js`** — скользящие окна и пороги по ключам сигналов (например **`PRICE_MISMATCH`**), анти-спам между алертами; единая точка вызова **`notifySystemAlert`** с опциональным **`reply_markup`**.
+- Тяжёлые вызывающие модули импортируют только **`system-alert-notify.js`** / **`recordCriticalSignal`**, не дублируя Telegram-транспорт.
+
+### 8.3 Интернационализация (i18n)
+
+- Пользовательский текст в зонах **рентера и партнёра** выводится через **`getUIText`** и слои в **`lib/translations/`** (в т.ч. **`ui.js`**, **`renter-reviews-flow.js`**, публичные строки листингов). Хардкод по **`language === 'ru'`** в этих кабинетах убран в пользу ключей словаря; язык UI синхронизируется с **`gostaylo_language`** / контекстом **`useI18n`**.
+
+---
+
+**Версия:** апрель 2026 — Premium UI 16px, системный топик Telegram, финальная проверка слотов перед созданием брони, манифест по масштабированию БД; cookie-auth, чат, CurrencyService, туры / `group_size`; §8 admin ban + critical telemetry; SEO листинга с ценой в **`app/listings/[id]/layout.js`**.

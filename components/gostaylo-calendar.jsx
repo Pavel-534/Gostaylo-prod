@@ -26,6 +26,10 @@ import {
 
 const locales = { ru, en: enUS, th, zh: zhCN }
 
+function isAbortError(err) {
+  return err?.name === 'AbortError' || err?.code === 20
+}
+
 /**
  * GostayloCalendar - High-Performance Airbnb-Style Calendar
  * 
@@ -252,11 +256,20 @@ export function GostayloCalendar({
   className,
   onPriceCalculated,
   guests = 1,
+  /**
+   * max_capacity из API листинга. Если null или ≤1, сервер в CalendarService всегда использует g=1 —
+   * сетка дат не зависит от гостей → не дергаем /calendar при каждом +/- .
+   */
+  listingMaxCapacity = null,
+  /** Задержка перед повторным запросом календаря при смене гостей (shared inventory). */
+  guestsRefetchDebounceMs = 420,
   /** 'night' — жильё; 'day' — транспорт (сутки) */
   rentalPeriodMode = "night",
 }) {
   const [calendarData, setCalendarData] = React.useState(new Map())
   const [loading, setLoading] = React.useState(true)
+  /** Фоновое обновление при уже показанной сетке (SWR) */
+  const [backgroundRefreshing, setBackgroundRefreshing] = React.useState(false)
   const [error, setError] = React.useState(null)
   // Initialize currentMonth from value.from if provided (for URL params)
   const [currentMonth, setCurrentMonth] = React.useState(() => {
@@ -274,40 +287,87 @@ export function GostayloCalendar({
   const isSelectingCheckout = value?.from && !value?.to
   
   const guestsCount = Math.max(1, parseInt(guests, 10) || 1)
+  const partyAffectsCalendarGrid =
+    listingMaxCapacity != null && Number(listingMaxCapacity) > 1
 
-  // Fetch calendar data (guest-aware: greys out days that cannot fit the party)
+  const [debouncedPartyGuests, setDebouncedPartyGuests] = React.useState(guestsCount)
+  React.useEffect(() => {
+    if (!partyAffectsCalendarGrid) {
+      setDebouncedPartyGuests(1)
+      return
+    }
+    const t = setTimeout(() => setDebouncedPartyGuests(guestsCount), guestsRefetchDebounceMs)
+    return () => clearTimeout(t)
+  }, [guestsCount, partyAffectsCalendarGrid, guestsRefetchDebounceMs])
+
+  const guestsQueryParam = partyAffectsCalendarGrid ? debouncedPartyGuests : 1
+
+  const prevListingIdRef = React.useRef(listingId)
+  const calendarHydratedRef = React.useRef(false)
+
+  // Fetch calendar — без «серого» поля при фоновом обновлении (stale-while-revalidate)
   React.useEffect(() => {
     if (!listingId) return
-    
+
+    const listingChanged = prevListingIdRef.current !== listingId
+    if (listingChanged) {
+      prevListingIdRef.current = listingId
+      calendarHydratedRef.current = false
+      setCalendarData(new Map())
+    }
+
+    let cancelled = false
+    const ac = new AbortController()
+
     async function fetchCalendar() {
-      setLoading(true)
+      const blockUi = !calendarHydratedRef.current
+      if (blockUi) {
+        setLoading(true)
+        setBackgroundRefreshing(false)
+      } else {
+        setBackgroundRefreshing(true)
+      }
       setError(null)
-      
+
       try {
         const res = await fetch(
-          `/api/v2/listings/${listingId}/calendar?days=180&guests=${guestsCount}`
+          `/api/v2/listings/${listingId}/calendar?days=180&guests=${guestsQueryParam}`,
+          { signal: ac.signal, cache: 'default' }
         )
+        if (cancelled) return
         const data = await res.json()
-        
+
+        if (cancelled) return
+
         if (data.success && Array.isArray(data.data?.calendar)) {
-          // Convert array to Map for O(1) lookup (keys are listing TZ YYYY-MM-DD, same as toListingDate on client)
           const dataMap = new Map()
           for (const day of data.data.calendar) {
             if (day?.date) dataMap.set(day.date, day)
           }
           setCalendarData(dataMap)
+          calendarHydratedRef.current = true
         } else {
           setError(data.error || 'Failed to load calendar')
         }
       } catch (err) {
+        if (cancelled || isAbortError(err)) return
         setError(err.message)
       } finally {
-        setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+          setBackgroundRefreshing(false)
+        }
       }
     }
-    
+
     fetchCalendar()
-  }, [listingId, guestsCount])
+    return () => {
+      cancelled = true
+      ac.abort()
+      setLoading(false)
+      setBackgroundRefreshing(false)
+    }
+  }, [listingId, guestsQueryParam])
   
   // Calculate price when selection changes
   React.useEffect(() => {
@@ -396,7 +456,7 @@ export function GostayloCalendar({
   
   // Display text
   const displayText = React.useMemo(() => {
-    if (loading) return getUIText('loading', language)
+    if (loading && calendarData.size === 0) return getUIText('loading', language)
     if (!value?.from) return `${getUIText('checkIn', language)} — ${getUIText('checkOut', language)}`
     if (!value.to) {
       return `${format(value.from, 'd MMM', { locale: locales[locale] })} — ...`
@@ -407,23 +467,25 @@ export function GostayloCalendar({
     const nightsText = formatRentalSpanLabel(nights, spanMode, language)
 
     return `${format(value.from, 'd MMM', { locale: locales[locale] })} — ${format(value.to, 'd MMM', { locale: locales[locale] })} (${nightsText})`
-  }, [value, locale, language, loading, rentalPeriodMode])
+  }, [value, locale, language, loading, rentalPeriodMode, calendarData.size])
   
   // Trigger button
+  const showBlockingChrome = loading && calendarData.size === 0
+
   const TriggerButton = (
     <Button
       variant="outline"
-      disabled={loading}
+      disabled={showBlockingChrome}
       data-testid="gostaylo-calendar-trigger"
       className={cn(
         "w-full h-12 justify-start text-left font-normal",
         !value?.from && "text-muted-foreground",
-        loading && "animate-pulse",
+        showBlockingChrome && "animate-pulse",
         className
       )}
       onClick={() => setOpen(true)}
     >
-      {loading ? (
+      {showBlockingChrome ? (
         <Loader2 className="mr-2 h-4 w-4 animate-spin text-slate-400" />
       ) : (
         <CalendarIcon className="mr-2 h-4 w-4 text-slate-500" />
@@ -440,7 +502,7 @@ export function GostayloCalendar({
   ) : null
   
   // Calendar content
-  const CalendarContent = loading ? (
+  const CalendarContent = showBlockingChrome ? (
     <div className="p-4 space-y-4">
       <Skeleton className="h-8 w-40 mx-auto" />
       <div className="grid grid-cols-7 gap-2">
@@ -452,7 +514,17 @@ export function GostayloCalendar({
       {error}
     </div>
   ) : (
-    <div className="p-4">
+    <div className="relative p-4">
+      {backgroundRefreshing && (
+        <div
+          className="pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-md bg-white/85 px-2 py-1 text-[11px] font-medium text-slate-400 shadow-sm ring-1 ring-slate-200/80 backdrop-blur-[2px]"
+          aria-live="polite"
+          data-testid="gostaylo-calendar-refreshing"
+        >
+          <Loader2 className="h-3 w-3 shrink-0 animate-spin text-slate-400" aria-hidden />
+          <span>{getUIText('calendarRefreshing', language)}</span>
+        </div>
+      )}
       {SelectionHint}
       
       {/* Desktop: 2 months side-by-side (arrows in header) */}

@@ -27,6 +27,29 @@ const PROTECTED_ROUTES = {
 /**
  * Verify JWT token using jose (Edge Runtime compatible)
  */
+async function fetchProfileIsBanned(userId: string): Promise<boolean> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key || !userId) return false;
+  try {
+    const res = await fetch(
+      `${url.replace(/\/$/, '')}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=is_banned`,
+      {
+        headers: {
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+        },
+        cache: 'no-store',
+      }
+    );
+    if (!res.ok) return false;
+    const rows = (await res.json()) as { is_banned?: boolean }[];
+    return rows?.[0]?.is_banned === true;
+  } catch {
+    return false;
+  }
+}
+
 async function verifyToken(token: string): Promise<{ userId: string; role: string; email: string } | null> {
   try {
     if (!JWT_SECRET) return null;
@@ -111,6 +134,13 @@ export async function middleware(request: NextRequest) {
   const decoded = await verifyToken(token);
   
   if (!decoded) {
+    const response = redirectToLogin();
+    response.cookies.delete('gostaylo_session');
+    return response;
+  }
+
+  const banned = await fetchProfileIsBanned(decoded.userId);
+  if (banned) {
     const response = redirectToLogin();
     response.cookies.delete('gostaylo_session');
     return response;

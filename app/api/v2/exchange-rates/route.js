@@ -6,10 +6,11 @@
  * POST /api/v2/exchange-rates — ручная правка (admin).
  */
 
-import { NextResponse } from 'next/server';
-export const dynamic = 'force-dynamic';
-import { supabaseAdmin } from '@/lib/supabase';
-import { getDisplayRateMap } from '@/lib/services/currency.service';
+import { NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabase'
+import { getDisplayRateMap } from '@/lib/services/currency.service'
+
+export const dynamic = 'force-dynamic'
 
 // Currency symbols mapping
 const CURRENCY_SYMBOLS = {

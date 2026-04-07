@@ -44,6 +44,8 @@ import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton'
 import { proxifyUnsplashUrl } from '@/lib/proxify-unsplash-url'
+import { toPublicImageUrl, isRemoteHttpImageSrc } from '@/lib/public-image-url'
+import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
 import { format, isSameDay, differenceInDays } from 'date-fns'
 import { LISTINGS_SEARCH_API_PATH } from '@/lib/search-endpoints'
 import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
@@ -77,10 +79,6 @@ const CATEGORY_CARD_IMAGES = [
   proxifyUnsplashUrl('https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80'),
   proxifyUnsplashUrl('https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?auto=format&fit=crop&w=1200&q=80'),
 ]
-
-function isAbsoluteHttpUrl(src) {
-  return typeof src === 'string' && (src.startsWith('http://') || src.startsWith('https://'))
-}
 
 function useMediaQuery(query) {
   const getMatches = (q) => typeof window !== 'undefined' ? window.matchMedia(q).matches : false
@@ -528,7 +526,7 @@ export function GostayloHomeContent() {
                 const listingUrl = listingParams.toString() ? `/listings/${listing.id}?${listingParams.toString()}` : `/listings/${listing.id}`
                 const thumbRaw = listing.coverImage || listing.images?.[0] || '/placeholder.svg'
                 const thumbSrc =
-                  thumbRaw === '/placeholder.svg' ? thumbRaw : proxifyUnsplashUrl(thumbRaw)
+                  thumbRaw === '/placeholder.svg' ? thumbRaw : toPublicImageUrl(thumbRaw) || thumbRaw
                 
                 return (
                   <Link key={listing.id} href={listingUrl}>
@@ -538,7 +536,11 @@ export function GostayloHomeContent() {
                           src={mediaFallback[`lst-${listing.id}`] ? '/placeholder.svg' : thumbSrc}
                           alt={listing.title}
                           fill
-                          unoptimized={isAbsoluteHttpUrl(thumbSrc)}
+                          placeholder="blur"
+                          blurDataURL={LISTING_CARD_BLUR_DATA_URL}
+                          unoptimized={isRemoteHttpImageSrc(
+                            mediaFallback[`lst-${listing.id}`] ? '/placeholder.svg' : thumbSrc,
+                          )}
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                           priority={idx < 4}
                           className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -632,6 +634,7 @@ export function GostayloHomeContent() {
                               listing.pricing?.totalPrice || listing.basePriceThb,
                               currency,
                               exchangeRates,
+                              language,
                             )}
                           </span>
                           <span className='text-xs text-slate-400'>

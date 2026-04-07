@@ -5,18 +5,19 @@
  * DELETE /api/v2/listings/[id] - Delete listing + cleanup storage
  */
 
-import { NextResponse } from 'next/server';
-export const dynamic = 'force-dynamic';
-import { supabaseAdmin } from '@/lib/supabase';
-import { revalidateListingPaths } from '@/lib/revalidation';
-import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings';
-import PricingService from '@/lib/services/pricing.service';
-import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
-import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url';
-import { getSessionPayload } from '@/lib/services/session-service';
-import { isStaffRole } from '@/lib/services/chat/access';
+import { NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabase'
+import { revalidateListingPaths } from '@/lib/revalidation'
+import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings'
+import PricingService from '@/lib/services/pricing.service'
+import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
+import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url'
+import { getSessionPayload } from '@/lib/services/session-service'
+import { isStaffRole } from '@/lib/services/chat/access'
 
-const STORAGE_BUCKETS = ['listing-images', 'listings'];
+export const dynamic = 'force-dynamic'
+
+const STORAGE_BUCKETS = ['listing-images', 'listings']
 
 /**
  * Delete files from Supabase Storage for a listing (best-effort; DB trigger also wipes prefix).

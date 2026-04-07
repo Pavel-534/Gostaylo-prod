@@ -18,6 +18,7 @@ model Profile {
   role              Role     @default(RENTER)
   verificationStatus VerificationStatus @default(PENDING)
   isVerified        Boolean  @default(false)
+  isBanned          Boolean  @default(false) @map("is_banned")
   verificationDocs  String?
   telegramId        String?  @unique  // Telegram chat_id for bot integration
   telegramLinked    Boolean  @default(false)  // Is Telegram bot connected

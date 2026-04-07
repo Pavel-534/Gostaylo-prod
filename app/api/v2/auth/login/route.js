@@ -82,6 +82,10 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 401 });
   }
 
+  if (user.is_banned === true) {
+    return NextResponse.json({ success: false, error: 'Account suspended' }, { status: 403 });
+  }
+
   let passwordValid = false;
 
   if (user.password_hash && user.password_hash.startsWith('$2')) {

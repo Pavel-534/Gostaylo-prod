@@ -4,12 +4,12 @@
  * Конвертация примера: единый курс из CurrencyService (`getDisplayRateMap`), без отдельного ForexService.
  */
 
-export const dynamic = 'force-dynamic'
-
 import { NextResponse } from 'next/server'
 import { GeoService } from '@/lib/services/geo.service'
 import { getDisplayRateMap } from '@/lib/services/currency.service'
 import { formatPrice, getCurrencyDisplayMeta } from '@/lib/currency'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(request) {
   try {
@@ -30,8 +30,8 @@ export async function GET(request) {
       recommendedCurrency === 'THB' ||
       (r != null && Number.isFinite(Number(r)) && Number(r) > 0)
     const formatted = canConvert
-      ? formatPrice(sampleThb, recommendedCurrency, rateMap)
-      : formatPrice(sampleThb, 'THB', rateMap)
+      ? formatPrice(sampleThb, recommendedCurrency, rateMap, 'en')
+      : formatPrice(sampleThb, 'THB', rateMap, 'en')
 
     return NextResponse.json({
       success: geoResult.success,

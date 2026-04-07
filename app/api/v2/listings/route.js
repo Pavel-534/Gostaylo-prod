@@ -7,13 +7,13 @@
  * @deprecated GET method - migrate to /api/v2/search for availability filtering
  */
 
-export const dynamic = 'force-dynamic';
+import { NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabase'
+import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
+import { revalidateListingPaths } from '@/lib/revalidation'
+import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings'
 
-import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
-import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
-import { revalidateListingPaths } from '@/lib/revalidation';
-import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings';
+export const dynamic = 'force-dynamic'
 
 /**
  * @deprecated Use /api/v2/search instead

@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Star, MessageSquare, CheckCircle2, Loader2, Reply } from 'lucide-react'
 import { toast } from 'sonner'
 import { ReviewPhotosGallery } from '@/components/review-photos-gallery'
+import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
 
 // Star rating display
 function StarRating({ rating }) {
@@ -31,6 +33,7 @@ function StarRating({ rating }) {
 
 export default function PartnerReviewsPage() {
   const router = useRouter()
+  const { language } = useI18n()
   const [reviews, setReviews] = useState([])
   const [stats, setStats] = useState({ total: 0, averageRating: 0 })
   const [loading, setLoading] = useState(true)
@@ -68,7 +71,7 @@ export default function PartnerReviewsPage() {
 
   async function handleSubmitReply() {
     if (!replyText.trim()) {
-      toast.error('Введите текст ответа')
+      toast.error(getUIText('partnerReviewReplyEmpty', language))
       return
     }
 
@@ -86,15 +89,15 @@ export default function PartnerReviewsPage() {
       const data = await res.json()
       
       if (data.success) {
-        toast.success('Ответ отправлен!')
+        toast.success(getUIText('partnerReviewReplySuccess', language))
         setReplyingTo(null)
         setReplyText('')
         loadReviews(user.id) // Reload reviews
       } else {
-        toast.error(data.error || 'Не удалось отправить ответ')
+        toast.error(data.error || getUIText('partnerReviewReplyError', language))
       }
     } catch (error) {
-      toast.error('Ошибка при отправке ответа')
+      toast.error(getUIText('partnerReviewReplySendError', language))
     } finally {
       setSubmittingReply(false)
     }
@@ -111,8 +114,8 @@ export default function PartnerReviewsPage() {
   return (
     <div className='p-6'>
       <div className='mb-6'>
-        <h1 className='text-2xl font-bold text-slate-900'>Отзывы</h1>
-        <p className='text-slate-600 mt-1'>Управление отзывами гостей о ваших объектах</p>
+        <h1 className='text-2xl font-bold text-slate-900'>{getUIText('partnerReviewsPageTitle', language)}</h1>
+        <p className='text-slate-600 mt-1'>{getUIText('partnerReviewsPageSubtitle', language)}</p>
       </div>
 
       {/* Stats */}
@@ -121,7 +124,7 @@ export default function PartnerReviewsPage() {
           <CardContent className='pt-6'>
             <div className='text-center'>
               <p className='text-3xl font-bold text-slate-900'>{stats.total}</p>
-              <p className='text-sm text-slate-600'>Всего отзывов</p>
+              <p className='text-sm text-slate-600'>{getUIText('partnerReviewsStatTotal', language)}</p>
             </div>
           </CardContent>
         </Card>
@@ -132,7 +135,7 @@ export default function PartnerReviewsPage() {
                 <p className='text-3xl font-bold text-amber-500'>{stats.averageRating.toFixed(1)}</p>
                 <Star className='h-6 w-6 fill-amber-400 text-amber-400' />
               </div>
-              <p className='text-sm text-slate-600'>Средняя оценка</p>
+              <p className='text-sm text-slate-600'>{getUIText('partnerReviewsStatAvg', language)}</p>
             </div>
           </CardContent>
         </Card>
@@ -142,7 +145,7 @@ export default function PartnerReviewsPage() {
               <p className='text-3xl font-bold text-teal-600'>
                 {reviews.filter(r => !r.partnerReply).length}
               </p>
-              <p className='text-sm text-slate-600'>Без ответа</p>
+              <p className='text-sm text-slate-600'>{getUIText('partnerReviewsStatUnanswered', language)}</p>
             </div>
           </CardContent>
         </Card>
@@ -152,14 +155,14 @@ export default function PartnerReviewsPage() {
       {loading ? (
         <div className='py-12 text-center text-slate-500'>
           <Loader2 className='h-8 w-8 animate-spin mx-auto mb-2' />
-          Загрузка отзывов...
+          {getUIText('partnerReviewsLoading', language)}
         </div>
       ) : reviews.length === 0 ? (
         <Card>
           <CardContent className='py-12 text-center'>
             <Star className='h-12 w-12 text-slate-300 mx-auto mb-4' />
-            <p className='text-slate-500'>Пока нет отзывов</p>
-            <p className='text-sm text-slate-400 mt-1'>Отзывы появятся после первых бронирований</p>
+            <p className='text-slate-500'>{getUIText('partnerReviewsEmpty', language)}</p>
+            <p className='text-sm text-slate-400 mt-1'>{getUIText('partnerReviewsEmptyHint', language)}</p>
           </CardContent>
         </Card>
       ) : (
@@ -186,7 +189,7 @@ export default function PartnerReviewsPage() {
                           {review.isVerifiedBooking && (
                             <Badge variant='outline' className='text-xs text-green-700 border-green-300 bg-green-50'>
                               <CheckCircle2 className='h-3 w-3 mr-1' />
-                              Подтверждено
+                              {getUIText('partnerReviewsVerified', language)}
                             </Badge>
                           )}
                         </div>
@@ -211,12 +214,12 @@ export default function PartnerReviewsPage() {
                           <DialogTrigger asChild>
                             <Button variant='outline' size='sm'>
                               <Reply className='h-4 w-4 mr-1' />
-                              Ответить
+                              {getUIText('partnerReviewReplyAction', language)}
                             </Button>
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
-                              <DialogTitle>Ответ на отзыв</DialogTitle>
+                              <DialogTitle>{getUIText('partnerReviewReplyDialogTitle', language)}</DialogTitle>
                             </DialogHeader>
                             <div className='py-4'>
                               <div className='bg-slate-50 rounded-lg p-3 mb-4'>
@@ -229,7 +232,7 @@ export default function PartnerReviewsPage() {
                               <Textarea
                                 value={replyText}
                                 onChange={(e) => setReplyText(e.target.value)}
-                                placeholder='Напишите ваш ответ...'
+                                placeholder={getUIText('partnerReviewReplyPlaceholder', language)}
                                 rows={4}
                               />
                             </div>
@@ -238,7 +241,7 @@ export default function PartnerReviewsPage() {
                                 variant='outline'
                                 onClick={() => setReplyingTo(null)}
                               >
-                                Отмена
+                                {getUIText('renterProfileCancel', language)}
                               </Button>
                               <Button
                                 onClick={handleSubmitReply}
@@ -246,9 +249,9 @@ export default function PartnerReviewsPage() {
                                 className='bg-teal-600 hover:bg-teal-700'
                               >
                                 {submittingReply ? (
-                                  <><Loader2 className='h-4 w-4 mr-2 animate-spin' /> Отправка...</>
+                                  <><Loader2 className='h-4 w-4 mr-2 animate-spin' />{getUIText('partnerReviewSendingShort', language)}</>
                                 ) : (
-                                  'Отправить ответ'
+                                  getUIText('partnerReviewReplySubmit', language)
                                 )}
                               </Button>
                             </DialogFooter>
@@ -268,7 +271,7 @@ export default function PartnerReviewsPage() {
                       <div className='mt-4 pl-4 border-l-2 border-teal-200 bg-teal-50/50 rounded-r-lg py-3 pr-3'>
                         <div className='flex items-center gap-2 mb-1'>
                           <MessageSquare className='h-4 w-4 text-teal-600' />
-                          <span className='text-sm font-medium text-teal-700'>Ваш ответ</span>
+                          <span className='text-sm font-medium text-teal-700'>{getUIText('partnerReviewYourReply', language)}</span>
                           <span className='text-xs text-slate-500'>
                             {review.partnerReplyAt && formatDate(review.partnerReplyAt)}
                           </span>

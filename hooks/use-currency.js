@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback, createContext, useContext } from 'react'
 import { formatPrice } from '@/lib/currency'
+import { detectLanguage } from '@/lib/translations'
 
 const CurrencyContext = createContext(null)
 
@@ -85,9 +86,11 @@ export function CurrencyProvider({ children }) {
     (amountThb, options = {}) => {
       const { showOriginal = false } = options
       const rates = rateMap || { THB: 1 }
-      const formatted = formatPrice(amountThb, currency, rates)
+      const lang = detectLanguage()
+      const formatted = formatPrice(amountThb, currency, rates, lang)
       if (showOriginal && currency !== 'THB') {
-        return `${formatted} (฿${Number(amountThb).toLocaleString()})`
+        const thbFmt = formatPrice(amountThb, 'THB', { THB: 1 }, lang)
+        return `${formatted} (${thbFmt})`
       }
       return formatted
     },

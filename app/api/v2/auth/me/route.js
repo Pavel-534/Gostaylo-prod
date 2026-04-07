@@ -97,6 +97,15 @@ export async function GET() {
     return NextResponse.json({ success: false, user: null }, { status: 401 });
   }
 
+  if (user.is_banned === true) {
+    const res = NextResponse.json(
+      { success: false, user: null, error: 'Account suspended' },
+      { status: 403 },
+    );
+    res.cookies.delete('gostaylo_session');
+    return res;
+  }
+
   const dbRole = String(user.role || 'RENTER').toUpperCase();
   const jwtRole = String(decoded.role || '').toUpperCase();
   const needsJwtRefresh = jwtRole !== dbRole;

@@ -7,20 +7,25 @@ import { formatPrice } from '../lib/currency.js'
 
 const rates = { THB: 1, USD: 35, EUR: 38, GBP: 44, CNY: 4.85 }
 
-assert.strictEqual(formatPrice(35000, 'THB', rates), '฿35,000')
+assert.strictEqual(formatPrice(35000, 'THB', rates, 'en'), '฿35,000')
 
-const usd = formatPrice(35000, 'USD', rates)
+const usd = formatPrice(35000, 'USD', rates, 'en')
 assert.match(usd, /1,?000(\.00)?$/, `USD: ожидали ~1000, получили ${usd}`)
 
-const eur = formatPrice(38000, 'EUR', rates)
+const eur = formatPrice(38000, 'EUR', rates, 'en')
 assert.match(eur, /1,?000(\.00)?$/, `EUR: ожидали ~1000, получили ${eur}`)
 
-const gbp = formatPrice(44000, 'GBP', rates)
+const gbp = formatPrice(44000, 'GBP', rates, 'en')
 assert.match(gbp, /1,?000(\.00)?$/, `GBP: ожидали ~1000, получили ${gbp}`)
 
 // Нет ключа валюты в rateMap — не делим (остаётся число как в THB, другой символ)
-const naked = formatPrice(35000, 'EUR', { THB: 1 })
+const naked = formatPrice(35000, 'EUR', { THB: 1 }, 'en')
 assert.ok(naked.startsWith('€'), naked)
 assert.ok(naked.includes('35'), `без курса EUR не должно конвертировать: ${naked}`)
 
-console.log('verify-format-price: OK', { usd, eur, gbp })
+// ru-RU: неразрывный пробел или обычный пробел как разделитель тысяч
+const thbRu = formatPrice(35000, 'THB', rates, 'ru')
+assert.ok(thbRu.startsWith('฿'), thbRu)
+assert.ok(/35[\s\u00a0]000/.test(thbRu), `RU grouping: ${thbRu}`)
+
+console.log('verify-format-price: OK', { usd, eur, gbp, thbRu })

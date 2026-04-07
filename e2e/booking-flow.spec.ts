@@ -7,8 +7,16 @@ function addListingDays(isoDate: string, days: number): string {
 }
 
 function parseDisplayAmount(text: string): number {
-  const cleaned = text.replace(/[฿$€£₽¥₮\s]/g, '').replace(/,/g, '')
-  const n = parseFloat(cleaned)
+  let s = text.replace(/[฿$€£₽¥₮\s]/g, '').trim()
+  // ru-RU (and similar): decimal comma — e.g. $47,77 or 1.234,56
+  if (/^\d{1,3}(\.\d{3})*,\d{1,2}$/.test(s)) {
+    s = s.replace(/\./g, '').replace(',', '.')
+  } else if (/^\d+,\d{1,2}$/.test(s)) {
+    s = s.replace(',', '.')
+  } else {
+    s = s.replace(/,/g, '')
+  }
+  const n = parseFloat(s)
   return Number.isFinite(n) ? n : NaN
 }
 
@@ -52,7 +60,15 @@ test.describe('Карточка транспорта (vehicles): сутки и �
       },
       { timeout: 90_000 },
     )
+    const ratesUiPromise = page.waitForResponse(
+      (r) =>
+        r.url().includes('/api/v2/exchange-rates') &&
+        r.request().method() === 'GET' &&
+        r.ok(),
+      { timeout: 90_000 },
+    )
     await page.goto(`/listings/${vehicle.id}`, { waitUntil: 'domcontentloaded' })
+    await ratesUiPromise
     const calResponse = await calResponsePromise
 
     if (!calResponse.ok()) {

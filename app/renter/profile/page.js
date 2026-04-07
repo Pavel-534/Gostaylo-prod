@@ -31,7 +31,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { ru, enUS } from 'date-fns/locale'
+import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
 import { useI18n } from '@/contexts/i18n-context'
 import { useAuth } from '@/contexts/auth-context'
 import { getUIText } from '@/lib/translations'
@@ -159,7 +159,7 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
                 type="text"
                 value={formData.socialLink}
                 onChange={(e) => setFormData({ ...formData, socialLink: e.target.value })}
-                placeholder={language === 'ru' ? '@username или ссылка' : '@username or link'}
+                placeholder={getUIText('renterProfileTelegramPlaceholder', language)}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
               />
             </div>
@@ -185,7 +185,7 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
                 className="flex-1"
                 disabled={isSubmitting}
               >
-                {language === 'ru' ? 'Отмена' : 'Cancel'}
+                {getUIText('renterProfileCancel', language)}
               </Button>
               <Button
                 type="submit"
@@ -195,7 +195,7 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {language === 'ru' ? 'Отправка...' : 'Submitting...'}
+                    {getUIText('renterProfileSubmitting', language)}
                   </>
                 ) : (
                   <>
@@ -228,7 +228,7 @@ export default function RenterProfilePage() {
   const [showApplicationModal, setShowApplicationModal] = useState(false)
   const [submittingApplication, setSubmittingApplication] = useState(false)
 
-  const dateLocale = language === 'ru' ? ru : enUS
+  const dateLocale = { ru, en: enUS, zh: zhCN, th: thLocale }[language] || enUS
 
   const applyUser = (u) => {
     if (!u) {
@@ -375,7 +375,7 @@ export default function RenterProfilePage() {
   const displayName =
     [user.first_name, user.last_name].filter(Boolean).join(' ').trim() ||
     user.name ||
-    (language === 'ru' ? 'Гость' : 'Guest')
+    getUIText('guest', language)
   const initialLetter =
     (user.first_name?.charAt(0) || user.last_name?.charAt(0) || user.name?.charAt(0) || user.email?.charAt(0) || 'U').toUpperCase()
   
