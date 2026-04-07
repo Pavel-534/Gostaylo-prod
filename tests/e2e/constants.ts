@@ -25,6 +25,7 @@ export const E2E_ROUTES = {
   tourBookingMathFixture: '/api/v2/internal/e2e/tour-booking-math',
   seoSpyAlert: '/api/v2/internal/e2e/seo-spy-alert',
   financialErrorAlert: '/api/v2/internal/e2e/financial-error-alert',
+  performanceLowAlert: '/api/v2/internal/e2e/performance-low-alert',
   authMe: '/api/v2/auth/me',
   authLogin: '/api/v2/auth/login',
   chatConversations: '/api/v2/chat/conversations',

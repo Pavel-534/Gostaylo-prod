@@ -15,23 +15,11 @@ function debounce(fn, ms) {
   debounced.cancel = () => clearTimeout(timer);
   return debounced;
 }
-import { createClient } from '@supabase/supabase-js';
 import {
   subscribeRealtimeWithBackoff,
   REALTIME_RETRY_STATUSES,
 } from '@/lib/chat/realtime-subscribe-with-backoff';
-
-// Initialize Supabase client with realtime enabled
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
-  }
-});
+import { supabase } from '@/lib/supabase';
 
 // Notification sound (base64 encoded short beep)
 const NOTIFICATION_SOUND = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH+Onpi0u7nGysm+tKmdkIB3cXl5f4eFiY2RkZGRkZGOiYV/eXNua2loaGhrbXN5f4WJjpGRkZGRjouGgXt1cG1qaGhoaWtvc3l/hYqOkZGRkZGOi4aBe3VwbWpoaGhpa29zeX+Fio6RkZGRkY6LhoF7dXBtamhoaGlrb3N5f4WKjpGRkZGRjouGgXt1cG1qaGhoaWtvc3l/hYqOkZGRkZGOi4aBe3VwbWpoaGhpa29zeX+Fio6RkZGRkY6LhoF7dXBtamhoaGlrb3N5f4WKjpGRkZGRjouGgXt1cG1qaGhoaWtvc3l/hYqOkZGRkQ==';
@@ -73,7 +61,7 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
   }, [onMessageUpdate])
 
   useEffect(() => {
-    if (!conversationId || !supabaseUrl || !supabaseAnonKey) return;
+    if (!conversationId || !supabase) return;
 
     return subscribeRealtimeWithBackoff({
       supabase,
@@ -136,13 +124,16 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
   return { messages, setMessages, isConnected, error };
 }
 
+/** Единый канал presence для всего сайта: «В сети» видно с любой страницы, не только из треда. */
+const SITE_PRESENCE_CHANNEL = 'gostaylo-site-presence:v1';
+
 /**
  * Custom hook for user presence (online/offline status)
- * @param {string} conversationId - The conversation ID
+ * @param {string} _conversationId - устарело, оставлено для совместимости вызовов
  * @param {string} userId - Current user ID
  * @returns {Object} { onlineUsers, isOnline }
  */
-export function usePresence(conversationId, userId, peerUserId = null) {
+export function usePresence(_conversationId, userId, peerUserId = null) {
   const [onlineUsers, setOnlineUsers] = useState([]);
   /** Собеседник в сети (если передан peerUserId — проверяем его presence) */
   const [isPeerOnline, setIsPeerOnline] = useState(false);
@@ -150,7 +141,7 @@ export function usePresence(conversationId, userId, peerUserId = null) {
   const channelRef = useRef(null);
 
   useEffect(() => {
-    if (!conversationId || !userId) return;
+    if (!userId || !supabase) return;
 
     const syncPresence = () => {
       const channel = channelRef.current;
@@ -169,8 +160,8 @@ export function usePresence(conversationId, userId, peerUserId = null) {
 
     const stop = subscribeRealtimeWithBackoff({
       supabase,
-      createChannel: (attempt) => {
-        const ch = supabase.channel(`presence:${conversationId}:${attempt}`, {
+      createChannel: () => {
+        const ch = supabase.channel(SITE_PRESENCE_CHANNEL, {
           config: {
             presence: {
               key: userId,
@@ -195,7 +186,7 @@ export function usePresence(conversationId, userId, peerUserId = null) {
       channelRef.current = null;
       stop();
     };
-  }, [conversationId, userId, peerUserId]);
+  }, [userId, peerUserId]);
 
   return { onlineUsers, isOnline: isPeerOnline, isPeerOnline };
 }
@@ -236,7 +227,7 @@ export function useRealtimeConversations(userId, onUpdate = null) {
   }, [userId]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !supabase) return;
 
     return subscribeRealtimeWithBackoff({
       supabase,

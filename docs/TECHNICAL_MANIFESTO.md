@@ -281,6 +281,8 @@
 | Системные TG-алерты | `lib/services/system-alert-notify.js`, `NotificationService.sendSystemAlert`, `lib/critical-telemetry.js`, `lib/services/fraud-telegram-ban-button.js` |
 | Admin: бан пользователя (TG link + API) | `POST/GET /api/v2/admin/users/ban`, `lib/auth/telegram-ban-link.js` |
 | E2E hygiene helper / cleanup | `lib/e2e/test-data-tag.js`, `tests/global-teardown.ts`, `scripts/clean-e2e-garbage.mjs` |
+| Security Bot №27 (RBAC гость /admin) | `tests/e2e/security-bot.spec.ts`, проект **`security-bot`** |
+| Speed Bot №28 (LCP + `[PERFORMANCE_LOW]`) | `tests/e2e/speed-bot.spec.ts`, `app/api/v2/internal/e2e/performance-low-alert/route.js`, проект **`speed-bot`** |
 | SEO Spy Bot №25 + TG алерт | `tests/e2e/seo-spy-bot.spec.ts`, `app/api/v2/internal/e2e/seo-spy-alert/route.js` |
 | Accountant Bot (Deep Financial Math) + TG `recordCriticalSignal` | `tests/e2e/bots/accountant-math.spec.ts`, `app/api/v2/internal/e2e/financial-error-alert/route.js`, `lib/currency.js` (`priceRawForTest`) |
 | Polyglot UX Bot (TH/ZH) | `tests/e2e/bots/polyglot-ux.spec.ts`, проект **`polyglot-bot`**, `data-testid` языка и CTA |
@@ -327,6 +329,8 @@
 
 ## 10. E2E Hygiene System (правила и обязательность)
 
+0. **Nightly CI:** GitHub Actions **`.github/workflows/playwright.yml`** — расписание **03:00 UTC** (`cron: 0 3 * * *`), полный **`npx playwright test`** против **`PLAYWRIGHT_BASE_URL`** (секрет). При **failure** — сообщение в Telegram (**`TELEGRAM_BOT_TOKEN`**, **`TELEGRAM_CHAT_ID`**), артефакт **`playwright-report`**. Опционально те же секреты, что локально: **`E2E_*`**, **`JWT_SECRET`**.
+
 1. **Маркер данных:** любые сиды и фикстуры помечают сущности строкой **`[E2E_TEST_DATA]`** (константа **`lib/e2e/test-data-tag.js`**), чтобы их можно было отфильтровать из публичного поиска, списков чата и выборок «как у пользователя».
 2. **Фильтрация в коде:** поиск листингов, SSR, `db-service`, `BookingService.getBookings`, **`GET /api/v2/chat/conversations`** (для не-staff) исключают помеченные записи; для Playwright при заголовке **`x-e2e-test-mode`** фильтр можно обходить (см. роут conversations).
 3. **`globalTeardown`:** в **`playwright.config.ts`** указан **`tests/global-teardown.ts`** — после прогона удаляются артефакты с тегом и связанные строки. Это **обязательная** часть гигиены при работе с тестовой/staging БД. Вручную: **`node scripts/clean-e2e-garbage.mjs`** (поддержка **`--dry-run`**).
@@ -357,13 +361,31 @@
 - Сценарии: листинг **vehicles** (выбор дат) — языки **th** / **zh**, проверка **`listing-book-now`** (кликабельность, без горизонтального overflow); чекаут — существующая бронь рентера в статусе **PENDING / AWAITING_PAYMENT / CONFIRMED**, языки **th** / **zh**, **`checkout-pay-submit`**.
 - Контроль «сырых» ключей: в **`main`** не должно встречаться **`.not_found`** / **`translation.`** (эвристика под отсутствующие строки i18n).
 
-### 11.4 Планируется
+### 11.4 Security Bot (сценарий №27) — **активен**
+
+- Реализация: Playwright **`tests/e2e/security-bot.spec.ts`**, проект **`security-bot`** (**`storageState`**: пустой, гость).
+- Проверки: переход на **`/admin`** и **`/admin/dashboard`** без cookie-сессии → ожидается URL с **`/login`** (клиентский guard в **`app/admin/layout.js`** после **`GET /api/v2/auth/me`**).
+
+### 11.5 Speed Bot (сценарий №28, патруль производительности) — **активен**
+
+- Реализация: Playwright **`tests/e2e/speed-bot.spec.ts`**, проект **`speed-bot`** (таймаут до **180 s** из‑за ожидания LCP).
+- Замеры: **LCP** (Performance Observer, **`largest-contentful-paint`**) для **`/`** и **`/listings`** — до **трёх** последовательных заходов на страницу; прокси **TTFB** — время до **`domcontentloaded`** после `page.goto`.
+- Алерт: **`POST /api/v2/internal/e2e/performance-low-alert`** с **`x-e2e-fixture-secret`** (**`E2E_FIXTURE_SECRET`**). Сервер накапливает **streak**: три подряд замера с **LCP &gt; 3500 мс** (настраивается **`thresholdMs`**) и вне **тихого окна 6 ч** с последнего **`notifySystemAlert`** → Telegram **`[PERFORMANCE_LOW]`** на **русском** (URL, LCP, TTFB, рекомендация: тяжёлые изображения vs медленный ответ API при **TTFB &gt; 800 мс**). Повторные алерты чаще чем раз в **6 ч** подавляются (**`suppressed: true`** в JSON).
+- Самопроверка API: второй тест в файле с искусственно низким порогом и уникальным **`pageKey`** (может отправить одно реальное уведомление при наличии секрета).
+
+### 11.6 Глобальные уведомления в мобильном таб-баре
+
+- Компонент **`components/mobile-bottom-nav.jsx`**: пункт **«Сообщения»** связан с **`useChatContext().totalUnread`** — сумма **`unreadCount`** по беседам из **`GET /api/v2/chat/conversations`** (на сервере непрочитанные считаются по **`read_at_renter` / `read_at_partner` / `is_read`** для входящих от собеседника, см. **`enrichConversationRows`** в **`app/api/v2/chat/conversations/route.js`**).
+- Индикация: при **`totalUnread === 1`** — красная точка; при **`totalUnread &gt; 1`** — красный бейдж с числом (до **99+**). Обновление списка и счётчиков — **Smart Realtime** в **`lib/context/ChatContext.jsx`** (INSERT в **`messages`**) плюс начальная **`refresh()`**; для мгновенной доставки событий в браузере нужен **`SUPABASE_JWT_SECRET`** и **`GET /api/v2/auth/realtime-token`** → **`supabase.realtime.setAuth`** (**`components/supabase-realtime-auth-sync.jsx`** в **`app/layout.js`**).
+- **Presence «В сети»** на любой странице: **`usePresence`** (**`hooks/use-realtime-chat.js`**) использует общий канал **`gostaylo-site-presence:v1`** (раньше был на беседу), чтобы трекать онлайн глобально, а не только внутри открытого треда.
+
+### 11.7 Планируется
 
 - **E2E Data Sentinel** — nightly: поиск утечек **`[E2E_TEST_DATA]`** в публичных API/SSR и алерт.
 - **Bot #26: Notification Contract Diff** — сравнение HTML/email с baseline (deep links, календарь, вложения, i18n).
-- **Bot #27: Calendar Link Guard** — TTL/валидность **`/api/calendar/stay`**, наличие **`CALENDAR_STAY_LINK_SECRET`** в окружениях.
-- **Bot #28: Telegram Action Security** — синтетика lifecycle ban-token (подпись, TTL, replay).
+- **Calendar Link Guard** — TTL/валидность **`/api/calendar/stay`**, наличие **`CALENDAR_STAY_LINK_SECRET`** в окружениях.
+- **Telegram Action Security** — синтетика lifecycle ban-token (подпись, TTL, replay).
 
 ---
 
-**Версия:** апрель 2026 — SEO Spy + Accountant + Polyglot UX bots; серверная броня **`MIN_BOOKING_GUEST_TOTAL_THB`** и **`[SECURITY_ALERT]`**; §9–11; production-smoke Playwright; premium notifications; §8 critical telemetry; SEO листинга в **`app/listings/[id]/layout.js`**.
+**Версия:** апрель 2026 — Security + Speed bots; глобальный Realtime JWT + site presence; SEO Spy + Accountant + Polyglot UX; серверная броня **`MIN_BOOKING_GUEST_TOTAL_THB`**; §9–11; nightly Playwright (**`.github/workflows/playwright.yml`**); production-smoke; §8 critical telemetry; SEO листинга в **`app/listings/[id]/layout.js`**.

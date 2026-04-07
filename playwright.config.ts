@@ -54,6 +54,8 @@ const productionSmokeProjects =
  * SEO Spy Bot: `tests/e2e/seo-spy-bot.spec.ts` — проект `seo-spy-bot`.
  * Accountant Bot: `tests/e2e/bots/accountant-math.spec.ts` — проект `accountant-bot`.
  * Polyglot UX Bot: `tests/e2e/bots/polyglot-ux.spec.ts` — проект `polyglot-bot` (renter storage).
+ * Security Bot: `tests/e2e/security-bot.spec.ts` — проект `security-bot` (без storageState).
+ * Speed Bot: `tests/e2e/speed-bot.spec.ts` — проект `speed-bot`.
  *
  * `npx playwright test` — все проекты; RBAC: `--project rbac-*`; чат: `--project chat-mobile-iphone --project chat-mobile-pixel --project chat-stress`
  *
@@ -127,6 +129,22 @@ export default defineConfig({
       name: 'smoke-chromium',
       testDir: './tests',
       testMatch: '**/example.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'security-bot',
+      testDir: './tests/e2e',
+      testMatch: '**/security-bot.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: { cookies: [], origins: [] },
+      },
+    },
+    {
+      name: 'speed-bot',
+      testDir: './tests/e2e',
+      testMatch: '**/speed-bot.spec.ts',
+      timeout: 180_000,
       use: { ...devices['Desktop Chrome'] },
     },
     {

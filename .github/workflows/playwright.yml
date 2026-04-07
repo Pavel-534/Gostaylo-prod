@@ -1,0 +1,74 @@
+# Ночной патруль: полный прогон Playwright (03:00 UTC).
+# Требуются секреты репозитория:
+#   PLAYWRIGHT_BASE_URL — URL стенда с уже запущенным приложением (Next.js).
+#   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID — уведомление при любом падении job.
+# Опционально: E2E_*, JWT_SECRET и др. — как при локальном npx playwright test.
+
+name: Playwright nightly
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright
+        env:
+          CI: true
+          BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+          PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+          E2E_FIXTURE_SECRET: ${{ secrets.E2E_FIXTURE_SECRET }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_PARTNER_EMAIL: ${{ secrets.E2E_PARTNER_EMAIL }}
+          E2E_RENTER_EMAIL: ${{ secrets.E2E_RENTER_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: npx playwright test
+
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Notify Telegram on failure
+        if: failure()
+        env:
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$TG_TOKEN" ] || [ -z "$TG_CHAT" ]; then
+            echo "TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set — skip Telegram"
+            exit 0
+          fi
+          MSG=$(printf '%s\n' \
+            "<b>Playwright nightly FAILED</b>" \
+            "Репозиторий: <code>${{ github.repository }}</code>" \
+            "Ветка: <code>${{ github.ref_name }}</code>" \
+            "Запуск: <a href=\"${RUN_URL}\">workflow</a>" \
+            "Проверьте артефакт <code>playwright-report</code> в Actions.")
+          curl -sS -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -d "chat_id=${TG_CHAT}" \
+            --data-urlencode "text=${MSG}" \
+            -d "parse_mode=HTML" \
+            -d "disable_web_page_preview=true"

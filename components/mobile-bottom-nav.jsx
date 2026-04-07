@@ -99,6 +99,7 @@ export function MobileBottomNav() {
           const href = item.requiresAuth && !user ? '#' : item.href;
           
           const showBadge = item.href === '/messages' && totalUnread > 0;
+          const badgeLabel = totalUnread > 99 ? '99+' : String(totalUnread);
 
           return (
             <Link
@@ -111,10 +112,21 @@ export function MobileBottomNav() {
                   : 'text-slate-400 hover:text-slate-600'
               }`}
             >
-              <span className="relative">
+              <span className="relative inline-flex">
                 <Icon className={`h-5 w-5 ${active ? 'stroke-[2.5]' : 'stroke-[1.5]'}`} />
-                {showBadge && (
-                  <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white" />
+                {showBadge && totalUnread === 1 && (
+                  <span
+                    className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white"
+                    aria-label="Есть непрочитанные сообщения"
+                  />
+                )}
+                {showBadge && totalUnread > 1 && (
+                  <span
+                    className="absolute -top-2 -right-2 min-h-[18px] min-w-[18px] px-1 rounded-full bg-red-500 text-[10px] font-bold leading-[18px] text-center text-white ring-1 ring-white"
+                    aria-label={`Непрочитанных: ${totalUnread}`}
+                  >
+                    {badgeLabel}
+                  </span>
                 )}
               </span>
               <span className={`text-[10px] mt-1 ${active ? 'font-semibold' : 'font-medium'}`}>

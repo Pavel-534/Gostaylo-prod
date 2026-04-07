@@ -8,6 +8,7 @@ import { MainContent } from '@/components/main-content'
 import { AuthProvider } from '@/contexts/auth-context'
 import { I18nProvider } from '@/contexts/i18n-context'
 import { ChatProvider } from '@/lib/context/ChatContext'
+import { SupabaseRealtimeAuthSync } from '@/components/supabase-realtime-auth-sync'
 import { getRequestSiteUrl } from '@/lib/server-site-url'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
@@ -92,6 +93,7 @@ button{font:inherit}
       <body className={inter.className}>
         <I18nProvider>
           <AuthProvider>
+            <SupabaseRealtimeAuthSync />
             <ChatProvider>
               <UniversalHeader />
               <MainContent>{children}</MainContent>

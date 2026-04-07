@@ -1,14 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  realtime: { params: { eventsPerSecond: 10 } },
-})
+import { supabase } from '@/lib/supabase'
 
 /**
  * Broadcast «печатает…» по каналу Realtime (отдельно от presence).
@@ -21,7 +14,7 @@ export function useChatTyping(conversationId, userId, displayName) {
   const lastSentRef = useRef(0)
 
   useEffect(() => {
-    if (!conversationId || !userId) return
+    if (!conversationId || !userId || !supabase) return
 
     readyRef.current = false
     const channel = supabase.channel(`typing:${conversationId}`, {
