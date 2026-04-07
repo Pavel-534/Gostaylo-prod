@@ -109,7 +109,12 @@ export function UniversalHeader() {
             {/* Language Selector */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant='ghost' size='sm' className='h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-full hover:bg-slate-100'>
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  className='h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-full hover:bg-slate-100'
+                  data-testid='language-selector-trigger'
+                >
                   {renderLangFlag(LANGUAGES.find(l => l.code === language)?.code || 'ru')}
                 </Button>
               </DropdownMenuTrigger>
@@ -118,6 +123,7 @@ export function UniversalHeader() {
                   <DropdownMenuItem 
                     key={lang.code} 
                     onClick={() => handleLanguageChange(lang.code)}
+                    data-testid={`language-option-${lang.code}`}
                     className={`cursor-pointer ${language === lang.code ? 'bg-teal-50 text-teal-700' : ''}`}
                   >
                     <span className='mr-2'>{renderLangFlag(lang.code)}</span>

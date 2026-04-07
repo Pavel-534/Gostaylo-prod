@@ -127,9 +127,11 @@ test.describe('Mobile chat UI', () => {
     await openThread(page, baseURL)
 
     const ta = page.getByTestId(E2E_TEST_IDS.chatComposerTextarea)
-    await expect(ta).toBeVisible({ timeout: 30_000 })
+    await expect(ta).toBeVisible({ timeout: 60_000 })
+    await expect(ta).toBeEnabled({ timeout: 15_000 })
     await ta.fill(LONG_TEXT)
     await ta.scrollIntoViewIfNeeded()
+    await expect.poll(async () => ta.boundingBox(), { timeout: 15_000 }).not.toBeNull()
 
     const box = await ta.boundingBox()
     const vh = page.viewportSize()?.height ?? 800
@@ -183,16 +185,31 @@ test.describe('Mobile chat UI', () => {
     baseURL,
     request,
   }) => {
-    test.skip(!fixtureConvId, 'Нужен E2E_FIXTURE_SECRET и успешный POST fixture API')
+    test.skip(!E2E_FIXTURE_SECRET, 'Нужен E2E_FIXTURE_SECRET')
     test.skip(!baseURL, 'baseURL')
-    await openThread(page, baseURL)
+    const ownConvId = await createFixtureConversation(request)
+    test.skip(!ownConvId, 'POST pending-chat-booking не вернул conversationId')
+    await page.goto(`${baseURL}/messages/${ownConvId}/`, { waitUntil: 'domcontentloaded' })
+    await page.waitForURL(/\/messages\/[^/]+/, { timeout: 30_000 })
 
     const confirm = page.getByTestId(E2E_TEST_IDS.chatActionConfirm)
     await expect(confirm).toBeVisible({ timeout: 60_000 })
     await confirm.scrollIntoViewIfNeeded()
     await expect(confirm).toBeEnabled()
 
+    const putBooking = page.waitForResponse(
+      (r) =>
+        r.url().includes('/api/v2/partner/bookings/') &&
+        r.request().method() === 'PUT' &&
+        !r.url().includes('?'),
+      { timeout: 90_000 },
+    )
     await confirm.click()
+    const putRes = await putBooking
+    expect(
+      putRes.ok(),
+      `partner PUT confirm expected 2xx, got ${putRes.status()}`,
+    ).toBeTruthy()
 
     await expect(confirm).toBeHidden({ timeout: 90_000 })
     await expect(page.getByTestId(E2E_TEST_IDS.chatActionDecline)).toBeHidden({ timeout: 90_000 })
@@ -204,7 +221,7 @@ test.describe('Mobile chat UI', () => {
       baseURL!,
       String(conversationId),
       'booking_confirmed',
-      60_000,
+      90_000,
     )
 
     await page.reload({ waitUntil: 'domcontentloaded' })

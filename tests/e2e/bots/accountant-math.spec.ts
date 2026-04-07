@@ -5,16 +5,12 @@
  */
 import { test, expect, type APIRequestContext } from '@playwright/test'
 import {
+  E2E_EMAILS,
   E2E_FIXTURE_SECRET,
   E2E_HEADERS,
   E2E_ROUTES,
 } from '../constants'
-
-function addListingDays(isoDate: string, days: number): string {
-  const d = new Date(`${isoDate}T12:00:00.000Z`)
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
-}
+import { addListingDays, pickVehicleNDayRange } from '../helpers/vehicle-calendar-range'
 
 function parseRawAmount(s: string | null): number {
   if (s == null || s === '') return NaN
@@ -227,6 +223,64 @@ test.describe('@accountant-bot', () => {
           0.01,
         )
       }
+    }
+  })
+})
+
+test.describe('accountant-bot anti-tamper', () => {
+  test('POST /api/v2/promo-codes/validate: несуществующий промокод → 400', async ({
+    request,
+    baseURL,
+  }) => {
+    test.skip(!baseURL, 'baseURL')
+    const r = await request.post(`${baseURL}/api/v2/promo-codes/validate`, {
+      headers: { 'Content-Type': 'application/json' },
+      data: { code: '__E2E_NO_SUCH_PROMO__', amount: 50_000 },
+    })
+    expect(r.status()).toBe(400)
+    const j = (await r.json()) as { valid?: boolean; success?: boolean }
+    expect(j.valid === false || j.success === false).toBeTruthy()
+  })
+
+  test('POST /api/v2/bookings: подмена clientQuotedSubtotalThb → 400 PRICE_MISMATCH', async ({
+    playwright,
+    baseURL,
+  }) => {
+    test.skip(!baseURL, 'baseURL')
+    const ctx = await playwright.request.newContext({
+      baseURL,
+      storageState: 'playwright/.auth/user.json',
+    })
+    try {
+      const meRes = await ctx.get('/api/v2/auth/me')
+      test.skip(!meRes.ok(), 'auth /me')
+      const meJson = (await meRes.json()) as { success?: boolean; user?: { id?: string } }
+      const renterId = meJson?.success && meJson?.user?.id ? meJson.user.id : null
+      test.skip(!renterId, 'renter id')
+
+      const range = await pickVehicleNDayRange(ctx, baseURL, 3)
+      test.skip(!range, 'vehicle calendar')
+
+      const postRes = await ctx.post('/api/v2/bookings', {
+        headers: { 'Content-Type': 'application/json' },
+        data: {
+          listingId: range.listingId,
+          renterId,
+          checkIn: range.checkIn,
+          checkOut: range.checkOut,
+          guestName: 'E2E Price Guard',
+          guestEmail: E2E_EMAILS.renter,
+          guestPhone: '+66000000000',
+          currency: 'THB',
+          guestsCount: 1,
+          clientQuotedSubtotalThb: 1,
+        },
+      })
+      expect(postRes.status()).toBe(400)
+      const body = (await postRes.json()) as { code?: string }
+      expect(body.code).toBe('PRICE_MISMATCH')
+    } finally {
+      await ctx.dispose()
     }
   })
 })

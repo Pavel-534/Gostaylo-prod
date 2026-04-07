@@ -639,6 +639,10 @@ function PremiumListingContent({ params }) {
           return
         }
         payload.clientQuotedSubtotalThb = Math.round(Number(sub))
+        const ft = priceCalc?.finalTotal
+        if (ft != null && Number.isFinite(Number(ft))) {
+          payload.clientQuotedGuestTotalThb = Math.round(Number(ft))
+        }
       }
       if (bookingModalIntent === 'private') payload.privateTrip = true
       if (bookingModalIntent === 'special') payload.negotiationRequest = true

@@ -78,6 +78,7 @@ export async function POST(request) {
       privateTrip,
       negotiationRequest,
       clientQuotedSubtotalThb,
+      clientQuotedGuestTotalThb,
     } = parseResult.data;
 
     const checkInDate = new Date(checkIn);
@@ -196,10 +197,14 @@ export async function POST(request) {
         negotiationRequest: negotiationRequest === true,
         minRemainingSpots: minRem,
         clientQuotedSubtotalThb,
+        clientQuotedGuestTotalThb,
       });
 
       if (result.error) {
-        return NextResponse.json({ success: false, error: result.error }, { status: 400 });
+        return NextResponse.json(
+          { success: false, error: result.error, code: result.code },
+          { status: 400 },
+        );
       }
 
       await NotificationService.dispatch(NotificationEvents.NEW_BOOKING_REQUEST, {
@@ -275,6 +280,7 @@ export async function POST(request) {
       promoCode,
       guestsCount,
       clientQuotedSubtotalThb,
+      clientQuotedGuestTotalThb,
     });
 
     if (result.error) {

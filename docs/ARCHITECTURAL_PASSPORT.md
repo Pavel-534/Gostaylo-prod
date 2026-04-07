@@ -297,6 +297,8 @@ partnerPayoutThb = subtotalThb - commissionThb                // bookings.partne
 
 **Identity:** `userTotalThb − partnerPayoutThb = guestFeeThb + commissionThb` (when both percentages apply to the same subtotal, `guestFeeThb` and `commissionThb` match before rounding).
 
+**Min transaction threshold (guest payable):** **`MIN_BOOKING_GUEST_TOTAL_THB = 100`** — минимальный **итог к оплате гостем** (субтотал проживания после промо **+** сервисный сбор, THB, те же округления, что в UI). Проверка только на сервере (**`BookingService`**, см. **`lib/booking-price-integrity.js`**); код отказа API **`BOOKING_MIN_TOTAL_THB`**.
+
 ### 3.5 Price Unification (CRITICAL)
 
 **The listing booking widget and checkout MUST use the same commission rate source and the same THB subtotal before fee.**

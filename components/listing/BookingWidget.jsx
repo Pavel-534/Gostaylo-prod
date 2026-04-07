@@ -468,6 +468,7 @@ export function DesktopBookingWidget({
           <Button
             onClick={onBookingClick}
             disabled={!dateRange?.from || !dateRange?.to || !canInstantBook || availabilityLoading}
+            data-testid="listing-book-now"
             className="w-full h-12 text-base bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
           >
             {exclusiveDatesUnavailable
@@ -679,6 +680,7 @@ export function MobileBookingBar({
           <Button
             onClick={onBookingClick}
             disabled={!dateRange?.from || !dateRange?.to || !canInstantBook || availabilityLoading}
+            data-testid="listing-book-now"
             className="h-12 min-w-[7.5rem] px-4 text-sm sm:text-base bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
           >
             {exclusiveDatesUnavailable

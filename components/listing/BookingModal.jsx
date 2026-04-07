@@ -151,6 +151,7 @@ export function BookingModal({
             <Button
               type="submit"
               disabled={submitting}
+              data-testid="booking-modal-confirm"
               className="w-full bg-teal-600 hover:bg-teal-700"
             >
               {submitting ? (

@@ -63,6 +63,7 @@
 - Схема тела: **`lib/validations/booking.js`**; публичный вход — **`POST /api/v2/bookings`**.
 - **Финальный POST с клиента** (кнопка «Забронировать»): заголовки **`Cache-Control: no-cache`** и **`Pragma: no-cache`**, чтобы промежуточный HTTP-кэш (в т.ч. после **`private` TTL календаря**) не подставил устаревшую картину занятости; сервер всё равно делает **повторную проверку доступности** в **`BookingService`** непосредственно перед INSERT.
 - **Конфликт дат после кэша:** ответ **`code: 'DATES_CONFLICT'`** → пользователю **`getBookingApiUserMessage`** / **`bookingErr_datesConflict`** (локализовано в **`lib/translations/errors.js`**).
+- **Server-side Integrity (ценовая броня):** после промокода **`BookingService.createBooking` / `createInquiryBooking`** отклоняют бронь, если субтотал **&lt; 0** или **итог к оплате гостем** (**`price_thb + commission_thb`**, те же округления, что на витрине) **&lt; `MIN_BOOKING_GUEST_TOTAL_THB` (100)** — код **`BOOKING_MIN_TOTAL_THB`**, Telegram **`[SECURITY_ALERT]`**. Опционально тело **`clientQuotedGuestTotalThb`** (THB): при расхождении с серверным итогом — **`PRICE_MISMATCH`** + **`[SECURITY_ALERT]`** / **`[FRAUD_DETECTION]`** (как у **`clientQuotedSubtotalThb`**). Константа и формула: **`lib/booking-price-integrity.js`**.
 
 ### 1.4b Deep links (мобильные уведомления / внешние приложения)
 
@@ -282,6 +283,8 @@
 | E2E hygiene helper / cleanup | `lib/e2e/test-data-tag.js`, `tests/global-teardown.ts`, `scripts/clean-e2e-garbage.mjs` |
 | SEO Spy Bot №25 + TG алерт | `tests/e2e/seo-spy-bot.spec.ts`, `app/api/v2/internal/e2e/seo-spy-alert/route.js` |
 | Accountant Bot (Deep Financial Math) + TG `recordCriticalSignal` | `tests/e2e/bots/accountant-math.spec.ts`, `app/api/v2/internal/e2e/financial-error-alert/route.js`, `lib/currency.js` (`priceRawForTest`) |
+| Polyglot UX Bot (TH/ZH) | `tests/e2e/bots/polyglot-ux.spec.ts`, проект **`polyglot-bot`**, `data-testid` языка и CTA |
+| Серверная броня цены | `lib/booking-price-integrity.js`, `lib/services/booking.service.js`, `POST /api/v2/bookings` |
 | i18n UI | `lib/translations/index.js`, `getUIText`, `app/listings/[id]/layout.js` (metadata + цена) |
 | Playwright env + лог секрета + сид tours | `playwright.config.ts`, `tests/global-setup.ts`, `tests/e2e/seed-e2e-tour.ts` |
 
@@ -308,6 +311,11 @@
 ## 9. Environment Variables & Secrets (критичные для продакшена)
 
 Кратко о переменных, без полного каталога всех ключей.
+
+### 9.1 Server-side Integrity (не секрет, но канон среды)
+
+- **Минимальный итог к оплате гостю (THB):** **`MIN_BOOKING_GUEST_TOTAL_THB = 100`** в **`lib/booking-price-integrity.js`** — проверяется в **`BookingService`** при **`POST /api/v2/bookings`** (не обходится клиентом). Нарушения и попытки подмены цены сопровождаются **`notifySystemAlert`** с префиксом **`[SECURITY_ALERT]`** (и при **`PRICE_MISMATCH`** — **`[FRAUD_DETECTION]`** / **`recordCriticalSignal`** по существующей схеме).
+- **Аттестация итога:** фронт листинга передаёт **`clientQuotedGuestTotalThb`** (округлённый **`finalTotal`**) вместе с **`clientQuotedSubtotalThb`**; расхождение с сервером → **`PRICE_MISMATCH`**.
 
 | Переменная | Назначение |
 |------------|------------|
@@ -343,7 +351,13 @@
 - Минимальная проверка: итог **≥ 100 THB** (**`data-test-total-thb`**).
 - Алерт при провале: **`POST /api/v2/internal/e2e/financial-error-alert`** + **`x-e2e-fixture-secret`** → **`recordCriticalSignal('FINANCIAL_ERROR', …)`**, текст вида **`Mismatch: Expected …, Got …`**.
 
-### 11.3 Планируется
+### 11.3 Localization UX Bot (Polyglot) — **активен**
+
+- Реализация: Playwright **`tests/e2e/bots/polyglot-ux.spec.ts`**, проект **`polyglot-bot`** (**`storageState`**: рентер из **`tests/auth.setup.ts`**).
+- Сценарии: листинг **vehicles** (выбор дат) — языки **th** / **zh**, проверка **`listing-book-now`** (кликабельность, без горизонтального overflow); чекаут — существующая бронь рентера в статусе **PENDING / AWAITING_PAYMENT / CONFIRMED**, языки **th** / **zh**, **`checkout-pay-submit`**.
+- Контроль «сырых» ключей: в **`main`** не должно встречаться **`.not_found`** / **`translation.`** (эвристика под отсутствующие строки i18n).
+
+### 11.4 Планируется
 
 - **E2E Data Sentinel** — nightly: поиск утечек **`[E2E_TEST_DATA]`** в публичных API/SSR и алерт.
 - **Bot #26: Notification Contract Diff** — сравнение HTML/email с baseline (deep links, календарь, вложения, i18n).
@@ -352,4 +366,4 @@
 
 ---
 
-**Версия:** апрель 2026 — SEO Spy Bot №25 + Accountant Bot (Playwright, `financial-error-alert`); §9 env secrets; §10–11 E2E hygiene + roadmap; production-smoke Playwright; premium notifications (deep links + Outlook + ICS), notification integrity e2e; §8 admin ban + critical telemetry; SEO листинга в **`app/listings/[id]/layout.js`**.
+**Версия:** апрель 2026 — SEO Spy + Accountant + Polyglot UX bots; серверная броня **`MIN_BOOKING_GUEST_TOTAL_THB`** и **`[SECURITY_ALERT]`**; §9–11; production-smoke Playwright; premium notifications; §8 critical telemetry; SEO листинга в **`app/listings/[id]/layout.js`**.

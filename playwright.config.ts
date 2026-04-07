@@ -53,6 +53,7 @@ const productionSmokeProjects =
  * Legacy smoke: `tests/example.spec.ts`.
  * SEO Spy Bot: `tests/e2e/seo-spy-bot.spec.ts` — проект `seo-spy-bot`.
  * Accountant Bot: `tests/e2e/bots/accountant-math.spec.ts` — проект `accountant-bot`.
+ * Polyglot UX Bot: `tests/e2e/bots/polyglot-ux.spec.ts` — проект `polyglot-bot` (renter storage).
  *
  * `npx playwright test` — все проекты; RBAC: `--project rbac-*`; чат: `--project chat-mobile-iphone --project chat-mobile-pixel --project chat-stress`
  *
@@ -139,6 +140,17 @@ export default defineConfig({
       testDir: './tests/e2e',
       testMatch: '**/bots/accountant-math.spec.ts',
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'polyglot-bot',
+      dependencies: ['setup'],
+      testDir: './tests/e2e',
+      testMatch: '**/bots/polyglot-ux.spec.ts',
+      timeout: 180_000,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: AUTH.user,
+      },
     },
     {
       name: 'chat-mobile-iphone',

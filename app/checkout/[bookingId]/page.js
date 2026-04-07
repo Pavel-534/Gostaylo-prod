@@ -688,6 +688,7 @@ function CheckoutPageInner({ params }) {
             <Button
               onClick={handleInitiatePayment}
               disabled={processing || !paymentMethod}
+              data-testid="checkout-pay-submit"
               className="w-full bg-teal-600 hover:bg-teal-700 h-12 text-lg"
             >
               {processing ? (
