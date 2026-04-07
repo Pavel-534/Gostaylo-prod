@@ -81,9 +81,10 @@ node_modules/@next/swc-linux-arm64-gnu/next-swc.linux-arm64-gnu.node
 *.env
 *.env.*
 
-# Playwright
+# Playwright / smoke artifacts (не коммитить отчёты и локальные скриншоты)
 test-results/
 playwright-report/
+homepage-screenshot.png
 
 # Playwright: сохранённые сессии (cookies) — не коммитить
 /playwright/.auth/*.json

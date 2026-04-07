@@ -10,6 +10,42 @@ const AUTH = {
   partner: 'playwright/.auth/partner.json',
   user: 'playwright/.auth/user.json',
 } as const
+const E2E_HEADERS =
+  process.env.E2E_FIXTURE_SECRET
+    ? { 'x-e2e-test-mode': '1' }
+    : undefined
+
+const PRODUCTION_SMOKE_URL =
+  process.env.PRODUCTION_SMOKE_URL || 'https://gostaylo.com'
+
+/** Прод-smoke не входит в обычный прогон — только при RUN_PRODUCTION_SMOKE=1. */
+const productionSmokeProjects =
+  process.env.RUN_PRODUCTION_SMOKE === '1'
+    ? [
+        {
+          name: 'setup-production-smoke',
+          testDir: './tests',
+          testMatch: '**/auth.setup.production-smoke.ts',
+          use: {
+            ...devices['Desktop Chrome'],
+            baseURL: PRODUCTION_SMOKE_URL,
+          },
+        },
+        {
+          name: 'production-smoke',
+          dependencies: ['setup-production-smoke'],
+          testDir: './tests/e2e',
+          testMatch: '**/production-smoke.spec.ts',
+          use: {
+            ...devices['Desktop Chrome'],
+            baseURL: PRODUCTION_SMOKE_URL,
+            storageState: 'playwright/.auth/production-smoke-partner.json',
+            /** Не слать x-e2e-test-mode на прод — поведение как у реальных пользователей */
+            extraHTTPHeaders: {},
+          },
+        },
+      ]
+    : []
 
 /**
  * E2E: `e2e/` (бронирование, валюты).
@@ -18,11 +54,14 @@ const AUTH = {
  *
  * `npx playwright test` — все проекты; RBAC: `--project rbac-*`; чат: `--project chat-mobile-iphone --project chat-mobile-pixel --project chat-stress`
  *
+ * **Production smoke:** `RUN_PRODUCTION_SMOKE=1 npx playwright test --project=setup-production-smoke --project=production-smoke` (опц. `PRODUCTION_SMOKE_URL=…`). Teardown при этом отключён.
+ *
  * BASE_URL / PLAYWRIGHT_BASE_URL — origin приложения (по умолчанию localhost:3000).
  * Mobile-chat с авто-бронью: **`E2E_FIXTURE_SECRET`** в `.env.local` или `.env` (подхватывается через `loadEnvConfig` выше), либо в shell при `npx playwright test`.
  */
 export default defineConfig({
   globalSetup: './tests/global-setup.ts',
+  globalTeardown: './tests/global-teardown.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -34,6 +73,7 @@ export default defineConfig({
     baseURL: process.env.PLAYWRIGHT_BASE_URL || process.env.BASE_URL || 'http://localhost:3000',
     trace: 'on-first-retry',
     locale: 'ru-RU',
+    ...(E2E_HEADERS ? { extraHTTPHeaders: E2E_HEADERS } : {}),
   },
   projects: [
     {
@@ -91,6 +131,7 @@ export default defineConfig({
       dependencies: ['setup'],
       testDir: './tests/e2e',
       testMatch: '**/mobile-chat.spec.ts',
+      timeout: 120_000,
       use: {
         ...devices['iPhone 14'],
         storageState: AUTH.partner,
@@ -116,6 +157,7 @@ export default defineConfig({
         storageState: AUTH.partner,
       },
     },
+    ...productionSmokeProjects,
   ],
   webServer: process.env.CI
     ? undefined

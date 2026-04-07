@@ -201,6 +201,30 @@
 - **`globalSetup`:** **`tests/global-setup.ts`** печатает **`[Playwright] E2E_FIXTURE_SECRET: LOADED | MISSING`**; при **LOADED** вызывается **`tests/e2e/seed-e2e-tour.ts`** — при отсутствии листинга **tours** у **`E2E_PARTNER_EMAIL`** создаётся один сид (лог **`E2E tours listing: seeded | already present`**), чтобы сценарии туров и RBAC не скипались.
 - **`use.baseURL`:** по умолчанию **`http://localhost:3000`**; переопределение: **`PLAYWRIGHT_BASE_URL`** или **`BASE_URL`**.
 
+### 5.5 Notification Integrity (email + Telegram)
+
+- **Booking confirmed email** строится в **`EmailService.prepareBookingConfirmedGuestEmail`** (и отправляется через `sendBookingConfirmedGuest`):  
+  - прямой deep-link в чат: **`/messages/{conversationId}/`** при наличии беседы;
+  - календарные кнопки: **Google + Outlook + .ics**;
+  - подписанный URL `.ics`: **`/api/calendar/stay?t=...`**;
+  - вложение `.ics` (`gostaylo-stay.ics`) в payload Resend (`attachments` base64).
+- **Deep-link fallback:** при отсутствии беседы используется **`/messages/`** (NotificationService, helper `buildGuestChatUrlForBooking`).
+- **i18n email UX:** для **zh** в `booking-email-i18n.js` акцент на `.ics` (Google может быть недоступен).
+- **Telemetry email-failure:** `EmailService.sendEmail` на отказах/исключениях вызывает **`recordCriticalSignal('EMAIL_FAILURE', { tag: '[EMAIL_FAILURE]' ... })`**.
+- **Integrity smoke API (e2e):** **`POST /api/v2/test/notifications/integrity`** (под `x-e2e-fixture-secret`) проверяет deep-link, наличие `.ics` attachment и валидность токена кнопки бана Telegram.
+
+### 5.6 E2E Hygiene: маркировка, фильтрация, очистка
+
+- Единый маркер тест-данных: **`[E2E_TEST_DATA]`** (`lib/e2e/test-data-tag.js`).
+- Фикстуры и сиды (`create-pending-chat-booking-fixture`, `create-tour-booking-math-fixture`, `seed-e2e-tour`) проставляют маркер в `special_requests`/`title`/`metadata`.
+- Глобальная фильтрация тест-объектов в «общих» выборках:
+  - поиск листингов: `lib/api/run-listings-search-get.js`;
+  - SSR листингов: `lib/server-data.js`;
+  - service-layer list API: `lib/db-service.js` (`listingsService.findAll`, `bookingsService.findAll`);
+  - `BookingService.getBookings` и chat inbox `GET /api/v2/chat/conversations`.
+- **Playwright global teardown:** `tests/global-teardown.ts` подключён в `playwright.config.ts`; удаляет E2E-артефакты из `messages`, `conversations`, `bookings`, `listings`. Обязателен для локального/CI прогона против dev/staging БД; на прод-smoke (`RUN_PRODUCTION_SMOKE=1`) teardown **автоматически отключается**, чтобы не трогать прод-данные. Подробнее: **§10**.
+- **Разовая чистка мусора:** `scripts/clean-e2e-garbage.mjs` (email-цели + `[E2E_TEST_DATA]`), поддержка `--dry-run`.
+
 ---
 
 ## 6. План масштабирования базы данных и запросов
@@ -246,12 +270,14 @@
 | Сумма в карточке запроса в чате (туры × гости, жильё × ночи) | `lib/chat-booking-totals.js` (`resolveChatBookingBreakdown`) |
 | E2E: PENDING + чат для mobile-chat | `lib/e2e/create-pending-chat-booking-fixture.js`, `app/api/v2/internal/e2e/pending-chat-booking/route.js` |
 | E2E: тур × гости (mobile-chat) | `lib/e2e/create-tour-booking-math-fixture.js`, `app/api/v2/internal/e2e/tour-booking-math/route.js` |
+| E2E: integrity уведомлений | `app/api/v2/test/notifications/integrity/route.js`, `e2e/notifications-integrity.spec.ts` |
 | Чат + статусы брони | `app/api/v2/chat/messages/route.js`, `lib/services/chat/access.js`, `lib/booking-status-chat-sync.js` |
 | Auth edge + login | `middleware.ts`, `app/login/page.js`, `app/admin/layout.js` |
 | Realtime чат (backoff) | `lib/chat/realtime-subscribe-with-backoff.js`, `hooks/use-realtime-chat.js`, `lib/context/ChatContext.jsx` |
 | Платежи / эскроу | `lib/services/payment.service.js`, `lib/services/escrow.service.js`, `app/api/cron/payouts` |
 | Системные TG-алерты | `lib/services/system-alert-notify.js`, `NotificationService.sendSystemAlert`, `lib/critical-telemetry.js`, `lib/services/fraud-telegram-ban-button.js` |
 | Admin: бан пользователя (TG link + API) | `POST/GET /api/v2/admin/users/ban`, `lib/auth/telegram-ban-link.js` |
+| E2E hygiene helper / cleanup | `lib/e2e/test-data-tag.js`, `tests/global-teardown.ts`, `scripts/clean-e2e-garbage.mjs` |
 | i18n UI | `lib/translations/index.js`, `getUIText`, `app/listings/[id]/layout.js` (metadata + цена) |
 | Playwright env + лог секрета + сид tours | `playwright.config.ts`, `tests/global-setup.ts`, `tests/e2e/seed-e2e-tour.ts` |
 
@@ -275,4 +301,36 @@
 
 ---
 
-**Версия:** апрель 2026 — Premium UI 16px, системный топик Telegram, финальная проверка слотов перед созданием брони, манифест по масштабированию БД; cookie-auth, чат, CurrencyService, туры / `group_size`; §8 admin ban + critical telemetry; SEO листинга с ценой в **`app/listings/[id]/layout.js`**.
+## 9. Environment Variables & Secrets (критичные для продакшена)
+
+Кратко о переменных, без полного каталога всех ключей.
+
+| Переменная | Назначение |
+|------------|------------|
+| **`CALENDAR_STAY_LINK_SECRET`** | HMAC-секрет для подписи токенов ссылки **`GET /api/calendar/stay?t=…`** (кнопки «добавить в календарь» и вложение `.ics` в письмах). В **production** обязателен: без него модуль **`lib/calendar/calendar-stay-token.js`** бросает ошибку. В dev при отсутствии — предупреждение и fallback (только для локальной разработки). |
+| **`TELEGRAM_ADMIN_BAN_SECRET`** | Отдельный секрет для подписи одноразовых ссылок бана из Telegram (**`lib/auth/telegram-ban-link.js`** → **`GET /api/v2/admin/users/ban?t=…`**). Если не задан, используется fallback **`JWT_SECRET`** (менее изолированно). Рекомендуется выделенный секрет в проде. |
+| **`TELEGRAM_SYSTEM_ALERTS_TOPIC_ID`** | ID **топика** (forum thread) в админской Telegram-группе для **системных алертов** (**`NotificationService.sendSystemAlert`** / **`notifySystemAlert`**): FX stale, сбои брони/чата/платежей, cron, webhooks и т.д. При отсутствии или неверном значении — fallback **`sendToAdmin`** (личка / топик FINANCE). См. §1.6 и §5.3. |
+
+---
+
+## 10. E2E Hygiene System (правила и обязательность)
+
+1. **Маркер данных:** любые сиды и фикстуры помечают сущности строкой **`[E2E_TEST_DATA]`** (константа **`lib/e2e/test-data-tag.js`**), чтобы их можно было отфильтровать из публичного поиска, списков чата и выборок «как у пользователя».
+2. **Фильтрация в коде:** поиск листингов, SSR, `db-service`, `BookingService.getBookings`, **`GET /api/v2/chat/conversations`** (для не-staff) исключают помеченные записи; для Playwright при заголовке **`x-e2e-test-mode`** фильтр можно обходить (см. роут conversations).
+3. **`globalTeardown`:** в **`playwright.config.ts`** указан **`tests/global-teardown.ts`** — после прогона удаляются артефакты с тегом и связанные строки. Это **обязательная** часть гигиены при работе с тестовой/staging БД. Вручную: **`node scripts/clean-e2e-garbage.mjs`** (поддержка **`--dry-run`**).
+4. **Production smoke:** проекты **`setup-production-smoke`** + **`production-smoke`** включаются только при **`RUN_PRODUCTION_SMOKE=1`**; базовый URL — **`PRODUCTION_SMOKE_URL`** (по умолчанию **`https://gostaylo.com`**). Сценарии **не** вызывают internal fixture API (нет лишних броней и уведомлений реальным хостам); используются учётные данные **`E2E_PARTNER_EMAIL`** / **`E2E_PASSWORD`**. При **`RUN_PRODUCTION_SMOKE=1`** teardown **не выполняется** (защита прод-БД из `.env`). Опционально: **`E2E_PRODUCTION_LISTING_ID`** для стабильной карточки листинга.
+
+---
+
+## 11. Roadmap: Future bots & monitoring
+
+- **SEO Spy Bot** — периодический обход ключевых публичных URL: проверка **`title`**, **`meta description`**, **`og:*`**, **`h1`**, канонических ссылок и кодов ответа; алерт при регрессии относительно baseline или чек-листа.
+- **Accountant Bot** — синтетические сценарии мультивалютной витрины и брони: согласованность **RUB / THB / USD** (и др.) с **`exchange_rates`** и **`CurrencyService.getDisplayRateMap`**, отсутствие «магических» курсов в UI/логах, смок **`GET /api/v2/exchange-rates`**.
+- **Bot #25: E2E Data Sentinel** — nightly: поиск утечек **`[E2E_TEST_DATA]`** в публичных API/SSR и алерт.
+- **Bot #26: Notification Contract Diff** — сравнение HTML/email с baseline (deep links, календарь, вложения, i18n).
+- **Bot #27: Calendar Link Guard** — TTL/валидность **`/api/calendar/stay`**, наличие **`CALENDAR_STAY_LINK_SECRET`** в окружениях.
+- **Bot #28: Telegram Action Security** — синтетика lifecycle ban-token (подпись, TTL, replay).
+
+---
+
+**Версия:** апрель 2026 — §9 env secrets; §10–11 E2E hygiene + roadmap; production-smoke Playwright; premium notifications (deep links + Outlook + ICS), notification integrity e2e; §8 admin ban + critical telemetry; SEO листинга в **`app/listings/[id]/layout.js`**.

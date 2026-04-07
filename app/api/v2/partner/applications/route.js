@@ -104,43 +104,107 @@ export async function POST(request) {
         error: 'User is already a partner'
       }, { status: 400 })
     }
-    
-    // Check for existing pending application
+
+    let normalizedPortfolio =
+      typeof portfolio === 'string' ? portfolio.trim() : ''
+    normalizedPortfolio = normalizedPortfolio || null
+    if (
+      normalizedPortfolio &&
+      !normalizedPortfolio.startsWith('http://') &&
+      !normalizedPortfolio.startsWith('https://')
+    ) {
+      normalizedPortfolio = `https://${normalizedPortfolio}`
+    }
+    const social = typeof socialLink === 'string' ? socialLink.trim() : ''
+    const socialNorm = social || null
+
+    // One row per user (UNIQUE user_id): reuse row on resubmit after REJECTED
     const { data: existingApp } = await supabaseAdmin
       .from('partner_applications')
       .select('id, status')
       .eq('user_id', userId)
-      .eq('status', 'PENDING')
-      .single()
-    
+      .maybeSingle()
+
+    let application = null
+
     if (existingApp) {
-      return NextResponse.json({
-        success: false,
-        error: 'You already have a pending application'
-      }, { status: 400 })
+      if (existingApp.status === 'PENDING') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'You already have a pending application',
+          },
+          { status: 400 }
+        )
+      }
+      if (existingApp.status === 'APPROVED') {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Заявка уже была одобрена. Если кабинет партнёра не открылся — напишите в поддержку.',
+          },
+          { status: 400 }
+        )
+      }
+      if (existingApp.status === 'REJECTED') {
+        const { data: updated, error: updateError } = await supabaseAdmin
+          .from('partner_applications')
+          .update({
+            phone,
+            experience,
+            social_link: socialNorm,
+            portfolio: normalizedPortfolio,
+            status: 'PENDING',
+            rejection_reason: null,
+            reviewed_by: null,
+            reviewed_at: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingApp.id)
+          .select()
+          .single()
+
+        if (updateError || !updated) {
+          console.error('[APPLICATION] Resubmit update error:', updateError)
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Failed to submit application',
+            },
+            { status: 500 }
+          )
+        }
+        application = updated
+      }
     }
-    
-    // Create application with PENDING status
-    const { data: application, error: createError } = await supabaseAdmin
-      .from('partner_applications')
-      .insert({
-        user_id: userId,
-        phone,
-        experience,
-        social_link: socialLink || null,
-        portfolio: portfolio || null,
-        status: 'PENDING',
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single()
-    
-    if (createError) {
-      console.error('[APPLICATION] Create error:', createError)
-      return NextResponse.json({
-        success: false,
-        error: 'Failed to submit application'
-      }, { status: 500 })
+
+    if (!application) {
+      const { data: inserted, error: createError } = await supabaseAdmin
+        .from('partner_applications')
+        .insert({
+          user_id: userId,
+          phone,
+          experience,
+          social_link: socialNorm,
+          portfolio: normalizedPortfolio,
+          status: 'PENDING',
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single()
+
+      if (createError || !inserted) {
+        console.error('[APPLICATION] Create error:', createError)
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Failed to submit application',
+          },
+          { status: 500 }
+        )
+      }
+      application = inserted
     }
     
     // Send Telegram notification to admin

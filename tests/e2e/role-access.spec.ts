@@ -7,13 +7,41 @@ import path from 'path'
 import fs from 'fs'
 import { E2E_ROUTES, E2E_STRINGS, E2E_TEST_IDS } from './constants'
 
+type AuthMeShape = { user?: { id?: string; role?: string } } | null
+
+async function fetchAuthMeWithRetry(
+  request: import('@playwright/test').APIRequestContext,
+  baseURL: string,
+  retries = 4,
+): Promise<AuthMeShape> {
+  for (let i = 0; i <= retries; i++) {
+    try {
+      const r = await request.get(`${baseURL}${E2E_ROUTES.authMe}`, { failOnStatusCode: false })
+      const ct = (r.headers()['content-type'] || '').toLowerCase()
+      if (!r.ok() || !ct.includes('application/json')) {
+        if (i < retries) {
+          await new Promise((resolve) => setTimeout(resolve, 700 * (i + 1)))
+          continue
+        }
+        return null
+      }
+      const j = (await r.json().catch(() => null)) as AuthMeShape
+      if (j?.user) return j
+    } catch {
+      // retry
+    }
+    if (i < retries) {
+      await new Promise((resolve) => setTimeout(resolve, 700 * (i + 1)))
+    }
+  }
+  return null
+}
+
 async function getAuthUserId(
   request: import('@playwright/test').APIRequestContext,
   baseURL: string,
 ): Promise<string | null> {
-  const r = await request.get(`${baseURL}${E2E_ROUTES.authMe}`, { failOnStatusCode: false })
-  if (!r.ok()) return null
-  const j = await r.json()
+  const j = await fetchAuthMeWithRetry(request, baseURL)
   return j?.user?.id ? String(j.user.id) : null
 }
 
@@ -84,8 +112,7 @@ test.describe('Partner (кабинет партнёра)', () => {
 test.describe('Renter', () => {
   test('нет доступа к /partner и /admin', { tag: '@renter' }, async ({ page, baseURL, request }) => {
     test.skip(!baseURL, 'baseURL')
-    const me = await request.get(`${baseURL}/api/v2/auth/me`)
-    const mj = await me.json()
+    const mj = await fetchAuthMeWithRetry(request, baseURL)
     const renterRole = mj?.user?.role
     expect(
       ['RENTER', 'USER'].includes(String(renterRole)),
@@ -155,8 +182,7 @@ test.describe('Renter', () => {
 test.describe('Admin', () => {
   test('доступ к ключевым разделам админки', { tag: '@admin' }, async ({ page, baseURL, request }) => {
     test.skip(!baseURL, 'baseURL')
-    const me = await request.get(`${baseURL}/api/v2/auth/me`)
-    const mj = await me.json()
+    const mj = await fetchAuthMeWithRetry(request, baseURL)
     const adminRole = String(mj?.user?.role || '')
     expect(
       ['ADMIN', 'MODERATOR'].includes(adminRole),

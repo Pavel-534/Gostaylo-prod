@@ -4,8 +4,9 @@
  */
 import { createClient } from '@supabase/supabase-js'
 import { E2E_EMAILS } from './constants'
+import { E2E_TEST_DATA_TAG } from '../../lib/e2e/test-data-tag.js'
 
-const TAG = '[E2E_SEED_TOUR]'
+const TAG = `${E2E_TEST_DATA_TAG} [E2E_SEED_TOUR]`
 
 export async function seedE2eTourListingIfNeeded(): Promise<void> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -70,7 +71,7 @@ export async function seedE2eTourListingIfNeeded(): Promise<void> {
     commission_rate: 15,
     images: [],
     cover_image: null,
-    metadata: { group_size_min: 1, group_size_max: 10 },
+    metadata: { group_size_min: 1, group_size_max: 10, test_data_tag: E2E_TEST_DATA_TAG },
     available: true,
     min_booking_days: 1,
     max_booking_days: 730,

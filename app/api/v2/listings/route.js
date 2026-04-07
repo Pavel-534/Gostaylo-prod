@@ -12,6 +12,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { revalidateListingPaths } from '@/lib/revalidation'
 import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings'
+import { isMarkedE2eTestData } from '@/lib/e2e/test-data-tag'
 
 export const dynamic = 'force-dynamic'
 
@@ -91,7 +92,7 @@ export async function GET(request) {
     const defaultListingCommission = await resolveDefaultCommissionPercent();
 
     // Transform for frontend compatibility
-    const transformed = listings.map(l => ({
+    const transformed = (listings || []).filter((l) => !isMarkedE2eTestData(l)).map(l => ({
       id: l.id,
       ownerId: l.owner_id,
       categoryId: l.category_id,
