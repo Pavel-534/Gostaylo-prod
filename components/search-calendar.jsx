@@ -271,7 +271,12 @@ function MobileCalendarDrawer({
       // Start new selection
       setTempRange({ from: date, to: null })
     } else {
-      // Complete selection
+      // Уже выбран заезд, ждём выезд
+      if (isSameDay(date, tempRange.from)) {
+        // Повторный тап по дню заезда (часто «сегодня»): иначе ветка else даёт 0 ночей и кажется, что «не сработало»
+        setTempRange({ from: tempRange.from, to: addDays(tempRange.from, 1) })
+        return
+      }
       if (date < tempRange.from) {
         setTempRange({ from: date, to: tempRange.from })
       } else {
@@ -292,10 +297,18 @@ function MobileCalendarDrawer({
   const loc = locales[locale] || enUS
   const nights = tempRange.from && tempRange.to 
     ? differenceInDays(tempRange.to, tempRange.from) : 0
+  const canConfirm = Boolean(
+    tempRange.from &&
+      tempRange.to &&
+      differenceInDays(tempRange.to, tempRange.from) >= 1,
+  )
   
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="h-[85vh] max-h-[85vh]">
+      <DrawerContent
+        className="h-[85vh] max-h-[85vh]"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DrawerHeader className="border-b pb-3">
           <div className="flex items-center justify-between">
             <DrawerTitle className="text-lg font-semibold">
@@ -309,7 +322,7 @@ function MobileCalendarDrawer({
           </div>
           
           {/* Selection Summary */}
-          {nights > 0 && (
+          {tempRange.from && tempRange.to && nights > 0 && (
             <div className="flex items-center gap-2 mt-2">
               <Badge variant="secondary" className="bg-teal-100 text-teal-700">
                 {format(tempRange.from, 'd MMM', { locale: loc })} — {format(tempRange.to, 'd MMM', { locale: loc })}
@@ -319,10 +332,15 @@ function MobileCalendarDrawer({
               </Badge>
             </div>
           )}
+          {tempRange.from && !tempRange.to && (
+            <p className="text-sm text-slate-500 mt-2 text-left">
+              {locale === 'ru' ? 'Выберите дату выезда' : 'Select checkout date'}
+            </p>
+          )}
         </DrawerHeader>
         
         {/* Vertical Scroll Months */}
-        <div className="flex-1 overflow-y-auto px-2">
+        <div className="flex-1 overflow-y-auto px-2 pb-2 overscroll-contain">
           {months.map((month, idx) => (
             <div key={idx} className="py-2">
               <MonthGrid
@@ -349,7 +367,7 @@ function MobileCalendarDrawer({
             <Button 
               className="flex-1 h-11 bg-teal-600 hover:bg-teal-700 text-white font-medium"
               onClick={handleConfirm}
-              disabled={!tempRange.from || !tempRange.to}
+              disabled={!canConfirm}
               data-testid="search-calendar-confirm"
             >
               {countLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}

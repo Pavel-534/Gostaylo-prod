@@ -283,37 +283,40 @@ for each night in booking:
   totalPrice += dailyPrice
 ```
 
-### 3.4 Commission Formula
+### 3.4 Revenue split (User total → Platform → Partner)
+
+Canonical rates come from **`resolveDefaultCommissionPercent()`** / listing / partner overrides — not a hardcoded **15%** in code.
 
 ```
-serviceFee = priceThb * (SERVICE_FEE_RATE)  // 15% = 0.15
-totalWithFee = priceThb + serviceFee
-grandTotal = totalWithFee  // This is shown in booking modal AND checkout
-partnerEarnings = priceThb - (priceThb * commissionRate)
+subtotalThb   = PricingService total for the stay (THB, before guest fee)
+guestFeeThb   = round(subtotalThb * (commissionRate / 100))   // «сервисный сбор» на витрине
+userTotalThb  = subtotalThb + guestFeeThb                     // what the guest pays (listing widget / checkout)
+commissionThb = round(subtotalThb * (commissionRate / 100))   // platform cut from host side; stored as bookings.commission_thb
+partnerPayoutThb = subtotalThb - commissionThb                // bookings.partner_earnings_thb
 ```
 
-Default service fee: **15%**
+**Identity:** `userTotalThb − partnerPayoutThb = guestFeeThb + commissionThb` (when both percentages apply to the same subtotal, `guestFeeThb` and `commissionThb` match before rounding).
 
 ### 3.5 Price Unification (CRITICAL)
 
-**The booking modal and checkout page MUST show identical totals:**
+**The listing booking widget and checkout MUST use the same commission rate source and the same THB subtotal before fee.**
 
 ```javascript
-// In listing detail page - booking modal
-const serviceFee = Math.round(rentalTotal * 0.15);
-const grandTotal = rentalTotal + serviceFee;  // ← This MUST match checkout
+// Listing widget (app/listings/[id]/page.js) — same shape as checkout
+const serviceFee = Math.round(subtotalThb * (commissionRate / 100))
+const finalTotal = subtotalThb + serviceFee
 
-// In checkout page
-const serviceFee = priceThb * 0.15;
-const total = priceThb + serviceFee;  // ← Same value
+// Checkout (app/checkout/[bookingId]/page.js)
+const serviceFee = priceAfterDiscount * (commissionRate / 100)
+const totalWithFee = priceAfterDiscount + serviceFee
 ```
 
 **Display format:**
 ```
-Rental cost (X nights):     ฿Y
-Service fee (15%):          ฿Z
+Subtotal (stay):     ฿Y
+Service fee (r%):    ฿Z
 ─────────────────────────────
-Total to Pay:               ฿(Y+Z)
+Total:               ฿(Y+Z)
 ```
 
 ---

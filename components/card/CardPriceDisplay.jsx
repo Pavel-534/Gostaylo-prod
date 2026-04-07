@@ -7,7 +7,7 @@
 
 import { useMemo } from 'react'
 import { differenceInDays } from 'date-fns'
-import { formatPrice } from '@/lib/currency'
+import { formatPrice, priceRawForTest } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
 import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
 import { formatRentalSpanLabel } from '@/lib/rental-period-labels'
@@ -56,7 +56,11 @@ export function CardPriceDisplay({
 
   return (
     <div className="flex items-baseline gap-1">
-      <span className="text-lg font-semibold text-slate-900">
+      <span
+        className="text-lg font-semibold text-slate-900"
+        data-test-raw-value={priceRawForTest(displayPrice, currency, rates)}
+        data-test-fee-value="0"
+      >
         {formatPrice(displayPrice, currency, rates, language)}
       </span>
       <span className="text-sm text-slate-500">

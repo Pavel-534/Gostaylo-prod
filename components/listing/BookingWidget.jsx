@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Star, ArrowRight, MessageCircle, Loader2, Sparkles } from 'lucide-react'
 import { format } from 'date-fns'
-import { formatPrice } from '@/lib/currency'
+import { formatPrice, priceRawForTest } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
 import { parseDurationDiscountTiers } from '@/lib/services/pricing.service'
 import { getListingRentalPeriodMode, isWholeVesselListing } from '@/lib/listing-booking-ui'
@@ -151,7 +151,12 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
           <span className="text-slate-600">
             {baseLineLabel}
           </span>
-          <span className="font-medium tabular-nums">{formatPrice(baseRaw, currency, exchangeRates, language)}</span>
+          <span
+            className="font-medium tabular-nums"
+            data-test-base-subtotal-value={priceRawForTest(baseRaw, currency, exchangeRates)}
+          >
+            {formatPrice(baseRaw, currency, exchangeRates, language)}
+          </span>
         </div>
       )}
       {hasSeasonal && (
@@ -191,14 +196,29 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
       )}
       <div className="flex justify-between gap-2 pt-1">
         <span className="text-slate-600">{getUIText('subtotal', language)}</span>
-        <span className="font-medium tabular-nums">
+        <span
+          className="font-medium tabular-nums"
+          data-test-subtotal-value={priceRawForTest(
+            priceCalc.subtotalBeforeFee ?? priceCalc.totalPrice,
+            currency,
+            exchangeRates,
+          )}
+          data-test-subtotal-thb={String(
+            Math.round(Number(priceCalc.subtotalBeforeFee ?? priceCalc.totalPrice) || 0),
+          )}
+        >
           {formatPrice(priceCalc.subtotalBeforeFee ?? priceCalc.totalPrice, currency, exchangeRates, language)}
         </span>
       </div>
       {priceCalc.serviceFee > 0 && (
         <div className="flex justify-between gap-2">
           <span className="text-slate-600">{getUIText('serviceFee', language)}</span>
-          <span className="font-medium tabular-nums">
+          <span
+            className="font-medium tabular-nums"
+            data-testid="booking-breakdown-service-fee"
+            data-test-fee-value={priceRawForTest(priceCalc.serviceFee, currency, exchangeRates)}
+            data-test-fee-thb={String(Math.round(Number(priceCalc.serviceFee) || 0))}
+          >
             {formatPrice(priceCalc.serviceFee, currency, exchangeRates, language)}
           </span>
         </div>
@@ -225,10 +245,21 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
             highlightTotalForDiscount ? 'text-xl text-emerald-700 sm:text-2xl' : 'text-lg text-slate-900',
           )}
           data-testid="booking-price-total"
+          data-test-raw-value={priceRawForTest(priceCalc.finalTotal, currency, exchangeRates)}
+          data-test-total-thb={String(Math.round(Number(priceCalc.finalTotal) || 0))}
         >
           {formatPrice(priceCalc.finalTotal, currency, exchangeRates, language)}
         </span>
       </div>
+      {priceCalc.partnerPayoutThb != null && Number.isFinite(Number(priceCalc.partnerPayoutThb)) && (
+        <span
+          className="sr-only"
+          data-test-payout-value={priceRawForTest(priceCalc.partnerPayoutThb, currency, exchangeRates)}
+          data-test-payout-thb={String(Math.round(Number(priceCalc.partnerPayoutThb) || 0))}
+        >
+          {priceRawForTest(priceCalc.partnerPayoutThb, currency, exchangeRates)}
+        </span>
+      )}
     </div>
   )
 }
@@ -275,7 +306,15 @@ export function DesktopBookingWidget({
         <CardHeader>
           <div className="flex items-center justify-between mb-2">
             <div>
-              <div className="text-3xl font-bold text-slate-900">
+              <div
+                className="text-3xl font-bold text-slate-900"
+                data-testid="listing-hero-price"
+                data-test-raw-value={priceRawForTest(
+                  priceCalc?.avgPricePerNight || listing.basePriceThb,
+                  currency,
+                  exchangeRates,
+                )}
+              >
                 {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates, language)}
               </div>
               <p
@@ -577,7 +616,15 @@ export function MobileBookingBar({
 
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">
-          <div className="text-xl sm:text-2xl font-bold text-slate-900 tabular-nums leading-tight">
+          <div
+            className="text-xl sm:text-2xl font-bold text-slate-900 tabular-nums leading-tight"
+            data-testid="listing-hero-price"
+            data-test-raw-value={priceRawForTest(
+              priceCalc?.avgPricePerNight || listing.basePriceThb,
+              currency,
+              exchangeRates,
+            )}
+          >
             {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates, language)}
           </div>
           <p className="text-[11px] text-slate-500 leading-tight mt-0.5">

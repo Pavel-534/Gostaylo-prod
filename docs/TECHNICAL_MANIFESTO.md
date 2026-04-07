@@ -13,7 +13,7 @@
 | Что | Где живёт | Модуль / API |
 |-----|-----------|----------------|
 | Суммы в БД и расчётах | **THB** | `base_price_thb`, брони, `bookings.pricing_snapshot` |
-| Курсы для витрины (карточки, каталог, карта) | Таблица **`exchange_rates`** (`rate_to_thb` = THB за **1** единицу валюты) | **`lib/services/currency.service.js`** → **`getDisplayRateMap`**, TTL **6 ч** (`EXCHANGE_RATES_DB_TTL_MS`), при необходимости ExchangeRate-API v6 + upsert в БД |
+| Курсы для витрины (карточки, каталог, карта) | Таблица **`exchange_rates`** (`rate_to_thb` = THB за **1** единицу валюты), затем **розничный множитель** `general.chatInvoiceRateMultiplier` (деление `rate_to_thb` на множитель) | **`lib/services/currency.service.js`** → **`getDisplayRateMap`**, TTL **6 ч** (`EXCHANGE_RATES_DB_TTL_MS`), при необходимости ExchangeRate-API v6 + upsert в БД |
 | Курсы при создании брони (`price_paid` / `exchange_rate`) | Тот же канон, что витрина | **`PricingService.getExchangeRates()`** → **`CurrencyService.getDisplayRateMap`** (не «сырой» обходной SELECT без TTL/API) |
 | Публичный API курсов | — | **`GET /api/v2/exchange-rates`** → `rateMap` |
 | Клиентский кеш | localStorage, согласованный с TTL сервера | **`lib/client-data.js`** — **`fetchExchangeRates`** |
@@ -21,11 +21,12 @@
 | Комиссия платформы | `system_settings` / env | **`resolveDefaultCommissionPercent()`** |
 | Множитель курса для счетов в чате THB↔USDT | админка **`/admin/settings`** / env | **`getEffectiveRate`** + **`resolveChatInvoiceRateMultiplier`** |
 
-В **`currency.service.js`** не вводить захардкоженные курсы (например **35.5**) и фиксированный множитель **1.02** для чата — только цепочка выше.
+В **`currency.service.js`** не вводить захардкоженные курсы (например **35.5**). Множитель **1.02** как дефолт — только в **`currency-last-resort.js`** / админке (`chatInvoiceRateMultiplier`); он применяется к **витринной** карте в **`getDisplayRateMap`** и к чат-счетам USDT (**`getEffectiveRate`**).
 
 ### 1.2 UI: откуда берутся цифры на экране
 
 - **`formatPrice(amountThb, currency, exchangeRates, language)`** в **`lib/currency.js`** — для валюты ≠ THB **делит** сумму в THB на **`exchangeRates[currency]`**, **только если** в переданной карте есть конечный положительный курс. Иначе отображается число в THB с символом выбранной валюты (без выдуманного кросса). Четвёртый аргумент — язык UI для **`toLocaleString`** (группировка разрядов). **Таблицы курсов в `lib/currency.js` нет** (удалены неиспользуемые конвертеры с литералами).
+- E2E: **`priceRawForTest(amountThb, currency, exchangeRates)`** — «голое» число для **`data-test-*`** (USD — **2** знака; прочие витринные валюты кроме JPY — целые после конвертации).
 - Витрина подгружает курсы через **`fetchExchangeRates()`** или **`hooks/use-currency.js`** (оба — **`/api/v2/exchange-rates`**).
 - Значение по умолчанию **`{ THB: 1 }`** у пропа `exchangeRates` — это **нейтральный множитель для THB**, не курс «доллара».
 - Гео-подсказка валюты: **`GET /api/v2/geo`** использует **`getDisplayRateMap`** (тот же канон, без отдельного Forex-модуля).
@@ -77,6 +78,7 @@
 ### 1.4c Критические сигналы (Telegram system topic)
 
 - Повторяющиеся **`PRICE_MISMATCH`**: **`lib/critical-telemetry.js`** (`recordCriticalSignal`) — при превышении порога за окно времени дополнительное сообщение в системный топик с префиксом **`[FRAUD_DETECTION]`** (дополняет поштучные **`notifySystemAlert`** из **`booking.service.js`**). При наличии **`banUserId`** в опциях — в сообщение добавляется **inline URL-кнопка** «Забанить пользователя …» (**`buildFraudBanReplyMarkup`**, **`lib/services/fraud-telegram-ban-button.js`**).
+- E2E **Accountant Bot** при расхождениях витринной математики (&gt; **0.01**): **`POST /api/v2/internal/e2e/financial-error-alert`** → **`recordCriticalSignal('FINANCIAL_ERROR', { tag: '[FINANCIAL_ERROR]', threshold: 1, … })`** (см. §11.2).
 - Тексты манипуляции ценой в алертах также помечены **`[FRAUD_DETECTION]`**; мгновенная кнопка бана дублируется и на поштучном **`notifySystemAlert`** из **`booking.service.js`**, если известен **`renter_id`**.
 
 ### 1.4d LQIP карточек листинга
@@ -88,8 +90,8 @@
 - **Единый источник курсов для витрины и полей `price_paid` / `exchange_rate` при создании брони:** **`CurrencyService.getDisplayRateMap()`**. Конвертация в список для поиска по коду — **`PricingService.getExchangeRates()`** (динамический импорт **`currency.service.js`**).
 - **При INSERT в `bookings`:** `exchange_rate` = **`rateToThb`** выбранной валюты запроса (THB за 1 единицу); **`price_paid`** = **`price_thb / exchange_rate`**. Для **`currency === 'THB'`** курс **1**.
 - **Пересчёта при переходе в PAID нет:** **`BookingService.updateStatus`** и **`PUT /api/v2/partner/bookings/[id]`** меняют только **`status`** и временные метки (**`checked_in_at`** для PAID в partner flow), не трогая **`price_thb`**, **`exchange_rate`**, **`commission_*`**. Тело **PUT** парсится через **`request.text()`** + **`JSON.parse`**; пустое или невалидное JSON → **400**, не **500**.
-- **USDT в момент оплаты:** **`resolveThbPerUsdt()`** (цепочка **`exchange_rates` → API → env / `system_settings`**) используется в **`payment/initiate`**, **`payment.service`**, верификации Tron — это **операционный курс оплаты**, не обязано совпадать с **`bookings.exchange_rate`** (который про валюту запроса USD/RUB/CNY). Счета в чате THB↔USDT — **`getEffectiveRate`** + **`resolveChatInvoiceRateMultiplier`** (отдельно от **`getDisplayRateMap`**).
-- **Скан на «магические» курсы:** литералов **1.035 / 0.965** в финансовом ядре нет. Число **1.02** — только как платформенный дефолт **`chatInvoiceRateMultiplier`** в **`currency-last-resort.js`** / placeholder админки, не как множитель витринного **`getDisplayRateMap`**. **`GET /api/v2/partner/stats`:** доход партнёра из **`partner_earnings_thb`**, иначе **`price_thb − commission_thb`**, иначе **`price_thb × (1 − commission_rate/100)`** — без фиксированного **0.85**.
+- **USDT в момент оплаты:** **`resolveThbPerUsdt()`** (цепочка **`exchange_rates` → API → env / `system_settings`**) используется в **`payment/initiate`**, **`payment.service`**, верификации Tron — это **операционный курс оплаты**, не обязано совпадать с **`bookings.exchange_rate`** (который фиксирует валюту **запроса** гостя USD/RUB/CNY и берётся из той же витринной логики **`getDisplayRateMap`**). Счета в чате THB↔USDT — **`getEffectiveRate`** (сырой USDT × тот же **`resolveChatInvoiceRateMultiplier`**).
+- **Скан на «магические» курсы:** литералов **1.035 / 0.965** в финансовом ядре нет. Дефолт множителя **1.02** — **`currency-last-resort.js`** / админка; он **умножает спред** на витрине (через деление `rate_to_thb` в **`getDisplayRateMap`**) и в чат-счетах. **`GET /api/v2/partner/stats`:** доход партнёра из **`partner_earnings_thb`**, иначе **`price_thb − commission_thb`**, иначе **`price_thb × (1 − commission_rate/100)`** — без фиксированного **0.85**.
 
 ### 1.6 Admin Health Alerts (дисплей-FX)
 
@@ -278,6 +280,8 @@
 | Системные TG-алерты | `lib/services/system-alert-notify.js`, `NotificationService.sendSystemAlert`, `lib/critical-telemetry.js`, `lib/services/fraud-telegram-ban-button.js` |
 | Admin: бан пользователя (TG link + API) | `POST/GET /api/v2/admin/users/ban`, `lib/auth/telegram-ban-link.js` |
 | E2E hygiene helper / cleanup | `lib/e2e/test-data-tag.js`, `tests/global-teardown.ts`, `scripts/clean-e2e-garbage.mjs` |
+| SEO Spy Bot №25 + TG алерт | `tests/e2e/seo-spy-bot.spec.ts`, `app/api/v2/internal/e2e/seo-spy-alert/route.js` |
+| Accountant Bot (Deep Financial Math) + TG `recordCriticalSignal` | `tests/e2e/bots/accountant-math.spec.ts`, `app/api/v2/internal/e2e/financial-error-alert/route.js`, `lib/currency.js` (`priceRawForTest`) |
 | i18n UI | `lib/translations/index.js`, `getUIText`, `app/listings/[id]/layout.js` (metadata + цена) |
 | Playwright env + лог секрета + сид tours | `playwright.config.ts`, `tests/global-setup.ts`, `tests/e2e/seed-e2e-tour.ts` |
 
@@ -324,13 +328,28 @@
 
 ## 11. Roadmap: Future bots & monitoring
 
-- **SEO Spy Bot** — периодический обход ключевых публичных URL: проверка **`title`**, **`meta description`**, **`og:*`**, **`h1`**, канонических ссылок и кодов ответа; алерт при регрессии относительно baseline или чек-листа.
-- **Accountant Bot** — синтетические сценарии мультивалютной витрины и брони: согласованность **RUB / THB / USD** (и др.) с **`exchange_rates`** и **`CurrencyService.getDisplayRateMap`**, отсутствие «магических» курсов в UI/логах, смок **`GET /api/v2/exchange-rates`**.
-- **Bot #25: E2E Data Sentinel** — nightly: поиск утечек **`[E2E_TEST_DATA]`** в публичных API/SSR и алерт.
+### 11.1 SEO Spy Bot (сценарий №25) — **активен**
+
+- Реализация: Playwright **`tests/e2e/seo-spy-bot.spec.ts`**, проект **`seo-spy-bot`** в **`playwright.config.ts`**.
+- Логика: **3–4** случайных **ACTIVE** листинга из **`GET /api/v2/listings`** (тестовые объекты с **`[E2E_TEST_DATA]`** в этой выдаче отфильтрованы на стороне API).
+- Проверки: непустые **`title`**, **`meta[name="description"]`**, **`og:title`**, **`og:description`**, **`og:image`**; при **`basePriceThb` &gt; 0** — строка цены с витрины (**`data-testid="listing-hero-price"`** в **`components/listing/BookingWidget.jsx`**) должна встречаться в объединённом тексте title/description/og (согласованность с **`generateMetadata`** в **`app/listings/[id]/layout.js`**).
+- Алерт при провале: **`POST /api/v2/internal/e2e/seo-spy-alert`** с заголовком **`x-e2e-fixture-secret`** (**`E2E_FIXTURE_SECRET`**) → **`notifySystemAlert`** → топик **`TELEGRAM_SYSTEM_ALERTS_TOPIC_ID`**, префикс **`[SEO_FAILURE]`** и URL страницы (детали причины во второй строке HTML).
+
+### 11.2 Accountant Bot (Deep Financial Math) — **активен**
+
+- Реализация: Playwright **`tests/e2e/bots/accountant-math.spec.ts`**, проект **`accountant-bot`** в **`playwright.config.ts`**.
+- Витрина (листинг, **vehicles**, **3 суток**): **`Итог ≈ Субтотал + Сервисный сбор`** в **THB / RUB / USD**; атрибуты **`data-test-subtotal-value`**, **`data-test-subtotal-thb`**, **`data-test-fee-value`**, **`data-test-fee-thb`** (**`booking-breakdown-service-fee`**), **`data-test-raw-value`** / **`data-test-total-thb`** на итоге, **`data-test-payout-value`** + **`data-test-payout-thb`** (скрытый) — выплата партнёра; строгая идентичность **субтотал − выплата = сбор** проверяется в **THB** (канон), чтобы избежать дрейфа округления FX по строкам.
+- **Распределение дохода (канон витрины + БД):** **User Total** (гость) = **Accommodation subtotal** + **guest service fee**; **Platform fee** (удержание с хоста) = **`commission_thb`** ≈ **round(subtotal × commission_rate/100)**; **Partner payout** = **`partner_earnings_thb`** = **subtotal − commission_thb** (в UI: **субтотал − выплата ≈ сервисный сбор** при симметричном %). Гость платит **субтотал + сервисный сбор**; суммарная доля платформы с одной брони = **сервисный сбор + commission_thb** (при равных ставках от той же базы — **2×** линейная доля от субтотала).
+- Минимальная проверка: итог **≥ 100 THB** (**`data-test-total-thb`**).
+- Алерт при провале: **`POST /api/v2/internal/e2e/financial-error-alert`** + **`x-e2e-fixture-secret`** → **`recordCriticalSignal('FINANCIAL_ERROR', …)`**, текст вида **`Mismatch: Expected …, Got …`**.
+
+### 11.3 Планируется
+
+- **E2E Data Sentinel** — nightly: поиск утечек **`[E2E_TEST_DATA]`** в публичных API/SSR и алерт.
 - **Bot #26: Notification Contract Diff** — сравнение HTML/email с baseline (deep links, календарь, вложения, i18n).
 - **Bot #27: Calendar Link Guard** — TTL/валидность **`/api/calendar/stay`**, наличие **`CALENDAR_STAY_LINK_SECRET`** в окружениях.
 - **Bot #28: Telegram Action Security** — синтетика lifecycle ban-token (подпись, TTL, replay).
 
 ---
 
-**Версия:** апрель 2026 — §9 env secrets; §10–11 E2E hygiene + roadmap; production-smoke Playwright; premium notifications (deep links + Outlook + ICS), notification integrity e2e; §8 admin ban + critical telemetry; SEO листинга в **`app/listings/[id]/layout.js`**.
+**Версия:** апрель 2026 — SEO Spy Bot №25 + Accountant Bot (Playwright, `financial-error-alert`); §9 env secrets; §10–11 E2E hygiene + roadmap; production-smoke Playwright; premium notifications (deep links + Outlook + ICS), notification integrity e2e; §8 admin ban + critical telemetry; SEO листинга в **`app/listings/[id]/layout.js`**.

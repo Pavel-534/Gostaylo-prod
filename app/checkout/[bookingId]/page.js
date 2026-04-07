@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, CreditCard, Wallet, Loader2, CheckCircle2, Copy, ExternalLink, AlertCircle, Smartphone } from 'lucide-react'
-import { formatPrice, languageToNumberLocale } from '@/lib/currency'
+import { formatPrice, languageToNumberLocale, priceRawForTest } from '@/lib/currency'
 import { toast } from 'sonner'
 import { detectLanguage, getUIText } from '@/lib/translations'
 
@@ -721,7 +721,12 @@ function CheckoutPageInner({ params }) {
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-600">{getUIText('checkout_subtotal', language)}</span>
-                    <span className="font-medium">{formatPrice(booking.priceThb, 'THB', exchangeRates, language)}</span>
+                    <span
+                      className="font-medium"
+                      data-test-subtotal-value={priceRawForTest(booking.priceThb, 'THB', exchangeRates)}
+                    >
+                      {formatPrice(booking.priceThb, 'THB', exchangeRates, language)}
+                    </span>
                   </div>
                   {promoDiscount && (
                     <div className="flex justify-between text-sm text-green-600">
@@ -741,11 +746,22 @@ function CheckoutPageInner({ params }) {
                         pct: String(commissionRate),
                       })}
                     </span>
-                    <span className="font-medium">{formatPrice(serviceFee, 'THB', exchangeRates, language)}</span>
+                    <span
+                      className="font-medium"
+                      data-test-fee-value={priceRawForTest(serviceFee, 'THB', exchangeRates)}
+                    >
+                      {formatPrice(serviceFee, 'THB', exchangeRates, language)}
+                    </span>
                   </div>
                   <div className="flex justify-between text-lg font-bold border-t pt-2">
                     <span>{getUIText('checkout_total', language)}</span>
-                    <span className="text-teal-600">{formatPrice(totalWithFee, 'THB', exchangeRates, language)}</span>
+                    <span
+                      className="text-teal-600"
+                      data-test-raw-value={priceRawForTest(totalWithFee, 'THB', exchangeRates)}
+                      data-test-total-thb={String(Math.round(Number(totalWithFee) || 0))}
+                    >
+                      {formatPrice(totalWithFee, 'THB', exchangeRates, language)}
+                    </span>
                   </div>
                 </div>
               </CardContent>

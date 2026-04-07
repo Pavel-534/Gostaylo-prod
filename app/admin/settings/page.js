@@ -173,11 +173,18 @@ export default function SettingsPage() {
             </p>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <Label htmlFor="chatInvoiceMult" className="text-sm sm:text-base">
-              Маржа по курсу в чат-счетах (THB ↔ USDT)
+              Розничный курс на витрине + чат (USD, RUB, USDT…)
             </Label>
-            <div className="flex items-center gap-3 sm:gap-4 mt-2 sm:mt-3">
+            <p className="text-xs sm:text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-2 py-2 mt-2 leading-snug">
+              Один множитель для двух мест: <strong>цены на сайте</strong> в выбранной валюте (каталог, карточка, поиск) и{' '}
+              <strong>счета в чате THB ↔ USDT</strong>. База — курсы из{' '}
+              <code className="break-all text-[11px]">exchange_rates</code> (mid-market), затем к гостю применяется спред
+              как у банка: при 1.025 гость видит примерно на 2.5% «дороже» в долларах/рублях за тот же бат. Сумма брони в
+              THB и выплата партнёру в батах не зависят от выбора валюты отображения.
+            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-3">
               <Input
                 id="chatInvoiceMult"
                 type="number"
@@ -192,13 +199,22 @@ export default function SettingsPage() {
                     chatInvoiceRateMultiplier: Number.isFinite(v) ? v : settings.chatInvoiceRateMultiplier,
                   })
                 }}
-                className="max-w-[120px] sm:max-w-xs text-base sm:text-lg font-semibold"
+                className="max-w-[120px] sm:max-w-xs text-base sm:text-lg font-semibold shrink-0"
               />
-              <span className="text-sm text-gray-600">× к рыночному курсу (1.0 = без надбавки)</span>
+              <span className="text-sm text-gray-600 min-w-0">
+                1.0 = без надбавки к витринному курсу. 1.025 ≈ +2.5% в пользу платформы (гость платит больше в валюте за тот же THB).
+              </span>
             </div>
-            <p className="text-xs sm:text-sm text-gray-600 mt-2">
-              Хранится в <code className="text-xs">system_settings.general.chatInvoiceRateMultiplier</code>; запасной
-              вариант — env <code className="text-xs">CHAT_INVOICE_RATE_MULTIPLIER</code>.
+            <p className="text-[11px] sm:text-xs text-gray-500 mt-3 break-words leading-relaxed">
+              Ключ в БД:{' '}
+              <code className="break-all rounded bg-slate-100 px-1 py-0.5 text-[10px] sm:text-[11px]">
+                general.chatInvoiceRateMultiplier
+              </code>
+              . Env:{' '}
+              <code className="break-all rounded bg-slate-100 px-1 py-0.5 text-[10px] sm:text-[11px]">
+                CHAT_INVOICE_RATE_MULTIPLIER
+              </code>
+              .
             </p>
           </div>
         </CardContent>
