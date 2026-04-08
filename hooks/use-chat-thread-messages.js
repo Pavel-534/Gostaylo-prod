@@ -30,7 +30,6 @@ import { toast } from 'sonner'
 import { mapApiMessageToRow, mergeRealtimeMessage } from '@/lib/chat/map-api-message'
 import { useRealtimeMessages } from '@/hooks/use-realtime-chat'
 import { useOptimisticSend } from '@/hooks/use-optimistic-send'
-import { playNotificationSound } from '@/hooks/use-realtime-chat'
 import { uploadChatFile, uploadChatVoice } from '@/lib/chat-upload'
 
 // ─── Утилита ─────────────────────────────────────────────────────────────────
@@ -170,7 +169,6 @@ export function useChatThreadMessages({
         }
 
         if (fromPeer) {
-          playNotificationSound()
           if (onNewMessageRef.current) onNewMessageRef.current(mapped)
           // Авто-пометка прочитанным (подхватится useMarkConversationRead снаружи)
           onMarkReadRef.current?.()

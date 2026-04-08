@@ -519,6 +519,7 @@ export async function POST(request) {
       PushService.sendToUser(partnerId, 'NEW_MESSAGE', {
         sender: renterName,
         link,
+        conversationId: finalId,
       }).catch((e) => console.error('[chat/conversations] FCM intro', e?.message || e))
     }
   }

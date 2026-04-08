@@ -218,8 +218,6 @@ export async function POST(request) {
     amount,
     bookingId,
     currency = 'THB',
-    /** true = клиент видит собеседника в Supabase Presence — не шлём FCM */
-    skipPush = false,
   } = body
 
   if (!conversationId) {
@@ -444,22 +442,22 @@ export async function POST(request) {
     body: JSON.stringify({ updated_at: now, last_message_at: now }),
   })
 
-  if (!skipPush) {
-    const base = getPublicSiteUrl()
-    const cid = encodeURIComponent(conversationId)
-    const msgDeepLink = `${base}/messages/${cid}`
-    if (conversation.renter_id && String(userId) === String(conversation.partner_id)) {
-      PushService.sendToUser(conversation.renter_id, 'NEW_MESSAGE', {
-        sender: senderName,
-        link: msgDeepLink,
-      }).catch((e) => console.error('[chat/messages] FCM renter', e?.message || e))
-    }
-    if (conversation.partner_id && String(userId) === String(conversation.renter_id)) {
-      PushService.sendToUser(conversation.partner_id, 'NEW_MESSAGE', {
-        sender: senderName,
-        link: msgDeepLink,
-      }).catch((e) => console.error('[chat/messages] FCM partner', e?.message || e))
-    }
+  const base = getPublicSiteUrl()
+  const cid = encodeURIComponent(conversationId)
+  const msgDeepLink = `${base}/messages/${cid}`
+  if (conversation.renter_id && String(userId) === String(conversation.partner_id)) {
+    PushService.sendToUser(conversation.renter_id, 'NEW_MESSAGE', {
+      sender: senderName,
+      link: msgDeepLink,
+      conversationId,
+    }).catch((e) => console.error('[chat/messages] FCM renter', e?.message || e))
+  }
+  if (conversation.partner_id && String(userId) === String(conversation.renter_id)) {
+    PushService.sendToUser(conversation.partner_id, 'NEW_MESSAGE', {
+      sender: senderName,
+      link: msgDeepLink,
+      conversationId,
+    }).catch((e) => console.error('[chat/messages] FCM partner', e?.message || e))
   }
 
   let telegramSent = false
@@ -483,7 +481,6 @@ export async function POST(request) {
 
   if (
     !telegramSent &&
-    !skipPush &&
     type === 'text' &&
     textBody &&
     !isStaffRole(senderRole) &&

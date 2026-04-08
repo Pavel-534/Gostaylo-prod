@@ -1,122 +1,106 @@
 /**
  * GoStayLo - Push Notifications API
- * POST /api/v2/push/register - Register FCM token
- * POST /api/v2/push/send - Send push notification (admin only)
+ * POST /api/v2/push register/send/test
  */
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
-import { NextResponse } from 'next/server';
-import { PushService } from '@/lib/services/push.service';
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server'
+import { PushService } from '@/lib/services/push.service'
+import { getSessionPayload } from '@/lib/services/session-service'
+import { supabaseAdmin } from '@/lib/supabase'
 
-// Register FCM token
+async function requireSession() {
+  const session = await getSessionPayload()
+  return session?.userId ? session : null
+}
+
+async function isAdmin(userId) {
+  if (!supabaseAdmin || !userId) return false
+  const { data } = await supabaseAdmin
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .maybeSingle()
+  return String(data?.role || '').toUpperCase() === 'ADMIN'
+}
+
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const { action, token, userId, templateKey, data, targetUserId } = body;
+    const body = await request.json().catch(() => ({}))
+    const { action, token, templateKey, data, targetUserId } = body || {}
 
-    // Action: register - Register FCM token for user
+    // Action: register - токен только для пользователя из cookie-сессии
     if (action === 'register') {
-      if (!token || !userId) {
-        return NextResponse.json(
-          { success: false, error: 'token and userId required' },
-          { status: 400 }
-        );
+      const session = await requireSession()
+      if (!session) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
       }
-
-      const result = await PushService.registerToken(userId, token);
-      return NextResponse.json(result);
+      if (!token) {
+        return NextResponse.json({ success: false, error: 'token required' }, { status: 400 })
+      }
+      const result = await PushService.registerToken(session.userId, token)
+      return NextResponse.json(result)
     }
 
-    // Action: send - Send push notification (admin only)
+    // Action: send - only admin
     if (action === 'send') {
-      // Verify admin access
-      const supabase = createServerComponentClient({ cookies });
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        return NextResponse.json(
-          { success: false, error: 'Unauthorized' },
-          { status: 401 }
-        );
+      const session = await requireSession()
+      if (!session) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
       }
-
-      // Check if user is admin
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (profile?.role !== 'ADMIN') {
-        return NextResponse.json(
-          { success: false, error: 'Admin access required' },
-          { status: 403 }
-        );
+      if (!(await isAdmin(session.userId))) {
+        return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
       }
-
       if (!targetUserId || !templateKey) {
         return NextResponse.json(
           { success: false, error: 'targetUserId and templateKey required' },
-          { status: 400 }
-        );
+          { status: 400 },
+        )
       }
-
-      const result = await PushService.sendToUser(targetUserId, templateKey, data || {});
-      return NextResponse.json(result);
+      const result = await PushService.sendToUser(targetUserId, templateKey, data || {})
+      return NextResponse.json(result)
     }
 
-    // Action: test - Send test push to own device
+    // Action: test - send test to explicit token
     if (action === 'test') {
       if (!token) {
-        return NextResponse.json(
-          { success: false, error: 'token required' },
-          { status: 400 }
-        );
+        return NextResponse.json({ success: false, error: 'token required' }, { status: 400 })
       }
-
       const result = await PushService.sendPush(token, 'NEW_MESSAGE', {
         sender: 'GoStayLo Test',
-        link: '/'
-      });
-      
-      return NextResponse.json(result);
+        link: '/',
+      })
+      return NextResponse.json(result)
     }
 
     return NextResponse.json(
       { success: false, error: 'Invalid action. Use: register, send, or test' },
-      { status: 400 }
-    );
-
+      { status: 400 },
+    )
   } catch (error) {
-    console.error('[PUSH API ERROR]', error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    console.error('[PUSH API ERROR]', error)
+    return NextResponse.json({ success: false, error: error?.message || 'Push API error' }, { status: 500 })
   }
 }
 
-// GET - Get push notification status
-export async function GET(request) {
+export async function GET() {
   return NextResponse.json({
     success: true,
     service: 'Firebase Cloud Messaging',
-    project: 'gostaylo-push',
+    project: process.env.FIREBASE_PROJECT_ID || 'gostaylo-push',
     templates: [
       'NEW_MESSAGE',
       'BOOKING_REQUEST',
       'BOOKING_CONFIRMED',
       'PAYMENT_RECEIVED',
       'CHECKIN_REMINDER',
-      'PAYOUT_READY'
+      'PAYOUT_READY',
     ],
     endpoints: {
-      register: 'POST /api/v2/push { action: "register", token: "...", userId: "..." }',
+      register: 'POST /api/v2/push { action: "register", token: "..." }',
       send: 'POST /api/v2/push { action: "send", targetUserId: "...", templateKey: "...", data: {...} }',
-      test: 'POST /api/v2/push { action: "test", token: "..." }'
-    }
-  });
+      test: 'POST /api/v2/push { action: "test", token: "..." }',
+    },
+  })
 }

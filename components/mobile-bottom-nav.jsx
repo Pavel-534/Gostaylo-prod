@@ -114,15 +114,9 @@ export function MobileBottomNav() {
             >
               <span className="relative inline-flex">
                 <Icon className={`h-5 w-5 ${active ? 'stroke-[2.5]' : 'stroke-[1.5]'}`} />
-                {showBadge && totalUnread === 1 && (
+                {showBadge && (
                   <span
-                    className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white"
-                    aria-label="Есть непрочитанные сообщения"
-                  />
-                )}
-                {showBadge && totalUnread > 1 && (
-                  <span
-                    className="absolute -top-2 -right-2 min-h-[18px] min-w-[18px] px-1 rounded-full bg-red-500 text-[10px] font-bold leading-[18px] text-center text-white ring-1 ring-white"
+                    className="absolute -top-2 -right-2 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white ring-1 ring-white"
                     aria-label={`Непрочитанных: ${totalUnread}`}
                   >
                     {badgeLabel}

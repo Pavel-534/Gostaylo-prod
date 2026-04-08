@@ -236,6 +236,7 @@ export async function POST(request) {
     PushService.sendToUser(recipientId, 'NEW_MESSAGE', {
       sender: senderName,
       link,
+      conversationId: finalId,
     }).catch((e) => console.error('[from-profile] FCM', e?.message || e))
   }
 

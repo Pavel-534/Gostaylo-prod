@@ -9,6 +9,7 @@ import { AuthProvider } from '@/contexts/auth-context'
 import { I18nProvider } from '@/contexts/i18n-context'
 import { ChatProvider } from '@/lib/context/ChatContext'
 import { SupabaseRealtimeAuthSync } from '@/components/supabase-realtime-auth-sync'
+import { PushClientInit } from '@/components/push-client-init'
 import { getRequestSiteUrl } from '@/lib/server-site-url'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
@@ -94,6 +95,7 @@ button{font:inherit}
         <I18nProvider>
           <AuthProvider>
             <SupabaseRealtimeAuthSync />
+            <PushClientInit />
             <ChatProvider>
               <UniversalHeader />
               <MainContent>{children}</MainContent>

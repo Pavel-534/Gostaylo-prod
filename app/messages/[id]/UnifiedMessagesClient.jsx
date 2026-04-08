@@ -284,7 +284,8 @@ export default function UnifiedMessagesClient({ params }) {
     if (!selectedConv?.id || !user?.id) return null
     if (selectedConv.adminId) return selectedConv.adminId
     if (String(selectedConv.partnerId) === String(user.id)) return selectedConv.renterId
-    return selectedConv.partnerId
+    const hostId = selectedConv.partnerId ?? selectedConv.ownerId
+    return hostId ?? null
   }, [selectedConv, user])
 
   // ── Presence / Typing ────────────────────────────────────────────────────────
@@ -433,10 +434,10 @@ export default function UnifiedMessagesClient({ params }) {
     setNewMessage('')
     setSending(true)
     try {
-      await _sendMessage(text, { skipPush: !!peerOnline })
+      await _sendMessage(text)
       inbox.refresh()
     } finally { setSending(false) }
-  }, [newMessage, selectedConv, user, _sendMessage, peerOnline, inbox])
+  }, [newMessage, selectedConv, user, _sendMessage, inbox])
 
   const handleSendVoice = useCallback(async ({ url, duration }) => {
     if (!selectedConv || !user) return
@@ -451,7 +452,6 @@ export default function UnifiedMessagesClient({ params }) {
           type: 'voice',
           content: '',
           metadata: { voice_url: url, duration_sec: duration },
-          skipPush: !!peerOnline,
         }),
       })
       const json = await res.json()
@@ -470,7 +470,7 @@ export default function UnifiedMessagesClient({ params }) {
       }
     } catch { toast.error('Ошибка сети') }
     finally { setSending(false) }
-  }, [selectedConv, user, peerOnline, booking?.status, setMessages, inbox, viewerRoleForHook, conversationForMapper])
+  }, [selectedConv, user, booking?.status, setMessages, inbox, viewerRoleForHook, conversationForMapper])
 
   const handleSendInvoice = useCallback(async (invoiceData) => {
     if (!selectedConv || !user) return
@@ -510,14 +510,13 @@ export default function UnifiedMessagesClient({ params }) {
         type: 'system',
         content: '',
         metadata: { system_key: 'passport_request' },
-        skipPush: !!peerOnline,
       }),
     })
     const json = await res.json()
     if (!res.ok || !json.success) throw new Error(json.error || 'Ошибка')
     if (json.data) setMessages((prev) => [...prev, json.data])
     inbox.refresh()
-  }, [selectedConv, user, peerOnline, setMessages, inbox])
+  }, [selectedConv, user, setMessages, inbox])
 
   const handleAttachFile = useCallback(async (file) => {
     if (!selectedConv || !user) return
@@ -547,7 +546,6 @@ export default function UnifiedMessagesClient({ params }) {
           type: 'voice',
           content: '',
           metadata: { voice_url: voiceUrl, duration_sec: voiceDuration },
-          skipPush: !!peerOnline,
         }),
       })
       const json = await res.json()
@@ -567,7 +565,7 @@ export default function UnifiedMessagesClient({ params }) {
       }
     } catch { toast.error('Ошибка сети') }
     finally { setVoiceSending(false) }
-  }, [voiceBlob, user, selectedConv, voiceDuration, peerOnline, booking?.status, setMessages, discardVoice, inbox, viewerRoleForHook, conversationForMapper])
+  }, [voiceBlob, user, selectedConv, voiceDuration, booking?.status, setMessages, discardVoice, inbox, viewerRoleForHook, conversationForMapper])
 
   // ── Обработчик вкладки инбокса — с навигацией ────────────────────────────────
   const handleInboxTabChange = useCallback((next) => {

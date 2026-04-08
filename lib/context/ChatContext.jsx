@@ -19,9 +19,11 @@ import {
   useRef,
   useMemo,
 } from 'react'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { subscribeRealtimeWithBackoff } from '@/lib/chat/realtime-subscribe-with-backoff'
+import { playNotificationSound } from '@/hooks/use-realtime-chat'
 
 const ChatContext = createContext(null)
 
@@ -75,10 +77,29 @@ function rawMsgToLastMessage(raw) {
 export function ChatProvider({ children }) {
   const { user } = useAuth()
   const userId = user?.id ?? null
+  const pathname = usePathname()
+  const lastRefreshNavRef = useRef(0)
+  const lastRefreshVisRef = useRef(0)
+  const prevPathnameRef = useRef(null)
+  /** Throttle refresh() когда INSERT messages пришёл, а беседы ещё нет в списке (лимит 100 / гонка загрузки). */
+  const messageListMissThrottleRef = useRef(0)
 
   const [conversations, setConversations] = useState([])
   const [loaded, setLoaded] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  const shouldPlayIncomingSound = useCallback(
+    (conversationId) => {
+      if (typeof document === 'undefined' || document.visibilityState !== 'visible') return false
+      const normalized = (pathname || '').replace(/\/+$/, '') || '/'
+      const m = normalized.match(/^\/messages\/([^/?#]+)/)
+      if (!m) return true
+      const openConversationId = m?.[1] ? decodeURIComponent(m[1]) : null
+      if (!openConversationId) return true
+      return String(openConversationId) !== String(conversationId || '')
+    },
+    [pathname],
+  )
 
   // Реф для доступа к актуальному userId внутри Realtime-замыканий
   const userIdRef = useRef(userId)
@@ -175,7 +196,14 @@ export function ChatProvider({ children }) {
 
       setConversations((prev) => {
         const idx = prev.findIndex((c) => c.id === convId)
-        if (idx === -1) return prev
+        if (idx === -1) {
+          const t = Date.now()
+          if (t - messageListMissThrottleRef.current > 5000) {
+            messageListMissThrottleRef.current = t
+            queueMicrotask(() => refresh())
+          }
+          return prev
+        }
 
         const conv = prev[idx]
         const isFromMe = String(msg.sender_id) === String(uid)
@@ -196,6 +224,10 @@ export function ChatProvider({ children }) {
 
         if (wasArchivedByMe) {
           unarchiveConversation(convId)
+        }
+
+        if (!isFromMe && shouldPlayIncomingSound(convId)) {
+          playNotificationSound()
         }
 
         const next = prev.filter((c) => c.id !== convId)
@@ -231,7 +263,56 @@ export function ChatProvider({ children }) {
       stopConv()
       stopMsg()
     }
-  }, [userId, fetchOneConversation, unarchiveConversation])
+  }, [userId, fetchOneConversation, unarchiveConversation, refresh, shouldPlayIncomingSound])
+
+  useEffect(() => {
+    if (!userId || !loaded || pathname == null) return
+    if (prevPathnameRef.current === null) {
+      prevPathnameRef.current = pathname
+      return
+    }
+    if (prevPathnameRef.current === pathname) return
+    prevPathnameRef.current = pathname
+    const now = Date.now()
+    if (now - lastRefreshNavRef.current < 2500) return
+    lastRefreshNavRef.current = now
+    void refresh()
+  }, [pathname, userId, loaded, refresh])
+
+  useEffect(() => {
+    if (!userId) return
+    const bump = () => {
+      if (document.visibilityState !== 'visible') return
+      const now = Date.now()
+      if (now - lastRefreshVisRef.current < 20000) return
+      lastRefreshVisRef.current = now
+      void refresh()
+    }
+    window.addEventListener('focus', bump)
+    document.addEventListener('visibilitychange', bump)
+    return () => {
+      window.removeEventListener('focus', bump)
+      document.removeEventListener('visibilitychange', bump)
+    }
+  }, [userId, refresh])
+
+  useEffect(() => {
+    if (!userId) return
+    const onPush = (evt) => {
+      const d = evt?.detail || {}
+      const type = String(d.type || '').toUpperCase()
+      const cid = d.conversationId || null
+
+      if (type === 'BADGE_UPDATE' || type === 'NEW_MESSAGE') {
+        void refresh()
+      }
+      if (type === 'NEW_MESSAGE' && shouldPlayIncomingSound(cid)) {
+        playNotificationSound()
+      }
+    }
+    window.addEventListener('gostaylo:push-message', onPush)
+    return () => window.removeEventListener('gostaylo:push-message', onPush)
+  }, [userId, refresh, shouldPlayIncomingSound])
 
   // ─── Вычисляемые значения ─────────────────────────────────────────────────
 

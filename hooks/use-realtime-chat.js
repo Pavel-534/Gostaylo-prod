@@ -139,22 +139,34 @@ export function usePresence(_conversationId, userId, peerUserId = null) {
   const [isPeerOnline, setIsPeerOnline] = useState(false);
 
   const channelRef = useRef(null);
+  const heartbeatRef = useRef(null);
 
   useEffect(() => {
     if (!userId || !supabase) return;
+
+    const collectUserIds = (rows) => {
+      const ids = [];
+      for (const p of rows) {
+        if (!p || typeof p !== 'object') continue;
+        const id = p.user_id ?? p.userId ?? p.payload?.user_id;
+        if (id) ids.push(String(id));
+      }
+      return ids;
+    };
 
     const syncPresence = () => {
       const channel = channelRef.current;
       if (!channel) return;
       const state = channel.presenceState();
       const rows = Object.values(state).flat();
-      const ids = rows.map((p) => p.user_id).filter(Boolean);
+      const ids = collectUserIds(rows);
       setOnlineUsers(ids);
 
       if (peerUserId) {
-        setIsPeerOnline(ids.includes(String(peerUserId)));
+        const want = String(peerUserId);
+        setIsPeerOnline(ids.some((id) => id === want));
       } else {
-        setIsPeerOnline(ids.filter((id) => String(id) !== String(userId)).length > 0);
+        setIsPeerOnline(ids.filter((id) => id !== String(userId)).length > 0);
       }
     };
 
@@ -175,14 +187,29 @@ export function usePresence(_conversationId, userId, peerUserId = null) {
           .on('presence', { event: 'leave' }, syncPresence);
       },
       afterSubscribed: async (ch) => {
-        await ch.track({
+        if (heartbeatRef.current) {
+          clearInterval(heartbeatRef.current);
+          heartbeatRef.current = null;
+        }
+        const payload = {
           user_id: userId,
           online_at: new Date().toISOString(),
-        });
+        };
+        await ch.track(payload);
+        heartbeatRef.current = setInterval(() => {
+          void ch.track({
+            user_id: userId,
+            online_at: new Date().toISOString(),
+          });
+        }, 40_000);
       },
     });
 
     return () => {
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
       channelRef.current = null;
       stop();
     };
