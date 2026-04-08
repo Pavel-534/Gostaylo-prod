@@ -1,6 +1,6 @@
 /**
  * Daily Telegram reminder: partners with linked Telegram and draft listings.
- * POST /api/cron/draft-digest — Vercel Cron (заголовки x-vercel-cron / x-cron-secret / Authorization)
+ * POST /api/cron/draft-digest — cron trigger (x-cron-secret / Authorization)
  * GET  /api/cron/draft-digest?secret=... — только для ручного теста (секрет в URL попадает в логи прокси)
  */
 
@@ -10,16 +10,13 @@ import { NextResponse } from 'next/server'
 import { NotificationService } from '@/lib/services/notification.service'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 
-const CRON_SECRET = process.env.CRON_SECRET || 'gostaylo-cron-2026'
+const CRON_SECRET = process.env.CRON_SECRET
 
 function isAuthorizedPost(request) {
-  const vercelCron = request.headers.get('x-vercel-cron')
-  const authHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization')
-  return (
-    !!vercelCron ||
-    authHeader === CRON_SECRET ||
-    authHeader === `Bearer ${CRON_SECRET}`
-  )
+  if (!CRON_SECRET) return false
+  const authHeader = request.headers.get('authorization')
+  const cronHeader = request.headers.get('x-cron-secret')
+  return authHeader === `Bearer ${CRON_SECRET}` || cronHeader === CRON_SECRET
 }
 
 async function runAndRespond() {
@@ -29,9 +26,7 @@ async function runAndRespond() {
 
 export async function GET(request) {
   try {
-    const { searchParams } = new URL(request.url)
-    const secret = searchParams.get('secret')
-    if (secret !== CRON_SECRET) {
+    if (!isAuthorizedPost(request)) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
     return await runAndRespond()

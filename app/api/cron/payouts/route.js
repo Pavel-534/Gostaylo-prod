@@ -14,31 +14,32 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { EscrowService } from '@/lib/services/escrow.service';
-import { NotificationService } from '@/lib/services/notification.service';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
+import { startOpsJobRun, finishOpsJobRun } from '@/lib/ops-job-runs';
 
-// Security - check Vercel cron header or custom secret
-const CRON_SECRET = process.env.CRON_SECRET || 'gostaylo-cron-2026';
+const CRON_SECRET = process.env.CRON_SECRET;
 
 // Telegram admin topic for payout notifications
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_ADMIN_GROUP = process.env.TELEGRAM_ADMIN_GROUP_ID;
 const FINANCE_TOPIC_ID = 16;
 
-export async function POST(request) {
-  try {
-    // Verify cron secret (supports Vercel cron header)
-    const vercelCron = request.headers.get('x-vercel-cron');
-    const authHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization');
-    
-    // Allow if Vercel cron header is present OR valid secret
-    if (!vercelCron && authHeader !== CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+function authorize(request) {
+  if (!CRON_SECRET) return false;
+  const authHeader = request.headers.get('authorization');
+  const cronHeader = request.headers.get('x-cron-secret');
+  return authHeader === `Bearer ${CRON_SECRET}` || cronHeader === CRON_SECRET;
+}
 
+export async function POST(request) {
+  if (!authorize(request)) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+  const run = await startOpsJobRun('payouts');
+  try {
     console.log('[CRON PAYOUT] Starting daily payout processing (24H Rule)...');
     
     // Process all payouts (bookings with check-in YESTERDAY)
@@ -67,16 +68,31 @@ export async function POST(request) {
       });
     }
 
-    return NextResponse.json({
+    const response = {
       success: result.success,
       message: `Processed ${result.processed || 0} of ${result.total || 0} payouts (24H Rule)`,
       rule: 'Payouts released 24 hours after check-in',
       timestamp: new Date().toISOString(),
       results: result.results
+    };
+    await finishOpsJobRun(run, {
+      status: result?.success ? 'success' : 'error',
+      stats: {
+        total: Number(result?.total || 0),
+        processed: Number(result?.processed || 0),
+        failed: Number((result?.total || 0) - (result?.processed || 0)),
+      },
+      errorMessage: result?.success ? null : result?.error || null,
     });
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error('[CRON PAYOUT ERROR]', error);
+    await finishOpsJobRun(run, {
+      status: 'error',
+      stats: {},
+      errorMessage: error?.message || 'payout failed',
+    });
     void notifySystemAlert(
       `⏰ <b>Cron: payouts</b> — сбой\n<code>${escapeSystemAlertHtml(error?.message || error)}</code>`,
     )
@@ -89,16 +105,14 @@ export async function POST(request) {
 
 // GET for manual trigger and status check (debug only)
 export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const secret = searchParams.get('secret');
-  const action = searchParams.get('action');
-  
-  if (secret !== CRON_SECRET) {
+  if (!authorize(request)) {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
       { status: 401 }
     );
   }
+  const { searchParams } = new URL(request.url);
+  const action = searchParams.get('action');
 
   // Preview tomorrow's thaw
   if (action === 'preview-thaw') {

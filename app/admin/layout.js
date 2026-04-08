@@ -24,6 +24,7 @@ import {
   MessageSquare,
   FileDown,
   Sparkles,
+  Activity,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -177,6 +178,7 @@ export default function AdminLayout({ children }) {
   // NO access to: Finances, Users, Marketing, Security, Settings
   const allMenuItems = [
     { href: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard', moderatorAccess: true },
+    { href: '/admin/health', icon: Activity, label: 'Здоровье', moderatorAccess: true },
     { href: '/admin/system', icon: Server, label: 'System', moderatorAccess: false },
     { href: '/admin/moderation', icon: Shield, label: 'Модерация', moderatorAccess: true },
     { href: '/admin/partners', icon: UserCog, label: 'Заявки партнёров', moderatorAccess: false },

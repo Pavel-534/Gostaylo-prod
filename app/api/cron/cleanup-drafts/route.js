@@ -29,6 +29,13 @@ const STORAGE_BUCKETS = ['listing-images', 'listings'];
 // Draft expiry in days
 const DRAFT_EXPIRY_DAYS = 30;
 
+function authorize(request) {
+  if (!CRON_SECRET) return false;
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = request.headers.get('x-cron-secret');
+  return authHeader === `Bearer ${CRON_SECRET}` || cronSecret === CRON_SECRET;
+}
+
 /**
  * Delete images from Supabase Storage for a listing (per-URL; DB trigger also clears prefix on DELETE).
  */
@@ -75,20 +82,10 @@ async function deleteListingImages(listingId, images) {
  * Main cleanup handler
  */
 export async function POST(request) {
+  if (!authorize(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
-    // Security check for manual triggers
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = request.headers.get('x-cron-secret');
-    
-    // Allow Vercel Cron (has CRON_SECRET) or authenticated requests
-    const isVercelCron = authHeader === `Bearer ${CRON_SECRET}`;
-    const isManualWithSecret = cronSecret === CRON_SECRET;
-    
-    if (!isVercelCron && !isManualWithSecret && CRON_SECRET) {
-      console.log('[CLEANUP] Unauthorized request');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
     console.log('[CLEANUP] Starting draft cleanup job...');
     
     // Calculate cutoff date (30 days ago)
@@ -218,6 +215,9 @@ export async function POST(request) {
  * Status endpoint - shows what would be cleaned up (dry run)
  */
 export async function GET(request) {
+  if (!authorize(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     // Calculate cutoff date
     const cutoffDate = new Date();

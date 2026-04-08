@@ -26,8 +26,23 @@ export default function RenterSettingsPage() {
   const [avatarRaw, setAvatarRaw] = useState(null)
   const [marketing, setMarketing] = useState(false)
   const [telegramPref, setTelegramPref] = useState(true)
+  const [quietModeEnabled, setQuietModeEnabled] = useState(false)
+  const [quietHourStart, setQuietHourStart] = useState('22:00')
+  const [quietHourEnd, setQuietHourEnd] = useState('08:00')
   const [userId, setUserId] = useState(null)
   const fileRef = useRef(null)
+
+  function normalizeTimeInput(value, fallback) {
+    const src = String(value || '').trim()
+    const m = src.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
+    if (!m) return fallback
+    const hh = Number(m[1])
+    const mm = Number(m[2])
+    if (!Number.isFinite(hh) || !Number.isFinite(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59) {
+      return fallback
+    }
+    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
+  }
 
   async function loadProfile() {
     setLoading(true)
@@ -49,6 +64,9 @@ export default function RenterSettingsPage() {
       const prefs = u.notification_preferences || u.notificationPreferences || {}
       setMarketing(!!prefs.marketing)
       setTelegramPref(prefs.telegram !== false)
+      setQuietModeEnabled(u.quiet_mode_enabled === true)
+      setQuietHourStart(normalizeTimeInput(u.quiet_hour_start, '22:00'))
+      setQuietHourEnd(normalizeTimeInput(u.quiet_hour_end, '08:00'))
     } catch (e) {
       console.error('[renter/settings]', e)
       toast.error(getUIText('renterSettingsLoadFailed', language))
@@ -126,6 +144,9 @@ export default function RenterSettingsPage() {
             marketing,
             telegram: telegramPref,
           },
+          quiet_mode_enabled: quietModeEnabled,
+          quiet_hour_start: normalizeTimeInput(quietHourStart, '22:00'),
+          quiet_hour_end: normalizeTimeInput(quietHourEnd, '08:00'),
         }),
       })
       const data = await res.json()
@@ -249,6 +270,45 @@ export default function RenterSettingsPage() {
               </p>
             </div>
             <Switch checked={telegramPref} onCheckedChange={setTelegramPref} />
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <Label className="text-sm font-medium">
+                  {getUIText('renterSettingsQuietModeTitle', language)}
+                </Label>
+                <p className="text-xs text-slate-500">
+                  {getUIText('renterSettingsQuietModeHint', language)}
+                </p>
+              </div>
+              <Switch checked={quietModeEnabled} onCheckedChange={setQuietModeEnabled} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="quiet-start">{getUIText('renterSettingsQuietStart', language)}</Label>
+                <Input
+                  id="quiet-start"
+                  type="time"
+                  value={quietHourStart}
+                  onChange={(e) => setQuietHourStart(normalizeTimeInput(e.target.value, '22:00'))}
+                  disabled={!quietModeEnabled}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="quiet-end">{getUIText('renterSettingsQuietEnd', language)}</Label>
+                <Input
+                  id="quiet-end"
+                  type="time"
+                  value={quietHourEnd}
+                  onChange={(e) => setQuietHourEnd(normalizeTimeInput(e.target.value, '08:00'))}
+                  disabled={!quietModeEnabled}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 rounded-2xl bg-white border border-slate-200 px-3 py-2">
+              {getUIText('renterSettingsQuietDefaultHint', language)}
+            </p>
           </div>
         </CardContent>
       </Card>

@@ -46,7 +46,23 @@ function mapRowToClientUser(user, dbRole) {
     isModerator: dbRole === 'MODERATOR',
     notification_preferences: prefs,
     notificationPreferences: prefs,
+    quiet_hour_start: user.quiet_hour_start || '22:00:00',
+    quiet_hour_end: user.quiet_hour_end || '08:00:00',
+    quiet_mode_enabled: user.quiet_mode_enabled === true,
   };
+}
+
+function normalizeQuietHour(rawValue, fallback) {
+  const src = String(rawValue ?? '').trim();
+  if (!src) return fallback;
+  const m = src.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!m) return fallback;
+  const hh = Number(m[1]);
+  const mm = Number(m[2]);
+  if (!Number.isFinite(hh) || !Number.isFinite(mm) || hh < 0 || hh > 23 || mm < 0 || mm > 59) {
+    return fallback;
+  }
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:00`;
 }
 
 function verifySessionCookie() {
@@ -212,6 +228,16 @@ export async function PATCH(request) {
         ? { ...current.notification_preferences }
         : { email: true, telegram: false, telegramChatId: null };
     updates.notification_preferences = { ...base, ...incomingPrefs };
+  }
+
+  if (body.quiet_mode_enabled !== undefined) {
+    updates.quiet_mode_enabled = body.quiet_mode_enabled === true;
+  }
+  if (body.quiet_hour_start !== undefined) {
+    updates.quiet_hour_start = normalizeQuietHour(body.quiet_hour_start, '22:00:00');
+  }
+  if (body.quiet_hour_end !== undefined) {
+    updates.quiet_hour_end = normalizeQuietHour(body.quiet_hour_end, '08:00:00');
   }
 
   if (Object.keys(updates).length === 0) {

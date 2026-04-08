@@ -197,7 +197,12 @@
 - **Гигиена токенов:** ответы FCM **`UNREGISTERED` / registration-token-not-registered / Requested entity was not found`** → строка удаляется из **`user_push_tokens`** (**`PushService.deleteInvalidPushToken`**).
 - **Миграция колонки:** **`migrations/add_last_seen_at_user_push_tokens.sql`**. Без неё Smart Delivery деградирует (запрос токенов может ошибиться — тогда см. логи Supabase).
 - **Anti-spam batching (отложенный канал):** в **одном** 45-секундном окне для пары (**получатель**, **`senderId`**) несколько сообщений объединяются в **`chat_push_delivery_batch`** (PK `recipient_id` + `sender_id`). Перед отправкой проверяется **`is_read`** у **последнего** `message_id` в пачке; при **>1** сообщении текст пуша: **«У вас новых сообщений от {имя}»** / **«You have new messages from {name}»**. В payload FCM обязателен **`senderId`** (роуты **`chat/messages`**, **`conversations`**, **`from-profile`**). Миграция: **`migrations/create_chat_push_delivery_batch.sql`**; без таблицы — прежняя одиночная отложенная отправка.
-- **Тихий час (Silent hours):** часовой пояс получателя — **`device_info.timezone`** в **`user_push_tokens`** (регистрация в **`push-client-init.jsx`**); при локальном времени **22:00–08:00** в payload добавляется **`silent: '1'`**, FCM **`webpush.headers.Urgency: very-low`**, **`android.priority: normal`**, в **`firebase-messaging-sw.js`** — **`showNotification({ silent: true })`**.
+- **Тихий час (Silent hours):** часовой пояс получателя — **`device_info.timezone`** в **`user_push_tokens`** (регистрация в **`push-client-init.jsx`**). Приоритет:
+  1) если в **`profiles.quiet_mode_enabled = true`**, сервер берёт **`profiles.quiet_hour_start / quiet_hour_end`**;
+  2) иначе fallback окна — **22:00–08:00** в TZ устройства.
+  В тихом окне в payload добавляется **`silent: '1'`**, FCM **`webpush.headers.Urgency: very-low`**, **`android.priority: normal`**, в **`firebase-messaging-sw.js`** — **`showNotification({ silent: true })`**.
+- **Антизависание batched push (Sweeper):** **`POST/GET /api/cron/push-sweeper`** (Bearer **`CRON_SECRET`**) раз в час поднимает «зависшие» строки **`chat_push_delivery_batch`** (дедлайн старше 10 минут), форсирует доставку и очищает таблицу. GitHub Actions: **`.github/workflows/push-sweeper.yml`**.
+- **Hardening cron-auth (strict):** все роуты в **`/app/api/cron/*`** работают только при строгом совпадении заголовка (`Authorization: Bearer <CRON_SECRET>` или `x-cron-secret`) с env **`CRON_SECRET`**. Если **`CRON_SECRET`** не задан — доступ закрыт (**401**) без fallback-паролей.
 - **Ежедневная гигиена FCM:** **`POST/GET /api/cron/push-token-hygiene`** (Bearer **`CRON_SECRET`**) — тихий **`sendSilentBadgeUpdate(token, 0)`** по выборке токенов; ответ **UNREGISTERED** → удаление строки (**`PushService.deleteInvalidPushToken`**). GitHub Actions: **`.github/workflows/fcm-token-hygiene.yml`**.
 - **Аудит подмены цены:** каждый вызов **`recordCriticalSignal('PRICE_TAMPERING')`** дополнительно пишет строку в **`critical_signal_events`** (**`migrations/create_critical_signal_events.sql`**) для nightly-сводки в **`scripts/send-e2e-report.mjs`**.
 - **Badge + звук (UX):** для `NEW_MESSAGE` и `badge_update` событие прокидывается в **`ChatContext`** (`window` event `gostaylo:push-message`) → `refresh()` списка бесед. Звук воспроизводится **только** при `document.visibilityState === 'visible'` и **вне** открытого треда.
@@ -426,12 +431,26 @@
 - **Calendar Link Guard** — TTL/валидность **`/api/calendar/stay`**, наличие **`CALENDAR_STAY_LINK_SECRET`** в окружениях.
 - **Telegram Action Security** — синтетика lifecycle ban-token (подпись, TTL, replay).
 
+### 11.8 Push Reliability Patrol — **активен**
+
+- Почасовой sweeper: **`.github/workflows/push-sweeper.yml`** → **`POST /api/cron/push-sweeper`**.
+- Серверный sweeper в **`PushService.runStaleChatPushSweeper`**: stale окно **10+ мин**, форсированная доставка батча, удаление строк из **`chat_push_delivery_batch`**.
+- Nightly сводка Telegram (`send-e2e-report.mjs`) содержит **System Hygiene**: `FCM Cleaned`, `Sweeper Status`, `DB Health`.
+
 ## 12. AI Collaboration (.cursorrules)
 
 - **Конституция для Cursor/агентов:** файл **`/.cursorrules`** в корне репозитория. Роль **старшего архитектора Gostaylo**; **перед любой задачей** — **`docs/TECHNICAL_MANIFESTO.md`**. После изменений **API, БД или дизайна** — обновлять **манифест** и **`docs/ARCHITECTURAL_PASSPORT.md`**; канон политики — **`ARCHITECTURAL_DECISIONS.md`** (при расхождении верен только он).
 - **UI/E2E:** скругления чата — **`rounded-2xl` (16px)** (§5.1); тестовые сущности помечать **`[E2E_TEST_DATA]`** там, где принято в проекте.
 - **Расширенный nightly-отчёт:** **`scripts/send-e2e-report.mjs`** при **`NEXT_PUBLIC_SUPABASE_URL`** + **`SUPABASE_SERVICE_ROLE_KEY`** в env шага (**секреты GitHub Actions**, см. **`playwright.yml`**) добавляет в Telegram: число строк **`user_push_tokens`**, проверку REST Supabase, счётчик **`PRICE_TAMPERING`** за 24 ч из **`critical_signal_events`**.
+- **System Hygiene в nightly-отчёте:** секция включает **`FCM Cleaned`** (за 24ч из **`critical_signal_events`**, ключ **`FCM_TOKEN_CLEANED`**, либо env `FCM_CLEANED_COUNT`), **`Sweeper Status`** (по stale строкам **`chat_push_delivery_batch`** старше 10 минут) и **`DB Health`** (`OK/DEGRADED` по REST-check `profiles`).
+- **Autonomic Ops Log:** таблица **`ops_job_runs`** фиксирует все критичные cron-прогоны (`push-sweeper`, `push-token-hygiene`, `ical-sync`, `payouts`) со статусом, длительностью и JSON-метриками. Nightly Telegram (`send-e2e-report.mjs`) агрегирует за 24ч именно из **`ops_job_runs`**.
+
+## 13. Admin Tooling
+
+- **Health Dashboard:** страница **`/admin/health`** (`app/admin/health/page.jsx`) — визуализация за **7 дней** из **`ops_job_runs`** (iCal sync, Push Sweeper, FCM token hygiene) и счётчик/лента **`PRICE_TAMPERING`** из **`critical_signal_events`**. Обновление по кнопке «Обновить» (**`GET /api/v2/admin/health`**).
+- **Доступ:** роль **`ADMIN`** в **`profiles`** (проверка по cookie-сессии и сервисному чтению профиля) **или** email пользователя в **`ADMIN_HEALTH_EMAILS`** (список через запятую); реализация **`lib/admin-health-access.js`**. Модераторы без allowlist и без роли ADMIN к API не допускаются (**403**).
+- **Навигация:** пункт «Здоровье» в **`app/admin/layout.js`** (виден и модераторам в меню; фактический доступ к данным определяет API).
 
 ---
 
-**Версия:** апрель 2026 — §12 `.cursorrules`; Smart Push + batching + тихий час (§5); FCM hygiene cron; **`critical_signal_events`** + отчёт; nightly Telegram (**`send-e2e-report.mjs`**); §0 **TEXT** в Supabase; боты §11; Playwright; §8 telemetry.
+**Версия:** 2.1.6 (апрель 2026) — Admin Health Dashboard (`/admin/health`, §13), `ops_job_runs` / `critical_signal_events` в UI; предыдущее: strict cron, No-Ops журнал, quiet hours, push-sweeper, FCM hygiene, боты §11, Playwright, §8 telemetry.

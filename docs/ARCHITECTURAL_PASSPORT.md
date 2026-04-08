@@ -1,12 +1,16 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 2.1.3 | **Last Updated**: 2026-04-08 | **Status**: Production-Ready
+> **Version**: 2.1.6 | **Last Updated**: 2026-04-09 | **Status**: Production-Ready
 > 
 > This document is the **absolute source of truth** for all technical decisions, database schemas, and development standards. Any AI agent working on this codebase MUST read this document first.
 
 ---
 
 ## 0. Critical Routes & Services
+
+### 0.0 Admin Health Dashboard (ops + security)
+- **UI:** `app/admin/health/page.jsx` — маршрут **`/admin/health`**, карточки **`rounded-2xl`**: агрегаты **`ops_job_runs`** (7 дн.) для **`ical-sync`**, **`push-sweeper`**, **`push-token-hygiene`**, блок **`critical_signal_events`** (`PRICE_TAMPERING`).
+- **API:** **`GET /api/v2/admin/health`** — только **`profiles.role === 'ADMIN'`** или email из **`ADMIN_HEALTH_EMAILS`** (см. **`lib/admin-health-access.js`**); данные через **`supabaseAdmin`**.
 
 ### 0.1 CRITICAL: Telegram Webhook
 ```
@@ -219,6 +223,9 @@ PENDING → AWAITING_PAYMENT → CONFIRMED → CHECKED_IN → COMPLETED
 | `telegram_id` | TEXT | YES | Telegram user ID |
 | `telegram_username` | TEXT | YES | Telegram @username |
 | `telegram_linked_at` | TIMESTAMPTZ | YES | When Telegram was linked |
+| `quiet_mode_enabled` | BOOLEAN | NO | Personalized quiet-hours toggle for push |
+| `quiet_hour_start` | TIME | NO | Quiet-hours start (local device TZ) |
+| `quiet_hour_end` | TIME | NO | Quiet-hours end (local device TZ) |
 | `custom_commission_rate` | NUMERIC | YES | Partner-specific rate |
 | `available_balance` | NUMERIC | YES | Withdrawable balance |
 | `escrow_balance` | NUMERIC | YES | Funds in escrow |
@@ -262,7 +269,7 @@ PENDING → AWAITING_PAYMENT → CONFIRMED → CHECKED_IN → COMPLETED
 | `created_at` | TIMESTAMPTZ | NO | Default now |
 
 #### `chat_push_delivery_batch` (отложенный FCM, anti-spam)
-Одна строка на пару (**получатель**, **отправитель**) до срабатывания окна **45 с**. См. **`docs/TECHNICAL_MANIFESTO.md`** §5 (Delayed Mobile Push).
+Одна строка на пару (**получатель**, **отправитель**) до срабатывания окна **45 с**. Если serverless-процесс не завершил лидер-доставку, hourly cron **`/api/cron/push-sweeper`** поднимает stale строки (10+ минут), форсирует доставку и очищает таблицу.
 
 | Column | Type | Nullable | Description |
 |--------|------|----------|-------------|
@@ -284,6 +291,19 @@ Append-only события для отчётов (напр. **`PRICE_TAMPERING`*
 | `signal_key` | TEXT | NO | e.g. `PRICE_TAMPERING` |
 | `created_at` | TIMESTAMPTZ | NO | Default now |
 | `detail` | JSONB | YES | Краткий контекст |
+
+#### `ops_job_runs` (автономный бортовой журнал)
+Единый операционный лог cron/background задач для модели No-Ops. Запись через `lib/ops-job-runs.js`: при сетевых сбоях (например `ECONNRESET`, `fetch failed`, 502/503/504) выполняется до четырёх попыток с экспоненциальной задержкой.
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | BIGSERIAL | NO | Primary key |
+| `job_name` | TEXT | NO | Идентификатор задачи (`push-sweeper`, `ical-sync`, `payouts`, ...) |
+| `status` | TEXT | NO | `running` / `success` / `error` |
+| `started_at` | TIMESTAMPTZ | NO | Время старта |
+| `finished_at` | TIMESTAMPTZ | YES | Время завершения |
+| `stats` | JSONB | NO | Метрики выполнения (counts, duration_ms, и т.п.) |
+| `error_message` | TEXT | YES | Последняя ошибка (если была) |
 
 ---
 

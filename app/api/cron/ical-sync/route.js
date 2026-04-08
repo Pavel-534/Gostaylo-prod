@@ -14,11 +14,19 @@ import {
   syncIcalSourceToCalendarBlocks,
 } from '@/lib/services/ical-calendar-blocks-sync'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
+import { startOpsJobRun, finishOpsJobRun } from '@/lib/ops-job-runs'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 const CRON_SECRET = process.env.CRON_SECRET
+
+function authorize(request) {
+  if (!CRON_SECRET) return false
+  const authHeader = request.headers.get('authorization')
+  const cronSecret = request.headers.get('x-cron-secret')
+  return authHeader === `Bearer ${CRON_SECRET}` || cronSecret === CRON_SECRET
+}
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -149,15 +157,22 @@ async function runSync() {
 }
 
 export async function GET(request) {
-  const { searchParams } = new URL(request.url)
-  const secret = searchParams.get('secret')
-
-  if (CRON_SECRET && secret !== CRON_SECRET) {
+  if (!authorize(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-
+  const run = await startOpsJobRun('ical-sync')
   try {
     const result = await runSync()
+    await finishOpsJobRun(run, {
+      status: result?.success ? 'success' : 'error',
+      stats: {
+        total: Number(result?.total || 0),
+        synced: Number(result?.synced || 0),
+        errors: Number(result?.errors || 0),
+        skipped: Number(result?.skipped || 0),
+      },
+      errorMessage: result?.success ? null : result?.error || null,
+    })
     if (result && result.success === false && result.error) {
       void notifySystemAlert(
         `⏰ <b>Cron: ical-sync</b> (GET)\n<code>${escapeSystemAlertHtml(result.error)}</code>`,
@@ -166,6 +181,11 @@ export async function GET(request) {
     return NextResponse.json(result)
   } catch (e) {
     console.error('[CRON ICAL-SYNC GET]', e)
+    await finishOpsJobRun(run, {
+      status: 'error',
+      stats: {},
+      errorMessage: e?.message || 'error',
+    })
     void notifySystemAlert(
       `⏰ <b>Cron: ical-sync</b> (GET) — исключение\n<code>${escapeSystemAlertHtml(e?.message || e)}</code>`,
     )
@@ -174,14 +194,22 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const authHeader = request.headers.get('authorization')
-
-  if (CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
+  if (!authorize(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-
+  const run = await startOpsJobRun('ical-sync')
   try {
     const result = await runSync()
+    await finishOpsJobRun(run, {
+      status: result?.success ? 'success' : 'error',
+      stats: {
+        total: Number(result?.total || 0),
+        synced: Number(result?.synced || 0),
+        errors: Number(result?.errors || 0),
+        skipped: Number(result?.skipped || 0),
+      },
+      errorMessage: result?.success ? null : result?.error || null,
+    })
     if (result && result.success === false && result.error) {
       void notifySystemAlert(
         `⏰ <b>Cron: ical-sync</b> (POST)\n<code>${escapeSystemAlertHtml(result.error)}</code>`,
@@ -190,6 +218,11 @@ export async function POST(request) {
     return NextResponse.json(result)
   } catch (e) {
     console.error('[CRON ICAL-SYNC POST]', e)
+    await finishOpsJobRun(run, {
+      status: 'error',
+      stats: {},
+      errorMessage: e?.message || 'error',
+    })
     void notifySystemAlert(
       `⏰ <b>Cron: ical-sync</b> (POST) — исключение\n<code>${escapeSystemAlertHtml(e?.message || e)}</code>`,
     )

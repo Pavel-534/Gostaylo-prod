@@ -17,21 +17,23 @@ import { NotificationService } from '@/lib/services/notification.service';
 import { listingDateToday } from '@/lib/listing-date';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 
-const CRON_SECRET = process.env.CRON_SECRET || 'gostaylo-cron-2026';
+const CRON_SECRET = process.env.CRON_SECRET;
+
+function authorize(request) {
+  if (!CRON_SECRET) return false;
+  const authHeader = request.headers.get('authorization');
+  const cronHeader = request.headers.get('x-cron-secret');
+  return authHeader === `Bearer ${CRON_SECRET}` || cronHeader === CRON_SECRET;
+}
 
 export async function POST(request) {
+  if (!authorize(request)) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
   try {
-    // Verify cron secret (supports Vercel cron header)
-    const vercelCron = request.headers.get('x-vercel-cron');
-    const authHeader = request.headers.get('x-cron-secret') || request.headers.get('authorization');
-    
-    if (!vercelCron && authHeader !== CRON_SECRET && authHeader !== `Bearer ${CRON_SECRET}`) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
     console.log('[CRON CHECK-IN] Sending check-in reminders...');
     
     // Get today's check-ins with PAID or PAID_ESCROW status
@@ -114,10 +116,7 @@ export async function POST(request) {
 
 // GET for status check
 export async function GET(request) {
-  const { searchParams } = new URL(request.url);
-  const secret = searchParams.get('secret');
-  
-  if (secret !== CRON_SECRET) {
+  if (!authorize(request)) {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
       { status: 401 }

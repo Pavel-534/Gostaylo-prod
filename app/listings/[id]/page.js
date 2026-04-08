@@ -7,12 +7,12 @@
  * Clean modular architecture with extracted components
  */
 
-import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react'
+import { useState, useEffect, useMemo, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, Loader2, Heart } from 'lucide-react'
-import dynamic from 'next/dynamic'
+import nextDynamic from 'next/dynamic'
 import { BentoGallery } from '@/components/listing/BentoGallery'
 import {
   DesktopBookingWidget,
@@ -43,7 +43,6 @@ import { format, differenceInDays } from 'date-fns'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { GuestCountStepper } from '@/components/listing/GuestCountStepper'
-import { formatPrice } from '@/lib/currency'
 import { fetchExchangeRates } from '@/lib/client-data'
 import { cn } from '@/lib/utils'
 import { INBOX_TAB_TRAVELING, setRenterInboxTabPreference } from '@/lib/chat-inbox-tabs'
@@ -94,7 +93,7 @@ function ListingMapLoadFallback() {
   )
 }
 
-const ListingMap = dynamic(
+const ListingMap = nextDynamic(
   () => import('@/components/listing/ListingMap').then((mod) => mod.ListingMap),
   {
     ssr: false,
@@ -129,7 +128,7 @@ function PremiumListingContent({ params }) {
   const [debouncedGuestsAvail, setDebouncedGuestsAvail] = useState(2)
   const [message, setMessage] = useState('')
   const [priceCalc, setPriceCalc] = useState(null)
-  const [calendarKey, setCalendarKey] = useState(0)
+  const [calendarKey, _setCalendarKey] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteLoading, setFavoriteLoading] = useState(false)
   const [contactPartnerLoading, setContactPartnerLoading] = useState(false)
@@ -172,7 +171,7 @@ function PremiumListingContent({ params }) {
         if (from >= new Date() && to > from) {
           setDateRange({ from, to })
         }
-      } catch (e) {
+      } catch {
         // Invalid dates
       }
     }
@@ -595,7 +594,7 @@ function PremiumListingContent({ params }) {
         const raw = data.data
         setReviews(Array.isArray(raw) ? raw : (raw?.reviews ?? []))
       }
-    } catch (error) {
+    } catch {
       // Failed to load reviews
     }
   }
@@ -677,7 +676,7 @@ function PremiumListingContent({ params }) {
       } else {
         toast.error(getBookingApiUserMessage(data, language))
       }
-    } catch (error) {
+    } catch {
       toast.error(getUIText('listingToast_network', language))
     } finally {
       setSubmitting(false)
@@ -772,7 +771,7 @@ function PremiumListingContent({ params }) {
           ? (language === 'ru' ? '❤️ Добавлено в избранное' : '❤️ Added to favorites')
           : (language === 'ru' ? 'Удалено из избранного' : 'Removed from favorites'))
       }
-    } catch (err) {
+    } catch {
       setIsFavorite(!newState)
       toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
     } finally {

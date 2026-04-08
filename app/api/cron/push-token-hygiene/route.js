@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server'
 import { PushService } from '@/lib/services/push.service'
 import { supabaseAdmin } from '@/lib/supabase'
+import { startOpsJobRun, finishOpsJobRun } from '@/lib/ops-job-runs'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,7 +25,14 @@ function authorize(request) {
 
 async function runHygiene() {
   if (!supabaseAdmin) {
-    return { ok: false, error: 'supabaseAdmin unavailable', probed: 0, removedHint: 0 }
+    return { ok: false, error: 'supabaseAdmin unavailable', probed: 0, removed: 0 }
+  }
+  let beforeCount = 0
+  try {
+    const { count } = await supabaseAdmin.from('user_push_tokens').select('*', { count: 'exact', head: true })
+    beforeCount = Number(count || 0)
+  } catch {
+    beforeCount = 0
   }
   const { data: rows, error } = await supabaseAdmin
     .from('user_push_tokens')
@@ -32,7 +40,7 @@ async function runHygiene() {
     .limit(MAX_TOKENS)
 
   if (error) {
-    return { ok: false, error: error.message, probed: 0, removedHint: 0 }
+    return { ok: false, error: error.message, probed: 0, removed: 0 }
   }
 
   const tokens = (Array.isArray(rows) ? rows : [])
@@ -50,18 +58,43 @@ async function runHygiene() {
     )
   }
 
-  return { ok: true, probed, maxTokens: MAX_TOKENS }
+  let afterCount = beforeCount
+  try {
+    const { count } = await supabaseAdmin.from('user_push_tokens').select('*', { count: 'exact', head: true })
+    afterCount = Number(count || 0)
+  } catch {
+    afterCount = beforeCount
+  }
+
+  return {
+    ok: true,
+    probed,
+    maxTokens: MAX_TOKENS,
+    removed: Math.max(0, beforeCount - afterCount),
+  }
 }
 
 export async function POST(request) {
   if (!authorize(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const run = await startOpsJobRun('push-token-hygiene')
   try {
     const result = await runHygiene()
+    await finishOpsJobRun(run, {
+      status: result?.ok ? 'success' : 'error',
+      stats: {
+        probed: Number(result?.probed || 0),
+        removed: Number(result?.removed || 0),
+        max_tokens: Number(result?.maxTokens || MAX_TOKENS),
+      },
+      errorMessage: result?.ok ? null : result?.error || null,
+    })
     return NextResponse.json(result)
   } catch (e) {
-    return NextResponse.json({ error: e?.message || 'hygiene failed' }, { status: 500 })
+    const err = e?.message || 'hygiene failed'
+    await finishOpsJobRun(run, { status: 'error', stats: {}, errorMessage: err })
+    return NextResponse.json({ error: err }, { status: 500 })
   }
 }
 

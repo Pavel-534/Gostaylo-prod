@@ -1,0 +1,27 @@
+# Почасовой sweeper "зависших" batched push в chat_push_delivery_batch.
+# Секреты: PLAYWRIGHT_BASE_URL (публичный origin приложения), CRON_SECRET.
+
+name: Push batch sweeper
+
+on:
+  schedule:
+    - cron: '10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger push-sweeper cron
+        env:
+          BASE: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+          SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$BASE" ] || [ -z "$SECRET" ]; then
+            echo "PLAYWRIGHT_BASE_URL or CRON_SECRET not set — skip"
+            exit 0
+          fi
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${SECRET}" \
+            "${BASE%/}/api/cron/push-sweeper"
