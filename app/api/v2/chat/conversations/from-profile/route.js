@@ -237,6 +237,7 @@ export async function POST(request) {
       sender: senderName,
       link,
       conversationId: finalId,
+      messageId: msgId,
     }).catch((e) => console.error('[from-profile] FCM', e?.message || e))
   }
 

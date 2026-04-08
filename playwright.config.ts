@@ -54,6 +54,7 @@ const productionSmokeProjects =
  * SEO Spy Bot: `tests/e2e/seo-spy-bot.spec.ts` — проект `seo-spy-bot`.
  * Accountant Bot: `tests/e2e/bots/accountant-math.spec.ts` — проект `accountant-bot`.
  * Polyglot UX Bot: `tests/e2e/bots/polyglot-ux.spec.ts` — проект `polyglot-bot` (renter storage).
+ * Chat Controller Bot: `tests/e2e/bots/chat-control.spec.ts` — проект `chat-control-bot`.
  * Security Bot: `tests/e2e/security-bot.spec.ts` — проект `security-bot` (без storageState).
  * Speed Bot: `tests/e2e/speed-bot.spec.ts` — проект `speed-bot`.
  *
@@ -71,7 +72,10 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  reporter: [
+    ['html'],
+    ['json', { outputFile: 'playwright-report/results.json' }],
+  ],
   timeout: 90_000,
   use: {
     /** По умолчанию локальный dev-сервер; переопределение: PLAYWRIGHT_BASE_URL или BASE_URL */
@@ -169,6 +173,14 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         storageState: AUTH.user,
       },
+    },
+    {
+      name: 'chat-control-bot',
+      dependencies: ['setup'],
+      testDir: './tests/e2e',
+      testMatch: '**/bots/chat-control.spec.ts',
+      timeout: 180_000,
+      use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'chat-mobile-iphone',

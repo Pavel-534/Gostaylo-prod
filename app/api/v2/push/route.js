@@ -28,7 +28,7 @@ async function isAdmin(userId) {
 export async function POST(request) {
   try {
     const body = await request.json().catch(() => ({}))
-    const { action, token, templateKey, data, targetUserId } = body || {}
+    const { action, token, deviceInfo, templateKey, data, targetUserId } = body || {}
 
     // Action: register - токен только для пользователя из cookie-сессии
     if (action === 'register') {
@@ -39,7 +39,19 @@ export async function POST(request) {
       if (!token) {
         return NextResponse.json({ success: false, error: 'token required' }, { status: 400 })
       }
-      const result = await PushService.registerToken(session.userId, token)
+      const result = await PushService.registerToken(session.userId, token, deviceInfo || null)
+      return NextResponse.json(result)
+    }
+
+    if (action === 'ping') {
+      const session = await requireSession()
+      if (!session) {
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      }
+      if (!token) {
+        return NextResponse.json({ success: false, error: 'token required' }, { status: 400 })
+      }
+      const result = await PushService.touchTokenLastSeen(session.userId, token)
       return NextResponse.json(result)
     }
 
@@ -75,7 +87,7 @@ export async function POST(request) {
     }
 
     return NextResponse.json(
-      { success: false, error: 'Invalid action. Use: register, send, or test' },
+      { success: false, error: 'Invalid action. Use: register, ping, send, or test' },
       { status: 400 },
     )
   } catch (error) {
@@ -98,7 +110,8 @@ export async function GET() {
       'PAYOUT_READY',
     ],
     endpoints: {
-      register: 'POST /api/v2/push { action: "register", token: "..." }',
+      register: 'POST /api/v2/push { action: "register", token: "...", deviceInfo?: {...} }',
+      ping: 'POST /api/v2/push { action: "ping", token: "..." } — last_seen для Smart Push',
       send: 'POST /api/v2/push { action: "send", targetUserId: "...", templateKey: "...", data: {...} }',
       test: 'POST /api/v2/push { action: "test", token: "..." }',
     },

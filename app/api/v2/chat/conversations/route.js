@@ -520,6 +520,7 @@ export async function POST(request) {
         sender: renterName,
         link,
         conversationId: finalId,
+        messageId: msgId,
       }).catch((e) => console.error('[chat/conversations] FCM intro', e?.message || e))
     }
   }

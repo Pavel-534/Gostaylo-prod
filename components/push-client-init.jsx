@@ -22,7 +22,15 @@ export function PushClientInit() {
 
     let unsubscribeOnMessage = null
     let swMessageHandler = null
+    let pingInterval = null
     let cancelled = false
+    const deviceInfo = {
+      surface: 'web',
+      userAgent: navigator.userAgent || '',
+      platform: navigator.platform || '',
+      language: navigator.language || '',
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+    }
 
     const run = async () => {
       try {
@@ -47,18 +55,25 @@ export function PushClientInit() {
         })
         if (cancelled || !token) return
 
-        const prev = localStorage.getItem('gostaylo_fcm_token') || ''
-        if (prev !== token) {
-          const res = await fetch('/api/v2/push', {
+        const res = await fetch('/api/v2/push', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'register', token, deviceInfo }),
+        })
+        if (res.ok) {
+          localStorage.setItem('gostaylo_fcm_token', token)
+        }
+
+        const pingMs = 30_000
+        pingInterval = setInterval(() => {
+          void fetch('/api/v2/push', {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'register', token }),
-          })
-          if (res.ok) {
-            localStorage.setItem('gostaylo_fcm_token', token)
-          }
-        }
+            body: JSON.stringify({ action: 'ping', token }),
+          }).catch(() => {})
+        }, pingMs)
 
         // Foreground data message
         unsubscribeOnMessage = onMessage(messaging, (payload) => {
@@ -82,6 +97,10 @@ export function PushClientInit() {
 
     return () => {
       cancelled = true
+      if (pingInterval != null) {
+        clearInterval(pingInterval)
+        pingInterval = null
+      }
       if (typeof unsubscribeOnMessage === 'function') unsubscribeOnMessage()
       if (swMessageHandler) navigator.serviceWorker.removeEventListener('message', swMessageHandler)
     }

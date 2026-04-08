@@ -450,6 +450,7 @@ export async function POST(request) {
       sender: senderName,
       link: msgDeepLink,
       conversationId,
+      messageId: messageData.id,
     }).catch((e) => console.error('[chat/messages] FCM renter', e?.message || e))
   }
   if (conversation.partner_id && String(userId) === String(conversation.renter_id)) {
@@ -457,6 +458,7 @@ export async function POST(request) {
       sender: senderName,
       link: msgDeepLink,
       conversationId,
+      messageId: messageData.id,
     }).catch((e) => console.error('[chat/messages] FCM partner', e?.message || e))
   }
 

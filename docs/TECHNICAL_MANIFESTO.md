@@ -6,6 +6,30 @@
 
 ---
 
+## 0. Supabase / Postgres — канон типов идентификаторов (прод: FannyRent)
+
+**Источник истины по колонкам:** **`docs/ARCHITECTURAL_PASSPORT.md`** (§2) и фактическая схема проекта в Supabase Dashboard (**Table Editor** / SQL `\d имя_таблицы`).
+
+### 0.1 Почти все «продуктовые» PK/FK — **TEXT**, не UUID
+
+В прод-базе **Supabase (FannyRent / FannRent)** идентификаторы пользователей и основных сущностей заданы как **TEXT** (строковые ключи вроде `lst-…`, `b-…`, UUID-строки в тексте):
+
+| Колонка / роль | Тип в проде |
+|----------------|-------------|
+| **`profiles.id`** | **TEXT** (PK) |
+| **`listings.id`**, **`bookings.id`**, **`conversations.id`**, **`messages.id`** и поля **`…_id`**, ссылающиеся на них | **TEXT** |
+
+**Правило для любых новых SQL-миграций** (`migrations/*.sql`, ручной запуск в SQL Editor):
+
+- Столбцы **`user_id`**, **`owner_id`**, **`renter_id`**, **`partner_id`**, **`listing_id`**, **`booking_id`**, **`conversation_id`** и т.п., если FK ведёт на **`profiles` / `listings` / `bookings` / `conversations`**, объявлять как **`TEXT`**, пока явно не проверено иное в живой БД.
+- Тип **`uuid`** для таких FK допустим **только** если в Supabase у родительской колонки реально **`uuid`** (иначе Postgres вернёт **ERROR 42804** — несовместимые типы ключей).
+
+**Prisma:** в **`prisma/schema.prisma`** и старых черновиках миграций встречаются **`UUID`** — это **не** автоматический ориентир для SQL под Supabase. Перед написанием FK сверяйтесь с **`ARCHITECTURAL_PASSPORT`** и с реальной таблицей в Supabase.
+
+**Пример:** таблица **`user_push_tokens`**: **`user_id text not null references public.profiles(id)`** — см. **`migrations/create_user_push_tokens_table.sql`**. Комментарий-пояснение также в **`prisma/migrations/003_ai_usage_logs.sql`** (про TEXT для `profiles.id` в этом проекте).
+
+---
+
 ## 1. Деньги и валюта (CurrencyService)
 
 ### 1.1 Источники данных
@@ -59,11 +83,11 @@
 ### 1.4a Защита цены при создании брони (client attestation)
 
 - Клиент передаёт **`clientQuotedSubtotalThb`** (THB, до промокода), витрина считает ту же сумму через **`PricingService.calculatePrice`** / **`calculateBookingPriceSync`** (в т.ч. тур × **`guestsCount`**).
-- **`BookingService.createBooking`** и **`createInquiryBooking`** (кроме **`privateTrip`** / **`negotiationRequest`**) сверяют **`Math.round(clientQuotedSubtotalThb)`** с **`Math.round(PricingService.calculateBookingPrice(…).totalPrice)`** до применения промокода. Расхождение → отказ (**`code: 'PRICE_MISMATCH'`**), **`notifySystemAlert`** с меткой **«ATTEMPTED PRICE MANIPULATION»**.
+- **`BookingService.createBooking`** и **`createInquiryBooking`** (кроме **`privateTrip`** / **`negotiationRequest`**) сверяют **`Math.round(clientQuotedSubtotalThb)`** с **`Math.round(PricingService.calculateBookingPrice(…).totalPrice)`** до применения промокода. Расхождение → отказ (**`code: 'PRICE_MISMATCH'`**), Telegram алерт **`[PRICE_TAMPERING]`** + метка **«ATTEMPTED PRICE MANIPULATION»**.
 - Схема тела: **`lib/validations/booking.js`**; публичный вход — **`POST /api/v2/bookings`**.
 - **Финальный POST с клиента** (кнопка «Забронировать»): заголовки **`Cache-Control: no-cache`** и **`Pragma: no-cache`**, чтобы промежуточный HTTP-кэш (в т.ч. после **`private` TTL календаря**) не подставил устаревшую картину занятости; сервер всё равно делает **повторную проверку доступности** в **`BookingService`** непосредственно перед INSERT.
 - **Конфликт дат после кэша:** ответ **`code: 'DATES_CONFLICT'`** → пользователю **`getBookingApiUserMessage`** / **`bookingErr_datesConflict`** (локализовано в **`lib/translations/errors.js`**).
-- **Server-side Integrity (ценовая броня):** после промокода **`BookingService.createBooking` / `createInquiryBooking`** отклоняют бронь, если субтотал **&lt; 0** или **итог к оплате гостем** (**`price_thb + commission_thb`**, те же округления, что на витрине) **&lt; `MIN_BOOKING_GUEST_TOTAL_THB` (100)** — код **`BOOKING_MIN_TOTAL_THB`**, Telegram **`[SECURITY_ALERT]`**. Опционально тело **`clientQuotedGuestTotalThb`** (THB): при расхождении с серверным итогом — **`PRICE_MISMATCH`** + **`[SECURITY_ALERT]`** / **`[FRAUD_DETECTION]`** (как у **`clientQuotedSubtotalThb`**). Константа и формула: **`lib/booking-price-integrity.js`**.
+- **Server-side Integrity (ценовая броня):** после промокода **`BookingService.createBooking` / `createInquiryBooking`** отклоняют бронь, если субтотал **&lt; 0** или **итог к оплате гостем** (**`price_thb + commission_thb`**, те же округления, что на витрине) **&lt; `MIN_BOOKING_GUEST_TOTAL_THB` (100)** — код **`BOOKING_MIN_TOTAL_THB`**, Telegram **`[SECURITY_ALERT]`**. Опционально тело **`clientQuotedGuestTotalThb`** (THB): при расхождении с серверным итогом — **`PRICE_MISMATCH`** + Telegram **`[PRICE_TAMPERING]`** / **`[FRAUD_DETECTION]`** (как у **`clientQuotedSubtotalThb`**). Константа и формула: **`lib/booking-price-integrity.js`**.
 
 ### 1.4b Deep links (мобильные уведомления / внешние приложения)
 
@@ -162,7 +186,16 @@
 - **Системные сообщения:** тип **`system`** — по умолчанию только **ADMIN/MODERATOR**; у партнёра — узкий whitelist **`metadata.system_key`** (`passport_request`, `booking_confirmed`, `booking_declined`) при участии в диалоге. Renter/USER не могут эмулировать «Систему» или чужую роль через API.
 - **Транзакционные события (бронь, счёт, статусы):** серверные вставки в **`messages`** из **`lib/services/booking.service.js`**, **`lib/booking-status-chat-sync.js`**, **`app/api/v2/chat/support/join/route.js`** и т.д. — обходят HTTP-роут там, где нужна атомарность с бизнес-операцией; клиентский путь остаётся единым для пользовательского текста/медиа/счетов из кабинета.
 - **Уведомления после сообщения:** **`PushService.sendToUser`** (FCM) для контрагента в диалоге; ошибки FCM **логируются, не ломают** ответ API (**`.catch`** в роуте). Для deep-link в payload передаётся **`conversationId`** + **`/messages/{id}`**; Service Worker может подавить показ системного уведомления, если вкладка с этим же тредом уже видима (аналог WhatsApp Web).
-- **Web Push pipeline (FCM):** клиентский bootstrap **`components/push-client-init.jsx`** регистрирует **`/firebase-messaging-sw.js`**, получает FCM token (Firebase Web SDK) и отправляет в **`POST /api/v2/push`** (`action=register`) только для пользователя из cookie-сессии. Сервер хранит токен в **`profiles.fcm_token`**. Service Worker маршрутизирует data-payload в открытые вкладки (`postMessage`) для мгновенного badge/звука и открывает нужный URL по `notificationclick`.
+- **Web Push pipeline (FCM):** клиентский bootstrap **`components/push-client-init.jsx`** регистрирует **`/firebase-messaging-sw.js`**, получает FCM token (Firebase Web SDK) и отправляет в **`POST /api/v2/push`** (`action=register`) только для пользователя из cookie-сессии. Сервер хранит токены в **`user_push_tokens`** (multi-device, one row per token). Service Worker маршрутизирует data-payload в открытые вкладки (`postMessage`) для мгновенного badge/звука и открывает нужный URL по `notificationclick`.
+
+### Delayed Mobile Push Strategy (Smart Delivery)
+
+- **Цель:** не дублировать назойливый пуш, если пользователь уже в веб-чате; дать мобильным/офлайн-веб короткую паузу — если сообщение уже прочитано в приложении, пуш не отправлять.
+- **`user_push_tokens.last_seen_at`:** обновляется при **`register`** и лёгком **`ping`** (интервал на клиенте ~30 с). В **`device_info`** для браузера задаётся **`surface: 'web'`** (см. **`push-client-init.jsx`**).
+- **Правило для `NEW_MESSAGE` с `messageId` в payload:** если токен помечен как веб (`surface: web` + типичный UA) и **`last_seen_at` новее ~60 с** — FCM вызывается сразу. Иначе отправка откладывается на **45 с**; перед отправкой сервер проверяет **`messages.is_read`** для этого **`messageId`**. Если **`is_read: true`** (или строка сообщения не найдена) — отложенный пуш **не** шлётся.
+- **Надёжность на serverless:** фоновая задержка обёрнута в **`waitUntil`** из **`@vercel/functions`** (если доступно); локально/`next start` тот же **`setTimeout`** выполняется в процессе Node.
+- **Гигиена токенов:** ответы FCM **`UNREGISTERED` / registration-token-not-registered / Requested entity was not found`** → строка удаляется из **`user_push_tokens`** (**`PushService.deleteInvalidPushToken`**).
+- **Миграция колонки:** **`migrations/add_last_seen_at_user_push_tokens.sql`**. Без неё Smart Delivery деградирует (запрос токенов может ошибиться — тогда см. логи Supabase).
 - **Badge + звук (UX):** для `NEW_MESSAGE` и `badge_update` событие прокидывается в **`ChatContext`** (`window` event `gostaylo:push-message`) → `refresh()` списка бесед. Звук воспроизводится **только** при `document.visibilityState === 'visible'` и **вне** открытого треда.
 - **Typing indicator:** **`hooks/use-chat-typing.js`** использует Supabase Realtime Broadcast канал **`typing:{conversationId}`**. Отправка `typing` идёт с throttle (≈400ms) при вводе в **`ChatGrowingTextarea`**; отображение — в **`StickyChatHeader`** как «`{name} печатает…`» с мягкой `animate-pulse`.
 - **Realtime (Supabase) — единая стратегия переподключения:** модуль **`lib/chat/realtime-subscribe-with-backoff.js`** (`subscribeRealtimeWithBackoff`). Любой Realtime-канал чата пересоздаётся при статусах **`CHANNEL_ERROR`**, **`TIMED_OUT`**, **`CLOSED`** с задержкой **`min(30s, 1000 × 2^min(attempt,5))`**. Имена каналов включают **`attempt`**, чтобы не конфликтовать с «зависшими» подписками. Потребители: **`lib/context/ChatContext.jsx`** (два канала: `conversations` + `messages` для списка диалогов), **`hooks/use-realtime-chat.js`** (`useRealtimeMessages`, `useRealtimeConversations`, **`usePresence`** — после `SUBSCRIBED` вызывается **`channel.track`**). Источник истины для текста сообщений — **POST** в API; при длительном офлайне список/тред догружаются через **`GET /api/v2/chat/conversations`** и **`GET /api/v2/chat/messages`**. Очереди исходящих в браузере нет (кроме optimistic UI в отдельных хуках).
@@ -319,7 +352,7 @@
 
 ### 9.1 Server-side Integrity (не секрет, но канон среды)
 
-- **Минимальный итог к оплате гостю (THB):** **`MIN_BOOKING_GUEST_TOTAL_THB = 100`** в **`lib/booking-price-integrity.js`** — проверяется в **`BookingService`** при **`POST /api/v2/bookings`** (не обходится клиентом). Нарушения и попытки подмены цены сопровождаются **`notifySystemAlert`** с префиксом **`[SECURITY_ALERT]`** (и при **`PRICE_MISMATCH`** — **`[FRAUD_DETECTION]`** / **`recordCriticalSignal`** по существующей схеме).
+- **Минимальный итог к оплате гостю (THB):** **`MIN_BOOKING_GUEST_TOTAL_THB = 100`** в **`lib/booking-price-integrity.js`** — проверяется в **`BookingService`** при **`POST /api/v2/bookings`** (не обходится клиентом). Нарушения и попытки подмены цены сопровождаются **`notifySystemAlert`** с префиксом **`[SECURITY_ALERT]`**; для price tampering используется префикс **`[PRICE_TAMPERING]`** (дополнительно **`[FRAUD_DETECTION]`** / **`recordCriticalSignal`**).
 - **Аттестация итога:** фронт листинга передаёт **`clientQuotedGuestTotalThb`** (округлённый **`finalTotal`**) вместе с **`clientQuotedSubtotalThb`**; расхождение с сервером → **`PRICE_MISMATCH`**.
 
 | Переменная | Назначение |
@@ -391,4 +424,4 @@
 
 ---
 
-**Версия:** апрель 2026 — Security + Speed bots; глобальный Realtime JWT + site presence; SEO Spy + Accountant + Polyglot UX; серверная броня **`MIN_BOOKING_GUEST_TOTAL_THB`**; §9–11; nightly Playwright (**`.github/workflows/playwright.yml`**); production-smoke; §8 critical telemetry; SEO листинга в **`app/listings/[id]/layout.js`**.
+**Версия:** апрель 2026 — Smart Push (§5 Delayed Mobile Push), nightly Telegram E2E summary (**`scripts/send-e2e-report.mjs`**); §0 канон **TEXT** для PK/FK Supabase; Security + Speed bots; Realtime JWT + presence; SEO Spy + Accountant + Polyglot UX; **`MIN_BOOKING_GUEST_TOTAL_THB`**; §9–11; Playwright (**`.github/workflows/playwright.yml`**); production-smoke; §8 telemetry; SEO листинга **`app/listings/[id]/layout.js`**.

@@ -42,6 +42,17 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: npx playwright test
 
+      - name: Send E2E summary to Telegram
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          E2E_REPORT_TIME_UTC: '03:00'
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: node scripts/send-e2e-report.mjs
+
       - name: Upload HTML report
         if: always()
         uses: actions/upload-artifact@v4
