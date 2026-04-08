@@ -1,0 +1,27 @@
+# Ежедневная проверка FCM-токенов: тихий badge=0 → удаление UNREGISTERED из user_push_tokens.
+# Секреты: PLAYWRIGHT_BASE_URL (или любой публичный origin приложения), CRON_SECRET (тот же, что в Vercel/env приложения).
+
+name: FCM token hygiene
+
+on:
+  schedule:
+    - cron: '45 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Trigger push-token-hygiene cron
+        env:
+          BASE: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+          SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$BASE" ] || [ -z "$SECRET" ]; then
+            echo "PLAYWRIGHT_BASE_URL or CRON_SECRET not set — skip"
+            exit 0
+          fi
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${SECRET}" \
+            "${BASE%/}/api/cron/push-token-hygiene"

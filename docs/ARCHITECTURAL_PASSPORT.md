@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 2.1.1 | **Last Updated**: 2026-03-02 | **Status**: Production-Ready
+> **Version**: 2.1.3 | **Last Updated**: 2026-04-08 | **Status**: Production-Ready
 > 
 > This document is the **absolute source of truth** for all technical decisions, database schemas, and development standards. Any AI agent working on this codebase MUST read this document first.
 
@@ -89,6 +89,18 @@ Pattern: Immediate Response + Fire-and-Forget
 ---
 
 ## 2. Database Schema (Supabase PostgreSQL)
+
+### КРИТИЧНО: типы ключей в проде (TEXT vs UUID)
+
+В проекте **FannyRent (Supabase)** первичные и внешние ключи основных доменных таблиц — **`TEXT`**, а не нативный Postgres **`uuid`**. В частности:
+
+- **`profiles.id`** — **TEXT**
+- **`listings.id`**, **`bookings.id`**, **`conversations.id`**, **`messages.id`** — **TEXT**
+- все **`owner_id` / `renter_id` / `partner_id` / `listing_id` / …** в таблицах ниже согласованы с этим типом
+
+**При написании новых SQL-миграций** (в репозитории или в Supabase SQL Editor): не копируйте слепо шаблоны с **`uuid references profiles(id)`** — получите **ERROR 42804** (несовместимые типы). Либо используйте **`TEXT`** для FK на перечисленные таблицы, либо сначала проверьте тип родительской колонки в Dashboard.
+
+**Prisma `schema.prisma`** может исторически отличаться; для SQL под живую БД ориентир — **этот документ (§2)** и фактическая схема Supabase.
 
 ### 2.1 Core Tables
 
@@ -238,6 +250,40 @@ PENDING → AWAITING_PAYMENT → CONFIRMED → CHECKED_IN → COMPLETED
 | `type` | TEXT | YES | `TEXT`, `IMAGE`, `SYSTEM` |
 | `metadata` | JSONB | YES | Attachments, etc. |
 | `is_read` | BOOLEAN | NO | Read receipt flag |
+
+#### `user_push_tokens` (FCM, multi-device)
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | UUID | NO | Primary key |
+| `user_id` | TEXT | NO | FK `profiles.id` |
+| `token` | TEXT | NO | FCM registration token, unique |
+| `device_info` | JSONB | NO | `surface`, `userAgent`, **`timezone`** (IANA), … |
+| `last_seen_at` | TIMESTAMPTZ | YES | Heartbeat / register (Smart Push) |
+| `created_at` | TIMESTAMPTZ | NO | Default now |
+
+#### `chat_push_delivery_batch` (отложенный FCM, anti-spam)
+Одна строка на пару (**получатель**, **отправитель**) до срабатывания окна **45 с**. См. **`docs/TECHNICAL_MANIFESTO.md`** §5 (Delayed Mobile Push).
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `recipient_id` | TEXT | NO | PK part, FK `profiles.id` |
+| `sender_id` | TEXT | NO | PK part |
+| `conversation_id` | TEXT | NO | Deep link |
+| `sender_display_name` | TEXT | YES | Имя в пушe |
+| `message_ids` | TEXT[] | NO | Пачка id из `messages` |
+| `pending_tokens` | TEXT[] | NO | FCM-токены для доставки после окна |
+| `window_deadline_at` | TIMESTAMPTZ | NO | Когда сработает отправка |
+| `updated_at` | TIMESTAMPTZ | NO | Последнее слияние |
+
+#### `critical_signal_events` (аудит, nightly)
+Append-only события для отчётов (напр. **`PRICE_TAMPERING`** из **`recordCriticalSignal`**).
+
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | UUID | NO | Primary key |
+| `signal_key` | TEXT | NO | e.g. `PRICE_TAMPERING` |
+| `created_at` | TIMESTAMPTZ | NO | Default now |
+| `detail` | JSONB | YES | Краткий контекст |
 
 ---
 

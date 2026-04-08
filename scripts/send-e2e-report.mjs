@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 /**
- * Nightly E2E summary → Telegram (reads Playwright JSON reporter output).
+ * Nightly E2E summary → Telegram (Playwright JSON + опционально Supabase health).
  * Env: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
- * Optional: PLAYWRIGHT_JSON_REPORT, E2E_REPORT_TIME_UTC (e.g. 03:00), GITHUB_SERVER_URL, GITHUB_REPOSITORY, GITHUB_RUN_ID
+ * Optional: PLAYWRIGHT_JSON_REPORT, E2E_REPORT_TIME_UTC, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
  */
 
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { createClient } from '@supabase/supabase-js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.join(__dirname, '..')
@@ -87,16 +88,88 @@ function timeLine() {
   return `🕒 <b>Время (UTC):</b> ${d.getUTCHours().toString().padStart(2, '0')}:${d.getUTCMinutes().toString().padStart(2, '0')}`
 }
 
+async function gatherMonitoringBlock() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) {
+    return [
+      '',
+      '📡 <b>Мониторинг:</b>',
+      `• Активных FCM-устройств: <i>n/a</i> (нет <code>SUPABASE_*</code> в env шага)`,
+      `• Supabase: <i>n/a</i>`,
+      `• Попыток взлома цены <code>[PRICE_TAMPERING]</code> за 24ч: <i>n/a</i>`,
+    ]
+  }
+
+  const client = createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+
+  let deviceCount = '?'
+  let supabaseLine = '❌ ошибка'
+  let tamperCount = '?'
+
+  try {
+    const { count, error: cErr } = await client
+      .from('user_push_tokens')
+      .select('*', { count: 'exact', head: true })
+    if (cErr) {
+      deviceCount = `ошибка: ${cErr.message?.slice(0, 80) || 'query'}`
+    } else {
+      deviceCount = String(count ?? 0)
+    }
+  } catch (e) {
+    deviceCount = `ошибка: ${e?.message || e}`
+  }
+
+  try {
+    const { error: pErr } = await client.from('profiles').select('id').limit(1)
+    supabaseLine = pErr ? `❌ ${pErr.message?.slice(0, 120) || 'error'}` : '✅ REST OK'
+  } catch (e) {
+    supabaseLine = `❌ ${e?.message || e}`
+  }
+
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  try {
+    const { count, error: tErr } = await client
+      .from('critical_signal_events')
+      .select('*', { count: 'exact', head: true })
+      .eq('signal_key', 'PRICE_TAMPERING')
+      .gte('created_at', since)
+    if (tErr) {
+      if (String(tErr.message || '').includes('critical_signal_events')) {
+        tamperCount = 'таблица не развёрнута'
+      } else {
+        tamperCount = `ошибка: ${tErr.message?.slice(0, 80)}`
+      }
+    } else {
+      tamperCount = String(count ?? 0)
+    }
+  } catch (e) {
+    tamperCount = `ошибка: ${e?.message || e}`
+  }
+
+  return [
+    '',
+    '📡 <b>Мониторинг:</b>',
+    `• Активных FCM-устройств (строк в <code>user_push_tokens</code>): <b>${deviceCount}</b>`,
+    `• Supabase: ${supabaseLine}`,
+    `• Попыток взлома цены <code>[PRICE_TAMPERING]</code> за 24ч: <b>${tamperCount}</b>`,
+  ]
+}
+
 async function main() {
   let raw
   try {
     raw = fs.readFileSync(reportPath, 'utf8')
   } catch (e) {
     console.warn('[e2e-report] No report file:', reportPath, e?.message || e)
+    const monitor = await gatherMonitoringBlock()
     await sendTelegram(
       `🌙 <b>Ночной отчёт: Gostaylo.com</b>\n\n` +
         `⚠️ Нет файла <code>playwright-report/results.json</code> (прогон не записал JSON).\n` +
-        `${timeLine()}`,
+        `${timeLine()}` +
+        monitor.join('\n'),
     )
     process.exit(0)
   }
@@ -105,10 +178,12 @@ async function main() {
   try {
     json = JSON.parse(raw)
   } catch {
+    const monitor = await gatherMonitoringBlock()
     await sendTelegram(
       `🌙 <b>Ночной отчёт: Gostaylo.com</b>\n\n` +
         `⚠️ Повреждённый JSON отчёта.\n` +
-        `${timeLine()}`,
+        `${timeLine()}` +
+        monitor.join('\n'),
     )
     process.exit(0)
   }
@@ -127,6 +202,8 @@ async function main() {
       ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
       : ''
 
+  const monitor = await gatherMonitoringBlock()
+
   const lines = [
     `🌙 <b>Ночной отчёт: Gostaylo.com</b>`,
     '',
@@ -136,6 +213,7 @@ async function main() {
     botLine(tests, 'accountant-math', 'accountant', '💰', 'Accountant Bot'),
     botLine(tests, 'chat-control', 'chat-control', '💬', 'Chat Guard'),
     timeLine(),
+    ...monitor,
   ]
 
   if (runLink) {

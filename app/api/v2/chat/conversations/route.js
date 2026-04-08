@@ -518,6 +518,7 @@ export async function POST(request) {
       const link = `${base}/messages/${encodeURIComponent(finalId)}`
       PushService.sendToUser(partnerId, 'NEW_MESSAGE', {
         sender: renterName,
+        senderId: renterUserId,
         link,
         conversationId: finalId,
         messageId: msgId,

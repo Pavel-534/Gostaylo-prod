@@ -448,6 +448,7 @@ export async function POST(request) {
   if (conversation.renter_id && String(userId) === String(conversation.partner_id)) {
     PushService.sendToUser(conversation.renter_id, 'NEW_MESSAGE', {
       sender: senderName,
+      senderId: userId,
       link: msgDeepLink,
       conversationId,
       messageId: messageData.id,
@@ -456,6 +457,7 @@ export async function POST(request) {
   if (conversation.partner_id && String(userId) === String(conversation.renter_id)) {
     PushService.sendToUser(conversation.partner_id, 'NEW_MESSAGE', {
       sender: senderName,
+      senderId: userId,
       link: msgDeepLink,
       conversationId,
       messageId: messageData.id,

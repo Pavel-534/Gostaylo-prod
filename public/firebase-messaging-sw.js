@@ -1,4 +1,5 @@
 /* global self, clients, registration */
+importScripts('/push-visibility-policy.js')
 
 function parseConversationId(link, data) {
   if (data && data.conversationId) return String(data.conversationId)
@@ -38,21 +39,19 @@ self.addEventListener('push', (event) => {
 
       if (type === 'BADGE_UPDATE') return
 
-      const hasVisibleSameChat = windows.some((w) => {
-        try {
-          const u = new URL(w.url)
-          const m = u.pathname.match(/^\/messages\/([^/?#]+)/)
-          const openCid = m?.[1] ? decodeURIComponent(m[1]) : null
-          return w.visibilityState === 'visible' && cid && openCid === cid
-        } catch {
-          return false
-        }
-      })
+      const hasVisibleSameChat =
+        !!self.GostayloPushPolicy &&
+        typeof self.GostayloPushPolicy.shouldSuppressPushForConversation === 'function'
+          ? self.GostayloPushPolicy.shouldSuppressPushForConversation(windows, cid)
+          : false
 
       if (hasVisibleSameChat) return
 
       const title = data._title || payload?.notification?.title || 'Новое сообщение'
       const body = data._body || payload?.notification?.body || 'У вас новое сообщение'
+      const silent =
+        String(data.silent || '') === '1' ||
+        String(data.silentDelivery || '').toLowerCase() === 'true'
 
       await registration.showNotification(title, {
         body,
@@ -60,6 +59,7 @@ self.addEventListener('push', (event) => {
         badge: '/icons/badge-72x72.png',
         tag: cid ? `message:${cid}` : 'message',
         renotify: false,
+        silent: !!silent,
         data: { link, conversationId: cid || null, ...data },
       })
     })(),
