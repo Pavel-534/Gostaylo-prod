@@ -42,6 +42,7 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 - **All production reads/writes** go through **Supabase** (`@/lib/supabase`, `supabaseAdmin`, or REST from server routes).
 - **`prisma/schema.prisma`** stays aligned with the real Supabase schema and enums, but **do not introduce new Prisma Client queries** for product features unless ADR explicitly allows it.
 - **`lib/prisma.js` was removed** — runtime data access uses Supabase only; Prisma remains as **`schema.prisma` documentation** (see Golden rule §1).
+- **SQL migrations / new tables (TEXT vs UUID):** In production Supabase (**FannyRent**), **`profiles.id`** and domain keys such as **`listings.id`**, **`bookings.id`**, **`conversations.id`** are **`TEXT`**, not native **`uuid`**. Any new column that references them (e.g. `user_id`, `listing_id`) must use **`TEXT`** in raw SQL unless you have verified the parent column type in Supabase; otherwise FK creation fails with **42804**. Canonical write-up: **`docs/TECHNICAL_MANIFESTO.md` §0** and **`docs/ARCHITECTURAL_PASSPORT.md`** §2 intro.
 
 ### 2. No hardcoded commissions or exchange rates
 

@@ -174,16 +174,7 @@ async function syncBadgeCount(userId) {
     totalUnread += Array.isArray(unreadRows) ? unreadRows.length : 0
   }
 
-  // 2. Получаем FCM-токен пользователя
-  const profileRes = await fetch(
-    `${SUPABASE_URL}/rest/v1/profiles?id=eq.${uidEnc}&select=fcm_token`,
-    { headers: hdr, cache: 'no-store' }
-  )
-  const profileRows = await profileRes.json()
-  const fcmToken = Array.isArray(profileRows) ? profileRows[0]?.fcm_token : null
-  if (!fcmToken) return
-
-  // 3. Тихий push «обнови badge» — без уведомления, только data-payload
+  // 2. Тихий push «обнови badge» — по всем устройствам пользователя.
   const { PushService } = await import('@/lib/services/push.service.js')
-  await PushService.sendSilentBadgeUpdate(fcmToken, totalUnread)
+  await PushService.sendSilentBadgeUpdateToUser(userId, totalUnread)
 }
