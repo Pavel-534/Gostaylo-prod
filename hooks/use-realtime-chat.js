@@ -21,6 +21,18 @@ import {
 } from '@/lib/chat/realtime-subscribe-with-backoff';
 import { supabase } from '@/lib/supabase';
 
+/**
+ * Строка из postgres_changes payload относится к нужной беседе.
+ * Серверный filter `conversation_id=eq.${id}` для Realtime ненадёжен для id с дефисами/префиксами
+ * (парсер может неверно разобрать значение) — подписка тогда не получает ни одного события.
+ * RLS на `messages` уже ограничивает поток только доступными пользователю строками.
+ */
+function rowMatchesConversation(row, conversationId) {
+  if (!row || conversationId == null || conversationId === '') return false;
+  const cid = String(row.conversation_id ?? row.conversationId ?? '');
+  return cid === String(conversationId);
+}
+
 // Notification sound (base64 encoded short beep)
 const NOTIFICATION_SOUND = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH+Onpi0u7nGysm+tKmdkIB3cXl5f4eFiY2RkZGRkZGOiYV/eXNua2loaGhrbXN5f4WJjpGRkZGRjouGgXt1cG1qaGhoaWtvc3l/hYqOkZGRkZGOi4aBe3VwbWpoaGhpa29zeX+Fio6RkZGRkY6LhoF7dXBtamhoaGlrb3N5f4WKjpGRkZGRjouGgXt1cG1qaGhoaWtvc3l/hYqOkZGRkZGOi4aBe3VwbWpoaGhpa29zeX+Fio6RkZGRkY6LhoF7dXBtamhoaGlrb3N5f4WKjpGRkZGRjouGgXt1cG1qaGhoaWtvc3l/hYqOkZGRkQ==';
 
@@ -75,10 +87,10 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
               event: 'INSERT',
               schema: 'public',
               table: 'messages',
-              filter: `conversation_id=eq.${conversationId}`,
             },
             (payload) => {
               const newMessage = payload.new;
+              if (!rowMatchesConversation(newMessage, conversationId)) return;
               setMessages((prev) => {
                 if (prev.some((m) => m.id === newMessage.id)) {
                   return prev;
@@ -96,10 +108,10 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
               event: 'UPDATE',
               schema: 'public',
               table: 'messages',
-              filter: `conversation_id=eq.${conversationId}`,
             },
             (payload) => {
               const row = payload.new;
+              if (!rowMatchesConversation(row, conversationId)) return;
               if (onMessageUpdateRef.current) {
                 onMessageUpdateRef.current(row);
               }
