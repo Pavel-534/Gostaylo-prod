@@ -83,6 +83,8 @@ export function ChatProvider({ children }) {
   const lastRefreshVisRef = useRef(0)
   const prevPathnameRef = useRef(null)
   const conversationIdsRef = useRef(new Set())
+  /** Дедуп запросов беседы, пришедших по Realtime до появления строки в списке (топ-100 / гонка загрузки). */
+  const msgUnknownConvFetchRef = useRef(new Set())
 
   const [conversations, setConversations] = useState([])
   const [typingByConversation, setTypingByConversation] = useState({})
@@ -129,7 +131,12 @@ export function ChatProvider({ children }) {
       if (!res.ok) return
       const data = await res.json()
       if (data?.success && Array.isArray(data.data)) {
-        setConversations(data.data)
+        const rows = data.data
+        // Синхронно с ответом API — иначе postgres_changes может прийти до useEffect и быть отброшен.
+        conversationIdsRef.current = new Set(
+          rows.map((c) => String(c?.id || '')).filter(Boolean),
+        )
+        setConversations(rows)
       }
     } catch {
       // silent
@@ -201,12 +208,13 @@ export function ChatProvider({ children }) {
       const convKey = String(convId || '')
       const uid = userIdRef.current
       if (!convKey || !uid) return
-      // Ignore global table noise: we only care about conversations already known to this user context.
-      if (!conversationIdsRef.current.has(convKey)) return
+      // RLS уже отдаёт только сообщения из «наших» бесед; не режем по ref — он отстаёт от state до конца refresh().
 
+      let missingInList = false
       setConversations((prev) => {
-        const idx = prev.findIndex((c) => c.id === convId)
+        const idx = prev.findIndex((c) => String(c.id) === String(convId))
         if (idx === -1) {
+          missingInList = true
           return prev
         }
 
@@ -235,9 +243,16 @@ export function ChatProvider({ children }) {
           playNotificationSound()
         }
 
-        const next = prev.filter((c) => c.id !== convId)
+        const next = prev.filter((c) => String(c.id) !== String(convId))
         return [updated, ...next]
       })
+
+      if (missingInList && !msgUnknownConvFetchRef.current.has(convKey)) {
+        msgUnknownConvFetchRef.current.add(convKey)
+        void fetchOneConversation(convId).finally(() => {
+          msgUnknownConvFetchRef.current.delete(convKey)
+        })
+      }
     }
 
     const stopConv = subscribeRealtimeWithBackoff({
