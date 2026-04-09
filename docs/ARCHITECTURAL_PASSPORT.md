@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 2.1.8 | **Last Updated**: 2026-04-09 | **Status**: Production-Ready
+> **Version**: 2.1.9 | **Last Updated**: 2026-04-09 | **Status**: Production-Ready
 > 
 > This document is the **absolute source of truth** for all technical decisions, database schemas, and development standards. Any AI agent working on this codebase MUST read this document first.
 
@@ -11,8 +11,8 @@
 ### 0.0 Admin Health Dashboard (ops + security)
 - **UI:** `app/admin/health/page.jsx` — маршрут **`/admin/health`**, карточки **`rounded-2xl`**: агрегаты **`ops_job_runs`** (7 дн.) для **`ical-sync`**, **`push-sweeper`**, **`push-token-hygiene`**, блок **`critical_signal_events`** (`PRICE_TAMPERING`).
 - **API:** **`GET /api/v2/admin/health`** — только **`profiles.role === 'ADMIN'`** или email из **`ADMIN_HEALTH_EMAILS`** (см. **`lib/admin-health-access.js`**); данные через **`supabaseAdmin`**.
-- **Chat reliability (mobile/web):** глобальный presence трекинг через **`PresenceProvider`** (`app/layout.js`, канал `gostaylo-site-presence:v1`) и устойчивый badge unread из **`ChatContext`** (`GET /api/v2/chat/conversations?archived=all&enrich=1&limit=100`, message-stream фильтруется по известным диалогам пользователя).
-- **Messenger-grade v2.1.8:** persisted last-seen в **`profiles.last_seen_at`** (миграция `add_profiles_last_seen_at.sql`), серверный endpoint **`POST /api/v2/presence/last-seen`**, typing Broadcast **`typing_start`/`typing_stop`** в канале `typing:global:v1`, и синхронизация read-receipts через `read_at_*` + `is_read`.
+- **Chat reliability (mobile/web):** глобальный presence трекинг через **`PresenceProvider`** (`app/layout.js`, канал `gostaylo-site-presence:v1`) и устойчивый badge unread из **`ChatContext`** (`GET /api/v2/chat/conversations?archived=all&enrich=1&limit=100`; события `messages` по Realtime проходят RLS, без ложного отбрасывания до синхронизации локального списка — см. v2.1.9 в манифесте).
+- **Messenger-grade v2.1.9:** как v2.1.8, плюс **единый ref-counted канал `typing:global:v1`** (`lib/chat/typing-global-channel.js`) для инбокса и треда; dev-подсказки при обрыве Realtime — **`lib/chat/realtime-dev-warn.js`** + опция **`channelLabel`** в **`subscribeRealtimeWithBackoff`**.
 
 ### 0.1 CRITICAL: Telegram Webhook
 ```

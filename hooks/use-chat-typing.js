@@ -1,15 +1,14 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { subscribeRealtimeWithBackoff } from '@/lib/chat/realtime-subscribe-with-backoff'
+import { retainTypingGlobalChannel } from '@/lib/chat/typing-global-channel'
 
 /**
- * Broadcast «печатает…» по каналу Realtime (отдельно от presence).
+ * Broadcast «печатает…» через общий канал `typing:global:v1` (ref-count в lib/chat/typing-global-channel.js).
+ * Индикация собеседника в треде — из ChatContext.typingByConversation (тот же канал, без второй подписки).
  */
 export function useChatTyping(conversationId, userId, displayName) {
-  const [peerTypingName, setPeerTypingName] = useState(null)
-  const clearRef = useRef(null)
   const channelRef = useRef(null)
   const readyRef = useRef(false)
   const lastSentRef = useRef(0)
@@ -20,34 +19,18 @@ export function useChatTyping(conversationId, userId, displayName) {
     if (!conversationId || !userId || !supabase) return
 
     readyRef.current = false
-    const stop = subscribeRealtimeWithBackoff({
-      supabase,
-      createChannel: () => {
-        const channel = supabase.channel('typing:global:v1', {
-          config: { broadcast: { self: false } },
-        })
-        channelRef.current = channel
-        return channel
-          .on('broadcast', { event: 'typing_start' }, ({ payload }) => {
-            if (!payload?.userId || String(payload.userId) === String(userId)) return
-            if (String(payload.conversationId || '') !== String(conversationId || '')) return
-            setPeerTypingName(payload.name || 'Участник')
-            if (clearRef.current) clearTimeout(clearRef.current)
-            clearRef.current = setTimeout(() => setPeerTypingName(null), 4500)
-          })
-          .on('broadcast', { event: 'typing_stop' }, ({ payload }) => {
-            if (!payload?.userId || String(payload.userId) === String(userId)) return
-            if (String(payload.conversationId || '') !== String(conversationId || '')) return
-            setPeerTypingName(null)
-          })
-      },
-      afterSubscribed: async () => {
-        readyRef.current = true
-      },
-    })
+    let cancelled = false
+    const { getChannel, release } = retainTypingGlobalChannel(supabase)
+
+    void (async () => {
+      const channel = await getChannel()
+      if (cancelled || !channel) return
+      channelRef.current = channel
+      readyRef.current = true
+    })()
 
     return () => {
-      if (clearRef.current) clearTimeout(clearRef.current)
+      cancelled = true
       if (stopTimerRef.current) clearTimeout(stopTimerRef.current)
       if (localTypingRef.current && channelRef.current) {
         try {
@@ -63,7 +46,7 @@ export function useChatTyping(conversationId, userId, displayName) {
       readyRef.current = false
       localTypingRef.current = false
       channelRef.current = null
-      stop()
+      release()
     }
   }, [conversationId, userId])
 
@@ -110,5 +93,5 @@ export function useChatTyping(conversationId, userId, displayName) {
     }
   }, [userId, conversationId, displayName, broadcastTypingStop])
 
-  return { peerTypingName, broadcastTyping, broadcastTypingStop }
+  return { broadcastTyping, broadcastTypingStop }
 }

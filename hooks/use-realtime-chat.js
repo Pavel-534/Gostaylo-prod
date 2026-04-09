@@ -65,6 +65,7 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
 
     return subscribeRealtimeWithBackoff({
       supabase,
+      channelLabel: `thread:messages:${conversationId}`,
       createChannel: (attempt) =>
         supabase
           .channel(`messages:${conversationId}:${attempt}`)

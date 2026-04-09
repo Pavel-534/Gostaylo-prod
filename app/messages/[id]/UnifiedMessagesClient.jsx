@@ -132,7 +132,7 @@ export default function UnifiedMessagesClient({ params }) {
   const router = useRouter()
   const { language } = useI18n()
   const { user, loading: authLoading, openLoginModal } = useAuth()
-  const { markConversationRead: markGlobalRead } = useChatContext()
+  const { markConversationRead: markGlobalRead, typingByConversation } = useChatContext()
 
   const conversationId = params?.id
   const attachFileRef = useRef(null)
@@ -327,11 +327,16 @@ export default function UnifiedMessagesClient({ params }) {
     )
   }, [user, language])
 
-  const { peerTypingName, broadcastTyping, broadcastTypingStop } = useChatTyping(
+  const { broadcastTyping, broadcastTypingStop } = useChatTyping(
     conversationId,
     user?.id,
     unifiedDisplayName,
   )
+
+  const peerTypingName = useMemo(() => {
+    const t = typingByConversation?.[String(conversationId || '')]
+    return t?.name || null
+  }, [typingByConversation, conversationId])
 
   const typingLine = useMemo(() => {
     if (!peerTypingName) return null

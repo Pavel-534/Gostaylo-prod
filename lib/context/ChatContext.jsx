@@ -23,6 +23,7 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { subscribeRealtimeWithBackoff } from '@/lib/chat/realtime-subscribe-with-backoff'
+import { retainTypingGlobalChannel } from '@/lib/chat/typing-global-channel'
 import { playNotificationSound } from '@/hooks/use-realtime-chat'
 
 const ChatContext = createContext(null)
@@ -257,6 +258,7 @@ export function ChatProvider({ children }) {
 
     const stopConv = subscribeRealtimeWithBackoff({
       supabase,
+      channelLabel: `chat:conversations:${userId}`,
       createChannel: (attempt) =>
         supabase
           .channel(`ctx-convs:${userId}:${attempt}`)
@@ -269,6 +271,7 @@ export function ChatProvider({ children }) {
 
     const stopMsg = subscribeRealtimeWithBackoff({
       supabase,
+      channelLabel: `chat:messages:${userId}`,
       createChannel: (attempt) =>
         supabase
           .channel(`ctx-messages:${userId}:${attempt}`)
@@ -279,45 +282,55 @@ export function ChatProvider({ children }) {
           ),
     })
 
-    const stopTyping = subscribeRealtimeWithBackoff({
-      supabase,
-      createChannel: (attempt) =>
-        supabase
-          .channel(`ctx-typing:${userId}:${attempt}`, { config: { broadcast: { self: false } } })
-          .on('broadcast', { event: 'typing_start' }, ({ payload }) => {
-            const convId = String(payload?.conversationId || '')
-            const fromUserId = String(payload?.userId || '')
-            if (!convId || !fromUserId || fromUserId === String(userIdRef.current || '')) return
-            if (!conversationIdsRef.current.has(convId)) return
-            const name = String(payload?.name || '')
-            setTypingByConversation((prev) => ({
-              ...prev,
-              [convId]: {
-                name: name || null,
-                ts: Date.now(),
-              },
-            }))
-          })
-          .on('broadcast', { event: 'typing_stop' }, ({ payload }) => {
-            const convId = String(payload?.conversationId || '')
-            const fromUserId = String(payload?.userId || '')
-            if (!convId || !fromUserId || fromUserId === String(userIdRef.current || '')) return
-            setTypingByConversation((prev) => {
-              if (!prev[convId]) return prev
-              const next = { ...prev }
-              delete next[convId]
-              return next
-            })
-          }),
-    })
-
     return () => {
       stopConv()
       stopMsg()
-      stopTyping()
-      setTypingByConversation({})
     }
   }, [userId, fetchOneConversation, unarchiveConversation, refresh, shouldPlayIncomingSound])
+
+  // Typing: один общий канал `typing:global:v1` (см. lib/chat/typing-global-channel.js + use-chat-typing).
+  useEffect(() => {
+    if (!supabase || !userId) return
+
+    let cancelled = false
+    const onTypingStart = (payload) => {
+      if (cancelled) return
+      const convId = String(payload?.conversationId || '')
+      const fromUserId = String(payload?.userId || '')
+      if (!convId || !fromUserId || fromUserId === String(userIdRef.current || '')) return
+      const name = String(payload?.name || '')
+      setTypingByConversation((prev) => ({
+        ...prev,
+        [convId]: {
+          name: name || null,
+          ts: Date.now(),
+        },
+      }))
+    }
+    const onTypingStop = (payload) => {
+      if (cancelled) return
+      const convId = String(payload?.conversationId || '')
+      const fromUserId = String(payload?.userId || '')
+      if (!convId || !fromUserId || fromUserId === String(userIdRef.current || '')) return
+      setTypingByConversation((prev) => {
+        if (!prev[convId]) return prev
+        const next = { ...prev }
+        delete next[convId]
+        return next
+      })
+    }
+
+    const { release } = retainTypingGlobalChannel(supabase, {
+      onTypingStart,
+      onTypingStop,
+    })
+
+    return () => {
+      cancelled = true
+      release()
+      setTypingByConversation({})
+    }
+  }, [userId])
 
   useEffect(() => {
     const t = setInterval(() => {
