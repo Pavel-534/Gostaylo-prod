@@ -8,6 +8,7 @@ import { MainContent } from '@/components/main-content'
 import { AuthProvider } from '@/contexts/auth-context'
 import { I18nProvider } from '@/contexts/i18n-context'
 import { ChatProvider } from '@/lib/context/ChatContext'
+import { PresenceProvider } from '@/lib/context/PresenceContext'
 import { SupabaseRealtimeAuthSync } from '@/components/supabase-realtime-auth-sync'
 import { PushClientInit } from '@/components/push-client-init'
 import { getRequestSiteUrl } from '@/lib/server-site-url'
@@ -96,28 +97,30 @@ button{font:inherit}
           <AuthProvider>
             <SupabaseRealtimeAuthSync />
             <PushClientInit />
-            <ChatProvider>
-              <UniversalHeader />
-              <MainContent>{children}</MainContent>
-              <MobileBottomNav />
-              <Toaster
-                position="top-center"
-                richColors
-                closeButton
-                toastOptions={{
-                  classNames: {
-                    toast:
-                      'group rounded-2xl border border-slate-200/90 bg-white text-slate-900 shadow-lg shadow-slate-900/10',
-                    title: 'text-slate-900 font-semibold',
-                    description: 'text-slate-600 text-sm',
-                    success: 'border-emerald-200/80',
-                    error: 'border-rose-200/80',
-                    warning: 'border-amber-200/80',
-                    info: 'border-sky-200/80',
-                  },
-                }}
-              />
-            </ChatProvider>
+            <PresenceProvider>
+              <ChatProvider>
+                <UniversalHeader />
+                <MainContent>{children}</MainContent>
+                <MobileBottomNav />
+                <Toaster
+                  position="top-center"
+                  richColors
+                  closeButton
+                  toastOptions={{
+                    classNames: {
+                      toast:
+                        'group rounded-2xl border border-slate-200/90 bg-white text-slate-900 shadow-lg shadow-slate-900/10',
+                      title: 'text-slate-900 font-semibold',
+                      description: 'text-slate-600 text-sm',
+                      success: 'border-emerald-200/80',
+                      error: 'border-rose-200/80',
+                      warning: 'border-amber-200/80',
+                      info: 'border-sky-200/80',
+                    },
+                  }}
+                />
+              </ChatProvider>
+            </PresenceProvider>
           </AuthProvider>
         </I18nProvider>
       </body>

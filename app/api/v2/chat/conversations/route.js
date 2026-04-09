@@ -158,6 +158,29 @@ async function enrichConversationRows(rows, viewerUserId) {
     }
   }
 
+  const participantIds = [
+    ...new Set(
+      rows
+        .flatMap((r) => [r.partner_id, r.owner_id, r.renter_id, r.admin_id])
+        .filter(Boolean)
+        .map((v) => String(v)),
+    ),
+  ]
+  const participantLastSeenById = {}
+  if (participantIds.length) {
+    const inProfiles = participantIds.map((id) => encodeURIComponent(id)).join(',')
+    const pr = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?id=in.(${inProfiles})&select=id,last_seen_at`,
+      { headers: hdr, cache: 'no-store' }
+    )
+    const profiles = await pr.json()
+    if (Array.isArray(profiles)) {
+      for (const p of profiles) {
+        participantLastSeenById[String(p.id)] = p.last_seen_at ?? null
+      }
+    }
+  }
+
   const lastById = {}
   const unreadById = {}
   const viewerUid = String(viewerUserId)
@@ -210,6 +233,9 @@ async function enrichConversationRows(rows, viewerUserId) {
       ...base,
       listing,
       booking,
+      partnerLastSeenAt: c.partner_id ? participantLastSeenById[String(c.partner_id)] ?? null : null,
+      renterLastSeenAt: c.renter_id ? participantLastSeenById[String(c.renter_id)] ?? null : null,
+      adminLastSeenAt: c.admin_id ? participantLastSeenById[String(c.admin_id)] ?? null : null,
       lastMessage: lastById[c.id] ?? null,
       unreadCount: unreadById[c.id] ?? 0,
     }

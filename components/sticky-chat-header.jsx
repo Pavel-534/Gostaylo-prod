@@ -119,7 +119,7 @@ export function StickyChatHeader({
       const rel = formatDistanceToNow(new Date(lastSeenAt), { addSuffix: true, locale: dateLocale })
       if (language === 'th') return `เห็นล่าสุดเมื่อ ${rel}`
       if (language === 'zh') return `最后在线 ${rel}`
-      return language === 'en' ? `Last seen ${rel}` : `Был(а) ${rel}`
+      return language === 'en' ? `Last seen ${rel}` : `Был(а) в сети ${rel}`
     }
     if (language === 'th') return 'ออฟไลน์'
     if (language === 'zh') return '离线'

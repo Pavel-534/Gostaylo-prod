@@ -48,7 +48,7 @@ import { useChatThreadMessages } from '@/hooks/use-chat-thread-messages'
 import { useConversationInbox } from '@/hooks/use-conversation-inbox'
 
 // ─── Инфраструктура Realtime / присутствие ────────────────────────────────────
-import { usePresence } from '@/hooks/use-realtime-chat'
+import { usePresenceContext } from '@/lib/context/PresenceContext'
 import { useMarkConversationRead } from '@/hooks/use-mark-conversation-read'
 import { useChatTyping } from '@/hooks/use-chat-typing'
 
@@ -194,7 +194,7 @@ export default function UnifiedMessagesClient({ params }) {
 
   // ── Тред (Фаза 2) ───────────────────────────────────────────────────────────
   const {
-    messages, isLoading: threadLoading, isConnected,
+    messages, isLoading: threadLoading, isConnected: _isConnected,
     selectedConv, listing, booking,
     sendMessage: _sendMessage, sendMedia,
     reload: reloadThread,
@@ -288,10 +288,25 @@ export default function UnifiedMessagesClient({ params }) {
     return hostId ?? null
   }, [selectedConv, user])
 
+  const persistedPeerLastSeenAt = useMemo(() => {
+    if (!selectedConv?.id || !peerParticipantId) return null
+    if (selectedConv.adminId && String(selectedConv.adminId) === String(peerParticipantId)) {
+      return selectedConv.adminLastSeenAt ?? selectedConv.admin_last_seen_at ?? null
+    }
+    if (String(selectedConv.renterId || '') === String(peerParticipantId)) {
+      return selectedConv.renterLastSeenAt ?? selectedConv.renter_last_seen_at ?? null
+    }
+    return selectedConv.partnerLastSeenAt ?? selectedConv.partner_last_seen_at ?? null
+  }, [selectedConv, peerParticipantId])
+
   // ── Presence / Typing ────────────────────────────────────────────────────────
-  const { isOnline: peerOnline } = usePresence(conversationId, user?.id, peerParticipantId)
+  const { isUserOnline } = usePresenceContext()
+  const peerOnline = useMemo(() => isUserOnline(peerParticipantId), [isUserOnline, peerParticipantId])
 
   const [peerLastSeenAt, setPeerLastSeenAt] = useState(null)
+  useEffect(() => {
+    setPeerLastSeenAt(persistedPeerLastSeenAt || null)
+  }, [persistedPeerLastSeenAt, conversationId])
   const peerOnlinePrevRef = useRef(null)
   useEffect(() => {
     if (peerOnlinePrevRef.current === true && peerOnline === false) {
@@ -312,7 +327,11 @@ export default function UnifiedMessagesClient({ params }) {
     )
   }, [user, language])
 
-  const { peerTypingName, broadcastTyping } = useChatTyping(conversationId, user?.id, unifiedDisplayName)
+  const { peerTypingName, broadcastTyping, broadcastTypingStop } = useChatTyping(
+    conversationId,
+    user?.id,
+    unifiedDisplayName,
+  )
 
   const typingLine = useMemo(() => {
     if (!peerTypingName) return null
@@ -430,6 +449,7 @@ export default function UnifiedMessagesClient({ params }) {
   const handleSendText = useCallback(async (e) => {
     e?.preventDefault()
     if (!newMessage.trim() || !selectedConv || !user) return
+    broadcastTypingStop()
     const text = newMessage.trim()
     setNewMessage('')
     setSending(true)
@@ -437,7 +457,7 @@ export default function UnifiedMessagesClient({ params }) {
       await _sendMessage(text)
       inbox.refresh()
     } finally { setSending(false) }
-  }, [newMessage, selectedConv, user, _sendMessage, inbox])
+  }, [newMessage, selectedConv, user, _sendMessage, inbox, broadcastTypingStop])
 
   const handleSendVoice = useCallback(async ({ url, duration }) => {
     if (!selectedConv || !user) return
@@ -695,7 +715,7 @@ export default function UnifiedMessagesClient({ params }) {
       showBookingTimeline={Boolean(booking?.id && booking?.status)}
       contactName={chatContactName}
       presenceOnline={peerOnline}
-      lastSeenAt={peerLastSeenAt}
+      lastSeenAt={peerLastSeenAt || persistedPeerLastSeenAt}
       typingIndicator={typingLine}
       typingGateWithPresence
       onMediaGallery={() => setMediaGalleryOpen(true)}
@@ -882,6 +902,7 @@ export default function UnifiedMessagesClient({ params }) {
               <ChatGrowingTextarea
                 value={newMessage}
                 onChange={(v) => { setNewMessage(v); broadcastTyping() }}
+                onBlur={() => broadcastTypingStop()}
                 placeholder={getUIText('chatComposerPlaceholder', language)}
                 disabled={sending}
                 minHeightPx={44}

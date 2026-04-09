@@ -213,6 +213,16 @@ export default defineConfig({
         storageState: AUTH.partner,
       },
     },
+    {
+      name: 'chat-sync',
+      dependencies: ['setup'],
+      testDir: './tests/e2e',
+      testMatch: '**/chat-sync.spec.ts',
+      timeout: 180_000,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
     ...productionSmokeProjects,
   ],
   webServer: process.env.CI

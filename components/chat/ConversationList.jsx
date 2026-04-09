@@ -9,7 +9,7 @@
 
 import { useEffect, useRef, useState, useMemo } from 'react'
 import Link from 'next/link'
-import { format } from 'date-fns'
+import { format, formatDistanceToNow } from 'date-fns'
 import { ru as ruLocale } from 'date-fns/locale'
 import {
   Archive,
@@ -37,6 +37,9 @@ import { cn } from '@/lib/utils'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { ChatInboxRoleTabs } from '@/components/chat-inbox-role-tabs'
 import { isFavoriteConversationId } from '@/lib/chat-inbox-favorites'
+import { useAuth } from '@/contexts/auth-context'
+import { usePresenceContext } from '@/lib/context/PresenceContext'
+import { useChatContext } from '@/lib/context/ChatContext'
 
 const LIST_FILTER_ALL = 'all'
 const LIST_FILTER_UNREAD = 'unread'
@@ -122,6 +125,26 @@ function LastMessagePreview({ conv, lang = 'ru' }) {
   )
 }
 
+function PresenceLabel({ peerOnline, peerLastSeenAt, lang = 'ru' }) {
+  if (peerOnline) {
+    return <span className="text-[11px] text-emerald-600">{lang === 'ru' ? 'В сети' : 'Online'}</span>
+  }
+  if (!peerLastSeenAt) return null
+  try {
+    const rel = formatDistanceToNow(new Date(peerLastSeenAt), {
+      addSuffix: true,
+      locale: lang === 'en' ? undefined : ruLocale,
+    })
+    return (
+      <span className="text-[11px] text-slate-400">
+        {lang === 'ru' ? `Был(а) в сети ${rel}` : `Last seen ${rel}`}
+      </span>
+    )
+  } catch {
+    return null
+  }
+}
+
 function conversationSearchHaystack(conv, showGuestName, lang) {
   const isAdminChat = conv.type === 'ADMIN_FEEDBACK' || !!conv.adminId
   const displayName = isAdminChat
@@ -150,6 +173,9 @@ function ConversationRow({
   isFavorite,
   favoriteSaving,
   onToggleFavorite,
+  peerOnline = false,
+  peerLastSeenAt = null,
+  typingName = null,
 }) {
   const unread = conv.unreadCount || 0
   const isAdminChat = conv.type === 'ADMIN_FEEDBACK' || !!conv.adminId
@@ -197,6 +223,12 @@ function ConversationRow({
             <p className="font-semibold text-sm text-slate-900 truncate leading-tight">
               {isAdminChat && <Shield className="inline h-3 w-3 text-indigo-500 mr-1 mb-0.5" />}
               {displayName}
+              {peerOnline ? (
+                <span
+                  className="ml-1.5 inline-block h-2 w-2 rounded-full bg-emerald-500 align-middle shadow-[0_0_0_2px_rgba(16,185,129,0.22)]"
+                  aria-label={lang === 'ru' ? 'Собеседник в сети' : 'Peer online'}
+                />
+              ) : null}
             </p>
 
             <div className="flex items-center gap-0.5 shrink-0">
@@ -269,9 +301,16 @@ function ConversationRow({
             <p className="text-xs text-teal-600 truncate mb-0.5 font-medium">{conv.listing.title}</p>
           )}
 
-          <p className="text-xs text-slate-500 truncate">
-            <LastMessagePreview conv={conv} lang={lang} />
-          </p>
+          {typingName ? (
+            <p className="text-xs text-teal-600 truncate animate-pulse">
+              {lang === 'ru' ? `${typingName} печатает…` : `${typingName} is typing…`}
+            </p>
+          ) : (
+            <p className="text-xs text-slate-500 truncate">
+              <LastMessagePreview conv={conv} lang={lang} />
+            </p>
+          )}
+          <PresenceLabel peerOnline={peerOnline} peerLastSeenAt={peerLastSeenAt} lang={lang} />
         </div>
       </div>
     </div>
@@ -372,6 +411,9 @@ export function ConversationListPanel({
   onToggleFavorite,
   showStarredFilter = true,
   catalogHref = '/listings',
+  viewerId = null,
+  isUserOnline = null,
+  typingByConversation = {},
 }) {
   const sentinelRef = useRef(null)
 
@@ -486,6 +528,13 @@ export function ConversationListPanel({
             isFavorite={favoriteIdSet ? isFavoriteConversationId(conv.id, favoriteIdSet) : false}
             favoriteSaving={favoriteTogglePendingIds.includes(String(conv.id))}
             onToggleFavorite={onToggleFavorite}
+            peerOnline={
+              typeof isUserOnline === 'function' && viewerId
+                ? isUserOnline(resolvePeerId(conv, viewerId))
+                : false
+            }
+            peerLastSeenAt={viewerId ? resolvePeerLastSeenAt(conv, viewerId) : null}
+            typingName={typingByConversation?.[String(conv.id)]?.name || null}
           />
         ))}
 
@@ -523,6 +572,9 @@ export function ConversationList({
   /** Ссылка на каталог; null — скрыть полосу «К каталогу» */
   catalogHref = '/listings',
 }) {
+  const { user } = useAuth()
+  const { isUserOnline } = usePresenceContext()
+  const { typingByConversation } = useChatContext()
   const [searchQuery, setSearchQuery] = useState('')
   const [listFilter, setListFilter] = useState(LIST_FILTER_ALL)
 
@@ -581,6 +633,40 @@ export function ConversationList({
       onToggleFavorite={favoritesFilterEnabled ? inbox.toggleFavorite : undefined}
       showStarredFilter={favoritesFilterEnabled}
       catalogHref={catalogHref}
+      viewerId={user?.id ?? null}
+      isUserOnline={isUserOnline}
+      typingByConversation={typingByConversation}
     />
   )
+}
+
+function resolvePeerId(conv, viewerId) {
+  const me = String(viewerId || '')
+  const partnerId = conv?.partnerId ?? conv?.partner_id
+  const ownerId = conv?.ownerId ?? conv?.owner_id
+  const renterId = conv?.renterId ?? conv?.renter_id
+  const adminId = conv?.adminId ?? conv?.admin_id
+  if (adminId && String(adminId) !== me) return String(adminId)
+  if (String(renterId || '') === me) return String(partnerId || ownerId || '')
+  if (String(partnerId || '') === me || String(ownerId || '') === me) return String(renterId || '')
+  if (partnerId && String(partnerId) !== me) return String(partnerId)
+  if (ownerId && String(ownerId) !== me) return String(ownerId)
+  if (renterId && String(renterId) !== me) return String(renterId)
+  return ''
+}
+
+function resolvePeerLastSeenAt(conv, viewerId) {
+  const me = String(viewerId || '')
+  const partnerId = String(conv?.partnerId ?? conv?.partner_id ?? '')
+  const ownerId = String(conv?.ownerId ?? conv?.owner_id ?? '')
+  const renterId = String(conv?.renterId ?? conv?.renter_id ?? '')
+  const adminId = String(conv?.adminId ?? conv?.admin_id ?? '')
+  if (adminId && adminId !== me) return conv?.adminLastSeenAt ?? conv?.admin_last_seen_at ?? null
+  if (renterId === me) {
+    return conv?.partnerLastSeenAt ?? conv?.partner_last_seen_at ?? conv?.ownerLastSeenAt ?? null
+  }
+  if (partnerId === me || ownerId === me) {
+    return conv?.renterLastSeenAt ?? conv?.renter_last_seen_at ?? null
+  }
+  return conv?.partnerLastSeenAt ?? conv?.renterLastSeenAt ?? null
 }

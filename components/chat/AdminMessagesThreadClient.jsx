@@ -14,7 +14,7 @@ import { AdminConversationSidebar } from '@/components/chat/AdminConversationSid
 import { AdminChatPinnedSlot } from '@/components/chat/AdminChatPinnedSlot'
 import { useChatThreadMessages } from '@/hooks/use-chat-thread-messages'
 import { useMarkConversationRead } from '@/hooks/use-mark-conversation-read'
-import { usePresence } from '@/hooks/use-realtime-chat'
+import { usePresenceContext } from '@/lib/context/PresenceContext'
 import { getUIText } from '@/lib/translations'
 import { isBookingPaid } from '@/lib/mask-contacts'
 
@@ -78,7 +78,11 @@ export function AdminMessagesThreadClient({ conversationId, me, language = 'ru' 
     onNewMessage: () => refreshSidebar(),
   })
 
-  const { isOnline: peerOnline } = usePresence(conversationId, me?.id, null)
+  const { onlineUserIds } = usePresenceContext()
+  const peerOnline = useMemo(() => {
+    const meId = String(me?.id || '')
+    return onlineUserIds.some((id) => String(id) !== meId)
+  }, [onlineUserIds, me?.id])
   useMarkConversationRead(conversationId, false, peerOnline)
 
   const latestSupportTicket = useMemo(() => {

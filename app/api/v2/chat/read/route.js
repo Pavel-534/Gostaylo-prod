@@ -97,7 +97,7 @@ export async function POST(request) {
       {
         method: 'PATCH',
         headers: hdr,
-        body: JSON.stringify({ [readCol]: nowIso }),
+        body: JSON.stringify({ [readCol]: nowIso, is_read: true }),
       }
     )
   } else {

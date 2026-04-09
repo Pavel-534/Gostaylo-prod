@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
+import { subscribeRealtimeWithBackoff } from '@/lib/chat/realtime-subscribe-with-backoff'
 
 /**
  * Broadcast «печатает…» по каналу Realtime (отдельно от presence).
@@ -12,34 +13,71 @@ export function useChatTyping(conversationId, userId, displayName) {
   const channelRef = useRef(null)
   const readyRef = useRef(false)
   const lastSentRef = useRef(0)
+  const localTypingRef = useRef(false)
+  const stopTimerRef = useRef(null)
 
   useEffect(() => {
     if (!conversationId || !userId || !supabase) return
 
     readyRef.current = false
-    const channel = supabase.channel(`typing:${conversationId}`, {
-      config: { broadcast: { self: false } },
+    const stop = subscribeRealtimeWithBackoff({
+      supabase,
+      createChannel: () => {
+        const channel = supabase.channel('typing:global:v1', {
+          config: { broadcast: { self: false } },
+        })
+        channelRef.current = channel
+        return channel
+          .on('broadcast', { event: 'typing_start' }, ({ payload }) => {
+            if (!payload?.userId || String(payload.userId) === String(userId)) return
+            if (String(payload.conversationId || '') !== String(conversationId || '')) return
+            setPeerTypingName(payload.name || 'Участник')
+            if (clearRef.current) clearTimeout(clearRef.current)
+            clearRef.current = setTimeout(() => setPeerTypingName(null), 4500)
+          })
+          .on('broadcast', { event: 'typing_stop' }, ({ payload }) => {
+            if (!payload?.userId || String(payload.userId) === String(userId)) return
+            if (String(payload.conversationId || '') !== String(conversationId || '')) return
+            setPeerTypingName(null)
+          })
+      },
+      afterSubscribed: async () => {
+        readyRef.current = true
+      },
     })
 
-    channel
-      .on('broadcast', { event: 'typing' }, ({ payload }) => {
-        if (!payload?.userId || String(payload.userId) === String(userId)) return
-        setPeerTypingName(payload.name || 'Участник')
-        if (clearRef.current) clearTimeout(clearRef.current)
-        clearRef.current = setTimeout(() => setPeerTypingName(null), 4000)
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') readyRef.current = true
-      })
-
-    channelRef.current = channel
     return () => {
       if (clearRef.current) clearTimeout(clearRef.current)
-      readyRef.current = false
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
-        channelRef.current = null
+      if (stopTimerRef.current) clearTimeout(stopTimerRef.current)
+      if (localTypingRef.current && channelRef.current) {
+        try {
+          channelRef.current.send({
+            type: 'broadcast',
+            event: 'typing_stop',
+            payload: { userId, conversationId },
+          })
+        } catch {
+          // ignore
+        }
       }
+      readyRef.current = false
+      localTypingRef.current = false
+      channelRef.current = null
+      stop()
+    }
+  }, [conversationId, userId])
+
+  const broadcastTypingStop = useCallback(() => {
+    if (!channelRef.current || !userId || !localTypingRef.current) return
+    localTypingRef.current = false
+    try {
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'typing_stop',
+        payload: { userId, conversationId },
+      })
+    } catch {
+      /* ignore */
     }
   }, [conversationId, userId])
 
@@ -49,15 +87,28 @@ export function useChatTyping(conversationId, userId, displayName) {
     if (now - lastSentRef.current < 400) return
     lastSentRef.current = now
     try {
+      if (!localTypingRef.current) {
+        localTypingRef.current = true
+        channelRef.current.send({
+          type: 'broadcast',
+          event: 'typing_start',
+          payload: { userId, conversationId, name: displayName || 'User' },
+        })
+      }
+      if (stopTimerRef.current) clearTimeout(stopTimerRef.current)
+      stopTimerRef.current = setTimeout(() => {
+        broadcastTypingStop()
+      }, 1400)
+
       channelRef.current.send({
         type: 'broadcast',
-        event: 'typing',
-        payload: { userId, name: displayName || 'User' },
+        event: 'typing_start',
+        payload: { userId, conversationId, name: displayName || 'User' },
       })
     } catch {
       /* Realtime / send может бросить при сетевых сбоях — не роняем UI */
     }
-  }, [userId, displayName])
+  }, [userId, conversationId, displayName, broadcastTypingStop])
 
-  return { peerTypingName, broadcastTyping }
+  return { peerTypingName, broadcastTyping, broadcastTypingStop }
 }

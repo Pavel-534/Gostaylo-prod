@@ -36,6 +36,7 @@ const SAFE_DEFAULTS = {
   refresh: () => {},
   markConversationRead: () => {},
   getConversationForListing: () => null,
+  typingByConversation: {},
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -81,12 +82,18 @@ export function ChatProvider({ children }) {
   const lastRefreshNavRef = useRef(0)
   const lastRefreshVisRef = useRef(0)
   const prevPathnameRef = useRef(null)
-  /** Throttle refresh() когда INSERT messages пришёл, а беседы ещё нет в списке (лимит 100 / гонка загрузки). */
-  const messageListMissThrottleRef = useRef(0)
+  const conversationIdsRef = useRef(new Set())
 
   const [conversations, setConversations] = useState([])
+  const [typingByConversation, setTypingByConversation] = useState({})
   const [loaded, setLoaded] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    conversationIdsRef.current = new Set(
+      (conversations || []).map((c) => String(c?.id || '')).filter(Boolean),
+    )
+  }, [conversations])
 
   const shouldPlayIncomingSound = useCallback(
     (conversationId) => {
@@ -115,7 +122,7 @@ export function ChatProvider({ children }) {
     }
     setLoading(true)
     try {
-      const res = await fetch('/api/v2/chat/conversations?archived=all&limit=100', {
+      const res = await fetch('/api/v2/chat/conversations?archived=all&enrich=1&limit=100', {
         credentials: 'include',
         cache: 'no-store',
       })
@@ -140,7 +147,7 @@ export function ChatProvider({ children }) {
   const fetchOneConversation = useCallback(async (convId) => {
     try {
       const res = await fetch(
-        `/api/v2/chat/conversations?id=${encodeURIComponent(convId)}`,
+        `/api/v2/chat/conversations?id=${encodeURIComponent(convId)}&enrich=1`,
         { credentials: 'include', cache: 'no-store' },
       )
       if (!res.ok) return
@@ -191,17 +198,15 @@ export function ChatProvider({ children }) {
     const onMsgPayload = (payload) => {
       const msg = payload.new
       const convId = msg.conversation_id
+      const convKey = String(convId || '')
       const uid = userIdRef.current
-      if (!convId || !uid) return
+      if (!convKey || !uid) return
+      // Ignore global table noise: we only care about conversations already known to this user context.
+      if (!conversationIdsRef.current.has(convKey)) return
 
       setConversations((prev) => {
         const idx = prev.findIndex((c) => c.id === convId)
         if (idx === -1) {
-          const t = Date.now()
-          if (t - messageListMissThrottleRef.current > 5000) {
-            messageListMissThrottleRef.current = t
-            queueMicrotask(() => refresh())
-          }
           return prev
         }
 
@@ -259,11 +264,63 @@ export function ChatProvider({ children }) {
           ),
     })
 
+    const stopTyping = subscribeRealtimeWithBackoff({
+      supabase,
+      createChannel: (attempt) =>
+        supabase
+          .channel(`ctx-typing:${userId}:${attempt}`, { config: { broadcast: { self: false } } })
+          .on('broadcast', { event: 'typing_start' }, ({ payload }) => {
+            const convId = String(payload?.conversationId || '')
+            const fromUserId = String(payload?.userId || '')
+            if (!convId || !fromUserId || fromUserId === String(userIdRef.current || '')) return
+            if (!conversationIdsRef.current.has(convId)) return
+            const name = String(payload?.name || '')
+            setTypingByConversation((prev) => ({
+              ...prev,
+              [convId]: {
+                name: name || null,
+                ts: Date.now(),
+              },
+            }))
+          })
+          .on('broadcast', { event: 'typing_stop' }, ({ payload }) => {
+            const convId = String(payload?.conversationId || '')
+            const fromUserId = String(payload?.userId || '')
+            if (!convId || !fromUserId || fromUserId === String(userIdRef.current || '')) return
+            setTypingByConversation((prev) => {
+              if (!prev[convId]) return prev
+              const next = { ...prev }
+              delete next[convId]
+              return next
+            })
+          }),
+    })
+
     return () => {
       stopConv()
       stopMsg()
+      stopTyping()
+      setTypingByConversation({})
     }
   }, [userId, fetchOneConversation, unarchiveConversation, refresh, shouldPlayIncomingSound])
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      const now = Date.now()
+      setTypingByConversation((prev) => {
+        let changed = false
+        const next = { ...prev }
+        for (const [cid, state] of Object.entries(prev)) {
+          if (!state || now - Number(state.ts || 0) > 5000) {
+            delete next[cid]
+            changed = true
+          }
+        }
+        return changed ? next : prev
+      })
+    }, 1000)
+    return () => clearInterval(t)
+  }, [])
 
   useEffect(() => {
     if (!userId || !loaded || pathname == null) return
@@ -294,6 +351,15 @@ export function ChatProvider({ children }) {
       window.removeEventListener('focus', bump)
       document.removeEventListener('visibilitychange', bump)
     }
+  }, [userId, refresh])
+
+  useEffect(() => {
+    if (!userId) return
+    const id = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
+      void refresh()
+    }, 30000)
+    return () => clearInterval(id)
   }, [userId, refresh])
 
   useEffect(() => {
@@ -369,8 +435,19 @@ export function ChatProvider({ children }) {
       refresh,
       markConversationRead,
       getConversationForListing,
+      typingByConversation,
     }),
-    [activeConversations, conversations, totalUnread, loaded, loading, refresh, markConversationRead, getConversationForListing],
+    [
+      activeConversations,
+      conversations,
+      totalUnread,
+      loaded,
+      loading,
+      refresh,
+      markConversationRead,
+      getConversationForListing,
+      typingByConversation,
+    ],
   )
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>

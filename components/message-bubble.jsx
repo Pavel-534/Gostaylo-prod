@@ -42,7 +42,7 @@ export function MessageReadTicks({ isOwn, isRead, status, className, bubbleTone 
   if (bubbleTone === 'dark') {
     return read ? (
       <CheckCheck
-        className={cn('h-3.5 w-3.5 shrink-0 text-sky-300 transition-colors duration-300', className)}
+        className={cn('h-3.5 w-3.5 shrink-0 text-blue-300 transition-colors duration-300', className)}
         aria-label="Прочитано"
       />
     ) : (
