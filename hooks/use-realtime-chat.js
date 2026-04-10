@@ -19,15 +19,7 @@ import {
   subscribeRealtimeWithBackoff,
   REALTIME_RETRY_STATUSES,
 } from '@/lib/chat/realtime-subscribe-with-backoff';
-import { isRealtimeDebugEnabled } from '@/lib/chat/realtime-debug-log';
 import { supabase } from '@/lib/supabase';
-
-/** Фильтр только в JS: без server-side filter в postgres_changes (диагностика + id с дефисами). */
-function rowMatchesConversation(row, conversationId) {
-  if (!row || conversationId == null || conversationId === '') return false;
-  const cid = String(row.conversation_id ?? row.conversationId ?? '');
-  return cid === String(conversationId);
-}
 
 // Notification sound (base64 encoded short beep)
 const NOTIFICATION_SOUND = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH+Onpi0u7nGysm+tKmdkIB3cXl5f4eFiY2RkZGRkZGOiYV/eXNua2loaGhrbXN5f4WJjpGRkZGRjouGgXt1cG1qaGhoaWtvc3l/hYqOkZGRkZGOi4aBe3VwbWpoaGhpa29zeX+Fio6RkZGRkY6LhoF7dXBtamhoaGlrb3N5f4WKjpGRkZGRjouGgXt1cG1qaGhoaWtvc3l/hYqOkZGRkZGOi4aBe3VwbWpoaGhpa29zeX+Fio6RkZGRkY6LhoF7dXBtamhoaGlrb3N5f4WKjpGRkZGRjouGgXt1cG1qaGhoaWtvc3l/hYqOkZGRkQ==';
@@ -86,20 +78,9 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
             },
             (payload) => {
               const newMessage = payload.new;
-              if (isRealtimeDebugEnabled()) {
-                // eslint-disable-next-line no-console
-                console.info('[useRealtimeMessages] postgres_changes INSERT (no server filter)', {
-                  id: newMessage?.id,
-                  conversation_id: newMessage?.conversation_id,
-                });
-              }
-              if (!rowMatchesConversation(newMessage, conversationId)) return;
-              setMessages((prev) => {
-                if (prev.some((m) => m.id === newMessage.id)) {
-                  return prev;
-                }
-                return [...prev, newMessage];
-              });
+              // eslint-disable-next-line no-console -- requested raw realtime payload debug
+              console.log('RAW_DATA_FROM_SUPABASE', payload);
+              setMessages((prev) => [...prev, newMessage]);
               if (onNewMessageRef.current) {
                 onNewMessageRef.current(newMessage);
               }
@@ -114,7 +95,8 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
             },
             (payload) => {
               const row = payload.new;
-              if (!rowMatchesConversation(row, conversationId)) return;
+              // eslint-disable-next-line no-console -- requested raw realtime payload debug
+              console.log('RAW_DATA_FROM_SUPABASE', payload);
               if (onMessageUpdateRef.current) {
                 onMessageUpdateRef.current(row);
               }
