@@ -19,7 +19,6 @@ import {
   subscribeRealtimeWithBackoff,
   REALTIME_RETRY_STATUSES,
 } from '@/lib/chat/realtime-subscribe-with-backoff';
-import { isRealtimeDebugEnabled } from '@/lib/chat/realtime-debug-log';
 import { supabase } from '@/lib/supabase';
 
 /** Server filter intentionally disabled; keeping strict client-side conversation match. */
@@ -86,12 +85,6 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
             },
             (payload) => {
               const newMessage = payload.new;
-              // eslint-disable-next-line no-console -- emergency RLS diagnostics
-              console.log('RLS_STATUS_CHECK', payload);
-              if (isRealtimeDebugEnabled()) {
-                // eslint-disable-next-line no-console -- realtime diagnostics
-                console.log('RAW_DATA_FROM_SUPABASE', payload);
-              }
               if (!rowMatchesConversation(newMessage, conversationId)) return;
               setMessages((prev) => {
                 if (prev.some((m) => m.id === newMessage.id)) {
@@ -113,12 +106,6 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
             },
             (payload) => {
               const row = payload.new;
-              // eslint-disable-next-line no-console -- emergency RLS diagnostics
-              console.log('RLS_STATUS_CHECK', payload);
-              if (isRealtimeDebugEnabled()) {
-                // eslint-disable-next-line no-console -- realtime diagnostics
-                console.log('RAW_DATA_FROM_SUPABASE', payload);
-              }
               if (!rowMatchesConversation(row, conversationId)) return;
               if (onMessageUpdateRef.current) {
                 onMessageUpdateRef.current(row);

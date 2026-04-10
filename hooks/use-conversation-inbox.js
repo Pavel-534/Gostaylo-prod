@@ -21,6 +21,20 @@ import {
   isFavoritesMigrated,
   setFavoritesMigrated,
 } from '@/lib/chat-inbox-favorites'
+import { supabase } from '@/lib/supabase'
+import { subscribeRealtimeWithBackoff } from '@/lib/chat/realtime-subscribe-with-backoff'
+
+/** lastMessage для превью в списке (как в ChatContext). */
+function rawMsgToLastMessage(raw) {
+  return {
+    id: raw.id,
+    content: raw.content ?? raw.message,
+    message: raw.message ?? raw.content,
+    type: raw.type,
+    createdAt: raw.created_at,
+    created_at: raw.created_at,
+  }
+}
 
 function debounce(fn, ms) {
   let timer = null
@@ -64,6 +78,13 @@ export function useConversationInbox({
   useEffect(() => {
     favoriteIdsRef.current = favoriteIds
   }, [favoriteIds])
+
+  const userIdRef = useRef(userId)
+  useEffect(() => {
+    userIdRef.current = userId
+  }, [userId])
+
+  const msgUnknownConvFetchRef = useRef(new Set())
 
   useEffect(() => {
     archivedOnlyRef.current = archivedOnly
@@ -298,6 +319,51 @@ export function useConversationInbox({
     [userId, refreshFavoriteIdsFromServer]
   )
 
+  const unarchiveConversation = useCallback(async (convId) => {
+    try {
+      await fetch('/api/v2/chat/conversations', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: convId, archived: false }),
+      })
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  const fetchOneConversationForInbox = useCallback(async (convId) => {
+    if (!convId) return
+    try {
+      const res = await fetch(
+        `/api/v2/chat/conversations?id=${encodeURIComponent(convId)}&enrich=1`,
+        { credentials: 'include', cache: 'no-store' },
+      )
+      if (!res.ok) return
+      const data = await res.json()
+      const conv = data?.data?.[0]
+      if (!conv) return
+      setConversations((prev) => {
+        if (prev.some((c) => String(c.id) === String(conv.id))) {
+          const idx = prev.findIndex((c) => String(c.id) === String(conv.id))
+          if (idx === -1) return prev
+          const next = [...prev]
+          next[idx] = { ...next[idx], ...conv }
+          const row = next[idx]
+          const ts = (c) =>
+            new Date(
+              c.lastMessageAt || c.last_message_at || c.updatedAt || c.updated_at || c.createdAt || 0,
+            ).getTime()
+          next.splice(idx, 1)
+          return [row, ...next].sort((a, b) => ts(b) - ts(a))
+        }
+        return [conv, ...prev]
+      })
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
   const handleRealtimeConvUpdate = useCallback(
     (payload) => {
       if (!payload?.new) {
@@ -339,6 +405,74 @@ export function useConversationInbox({
   )
 
   useRealtimeConversations(userId ?? null, handleRealtimeConvUpdate)
+
+  // INSERT в messages: обновляем превью + unread + порядок (холл не использует ChatContext).
+  useEffect(() => {
+    if (!userId || !enabled || !supabase) return
+
+    const stop = subscribeRealtimeWithBackoff({
+      supabase,
+      channelLabel: `inbox:messages:${userId}`,
+      createChannel: (attempt) =>
+        supabase
+          .channel(`inbox-messages:${userId}:${attempt}`)
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'messages' },
+            (payload) => {
+              const msg = payload.new
+              const convId = msg?.conversation_id
+              const uid = userIdRef.current
+              if (!convId || !uid) return
+              const convKey = String(convId)
+
+              let missingInList = false
+              setConversations((prev) => {
+                const idx = prev.findIndex((c) => String(c.id) === convKey)
+                if (idx === -1) {
+                  missingInList = true
+                  return prev
+                }
+
+                const conv = prev[idx]
+                const isFromMe = String(msg.sender_id) === String(uid)
+                const iAmRenter = String(conv.renterId) === String(uid)
+                const iAmPartner = String(conv.partnerId) === String(uid)
+                const wasArchivedByMe =
+                  (!isFromMe && iAmRenter && conv.renterArchivedAt) ||
+                  (!isFromMe && iAmPartner && conv.partnerArchivedAt)
+
+                const updated = {
+                  ...conv,
+                  lastMessage: rawMsgToLastMessage(msg),
+                  lastMessageAt: msg.created_at,
+                  unreadCount: isFromMe
+                    ? Number(conv.unreadCount) || 0
+                    : (Number(conv.unreadCount) || 0) + 1,
+                  renterArchivedAt: !isFromMe && iAmRenter ? null : conv.renterArchivedAt,
+                  partnerArchivedAt: !isFromMe && iAmPartner ? null : conv.partnerArchivedAt,
+                }
+
+                if (wasArchivedByMe) {
+                  void unarchiveConversation(convKey)
+                }
+
+                const next = prev.filter((c) => String(c.id) !== convKey)
+                return [updated, ...next]
+              })
+
+              if (missingInList && !msgUnknownConvFetchRef.current.has(convKey)) {
+                msgUnknownConvFetchRef.current.add(convKey)
+                void fetchOneConversationForInbox(convKey).finally(() => {
+                  msgUnknownConvFetchRef.current.delete(convKey)
+                })
+              }
+            },
+          ),
+    })
+
+    return () => stop()
+  }, [userId, enabled, unarchiveConversation, fetchOneConversationForInbox])
 
   const loadMore = useCallback(() => {
     if (!hasMore || isLoadingMore) return

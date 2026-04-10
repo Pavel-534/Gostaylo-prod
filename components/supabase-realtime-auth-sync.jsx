@@ -36,6 +36,27 @@ export function SupabaseRealtimeAuthSync() {
         const data = await res.json().catch(() => ({}))
         if (cancelled || !data?.access_token) return
         supabase.realtime.setAuth(data.access_token)
+
+        // Один раз за сессию вкладки: проверка claims (см. GET /api/v2/auth/realtime-claims).
+        try {
+          if (typeof window === 'undefined') return
+          const flag = 'gostaylo_rt_claims_logged_v1'
+          if (sessionStorage.getItem(flag)) return
+          const cr = await fetch('/api/v2/auth/realtime-claims', { credentials: 'include' })
+          if (!cr.ok) return
+          const claims = await cr.json().catch(() => ({}))
+          if (claims?.ok) {
+            sessionStorage.setItem(flag, '1')
+            // eslint-disable-next-line no-console -- намеренно один раз: диагностика Realtime JWT
+            console.info('[GoStayLo Realtime] claims OK', {
+              profile_id: claims.profile_id,
+              app_role: claims.app_role,
+              session_role: claims.session_role,
+            })
+          }
+        } catch {
+          /* ignore */
+        }
       } catch {
         /* ignore */
       }
