@@ -86,6 +86,8 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
             },
             (payload) => {
               const newMessage = payload.new;
+              // eslint-disable-next-line no-console -- emergency RLS diagnostics
+              console.log('RLS_STATUS_CHECK', payload);
               if (isRealtimeDebugEnabled()) {
                 // eslint-disable-next-line no-console -- realtime diagnostics
                 console.log('RAW_DATA_FROM_SUPABASE', payload);
@@ -111,6 +113,8 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
             },
             (payload) => {
               const row = payload.new;
+              // eslint-disable-next-line no-console -- emergency RLS diagnostics
+              console.log('RLS_STATUS_CHECK', payload);
               if (isRealtimeDebugEnabled()) {
                 // eslint-disable-next-line no-console -- realtime diagnostics
                 console.log('RAW_DATA_FROM_SUPABASE', payload);

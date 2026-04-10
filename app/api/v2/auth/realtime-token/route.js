@@ -19,6 +19,7 @@ export async function GET() {
     profileId: session.userId,
     authUserId: session.authUserId ?? null,
     email: session.email,
+    role: session.role,
   })
 
   if (!access_token) {
