@@ -19,14 +19,10 @@ import {
   subscribeRealtimeWithBackoff,
   REALTIME_RETRY_STATUSES,
 } from '@/lib/chat/realtime-subscribe-with-backoff';
+import { buildMessagesRealtimeFilter } from '@/lib/chat/realtime-messages-filter';
 import { supabase } from '@/lib/supabase';
 
-/**
- * Строка из postgres_changes payload относится к нужной беседе.
- * Серверный filter `conversation_id=eq.${id}` для Realtime ненадёжен для id с дефисами/префиксами
- * (парсер может неверно разобрать значение) — подписка тогда не получает ни одного события.
- * RLS на `messages` уже ограничивает поток только доступными пользователю строками.
- */
+/** Защита на клиенте, если filter на сервере пропустил лишнее (должно не срабатывать). */
 function rowMatchesConversation(row, conversationId) {
   if (!row || conversationId == null || conversationId === '') return false;
   const cid = String(row.conversation_id ?? row.conversationId ?? '');
@@ -75,6 +71,20 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
   useEffect(() => {
     if (!conversationId || !supabase) return;
 
+    const msgFilter = buildMessagesRealtimeFilter(conversationId);
+    const insertOpts = {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'messages',
+      ...(msgFilter ? { filter: msgFilter } : {}),
+    };
+    const updateOpts = {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'messages',
+      ...(msgFilter ? { filter: msgFilter } : {}),
+    };
+
     return subscribeRealtimeWithBackoff({
       supabase,
       channelLabel: `thread:messages:${conversationId}`,
@@ -83,13 +93,17 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
           .channel(`messages:${conversationId}:${attempt}`)
           .on(
             'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'messages',
-            },
+            insertOpts,
             (payload) => {
               const newMessage = payload.new;
+              if (process.env.NODE_ENV === 'development') {
+                // eslint-disable-next-line no-console
+                console.info('[useRealtimeMessages] postgres_changes INSERT', {
+                  filter: msgFilter,
+                  id: newMessage?.id,
+                  conversation_id: newMessage?.conversation_id,
+                });
+              }
               if (!rowMatchesConversation(newMessage, conversationId)) return;
               setMessages((prev) => {
                 if (prev.some((m) => m.id === newMessage.id)) {
@@ -104,11 +118,7 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
           )
           .on(
             'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'messages',
-            },
+            updateOpts,
             (payload) => {
               const row = payload.new;
               if (!rowMatchesConversation(row, conversationId)) return;
