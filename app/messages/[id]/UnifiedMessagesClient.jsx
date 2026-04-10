@@ -56,6 +56,7 @@ import { useChatTyping } from '@/hooks/use-chat-typing'
 import { ChatThreadChrome } from '@/components/chat/ChatThreadChrome'
 import { ChatMessageList } from '@/components/chat/ChatMessageList'
 import { ConversationList } from '@/components/chat/ConversationList'
+import { RealtimeDiagOverlay } from '@/components/chat/RealtimeDiagOverlay'
 
 // ─── Существующие компоненты ──────────────────────────────────────────────────
 import { StickyChatHeader } from '@/components/sticky-chat-header'
@@ -953,6 +954,7 @@ export default function UnifiedMessagesClient({ params }) {
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
+      <RealtimeDiagOverlay conversationId={conversationId} />
       <ChatThreadChrome
         hasThread={!!conversationId}
         sidebarSlot={sidebarSlot}
