@@ -35,15 +35,24 @@ self.addEventListener('push', (event) => {
       const type = String(data.type || '').toUpperCase()
       const link = String(data.link || '/')
       const cid = parseConversationId(link, data)
-      const windows = await postToClients(data)
+      const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true })
 
-      if (type === 'BADGE_UPDATE') return
+      if (type === 'BADGE_UPDATE') {
+        await postToClients(data)
+        return
+      }
 
       const hasVisibleSameChat =
         !!self.GostayloPushPolicy &&
         typeof self.GostayloPushPolicy.shouldSuppressPushForConversation === 'function'
           ? self.GostayloPushPolicy.shouldSuppressPushForConversation(windows, cid)
           : false
+
+      // Не дублируем postMessage на вкладку, где уже открыт этот чат — Realtime и так обновит UI.
+      // Иначе каждый пуш даёт refresh() на главном потоке и при лавине сообщений вкладка зависает.
+      if (!hasVisibleSameChat) {
+        for (const c of windows) c.postMessage({ type: 'gostaylo_push', payload: data })
+      }
 
       if (hasVisibleSameChat) return
 

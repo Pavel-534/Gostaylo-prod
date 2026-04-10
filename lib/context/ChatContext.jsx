@@ -390,6 +390,8 @@ export function ChatProvider({ children }) {
     return () => clearInterval(id)
   }, [userId, refresh])
 
+  const pushRefreshTimerRef = useRef(null)
+
   useEffect(() => {
     if (!userId) return
     const onPush = (evt) => {
@@ -398,14 +400,24 @@ export function ChatProvider({ children }) {
       const cid = d.conversationId || null
 
       if (type === 'BADGE_UPDATE' || type === 'NEW_MESSAGE') {
-        void refresh()
+        if (pushRefreshTimerRef.current) clearTimeout(pushRefreshTimerRef.current)
+        pushRefreshTimerRef.current = setTimeout(() => {
+          pushRefreshTimerRef.current = null
+          void refresh()
+        }, 450)
       }
       if (type === 'NEW_MESSAGE' && shouldPlayIncomingSound(cid)) {
         playNotificationSound()
       }
     }
     window.addEventListener('gostaylo:push-message', onPush)
-    return () => window.removeEventListener('gostaylo:push-message', onPush)
+    return () => {
+      window.removeEventListener('gostaylo:push-message', onPush)
+      if (pushRefreshTimerRef.current) {
+        clearTimeout(pushRefreshTimerRef.current)
+        pushRefreshTimerRef.current = null
+      }
+    }
   }, [userId, refresh, shouldPlayIncomingSound])
 
   // ─── Вычисляемые значения ─────────────────────────────────────────────────

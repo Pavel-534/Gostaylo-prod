@@ -147,30 +147,20 @@ export function UniversalHeader() {
               >
                 <DropdownMenuTrigger asChild>
                   <Button variant='ghost' size='sm' className='flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-1.5 sm:px-2 rounded-full hover:bg-slate-100 border border-slate-200'>
-                    <span className="relative inline-flex shrink-0">
-                      <Avatar className='h-6 w-6 sm:h-7 sm:w-7'>
-                        {user.avatar ? (
-                          <AvatarImage
-                            src={toPublicImageUrl(user.avatar)}
-                            alt=''
-                            className='object-cover'
-                          />
-                        ) : null}
-                        <AvatarFallback className={`text-xs font-semibold text-white ${
-                          isAdmin ? 'bg-indigo-600' : isPartner ? 'bg-teal-600' : 'bg-slate-500'
-                        }`}>
-                          {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      {totalUnread > 0 && (
-                        <span
-                          className="pointer-events-none absolute -top-1 -right-1 flex min-h-[16px] min-w-[16px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold leading-none text-white ring-2 ring-white sm:min-h-[18px] sm:min-w-[18px] sm:text-[10px]"
-                          aria-label={`Непрочитанных сообщений: ${totalUnread}`}
-                        >
-                          {totalUnread > 99 ? '99+' : String(totalUnread)}
-                        </span>
-                      )}
-                    </span>
+                    <Avatar className='h-6 w-6 sm:h-7 sm:w-7'>
+                      {user.avatar ? (
+                        <AvatarImage
+                          src={toPublicImageUrl(user.avatar)}
+                          alt=''
+                          className='object-cover'
+                        />
+                      ) : null}
+                      <AvatarFallback className={`text-xs font-semibold text-white ${
+                        isAdmin ? 'bg-indigo-600' : isPartner ? 'bg-teal-600' : 'bg-slate-500'
+                      }`}>
+                        {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
                     <ChevronDown className='h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-500' />
                   </Button>
                 </DropdownMenuTrigger>
@@ -197,12 +187,23 @@ export function UniversalHeader() {
                       <CalendarDays className='h-4 w-4 mr-3 text-slate-400' />
                       <span>Мои бронирования</span>
                     </DropdownMenuItem>
+                    {/* Сообщения + счётчик только на md+; на мобилке — только таббар внизу */}
                     <DropdownMenuItem
-                      className='cursor-pointer py-2.5'
+                      className='hidden md:flex cursor-pointer py-2.5 flex-row items-center justify-between gap-2 pr-2'
                       onSelect={() => { navigate('/messages/'); }}
                     >
-                      <MessageCircle className='h-4 w-4 mr-3 text-slate-400' />
-                      <span>Сообщения</span>
+                      <span className='flex min-w-0 items-center'>
+                        <MessageCircle className='h-4 w-4 mr-3 shrink-0 text-slate-400' />
+                        <span>Сообщения</span>
+                      </span>
+                      {totalUnread > 0 && (
+                        <span
+                          className='flex min-h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white'
+                          aria-hidden
+                        >
+                          {totalUnread > 99 ? '99+' : String(totalUnread)}
+                        </span>
+                      )}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className='cursor-pointer py-2.5'
