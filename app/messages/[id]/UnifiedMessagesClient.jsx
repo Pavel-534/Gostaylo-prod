@@ -193,6 +193,18 @@ export default function UnifiedMessagesClient({ params }) {
     if (p) inbox.setInboxTab(p)
   }, [user?.id, isPartnerAccount, inbox.setInboxTab])
 
+  const clearInboxUnreadForConv = useCallback(
+    (cid) => {
+      if (!cid) return
+      inbox.setConversations((prev) =>
+        prev.map((c) =>
+          String(c.id) === String(cid) ? { ...c, unreadCount: 0 } : c,
+        ),
+      )
+    },
+    [inbox.setConversations],
+  )
+
   // ── Тред (Фаза 2) ───────────────────────────────────────────────────────────
   const {
     messages, isLoading: threadLoading, isConnected: _isConnected,
@@ -204,7 +216,12 @@ export default function UnifiedMessagesClient({ params }) {
     conversationId,
     userId: user?.id,
     viewerRole: viewerRoleForHook,
-    onMarkRead: () => { if (conversationId) markGlobalRead(conversationId) },
+    onMarkRead: () => {
+      if (conversationId) {
+        markGlobalRead(conversationId)
+        clearInboxUnreadForConv(conversationId)
+      }
+    },
     onNewMessage: () => {
       inbox.refresh()
       markNow()
@@ -213,8 +230,11 @@ export default function UnifiedMessagesClient({ params }) {
 
   // Глобальный сброс при открытии треда
   useEffect(() => {
-    if (conversationId) markGlobalRead(conversationId)
-  }, [conversationId, markGlobalRead])
+    if (conversationId) {
+      markGlobalRead(conversationId)
+      clearInboxUnreadForConv(conversationId)
+    }
+  }, [conversationId, markGlobalRead, clearInboxUnreadForConv])
 
   useEffect(() => {
     setPayBarSuppressed(false)

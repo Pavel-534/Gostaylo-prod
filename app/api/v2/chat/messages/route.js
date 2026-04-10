@@ -37,6 +37,13 @@ const hdr = {
   Prefer: 'return=representation',
 }
 
+function pushMessagePreview(content, maxLen = 200) {
+  const s = String(content ?? '').trim()
+  if (!s) return ''
+  if (s.length <= maxLen) return s
+  return `${s.slice(0, maxLen)}…`
+}
+
 async function fetchConversation(conversationId) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/conversations?id=eq.${encodeURIComponent(conversationId)}&select=*`, {
     headers: hdr,
@@ -445,6 +452,8 @@ export async function POST(request) {
   const base = getPublicSiteUrl()
   const cid = encodeURIComponent(conversationId)
   const msgDeepLink = `${base}/messages/${cid}`
+  const pushPreview = pushMessagePreview(textBody)
+
   if (conversation.renter_id && String(userId) === String(conversation.partner_id)) {
     PushService.sendToUser(conversation.renter_id, 'NEW_MESSAGE', {
       sender: senderName,
@@ -452,6 +461,7 @@ export async function POST(request) {
       link: msgDeepLink,
       conversationId,
       messageId: messageData.id,
+      message: pushPreview,
     }).catch((e) => console.error('[chat/messages] FCM renter', e?.message || e))
   }
   if (conversation.partner_id && String(userId) === String(conversation.renter_id)) {
@@ -461,6 +471,7 @@ export async function POST(request) {
       link: msgDeepLink,
       conversationId,
       messageId: messageData.id,
+      message: pushPreview,
     }).catch((e) => console.error('[chat/messages] FCM partner', e?.message || e))
   }
 

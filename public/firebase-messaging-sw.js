@@ -72,14 +72,20 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     (async () => {
       const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true })
-      const exact = windows.find((w) => w.url.includes(link))
+      const normalize = (u) => {
+        try {
+          return new URL(u).pathname.replace(/\/+$/, '')
+        } catch {
+          return ''
+        }
+      }
+      const targetPath = normalize(link)
+      const exact = windows.find((w) => {
+        if (!targetPath) return false
+        return normalize(w.url) === targetPath || String(w.url || '').includes(targetPath)
+      })
       if (exact) {
         await exact.focus()
-        return
-      }
-      const any = windows[0]
-      if (any) {
-        await any.focus()
         return
       }
       await clients.openWindow(link)
