@@ -24,6 +24,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { subscribeRealtimeWithBackoff } from '@/lib/chat/realtime-subscribe-with-backoff'
 import { retainTypingGlobalChannel } from '@/lib/chat/typing-global-channel'
+import { dispatchRealtimeMessageInsert } from '@/lib/chat/realtime-thread-bridge'
 import { playNotificationSound } from '@/hooks/use-realtime-chat'
 
 const ChatContext = createContext(null)
@@ -254,6 +255,9 @@ export function ChatProvider({ children }) {
           msgUnknownConvFetchRef.current.delete(convKey)
         })
       }
+
+      // Тред /messages/[id]: та же вставка, что и для инбокса (см. realtime-thread-bridge.js).
+      dispatchRealtimeMessageInsert(msg)
     }
 
     const stopConv = subscribeRealtimeWithBackoff({

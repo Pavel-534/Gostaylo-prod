@@ -17,33 +17,6 @@ const JWT_SECRET    = process.env.SUPABASE_JWT_SECRET
 const DIAG_SECRET   = process.env.REALTIME_DIAG_SECRET   // опционально, для dev без авторизации
 const IS_DEV        = process.env.NODE_ENV !== 'production'
 
-const hdr = {
-  apikey:        SERVICE_KEY,
-  Authorization: `Bearer ${SERVICE_KEY}`,
-}
-
-async function pgQuery(sql) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
-    method: 'POST',
-    headers: { ...hdr, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: sql }),
-    cache: 'no-store',
-  })
-  if (!res.ok) return { error: `HTTP ${res.status}`, rows: [] }
-  const data = await res.json().catch(() => [])
-  return { rows: Array.isArray(data) ? data : [] }
-}
-
-/** Прямой запрос к PostgREST с service_role */
-async function queryDirect(table, params = '') {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
-    headers: { ...hdr, 'Content-Type': 'application/json' },
-    cache: 'no-store',
-  })
-  const data = await res.json().catch(() => null)
-  return { ok: res.ok, status: res.status, data }
-}
-
 export async function GET(req) {
   // Авторизация: Admin-сессия или REALTIME_DIAG_SECRET
   const session  = await getSessionPayload()
@@ -112,58 +85,28 @@ export async function GET(req) {
     }
   }
 
-  // ── 2. Publication status ──────────────────────────────────────────────────
-  try {
-    const { data } = await queryDirect(
-      'pg_publication_tables',
-      'pubname=eq.supabase_realtime&tablename=in.(messages,conversations)&select=pubname,tablename',
-    )
-    const found = Array.isArray(data) ? data.map((r) => r.tablename) : []
-    result.publication = {
-      supabase_realtime_tables: found,
-      messages_present:     found.includes('messages')     ? 'YES ✓' : 'NO ⛔ — run 020_realtime_publication_fix.sql',
-      conversations_present: found.includes('conversations') ? 'YES ✓' : 'NO ⛔ — run 020_realtime_publication_fix.sql',
-    }
-  } catch (e) {
-    result.publication = { error: e.message }
+  // ── 2. Publication — НЕ через PostgREST: pg_catalog не в /rest/v1 ───────────
+  result.publication = {
+    note:
+      'Таблицы в publication `supabase_realtime` нельзя проверить через PostgREST API. Откройте Supabase Dashboard → Database → Publications → supabase_realtime, либо выполните SQL из database/migrations/020_realtime_publication_fix.sql (SELECT из pg_publication_tables).',
+    howToVerifySql:
+      "SELECT tablename FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename IN ('messages','conversations');",
   }
 
-  // ── 3. Replica identity ────────────────────────────────────────────────────
-  try {
-    const { data } = await queryDirect(
-      'pg_class',
-      'relname=in.(messages,conversations)&relnamespace=eq.2200&select=relname,relreplident',
-    )
-    const map = {}
-    if (Array.isArray(data)) {
-      for (const r of data) {
-        map[r.relname] = r.relreplident === 'f' ? 'FULL ✓' : `${r.relreplident} (not FULL — run 020_realtime_publication_fix.sql) ⚠`
-      }
-    }
-    result.replicaIdentity = map
-  } catch (e) {
-    result.replicaIdentity = { error: e.message }
+  // ── 3. Replica identity — то же, pg_class недоступен через public REST ─────
+  result.replicaIdentity = {
+    note: 'Проверка REPLICA IDENTITY — только SQL Editor (см. 020_realtime_publication_fix.sql).',
   }
 
-  // ── 4. RLS quick check ─────────────────────────────────────────────────────
-  try {
-    const { data } = await queryDirect(
-      'pg_policies',
-      'schemaname=eq.public&tablename=in.(messages,conversations)&select=tablename,policyname,cmd',
-    )
-    result.rlsSample = Array.isArray(data)
-      ? data.map((r) => `${r.tablename}.${r.policyname} [${r.cmd}]`)
-      : data
-  } catch (e) {
-    result.rlsSample = { error: e.message }
+  // ── 4. RLS — pg_policies тоже не в public schema в типичном PostgREST ───────
+  result.rlsSample = {
+    note: 'Список политик — SQL: SELECT * FROM pg_policies WHERE tablename IN (\'messages\',\'conversations\');',
   }
 
   // ── Summary ────────────────────────────────────────────────────────────────
   const issues = []
   if (result.env.SUPABASE_JWT_SECRET === 'MISSING ⛔') issues.push('SUPABASE_JWT_SECRET not set')
   if (result.jwtDiag?.selfVerify?.startsWith('FAIL')) issues.push('JWT signature mismatch')
-  if (result.publication?.messages_present?.startsWith('NO')) issues.push('messages not in supabase_realtime publication')
-  if (result.publication?.conversations_present?.startsWith('NO')) issues.push('conversations not in supabase_realtime publication')
 
   result.summary = issues.length === 0
     ? '✅ No critical issues detected. If Realtime still fails, check Supabase Dashboard → Realtime → inspect channel.'

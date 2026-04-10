@@ -28,6 +28,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 
 import { mapApiMessageToRow, mergeRealtimeMessage } from '@/lib/chat/map-api-message'
+import { REALTIME_MESSAGE_INSERT_EVENT } from '@/lib/chat/realtime-thread-bridge'
 import { useRealtimeMessages } from '@/hooks/use-realtime-chat'
 import { useOptimisticSend } from '@/hooks/use-optimistic-send'
 import { uploadChatFile, uploadChatVoice } from '@/lib/chat-upload'
@@ -189,6 +190,23 @@ export function useChatThreadMessages({
       mergeRealtimeMessage(prev, rawRow, mapperOptsRef.current)
     )
   }, [])
+
+  const handleRealtimeInsertRef = useRef(handleRealtimeInsert)
+  useEffect(() => {
+    handleRealtimeInsertRef.current = handleRealtimeInsert
+  }, [handleRealtimeInsert])
+
+  /** Дублирует INSERT из ChatContext (ctx-messages), если вторая подписка треда не сработала. */
+  useEffect(() => {
+    if (!conversationId) return
+    const onBridge = (e) => {
+      const raw = e?.detail?.message
+      if (!raw || String(raw.conversation_id ?? '') !== String(conversationId)) return
+      handleRealtimeInsertRef.current?.(raw)
+    }
+    window.addEventListener(REALTIME_MESSAGE_INSERT_EVENT, onBridge)
+    return () => window.removeEventListener(REALTIME_MESSAGE_INSERT_EVENT, onBridge)
+  }, [conversationId])
 
   const { isConnected } = useRealtimeMessages(
     conversationId ?? null,
