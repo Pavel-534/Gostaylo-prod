@@ -15,7 +15,9 @@ export async function GET() {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
-  const access_token = createSupabaseRealtimeAccessToken(session.userId, {
+  const access_token = createSupabaseRealtimeAccessToken({
+    profileId: session.userId,
+    authUserId: session.authUserId ?? null,
     email: session.email,
   })
 
