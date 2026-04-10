@@ -74,13 +74,37 @@ export function useOptimisticSend({ conversationId, userId, setMessages }) {
 
         if (res.ok && json.success && json.data) {
           const real = json.data
+          const realId = real.id ?? real.messageId ?? null
           // 2. Заменяем оптимистичное реальным
-          setMessages((prev) =>
-            prev.map((m) =>
+          setMessages((prev) => {
+            const hasRealtimeRow =
+              realId != null && prev.some((m) => m.id === realId && m.id !== tid)
+
+            if (hasRealtimeRow) {
+              // Realtime уже принёс подтверждённое сообщение:
+              // удаляем temp-row и обновляем существующий real-row до "sent".
+              return prev
+                .filter((m) => m.id !== tid)
+                .map((m) =>
+                  m.id === realId
+                    ? {
+                        ...m,
+                        _optimistic: false,
+                        _status: 'sent',
+                        is_read: real.isRead ?? real.is_read ?? m.is_read ?? false,
+                        isRead: real.isRead ?? real.is_read ?? m.isRead ?? false,
+                        created_at: real.createdAt ?? real.created_at ?? m.created_at,
+                        createdAt: real.createdAt ?? real.created_at ?? m.createdAt,
+                      }
+                    : m,
+                )
+            }
+
+            return prev.map((m) =>
               m.id === tid
                 ? {
                     ...m,
-                    id: real.id ?? real.messageId ?? m.id,
+                    id: realId ?? m.id,
                     _optimistic: false,
                     _status: 'sent',
                     is_read: real.isRead ?? real.is_read ?? false,
@@ -89,8 +113,8 @@ export function useOptimisticSend({ conversationId, userId, setMessages }) {
                     createdAt: real.createdAt ?? real.created_at ?? m.createdAt,
                   }
                 : m,
-            ),
-          )
+            )
+          })
           return json.data
         } else {
           // 3. Ошибка — удаляем и показываем toast
