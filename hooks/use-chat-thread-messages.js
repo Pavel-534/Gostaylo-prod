@@ -28,6 +28,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 
 import { mapApiMessageToRow, mergeRealtimeMessage } from '@/lib/chat/map-api-message'
+import { isRealtimeDebugEnabled } from '@/lib/chat/realtime-debug-log'
 import { useRealtimeMessages } from '@/hooks/use-realtime-chat'
 import { useOptimisticSend } from '@/hooks/use-optimistic-send'
 import { uploadChatFile, uploadChatVoice } from '@/lib/chat-upload'
@@ -137,7 +138,7 @@ export function useChatThreadMessages({
 
   const handleRealtimeInsert = useCallback(
     (rawMsg) => {
-      if (process.env.NODE_ENV === 'development') {
+      if (isRealtimeDebugEnabled()) {
         // eslint-disable-next-line no-console -- диагностика доставки Realtime в тред
         console.info('NEW_MESSAGE_RECEIVED_IN_THREAD', {
           id: rawMsg?.id,
