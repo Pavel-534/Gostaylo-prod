@@ -39,7 +39,11 @@ const hdr = {
 
 async function dispatchBackgroundTask(label, task) {
   const run = Promise.resolve()
-    .then(() => task())
+    .then(async () => {
+      const result = await task()
+      console.log(`[PUSH_FLOW] ${label} result`, result)
+      return result
+    })
     .catch((e) => {
       console.error(`[chat/messages] ${label}`, e?.message || e)
     })
@@ -473,6 +477,7 @@ export async function POST(request) {
   const pushPreview = pushMessagePreview(textBody)
 
   if (conversation.renter_id && String(userId) === String(conversation.partner_id)) {
+    console.log(`[PUSH_FLOW] queue renter recipient=${conversation.renter_id} sender=${userId} msg=${messageData.id}`)
     await dispatchBackgroundTask('FCM renter', () =>
       PushService.sendToUser(conversation.renter_id, 'NEW_MESSAGE', {
         sender: senderName,
@@ -485,6 +490,7 @@ export async function POST(request) {
     )
   }
   if (conversation.partner_id && String(userId) === String(conversation.renter_id)) {
+    console.log(`[PUSH_FLOW] queue partner recipient=${conversation.partner_id} sender=${userId} msg=${messageData.id}`)
     await dispatchBackgroundTask('FCM partner', () =>
       PushService.sendToUser(conversation.partner_id, 'NEW_MESSAGE', {
         sender: senderName,
