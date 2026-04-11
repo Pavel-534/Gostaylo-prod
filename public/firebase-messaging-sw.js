@@ -24,9 +24,12 @@ self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim(
 self.addEventListener('push', (event) => {
   event.waitUntil(
     (async () => {
-      // Логи: DevTools → Application → Service Workers → Inspect (не консоль вкладки страницы).
+      // Remote debug: Chrome → remote device → inspect SW → Console.
       try {
-        console.log('[Gostaylo SW] push', { hasData: !!event.data, t: new Date().toISOString() })
+        console.log('[SW Debug] push event (raw)', {
+          hasData: !!event.data,
+          t: new Date().toISOString(),
+        })
       } catch (_) {}
 
       let payload = {}
@@ -35,6 +38,10 @@ self.addEventListener('push', (event) => {
       } catch {
         payload = {}
       }
+
+      try {
+        console.log('[SW Debug] Message received in background!', JSON.stringify(payload).slice(0, 4000))
+      } catch (_) {}
 
       try {
         const d = payload?.data || {}
