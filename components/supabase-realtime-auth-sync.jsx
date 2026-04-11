@@ -8,6 +8,10 @@
 import { useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
+import {
+  noteRealtimeSessionJwtFromExternal,
+  resetRealtimeSessionJwtCache,
+} from '@/lib/chat/realtime-session-jwt'
 
 const REFRESH_MS = 50 * 60 * 1000
 
@@ -18,6 +22,7 @@ export function SupabaseRealtimeAuthSync() {
     if (!supabase) return
 
     if (!user?.id) {
+      resetRealtimeSessionJwtCache()
       try {
         supabase.realtime.setAuth(null)
       } catch {
@@ -36,6 +41,7 @@ export function SupabaseRealtimeAuthSync() {
         const data = await res.json().catch(() => ({}))
         if (cancelled || !data?.access_token) return
         supabase.realtime.setAuth(data.access_token)
+        noteRealtimeSessionJwtFromExternal(data.access_token)
 
         // Один раз за сессию вкладки: проверка claims (см. GET /api/v2/auth/realtime-claims).
         try {
@@ -68,6 +74,7 @@ export function SupabaseRealtimeAuthSync() {
     return () => {
       cancelled = true
       if (intervalId) clearInterval(intervalId)
+      resetRealtimeSessionJwtCache()
       try {
         supabase.realtime.setAuth(null)
       } catch {

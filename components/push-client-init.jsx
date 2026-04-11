@@ -1,12 +1,8 @@
 'use client'
 
 /**
- * Инициализация Web Push (FCM):
- * - SW + разрешение + getToken (с forceRefresh после выдачи прав и при смене аккаунта)
- * - POST /api/v2/push register — дублирует profiles.fcm_token и user_push_tokens
- *
- * Лог «Push Debug: Token synchronized with database» — в консоли вкладки страницы
- * после успешного ответа API. Логи Service Worker — только в инспекторе SW.
+ * Инициализация Web Push (FCM): один цикл на смену `user.id`, без лавины getToken/register.
+ * forceRefresh — только при смене аккаунта или сразу после первого grant разрешения.
  */
 
 import { useEffect, useRef } from 'react'
@@ -29,7 +25,6 @@ export function PushClientInit() {
     let unsubscribeOnMessage = null
     let swMessageHandler = null
     let pingInterval = null
-    let permCleanup = null
 
     const deviceInfo = {
       surface: 'web',
@@ -51,14 +46,6 @@ export function PushClientInit() {
       if (swMessageHandler) {
         navigator.serviceWorker.removeEventListener('message', swMessageHandler)
         swMessageHandler = null
-      }
-    }
-
-    const cleanupAll = () => {
-      clearMessagingSide()
-      if (typeof permCleanup === 'function') {
-        permCleanup()
-        permCleanup = null
       }
     }
 
@@ -129,17 +116,6 @@ export function PushClientInit() {
         if (!aliveRef.current) return
         if (Notification.permission !== 'granted') return
 
-        // Один раз за сессию браузера принудительно обновляем токен (Samsung / «сначала разрешили, потом вошли»).
-        try {
-          const frKey = `gostaylo_push_fr_${userId}`
-          if (!sessionStorage.getItem(frKey)) {
-            forceRefresh = true
-            sessionStorage.setItem(frKey, '1')
-          }
-        } catch {
-          /* ignore */
-        }
-
         clearMessagingSide()
 
         const { isSupported, getMessaging, getToken, onMessage } = await import('firebase/messaging')
@@ -192,29 +168,9 @@ export function PushClientInit() {
 
     void run()
 
-    try {
-      if (navigator.permissions?.query) {
-        navigator.permissions
-          .query({ name: 'notifications' })
-          .then((status) => {
-            const onChange = () => {
-              if (!aliveRef.current) return
-              if (status.state === 'granted') {
-                void run()
-              }
-            }
-            status.addEventListener('change', onChange)
-            permCleanup = () => status.removeEventListener('change', onChange)
-          })
-          .catch(() => {})
-      }
-    } catch {
-      /* Permissions API unsupported */
-    }
-
     return () => {
       aliveRef.current = false
-      cleanupAll()
+      clearMessagingSide()
     }
   }, [user?.id])
 

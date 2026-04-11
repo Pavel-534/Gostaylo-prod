@@ -1,8 +1,8 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 2.1.9 | **Last Updated**: 2026-04-09 | **Status**: Production-Ready
+> **Version**: 2.1.11 | **Last Updated**: 2026-04-11 | **Status**: Production-Ready
 > 
-> This document is the **absolute source of truth** for all technical decisions, database schemas, and development standards. Any AI agent working on this codebase MUST read this document first.
+> Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ---
 
@@ -44,6 +44,13 @@ Pattern: Immediate Response + Fire-and-Forget
 - Payment confirmation emails
 - Booking confirmation pages
 - Payment success notifications
+
+### 0.4 Documentation & AI workflow
+
+- **Цель:** манифест и паспорт отражают текущий код; расхождения устраняются правкой кода или дока в одном PR.
+- **Файлы:** `AGENTS.md` (вход), `.cursorrules`, `.cursor/rules/gostaylo-docs-constitution.mdc` (всегда для Cursor), шаблон PR **`.github/pull_request_template.md`** (чеклист доков).
+- **Когда обновлять:** любые изменения в `app/api/**`, `migrations/**`, RLS, поведении продукта или зафиксированном в доках UX — правки в **`docs/TECHNICAL_MANIFESTO.md`** и в этом файле; нормативные решения — **`ARCHITECTURAL_DECISIONS.md`**.
+- **Realtime JWT (антилуп):** клиент **`lib/chat/realtime-session-jwt.js`** + **`components/supabase-realtime-auth-sync.jsx`** — см. манифест §5 (bullet `applyRealtimeSessionJwt`).
 
 ---
 
