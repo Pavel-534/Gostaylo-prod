@@ -28,7 +28,7 @@ async function isAdmin(userId) {
 export async function POST(request) {
   try {
     const body = await request.json().catch(() => ({}))
-    const { action, token, deviceInfo, templateKey, data, targetUserId } = body || {}
+    const { action, token, deviceInfo, templateKey, data, targetUserId, update } = body || {}
 
     // Action: register - токен только для пользователя из cookie-сессии
     if (action === 'register') {
@@ -38,6 +38,9 @@ export async function POST(request) {
       }
       if (!token) {
         return NextResponse.json({ success: false, error: 'token required' }, { status: 400 })
+      }
+      if (update === true) {
+        console.log('[PUSH API] register update:true — client forced sync (localStorage ≠ getToken)')
       }
       const result = await PushService.registerToken(session.userId, token, deviceInfo || null)
       return NextResponse.json(result)
@@ -110,7 +113,8 @@ export async function GET() {
       'PAYOUT_READY',
     ],
     endpoints: {
-      register: 'POST /api/v2/push { action: "register", token: "...", deviceInfo?: {...} }',
+      register:
+        'POST /api/v2/push { action: "register", token: "...", deviceInfo?: {...}, update?: true }',
       ping: 'POST /api/v2/push { action: "ping", token: "..." } — last_seen для Smart Push',
       send: 'POST /api/v2/push { action: "send", targetUserId: "...", templateKey: "...", data: {...} }',
       test: 'POST /api/v2/push { action: "test", token: "..." }',

@@ -49,7 +49,7 @@ export function PushClientInit() {
       }
     }
 
-    const syncTokenToServer = async (token, userId) => {
+    const syncTokenToServer = async (token, userId, update) => {
       const res = await fetch('/api/v2/push', {
         method: 'POST',
         credentials: 'include',
@@ -58,6 +58,7 @@ export function PushClientInit() {
           action: 'register',
           token,
           deviceInfo,
+          ...(update ? { update: true } : {}),
         }),
       })
       let json = {}
@@ -133,7 +134,17 @@ export function PushClientInit() {
         })
         if (!aliveRef.current || !token) return
 
-        await syncTokenToServer(token, userId)
+        let stored = ''
+        try {
+          stored = localStorage.getItem('gostaylo_fcm_token') || ''
+        } catch {
+          stored = ''
+        }
+        const storageMismatch = Boolean(stored && stored !== token)
+        if (storageMismatch) {
+          console.info('Push Debug: localStorage token ≠ Firebase getToken — register with update:true')
+        }
+        await syncTokenToServer(token, userId, storageMismatch)
         if (!aliveRef.current) return
 
         const pingMs = 30_000
