@@ -542,13 +542,17 @@ export async function POST(request) {
 
       const base = getPublicSiteUrl()
       const link = `${base}/messages/${encodeURIComponent(finalId)}`
-      PushService.sendToUser(partnerId, 'NEW_MESSAGE', {
-        sender: renterName,
-        senderId: renterUserId,
-        link,
-        conversationId: finalId,
-        messageId: msgId,
-      }).catch((e) => console.error('[chat/conversations] FCM intro', e?.message || e))
+      try {
+        await PushService.sendToUser(partnerId, 'NEW_MESSAGE', {
+          sender: renterName,
+          senderId: renterUserId,
+          link,
+          conversationId: finalId,
+          messageId: msgId,
+        })
+      } catch (e) {
+        console.error('[chat/conversations] FCM intro', e?.message || e)
+      }
     }
   }
 

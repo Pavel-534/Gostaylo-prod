@@ -233,13 +233,17 @@ export async function POST(request) {
     const recipientId = viewerId === partnerId ? renterId : partnerId
     const base = getPublicSiteUrl()
     const link = `${base}/messages/${encodeURIComponent(finalId)}`
-    PushService.sendToUser(recipientId, 'NEW_MESSAGE', {
-      sender: senderName,
-      senderId: viewerId,
-      link,
-      conversationId: finalId,
-      messageId: msgId,
-    }).catch((e) => console.error('[from-profile] FCM', e?.message || e))
+    try {
+      await PushService.sendToUser(recipientId, 'NEW_MESSAGE', {
+        sender: senderName,
+        senderId: viewerId,
+        link,
+        conversationId: finalId,
+        messageId: msgId,
+      })
+    } catch (e) {
+      console.error('[from-profile] FCM', e?.message || e)
+    }
   }
 
   return NextResponse.json({

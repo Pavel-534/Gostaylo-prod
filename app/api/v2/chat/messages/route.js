@@ -37,6 +37,24 @@ const hdr = {
   Prefer: 'return=representation',
 }
 
+async function dispatchBackgroundTask(label, task) {
+  const run = Promise.resolve()
+    .then(() => task())
+    .catch((e) => {
+      console.error(`[chat/messages] ${label}`, e?.message || e)
+    })
+  try {
+    const { waitUntil } = await import('@vercel/functions')
+    if (typeof waitUntil === 'function') {
+      waitUntil(run)
+      return
+    }
+  } catch {
+    // not vercel runtime
+  }
+  void run
+}
+
 function pushMessagePreview(content, maxLen = 200) {
   const s = String(content ?? '').trim()
   if (!s) return ''
@@ -455,24 +473,28 @@ export async function POST(request) {
   const pushPreview = pushMessagePreview(textBody)
 
   if (conversation.renter_id && String(userId) === String(conversation.partner_id)) {
-    PushService.sendToUser(conversation.renter_id, 'NEW_MESSAGE', {
-      sender: senderName,
-      senderId: userId,
-      link: msgDeepLink,
-      conversationId,
-      messageId: messageData.id,
-      message: pushPreview,
-    }).catch((e) => console.error('[chat/messages] FCM renter', e?.message || e))
+    await dispatchBackgroundTask('FCM renter', () =>
+      PushService.sendToUser(conversation.renter_id, 'NEW_MESSAGE', {
+        sender: senderName,
+        senderId: userId,
+        link: msgDeepLink,
+        conversationId,
+        messageId: messageData.id,
+        message: pushPreview,
+      }),
+    )
   }
   if (conversation.partner_id && String(userId) === String(conversation.renter_id)) {
-    PushService.sendToUser(conversation.partner_id, 'NEW_MESSAGE', {
-      sender: senderName,
-      senderId: userId,
-      link: msgDeepLink,
-      conversationId,
-      messageId: messageData.id,
-      message: pushPreview,
-    }).catch((e) => console.error('[chat/messages] FCM partner', e?.message || e))
+    await dispatchBackgroundTask('FCM partner', () =>
+      PushService.sendToUser(conversation.partner_id, 'NEW_MESSAGE', {
+        sender: senderName,
+        senderId: userId,
+        link: msgDeepLink,
+        conversationId,
+        messageId: messageData.id,
+        message: pushPreview,
+      }),
+    )
   }
 
   let telegramSent = false
