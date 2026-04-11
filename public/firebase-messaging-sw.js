@@ -24,12 +24,22 @@ self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim(
 self.addEventListener('push', (event) => {
   event.waitUntil(
     (async () => {
+      // Логи: DevTools → Application → Service Workers → Inspect (не консоль вкладки страницы).
+      try {
+        console.log('[Gostaylo SW] push', { hasData: !!event.data, t: new Date().toISOString() })
+      } catch (_) {}
+
       let payload = {}
       try {
         payload = event.data ? event.data.json() : {}
       } catch {
         payload = {}
       }
+
+      try {
+        const d = payload?.data || {}
+        console.log('[Gostaylo SW] push type', String(d.type || '').toUpperCase() || '(none)')
+      } catch (_) {}
 
       const data = payload?.data || {}
       const type = String(data.type || '').toUpperCase()
