@@ -49,7 +49,7 @@ export function PushClientInit() {
       }
     }
 
-    const syncTokenToServer = async (token, userId, update) => {
+    const syncTokenToServer = async (token, userId, update, attempt = 0) => {
       const res = await fetch('/api/v2/push', {
         method: 'POST',
         credentials: 'include',
@@ -68,7 +68,8 @@ export function PushClientInit() {
         json = {}
       }
       if (!aliveRef.current) return
-      if (res.ok && json.success !== false) {
+      const ok = res.ok && json.success !== false
+      if (ok) {
         try {
           localStorage.setItem('gostaylo_fcm_token', token)
           sessionStorage.setItem(PUSH_UID_KEY, String(userId))
@@ -76,8 +77,14 @@ export function PushClientInit() {
           /* ignore */
         }
         console.info('Push Debug: Token synchronized with database')
-      } else {
-        console.warn('Push Debug: register failed', res.status, json?.error || json)
+        return
+      }
+      console.warn('Push Debug: register failed', res.status, json?.error || json)
+      if (attempt < 1) {
+        await new Promise((r) => setTimeout(r, 5000))
+        if (!aliveRef.current) return
+        console.info('Push Debug: retrying register after 5s…')
+        await syncTokenToServer(token, userId, update, attempt + 1)
       }
     }
 
@@ -95,8 +102,12 @@ export function PushClientInit() {
           return
         }
 
-        const reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+        await navigator.serviceWorker.register('/firebase-messaging-sw.js')
         if (!aliveRef.current) return
+
+        const reg = await navigator.serviceWorker.ready
+        if (!aliveRef.current) return
+        console.info('[Push Debug] Service Worker READY. Starting token sync…')
 
         let forceRefresh = false
         try {
