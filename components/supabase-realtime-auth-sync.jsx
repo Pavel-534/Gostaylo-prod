@@ -69,10 +69,19 @@ export function SupabaseRealtimeAuthSync() {
 
     void sync()
     intervalId = setInterval(() => void sync(), REFRESH_MS)
+    const onVisibleOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        void sync()
+      }
+    }
+    window.addEventListener('focus', onVisibleOrFocus)
+    document.addEventListener('visibilitychange', onVisibleOrFocus)
 
     return () => {
       cancelled = true
       if (intervalId) clearInterval(intervalId)
+      window.removeEventListener('focus', onVisibleOrFocus)
+      document.removeEventListener('visibilitychange', onVisibleOrFocus)
       resetRealtimeSessionJwtCache()
       try {
         supabase.realtime.setAuth(null)
