@@ -59,19 +59,17 @@ self.addEventListener('push', (event) => {
         return
       }
 
-      const hasVisibleSameChat =
+      const isNewMessage = type === 'NEW_MESSAGE'
+      const suppressPremiumQuiet =
+        isNewMessage &&
         !!self.GostayloPushPolicy &&
-        typeof self.GostayloPushPolicy.shouldSuppressPushForConversation === 'function'
-          ? self.GostayloPushPolicy.shouldSuppressPushForConversation(windows, cid)
-          : false
+        typeof self.GostayloPushPolicy.shouldSuppressSystemNotificationForNewMessage === 'function' &&
+        self.GostayloPushPolicy.shouldSuppressSystemNotificationForNewMessage(windows, self.location.origin)
 
-      // Не дублируем postMessage на вкладку, где уже открыт этот чат — Realtime и так обновит UI.
-      // Иначе каждый пуш даёт refresh() на главном потоке и при лавине сообщений вкладка зависает.
-      if (!hasVisibleSameChat) {
-        for (const c of windows) c.postMessage({ type: 'gostaylo_push', payload: data })
-      }
+      // Premium Quiet (v3): видима любая вкладка нашего origin — без postMessage и без OS-баннера (Realtime).
+      if (suppressPremiumQuiet) return
 
-      if (hasVisibleSameChat) return
+      for (const c of windows) c.postMessage({ type: 'gostaylo_push', payload: data })
 
       const title = data._title || payload?.notification?.title || 'Новое сообщение'
       const body = data._body || payload?.notification?.body || 'У вас новое сообщение'

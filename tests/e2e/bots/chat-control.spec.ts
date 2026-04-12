@@ -171,27 +171,41 @@ test.describe('@chat-control-bot', () => {
     }
   })
 
-  test('Service Worker policy: suppress пуша при активной вкладке этого чата', async ({ browser, baseURL }) => {
+  test('Premium Quiet SW: suppress NEW_MESSAGE при любой видимой вкладке того же origin', async ({
+    browser,
+    baseURL,
+  }) => {
     test.skip(!baseURL, 'baseURL')
     test.skip(!conversationId, 'conversation fixture required')
 
+    const origin = new URL(baseURL).origin
     const ctx = await browser.newContext({ storageState: 'playwright/.auth/partner.json' })
     const page = await ctx.newPage()
     try {
       await page.goto(`${baseURL}/messages/${conversationId}/`, { waitUntil: 'domcontentloaded' })
       await page.addScriptTag({ url: '/push-visibility-policy.js' })
 
-      const sameChatSuppressed = await page.evaluate((cid) => {
-        const windows = [{ url: window.location.href, visibilityState: 'visible' }]
-        return Boolean(window.GostayloPushPolicy?.shouldSuppressPushForConversation?.(windows, cid))
-      }, conversationId)
-      expect(sameChatSuppressed).toBeTruthy()
+      const visibleSuppressed = await page.evaluate(
+        ({ pageOrigin }) => {
+          const windows = [{ url: window.location.href, visibilityState: 'visible' }]
+          return Boolean(
+            window.GostayloPushPolicy?.shouldSuppressSystemNotificationForNewMessage?.(windows, pageOrigin),
+          )
+        },
+        { pageOrigin: origin },
+      )
+      expect(visibleSuppressed).toBeTruthy()
 
-      const otherChatSuppressed = await page.evaluate((cid) => {
-        const windows = [{ url: window.location.href, visibilityState: 'visible' }]
-        return Boolean(window.GostayloPushPolicy?.shouldSuppressPushForConversation?.(windows, cid))
-      }, `${conversationId}-other`)
-      expect(otherChatSuppressed).toBeFalsy()
+      const hiddenNotSuppressed = await page.evaluate(
+        ({ pageOrigin }) => {
+          const windows = [{ url: window.location.href, visibilityState: 'hidden' }]
+          return Boolean(
+            window.GostayloPushPolicy?.shouldSuppressSystemNotificationForNewMessage?.(windows, pageOrigin),
+          )
+        },
+        { pageOrigin: origin },
+      )
+      expect(hiddenNotSuppressed).toBeFalsy()
     } finally {
       await ctx.close()
     }

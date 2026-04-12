@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 2.3.0 | **Last Updated**: 2026-04-12 | **Status**: Production-Ready
+> **Version**: 3.0.0 | **Last Updated**: 2026-04-12 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -57,6 +57,7 @@ Pattern: Immediate Response + Fire-and-Forget
 - **Push dispatch lifetime (serverless-safe):** `POST /api/v2/chat/messages` отправляет пуш через фоновые задачи с `waitUntil` (`dispatchBackgroundTask`), чтобы FCM-отправка не обрывалась после HTTP-ответа.
 - **Traceability in logs:** в проде используются стабильные метки **`[PUSH_FLOW]`** (этапы цепочки) и **`[PUSH_SENT]`** (результат FCM с userId и token snippet).
 - **SW readiness:** `components/push-client-init.jsx` ждёт `navigator.serviceWorker.ready` до `getToken`; при провале регистрации токена делает retry через 5 сек.
+- **Premium Quiet Policy (v3):** сервер — все **`NEW_MESSAGE`** (кроме **`FCM_INSTANT_PUSH_DEBUG`**) в отложенную очередь **`lib/services/push.service.js`** (**`PREMIUM_CHAT_PUSH_DELAY_MS` ~40 с**), перед FCM проверка **`messages.is_read`**. Клиент — **`public/push-visibility-policy.js`** (`shouldSuppressSystemNotificationForNewMessage`): для типа **`NEW_MESSAGE`** не вызывается **`showNotification`**, если есть видимая вкладка **того же origin**, что и SW; PWA/браузер в фоне (**`visibilityState !== 'visible'`**) — баннер не подавляется.
 - **Realtime recovery:** при reconnect/focus/visibilitychange Realtime JWT переустанавливается без refresh страницы; backoff-слой избегает синхронного `removeChannel` в callback, чтобы исключить рекурсивные сбои.
 
 ### 0.6 Contact Leakage Protection (commission safety)
@@ -297,7 +298,7 @@ PENDING → AWAITING_PAYMENT → CONFIRMED → CHECKED_IN → COMPLETED
 | `created_at` | TIMESTAMPTZ | NO | Default now |
 
 #### `chat_push_delivery_batch` (отложенный FCM, anti-spam)
-Одна строка на пару (**получатель**, **отправитель**) до срабатывания окна **45 с**. Если serverless-процесс не завершил лидер-доставку, hourly cron **`/api/cron/push-sweeper`** поднимает stale строки (10+ минут), форсирует доставку и очищает таблицу.
+Одна строка на пару (**получатель**, **отправитель**) до срабатывания окна **~40 с** (**`PREMIUM_CHAT_PUSH_DELAY_MS`** в **`push.service.js`**, Premium Quiet v3). Если serverless-процесс не завершил лидер-доставку, hourly cron **`/api/cron/push-sweeper`** поднимает stale строки (10+ минут), форсирует доставку и очищает таблицу.
 
 | Column | Type | Nullable | Description |
 |--------|------|----------|-------------|
