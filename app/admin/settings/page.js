@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertTriangle, Settings as SettingsIcon, DollarSign, Power, Home, Type, Phone } from 'lucide-react';
+import { AlertTriangle, Settings as SettingsIcon, DollarSign, Power, Home, Type, Phone, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
@@ -19,6 +19,11 @@ export default function SettingsPage() {
     heroTitle: '',
     heroSubtitle: '',
     sitePhone: '',
+    chatSafety: {
+      autoShadowbanEnabled: false,
+      strikeThreshold: 5,
+      estimatedBookingValueThb: 8000,
+    },
   });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -32,7 +37,16 @@ export default function SettingsPage() {
       const res = await fetch('/api/admin/settings');
       if (res.ok) {
         const data = await res.json();
-        setSettings(data.data);
+        const d = data.data || {};
+        setSettings({
+          ...d,
+          chatSafety: {
+            autoShadowbanEnabled: false,
+            strikeThreshold: 5,
+            estimatedBookingValueThb: 8000,
+            ...(d.chatSafety && typeof d.chatSafety === 'object' ? d.chatSafety : {}),
+          },
+        });
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -215,6 +229,95 @@ export default function SettingsPage() {
                 CHAT_INVOICE_RATE_MULTIPLIER
               </code>
               .
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Безопасность чата: авто-shadowban по страйкам + оценка риска в админке */}
+      <Card className="shadow-xl border-2 border-sky-200">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Shield className="h-5 w-5 shrink-0 text-sky-700 sm:h-6 sm:w-6" />
+            Настройки безопасности чата
+          </CardTitle>
+          <CardDescription className="text-sm">
+            Авто-shadowban: при включении сообщения с срабатыванием детектора контактов не показываются получателю,
+            если у отправителя страйков не меньше порога (см. раздел «Анализ утечек»). Оценка комиссии в дашборде
+            использует средний чек в THB и курсы из <code className="text-xs">exchange_rates</code> без витринной надбавки.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5 p-4 pt-0 sm:p-6">
+          <div className="flex flex-col gap-3 rounded-lg border border-sky-100 bg-sky-50/80 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <Label htmlFor="autoShadowban" className="text-sm font-semibold text-slate-900">
+                Enable Auto-Shadowban
+              </Label>
+              <p className="mt-1 text-xs text-slate-600">
+                Только при включении: скрытие от получателя по порогу страйков (серверный GET + Realtime).
+              </p>
+            </div>
+            <Switch
+              id="autoShadowban"
+              checked={settings.chatSafety?.autoShadowbanEnabled === true}
+              onCheckedChange={(checked) =>
+                setSettings({
+                  ...settings,
+                  chatSafety: { ...settings.chatSafety, autoShadowbanEnabled: checked },
+                })
+              }
+            />
+          </div>
+          <div>
+            <Label htmlFor="strikeThreshold" className="text-sm sm:text-base">
+              Strike Threshold (нарушений до скрытия от получателя)
+            </Label>
+            <Input
+              id="strikeThreshold"
+              type="number"
+              min={1}
+              max={999}
+              value={settings.chatSafety?.strikeThreshold ?? 5}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10)
+                setSettings({
+                  ...settings,
+                  chatSafety: {
+                    ...settings.chatSafety,
+                    strikeThreshold: Number.isFinite(v) ? v : settings.chatSafety.strikeThreshold,
+                  },
+                })
+              }}
+              className="mt-2 max-w-[120px]"
+            />
+            <p className="mt-1 text-xs text-gray-500">По умолчанию 5. Страйки не начисляются сообщениям от ADMIN/MODERATOR.</p>
+          </div>
+          <div>
+            <Label htmlFor="estBookingThb" className="text-sm sm:text-base">
+              Средний чек для оценки риска (THB)
+            </Label>
+            <Input
+              id="estBookingThb"
+              type="number"
+              min={0}
+              step={100}
+              value={settings.chatSafety?.estimatedBookingValueThb ?? 8000}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value)
+                setSettings({
+                  ...settings,
+                  chatSafety: {
+                    ...settings.chatSafety,
+                    estimatedBookingValueThb: Number.isFinite(v) && v >= 0 ? v : settings.chatSafety.estimatedBookingValueThb,
+                  },
+                })
+              }}
+              className="mt-2 max-w-[160px]"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Ключ в БД: <code className="rounded bg-slate-100 px-1">general.chatSafety</code>. Env{' '}
+              <code className="rounded bg-slate-100 px-1">CONTACT_LEAK_ESTIMATED_BOOKING_THB</code>, если задан,
+              переопределяет значение для дашборда.
             </p>
           </div>
         </CardContent>

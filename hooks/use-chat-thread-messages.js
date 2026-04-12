@@ -28,6 +28,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { toast } from 'sonner'
 
 import { mapApiMessageToRow, mergeRealtimeMessage } from '@/lib/chat/map-api-message'
+import { isMessageHiddenFromViewer } from '@/lib/chat-message-visibility'
 import { isRealtimeDebugEnabled } from '@/lib/chat/realtime-debug-log'
 import { useRealtimeMessages } from '@/hooks/use-realtime-chat'
 import { useOptimisticSend } from '@/hooks/use-optimistic-send'
@@ -149,6 +150,10 @@ export function useChatThreadMessages({
       const isSystem = String(rawMsg.type || '').toLowerCase() === 'system'
       const fromPeer = String(rawMsg.sender_id) !== String(userId)
 
+      if (isMessageHiddenFromViewer(rawMsg, userId, viewerRole)) {
+        return
+      }
+
       // Всегда применяем маппер, чтобы текст прошёл через maskContactInfo
       const mapped = mapApiMessageToRow(rawMsg, mapperOptsRef.current)
       if (!mapped) return
@@ -190,7 +195,7 @@ export function useChatThreadMessages({
         })
       }
     },
-    [userId]
+    [userId, viewerRole]
   )
 
   const handleRealtimeUpdate = useCallback((rawRow) => {

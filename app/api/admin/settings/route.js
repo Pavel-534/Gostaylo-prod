@@ -13,6 +13,12 @@ import { platformDefaultChatInvoiceRateMultiplier } from '@/lib/services/currenc
 export const dynamic = 'force-dynamic'
 
 // Mock settings for when Supabase is not configured
+const defaultChatSafety = {
+  autoShadowbanEnabled: false,
+  strikeThreshold: 5,
+  estimatedBookingValueThb: 8000,
+}
+
 let mockSettings = {
   defaultCommissionRate: 15,
   chatInvoiceRateMultiplier: platformDefaultChatInvoiceRateMultiplier(),
@@ -21,6 +27,7 @@ let mockSettings = {
   heroSubtitle: 'Villas, Bikes, Yachts & Tours',
   serviceFeePercent: 5,
   sitePhone: '',
+  chatSafety: { ...defaultChatSafety },
 }
 
 // Helper to get supabase client (returns null if not configured)
@@ -67,6 +74,19 @@ export async function GET() {
     // Map from DB format to frontend format
     const rawComm = parseFloat(data.value?.defaultCommissionRate)
     const rawChatMult = parseFloat(data.value?.chatInvoiceRateMultiplier)
+    const rawCs = data.value?.chatSafety
+    const chatSafety = {
+      autoShadowbanEnabled: rawCs?.autoShadowbanEnabled === true,
+      strikeThreshold: (() => {
+        const n = parseInt(String(rawCs?.strikeThreshold ?? ''), 10)
+        return Number.isFinite(n) && n >= 1 && n <= 999 ? n : defaultChatSafety.strikeThreshold
+      })(),
+      estimatedBookingValueThb: (() => {
+        const n = parseFloat(String(rawCs?.estimatedBookingValueThb ?? ''))
+        return Number.isFinite(n) && n >= 0 ? n : defaultChatSafety.estimatedBookingValueThb
+      })(),
+    }
+
     const settings = {
       defaultCommissionRate: Number.isFinite(rawComm) && rawComm >= 0
         ? rawComm
@@ -80,6 +100,7 @@ export async function GET() {
       heroSubtitle: data.value?.heroSubtitle || '',
       serviceFeePercent: data.value?.serviceFeePercent || 5,
       sitePhone: typeof data.value?.sitePhone === 'string' ? data.value.sitePhone : '',
+      chatSafety,
     }
 
     return NextResponse.json({ data: settings })
@@ -92,8 +113,15 @@ export async function GET() {
 export async function PUT(request) {
   try {
     const body = await request.json()
-    const { defaultCommissionRate, chatInvoiceRateMultiplier, maintenanceMode, heroTitle, heroSubtitle, sitePhone } =
-      body
+    const {
+      defaultCommissionRate,
+      chatInvoiceRateMultiplier,
+      maintenanceMode,
+      heroTitle,
+      heroSubtitle,
+      sitePhone,
+      chatSafety: chatSafetyBody,
+    } = body
     
     const supabase = getSupabaseClient()
     
@@ -112,6 +140,18 @@ export async function PUT(request) {
           : Number.isFinite(prevChat) && prevChat >= 1 && prevChat <= 1.5
             ? prevChat
             : platformDefaultChatInvoiceRateMultiplier()
+      const nextChatSafety = {
+        ...mockSettings.chatSafety,
+        ...(chatSafetyBody && typeof chatSafetyBody === 'object' ? chatSafetyBody : {}),
+      }
+      nextChatSafety.autoShadowbanEnabled = nextChatSafety.autoShadowbanEnabled === true
+      const st = parseInt(String(nextChatSafety.strikeThreshold ?? ''), 10)
+      nextChatSafety.strikeThreshold =
+        Number.isFinite(st) && st >= 1 && st <= 999 ? st : defaultChatSafety.strikeThreshold
+      const est = parseFloat(String(nextChatSafety.estimatedBookingValueThb ?? ''))
+      nextChatSafety.estimatedBookingValueThb =
+        Number.isFinite(est) && est >= 0 ? est : defaultChatSafety.estimatedBookingValueThb
+
       mockSettings = {
         ...mockSettings,
         defaultCommissionRate: Number.isFinite(parsedMock) && parsedMock >= 0
@@ -122,6 +162,7 @@ export async function PUT(request) {
         heroTitle: heroTitle || '',
         heroSubtitle: heroSubtitle || '',
         sitePhone: typeof sitePhone === 'string' ? sitePhone.trim() : '',
+        chatSafety: nextChatSafety,
       }
       return NextResponse.json({ success: true, data: mockSettings })
     }
@@ -148,6 +189,20 @@ export async function PUT(request) {
         : Number.isFinite(existingChat) && existingChat >= 1 && existingChat <= 1.5
           ? existingChat
           : platformDefaultChatInvoiceRateMultiplier()
+    const prevCs = existing?.value?.chatSafety || {}
+    const mergedCs = {
+      ...defaultChatSafety,
+      ...prevCs,
+      ...(chatSafetyBody && typeof chatSafetyBody === 'object' ? chatSafetyBody : {}),
+    }
+    mergedCs.autoShadowbanEnabled = mergedCs.autoShadowbanEnabled === true
+    const stPut = parseInt(String(mergedCs.strikeThreshold ?? ''), 10)
+    mergedCs.strikeThreshold =
+      Number.isFinite(stPut) && stPut >= 1 && stPut <= 999 ? stPut : defaultChatSafety.strikeThreshold
+    const estPut = parseFloat(String(mergedCs.estimatedBookingValueThb ?? ''))
+    mergedCs.estimatedBookingValueThb =
+      Number.isFinite(estPut) && estPut >= 0 ? estPut : defaultChatSafety.estimatedBookingValueThb
+
     const newValue = {
       ...(existing?.value || {}),
       defaultCommissionRate: resolvedComm,
@@ -156,6 +211,7 @@ export async function PUT(request) {
       heroTitle: heroTitle || '',
       heroSubtitle: heroSubtitle || '',
       sitePhone: typeof sitePhone === 'string' ? sitePhone.trim() : '',
+      chatSafety: mergedCs,
     }
 
     let result

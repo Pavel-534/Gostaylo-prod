@@ -24,6 +24,11 @@ import { otherPartyHasReadRaw } from '@/lib/chat/read-receipts'
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 import { detectContactSafety } from '@/lib/chat/contact-safety-detection'
+import { getContactSafetyMode } from '@/lib/contact-safety-mode'
+import { maskContactInfo } from '@/lib/mask-contacts'
+import { incrementContactLeakStrikes } from '@/lib/contact-leak-strikes'
+import { getChatSafetySettings } from '@/lib/chat-safety-settings'
+import { isMessageHiddenFromViewer } from '@/lib/chat-message-visibility'
 
 export const dynamic = 'force-dynamic'
 
@@ -76,13 +81,21 @@ function summarizeErrorPayload(payload) {
   return String(payload?.message || payload?.details || payload?.hint || JSON.stringify(payload))
 }
 
-async function recordSafetyTriggerSignal({ conversationId, senderId, matchTypes }) {
+function truncateSignalTextSample(s, maxLen = 500) {
+  const t = String(s ?? '')
+  if (t.length <= maxLen) return t
+  return `${t.slice(0, maxLen)}…`
+}
+
+async function recordSafetyTriggerSignal({ conversationId, senderId, matchTypes, triggerTextSample }) {
   try {
     const detail = {
       source: 'chat.messages.safety-trigger',
       conversationId: String(conversationId || ''),
       senderId: String(senderId || ''),
       matchTypes: Array.isArray(matchTypes) ? matchTypes : [],
+      /** Исходный текст (обрезанный) для проверки ложных срабатываний */
+      triggerTextSample: triggerTextSample != null ? truncateSignalTextSample(triggerTextSample) : null,
     }
     await fetch(`${SUPABASE_URL}/rest/v1/critical_signal_events`, {
       method: 'POST',
@@ -97,6 +110,24 @@ async function recordSafetyTriggerSignal({ conversationId, senderId, matchTypes 
   }
 }
 
+async function recordContactLeakTelemetry({
+  conversationId,
+  senderId,
+  matchTypes,
+  triggerTextSample,
+  incrementStrikes,
+}) {
+  await recordSafetyTriggerSignal({
+    conversationId,
+    senderId,
+    matchTypes,
+    triggerTextSample,
+  })
+  if (incrementStrikes) {
+    await incrementContactLeakStrikes(senderId)
+  }
+}
+
 async function fetchConversation(conversationId) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/conversations?id=eq.${encodeURIComponent(conversationId)}&select=*`, {
     headers: hdr,
@@ -108,7 +139,7 @@ async function fetchConversation(conversationId) {
 
 async function fetchProfile(userId) {
   const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,first_name,last_name,role,email,telegram_id,notification_preferences`,
+    `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=id,first_name,last_name,role,email,telegram_id,notification_preferences,contact_leak_strikes`,
     { headers: hdr, cache: 'no-store' }
   )
   const rows = await res.json()
@@ -222,9 +253,11 @@ export async function GET(request) {
 
   const list = Array.isArray(data) ? data : []
 
+  const visible = list.filter((m) => !isMessageHiddenFromViewer(m, userId, accessRole))
+
   return NextResponse.json({
     success: true,
-    data: list.map((m) => ({
+    data: visible.map((m) => ({
       id: m.id,
       conversationId: m.conversation_id,
       senderId: m.sender_id,
@@ -468,6 +501,48 @@ export async function POST(request) {
       safety_trigger_types: safetyDetection.matchTypes,
     }
   }
+
+  const chatSafetySettings = await getChatSafetySettings()
+  const strikesBefore = Number.parseInt(String(profile?.contact_leak_strikes ?? '0'), 10) || 0
+  const incrementStrikesOnLeak = hasSafetyTrigger && !isStaffRole(senderRole)
+  const strikesAfterPlan = incrementStrikesOnLeak ? strikesBefore + 1 : strikesBefore
+  const autoShadowHideRecipient =
+    chatSafetySettings.autoShadowbanEnabled &&
+    hasSafetyTrigger &&
+    incrementStrikesOnLeak &&
+    strikesAfterPlan >= chatSafetySettings.strikeThreshold
+  if (autoShadowHideRecipient) {
+    finalMetadata = {
+      ...finalMetadata,
+      hidden_from_recipient: true,
+    }
+  }
+
+  const safetyMode = getContactSafetyMode()
+  if (type === 'text' && hasSafetyTrigger && safetyMode === 'BLOCK') {
+    await recordContactLeakTelemetry({
+      conversationId,
+      senderId: userId,
+      matchTypes: safetyDetection.matchTypes,
+      triggerTextSample: textBody,
+      incrementStrikes: !isStaffRole(senderRole),
+    })
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          'Contact details are not allowed in chat while CONTACT_SAFETY_MODE=BLOCK. Keep communication on GoStayLo.',
+        code: 'CONTACT_SAFETY_BLOCKED',
+      },
+      { status: 403 },
+    )
+  }
+
+  let outgoingText = textBody
+  if (type === 'text' && hasSafetyTrigger && safetyMode === 'REDACT') {
+    outgoingText = maskContactInfo(textBody)
+  }
+
   const messageId = `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
   const now = new Date().toISOString()
 
@@ -477,8 +552,8 @@ export async function POST(request) {
     sender_id: userId,
     sender_role: senderRole,
     sender_name: senderName,
-    message: textBody,
-    content: textBody,
+    message: outgoingText,
+    content: outgoingText,
     type,
     metadata: Object.keys(finalMetadata).length ? finalMetadata : null,
     has_safety_trigger: hasSafetyTrigger,
@@ -519,10 +594,12 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: msgData }, { status: 400 })
   }
   if (hasSafetyTrigger) {
-    void recordSafetyTriggerSignal({
+    await recordContactLeakTelemetry({
       conversationId,
       senderId: userId,
       matchTypes: safetyDetection.matchTypes,
+      triggerTextSample: textBody,
+      incrementStrikes: incrementStrikesOnLeak,
     })
   }
 
@@ -535,9 +612,17 @@ export async function POST(request) {
   const base = getPublicSiteUrl()
   const cid = encodeURIComponent(conversationId)
   const msgDeepLink = `${base}/messages/${cid}`
-  const pushPreview = pushMessagePreview(textBody)
+  const pushPreview = pushMessagePreview(outgoingText)
+  const skipRecipientPush =
+    messageData.metadata &&
+    typeof messageData.metadata === 'object' &&
+    messageData.metadata.hidden_from_recipient === true
 
-  if (conversation.renter_id && String(userId) === String(conversation.partner_id)) {
+  if (
+    !skipRecipientPush &&
+    conversation.renter_id &&
+    String(userId) === String(conversation.partner_id)
+  ) {
     console.log(`[PUSH_FLOW] queue renter recipient=${conversation.renter_id} sender=${userId} msg=${messageData.id}`)
     await dispatchBackgroundTask('FCM renter', () =>
       PushService.sendToUser(conversation.renter_id, 'NEW_MESSAGE', {
@@ -550,7 +635,11 @@ export async function POST(request) {
       }),
     )
   }
-  if (conversation.partner_id && String(userId) === String(conversation.renter_id)) {
+  if (
+    !skipRecipientPush &&
+    conversation.partner_id &&
+    String(userId) === String(conversation.renter_id)
+  ) {
     console.log(`[PUSH_FLOW] queue partner recipient=${conversation.partner_id} sender=${userId} msg=${messageData.id}`)
     await dispatchBackgroundTask('FCM partner', () =>
       PushService.sendToUser(conversation.partner_id, 'NEW_MESSAGE', {
@@ -565,7 +654,7 @@ export async function POST(request) {
   }
 
   let telegramSent = false
-  if (notifyTelegram && recipientTelegramId) {
+  if (!skipRecipientPush && notifyTelegram && recipientTelegramId) {
     const recipRow = await fetchProfileIdByTelegramChatId(recipientTelegramId)
     const recipId = recipRow?.id
     const telegramTargetOk =
@@ -578,15 +667,16 @@ export async function POST(request) {
         recipientUserId: recipId,
         conversationId,
         senderName,
-        textBody,
+        textBody: outgoingText,
       })
     }
   }
 
   if (
+    !skipRecipientPush &&
     !telegramSent &&
     type === 'text' &&
-    textBody &&
+    outgoingText &&
     !isStaffRole(senderRole) &&
     TELEGRAM_BOT_TOKEN
   ) {
@@ -609,7 +699,7 @@ export async function POST(request) {
           recipientUserId: other.id,
           conversationId,
           senderName,
-          textBody,
+          textBody: outgoingText,
         })
       }
     }

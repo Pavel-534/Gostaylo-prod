@@ -67,7 +67,8 @@ Optional Telegram alert only for repeated/high-risk attempts.
 
 Use env/settings feature flags:
 
-- `CHAT_CONTACT_GUARD_MODE=warn_only|redact|block`
+- `CHAT_CONTACT_GUARD_MODE=warn_only|redact|block` (документ-идея)
+- **`CONTACT_SAFETY_MODE=ADVISORY|REDACT|BLOCK`** — канон в коде (**`lib/contact-safety-mode.js`**): **ADVISORY** ≈ warn_only, **REDACT** ≈ redact, **BLOCK** ≈ block.
 - `CHAT_CONTACT_GUARD_MIN_SEVERITY=medium|high`
 
 Default rollout:
@@ -79,8 +80,7 @@ Default rollout:
 ### 4) UI Behavior
 
 - Client may pre-warn, but server decision is authoritative.
-- On blocked message API returns domain code, e.g.:
-  - `CONTACT_POLICY_BLOCKED`
+- On blocked message API returns domain code **`CONTACT_SAFETY_BLOCKED`** (см. **`POST /api/v2/chat/messages`** при **`CONTACT_SAFETY_MODE=BLOCK`**).
 - UI shows localized toast and keeps user in chat (no hard crash).
 
 ## "How Airbnb-like platforms do it"

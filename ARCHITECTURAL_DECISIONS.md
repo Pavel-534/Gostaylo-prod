@@ -93,6 +93,7 @@ This document is the **project manifesto**: how we build, what is allowed, and w
   2. show user-safe explanation,
   3. log structured security event,
   4. escalate repeat attempts to admin tooling/alerts.
+- **Server modes (ENV `CONTACT_SAFETY_MODE`):** `ADVISORY` (default) — warning UI to recipient; `REDACT` — mask contacts in stored message text; `BLOCK` — reject send with **403**. Repeat telemetry: `profiles.contact_leak_strikes` incremented on each detector firing (not for **ADMIN/MODERATOR**); **`GET /api/v2/admin/contact-leak-dashboard`** (ADMIN) aggregates `CONTACT_LEAK_ATTEMPT` with **THB-based** risk converted via **`exchange_rates`** (no ad-hoc FX). **Auto-shadowban** is **off** unless **`system_settings.general.chatSafety.autoShadowbanEnabled`**; when on and strikes ≥ **`strikeThreshold`**, leak-flagged messages carry **`metadata.hidden_from_recipient`** and are omitted for the recipient in **`GET /api/v2/chat/messages`**.
 - Any future change that weakens contact protection in chat requires explicit update in this SSOT + mirrored updates in **`docs/TECHNICAL_MANIFESTO.md`** and **`docs/ARCHITECTURAL_PASSPORT.md`**.
 
 ---

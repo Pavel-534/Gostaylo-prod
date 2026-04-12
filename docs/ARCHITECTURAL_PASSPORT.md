@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 2.1.13 | **Last Updated**: 2026-04-12 | **Status**: Production-Ready
+> **Version**: 2.3.0 | **Last Updated**: 2026-04-12 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -65,6 +65,10 @@ Pattern: Immediate Response + Fire-and-Forget
 - Политика и целевая архитектура: **`docs/ANTI_DISINTERMEDIATION_POLICY.md`** (server-first фильтр в `POST /api/v2/chat/messages`, риск-скоринг, telemetry, moderation escalation).
 - Текущий production baseline: флаг **`messages.has_safety_trigger`** + событие **`CONTACT_LEAK_ATTEMPT`** в `critical_signal_events`; у получателя в UI показывается дружелюбный safety-блок с объяснением эскроу.
 - Тексты safety-блока и страницы справки — **`getUIText`** (`chatSafety_*`, `escrowProtection_*` в **`lib/translations/ui.js`**); публичный маршрут **`/help/escrow-protection`** (`app/help/escrow-protection/page.js`).
+- **Режимы (ENV `CONTACT_SAFETY_MODE`):** **`ADVISORY`** — предупреждение у получателя, текст сообщения не меняется; **`REDACT`** — в БД сохраняется текст с маскировкой контактов (`maskContactInfo`); **`BLOCK`** — сообщение не отправляется (**403** `CONTACT_SAFETY_BLOCKED`), телеметрия и страйк всё равно фиксируются. Клиент: **`lib/contact-safety-mode.js`**.
+- **Страйки:** колонка **`profiles.contact_leak_strikes`** (int, default 0), инкремент RPC **`increment_contact_leak_strikes`** при каждом срабатывании детектора (включая BLOCK). Миграция **`database/migrations/025_contact_leak_strikes_and_rpc.sql`**.
+- **Админ-дашборд:** **`/admin/security`** — вкладка «Анализ утечек»; **`GET /api/v2/admin/contact-leak-dashboard`** (только **`profiles.role === 'ADMIN'`**, **`lib/admin-security-access.js`**) — счётчики за 24ч / 7д / 30д, оценка «потери комиссии» в **THB** с конвертацией в **USD/RUB** через **`getDisplayRateMap({ applyRetailMarkup: false })`** + **`convertAmountThbToCurrency`** (**`lib/services/currency.service.js`**, таблица **`exchange_rates`**; без хардкода курсов). Базовый средний чек: **`system_settings.general.chatSafety.estimatedBookingValueThb`**; ENV **`CONTACT_LEAK_ESTIMATED_BOOKING_THB`** при наличии переопределяет для дашборда.
+- **Настройки безопасности чата (админ):** **`/admin/settings`** — блок в **`general.chatSafety`**: **`autoShadowbanEnabled`**, **`strikeThreshold`** (по умолчанию 5), **`estimatedBookingValueThb`**. Авто-shadowban **только** при **`autoShadowbanEnabled === true`**: при **`contact_leak_strikes` ≥ порога** сообщения с **`has_safety_trigger`** получают **`metadata.hidden_from_recipient`** и **не отдаются** получателю в **`GET /api/v2/chat/messages`** (**`lib/chat-message-visibility.js`**); пуш/Telegram получателю не шлются. Страйки **не** инкрементируются для **ADMIN/MODERATOR**. В **`critical_signal_events.detail`** пишется **`triggerTextSample`** (обрезанный исходный текст). API настроек: **`GET/PUT /api/admin/settings`**.
 
 ---
 
@@ -255,6 +259,7 @@ PENDING → AWAITING_PAYMENT → CONFIRMED → CHECKED_IN → COMPLETED
 | `verification_status` | TEXT | YES | KYC status |
 | `referral_code` | TEXT | YES | Unique referral code |
 | `referred_by` | TEXT | YES | Referrer's code |
+| `contact_leak_strikes` | INTEGER | NO | Server-incremented on chat contact-safety detector hits (migration `025`) |
 
 #### `conversations`
 | Column | Type | Nullable | Description |
