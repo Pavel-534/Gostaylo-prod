@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Shield, X } from 'lucide-react'
 import { useState } from 'react'
+import { detectContactSafety } from '@/lib/chat/contact-safety-detection'
 
 /**
  * Detects potentially unsafe patterns in messages:
@@ -12,50 +13,10 @@ import { useState } from 'react'
  * - Payment mentions
  */
 export function detectUnsafePatterns(text) {
-  if (!text || typeof text !== 'string') return { hasRisk: false, patterns: [] }
-  
-  const patterns = []
-  
-  // Phone numbers (various formats)
-  const phoneRegex = /(\+?[0-9]{1,3}[-.\s]?)?(\(?\d{2,4}\)?[-.\s]?)?\d{3,4}[-.\s]?\d{3,4}/g
-  const phones = text.match(phoneRegex)
-  if (phones) {
-    phones.forEach(p => {
-      // Filter out short numbers that might be prices
-      if (p.replace(/\D/g, '').length >= 8) {
-        patterns.push({ type: 'phone', value: p })
-      }
-    })
-  }
-  
-  // Telegram handles
-  const telegramRegex = /@[a-zA-Z0-9_]{4,32}/g
-  const telegrams = text.match(telegramRegex)
-  if (telegrams) {
-    telegrams.forEach(t => patterns.push({ type: 'telegram', value: t }))
-  }
-  
-  // URLs
-  const urlRegex = /https?:\/\/[^\s]+|www\.[^\s]+/gi
-  const urls = text.match(urlRegex)
-  if (urls) {
-    urls.forEach(u => patterns.push({ type: 'url', value: u }))
-  }
-  
-  // WhatsApp patterns
-  const whatsappRegex = /whatsapp|wa\.me|ватсап|вотсап/gi
-  if (whatsappRegex.test(text)) {
-    patterns.push({ type: 'whatsapp', value: 'WhatsApp mention' })
-  }
-  
-  // Direct payment mentions (could indicate scam attempt)
-  const paymentRegex = /перевод|переведи|карт[аеу]|счёт|сбербанк|тинькофф|transfer|bank|card/gi
-  if (paymentRegex.test(text)) {
-    patterns.push({ type: 'payment', value: 'Direct payment mention' })
-  }
-  
+  const det = detectContactSafety(text)
+  const patterns = det.matches.map((m) => ({ type: m.kind, value: m.value }))
   return {
-    hasRisk: patterns.length > 0,
+    hasRisk: det.hasSafetyTrigger,
     patterns
   }
 }

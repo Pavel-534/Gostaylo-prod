@@ -12,6 +12,15 @@ import { toast } from 'sonner'
 import { toRelativeSiteUrl } from '@/lib/chat-same-origin-url'
 import { maskContactInfo } from '@/lib/mask-contacts'
 import { highlightText } from '@/lib/chat-highlight-text'
+import { getUIText } from '@/lib/translations'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 /**
  * @param {'light' | 'dark'} bubbleTone — dark: «свои» пузыри (teal/indigo фон); light: светлый фон
@@ -90,10 +99,13 @@ export function MessageBubble({
   maskContacts = false,
   /** Строка поиска для подсветки вхождений */
   searchHighlight = null,
+  /** Язык UI для блока безопасности (ru | en | th | zh) */
+  language = 'ru',
 }) {
   const [translated, setTranslated] = useState(null)
   const [showTranslated, setShowTranslated] = useState(false)
   const [translating, setTranslating] = useState(false)
+  const [safetyInfoOpen, setSafetyInfoOpen] = useState(false)
 
   const created = msg.created_at || msg.createdAt
   let createdRelative = null
@@ -191,6 +203,7 @@ export function MessageBubble({
   /** Галочки: на тёмном пузыре (свои) — светлые иконки */
   const tickTone = isOwn ? 'dark' : 'light'
   const isSending = msg._status === 'sending'
+  const hasSafetyTrigger = Boolean(msg.hasSafetyTrigger ?? msg.has_safety_trigger)
 
   let body = null
   if (rawType === 'image' && imgUrl && typeof imgUrl === 'string') {
@@ -328,7 +341,50 @@ export function MessageBubble({
             className={ticksClassName}
           />
         </div>
+        {!isOwn && hasSafetyTrigger ? (
+          <div className="mt-2 w-full rounded-2xl border border-sky-200 bg-sky-50/80 px-3 py-2 text-slate-800">
+            <div className="flex items-start gap-2">
+              <Shield className="mt-0.5 h-4 w-4 shrink-0 text-sky-700" aria-hidden />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs leading-relaxed break-words text-balance">
+                  {getUIText('chatSafety_warningText', language)}
+                </p>
+                <button
+                  type="button"
+                  className="mt-1 inline-block max-w-full text-left text-xs font-medium text-sky-800 underline decoration-dotted underline-offset-2 break-words"
+                  onClick={() => setSafetyInfoOpen(true)}
+                >
+                  {getUIText('chatSafety_learnMore', language)}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
+      <Dialog open={safetyInfoOpen} onOpenChange={setSafetyInfoOpen}>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="break-words pr-6">
+              {getUIText('chatSafety_modalTitle', language)}
+            </DialogTitle>
+            <DialogDescription className="text-left break-words">
+              {getUIText('chatSafety_modalDescription', language)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-sm text-slate-700 break-words leading-relaxed">
+            {getUIText('chatSafety_modalFooter', language)}
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between sm:gap-2">
+            <Link
+              href="/help/escrow-protection"
+              className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-800 transition hover:bg-slate-50 sm:w-auto"
+              onClick={() => setSafetyInfoOpen(false)}
+            >
+              {getUIText('chatSafety_openFullPage', language)}
+            </Link>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

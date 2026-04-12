@@ -23,6 +23,7 @@ import { getEffectiveRate } from '@/lib/services/currency.service'
 import { otherPartyHasReadRaw } from '@/lib/chat/read-receipts'
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
+import { detectContactSafety } from '@/lib/chat/contact-safety-detection'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,6 +65,36 @@ function pushMessagePreview(content, maxLen = 200) {
   if (!s) return ''
   if (s.length <= maxLen) return s
   return `${s.slice(0, maxLen)}…`
+}
+
+function summarizeErrorPayload(payload) {
+  if (!payload) return ''
+  if (typeof payload === 'string') return payload
+  if (Array.isArray(payload)) {
+    return payload.map((x) => String(x?.message || x?.details || x?.hint || JSON.stringify(x))).join(' | ')
+  }
+  return String(payload?.message || payload?.details || payload?.hint || JSON.stringify(payload))
+}
+
+async function recordSafetyTriggerSignal({ conversationId, senderId, matchTypes }) {
+  try {
+    const detail = {
+      source: 'chat.messages.safety-trigger',
+      conversationId: String(conversationId || ''),
+      senderId: String(senderId || ''),
+      matchTypes: Array.isArray(matchTypes) ? matchTypes : [],
+    }
+    await fetch(`${SUPABASE_URL}/rest/v1/critical_signal_events`, {
+      method: 'POST',
+      headers: hdr,
+      body: JSON.stringify({
+        signal_key: 'CONTACT_LEAK_ATTEMPT',
+        detail,
+      }),
+    })
+  } catch (e) {
+    console.warn('[chat/messages] safety signal insert failed', e?.message || e)
+  }
 }
 
 async function fetchConversation(conversationId) {
@@ -203,6 +234,8 @@ export async function GET(request) {
       message: m.message ?? m.content,
       type: m.type,
       metadata: m.metadata ?? null,
+      hasSafetyTrigger: m.has_safety_trigger === true,
+      has_safety_trigger: m.has_safety_trigger === true,
       readAtRenter: m.read_at_renter ?? null,
       readAtPartner: m.read_at_partner ?? null,
       isRead: otherPartyHasReadRaw(m, conversation),
@@ -427,6 +460,14 @@ export async function POST(request) {
   }
 
   const textBody = String(content ?? '').trim()
+  const safetyDetection = type === 'text' ? detectContactSafety(textBody) : { hasSafetyTrigger: false, matchTypes: [] }
+  const hasSafetyTrigger = safetyDetection.hasSafetyTrigger === true
+  if (hasSafetyTrigger) {
+    finalMetadata = {
+      ...finalMetadata,
+      safety_trigger_types: safetyDetection.matchTypes,
+    }
+  }
   const messageId = `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
   const now = new Date().toISOString()
 
@@ -440,17 +481,30 @@ export async function POST(request) {
     content: textBody,
     type,
     metadata: Object.keys(finalMetadata).length ? finalMetadata : null,
+    has_safety_trigger: hasSafetyTrigger,
     is_read: false,
     created_at: now,
   }
 
-  const msgRes = await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
+  let msgRes = await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
     method: 'POST',
     headers: hdr,
     body: JSON.stringify(messageData),
   })
 
-  const msgData = await msgRes.json()
+  let msgData = await msgRes.json().catch(() => ({}))
+  if (!msgRes.ok) {
+    const errText = summarizeErrorPayload(msgData)
+    if (/column .*has_safety_trigger.* does not exist/i.test(errText)) {
+      const { has_safety_trigger: _drop, ...fallbackMessageData } = messageData
+      msgRes = await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
+        method: 'POST',
+        headers: hdr,
+        body: JSON.stringify(fallbackMessageData),
+      })
+      msgData = await msgRes.json().catch(() => ({}))
+    }
+  }
   if (!msgRes.ok) {
     const detail =
       typeof msgData === 'string'
@@ -463,6 +517,13 @@ export async function POST(request) {
         `<code>${escapeSystemAlertHtml(detail)}</code>`,
     )
     return NextResponse.json({ success: false, error: msgData }, { status: 400 })
+  }
+  if (hasSafetyTrigger) {
+    void recordSafetyTriggerSignal({
+      conversationId,
+      senderId: userId,
+      matchTypes: safetyDetection.matchTypes,
+    })
   }
 
   await fetch(`${SUPABASE_URL}/rest/v1/conversations?id=eq.${encodeURIComponent(conversationId)}`, {
@@ -565,6 +626,8 @@ export async function POST(request) {
       content: messageData.content,
       type: messageData.type,
       metadata: messageData.metadata,
+      hasSafetyTrigger,
+      has_safety_trigger: hasSafetyTrigger,
       readAtRenter: null,
       readAtPartner: null,
       isRead: false,

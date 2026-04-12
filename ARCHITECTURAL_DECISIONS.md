@@ -84,6 +84,17 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 
 - **Manual blocks, iCal imports, and availability checks** must use **`calendar_blocks`** together with **`CalendarService`** / booking overlap rules. Do not add parallel block tables for product flows; **`availability_blocks`** is legacy and must not be written from partner APIs.
 
+### 9. Anti-disintermediation in chat (commission protection)
+
+- **Direct contact exchange in product chat is forbidden by policy** for renter/partner dialogs: phone numbers, emails, messenger handles/links (WhatsApp/Telegram/etc.), and obfuscated variants (spaces, dots, words like "at", mixed scripts).
+- Enforcement must be **layered** and **server-first**: primary guard in **`POST /api/v2/chat/messages`**, optional client pre-warning only as UX helper.
+- Moderation behavior must be **risk-based**, not binary-only:
+  1. redact/block message fragment,
+  2. show user-safe explanation,
+  3. log structured security event,
+  4. escalate repeat attempts to admin tooling/alerts.
+- Any future change that weakens contact protection in chat requires explicit update in this SSOT + mirrored updates in **`docs/TECHNICAL_MANIFESTO.md`** and **`docs/ARCHITECTURAL_PASSPORT.md`**.
+
 ---
 
 ## LIVE PRODUCT STATE

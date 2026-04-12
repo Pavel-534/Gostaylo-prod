@@ -238,6 +238,7 @@ function MessageItem({
         searchHighlight={searchHighlight}
         ownVariant={ownVariant}
         translateTargetLang={language}
+        language={language}
       />
       {/* Индикатор скрытых контактов — когда mapper заменил данные */}
       {msg._masked && !isOwn && (
