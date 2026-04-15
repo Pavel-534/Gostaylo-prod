@@ -3,7 +3,7 @@
  * Provides instant message sync using Supabase Realtime
  */
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react';
 
 /** Lightweight debounce: returns a function that delays invoking `fn` by `ms` ms. */
 function debounce(fn, ms) {
@@ -18,8 +18,14 @@ function debounce(fn, ms) {
 import {
   subscribeRealtimeWithBackoff,
   REALTIME_RETRY_STATUSES,
-} from '@/lib/chat/realtime-subscribe-with-backoff';
-import { supabase } from '@/lib/supabase';
+} from '@/lib/chat/realtime-subscribe-with-backoff'
+import { supabase } from '@/lib/supabase'
+
+/** Минимум 2 с между попытками переподписки (тред чата). */
+const THREAD_MIN_BACKOFF_MS = 2_000
+/** Нет сигналов Realtime — принудительный resubscribe. */
+const THREAD_REALTIME_STALE_MS = 45_000
+const THREAD_HEARTBEAT_CHECK_MS = 5_000
 
 /** Server filter intentionally disabled; keeping strict client-side conversation match. */
 function rowMatchesConversation(row, conversationId) {
@@ -47,18 +53,33 @@ export function playNotificationSound() {
 }
 
 /**
+ * @typedef {Object} UseRealtimeMessagesOptions
+ * @property {() => void | Promise<void>} [onResync] — после переподписки подтянуть пропуски с API.
+ */
+
+/**
  * Custom hook for realtime chat messages
  * @param {string} conversationId - The conversation ID to subscribe to
  * @param {Function} onNewMessage - Callback when new message arrives
  * @param {Function} onMessageUpdate - Callback when message row updates (e.g. is_read)
+ * @param {UseRealtimeMessagesOptions} [options]
  * @returns {Object} { messages, isConnected, error, sendMessage }
  */
-export function useRealtimeMessages(conversationId, onNewMessage = null, onMessageUpdate = null) {
-  const [messages, setMessages] = useState([]);
-  const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState(null);
-  const onNewMessageRef = useRef(onNewMessage);
-  const onMessageUpdateRef = useRef(onMessageUpdate);
+export function useRealtimeMessages(
+  conversationId,
+  onNewMessage = null,
+  onMessageUpdate = null,
+  options = null,
+) {
+  const [messages, setMessages] = useState([])
+  const [isConnected, setIsConnected] = useState(false)
+  const [error, setError] = useState(null)
+  const [reconnectGeneration, setReconnectGeneration] = useState(0)
+
+  const onNewMessageRef = useRef(onNewMessage)
+  const onMessageUpdateRef = useRef(onMessageUpdate)
+  const onResyncRef = useRef(options?.onResync ?? null)
+  const lastSignalAtRef = useRef(Date.now())
 
   useEffect(() => {
     onNewMessageRef.current = onNewMessage
@@ -66,16 +87,47 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
   useEffect(() => {
     onMessageUpdateRef.current = onMessageUpdate
   }, [onMessageUpdate])
+  useEffect(() => {
+    onResyncRef.current = options?.onResync ?? null
+  }, [options?.onResync])
+
+  useLayoutEffect(() => {
+    setReconnectGeneration(0)
+  }, [conversationId])
+
+  const touchActivity = useCallback(() => {
+    lastSignalAtRef.current = Date.now()
+  }, [])
 
   useEffect(() => {
-    if (!conversationId || !supabase) return;
+    if (!conversationId || !supabase) return undefined
 
-    return subscribeRealtimeWithBackoff({
+    let cancelled = false
+
+    const heartbeat = setInterval(() => {
+      if (cancelled) return
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
+      if (Date.now() - lastSignalAtRef.current <= THREAD_REALTIME_STALE_MS) return
+      setReconnectGeneration((g) => g + 1)
+    }, THREAD_HEARTBEAT_CHECK_MS)
+
+    const onVisibility = () => {
+      if (typeof document === 'undefined' || document.visibilityState !== 'visible') return
+      touchActivity()
+      const fn = onResyncRef.current
+      if (typeof fn === 'function') void Promise.resolve(fn()).catch(() => {})
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibility)
+    }
+
+    const stop = subscribeRealtimeWithBackoff({
       supabase,
       channelLabel: `thread:messages:${conversationId}`,
+      minBackoffDelayMs: THREAD_MIN_BACKOFF_MS,
       createChannel: (attempt) =>
         supabase
-          .channel(`messages:${conversationId}:${attempt}`)
+          .channel(`messages:${conversationId}:g${reconnectGeneration}:a${attempt}`)
           .on(
             'postgres_changes',
             {
@@ -84,16 +136,17 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
               table: 'messages',
             },
             (payload) => {
-              const newMessage = payload.new;
-              if (!rowMatchesConversation(newMessage, conversationId)) return;
+              touchActivity()
+              const newMessage = payload.new
+              if (!rowMatchesConversation(newMessage, conversationId)) return
               setMessages((prev) => {
                 if (prev.some((m) => m.id === newMessage.id)) {
-                  return prev;
+                  return prev
                 }
-                return [...prev, newMessage];
-              });
+                return [...prev, newMessage]
+              })
               if (onNewMessageRef.current) {
-                onNewMessageRef.current(newMessage);
+                onNewMessageRef.current(newMessage)
               }
             },
           )
@@ -105,31 +158,49 @@ export function useRealtimeMessages(conversationId, onNewMessage = null, onMessa
               table: 'messages',
             },
             (payload) => {
-              const row = payload.new;
-              if (!rowMatchesConversation(row, conversationId)) return;
+              touchActivity()
+              const row = payload.new
+              if (!rowMatchesConversation(row, conversationId)) return
               if (onMessageUpdateRef.current) {
-                onMessageUpdateRef.current(row);
+                onMessageUpdateRef.current(row)
               }
             },
           )
           .on('presence', { event: 'sync' }, () => {
-            setIsConnected(true);
+            touchActivity()
+            setIsConnected(true)
           }),
       onChannelStatus: (status) => {
         if (status === 'SUBSCRIBED') {
-          setIsConnected(true);
-          setError(null);
-          return;
+          touchActivity()
+          setIsConnected(true)
+          setError(null)
+          return
         }
         if (REALTIME_RETRY_STATUSES.has(status)) {
-          setError('Realtime reconnecting…');
-          setIsConnected(false);
+          setError('Realtime reconnecting…')
+          setIsConnected(false)
         }
       },
-    });
-  }, [conversationId]);
+      afterSubscribed: () => {
+        touchActivity()
+        if (reconnectGeneration === 0) return
+        const fn = onResyncRef.current
+        if (typeof fn === 'function') void Promise.resolve(fn()).catch(() => {})
+      },
+    })
 
-  return { messages, setMessages, isConnected, error };
+    return () => {
+      cancelled = true
+      clearInterval(heartbeat)
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibility)
+      }
+      stop()
+    }
+  }, [conversationId, reconnectGeneration, touchActivity])
+
+  return { messages, setMessages, isConnected, error }
 }
 
 /** Единый канал presence для всего сайта: «В сети» видно с любой страницы, не только из треда. */

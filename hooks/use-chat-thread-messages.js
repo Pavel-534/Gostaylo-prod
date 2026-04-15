@@ -204,10 +204,48 @@ export function useChatThreadMessages({
     )
   }, [])
 
+  /** Подтягивание пропущенных сообщений после reconnect / возврата на вкладку (без F5). */
+  const resyncMissedMessages = useCallback(async () => {
+    if (!conversationId || !userId) return
+    try {
+      const msgRes = await fetch(
+        `/api/v2/chat/messages?conversationId=${encodeURIComponent(conversationId)}`,
+        { credentials: 'include', cache: 'no-store' },
+      )
+      const msgJson = await msgRes.json()
+      if (!msgJson.success || !Array.isArray(msgJson.data)) return
+      const opts = mapperOptsRef.current
+      const incoming = msgJson.data
+        .map((m) => mapApiMessageToRow(m, opts))
+        .filter(Boolean)
+      setMessages((prev) => {
+        const byId = new Map(prev.map((m) => [m.id, m]))
+        for (const m of incoming) {
+          byId.set(m.id, m)
+        }
+        const next = Array.from(byId.values())
+        next.sort((a, b) => {
+          const ta = String(a.createdAt ?? a.created_at ?? '')
+          const tb = String(b.createdAt ?? b.created_at ?? '')
+          return ta.localeCompare(tb)
+        })
+        return next
+      })
+    } catch {
+      /* ignore */
+    }
+  }, [conversationId, userId])
+
+  const realtimeMessagesOpts = useMemo(
+    () => ({ onResync: resyncMissedMessages }),
+    [resyncMissedMessages],
+  )
+
   const { isConnected } = useRealtimeMessages(
     conversationId ?? null,
     handleRealtimeInsert,
-    handleRealtimeUpdate
+    handleRealtimeUpdate,
+    realtimeMessagesOpts,
   )
 
   // ── Оптимистичная отправка текста ────────────────────────────────────────────

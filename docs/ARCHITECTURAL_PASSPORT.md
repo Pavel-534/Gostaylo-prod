@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 3.0.0 | **Last Updated**: 2026-04-12 | **Status**: Production-Ready
+> **Version**: 3.0.0 | **Last Updated**: 2026-04-15 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -59,6 +59,7 @@ Pattern: Immediate Response + Fire-and-Forget
 - **SW readiness:** `components/push-client-init.jsx` ждёт `navigator.serviceWorker.ready` до `getToken`; при провале регистрации токена делает retry через 5 сек.
 - **Premium Quiet Policy (v3):** сервер — все **`NEW_MESSAGE`** (кроме **`FCM_INSTANT_PUSH_DEBUG`**) в отложенную очередь **`lib/services/push.service.js`** (**`PREMIUM_CHAT_PUSH_DELAY_MS` ~40 с**), перед FCM проверка **`messages.is_read`**. Клиент — **`public/push-visibility-policy.js`** (`shouldSuppressSystemNotificationForNewMessage`): для типа **`NEW_MESSAGE`** не вызывается **`showNotification`**, если есть видимая вкладка **того же origin**, что и SW; PWA/браузер в фоне (**`visibilityState !== 'visible'`**) — баннер не подавляется.
 - **Realtime recovery:** при reconnect/focus/visibilitychange Realtime JWT переустанавливается без refresh страницы; backoff-слой избегает синхронного `removeChannel` в callback, чтобы исключить рекурсивные сбои.
+- **Тред чата (reliability):** `useRealtimeMessages` + `subscribeRealtimeWithBackoff` (`minBackoffDelayMs` 2 с) — heartbeat **45 с** без событий на видимой вкладке → пересоздание канала; после reconnect **`onResync`** в `use-chat-thread-messages` дергает **`GET /api/v2/chat/messages`**; при возврате на вкладку — тот же resync.
 
 ### 0.6 Contact Leakage Protection (commission safety)
 
