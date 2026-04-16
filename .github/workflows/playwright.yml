@@ -56,6 +56,13 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/send-e2e-report.mjs
 
+      - name: Clean E2E DB fingerprints (tagged bookings only)
+        if: always()
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/clean-e2e-garbage.mjs
+
       - name: Upload HTML report
         if: always()
         uses: actions/upload-artifact@v4

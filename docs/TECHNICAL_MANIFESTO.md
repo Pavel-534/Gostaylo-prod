@@ -279,14 +279,15 @@
 ### 5.6 E2E Hygiene: маркировка, фильтрация, очистка
 
 - Единый маркер тест-данных: **`[E2E_TEST_DATA]`** (`lib/e2e/test-data-tag.js`).
-- Фикстуры и сиды (`create-pending-chat-booking-fixture`, `create-tour-booking-math-fixture`, `seed-e2e-tour`) проставляют маркер в `special_requests`/`title`/`metadata`.
+- **Обязательность:** любые автоматические тесты и серверные фикстуры **обязаны** помечать создаваемые брони (и иные сущности по канону проекта) этим флагом — как минимум в **`bookings.special_requests`** и/или **`bookings.guest_name`** (у листингов: **`title` / `description` / `metadata`**). Скрипт **`scripts/clean-e2e-garbage.mjs`** и **`tests/global-teardown.ts`** удаляют **только** строки с этим маркером; всё без метки **не** считается тестовым мусором и **не** удаляется.
+- Фикстуры и сиды (`create-pending-chat-booking-fixture`, `create-tour-booking-math-fixture`, `seed-e2e-tour`) проставляют маркер в `special_requests` / `guest_name` (брони) и в `title` / `metadata` (листинги у сида тура).
 - Глобальная фильтрация тест-объектов в «общих» выборках:
   - поиск листингов: `lib/api/run-listings-search-get.js`;
   - SSR листингов: `lib/server-data.js`;
   - service-layer list API: `lib/db-service.js` (`listingsService.findAll`, `bookingsService.findAll`);
   - `BookingService.getBookings` и chat inbox `GET /api/v2/chat/conversations`.
-- **Playwright global teardown:** `tests/global-teardown.ts` подключён в `playwright.config.ts`; удаляет E2E-артефакты из `messages`, `conversations`, `bookings`, `listings`. Обязателен для локального/CI прогона против dev/staging БД; на прод-smoke (`RUN_PRODUCTION_SMOKE=1`) teardown **автоматически отключается**, чтобы не трогать прод-данные. Подробнее: **§10**.
-- **Разовая чистка мусора:** `scripts/clean-e2e-garbage.mjs` (email-цели + `[E2E_TEST_DATA]`), поддержка `--dry-run`.
+- **Playwright global teardown:** `tests/global-teardown.ts` — **снайперская** уборка: только брони с **`[E2E_TEST_DATA]`** в `special_requests` / `guest_name`, затем сообщения и беседы с **`conversations.booking_id`** из этого набора (плюс связанные `payments` / `invoices` / `telegram_chat_reply_map` при наличии). **`profiles`** и **`listings`** **не** удаляются. На прод-smoke (`RUN_PRODUCTION_SMOKE=1`) teardown отключён. Подробнее: **§10**.
+- **Скрипт после nightly:** `scripts/clean-e2e-garbage.mjs` — та же политика, что и teardown; пишет итог в **`ops_job_runs`** (`job_name`: **`clean-e2e-garbage`**). Флаг **`--dry-run`** — только счётчики в stdout, без удалений и без записи в **`ops_job_runs`**.
 
 ---
 
@@ -389,11 +390,11 @@
 
 ## 10. E2E Hygiene System (правила и обязательность)
 
-0. **Nightly CI:** GitHub Actions **`.github/workflows/playwright.yml`** — расписание **03:00 UTC** (`cron: 0 3 * * *`), полный **`npx playwright test`** против **`PLAYWRIGHT_BASE_URL`** (секрет). При **failure** — сообщение в Telegram (**`TELEGRAM_BOT_TOKEN`**, **`TELEGRAM_CHAT_ID`**), артефакт **`playwright-report`**. Опционально те же секреты, что локально: **`E2E_*`**, **`JWT_SECRET`**.
+0. **Nightly CI:** GitHub Actions **`.github/workflows/playwright.yml`** — расписание **03:00 UTC** (`cron: 0 3 * * *`), полный **`npx playwright test`** против **`PLAYWRIGHT_BASE_URL`** (секрет). Затем ( **`if: always()`** ) — сводка в Telegram (**`scripts/send-e2e-report.mjs`**) и **`node scripts/clean-e2e-garbage.mjs`**: удаляются только брони с **`[E2E_TEST_DATA]`** и связанные чаты; запись в **`ops_job_runs`** с текстом об уборке. Для шагов с БД нужны **`NEXT_PUBLIC_SUPABASE_URL`** и **`SUPABASE_SERVICE_ROLE_KEY`**. При **failure** job — сообщение в Telegram, артефакт **`playwright-report`**. Опционально: **`E2E_*`**, **`JWT_SECRET`**.
 
-1. **Маркер данных:** любые сиды и фикстуры помечают сущности строкой **`[E2E_TEST_DATA]`** (константа **`lib/e2e/test-data-tag.js`**), чтобы их можно было отфильтровать из публичного поиска, списков чата и выборок «как у пользователя».
+1. **Маркер данных (обязательно для автотестов):** любые автоматические тесты и фикстуры **обязаны** метить создаваемые данные флагом **`[E2E_TEST_DATA]`** (константа **`lib/e2e/test-data-tag.js`**). Система очистки (**`global-teardown`**, **`clean-e2e-garbage.mjs`**) **игнорирует** всё, что **не** содержит этот маркер в разрешённых полях (для броней: **`special_requests`**, **`guest_name`**), чтобы не затронуть ручные брони пользователей.
 2. **Фильтрация в коде:** поиск листингов, SSR, `db-service`, `BookingService.getBookings`, **`GET /api/v2/chat/conversations`** (для не-staff) исключают помеченные записи; для Playwright при заголовке **`x-e2e-test-mode`** фильтр можно обходить (см. роут conversations).
-3. **`globalTeardown`:** в **`playwright.config.ts`** указан **`tests/global-teardown.ts`** — после прогона удаляются артефакты с тегом и связанные строки. Это **обязательная** часть гигиены при работе с тестовой/staging БД. Вручную: **`node scripts/clean-e2e-garbage.mjs`** (поддержка **`--dry-run`**).
+3. **`globalTeardown` + скрипт:** в **`playwright.config.ts`** указан **`tests/global-teardown.ts`** — после локального/CI прогона снайперское удаление только помеченных броней и связанных **`messages` / `conversations`** (без **`profiles`** и **`listings`**). Вручную или после nightly: **`node scripts/clean-e2e-garbage.mjs`** (**`--dry-run`** — без удалений и без **`ops_job_runs`**).
 4. **Production smoke:** проекты **`setup-production-smoke`** + **`production-smoke`** включаются только при **`RUN_PRODUCTION_SMOKE=1`**; базовый URL — **`PRODUCTION_SMOKE_URL`** (по умолчанию **`https://gostaylo.com`**). Сценарии **не** вызывают internal fixture API (нет лишних броней и уведомлений реальным хостам); используются учётные данные **`E2E_PARTNER_EMAIL`** / **`E2E_PASSWORD`**. При **`RUN_PRODUCTION_SMOKE=1`** teardown **не выполняется** (защита прод-БД из `.env`). Опционально: **`E2E_PRODUCTION_LISTING_ID`** для стабильной карточки листинга.
 
 ---

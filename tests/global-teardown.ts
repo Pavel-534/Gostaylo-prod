@@ -3,7 +3,7 @@ import { loadEnvConfig } from '@next/env'
 import { createClient } from '@supabase/supabase-js'
 import { E2E_TEST_DATA_TAG } from '../lib/e2e/test-data-tag.js'
 
-const MAX_IN = 500
+const MAX_IN = 200
 
 function chunk(arr: string[], size = MAX_IN) {
   const out: string[][] = []
@@ -11,10 +11,13 @@ function chunk(arr: string[], size = MAX_IN) {
   return out
 }
 
-async function deleteInBatches(sb: any, table: string, column: string, ids: string[]) {
+async function deleteInBatches(sb: ReturnType<typeof createClient>, table: string, column: string, ids: string[]) {
   for (const part of chunk(ids)) {
     if (!part.length) continue
-    await sb.from(table).delete().in(column, part)
+    const { error } = await sb.from(table).delete().in(column, part)
+    if (error && !String(error.message || '').includes('does not exist')) {
+      console.warn(`[Playwright teardown] ${table}:`, error.message)
+    }
   }
 }
 
@@ -45,49 +48,31 @@ export default async function globalTeardown() {
 
   const like = `%${E2E_TEST_DATA_TAG}%`
 
-  const { data: taggedBookings } = await sb
-    .from('bookings')
-    .select('id,listing_id')
-    .or(`special_requests.ilike.${like},guest_name.ilike.${like}`)
-
-  const { data: taggedListings } = await sb
-    .from('listings')
-    .select('id')
-    .or(`title.ilike.${like},description.ilike.${like}`)
-
-  const bookingIds = Array.from(new Set((taggedBookings || []).map((b: any) => String(b.id)).filter(Boolean)))
-  const listingIds = Array.from(new Set((taggedListings || []).map((l: any) => String(l.id)).filter(Boolean)))
-  for (const b of taggedBookings || []) {
-    if (b?.listing_id) listingIds.push(String(b.listing_id))
-  }
-
-  const uniqueListingIds = Array.from(new Set(listingIds))
-  const uniqueBookingIds = Array.from(new Set(bookingIds))
+  const { data: bySr } = await sb.from('bookings').select('id').ilike('special_requests', like)
+  const { data: byGn } = await sb.from('bookings').select('id').ilike('guest_name', like)
+  const bookingIds = Array.from(
+    new Set([...(bySr || []), ...(byGn || [])].map((b: { id?: string }) => String(b.id)).filter(Boolean)),
+  )
 
   const conversationIds: string[] = []
-  for (const part of chunk(uniqueBookingIds)) {
+  for (const part of chunk(bookingIds)) {
     if (!part.length) continue
     const { data } = await sb.from('conversations').select('id').in('booking_id', part)
     for (const row of data || []) if (row?.id) conversationIds.push(String(row.id))
   }
-  for (const part of chunk(uniqueListingIds)) {
-    if (!part.length) continue
-    const { data } = await sb.from('conversations').select('id').in('listing_id', part)
-    for (const row of data || []) if (row?.id) conversationIds.push(String(row.id))
-  }
   const uniqueConversationIds = Array.from(new Set(conversationIds))
 
-  if (uniqueConversationIds.length) {
-    await deleteInBatches(sb, 'messages', 'conversation_id', uniqueConversationIds)
-    await deleteInBatches(sb, 'conversations', 'id', uniqueConversationIds)
+  for (const part of chunk(uniqueConversationIds)) {
+    if (!part.length) continue
+    await sb.from('messages').delete().in('conversation_id', part)
   }
-
-  await sb.from('messages').delete().or(`content.ilike.${like},message.ilike.${like}`)
-  if (uniqueBookingIds.length) await deleteInBatches(sb, 'bookings', 'id', uniqueBookingIds)
-  if (uniqueListingIds.length) await deleteInBatches(sb, 'listings', 'id', uniqueListingIds)
+  await deleteInBatches(sb, 'telegram_chat_reply_map', 'conversation_id', uniqueConversationIds)
+  await deleteInBatches(sb, 'payments', 'booking_id', bookingIds)
+  await deleteInBatches(sb, 'invoices', 'booking_id', bookingIds)
+  if (uniqueConversationIds.length) await deleteInBatches(sb, 'conversations', 'id', uniqueConversationIds)
+  if (bookingIds.length) await deleteInBatches(sb, 'bookings', 'id', bookingIds)
 
   console.log(
-    `[Playwright teardown] cleaned test artifacts: bookings=${uniqueBookingIds.length}, listings=${uniqueListingIds.length}, conversations=${uniqueConversationIds.length}`,
+    `[Playwright teardown] surgical E2E cleanup: bookings=${bookingIds.length}, conversations=${uniqueConversationIds.length} (listings/profiles не трогаем)`,
   )
 }
-
