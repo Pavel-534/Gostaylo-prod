@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProxiedImage } from '@/components/proxied-image';
+import { toAdminVerificationDocProxyUrl } from '@/lib/verification-doc-admin-url';
 
 export default function UserDetailPage() {
   const params = useParams();
@@ -480,13 +481,13 @@ export default function UserDetailPage() {
                   <div className="flex flex-wrap gap-2">
                     {kycDocs[0]?.document_url && (
                       <a 
-                        href={kycDocs[0].document_url} 
+                        href={toAdminVerificationDocProxyUrl(kycDocs[0].document_url)} 
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                       >
                         <ProxiedImage 
-                          src={kycDocs[0].document_url} 
+                          src={toAdminVerificationDocProxyUrl(kycDocs[0].document_url)} 
                           alt="Документ"
                           width={96}
                           height={64}
@@ -496,13 +497,13 @@ export default function UserDetailPage() {
                     )}
                     {kycDocs[0]?.selfie_url && (
                       <a 
-                        href={kycDocs[0].selfie_url} 
+                        href={toAdminVerificationDocProxyUrl(kycDocs[0].selfie_url)} 
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                       >
                         <ProxiedImage 
-                          src={kycDocs[0].selfie_url} 
+                          src={toAdminVerificationDocProxyUrl(kycDocs[0].selfie_url)} 
                           alt="Селфи"
                           width={96}
                           height={64}
@@ -512,13 +513,13 @@ export default function UserDetailPage() {
                     )}
                     {user.verificationDocUrl && !kycDocs[0]?.document_url && (
                       <a 
-                        href={user.verificationDocUrl} 
+                        href={toAdminVerificationDocProxyUrl(user.verificationDocUrl)} 
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                       >
                         <ProxiedImage 
-                          src={user.verificationDocUrl} 
+                          src={toAdminVerificationDocProxyUrl(user.verificationDocUrl)} 
                           alt="Документ"
                           width={96}
                           height={64}
@@ -681,12 +682,12 @@ export default function UserDetailPage() {
                       <div className="mt-4 flex flex-wrap gap-3">
                         {doc.document_url && (
                           <a 
-                            href={doc.document_url} 
+                            href={toAdminVerificationDocProxyUrl(doc.document_url)} 
                             target="_blank"
                             className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                           >
                             <ProxiedImage 
-                              src={doc.document_url} 
+                              src={toAdminVerificationDocProxyUrl(doc.document_url)} 
                               alt="Документ"
                               width={160}
                               height={112}
@@ -697,12 +698,12 @@ export default function UserDetailPage() {
                         )}
                         {doc.selfie_url && (
                           <a 
-                            href={doc.selfie_url} 
+                            href={toAdminVerificationDocProxyUrl(doc.selfie_url)} 
                             target="_blank"
                             className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
                           >
                             <ProxiedImage 
-                              src={doc.selfie_url} 
+                              src={toAdminVerificationDocProxyUrl(doc.selfie_url)} 
                               alt="Селфи"
                               width={160}
                               height={112}
@@ -730,12 +731,12 @@ export default function UserDetailPage() {
               </CardHeader>
               <CardContent>
                 <a 
-                  href={user.verificationDocUrl} 
+                  href={toAdminVerificationDocProxyUrl(user.verificationDocUrl)} 
                   target="_blank"
                   className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow w-fit"
                 >
                   <ProxiedImage 
-                    src={user.verificationDocUrl} 
+                    src={toAdminVerificationDocProxyUrl(user.verificationDocUrl)} 
                     alt="Verification document"
                     width={448}
                     height={320}

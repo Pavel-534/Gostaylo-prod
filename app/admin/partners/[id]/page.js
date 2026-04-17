@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog'
 import Link from 'next/link'
 import { ProxiedImage } from '@/components/proxied-image'
+import { toAdminVerificationDocProxyUrl } from '@/lib/verification-doc-admin-url'
 
 export default function PartnerApplicationDetailPage() {
   const router = useRouter()
@@ -305,17 +306,17 @@ export default function PartnerApplicationDetailPage() {
           <CardContent>
             {application.verification_doc_url ? (
               <div className="space-y-3">
-                {/* Thumbnail or Preview */}
+                {/* Thumbnail or Preview — signed URL via ADMIN proxy */}
                 {application.verification_doc_url.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? (
                   <a 
-                    href={application.verification_doc_url} 
+                    href={toAdminVerificationDocProxyUrl(application.verification_doc_url)} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="block group"
                   >
                     <div className="relative overflow-hidden rounded-lg border bg-slate-100 min-h-[120px] max-h-72">
                       <ProxiedImage
-                        src={application.verification_doc_url}
+                        src={toAdminVerificationDocProxyUrl(application.verification_doc_url)}
                         alt="Verification document"
                         width={1200}
                         height={800}
@@ -329,7 +330,7 @@ export default function PartnerApplicationDetailPage() {
                   </a>
                 ) : (
                   <a 
-                    href={application.verification_doc_url} 
+                    href={toAdminVerificationDocProxyUrl(application.verification_doc_url)} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition border"
@@ -349,7 +350,7 @@ export default function PartnerApplicationDetailPage() {
                 <div className="flex items-center gap-2 text-xs text-slate-400">
                   <LinkIcon className="h-3 w-3" />
                   <a 
-                    href={application.verification_doc_url}
+                    href={toAdminVerificationDocProxyUrl(application.verification_doc_url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="truncate hover:text-teal-600 transition-colors"

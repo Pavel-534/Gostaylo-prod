@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import Link from 'next/link'
+import { toAdminVerificationDocProxyUrl } from '@/lib/verification-doc-admin-url'
 
 export default function AdminPartnersPage() {
   const router = useRouter()
@@ -255,7 +256,7 @@ export default function AdminPartnersPage() {
                       <div className="flex items-center gap-2 text-sm" onClick={(e) => e.stopPropagation()}>
                         <ExternalLink className="h-4 w-4 text-teal-600 shrink-0" aria-hidden />
                         <a
-                          href={app.verification_doc_url}
+                          href={toAdminVerificationDocProxyUrl(app.verification_doc_url)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-teal-700 hover:underline font-medium truncate"

@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 3.5.1 | **Last Updated**: 2026-04-17 | **Status**: Production-Ready
+> **Version**: 3.5.2 | **Last Updated**: 2026-04-17 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -58,6 +58,9 @@ Pattern: Immediate Response + Fire-and-Forget
 - **Загрузка файла:** **`POST /api/v2/upload`** с **`bucket: verification_documents`**; переиспользуемый UI — **`components/kyc-uploader.jsx`** (`/renter/profile`, **`/profile`**).
 - **Админка:** список **`/admin/partners`** — в карточке заявки кликабельная ссылка **«Документ KYC»** по **`verification_doc_url`**; деталь **`/admin/partners/[id]`** без изменений по смыслу.
 - **Доступ `/partner/*`:** без изменений — **`app/partner/layout.js`** опрашивает **`GET /api/v2/auth/me`**, роли **`PARTNER` / `ADMIN` / `MODERATOR`**; одобрение заявки — **`POST /api/v2/admin/partners`** с **`action: approve`** → **`profiles.role = PARTNER`**, **`verification_status = VERIFIED`**.
+- **KYC Storage (Phase 1.9):** `/_storage/verification_documents/...` в **`next.config.js`** проксирует на **public** object URL; внешняя секретность — через неугадываемые пути + **ADMIN-only** **`GET /api/v2/admin/verification-doc?path=`** → **`createSignedUrl`** (админ UI использует **`toAdminVerificationDocProxyUrl`**). В Telegram по заявке партнёра ссылка на **карточку в админке**, не на сырой файл.
+- **Debug Telegram:** **`GET /api/v2/debug/test-telegram`** — ADMIN + (dev **или** **`ENABLE_DEBUG_TELEGRAM=1`**), тест **`sendToAdminGroup('Test OK')`**, в ответе массив **`runbook`**.
+- **Ledger → Telegram:** при успешной записи проводки захвата платежа (**`LedgerService.postPaymentCaptureFromBooking`**) — уведомление в топик **FINANCE** (**`notifyLedgerGuestPaymentClearingPosted`**).
 
 ### 0.3 Escrow Security Message
 ```
