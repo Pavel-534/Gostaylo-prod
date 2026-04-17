@@ -251,6 +251,20 @@ export default function AdminPartnersPage() {
                       </p>
                     </div>
 
+                    {app.verification_doc_url ? (
+                      <div className="flex items-center gap-2 text-sm" onClick={(e) => e.stopPropagation()}>
+                        <ExternalLink className="h-4 w-4 text-teal-600 shrink-0" aria-hidden />
+                        <a
+                          href={app.verification_doc_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-teal-700 hover:underline font-medium truncate"
+                        >
+                          Документ KYC (открыть)
+                        </a>
+                      </div>
+                    ) : null}
+
                     {/* Footer: Date + Actions */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <p className="text-xs text-slate-400">

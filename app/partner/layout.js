@@ -27,6 +27,7 @@ import {
   Inbox,
   MessageSquare,
   Banknote,
+  Wallet,
   Settings,
   LogOut,
   Menu,
@@ -53,6 +54,7 @@ const SIDEBAR_CONFIG = [
   { nameKey: 'partnerNav_bookings', href: '/partner/bookings', icon: Inbox, descKey: 'partnerNav_bookingsDesc' },
   { nameKey: 'partnerNav_messages', href: '/messages', icon: MessageSquare, descKey: 'partnerNav_messagesDesc', badge: null },
   { nameKey: 'partnerNav_finances', href: '/partner/finances', icon: Banknote, descKey: 'partnerNav_financesDesc' },
+  { nameKey: 'partnerNav_payoutProfiles', href: '/partner/payout-profiles', icon: Wallet, descKey: 'partnerNav_payoutProfilesDesc' },
   { nameKey: 'partnerNav_settings', href: '/partner/settings', icon: Settings, descKey: 'partnerNav_settingsDesc' },
 ]
 
@@ -585,7 +587,7 @@ export default function PartnerLayout({ children }) {
                 <Link href="/" className="text-slate-400 hover:text-teal-600 transition-colors">
                   <Home className="w-4 h-4" />
                 </Link>
-                {breadcrumbs.map((crumb, index) => (
+              {breadcrumbs.map((crumb) => (
                   <div key={crumb.href} className="flex items-center">
                     <ChevronRight className="w-4 h-4 mx-2 text-slate-300" />
                     {crumb.isLast ? (

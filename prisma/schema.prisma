@@ -181,6 +181,8 @@ model Booking {
   listingId       String
   renterId        String
   status          BookingStatus @default(PENDING)
+  /// Supabase JSONB: payment refs, gateway metadata (see migration 030)
+  metadata        Json?         @map("metadata")
   
   // Dates
   checkIn         DateTime

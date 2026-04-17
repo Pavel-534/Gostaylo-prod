@@ -28,7 +28,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - **NEW:** Uses dedicated `partner_applications` table (migrated from JSON in profiles)
 - **NEW:** KYC Document upload (ID/Passport) to Supabase Storage
 - Mobile-optimized form with scroll-into-view
-- Server-side API `/api/v2/partner/apply`
+- Server-side API `POST /api/v2/partner/applications` (canonical KYC); `POST /api/v2/partner/apply` — тот же handler
 - Application status check via `/api/v2/partner/application-status`
 - Document upload via `/api/v2/upload`
 - Telegram notification to admin

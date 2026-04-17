@@ -8,6 +8,7 @@ import {
   Shield,
   Wallet,
   Users,
+  Landmark,
   Settings,
   Layers,
   TrendingUp,
@@ -25,6 +26,8 @@ import {
   FileDown,
   Sparkles,
   Activity,
+  Scale,
+  BadgeCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -35,6 +38,9 @@ const MODERATOR_RESTRICTED_PREFIXES = [
   '/admin/marketing',
   '/admin/security',
   '/admin/settings',
+  '/admin/payout-methods',
+  '/admin/payout-verification',
+  '/admin/financial-health',
   '/admin/audit-export',
   '/admin/ai-usage',
   '/admin/system/ai',
@@ -184,6 +190,9 @@ export default function AdminLayout({ children }) {
     { href: '/admin/partners', icon: UserCog, label: 'Заявки партнёров', moderatorAccess: false },
     { href: '/admin/messages/', icon: MessageSquare, label: 'Сообщения', moderatorAccess: true },
     { href: '/admin/finances', icon: Wallet, label: 'Финансы', moderatorAccess: false },
+    { href: '/admin/financial-health', icon: Scale, label: 'Ledger / здоровье', moderatorAccess: false },
+    { href: '/admin/payout-methods', icon: Landmark, label: 'Payout Methods', moderatorAccess: false },
+    { href: '/admin/payout-verification', icon: BadgeCheck, label: 'Верификация реквизитов', moderatorAccess: false },
     { href: '/admin/users', icon: Users, label: 'Пользователи', moderatorAccess: false },
     { href: '/admin/marketing', icon: TrendingUp, label: 'Маркетинг', moderatorAccess: false },
     { href: '/admin/security', icon: ShieldAlert, label: 'Безопасность', moderatorAccess: false },

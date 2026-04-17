@@ -6,9 +6,44 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, Settings as SettingsIcon, DollarSign, Power, Home, Type, Phone, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+const FEE_SPLIT_PRESETS = {
+  russia_fast: {
+    id: 'russia_fast',
+    title: 'РФ / Быстрые выплаты',
+    description: 'MIR/банки, выплаты в день заселения',
+    guestServiceFeePercent: 5,
+    hostCommissionPercent: 0,
+    insuranceFundPercent: 0.5,
+    chatInvoiceRateMultiplier: 1.01,
+    settlementPayoutDelayDays: 0,
+    settlementPayoutHourLocal: 20,
+  },
+  thailand_standard: {
+    id: 'thailand_standard',
+    title: 'Таиланд / Стандарт',
+    description: 'Следующий день, баланс скорость/риски',
+    guestServiceFeePercent: 5,
+    hostCommissionPercent: 0,
+    insuranceFundPercent: 0.5,
+    chatInvoiceRateMultiplier: 1.025,
+    settlementPayoutDelayDays: 1,
+    settlementPayoutHourLocal: 18,
+  },
+  global_crypto: {
+    id: 'global_crypto',
+    title: 'Global + Crypto / Safety',
+    description: 'Больше маржи на риски чарджбека и волатильности',
+    guestServiceFeePercent: 6,
+    hostCommissionPercent: 1,
+    insuranceFundPercent: 1,
+    chatInvoiceRateMultiplier: 1.03,
+    settlementPayoutDelayDays: 2,
+    settlementPayoutHourLocal: 18,
+  },
+};
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -17,6 +52,8 @@ export default function SettingsPage() {
     guestServiceFeePercent: 5,
     hostCommissionPercent: 0,
     insuranceFundPercent: 0.5,
+    settlementPayoutDelayDays: 1,
+    settlementPayoutHourLocal: 18,
     chatInvoiceRateMultiplier: 1.02,
     maintenanceMode: false,
     heroTitle: '',
@@ -30,6 +67,7 @@ export default function SettingsPage() {
   });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activePresetId, setActivePresetId] = useState(null);
 
   useEffect(() => {
     loadSettings();
@@ -73,7 +111,7 @@ export default function SettingsPage() {
           description: 'Все изменения применены',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Ошибка',
         description: 'Не удалось сохранить настройки',
@@ -84,6 +122,21 @@ export default function SettingsPage() {
     }
   };
 
+  const applyPreset = (presetId) => {
+    const preset = FEE_SPLIT_PRESETS[presetId];
+    if (!preset) return;
+    setSettings((prev) => ({
+      ...prev,
+      guestServiceFeePercent: preset.guestServiceFeePercent,
+      hostCommissionPercent: preset.hostCommissionPercent,
+      insuranceFundPercent: preset.insuranceFundPercent,
+      chatInvoiceRateMultiplier: preset.chatInvoiceRateMultiplier,
+      settlementPayoutDelayDays: preset.settlementPayoutDelayDays,
+      settlementPayoutHourLocal: preset.settlementPayoutHourLocal,
+    }));
+    setActivePresetId(preset.id);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -91,6 +144,26 @@ export default function SettingsPage() {
       </div>
     );
   }
+
+  const previewBaseThb = 10000;
+  const previewGuestFee = Math.round(
+    previewBaseThb * ((Number(settings.guestServiceFeePercent) || 0) / 100)
+  );
+  const previewHostCommission = Math.round(
+    previewBaseThb * ((Number(settings.hostCommissionPercent) || 0) / 100)
+  );
+  const previewGuestTotal = previewBaseThb + previewGuestFee;
+  const previewPartnerPayout = previewBaseThb - previewHostCommission;
+  const previewPlatformMargin = previewGuestFee + previewHostCommission;
+  const previewInsuranceReserve = Math.round(
+    previewPlatformMargin * ((Number(settings.insuranceFundPercent) || 0) / 100)
+  );
+  const payoutPolicyHint =
+    Number(settings.settlementPayoutDelayDays) === 0
+      ? 'Выплата в день заселения (same-day).'
+      : Number(settings.settlementPayoutDelayDays) === 1
+        ? 'Выплата на следующий день (T+1).'
+        : `Отложенная выплата на ${settings.settlementPayoutDelayDays} дн.`;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -190,54 +263,6 @@ export default function SettingsPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div>
-              <Label htmlFor="guestFee" className="text-sm">Guest service fee %</Label>
-              <Input
-                id="guestFee"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={settings.guestServiceFeePercent}
-                onChange={(e) =>
-                  setSettings({ ...settings, guestServiceFeePercent: parseFloat(e.target.value) })
-                }
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label htmlFor="hostFee" className="text-sm">Host commission %</Label>
-              <Input
-                id="hostFee"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={settings.hostCommissionPercent}
-                onChange={(e) =>
-                  setSettings({ ...settings, hostCommissionPercent: parseFloat(e.target.value) })
-                }
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label htmlFor="insuranceFund" className="text-sm">Insurance fund %</Label>
-              <Input
-                id="insuranceFund"
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={settings.insuranceFundPercent}
-                onChange={(e) =>
-                  setSettings({ ...settings, insuranceFundPercent: parseFloat(e.target.value) })
-                }
-                className="mt-2"
-              />
-            </div>
-          </div>
-
           <div className="min-w-0">
             <Label htmlFor="chatInvoiceMult" className="text-sm sm:text-base">
               Розничный курс на витрине + чат (USD, RUB, USDT…)
@@ -281,6 +306,131 @@ export default function SettingsPage() {
               </code>
               .
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-xl border-2 border-sky-200">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <SettingsIcon className="w-5 h-5 sm:w-6 sm:h-6 text-sky-700" />
+            Settlement Policy & Fee Split
+          </CardTitle>
+          <CardDescription className="text-sm">
+            Единый центр: кто сколько платит, как формируется резерв и когда отправляется payout.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6 pt-0 space-y-5">
+          <div>
+            <p className="text-sm font-medium text-slate-800 mb-2">Быстрые пресеты</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {Object.values(FEE_SPLIT_PRESETS).map((preset) => (
+                <Button
+                  key={preset.id}
+                  type="button"
+                  variant={activePresetId === preset.id ? 'default' : 'outline'}
+                  className={`h-auto justify-start px-3 py-3 text-left ${
+                    activePresetId === preset.id ? 'bg-sky-700 hover:bg-sky-800' : ''
+                  }`}
+                  onClick={() => applyPreset(preset.id)}
+                >
+                  <div>
+                    <p className="font-semibold">{preset.title}</p>
+                    <p className="text-xs opacity-80 mt-1">{preset.description}</p>
+                  </div>
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <Label htmlFor="guestServiceFeePercent">Guest service fee (%)</Label>
+              <Input
+                id="guestServiceFeePercent"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={settings.guestServiceFeePercent}
+                onChange={(e) =>
+                  setSettings({ ...settings, guestServiceFeePercent: parseFloat(e.target.value) })
+                }
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="hostCommissionPercent">Host commission (%)</Label>
+              <Input
+                id="hostCommissionPercent"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={settings.hostCommissionPercent}
+                onChange={(e) =>
+                  setSettings({ ...settings, hostCommissionPercent: parseFloat(e.target.value) })
+                }
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="insuranceFundPercent">Insurance fund (%)</Label>
+              <Input
+                id="insuranceFundPercent"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={settings.insuranceFundPercent}
+                onChange={(e) =>
+                  setSettings({ ...settings, insuranceFundPercent: parseFloat(e.target.value) })
+                }
+                className="mt-2"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="settlementPayoutDelayDays">Payout delay (days, 0..60)</Label>
+              <Input
+                id="settlementPayoutDelayDays"
+                type="number"
+                min="0"
+                max="60"
+                value={settings.settlementPayoutDelayDays}
+                onChange={(e) =>
+                  setSettings({ ...settings, settlementPayoutDelayDays: parseInt(e.target.value || '0', 10) })
+                }
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="settlementPayoutHourLocal">Payout hour local (0..23)</Label>
+              <Input
+                id="settlementPayoutHourLocal"
+                type="number"
+                min="0"
+                max="23"
+                value={settings.settlementPayoutHourLocal}
+                onChange={(e) =>
+                  setSettings({ ...settings, settlementPayoutHourLocal: parseInt(e.target.value || '0', 10) })
+                }
+                className="mt-2"
+              />
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-900">Preview (на примере ฿10,000):</p>
+            <p className="text-xs text-slate-600 mt-1">{payoutPolicyHint} Час выплаты: {settings.settlementPayoutHourLocal}:00.</p>
+            <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+              <p>Гость платит: <strong>฿{previewGuestTotal.toLocaleString('ru-RU')}</strong></p>
+              <p>Партнер получает: <strong>฿{previewPartnerPayout.toLocaleString('ru-RU')}</strong></p>
+              <p>Маржа платформы: <strong>฿{previewPlatformMargin.toLocaleString('ru-RU')}</strong></p>
+              <p>Резерв в страховой фонд: <strong>฿{previewInsuranceReserve.toLocaleString('ru-RU')}</strong></p>
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 3.2.0 | **Last Updated**: 2026-04-17 | **Status**: Production-Ready
+> **Version**: 3.5.1 | **Last Updated**: 2026-04-17 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -8,11 +8,28 @@
 
 ## 0. Critical Routes & Services
 
+### 0.0a Admin Financial Health (Ledger)
+- **UI:** `app/admin/financial-health/page.jsx` — маршрут **`/admin/financial-health`**, карточки остатков по счетам **PROCESSING_POT_ROUNDING** («котёл на платёжки») и **INSURANCE_FUND_RESERVE** (страховой фонд), плюс **PLATFORM_FEE** и агрегат **PARTNER_EARNINGS**; блок **сверки Cash (MVP)** при **`marginLeakage`**; кнопка **«Сформировать реестр для Т-Банка»** (скачивание CSV).
+- **API:** **`GET /api/v2/admin/ledger-balances`** — только **`profiles.role === 'ADMIN'`**; агрегация **`sum(CREDIT) − sum(DEBIT)`** по строкам **`ledger_entries`** (см. **`lib/services/ledger.service.js`**). **`GET /api/v2/admin/ledger-reconciliation`** — сверка: сумма **DEBIT** по **`GUEST_PAYMENT_CLEARING`** vs сумма **CREDIT** по всем прочим счетам; расхождение или несходящиеся журналы → **Margin Leakage**.
+- **T-Bank CSV:** **`POST /api/v2/admin/payouts/tbank-registry`** — см. **`lib/services/tbank-payout-registry.service.js`**: **`payouts` PENDING**, метод **`pm-bank-ru`** (или BANK+RUB), только **`partner_payout_profiles.is_verified`**, полные **`data`** (счёт, БИК, ИНН). После экспорта — **`PROCESSING`**. Формат колонок: **ФИО;Номер счета;БИК;ИНН;Назначение платежа;Сумма** (UTF-8 BOM); опционально **`encoding: windows-1251`** → **`csvBase64`**. Верификация профилей: **`/admin/payout-verification`**, API **`GET /api/v2/admin/partner-payout-profiles`**, **`PATCH .../[id]`** с **`action: verify`**.
+- **Копилка / страховой фонд (ledger):** на **`/admin/financial-health`** две карточки по данным **`ledgerReporting`** из **`GET /api/v2/admin/ledger-balances`**: **Rounding Pot** = счёт **`PROCESSING_POT_ROUNDING`** (алиас **FEE_CLEARING**), **Insurance Fund** = **`INSURANCE_FUND_RESERVE`** (алиас **RESERVES**); соглашение по балансу — как в **`ledger-balances`**.
+- **Проводки:** при успешном **`EscrowService.moveToEscrow`** (бронь → **`PAID_ESCROW`**, подтверждённая оплата через **`PaymentsV3Service.confirmPayment`**) создаётся журнал **`BOOKING_PAYMENT_CAPTURED`** с пятью ногами: **DEBIT** `GUEST_PAYMENT_CLEARING`; **CREDIT** партнёрский счёт, **PLATFORM_FEE**, **INSURANCE_FUND_RESERVE**, **PROCESSING_POT_ROUNDING**. Суммы берутся из **`pricing_snapshot.fee_split_v2`** / колонок брони (идемпотентность: **`ledger_journals.idempotency_key`**).
+
 ### 0.0 Admin Health Dashboard (ops + security)
 - **UI:** `app/admin/health/page.jsx` — маршрут **`/admin/health`**, карточки **`rounded-2xl`**: агрегаты **`ops_job_runs`** (7 дн.) для **`ical-sync`**, **`push-sweeper`**, **`push-token-hygiene`**, блок **`critical_signal_events`** (`PRICE_TAMPERING`).
 - **API:** **`GET /api/v2/admin/health`** — только **`profiles.role === 'ADMIN'`** или email из **`ADMIN_HEALTH_EMAILS`** (см. **`lib/admin-health-access.js`**); данные через **`supabaseAdmin`**.
 - **Chat reliability (mobile/web):** глобальный presence трекинг через **`PresenceProvider`** (`app/layout.js`, канал `gostaylo-site-presence:v1`) и устойчивый badge unread из **`ChatContext`** (`GET /api/v2/chat/conversations?archived=all&enrich=1&limit=100`; события `messages` по Realtime проходят RLS, без ложного отбрасывания до синхронизации локального списка — см. v2.1.9 в манифесте).
 - **Messenger-grade v2.1.9:** как v2.1.8, плюс **единый ref-counted канал `typing:global:v1`** (`lib/chat/typing-global-channel.js`) для инбокса и треда; dev-подсказки при обрыве Realtime — **`lib/chat/realtime-dev-warn.js`** + опция **`channelLabel`** в **`subscribeRealtimeWithBackoff`**.
+
+### 0.04 Card / acquiring webhook (Mandarin, YooKassa-совместимо)
+- **Route:** `POST /api/webhooks/payments/confirm` — секрет **`PAYMENT_ACQUIRING_WEBHOOK_SECRET`**; подпись **`X-Webhook-Signature`** = **hex** от **HMAC-SHA256(raw UTF-8 body, secret)**.
+- **Тело:** JSON; плоский вариант `bookingId`, опционально `paymentId`, `amount` + `currency` (**THB** для строгой сверки с итогом брони), `paid`; либо структура с **`event` / `object`** (см. манифест).
+- **Успех:** поиск **`payments` PENDING** по **`booking_id`**, **`PaymentsV3Service.confirmPayment`** → эскроу и **ledger** (как у крипто-флоу).
+
+### 0.05 Crypto payment webhook (TRON USDT)
+- **Route:** `POST /api/webhooks/crypto/confirm` — **не** публичный: требуется **`CRYPTO_WEBHOOK_SHARED_SECRET`** (заголовок **`x-crypto-webhook-secret`** или поле **`webhookSecret`** в JSON), иначе **401/503**.
+- **Тело:** `txid`, `bookingId`; опционально `expectedAmount` (USDT), `targetWallet` (должен совпадать с платформенным кошельком из **`lib/services/tron.service.js`**).
+- **Логика:** **`verifyTronTransaction`** (TronScan) → последняя **`payments`** со статусом **`PENDING`** для брони → **`PaymentsV3Service.confirmPayment`** (эскроу + ledger).
 
 ### 0.1 CRITICAL: Telegram Webhook
 ```
@@ -34,6 +51,13 @@ Pattern: Immediate Response + Fire-and-Forget
 | BOOKINGS | 15 | New bookings, confirmations |
 | FINANCE | 16 | Payments, payouts |
 | NEW_PARTNERS | 17 | Partner registrations |
+
+### 0.2a Partner onboarding & KYC (Phase 1.8)
+- **Канон:** **`POST /api/v2/partner/applications`** — логика в **`lib/services/partner-application.service.js`** (`handlePartnerApplicationPost`, `submitPartnerApplicationCore`). **`POST /api/v2/partner/apply`** вызывает тот же handler (обратная совместимость).
+- **Тело:** **`phone`**, **`experience`**, опционально **`socialLink`**, **`portfolio`**, обязательно **`verificationDocUrl`** (строка URL после загрузки в Storage). Идентификатор пользователя — только **`getUserIdFromSession()`**; поле **`userId` в JSON** опционально и должно совпадать с сессией.
+- **Загрузка файла:** **`POST /api/v2/upload`** с **`bucket: verification_documents`**; переиспользуемый UI — **`components/kyc-uploader.jsx`** (`/renter/profile`, **`/profile`**).
+- **Админка:** список **`/admin/partners`** — в карточке заявки кликабельная ссылка **«Документ KYC»** по **`verification_doc_url`**; деталь **`/admin/partners/[id]`** без изменений по смыслу.
+- **Доступ `/partner/*`:** без изменений — **`app/partner/layout.js`** опрашивает **`GET /api/v2/auth/me`**, роли **`PARTNER` / `ADMIN` / `MODERATOR`**; одобрение заявки — **`POST /api/v2/admin/partners`** с **`action: approve`** → **`profiles.role = PARTNER`**, **`verification_status = VERIFIED`**.
 
 ### 0.3 Escrow Security Message
 ```
@@ -224,6 +248,8 @@ Pattern: Immediate Response + Fire-and-Forget
 | `price_paid` | NUMERIC | YES | Actual amount paid |
 | `exchange_rate` | NUMERIC | YES | Rate at payment time |
 | `commission_thb` | NUMERIC | YES | Guest service fee amount (THB) |
+| `taxable_margin_amount` | NUMERIC | YES | Taxable base snapshot (`guest_paid_thb - partner_earnings_thb`) |
+| `rounding_diff_pot` | NUMERIC | YES | Pot amount from guest total rounding-up to nearest 10 |
 | `applied_commission_rate` | NUMERIC | YES | Frozen host commission percent for settlement |
 | `commission_paid` | BOOLEAN | YES | Commission settled flag |
 | `listing_currency` | TEXT/ENUM | YES | Listing base currency frozen at booking creation |
@@ -235,6 +261,7 @@ Pattern: Immediate Response + Fire-and-Forget
 | `promo_code_used` | TEXT | YES | Applied promo code |
 | `discount_amount` | NUMERIC | YES | Discount in THB |
 | `pricing_snapshot` | JSONB | YES | Immutable pricing/settlement snapshot (`v1`, `fee_split_v2`, `settlement_v3`) |
+| `metadata` | JSONB | NO | Extensible JSON (default `{}`); payment initiate/confirm, gateway refs — миграция **`030_financial_phase1_5_ledger_booking_metadata.sql`** |
 | `conversation_id` | TEXT | YES | FK to `conversations.id` |
 
 **Booking Status Enum:**
@@ -242,8 +269,6 @@ Pattern: Immediate Response + Fire-and-Forget
 PENDING → AWAITING_PAYMENT → CONFIRMED → CHECKED_IN → COMPLETED
                           ↘ CANCELLED
 ```
-
-> **NOTE**: The `bookings` table does NOT have a `metadata` column. Do NOT attempt to insert metadata into bookings.
 
 #### `profiles`
 | Column | Type | Nullable | Description |
@@ -268,6 +293,36 @@ PENDING → AWAITING_PAYMENT → CONFIRMED → CHECKED_IN → COMPLETED
 | `referral_code` | TEXT | YES | Unique referral code |
 | `referred_by` | TEXT | YES | Referrer's code |
 | `contact_leak_strikes` | INTEGER | NO | Server-incremented on chat contact-safety detector hits (migration `025`) |
+
+#### `payout_methods`
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | TEXT | NO | Primary key (`pm-*`) |
+| `name` | TEXT | NO | Method label in admin/partner UI |
+| `channel` | ENUM/TEXT | NO | `CARD` / `BANK` / `CRYPTO` |
+| `fee_type` | ENUM/TEXT | NO | `percentage` / `fixed` |
+| `value` | NUMERIC | NO | Fee value (percent or fixed amount) |
+| `currency` | TEXT | NO | Rail settlement currency (`RUB`,`THB`,`USDT`,`USD`) |
+| `min_payout` | NUMERIC | NO | Minimum base payout for this rail |
+| `is_active` | BOOLEAN | NO | Availability flag |
+| `metadata` | JSONB | NO | Optional rail details |
+
+#### `partner_payout_profiles`
+| Column | Type | Nullable | Description |
+|--------|------|----------|-------------|
+| `id` | TEXT | NO | Primary key (`pp-*`) |
+| `partner_id` | TEXT | NO | FK to `profiles.id` |
+| `method_id` | TEXT | NO | FK to `payout_methods.id` |
+| `data` | JSONB | NO | Partner payout реквизиты (`CARD`/`BANK`/`CRYPTO` fields) |
+| `is_verified` | BOOLEAN | NO | Verification flag for ops/KYC flow |
+| `is_default` | BOOLEAN | NO | Default rail for automatic/manual payout |
+
+#### Ledger (double-entry, THB)
+| Table | Purpose |
+|-------|---------|
+| `ledger_accounts` | План счетов: системные котлы (`GUEST_PAYMENT_CLEARING`, `PLATFORM_FEE`, `INSURANCE_FUND_RESERVE`, `PROCESSING_POT_ROUNDING`) + строки **`PARTNER_EARNINGS`** с **`partner_id`**. |
+| `ledger_journals` | Группа проводок на событие (например одна запись на **`booking_payment_capture:{booking_id}`**). |
+| `ledger_entries` | Строки **DEBIT/CREDIT**, сумма **`amount_thb`**, ссылка на **`ledger_accounts`**. |
 
 #### `conversations`
 | Column | Type | Nullable | Description |
@@ -352,6 +407,8 @@ Append-only события для отчётов (напр. **`PRICE_TAMPERING`*
 | `settlementPayoutDelayDays` | INTEGER | Delay from check-in to payout eligibility (0..60) |
 | `settlementPayoutHourLocal` | INTEGER | Preferred payout processing hour (0..23) |
 
+Admin UI (`/admin/settings`) now exposes these keys as a single "Settlement Policy & Fee Split" block with presets (`РФ`, `Таиланд`, `Global/Crypto`) and formula preview for operators.
+
 ---
 
 ## 3. Pricing System
@@ -403,11 +460,14 @@ Canonical rates come from `system_settings.general` (`guestServiceFeePercent`, `
 ```
 subtotalThb        = PricingService total for the stay (THB, before guest fee)
 guestFeeThb        = round(subtotalThb * (guestServiceFeePercent / 100))   // stored in bookings.commission_thb
-userTotalThb       = subtotalThb + guestFeeThb
+guestTotalRawThb   = subtotalThb + guestFeeThb
+roundingDiffPotThb = ceil(guestTotalRawThb / 10) * 10 - guestTotalRawThb   // bookings.rounding_diff_pot
+userTotalThb       = guestTotalRawThb + roundingDiffPotThb
 hostCommissionThb  = round(subtotalThb * (hostCommissionPercent / 100))     // affects partner payout
 partnerPayoutThb   = subtotalThb - hostCommissionThb                         // bookings.partner_earnings_thb
 platformMarginThb  = guestFeeThb + hostCommissionThb
 insuranceReserveThb = round(platformMarginThb * (insuranceFundPercent / 100)) // settlement_v3.insurance_reserve_amount
+taxableMarginThb   = userTotalThb - partnerPayoutThb                         // bookings.taxable_margin_amount
 ```
 
 **Identity:** `userTotalThb − partnerPayoutThb = platformMarginThb`.
@@ -695,7 +755,7 @@ if (insurance?.enabled) {
 
 ### 6.2 Adding Booking Add-ons
 
-Since `bookings` table lacks a `metadata` column, use `special_requests` or create a new `booking_addons` table:
+Для произвольных допов по-прежнему можно использовать **`special_requests`** или отдельную таблицу **`booking_addons`**. Платёжные и технические поля — в **`bookings.metadata`** (JSONB):
 
 ```sql
 -- Option A: Use special_requests as JSON string
@@ -766,6 +826,12 @@ static calculateTotalWithAddons(baseTotal, addons = []) {
 | POST | `/api/v2/bookings/[id]/payment/initiate` | Start payment flow |
 | POST | `/api/v2/bookings/[id]/payment/confirm` | Confirm payment |
 | POST | `/api/v2/bookings/[id]/check-in/confirm` | Confirm check-in |
+| GET | `/api/v2/admin/ledger-balances` | ADMIN: остатки ledger (THB) |
+| GET | `/api/v2/admin/ledger-reconciliation` | ADMIN: сверка clearing vs распределение (MVP) |
+| POST | `/api/v2/admin/payouts/tbank-registry` | ADMIN: CSV реестр Т-Банка + PROCESSING |
+| GET | `/api/v2/admin/partner-payout-profiles` | ADMIN: профили выплат без верификации |
+| PATCH | `/api/v2/admin/partner-payout-profiles/[id]` | ADMIN: верифицировать профиль |
+| GET | `/api/v2/admin/payouts` | ADMIN: все выплаты |
 
 ### 7.3 Admin API
 
@@ -852,7 +918,7 @@ TELEGRAM_ADMIN_GROUP_ID=-100xxx
 | Issue | Workaround | Status |
 |-------|------------|--------|
 | Kubernetes 502 on API routes | Direct Supabase REST calls | PERMANENT |
-| `bookings.metadata` doesn't exist | Don't insert metadata | FIXED |
+| `bookings.metadata` missing in old DB | Run migration **`030_financial_phase1_5_ledger_booking_metadata.sql`** | FIXED (repo) |
 | Escaped quotes break Vercel build | Use single quotes in className | PERMANENT |
 | Edge runtime timeouts | Use Node.js runtime for long ops | PERMANENT |
 
@@ -863,7 +929,8 @@ TELEGRAM_ADMIN_GROUP_ID=-100xxx
 | Service | Status | Production Replacement |
 |---------|--------|------------------------|
 | Payment Gateway (Stripe) | MOCKED | Stripe API integration |
-| TRON Verification | MOCKED | Trongrid API |
+| TRON webhook `POST /api/webhooks/crypto/confirm` | **Shared secret** + **`verifyTronTransaction`** (TronScan) | Production path; mock removed |
+| Acquiring `POST /api/webhooks/payments/confirm` | **HMAC** + **`PaymentsV3Service.confirmPayment`** | Карты / PSP (Mandarin, YooKassa-shape) |
 | Email Notifications | MOCKED | Resend API |
 
 ---

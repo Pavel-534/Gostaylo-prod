@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { 
   DollarSign, TrendingUp, Wallet, Download, 
-  Calendar, Building2, Loader2, Clock 
+  Calendar, Building2, Clock, ArrowDownToLine
 } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { format } from 'date-fns'
@@ -29,6 +29,19 @@ import { getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
 
 // Fetch partner bookings with financial data
+async function fetchPartnerPayouts() {
+  const res = await fetch('/api/v2/partner/payouts', {
+    cache: 'no-store',
+    credentials: 'include',
+  })
+  const data = await res.json()
+  if (!res.ok) {
+    const msg = data?.error || 'Failed to fetch payouts'
+    throw new Error(msg)
+  }
+  return data.data ?? []
+}
+
 async function fetchPartnerFinances(partnerId) {
   if (!partnerId) throw new Error('No partner ID')
   
@@ -56,7 +69,7 @@ async function fetchCommissionRate(partnerId) {
     if (json?.data) {
       return { effectiveRate: json.data.effectiveRate ?? 15, partnerEarningsPercent: json.data.partnerEarningsPercent ?? 85 }
     }
-  } catch (e) { /* ignore */ }
+  } catch { /* ignore */ }
   return { effectiveRate: 15, partnerEarningsPercent: 85 }
 }
 
@@ -106,6 +119,22 @@ function calculateFinances(bookings) {
 }
 
 // Status badge colors
+const PAYOUT_STATUS_LABEL = {
+  PENDING: 'Pending',
+  PROCESSING: 'Processing',
+  COMPLETED: 'Paid',
+  FAILED: 'Failed',
+  REFUNDED: 'Refunded',
+}
+
+const PAYOUT_STATUS_COLORS = {
+  PENDING: 'bg-amber-100 text-amber-900 border-amber-200',
+  PROCESSING: 'bg-sky-100 text-sky-900 border-sky-200',
+  COMPLETED: 'bg-emerald-100 text-emerald-900 border-emerald-200',
+  FAILED: 'bg-red-100 text-red-900 border-red-200',
+  REFUNDED: 'bg-slate-100 text-slate-800 border-slate-200',
+}
+
 const STATUS_COLORS = {
   PENDING: 'bg-amber-100 text-amber-800 border-amber-200',
   CONFIRMED: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -150,6 +179,7 @@ export default function PartnerFinancesV2() {
   const [partnerId, setPartnerId] = useState(null)
   const [currency, setCurrency] = useState('THB')
   const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
+  const [defaultPayoutProfile, setDefaultPayoutProfile] = useState(null)
 
   // Get partner ID from localStorage
   useEffect(() => {
@@ -174,6 +204,42 @@ export default function PartnerFinancesV2() {
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (!partnerId) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/v2/partner/payout-profiles?default=1', {
+          cache: 'no-store',
+          credentials: 'include',
+        })
+        const json = await res.json()
+        if (!res.ok || !json?.success) return
+        if (!cancelled) {
+          setDefaultPayoutProfile(Array.isArray(json.data) ? json.data[0] || null : null)
+        }
+      } catch {
+        if (!cancelled) setDefaultPayoutProfile(null)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [partnerId])
+
+  const calcPayoutMath = (baseAmount) => {
+    const base = Math.max(0, Number(baseAmount) || 0)
+    const method = defaultPayoutProfile?.method
+    if (!method) return { fee: 0, final: base }
+    const feeType = String(method.fee_type || 'fixed').toLowerCase()
+    const feeValue = Math.max(0, Number(method.value) || 0)
+    const minPayout = Math.max(0, Number(method.min_payout) || 0)
+    if (base < minPayout) return { fee: 0, final: base, minPayoutError: true, minPayout }
+    const fee = feeType === 'percentage'
+      ? Math.round(base * (feeValue / 100) * 100) / 100
+      : Math.round(feeValue * 100) / 100
+    const final = Math.max(0, Math.round((base - fee) * 100) / 100)
+    return { fee, final, feeType, feeValue }
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -236,12 +302,25 @@ export default function PartnerFinancesV2() {
     enabled: !!partnerId
   })
 
+  const {
+    data: payouts = [],
+    isLoading: payoutsLoading,
+    isError: payoutsError,
+    error: payoutsErr,
+    refetch: refetchPayouts,
+  } = useQuery({
+    queryKey: ['partner-payouts-history'],
+    queryFn: fetchPartnerPayouts,
+    staleTime: 30 * 1000,
+  })
+
   // Calculate financial stats
   const finances = calculateFinances(bookings)
   
   // When no bookings: use effective rate from admin settings. When bookings exist: use calculated avg
   const displayFeePercent = finances.transactionCount > 0 ? finances.avgFeePercent : (commissionData?.effectiveRate ?? DEFAULT_COMMISSION_RATE)
   const displayNetPercent = finances.transactionCount > 0 ? finances.netPercent : (commissionData?.partnerEarningsPercent ?? (100 - DEFAULT_COMMISSION_RATE))
+  const pendingPayoutPreview = calcPayoutMath(finances.pendingRevenue)
 
   // Export to CSV
   const handleExportCSV = () => {
@@ -368,6 +447,106 @@ export default function PartnerFinancesV2() {
         </Card>
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ArrowDownToLine className="h-5 w-5 text-slate-600" />
+            История выплат
+          </CardTitle>
+          <CardDescription>Дата, метод, суммы и статус вывода средств</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {payoutsLoading ? (
+            <div className="h-24 bg-slate-100 animate-pulse rounded-lg" />
+          ) : payoutsError ? (
+            <div className="text-sm text-red-700">
+              {payoutsErr?.message}
+              <Button variant="outline" size="sm" className="ml-2" onClick={() => refetchPayouts()}>
+                Повторить
+              </Button>
+            </div>
+          ) : payouts.length === 0 ? (
+            <p className="text-sm text-slate-500 py-4">Пока нет заявок на выплату.</p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 text-slate-600 text-left">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Дата</th>
+                    <th className="px-3 py-2 font-medium">Метод</th>
+                    <th className="px-3 py-2 font-medium text-right">Gross</th>
+                    <th className="px-3 py-2 font-medium text-right">Комиссия банка</th>
+                    <th className="px-3 py-2 font-medium text-right">Итого к получению</th>
+                    <th className="px-3 py-2 font-medium">Статус</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {payouts.map((p) => {
+                    const cur = p.currency || 'THB'
+                    const rates = { THB: 1, ...exchangeRates }
+                    const methodName = p.payoutMethod?.name || p.method || '—'
+                    const st = String(p.status || '').toUpperCase()
+                    const fmtMoney = (amt) => {
+                      const n = Number(amt) || 0
+                      if (cur === 'THB') return formatPrice(n, 'THB', rates, language)
+                      const loc = language === 'ru' ? 'ru-RU' : 'en-US'
+                      return `${n.toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`
+                    }
+                    return (
+                      <tr key={p.id} className="hover:bg-slate-50/80">
+                        <td className="px-3 py-2 whitespace-nowrap text-slate-700">
+                          {p.createdAt ? format(new Date(p.createdAt), 'dd.MM.yyyy HH:mm') : '—'}
+                        </td>
+                        <td className="px-3 py-2 text-slate-800">{methodName}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {fmtMoney(p.grossAmount)}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums text-amber-800">
+                          −{fmtMoney(p.payoutFeeAmount)}
+                        </td>
+                        <td className="px-3 py-2 text-right font-semibold tabular-nums text-emerald-800">
+                          {fmtMoney(p.finalAmount)}
+                        </td>
+                        <td className="px-3 py-2">
+                          <Badge className={`text-xs ${PAYOUT_STATUS_COLORS[st] || 'bg-slate-100'}`}>
+                            {PAYOUT_STATUS_LABEL[st] || st}
+                          </Badge>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-indigo-200 bg-indigo-50/50">
+        <CardHeader>
+          <CardTitle className="text-lg">Payout Math</CardTitle>
+          <CardDescription>
+            {defaultPayoutProfile?.method?.name
+              ? `Default method: ${defaultPayoutProfile.method.name}`
+              : 'Добавьте payout-профиль в разделе «Реквизиты для выплат», чтобы видеть банковскую комиссию заранее.'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-slate-600">BasePayout (pending)</span>
+            <span className="font-medium">{formatPrice(finances.pendingRevenue, currency, exchangeRates)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-600">Payout Fee</span>
+            <span className="font-medium">-{formatPrice(pendingPayoutPreview.fee, currency, exchangeRates)}</span>
+          </div>
+          <div className="flex justify-between pt-2 border-t border-indigo-200 text-base font-semibold">
+            <span>FinalAmount</span>
+            <span className="text-indigo-700">{formatPrice(pendingPayoutPreview.final, currency, exchangeRates)}</span>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Transaction History */}
       <Card>
         <CardHeader>
@@ -402,6 +581,7 @@ export default function PartnerFinancesV2() {
                 const rate = parseFloat(booking.commissionRate ?? booking.listing?.commissionRate) || DEFAULT_COMMISSION_RATE
                 const fee = gross * (rate / 100)
                 const net = parseFloat(booking.partnerEarningsThb) || (gross - fee)
+                const payoutMath = calcPayoutMath(net)
                 const checkIn = booking.checkIn || booking.check_in
                 const checkOut = booking.checkOut || booking.check_out
                 
@@ -448,6 +628,9 @@ export default function PartnerFinancesV2() {
                         {formatPrice(net, currency, exchangeRates)}
                       </div>
                       <p className="text-xs text-slate-500">{t('yourNetEarnings')}</p>
+                      <p className="text-xs text-indigo-700">
+                        Payout: {formatPrice(net, currency, exchangeRates)} - {formatPrice(payoutMath.fee, currency, exchangeRates)} = {formatPrice(payoutMath.final, currency, exchangeRates)}
+                      </p>
                     </div>
                   </div>
                 )

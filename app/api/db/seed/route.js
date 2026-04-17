@@ -49,7 +49,8 @@ export async function POST() {
     exchange_rates: [],
     profiles: [],
     promo_codes: [],
-    system_settings: []
+    system_settings: [],
+    payout_methods: [],
   };
   
   // 1. Seed Categories
@@ -141,6 +142,18 @@ export async function POST() {
   
   const settingsResult = await insertIfNotExists('system_settings', settings, 'key');
   results.system_settings.push({ key: settings.key, ...settingsResult });
+
+  // 7. Seed payout methods (Phase 1.4)
+  const payoutMethods = [
+    { id: 'pm-card-ru', name: 'Карта РФ', channel: 'CARD', fee_type: 'fixed', value: 3.5, currency: 'RUB', min_payout: 500, is_active: true },
+    { id: 'pm-bank-ru', name: 'Банк РФ', channel: 'BANK', fee_type: 'fixed', value: 25, currency: 'RUB', min_payout: 1000, is_active: true },
+    { id: 'pm-bank-th', name: 'Thai Bank Transfer', channel: 'BANK', fee_type: 'percentage', value: 0.8, currency: 'THB', min_payout: 500, is_active: true },
+    { id: 'pm-usdt-trc20', name: 'USDT TRC20', channel: 'CRYPTO', fee_type: 'fixed', value: 1, currency: 'USDT', min_payout: 30, is_active: true },
+  ];
+  for (const method of payoutMethods) {
+    const result = await insertIfNotExists('payout_methods', method);
+    results.payout_methods.push({ id: method.id, ...result });
+  }
   
   return NextResponse.json({
     success: true,
@@ -151,7 +164,7 @@ export async function POST() {
 
 export async function GET() {
   // Return current data counts
-  const tables = ['profiles', 'categories', 'listings', 'bookings', 'promo_codes', 'exchange_rates', 'system_settings'];
+  const tables = ['profiles', 'categories', 'listings', 'bookings', 'promo_codes', 'exchange_rates', 'system_settings', 'payout_methods', 'partner_payout_profiles'];
   const counts = {};
   
   for (const table of tables) {

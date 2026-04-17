@@ -73,7 +73,8 @@ export async function POST(request, { params }) {
     // price_thb = subtotal after discounts, commission_thb = guest service fee.
     const priceThb = parseFloat(booking.price_thb);
     const serviceFee = parseFloat(booking.commission_thb) || 0;
-    const totalThb = priceThb + serviceFee;
+    const roundingDiffPot = parseFloat(booking.rounding_diff_pot) || 0;
+    const totalThb = priceThb + serviceFee + roundingDiffPot;
     const usdtRate = await resolveThbPerUsdt();
     const totalUsdt = (totalThb / usdtRate).toFixed(2);
     
@@ -97,6 +98,7 @@ export async function POST(request, { params }) {
         amount: totalUsdt,
         currency: 'USDT',
         exchangeRate: usdtRate,
+        roundingDiffPot,
         expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 min expiry
       };
     } else if (method === 'CARD' || method === 'MIR') {

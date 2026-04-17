@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -25,12 +25,12 @@ function interpolateTemplate(str, vars = {}) {
 }
 import { QRCodeSVG } from 'qrcode.react'
 import { useCommission } from '@/hooks/use-commission'
+import { computeRoundedGuestTotalPot } from '@/lib/booking-price-integrity'
 
 // Official GoStayLo USDT TRC-20 Wallet Address
 const GOSTAYLO_WALLET = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
 
 function CheckoutPageInner({ params }) {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const { user, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(true)
@@ -43,8 +43,8 @@ function CheckoutPageInner({ params }) {
   const [cryptoModalOpen, setCryptoModalOpen] = useState(false)
   const [txId, setTxId] = useState('')
   const [paymentSuccess, setPaymentSuccess] = useState(false)
-  const [verificationStep, setVerificationStep] = useState(0) // 0: not started, 1: received, 2: verifying, 3: verified
-  const [confirmations, setConfirmations] = useState(0)
+  const [_verificationStep, setVerificationStep] = useState(0) // 0: not started, 1: received, 2: verifying, 3: verified
+  const [_confirmations, setConfirmations] = useState(0)
   const [verifying, setVerifying] = useState(false)
   const [txidSubmitted, setTxidSubmitted] = useState(false)
   const [liveVerification, setLiveVerification] = useState(null)
@@ -181,7 +181,9 @@ function CheckoutPageInner({ params }) {
         metadata: b.metadata,
         commissionRate: parseFloat(b.commission_rate),
         commissionThb: parseFloat(b.commission_thb) || 0,
-        partnerEarningsThb: parseFloat(b.partner_earnings_thb) || 0
+        partnerEarningsThb: parseFloat(b.partner_earnings_thb) || 0,
+        roundingDiffPot: parseFloat(b.rounding_diff_pot) || 0,
+        taxableMarginAmount: parseFloat(b.taxable_margin_amount) || 0,
       });
       
       if (l) {
@@ -569,7 +571,14 @@ function CheckoutPageInner({ params }) {
   const serviceFee = promoDiscount
     ? Math.round(priceAfterDiscount * (guestServiceFeePercent / 100))
     : Math.round(booking.commissionThb || 0)
-  const totalWithFee = priceAfterDiscount + serviceFee
+  const guestTotalBeforeRounding = priceAfterDiscount + serviceFee
+  const promoRounded = promoDiscount ? computeRoundedGuestTotalPot(guestTotalBeforeRounding) : null
+  const roundingDiffPot = promoDiscount
+    ? promoRounded?.roundingDiffPotThb || 0
+    : Math.max(0, Math.round(Number(booking.roundingDiffPot) || 0))
+  const totalWithFee = promoDiscount
+    ? promoRounded?.roundedGuestTotalThb || Math.round(guestTotalBeforeRounding)
+    : Math.round(guestTotalBeforeRounding + roundingDiffPot)
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -756,6 +765,14 @@ function CheckoutPageInner({ params }) {
                       {formatPrice(serviceFee, 'THB', exchangeRates, language)}
                     </span>
                   </div>
+                  {roundingDiffPot > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Rounding pot</span>
+                      <span className="font-medium">
+                        {formatPrice(roundingDiffPot, 'THB', exchangeRates, language)}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-lg font-bold border-t pt-2">
                     <span>{getUIText('checkout_total', language)}</span>
                     <span

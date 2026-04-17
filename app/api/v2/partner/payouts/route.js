@@ -19,22 +19,16 @@ export async function GET(request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const partnerId = searchParams.get('partnerId');
-    
-    if (!partnerId) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'partnerId is required' 
-      }, { status: 400 });
-    }
-
-    if (partnerId !== sessionUserId) {
+    const partnerIdParam = searchParams.get('partnerId');
+    /** Всегда только свои выплаты; partnerId из query игнорируется, если не совпадает с сессией */
+    const partnerId = sessionUserId;
+    if (partnerIdParam && partnerIdParam !== sessionUserId) {
       return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
     }
     
     const { data: payouts, error } = await supabaseAdmin
       .from('payouts')
-      .select('*')
+      .select('*, payout_method:payout_methods(id,name,channel,fee_type,value,currency), payout_profile:partner_payout_profiles(id,is_verified,is_default)')
       .eq('partner_id', partnerId)
       .order('created_at', { ascending: false });
     
@@ -46,8 +40,13 @@ export async function GET(request) {
     const transformed = payouts.map(p => ({
       id: p.id,
       amount: parseFloat(p.amount),
+      grossAmount: parseFloat(p.gross_amount) || parseFloat(p.amount) || 0,
+      payoutFeeAmount: parseFloat(p.payout_fee_amount) || 0,
+      finalAmount: parseFloat(p.final_amount) || parseFloat(p.amount) || 0,
       currency: p.currency,
       method: p.method,
+      payoutMethod: p.payout_method || null,
+      payoutProfile: p.payout_profile || null,
       status: p.status,
       walletAddress: p.wallet_address,
       transactionId: p.transaction_id,
@@ -75,12 +74,19 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const { partnerId, amount, method, walletAddress, bankAccount } = body;
+    const {
+      partnerId,
+      amount,
+      method,
+      walletAddress,
+      bankAccount,
+      payoutProfileId,
+    } = body;
     
-    if (!partnerId || !amount || !method) {
+    if (!partnerId || !amount) {
       return NextResponse.json({ 
         success: false, 
-        error: 'Missing required fields: partnerId, amount, method' 
+        error: 'Missing required fields: partnerId, amount' 
       }, { status: 400 });
     }
 
@@ -89,9 +95,10 @@ export async function POST(request) {
     }
     
     // Request payout using service
-    const result = await PaymentsV3Service.requestPayout(partnerId, amount, method, {
+    const result = await PaymentsV3Service.requestPayout(partnerId, amount, method || 'MANUAL', {
       walletAddress,
-      bankAccount
+      bankAccount,
+      payoutProfileId,
     });
     
     if (result.error) {
@@ -100,7 +107,11 @@ export async function POST(request) {
     
     console.log(`[PAYOUT] New payout request: ${result.payout.id} for ${amount} THB`);
     
-    return NextResponse.json({ success: true, data: result.payout });
+    return NextResponse.json({
+      success: true,
+      data: result.payout,
+      payoutMath: result.payoutMath || null,
+    });
     
   } catch (error) {
     console.error('[PAYOUTS POST ERROR]', error);

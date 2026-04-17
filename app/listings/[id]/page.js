@@ -50,6 +50,7 @@ import { useChatContext } from '@/lib/context/ChatContext'
 import { useCommission } from '@/hooks/use-commission'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import { getBookingApiUserMessage } from '@/lib/booking-error-message'
+import { computeRoundedGuestTotalPot } from '@/lib/booking-price-integrity'
 
 const CHAT_CACHE_TTL = 5 * 60 * 1000 // 5 min
 
@@ -435,6 +436,12 @@ function PremiumListingContent({ params }) {
       const serviceFee = Math.round(calc.totalPrice * serviceFeeRate)
       const commissionThbHost = Math.round(calc.totalPrice * hostCommissionRate)
       const partnerPayoutThb = calc.totalPrice - commissionThbHost
+      const guestPayable = calc.totalPrice + serviceFee
+      const roundedGuestTotal = computeRoundedGuestTotalPot(guestPayable)
+      if (!roundedGuestTotal) {
+        setPriceCalc(null)
+        return
+      }
       const baseRawSubtotal = Math.round(listing.basePriceThb * nights)
       const seasonalAdjustment = calc.originalPrice - baseRawSubtotal
 
@@ -451,7 +458,9 @@ function PremiumListingContent({ params }) {
         commissionThbHost,
         partnerPayoutThb,
         platformCutThb: serviceFee + commissionThbHost,
-        finalTotal: calc.totalPrice + serviceFee,
+        roundingDiffPot: roundedGuestTotal.roundingDiffPotThb,
+        finalTotalRaw: guestPayable,
+        finalTotal: roundedGuestTotal.roundedGuestTotalThb,
       })
     }
   }, [listing, dateRange, guests, commissionHook.loading, commissionHook.effectiveRate, commissionHook.guestServiceFeePercent])

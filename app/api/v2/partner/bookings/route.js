@@ -238,6 +238,8 @@ function transformBooking(booking, defaultCommissionPercent) {
     })(),
     commissionThb: parseFloat(booking.commission_thb) || 0,
     partnerEarningsThb: parseFloat(booking.partner_earnings_thb) || 0,
+    taxableMarginAmount: parseFloat(booking.taxable_margin_amount) || 0,
+    roundingDiffPot: parseFloat(booking.rounding_diff_pot) || 0,
     guestName: booking.guest_name,
     guestPhone: booking.guest_phone,
     guestEmail: booking.guest_email,

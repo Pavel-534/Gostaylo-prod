@@ -18,6 +18,7 @@ import {
   Plane, Settings, LogOut, Star
 } from 'lucide-react'
 import { telegramAccountLinkUrl } from '@/lib/telegram-bot-public'
+import { KycUploader } from '@/components/kyc-uploader'
 
 // Main export with Suspense wrapper for useSearchParams
 export default function ProfilePage() {
@@ -50,7 +51,6 @@ function ProfileContent() {
     portfolio: ''
   })
   const [applyingPartner, setApplyingPartner] = useState(false)
-  const [uploadingDoc, setUploadingDoc] = useState(false)
   const [verificationDocUrl, setVerificationDocUrl] = useState(null)
   
   // Partner application status
@@ -102,12 +102,20 @@ function ProfileContent() {
       })
       return
     }
+
+    if (!String(verificationDocUrl || '').trim()) {
+      toast({
+        title: 'Нужен документ',
+        description: 'Загрузите паспорт или ID для проверки заявки',
+        variant: 'destructive'
+      })
+      return
+    }
     
     setApplyingPartner(true)
     
     try {
-      // Use server API instead of direct Supabase call
-      const res = await fetch('/api/v2/partner/apply', {
+      const res = await fetch('/api/v2/partner/applications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -153,7 +161,6 @@ function ProfileContent() {
       
       setShowPartnerModal(false)
       
-      // Redirect to success page
       router.push(result.redirectTo || '/partner-application-success')
       
     } catch (error) {
@@ -585,118 +592,17 @@ function ProfileContent() {
               </p>
             </div>
             
-            {/* KYC Document Upload */}
-            <div className='space-y-2'>
-              <Label htmlFor='verificationDoc'>
-                Документ (паспорт/ID) <span className='text-slate-400 text-xs font-normal'>(рекомендуется)</span>
-              </Label>
-              <div className='border-2 border-dashed rounded-lg p-4 text-center'>
-                {verificationDocUrl ? (
-                  <div className='space-y-2'>
-                    <CheckCircle className='h-8 w-8 text-green-500 mx-auto' />
-                    <p className='text-sm text-green-600 font-medium'>Документ загружен</p>
-                    <p className='text-xs text-slate-400 break-all px-2'>
-                      {verificationDocUrl.split('/').pop()?.slice(0, 30)}...
-                    </p>
-                    <Button
-                      type='button'
-                      variant='outline'
-                      size='sm'
-                      onClick={() => setVerificationDocUrl(null)}
-                    >
-                      Удалить
-                    </Button>
-                  </div>
-                ) : uploadingDoc ? (
-                  <div className='space-y-2'>
-                    <Loader2 className='h-8 w-8 animate-spin text-teal-600 mx-auto' />
-                    <p className='text-sm text-slate-500'>Сжатие и загрузка...</p>
-                  </div>
-                ) : (
-                  <label className='cursor-pointer block'>
-                    <input
-                      type='file'
-                      accept='image/jpeg,image/png,image/webp,application/pdf'
-                      className='hidden'
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        if (!file) return
-                        
-                        setUploadingDoc(true)
-                        try {
-                          let fileToUpload = file
-                          
-                          // Compress image files (not PDFs)
-                          if (file.type.startsWith('image/')) {
-                            const imageCompression = (await import('browser-image-compression')).default
-                            
-                            const options = {
-                              maxSizeMB: 1,
-                              maxWidthOrHeight: 1200,
-                              useWebWorker: true,
-                              initialQuality: 0.8
-                            }
-                            
-                            try {
-                              fileToUpload = await imageCompression(file, options)
-                              console.log('Compressed:', file.size, '->', fileToUpload.size)
-                            } catch (compressErr) {
-                              console.error('Compression error:', compressErr)
-                              // Continue with original file if compression fails
-                            }
-                          }
-                          
-                          // Check size after compression (Vercel limit)
-                          if (fileToUpload.size > 4 * 1024 * 1024) {
-                            throw new Error('Файл слишком большой. Попробуйте файл меньшего размера.')
-                          }
-                          
-                          const formData = new FormData()
-                          formData.append('file', fileToUpload)
-                          formData.append('bucket', 'verification_documents')
-                          
-                          const res = await fetch('/api/v2/upload', {
-                            method: 'POST',
-                            credentials: 'include',
-                            body: formData
-                          })
-                          
-                          const result = await res.json()
-                          
-                          if (!res.ok || !result.success) {
-                            throw new Error(result.error || 'Upload failed. Try a smaller file.')
-                          }
-                          
-                          setVerificationDocUrl(result.url)
-                          toast({ 
-                            title: 'Документ загружен',
-                            description: 'Файл успешно сохранён'
-                          })
-                        } catch (err) {
-                          console.error('Upload error:', err)
-                          toast({
-                            title: 'Ошибка загрузки',
-                            description: err.message || 'Upload failed. Try a smaller file.',
-                            variant: 'destructive'
-                          })
-                          setVerificationDocUrl(null)
-                        } finally {
-                          setUploadingDoc(false)
-                          // Reset file input
-                          e.target.value = ''
-                        }
-                      }}
-                    />
-                    <Shield className='h-8 w-8 text-slate-400 mx-auto mb-2' />
-                    <p className='text-sm text-slate-600'>Нажмите для загрузки</p>
-                    <p className='text-xs text-slate-400 mt-1'>JPG, PNG или PDF (до 4MB)</p>
-                  </label>
-                )}
-              </div>
-              <p className='text-xs text-slate-500'>
-                Ускоряет проверку заявки. Документ виден только администратору.
-              </p>
-            </div>
+            <KycUploader
+              value={verificationDocUrl}
+              onChange={setVerificationDocUrl}
+              disabled={applyingPartner}
+              onUploadError={(msg) =>
+                toast({ title: 'Ошибка загрузки', description: msg, variant: 'destructive' })
+              }
+              onUploadSuccess={() =>
+                toast({ title: 'Документ загружен', description: 'Файл успешно сохранён' })
+              }
+            />
             
             {/* Sticky Footer for Mobile */}
             <div className='sticky bottom-0 bg-white pt-4 pb-2 border-t mt-4 -mx-6 px-6'>

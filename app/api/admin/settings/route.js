@@ -24,6 +24,8 @@ let mockSettings = {
   guestServiceFeePercent: 5,
   hostCommissionPercent: 0,
   insuranceFundPercent: 0.5,
+  settlementPayoutDelayDays: 1,
+  settlementPayoutHourLocal: 18,
   chatInvoiceRateMultiplier: platformDefaultChatInvoiceRateMultiplier(),
   maintenanceMode: false,
   heroTitle: 'Luxury Rentals in Phuket',
@@ -106,6 +108,14 @@ export async function GET() {
             : await resolveDefaultCommissionPercent(),
       insuranceFundPercent:
         Number.isFinite(rawInsurance) && rawInsurance >= 0 && rawInsurance <= 100 ? rawInsurance : 0.5,
+      settlementPayoutDelayDays: (() => {
+        const n = parseInt(String(data.value?.settlementPayoutDelayDays ?? ''), 10)
+        return Number.isFinite(n) && n >= 0 && n <= 60 ? n : 1
+      })(),
+      settlementPayoutHourLocal: (() => {
+        const n = parseInt(String(data.value?.settlementPayoutHourLocal ?? ''), 10)
+        return Number.isFinite(n) && n >= 0 && n <= 23 ? n : 18
+      })(),
       chatInvoiceRateMultiplier:
         Number.isFinite(rawChatMult) && rawChatMult >= 1 && rawChatMult <= 1.5
           ? rawChatMult
@@ -132,6 +142,8 @@ export async function PUT(request) {
       guestServiceFeePercent,
       hostCommissionPercent,
       insuranceFundPercent,
+      settlementPayoutDelayDays,
+      settlementPayoutHourLocal,
       chatInvoiceRateMultiplier,
       maintenanceMode,
       heroTitle,
@@ -186,6 +198,14 @@ export async function PUT(request) {
           const n = parseFloat(insuranceFundPercent)
           return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.insuranceFundPercent
         })(),
+        settlementPayoutDelayDays: (() => {
+          const n = parseInt(String(settlementPayoutDelayDays ?? ''), 10)
+          return Number.isFinite(n) && n >= 0 && n <= 60 ? n : mockSettings.settlementPayoutDelayDays
+        })(),
+        settlementPayoutHourLocal: (() => {
+          const n = parseInt(String(settlementPayoutHourLocal ?? ''), 10)
+          return Number.isFinite(n) && n >= 0 && n <= 23 ? n : mockSettings.settlementPayoutHourLocal
+        })(),
         chatInvoiceRateMultiplier: nextChatMult,
         maintenanceMode: !!maintenanceMode,
         heroTitle: heroTitle || '',
@@ -207,6 +227,8 @@ export async function PUT(request) {
     const parsedGuestFee = parseFloat(guestServiceFeePercent)
     const parsedHostCommission = parseFloat(hostCommissionPercent)
     const parsedInsurance = parseFloat(insuranceFundPercent)
+    const parsedDelayDays = parseInt(String(settlementPayoutDelayDays ?? ''), 10)
+    const parsedPayoutHour = parseInt(String(settlementPayoutHourLocal ?? ''), 10)
     const resolvedComm = Number.isFinite(parsedPut) && parsedPut >= 0
       ? parsedPut
       : await resolveDefaultCommissionPercent()
@@ -228,6 +250,18 @@ export async function PUT(request) {
         : Number.isFinite(parseFloat(existing?.value?.insuranceFundPercent))
           ? parseFloat(existing?.value?.insuranceFundPercent)
           : 0.5
+    const resolvedPayoutDelayDays =
+      Number.isFinite(parsedDelayDays) && parsedDelayDays >= 0 && parsedDelayDays <= 60
+        ? parsedDelayDays
+        : Number.isFinite(parseInt(String(existing?.value?.settlementPayoutDelayDays ?? ''), 10))
+          ? parseInt(String(existing?.value?.settlementPayoutDelayDays ?? ''), 10)
+          : 1
+    const resolvedPayoutHourLocal =
+      Number.isFinite(parsedPayoutHour) && parsedPayoutHour >= 0 && parsedPayoutHour <= 23
+        ? parsedPayoutHour
+        : Number.isFinite(parseInt(String(existing?.value?.settlementPayoutHourLocal ?? ''), 10))
+          ? parseInt(String(existing?.value?.settlementPayoutHourLocal ?? ''), 10)
+          : 18
     const parsedChat =
       chatInvoiceRateMultiplier != null && chatInvoiceRateMultiplier !== ''
         ? parseFloat(chatInvoiceRateMultiplier)
@@ -259,6 +293,8 @@ export async function PUT(request) {
       guestServiceFeePercent: resolvedGuestFee,
       hostCommissionPercent: resolvedHostCommission,
       insuranceFundPercent: resolvedInsurance,
+      settlementPayoutDelayDays: resolvedPayoutDelayDays,
+      settlementPayoutHourLocal: resolvedPayoutHourLocal,
       serviceFeePercent: resolvedGuestFee,
       chatInvoiceRateMultiplier: resolvedChatMult,
       maintenanceMode: !!maintenanceMode,

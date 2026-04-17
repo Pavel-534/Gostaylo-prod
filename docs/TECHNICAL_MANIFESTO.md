@@ -4,7 +4,7 @@
 
 **Стек:** Next.js **14** (App Router), React, Supabase (Postgres + Storage), JWT в cookie `gostaylo_session`, **`prisma/schema.prisma`** только как описание схемы (рантайм — Supabase).
 
-**Financial model version:** **3.2.0** (Split Fee: guest fee + host commission + insurance reserve).
+**Financial model version:** **3.5.0** (Split Fee + payout rails + rounding pot + **ledger** + **T-Bank CSV** + **acquiring webhook** + **admin payout verification** + **partner payout history**).
 
 **Синхронизация с кодом:** при изменении API, БД, поведения или значимого UX этот файл и **`docs/ARCHITECTURAL_PASSPORT.md`** обновляются в том же PR. Порядок чтения и правила для Cursor — **`AGENTS.md`**, **`.cursorrules`**, **`.cursor/rules/gostaylo-docs-constitution.mdc`**. SSOT политики — **`ARCHITECTURAL_DECISIONS.md`**.
 
@@ -50,6 +50,7 @@
 | Множитель курса для счетов в чате THB↔USDT | админка **`/admin/settings`** / env | **`getEffectiveRate`** + **`resolveChatInvoiceRateMultiplier`** |
 | Базовая валюта листинга (канон FX-логики) | `listings.base_currency` | **`BookingService`** + **`PricingService.getCheckoutRateToThb`** (совпала валюта оплаты и base_currency → наценка FX = 0%) |
 | Split Fee policy | `system_settings.general` | `guestServiceFeePercent`, `hostCommissionPercent`, `insuranceFundPercent` |
+| Payout rails dictionary | `payout_methods`, `partner_payout_profiles` | `PayoutRailsService`, `/api/v2/admin/payout-methods`, `/api/v2/partner/payout-profiles` |
 
 В **`currency.service.js`** не вводить захардкоженные курсы (например **35.5**). Множитель **1.02** как дефолт — только в **`currency-last-resort.js`** / админке (`chatInvoiceRateMultiplier`); он применяется к **витринной** карте в **`getDisplayRateMap`** и к чат-счетам USDT (**`getEffectiveRate`**).
 
@@ -94,7 +95,7 @@
 - Схема тела: **`lib/validations/booking.js`**; публичный вход — **`POST /api/v2/bookings`**.
 - **Финальный POST с клиента** (кнопка «Забронировать»): заголовки **`Cache-Control: no-cache`** и **`Pragma: no-cache`**, чтобы промежуточный HTTP-кэш (в т.ч. после **`private` TTL календаря**) не подставил устаревшую картину занятости; сервер всё равно делает **повторную проверку доступности** в **`BookingService`** непосредственно перед INSERT.
 - **Конфликт дат после кэша:** ответ **`code: 'DATES_CONFLICT'`** → пользователю **`getBookingApiUserMessage`** / **`bookingErr_datesConflict`** (локализовано в **`lib/translations/errors.js`**).
-- **Server-side Integrity (ценовая броня):** после промокода **`BookingService.createBooking` / `createInquiryBooking`** отклоняют бронь, если субтотал **&lt; 0** или **итог к оплате гостем** (**`price_thb + commission_thb`**, где `commission_thb` = guest service fee) **&lt; `MIN_BOOKING_GUEST_TOTAL_THB` (100)** — код **`BOOKING_MIN_TOTAL_THB`**, Telegram **`[SECURITY_ALERT]`**. Опционально тело **`clientQuotedGuestTotalThb`** (THB): при расхождении с серверным итогом — **`PRICE_MISMATCH`** + Telegram **`[PRICE_TAMPERING]`** / **`[FRAUD_DETECTION]`** (как у **`clientQuotedSubtotalThb`**). Константа и формула: **`lib/booking-price-integrity.js`**.
+- **Server-side Integrity (ценовая броня):** после промокода **`BookingService.createBooking` / `createInquiryBooking`** отклоняют бронь, если субтотал **&lt; 0** или **итог к оплате гостем** (с учетом `rounding_diff_pot` до ближайших 10 THB) **&lt; `MIN_BOOKING_GUEST_TOTAL_THB` (100)** — код **`BOOKING_MIN_TOTAL_THB`**, Telegram **`[SECURITY_ALERT]`**. Опционально тело **`clientQuotedGuestTotalThb`** (THB): при расхождении с серверным итогом — **`PRICE_MISMATCH`** + Telegram **`[PRICE_TAMPERING]`** / **`[FRAUD_DETECTION]`** (как у **`clientQuotedSubtotalThb`**). Константы и формулы: **`lib/booking-price-integrity.js`**.
 
 ### 1.4b Deep links (мобильные уведомления / внешние приложения)
 
@@ -120,7 +121,7 @@
 ### 1.5 Витринные курсы, снимок брони, оплата
 
 - **Единый источник курсов для витрины и полей `price_paid` / `exchange_rate` при создании брони:** **`CurrencyService.getDisplayRateMap()`**. Конвертация в список для поиска по коду — **`PricingService.getExchangeRates()`** (динамический импорт **`currency.service.js`**).
-- **При INSERT в `bookings`:** `exchange_rate` = **`rateToThb`** выбранной валюты запроса (THB за 1 единицу); `price_thb` = subtotal после скидок/промо; `commission_thb` = guest service fee; **`price_paid`** = **`(price_thb + commission_thb) / exchange_rate`**. Для **`currency === 'THB'`** курс **1**.
+- **При INSERT в `bookings`:** `exchange_rate` = **`rateToThb`** выбранной валюты запроса (THB за 1 единицу); `price_thb` = subtotal после скидок/промо; `commission_thb` = guest service fee; `rounding_diff_pot` = округление вверх до ближайших 10 THB; **`price_paid`** = **`(price_thb + commission_thb + rounding_diff_pot) / exchange_rate`**. Для **`currency === 'THB'`** курс **1**. Налоговая база агрегатора фиксируется в **`taxable_margin_amount = guest_paid_thb - partner_earnings_thb`**.
 - **Phase 1.1 (валютный контур):** `currency` в `POST /api/v2/bookings` валидируется по канону **`THB | USD | RUB | CNY | USDT`** (`lib/validations/booking.js`), а `baseCurrency` листинга — по **`THB | RUB | USD | USDT`**.
 - **Пересчёта при переходе в PAID нет:** **`BookingService.updateStatus`** и **`PUT /api/v2/partner/bookings/[id]`** меняют только **`status`** и временные метки (**`checked_in_at`** для PAID в partner flow), не трогая **`price_thb`**, **`exchange_rate`**, **`commission_*`**. Тело **PUT** парсится через **`request.text()`** + **`JSON.parse`**; пустое или невалидное JSON → **400**, не **500**.
 - **USDT в момент оплаты:** **`resolveThbPerUsdt()`** (цепочка **`exchange_rates` → API → env / `system_settings`**) используется в **`payment/initiate`**, **`payments-v3.service`**, верификации Tron — это **операционный курс оплаты**, не обязано совпадать с **`bookings.exchange_rate`** (который фиксирует валюту **запроса** гостя USD/RUB/CNY и берётся из витринной логики). Счета в чате THB↔USDT — **`getEffectiveRate`** (сырой USDT × **`resolveChatInvoiceRateMultiplier`**).
@@ -135,7 +136,7 @@
 ### 1.7 Traceability: листинг → карточка в чате
 
 1. **`listings.base_price_thb`** (+ **`seasonal_prices`** + **`metadata.seasonal_pricing`** + **`metadata.discounts`**).
-2. **`PricingService.calculateBookingPrice`** → **`PricingService.calculateFeeSplit`** → **`BookingService.createBooking`** → **`bookings`** (`price_thb` subtotal, `commission_thb` guest fee, `commission_rate` host %, `partner_earnings_thb`, `exchange_rate`, `price_paid`, `pricing_snapshot.fee_split_v2`).
+2. **`PricingService.calculateBookingPrice`** → **`PricingService.calculateFeeSplit`** → **`BookingService.createBooking`** → **`bookings`** (`price_thb` subtotal, `commission_thb` guest fee, `rounding_diff_pot`, `taxable_margin_amount`, `commission_rate` host %, `partner_earnings_thb`, `exchange_rate`, `price_paid`, `pricing_snapshot.fee_split_v2` + `settlement_v3.taxable_margin_amount`).
 3. **`ensureBookingConversation`** / **`ensureInquiryConversation`** → первая **`messages`**: system с **`metadata.price_thb`**, **`pricing_snapshot`**, **`booking_id`**.
 4. Обычный UI: **`ChatMilestoneCard`** — итог **THB** из **`metadata.price_thb`** (и даты из metadata).
 5. **`BookingRequestCard`** + **`lib/chat-booking-totals.js`** (`resolveChatBookingBreakdown`): только сообщения типа **`BOOKING_REQUEST`** в staff-треде; разбивка **× дней / × гостей** зависит от **`metadata.totalPrice` / `basePrice` / `days` / `group_size`** — не отдельный дубль сервера для стандартного **`booking_created`**.
@@ -184,6 +185,7 @@
 ## 4. Авторизация: 100% cookie + сервер (единый стандарт)
 
 - **Сессия:** HttpOnly **`gostaylo_session`** (JWT), выставляется только API логина/рефреша. Клиентский **`localStorage.gostaylo_user`** — кеш для UI и быстрого старта **`AuthProvider`**, **не** источник решения о доступе к закрытым зонам.
+- **Партнёрская заявка (KYC, Phase 1.8):** канонический **`POST /api/v2/partner/applications`** (и зеркальный **`POST /api/v2/partner/apply`** на тот же handler) — тело: **`phone`**, **`experience`**, опционально **`socialLink`**, **`portfolio`**, обязательно **`verificationDocUrl`** (публичный или прокси URL после **`POST /api/v2/upload`**, бакет **`verification_documents`**). Пользователь определяется **только из JWT**; при несовпадении с **`userId` в теле** — **403**. Запись в **`partner_applications.verification_doc_url`**, синхронизация **`profiles.phone`**, Telegram топик **NEW_PARTNERS**. UI: **`components/kyc-uploader.jsx`**, экраны **`/renter/profile`** и **`/profile`**. Одобрение по-прежнему **`POST /api/v2/admin/partners`** → **`profiles.role = PARTNER`**.
 - **Edge:** **`middleware.ts`** проверяет JWT и роль для префиксов **`/admin`**, **`/partner`**, **`/renter`**, **`/messages`**. Нет валидной сессии → редирект на **`/login?redirect=<path>`** (страница **`app/login/page.js`** кладёт `redirect` в `sessionStorage` и открывает вход через **`/profile?login=true`**).
 - **Админ-лейаут:** **`app/admin/layout.js`** после middleware дополнительно запрашивает **`GET /api/v2/auth/me`** (роль из БД). Без сессии → **`/login`**, не ADMIN/MODERATOR → **`/`**. Режим «войти как» (только при реальной роли ADMIN в JWT): UI берётся из **`localStorage`** при **`isImpersonated`**, подделка без ADMIN-сессии невозможна.
 - **Выход из админки:** **`POST /api/v2/auth/logout`** + очистка локальных ключей impersonation.
@@ -255,10 +257,11 @@
 | **Бронирования** | Ошибка INSERT; бронь без чата; необработанное исключение `POST /api/v2/bookings`; ручное бронирование календаря — ошибка БД |
 | **Гонка дат** | Повторная **`checkAvailability`** непосредственно перед INSERT в **`BookingService.createBooking`**; при конфликте — **`code: 'DATES_CONFLICT'`**, HTTP **409** из API (полная атомарность возможна только constraint/lock в Postgres) |
 | **Чат** | Сбой записи сообщения или инвойса (`POST /api/v2/chat/messages`) |
-| **Платежи** | Initiate/confirm PATCH; `PaymentsV3Service.submitTxid` / `confirmPayment` |
+| **Платежи** | Initiate/confirm PATCH; `PaymentsV3Service.submitTxid` / `confirmPayment`; после **`moveToEscrow`** — **`LedgerService.postPaymentCaptureFromBooking`** |
+| **Crypto webhook** | `POST /api/webhooks/crypto/confirm` — секрет **`CRYPTO_WEBHOOK_SHARED_SECRET`** (`x-crypto-webhook-secret` / `webhookSecret`), **`verifyTronTransaction`**, затем **`confirmPayment`** (без mock) |
 | **Resend** | Ошибки HTTP/исключения в `NotificationService.sendEmail`, `EmailService`, `admin/partners` |
 | **Cron** | `payouts`, `checkin-reminder`, `draft-digest`, `cleanup-drafts`, `ical-sync` (ошибка или исключение) |
-| **Webhooks** | `POST /api/webhooks/crypto/confirm` (JSON, тело, confirm API); `POST /api/webhooks/supabase/booking-status` (JSON, валидация, исключения) |
+| **Webhooks** | `POST /api/webhooks/supabase/booking-status` (JSON, валидация, исключения); crypto — см. строку **Crypto webhook** выше |
 
 **Чат — «тупики» UI:** при **`CANCELLED` / `REFUNDED` / `PAID` / `COMPLETED` / `PAID_ESCROW`** гость не видит панель оплаты (**`ChatActionBar`**, **`payNowHref`** в **`UnifiedMessagesClient`**). Карточка **`BookingRequestCard`**: кнопки партнёра только при **`PENDING`**; бейдж статуса синхронизирован с **`bookingStatus`**.
 
@@ -346,6 +349,7 @@
 | Realtime чат (backoff) | `lib/chat/realtime-subscribe-with-backoff.js`, `hooks/use-realtime-chat.js`, `lib/context/ChatContext.jsx` |
 | Платежи / эскроу | `lib/services/payments-v3.service.js`, `lib/services/escrow.service.js`, `app/api/cron/payouts` |
 | Политика задержки выплат | `system_settings.general.settlementPayoutDelayDays`, `system_settings.general.settlementPayoutHourLocal` |
+| Admin presets для fee/payout policy | `app/admin/settings/page.js`, `app/api/admin/settings/route.js` |
 | Системные TG-алерты | `lib/services/system-alert-notify.js`, `NotificationService.sendSystemAlert`, `lib/critical-telemetry.js`, `lib/services/fraud-telegram-ban-button.js` |
 | Admin: бан пользователя (TG link + API) | `POST/GET /api/v2/admin/users/ban`, `lib/auth/telegram-ban-link.js` |
 | E2E hygiene helper / cleanup | `lib/e2e/test-data-tag.js`, `tests/global-teardown.ts`, `scripts/clean-e2e-garbage.mjs` |
@@ -419,7 +423,14 @@
 
 - Реализация: Playwright **`tests/e2e/bots/accountant-math.spec.ts`**, проект **`accountant-bot`** в **`playwright.config.ts`**.
 - Витрина (листинг, **vehicles**, **3 суток**): **`Итог ≈ Субтотал + Сервисный сбор`** в **THB / RUB / USD**; атрибуты **`data-test-subtotal-value`**, **`data-test-subtotal-thb`**, **`data-test-fee-value`**, **`data-test-fee-thb`** (**`booking-breakdown-service-fee`**), **`data-test-raw-value`** / **`data-test-total-thb`** на итоге, **`data-test-payout-value`** + **`data-test-payout-thb`** (скрытый) — выплата партнёра; строгая идентичность **субтотал − выплата = сбор** проверяется в **THB** (канон), чтобы избежать дрейфа округления FX по строкам.
-- **Распределение дохода (Split Fee v3.2.0):** **User Total** (гость) = **`price_thb + commission_thb`**, где `commission_thb` = **guest service fee**; **Host commission** считается отдельно (`commission_rate`, `applied_commission_rate`) и влияет на **`partner_earnings_thb`**; **Platform gross margin** = guest fee + host commission; **`settlement_v3.insurance_reserve_amount`** = доля от platform margin по `insuranceFundPercent`.
+- **Распределение дохода (Split Fee v3.5.0):** **User Total** (гость) = **`price_thb + commission_thb + rounding_diff_pot`**, где `commission_thb` = **guest service fee**; **Host commission** считается отдельно (`commission_rate`, `applied_commission_rate`) и влияет на **`partner_earnings_thb`**; **Platform gross margin** = guest fee + host commission; **`settlement_v3.insurance_reserve_amount`** = доля от platform margin по `insuranceFundPercent`; **`taxable_margin_amount`** фиксирует базу налога агрегатора: `guest_paid_thb - partner_earnings_thb`.
+- **Ledger (double-entry, THB):** миграция **`database/migrations/030_financial_phase1_5_ledger_booking_metadata.sql`** — таблицы **`ledger_accounts`**, **`ledger_journals`**, **`ledger_entries`** и колонка **`bookings.metadata`**. Проводка **после фактического зачисления** при переходе брони в **`PAID_ESCROW`** внутри **`EscrowService.moveToEscrow`** (вызов из **`PaymentsV3Service.confirmPayment`**): **DEBIT** `GUEST_PAYMENT_CLEARING` на полную сумму гостя; **CREDIT** партнёрский счёт (`PARTNER_EARNINGS` + `partner_id`), **PLATFORM_FEE** (маржа минус страховой резерв), **INSURANCE_FUND_RESERVE**, **PROCESSING_POT_ROUNDING** (`rounding_diff_pot`). Идемпотентность: **`ledger_journals.idempotency_key = booking_payment_capture:{booking_id}`**. Реализация: **`lib/services/ledger.service.js`**. Админ: **`GET /api/v2/admin/ledger-balances`**, **`GET /api/v2/admin/ledger-reconciliation`** (MVP сверка Cash = clearing), UI **`/admin/financial-health`**.  
+  *Примечание:* статус **`CONFIRMED`** у брони в продукте — чаще **подтверждение партнёра до оплаты**; бухгалтерское признание выручки завязано на **`PAID_ESCROW`** (оплата подтверждена и эскроу создан).
+- **T-Bank payout registry (CSV):** **`POST /api/v2/admin/payouts/tbank-registry`** (ADMIN) — тело опционально **`{ "encoding": "utf-8" | "windows-1251" }`**. При **`windows-1251`** ответ содержит **`csvBase64`** (бинарная CP1251 без UTF-BOM), иначе поле **`csv`** (UTF-8). Кодирование: **`encodeTbankCsvForDownload`** в **`lib/services/tbank-payout-registry.service.js`** (**`iconv-lite`**). Выборка **`payouts.status = PENDING`**, метод **`pm-bank-ru`** (или **BANK+RUB**), профиль **`partner_payout_profiles.is_verified = true`**, реквизиты в **`data`**: `accountNumber`, `bik`, `inn`, ФИО — `recipientName` / `fullName` / ФИО из **`profiles`**. CSV: **`ФИО;Номер счета;БИК;ИНН;Назначение платежа;Сумма`**, UTF-8 BOM, разделитель **`;`**. После успешного включения строки в файл — **`payouts.status → PROCESSING`**, в **`metadata.tbank_registry_exported_at`** — ISO timestamp. Кнопка на **`/admin/financial-health`**. Неверифицированные / неполные профили **не попадают** в выгрузку (см. **`skippedUnverified`**).
+- **Верификация реквизитов (admin):** **`GET /api/v2/admin/partner-payout-profiles`** — список **`partner_payout_profiles`** с **`is_verified = false`** (+ партнёр, метод). **`PATCH /api/v2/admin/partner-payout-profiles/[id]`** с **`{ "action": "verify" }`** → **`is_verified: true`**. UI: **`/admin/payout-verification`**.
+- **История выплат (partner):** **`GET /api/v2/partner/payouts`** — только выплаты **текущей сессии** (`partner_id` берётся из JWT/cookie, параметр **`partnerId` в query** не может указывать на чужого пользователя). Таблица на **`/partner/finances`**. Админ: **`GET /api/v2/admin/payouts`** — все выплаты (ADMIN).
+- **Ledger reporting (admin UI):** **`GET /api/v2/admin/ledger-balances`** расширен блоком **`ledgerReporting`**: **`roundingPotLedgerThb`** / **`insuranceFundLedgerThb`** и алиасы **`RESERVES`** → **`INSURANCE_FUND_RESERVE`**, **`FEE_CLEARING`** → **`PROCESSING_POT_ROUNDING`** для ярких карточек на **`/admin/financial-health`**.
+- **Acquiring webhook (карты / PSP):** **`POST /api/webhooks/payments/confirm`** — обязателен **`PAYMENT_ACQUIRING_WEBHOOK_SECRET`**: заголовок **`X-Webhook-Signature`** = **hex(HMAC-SHA256(rawBody, secret))**. Поддерживаются плоское JSON (`bookingId`, `paymentId`, `amount`, `currency`, `paid`) и упрощённая форма **YooKassa** (`event`, `object.amount`, `object.metadata.booking_id` / `payment_id`). При **`currency=THB`** сверяется сумма с ожидаемым итогом гостя по брони; затем **`PaymentsV3Service.confirmPayment`** (ledger через эскроу). См. **`docs/ARCHITECTURAL_PASSPORT.md`** (раздел webhooks).
 - Минимальная проверка: итог **≥ 100 THB** (**`data-test-total-thb`**).
 - Алерт при провале: **`POST /api/v2/internal/e2e/financial-error-alert`** + **`x-e2e-fixture-secret`** → **`recordCriticalSignal('FINANCIAL_ERROR', …)`**, текст вида **`Mismatch: Expected …, Got …`**.
 

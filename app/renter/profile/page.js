@@ -38,6 +38,7 @@ import { getUIText } from '@/lib/translations'
 import { telegramAccountLinkUrl } from '@/lib/telegram-bot-public'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { signOut } from '@/lib/auth'
+import { KycUploader } from '@/components/kyc-uploader'
 
 /** Profile completion: only real fields (25% each) */
 function calculateProfileCompletion(user) {
@@ -94,12 +95,31 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
     phone: '',
     experience: '',
     socialLink: '',
-    portfolio: ''
+    portfolio: '',
+    verificationDocUrl: null,
   })
-  
+
+  const kycStrings = {
+    label: getUIText('partnerKycLabel', language),
+    requiredBadge: '*',
+    uploading: getUIText('partnerKycUploading', language),
+    uploaded: getUIText('partnerKycUploaded', language),
+    remove: getUIText('partnerKycRemove', language),
+    tapToUpload: getUIText('partnerKycTapToUpload', language),
+    fileTypesHint: getUIText('partnerKycFileTypesHint', language),
+    privacyHint: getUIText('partnerKycPrivacyHint', language),
+    errorTooLarge: getUIText('partnerKycErrorTooLarge', language),
+    errorUploadFailed: getUIText('partnerKycErrorUpload', language),
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSubmit(formData)
+    const doc = String(formData.verificationDocUrl || '').trim()
+    if (!doc) {
+      toast.error(getUIText('partnerKycDocRequiredError', language))
+      return
+    }
+    onSubmit({ ...formData, verificationDocUrl: doc })
   }
   
   if (!isOpen) return null
@@ -176,7 +196,16 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
               />
             </div>
-            
+
+            <KycUploader
+              value={formData.verificationDocUrl}
+              onChange={(url) => setFormData((prev) => ({ ...prev, verificationDocUrl: url }))}
+              disabled={isSubmitting}
+              strings={kycStrings}
+              onUploadError={(msg) => toast.error(msg)}
+              onUploadSuccess={() => toast.success(getUIText('partnerKycUploadSuccess', language))}
+            />
+
             <div className="flex gap-3 pt-4">
               <Button
                 type="button"
@@ -190,7 +219,7 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
               <Button
                 type="submit"
                 className="flex-1 bg-teal-600 hover:bg-teal-700"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !String(formData.verificationDocUrl || '').trim()}
               >
                 {isSubmitting ? (
                   <>
@@ -318,13 +347,14 @@ export default function RenterProfilePage() {
       const res = await fetch('/api/v2/partner/applications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          userId: user.id,
           phone: formData.phone,
           experience: formData.experience,
           socialLink: formData.socialLink,
-          portfolio: formData.portfolio
-        })
+          portfolio: formData.portfolio,
+          verificationDocUrl: formData.verificationDocUrl,
+        }),
       })
       
       const data = await res.json()
