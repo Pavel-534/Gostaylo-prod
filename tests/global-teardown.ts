@@ -5,13 +5,22 @@ import { E2E_TEST_DATA_TAG } from '../lib/e2e/test-data-tag.js'
 
 const MAX_IN = 200
 
+/** Отдельная обёртка — `ReturnType<typeof createClient>` даёт другой generic-профиль, чем фактический `sb` (ошибка TS на Vercel). */
+function createTeardownSupabase(url: string, key: string) {
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
+
+type TeardownSupabase = ReturnType<typeof createTeardownSupabase>
+
 function chunk(arr: string[], size = MAX_IN) {
   const out: string[][] = []
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size))
   return out
 }
 
-async function deleteInBatches(sb: ReturnType<typeof createClient>, table: string, column: string, ids: string[]) {
+async function deleteInBatches(sb: TeardownSupabase, table: string, column: string, ids: string[]) {
   for (const part of chunk(ids)) {
     if (!part.length) continue
     const { error } = await sb.from(table).delete().in(column, part)
@@ -42,9 +51,7 @@ export default async function globalTeardown() {
     return
   }
 
-  const sb = createClient(supabaseUrl, serviceRole, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  const sb = createTeardownSupabase(supabaseUrl, serviceRole)
 
   const like = `%${E2E_TEST_DATA_TAG}%`
 
