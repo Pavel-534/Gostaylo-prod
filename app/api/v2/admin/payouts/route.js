@@ -1,5 +1,6 @@
 /**
  * GET /api/v2/admin/payouts — все выплаты (только ADMIN).
+ * Query: `status` — одно значение enum **или** псевдоним **`FINAL` | `SUCCESS` | `PAID_OR_COMPLETED`** → строки со статусом **PAID** и **COMPLETED** (финальные успешные).
  */
 
 import { NextResponse } from 'next/server';
@@ -34,6 +35,8 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const limit = Math.min(500, Math.max(1, parseInt(searchParams.get('limit') || '200', 10)));
   const statusFilter = String(searchParams.get('status') || '').trim().toUpperCase();
+  /** PAID и COMPLETED — финальные успешные выплаты (единый фильтр для отчётов). */
+  const FINAL_SUCCESS_ALIASES = new Set(['FINAL', 'SUCCESS', 'PAID_OR_COMPLETED', 'COMPLETED_OR_PAID']);
 
   try {
     let q = supabaseAdmin.from('payouts').select(
@@ -44,7 +47,11 @@ export async function GET(request) {
       `,
     );
     if (statusFilter) {
-      q = q.eq('status', statusFilter);
+      if (FINAL_SUCCESS_ALIASES.has(statusFilter)) {
+        q = q.in('status', ['PAID', 'COMPLETED']);
+      } else {
+        q = q.eq('status', statusFilter);
+      }
     }
     const { data: payouts, error } = await q.order('created_at', { ascending: false }).limit(limit);
 
@@ -52,7 +59,9 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    const transformed = (payouts || []).map((p) => ({
+    const transformed = (payouts || []).map((p) => {
+      const st = String(p.status || '').toUpperCase();
+      return {
       id: p.id,
       partnerId: p.partner_id,
       bookingId: p.booking_id,
@@ -62,12 +71,14 @@ export async function GET(request) {
       finalAmount: parseFloat(p.final_amount) || parseFloat(p.amount) || 0,
       currency: p.currency,
       status: p.status,
+      isFinalSuccess: st === 'PAID' || st === 'COMPLETED',
       rejectionReason: p.rejection_reason || null,
       payoutMethod: p.payout_method || null,
       payoutProfile: p.payout_profile || null,
       createdAt: p.created_at,
       processedAt: p.processed_at,
-    }));
+    };
+    });
 
     return NextResponse.json({ success: true, data: transformed });
   } catch (e) {

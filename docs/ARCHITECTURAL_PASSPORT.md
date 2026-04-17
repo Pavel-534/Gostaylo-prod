@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 3.5.3 | **Last Updated**: 2026-04-17 | **Status**: Production-Ready
+> **Version**: 3.5.5 | **Last Updated**: 2026-04-17 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -9,8 +9,8 @@
 ## 0. Critical Routes & Services
 
 ### 0.0a Admin Financial Health (Ledger)
-- **UI:** `app/admin/financial-health/page.jsx` — маршрут **`/admin/financial-health`**, карточки остатков по счетам **PROCESSING_POT_ROUNDING** («котёл на платёжки») и **INSURANCE_FUND_RESERVE** (страховой фонд), плюс **PLATFORM_FEE** и агрегат **PARTNER_EARNINGS**; блок **сверки Cash (MVP)** при **`marginLeakage`**; кнопка **«Сформировать реестр для Т-Банка»** (скачивание CSV); таблица выплат в **`PROCESSING`** с кнопками **PAID** / **FAILED** (ручной статус без банковского API).
-- **API:** **`GET /api/v2/admin/ledger-balances`** — только **`profiles.role === 'ADMIN'`**; агрегация **`sum(CREDIT) − sum(DEBIT)`** по строкам **`ledger_entries`** (см. **`lib/services/ledger.service.js`**). **`GET /api/v2/admin/ledger-reconciliation`** — сверка: сумма **DEBIT** по **`GUEST_PAYMENT_CLEARING`** vs сумма **CREDIT** по всем прочим счетам; расхождение или несходящиеся журналы → **Margin Leakage**.
+- **UI:** `app/admin/financial-health/page.jsx` — маршрут **`/admin/financial-health`**, карточки остатков по счетам **PROCESSING_POT_ROUNDING** («котёл на платёжки») и **INSURANCE_FUND_RESERVE** (страховой фонд), плюс **PLATFORM_FEE** и агрегат **PARTNER_EARNINGS**; блок **сверки Cash (MVP)** при **`marginLeakage`**; кнопка **«Сформировать реестр для Т-Банка»** (скачивание CSV); таблица выплат в **`PROCESSING`** с кнопками **PAID** / **FAILED** и **AlertDialog** подтверждения перед отправкой **PATCH**.
+- **API:** **`GET /api/v2/admin/ledger-balances`** — только **`profiles.role === 'ADMIN'`**; агрегация **`sum(CREDIT) − sum(DEBIT)`** по строкам **`ledger_entries`** (см. **`lib/services/ledger.service.js`**). **`GET /api/v2/admin/ledger-reconciliation`** — сверка **только Booking Capture**: **DEBIT** по **`GUEST_PAYMENT_CLEARING`** и **CREDIT** по прочим счетам **внутри журналов с clearing DEBIT**; **CREDIT** на **`PARTNER_PAYOUTS_SETTLED`** в «распределение» не входят; smoke **`payoutSelfCheck`** (открытые выплаты vs **PARTNER_EARNINGS**). Расхождение clearing↔credits или несходящиеся журналы → **Margin Leakage**.
 - **T-Bank CSV:** **`POST /api/v2/admin/payouts/tbank-registry`** — см. **`lib/services/tbank-payout-registry.service.js`**: **`payouts` PENDING**, метод **`pm-bank-ru`** (или BANK+RUB), только **`partner_payout_profiles.is_verified`**, полные **`data`** (счёт, БИК, ИНН). После экспорта — **`PROCESSING`**. Формат колонок: **ФИО;Номер счета;БИК;ИНН;Назначение платежа;Сумма** (UTF-8 BOM); опционально **`encoding: windows-1251`** → **`csvBase64`**. Верификация профилей: **`/admin/payout-verification`**, API **`GET /api/v2/admin/partner-payout-profiles`**, **`PATCH .../[id]`** с **`action: verify`**.
 - **Копилка / страховой фонд (ledger):** на **`/admin/financial-health`** две карточки по данным **`ledgerReporting`** из **`GET /api/v2/admin/ledger-balances`**: **Rounding Pot** = счёт **`PROCESSING_POT_ROUNDING`** (алиас **FEE_CLEARING**), **Insurance Fund** = **`INSURANCE_FUND_RESERVE`** (алиас **RESERVES**); соглашение по балансу — как в **`ledger-balances`**.
 - **Проводки:** при успешном **`EscrowService.moveToEscrow`** (бронь → **`PAID_ESCROW`**, подтверждённая оплата через **`PaymentsV3Service.confirmPayment`**) создаётся журнал **`BOOKING_PAYMENT_CAPTURED`** с пятью ногами: **DEBIT** `GUEST_PAYMENT_CLEARING`; **CREDIT** партнёрский счёт, **PLATFORM_FEE**, **INSURANCE_FUND_RESERVE**, **PROCESSING_POT_ROUNDING**. Суммы берутся из **`pricing_snapshot.fee_split_v2`** / колонок брони (идемпотентность: **`ledger_journals.idempotency_key`**). Журналы без брони: **`ledger_journals.booking_id`** может быть **NULL** (миграция **`032_ledger_payout_settlement.sql`**) — проводка **`PARTNER_PAYOUT_OBLIGATION_SETTLED`** при ручном **PAID**: **DEBIT** `PARTNER_EARNINGS` (партнёр), **CREDIT** **`PARTNER_PAYOUTS_SETTLED`** (`la-sys-partner-payouts-settled`), сумма **THB** = **`payouts.gross_amount`** (база до комиссии метода).
@@ -830,12 +830,12 @@ static calculateTotalWithAddons(baseTotal, addons = []) {
 | POST | `/api/v2/bookings/[id]/payment/confirm` | Confirm payment |
 | POST | `/api/v2/bookings/[id]/check-in/confirm` | Confirm check-in |
 | GET | `/api/v2/admin/ledger-balances` | ADMIN: остатки ledger (THB) |
-| GET | `/api/v2/admin/ledger-reconciliation` | ADMIN: сверка clearing vs распределение (MVP) |
+| GET | `/api/v2/admin/ledger-reconciliation` | ADMIN: сверка clearing vs credits в журналах захвата оплаты (MVP) |
 | POST | `/api/v2/admin/payouts/tbank-registry` | ADMIN: CSV реестр Т-Банка + PROCESSING |
 | GET | `/api/v2/admin/partner-payout-profiles` | ADMIN: профили выплат без верификации |
 | PATCH | `/api/v2/admin/partner-payout-profiles/[id]` | ADMIN: верифицировать профиль |
-| GET | `/api/v2/admin/payouts` | ADMIN: выплаты; опционально **`?status=PROCESSING`** |
-| PATCH | `/api/v2/admin/payouts/[id]` | ADMIN: **`{ "status": "PAID" \| "FAILED", "adminNote"?: string }`** — PAID → ledger + статус; FAILED только из **PROCESSING** |
+| GET | `/api/v2/admin/payouts` | ADMIN: выплаты; **`?status=PROCESSING`** или **`?status=FINAL`** (алиасы **SUCCESS**, **PAID_OR_COMPLETED**) → **PAID**+**COMPLETED**; поле **`isFinalSuccess`** |
+| PATCH | `/api/v2/admin/payouts/[id]` | ADMIN: **`{ "status", "adminNote"? }`** — ключ **`adminNote`** при наличии пишет **metadata** (**PAID** и **FAILED**); PAID → ledger; FAILED только из **PROCESSING** |
 
 ### 7.3 Admin API
 

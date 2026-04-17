@@ -3,6 +3,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Loader2, RefreshCw, Landmark, PiggyBank, Wallet, Building2, FileSpreadsheet, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -28,6 +38,8 @@ export default function AdminFinancialHealthPage() {
   const [loading, setLoading] = useState(true);
   const [registryLoading, setRegistryLoading] = useState(false);
   const [payoutActionId, setPayoutActionId] = useState(null);
+  /** @type {{ payoutId: string, status: 'PAID' | 'FAILED', note: string } | null} */
+  const [payoutConfirm, setPayoutConfirm] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -125,14 +137,18 @@ export default function AdminFinancialHealthPage() {
     }
   }
 
-  async function markPayoutStatus(payoutId, status) {
+  async function markPayoutStatus(payoutId, status, adminNote) {
     setPayoutActionId(payoutId);
     try {
+      const payload = { status };
+      if (typeof adminNote === 'string' && adminNote.trim().length > 0) {
+        payload.adminNote = adminNote.trim();
+      }
       const res = await fetch(`/api/v2/admin/payouts/${encodeURIComponent(payoutId)}`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify(payload),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.success) {
@@ -150,6 +166,55 @@ export default function AdminFinancialHealthPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <AlertDialog
+        open={payoutConfirm !== null}
+        onOpenChange={(open) => {
+          if (!open) setPayoutConfirm(null);
+        }}
+      >
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {payoutConfirm?.status === 'PAID' ? 'Подтвердить PAID' : 'Подтвердить FAILED'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {payoutConfirm?.status === 'PAID'
+                ? 'В ledger будет проведена запись списания с PARTNER_EARNINGS. Отменить автоматически нельзя — проверьте банк.'
+                : 'Выплата будет помечена как ошибка банка. Убедитесь, что реестр/платёж не прошёл.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700">Комментарий админа (опционально)</label>
+            <Textarea
+              value={payoutConfirm?.note ?? ''}
+              onChange={(e) =>
+                setPayoutConfirm((prev) => (prev ? { ...prev, note: e.target.value } : prev))
+              }
+              placeholder="Внутренняя пометка (metadata)"
+              rows={3}
+              className="resize-none min-h-0"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!payoutActionId}>Отмена</AlertDialogCancel>
+            <Button
+              variant={payoutConfirm?.status === 'FAILED' ? 'destructive' : 'default'}
+              className={payoutConfirm?.status === 'PAID' ? 'bg-emerald-700 hover:bg-emerald-800' : ''}
+              disabled={!!payoutActionId || !payoutConfirm}
+              onClick={() => {
+                if (!payoutConfirm) return;
+                void (async () => {
+                  await markPayoutStatus(payoutConfirm.payoutId, payoutConfirm.status, payoutConfirm.note);
+                  setPayoutConfirm(null);
+                })();
+              }}
+            >
+              Подтвердить
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Финансовое здоровье (Ledger)</h1>
@@ -213,7 +278,7 @@ export default function AdminFinancialHealthPage() {
                             size="sm"
                             className="bg-emerald-700 text-white hover:bg-emerald-800"
                             disabled={!!payoutActionId}
-                            onClick={() => void markPayoutStatus(p.id, 'PAID')}
+                            onClick={() => setPayoutConfirm({ payoutId: p.id, status: 'PAID', note: '' })}
                           >
                             {payoutActionId === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'PAID'}
                           </Button>
@@ -221,7 +286,7 @@ export default function AdminFinancialHealthPage() {
                             size="sm"
                             variant="destructive"
                             disabled={!!payoutActionId}
-                            onClick={() => void markPayoutStatus(p.id, 'FAILED')}
+                            onClick={() => setPayoutConfirm({ payoutId: p.id, status: 'FAILED', note: '' })}
                           >
                             FAILED
                           </Button>
@@ -291,11 +356,12 @@ export default function AdminFinancialHealthPage() {
               ) : (
                 <Wallet className="h-5 w-5 text-slate-600" />
               )}
-              Сверка Cash (MVP)
+              Сверка Cash (MVP) — только Booking Capture
             </CardTitle>
             <CardDescription>
-              {recon.cashAccountLabel}. Сравнение суммы DEBIT по clearing и суммы CREDIT по распределению; журналы с
-              дисбалансом: {recon.unbalancedJournals ?? 0}.
+              {recon.cashAccountLabel}. DEBIT clearing и CREDIT распределения считаются только в журналах захвата
+              оплаты; <span className="font-mono">PARTNER_PAYOUTS_SETTLED</span> не входит в распределение. Журналов с
+              дисбалансом DR/CR: {recon.unbalancedJournals ?? 0}.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
@@ -318,6 +384,24 @@ export default function AdminFinancialHealthPage() {
             ) : (
               <p className="text-emerald-800">Расхождений не найдено (в пределах 0,02 THB).</p>
             )}
+            {recon.payoutSelfCheck ? (
+              <div
+                className={`mt-3 rounded-lg border p-3 text-xs ${
+                  recon.payoutSelfCheck.equalsLedgerWithinTolerance
+                    ? 'border-emerald-200 bg-emerald-50/80 text-emerald-900'
+                    : 'border-slate-200 bg-slate-50 text-slate-800'
+                }`}
+              >
+                <p className="font-semibold text-sm mb-1">Smoke: открытые выплаты vs PARTNER_EARNINGS (ledger)</p>
+                <p>
+                  Σ gross (PENDING+PROCESSING): <strong>{fmtThb(recon.payoutSelfCheck.openPipelineGrossThb)}</strong> ·
+                  Нетто PARTNER_EARNINGS:{' '}
+                  <strong>{fmtThb(recon.payoutSelfCheck.partnerEarningsLedgerNetThb)}</strong> · Дельта:{' '}
+                  <strong>{fmtThb(recon.payoutSelfCheck.deltaOpenVsLedgerThb)}</strong>
+                </p>
+                <p className="mt-2 text-slate-600 leading-relaxed">{recon.payoutSelfCheck.note}</p>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       )}

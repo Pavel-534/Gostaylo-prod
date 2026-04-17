@@ -1,6 +1,8 @@
 /**
  * PATCH /api/v2/admin/payouts/[id] — ручной статус выплаты (PAID / FAILED) без банковского API.
  * PAID: финальная проводка PARTNER_EARNINGS → PARTNER_PAYOUTS_SETTLED (см. LedgerService.postPartnerPayoutObligationSettled).
+ * Body: `{ "status": "PAID"|"FAILED", "adminNote"?: string }` — если ключ **adminNote** передан (в т.ч. пустая строка),
+ * для **PAID** пишется **metadata.admin_marked_paid_note**, для **FAILED** — **metadata.admin_marked_failed_note** и **rejection_reason** (при непустом тексте).
  */
 
 import { NextResponse } from 'next/server';
@@ -53,7 +55,12 @@ export async function PATCH(request, { params }) {
     );
   }
 
-  const adminNote = body?.adminNote != null ? String(body.adminNote).trim().slice(0, 2000) : '';
+  const hasAdminNoteKey = body && typeof body === 'object' && Object.prototype.hasOwnProperty.call(body, 'adminNote');
+  const adminNoteStored = hasAdminNoteKey
+    ? String(body.adminNote ?? '')
+        .trim()
+        .slice(0, 2000)
+    : null;
 
   const { data: row, error: fetchErr } = await supabaseAdmin
     .from('payouts')
@@ -95,7 +102,7 @@ export async function PATCH(request, { params }) {
           ...prevMeta,
           admin_marked_paid_at: new Date().toISOString(),
           admin_marked_paid_by: auth.userId,
-          ...(adminNote ? { admin_marked_paid_note: adminNote } : {}),
+          ...(hasAdminNoteKey ? { admin_marked_paid_note: adminNoteStored } : {}),
           ledger_journal_id: ledger.journalId || prevMeta.ledger_journal_id || null,
         },
       })
@@ -127,12 +134,13 @@ export async function PATCH(request, { params }) {
     .update({
       status: 'FAILED',
       processed_at: new Date().toISOString(),
-      rejection_reason: adminNote || row.rejection_reason || 'Bank / manual failure',
+      rejection_reason:
+        (hasAdminNoteKey ? adminNoteStored : null) || row.rejection_reason || 'Bank / manual failure',
       metadata: {
         ...prevMeta,
         admin_marked_failed_at: new Date().toISOString(),
         admin_marked_failed_by: auth.userId,
-        ...(adminNote ? { admin_marked_failed_note: adminNote } : {}),
+        ...(hasAdminNoteKey ? { admin_marked_failed_note: adminNoteStored } : {}),
       },
     })
     .eq('id', id)
