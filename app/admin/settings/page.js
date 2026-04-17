@@ -14,6 +14,9 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [settings, setSettings] = useState({
     defaultCommissionRate: 15,
+    guestServiceFeePercent: 5,
+    hostCommissionPercent: 0,
+    insuranceFundPercent: 0.5,
     chatInvoiceRateMultiplier: 1.02,
     maintenanceMode: false,
     heroTitle: '',
@@ -166,7 +169,7 @@ export default function SettingsPage() {
         <CardContent className="p-4 sm:p-6 pt-0 space-y-4 sm:space-y-6">
           <div>
             <Label htmlFor="commission" className="text-sm sm:text-base">
-              Комиссия платформы (%)
+              Legacy defaultCommissionRate (%)
             </Label>
             <div className="flex items-center gap-3 sm:gap-4 mt-2 sm:mt-3">
               <Input
@@ -185,6 +188,54 @@ export default function SettingsPage() {
             <p className="text-xs sm:text-sm text-gray-600 mt-2">
               Партнеры получают {100 - settings.defaultCommissionRate}%
             </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div>
+              <Label htmlFor="guestFee" className="text-sm">Guest service fee %</Label>
+              <Input
+                id="guestFee"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={settings.guestServiceFeePercent}
+                onChange={(e) =>
+                  setSettings({ ...settings, guestServiceFeePercent: parseFloat(e.target.value) })
+                }
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="hostFee" className="text-sm">Host commission %</Label>
+              <Input
+                id="hostFee"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={settings.hostCommissionPercent}
+                onChange={(e) =>
+                  setSettings({ ...settings, hostCommissionPercent: parseFloat(e.target.value) })
+                }
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="insuranceFund" className="text-sm">Insurance fund %</Label>
+              <Input
+                id="insuranceFund"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={settings.insuranceFundPercent}
+                onChange={(e) =>
+                  setSettings({ ...settings, insuranceFundPercent: parseFloat(e.target.value) })
+                }
+                className="mt-2"
+              />
+            </div>
           </div>
 
           <div className="min-w-0">

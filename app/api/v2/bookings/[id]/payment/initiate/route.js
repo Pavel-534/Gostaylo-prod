@@ -6,7 +6,7 @@
 
 import { NextResponse } from 'next/server';
 import { getUserIdFromSession } from '@/lib/services/session-service';
-import { resolveThbPerUsdt, resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
+import { resolveThbPerUsdt } from '@/lib/services/currency.service';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 
 export const dynamic = 'force-dynamic';
@@ -69,12 +69,10 @@ export async function POST(request, { params }) {
     // Allow payment for PENDING, AWAITING_PAYMENT, CONFIRMED bookings
     // Remove restriction for CONFIRMED - user might want to see payment details
     
-    // Calculate amounts (commission snapshot on booking, else system default)
+    // Calculate amounts from booking snapshot:
+    // price_thb = subtotal after discounts, commission_thb = guest service fee.
     const priceThb = parseFloat(booking.price_thb);
-    const cr = parseFloat(booking.commission_rate);
-    const commissionRate =
-      Number.isFinite(cr) && cr >= 0 ? cr : await resolveDefaultCommissionPercent();
-    const serviceFee = priceThb * (commissionRate / 100);
+    const serviceFee = parseFloat(booking.commission_thb) || 0;
     const totalThb = priceThb + serviceFee;
     const usdtRate = await resolveThbPerUsdt();
     const totalUsdt = (totalThb / usdtRate).toFixed(2);

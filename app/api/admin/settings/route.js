@@ -21,11 +21,13 @@ const defaultChatSafety = {
 
 let mockSettings = {
   defaultCommissionRate: 15,
+  guestServiceFeePercent: 5,
+  hostCommissionPercent: 0,
+  insuranceFundPercent: 0.5,
   chatInvoiceRateMultiplier: platformDefaultChatInvoiceRateMultiplier(),
   maintenanceMode: false,
   heroTitle: 'Luxury Rentals in Phuket',
   heroSubtitle: 'Villas, Bikes, Yachts & Tours',
-  serviceFeePercent: 5,
   sitePhone: '',
   chatSafety: { ...defaultChatSafety },
 }
@@ -73,6 +75,9 @@ export async function GET() {
     
     // Map from DB format to frontend format
     const rawComm = parseFloat(data.value?.defaultCommissionRate)
+    const rawGuestFee = parseFloat(data.value?.guestServiceFeePercent ?? data.value?.serviceFeePercent)
+    const rawHostCommission = parseFloat(data.value?.hostCommissionPercent)
+    const rawInsurance = parseFloat(data.value?.insuranceFundPercent)
     const rawChatMult = parseFloat(data.value?.chatInvoiceRateMultiplier)
     const rawCs = data.value?.chatSafety
     const chatSafety = {
@@ -91,6 +96,16 @@ export async function GET() {
       defaultCommissionRate: Number.isFinite(rawComm) && rawComm >= 0
         ? rawComm
         : await resolveDefaultCommissionPercent(),
+      guestServiceFeePercent:
+        Number.isFinite(rawGuestFee) && rawGuestFee >= 0 && rawGuestFee <= 100 ? rawGuestFee : 5,
+      hostCommissionPercent:
+        Number.isFinite(rawHostCommission) && rawHostCommission >= 0 && rawHostCommission <= 100
+          ? rawHostCommission
+          : Number.isFinite(rawComm) && rawComm >= 0 && rawComm <= 100
+            ? rawComm
+            : await resolveDefaultCommissionPercent(),
+      insuranceFundPercent:
+        Number.isFinite(rawInsurance) && rawInsurance >= 0 && rawInsurance <= 100 ? rawInsurance : 0.5,
       chatInvoiceRateMultiplier:
         Number.isFinite(rawChatMult) && rawChatMult >= 1 && rawChatMult <= 1.5
           ? rawChatMult
@@ -98,7 +113,6 @@ export async function GET() {
       maintenanceMode: data.value?.maintenanceMode || false,
       heroTitle: data.value?.heroTitle || '',
       heroSubtitle: data.value?.heroSubtitle || '',
-      serviceFeePercent: data.value?.serviceFeePercent || 5,
       sitePhone: typeof data.value?.sitePhone === 'string' ? data.value.sitePhone : '',
       chatSafety,
     }
@@ -115,6 +129,9 @@ export async function PUT(request) {
     const body = await request.json()
     const {
       defaultCommissionRate,
+      guestServiceFeePercent,
+      hostCommissionPercent,
+      insuranceFundPercent,
       chatInvoiceRateMultiplier,
       maintenanceMode,
       heroTitle,
@@ -157,6 +174,18 @@ export async function PUT(request) {
         defaultCommissionRate: Number.isFinite(parsedMock) && parsedMock >= 0
           ? parsedMock
           : await resolveDefaultCommissionPercent(),
+        guestServiceFeePercent: (() => {
+          const n = parseFloat(guestServiceFeePercent)
+          return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.guestServiceFeePercent
+        })(),
+        hostCommissionPercent: (() => {
+          const n = parseFloat(hostCommissionPercent)
+          return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.hostCommissionPercent
+        })(),
+        insuranceFundPercent: (() => {
+          const n = parseFloat(insuranceFundPercent)
+          return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.insuranceFundPercent
+        })(),
         chatInvoiceRateMultiplier: nextChatMult,
         maintenanceMode: !!maintenanceMode,
         heroTitle: heroTitle || '',
@@ -175,9 +204,30 @@ export async function PUT(request) {
       .single()
 
     const parsedPut = parseFloat(defaultCommissionRate)
+    const parsedGuestFee = parseFloat(guestServiceFeePercent)
+    const parsedHostCommission = parseFloat(hostCommissionPercent)
+    const parsedInsurance = parseFloat(insuranceFundPercent)
     const resolvedComm = Number.isFinite(parsedPut) && parsedPut >= 0
       ? parsedPut
       : await resolveDefaultCommissionPercent()
+    const resolvedGuestFee =
+      Number.isFinite(parsedGuestFee) && parsedGuestFee >= 0 && parsedGuestFee <= 100
+        ? parsedGuestFee
+        : Number.isFinite(parseFloat(existing?.value?.guestServiceFeePercent))
+          ? parseFloat(existing?.value?.guestServiceFeePercent)
+          : 5
+    const resolvedHostCommission =
+      Number.isFinite(parsedHostCommission) && parsedHostCommission >= 0 && parsedHostCommission <= 100
+        ? parsedHostCommission
+        : Number.isFinite(parseFloat(existing?.value?.hostCommissionPercent))
+          ? parseFloat(existing?.value?.hostCommissionPercent)
+          : 0
+    const resolvedInsurance =
+      Number.isFinite(parsedInsurance) && parsedInsurance >= 0 && parsedInsurance <= 100
+        ? parsedInsurance
+        : Number.isFinite(parseFloat(existing?.value?.insuranceFundPercent))
+          ? parseFloat(existing?.value?.insuranceFundPercent)
+          : 0.5
     const parsedChat =
       chatInvoiceRateMultiplier != null && chatInvoiceRateMultiplier !== ''
         ? parseFloat(chatInvoiceRateMultiplier)
@@ -206,6 +256,10 @@ export async function PUT(request) {
     const newValue = {
       ...(existing?.value || {}),
       defaultCommissionRate: resolvedComm,
+      guestServiceFeePercent: resolvedGuestFee,
+      hostCommissionPercent: resolvedHostCommission,
+      insuranceFundPercent: resolvedInsurance,
+      serviceFeePercent: resolvedGuestFee,
       chatInvoiceRateMultiplier: resolvedChatMult,
       maintenanceMode: !!maintenanceMode,
       heroTitle: heroTitle || '',

@@ -20,6 +20,10 @@ const migrations = [
   DO $$ BEGIN
     CREATE TYPE currency_type AS ENUM ('THB', 'RUB', 'USD', 'USDT');
   EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+  DO $$ BEGIN
+    CREATE TYPE preferred_payout_currency_type AS ENUM ('RUB', 'THB', 'USDT', 'USD');
+  EXCEPTION WHEN duplicate_object THEN null; END $$;
   
   DO $$ BEGIN
     CREATE TYPE listing_status AS ENUM ('PENDING', 'ACTIVE', 'BOOKED', 'INACTIVE', 'REJECTED');
@@ -78,6 +82,7 @@ const migrations = [
     escrow_balance DECIMAL(12,2) DEFAULT 0,
     available_balance DECIMAL(12,2) DEFAULT 0,
     preferred_currency currency_type DEFAULT 'THB',
+    preferred_payout_currency preferred_payout_currency_type DEFAULT 'THB',
     custom_commission_rate DECIMAL(5,2),
     first_name VARCHAR(100),
     last_name VARCHAR(100),
@@ -134,6 +139,7 @@ const migrations = [
     longitude DECIMAL(11,8),
     address TEXT,
     base_price_thb DECIMAL(12,2) NOT NULL,
+    base_currency currency_type DEFAULT 'THB',
     commission_rate DECIMAL(5,2) DEFAULT 15,
     images TEXT[],
     cover_image TEXT,
@@ -175,6 +181,11 @@ const migrations = [
     price_paid DECIMAL(12,2),
     exchange_rate DECIMAL(12,6),
     commission_thb DECIMAL(12,2),
+    commission_rate DECIMAL(5,2) DEFAULT 15,
+    applied_commission_rate DECIMAL(5,2),
+    partner_earnings_thb DECIMAL(12,2),
+    net_amount_local DECIMAL(12,2),
+    listing_currency currency_type DEFAULT 'THB',
     commission_paid BOOLEAN DEFAULT FALSE,
     guest_name VARCHAR(200),
     guest_phone VARCHAR(50),
@@ -182,6 +193,7 @@ const migrations = [
     special_requests TEXT,
     promo_code_used VARCHAR(50),
     discount_amount DECIMAL(12,2) DEFAULT 0,
+    pricing_snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,
     conversation_id UUID,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),

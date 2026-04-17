@@ -218,6 +218,7 @@ export async function POST(request) {
       is_verified: false,
       verification_status: 'PENDING',
       preferred_currency: 'THB',
+      preferred_payout_currency: 'THB',
       language: 'ru'
     })
     .select('id, email, role, first_name, last_name, referral_code')

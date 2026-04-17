@@ -143,6 +143,7 @@ export async function POST(request) {
       referralCode: user.referral_code,
       isVerified: user.is_verified,
       preferredCurrency: user.preferred_currency,
+      preferredPayoutCurrency: user.preferred_payout_currency || user.preferred_currency || 'THB',
       telegram_id: user.telegram_id || null,
       telegram_username: user.telegram_username || null,
       isModerator: role === 'MODERATOR',

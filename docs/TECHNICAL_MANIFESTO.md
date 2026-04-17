@@ -4,6 +4,8 @@
 
 **Стек:** Next.js **14** (App Router), React, Supabase (Postgres + Storage), JWT в cookie `gostaylo_session`, **`prisma/schema.prisma`** только как описание схемы (рантайм — Supabase).
 
+**Financial model version:** **3.2.0** (Split Fee: guest fee + host commission + insurance reserve).
+
 **Синхронизация с кодом:** при изменении API, БД, поведения или значимого UX этот файл и **`docs/ARCHITECTURAL_PASSPORT.md`** обновляются в том же PR. Порядок чтения и правила для Cursor — **`AGENTS.md`**, **`.cursorrules`**, **`.cursor/rules/gostaylo-docs-constitution.mdc`**. SSOT политики — **`ARCHITECTURAL_DECISIONS.md`**.
 
 ---
@@ -41,11 +43,13 @@
 | Суммы в БД и расчётах | **THB** | `base_price_thb`, брони, `bookings.pricing_snapshot` |
 | Курсы для витрины (карточки, каталог, карта) | Таблица **`exchange_rates`** (`rate_to_thb` = THB за **1** единицу валюты), затем **розничный множитель** `general.chatInvoiceRateMultiplier` (деление `rate_to_thb` на множитель) | **`lib/services/currency.service.js`** → **`getDisplayRateMap`**, TTL **6 ч** (`EXCHANGE_RATES_DB_TTL_MS`), при необходимости ExchangeRate-API v6 + upsert в БД |
 | Курсы при создании брони (`price_paid` / `exchange_rate`) | Тот же канон, что витрина | **`PricingService.getExchangeRates()`** → **`CurrencyService.getDisplayRateMap`** (не «сырой» обходной SELECT без TTL/API) |
-| Публичный API курсов | — | **`GET /api/v2/exchange-rates`** → `rateMap` |
+| Публичный API курсов | — | **`GET /api/v2/exchange-rates`** → `rateMap`; **`?retail=0`** возвращает прямые курсы без витринной наценки |
 | Клиентский кеш | localStorage, согласованный с TTL сервера | **`lib/client-data.js`** — **`fetchExchangeRates`** |
 | USDT (платежи, уведомления) | `exchange_rates` → API → env / settings | **`resolveThbPerUsdt()`**, аварии — **`lib/services/currency-last-resort.js`** |
 | Комиссия платформы | `system_settings` / env | **`resolveDefaultCommissionPercent()`** |
 | Множитель курса для счетов в чате THB↔USDT | админка **`/admin/settings`** / env | **`getEffectiveRate`** + **`resolveChatInvoiceRateMultiplier`** |
+| Базовая валюта листинга (канон FX-логики) | `listings.base_currency` | **`BookingService`** + **`PricingService.getCheckoutRateToThb`** (совпала валюта оплаты и base_currency → наценка FX = 0%) |
+| Split Fee policy | `system_settings.general` | `guestServiceFeePercent`, `hostCommissionPercent`, `insuranceFundPercent` |
 
 В **`currency.service.js`** не вводить захардкоженные курсы (например **35.5**). Множитель **1.02** как дефолт — только в **`currency-last-resort.js`** / админке (`chatInvoiceRateMultiplier`); он применяется к **витринной** карте в **`getDisplayRateMap`** и к чат-счетам USDT (**`getEffectiveRate`**).
 
@@ -54,6 +58,7 @@
 - **`formatPrice(amountThb, currency, exchangeRates, language)`** в **`lib/currency.js`** — для валюты ≠ THB **делит** сумму в THB на **`exchangeRates[currency]`**, **только если** в переданной карте есть конечный положительный курс. Иначе отображается число в THB с символом выбранной валюты (без выдуманного кросса). Четвёртый аргумент — язык UI для **`toLocaleString`** (группировка разрядов). **Таблицы курсов в `lib/currency.js` нет** (удалены неиспользуемые конвертеры с литералами).
 - E2E: **`priceRawForTest(amountThb, currency, exchangeRates)`** — «голое» число для **`data-test-*`** (USD — **2** знака; прочие витринные валюты кроме JPY — целые после конвертации).
 - Витрина подгружает курсы через **`fetchExchangeRates()`** или **`hooks/use-currency.js`** (оба — **`/api/v2/exchange-rates`**).
+- Партнёрский финкабинет использует **`/api/v2/exchange-rates?retail=0`** (конвертация без наценки, только прямой курс из `exchange_rates`/FX API).
 - Значение по умолчанию **`{ THB: 1 }`** у пропа `exchangeRates` — это **нейтральный множитель для THB**, не курс «доллара».
 - Гео-подсказка валюты: **`GET /api/v2/geo`** использует **`getDisplayRateMap`** (тот же канон, без отдельного Forex-модуля).
 
@@ -89,7 +94,7 @@
 - Схема тела: **`lib/validations/booking.js`**; публичный вход — **`POST /api/v2/bookings`**.
 - **Финальный POST с клиента** (кнопка «Забронировать»): заголовки **`Cache-Control: no-cache`** и **`Pragma: no-cache`**, чтобы промежуточный HTTP-кэш (в т.ч. после **`private` TTL календаря**) не подставил устаревшую картину занятости; сервер всё равно делает **повторную проверку доступности** в **`BookingService`** непосредственно перед INSERT.
 - **Конфликт дат после кэша:** ответ **`code: 'DATES_CONFLICT'`** → пользователю **`getBookingApiUserMessage`** / **`bookingErr_datesConflict`** (локализовано в **`lib/translations/errors.js`**).
-- **Server-side Integrity (ценовая броня):** после промокода **`BookingService.createBooking` / `createInquiryBooking`** отклоняют бронь, если субтотал **&lt; 0** или **итог к оплате гостем** (**`price_thb + commission_thb`**, те же округления, что на витрине) **&lt; `MIN_BOOKING_GUEST_TOTAL_THB` (100)** — код **`BOOKING_MIN_TOTAL_THB`**, Telegram **`[SECURITY_ALERT]`**. Опционально тело **`clientQuotedGuestTotalThb`** (THB): при расхождении с серверным итогом — **`PRICE_MISMATCH`** + Telegram **`[PRICE_TAMPERING]`** / **`[FRAUD_DETECTION]`** (как у **`clientQuotedSubtotalThb`**). Константа и формула: **`lib/booking-price-integrity.js`**.
+- **Server-side Integrity (ценовая броня):** после промокода **`BookingService.createBooking` / `createInquiryBooking`** отклоняют бронь, если субтотал **&lt; 0** или **итог к оплате гостем** (**`price_thb + commission_thb`**, где `commission_thb` = guest service fee) **&lt; `MIN_BOOKING_GUEST_TOTAL_THB` (100)** — код **`BOOKING_MIN_TOTAL_THB`**, Telegram **`[SECURITY_ALERT]`**. Опционально тело **`clientQuotedGuestTotalThb`** (THB): при расхождении с серверным итогом — **`PRICE_MISMATCH`** + Telegram **`[PRICE_TAMPERING]`** / **`[FRAUD_DETECTION]`** (как у **`clientQuotedSubtotalThb`**). Константа и формула: **`lib/booking-price-integrity.js`**.
 
 ### 1.4b Deep links (мобильные уведомления / внешние приложения)
 
@@ -115,9 +120,10 @@
 ### 1.5 Витринные курсы, снимок брони, оплата
 
 - **Единый источник курсов для витрины и полей `price_paid` / `exchange_rate` при создании брони:** **`CurrencyService.getDisplayRateMap()`**. Конвертация в список для поиска по коду — **`PricingService.getExchangeRates()`** (динамический импорт **`currency.service.js`**).
-- **При INSERT в `bookings`:** `exchange_rate` = **`rateToThb`** выбранной валюты запроса (THB за 1 единицу); **`price_paid`** = **`price_thb / exchange_rate`**. Для **`currency === 'THB'`** курс **1**.
+- **При INSERT в `bookings`:** `exchange_rate` = **`rateToThb`** выбранной валюты запроса (THB за 1 единицу); `price_thb` = subtotal после скидок/промо; `commission_thb` = guest service fee; **`price_paid`** = **`(price_thb + commission_thb) / exchange_rate`**. Для **`currency === 'THB'`** курс **1**.
+- **Phase 1.1 (валютный контур):** `currency` в `POST /api/v2/bookings` валидируется по канону **`THB | USD | RUB | CNY | USDT`** (`lib/validations/booking.js`), а `baseCurrency` листинга — по **`THB | RUB | USD | USDT`**.
 - **Пересчёта при переходе в PAID нет:** **`BookingService.updateStatus`** и **`PUT /api/v2/partner/bookings/[id]`** меняют только **`status`** и временные метки (**`checked_in_at`** для PAID в partner flow), не трогая **`price_thb`**, **`exchange_rate`**, **`commission_*`**. Тело **PUT** парсится через **`request.text()`** + **`JSON.parse`**; пустое или невалидное JSON → **400**, не **500**.
-- **USDT в момент оплаты:** **`resolveThbPerUsdt()`** (цепочка **`exchange_rates` → API → env / `system_settings`**) используется в **`payment/initiate`**, **`payment.service`**, верификации Tron — это **операционный курс оплаты**, не обязано совпадать с **`bookings.exchange_rate`** (который фиксирует валюту **запроса** гостя USD/RUB/CNY и берётся из той же витринной логики **`getDisplayRateMap`**). Счета в чате THB↔USDT — **`getEffectiveRate`** (сырой USDT × тот же **`resolveChatInvoiceRateMultiplier`**).
+- **USDT в момент оплаты:** **`resolveThbPerUsdt()`** (цепочка **`exchange_rates` → API → env / `system_settings`**) используется в **`payment/initiate`**, **`payments-v3.service`**, верификации Tron — это **операционный курс оплаты**, не обязано совпадать с **`bookings.exchange_rate`** (который фиксирует валюту **запроса** гостя USD/RUB/CNY и берётся из витринной логики). Счета в чате THB↔USDT — **`getEffectiveRate`** (сырой USDT × **`resolveChatInvoiceRateMultiplier`**).
 - **Скан на «магические» курсы:** литералов **1.035 / 0.965** в финансовом ядре нет. Дефолт множителя **1.02** — **`currency-last-resort.js`** / админка; он **умножает спред** на витрине (через деление `rate_to_thb` в **`getDisplayRateMap`**) и в чат-счетах. **`GET /api/v2/partner/stats`:** доход партнёра из **`partner_earnings_thb`**, иначе **`price_thb − commission_thb`**, иначе **`price_thb × (1 − commission_rate/100)`** — без фиксированного **0.85**.
 
 ### 1.6 Admin Health Alerts (дисплей-FX)
@@ -129,7 +135,7 @@
 ### 1.7 Traceability: листинг → карточка в чате
 
 1. **`listings.base_price_thb`** (+ **`seasonal_prices`** + **`metadata.seasonal_pricing`** + **`metadata.discounts`**).
-2. **`PricingService.calculateBookingPrice`** → **`BookingService.createBooking`** → **`bookings`** (**`price_thb`**, **`exchange_rate`**, **`price_paid`**, **`commission_thb`**, **`commission_rate`**, **`partner_earnings_thb`**, **`pricing_snapshot`**).
+2. **`PricingService.calculateBookingPrice`** → **`PricingService.calculateFeeSplit`** → **`BookingService.createBooking`** → **`bookings`** (`price_thb` subtotal, `commission_thb` guest fee, `commission_rate` host %, `partner_earnings_thb`, `exchange_rate`, `price_paid`, `pricing_snapshot.fee_split_v2`).
 3. **`ensureBookingConversation`** / **`ensureInquiryConversation`** → первая **`messages`**: system с **`metadata.price_thb`**, **`pricing_snapshot`**, **`booking_id`**.
 4. Обычный UI: **`ChatMilestoneCard`** — итог **THB** из **`metadata.price_thb`** (и даты из metadata).
 5. **`BookingRequestCard`** + **`lib/chat-booking-totals.js`** (`resolveChatBookingBreakdown`): только сообщения типа **`BOOKING_REQUEST`** в staff-треде; разбивка **× дней / × гостей** зависит от **`metadata.totalPrice` / `basePrice` / `days` / `group_size`** — не отдельный дубль сервера для стандартного **`booking_created`**.
@@ -249,7 +255,7 @@
 | **Бронирования** | Ошибка INSERT; бронь без чата; необработанное исключение `POST /api/v2/bookings`; ручное бронирование календаря — ошибка БД |
 | **Гонка дат** | Повторная **`checkAvailability`** непосредственно перед INSERT в **`BookingService.createBooking`**; при конфликте — **`code: 'DATES_CONFLICT'`**, HTTP **409** из API (полная атомарность возможна только constraint/lock в Postgres) |
 | **Чат** | Сбой записи сообщения или инвойса (`POST /api/v2/chat/messages`) |
-| **Платежи** | Initiate/confirm PATCH; `PaymentService.initializePayment` / `submitTxid` |
+| **Платежи** | Initiate/confirm PATCH; `PaymentsV3Service.submitTxid` / `confirmPayment` |
 | **Resend** | Ошибки HTTP/исключения в `NotificationService.sendEmail`, `EmailService`, `admin/partners` |
 | **Cron** | `payouts`, `checkin-reminder`, `draft-digest`, `cleanup-drafts`, `ical-sync` (ошибка или исключение) |
 | **Webhooks** | `POST /api/webhooks/crypto/confirm` (JSON, тело, confirm API); `POST /api/webhooks/supabase/booking-status` (JSON, валидация, исключения) |
@@ -338,7 +344,8 @@
 | Чат + статусы брони | `app/api/v2/chat/messages/route.js`, `lib/services/chat/access.js`, `lib/booking-status-chat-sync.js` |
 | Auth edge + login | `middleware.ts`, `app/login/page.js`, `app/admin/layout.js` |
 | Realtime чат (backoff) | `lib/chat/realtime-subscribe-with-backoff.js`, `hooks/use-realtime-chat.js`, `lib/context/ChatContext.jsx` |
-| Платежи / эскроу | `lib/services/payment.service.js`, `lib/services/escrow.service.js`, `app/api/cron/payouts` |
+| Платежи / эскроу | `lib/services/payments-v3.service.js`, `lib/services/escrow.service.js`, `app/api/cron/payouts` |
+| Политика задержки выплат | `system_settings.general.settlementPayoutDelayDays`, `system_settings.general.settlementPayoutHourLocal` |
 | Системные TG-алерты | `lib/services/system-alert-notify.js`, `NotificationService.sendSystemAlert`, `lib/critical-telemetry.js`, `lib/services/fraud-telegram-ban-button.js` |
 | Admin: бан пользователя (TG link + API) | `POST/GET /api/v2/admin/users/ban`, `lib/auth/telegram-ban-link.js` |
 | E2E hygiene helper / cleanup | `lib/e2e/test-data-tag.js`, `tests/global-teardown.ts`, `scripts/clean-e2e-garbage.mjs` |
@@ -412,7 +419,7 @@
 
 - Реализация: Playwright **`tests/e2e/bots/accountant-math.spec.ts`**, проект **`accountant-bot`** в **`playwright.config.ts`**.
 - Витрина (листинг, **vehicles**, **3 суток**): **`Итог ≈ Субтотал + Сервисный сбор`** в **THB / RUB / USD**; атрибуты **`data-test-subtotal-value`**, **`data-test-subtotal-thb`**, **`data-test-fee-value`**, **`data-test-fee-thb`** (**`booking-breakdown-service-fee`**), **`data-test-raw-value`** / **`data-test-total-thb`** на итоге, **`data-test-payout-value`** + **`data-test-payout-thb`** (скрытый) — выплата партнёра; строгая идентичность **субтотал − выплата = сбор** проверяется в **THB** (канон), чтобы избежать дрейфа округления FX по строкам.
-- **Распределение дохода (канон витрины + БД):** **User Total** (гость) = **Accommodation subtotal** + **guest service fee**; **Platform fee** (удержание с хоста) = **`commission_thb`** ≈ **round(subtotal × commission_rate/100)**; **Partner payout** = **`partner_earnings_thb`** = **subtotal − commission_thb** (в UI: **субтотал − выплата ≈ сервисный сбор** при симметричном %). Гость платит **субтотал + сервисный сбор**; суммарная доля платформы с одной брони = **сервисный сбор + commission_thb** (при равных ставках от той же базы — **2×** линейная доля от субтотала).
+- **Распределение дохода (Split Fee v3.2.0):** **User Total** (гость) = **`price_thb + commission_thb`**, где `commission_thb` = **guest service fee**; **Host commission** считается отдельно (`commission_rate`, `applied_commission_rate`) и влияет на **`partner_earnings_thb`**; **Platform gross margin** = guest fee + host commission; **`settlement_v3.insurance_reserve_amount`** = доля от platform margin по `insuranceFundPercent`.
 - Минимальная проверка: итог **≥ 100 THB** (**`data-test-total-thb`**).
 - Алерт при провале: **`POST /api/v2/internal/e2e/financial-error-alert`** + **`x-e2e-fixture-secret`** → **`recordCriticalSignal('FINANCIAL_ERROR', …)`**, текст вида **`Mismatch: Expected …, Got …`**.
 

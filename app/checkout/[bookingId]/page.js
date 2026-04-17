@@ -180,6 +180,7 @@ function CheckoutPageInner({ params }) {
         createdAt: b.created_at,
         metadata: b.metadata,
         commissionRate: parseFloat(b.commission_rate),
+        commissionThb: parseFloat(b.commission_thb) || 0,
         partnerEarningsThb: parseFloat(b.partner_earnings_thb) || 0
       });
       
@@ -552,12 +553,11 @@ function CheckoutPageInner({ params }) {
     )
   }
 
-  const commissionRate = Number.isFinite(booking.commissionRate)
-    ? booking.commissionRate
-    : !commissionFromApi.loading && Number.isFinite(commissionFromApi.effectiveRate)
-      ? commissionFromApi.effectiveRate
-      : null
-  if (commissionRate == null) {
+  const guestServiceFeePercent = !commissionFromApi.loading &&
+    Number.isFinite(commissionFromApi.guestServiceFeePercent)
+      ? Number(commissionFromApi.guestServiceFeePercent)
+      : 5
+  if (commissionFromApi.loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
@@ -566,7 +566,9 @@ function CheckoutPageInner({ params }) {
   }
   const discountAmount = promoDiscount?.discountAmount || 0
   const priceAfterDiscount = booking.priceThb - discountAmount
-  const serviceFee = priceAfterDiscount * (commissionRate / 100)
+  const serviceFee = promoDiscount
+    ? Math.round(priceAfterDiscount * (guestServiceFeePercent / 100))
+    : Math.round(booking.commissionThb || 0)
   const totalWithFee = priceAfterDiscount + serviceFee
 
   return (
@@ -744,7 +746,7 @@ function CheckoutPageInner({ params }) {
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-600">
                       {interpolateTemplate(getUIText('checkout_serviceFeeLine', language), {
-                        pct: String(commissionRate),
+                        pct: String(guestServiceFeePercent),
                       })}
                     </span>
                     <span

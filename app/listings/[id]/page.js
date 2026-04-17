@@ -427,9 +427,13 @@ function PremiumListingContent({ params }) {
         setPriceCalc(null)
         return
       }
-      const serviceFeeRate = commissionPct / 100
+      const guestFeePct = Number.isFinite(Number(commissionHook.guestServiceFeePercent))
+        ? Number(commissionHook.guestServiceFeePercent)
+        : 5
+      const serviceFeeRate = guestFeePct / 100
+      const hostCommissionRate = commissionPct / 100
       const serviceFee = Math.round(calc.totalPrice * serviceFeeRate)
-      const commissionThbHost = Math.round(calc.totalPrice * serviceFeeRate)
+      const commissionThbHost = Math.round(calc.totalPrice * hostCommissionRate)
       const partnerPayoutThb = calc.totalPrice - commissionThbHost
       const baseRawSubtotal = Math.round(listing.basePriceThb * nights)
       const seasonalAdjustment = calc.originalPrice - baseRawSubtotal
@@ -442,6 +446,7 @@ function PremiumListingContent({ params }) {
         subtotal: calc.totalPrice,
         subtotalBeforeFee: calc.totalPrice,
         commissionRate: commissionPct,
+        guestServiceFeePercent: guestFeePct,
         serviceFee,
         commissionThbHost,
         partnerPayoutThb,
@@ -449,7 +454,7 @@ function PremiumListingContent({ params }) {
         finalTotal: calc.totalPrice + serviceFee,
       })
     }
-  }, [listing, dateRange, guests, commissionHook.loading, commissionHook.effectiveRate])
+  }, [listing, dateRange, guests, commissionHook.loading, commissionHook.effectiveRate, commissionHook.guestServiceFeePercent])
   
   async function loadListing() {
     try {

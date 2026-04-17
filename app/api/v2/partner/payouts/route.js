@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
-import { PaymentService } from '@/lib/services/payment.service';
+import { PaymentsV3Service } from '@/lib/services/payments-v3.service';
 import { getUserIdFromSession } from '@/lib/services/session-service';
 
 export async function GET(request) {
@@ -89,7 +89,7 @@ export async function POST(request) {
     }
     
     // Request payout using service
-    const result = await PaymentService.requestPayout(partnerId, amount, method, {
+    const result = await PaymentsV3Service.requestPayout(partnerId, amount, method, {
       walletAddress,
       bankAccount
     });

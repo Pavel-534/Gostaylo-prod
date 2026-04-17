@@ -23,9 +23,11 @@ const CURRENCY_SYMBOLS = {
   CNY: '¥'
 };
 
-export async function GET() {
+export async function GET(request) {
   try {
-    const rateMap = await getDisplayRateMap();
+    const { searchParams } = new URL(request.url)
+    const applyRetailMarkup = searchParams.get('retail') !== '0'
+    const rateMap = await getDisplayRateMap({ applyRetailMarkup });
 
     const { data: rates, error } = await supabaseAdmin
       .from('exchange_rates')
@@ -39,7 +41,7 @@ export async function GET() {
           rateToThb,
           symbol: CURRENCY_SYMBOLS[code] || code,
         }));
-      return NextResponse.json({ success: true, data: transformed, rateMap });
+      return NextResponse.json({ success: true, data: transformed, rateMap, applyRetailMarkup });
     }
 
     const transformed = rates.map((r) => ({
@@ -48,7 +50,7 @@ export async function GET() {
       symbol: CURRENCY_SYMBOLS[r.currency_code] || r.currency_code,
     }));
 
-    return NextResponse.json({ success: true, data: transformed, rateMap });
+    return NextResponse.json({ success: true, data: transformed, rateMap, applyRetailMarkup });
   } catch (error) {
     console.error('[EXCHANGE RATES ERROR]', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

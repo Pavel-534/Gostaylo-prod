@@ -7,7 +7,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { PaymentService, PaymentStatus, PaymentMethod } from '@/lib/services/payment.service';
+import { PaymentsV3Service, PaymentStatus, PaymentMethod } from '@/lib/services/payments-v3.service';
 
 export async function GET(request) {
   try {
@@ -15,7 +15,7 @@ export async function GET(request) {
     
     // Check if requesting pending count only
     if (searchParams.get('count') === 'pending') {
-      const result = await PaymentService.countPendingPayments();
+      const result = await PaymentsV3Service.countPendingPayments();
       return NextResponse.json({
         success: true,
         count: result.count
@@ -42,7 +42,7 @@ export async function GET(request) {
     
     // Get pending payments if requested
     if (searchParams.get('pending') === 'true') {
-      const result = await PaymentService.getPendingPayments(filters);
+      const result = await PaymentsV3Service.getPendingPayments(filters);
       return NextResponse.json({
         success: result.success,
         payments: result.payments,
@@ -51,7 +51,7 @@ export async function GET(request) {
     }
     
     // Get all payments with filters
-    const result = await PaymentService.getPayments(filters);
+    const result = await PaymentsV3Service.getPayments(filters);
     
     return NextResponse.json({
       success: result.success,
@@ -85,11 +85,11 @@ export async function POST(request) {
 
     switch (action) {
       case 'confirm':
-        result = await PaymentService.confirmPayment(paymentId, verificationData);
+        result = await PaymentsV3Service.confirmPayment(paymentId, verificationData);
         break;
       
       case 'reject':
-        result = await PaymentService.rejectPayment(paymentId, reason);
+        result = await PaymentsV3Service.rejectPayment(paymentId, reason);
         break;
       
       default:

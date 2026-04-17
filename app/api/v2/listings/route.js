@@ -13,6 +13,7 @@ import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service
 import { revalidateListingPaths } from '@/lib/revalidation'
 import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings'
 import { isMarkedE2eTestData } from '@/lib/e2e/test-data-tag'
+import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes'
 
 export const dynamic = 'force-dynamic'
 
@@ -102,6 +103,7 @@ export async function GET(request) {
       description: l.description,
       district: l.district,
       basePriceThb: parseFloat(l.base_price_thb),
+      baseCurrency: l.base_currency || 'THB',
       commissionRate: (() => {
         const n = parseFloat(l.commission_rate);
         return Number.isFinite(n) && n >= 0 ? n : defaultListingCommission;
@@ -151,6 +153,7 @@ export async function POST(request) {
       available: bodyAvailable,
       minBookingDays,
       maxBookingDays,
+      baseCurrency,
     } = body;
 
     const uid = ownerId || owner_id;
@@ -182,6 +185,7 @@ export async function POST(request) {
       description: description || '',
       district: district || null,
       base_price_thb: parseFloat(price) || 0,
+      base_currency: isListingBaseCurrency(baseCurrency) ? normalizeCurrencyCode(baseCurrency) : 'THB',
       commission_rate: commissionRate,
       images: images || [],
       cover_image: images?.[0] || null,
@@ -220,6 +224,7 @@ export async function POST(request) {
         title: listing.title,
         status: listing.status,
         basePriceThb: parseFloat(listing.base_price_thb),
+        baseCurrency: listing.base_currency || 'THB',
         createdAt: listing.created_at
       }
     });

@@ -16,6 +16,7 @@ import { revalidateListingPaths } from '@/lib/revalidation';
 import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
+import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes';
 
 export const dynamic = 'force-dynamic';
 
@@ -121,6 +122,7 @@ export async function GET(request, context) {
       latitude: listing.latitude,
       longitude: listing.longitude,
       basePriceThb: parseFloat(listing.base_price_thb) || 0,
+      baseCurrency: listing.base_currency || 'THB',
       commissionRate,
       minBookingDays: listing.min_booking_days ?? 1,
       maxBookingDays: listing.max_booking_days ?? 90,
@@ -152,6 +154,7 @@ export async function GET(request, context) {
       latitude: listing.latitude,
       longitude: listing.longitude,
       basePriceThb: parseFloat(listing.base_price_thb) || 0,
+      baseCurrency: listing.base_currency || 'THB',
       commissionRate,
       minBookingDays: listing.min_booking_days ?? 1,
       maxBookingDays: listing.max_booking_days ?? 90,
@@ -232,6 +235,14 @@ export async function PATCH(request, context) {
   if (body.title !== undefined) updateData.title = body.title;
   if (body.description !== undefined) updateData.description = body.description;
   if (body.basePriceThb !== undefined) updateData.base_price_thb = parseFloat(body.basePriceThb);
+  if (body.baseCurrency !== undefined || body.base_currency !== undefined) {
+    const incoming = body.baseCurrency ?? body.base_currency;
+    const normalized = normalizeCurrencyCode(incoming);
+    if (!isListingBaseCurrency(normalized)) {
+      return NextResponse.json({ success: false, error: 'Invalid base currency' }, { status: 400 });
+    }
+    updateData.base_currency = normalized;
+  }
   if (body.district !== undefined) updateData.district = body.district;
   if (body.latitude !== undefined) updateData.latitude = body.latitude;
   if (body.longitude !== undefined) updateData.longitude = body.longitude;

@@ -206,6 +206,11 @@ export async function PUT(request, { params }) {
 
     if (newStatus === 'CONFIRMED') {
       try {
+        await BookingService.attachSettlementSnapshotForBooking(id)
+      } catch (e) {
+        console.error('[BOOKING UPDATE] settlement snapshot attach', e)
+      }
+      try {
         const full = await BookingService.getBookingById(id)
         if (full) {
           await NotificationService.dispatch(NotificationEvents.BOOKING_CONFIRMED, {

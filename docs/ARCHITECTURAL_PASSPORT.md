@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 3.0.0 | **Last Updated**: 2026-04-15 | **Status**: Production-Ready
+> **Version**: 3.2.0 | **Last Updated**: 2026-04-17 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -106,7 +106,7 @@ Pattern: Immediate Response + Fire-and-Forget
 │   ├── services/                 # Business logic services
 │   │   ├── pricing.service.js    # Seasonal pricing calculator
 │   │   ├── booking.service.js    # Booking management
-│   │   ├── payment.service.js    # Payment processing (MOCKED)
+│   │   ├── payments-v3.service.js # Payment orchestration (active)
 │   │   └── notification.service.js # Telegram + Email dispatcher
 │   ├── supabase.js               # Supabase client instances
 │   └── currency.js               # Currency formatting
@@ -148,6 +148,7 @@ Pattern: Immediate Response + Fire-and-Forget
 | `district` | TEXT | YES | Location district |
 | `address` | TEXT | YES | Full address |
 | `base_price_thb` | NUMERIC | NO | Base price per night in THB |
+| `base_currency` | TEXT/ENUM | YES | Canonical listing currency for FX markup logic (`THB`,`RUB`,`USD`,`USDT`) |
 | `images` | JSONB | YES | Array of image URLs |
 | `cover_image` | TEXT | YES | Primary image URL |
 | `metadata` | JSONB | YES | **Extensible data store** |
@@ -222,14 +223,18 @@ Pattern: Immediate Response + Fire-and-Forget
 | `currency` | TEXT | YES | Display currency |
 | `price_paid` | NUMERIC | YES | Actual amount paid |
 | `exchange_rate` | NUMERIC | YES | Rate at payment time |
-| `commission_thb` | NUMERIC | YES | Platform commission |
+| `commission_thb` | NUMERIC | YES | Guest service fee amount (THB) |
+| `applied_commission_rate` | NUMERIC | YES | Frozen host commission percent for settlement |
 | `commission_paid` | BOOLEAN | YES | Commission settled flag |
+| `listing_currency` | TEXT/ENUM | YES | Listing base currency frozen at booking creation |
+| `net_amount_local` | NUMERIC | YES | Partner net in `listing_currency` (snapshot value) |
 | `guest_name` | TEXT | YES | Guest full name |
 | `guest_email` | TEXT | YES | Guest email |
 | `guest_phone` | TEXT | YES | Guest phone |
 | `special_requests` | TEXT | YES | Guest notes |
 | `promo_code_used` | TEXT | YES | Applied promo code |
 | `discount_amount` | NUMERIC | YES | Discount in THB |
+| `pricing_snapshot` | JSONB | YES | Immutable pricing/settlement snapshot (`v1`, `fee_split_v2`, `settlement_v3`) |
 | `conversation_id` | TEXT | YES | FK to `conversations.id` |
 
 **Booking Status Enum:**
@@ -258,6 +263,7 @@ PENDING → AWAITING_PAYMENT → CONFIRMED → CHECKED_IN → COMPLETED
 | `custom_commission_rate` | NUMERIC | YES | Partner-specific rate |
 | `available_balance` | NUMERIC | YES | Withdrawable balance |
 | `escrow_balance` | NUMERIC | YES | Funds in escrow |
+| `preferred_payout_currency` | ENUM | YES | Partner payout display/settlement preference (`RUB`,`THB`,`USDT`,`USD`) |
 | `verification_status` | TEXT | YES | KYC status |
 | `referral_code` | TEXT | YES | Unique referral code |
 | `referred_by` | TEXT | YES | Referrer's code |
@@ -335,6 +341,17 @@ Append-only события для отчётов (напр. **`PRICE_TAMPERING`*
 | `stats` | JSONB | NO | Метрики выполнения (counts, duration_ms, и т.п.) |
 | `error_message` | TEXT | YES | Последняя ошибка (если была) |
 
+#### `system_settings.general` (finance-relevant keys)
+| Key | Type | Purpose |
+|-----|------|---------|
+| `guestServiceFeePercent` | NUMERIC | Guest-facing service fee percent (default 5.0) |
+| `hostCommissionPercent` | NUMERIC | Host-side commission percent (default 0.0; partner override via `profiles.custom_commission_rate`) |
+| `insuranceFundPercent` | NUMERIC | Insurance reserve share from platform margin (default 0.5) |
+| `chatInvoiceRateMultiplier` | NUMERIC | Retail FX spread for cross-currency checkout/invoice |
+| `defaultCommissionRate` | NUMERIC | Legacy fallback for host commission |
+| `settlementPayoutDelayDays` | INTEGER | Delay from check-in to payout eligibility (0..60) |
+| `settlementPayoutHourLocal` | INTEGER | Preferred payout processing hour (0..23) |
+
 ---
 
 ## 3. Pricing System
@@ -381,17 +398,19 @@ for each night in booking:
 
 ### 3.4 Revenue split (User total → Platform → Partner)
 
-Canonical rates come from **`resolveDefaultCommissionPercent()`** / listing / partner overrides — not a hardcoded **15%** in code.
+Canonical rates come from `system_settings.general` (`guestServiceFeePercent`, `hostCommissionPercent`, `insuranceFundPercent`) with partner override via `profiles.custom_commission_rate` for host commission.
 
 ```
-subtotalThb   = PricingService total for the stay (THB, before guest fee)
-guestFeeThb   = round(subtotalThb * (commissionRate / 100))   // «сервисный сбор» на витрине
-userTotalThb  = subtotalThb + guestFeeThb                     // what the guest pays (listing widget / checkout)
-commissionThb = round(subtotalThb * (commissionRate / 100))   // platform cut from host side; stored as bookings.commission_thb
-partnerPayoutThb = subtotalThb - commissionThb                // bookings.partner_earnings_thb
+subtotalThb        = PricingService total for the stay (THB, before guest fee)
+guestFeeThb        = round(subtotalThb * (guestServiceFeePercent / 100))   // stored in bookings.commission_thb
+userTotalThb       = subtotalThb + guestFeeThb
+hostCommissionThb  = round(subtotalThb * (hostCommissionPercent / 100))     // affects partner payout
+partnerPayoutThb   = subtotalThb - hostCommissionThb                         // bookings.partner_earnings_thb
+platformMarginThb  = guestFeeThb + hostCommissionThb
+insuranceReserveThb = round(platformMarginThb * (insuranceFundPercent / 100)) // settlement_v3.insurance_reserve_amount
 ```
 
-**Identity:** `userTotalThb − partnerPayoutThb = guestFeeThb + commissionThb` (when both percentages apply to the same subtotal, `guestFeeThb` and `commissionThb` match before rounding).
+**Identity:** `userTotalThb − partnerPayoutThb = platformMarginThb`.
 
 **Min transaction threshold (guest payable):** **`MIN_BOOKING_GUEST_TOTAL_THB = 100`** — минимальный **итог к оплате гостем** (субтотал проживания после промо **+** сервисный сбор, THB, те же округления, что в UI). Проверка только на сервере (**`BookingService`**, см. **`lib/booking-price-integrity.js`**); код отказа API **`BOOKING_MIN_TOTAL_THB`**.
 

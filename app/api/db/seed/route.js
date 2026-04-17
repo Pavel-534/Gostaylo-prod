@@ -129,6 +129,9 @@ export async function POST() {
     key: 'general',
     value: {
       defaultCommissionRate: 15,
+      guestServiceFeePercent: 5,
+      hostCommissionPercent: 0,
+      insuranceFundPercent: 0.5,
       maintenanceMode: false,
       heroTitle: 'Luxury Rentals in Phuket',
       heroSubtitle: 'Villas, Bikes, Yachts & Tours',

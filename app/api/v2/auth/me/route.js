@@ -38,6 +38,8 @@ function mapRowToClientUser(user, dbRole) {
     rejection_reason: user.rejection_reason,
     preferredCurrency: user.preferred_currency,
     preferred_currency: user.preferred_currency,
+    preferredPayoutCurrency: user.preferred_payout_currency || user.preferred_currency || 'THB',
+    preferred_payout_currency: user.preferred_payout_currency || user.preferred_currency || 'THB',
     telegram_id: user.telegram_id,
     telegram_username: user.telegram_username ?? null,
     telegram_linked: user.telegram_linked ?? false,

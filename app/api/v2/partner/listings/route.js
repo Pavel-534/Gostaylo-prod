@@ -13,6 +13,7 @@ import { getUserIdFromSession } from '@/lib/services/session-service';
 import { createListingSchema } from '@/lib/validations/listing';
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url';
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
+import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes';
 
 export async function GET(request) {
   try {
@@ -60,6 +61,7 @@ export async function GET(request) {
       status: l.status,
       district: l.district,
       basePriceThb: parseFloat(l.base_price_thb) || 0,
+      baseCurrency: l.base_currency || 'THB',
       commissionRate: (() => {
         const n = parseFloat(l.commission_rate);
         return Number.isFinite(n) && n >= 0 ? n : defaultListingCommission;
@@ -113,7 +115,8 @@ export async function POST(request) {
       district,
       basePriceThb,
       images,
-      metadata
+      metadata,
+      baseCurrency,
     } = parseResult.data;
 
     if (partnerId !== sessionUserId) {
@@ -161,6 +164,7 @@ export async function POST(request) {
         description,
         district,
         base_price_thb: basePriceThb,
+        base_currency: isListingBaseCurrency(baseCurrency) ? normalizeCurrencyCode(baseCurrency) : 'THB',
         commission_rate: commissionRate,
         images: images || [],
         cover_image: images?.[0] || null,
@@ -183,6 +187,7 @@ export async function POST(request) {
         title: listing.title,
         status: listing.status,
         basePriceThb: parseFloat(listing.base_price_thb),
+        baseCurrency: listing.base_currency || 'THB',
         commissionRate: parseFloat(listing.commission_rate)
       }
     });

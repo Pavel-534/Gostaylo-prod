@@ -40,7 +40,10 @@ export async function POST(request) {
   }
   const run = await startOpsJobRun('payouts');
   try {
-    console.log('[CRON PAYOUT] Starting daily payout processing (24H Rule)...');
+    const policy = await EscrowService.getSettlementPolicy();
+    console.log(
+      `[CRON PAYOUT] Starting payout processing (delayDays=${policy.delayDays}, payoutHourLocal=${policy.payoutHourLocal})...`
+    );
     
     // Process all payouts (bookings with check-in YESTERDAY)
     const result = await EscrowService.processAllPayoutsForToday();
@@ -58,10 +61,10 @@ export async function POST(request) {
         body: JSON.stringify({
           chat_id: TELEGRAM_ADMIN_GROUP,
           message_thread_id: FINANCE_TOPIC_ID,
-          text: `💰 <b>ESCROW THAWED (24H Rule)</b>\n\n` +
+          text: `💰 <b>ESCROW THAWED</b>\n\n` +
                 `✅ Processed: ${result.processed}/${result.total} payouts\n\n` +
                 `${thawedList}\n\n` +
-                `📅 Check-in was yesterday, funds released to partners.\n` +
+                `📅 Delay policy: ${policy.delayDays} day(s), payout hour: ${policy.payoutHourLocal}:00.\n` +
                 `🕐 ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Bangkok' })}`,
           parse_mode: 'HTML'
         })
@@ -70,8 +73,8 @@ export async function POST(request) {
 
     const response = {
       success: result.success,
-      message: `Processed ${result.processed || 0} of ${result.total || 0} payouts (24H Rule)`,
-      rule: 'Payouts released 24 hours after check-in',
+      message: `Processed ${result.processed || 0} of ${result.total || 0} payouts`,
+      rule: `Payout delay: ${policy.delayDays} day(s), payout hour: ${policy.payoutHourLocal}:00`,
       timestamp: new Date().toISOString(),
       results: result.results
     };
@@ -130,13 +133,14 @@ export async function GET(request) {
   // Get upcoming (check-in today, will thaw tomorrow)
   const upcoming = await EscrowService.getUpcomingThawBookings();
 
+  const policy = await EscrowService.getSettlementPolicy();
   return NextResponse.json({
     success: true,
-    message: 'Payout cron status (24H Rule)',
-    rule: 'Payouts released at 18:00, 24 hours after check-in',
+    message: 'Payout cron status',
+    rule: `Payout delay: ${policy.delayDays} day(s), payout hour: ${policy.payoutHourLocal}:00`,
     readyForPayout: {
       count: bookings?.length || 0,
-      note: 'Check-in was yesterday, ready to process now',
+      note: `check-in <= today - ${policy.delayDays} day(s)`,
       bookings: bookings?.map(b => ({
         id: b.id,
         checkIn: b.check_in,
@@ -147,7 +151,7 @@ export async function GET(request) {
     },
     upcomingThaw: {
       count: upcoming.bookings?.length || 0,
-      note: 'Check-in today, will thaw tomorrow at 18:00',
+      note: `check-in today, expected thaw after ${policy.delayDays} day(s)`,
       bookings: upcoming.bookings?.map(b => ({
         id: b.id,
         checkIn: b.check_in,

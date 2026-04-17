@@ -7,7 +7,7 @@
 
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import { PaymentService, PaymentMethod } from '@/lib/services/payment.service';
+import { PaymentsV3Service, PaymentMethod } from '@/lib/services/payments-v3.service';
 
 export async function POST(request) {
   try {
@@ -29,7 +29,7 @@ export async function POST(request) {
     }
 
     // Submit TXID and send notifications
-    const result = await PaymentService.submitTxid(bookingId, txid, paymentMethod);
+    const result = await PaymentsV3Service.submitTxid(bookingId, txid, paymentMethod);
 
     if (!result.success) {
       return NextResponse.json(

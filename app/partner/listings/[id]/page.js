@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { 
@@ -85,12 +86,19 @@ export default function EditListing({ params }) {
     remaining: 3,
     exhausted: false,
   })
+  const [pricingPolicy, setPricingPolicy] = useState({
+    guestServiceFeePercent: 5,
+    hostCommissionPercent: 0,
+    insuranceFundPercent: 0.5,
+    chatInvoiceRateMultiplier: 1.025,
+  })
   
   // Form state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     basePriceThb: '',
+    baseCurrency: 'THB',
     district: '',
     latitude: '',
     longitude: '',
@@ -152,6 +160,37 @@ export default function EditListing({ params }) {
     if (listing) refreshAiDescriptionQuota()
   }, [listing, listingId])
 
+  useEffect(() => {
+    if (!user?.id) return
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/v2/commission?partnerId=${encodeURIComponent(String(user.id))}`, {
+          credentials: 'include',
+        })
+        const json = await res.json()
+        if (json.success && json.data) {
+          setPricingPolicy((prev) => ({
+            ...prev,
+            guestServiceFeePercent: Number.isFinite(Number(json.data.guestServiceFeePercent))
+              ? Number(json.data.guestServiceFeePercent)
+              : prev.guestServiceFeePercent,
+            hostCommissionPercent: Number.isFinite(Number(json.data.hostCommissionPercent))
+              ? Number(json.data.hostCommissionPercent)
+              : prev.hostCommissionPercent,
+            insuranceFundPercent: Number.isFinite(Number(json.data.insuranceFundPercent))
+              ? Number(json.data.insuranceFundPercent)
+              : prev.insuranceFundPercent,
+            chatInvoiceRateMultiplier: Number.isFinite(Number(json.data.chatInvoiceRateMultiplier))
+              ? Number(json.data.chatInvoiceRateMultiplier)
+              : prev.chatInvoiceRateMultiplier,
+          }))
+        }
+      } catch {
+        // noop
+      }
+    })()
+  }, [user?.id])
+
   async function loadListing() {
     try {
       // Use server API that bypasses RLS
@@ -192,6 +231,7 @@ export default function EditListing({ params }) {
           title: l.title || '',
           description: pickPartnerFormDescription(language, l.description || '', rawMeta),
           basePriceThb: sanitizeThbDigits((l.basePriceThb ?? l.base_price_thb)?.toString() || '') || '',
+          baseCurrency: l.baseCurrency || l.base_currency || rawMeta.base_currency || 'THB',
           district: l.district || '',
           latitude: l.latitude != null && l.latitude !== '' ? String(l.latitude) : '',
           longitude: l.longitude != null && l.longitude !== '' ? String(l.longitude) : '',
@@ -250,6 +290,7 @@ export default function EditListing({ params }) {
           district: formData.district || '',
           categorySlug: listing?.category?.slug || '',
           basePriceThb: formData.basePriceThb,
+          baseCurrency: formData.baseCurrency || 'THB',
           metadata: formData.metadata,
           existingDescription: formData.description || '',
         }),
@@ -334,6 +375,7 @@ export default function EditListing({ params }) {
           title: formData.title,
           description: descriptionDb,
           basePriceThb: parseFloat(formData.basePriceThb) || 0,
+          baseCurrency: formData.baseCurrency || 'THB',
           district: formData.district,
           latitude: formData.latitude === '' ? null : parseFloat(formData.latitude),
           longitude: formData.longitude === '' ? null : parseFloat(formData.longitude),
@@ -430,6 +472,7 @@ export default function EditListing({ params }) {
           title: formData.title,
           description: descriptionDb,
           basePriceThb: parseFloat(formData.basePriceThb) || 0,
+          baseCurrency: formData.baseCurrency || 'THB',
           district: formData.district,
           latitude: formData.latitude === '' ? null : parseFloat(formData.latitude),
           longitude: formData.longitude === '' ? null : parseFloat(formData.longitude),
@@ -566,6 +609,22 @@ export default function EditListing({ params }) {
     parseFloat(String(formData.basePriceThb).replace(',', '.')) > 0 &&
     formData.images.length > 0
   const isDraft = listing?.metadata?.is_draft
+  const pricingPreview = (() => {
+    const base = Math.round(Number(formData.basePriceThb) || 0)
+    const guestFeePercent = Number(pricingPolicy.guestServiceFeePercent) || 0
+    const guestFeeThb = Math.round(base * (guestFeePercent / 100))
+    const sitePriceSameCurrency = base + guestFeeThb
+    const markupMultiplier = Math.max(1, Number(pricingPolicy.chatInvoiceRateMultiplier) || 1)
+    const sitePriceCrossCurrency = Math.round(sitePriceSameCurrency * markupMultiplier)
+    return {
+      base,
+      guestFeePercent,
+      guestFeeThb,
+      sitePriceSameCurrency,
+      markupPercent: Math.max(0, (markupMultiplier - 1) * 100),
+      sitePriceCrossCurrency,
+    }
+  })()
 
   if (loading || authLoading) {
     return (
@@ -866,6 +925,23 @@ export default function EditListing({ params }) {
                 />
               </div>
               <div className="space-y-2 min-w-0">
+                <Label className="text-sm font-medium text-slate-800">Базовая валюта листинга</Label>
+                <Select
+                  value={formData.baseCurrency || 'THB'}
+                  onValueChange={(value) => setFormData((fd) => ({ ...fd, baseCurrency: value }))}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="THB">THB (Thai Baht)</SelectItem>
+                    <SelectItem value="RUB">RUB (Russian Ruble)</SelectItem>
+                    <SelectItem value="USD">USD (US Dollar)</SelectItem>
+                    <SelectItem value="USDT">USDT (Tether)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 min-w-0">
                 <Label htmlFor="district" className="text-sm font-medium text-slate-800">
                   {t('selectDistrict').replace(' *', '')}
                 </Label>
@@ -877,6 +953,20 @@ export default function EditListing({ params }) {
                   className="h-11"
                 />
               </div>
+            </div>
+            <div className="rounded-xl border border-sky-200 bg-sky-50/70 px-4 py-3">
+              <p className="text-sm font-semibold text-sky-900">Ориентировочная цена на сайте</p>
+              <p className="mt-1 text-xl font-bold text-sky-800">
+                ฿{pricingPreview.sitePriceSameCurrency.toLocaleString('ru-RU')}
+              </p>
+              <p className="mt-2 text-xs text-sky-900">
+                База: ฿{pricingPreview.base.toLocaleString('ru-RU')} + сервисный сбор гостя ({pricingPreview.guestFeePercent}%):
+                {' '}฿{pricingPreview.guestFeeThb.toLocaleString('ru-RU')}
+              </p>
+              <p className="mt-1 text-xs text-sky-900">
+                Если гость платит в другой валюте: возможна доп. наценка за эквайринг/FX +{pricingPreview.markupPercent.toFixed(2)}%
+                {' '}→ ориентир ฿{pricingPreview.sitePriceCrossCurrency.toLocaleString('ru-RU')}
+              </p>
             </div>
 
             {toursCategory ? (

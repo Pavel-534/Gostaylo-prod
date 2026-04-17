@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import { getUserIdFromSession } from '@/lib/services/session-service';
 import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-sync';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
+import { BookingService } from '@/lib/services/booking.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -108,6 +109,12 @@ export async function POST(request, { params }) {
       })
     } catch (e) {
       console.error('[PAYMENT CONFIRMED] chat sync', e)
+    }
+
+    try {
+      await BookingService.attachSettlementSnapshotForBooking(bookingId)
+    } catch (e) {
+      console.error('[PAYMENT CONFIRMED] settlement snapshot attach', e)
     }
 
     // Log payment confirmation

@@ -11,6 +11,10 @@ export function useCommission(partnerId = null) {
     personalRate: null,
     effectiveRate: null,
     partnerEarningsPercent: null,
+    guestServiceFeePercent: 5,
+    hostCommissionPercent: 0,
+    insuranceFundPercent: 0.5,
+    chatInvoiceRateMultiplier: 1.02,
     loading: true,
     error: null,
   })
@@ -91,6 +95,9 @@ export async function getCommissionRate(partnerId = null) {
       personalRate,
       effectiveRate,
       partnerEarningsPercent: 100 - effectiveRate,
+      guestServiceFeePercent: parseFloat(settings?.value?.guestServiceFeePercent ?? 5) || 5,
+      hostCommissionPercent: effectiveRate,
+      insuranceFundPercent: parseFloat(settings?.value?.insuranceFundPercent ?? 0.5) || 0.5,
     }
   } catch (error) {
     console.error('getCommissionRate error:', error)
@@ -101,6 +108,9 @@ export async function getCommissionRate(partnerId = null) {
       personalRate: null,
       effectiveRate: fallback,
       partnerEarningsPercent: 100 - fallback,
+      guestServiceFeePercent: 5,
+      hostCommissionPercent: fallback,
+      insuranceFundPercent: 0.5,
     }
   }
 }

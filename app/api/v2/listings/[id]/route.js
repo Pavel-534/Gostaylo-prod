@@ -14,6 +14,7 @@ import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url'
 import { getSessionPayload } from '@/lib/services/session-service'
 import { isStaffRole } from '@/lib/services/chat/access'
+import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes'
 
 export const dynamic = 'force-dynamic'
 
@@ -152,6 +153,7 @@ export async function GET(request, context) {
       longitude: listing.longitude,
       address: listing.address,
       basePriceThb: parseFloat(listing.base_price_thb),
+      baseCurrency: listing.base_currency || 'THB',
       commissionRate: dynamicCommissionRate,  // Use calculated rate from PricingService
       images: mapPublicImageUrls(listing.images || []),
       coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
@@ -219,6 +221,14 @@ export async function PUT(request, context) {
     if (body.latitude !== undefined) updates.latitude = body.latitude;
     if (body.longitude !== undefined) updates.longitude = body.longitude;
     if (body.basePriceThb !== undefined) updates.base_price_thb = parseFloat(body.basePriceThb) || 0;
+    if (body.baseCurrency !== undefined || body.base_currency !== undefined) {
+      const incoming = body.baseCurrency ?? body.base_currency;
+      const normalized = normalizeCurrencyCode(incoming);
+      if (!isListingBaseCurrency(normalized)) {
+        return NextResponse.json({ success: false, error: 'Invalid base currency' }, { status: 400 });
+      }
+      updates.base_currency = normalized;
+    }
     if (body.images !== undefined) {
       updates.images = body.images;
       updates.cover_image = body.images[0] || null;

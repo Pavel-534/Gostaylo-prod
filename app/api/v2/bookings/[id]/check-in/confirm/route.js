@@ -70,15 +70,17 @@ export async function POST(request, { params }) {
     }
     
     // Log funds release (in production, this would trigger actual fund transfer)
-    const priceThb = parseFloat(booking.price_thb);
-    const commissionRate = 15;
-    const commissionThb = priceThb * (commissionRate / 100);
-    const partnerEarnings = priceThb - commissionThb;
+    const priceThb = parseFloat(booking.price_thb) || 0;
+    const guestServiceFeeThb = parseFloat(booking.commission_thb) || 0;
+    const partnerEarnings =
+      Number.isFinite(parseFloat(booking.partner_earnings_thb))
+        ? parseFloat(booking.partner_earnings_thb)
+        : priceThb;
     
     console.log(`[CHECK-IN CONFIRMED] Booking ${bookingId}`);
     console.log(`  Partner: ${booking.partner_id}`);
     console.log(`  Total: ฿${priceThb.toLocaleString()}`);
-    console.log(`  Commission (15%): ฿${commissionThb.toLocaleString()}`);
+    console.log(`  Guest Service Fee: ฿${guestServiceFeeThb.toLocaleString()}`);
     console.log(`  Partner Earnings: ฿${partnerEarnings.toLocaleString()}`);
     
     return NextResponse.json({

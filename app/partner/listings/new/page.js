@@ -128,6 +128,12 @@ export default function PremiumListingWizard() {
     seasonType: 'NORMAL' 
   })
   const [partnerCommissionRate, setPartnerCommissionRate] = useState(null)
+  const [pricingPolicy, setPricingPolicy] = useState({
+    guestServiceFeePercent: 5,
+    hostCommissionPercent: 0,
+    insuranceFundPercent: 0.5,
+    chatInvoiceRateMultiplier: 1.025,
+  })
   
   // Form data
   const [formData, setFormData] = useState({
@@ -139,6 +145,7 @@ export default function PremiumListingWizard() {
     latitude: null,
     longitude: null,
     basePriceThb: '',
+    baseCurrency: 'THB',
     commissionRate: '',
     minBookingDays: 1,
     maxBookingDays: 90,
@@ -231,6 +238,21 @@ export default function PremiumListingWizard() {
               setPartnerCommissionRate(n)
               setFormData((prev) => ({ ...prev, commissionRate: n }))
             }
+            setPricingPolicy((prev) => ({
+              ...prev,
+              guestServiceFeePercent: Number.isFinite(Number(commissionData.data.guestServiceFeePercent))
+                ? Number(commissionData.data.guestServiceFeePercent)
+                : prev.guestServiceFeePercent,
+              hostCommissionPercent: Number.isFinite(Number(commissionData.data.hostCommissionPercent))
+                ? Number(commissionData.data.hostCommissionPercent)
+                : Number(rate),
+              insuranceFundPercent: Number.isFinite(Number(commissionData.data.insuranceFundPercent))
+                ? Number(commissionData.data.insuranceFundPercent)
+                : prev.insuranceFundPercent,
+              chatInvoiceRateMultiplier: Number.isFinite(Number(commissionData.data.chatInvoiceRateMultiplier))
+                ? Number(commissionData.data.chatInvoiceRateMultiplier)
+                : prev.chatInvoiceRateMultiplier,
+            }))
           }
         }
       } catch (error) {
@@ -300,6 +322,7 @@ export default function PremiumListingWizard() {
           basePriceThb:
             sanitizeThbDigits((listing.basePriceThb ?? listing.base_price_thb)?.toString() || '') ||
             '',
+          baseCurrency: listing.baseCurrency || listing.base_currency || listing.metadata?.base_currency || 'THB',
           commissionRate: listing.commissionRate ?? listing.commission_rate ?? partnerCommissionRate,
           minBookingDays: tourCat
             ? 1
@@ -429,6 +452,7 @@ export default function PremiumListingWizard() {
           district: formData.district || '',
           categorySlug: categories.find((c) => c.id === formData.categoryId)?.slug || '',
           basePriceThb: formData.basePriceThb,
+          baseCurrency: formData.baseCurrency || 'THB',
           metadata: formData.metadata,
           existingDescription: formData.description || '',
         }),
@@ -605,6 +629,23 @@ export default function PremiumListingWizard() {
         return false
     }
   }, [currentStep, formData, coordsValid])
+
+  const pricingPreview = useMemo(() => {
+    const base = Math.round(Number(formData.basePriceThb) || 0)
+    const guestFeePercent = Number(pricingPolicy.guestServiceFeePercent) || 0
+    const guestFeeThb = Math.round(base * (guestFeePercent / 100))
+    const sitePriceSameCurrency = base + guestFeeThb
+    const markupMultiplier = Math.max(1, Number(pricingPolicy.chatInvoiceRateMultiplier) || 1)
+    const sitePriceCrossCurrency = Math.round(sitePriceSameCurrency * markupMultiplier)
+    return {
+      base,
+      guestFeePercent,
+      guestFeeThb,
+      sitePriceSameCurrency,
+      markupPercent: Math.max(0, (markupMultiplier - 1) * 100),
+      sitePriceCrossCurrency,
+    }
+  }, [formData.basePriceThb, pricingPolicy.guestServiceFeePercent, pricingPolicy.chatInvoiceRateMultiplier])
   
   // Navigation
   const goNext = () => {
@@ -691,6 +732,7 @@ export default function PremiumListingWizard() {
           description: descriptionDb,
           district: formData.district || '',
           basePriceThb: parseFloat(formData.basePriceThb) || 0,
+          baseCurrency: formData.baseCurrency || 'THB',
           images: formData.images || [],
           metadata: draftMeta,
           status: 'INACTIVE',
@@ -766,6 +808,7 @@ export default function PremiumListingWizard() {
         status: 'PENDING',
         available: true,
         basePriceThb: parseFloat(formData.basePriceThb) || 0,
+        baseCurrency: formData.baseCurrency || 'THB',
         commissionRate: Number.isFinite(parseFloat(formData.commissionRate))
           ? parseFloat(formData.commissionRate)
           : partnerCommissionRate,
@@ -1314,13 +1357,47 @@ export default function PremiumListingWizard() {
                   className="mt-2 h-12"
                 />
               </div>
-              <div className="flex flex-col justify-end rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
-                <p className="text-sm font-medium text-slate-700">{t('systemCommission')}</p>
-                <p className="text-lg font-semibold text-teal-600 mt-1">{partnerCommissionRate}%</p>
-                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                  {partnerCommissionRate !== 15 ? t('partnerCommissionPersonal') : t('partnerCommissionStandard')}
+              <div>
+                <Label className="text-base font-medium text-slate-800">Базовая валюта листинга</Label>
+                <Select value={formData.baseCurrency || 'THB'} onValueChange={(value) => updateField('baseCurrency', value)}>
+                  <SelectTrigger className="mt-2 h-12">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="THB">THB (Thai Baht)</SelectItem>
+                    <SelectItem value="RUB">RUB (Russian Ruble)</SelectItem>
+                    <SelectItem value="USD">USD (US Dollar)</SelectItem>
+                    <SelectItem value="USDT">USDT (Tether)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-slate-500">
+                  Если валюта оплаты гостя совпадает с базовой валютой, наценка FX не применяется.
                 </p>
               </div>
+              <div className="flex flex-col justify-end rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3">
+                <p className="text-sm font-medium text-slate-700">{t('systemCommission')}</p>
+                <p className="text-lg font-semibold text-teal-600 mt-1">
+                  {Number.isFinite(Number(partnerCommissionRate)) ? `${partnerCommissionRate}%` : '—'}
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                  {Number(partnerCommissionRate) !== 15 ? t('partnerCommissionPersonal') : t('partnerCommissionStandard')}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-sky-200 bg-sky-50/70 px-4 py-3">
+              <p className="text-sm font-semibold text-sky-900">Ориентировочная цена на сайте</p>
+              <p className="mt-1 text-xl font-bold text-sky-800">
+                ฿{pricingPreview.sitePriceSameCurrency.toLocaleString('ru-RU')}
+              </p>
+              <p className="mt-2 text-xs text-sky-900">
+                База: ฿{pricingPreview.base.toLocaleString('ru-RU')} + сервисный сбор гостя ({pricingPreview.guestFeePercent}%):
+                {' '}฿{pricingPreview.guestFeeThb.toLocaleString('ru-RU')}
+              </p>
+              <p className="mt-1 text-xs text-sky-900">
+                Если гость платит в другой валюте: возможна доп. наценка за эквайринг/FX +{pricingPreview.markupPercent.toFixed(2)}%
+                {' '}→ ориентир ฿{pricingPreview.sitePriceCrossCurrency.toLocaleString('ru-RU')}
+              </p>
             </div>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">

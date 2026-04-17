@@ -149,7 +149,7 @@ export default function PartnerFinancesV2() {
   
   const [partnerId, setPartnerId] = useState(null)
   const [currency, setCurrency] = useState('THB')
-  const [exchangeRates] = useState({ THB: 1 })
+  const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
 
   // Get partner ID from localStorage
   useEffect(() => {
@@ -158,9 +158,59 @@ export default function PartnerFinancesV2() {
       try {
         const user = JSON.parse(storedUser)
         setPartnerId(user.id)
+        const pref =
+          String(
+            user.preferredPayoutCurrency ||
+              user.preferred_payout_currency ||
+              user.preferredCurrency ||
+              user.preferred_currency ||
+              'THB'
+          )
+            .toUpperCase()
+            .trim() || 'THB'
+        setCurrency(pref)
       } catch (e) {
         console.error('[FINANCES] Failed to parse user', e)
       }
+    }
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+    ;(async () => {
+      try {
+        const [meRes, fxRes] = await Promise.all([
+          fetch('/api/v2/auth/me', { cache: 'no-store', credentials: 'include' }),
+          fetch('/api/v2/exchange-rates?retail=0', { cache: 'no-store', credentials: 'include' }),
+        ])
+
+        if (meRes.ok) {
+          const me = await meRes.json()
+          const pref =
+            String(
+              me?.user?.preferredPayoutCurrency ||
+                me?.user?.preferred_payout_currency ||
+                me?.user?.preferredCurrency ||
+                me?.user?.preferred_currency ||
+                'THB'
+            )
+              .toUpperCase()
+              .trim() || 'THB'
+          if (isMounted) setCurrency(pref)
+        }
+
+        if (fxRes.ok) {
+          const fx = await fxRes.json()
+          const map = fx?.rateMap && typeof fx.rateMap === 'object' ? fx.rateMap : { THB: 1 }
+          if (isMounted) setExchangeRates({ THB: 1, ...map })
+        }
+      } catch (e) {
+        console.warn('[FINANCES] failed to load payout preferences/rates', e)
+      }
+    })()
+
+    return () => {
+      isMounted = false
     }
   }, [])
 

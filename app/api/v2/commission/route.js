@@ -12,7 +12,10 @@
  */
 
 import { NextResponse } from 'next/server'
-import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
+import {
+  resolveDefaultCommissionPercent,
+  resolveChatInvoiceRateMultiplier,
+} from '@/lib/services/currency.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,12 +41,30 @@ export async function GET(request) {
     )
     
     const settingsData = await settingsRes.json()
-    const rawSystem = settingsData?.[0]?.value?.defaultCommissionRate
+    const general = settingsData?.[0]?.value || {}
+    const rawSystem = general?.hostCommissionPercent ?? general?.defaultCommissionRate
     const parsedSystem = parseFloat(rawSystem)
+    const parsedGuestFee = parseFloat(
+      general?.guestServiceFeePercent ?? general?.serviceFeePercent
+    )
+    const parsedInsurance = parseFloat(general?.insuranceFundPercent)
+    const parsedMarkup = parseFloat(general?.chatInvoiceRateMultiplier)
     const systemRate =
       Number.isFinite(parsedSystem) && parsedSystem >= 0 && parsedSystem <= 100
         ? parsedSystem
         : await resolveDefaultCommissionPercent()
+    const guestServiceFeePercent =
+      Number.isFinite(parsedGuestFee) && parsedGuestFee >= 0 && parsedGuestFee <= 100
+        ? parsedGuestFee
+        : 5
+    const insuranceFundPercent =
+      Number.isFinite(parsedInsurance) && parsedInsurance >= 0 && parsedInsurance <= 100
+        ? parsedInsurance
+        : 0.5
+    const chatInvoiceRateMultiplier =
+      Number.isFinite(parsedMarkup) && parsedMarkup >= 1 && parsedMarkup <= 1.5
+        ? parsedMarkup
+        : await resolveChatInvoiceRateMultiplier()
 
     // 2. If partnerId provided, check for personal rate
     let personalRate = null
@@ -62,7 +83,8 @@ export async function GET(request) {
       
       const profileData = await profileRes.json()
       if (profileData?.[0]?.custom_commission_rate !== null && profileData?.[0]?.custom_commission_rate !== undefined) {
-        personalRate = profileData[0].custom_commission_rate
+        const p = parseFloat(profileData[0].custom_commission_rate)
+        if (Number.isFinite(p) && p >= 0 && p <= 100) personalRate = p
       }
     }
 
@@ -75,7 +97,11 @@ export async function GET(request) {
         systemRate,
         personalRate,
         effectiveRate,
-        partnerEarningsPercent: 100 - effectiveRate
+        partnerEarningsPercent: 100 - effectiveRate,
+        guestServiceFeePercent,
+        hostCommissionPercent: effectiveRate,
+        insuranceFundPercent,
+        chatInvoiceRateMultiplier,
       }
     })
 
@@ -89,6 +115,10 @@ export async function GET(request) {
         personalRate: null,
         effectiveRate: fallback,
         partnerEarningsPercent: 100 - fallback,
+        guestServiceFeePercent: 5,
+        hostCommissionPercent: fallback,
+        insuranceFundPercent: 0.5,
+        chatInvoiceRateMultiplier: await resolveChatInvoiceRateMultiplier(),
       },
     })
   }
