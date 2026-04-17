@@ -125,12 +125,15 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
   if (!isOpen) return null
   
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div 
-        className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+    <div
+      className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center sm:items-center p-3 sm:p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl max-w-lg w-full min-w-0 max-h-[min(90vh,calc(100dvh-2rem))] overflow-y-auto my-2 sm:my-0"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-slate-900">{getUIText('partnerApplication', language)}</h2>
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
@@ -256,6 +259,8 @@ export default function RenterProfilePage() {
   // Modal states
   const [showApplicationModal, setShowApplicationModal] = useState(false)
   const [submittingApplication, setSubmittingApplication] = useState(false)
+  const [pendingKycUrl, setPendingKycUrl] = useState(null)
+  const [savingPendingKyc, setSavingPendingKyc] = useState(false)
 
   const dateLocale = { ru, en: enUS, zh: zhCN, th: thLocale }[language] || enUS
 
@@ -316,6 +321,7 @@ export default function RenterProfilePage() {
           rejection_reason: data.rejectionReason,
           created_at: data.appliedAt,
           reviewed_at: data.reviewedAt,
+          hasVerificationDoc: !!data.hasVerificationDoc,
         })
       } else {
         setApplicationStatus(null)
@@ -371,6 +377,35 @@ export default function RenterProfilePage() {
       toast.error(getUIText('renterToastApplicationSubmitError', language))
     } finally {
       setSubmittingApplication(false)
+    }
+  }
+
+  async function handleSavePendingKyc() {
+    const doc = String(pendingKycUrl || '').trim()
+    if (!doc) {
+      toast.error(getUIText('partnerPendingKycDocRequired', language))
+      return
+    }
+    setSavingPendingKyc(true)
+    try {
+      const res = await fetch('/api/v2/partner/applications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ verificationDocUrl: doc }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || getUIText('partnerPendingKycSaveErr', language))
+      }
+      toast.success(getUIText('partnerPendingKycSaved', language))
+      setPendingKycUrl(null)
+      await loadPartnerApplicationStatus(user.id, { silent: true })
+    } catch (e) {
+      console.error('[PROFILE] PATCH KYC', e)
+      toast.error(e.message || getUIText('partnerPendingKycSaveErr', language))
+    } finally {
+      setSavingPendingKyc(false)
     }
   }
   
@@ -587,9 +622,55 @@ export default function RenterProfilePage() {
                     {applicationStatus.status === 'PENDING' && (
                       <>
                         <Clock className="h-6 w-6 text-amber-600" />
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <p className="font-semibold text-amber-900">{getUIText('renterApplicationPendingTitle', language)}</p>
                           <p className="text-sm text-amber-700">{getUIText('renterApplicationPendingDesc', language)}</p>
+                          {applicationStatus.hasVerificationDoc !== true && (
+                            <div className="mt-4 pt-4 border-t border-amber-200/80 space-y-3 text-left">
+                              <p className="text-sm font-medium text-amber-900">
+                                {getUIText('partnerPendingKycAttachTitle', language)}
+                              </p>
+                              <p className="text-xs text-amber-800/90">
+                                {getUIText('partnerPendingKycAttachDesc', language)}
+                              </p>
+                              <KycUploader
+                                value={pendingKycUrl}
+                                onChange={setPendingKycUrl}
+                                disabled={savingPendingKyc}
+                                strings={{
+                                  label: getUIText('partnerKycLabel', language),
+                                  requiredBadge: '*',
+                                  uploading: getUIText('partnerKycUploading', language),
+                                  uploaded: getUIText('partnerKycUploaded', language),
+                                  remove: getUIText('partnerKycRemove', language),
+                                  tapToUpload: getUIText('partnerKycTapToUpload', language),
+                                  fileTypesHint: getUIText('partnerKycFileTypesHint', language),
+                                  privacyHint: getUIText('partnerKycPrivacyHint', language),
+                                  errorTooLarge: getUIText('partnerKycErrorTooLarge', language),
+                                  errorUploadFailed: getUIText('partnerKycErrorUpload', language),
+                                }}
+                                onUploadError={(msg) => toast.error(msg)}
+                                onUploadSuccess={() =>
+                                  toast.success(getUIText('partnerKycUploadSuccess', language))
+                                }
+                              />
+                              <Button
+                                type="button"
+                                className="w-full bg-amber-700 hover:bg-amber-800 text-white"
+                                disabled={savingPendingKyc || !String(pendingKycUrl || '').trim()}
+                                onClick={() => void handleSavePendingKyc()}
+                              >
+                                {savingPendingKyc ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin shrink-0" />
+                                    {getUIText('partnerPendingKycSaving', language)}
+                                  </>
+                                ) : (
+                                  getUIText('partnerPendingKycSave', language)
+                                )}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </>
                     )}

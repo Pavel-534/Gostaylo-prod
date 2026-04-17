@@ -12,23 +12,35 @@ function fmtThb(n) {
   return `฿${x.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function fmtPayoutAmount(p) {
+  const x = Number(p?.finalAmount ?? p?.amount);
+  if (!Number.isFinite(x)) return '—';
+  const c = String(p?.currency || 'THB').toUpperCase();
+  if (c === 'THB') return fmtThb(x);
+  return `${x.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${c}`;
+}
+
 export default function AdminFinancialHealthPage() {
   const [data, setData] = useState(null);
   const [recon, setRecon] = useState(null);
+  const [processingPayouts, setProcessingPayouts] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [registryLoading, setRegistryLoading] = useState(false);
+  const [payoutActionId, setPayoutActionId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [balRes, reconRes] = await Promise.all([
+      const [balRes, reconRes, procRes] = await Promise.all([
         fetch('/api/v2/admin/ledger-balances', { credentials: 'include' }),
         fetch('/api/v2/admin/ledger-reconciliation', { credentials: 'include' }),
+        fetch('/api/v2/admin/payouts?status=PROCESSING&limit=100', { credentials: 'include' }),
       ]);
       const balJson = await balRes.json().catch(() => ({}));
       const reconJson = await reconRes.json().catch(() => ({}));
+      const procJson = await procRes.json().catch(() => ({}));
 
       if (!balRes.ok || !balJson.success) {
         setData(null);
@@ -40,6 +52,11 @@ export default function AdminFinancialHealthPage() {
         setRecon(reconJson.data);
       } else {
         setRecon(null);
+      }
+      if (procRes.ok && procJson.success && Array.isArray(procJson.data)) {
+        setProcessingPayouts(procJson.data);
+      } else {
+        setProcessingPayouts([]);
       }
     } catch (e) {
       setData(null);
@@ -108,6 +125,29 @@ export default function AdminFinancialHealthPage() {
     }
   }
 
+  async function markPayoutStatus(payoutId, status) {
+    setPayoutActionId(payoutId);
+    try {
+      const res = await fetch(`/api/v2/admin/payouts/${encodeURIComponent(payoutId)}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        toast.error(json.error || 'Не удалось обновить выплату');
+        return;
+      }
+      toast.success(status === 'PAID' ? 'Выплата отмечена как PAID (проводка в ledger).' : 'Выплата отмечена как FAILED.');
+      await load();
+    } catch (e) {
+      toast.error(e?.message || 'Сеть');
+    } finally {
+      setPayoutActionId(null);
+    }
+  }
+
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -137,6 +177,63 @@ export default function AdminFinancialHealthPage() {
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm">{error}</div>
+      )}
+
+      {!loading && processingPayouts.length > 0 && (
+        <Card className="rounded-2xl border-slate-200 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Выплаты в обработке (PROCESSING)</CardTitle>
+            <CardDescription>
+              После выгрузки реестра Т-Банка отметьте факт банка: <strong>PAID</strong> (с проводкой в ledger) или{' '}
+              <strong>FAILED</strong>.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="overflow-x-auto rounded-lg border border-slate-100 -mx-1">
+              <table className="w-full text-sm min-w-[640px]">
+                <thead className="bg-slate-50 text-slate-600 text-left">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">ID</th>
+                    <th className="px-3 py-2 font-medium">Партнёр</th>
+                    <th className="px-3 py-2 font-medium text-right">Сумма</th>
+                    <th className="px-3 py-2 font-medium">Метод</th>
+                    <th className="px-3 py-2 font-medium">Действия</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {processingPayouts.map((p) => (
+                    <tr key={p.id}>
+                      <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{p.id}</td>
+                      <td className="px-3 py-2 text-slate-700">{p.partnerId}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">{fmtPayoutAmount(p)}</td>
+                      <td className="px-3 py-2 text-slate-600">{p.payoutMethod?.name || '—'}</td>
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-emerald-700 text-white hover:bg-emerald-800"
+                            disabled={!!payoutActionId}
+                            onClick={() => void markPayoutStatus(p.id, 'PAID')}
+                          >
+                            {payoutActionId === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'PAID'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled={!!payoutActionId}
+                            onClick={() => void markPayoutStatus(p.id, 'FAILED')}
+                          >
+                            FAILED
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {loading && !data ? (

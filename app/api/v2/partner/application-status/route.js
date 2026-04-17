@@ -47,7 +47,7 @@ export async function GET(request) {
   // Get application status
   const { data: application, error } = await supabase
     .from('partner_applications')
-    .select('id, status, rejection_reason, created_at, reviewed_at')
+    .select('id, status, rejection_reason, created_at, reviewed_at, verification_doc_url')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -66,12 +66,17 @@ export async function GET(request) {
     });
   }
   
+  const hasVerificationDoc = !!(
+    application.verification_doc_url && String(application.verification_doc_url).trim()
+  )
+
   return NextResponse.json({
     success: true,
     hasApplication: true,
     status: application.status,
     rejectionReason: application.rejection_reason,
     appliedAt: application.created_at,
-    reviewedAt: application.reviewed_at
+    reviewedAt: application.reviewed_at,
+    hasVerificationDoc,
   });
 }

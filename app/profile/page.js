@@ -20,6 +20,19 @@ import {
 import { telegramAccountLinkUrl } from '@/lib/telegram-bot-public'
 import { KycUploader } from '@/components/kyc-uploader'
 
+const PENDING_KYC_LABELS = {
+  label: 'Документ (паспорт/ID)',
+  requiredBadge: '*',
+  uploading: 'Сжатие и загрузка…',
+  uploaded: 'Документ загружен',
+  remove: 'Удалить',
+  tapToUpload: 'Нажмите для загрузки',
+  fileTypesHint: 'JPG, PNG или PDF (до 4MB)',
+  privacyHint: 'Виден только администраторам.',
+  errorTooLarge: 'Файл слишком большой.',
+  errorUploadFailed: 'Ошибка загрузки',
+}
+
 // Main export with Suspense wrapper for useSearchParams
 export default function ProfilePage() {
   return (
@@ -55,6 +68,9 @@ function ProfileContent() {
   
   // Partner application status
   const [isPendingPartner, setIsPendingPartner] = useState(false)
+  const [pendingNeedsKyc, setPendingNeedsKyc] = useState(false)
+  const [pendingInlineKycUrl, setPendingInlineKycUrl] = useState(null)
+  const [savingPendingKyc, setSavingPendingKyc] = useState(false)
   const [isRejectedPartner, setIsRejectedPartner] = useState(false)
   const [rejectionReason, setRejectionReason] = useState('')
   
@@ -175,6 +191,43 @@ function ProfileContent() {
     }
   }
 
+  async function handleSavePendingInlineKyc() {
+    const doc = String(pendingInlineKycUrl || '').trim()
+    if (!doc) {
+      toast({ title: 'Нужен файл', description: 'Загрузите документ', variant: 'destructive' })
+      return
+    }
+    setSavingPendingKyc(true)
+    try {
+      const res = await fetch('/api/v2/partner/applications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ verificationDocUrl: doc }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Не удалось сохранить')
+      }
+      toast({ title: 'Готово', description: 'Документ прикреплён к заявке' })
+      setPendingInlineKycUrl(null)
+      setPendingNeedsKyc(false)
+      const st = await fetch('/api/v2/partner/application-status', { credentials: 'include' })
+      const j = await st.json().catch(() => ({}))
+      if (j.success && j.status === 'PENDING') {
+        setPendingNeedsKyc(!j.hasVerificationDoc)
+      }
+    } catch (e) {
+      toast({
+        title: 'Ошибка',
+        description: e.message || 'Не удалось сохранить документ',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingPendingKyc(false)
+    }
+  }
+
   // Check for pending/rejected partner application
   useEffect(() => {
     async function checkPendingApplication() {
@@ -188,18 +241,22 @@ function ProfileContent() {
             if (result.status === 'PENDING') {
               setIsPendingPartner(true)
               setIsRejectedPartner(false)
+              setPendingNeedsKyc(!result.hasVerificationDoc)
             } else if (result.status === 'REJECTED') {
               setIsRejectedPartner(true)
               setRejectionReason(result.rejectionReason || 'Заявка не соответствует требованиям')
               setIsPendingPartner(false)
+              setPendingNeedsKyc(false)
             } else {
               setIsPendingPartner(false)
               setIsRejectedPartner(false)
+              setPendingNeedsKyc(false)
             }
           }
         } catch (e) {
           setIsPendingPartner(false)
           setIsRejectedPartner(false)
+          setPendingNeedsKyc(false)
         }
       }
     }
@@ -369,12 +426,49 @@ function ProfileContent() {
             <CardContent className='pt-6'>
               <div className='flex items-start gap-3'>
                 <Clock className='h-5 w-5 text-amber-600 mt-0.5' />
-                <div>
+                <div className='min-w-0 flex-1'>
                   <h3 className='font-medium text-amber-800'>Заявка на рассмотрении</h3>
                   <p className='text-sm text-amber-700 mt-1'>
                     Мы проверяем вашу заявку на партнёрство. Обычно это занимает до 24 часов.
                     Вы получите уведомление по email.
                   </p>
+                  {pendingNeedsKyc && (
+                    <div className='mt-4 pt-4 border-t border-amber-200 space-y-3'>
+                      <p className='text-sm font-medium text-amber-900'>
+                        Документ не найден в заявке
+                      </p>
+                      <p className='text-xs text-amber-800'>
+                        Загрузите паспорт или ID — так мы быстрее сможем вас проверить.
+                      </p>
+                      <KycUploader
+                        value={pendingInlineKycUrl}
+                        onChange={setPendingInlineKycUrl}
+                        disabled={savingPendingKyc}
+                        strings={PENDING_KYC_LABELS}
+                        onUploadError={(msg) =>
+                          toast({ title: 'Ошибка загрузки', description: msg, variant: 'destructive' })
+                        }
+                        onUploadSuccess={() =>
+                          toast({ title: 'Файл загружен', description: 'Нажмите «Сохранить к заявке»' })
+                        }
+                      />
+                      <Button
+                        type='button'
+                        className='w-full bg-amber-700 hover:bg-amber-800'
+                        disabled={savingPendingKyc || !String(pendingInlineKycUrl || '').trim()}
+                        onClick={() => void handleSavePendingInlineKyc()}
+                      >
+                        {savingPendingKyc ? (
+                          <>
+                            <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                            Сохранение…
+                          </>
+                        ) : (
+                          'Сохранить документ к заявке'
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>

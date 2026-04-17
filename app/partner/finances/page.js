@@ -123,7 +123,9 @@ const PAYOUT_STATUS_LABEL = {
   PENDING: 'Pending',
   PROCESSING: 'Processing',
   COMPLETED: 'Paid',
+  PAID: 'Paid',
   FAILED: 'Failed',
+  REJECTED: 'Rejected',
   REFUNDED: 'Refunded',
 }
 
@@ -131,7 +133,9 @@ const PAYOUT_STATUS_COLORS = {
   PENDING: 'bg-amber-100 text-amber-900 border-amber-200',
   PROCESSING: 'bg-sky-100 text-sky-900 border-sky-200',
   COMPLETED: 'bg-emerald-100 text-emerald-900 border-emerald-200',
+  PAID: 'bg-emerald-100 text-emerald-900 border-emerald-200',
   FAILED: 'bg-red-100 text-red-900 border-red-200',
+  REJECTED: 'bg-rose-100 text-rose-900 border-rose-200',
   REFUNDED: 'bg-slate-100 text-slate-800 border-slate-200',
 }
 
@@ -361,18 +365,18 @@ export default function PartnerFinancesV2() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 min-w-0 max-w-full">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">{t('financesTitle')}</h1>
-          <p className="text-slate-600 mt-1">{t('financesDesc')}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between min-w-0">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">{t('financesTitle')}</h1>
+          <p className="text-slate-600 mt-1 text-sm sm:text-base">{t('financesDesc')}</p>
         </div>
         <Button 
           onClick={handleExportCSV}
           variant="outline"
           disabled={bookings.length === 0}
-          className="gap-2"
+          className="gap-2 shrink-0 self-start sm:self-auto"
         >
           <Download className="h-4 w-4" />
           {t('exportCSV')}
@@ -468,61 +472,111 @@ export default function PartnerFinancesV2() {
           ) : payouts.length === 0 ? (
             <p className="text-sm text-slate-500 py-4">Пока нет заявок на выплату.</p>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 text-slate-600 text-left">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">Дата</th>
-                    <th className="px-3 py-2 font-medium">Метод</th>
-                    <th className="px-3 py-2 font-medium text-right">Gross</th>
-                    <th className="px-3 py-2 font-medium text-right">Комиссия банка</th>
-                    <th className="px-3 py-2 font-medium text-right">Итого к получению</th>
-                    <th className="px-3 py-2 font-medium">Статус</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {payouts.map((p) => {
-                    const cur = p.currency || 'THB'
-                    const rates = { THB: 1, ...exchangeRates }
-                    const methodName = p.payoutMethod?.name || p.method || '—'
-                    const st = String(p.status || '').toUpperCase()
-                    const fmtMoney = (amt) => {
-                      const n = Number(amt) || 0
-                      if (cur === 'THB') return formatPrice(n, 'THB', rates, language)
-                      const loc = language === 'ru' ? 'ru-RU' : 'en-US'
-                      return `${n.toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`
-                    }
-                    return (
-                      <tr key={p.id} className="hover:bg-slate-50/80">
-                        <td className="px-3 py-2 whitespace-nowrap text-slate-700">
+            <>
+              <div className="md:hidden space-y-3 min-w-0">
+                {payouts.map((p) => {
+                  const cur = p.currency || 'THB'
+                  const rates = { THB: 1, ...exchangeRates }
+                  const methodName = p.payoutMethod?.name || p.method || '—'
+                  const st = String(p.status || '').toUpperCase()
+                  const fmtMoney = (amt) => {
+                    const n = Number(amt) || 0
+                    if (cur === 'THB') return formatPrice(n, 'THB', rates, language)
+                    const loc = language === 'ru' ? 'ru-RU' : 'en-US'
+                    return `${n.toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`
+                  }
+                  return (
+                    <div
+                      key={p.id}
+                      className="rounded-lg border border-slate-200 bg-slate-50/50 p-3 space-y-2 text-sm min-w-0"
+                    >
+                      <div className="flex items-start justify-between gap-2 min-w-0">
+                        <span className="text-slate-500 text-xs shrink-0">
                           {p.createdAt ? format(new Date(p.createdAt), 'dd.MM.yyyy HH:mm') : '—'}
-                        </td>
-                        <td className="px-3 py-2 text-slate-800">{methodName}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">
-                          {fmtMoney(p.grossAmount)}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-amber-800">
-                          −{fmtMoney(p.payoutFeeAmount)}
-                        </td>
-                        <td className="px-3 py-2 text-right font-semibold tabular-nums text-emerald-800">
-                          {fmtMoney(p.finalAmount)}
-                        </td>
-                        <td className="px-3 py-2">
-                          <Badge className={`text-xs ${PAYOUT_STATUS_COLORS[st] || 'bg-slate-100'}`}>
-                            {PAYOUT_STATUS_LABEL[st] || st}
-                          </Badge>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </span>
+                        <Badge className={`text-xs shrink-0 ${PAYOUT_STATUS_COLORS[st] || 'bg-slate-100'}`}>
+                          {PAYOUT_STATUS_LABEL[st] || st}
+                        </Badge>
+                      </div>
+                      <p className="font-medium text-slate-800 break-words">{methodName}</p>
+                      <div className="grid grid-cols-1 gap-1 text-xs sm:text-sm">
+                        <div className="flex justify-between gap-2 min-w-0">
+                          <span className="text-slate-500 shrink-0">Gross</span>
+                          <span className="tabular-nums text-right break-all">{fmtMoney(p.grossAmount)}</span>
+                        </div>
+                        <div className="flex justify-between gap-2 min-w-0">
+                          <span className="text-slate-500 shrink-0">Комиссия</span>
+                          <span className="tabular-nums text-amber-800 text-right break-all">
+                            −{fmtMoney(p.payoutFeeAmount)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between gap-2 pt-1 border-t border-slate-200 font-semibold min-w-0">
+                          <span className="text-slate-700 shrink-0">Итого</span>
+                          <span className="tabular-nums text-emerald-800 text-right break-all">
+                            {fmtMoney(p.finalAmount)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="hidden md:block overflow-x-auto rounded-lg border border-slate-200 -mx-0">
+                <table className="w-full text-sm min-w-[640px]">
+                  <thead className="bg-slate-50 text-slate-600 text-left">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Дата</th>
+                      <th className="px-3 py-2 font-medium">Метод</th>
+                      <th className="px-3 py-2 font-medium text-right">Gross</th>
+                      <th className="px-3 py-2 font-medium text-right">Комиссия банка</th>
+                      <th className="px-3 py-2 font-medium text-right">Итого к получению</th>
+                      <th className="px-3 py-2 font-medium">Статус</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {payouts.map((p) => {
+                      const cur = p.currency || 'THB'
+                      const rates = { THB: 1, ...exchangeRates }
+                      const methodName = p.payoutMethod?.name || p.method || '—'
+                      const st = String(p.status || '').toUpperCase()
+                      const fmtMoney = (amt) => {
+                        const n = Number(amt) || 0
+                        if (cur === 'THB') return formatPrice(n, 'THB', rates, language)
+                        const loc = language === 'ru' ? 'ru-RU' : 'en-US'
+                        return `${n.toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`
+                      }
+                      return (
+                        <tr key={p.id} className="hover:bg-slate-50/80">
+                          <td className="px-3 py-2 whitespace-nowrap text-slate-700">
+                            {p.createdAt ? format(new Date(p.createdAt), 'dd.MM.yyyy HH:mm') : '—'}
+                          </td>
+                          <td className="px-3 py-2 text-slate-800">{methodName}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {fmtMoney(p.grossAmount)}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums text-amber-800">
+                            −{fmtMoney(p.payoutFeeAmount)}
+                          </td>
+                          <td className="px-3 py-2 text-right font-semibold tabular-nums text-emerald-800">
+                            {fmtMoney(p.finalAmount)}
+                          </td>
+                          <td className="px-3 py-2">
+                            <Badge className={`text-xs ${PAYOUT_STATUS_COLORS[st] || 'bg-slate-100'}`}>
+                              {PAYOUT_STATUS_LABEL[st] || st}
+                            </Badge>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
 
-      <Card className="border-indigo-200 bg-indigo-50/50">
+      <Card className="border-indigo-200 bg-indigo-50/50 min-w-0 overflow-hidden">
         <CardHeader>
           <CardTitle className="text-lg">Payout Math</CardTitle>
           <CardDescription>
@@ -531,18 +585,24 @@ export default function PartnerFinancesV2() {
               : 'Добавьте payout-профиль в разделе «Реквизиты для выплат», чтобы видеть банковскую комиссию заранее.'}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-slate-600">BasePayout (pending)</span>
-            <span className="font-medium">{formatPrice(finances.pendingRevenue, currency, exchangeRates)}</span>
+        <CardContent className="space-y-2 text-sm min-w-0 overflow-x-auto">
+          <div className="flex justify-between gap-3 min-w-0">
+            <span className="text-slate-600 shrink-0">BasePayout (pending)</span>
+            <span className="font-medium tabular-nums text-right break-all min-w-0">
+              {formatPrice(finances.pendingRevenue, currency, exchangeRates)}
+            </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-slate-600">Payout Fee</span>
-            <span className="font-medium">-{formatPrice(pendingPayoutPreview.fee, currency, exchangeRates)}</span>
+          <div className="flex justify-between gap-3 min-w-0">
+            <span className="text-slate-600 shrink-0">Payout Fee</span>
+            <span className="font-medium tabular-nums text-right break-all min-w-0">
+              -{formatPrice(pendingPayoutPreview.fee, currency, exchangeRates)}
+            </span>
           </div>
-          <div className="flex justify-between pt-2 border-t border-indigo-200 text-base font-semibold">
-            <span>FinalAmount</span>
-            <span className="text-indigo-700">{formatPrice(pendingPayoutPreview.final, currency, exchangeRates)}</span>
+          <div className="flex justify-between gap-3 pt-2 border-t border-indigo-200 text-base font-semibold min-w-0">
+            <span className="shrink-0">FinalAmount</span>
+            <span className="text-indigo-700 tabular-nums text-right break-all min-w-0">
+              {formatPrice(pendingPayoutPreview.final, currency, exchangeRates)}
+            </span>
           </div>
         </CardContent>
       </Card>

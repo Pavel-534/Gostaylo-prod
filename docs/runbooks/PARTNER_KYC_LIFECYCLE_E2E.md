@@ -2,7 +2,7 @@
 
 Канонические шаги совпадают с `lib/runbooks/partner-kyc-e2e-smoke.js` и JSON `runbook` из **`GET /api/v2/debug/test-telegram`**.
 
-1. Арендатор: **`/renter/profile`** → заявка партнёра → загрузка KYC → отправка.  
+1. Арендатор: **`/renter/profile`** → заявка партнёра → загрузка KYC → отправка. Если заявка уже **PENDING** без файла (старый API) — на карточке статуса блок «Документ для проверки» → загрузка → **`PATCH /api/v2/partner/applications`** (то же на **`/profile`**).  
 2. Telegram: топик **NEW_PARTNERS** (thread **17**) в админ-группе — сообщение о заявке (нужны **`TELEGRAM_BOT_TOKEN`**, **`TELEGRAM_ADMIN_GROUP_ID`**).  
 3. Админ: **`/admin/partners`** → карточка → просмотр KYC через **`/api/v2/admin/verification-doc`** (редирект на signed URL) → **Одобрить**.  
 4. Пользователь: обновить сессию / перелогин → **`GET /api/v2/auth/me`** с ролью **PARTNER** → **`/partner/dashboard`**.  

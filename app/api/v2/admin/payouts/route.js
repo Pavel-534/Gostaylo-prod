@@ -33,19 +33,20 @@ export async function GET(request) {
 
   const { searchParams } = new URL(request.url);
   const limit = Math.min(500, Math.max(1, parseInt(searchParams.get('limit') || '200', 10)));
+  const statusFilter = String(searchParams.get('status') || '').trim().toUpperCase();
 
   try {
-    const { data: payouts, error } = await supabaseAdmin
-      .from('payouts')
-      .select(
-        `
+    let q = supabaseAdmin.from('payouts').select(
+      `
         *,
         payout_method:payout_methods(id,name,channel,currency),
         payout_profile:partner_payout_profiles(id,is_verified,is_default)
       `,
-      )
-      .order('created_at', { ascending: false })
-      .limit(limit);
+    );
+    if (statusFilter) {
+      q = q.eq('status', statusFilter);
+    }
+    const { data: payouts, error } = await q.order('created_at', { ascending: false }).limit(limit);
 
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -61,6 +62,7 @@ export async function GET(request) {
       finalAmount: parseFloat(p.final_amount) || parseFloat(p.amount) || 0,
       currency: p.currency,
       status: p.status,
+      rejectionReason: p.rejection_reason || null,
       payoutMethod: p.payout_method || null,
       payoutProfile: p.payout_profile || null,
       createdAt: p.created_at,

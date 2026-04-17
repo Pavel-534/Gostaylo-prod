@@ -37,7 +37,7 @@ export function KycUploader({
   const [uploading, setUploading] = useState(false)
 
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-2 min-w-0 ${className}`}>
       <label className="block text-sm font-medium text-slate-700">
         {strings.label}
         {strings.requiredBadge ? (

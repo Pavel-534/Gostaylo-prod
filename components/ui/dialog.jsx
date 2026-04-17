@@ -55,7 +55,7 @@ const DialogContent = React.forwardRef(({ className, children, showCloseButton =
         ref={ref}
         style={{ maxHeight: `calc(${viewportHeight} - 1rem)` }}
         className={cn(
-          "fixed left-[50%] z-[120] flex flex-col w-full max-w-lg translate-x-[-50%] gap-2 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-t-xl sm:rounded-lg",
+          "fixed left-[50%] z-[120] flex flex-col w-full min-w-0 max-w-[calc(100vw-1rem)] sm:max-w-lg translate-x-[-50%] gap-2 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 rounded-t-xl sm:rounded-lg",
           // Mobile: anchor to top, Desktop: center vertically
           "top-2 sm:top-[50%] sm:translate-y-[-50%] overflow-hidden",
           className
