@@ -13,14 +13,16 @@
  * @version 2.1
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { 
   DollarSign, TrendingUp, Wallet, Download, 
-  Calendar, Building2, Clock, ArrowDownToLine
+  Calendar, Building2, Clock, ArrowDownToLine, Loader2
 } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { format } from 'date-fns'
@@ -176,9 +178,12 @@ function StatCard({ icon: Icon, title, value, subtitle, trend, loading }) {
   )
 }
 
-export default function PartnerFinancesV2() {
+function PartnerFinancesV2Content() {
   const { language } = useI18n()
   const t = (key) => getUIText(key, language)
+  const searchParams = useSearchParams()
+  const escrowBookingFilter = searchParams.get('status') === 'PAID_ESCROW'
+  const transactionSectionRef = useRef(null)
   
   const [partnerId, setPartnerId] = useState(null)
   const [currency, setCurrency] = useState('THB')
@@ -298,6 +303,19 @@ export default function PartnerFinancesV2() {
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000 // Auto-refresh every minute
   })
+
+  const displayedBookings = useMemo(() => {
+    if (!escrowBookingFilter) return bookings
+    return bookings.filter((b) => String(b.status || '').toUpperCase() === 'PAID_ESCROW')
+  }, [bookings, escrowBookingFilter])
+
+  useEffect(() => {
+    if (!escrowBookingFilter || isLoading) return
+    const id = requestAnimationFrame(() => {
+      transactionSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [escrowBookingFilter, isLoading, partnerId])
 
   // Fetch effective commission rate (from admin: 7% global, 4% per-user)
   const { data: commissionData } = useQuery({
@@ -608,10 +626,21 @@ export default function PartnerFinancesV2() {
       </Card>
 
       {/* Transaction History */}
-      <Card>
+      <Card ref={transactionSectionRef}>
         <CardHeader>
           <CardTitle>{t('transactionHistory')}</CardTitle>
           <CardDescription>{t('transactionHistoryDesc')}</CardDescription>
+          {escrowBookingFilter ? (
+            <div className="mt-3 flex flex-col gap-2 rounded-lg border border-teal-200 bg-teal-50/80 px-3 py-2 text-sm text-teal-950 sm:flex-row sm:items-center sm:justify-between">
+              <span>Показаны только брони в статусе PAID_ESCROW (оплачено, удержано на платформе).</span>
+              <Link
+                href="/partner/finances"
+                className="shrink-0 font-semibold text-teal-800 underline underline-offset-2 hover:text-teal-900"
+              >
+                Показать все брони
+              </Link>
+            </div>
+          ) : null}
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -634,9 +663,19 @@ export default function PartnerFinancesV2() {
               <h3 className="text-lg font-semibold text-slate-700 mb-2">{t('noTransactions')}</h3>
               <p>{t('noTransactionsDesc')}</p>
             </div>
+          ) : displayedBookings.length === 0 ? (
+            <div className="text-center py-10 text-slate-600">
+              <p className="font-medium text-slate-800 mb-2">Нет броней в статусе PAID_ESCROW</p>
+              <p className="text-sm text-slate-500 mb-4">
+                Сейчас ни одна бронь не находится в оплате с удержанием средств, либо фильтр слишком узкий.
+              </p>
+              <Button variant="outline" asChild>
+                <Link href="/partner/finances">Показать все брони</Link>
+              </Button>
+            </div>
           ) : (
             <div className="space-y-4">
-              {bookings.map((booking) => {
+              {displayedBookings.map((booking) => {
                 const gross = parseFloat(booking.priceThb || booking.total_price_thb) || 0
                 const rate = parseFloat(booking.commissionRate ?? booking.listing?.commissionRate) || DEFAULT_COMMISSION_RATE
                 const fee = gross * (rate / 100)
@@ -715,5 +754,19 @@ export default function PartnerFinancesV2() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function PartnerFinancesV2() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[40vh] items-center justify-center">
+          <Loader2 className="h-10 w-10 animate-spin text-teal-600" aria-label="Загрузка" />
+        </div>
+      }
+    >
+      <PartnerFinancesV2Content />
+    </Suspense>
   )
 }

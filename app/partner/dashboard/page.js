@@ -278,6 +278,13 @@ export default function PartnerDashboard() {
   const { data: stats, isLoading, isError, refetch } = usePartnerStats(partnerId, {
     enabled: !!partnerId
   })
+
+  const incomeByMonthRows = stats?.financialV2?.incomeByMonth
+  const incomeChartEmpty = useMemo(() => {
+    const rows = incomeByMonthRows
+    if (!rows?.length) return true
+    return !rows.some((m) => Number(m?.amountThb) > 0)
+  }, [incomeByMonthRows])
   
   // Mutation for booking status updates
   const updateStatusMutation = useUpdateBookingStatus()
@@ -558,47 +565,65 @@ export default function PartnerDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="h-[260px] pt-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={stats?.financialV2?.incomeByMonth || []}
-                margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-slate-100" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
-                <YAxis
-                  width={44}
-                  tick={{ fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)}
-                />
-                <Tooltip content={<IncomeChartTooltip />} cursor={{ fill: 'rgba(13, 148, 136, 0.06)' }} />
-                <Bar dataKey="amountThb" fill="#0d9488" radius={[4, 4, 0, 0]} maxBarSize={48} />
-              </BarChart>
-            </ResponsiveContainer>
+            {incomeChartEmpty ? (
+              <div className="h-full min-h-[220px] flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-gradient-to-b from-slate-50/80 to-white px-6 text-center">
+                <BarChart3 className="h-12 w-12 text-slate-300 mb-3" aria-hidden />
+                <p className="text-sm text-slate-600 max-w-md leading-relaxed">
+                  Ваша статистика доходов появится здесь после завершения первой брони
+                </p>
+                <p className="text-xs text-slate-400 mt-2 max-w-sm">
+                  График строится по завершённым выплатам на ваши реквизиты.
+                </p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={stats?.financialV2?.incomeByMonth || []}
+                  margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-slate-100" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                  <YAxis
+                    width={44}
+                    tick={{ fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)}
+                  />
+                  <Tooltip content={<IncomeChartTooltip />} cursor={{ fill: 'rgba(13, 148, 136, 0.06)' }} />
+                  <Bar dataKey="amountThb" fill="#0d9488" radius={[4, 4, 0, 0]} maxBarSize={48} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border border-slate-100 border-l-4 border-l-teal-500">
-          <CardContent className="p-5 flex flex-col h-full justify-between gap-4">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-slate-500">Будущий доход (в обработке)</span>
-                <Banknote className="h-5 w-5 text-teal-600" />
+        <Link
+          href="/partner/finances?status=PAID_ESCROW"
+          className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+        >
+          <Card className="shadow-sm border border-slate-100 border-l-4 border-l-teal-500 h-full transition-shadow hover:shadow-md cursor-pointer">
+            <CardContent className="p-5 flex flex-col h-full justify-between gap-4">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-slate-500">Будущий доход (в обработке)</span>
+                  <Banknote className="h-5 w-5 text-teal-600" />
+                </div>
+                <p className="text-3xl font-bold text-slate-900 tabular-nums">
+                  {formatPrice(stats?.financialV2?.moneyInTransitThb ?? 0, 'THB')}
+                </p>
               </div>
-              <p className="text-3xl font-bold text-slate-900 tabular-nums">
-                {formatPrice(stats?.financialV2?.moneyInTransitThb ?? 0, 'THB')}
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Сумма вашего дохода по бронированиям со статусом «Оплачено, удержано» (деньги ещё не отправлены
+                выплатой на ваши реквизиты). После проверки и выплаты сумма появится в истории выплат.
               </p>
-            </div>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Сумма вашего дохода по бронированиям со статусом «Оплачено, удержано» (деньги ещё не отправлены
-              выплатой на ваши реквизиты). После проверки и выплаты сумма появится в истории выплат.
-            </p>
-            <Button variant="outline" size="sm" className="w-full border-teal-200 text-teal-700" asChild>
-              <Link href="/partner/finances">Открыть финансы</Link>
-            </Button>
-          </CardContent>
-        </Card>
+              <p className="text-xs font-medium text-teal-700 flex items-center gap-1">
+                Подробнее по броням
+                <ChevronRight className="h-3.5 w-3.5" />
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Main Content Grid */}

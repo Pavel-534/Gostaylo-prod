@@ -389,7 +389,7 @@ export default function AdminFinancialHealthPage() {
                 className={`mt-3 rounded-lg border p-3 text-xs ${
                   recon.payoutSelfCheck.equalsLedgerWithinTolerance
                     ? 'border-emerald-200 bg-emerald-50/80 text-emerald-900'
-                    : 'border-slate-200 bg-slate-50 text-slate-800'
+                    : 'border-red-300 bg-red-50 text-red-950'
                 }`}
               >
                 <p className="font-semibold text-sm mb-1">Smoke: открытые выплаты vs PARTNER_EARNINGS (ledger)</p>
@@ -397,9 +397,21 @@ export default function AdminFinancialHealthPage() {
                   Σ gross (PENDING+PROCESSING): <strong>{fmtThb(recon.payoutSelfCheck.openPipelineGrossThb)}</strong> ·
                   Нетто PARTNER_EARNINGS:{' '}
                   <strong>{fmtThb(recon.payoutSelfCheck.partnerEarningsLedgerNetThb)}</strong> · Дельта:{' '}
-                  <strong>{fmtThb(recon.payoutSelfCheck.deltaOpenVsLedgerThb)}</strong>
+                  <strong
+                    className={
+                      recon.payoutSelfCheck.equalsLedgerWithinTolerance ? '' : 'text-red-600 text-base tabular-nums'
+                    }
+                  >
+                    {fmtThb(recon.payoutSelfCheck.deltaOpenVsLedgerThb)}
+                  </strong>
                 </p>
-                <p className="mt-2 text-slate-600 leading-relaxed">{recon.payoutSelfCheck.note}</p>
+                <p
+                  className={`mt-2 leading-relaxed ${
+                    recon.payoutSelfCheck.equalsLedgerWithinTolerance ? 'text-slate-600' : 'text-red-800 font-medium'
+                  }`}
+                >
+                  {recon.payoutSelfCheck.note}
+                </p>
               </div>
             ) : null}
           </CardContent>

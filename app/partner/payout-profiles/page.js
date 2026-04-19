@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Loader2, CheckCircle2, Landmark, CreditCard, Wallet, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
+import { getTelegramBotUsername, telegramBotStartUrl } from '@/lib/telegram-bot-public'
 
 const MODERATION_NOTICE =
   'После сохранения реквизиты проверяет модератор. Убедитесь, что ФИО, номер счёта или карты указаны без ошибок — неверные данные задержат выплату.'
@@ -127,6 +128,8 @@ export default function PartnerPayoutProfilesPage() {
     () => methods.find((m) => m.id === editMethodId) || null,
     [methods, editMethodId],
   )
+
+  const supportTelegramHref = useMemo(() => telegramBotStartUrl('support_payout_change'), [])
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -462,6 +465,20 @@ export default function PartnerPayoutProfilesPage() {
                           </Badge>
                         )}
                       </div>
+                      {profile.is_verified ? (
+                        <p className='text-xs text-slate-500 mt-2 max-w-xl leading-relaxed'>
+                          Для смены подтверждённых реквизитов обратитесь в поддержку:{' '}
+                          <a
+                            href={supportTelegramHref}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            className='font-medium text-teal-700 underline underline-offset-2 hover:text-teal-800'
+                          >
+                            {`Telegram (@${getTelegramBotUsername()})`}
+                          </a>
+                          .
+                        </p>
+                      ) : null}
                       {profile.is_default ? (
                         <p className='text-xs text-slate-500 mt-2 max-w-xl leading-relaxed'>
                           Чтобы изменить реквизиты основного счёта: добавьте новый профиль, назначьте его основным,
