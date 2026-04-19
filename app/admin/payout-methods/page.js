@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -28,8 +28,35 @@ export default function AdminPayoutMethodsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [methods, setMethods] = useState([])
+  const [publicMethods, setPublicMethods] = useState([])
+  const [publicMethodsError, setPublicMethodsError] = useState('')
+  const [publicPayloadRaw, setPublicPayloadRaw] = useState('')
   const [form, setForm] = useState(EMPTY_FORM)
   const [editingId, setEditingId] = useState(null)
+
+  const mismatchRows = useMemo(() => {
+    if (!methods.length || !publicMethods.length) return []
+
+    const byId = new Map(publicMethods.map((m) => [m.id, m]))
+    return methods
+      .map((adminMethod) => {
+        const publicMethod = byId.get(adminMethod.id)
+        if (!publicMethod) {
+          return { id: adminMethod.id, reason: 'нет в /api/v2/payout-methods' }
+        }
+
+        const diffs = []
+        const fields = ['fee_type', 'value', 'currency', 'min_payout', 'is_active']
+        for (const f of fields) {
+          const a = String(adminMethod?.[f] ?? '')
+          const b = String(publicMethod?.[f] ?? '')
+          if (a !== b) diffs.push(`${f}: admin=${a} / public=${b}`)
+        }
+        if (diffs.length === 0) return null
+        return { id: adminMethod.id, reason: diffs.join(' · ') }
+      })
+      .filter(Boolean)
+  }, [methods, publicMethods])
 
   async function loadMethods() {
     setLoading(true)
@@ -38,8 +65,21 @@ export default function AdminPayoutMethodsPage() {
       const json = await res.json()
       if (!res.ok || !json.success) throw new Error(json.error || 'Не удалось загрузить методы')
       setMethods(json.data || [])
+
+      // Это именно тот endpoint, который читает кабинет партнёра.
+      const publicRes = await fetch('/api/v2/payout-methods', { cache: 'no-store', credentials: 'include' })
+      const publicJson = await publicRes.json()
+      setPublicPayloadRaw(JSON.stringify(publicJson, null, 2))
+      if (!publicRes.ok || !publicJson.success) {
+        setPublicMethodsError(publicJson.error || 'Не удалось загрузить /api/v2/payout-methods')
+        setPublicMethods([])
+      } else {
+        setPublicMethods(publicJson.data || [])
+        setPublicMethodsError('')
+      }
     } catch (error) {
       toast.error(error.message || 'Ошибка загрузки методов выплат')
+      setPublicMethodsError('Не удалось получить сырые данные /api/v2/payout-methods')
     } finally {
       setLoading(false)
     }
@@ -217,6 +257,64 @@ export default function AdminPayoutMethodsPage() {
               </div>
             ))
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Сырой ответ API партнёра</CardTitle>
+          <CardDescription>
+            Источник для страницы партнёра: <code>/api/v2/payout-methods</code>. Если здесь старые значения, партнёр
+            увидит старые значения независимо от формы в админке.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='space-y-3'>
+          {mismatchRows.length > 0 ? (
+            <div className='rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-900'>
+              <p className='font-semibold'>Внимание: админ-список и партнерский API расходятся</p>
+              <p className='mt-1 text-xs text-red-800'>
+                Обычно это значит, что сайт и SQL Editor подключены к разным Supabase-проектам/окружениям.
+              </p>
+              <div className='mt-2 space-y-1 text-xs'>
+                {mismatchRows.map((row) => (
+                  <p key={row.id}>
+                    <span className='font-semibold'>{row.id}</span>: {row.reason}
+                  </p>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className='flex flex-wrap gap-2 items-center'>
+            <Button variant='outline' size='sm' onClick={() => loadMethods()}>
+              Обновить API
+            </Button>
+            {publicMethodsError ? (
+              <Badge variant='destructive'>{publicMethodsError}</Badge>
+            ) : (
+              <Badge variant='secondary'>OK</Badge>
+            )}
+          </div>
+
+          {publicMethods.length > 0 ? (
+            <div className='rounded-md border border-slate-200 p-3 text-sm bg-slate-50'>
+              {publicMethods.map((method) => (
+                <p key={method.id} className={method.id === 'pm-card-ru' ? 'font-semibold text-red-700' : 'text-slate-700'}>
+                  {method.id}: fee_type={String(method.fee_type)} · value={method.value} · min={method.min_payout}{' '}
+                  {method.currency} · updated_at={method.updated_at || 'n/a'}
+                </p>
+              ))}
+            </div>
+          ) : null}
+
+          <details className='rounded-md border border-slate-200 bg-white'>
+            <summary className='cursor-pointer px-3 py-2 text-sm font-medium text-slate-700'>
+              Показать полный JSON
+            </summary>
+            <pre className='max-h-80 overflow-auto border-t border-slate-200 p-3 text-xs text-slate-700 whitespace-pre-wrap break-all'>
+              {publicPayloadRaw || 'Пока пусто'}
+            </pre>
+          </details>
         </CardContent>
       </Card>
     </div>
