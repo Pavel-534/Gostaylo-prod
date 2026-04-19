@@ -191,7 +191,7 @@ export default function AdminLayout({ children }) {
     { href: '/admin/messages/', icon: MessageSquare, label: 'Сообщения', moderatorAccess: true },
     { href: '/admin/finances', icon: Wallet, label: 'Финансы', moderatorAccess: false },
     { href: '/admin/financial-health', icon: Scale, label: 'Ledger / здоровье', moderatorAccess: false },
-    { href: '/admin/payout-methods', icon: Landmark, label: 'Payout Methods', moderatorAccess: false },
+    { href: '/admin/payout-methods', icon: Landmark, label: 'Способы выплат', moderatorAccess: false },
     { href: '/admin/payout-verification', icon: BadgeCheck, label: 'Верификация реквизитов', moderatorAccess: false },
     { href: '/admin/users', icon: Users, label: 'Пользователи', moderatorAccess: false },
     { href: '/admin/marketing', icon: TrendingUp, label: 'Маркетинг', moderatorAccess: false },

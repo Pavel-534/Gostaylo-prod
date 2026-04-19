@@ -7,6 +7,13 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Plus, Trash2, Save } from 'lucide-react'
 import { toast } from 'sonner'
+import { formatPayoutMethodOptionSuffix } from '@/lib/finance/payout-method-fee'
+
+const CHANNEL_LABEL = {
+  CARD: 'Карта',
+  BANK: 'Банк',
+  CRYPTO: 'Крипто',
+}
 
 const EMPTY_FORM = {
   name: '',
@@ -29,7 +36,7 @@ export default function AdminPayoutMethodsPage() {
     try {
       const res = await fetch('/api/v2/admin/payout-methods', { cache: 'no-store', credentials: 'include' })
       const json = await res.json()
-      if (!res.ok || !json.success) throw new Error(json.error || 'Failed to load payout methods')
+      if (!res.ok || !json.success) throw new Error(json.error || 'Не удалось загрузить методы')
       setMethods(json.data || [])
     } catch (error) {
       toast.error(error.message || 'Ошибка загрузки методов выплат')
@@ -61,8 +68,8 @@ export default function AdminPayoutMethodsPage() {
         body: JSON.stringify(payload),
       })
       const json = await res.json()
-      if (!res.ok || !json.success) throw new Error(json.error || 'Failed to save payout method')
-      toast.success(editingId ? 'Метод обновлен' : 'Метод добавлен')
+      if (!res.ok || !json.success) throw new Error(json.error || 'Не удалось сохранить')
+      toast.success(editingId ? 'Метод обновлён' : 'Метод добавлен')
       setForm(EMPTY_FORM)
       setEditingId(null)
       await loadMethods()
@@ -80,8 +87,8 @@ export default function AdminPayoutMethodsPage() {
         credentials: 'include',
       })
       const json = await res.json()
-      if (!res.ok || !json.success) throw new Error(json.error || 'Failed to delete payout method')
-      toast.success('Метод удален')
+      if (!res.ok || !json.success) throw new Error(json.error || 'Не удалось удалить')
+      toast.success('Метод удалён')
       await loadMethods()
     } catch (error) {
       toast.error(error.message || 'Ошибка удаления')
@@ -103,20 +110,23 @@ export default function AdminPayoutMethodsPage() {
   return (
     <div className='space-y-6'>
       <div>
-        <h1 className='text-3xl font-bold text-slate-900'>Payout Methods Dictionary</h1>
+        <h1 className='text-3xl font-bold text-slate-900'>Способы выплат</h1>
         <p className='text-slate-600 mt-1'>
-          Управляйте комиссиями банков/крипто-рейлов: type (`percentage`/`fixed`), value, currency, min payout.
+          Справочник рейлов для партнёров: комиссия банка или сети (фикс или процент), валюта, минимальная сумма
+          вывода.
         </p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>{editingId ? 'Редактировать метод' : 'Добавить метод'}</CardTitle>
-          <CardDescription>Пример: Карта РФ / fixed / 3.5 / RUB.</CardDescription>
+          <CardDescription>
+            Пример: «Карта РФ» — канал «Карта», тип «Процент», значение 3.5, валюта RUB, мин. выплата 500.
+          </CardDescription>
         </CardHeader>
         <CardContent className='grid md:grid-cols-6 gap-3'>
           <Input
-            placeholder='Название'
+            placeholder='Название для партнёра'
             value={form.name}
             onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
             className='md:col-span-2'
@@ -126,34 +136,34 @@ export default function AdminPayoutMethodsPage() {
             onChange={(e) => setForm((prev) => ({ ...prev, channel: e.target.value }))}
             className='rounded-md border border-slate-300 px-3 py-2 text-sm'
           >
-            <option value='CARD'>CARD</option>
-            <option value='BANK'>BANK</option>
-            <option value='CRYPTO'>CRYPTO</option>
+            <option value='CARD'>Карта (CARD)</option>
+            <option value='BANK'>Банк (BANK)</option>
+            <option value='CRYPTO'>Крипто (CRYPTO)</option>
           </select>
           <select
             value={form.feeType}
             onChange={(e) => setForm((prev) => ({ ...prev, feeType: e.target.value }))}
             className='rounded-md border border-slate-300 px-3 py-2 text-sm'
           >
-            <option value='fixed'>fixed</option>
-            <option value='percentage'>percentage</option>
+            <option value='fixed'>Фиксированная сумма</option>
+            <option value='percentage'>Процент от суммы</option>
           </select>
           <Input
             type='number'
             step='0.01'
-            placeholder='Value'
+            placeholder='Комиссия (число)'
             value={form.value}
             onChange={(e) => setForm((prev) => ({ ...prev, value: e.target.value }))}
           />
           <Input
-            placeholder='Currency'
+            placeholder='Валюта (THB, RUB…)'
             value={form.currency}
             onChange={(e) => setForm((prev) => ({ ...prev, currency: e.target.value.toUpperCase() }))}
           />
           <Input
             type='number'
             step='0.01'
-            placeholder='Min payout'
+            placeholder='Мин. выплата'
             value={form.minPayout}
             onChange={(e) => setForm((prev) => ({ ...prev, minPayout: e.target.value }))}
           />
@@ -173,7 +183,8 @@ export default function AdminPayoutMethodsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Доступные payout rails</CardTitle>
+          <CardTitle>Доступные методы</CardTitle>
+          <CardDescription>Все записи из таблицы payout_methods (в т.ч. отключённые).</CardDescription>
         </CardHeader>
         <CardContent className='space-y-3'>
           {loading ? (
@@ -186,21 +197,21 @@ export default function AdminPayoutMethodsPage() {
                 <div>
                   <p className='font-semibold text-slate-900'>{method.name}</p>
                   <p className='text-sm text-slate-600'>
-                    {method.channel} • {method.fee_type === 'percentage' ? `${method.value}%` : `${method.value} ${method.currency}`} • min {method.min_payout} {method.currency}
+                    {CHANNEL_LABEL[method.channel] || method.channel} • {formatPayoutMethodOptionSuffix(method)}
                   </p>
                   <div className='mt-2'>
                     <Badge variant={method.is_active ? 'default' : 'outline'}>
-                      {method.is_active ? 'Active' : 'Disabled'}
+                      {method.is_active ? 'Активен' : 'Отключён'}
                     </Badge>
                   </div>
                 </div>
                 <div className='flex gap-2'>
                   <Button variant='outline' onClick={() => startEdit(method)}>
-                    Edit
+                    Редактировать
                   </Button>
                   <Button variant='destructive' onClick={() => handleDelete(method.id)}>
                     <Trash2 className='h-4 w-4 mr-1' />
-                    Delete
+                    Удалить
                   </Button>
                 </div>
               </div>

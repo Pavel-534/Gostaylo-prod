@@ -26,6 +26,7 @@ import {
 import { Loader2, CheckCircle2, Landmark, CreditCard, Wallet, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { getTelegramBotUsername, telegramBotStartUrl } from '@/lib/telegram-bot-public'
+import { formatPayoutMethodOptionSuffix } from '@/lib/finance/payout-method-fee'
 
 const MODERATION_NOTICE =
   'После сохранения реквизиты проверяет модератор. Убедитесь, что ФИО, номер счёта или карты указаны без ошибок — неверные данные задержат выплату.'
@@ -347,10 +348,7 @@ export default function PartnerPayoutProfilesPage() {
                 >
                   {methods.map((method) => (
                     <option key={method.id} value={method.id}>
-                      {method.name} ({method.channel}) —{' '}
-                      {method.fee_type === 'percentage'
-                        ? `${method.value}%`
-                        : `${method.value} ${method.currency}`}
+                      {method.name} ({method.channel}) — {formatPayoutMethodOptionSuffix(method)}
                     </option>
                   ))}
                 </select>
@@ -399,10 +397,7 @@ export default function PartnerPayoutProfilesPage() {
                 >
                   {methods.map((method) => (
                     <option key={method.id} value={method.id}>
-                      {method.name} ({method.channel}) —{' '}
-                      {method.fee_type === 'percentage'
-                        ? `${method.value}%`
-                        : `${method.value} ${method.currency}`}
+                      {method.name} ({method.channel}) — {formatPayoutMethodOptionSuffix(method)}
                     </option>
                   ))}
                 </select>

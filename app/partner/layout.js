@@ -438,7 +438,9 @@ export default function PartnerLayout({ children }) {
               </div>
               <div>
                 <h1 className="font-bold text-slate-900">GoStayLo</h1>
-                <p className="text-[10px] text-teal-600 font-semibold uppercase tracking-wider">Partner Portal</p>
+                <p className="text-[10px] text-teal-600 font-semibold tracking-wide">
+                  {getUIText('partnerLayout_partnerPortalTagline', language)}
+                </p>
               </div>
             </Link>
             <button
