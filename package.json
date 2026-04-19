@@ -13,7 +13,8 @@
     "vercel-build": "next build",
     "lint": "eslint . --max-warnings 50",
     "lint:fix": "eslint . --fix",
-    "verify:currency": "node scripts/verify-format-price.mjs"
+    "verify:currency": "node scripts/verify-format-price.mjs",
+    "check:payout-methods": "node scripts/check-payout-methods.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
