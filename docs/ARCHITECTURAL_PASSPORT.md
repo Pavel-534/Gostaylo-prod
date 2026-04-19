@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 3.5.5 | **Last Updated**: 2026-04-17 | **Status**: Production-Ready
+> **Version**: 3.5.6 | **Last Updated**: 2026-04-17 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -14,6 +14,10 @@
 - **T-Bank CSV:** **`POST /api/v2/admin/payouts/tbank-registry`** — см. **`lib/services/tbank-payout-registry.service.js`**: **`payouts` PENDING**, метод **`pm-bank-ru`** (или BANK+RUB), только **`partner_payout_profiles.is_verified`**, полные **`data`** (счёт, БИК, ИНН). После экспорта — **`PROCESSING`**. Формат колонок: **ФИО;Номер счета;БИК;ИНН;Назначение платежа;Сумма** (UTF-8 BOM); опционально **`encoding: windows-1251`** → **`csvBase64`**. Верификация профилей: **`/admin/payout-verification`**, API **`GET /api/v2/admin/partner-payout-profiles`**, **`PATCH .../[id]`** с **`action: verify`**.
 - **Копилка / страховой фонд (ledger):** на **`/admin/financial-health`** две карточки по данным **`ledgerReporting`** из **`GET /api/v2/admin/ledger-balances`**: **Rounding Pot** = счёт **`PROCESSING_POT_ROUNDING`** (алиас **FEE_CLEARING**), **Insurance Fund** = **`INSURANCE_FUND_RESERVE`** (алиас **RESERVES**); соглашение по балансу — как в **`ledger-balances`**.
 - **Проводки:** при успешном **`EscrowService.moveToEscrow`** (бронь → **`PAID_ESCROW`**, подтверждённая оплата через **`PaymentsV3Service.confirmPayment`**) создаётся журнал **`BOOKING_PAYMENT_CAPTURED`** с пятью ногами: **DEBIT** `GUEST_PAYMENT_CLEARING`; **CREDIT** партнёрский счёт, **PLATFORM_FEE**, **INSURANCE_FUND_RESERVE**, **PROCESSING_POT_ROUNDING**. Суммы берутся из **`pricing_snapshot.fee_split_v2`** / колонок брони (идемпотентность: **`ledger_journals.idempotency_key`**). Журналы без брони: **`ledger_journals.booking_id`** может быть **NULL** (миграция **`032_ledger_payout_settlement.sql`**) — проводка **`PARTNER_PAYOUT_OBLIGATION_SETTLED`** при ручном **PAID**: **DEBIT** `PARTNER_EARNINGS` (партнёр), **CREDIT** **`PARTNER_PAYOUTS_SETTLED`** (`la-sys-partner-payouts-settled`), сумма **THB** = **`payouts.gross_amount`** (база до комиссии метода).
+
+### 0.0a1 Partner dashboard & payout profiles (trust / viz)
+- **`GET /api/v2/partner/stats`** — блок **`financialV2`**: «деньги в пути» по броням **`PAID_ESCROW`** (тот же расчёт дохода партнёра, что и в карточке «Доход») и помесячные суммы по **`payouts`** со статусами **`PAID`** / **`COMPLETED`** (см. **`docs/TECHNICAL_MANIFESTO.md`**). Клиент: **`app/partner/dashboard/page.js`** (график **recharts**).
+- **`PUT /api/v2/partner/payout-profiles`**: при **`is_verified`** запрещено менять **`method_id`** или **`data`** (**403**, текст про новый профиль → основной → удалить старый); до верификации поля можно менять. UI **`app/partner/payout-profiles/page.js`**: **`AlertDialog`** перед **POST** и перед сохранением правок; подсказка под **основным** профилем.
 
 ### 0.0 Admin Health Dashboard (ops + security)
 - **UI:** `app/admin/health/page.jsx` — маршрут **`/admin/health`**, карточки **`rounded-2xl`**: агрегаты **`ops_job_runs`** (7 дн.) для **`ical-sync`**, **`push-sweeper`**, **`push-token-hygiene`**, блок **`critical_signal_events`** (`PRICE_TAMPERING`).

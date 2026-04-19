@@ -7,7 +7,18 @@
 
 import { NextResponse } from 'next/server'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
-import { format, addDays, subDays, startOfMonth, endOfMonth, differenceInDays, parseISO } from 'date-fns'
+import { supabaseAdmin } from '@/lib/supabase'
+import {
+  format,
+  addDays,
+  subDays,
+  subMonths,
+  startOfMonth,
+  endOfMonth,
+  differenceInDays,
+  parseISO,
+} from 'date-fns'
+import { ru } from 'date-fns/locale'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,24 +53,57 @@ function partnerEarningsThbFromBooking(b) {
   return 0
 }
 
+/** Последние 6 календарных месяцев (ключ yyyy-MM) + суммы выплат PAID/COMPLETED (нетто до удержания метода). */
+function buildIncomeByMonthFromPayouts(payoutRows, today) {
+  const keys = []
+  for (let i = 5; i >= 0; i -= 1) {
+    keys.push(format(subMonths(today, i), 'yyyy-MM'))
+  }
+  const sums = Object.fromEntries(keys.map((k) => [k, 0]))
+  for (const row of payoutRows || []) {
+    const raw = row.processed_at || row.created_at
+    if (!raw) continue
+    const d = typeof raw === 'string' ? parseISO(raw) : new Date(raw)
+    const key = format(d, 'yyyy-MM')
+    if (!Object.prototype.hasOwnProperty.call(sums, key)) continue
+    const g =
+      parseFloat(row.gross_amount) ||
+      parseFloat(row.final_amount) ||
+      parseFloat(row.amount) ||
+      0
+    sums[key] += g
+  }
+  return keys.map((key) => ({
+    key,
+    label: format(parseISO(`${key}-01`), 'LLL yy', { locale: ru }),
+    amountThb: Math.round(sums[key] * 100) / 100,
+  }))
+}
+
 function generateMockStats() {
   const today = new Date()
-  
+
   return {
     revenue: {
       confirmed: 0,
       pending: 0,
       total: 0,
-      trend: Array(7).fill(null).map((_, i) => ({
-        day: format(subDays(today, 6 - i), 'EEE'),
-        revenue: 0
-      }))
+      trend: Array(7)
+        .fill(null)
+        .map((_, i) => ({
+          day: format(subDays(today, 6 - i), 'EEE'),
+          revenue: 0,
+        })),
     },
     occupancy: { rate: 0, occupiedDays: 0, totalCapacity: 0, listingsCount: 0 },
     today: { checkIns: 0, checkOuts: 0, checkInsList: [], checkOutsList: [] },
     pending: { count: 0, items: [] },
     upcoming: [],
-    bookings: { total: 0, confirmed: 0, pending: 0, completed: 0 }
+    bookings: { total: 0, confirmed: 0, pending: 0, completed: 0 },
+    financialV2: {
+      moneyInTransitThb: 0,
+      incomeByMonth: buildIncomeByMonthFromPayouts([], today),
+    },
   }
 }
 
@@ -156,7 +200,7 @@ export async function GET(request) {
       }
       
       // Calculate stats
-      const confirmedStatuses = ['CONFIRMED', 'PAID', 'COMPLETED']
+      const confirmedStatuses = ['CONFIRMED', 'PAID', 'PAID_ESCROW', 'COMPLETED']
       const pendingStatuses = ['PENDING']
       
       const confirmedBookings = allBookings.filter(b => confirmedStatuses.includes(b.status))
@@ -263,6 +307,31 @@ export async function GET(request) {
         }
       }
       
+      let incomeByMonth = buildIncomeByMonthFromPayouts([], today)
+      let moneyInTransitThb = 0
+      try {
+        const escrowBookings = allBookings.filter((b) => b.status === 'PAID_ESCROW')
+        moneyInTransitThb =
+          Math.round(
+            escrowBookings.reduce((sum, b) => sum + partnerEarningsThbFromBooking(b), 0) * 100,
+          ) / 100
+
+        const { data: payoutRows, error: payoutsErr } = await supabaseAdmin
+          .from('payouts')
+          .select('gross_amount, amount, final_amount, processed_at, created_at, status')
+          .eq('partner_id', userId)
+          .in('status', ['PAID', 'COMPLETED'])
+          .order('created_at', { ascending: false })
+          .limit(3000)
+        if (payoutsErr) {
+          console.warn('[STATS] payouts query:', payoutsErr.message)
+        } else {
+          incomeByMonth = buildIncomeByMonthFromPayouts(payoutRows || [], today)
+        }
+      } catch (e) {
+        console.warn('[STATS] financialV2:', e.message)
+      }
+
       const stats = {
         revenue: {
           confirmed: Math.round(confirmedRevenue),
@@ -301,7 +370,11 @@ export async function GET(request) {
           confirmed: confirmedBookings.length,
           pending: pendingBookings.length,
           completed: allBookings.filter(b => b.status === 'COMPLETED').length
-        }
+        },
+        financialV2: {
+          moneyInTransitThb,
+          incomeByMonth,
+        },
       }
       
       console.log(`[STATS API] Stats calculated: ${listings.length} listings, ${allBookings.length} bookings`)

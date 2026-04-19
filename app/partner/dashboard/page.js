@@ -24,8 +24,17 @@ import {
   TrendingUp, TrendingDown, Calendar, DollarSign, Users, 
   Home, Clock, Check, X, ArrowRight, Plus, Lock, Download,
   Loader2, AlertCircle, ChevronRight, UserCheck, UserMinus,
-  CalendarDays, BarChart3, RefreshCw, Bell
+  CalendarDays, BarChart3, RefreshCw, Bell, Banknote
 } from 'lucide-react'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -190,6 +199,18 @@ function OccupancyRadial({ rate, size = 120 }) {
 }
 
 // Pending Booking Card with Approve/Decline
+function IncomeChartTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null
+  const row = payload[0]?.payload
+  if (!row) return null
+  return (
+    <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs shadow-md">
+      <p className="font-medium text-slate-700">{row.label}</p>
+      <p className="text-teal-700 tabular-nums">{formatPrice(row.amountThb, 'THB')}</p>
+    </div>
+  )
+}
+
 function PendingBookingCard({ booking, onApprove, onDecline, isLoading }) {
   return (
     <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -519,6 +540,63 @@ export default function PartnerDashboard() {
               <span className="text-amber-600">◔ {stats?.bookings?.pending || 0}</span>
               <span className="text-slate-400">✓✓ {stats?.bookings?.completed || 0}</span>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Финансы: график выплат + средства в эскроу */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="border-0 shadow-sm lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-teal-600" />
+              Доход по месяцам
+            </CardTitle>
+            <CardDescription>
+              Суммы по завершённым выплатам за последние 6 месяцев (статусы «Оплачено» и «Завершено» в истории
+              выплат). Это уже согласованные переводы, без ожидающих броней.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-[260px] pt-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={stats?.financialV2?.incomeByMonth || []}
+                margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-slate-100" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                <YAxis
+                  width={44}
+                  tick={{ fontSize: 11 }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : `${v}`)}
+                />
+                <Tooltip content={<IncomeChartTooltip />} cursor={{ fill: 'rgba(13, 148, 136, 0.06)' }} />
+                <Bar dataKey="amountThb" fill="#0d9488" radius={[4, 4, 0, 0]} maxBarSize={48} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm border border-slate-100 border-l-4 border-l-teal-500">
+          <CardContent className="p-5 flex flex-col h-full justify-between gap-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-slate-500">Будущий доход (в обработке)</span>
+                <Banknote className="h-5 w-5 text-teal-600" />
+              </div>
+              <p className="text-3xl font-bold text-slate-900 tabular-nums">
+                {formatPrice(stats?.financialV2?.moneyInTransitThb ?? 0, 'THB')}
+              </p>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Сумма вашего дохода по бронированиям со статусом «Оплачено, удержано» (деньги ещё не отправлены
+              выплатой на ваши реквизиты). После проверки и выплаты сумма появится в истории выплат.
+            </p>
+            <Button variant="outline" size="sm" className="w-full border-teal-200 text-teal-700" asChild>
+              <Link href="/partner/finances">Открыть финансы</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>

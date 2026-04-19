@@ -104,6 +104,24 @@ export async function PUT(request) {
       return NextResponse.json({ success: false, error: 'Payout profile not found' }, { status: 404 })
     }
 
+    if (existing.is_verified === true) {
+      const nextMethodIdPre = body.methodId || body.method_id || existing.method_id
+      const nextData =
+        body.data && typeof body.data === 'object' ? body.data : existing.data || {}
+      const methodChanged = String(nextMethodIdPre) !== String(existing.method_id)
+      const dataChanged = JSON.stringify(nextData) !== JSON.stringify(existing.data || {})
+      if (methodChanged || dataChanged) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              'Подтверждённый профиль нельзя изменить. Добавьте новый профиль, назначьте основным и удалите старый.',
+          },
+          { status: 403 },
+        )
+      }
+    }
+
     const nextMethodId = body.methodId || body.method_id || existing.method_id
     if (nextMethodId !== existing.method_id) {
       const method = await PayoutRailsService.getPayoutMethodById(nextMethodId)
