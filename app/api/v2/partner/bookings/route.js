@@ -141,8 +141,9 @@ export async function GET(request) {
       
       // Transform to camelCase
       const dc = await resolveDefaultCommissionPercent()
-      const transformed = filtered.map((b) => transformBooking(b, dc))
-      
+      let transformed = filtered.map((b) => transformBooking(b, dc))
+      transformed = await enrichPartnerBookingsWithGuestStats(supabaseAdmin, userId, transformed)
+
       return NextResponse.json({
         status: 'success',
         data: transformed.slice(offset, offset + limit),
@@ -168,6 +169,12 @@ export async function GET(request) {
           cover_image,
           base_price_thb,
           commission_rate
+        ),
+        renter:profiles!renter_id (
+          id,
+          first_name,
+          last_name,
+          email
         )
       `)
       .eq('partner_id', userId) // SECURITY: Filter by owner_id
@@ -192,10 +199,11 @@ export async function GET(request) {
       }, { status: 500 })
     }
     
-    // 6. Transform to camelCase
+    // 6. Transform to camelCase + guest rating / pending guest review
     const dc = await resolveDefaultCommissionPercent()
-    const transformed = (bookings || []).map((b) => transformBooking(b, dc))
-    
+    let transformed = (bookings || []).map((b) => transformBooking(b, dc))
+    transformed = await enrichPartnerBookingsWithGuestStats(supabaseAdmin, userId, transformed)
+
     console.log(`[PARTNER BOOKINGS] Found ${transformed.length} bookings for partner ${userId}`)
     
     return NextResponse.json({
@@ -217,6 +225,56 @@ export async function GET(request) {
       meta: { total: 0 }
     }, { status: 500 })
   }
+}
+
+/**
+ * AVG(rating) and count from guest_reviews for guests; flag bookings still needing partner review.
+ */
+async function enrichPartnerBookingsWithGuestStats(admin, partnerId, rows) {
+  if (!rows?.length) return rows
+  if (!admin) {
+    return rows.map((b) => ({
+      ...b,
+      guestRatingAverage: null,
+      guestReviewCount: 0,
+      canSubmitGuestReview: false,
+    }))
+  }
+  const bookingIds = rows.map((r) => r.id)
+  const renterIds = [...new Set(rows.map((r) => r.renterId).filter(Boolean))]
+  const [ratingRes, reviewedRes] = await Promise.all([
+    renterIds.length
+      ? admin.from('guest_reviews').select('guest_id, rating').in('guest_id', renterIds)
+      : Promise.resolve({ data: [] }),
+    bookingIds.length
+      ? admin
+          .from('guest_reviews')
+          .select('booking_id')
+          .eq('author_id', partnerId)
+          .in('booking_id', bookingIds)
+      : Promise.resolve({ data: [] }),
+  ])
+  const agg = {}
+  for (const row of ratingRes.data || []) {
+    const g = row.guest_id
+    if (!g) continue
+    if (!agg[g]) agg[g] = { sum: 0, n: 0 }
+    agg[g].sum += Number(row.rating) || 0
+    agg[g].n += 1
+  }
+  const reviewed = new Set((reviewedRes.data || []).map((r) => r.booking_id))
+  return rows.map((b) => {
+    const g = b.renterId
+    const a = g ? agg[g] : null
+    const avg = a && a.n > 0 ? Math.round((a.sum / a.n) * 10) / 10 : null
+    return {
+      ...b,
+      guestRatingAverage: avg,
+      guestReviewCount: a?.n ?? 0,
+      canSubmitGuestReview:
+        (b.status === 'THAWED' || b.status === 'COMPLETED') && !!g && !reviewed.has(b.id),
+    }
+  })
 }
 
 /**
@@ -264,10 +322,13 @@ function transformBooking(booking, defaultCommissionPercent) {
         return Number.isFinite(n) && n >= 0 ? n : dc
       })(),
     } : null,
-    renter: booking.renter ? {
-      id: booking.renter.id,
-      name: booking.renter.name,
-      email: booking.renter.email
-    } : null
+    renter: booking.renter
+      ? {
+          id: booking.renter.id,
+          firstName: booking.renter.first_name,
+          lastName: booking.renter.last_name,
+          email: booking.renter.email,
+        }
+      : null,
   }
 }

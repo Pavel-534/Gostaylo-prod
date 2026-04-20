@@ -44,6 +44,18 @@ async function fetchPartnerPayouts() {
   return data.data ?? []
 }
 
+async function fetchBalanceBreakdown() {
+  const res = await fetch('/api/v2/partner/balance-breakdown', {
+    cache: 'no-store',
+    credentials: 'include',
+  })
+  const json = await res.json()
+  if (!res.ok) {
+    throw new Error(json?.error || 'Failed to fetch balance')
+  }
+  return json.data
+}
+
 async function fetchPartnerFinances(partnerId) {
   if (!partnerId) throw new Error('No partner ID')
   
@@ -336,6 +348,13 @@ function PartnerFinancesV2Content() {
     staleTime: 30 * 1000,
   })
 
+  const { data: balanceBreakdown } = useQuery({
+    queryKey: ['partner-balance-breakdown', partnerId],
+    queryFn: fetchBalanceBreakdown,
+    enabled: !!partnerId,
+    staleTime: 30 * 1000,
+  })
+
   // Calculate financial stats
   const finances = calculateFinances(bookings)
   
@@ -390,6 +409,45 @@ function PartnerFinancesV2Content() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">{t('financesTitle')}</h1>
           <p className="text-slate-600 mt-1 text-sm sm:text-base">{t('financesDesc')}</p>
         </div>
+        {balanceBreakdown && (
+          <Card className="border-teal-100 bg-teal-50/50 w-full sm:max-w-md">
+            <CardHeader className="py-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-teal-700" />
+                {language === 'en' ? 'Escrow vs available' : 'Эскроу и доступно к выводу'}
+              </CardTitle>
+              <CardDescription className="text-xs">
+                {language === 'en'
+                  ? 'Frozen = paid, not yet thawed by category rules. Available = THAWED; use Request Payout.'
+                  : 'Заморожено = оплачено, разморозка по правилам категории. Доступно = THAWED; вывод — «Запрос выплаты».'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-600">{language === 'en' ? 'Frozen (escrow)' : 'В эскроу'}</span>
+                <span className="font-semibold">{formatPrice(balanceBreakdown.frozenBalanceThb ?? 0, 'THB')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">{language === 'en' ? 'Available' : 'К выводу'}</span>
+                <span className="font-semibold text-teal-800">{formatPrice(balanceBreakdown.availableBalanceThb ?? 0, 'THB')}</span>
+              </div>
+              {balanceBreakdown.byCategory && Object.keys(balanceBreakdown.byCategory).length > 0 && (
+                <div className="pt-2 border-t border-teal-100 text-xs text-slate-600 space-y-1">
+                  <p className="font-medium text-slate-700">{language === 'en' ? 'By category' : 'По категориям'}</p>
+                  {Object.entries(balanceBreakdown.byCategory).map(([slug, row]) => (
+                    <div key={slug} className="flex justify-between gap-2">
+                      <span className="truncate">{slug}</span>
+                      <span>
+                        {language === 'en' ? 'F' : 'З'} {formatPrice(row.frozenThb ?? 0, 'THB')} / {language === 'en' ? 'A' : 'Д'}{' '}
+                        {formatPrice(row.availableThb ?? 0, 'THB')}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
         <Button 
           onClick={handleExportCSV}
           variant="outline"
@@ -590,6 +648,76 @@ function PartnerFinancesV2Content() {
                 </table>
               </div>
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="min-w-0 overflow-hidden">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Clock className="h-5 w-5 text-slate-600 shrink-0" />
+            {language === 'en' ? 'Ledger activity' : 'Движения по счёту (ledger)'}
+          </CardTitle>
+          <CardDescription>
+            {language === 'en'
+              ? 'Recent partner ledger entries: thaw, refunds, payouts (from balance API).'
+              : 'Последние проводки: разморозка, возвраты, выплаты (из ledger).'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!balanceBreakdown?.recentLedgerTransactions?.length ? (
+            <p className="text-sm text-slate-500 py-2">
+              {language === 'en' ? 'No ledger entries yet.' : 'Пока нет проводок в ledger.'}
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-slate-200 -mx-0">
+              <table className="w-full text-sm min-w-[720px]">
+                <thead className="bg-slate-50 text-slate-600 text-left">
+                  <tr>
+                    <th className="px-3 py-2 font-medium whitespace-nowrap">
+                      {language === 'en' ? 'Date' : 'Дата'}
+                    </th>
+                    <th className="px-3 py-2 font-medium">Event</th>
+                    <th className="px-3 py-2 font-medium">Side</th>
+                    <th className="px-3 py-2 font-medium text-right">THB</th>
+                    <th className="px-3 py-2 font-medium">Booking</th>
+                    <th className="px-3 py-2 font-medium">{language === 'en' ? 'Note' : 'Описание'}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {balanceBreakdown.recentLedgerTransactions.map((row) => (
+                    <tr key={row.entryId || `${row.journalId}-${row.createdAt}`} className="hover:bg-slate-50/80">
+                      <td className="px-3 py-2 whitespace-nowrap text-slate-700">
+                        {row.createdAt ? format(new Date(row.createdAt), 'dd.MM.yyyy HH:mm') : '—'}
+                      </td>
+                      <td className="px-3 py-2 text-slate-800 font-mono text-xs">
+                        {row.eventType || '—'}
+                      </td>
+                      <td className="px-3 py-2">{row.side || '—'}</td>
+                      <td className="px-3 py-2 text-right tabular-nums font-medium">
+                        {formatPrice(row.amountThb ?? 0, 'THB')}
+                      </td>
+                      <td className="px-3 py-2 font-mono text-xs">
+                        {row.bookingId ? (
+                          <Link
+                            href="/partner/bookings"
+                            className="text-teal-700 hover:underline"
+                            title={row.bookingId}
+                          >
+                            {String(row.bookingId).slice(0, 8)}…
+                          </Link>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-slate-600 max-w-[240px] truncate" title={row.description || ''}>
+                        {row.description || '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>

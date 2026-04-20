@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 3.5.9 | **Last Updated**: 2026-04-20 | **Status**: Production-Ready
+> **Version**: 3.6.3 | **Last Updated**: 2026-04-20 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -17,6 +17,10 @@
 
 ### 0.0a1 Partner dashboard & payout profiles (trust / viz)
 - **`GET /api/v2/partner/stats`** — блок **`financialV2`**: «деньги в пути» по броням **`PAID_ESCROW`** (тот же расчёт дохода партнёра, что и в карточке «Доход») и помесячные суммы по **`payouts`** со статусами **`PAID`** / **`COMPLETED`** (см. **`docs/TECHNICAL_MANIFESTO.md`**). Клиент: **`app/partner/dashboard/page.js`** (график **recharts**); карточка «Будущий доход» ведёт на **`/partner/finances?status=PAID_ESCROW`** (фильтр списка броней на **`app/partner/finances/page.js`**).
+- **PR-#2 баланс по эскроу:** **`GET /api/v2/partner/balance-breakdown`** — **`frozenBalanceThb`** / **`availableBalanceThb`** (агрегат из броней **`PAID_ESCROW`** / **`THAWED`**), **`byCategory`** (slug категории листинга), **`recentLedgerTransactions`** (последние строки **`ledger_entries`** партнёра). Колонки **`profiles.frozen_balance_thb`**, **`profiles.available_balance_thb`** синхронизируются в **`EscrowService`**. Разморозка по расписанию: **`POST /api/cron/escrow-thaw`** (Vercel cron), не путать с **`/api/cron/payouts`** (автовыплаты отключены, **`POST` → 503**). Партнёрский UI: **`/partner/finances`** (карточка баланса + таблица ledger).
+- **PR-#3 отзывы партнёра о госте:** миграция **`database/migrations/034_guest_reviews.sql`** — **`guest_reviews`** (**`author_id`** = партнёр, **`guest_id`** = рентер, **`booking_id`** UNIQUE). **`GET /api/v2/partner/pending-reviews`** — брони **`THAWED`** / **`COMPLETED`** без строки в **`guest_reviews`**. **`POST /api/v2/partner/guest-reviews`**. UI: **`/partner/bookings/[bookingId]/guest-review`**, кнопка из списка броней при **`canSubmitGuestReview`**. После перехода в **`THAWED`** (**`EscrowService.thawBookingToThawed`**) — **`NotificationEvents.PARTNER_GUEST_REVIEW_INVITE`**: Telegram + FCM **`PARTNER_GUEST_REVIEW`** с deep link **`/partner/bookings/{bookingId}/guest-review`**.
+- **PR-#4 TIMESTAMPTZ и политика отмены:** миграция **`database/migrations/035_pr4_bookings_timestamptz_cancellation_policy.sql`** — **`bookings.check_in` / `check_out`**: **TIMESTAMPTZ**; **`listings.cancellation_policy`**: enum **`flexible` / `moderate` / `strict`** (бэкфилл из **`metadata.cancellationPolicy`**). Ledger: **`BOOKING_REFUND_PARTIAL`** через **`LedgerService.postPartialRefundForBooking`** (**`lib/cancellation-refund-rules.js`** для доли гостю). Календарь партнёра / crons / stats: сравнение дней через **`toListingDate`** (**`lib/listing-date.js`**); ручное бронирование — **`normalizeBookingInstantForDb`**.
+- **PR-#5 отмена брони и UI политики:** партнёр задаёт **`cancellationPolicy`** в **`PATCH /api/v2/partner/listings/[id]`**; публичная выдача — **`GET /api/v2/listings/[id]`** → **`cancellationPolicy`**. Страница листинга: блок политики (**`components/listing/ListingCancellationPolicy.jsx`**, i18n **`listingCancellation_*`**). Оценка возврата: **`computeRefundEstimateForBooking(bookingId, at)`**. Превью: **`GET /api/v2/bookings/[id]/cancel-preview`**. Отмена: **`POST /api/v2/bookings/[id]/cancel`** (тело опционально **`reason`**) — арендатор / партнёр по брони / staff; при эскроу-статусах — ledger + **`syncPartnerBalanceColumns`**. Рентер: **`/renter/bookings`**, **`/checkout/[bookingId]`** (**`components/renter/cancel-booking-dialog.jsx`**).
 - **`PUT /api/v2/partner/payout-profiles`**: при **`is_verified`** запрещено менять **`method_id`** или **`data`** (**403**, текст про новый профиль → основной → удалить старый); до верификации поля можно менять. UI **`app/partner/payout-profiles/page.js`**: **`AlertDialog`** перед **POST** и перед сохранением правок; подсказка под **основным** профилем.
 - **Справочник рейлов выплат (admin):** UI **`/admin/payout-methods`**; API **`GET` / `POST` / `PUT` / `DELETE` `/api/v2/admin/payout-methods`** (только **`profiles.role === 'ADMIN'`**). **`PUT`** по несуществующему **`id`** → **404**. **`DELETE`** при ссылках из **`partner_payout_profiles`** → **409**. После мутаций — **`revalidatePath('/api/v2/payout-methods')`**.
 
@@ -189,6 +193,7 @@ Pattern: Immediate Response + Fire-and-Forget
 | `available` | BOOLEAN | YES | Availability flag |
 | `is_featured` | BOOLEAN | YES | Featured listing flag |
 | `commission_rate` | NUMERIC | YES | Custom commission % |
+| `cancellation_policy` | ENUM | NO | **`flexible` / `moderate` / `strict`** — тир возврата (PR-#4); канон для Ledger |
 | `min_booking_days` | INT | YES | Minimum stay |
 | `max_booking_days` | INT | YES | Maximum stay |
 | `rejection_reason` | TEXT | YES | Reason if rejected |
@@ -249,8 +254,8 @@ Pattern: Immediate Response + Fire-and-Forget
 | `partner_id` | TEXT | NO | FK to `profiles.id` (listing owner) |
 | `renter_id` | TEXT | YES | FK to `profiles.id` (authenticated user) |
 | `status` | TEXT | NO | See status enum below |
-| `check_in` | DATE | NO | Check-in date |
-| `check_out` | DATE | NO | Check-out date |
+| `check_in` | TIMESTAMPTZ | NO | Начало периода (услуга/транспорт — время; жильё — обычно 00:00 в TZ листинга) |
+| `check_out` | TIMESTAMPTZ | NO | Конец периода (модель ночей **[check_in, check_out)** в календаре листинга) |
 | `price_thb` | NUMERIC | NO | **Calculated total price** |
 | `currency` | TEXT | YES | Display currency |
 | `price_paid` | NUMERIC | YES | Actual amount paid |

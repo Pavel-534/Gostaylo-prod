@@ -15,6 +15,7 @@ import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url'
 import { getSessionPayload } from '@/lib/services/session-service'
 import { isStaffRole } from '@/lib/services/chat/access'
 import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes'
+import { normalizeCancellationPolicy } from '@/lib/cancellation-refund-rules'
 
 export const dynamic = 'force-dynamic'
 
@@ -162,6 +163,7 @@ export async function GET(request, context) {
       isFeatured: listing.is_featured,
       minBookingDays: listing.min_booking_days,
       maxBookingDays: listing.max_booking_days,
+      cancellationPolicy: normalizeCancellationPolicy(listing.cancellation_policy),
       maxCapacity: (() => {
         const n = parseInt(listing.max_capacity, 10)
         return Number.isFinite(n) && n > 0 ? n : null

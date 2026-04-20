@@ -34,6 +34,7 @@ import {
   showsPropertyInteriorSpecs,
 } from '@/lib/listing-category-slug'
 import { normalizeVehicleModelYearForDisplay } from '@/lib/listing-vehicle-year'
+import { ListingCancellationPolicy } from '@/components/listing/ListingCancellationPolicy'
 
 export function ListingInfo({ listing, language = 'en' }) {
   const bedrooms = listing?.metadata?.bedrooms || 0
@@ -179,6 +180,12 @@ export function ListingInfo({ listing, language = 'en' }) {
           {getListingText(listing, 'description', language) || listing.description}
         </p>
       </div>
+
+      <Separator />
+      <ListingCancellationPolicy
+        policy={listing?.cancellationPolicy ?? listing?.cancellation_policy}
+        language={language}
+      />
       
       <Separator />
       

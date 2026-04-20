@@ -21,7 +21,8 @@ const STATUS_TRANSITIONS = {
   CONFIRMED: ['CANCELLED'],
   AWAITING_PAYMENT: ['CANCELLED'],
   PAID: ['COMPLETED', 'REFUNDED'],
-  PAID_ESCROW: ['COMPLETED', 'REFUNDED'],
+  /** Funds in escrow until category thaw cron sets THAWED; partner completes stay from THAWED */
+  PAID_ESCROW: ['REFUNDED', 'CANCELLED'],
   CHECKED_IN: ['COMPLETED', 'REFUNDED'],
   THAWED: ['COMPLETED', 'REFUNDED'],
   COMPLETED: [],

@@ -11,7 +11,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { PushService } from '@/lib/services/push.service';
 import { NotificationService } from '@/lib/services/notification.service';
-import { listingDateToday, addListingDays } from '@/lib/listing-date';
+import { listingDateToday, addListingDays, toListingDate } from '@/lib/listing-date';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -33,7 +33,7 @@ export async function POST(request) {
   try {
     const yesterday = addListingDays(listingDateToday(), -1);
 
-    const { data: bookings, error } = await supabaseAdmin
+    const { data: rawBookings, error } = await supabaseAdmin
       .from('bookings')
       .select(
         `
@@ -43,12 +43,13 @@ export async function POST(request) {
         metadata,
         check_out,
         renter:profiles!renter_id(id, telegram_id),
-        listing:listings(id, title)
+        listing:listings(id, title, category_id)
       `,
       )
-      .eq('check_out', yesterday)
       .in('status', ELIGIBLE_STATUSES)
       .not('renter_id', 'is', null);
+
+    const bookings = (rawBookings || []).filter((b) => toListingDate(b.check_out) === yesterday);
 
     if (error) {
       console.error('[CRON REVIEW] Query error:', error);

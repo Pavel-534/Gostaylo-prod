@@ -36,6 +36,11 @@ import { ReviewModal } from '@/components/review-modal'
 import { toast } from 'sonner'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { CancelBookingDialog } from '@/components/renter/cancel-booking-dialog'
+
+function canRenterCancelBooking(status) {
+  return !['CANCELLED', 'COMPLETED', 'REFUNDED', 'DECLINED'].includes(String(status || '').toUpperCase())
+}
 
 // Fetch renter bookings
 async function fetchRenterBookings(renterId) {
@@ -165,7 +170,7 @@ function StatusBadge({ status, language }) {
 }
 
 // Individual booking card
-function BookingCard({ booking, onReviewClick, language }) {
+function BookingCard({ booking, onReviewClick, onCancelClick, language }) {
   const router = useRouter()
   
   const checkInDate = booking.check_in ? parseISO(booking.check_in) : null
@@ -280,15 +285,29 @@ function BookingCard({ booking, onReviewClick, language }) {
           </div>
           
           {/* Footer */}
-          <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-slate-100">
             <div>
               <p className="text-sm text-slate-600 mb-1">{getUIText('checkout_total', language)}</p>
               <p className="text-2xl font-bold text-slate-900">
                 {formatPrice(getGuestPayableRoundedThb(booking), 'THB')}
               </p>
             </div>
-            
-            {getActionButton()}
+            <div className="flex flex-wrap gap-2 justify-end">
+              {canRenterCancelBooking(booking.status) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-red-200 text-red-700 hover:bg-red-50"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onCancelClick?.(booking.id)
+                  }}
+                >
+                  {getUIText('renterCancel_button', language)}
+                </Button>
+              )}
+              {getActionButton()}
+            </div>
           </div>
           
           {/* Special info */}
@@ -315,6 +334,7 @@ export default function RenterBookingsPage() {
   // Review modal state
   const [reviewModalOpen, setReviewModalOpen] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState(null)
+  const [cancelBookingId, setCancelBookingId] = useState(null)
   
   // Get user ID from localStorage
   useEffect(() => {
@@ -551,6 +571,7 @@ export default function RenterBookingsPage() {
                   key={booking.id} 
                   booking={booking}
                   onReviewClick={handleReviewClick}
+                  onCancelClick={(id) => setCancelBookingId(id)}
                   language={language}
                 />
               ))}
@@ -567,6 +588,19 @@ export default function RenterBookingsPage() {
         userId={userId}
         onSubmit={handleReviewSubmit}
         isSubmitting={submitReviewMutation.isPending}
+      />
+
+      <CancelBookingDialog
+        open={!!cancelBookingId}
+        onOpenChange={(open) => {
+          if (!open) setCancelBookingId(null)
+        }}
+        bookingId={cancelBookingId}
+        language={language}
+        onCancelled={() => {
+          queryClient.invalidateQueries({ queryKey: ['renter-bookings', userId] })
+          toast.success(language === 'ru' ? 'Бронирование отменено' : 'Booking cancelled')
+        }}
       />
     </div>
   )

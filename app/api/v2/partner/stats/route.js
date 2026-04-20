@@ -19,6 +19,7 @@ import {
   parseISO,
 } from 'date-fns'
 import { ru } from 'date-fns/locale'
+import { toListingDate, listingDateToday, addListingDays } from '@/lib/listing-date'
 
 export const dynamic = 'force-dynamic'
 
@@ -139,9 +140,10 @@ export async function GET(request) {
     try {
       const today = new Date()
       const todayStr = format(today, 'yyyy-MM-dd')
+      const listingToday = listingDateToday()
+      const next7Listing = addListingDays(listingToday, 7)
       const monthStart = format(startOfMonth(today), 'yyyy-MM-dd')
       const monthEnd = format(endOfMonth(today), 'yyyy-MM-dd')
-      const next7Days = format(addDays(today, 7), 'yyyy-MM-dd')
       
       // Fetch listings
       const listingsRes = await fetch(
@@ -231,13 +233,20 @@ export async function GET(request) {
       
       const occupancyRate = totalCapacity > 0 ? Math.round((occupiedDays / totalCapacity) * 100) : 0
       
-      // Today's activity
-      const todayCheckIns = confirmedBookings.filter(b => b.check_in === todayStr)
-      const todayCheckOuts = confirmedBookings.filter(b => b.check_out === todayStr)
+      // Today's activity (listing calendar YMD, matches TIMESTAMPTZ + occupancy)
+      const todayCheckIns = confirmedBookings.filter(
+        (b) => toListingDate(b.check_in) === listingToday,
+      )
+      const todayCheckOuts = confirmedBookings.filter(
+        (b) => toListingDate(b.check_out) === listingToday,
+      )
       
       // Upcoming arrivals
       const upcoming = confirmedBookings
-        .filter(b => b.check_in >= todayStr && b.check_in <= next7Days)
+        .filter((b) => {
+          const cin = toListingDate(b.check_in)
+          return cin && cin >= listingToday && cin <= next7Listing
+        })
         .sort((a, b) => a.check_in.localeCompare(b.check_in))
         .slice(0, 5)
         .map(b => {
@@ -268,10 +277,10 @@ export async function GET(request) {
       // Revenue trend (last 7 days)
       const trend = []
       for (let i = 6; i >= 0; i--) {
-        const date = format(subDays(today, i), 'yyyy-MM-dd')
-        const dayStr = format(subDays(today, i), 'EEE')
+        const date = addListingDays(listingToday, -(6 - i))
+        const dayStr = format(parseISO(date), 'EEE')
         const dayRevenue = confirmedBookings
-          .filter(b => b.check_in === date)
+          .filter((b) => toListingDate(b.check_in) === date)
           .reduce((sum, b) => sum + partnerEarningsThbFromBooking(b), 0)
         trend.push({ day: dayStr, revenue: dayRevenue })
       }

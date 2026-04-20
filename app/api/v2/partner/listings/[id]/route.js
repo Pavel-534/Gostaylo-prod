@@ -17,6 +17,7 @@ import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
 import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes';
+import { normalizeCancellationPolicy } from '@/lib/cancellation-refund-rules';
 
 export const dynamic = 'force-dynamic';
 
@@ -126,6 +127,7 @@ export async function GET(request, context) {
       commissionRate,
       minBookingDays: listing.min_booking_days ?? 1,
       maxBookingDays: listing.max_booking_days ?? 90,
+      cancellationPolicy: normalizeCancellationPolicy(listing.cancellation_policy),
       images: mapPublicImageUrls(listing.images || []),
       coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
       available: listing.available,
@@ -158,6 +160,7 @@ export async function GET(request, context) {
       commissionRate,
       minBookingDays: listing.min_booking_days ?? 1,
       maxBookingDays: listing.max_booking_days ?? 90,
+      cancellationPolicy: normalizeCancellationPolicy(listing.cancellation_policy),
       images: mapPublicImageUrls(listing.images || []),
       coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
       available: listing.available,
@@ -253,7 +256,11 @@ export async function PATCH(request, context) {
   if (body.coverImage !== undefined) updateData.cover_image = body.coverImage;
   if (body.status !== undefined) updateData.status = body.status;
   if (body.available !== undefined) updateData.available = body.available;
-  
+  if (body.cancellationPolicy !== undefined || body.cancellation_policy !== undefined) {
+    const raw = body.cancellationPolicy ?? body.cancellation_policy;
+    updateData.cancellation_policy = normalizeCancellationPolicy(raw);
+  }
+
   // Handle metadata merge
   if (body.metadata !== undefined) {
     updateData.metadata = {

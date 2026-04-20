@@ -14,6 +14,7 @@ import { differenceInDays, parseISO } from 'date-fns'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { CalendarService } from '@/lib/services/calendar.service'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
+import { normalizeBookingInstantForDb } from '@/lib/listing-date'
 
 export const dynamic = 'force-dynamic'
 
@@ -148,6 +149,15 @@ export async function POST(request) {
       )
     }
 
+    const checkInDb = normalizeBookingInstantForDb(checkIn)
+    const checkOutDb = normalizeBookingInstantForDb(checkOut)
+    if (!checkInDb || !checkOutDb) {
+      return NextResponse.json(
+        { status: 'error', error: 'Invalid checkIn or checkOut' },
+        { status: 400 },
+      )
+    }
+
     // Calculate price if not provided
     const finalPrice = priceThb || (listing.base_price_thb * nights)
     const rawComm = parseFloat(listing.commission_rate)
@@ -163,8 +173,8 @@ export async function POST(request) {
         id: `bk-${uuidv4().slice(0, 8)}`,
         listing_id: listingId,
         partner_id: userId,
-        check_in: checkIn,
-        check_out: checkOut,
+        check_in: checkInDb,
+        check_out: checkOutDb,
         guest_name: guestName,
         guest_phone: guestPhone || null,
         guest_email: guestEmail || null,

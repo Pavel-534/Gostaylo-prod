@@ -518,6 +518,7 @@ function PremiumListingContent({ params }) {
             const n = parseInt(raw, 10)
             return Number.isFinite(n) && n > 0 ? n : null
           })(),
+          cancellationPolicy: l.cancellationPolicy ?? l.cancellation_policy ?? 'moderate',
         })
       }
       setLoading(false)

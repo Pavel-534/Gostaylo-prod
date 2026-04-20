@@ -105,6 +105,7 @@ export default function EditListing({ params }) {
     images: [],
     coverIndex: 0,
     metadata: {},
+    cancellationPolicy: 'moderate',
   })
   
 
@@ -238,6 +239,7 @@ export default function EditListing({ params }) {
           images: images,
           coverIndex: coverIndex >= 0 ? coverIndex : 0,
           metadata: metadataLoaded,
+          cancellationPolicy: l.cancellationPolicy || l.cancellation_policy || 'moderate',
         })
         
         // Seasonal prices loaded by SeasonalPriceManager from API
@@ -382,6 +384,7 @@ export default function EditListing({ params }) {
           images: formData.images,
           coverImage: coverImage,
           metadata,
+          cancellationPolicy: formData.cancellationPolicy || 'moderate',
           ...tourBd,
         })
       })
@@ -480,6 +483,7 @@ export default function EditListing({ params }) {
           coverImage: coverImage,
           status: 'PENDING',
           metadata: normalizePartnerListingMetadata(mergedMeta, categorySlug),
+          cancellationPolicy: formData.cancellationPolicy || 'moderate',
           ...tourBd,
         })
       })
@@ -954,6 +958,27 @@ export default function EditListing({ params }) {
                 />
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-slate-800">{t('partnerEdit_cancellationPolicy')}</Label>
+              <Select
+                value={formData.cancellationPolicy || 'moderate'}
+                onValueChange={(value) =>
+                  setFormData((fd) => ({ ...fd, cancellationPolicy: value }))
+                }
+              >
+                <SelectTrigger className="h-11 w-full max-w-md">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="flexible">{t('partnerEdit_cancelPol_flexible')}</SelectItem>
+                  <SelectItem value="moderate">{t('partnerEdit_cancelPol_moderate')}</SelectItem>
+                  <SelectItem value="strict">{t('partnerEdit_cancelPol_strict')}</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">{t('partnerEdit_cancellationPolicyHint')}</p>
+            </div>
+
             <div className="rounded-xl border border-sky-200 bg-sky-50/70 px-4 py-3">
               <p className="text-sm font-semibold text-sky-900">Ориентировочная цена на сайте</p>
               <p className="mt-1 text-xl font-bold text-sky-800">

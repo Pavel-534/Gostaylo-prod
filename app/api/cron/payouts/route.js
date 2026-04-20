@@ -1,28 +1,14 @@
 /**
- * GoStayLo - Payout Cron Job API
- * POST /api/cron/payouts
- * 
- * 24H ESCROW RULE:
- * Called at 18:00 local time to process payouts for bookings
- * where check-in was YESTERDAY (24h protection buffer)
- * 
- * Vercel Cron: Runs at 11:00 UTC (18:00 Bangkok)
- * Requires CRON_SECRET header for security
+ * Legacy automatic payout cron — DISABLED (PR-#2).
+ * Use POST /api/cron/escrow-thaw for PAID_ESCROW→THAWED; partner withdraws via Request Payout.
  */
 
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { EscrowService } from '@/lib/services/escrow.service';
-import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
-import { startOpsJobRun, finishOpsJobRun } from '@/lib/ops-job-runs';
 
 const CRON_SECRET = process.env.CRON_SECRET;
-
-// Telegram admin topic for payout notifications
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const TELEGRAM_ADMIN_GROUP = process.env.TELEGRAM_ADMIN_GROUP_ID;
-const FINANCE_TOPIC_ID = 16;
 
 function authorize(request) {
   if (!CRON_SECRET) return false;
@@ -33,131 +19,61 @@ function authorize(request) {
 
 export async function POST(request) {
   if (!authorize(request)) {
-    return NextResponse.json(
-      { success: false, error: 'Unauthorized' },
-      { status: 401 }
-    );
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
-  const run = await startOpsJobRun('payouts');
-  try {
-    const policy = await EscrowService.getSettlementPolicy();
-    console.log(
-      `[CRON PAYOUT] Starting payout processing (delayDays=${policy.delayDays}, payoutHourLocal=${policy.payoutHourLocal})...`
-    );
-    
-    // Process all payouts (bookings with check-in YESTERDAY)
-    const result = await EscrowService.processAllPayoutsForToday();
-
-    // Notify admin group (Thread 16 - FINANCE) about thawed payouts
-    if (result.processed > 0 && TELEGRAM_BOT_TOKEN && TELEGRAM_ADMIN_GROUP) {
-      const thawedList = result.results
-        .filter(r => r.success)
-        .map(r => `• ${r.listingTitle}: ฿${r.amount?.toLocaleString() || 0}`)
-        .join('\n');
-
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_ADMIN_GROUP,
-          message_thread_id: FINANCE_TOPIC_ID,
-          text: `💰 <b>ESCROW THAWED</b>\n\n` +
-                `✅ Processed: ${result.processed}/${result.total} payouts\n\n` +
-                `${thawedList}\n\n` +
-                `📅 Delay policy: ${policy.delayDays} day(s), payout hour: ${policy.payoutHourLocal}:00.\n` +
-                `🕐 ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Bangkok' })}`,
-          parse_mode: 'HTML'
-        })
-      });
-    }
-
-    const response = {
-      success: result.success,
-      message: `Processed ${result.processed || 0} of ${result.total || 0} payouts`,
-      rule: `Payout delay: ${policy.delayDays} day(s), payout hour: ${policy.payoutHourLocal}:00`,
-      timestamp: new Date().toISOString(),
-      results: result.results
-    };
-    await finishOpsJobRun(run, {
-      status: result?.success ? 'success' : 'error',
-      stats: {
-        total: Number(result?.total || 0),
-        processed: Number(result?.processed || 0),
-        failed: Number((result?.total || 0) - (result?.processed || 0)),
-      },
-      errorMessage: result?.success ? null : result?.error || null,
-    });
-    return NextResponse.json(response);
-
-  } catch (error) {
-    console.error('[CRON PAYOUT ERROR]', error);
-    await finishOpsJobRun(run, {
-      status: 'error',
-      stats: {},
-      errorMessage: error?.message || 'payout failed',
-    });
-    void notifySystemAlert(
-      `⏰ <b>Cron: payouts</b> — сбой\n<code>${escapeSystemAlertHtml(error?.message || error)}</code>`,
-    )
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
-  }
+  console.warn('[CRON PAYOUT] disabled — use escrow-thaw + partner Request Payout');
+  return NextResponse.json(
+    {
+      success: false,
+      disabled: true,
+      message:
+        'Automatic payouts are disabled. Funds move PAID_ESCROW→THAWED via /api/cron/escrow-thaw; withdrawals via Request Payout only.',
+    },
+    { status: 503 },
+  );
 }
 
-// GET for manual trigger and status check (debug only)
 export async function GET(request) {
   if (!authorize(request)) {
-    return NextResponse.json(
-      { success: false, error: 'Unauthorized' },
-      { status: 401 }
-    );
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
   const { searchParams } = new URL(request.url);
   const action = searchParams.get('action');
 
-  // Preview tomorrow's thaw
   if (action === 'preview-thaw') {
     const result = await EscrowService.notifyUpcomingThaw();
     return NextResponse.json({
       success: true,
-      message: 'Upcoming thaw preview',
-      ...result
+      message: 'Upcoming thaw preview (legacy helper)',
+      ...result,
     });
   }
 
-  // Get current queue (check-in was yesterday or earlier)
   const { bookings } = await EscrowService.getPayoutReadyBookings();
-  
-  // Get upcoming (check-in today, will thaw tomorrow)
   const upcoming = await EscrowService.getUpcomingThawBookings();
-
   const policy = await EscrowService.getSettlementPolicy();
+
   return NextResponse.json({
     success: true,
-    message: 'Payout cron status',
-    rule: `Payout delay: ${policy.delayDays} day(s), payout hour: ${policy.payoutHourLocal}:00`,
-    readyForPayout: {
+    message: 'Legacy payout cron is disabled; see escrow-thaw',
+    disabled: true,
+    rule: `Settlement policy (metadata): delayDays=${policy.delayDays}, payoutHourLocal=${policy.payoutHourLocal}`,
+    readyForPayoutLegacy: {
       count: bookings?.length || 0,
-      note: `check-in <= today - ${policy.delayDays} day(s)`,
-      bookings: bookings?.map(b => ({
+      bookings: bookings?.map((b) => ({
         id: b.id,
         checkIn: b.check_in,
-        amount: b.price_thb,
         netAmount: b.net_amount_thb,
-        listing: b.listing?.title
-      }))
+        listing: b.listing?.title,
+      })),
     },
     upcomingThaw: {
       count: upcoming.bookings?.length || 0,
-      note: `check-in today, expected thaw after ${policy.delayDays} day(s)`,
-      bookings: upcoming.bookings?.map(b => ({
+      bookings: upcoming.bookings?.map((b) => ({
         id: b.id,
         checkIn: b.check_in,
-        amount: b.net_amount_thb,
-        listing: b.listing?.title
-      }))
-    }
+        listing: b.listing?.title,
+      })),
+    },
   });
 }

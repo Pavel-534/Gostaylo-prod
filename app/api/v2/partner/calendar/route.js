@@ -13,6 +13,7 @@ import { toPublicImageUrl } from '@/lib/public-image-url'
 import { OCCUPYING_BOOKING_STATUSES } from '@/lib/booking-occupancy-statuses'
 import { mapCategorySlugToListingType } from '@/lib/partner-calendar-filters'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
+import { toListingDate } from '@/lib/listing-date'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,11 +55,9 @@ function getSeasonalPrice(seasonalPrices, listingId, date) {
  * Night model: occupied nights are [check_in, check_out) — aligns with CalendarService / OTAs.
  * Blocks are inclusive [start_date, end_date].
  */
-/** YYYY-MM-DD from DATE / timestamptz (same idea as listings availability API) */
+/** YYYY-MM-DD in listing TZ — avoids UTC slice(0,10) on TIMESTAMPTZ */
 function calendarDateKey(value) {
-  if (value == null) return ''
-  const s = String(value)
-  return s.length >= 10 ? s.slice(0, 10) : s
+  return toListingDate(value) || ''
 }
 
 function processCalendarData(

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, use } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
@@ -26,11 +26,17 @@ function interpolateTemplate(str, vars = {}) {
 import { QRCodeSVG } from 'qrcode.react'
 import { useCommission } from '@/hooks/use-commission'
 import { computeRoundedGuestTotalPot } from '@/lib/booking-price-integrity'
+import { CancelBookingDialog } from '@/components/renter/cancel-booking-dialog'
+
+function canRenterCancelCheckout(status) {
+  return !['CANCELLED', 'COMPLETED', 'REFUNDED', 'DECLINED'].includes(String(status || '').toUpperCase())
+}
 
 // Official GoStayLo USDT TRC-20 Wallet Address
 const GOSTAYLO_WALLET = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
 
-function CheckoutPageInner({ params }) {
+function CheckoutPageInner({ params: paramsProp }) {
+  const params = typeof paramsProp?.then === 'function' ? use(paramsProp) : paramsProp
   const searchParams = useSearchParams()
   const { user, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(true)
@@ -56,6 +62,7 @@ function CheckoutPageInner({ params }) {
   const commissionFromApi = useCommission()
   const [language, setLanguage] = useState('ru')
   const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
+  const [cancelOpen, setCancelOpen] = useState(false)
 
   useEffect(() => {
     loadPaymentStatus()
@@ -757,11 +764,34 @@ function CheckoutPageInner({ params }) {
                       {formatPrice(totalWithFee, 'THB', exchangeRates, language)}
                     </span>
                   </div>
+                  {canRenterCancelCheckout(booking.status) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full mt-3 border-red-200 text-red-700 hover:bg-red-50"
+                      onClick={() => setCancelOpen(true)}
+                    >
+                      {getUIText('renterCancel_button', language)}
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
+
+        <CancelBookingDialog
+          open={cancelOpen}
+          onOpenChange={setCancelOpen}
+          bookingId={params?.bookingId}
+          language={language}
+          onCancelled={() => {
+            loadPaymentStatus()
+            toast.success(
+              language === 'ru' ? 'Бронирование отменено' : 'Booking cancelled',
+            )
+          }}
+        />
 
         {/* Crypto Payment Modal - USDT TRC-20 with QR Code */}
         <Dialog open={cryptoModalOpen} onOpenChange={setCryptoModalOpen}>

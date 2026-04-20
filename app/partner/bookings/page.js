@@ -17,7 +17,7 @@ import { formatPrice } from '@/lib/currency'
 import { 
   Calendar, Mail, Phone, User, Check, X, Clock, 
   Loader2, AlertCircle, ChevronRight, MessageSquare,
-  CalendarDays, Home, DollarSign
+  CalendarDays, Home, DollarSign, Star
 } from 'lucide-react'
 import {
   Select,
@@ -414,11 +414,20 @@ export default function PartnerBookings() {
                     
                     {/* Guest Info */}
                     <div className="bg-slate-50 rounded-lg p-3 mb-3">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <User className="h-4 w-4 text-slate-400" />
                         <span className="font-medium text-slate-900 text-sm">
                           {booking.guestName || 'Гость'}
                         </span>
+                        {booking.guestRatingAverage != null && (
+                          <span className="inline-flex items-center gap-0.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                            <Star className="h-3 w-3 fill-amber-400 text-amber-500" />
+                            {Number(booking.guestRatingAverage).toFixed(1)}
+                            {booking.guestReviewCount > 0 && (
+                              <span className="text-amber-600/80">({booking.guestReviewCount})</span>
+                            )}
+                          </span>
+                        )}
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
                         {booking.guestPhone && (
@@ -517,10 +526,9 @@ export default function PartnerBookings() {
                         </>
                       )}
                       
-                      {(booking.status === 'PAID_ESCROW' ||
+                      {(booking.status === 'THAWED' ||
                         booking.status === 'PAID' ||
-                        booking.status === 'CHECKED_IN' ||
-                        booking.status === 'THAWED') && (
+                        booking.status === 'CHECKED_IN') && (
                         <Button
                           onClick={() => handleComplete(booking.id)}
                           disabled={updateStatusMutation.isPending}
@@ -543,6 +551,19 @@ export default function PartnerBookings() {
                         <div className="flex-1 text-center py-2 text-sm text-slate-500">
                           {booking.status === 'COMPLETED' ? '✓ Завершено' : '✗ Отменено'}
                         </div>
+                      )}
+
+                      {booking.canSubmitGuestReview && (
+                        <Button
+                          asChild
+                          variant="outline"
+                          className="flex-1 border-amber-200 text-amber-900 hover:bg-amber-50"
+                        >
+                          <Link href={`/partner/bookings/${encodeURIComponent(booking.id)}/guest-review`}>
+                            <Star className="h-4 w-4 mr-2" />
+                            Оценить гостя
+                          </Link>
+                        </Button>
                       )}
                     </div>
                   </div>

@@ -14,7 +14,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { PushService } from '@/lib/services/push.service';
 import { NotificationService } from '@/lib/services/notification.service';
-import { listingDateToday } from '@/lib/listing-date';
+import { listingDateToday, toListingDate } from '@/lib/listing-date';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -39,7 +39,7 @@ export async function POST(request) {
     // Today's check-ins — only bookings with funds in escrow (paid on platform)
     const today = listingDateToday();
     
-    const { data: bookings, error } = await supabaseAdmin
+    const { data: rawBookings, error } = await supabaseAdmin
       .from('bookings')
       .select(`
         id,
@@ -50,7 +50,6 @@ export async function POST(request) {
         renter:profiles!renter_id(id, telegram_id),
         listing:listings(id, title, category_id)
       `)
-      .eq('check_in', today)
       .eq('status', 'PAID_ESCROW');
 
     if (error) {
@@ -64,7 +63,9 @@ export async function POST(request) {
       );
     }
 
-    if (!bookings || bookings.length === 0) {
+    const bookings = (rawBookings || []).filter((b) => toListingDate(b.check_in) === today);
+
+    if (!bookings.length) {
       return NextResponse.json({
         success: true,
         message: 'No check-ins today',
@@ -127,7 +128,7 @@ export async function GET(request) {
   // Get today's check-ins
   const today = listingDateToday();
   
-  const { data: bookings } = await supabaseAdmin
+  const { data: rawBookings } = await supabaseAdmin
     .from('bookings')
     .select(`
       id,
@@ -136,8 +137,9 @@ export async function GET(request) {
       status,
       listing:listings(id, title)
     `)
-    .eq('check_in', today)
     .eq('status', 'PAID_ESCROW');
+
+  const bookings = (rawBookings || []).filter((b) => toListingDate(b.check_in) === today);
 
   return NextResponse.json({
     success: true,

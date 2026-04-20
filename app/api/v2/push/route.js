@@ -111,6 +111,7 @@ export async function GET() {
       'PAYMENT_RECEIVED',
       'CHECKIN_REMINDER',
       'PAYOUT_READY',
+      'PARTNER_GUEST_REVIEW',
     ],
     endpoints: {
       register:
