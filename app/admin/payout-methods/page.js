@@ -61,13 +61,17 @@ export default function AdminPayoutMethodsPage() {
   async function loadMethods() {
     setLoading(true)
     try {
+      const ts = Date.now()
       const res = await fetch('/api/v2/admin/payout-methods', { cache: 'no-store', credentials: 'include' })
       const json = await res.json()
       if (!res.ok || !json.success) throw new Error(json.error || 'Не удалось загрузить методы')
       setMethods(json.data || [])
 
       // Это именно тот endpoint, который читает кабинет партнёра.
-      const publicRes = await fetch('/api/v2/payout-methods', { cache: 'no-store', credentials: 'include' })
+      const publicRes = await fetch(`/api/v2/payout-methods?ts=${ts}`, {
+        cache: 'no-store',
+        credentials: 'include',
+      })
       const publicJson = await publicRes.json()
       setPublicPayloadRaw(JSON.stringify(publicJson, null, 2))
       if (!publicRes.ok || !publicJson.success) {
@@ -83,6 +87,19 @@ export default function AdminPayoutMethodsPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleRefreshApiCache() {
+    try {
+      await fetch('/api/v2/admin/payout-methods/revalidate', {
+        method: 'POST',
+        credentials: 'include',
+        cache: 'no-store',
+      })
+    } catch {
+      // даже если ре-валидация недоступна, ниже всё равно принудительно перезапросим с cache-buster.
+    }
+    await loadMethods()
   }
 
   useEffect(() => {
@@ -286,7 +303,7 @@ export default function AdminPayoutMethodsPage() {
           ) : null}
 
           <div className='flex flex-wrap gap-2 items-center'>
-            <Button variant='outline' size='sm' onClick={() => loadMethods()}>
+            <Button variant='outline' size='sm' onClick={handleRefreshApiCache}>
               Обновить API
             </Button>
             {publicMethodsError ? (

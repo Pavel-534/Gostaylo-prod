@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getSessionPayload } from '@/lib/services/session-service'
 import { PayoutRailsService } from '@/lib/services/payout-rails.service'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 async function requireAdmin() {
   const session = await getSessionPayload()
@@ -60,6 +62,7 @@ export async function POST(request) {
       .single()
 
     if (error) return NextResponse.json({ success: false, error: error.message }, { status: 400 })
+    revalidatePath('/api/v2/payout-methods')
     return NextResponse.json({ success: true, data })
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
@@ -90,6 +93,7 @@ export async function PUT(request) {
       .single()
 
     if (error) return NextResponse.json({ success: false, error: error.message }, { status: 400 })
+    revalidatePath('/api/v2/payout-methods')
     return NextResponse.json({ success: true, data })
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
@@ -109,12 +113,31 @@ export async function DELETE(request) {
       return NextResponse.json({ success: false, error: 'Method id is required' }, { status: 400 })
     }
 
+    const { count: usedInProfiles, error: refsError } = await supabaseAdmin
+      .from('partner_payout_profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('method_id', methodId)
+    if (refsError) return NextResponse.json({ success: false, error: refsError.message }, { status: 400 })
+
+    if ((usedInProfiles || 0) > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Нельзя удалить метод: он используется в реквизитах партнёров. Сначала переведите профили на другой метод.',
+          details: { usedInProfiles },
+        },
+        { status: 409 },
+      )
+    }
+
     const { error } = await supabaseAdmin
       .from('payout_methods')
       .delete()
       .eq('id', methodId)
 
     if (error) return NextResponse.json({ success: false, error: error.message }, { status: 400 })
+    revalidatePath('/api/v2/payout-methods')
     return NextResponse.json({ success: true })
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })

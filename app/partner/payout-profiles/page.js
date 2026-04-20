@@ -135,8 +135,9 @@ export default function PartnerPayoutProfilesPage() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
+      const ts = Date.now()
       const [methodsRes, profilesRes] = await Promise.all([
-        fetch('/api/v2/payout-methods', { cache: 'no-store', credentials: 'include' }),
+        fetch(`/api/v2/payout-methods?ts=${ts}`, { cache: 'no-store', credentials: 'include' }),
         fetch('/api/v2/partner/payout-profiles', { cache: 'no-store', credentials: 'include' }),
       ])
       const [methodsJson, profilesJson] = await Promise.all([methodsRes.json(), profilesRes.json()])
