@@ -57,7 +57,9 @@ export function InvoiceBubble({
       return
     }
     setNavigating(true)
-    router.push(`/checkout/${encodeURIComponent(bid)}?pm=${pm}`)
+    const qs = new URLSearchParams({ pm: String(pm || 'CARD') })
+    if (invoice.id) qs.set('invoiceId', String(invoice.id))
+    router.push(`/checkout/${encodeURIComponent(bid)}?${qs.toString()}`)
   }
 
   async function cancelInvoice() {

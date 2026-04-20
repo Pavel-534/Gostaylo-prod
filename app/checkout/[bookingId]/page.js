@@ -38,6 +38,7 @@ const GOSTAYLO_WALLET = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
 function CheckoutPageInner({ params: paramsProp }) {
   const params = typeof paramsProp?.then === 'function' ? use(paramsProp) : paramsProp
   const searchParams = useSearchParams()
+  const invoiceIdParam = searchParams.get('invoiceId')
   const { user, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(true)
   const [accessDenied, setAccessDenied] = useState(false)
@@ -334,6 +335,7 @@ function CheckoutPageInner({ params: paramsProp }) {
           body: JSON.stringify({
             txId: transactionId,
             gatewayRef: verifyData.data.blockNumber,
+            invoiceId: invoiceIdParam || undefined,
           }),
         })
 
@@ -363,6 +365,7 @@ function CheckoutPageInner({ params: paramsProp }) {
         body: JSON.stringify({
           txId: transactionId || txId,
           gatewayRef,
+          invoiceId: invoiceIdParam || undefined,
         }),
       })
 

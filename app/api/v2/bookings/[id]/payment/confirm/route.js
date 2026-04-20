@@ -9,6 +9,7 @@ import { getUserIdFromSession } from '@/lib/services/session-service';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 import { BookingService } from '@/lib/services/booking.service';
 import EscrowService from '@/lib/services/escrow.service';
+import { applyInvoicePostPaymentEffects } from '@/lib/services/invoice-extension.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,7 +30,7 @@ export async function POST(request, { params }) {
 
   try {
     const body = await request.json();
-    const { txId, gatewayRef } = body;
+    const { txId, gatewayRef, invoiceId } = body;
 
     const booking = await BookingService.getBookingById(bookingId);
     if (!booking) {
@@ -106,6 +107,14 @@ export async function POST(request, { params }) {
       `[PAYMENT CONFIRMED] Booking ${bookingId} | PAID_ESCROW | TX: ${txId || 'N/A'} | prev: ${previousStatus}`,
     );
 
+    const invoiceEffect = await applyInvoicePostPaymentEffects({
+      bookingId,
+      invoiceId: invoiceId || null,
+      txId: txId || null,
+      gatewayRef: gatewayRef || null,
+      source: 'payment_confirm',
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -115,6 +124,7 @@ export async function POST(request, { params }) {
         confirmedAt: new Date().toISOString(),
         escrow: escrow.escrow || null,
         alreadyEscrowed: !!escrow.alreadyEscrowed,
+        invoiceEffect,
       },
     });
   } catch (error) {

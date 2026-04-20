@@ -63,6 +63,9 @@ export async function POST(request) {
       holdHours: rawHoldHours,
       guestsCount: rawHoldGuests,
       guests_count: rawHoldGuestsSnake,
+      intent: rawIntent,
+      newCheckOut: rawNewCheckOut,
+      new_check_out: rawNewCheckOutSnake,
     } = body
 
     if (!conversationId || !amount) {
@@ -142,10 +145,15 @@ export async function POST(request) {
 
     const effectiveListingId = listingId || conversation.listing_id || null
     const effectiveBookingId = bookingId || conversation.booking_id || null
+    const intent = String(rawIntent || '').trim().toLowerCase()
+    if (intent && intent !== 'extension') {
+      return NextResponse.json({ success: false, error: 'Unsupported intent' }, { status: 400 })
+    }
 
     let effCheckIn = checkIn ? String(checkIn).slice(0, 10) : null
     let effCheckOut = checkOut ? String(checkOut).slice(0, 10) : null
     let effGuests = Math.max(1, parseInt(rawHoldGuests ?? rawHoldGuestsSnake ?? 1, 10) || 1)
+    let bookingRow = null
 
     if (effectiveBookingId) {
       const { data: bRow } = await supabaseAdmin
@@ -153,10 +161,56 @@ export async function POST(request) {
         .select('check_in, check_out, guests_count')
         .eq('id', effectiveBookingId)
         .maybeSingle()
+      bookingRow = bRow || null
       if (bRow) {
         effCheckIn = effCheckIn || String(bRow.check_in).slice(0, 10)
         effCheckOut = effCheckOut || String(bRow.check_out).slice(0, 10)
         effGuests = Math.max(1, parseInt(bRow.guests_count, 10) || effGuests)
+      }
+    }
+
+    let extensionMeta = null
+    if (intent === 'extension') {
+      if (!effectiveBookingId) {
+        return NextResponse.json(
+          { success: false, error: 'bookingId is required for extension intent' },
+          { status: 400 },
+        )
+      }
+      if (!bookingRow?.check_out) {
+        return NextResponse.json(
+          { success: false, error: 'Booking not found for extension intent' },
+          { status: 404 },
+        )
+      }
+
+      const nextOutRaw = rawNewCheckOut ?? rawNewCheckOutSnake
+      if (!nextOutRaw) {
+        return NextResponse.json(
+          { success: false, error: 'new_check_out is required for extension intent' },
+          { status: 400 },
+        )
+      }
+
+      const baseOut = new Date(bookingRow.check_out)
+      const nextOut = new Date(nextOutRaw)
+      if (!Number.isFinite(baseOut.getTime()) || !Number.isFinite(nextOut.getTime())) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid extension date format' },
+          { status: 400 },
+        )
+      }
+      if (nextOut.getTime() <= baseOut.getTime()) {
+        return NextResponse.json(
+          { success: false, error: 'new_check_out must be later than current booking check_out' },
+          { status: 400 },
+        )
+      }
+
+      extensionMeta = {
+        intent: 'extension',
+        new_check_out: nextOut.toISOString(),
+        base_check_out: baseOut.toISOString(),
       }
     }
 
@@ -213,6 +267,7 @@ export async function POST(request) {
       partner_earnings_thb: commission.partnerEarnings,
       created_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + holdMs).toISOString(),
+      ...(extensionMeta || {}),
     }
 
     const line = `💳 Invoice: ${currency === 'THB' ? '฿' : '$'}${parsedAmount.toLocaleString()} ${currency}`
@@ -237,6 +292,7 @@ export async function POST(request) {
         commission_rate: commission.commissionRate,
         commission_thb: commission.commissionThb,
         partner_earnings_thb: commission.partnerEarnings,
+        ...(extensionMeta || {}),
       },
     })
 

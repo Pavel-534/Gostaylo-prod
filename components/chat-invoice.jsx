@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
@@ -163,7 +164,9 @@ export function SendInvoiceDialog({
     amount: booking?.price_thb || '',
     currency: 'THB',
     description: '',
-    paymentMethod: 'CRYPTO'
+    paymentMethod: 'CRYPTO',
+    extensionIntent: false,
+    newCheckOut: '',
   })
 
   useEffect(() => {
@@ -177,19 +180,41 @@ export function SendInvoiceDialog({
 
   const handleSend = async () => {
     if (!invoiceData.amount) return
+    if (invoiceData.extensionIntent && !invoiceData.newCheckOut) return
 
     setSending(true)
     try {
-      await onSend({
-        ...invoiceData,
+      const payload = {
+        amount: invoiceData.amount,
+        currency: invoiceData.currency,
+        description: invoiceData.description,
+        paymentMethod: invoiceData.paymentMethod,
         booking_id: booking?.id,
         listing_id: listing?.id,
         listing_title: listing?.title,
         check_in: booking?.check_in,
-        check_out: booking?.check_out
+        check_out: booking?.check_out,
+      }
+      if (invoiceData.extensionIntent) {
+        const dt = new Date(invoiceData.newCheckOut)
+        payload.intent = 'extension'
+        payload.newCheckOut = Number.isFinite(dt.getTime())
+          ? dt.toISOString()
+          : invoiceData.newCheckOut
+      }
+
+      await onSend({
+        ...payload,
       })
       setOpen(false)
-      setInvoiceData({ amount: '', currency: 'THB', description: '', paymentMethod: 'CRYPTO' })
+      setInvoiceData({
+        amount: '',
+        currency: 'THB',
+        description: '',
+        paymentMethod: 'CRYPTO',
+        extensionIntent: false,
+        newCheckOut: '',
+      })
     } catch (error) {
       console.error('Send invoice error:', error)
     } finally {
@@ -309,10 +334,42 @@ export function SendInvoiceDialog({
             />
           </div>
 
+          {/* Extension (optional) */}
+          <div className="space-y-2 rounded-lg border border-slate-200 p-3">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="invoice-extension-intent"
+                checked={!!invoiceData.extensionIntent}
+                onCheckedChange={(checked) =>
+                  setInvoiceData((prev) => ({ ...prev, extensionIntent: !!checked }))
+                }
+              />
+              <Label htmlFor="invoice-extension-intent" className="cursor-pointer">
+                Продление аренды (extension)
+              </Label>
+            </div>
+            {invoiceData.extensionIntent && (
+              <div className="space-y-1">
+                <Label htmlFor="invoice-new-checkout">Новое время/дата возврата</Label>
+                <Input
+                  id="invoice-new-checkout"
+                  type="datetime-local"
+                  value={invoiceData.newCheckOut}
+                  onChange={(e) =>
+                    setInvoiceData((prev) => ({ ...prev, newCheckOut: e.target.value }))
+                  }
+                />
+                <p className="text-xs text-slate-500">
+                  Будет отправлено как metadata: intent=extension, new_check_out.
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Send Button */}
           <Button 
             onClick={handleSend}
-            disabled={!invoiceData.amount || sending}
+            disabled={!invoiceData.amount || (invoiceData.extensionIntent && !invoiceData.newCheckOut) || sending}
             className="w-full bg-teal-600 hover:bg-teal-700"
           >
             {sending ? (
