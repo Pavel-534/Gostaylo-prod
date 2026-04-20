@@ -59,9 +59,15 @@ export async function POST(request) {
       .from('payout_methods')
       .insert({ id, ...method })
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) return NextResponse.json({ success: false, error: error.message }, { status: 400 })
+    if (!data) {
+      return NextResponse.json(
+        { success: false, error: 'Не удалось создать метод: пустой ответ от базы' },
+        { status: 500 },
+      )
+    }
     revalidatePath('/api/v2/payout-methods')
     return NextResponse.json({ success: true, data })
   } catch (error) {
@@ -90,9 +96,19 @@ export async function PUT(request) {
       .update(patch)
       .eq('id', methodId)
       .select()
-      .single()
+      .maybeSingle()
 
     if (error) return NextResponse.json({ success: false, error: error.message }, { status: 400 })
+    if (!data) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Метод с таким id не найден (возможно, удалён). Нажмите «Отмена» и добавьте метод заново.',
+        },
+        { status: 404 },
+      )
+    }
     revalidatePath('/api/v2/payout-methods')
     return NextResponse.json({ success: true, data })
   } catch (error) {

@@ -18,8 +18,12 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_P
 const STATUS_TRANSITIONS = {
   PENDING: ['CONFIRMED', 'CANCELLED'],
   INQUIRY: ['CONFIRMED', 'CANCELLED'],
-  CONFIRMED: ['PAID', 'COMPLETED', 'CANCELLED'],
+  CONFIRMED: ['CANCELLED'],
+  AWAITING_PAYMENT: ['CANCELLED'],
   PAID: ['COMPLETED', 'REFUNDED'],
+  PAID_ESCROW: ['COMPLETED', 'REFUNDED'],
+  CHECKED_IN: ['COMPLETED', 'REFUNDED'],
+  THAWED: ['COMPLETED', 'REFUNDED'],
   COMPLETED: [],
   CANCELLED: [],
   REFUNDED: [],
@@ -163,8 +167,6 @@ export async function PUT(request, { params }) {
       updateData.cancelled_at = new Date().toISOString()
     } else if (newStatus === 'COMPLETED') {
       updateData.completed_at = new Date().toISOString()
-    } else if (newStatus === 'PAID') {
-      updateData.checked_in_at = new Date().toISOString()
     }
     
     // 4. Update in Supabase

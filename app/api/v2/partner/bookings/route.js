@@ -13,6 +13,7 @@ import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
+import { getGuestPayableRoundedThb } from '@/lib/booking-guest-total.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -232,6 +233,7 @@ function transformBooking(booking, defaultCommissionPercent) {
     checkIn: booking.check_in,
     checkOut: booking.check_out,
     priceThb: parseFloat(booking.price_thb) || 0,
+    guestPayableThb: getGuestPayableRoundedThb(booking),
     commissionRate: (() => {
       const n = parseFloat(booking.commission_rate)
       return Number.isFinite(n) && n >= 0 ? n : dc

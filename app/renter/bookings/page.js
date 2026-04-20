@@ -28,8 +28,10 @@ import {
   AlertCircle, Home, Star
 } from 'lucide-react'
 import { format, parseISO, isPast, isFuture } from 'date-fns'
+import { listingDateToday } from '@/lib/listing-date'
 import { ru } from 'date-fns/locale'
 import { formatPrice } from '@/lib/currency'
+import { getGuestPayableRoundedThb } from '@/lib/booking-guest-total'
 import { ReviewModal } from '@/components/review-modal'
 import { toast } from 'sonner'
 import { useI18n } from '@/contexts/i18n-context'
@@ -76,74 +78,94 @@ function BookingCardSkeleton() {
   )
 }
 
-// Status badge colors
+// Status badge colors (labels: getUIText `chatBookingStatus_*`)
 const STATUS_CONFIG = {
-  PENDING: { 
-    bg: 'bg-amber-100', 
-    text: 'text-amber-800', 
+  PENDING: {
+    bg: 'bg-amber-100',
+    text: 'text-amber-800',
     border: 'border-amber-200',
     icon: Clock,
-    label: 'Ожидает'
   },
-  CONFIRMED: { 
-    bg: 'bg-blue-100', 
-    text: 'text-blue-800', 
+  AWAITING_PAYMENT: {
+    bg: 'bg-orange-100',
+    text: 'text-orange-900',
+    border: 'border-orange-200',
+    icon: Clock,
+  },
+  CONFIRMED: {
+    bg: 'bg-blue-100',
+    text: 'text-blue-800',
     border: 'border-blue-200',
     icon: CheckCircle,
-    label: 'Подтверждено'
   },
-  PAID: { 
-    bg: 'bg-green-100', 
-    text: 'text-green-800', 
+  PAID: {
+    bg: 'bg-green-100',
+    text: 'text-green-800',
     border: 'border-green-200',
     icon: CheckCircle,
-    label: 'Оплачено'
   },
-  PAID_ESCROW: { 
-    bg: 'bg-teal-100', 
-    text: 'text-teal-800', 
+  PAID_ESCROW: {
+    bg: 'bg-teal-100',
+    text: 'text-teal-800',
     border: 'border-teal-200',
     icon: CheckCircle,
-    label: 'Эскроу'
   },
-  COMPLETED: { 
-    bg: 'bg-slate-100', 
-    text: 'text-slate-800', 
+  CHECKED_IN: {
+    bg: 'bg-cyan-100',
+    text: 'text-cyan-900',
+    border: 'border-cyan-200',
+    icon: CheckCircle,
+  },
+  THAWED: {
+    bg: 'bg-indigo-100',
+    text: 'text-indigo-900',
+    border: 'border-indigo-200',
+    icon: CheckCircle,
+  },
+  COMPLETED: {
+    bg: 'bg-slate-100',
+    text: 'text-slate-800',
     border: 'border-slate-200',
     icon: CheckCircle,
-    label: 'Завершено'
   },
-  CANCELLED: { 
-    bg: 'bg-red-100', 
-    text: 'text-red-800', 
+  CANCELLED: {
+    bg: 'bg-red-100',
+    text: 'text-red-800',
     border: 'border-red-200',
     icon: XCircle,
-    label: 'Отменено'
   },
-  DECLINED: { 
-    bg: 'bg-red-100', 
-    text: 'text-red-800', 
+  DECLINED: {
+    bg: 'bg-red-100',
+    text: 'text-red-800',
     border: 'border-red-200',
     icon: XCircle,
-    label: 'Отклонено'
+  },
+  REFUNDED: {
+    bg: 'bg-purple-100',
+    text: 'text-purple-900',
+    border: 'border-purple-200',
+    icon: XCircle,
   },
 }
 
 // Status badge component
-function StatusBadge({ status }) {
+function StatusBadge({ status, language }) {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING
   const Icon = config.icon
-  
+  const key = `chatBookingStatus_${status}`
+  const label = getUIText(key, language)
+  const text = label !== key ? label : status
+
   return (
     <Badge className={`${config.bg} ${config.text} border ${config.border} flex items-center gap-1`}>
       <Icon className="h-3 w-3" />
-      {config.label}
+      {text}
     </Badge>
   )
 }
 
 // Individual booking card
-function BookingCard({ booking, onReviewClick }) {
+function BookingCard({ booking, onReviewClick, language }) {
   const router = useRouter()
   
   const checkInDate = booking.check_in ? parseISO(booking.check_in) : null
@@ -156,6 +178,17 @@ function BookingCard({ booking, onReviewClick }) {
   const listing = booking.listing || booking.listings || {}
   const listingImage = listing.images?.[0] || listing.cover_image || '/placeholder.svg'
   
+  const canLeaveReview = () => {
+    if (booking.status === 'COMPLETED') return true
+    const co = booking.check_out ? String(booking.check_out).slice(0, 10) : null
+    const today = listingDateToday()
+    return (
+      !!co &&
+      co < today &&
+      ['PAID_ESCROW', 'CHECKED_IN', 'THAWED'].includes(booking.status)
+    )
+  }
+
   // Determine action button
   const getActionButton = () => {
     if (booking.status === 'CONFIRMED') {
@@ -170,7 +203,12 @@ function BookingCard({ booking, onReviewClick }) {
       )
     }
     
-    if (booking.status === 'PAID' || booking.status === 'PAID_ESCROW') {
+    if (
+      booking.status === 'PAID' ||
+      booking.status === 'PAID_ESCROW' ||
+      booking.status === 'CHECKED_IN' ||
+      booking.status === 'THAWED'
+    ) {
       return (
         <Button 
           variant="outline"
@@ -181,14 +219,14 @@ function BookingCard({ booking, onReviewClick }) {
       )
     }
     
-    if (booking.status === 'COMPLETED') {
+    if (canLeaveReview()) {
       return (
         <Button 
           className="bg-teal-600 hover:bg-teal-700"
           onClick={() => onReviewClick(booking)}
         >
           <Star className="h-4 w-4 mr-2" />
-          Leave a Review
+          {getUIText('renterReviewLeaveButton', language)}
         </Button>
       )
     }
@@ -238,15 +276,15 @@ function BookingCard({ booking, onReviewClick }) {
               </div>
             </div>
             
-            <StatusBadge status={booking.status} />
+            <StatusBadge status={booking.status} language={language} />
           </div>
           
           {/* Footer */}
           <div className="flex items-center justify-between pt-4 border-t border-slate-100">
             <div>
-              <p className="text-sm text-slate-600 mb-1">Стоимость</p>
+              <p className="text-sm text-slate-600 mb-1">{getUIText('checkout_total', language)}</p>
               <p className="text-2xl font-bold text-slate-900">
-                {formatPrice(booking.total_price_thb || booking.price_thb || 0, 'THB')}
+                {formatPrice(getGuestPayableRoundedThb(booking), 'THB')}
               </p>
             </div>
             
@@ -311,7 +349,11 @@ export default function RenterBookingsPage() {
     if (activeTab === 'upcoming') {
       return bookings.filter(b => {
         const checkIn = b.check_in ? parseISO(b.check_in) : null
-        return checkIn && isFuture(checkIn) && ['CONFIRMED', 'PAID', 'PAID_ESCROW'].includes(b.status)
+        return (
+          checkIn &&
+          isFuture(checkIn) &&
+          ['CONFIRMED', 'AWAITING_PAYMENT', 'PAID', 'PAID_ESCROW', 'CHECKED_IN', 'THAWED'].includes(b.status)
+        )
       })
     }
     
@@ -335,7 +377,11 @@ export default function RenterBookingsPage() {
       all: bookings.length,
       upcoming: bookings.filter(b => {
         const checkIn = b.check_in ? parseISO(b.check_in) : null
-        return checkIn && isFuture(checkIn) && ['CONFIRMED', 'PAID', 'PAID_ESCROW'].includes(b.status)
+        return (
+          checkIn &&
+          isFuture(checkIn) &&
+          ['CONFIRMED', 'AWAITING_PAYMENT', 'PAID', 'PAID_ESCROW', 'CHECKED_IN', 'THAWED'].includes(b.status)
+        )
       }).length,
       past: bookings.filter(b => {
         const checkOut = b.check_out ? parseISO(b.check_out) : null
@@ -505,6 +551,7 @@ export default function RenterBookingsPage() {
                   key={booking.id} 
                   booking={booking}
                   onReviewClick={handleReviewClick}
+                  language={language}
                 />
               ))}
             </div>

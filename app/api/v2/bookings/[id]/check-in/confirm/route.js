@@ -36,10 +36,21 @@ export async function POST(request, { params }) {
     
     const booking = bookings[0];
     
-    if (booking.status !== 'CONFIRMED') {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Booking must be confirmed before check-in' 
+    if (booking.status === 'CHECKED_IN') {
+      return NextResponse.json({
+        success: true,
+        data: {
+          bookingId,
+          status: 'CHECKED_IN',
+          alreadyCheckedIn: true,
+        },
+      });
+    }
+
+    if (booking.status !== 'PAID_ESCROW') {
+      return NextResponse.json({
+        success: false,
+        error: 'Check-in is available after payment is received (PAID_ESCROW)',
       }, { status: 400 });
     }
     

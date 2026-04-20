@@ -1,142 +1,129 @@
 /**
- * POST /api/bookings/[id]/payment/confirm
- * Confirm a payment and update booking status
- * SECURITY: Verifies booking ownership (renter_id must match session)
+ * POST /api/v2/bookings/[id]/payment/confirm
+ * Confirm payment → PAID_ESCROW via EscrowService.moveToEscrow (ledger + payouts).
+ * SECURITY: renter_id must match session when set.
  */
 
 import { NextResponse } from 'next/server';
 import { getUserIdFromSession } from '@/lib/services/session-service';
-import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-sync';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 import { BookingService } from '@/lib/services/booking.service';
+import EscrowService from '@/lib/services/escrow.service';
 
 export const dynamic = 'force-dynamic';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+/** States from which a guest payment can move the booking into escrow */
+const PAYMENT_CONFIRM_ALLOWED = new Set([
+  'PENDING',
+  'AWAITING_PAYMENT',
+  'CONFIRMED',
+  'PAID',
+]);
 
 export async function POST(request, { params }) {
   const bookingId = params.id;
-  
+
   if (!bookingId) {
     return NextResponse.json({ success: false, error: 'Booking ID required' }, { status: 400 });
   }
-  
+
   try {
     const body = await request.json();
     const { txId, gatewayRef } = body;
-    
-    // Fetch booking
-    const bookingRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${bookingId}&select=*`,
-      {
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-        }
-      }
-    );
-    
-    const bookings = await bookingRes.json();
-    
-    if (!bookings || bookings.length === 0) {
+
+    const booking = await BookingService.getBookingById(bookingId);
+    if (!booking) {
       return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
     }
-    
-    const booking = bookings[0];
+
     const previousStatus = booking.status;
 
-    // Ownership check: only the renter can confirm payment for their booking
     const sessionUserId = await getUserIdFromSession();
     if (booking.renter_id) {
       if (!sessionUserId) {
         return NextResponse.json({ success: false, error: 'Please log in to complete payment' }, { status: 401 });
       }
       if (booking.renter_id !== sessionUserId) {
-        return NextResponse.json({ success: false, error: 'Access denied. This is not your booking.' }, { status: 403 });
+        return NextResponse.json(
+          { success: false, error: 'Access denied. This is not your booking.' },
+          { status: 403 },
+        );
       }
     }
-    
+
     if (booking.status === 'CANCELLED') {
       return NextResponse.json({ success: false, error: 'Booking is cancelled' }, { status: 400 });
     }
-    
-    if (booking.status === 'CONFIRMED') {
-      return NextResponse.json({ success: false, error: 'Booking is already confirmed' }, { status: 400 });
-    }
-    
-    // Update booking to CONFIRMED
-    const updateRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${bookingId}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
+
+    if (booking.status === 'PAID_ESCROW') {
+      return NextResponse.json({
+        success: true,
+        data: {
+          bookingId,
+          status: 'PAID_ESCROW',
+          alreadyEscrowed: true,
+          transactionId: txId,
+          confirmedAt: new Date().toISOString(),
         },
-        body: JSON.stringify({
-          status: 'CONFIRMED',
-          metadata: {
-            ...booking.metadata,
-            paymentConfirmedAt: new Date().toISOString(),
-            transactionId: txId || null,
-            gatewayRef: gatewayRef || null
-          }
-        })
-      }
-    );
-    
-    if (!updateRes.ok) {
-      const updText = await updateRes.text().catch(() => '')
-      void notifySystemAlert(
-        `💳 <b>Платёж: подтверждение не записалось в БД</b>\n` +
-          `booking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n` +
-          `<code>${escapeSystemAlertHtml(updText.slice(0, 800))}</code>`,
-      )
+      });
+    }
+
+    if (!PAYMENT_CONFIRM_ALLOWED.has(booking.status)) {
       return NextResponse.json(
-        { success: false, error: 'Failed to confirm payment' },
+        {
+          success: false,
+          error: `Payment cannot be confirmed from status ${booking.status}`,
+        },
+        { status: 400 },
+      );
+    }
+
+    try {
+      await BookingService.attachSettlementSnapshotForBooking(bookingId);
+    } catch (e) {
+      console.error('[PAYMENT CONFIRM] settlement snapshot attach', e);
+    }
+
+    const escrow = await EscrowService.moveToEscrow(bookingId, {
+      txId: txId || null,
+      gatewayRef: gatewayRef || null,
+      source: 'payment_confirm',
+    });
+
+    if (!escrow?.success) {
+      void notifySystemAlert(
+        `💳 <b>Платёж: escrow не выполнен</b>\n` +
+          `booking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n` +
+          `<code>${escapeSystemAlertHtml(String(escrow?.error || '').slice(0, 800))}</code>`,
+      );
+      return NextResponse.json(
+        { success: false, error: escrow?.error || 'Failed to confirm payment' },
         { status: 502 },
-      )
+      );
     }
 
-    try {
-      await syncBookingStatusToConversationChat({
-        bookingId,
-        previousStatus,
-        newStatus: 'CONFIRMED',
-      })
-    } catch (e) {
-      console.error('[PAYMENT CONFIRMED] chat sync', e)
-    }
+    console.log(
+      `[PAYMENT CONFIRMED] Booking ${bookingId} | PAID_ESCROW | TX: ${txId || 'N/A'} | prev: ${previousStatus}`,
+    );
 
-    try {
-      await BookingService.attachSettlementSnapshotForBooking(bookingId)
-    } catch (e) {
-      console.error('[PAYMENT CONFIRMED] settlement snapshot attach', e)
-    }
-
-    // Log payment confirmation
-    console.log(`[PAYMENT CONFIRMED] Booking ${bookingId} | TX: ${txId || 'N/A'} | Gateway: ${gatewayRef || 'N/A'}`);
-    
     return NextResponse.json({
       success: true,
       data: {
         bookingId,
-        status: 'CONFIRMED',
+        status: 'PAID_ESCROW',
         transactionId: txId,
-        confirmedAt: new Date().toISOString()
-      }
+        confirmedAt: new Date().toISOString(),
+        escrow: escrow.escrow || null,
+        alreadyEscrowed: !!escrow.alreadyEscrowed,
+      },
     });
-    
   } catch (error) {
     console.error('[PAYMENT-CONFIRM ERROR]', error);
     void notifySystemAlert(
       `💳 <b>Платёж: ошибка confirm</b>\n` +
         `booking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n` +
         `<code>${escapeSystemAlertHtml(error?.message || error)}</code>`,
-    )
+    );
     return NextResponse.json({ success: false, error: 'Failed to confirm payment' }, { status: 500 });
   }
 }

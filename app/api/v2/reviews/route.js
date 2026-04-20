@@ -11,6 +11,7 @@ import {
   formatPrivacyDisplayName,
   formatReviewerInitial,
 } from '@/lib/utils/name-formatter';
+import { listingDateToday } from '@/lib/listing-date';
 
 export const dynamic = 'force-dynamic';
 
@@ -217,7 +218,7 @@ export async function POST(request) {
     const trimmedBookingId = String(bookingId).trim();
     const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')
-      .select('id, status, renter_id, listing_id')
+      .select('id, status, renter_id, listing_id, check_out')
       .eq('id', trimmedBookingId)
       .single();
     
@@ -228,12 +229,24 @@ export async function POST(request) {
       }, { status: 404 });
     }
 
-    // Only COMPLETED bookings may be reviewed
-    if (booking.status !== 'COMPLETED') {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'You can only leave a review after the stay is completed' 
-      }, { status: 403 });
+    const today = listingDateToday();
+    const checkOutStr = booking.check_out ? String(booking.check_out).slice(0, 10) : null;
+    const stayEndedByCalendar = checkOutStr && checkOutStr < today;
+
+    const mayReviewCompleted = booking.status === 'COMPLETED';
+    const mayReviewAfterCheckout =
+      stayEndedByCalendar &&
+      ['PAID_ESCROW', 'CHECKED_IN', 'THAWED'].includes(booking.status);
+
+    if (!mayReviewCompleted && !mayReviewAfterCheckout) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'You can leave a review after check-out (stay ended) or when the booking is completed',
+        },
+        { status: 403 },
+      );
     }
 
     if (booking.renter_id !== sessionUserId) {

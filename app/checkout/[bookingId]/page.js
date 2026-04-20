@@ -335,11 +335,6 @@ function CheckoutPageInner({ params }) {
         if (data.success) {
           setPaymentSuccess(true)
           setCryptoModalOpen(false)
-          
-          // Trigger check-in confirmation
-          setTimeout(() => {
-            handleCheckInConfirm()
-          }, 1000)
         } else {
           toast.error(data.error || getUIText('checkout_toast_paymentConfirmFail', language))
         }
@@ -370,33 +365,12 @@ function CheckoutPageInner({ params }) {
         toast.success(getUIText('checkout_toast_paymentOk', language))
         setPaymentSuccess(true)
         setCryptoModalOpen(false)
-        
-        setTimeout(() => {
-          handleCheckInConfirm()
-        }, 1000)
       } else {
         toast.error(data.error || getUIText('checkout_toast_paymentConfirmFail', language))
       }
     } catch (error) {
       console.error('Failed to confirm payment:', error)
       toast.error(getUIText('checkout_toast_paymentConfirmFail', language))
-    }
-  }
-
-  async function handleCheckInConfirm() {
-    try {
-      const res = await fetch(`/api/v2/bookings/${params.bookingId}/check-in/confirm`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      })
-
-      const data = await res.json()
-
-      if (data.success) {
-        console.log('✅ Check-in confirmed. Funds released to partner.')
-      }
-    } catch (error) {
-      console.error('Failed to confirm check-in:', error)
     }
   }
 

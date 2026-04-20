@@ -42,42 +42,61 @@ import { differenceInDays, format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import Link from 'next/link'
 import { useCommission } from '@/hooks/use-commission'
+import { useI18n } from '@/contexts/i18n-context'
+import { getUIText } from '@/lib/translations'
 
-// Status configuration
+// Status configuration (labels via getUIText `chatBookingStatus_*`)
 const STATUS_CONFIG = {
-  PENDING: { 
-    label: 'Ожидание', 
+  PENDING: {
     color: 'bg-amber-100 text-amber-700 border-amber-200',
     icon: Clock
   },
-  CONFIRMED: { 
-    label: 'Подтверждено', 
+  AWAITING_PAYMENT: {
+    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    icon: Clock
+  },
+  CONFIRMED: {
     color: 'bg-green-100 text-green-700 border-green-200',
     icon: Check
   },
-  PAID: { 
-    label: 'Оплачено', 
+  PAID: {
     color: 'bg-blue-100 text-blue-700 border-blue-200',
     icon: DollarSign
   },
-  CANCELLED: { 
-    label: 'Отменено', 
+  PAID_ESCROW: {
+    color: 'bg-teal-100 text-teal-800 border-teal-200',
+    icon: DollarSign
+  },
+  CHECKED_IN: {
+    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    icon: Check
+  },
+  THAWED: {
+    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    icon: DollarSign
+  },
+  CANCELLED: {
     color: 'bg-red-100 text-red-700 border-red-200',
     icon: X
   },
-  COMPLETED: { 
-    label: 'Завершено', 
+  COMPLETED: {
     color: 'bg-slate-100 text-slate-700 border-slate-200',
     icon: Check
   },
-  REFUNDED: { 
-    label: 'Возврат', 
+  REFUNDED: {
     color: 'bg-purple-100 text-purple-700 border-purple-200',
     icon: DollarSign
   }
 }
 
+function bookingStatusLabel(status, lang) {
+  const key = `chatBookingStatus_${status}`
+  const t = getUIText(key, lang)
+  return t !== key ? t : status
+}
+
 export default function PartnerBookings() {
+  const { language } = useI18n()
   const { user, loading: authLoading, isAuthenticated } = useAuth()
   const [filter, setFilter] = useState('all')
   const [rejectDialog, setRejectDialog] = useState({ open: false, bookingId: null })
@@ -122,9 +141,15 @@ export default function PartnerBookings() {
   const stats = {
     total: bookings.length,
     pending: bookings.filter(b => b.status === 'PENDING').length,
-    confirmed: bookings.filter(b => b.status === 'CONFIRMED' || b.status === 'PAID').length,
+    confirmed: bookings.filter(b =>
+      ['CONFIRMED', 'AWAITING_PAYMENT', 'PAID', 'PAID_ESCROW', 'CHECKED_IN', 'THAWED'].includes(b.status)
+    ).length,
     revenue: bookings
-      .filter(b => ['CONFIRMED', 'PAID', 'COMPLETED'].includes(b.status))
+      .filter(b =>
+        ['CONFIRMED', 'AWAITING_PAYMENT', 'PAID', 'PAID_ESCROW', 'CHECKED_IN', 'THAWED', 'COMPLETED'].includes(
+          b.status,
+        ),
+      )
       .reduce((sum, b) => sum + (b.partnerEarningsThb || 0), 0),
   }
 
@@ -289,12 +314,14 @@ export default function PartnerBookings() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Все бронирования</SelectItem>
-            <SelectItem value="PENDING">Ожидание</SelectItem>
-            <SelectItem value="CONFIRMED">Подтверждено</SelectItem>
-            <SelectItem value="PAID">Оплачено</SelectItem>
-            <SelectItem value="COMPLETED">Завершено</SelectItem>
-            <SelectItem value="CANCELLED">Отменено</SelectItem>
+            <SelectItem value="all">{getUIText('all', language)}</SelectItem>
+            <SelectItem value="PENDING">{getUIText('chatBookingStatus_PENDING', language)}</SelectItem>
+            <SelectItem value="CONFIRMED">{getUIText('chatBookingStatus_CONFIRMED', language)}</SelectItem>
+            <SelectItem value="AWAITING_PAYMENT">{getUIText('chatBookingStatus_AWAITING_PAYMENT', language)}</SelectItem>
+            <SelectItem value="PAID">{getUIText('chatBookingStatus_PAID', language)}</SelectItem>
+            <SelectItem value="PAID_ESCROW">{getUIText('chatBookingStatus_PAID_ESCROW', language)}</SelectItem>
+            <SelectItem value="COMPLETED">{getUIText('chatBookingStatus_COMPLETED', language)}</SelectItem>
+            <SelectItem value="CANCELLED">{getUIText('chatBookingStatus_CANCELLED', language)}</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-sm text-slate-500">
@@ -322,6 +349,7 @@ export default function PartnerBookings() {
           {bookings.map((booking) => {
             const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING
             const StatusIcon = statusConfig.icon
+            const statusLabel = bookingStatusLabel(booking.status, language)
             
             // Calculate nights
             const nights = booking.checkIn && booking.checkOut 
@@ -380,7 +408,7 @@ export default function PartnerBookings() {
                       {/* Status Badge */}
                       <Badge className={`${statusConfig.color} border text-xs flex-shrink-0`}>
                         <StatusIcon className="h-3 w-3 mr-1" />
-                        {statusConfig.label}
+                        {statusLabel}
                       </Badge>
                     </div>
                     
@@ -449,10 +477,10 @@ export default function PartnerBookings() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium text-slate-700">
-                          {formatPrice(booking.priceThb || 0, 'THB')}
+                          {formatPrice((booking.guestPayableThb ?? booking.priceThb) || 0, 'THB')}
                         </p>
                         <p className="text-xs text-slate-400">
-                          Общая сумма
+                          {getUIText('checkout_total', language)}
                         </p>
                       </div>
                     </div>
@@ -489,7 +517,10 @@ export default function PartnerBookings() {
                         </>
                       )}
                       
-                      {(booking.status === 'CONFIRMED' || booking.status === 'PAID') && (
+                      {(booking.status === 'PAID_ESCROW' ||
+                        booking.status === 'PAID' ||
+                        booking.status === 'CHECKED_IN' ||
+                        booking.status === 'THAWED') && (
                         <Button
                           onClick={() => handleComplete(booking.id)}
                           disabled={updateStatusMutation.isPending}

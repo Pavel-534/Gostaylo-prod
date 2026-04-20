@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 3.5.7 | **Last Updated**: 2026-04-19 | **Status**: Production-Ready
+> **Version**: 3.5.9 | **Last Updated**: 2026-04-20 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -18,6 +18,7 @@
 ### 0.0a1 Partner dashboard & payout profiles (trust / viz)
 - **`GET /api/v2/partner/stats`** — блок **`financialV2`**: «деньги в пути» по броням **`PAID_ESCROW`** (тот же расчёт дохода партнёра, что и в карточке «Доход») и помесячные суммы по **`payouts`** со статусами **`PAID`** / **`COMPLETED`** (см. **`docs/TECHNICAL_MANIFESTO.md`**). Клиент: **`app/partner/dashboard/page.js`** (график **recharts**); карточка «Будущий доход» ведёт на **`/partner/finances?status=PAID_ESCROW`** (фильтр списка броней на **`app/partner/finances/page.js`**).
 - **`PUT /api/v2/partner/payout-profiles`**: при **`is_verified`** запрещено менять **`method_id`** или **`data`** (**403**, текст про новый профиль → основной → удалить старый); до верификации поля можно менять. UI **`app/partner/payout-profiles/page.js`**: **`AlertDialog`** перед **POST** и перед сохранением правок; подсказка под **основным** профилем.
+- **Справочник рейлов выплат (admin):** UI **`/admin/payout-methods`**; API **`GET` / `POST` / `PUT` / `DELETE` `/api/v2/admin/payout-methods`** (только **`profiles.role === 'ADMIN'`**). **`PUT`** по несуществующему **`id`** → **404**. **`DELETE`** при ссылках из **`partner_payout_profiles`** → **409**. После мутаций — **`revalidatePath('/api/v2/payout-methods')`**.
 
 ### 0.0 Admin Health Dashboard (ops + security)
 - **UI:** `app/admin/health/page.jsx` — маршрут **`/admin/health`**, карточки **`rounded-2xl`**: агрегаты **`ops_job_runs`** (7 дн.) для **`ical-sync`**, **`push-sweeper`**, **`push-token-hygiene`**, блок **`critical_signal_events`** (`PRICE_TAMPERING`).
@@ -831,12 +832,17 @@ static calculateTotalWithAddons(baseTotal, addons = []) {
 | POST | `/api/v2/bookings` | Create booking |
 | GET | `/api/v2/bookings/[id]/payment-status` | Get booking + listing info |
 | POST | `/api/v2/bookings/[id]/payment/initiate` | Start payment flow |
-| POST | `/api/v2/bookings/[id]/payment/confirm` | Confirm payment |
+| POST | `/api/v2/bookings/[id]/payment/confirm` | Подтверждение оплаты гостем → **`PAID_ESCROW`** через **`EscrowService.moveToEscrow`** (ledger); идемпотентно при повторном вызове |
+| POST | `/api/cron/review-reminder` | Cron: push + Telegram гостю на следующий календарный день после **`check_out`** (если ещё нет отзыва) |
 | POST | `/api/v2/bookings/[id]/check-in/confirm` | Confirm check-in |
 | GET | `/api/v2/admin/ledger-balances` | ADMIN: остатки ledger (THB) |
 | GET | `/api/v2/admin/ledger-reconciliation` | ADMIN: сверка clearing vs credits в журналах захвата оплаты (MVP) |
 | POST | `/api/v2/admin/payouts/tbank-registry` | ADMIN: CSV реестр Т-Банка + PROCESSING |
 | GET | `/api/v2/admin/partner-payout-profiles` | ADMIN: профили выплат без верификации |
+| GET | `/api/v2/admin/payout-methods` | ADMIN: все строки **`payout_methods`** |
+| POST | `/api/v2/admin/payout-methods` | ADMIN: создать метод |
+| PUT | `/api/v2/admin/payout-methods` | ADMIN: обновить метод; нет строки с **`body.id`** → **404** |
+| DELETE | `/api/v2/admin/payout-methods?id=` | ADMIN: удалить метод; **409**, если метод в **`partner_payout_profiles`** |
 | PATCH | `/api/v2/admin/partner-payout-profiles/[id]` | ADMIN: верифицировать профиль |
 | GET | `/api/v2/admin/payouts` | ADMIN: выплаты; **`?status=PROCESSING`** или **`?status=FINAL`** (алиасы **SUCCESS**, **PAID_OR_COMPLETED**) → **PAID**+**COMPLETED**; поле **`isFinalSuccess`** |
 | PATCH | `/api/v2/admin/payouts/[id]` | ADMIN: **`{ "status", "adminNote"? }`** — ключ **`adminNote`** при наличии пишет **metadata** (**PAID** и **FAILED**); PAID → ledger; FAILED только из **PROCESSING** |

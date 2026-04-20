@@ -36,7 +36,7 @@ export async function POST(request) {
   try {
     console.log('[CRON CHECK-IN] Sending check-in reminders...');
     
-    // Get today's check-ins with PAID or PAID_ESCROW status
+    // Today's check-ins — only bookings with funds in escrow (paid on platform)
     const today = listingDateToday();
     
     const { data: bookings, error } = await supabaseAdmin
@@ -47,10 +47,11 @@ export async function POST(request) {
         guest_email,
         renter_id,
         check_in,
-        listing:listings(id, title)
+        renter:profiles!renter_id(id, telegram_id),
+        listing:listings(id, title, category_id)
       `)
       .eq('check_in', today)
-      .in('status', ['PAID', 'CONFIRMED']);
+      .eq('status', 'PAID_ESCROW');
 
     if (error) {
       console.error('[CRON CHECK-IN] Query error:', error);
@@ -79,8 +80,8 @@ export async function POST(request) {
       
       // Also send Telegram notification to guest if they have it linked
       await NotificationService.dispatch('CHECKIN_REMINDER', {
-        booking,
-        listing: booking.listing
+        booking: { ...booking, renter: booking.renter },
+        listing: booking.listing,
       });
 
       results.push({
@@ -136,7 +137,7 @@ export async function GET(request) {
       listing:listings(id, title)
     `)
     .eq('check_in', today)
-    .in('status', ['PAID', 'CONFIRMED']);
+    .eq('status', 'PAID_ESCROW');
 
   return NextResponse.json({
     success: true,

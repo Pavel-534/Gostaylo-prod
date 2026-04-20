@@ -106,6 +106,17 @@ export default function AdminPayoutMethodsPage() {
     loadMethods()
   }, [])
 
+  // После удаления метода editingId может указывать на несуществующую строку — тогда Save шлёт PUT и падает.
+  useEffect(() => {
+    if (!editingId || loading) return
+    const exists = methods.some((m) => m.id === editingId)
+    if (!exists) {
+      setEditingId(null)
+      setForm(EMPTY_FORM)
+      toast.info('Редактируемый метод больше не в списке — форма сброшена. Добавьте метод как новый.')
+    }
+  }, [methods, editingId, loading])
+
   async function handleSave() {
     setSaving(true)
     try {
@@ -146,6 +157,10 @@ export default function AdminPayoutMethodsPage() {
       const json = await res.json()
       if (!res.ok || !json.success) throw new Error(json.error || 'Не удалось удалить')
       toast.success('Метод удалён')
+      if (methodId === editingId) {
+        setEditingId(null)
+        setForm(EMPTY_FORM)
+      }
       await loadMethods()
     } catch (error) {
       toast.error(error.message || 'Ошибка удаления')
