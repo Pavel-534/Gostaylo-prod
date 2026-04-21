@@ -15,6 +15,7 @@ import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service
 import { CalendarService } from '@/lib/services/calendar.service'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 import { normalizeBookingInstantForDb } from '@/lib/listing-date'
+import { resolveListingCategorySlug } from '@/lib/services/booking.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -106,7 +107,7 @@ export async function POST(request) {
     // Verify listing ownership
     const { data: listing, error: listingError } = await supabaseAdmin
       .from('listings')
-      .select('id, owner_id, base_price_thb, commission_rate, max_capacity')
+      .select('id, owner_id, base_price_thb, commission_rate, max_capacity, category_id')
       .eq('id', listingId)
       .eq('owner_id', userId)
       .single()
@@ -118,8 +119,11 @@ export async function POST(request) {
       }, { status: 404 })
     }
     
+    const listingCategorySlug = await resolveListingCategorySlug(listing?.category_id)
+    const isVehicleListing = listingCategorySlug === 'vehicles'
+
     const maxCap = Math.max(1, parseInt(listing.max_capacity, 10) || 1)
-    if (guestsCount > maxCap) {
+    if (!isVehicleListing && guestsCount > maxCap) {
       return NextResponse.json(
         {
           status: 'error',
@@ -130,7 +134,8 @@ export async function POST(request) {
     }
 
     const avail = await CalendarService.checkAvailability(listingId, checkIn, checkOut, {
-      guestsCount,
+      guestsCount: isVehicleListing ? 1 : guestsCount,
+      listingCategorySlugOverride: isVehicleListing ? 'vehicles' : undefined,
     })
     if (!avail.success) {
       return NextResponse.json(
@@ -193,6 +198,16 @@ export async function POST(request) {
       .single()
     
     if (bookingError) {
+      if (String(bookingError.message || '').includes('VEHICLE_INTERVAL_CONFLICT')) {
+        return NextResponse.json(
+          {
+            status: 'error',
+            error: 'Недостаточно мест на выбранные даты',
+            conflicts: [{ reason: 'INSUFFICIENT_CAPACITY' }],
+          },
+          { status: 409 },
+        )
+      }
       console.error('[MANUAL BOOKING] Error:', bookingError)
       void notifySystemAlert(
         `🧾 <b>Ручное бронирование: ошибка БД</b>\n` +

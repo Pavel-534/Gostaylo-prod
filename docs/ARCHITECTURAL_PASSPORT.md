@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 3.7.2 | **Last Updated**: 2026-04-21 | **Status**: Production-Ready
+> **Version**: 3.7.3 | **Last Updated**: 2026-04-21 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -23,6 +23,9 @@
 - **Vehicles interval availability (partner confirm):** для категории **`vehicles`** финальная проверка в **`BookingService.verifyInventoryBeforePartnerConfirm`** выполняется по **временным интервалам** (`check_in/check_out` TIMESTAMPTZ), а не по party-size vs `remaining_spots`: в `CalendarService.checkAvailability` передаются `guestsCount: 1`, `listingCategorySlugOverride: 'vehicles'`, `excludeBookingId`, и фильтр статусов `CONFIRMED,PAID,PAID_ESCROW,CHECKED_IN`. Пересечение: `existing.check_in < request.check_out` и `existing.check_out > request.check_in` (через `findVehicleIntervalConflicts`).
 - **Vehicles interval availability (search + listing UI):** фильтр каталога и карточка листинга для `vehicles` теперь передают `checkIn/checkOut` как ISO datetime (`+07:00`) при выборе времени; `GET /api/v2/listings/[id]/availability` принимает `startDateTime/endDateTime`. Это синхронизирует поиск, pre-check в карточке и создание брони по одной интервальной модели (без возврата к отельному 14:00/12:00 шаблону).
 - **Transport time UX:** в поиске, виджете и модалке бронирования для `vehicles` используется единый 24-часовой электронный `TimeSelect` (слоты 30 мин); значения `checkInTime/checkOutTime` прокидываются через home → listings → listing details deep-links, чтобы не терялись при переходах.
+- **Transport binary-mode unified:** для `vehicles` гостевой и партнёрский create flow больше не сравнивают `guests_count` с `max_capacity`/`remaining_spots`; бинарная доступность проверяется как пересечение интервалов одной единицы инвентаря.
+- **Day-only protection for transport:** при отсутствии времени в check-in/check-out транспортный interval normalizer принудительно строит full-day диапазон (`00:00`-`23:59:59.999`, Bangkok), чтобы исключить скрытые overlaps.
+- **DB hard guard against race condition:** миграция **`037_vehicle_booking_overlap_guard.sql`** добавляет trigger-level блокировку overlapping insert/update для `vehicles` (`VEHICLE_INTERVAL_CONFLICT`), что закрывает двойное бронирование при одновременных кликах.
 - **Chat confirmed copy split by role:** в milestone `booking_confirmed` для партнёра показывается отдельный CTA-текст про выставление счёта, для гостя остаётся текст про оплату счёта.
 - **Invoice consistency layer:** чат-обогащение бесед включает `bookings.price_thb/currency/guests_count` (префилл счёта из заказа), `GET /api/v2/chat/invoice?id=` поддерживает адресный доступ к одному счёту с проверкой участника, checkout при `invoiceId` подтягивает invoice-метаданные и выставляет предпочтительный метод оплаты.
 - **Stage 3 — Payment adapters over Intent:** добавлен adapter registry `lib/services/payment-adapters`: `CARD_INTL` (Mandarin-ready scaffold) и `MIR_RU` (YooKassa-ready scaffold). `PaymentIntentService.initiate` выбирает адаптер по методу оплаты, сохраняет `external_ref` + `provider_payload` в `payment_intents`, а checkout больше не рендерит «лишние» способы вне `allowedMethods`.

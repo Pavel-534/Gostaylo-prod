@@ -102,6 +102,7 @@ export async function POST(request) {
     }
 
     const isTourListing = listingCategorySlug === 'tours';
+    const isVehicleListing = listingCategorySlug === 'vehicles';
 
     if (isTourListing) {
       const meta =
@@ -159,7 +160,8 @@ export async function POST(request) {
     }
 
     const availabilityCheck = await CalendarService.checkAvailability(listingId, checkIn, checkOut, {
-      guestsCount,
+      guestsCount: isVehicleListing ? 1 : guestsCount,
+      listingCategorySlugOverride: isVehicleListing ? 'vehicles' : undefined,
     });
 
     if (!availabilityCheck.success) {
@@ -178,7 +180,7 @@ export async function POST(request) {
     const needsInquiry =
       privateTrip === true ||
       negotiationRequest === true ||
-      guestsCount > minRem;
+      (!isVehicleListing && guestsCount > minRem);
 
     if (needsInquiry) {
       const result = await BookingService.createInquiryBooking({
@@ -253,7 +255,7 @@ export async function POST(request) {
           { status: 400 },
         );
       }
-    } else {
+    } else if (!isVehicleListing) {
       const maxCap = Math.max(1, Number.isFinite(rawMaxCap) && rawMaxCap > 0 ? rawMaxCap : 1);
       if (guestsCount > maxCap) {
         return NextResponse.json(
