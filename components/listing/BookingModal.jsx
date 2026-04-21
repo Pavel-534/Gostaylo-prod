@@ -35,7 +35,13 @@ export function BookingModal({
   onSubmit,
   /** 'book' | 'private' | 'special' — inquiry flows create INQUIRY + chat */
   modalIntent = 'book',
+  listingCategorySlug = '',
+  vehicleStartTime = '07:00',
+  vehicleEndTime = '07:00',
+  setVehicleStartTime,
+  setVehicleEndTime,
 }) {
+  const isVehicle = String(listingCategorySlug || '').toLowerCase() === 'vehicles'
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -115,6 +121,27 @@ export function BookingModal({
                 className="min-h-[80px] resize-y"
               />
             </div>
+
+            {isVehicle && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>{language === 'ru' ? 'Время начала' : 'Start time'}</Label>
+                  <Input
+                    type="time"
+                    value={vehicleStartTime}
+                    onChange={(e) => setVehicleStartTime?.(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>{language === 'ru' ? 'Время окончания' : 'End time'}</Label>
+                  <Input
+                    type="time"
+                    value={vehicleEndTime}
+                    onChange={(e) => setVehicleEndTime?.(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
 
             {priceCalc && dateRange?.from && dateRange?.to && (
               <div className="space-y-1 rounded-lg bg-slate-50 p-4">

@@ -17,6 +17,10 @@ export function FilterBar({
   language = 'en',
   dateRange,
   setDateRange,
+  checkInTime = '07:00',
+  setCheckInTime,
+  checkOutTime = '07:00',
+  setCheckOutTime,
   selectedCategory,
   setSelectedCategory,
   where,
@@ -95,6 +99,10 @@ export function FilterBar({
                 setWhere={setWhere}
                 dateRange={dateRange}
                 setDateRange={setDateRange}
+                checkInTime={checkInTime}
+                setCheckInTime={setCheckInTime}
+                checkOutTime={checkOutTime}
+                setCheckOutTime={setCheckOutTime}
                 guests={guests}
                 setGuests={setGuests}
                 textQuery={textQuery}

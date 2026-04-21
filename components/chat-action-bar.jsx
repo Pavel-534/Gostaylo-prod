@@ -1,6 +1,5 @@
 'use client'
 
-/* eslint-disable unused-imports/no-unused-imports -- ESLint espree в этом репо не помечает использование в JSX как ref для импортов */
 /**
  * ChatActionBar — контекстная панель действий над полем ввода.
  *
@@ -174,13 +173,8 @@ export function ChatActionBar({
     if (bookingStatus === 'CONFIRMED' && typeof onOpenInvoice === 'function') {
       return (
         <div
-          className={`${barShell} flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:hidden`}
+          className={`${barShell} flex items-center justify-end gap-2 lg:hidden`}
         >
-          <span className="text-sm font-semibold leading-snug text-slate-800 sm:min-w-0 sm:flex-1">
-            {language === 'en'
-              ? 'Booking confirmed — ready to invoice'
-              : 'Бронирование подтверждено — выставьте счёт'}
-          </span>
           <Button
             type="button"
             variant="outline"
@@ -191,13 +185,13 @@ export function ChatActionBar({
             onPointerCancel={() => setPressInvoice(false)}
             onPointerLeave={() => setPressInvoice(false)}
             className={cn(
-              'h-12 min-h-[48px] w-full gap-2 rounded-2xl border border-slate-200 bg-white text-base font-bold text-slate-900 shadow-sm hover:bg-slate-50 sm:w-auto sm:min-w-[11rem]',
+              'h-9 min-h-0 w-auto gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-50',
               tactile,
               pressInvoice && 'opacity-70 scale-[0.98]',
             )}
             onClick={onOpenInvoice}
           >
-            <Receipt className="h-5 w-5" />
+            <Receipt className="h-4 w-4" />
             {t('invoice', language)}
           </Button>
         </div>

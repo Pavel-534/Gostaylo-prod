@@ -37,6 +37,11 @@ function canonicalWhere(w) {
   return s
 }
 
+function parseTimeParam(v, fallback = '07:00') {
+  const s = String(v || '').trim()
+  return /^\d{2}:\d{2}$/.test(s) ? s : fallback
+}
+
 function ListingsContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -57,6 +62,8 @@ function ListingsContent() {
     from: searchParams.get('checkIn') ? parseISO(searchParams.get('checkIn')) : null,
     to: searchParams.get('checkOut') ? parseISO(searchParams.get('checkOut')) : null,
   })
+  const [checkInTime, setCheckInTime] = useState(() => parseTimeParam(searchParams.get('checkInTime')))
+  const [checkOutTime, setCheckOutTime] = useState(() => parseTimeParam(searchParams.get('checkOutTime')))
 
   const searchParamsKey = searchParams.toString()
   const urlSyncDidMount = useRef(false)
@@ -79,6 +86,8 @@ function ListingsContent() {
       from: searchParams.get('checkIn') ? parseISO(searchParams.get('checkIn')) : null,
       to: searchParams.get('checkOut') ? parseISO(searchParams.get('checkOut')) : null,
     })
+    setCheckInTime(parseTimeParam(searchParams.get('checkInTime')))
+    setCheckOutTime(parseTimeParam(searchParams.get('checkOutTime')))
     setSearchQuery(searchParams.get('q') || '')
     const sem = searchParams.get('semantic')
     if (sem === '0') setSmartSearchOn(false)
@@ -123,9 +132,11 @@ function ListingsContent() {
         where,
         dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
         dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : '',
+        isTransportListingCategory(selectedCategory) ? checkInTime : '',
+        isTransportListingCategory(selectedCategory) ? checkOutTime : '',
         guests,
       ].join('|'),
-    [selectedCategory, where, dateRange.from, dateRange.to, guests],
+    [selectedCategory, where, dateRange.from, dateRange.to, checkInTime, checkOutTime, guests],
   )
 
   useEffect(() => {
@@ -219,6 +230,8 @@ function ListingsContent() {
     debouncedWhere,
     debouncedDateRange,
     debouncedGuests,
+    checkInTime,
+    checkOutTime,
     appliedMapBounds: appliedBbox,
     extraFilters,
     debouncedTextQuery: debouncedSearchQuery,
@@ -314,6 +327,14 @@ function ListingsContent() {
     if (debouncedWhere !== 'all') params.set('where', debouncedWhere)
     if (debouncedDateRange.from) params.set('checkIn', format(debouncedDateRange.from, 'yyyy-MM-dd'))
     if (debouncedDateRange.to) params.set('checkOut', format(debouncedDateRange.to, 'yyyy-MM-dd'))
+    if (
+      isTransportListingCategory(selectedCategory) &&
+      debouncedDateRange.from &&
+      debouncedDateRange.to
+    ) {
+      params.set('checkInTime', checkInTime)
+      params.set('checkOutTime', checkOutTime)
+    }
     if (debouncedGuests !== '1') params.set('guests', debouncedGuests)
     const qt = debouncedSearchQuery.trim()
     if (qt.length >= 2) params.set('q', qt)
@@ -330,6 +351,8 @@ function ListingsContent() {
     debouncedWhere,
     debouncedDateRange,
     debouncedGuests,
+    checkInTime,
+    checkOutTime,
     debouncedSearchQuery,
     appliedBbox,
     extraFilters,
@@ -397,8 +420,12 @@ function ListingsContent() {
     params.set('category', 'vehicles')
     if (dateRange.from) params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
     if (dateRange.to) params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
+    if (dateRange.from && dateRange.to) {
+      params.set('checkInTime', checkInTime)
+      params.set('checkOutTime', checkOutTime)
+    }
     return `/listings?${params.toString()}`
-  }, [selectedCategory, dateRange.from, dateRange.to])
+  }, [selectedCategory, dateRange.from, dateRange.to, checkInTime, checkOutTime])
 
   const cardDates = useMemo(
     () => ({
@@ -432,6 +459,10 @@ function ListingsContent() {
         language={language}
         dateRange={dateRange}
         setDateRange={setDateRange}
+        checkInTime={checkInTime}
+        setCheckInTime={setCheckInTime}
+        checkOutTime={checkOutTime}
+        setCheckOutTime={setCheckOutTime}
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
         where={where}

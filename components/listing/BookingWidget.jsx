@@ -5,13 +5,12 @@
  * Category-aware: exclusive (property/vehicles) vs shared (tours/yachts/services).
  */
 
-import React from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Star, ArrowRight, MessageCircle, Loader2, Sparkles } from 'lucide-react'
-import { format } from 'date-fns'
 import { formatPrice, priceRawForTest } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
 import { parseDurationDiscountTiers } from '@/lib/services/pricing.service'
@@ -284,6 +283,10 @@ export function DesktopBookingWidget({
   lastMessagePreview = null,
   hasUnreadFromHost = false,
   bookingUiMode = 'exclusive',
+  vehicleStartTime = '07:00',
+  vehicleEndTime = '07:00',
+  onVehicleStartTimeChange,
+  onVehicleEndTimeChange,
   availabilityLoading = false,
   availabilitySnapshot = null,
   durationDiscountPercentActive = 0,
@@ -415,6 +418,33 @@ export function DesktopBookingWidget({
               rentalPeriodMode={rentalPeriodMode}
             />
           </div>
+
+          {String(listing?.categorySlug || '').toLowerCase() === 'vehicles' && (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs text-slate-600 mb-1.5 block">
+                  {language === 'ru' ? 'Время начала' : 'Start time'}
+                </Label>
+                <Input
+                  type="time"
+                  value={vehicleStartTime}
+                  onChange={(e) => onVehicleStartTimeChange?.(e.target.value)}
+                  className="h-9"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-slate-600 mb-1.5 block">
+                  {language === 'ru' ? 'Время окончания' : 'End time'}
+                </Label>
+                <Input
+                  type="time"
+                  value={vehicleEndTime}
+                  onChange={(e) => onVehicleEndTimeChange?.(e.target.value)}
+                  className="h-9"
+                />
+              </div>
+            </div>
+          )}
 
           <div>
             <Label className="text-sm font-medium mb-2 block">

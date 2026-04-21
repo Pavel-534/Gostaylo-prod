@@ -16,6 +16,8 @@ export async function GET(request, { params }) {
   const { searchParams } = new URL(request.url);
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
+  const startDateTime = searchParams.get('startDateTime');
+  const endDateTime = searchParams.get('endDateTime');
   const guestsParam = searchParams.get('guests');
   const guestsCount = Math.max(1, parseInt(guestsParam || '1', 10) || 1);
 
@@ -59,8 +61,11 @@ export async function GET(request, { params }) {
         );
       }
 
-      const chk = await CalendarService.checkAvailability(listingId, startDate, endDate, {
+      const useStart = startDateTime || startDate;
+      const useEnd = endDateTime || endDate;
+      const chk = await CalendarService.checkAvailability(listingId, useStart, useEnd, {
         guestsCount,
+        listingCategorySlugOverride: calResult.data?.listingCategorySlug || undefined,
       });
 
       if (!chk.success) {

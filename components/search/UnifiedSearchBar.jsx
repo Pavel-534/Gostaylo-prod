@@ -17,7 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerClose } from '@/components/ui/drawer'
 import { SearchCalendar } from '@/components/search-calendar'
 import { WhereCombobox } from '@/components/search/WhereCombobox'
@@ -48,6 +48,10 @@ export function UnifiedSearchBar({
   // When
   dateRange,
   setDateRange,
+  checkInTime = '07:00',
+  setCheckInTime,
+  checkOutTime = '07:00',
+  setCheckOutTime,
   // Who
   guests,
   setGuests,
@@ -67,7 +71,7 @@ export function UnifiedSearchBar({
   liveCount = null,
   countLoading = false,
   clearDates: _clearDates,
-  nights = 0
+  nights: _nights = 0
 }) {
   const [categories, setCategories] = useState([])
   /** Сразу известные города/районы (Пхукет) — без ожидания API; ответ locations подмешивает реальные данные */
@@ -151,6 +155,7 @@ export function UnifiedSearchBar({
   const triggerHero = 'px-4 py-3 border-r border-slate-200 min-w-0'
 
   const showTextSearch = typeof setTextQuery === 'function'
+  const transportIntervalMode = String(category || '').toLowerCase() === 'vehicles'
 
   const textSearchRow = showTextSearch ? (
     <TooltipProvider delayDuration={250}>
@@ -260,13 +265,33 @@ export function UnifiedSearchBar({
         />
 
         {/* When */}
-        <SearchCalendar
-          value={dateRange}
-          onChange={setDateRange}
-          locale={language}
-          placeholder={getUIText('dates', language)}
-          className="h-9 border rounded-md justify-start px-3"
-        />
+        <div className="min-w-0 space-y-1">
+          <SearchCalendar
+            value={dateRange}
+            onChange={setDateRange}
+            locale={language}
+            placeholder={getUIText('dates', language)}
+            className="h-9 border rounded-md justify-start px-3"
+          />
+          {transportIntervalMode && dateRange?.from && dateRange?.to && (
+            <div className="grid grid-cols-2 gap-1">
+              <Input
+                type="time"
+                value={checkInTime}
+                onChange={(e) => setCheckInTime?.(e.target.value)}
+                className="h-8 text-xs"
+                aria-label={language === 'ru' ? 'Время начала' : 'Start time'}
+              />
+              <Input
+                type="time"
+                value={checkOutTime}
+                onChange={(e) => setCheckOutTime?.(e.target.value)}
+                className="h-8 text-xs"
+                aria-label={language === 'ru' ? 'Время окончания' : 'End time'}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Who */}
         <Select value={guests} onValueChange={setGuests}>
@@ -430,6 +455,24 @@ export function UnifiedSearchBar({
             className="w-full justify-start px-3 py-3"
           />
         </div>
+        {transportIntervalMode && dateRange?.from && dateRange?.to && (
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              type="time"
+              value={checkInTime}
+              onChange={(e) => setCheckInTime?.(e.target.value)}
+              className="h-10 rounded-xl border-slate-200"
+              aria-label={language === 'ru' ? 'Время начала' : 'Start time'}
+            />
+            <Input
+              type="time"
+              value={checkOutTime}
+              onChange={(e) => setCheckOutTime?.(e.target.value)}
+              className="h-10 rounded-xl border-slate-200"
+              aria-label={language === 'ru' ? 'Время окончания' : 'End time'}
+            />
+          </div>
+        )}
         <div className="flex min-w-0 flex-col gap-2">
           <button
             type="button"

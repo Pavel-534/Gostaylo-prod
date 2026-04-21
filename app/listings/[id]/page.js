@@ -7,7 +7,7 @@
  * Clean modular architecture with extracted components
  */
 
-import { useState, useEffect, useMemo, useRef, Suspense } from 'react'
+import { useState, useEffect, useMemo, useRef, Suspense, useCallback } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -125,6 +125,8 @@ function PremiumListingContent({ params }) {
   const [guestEmail, setGuestEmail] = useState('')
   const [guestPhone, setGuestPhone] = useState('')
   const [dateRange, setDateRange] = useState({ from: null, to: null })
+  const [vehicleStartTime, setVehicleStartTime] = useState('07:00')
+  const [vehicleEndTime, setVehicleEndTime] = useState('07:00')
   const [guests, setGuests] = useState(2)
   const [debouncedGuestsAvail, setDebouncedGuestsAvail] = useState(2)
   const [message, setMessage] = useState('')
@@ -146,6 +148,7 @@ function PremiumListingContent({ params }) {
     () => listing?.ownerId ?? listing?.owner?.id ?? null,
     [listing?.ownerId, listing?.owner?.id],
   )
+  const isVehicleListing = String(listing?.categorySlug || '').toLowerCase() === 'vehicles'
 
   const commissionHook = useCommission(listingPartnerId)
 
@@ -159,10 +162,19 @@ function PremiumListingContent({ params }) {
   const guestsAvailabilityPendingSync = debouncedGuestsAvail !== guests
   const availabilityLoading = availabilityFetchLoading || guestsAvailabilityPendingSync
 
+  const buildVehicleInstantIso = useCallback((dateObj, hhmm) => {
+    if (!dateObj) return null
+    const d = format(dateObj, 'yyyy-MM-dd')
+    const t = /^\d{2}:\d{2}$/.test(String(hhmm || '')) ? String(hhmm) : '07:00'
+    return `${d}T${t}:00+07:00`
+  }, [])
+
   // Initialize from URL
   useEffect(() => {
     const checkInParam = searchParams.get('checkIn')
     const checkOutParam = searchParams.get('checkOut')
+    const checkInTimeParam = searchParams.get('checkInTime')
+    const checkOutTimeParam = searchParams.get('checkOutTime')
     const guestsParam = searchParams.get('guests')
     
     if (checkInParam && checkOutParam) {
@@ -178,6 +190,8 @@ function PremiumListingContent({ params }) {
     }
     
     if (guestsParam) setGuests(parseInt(guestsParam) || 2)
+    if (checkInTimeParam) setVehicleStartTime(checkInTimeParam)
+    if (checkOutTimeParam) setVehicleEndTime(checkOutTimeParam)
   }, [searchParams])
 
   // Allow state→URL sync only after URL query is reflected in state (avoid clobbering deep links on first paint).
@@ -211,20 +225,44 @@ function PremiumListingContent({ params }) {
     const wantIn = dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : ''
     const wantOut = dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : ''
     const wantG = String(Math.max(1, Number(guests) || 1))
+    const wantInTime = isVehicleListing ? String(vehicleStartTime || '07:00') : ''
+    const wantOutTime = isVehicleListing ? String(vehicleEndTime || '07:00') : ''
     const curIn = searchParams.get('checkIn') || ''
     const curOut = searchParams.get('checkOut') || ''
     const curG = searchParams.get('guests') || ''
-    if (wantIn === curIn && wantOut === curOut && wantG === curG) return
+    const curInTime = searchParams.get('checkInTime') || ''
+    const curOutTime = searchParams.get('checkOutTime') || ''
+    if (
+      wantIn === curIn &&
+      wantOut === curOut &&
+      wantG === curG &&
+      wantInTime === curInTime &&
+      wantOutTime === curOutTime
+    ) return
 
     const p = new URLSearchParams()
     if (wantIn && wantOut) {
       p.set('checkIn', wantIn)
       p.set('checkOut', wantOut)
+      if (isVehicleListing) {
+        p.set('checkInTime', wantInTime)
+        p.set('checkOutTime', wantOutTime)
+      }
     }
     p.set('guests', wantG)
     const qs = p.toString()
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
-  }, [dateRange, guests, listing?.id, pathname, router, searchParams])
+  }, [
+    dateRange,
+    guests,
+    listing?.id,
+    pathname,
+    router,
+    searchParams,
+    isVehicleListing,
+    vehicleStartTime,
+    vehicleEndTime,
+  ])
   
   // Load data
   useEffect(() => {
@@ -347,10 +385,21 @@ function PremiumListingContent({ params }) {
     }
     const start = format(dateRange.from, 'yyyy-MM-dd')
     const end = format(dateRange.to, 'yyyy-MM-dd')
+    const startDateTime = isVehicleListing ? buildVehicleInstantIso(dateRange.from, vehicleStartTime) : null
+    const endDateTime = isVehicleListing ? buildVehicleInstantIso(dateRange.to, vehicleEndTime) : null
     const ac = new AbortController()
     setAvailabilityFetchLoading(true)
+    const qs = new URLSearchParams({
+      startDate: start,
+      endDate: end,
+      guests: String(debouncedGuestsAvail),
+    })
+    if (startDateTime && endDateTime) {
+      qs.set('startDateTime', startDateTime)
+      qs.set('endDateTime', endDateTime)
+    }
     fetch(
-      `/api/v2/listings/${encodeURIComponent(listing.id)}/availability?startDate=${start}&endDate=${end}&guests=${debouncedGuestsAvail}`,
+      `/api/v2/listings/${encodeURIComponent(listing.id)}/availability?${qs.toString()}`,
       { signal: ac.signal, credentials: 'omit' }
     )
       .then((r) => r.json())
@@ -369,6 +418,10 @@ function PremiumListingContent({ params }) {
     listing?.id,
     dateRange?.from,
     dateRange?.to,
+    isVehicleListing,
+    vehicleStartTime,
+    vehicleEndTime,
+    buildVehicleInstantIso,
     debouncedGuestsAvail,
     guestsAvailabilityPendingSync,
   ])
@@ -636,8 +689,12 @@ function PremiumListingContent({ params }) {
       const payload = {
         listingId: listing.id,
         renterId: user.id,
-        checkIn: format(dateRange.from, 'yyyy-MM-dd'),
-        checkOut: format(dateRange.to, 'yyyy-MM-dd'),
+        checkIn: isVehicleListing
+          ? buildVehicleInstantIso(dateRange.from, vehicleStartTime)
+          : format(dateRange.from, 'yyyy-MM-dd'),
+        checkOut: isVehicleListing
+          ? buildVehicleInstantIso(dateRange.to, vehicleEndTime)
+          : format(dateRange.to, 'yyyy-MM-dd'),
         guestName,
         guestEmail,
         guestPhone,
@@ -1048,6 +1105,10 @@ function PremiumListingContent({ params }) {
                 lastMessagePreview={lastMessagePreview}
                 hasUnreadFromHost={hasUnreadFromHost}
                 bookingUiMode={bookingUiMode}
+                vehicleStartTime={vehicleStartTime}
+                vehicleEndTime={vehicleEndTime}
+                onVehicleStartTimeChange={setVehicleStartTime}
+                onVehicleEndTimeChange={setVehicleEndTime}
                 availabilityLoading={availabilityLoading}
                 availabilitySnapshot={availabilitySnapshot}
                 durationDiscountPercentActive={durationDiscountPercentActive}
@@ -1155,6 +1216,11 @@ function PremiumListingContent({ params }) {
           submitting={submitting}
           onSubmit={handleBookingSubmit}
           modalIntent={bookingModalIntent}
+          listingCategorySlug={listing?.categorySlug}
+          vehicleStartTime={vehicleStartTime}
+          vehicleEndTime={vehicleEndTime}
+          setVehicleStartTime={setVehicleStartTime}
+          setVehicleEndTime={setVehicleEndTime}
         />
       </div>
     </>

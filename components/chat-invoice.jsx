@@ -5,7 +5,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,10 +16,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
   Receipt, CreditCard, Wallet, Calendar, Home, 
-  CheckCircle, Clock, XCircle, ExternalLink, Loader2,
+  CheckCircle, Clock, XCircle, Loader2,
   DollarSign, Bitcoin
 } from 'lucide-react'
-import { formatPrice } from '@/lib/currency'
 
 // Currency configurations
 const CURRENCY_CONFIG = {
@@ -155,13 +154,14 @@ export function SendInvoiceDialog({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
 }) {
+  const amountInputRef = useRef(null)
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
   const open = controlledOpen !== undefined ? controlledOpen : uncontrolledOpen
   const setOpen = controlledOnOpenChange || setUncontrolledOpen
   const [sending, setSending] = useState(false)
   const [thbPerUsdt, setThbPerUsdt] = useState(null)
   const [invoiceData, setInvoiceData] = useState({
-    amount: booking?.price_thb || '',
+    amount: Number(booking?.price_thb) > 0 ? String(booking.price_thb) : '',
     currency: 'THB',
     description: '',
     paymentMethod: 'CRYPTO',
@@ -177,6 +177,12 @@ export function SendInvoiceDialog({
       })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!open) return
+    const t = setTimeout(() => amountInputRef.current?.focus(), 10)
+    return () => clearTimeout(t)
+  }, [open])
 
   const handleSend = async () => {
     if (!invoiceData.amount) return
@@ -267,10 +273,12 @@ export function SendInvoiceDialog({
             <Label>Сумма</Label>
             <div className="flex gap-2">
               <Input
+                ref={amountInputRef}
                 type="number"
                 value={invoiceData.amount}
                 onChange={(e) => setInvoiceData(prev => ({ ...prev, amount: e.target.value }))}
                 placeholder="0"
+                inputMode="decimal"
                 className="flex-1"
               />
               <Select 

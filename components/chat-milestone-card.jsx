@@ -179,7 +179,7 @@ const MILESTONE_CFG = {
   },
 }
 
-function getConfig(systemKey, meta, lang) {
+function getConfig(systemKey, meta, _lang) {
   // booking_announcement доминирует
   if (meta?.booking_announcement) return MILESTONE_CFG.booking_announcement
   const key = systemKey || '_default'
@@ -221,6 +221,12 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole, partnerI
       message.content ||
       message.message ||
       null
+  const roleAwareBodyText =
+    sk === 'booking_confirmed' && userRole === 'partner'
+      ? (lang === 'ru'
+          ? 'Вы подтвердили запрос. Пожалуйста, сформируйте и отправьте счёт на оплату.'
+          : 'You confirmed the request. Please create and send an invoice for payment.')
+      : bodyText
 
   // Специфические данные о бронировании
   const listingTitle = meta.listing_title ? String(meta.listing_title) : null
@@ -280,8 +286,8 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole, partnerI
             <p className={cn('text-[11px] font-bold uppercase tracking-wide', cfg.textColor)}>
               {cfg.label[lang]}
             </p>
-            {bodyText && (
-              <p className="text-sm leading-snug text-slate-700 whitespace-pre-wrap">{bodyText}</p>
+            {roleAwareBodyText && (
+              <p className="text-sm leading-snug text-slate-700 whitespace-pre-wrap">{roleAwareBodyText}</p>
             )}
             {(bookingDates || price) && (
               <div className="space-y-1 border-t border-slate-200/60 pt-2.5">
