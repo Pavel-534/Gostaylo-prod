@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/u
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerClose } from '@/components/ui/drawer'
 import { SearchCalendar } from '@/components/search-calendar'
 import { WhereCombobox } from '@/components/search/WhereCombobox'
+import { TimeSelect } from '@/components/ui/time-select'
 import { getUIText, getCategoryName } from '@/lib/translations'
 import { buildWhereOptions, filterWhereOptions, getOptionLabel } from '@/lib/locations/where-options'
 import { getStaticLocationsSeed } from '@/lib/locations/locations-seed'
@@ -271,23 +272,19 @@ export function UnifiedSearchBar({
             onChange={setDateRange}
             locale={language}
             placeholder={getUIText('dates', language)}
-            className="h-9 border rounded-md justify-start px-3"
+            className="h-9 w-full min-w-0 border rounded-md justify-start px-3"
           />
           {transportIntervalMode && dateRange?.from && dateRange?.to && (
             <div className="grid grid-cols-2 gap-1">
-              <Input
-                type="time"
+              <TimeSelect
                 value={checkInTime}
-                onChange={(e) => setCheckInTime?.(e.target.value)}
+                onChange={setCheckInTime}
                 className="h-8 text-xs"
-                aria-label={language === 'ru' ? 'Время начала' : 'Start time'}
               />
-              <Input
-                type="time"
+              <TimeSelect
                 value={checkOutTime}
-                onChange={(e) => setCheckOutTime?.(e.target.value)}
+                onChange={setCheckOutTime}
                 className="h-8 text-xs"
-                aria-label={language === 'ru' ? 'Время окончания' : 'End time'}
               />
             </div>
           )}
@@ -457,19 +454,15 @@ export function UnifiedSearchBar({
         </div>
         {transportIntervalMode && dateRange?.from && dateRange?.to && (
           <div className="grid grid-cols-2 gap-2">
-            <Input
-              type="time"
+            <TimeSelect
               value={checkInTime}
-              onChange={(e) => setCheckInTime?.(e.target.value)}
+              onChange={setCheckInTime}
               className="h-10 rounded-xl border-slate-200"
-              aria-label={language === 'ru' ? 'Время начала' : 'Start time'}
             />
-            <Input
-              type="time"
+            <TimeSelect
               value={checkOutTime}
-              onChange={(e) => setCheckOutTime?.(e.target.value)}
+              onChange={setCheckOutTime}
               className="h-10 rounded-xl border-slate-200"
-              aria-label={language === 'ru' ? 'Время окончания' : 'End time'}
             />
           </div>
         )}

@@ -169,6 +169,15 @@ function PremiumListingContent({ params }) {
     return `${d}T${t}:00+07:00`
   }, [])
 
+  const parseCalendarDay = useCallback((raw) => {
+    const s = String(raw || '').trim()
+    if (!s) return null
+    const ymd = s.slice(0, 10)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null
+    const d = new Date(`${ymd}T00:00:00`)
+    return Number.isFinite(d.getTime()) ? d : null
+  }, [])
+
   // Initialize from URL
   useEffect(() => {
     const checkInParam = searchParams.get('checkIn')
@@ -178,21 +187,17 @@ function PremiumListingContent({ params }) {
     const guestsParam = searchParams.get('guests')
     
     if (checkInParam && checkOutParam) {
-      try {
-        const from = new Date(checkInParam + 'T00:00:00')
-        const to = new Date(checkOutParam + 'T00:00:00')
-        if (from >= new Date() && to > from) {
-          setDateRange({ from, to })
-        }
-      } catch {
-        // Invalid dates
+      const from = parseCalendarDay(checkInParam)
+      const to = parseCalendarDay(checkOutParam)
+      if (from && to && to > from) {
+        setDateRange({ from, to })
       }
     }
     
     if (guestsParam) setGuests(parseInt(guestsParam) || 2)
     if (checkInTimeParam) setVehicleStartTime(checkInTimeParam)
     if (checkOutTimeParam) setVehicleEndTime(checkOutTimeParam)
-  }, [searchParams])
+  }, [searchParams, parseCalendarDay])
 
   // Allow state→URL sync only after URL query is reflected in state (avoid clobbering deep links on first paint).
   useEffect(() => {
@@ -209,15 +214,15 @@ function PremiumListingContent({ params }) {
       return
     }
     try {
-      const fromD = new Date(`${cin}T00:00:00`)
-      const toD = new Date(`${cout}T00:00:00`)
-      if (fromD < new Date() || !(toD > fromD)) {
+      const fromD = parseCalendarDay(cin)
+      const toD = parseCalendarDay(cout)
+      if (!fromD || !toD || !(toD > fromD)) {
         urlBookingSyncEnabledRef.current = true
       }
     } catch {
       urlBookingSyncEnabledRef.current = true
     }
-  }, [searchParams, dateRange])
+  }, [searchParams, dateRange, parseCalendarDay])
 
   // Keep shareable URL in sync with calendar + guest stepper (BookingWidget / mobile card).
   useEffect(() => {

@@ -53,7 +53,7 @@ export async function POST(request) {
       conversationId,
       amount,
       currency = 'THB',
-      paymentMethod = 'CRYPTO',
+      paymentMethod = 'CARD',
       description,
       bookingId,
       listingId,
@@ -120,6 +120,14 @@ export async function POST(request) {
     const holdMs = holdHours * 60 * 60 * 1000
 
     const cur = String(currency || 'THB').toUpperCase()
+    if (!['THB', 'USDT', 'USD', 'RUB'].includes(cur)) {
+      return NextResponse.json({ success: false, error: 'Unsupported currency' }, { status: 400 })
+    }
+    const payMethod = String(paymentMethod || 'CARD').toUpperCase()
+    if (!['CARD', 'MIR', 'CRYPTO'].includes(payMethod)) {
+      return NextResponse.json({ success: false, error: 'Unsupported payment method' }, { status: 400 })
+    }
+    const allowedMethods = payMethod === 'CRYPTO' ? ['CRYPTO', 'CARD', 'MIR'] : [payMethod, 'CARD', 'MIR', 'CRYPTO']
     let usdtAmount
     let amountThb
     if (cur === 'THB') {
@@ -127,9 +135,10 @@ export async function POST(request) {
       usdtAmount = Math.round(parsedAmount * mult * 100) / 100
       amountThb = Math.round(parsedAmount)
     } else {
-      usdtAmount = parsedAmount
-      const mult = await getEffectiveRate('USDT', 'THB')
-      amountThb = Math.round(parsedAmount * mult)
+      const multToThb = await getEffectiveRate(cur, 'THB')
+      amountThb = Math.round(parsedAmount * multToThb)
+      const multThbToUsdt = await getEffectiveRate('THB', 'USDT')
+      usdtAmount = Math.round(amountThb * multThbToUsdt * 100) / 100
     }
 
     const partnerIdForFee = conversation.partner_id || conversation.owner_id
@@ -252,8 +261,9 @@ export async function POST(request) {
       amount: parsedAmount,
       amount_usdt: usdtAmount,
       amount_thb: amountThb,
-      currency,
-      payment_method: paymentMethod,
+      currency: cur,
+      payment_method: payMethod,
+      allowed_payment_methods: [...new Set(allowedMethods)],
       status: 'PENDING',
       description,
       booking_id: effectiveBookingId,
@@ -270,7 +280,8 @@ export async function POST(request) {
       ...(extensionMeta || {}),
     }
 
-    const line = `💳 Invoice: ${currency === 'THB' ? '฿' : '$'}${parsedAmount.toLocaleString()} ${currency}`
+    const currencySymbol = cur === 'THB' ? '฿' : cur === 'RUB' ? '₽' : '$'
+    const line = `💳 Invoice: ${currencySymbol}${parsedAmount.toLocaleString()} ${cur}`
 
     // ── Persist invoice row ───────────────────────────────────────────────
     const { error: invTableError } = await supabaseAdmin.from('invoices').insert({
@@ -280,8 +291,9 @@ export async function POST(request) {
       amount: parsedAmount,
       status: 'pending',
       metadata: {
-        currency,
-        payment_method: paymentMethod,
+        currency: cur,
+        payment_method: payMethod,
+        allowed_payment_methods: [...new Set(allowedMethods)],
         description: description || null,
         listing: invoice.listing,
         check_in: invoice.check_in,
@@ -373,6 +385,49 @@ export async function GET(request) {
       if (!canWriteConversation(userId, accessRole, conv) && !userParticipatesInConversation(userId, conv)) {
         return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
       }
+    }
+
+    if (invoiceId) {
+      const { data: invRow, error: invErr } = await supabaseAdmin
+        .from('invoices')
+        .select('id,conversation_id,booking_id,amount,status,metadata,created_at')
+        .eq('id', invoiceId)
+        .maybeSingle()
+      if (invErr) {
+        return NextResponse.json({ success: false, error: invErr.message }, { status: 400 })
+      }
+      if (!invRow) {
+        return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
+      }
+      const conv = await fetchConversation(invRow.conversation_id)
+      if (!conv) {
+        return NextResponse.json({ success: false, error: 'Not found' }, { status: 404 })
+      }
+      const profile = await fetchProfile(userId)
+      const accessRole = effectiveRoleFromProfile(profile)
+      if (!canWriteConversation(userId, accessRole, conv) && !userParticipatesInConversation(userId, conv)) {
+        return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+      }
+      const invMeta = invRow.metadata && typeof invRow.metadata === 'object' ? invRow.metadata : {}
+      const one = {
+        id: invRow.id,
+        booking_id: invRow.booking_id || null,
+        amount: Number(invRow.amount || invMeta.amount || 0),
+        status: String(invRow.status || 'pending').toUpperCase(),
+        currency: String(invMeta.currency || 'THB').toUpperCase(),
+        payment_method: String(invMeta.payment_method || 'CARD').toUpperCase(),
+        allowed_payment_methods: Array.isArray(invMeta.allowed_payment_methods)
+          ? invMeta.allowed_payment_methods
+          : null,
+        amount_thb: invMeta.amount_thb ?? null,
+        amount_usdt: invMeta.amount_usdt ?? null,
+        listing: invMeta.listing || null,
+        check_in: invMeta.check_in || null,
+        check_out: invMeta.check_out || null,
+        description: invMeta.description || null,
+        createdAt: invRow.created_at,
+      }
+      return NextResponse.json({ success: true, invoices: [one] })
     }
 
     let query = supabaseAdmin

@@ -9,56 +9,44 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createHmac, timingSafeEqual } from 'crypto';
 import { supabaseAdmin } from '@/lib/supabase';
 import { PaymentsV3Service } from '@/lib/services/payments-v3.service';
+import PaymentIntentService from '@/lib/services/payment-intent.service';
+import EscrowService from '@/lib/services/escrow.service';
+import { applyInvoicePostPaymentEffects } from '@/lib/services/invoice-extension.service';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
+import {
+  resolveAdapterFromWebhook,
+  verifyWebhookSignatureByAdapter,
+} from '@/lib/services/payment-adapters/webhook-signature';
+import {
+  isIntentPaidStatus,
+  normalizeProviderStatus,
+} from '@/lib/services/payment-adapters/status-normalizer';
 
 export const dynamic = 'force-dynamic';
 
-function getWebhookSecret() {
-  return String(process.env.PAYMENT_ACQUIRING_WEBHOOK_SECRET || '').trim();
-}
-
-function verifySignature(rawBody, signatureHeader) {
-  const secret = getWebhookSecret();
-  if (!secret) return { ok: false, error: 'PAYMENT_ACQUIRING_WEBHOOK_SECRET is not configured' };
-  const sig = String(signatureHeader || '').trim();
-  const expectedHex = createHmac('sha256', secret).update(rawBody, 'utf8').digest('hex');
-  try {
-    const a = Buffer.from(expectedHex, 'utf8');
-    const b = Buffer.from(sig, 'utf8');
-    if (a.length !== b.length) return { ok: false, error: 'invalid_signature' };
-    if (!timingSafeEqual(a, b)) return { ok: false, error: 'invalid_signature' };
-  } catch {
-    return { ok: false, error: 'invalid_signature' };
-  }
-  return { ok: true };
-}
-
-function parsePayload(json) {
+function parsePayload(json, adapterKey) {
   if (json?.object?.metadata && json.object?.amount) {
     const md = json.object.metadata;
     const bookingId = md.booking_id || md.bookingId;
     const paymentId = md.payment_id || md.paymentId;
-    const paid =
-      json.event === 'payment.succeeded' ||
-      json.event === 'payment.captured' ||
-      json.object?.status === 'succeeded';
+    const intentId = md.payment_intent_id || md.paymentIntentId || null;
+    const normalizedStatus = normalizeProviderStatus({ adapterKey, payload: json });
     const amount = parseFloat(json.object.amount?.value);
     const currency = String(json.object.amount?.currency || '').toUpperCase();
-    return { bookingId, paymentId, amount, currency, paid };
+    const gatewayRef = String(json?.object?.id || json?.id || '');
+    return { bookingId, paymentId, intentId, amount, currency, gatewayRef, normalizedStatus };
   }
 
   const bookingId = json.bookingId || json.booking_id;
   const paymentId = json.paymentId || json.payment_id;
+  const intentId = json.paymentIntentId || json.payment_intent_id || null;
   const amount = json.amount != null ? parseFloat(json.amount) : parseFloat(json.amountThb);
   const currency = String(json.currency || 'THB').toUpperCase();
-  const paid =
-    json.paid === true ||
-    json.status === 'succeeded' ||
-    json.success === true;
-  return { bookingId, paymentId, amount, currency, paid };
+  const normalizedStatus = normalizeProviderStatus({ adapterKey, payload: json });
+  const gatewayRef = String(json?.object?.id || json?.id || '');
+  return { bookingId, paymentId, intentId, amount, currency, gatewayRef, normalizedStatus };
 }
 
 async function resolveExpectedGuestTotalThb(booking) {
@@ -75,14 +63,22 @@ async function resolveExpectedGuestTotalThb(booking) {
 
 export async function POST(request) {
   const rawBody = await request.text();
-  const sig = request.headers.get('x-webhook-signature') || request.headers.get('x-payment-signature');
+  let json;
+  try {
+    json = JSON.parse(rawBody || '{}');
+  } catch {
+    return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+  }
 
-  const v = verifySignature(rawBody, sig);
+  const adapterKey = resolveAdapterFromWebhook({ request, payload: json });
+  const v = verifyWebhookSignatureByAdapter({ adapterKey, request, rawBody });
   if (!v.ok) {
     const status = v.error === 'invalid_signature' ? 401 : 503;
     if (status === 503) {
       void notifySystemAlert(
-        '💳 <b>Webhook payments/confirm</b> — не задан <code>PAYMENT_ACQUIRING_WEBHOOK_SECRET</code>',
+        `💳 <b>Webhook payments/confirm</b> — не задан секрет адаптера <code>${escapeSystemAlertHtml(
+          v.adapter || adapterKey,
+        )}</code>`,
       );
     }
     return NextResponse.json(
@@ -91,19 +87,20 @@ export async function POST(request) {
     );
   }
 
-  let json;
-  try {
-    json = JSON.parse(rawBody || '{}');
-  } catch (e) {
-    return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
-  }
-
-  const { bookingId, paymentId, amount, currency, paid } = parsePayload(json);
+  const { bookingId, paymentId, intentId, amount, currency, gatewayRef, normalizedStatus } = parsePayload(
+    json,
+    adapterKey,
+  );
   if (!bookingId) {
     return NextResponse.json({ success: false, error: 'Missing bookingId' }, { status: 400 });
   }
-  if (!paid) {
-    return NextResponse.json({ success: true, ignored: true, reason: 'not_paid' });
+  if (!isIntentPaidStatus(normalizedStatus)) {
+    return NextResponse.json({
+      success: true,
+      ignored: true,
+      reason: 'not_paid',
+      normalizedStatus,
+    });
   }
 
   const { data: booking, error: bErr } = await supabaseAdmin
@@ -130,7 +127,7 @@ export async function POST(request) {
   }
 
   let payId = paymentId;
-  if (!payId) {
+  if (!payId && !intentId) {
     const { data: pay } = await supabaseAdmin
       .from('payments')
       .select('id')
@@ -141,41 +138,84 @@ export async function POST(request) {
       .maybeSingle();
     payId = pay?.id || null;
   }
-  if (!payId) {
+  if (payId && !String(payId).startsWith('pi-') && !intentId) {
+    const confirm = await PaymentsV3Service.confirmPayment(payId, {
+      source: 'payment_acquiring_webhook',
+      bookingId,
+      raw: json,
+    });
+
+    if (!confirm?.success) {
+      void notifySystemAlert(
+        `💳 <b>Webhook payments/confirm</b> — confirmPayment failed\n<code>${escapeSystemAlertHtml(String(confirm?.error || ''))}</code>`,
+      );
+      return NextResponse.json(
+        { success: false, error: confirm?.error || 'confirmPayment failed' },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      paymentId: payId,
+      bookingId,
+      escrow: confirm.escrow || null,
+    });
+  }
+
+  const explicitIntentId = intentId || (payId && String(payId).startsWith('pi-') ? payId : null)
+  const intentLookup = explicitIntentId
+    ? await PaymentIntentService.getById(explicitIntentId)
+    : await PaymentIntentService.findActiveByBookingOrInvoice({ bookingId })
+  if (!intentLookup.success || !intentLookup.intent) {
     return NextResponse.json(
-      { success: false, error: 'No pending payment for booking' },
+      { success: false, error: 'No active payment intent for booking' },
       { status: 409 },
-    );
+    )
   }
+  const intent = intentLookup.intent
 
-  const confirm = await PaymentsV3Service.confirmPayment(payId, {
+  const marked = await PaymentIntentService.markPaid(intent.id, {
     source: 'payment_acquiring_webhook',
-    bookingId,
-    raw: json,
-  });
-
-  if (!confirm?.success) {
-    void notifySystemAlert(
-      `💳 <b>Webhook payments/confirm</b> — confirmPayment failed\n<code>${escapeSystemAlertHtml(String(confirm?.error || ''))}</code>`,
-    );
-    return NextResponse.json(
-      { success: false, error: confirm?.error || 'confirmPayment failed' },
-      { status: 500 },
-    );
+    gatewayRef,
+    raw: {
+      ...json,
+      normalized_status: normalizedStatus,
+      adapter_key: adapterKey,
+    },
+  })
+  if (!marked.success) {
+    return NextResponse.json({ success: false, error: marked.error || 'intent_mark_failed' }, { status: 500 })
   }
+
+  const escrow = await EscrowService.moveToEscrow(bookingId, {
+    txId: null,
+    gatewayRef,
+    source: 'payment_acquiring_webhook',
+  })
+  if (!escrow?.success) {
+    return NextResponse.json({ success: false, error: escrow?.error || 'escrow_failed' }, { status: 502 })
+  }
+  await applyInvoicePostPaymentEffects({
+    bookingId,
+    invoiceId: intent.invoiceId || null,
+    txId: null,
+    gatewayRef,
+    source: 'payment_acquiring_webhook',
+  })
 
   return NextResponse.json({
     success: true,
-    paymentId: payId,
+    intentId: intent.id,
     bookingId,
-    escrow: confirm.escrow || null,
-  });
+    escrow: escrow.escrow || null,
+  })
 }
 
 export async function GET() {
   return NextResponse.json({
     success: true,
-    message: 'POST JSON with HMAC signature (X-Webhook-Signature = HMAC-SHA256 hex of raw body)',
-    env: ['PAYMENT_ACQUIRING_WEBHOOK_SECRET'],
+    message: 'POST JSON with adapter signature (x-mandarin-signature | x-yookassa-signature | x-webhook-signature)',
+    env: ['MANDARIN_WEBHOOK_SECRET', 'YOOKASSA_WEBHOOK_SECRET', 'PAYMENT_ACQUIRING_WEBHOOK_SECRET'],
   });
 }

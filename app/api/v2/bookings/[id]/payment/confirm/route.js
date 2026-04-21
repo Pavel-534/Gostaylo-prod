@@ -10,6 +10,7 @@ import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-
 import { BookingService } from '@/lib/services/booking.service';
 import EscrowService from '@/lib/services/escrow.service';
 import { applyInvoicePostPaymentEffects } from '@/lib/services/invoice-extension.service';
+import PaymentIntentService from '@/lib/services/payment-intent.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,7 @@ export async function POST(request, { params }) {
 
   try {
     const body = await request.json();
-    const { txId, gatewayRef, invoiceId } = body;
+    const { txId, gatewayRef, invoiceId, intentId } = body;
 
     const booking = await BookingService.getBookingById(bookingId);
     if (!booking) {
@@ -56,7 +57,16 @@ export async function POST(request, { params }) {
       return NextResponse.json({ success: false, error: 'Booking is cancelled' }, { status: 400 });
     }
 
+    const effectiveIntentId = intentId || booking?.metadata?.paymentIntentId || null
+
     if (booking.status === 'PAID_ESCROW') {
+      if (effectiveIntentId) {
+        await PaymentIntentService.markPaid(effectiveIntentId, {
+          txId: txId || null,
+          gatewayRef: gatewayRef || null,
+          source: 'payment_confirm_idempotent',
+        }).catch(() => {})
+      }
       return NextResponse.json({
         success: true,
         data: {
@@ -107,9 +117,25 @@ export async function POST(request, { params }) {
       `[PAYMENT CONFIRMED] Booking ${bookingId} | PAID_ESCROW | TX: ${txId || 'N/A'} | prev: ${previousStatus}`,
     );
 
+    let resolvedInvoiceId = invoiceId || null
+    if (!resolvedInvoiceId && effectiveIntentId) {
+      const intentRes = await PaymentIntentService.getById(effectiveIntentId)
+      if (intentRes.success && intentRes.intent && String(intentRes.intent.bookingId) === String(bookingId)) {
+        resolvedInvoiceId = intentRes.intent.invoiceId || null
+      }
+    }
+
+    if (effectiveIntentId) {
+      await PaymentIntentService.markPaid(effectiveIntentId, {
+        txId: txId || null,
+        gatewayRef: gatewayRef || null,
+        source: 'payment_confirm',
+      })
+    }
+
     const invoiceEffect = await applyInvoicePostPaymentEffects({
       bookingId,
-      invoiceId: invoiceId || null,
+      invoiceId: resolvedInvoiceId || null,
       txId: txId || null,
       gatewayRef: gatewayRef || null,
       source: 'payment_confirm',

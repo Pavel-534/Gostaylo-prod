@@ -86,7 +86,7 @@ export function FilterBar({
         </div>
       </div>
 
-      <div className="bg-white border-b sticky top-12 z-10">
+      <div className="bg-white border-b sticky top-12 z-30">
         <div className="container mx-auto px-4 py-3">
           <div className="flex flex-col gap-2 md:flex-row md:items-stretch md:gap-3">
             <div className="min-w-0 flex-1">

@@ -1,162 +1,133 @@
 /**
  * POST /api/bookings/[id]/payment/initiate
- * Initialize a payment for a booking
- * SECURITY: Verifies booking ownership (renter_id must match session)
+ * Stage 2: Payment Intent bridge (invoice -> checkout -> provider adapters).
  */
 
-import { NextResponse } from 'next/server';
-import { getUserIdFromSession } from '@/lib/services/session-service';
-import { resolveThbPerUsdt } from '@/lib/services/currency.service';
-import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
+import { NextResponse } from 'next/server'
+import { getUserIdFromSession } from '@/lib/services/session-service'
+import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
+import { supabaseAdmin } from '@/lib/supabase'
+import PaymentIntentService from '@/lib/services/payment-intent.service'
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-// Official GoStayLo USDT TRC-20 Wallet Address
-const TRON_WALLET_ADDRESS = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
+function normalizeMethod(v) {
+  const m = String(v || '').toUpperCase().trim()
+  if (m === 'CARD' || m === 'MIR' || m === 'CRYPTO') return m
+  return null
+}
 
 export async function POST(request, { params }) {
-  const bookingId = params.id;
-  
+  const bookingId = params.id
   if (!bookingId) {
-    return NextResponse.json({ success: false, error: 'Booking ID required' }, { status: 400 });
+    return NextResponse.json({ success: false, error: 'Booking ID required' }, { status: 400 })
   }
-  
-  try {
-    const body = await request.json();
-    const { method } = body;
-    
-    if (!method || !['CARD', 'MIR', 'CRYPTO'].includes(method)) {
-      return NextResponse.json({ success: false, error: 'Invalid payment method' }, { status: 400 });
-    }
-    
-    // Fetch booking
-    const bookingRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${bookingId}&select=*`,
-      {
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-        }
-      }
-    );
-    
-    const bookings = await bookingRes.json();
-    
-    if (!bookings || bookings.length === 0) {
-      return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
-    }
-    
-    const booking = bookings[0];
 
-    // Ownership check: only the renter can pay for their booking
-    const sessionUserId = await getUserIdFromSession();
+  try {
+    const body = await request.json()
+    const method = normalizeMethod(body?.method)
+    const invoiceId = body?.invoiceId ? String(body.invoiceId) : null
+    if (!method) {
+      return NextResponse.json({ success: false, error: 'Invalid payment method' }, { status: 400 })
+    }
+
+    const { data: booking, error: bErr } = await supabaseAdmin
+      .from('bookings')
+      .select('*')
+      .eq('id', bookingId)
+      .maybeSingle()
+    if (bErr || !booking) {
+      return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 })
+    }
+
+    const sessionUserId = await getUserIdFromSession()
     if (booking.renter_id) {
       if (!sessionUserId) {
-        return NextResponse.json({ success: false, error: 'Please log in to complete payment' }, { status: 401 });
+        return NextResponse.json({ success: false, error: 'Please log in to complete payment' }, { status: 401 })
       }
-      if (booking.renter_id !== sessionUserId) {
-        return NextResponse.json({ success: false, error: 'Access denied. This is not your booking.' }, { status: 403 });
+      if (String(booking.renter_id) !== String(sessionUserId)) {
+        return NextResponse.json({ success: false, error: 'Access denied. This is not your booking.' }, { status: 403 })
       }
     }
-    
     if (booking.status === 'CANCELLED') {
-      return NextResponse.json({ success: false, error: 'Booking is cancelled' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Booking is cancelled' }, { status: 400 })
     }
-    
-    // Allow payment for PENDING, AWAITING_PAYMENT, CONFIRMED bookings
-    // Remove restriction for CONFIRMED - user might want to see payment details
-    
-    // Calculate amounts from booking snapshot:
-    // price_thb = subtotal after discounts, commission_thb = guest service fee.
-    const priceThb = parseFloat(booking.price_thb);
-    const serviceFee = parseFloat(booking.commission_thb) || 0;
-    const roundingDiffPot = parseFloat(booking.rounding_diff_pot) || 0;
-    const totalThb = priceThb + serviceFee + roundingDiffPot;
-    const usdtRate = await resolveThbPerUsdt();
-    const totalUsdt = (totalThb / usdtRate).toFixed(2);
-    
-    // Generate payment details
-    const paymentId = `pay-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    let paymentData = {
-      id: paymentId,
-      bookingId,
-      method,
-      status: 'PENDING',
-      amountThb: totalThb,
-      currency: 'THB',
-      createdAt: new Date().toISOString()
-    };
-    
-    if (method === 'CRYPTO') {
-      paymentData.metadata = {
-        walletAddress: TRON_WALLET_ADDRESS,
-        network: 'TRC-20',
-        amount: totalUsdt,
-        currency: 'USDT',
-        exchangeRate: usdtRate,
-        roundingDiffPot,
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 min expiry
-      };
-    } else if (method === 'CARD' || method === 'MIR') {
-      paymentData.metadata = {
-        gateway: method === 'MIR' ? 'RU_GATEWAY' : 'STRIPE',
-        checkoutUrl: `https://checkout.stripe.com/mock/${paymentId}`,
-        amountThb: totalThb
-      };
-    }
-    
-    // Update booking status to AWAITING_PAYMENT
-    const patchRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${bookingId}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          status: 'AWAITING_PAYMENT',
-          metadata: {
-            ...booking.metadata,
-            paymentId,
-            paymentMethod: method,
-            paymentInitiatedAt: new Date().toISOString()
-          }
-        })
-      }
-    );
 
-    if (!patchRes.ok) {
-      const patchBody = await patchRes.text().catch(() => '')
-      void notifySystemAlert(
-        `💳 <b>Платёж: не удалось обновить бронь при инициализации</b>\n` +
-          `booking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n` +
-          `method: <code>${escapeSystemAlertHtml(method)}</code>\n` +
-          `<code>${escapeSystemAlertHtml(patchBody.slice(0, 800))}</code>`,
-      )
+    let invoice = null
+    if (invoiceId) {
+      const { data: inv, error: invErr } = await supabaseAdmin
+        .from('invoices')
+        .select('id,booking_id,amount,status,metadata,created_at')
+        .eq('id', invoiceId)
+        .maybeSingle()
+      if (invErr || !inv) {
+        return NextResponse.json({ success: false, error: 'Invoice not found' }, { status: 404 })
+      }
+      if (String(inv.booking_id || '') !== String(bookingId)) {
+        return NextResponse.json({ success: false, error: 'Invoice does not belong to booking' }, { status: 400 })
+      }
+      if (String(inv.status || '').toLowerCase() === 'cancelled') {
+        return NextResponse.json({ success: false, error: 'Invoice is cancelled' }, { status: 400 })
+      }
+      invoice = inv
+    }
+
+    const intentRes = await PaymentIntentService.resolveOrCreateForCheckout({
+      booking,
+      invoice,
+      createdBy: sessionUserId || null,
+    })
+    if (!intentRes.success || !intentRes.intent) {
+      return NextResponse.json({ success: false, error: intentRes.error || 'intent_create_failed' }, { status: 500 })
+    }
+
+    const initiated = await PaymentIntentService.initiate(intentRes.intent.id, method, { bookingId })
+    if (!initiated.success) {
+      const code = initiated.error === 'method_not_allowed' ? 400 : 500
       return NextResponse.json(
-        { success: false, error: 'Payment gateway bookkeeping failed' },
-        { status: 502 },
+        { success: false, error: initiated.error, allowed_methods: initiated.allowed_methods || null },
+        { status: code },
       )
     }
-    
+
+    await supabaseAdmin
+      .from('bookings')
+      .update({
+        status: 'AWAITING_PAYMENT',
+        metadata: {
+          ...(booking.metadata || {}),
+          paymentIntentId: initiated.intent.id,
+          paymentMethod: initiated.selectedMethod,
+          paymentInitiatedAt: new Date().toISOString(),
+          invoiceId: invoiceId || null,
+        },
+      })
+      .eq('id', bookingId)
+
     return NextResponse.json({
       success: true,
-      data: paymentData
-    });
-    
+      data: {
+        id: initiated.intent.id,
+        intentId: initiated.intent.id,
+        bookingId,
+        method: initiated.selectedMethod,
+        status: initiated.intent.status,
+        amountThb: initiated.intent.amountThb,
+        currency: initiated.intent.displayCurrency,
+        displayAmount: initiated.intent.displayAmount,
+        allowedMethods: initiated.intent.allowedMethods,
+        provider: initiated.provider,
+        checkoutUrl: initiated.checkoutUrl,
+        metadata: initiated.providerPayload || null,
+      },
+    })
   } catch (error) {
-    console.error('[PAYMENT-INITIATE ERROR]', error);
+    console.error('[PAYMENT-INITIATE ERROR]', error)
     void notifySystemAlert(
       `💳 <b>Платёж: критическая ошибка initiate</b>\n` +
         `booking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n` +
         `<code>${escapeSystemAlertHtml(error?.message || error)}</code>`,
     )
-    return NextResponse.json({ success: false, error: 'Failed to initiate payment' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to initiate payment' }, { status: 500 })
   }
 }

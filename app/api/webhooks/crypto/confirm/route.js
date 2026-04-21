@@ -4,6 +4,9 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { verifyTronTransaction, GOSTAYLO_WALLET } from '@/lib/services/tron.service';
 import { resolveThbPerUsdt } from '@/lib/services/currency.service';
 import { PaymentsV3Service } from '@/lib/services/payments-v3.service';
+import PaymentIntentService from '@/lib/services/payment-intent.service';
+import { applyInvoicePostPaymentEffects } from '@/lib/services/invoice-extension.service';
+import EscrowService from '@/lib/services/escrow.service';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 
 export const dynamic = 'force-dynamic';
@@ -137,34 +140,72 @@ export async function POST(request) {
       });
     }
 
-    if (!latestPayment?.id || latestPayment.status !== 'PENDING') {
+    if (latestPayment?.id && latestPayment.status === 'PENDING') {
+      const confirm = await PaymentsV3Service.confirmPayment(latestPayment.id, {
+        source: 'crypto_webhook',
+        txid,
+        tron: verification.data,
+      });
+      if (!confirm?.success) {
+        console.error('[CRYPTO CONFIRM] confirmPayment failed:', confirm?.error);
+        void notifySystemAlert(
+          `🔌 <b>Webhook: crypto/confirm</b> — Tron OK, confirmPayment упал\n` +
+            `booking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n` +
+            `<code>${escapeSystemAlertHtml(String(confirm?.error || '').slice(0, 600))}</code>`,
+        );
+        return NextResponse.json(
+          { success: false, error: confirm?.error || 'confirmPayment failed' },
+          { status: 500 },
+        );
+      }
+      return NextResponse.json({
+        success: true,
+        verified: true,
+        data: {
+          txid,
+          bookingId,
+          paymentId: latestPayment.id,
+          tron: verification.data,
+        },
+      });
+    }
+
+    const intentRes = await PaymentIntentService.findActiveByBookingOrInvoice({ bookingId })
+    if (!intentRes.success || !intentRes.intent) {
       void notifySystemAlert(
-        `🔌 <b>Webhook: crypto/confirm</b> — нет PENDING-платежа\nbooking: <code>${escapeSystemAlertHtml(bookingId)}</code>`,
-      );
+        `🔌 <b>Webhook: crypto/confirm</b> — нет PENDING payment и нет active intent\nbooking: <code>${escapeSystemAlertHtml(bookingId)}</code>`,
+      )
       return NextResponse.json(
-        { success: false, error: 'No pending payment row for this booking' },
+        { success: false, error: 'No pending payment row or active payment intent for this booking' },
         { status: 409 },
-      );
+      )
     }
-
-    const confirm = await PaymentsV3Service.confirmPayment(latestPayment.id, {
+    const intent = intentRes.intent
+    const marked = await PaymentIntentService.markPaid(intent.id, {
       source: 'crypto_webhook',
-      txid,
-      tron: verification.data,
-    });
-
-    if (!confirm?.success) {
-      console.error('[CRYPTO CONFIRM] confirmPayment failed:', confirm?.error);
-      void notifySystemAlert(
-        `🔌 <b>Webhook: crypto/confirm</b> — Tron OK, confirmPayment упал\n` +
-          `booking: <code>${escapeSystemAlertHtml(bookingId)}</code>\n` +
-          `<code>${escapeSystemAlertHtml(String(confirm?.error || '').slice(0, 600))}</code>`,
-      );
-      return NextResponse.json(
-        { success: false, error: confirm?.error || 'confirmPayment failed' },
-        { status: 500 },
-      );
+      txId: txid,
+      gatewayRef: verification?.data?.blockNumber ? String(verification.data.blockNumber) : null,
+      raw: verification.data,
+    })
+    if (!marked.success) {
+      return NextResponse.json({ success: false, error: marked.error || 'intent_mark_failed' }, { status: 500 })
     }
+
+    const escrow = await EscrowService.moveToEscrow(bookingId, {
+      txId: txid,
+      gatewayRef: verification?.data?.blockNumber ? String(verification.data.blockNumber) : null,
+      source: 'crypto_webhook_intent',
+    })
+    if (!escrow?.success) {
+      return NextResponse.json({ success: false, error: escrow?.error || 'escrow_failed' }, { status: 502 })
+    }
+    await applyInvoicePostPaymentEffects({
+      bookingId,
+      invoiceId: intent.invoiceId || null,
+      txId: txid,
+      gatewayRef: verification?.data?.blockNumber ? String(verification.data.blockNumber) : null,
+      source: 'crypto_webhook_intent',
+    })
 
     return NextResponse.json({
       success: true,
@@ -172,10 +213,10 @@ export async function POST(request) {
       data: {
         txid,
         bookingId,
-        paymentId: latestPayment.id,
+        intentId: intent.id,
         tron: verification.data,
       },
-    });
+    })
   } catch (error) {
     console.error('Crypto webhook error:', error);
     void notifySystemAlert(

@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 3.6.7 | **Last Updated**: 2026-04-21 | **Status**: Production-Ready
+> **Version**: 3.7.2 | **Last Updated**: 2026-04-21 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -22,7 +22,13 @@
 - **PR-#4 TIMESTAMPTZ и политика отмены:** миграция **`database/migrations/035_pr4_bookings_timestamptz_cancellation_policy.sql`** — **`bookings.check_in` / `check_out`**: **TIMESTAMPTZ**; **`listings.cancellation_policy`**: enum **`flexible` / `moderate` / `strict`** (бэкфилл из **`metadata.cancellationPolicy`**). Ledger: **`BOOKING_REFUND_PARTIAL`** через **`LedgerService.postPartialRefundForBooking`** (**`lib/cancellation-refund-rules.js`** для доли гостю). Календарь партнёра / crons / stats: сравнение дней через **`toListingDate`** (**`lib/listing-date.js`**); ручное бронирование — **`normalizeBookingInstantForDb`**.
 - **Vehicles interval availability (partner confirm):** для категории **`vehicles`** финальная проверка в **`BookingService.verifyInventoryBeforePartnerConfirm`** выполняется по **временным интервалам** (`check_in/check_out` TIMESTAMPTZ), а не по party-size vs `remaining_spots`: в `CalendarService.checkAvailability` передаются `guestsCount: 1`, `listingCategorySlugOverride: 'vehicles'`, `excludeBookingId`, и фильтр статусов `CONFIRMED,PAID,PAID_ESCROW,CHECKED_IN`. Пересечение: `existing.check_in < request.check_out` и `existing.check_out > request.check_in` (через `findVehicleIntervalConflicts`).
 - **Vehicles interval availability (search + listing UI):** фильтр каталога и карточка листинга для `vehicles` теперь передают `checkIn/checkOut` как ISO datetime (`+07:00`) при выборе времени; `GET /api/v2/listings/[id]/availability` принимает `startDateTime/endDateTime`. Это синхронизирует поиск, pre-check в карточке и создание брони по одной интервальной модели (без возврата к отельному 14:00/12:00 шаблону).
+- **Transport time UX:** в поиске, виджете и модалке бронирования для `vehicles` используется единый 24-часовой электронный `TimeSelect` (слоты 30 мин); значения `checkInTime/checkOutTime` прокидываются через home → listings → listing details deep-links, чтобы не терялись при переходах.
 - **Chat confirmed copy split by role:** в milestone `booking_confirmed` для партнёра показывается отдельный CTA-текст про выставление счёта, для гостя остаётся текст про оплату счёта.
+- **Invoice consistency layer:** чат-обогащение бесед включает `bookings.price_thb/currency/guests_count` (префилл счёта из заказа), `GET /api/v2/chat/invoice?id=` поддерживает адресный доступ к одному счёту с проверкой участника, checkout при `invoiceId` подтягивает invoice-метаданные и выставляет предпочтительный метод оплаты.
+- **Stage 3 — Payment adapters over Intent:** добавлен adapter registry `lib/services/payment-adapters`: `CARD_INTL` (Mandarin-ready scaffold) и `MIR_RU` (YooKassa-ready scaffold). `PaymentIntentService.initiate` выбирает адаптер по методу оплаты, сохраняет `external_ref` + `provider_payload` в `payment_intents`, а checkout больше не рендерит «лишние» способы вне `allowedMethods`.
+- **Checkout intent prefetch API:** `GET /api/v2/bookings/[id]/payment-intent` (session + owner check) резолвит/создаёт intent до initiate, чтобы UI методов оплаты соответствовал конкретному платежному контракту.
+- **Stage 3.1 — Production hardening:** `POST /api/webhooks/payments/confirm` валидирует подпись отдельно по адаптеру (`x-mandarin-signature`/`MANDARIN_WEBHOOK_SECRET`, `x-yookassa-signature`/`YOOKASSA_WEBHOOK_SECRET`, fallback `x-webhook-signature`/`PAYMENT_ACQUIRING_WEBHOOK_SECRET`) и нормализует внешние статусы PSP в внутренний map `payment_intents` (`CREATED/INITIATED/PAID/FAILED/CANCELLED/EXPIRED`) до запуска escrow/ledger.
+- **Admin adapter health:** добавлен `GET /api/v2/admin/payment-adapters/health` (ADMIN-only) — проверка готовности env для `CARD_INTL`/`MIR_RU` и глобальных секретов перед включением live processing.
 - **PR-#5 отмена брони и UI политики:** партнёр задаёт **`cancellationPolicy`** в **`PATCH /api/v2/partner/listings/[id]`**; публичная выдача — **`GET /api/v2/listings/[id]`** → **`cancellationPolicy`**. Страница листинга: блок политики (**`components/listing/ListingCancellationPolicy.jsx`**, i18n **`listingCancellation_*`**). Оценка возврата: **`computeRefundEstimateForBooking(bookingId, at)`**. Превью: **`GET /api/v2/bookings/[id]/cancel-preview`**. Отмена: **`POST /api/v2/bookings/[id]/cancel`** (тело опционально **`reason`**) — арендатор / партнёр по брони / staff; при эскроу-статусах — ledger + **`syncPartnerBalanceColumns`**. Рентер: **`/renter/bookings`**, **`/checkout/[bookingId]`** (**`components/renter/cancel-booking-dialog.jsx`**).
 - **PR-#7 Smart Extension Cockpit (этап 1):** chat invoice расширен без breaking changes: **`POST /api/v2/chat/invoice`** принимает **`intent=extension`** + **`new_check_out`** (optional). Оплата инвойса через checkout прокидывает **`invoiceId`** в **`POST /api/v2/bookings/[id]/payment/confirm`**. После успешного **`EscrowService.moveToEscrow`** сервер применяет post-payment effects: invoice → **paid**, extension идемпотентно меняет **`bookings.check_out`** через **`bookings.metadata.appliedExtensionInvoiceIds`**, пишет system message в чат (**`system_key=booking_extension_confirmed`**) и досрочно закрывает soft-hold блока счёта в **`calendar_blocks`** (**`source=invoice_hold`**, `expires_at=now`) для корректной доступности календаря.
 - **`PUT /api/v2/partner/payout-profiles`**: при **`is_verified`** запрещено менять **`method_id`** или **`data`** (**403**, текст про новый профиль → основной → удалить старый); до верификации поля можно менять. UI **`app/partner/payout-profiles/page.js`**: **`AlertDialog`** перед **POST** и перед сохранением правок; подсказка под **основным** профилем.
@@ -30,6 +36,7 @@
 
 ### 0.0 Admin Health Dashboard (ops + security)
 - **UI:** `app/admin/health/page.jsx` — маршрут **`/admin/health`**, карточки **`rounded-2xl`**: агрегаты **`ops_job_runs`** (7 дн.) для **`ical-sync`**, **`push-sweeper`**, **`push-token-hygiene`**, блок **`critical_signal_events`** (`PRICE_TAMPERING`).
+- **Payment adapters widget:** на **`/admin/health`** добавлен mini-widget readiness по `CARD_INTL` и `MIR_RU` (светофор ready/missing + список отсутствующих env), источник данных — **`GET /api/v2/admin/payment-adapters/health`**.
 - **API:** **`GET /api/v2/admin/health`** — только **`profiles.role === 'ADMIN'`** или email из **`ADMIN_HEALTH_EMAILS`** (см. **`lib/admin-health-access.js`**); данные через **`supabaseAdmin`**.
 - **Chat reliability (mobile/web):** глобальный presence трекинг через **`PresenceProvider`** (`app/layout.js`, канал `gostaylo-site-presence:v1`) и устойчивый badge unread из **`ChatContext`** (`GET /api/v2/chat/conversations?archived=all&enrich=1&limit=100`; события `messages` по Realtime проходят RLS, без ложного отбрасывания до синхронизации локального списка — см. v2.1.9 в манифесте).
 - **Messenger-grade v2.1.9:** как v2.1.8, плюс **единый ref-counted канал `typing:global:v1`** (`lib/chat/typing-global-channel.js`) для инбокса и треда; dev-подсказки при обрыве Realtime — **`lib/chat/realtime-dev-warn.js`** + опция **`channelLabel`** в **`subscribeRealtimeWithBackoff`**.
@@ -37,8 +44,9 @@
 
 ### 0.04 Card / acquiring webhook (Mandarin, YooKassa-совместимо)
 - **Route:** `POST /api/webhooks/payments/confirm` — секрет **`PAYMENT_ACQUIRING_WEBHOOK_SECRET`**; подпись **`X-Webhook-Signature`** = **hex** от **HMAC-SHA256(raw UTF-8 body, secret)**.
-- **Тело:** JSON; плоский вариант `bookingId`, опционально `paymentId`, `amount` + `currency` (**THB** для строгой сверки с итогом брони), `paid`; либо структура с **`event` / `object`** (см. манифест).
-- **Успех:** поиск **`payments` PENDING** по **`booking_id`**, **`PaymentsV3Service.confirmPayment`** → эскроу и **ledger** (как у крипто-флоу).
+- **Тело:** JSON; плоский вариант `bookingId`, опционально `paymentId`/`paymentIntentId`, `amount` + `currency` (**THB** для строгой сверки), `paid`; либо структура с **`event` / `object`**.
+- **Успех:** primary path — `PaymentIntentService.markPaid` (по `payment_intent_id`/`paymentIntentId` или active intent), затем **`EscrowService.moveToEscrow`** + invoice effects; legacy `payments.PENDING` и `PaymentsV3Service.confirmPayment` сохранены как fallback.
+- **Security hardening:** выбор адаптера webhook по заголовкам/формату payload (`CARD_INTL` vs `MIR_RU`) и отдельная проверка подписи на каждом адаптере; только статус, нормализованный в `PAID`, может пройти в `markPaid`.
 
 ### 0.05 Crypto payment webhook (TRON USDT)
 - **Route:** `POST /api/webhooks/crypto/confirm` — **не** публичный: требуется **`CRYPTO_WEBHOOK_SHARED_SECRET`** (заголовок **`x-crypto-webhook-secret`** или поле **`webhookSecret`** в JSON), иначе **401/503**.
@@ -954,7 +962,7 @@ TELEGRAM_ADMIN_GROUP_ID=-100xxx
 |---------|--------|------------------------|
 | Payment Gateway (Stripe) | MOCKED | Stripe API integration |
 | TRON webhook `POST /api/webhooks/crypto/confirm` | **Shared secret** + **`verifyTronTransaction`** (TronScan) | Production path; mock removed |
-| Acquiring `POST /api/webhooks/payments/confirm` | **HMAC** + **`PaymentsV3Service.confirmPayment`** | Карты / PSP (Mandarin, YooKassa-shape) |
+| Acquiring `POST /api/webhooks/payments/confirm` | **HMAC** + **Payment Intent primary confirm** | Карты / PSP (Mandarin, YooKassa-shape) |
 | Email Notifications | MOCKED | Resend API |
 
 ---

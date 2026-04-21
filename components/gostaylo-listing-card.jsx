@@ -116,6 +116,8 @@ export function GostayloListingCard({
     const params = new URLSearchParams()
     if (initialDates.checkIn) params.set('checkIn', initialDates.checkIn)
     if (initialDates.checkOut) params.set('checkOut', initialDates.checkOut)
+    if (initialDates.checkInTime) params.set('checkInTime', initialDates.checkInTime)
+    if (initialDates.checkOutTime) params.set('checkOutTime', initialDates.checkOutTime)
     if (guests && guests !== '1') params.set('guests', guests)
     
     const queryString = params.toString()
@@ -141,7 +143,7 @@ export function GostayloListingCard({
         'group scroll-mt-24 overflow-hidden rounded-xl border bg-white transition-all duration-300 hover:shadow-xl md:group-hover:overflow-visible',
         isMapHighlighted
           ? 'relative z-0 border-teal-500 shadow-lg ring-2 ring-teal-500/40 ring-offset-2 hover:z-20'
-          : 'relative z-0 border-slate-100 hover:z-20 hover:border-teal-200',
+          : 'relative z-0 border-slate-100 md:hover:z-20 hover:border-teal-200',
         className
       )}
     >

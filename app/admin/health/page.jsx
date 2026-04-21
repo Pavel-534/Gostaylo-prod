@@ -51,18 +51,25 @@ function StatusBadge({ status }) {
 
 export default function AdminHealthPage() {
   const [data, setData] = useState(null)
+  const [adapterHealth, setAdapterHealth] = useState(null)
+  const [adapterHealthError, setAdapterHealthError] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
+    setAdapterHealthError(null)
     try {
-      const res = await fetch('/api/v2/admin/health', { credentials: 'include' })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok) {
+      const [healthRes, adaptersRes] = await Promise.all([
+        fetch('/api/v2/admin/health', { credentials: 'include' }),
+        fetch('/api/v2/admin/payment-adapters/health', { credentials: 'include' }),
+      ])
+
+      const json = await healthRes.json().catch(() => ({}))
+      if (!healthRes.ok) {
         setData(null)
-        setError(json.error || `Ошибка ${res.status}`)
+        setError(json.error || `Ошибка ${healthRes.status}`)
         return
       }
       if (!json.success) {
@@ -71,6 +78,14 @@ export default function AdminHealthPage() {
         return
       }
       setData(json)
+
+      const adaptersJson = await adaptersRes.json().catch(() => ({}))
+      if (!adaptersRes.ok || !adaptersJson?.success) {
+        setAdapterHealth(null)
+        setAdapterHealthError(adaptersJson?.error || `Ошибка ${adaptersRes.status}`)
+      } else {
+        setAdapterHealth(adaptersJson.data || null)
+      }
     } catch (e) {
       setData(null)
       setError(e?.message || 'Сеть')
@@ -87,6 +102,17 @@ export default function AdminHealthPage() {
   const sweeper = data?.jobs?.['push-sweeper']
   const hygiene = data?.jobs?.['push-token-hygiene']
   const security = data?.security
+  const adapterEntries = Object.entries(adapterHealth?.adapters || {})
+  const hasAdapterProblems = adapterEntries.some(([, row]) => !row?.ready) || !adapterHealth?.global?.ready
+
+  function EnvReadinessBadge({ ok }) {
+    return (
+      <span
+        className={`inline-flex h-3 w-3 rounded-full ${ok ? 'bg-emerald-500' : 'bg-red-500'}`}
+        aria-label={ok ? 'ready' : 'missing'}
+      />
+    )
+  }
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -136,6 +162,54 @@ export default function AdminHealthPage() {
           ops_job_runs: {data.meta.opsError}
         </p>
       ) : null}
+
+      <Card className={`rounded-2xl border shadow-sm ${hasAdapterProblems ? 'border-red-200' : 'border-emerald-200'}`}>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ShieldAlert className={`h-5 w-5 ${hasAdapterProblems ? 'text-red-600' : 'text-emerald-600'}`} />
+            Payment Adapters Health
+          </CardTitle>
+          <CardDescription>
+            Проверка готовности ENV для live-подключения CARD_INTL / MIR_RU
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          {adapterHealthError ? (
+            <p className="text-red-600">{adapterHealthError}</p>
+          ) : null}
+          {!adapterHealthError && !adapterHealth ? (
+            <p className="text-slate-500">Нет данных</p>
+          ) : null}
+          {adapterHealth ? (
+            <>
+              <div className="rounded-xl border border-slate-200 p-3 bg-slate-50">
+                <p className="font-medium text-slate-800 flex items-center gap-2">
+                  <EnvReadinessBadge ok={Boolean(adapterHealth.global?.ready)} />
+                  Global secrets
+                </p>
+                {Array.isArray(adapterHealth.global?.missing) && adapterHealth.global.missing.length > 0 ? (
+                  <p className="text-xs text-red-600 mt-1">Missing: {adapterHealth.global.missing.join(', ')}</p>
+                ) : (
+                  <p className="text-xs text-emerald-700 mt-1">Все ключи на месте</p>
+                )}
+              </div>
+              {adapterEntries.map(([key, row]) => (
+                <div key={key} className="rounded-xl border border-slate-200 p-3 bg-white">
+                  <p className="font-medium text-slate-800 flex items-center gap-2">
+                    <EnvReadinessBadge ok={Boolean(row?.ready)} />
+                    {key} {row?.mode ? `(${row.mode})` : ''}
+                  </p>
+                  {Array.isArray(row?.missing) && row.missing.length > 0 ? (
+                    <p className="text-xs text-red-600 mt-1">Missing: {row.missing.join(', ')}</p>
+                  ) : (
+                    <p className="text-xs text-emerald-700 mt-1">Все ключи на месте</p>
+                  )}
+                </div>
+              ))}
+            </>
+          ) : null}
+        </CardContent>
+      </Card>
 
       {data ? (
         <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">

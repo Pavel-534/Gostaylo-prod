@@ -431,8 +431,10 @@ function ListingsContent() {
     () => ({
       checkIn: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : null,
       checkOut: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
+      checkInTime,
+      checkOutTime,
     }),
-    [dateRange],
+    [dateRange, checkInTime, checkOutTime],
   )
 
   const hasMore = displayedCount < allListings.length

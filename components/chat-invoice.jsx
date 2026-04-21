@@ -154,6 +154,9 @@ export function SendInvoiceDialog({
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
 }) {
+  const bookingAmountPrefill = Number(
+    booking?.price_thb ?? booking?.priceThb ?? booking?.price ?? booking?.amount_thb ?? 0
+  )
   const amountInputRef = useRef(null)
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
   const open = controlledOpen !== undefined ? controlledOpen : uncontrolledOpen
@@ -161,10 +164,10 @@ export function SendInvoiceDialog({
   const [sending, setSending] = useState(false)
   const [thbPerUsdt, setThbPerUsdt] = useState(null)
   const [invoiceData, setInvoiceData] = useState({
-    amount: Number(booking?.price_thb) > 0 ? String(booking.price_thb) : '',
+    amount: bookingAmountPrefill > 0 ? String(Math.round(bookingAmountPrefill)) : '',
     currency: 'THB',
     description: '',
-    paymentMethod: 'CRYPTO',
+    paymentMethod: 'CARD',
     extensionIntent: false,
     newCheckOut: '',
   })
@@ -183,6 +186,15 @@ export function SendInvoiceDialog({
     const t = setTimeout(() => amountInputRef.current?.focus(), 10)
     return () => clearTimeout(t)
   }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    if (bookingAmountPrefill <= 0) return
+    setInvoiceData((prev) => {
+      if (String(prev.amount || '').trim()) return prev
+      return { ...prev, amount: String(Math.round(bookingAmountPrefill)) }
+    })
+  }, [open, bookingAmountPrefill])
 
   const handleSend = async () => {
     if (!invoiceData.amount) return
@@ -217,7 +229,7 @@ export function SendInvoiceDialog({
         amount: '',
         currency: 'THB',
         description: '',
-        paymentMethod: 'CRYPTO',
+        paymentMethod: 'CARD',
         extensionIntent: false,
         newCheckOut: '',
       })

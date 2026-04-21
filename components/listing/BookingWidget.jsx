@@ -7,9 +7,9 @@
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import { TimeSelect } from '@/components/ui/time-select'
 import { Star, ArrowRight, MessageCircle, Loader2, Sparkles } from 'lucide-react'
 import { formatPrice, priceRawForTest } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
@@ -425,10 +425,9 @@ export function DesktopBookingWidget({
                 <Label className="text-xs text-slate-600 mb-1.5 block">
                   {language === 'ru' ? 'Время начала' : 'Start time'}
                 </Label>
-                <Input
-                  type="time"
+                <TimeSelect
                   value={vehicleStartTime}
-                  onChange={(e) => onVehicleStartTimeChange?.(e.target.value)}
+                  onChange={onVehicleStartTimeChange}
                   className="h-9"
                 />
               </div>
@@ -436,10 +435,9 @@ export function DesktopBookingWidget({
                 <Label className="text-xs text-slate-600 mb-1.5 block">
                   {language === 'ru' ? 'Время окончания' : 'End time'}
                 </Label>
-                <Input
-                  type="time"
+                <TimeSelect
                   value={vehicleEndTime}
-                  onChange={(e) => onVehicleEndTimeChange?.(e.target.value)}
+                  onChange={onVehicleEndTimeChange}
                   className="h-9"
                 />
               </div>

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { TimeSelect } from '@/components/ui/time-select'
 import { Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
@@ -126,18 +127,16 @@ export function BookingModal({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>{language === 'ru' ? 'Время начала' : 'Start time'}</Label>
-                  <Input
-                    type="time"
+                  <TimeSelect
                     value={vehicleStartTime}
-                    onChange={(e) => setVehicleStartTime?.(e.target.value)}
+                    onChange={setVehicleStartTime}
                   />
                 </div>
                 <div>
                   <Label>{language === 'ru' ? 'Время окончания' : 'End time'}</Label>
-                  <Input
-                    type="time"
+                  <TimeSelect
                     value={vehicleEndTime}
-                    onChange={(e) => setVehicleEndTime?.(e.target.value)}
+                    onChange={setVehicleEndTime}
                   />
                 </div>
               </div>

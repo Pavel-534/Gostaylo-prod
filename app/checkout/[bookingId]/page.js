@@ -34,6 +34,7 @@ function canRenterCancelCheckout(status) {
 
 // Official GoStayLo USDT TRC-20 Wallet Address
 const GOSTAYLO_WALLET = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
+const DEFAULT_ALLOWED_METHODS = ['CARD', 'MIR', 'CRYPTO']
 
 function CheckoutPageInner({ params: paramsProp }) {
   const params = typeof paramsProp?.then === 'function' ? use(paramsProp) : paramsProp
@@ -45,7 +46,10 @@ function CheckoutPageInner({ params: paramsProp }) {
   const [booking, setBooking] = useState(null)
   const [listing, setListing] = useState(null)
   const [payment, setPayment] = useState(null)
+  const [invoice, setInvoice] = useState(null)
+  const [paymentIntent, setPaymentIntent] = useState(null)
   const [paymentMethod, setPaymentMethod] = useState('CARD')
+  const [allowedMethods, setAllowedMethods] = useState(DEFAULT_ALLOWED_METHODS)
   const [processing, setProcessing] = useState(false)
   const [cryptoModalOpen, setCryptoModalOpen] = useState(false)
   const [txId, setTxId] = useState('')
@@ -67,7 +71,7 @@ function CheckoutPageInner({ params: paramsProp }) {
 
   useEffect(() => {
     loadPaymentStatus()
-  }, [params.bookingId])
+  }, [params.bookingId, invoiceIdParam])
 
   useEffect(() => {
     const lang = detectLanguage()
@@ -99,7 +103,23 @@ function CheckoutPageInner({ params: paramsProp }) {
     const pm = searchParams.get('pm')
     if (pm === 'CRYPTO') setPaymentMethod('CRYPTO')
     if (pm === 'CARD') setPaymentMethod('CARD')
+    if (pm === 'MIR') setPaymentMethod('MIR')
   }, [searchParams])
+
+  useEffect(() => {
+    if (searchParams.get('pm')) return
+    const preferred = String(invoice?.payment_method || '').toUpperCase()
+    if (preferred === 'CRYPTO' || preferred === 'CARD' || preferred === 'MIR') {
+      setPaymentMethod(preferred)
+    }
+  }, [invoice?.payment_method, searchParams])
+
+  useEffect(() => {
+    if (!Array.isArray(allowedMethods) || allowedMethods.length === 0) return
+    if (!allowedMethods.includes(paymentMethod)) {
+      setPaymentMethod(allowedMethods[0])
+    }
+  }, [allowedMethods, paymentMethod])
 
   // Ownership check: when auth is ready and booking has renter_id, verify user owns it
   useEffect(() => {
@@ -203,6 +223,56 @@ function CheckoutPageInner({ params: paramsProp }) {
           basePriceThb: parseFloat(l.base_price_thb)
         });
       }
+
+      let resolvedInvoice = null
+      if (invoiceIdParam) {
+        try {
+          const invRes = await fetch(`/api/v2/chat/invoice?id=${encodeURIComponent(invoiceIdParam)}`, {
+            credentials: 'include',
+            cache: 'no-store',
+          })
+          const invData = await invRes.json()
+          if (invRes.ok && invData.success && Array.isArray(invData.invoices) && invData.invoices.length > 0) {
+            resolvedInvoice = invData.invoices[0]
+            setInvoice(resolvedInvoice)
+          } else {
+            setInvoice(null)
+          }
+        } catch {
+          setInvoice(null)
+        }
+      } else {
+        setInvoice(null)
+      }
+
+      try {
+        const intentUrl = new URL(
+          `/api/v2/bookings/${encodeURIComponent(params.bookingId)}/payment-intent`,
+          window.location.origin,
+        )
+        const resolvedInvoiceId = resolvedInvoice?.id || invoiceIdParam
+        if (resolvedInvoiceId) intentUrl.searchParams.set('invoiceId', resolvedInvoiceId)
+        const intentRes = await fetch(intentUrl.toString(), {
+          credentials: 'include',
+          cache: 'no-store',
+        })
+        const intentData = await intentRes.json()
+        if (intentRes.ok && intentData?.success && intentData?.data) {
+          setPaymentIntent(intentData.data)
+          const allowed = Array.isArray(intentData.data.allowedMethods)
+            ? intentData.data.allowedMethods
+                .map((m) => String(m || '').toUpperCase())
+                .filter((m) => DEFAULT_ALLOWED_METHODS.includes(m))
+            : []
+          setAllowedMethods(allowed.length > 0 ? allowed : DEFAULT_ALLOWED_METHODS)
+        } else {
+          setPaymentIntent(null)
+          setAllowedMethods(DEFAULT_ALLOWED_METHODS)
+        }
+      } catch {
+        setPaymentIntent(null)
+        setAllowedMethods(DEFAULT_ALLOWED_METHODS)
+      }
       
       // Только PAID = реально оплачено. CONFIRMED = подтверждено партнёром, но ещё не оплачено.
       if (b.status === 'PAID' || b.status === 'COMPLETED') {
@@ -254,7 +324,10 @@ function CheckoutPageInner({ params: paramsProp }) {
       const res = await fetch(`/api/v2/bookings/${params.bookingId}/payment/initiate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ method: paymentMethod }),
+        body: JSON.stringify({
+          method: paymentMethod,
+          invoiceId: invoiceIdParam || undefined,
+        }),
       })
 
       const data = await res.json()
@@ -309,8 +382,8 @@ function CheckoutPageInner({ params: paramsProp }) {
           body: JSON.stringify({
             txid: transactionId,
             bookingId: params.bookingId,
-            expectedAmount: payment?.metadata?.amount || '100',
-            targetWallet: payment?.metadata?.walletAddress || 'TXYZMockWallet',
+            expectedAmount: payment?.metadata?.amount_usdt || payment?.metadata?.amount || undefined,
+            targetWallet: payment?.metadata?.wallet_address || payment?.metadata?.walletAddress || undefined,
           }),
         })
         
@@ -336,6 +409,7 @@ function CheckoutPageInner({ params: paramsProp }) {
             txId: transactionId,
             gatewayRef: verifyData.data.blockNumber,
             invoiceId: invoiceIdParam || undefined,
+            intentId: payment?.intentId || payment?.id || undefined,
           }),
         })
 
@@ -366,6 +440,7 @@ function CheckoutPageInner({ params: paramsProp }) {
           txId: transactionId || txId,
           gatewayRef,
           invoiceId: invoiceIdParam || undefined,
+          intentId: payment?.intentId || payment?.id || undefined,
         }),
       })
 
@@ -563,6 +638,38 @@ function CheckoutPageInner({ params: paramsProp }) {
   const totalWithFee = promoDiscount
     ? promoRounded?.roundedGuestTotalThb || Math.round(guestTotalBeforeRounding)
     : Math.round(guestTotalBeforeRounding + roundingDiffPot)
+  const invoiceAmount = Number(invoice?.amount || 0)
+  const invoiceCurrency = String(invoice?.currency || 'THB').toUpperCase()
+  const hasInvoiceCheckout = Boolean(invoice?.id && Number.isFinite(invoiceAmount) && invoiceAmount > 0)
+  const payableText = hasInvoiceCheckout
+    ? `${invoiceCurrency === 'THB' ? '฿' : invoiceCurrency === 'RUB' ? '₽' : '$'}${invoiceAmount.toLocaleString()} ${invoiceCurrency}`
+    : formatPrice(totalWithFee, booking.currency, exchangeRates, language)
+  const paymentMethodOptions = [
+    {
+      value: 'CARD',
+      id: 'card',
+      icon: CreditCard,
+      iconClassName: 'text-slate-600',
+      title: getUIText('checkout_methodCard', language),
+      description: getUIText('checkout_methodCardDesc', language),
+    },
+    {
+      value: 'MIR',
+      id: 'mir',
+      icon: CreditCard,
+      iconClassName: 'text-blue-600',
+      title: getUIText('checkout_methodMir', language),
+      description: getUIText('checkout_methodMirDesc', language),
+    },
+    {
+      value: 'CRYPTO',
+      id: 'crypto',
+      icon: Wallet,
+      iconClassName: 'text-amber-600',
+      title: getUIText('checkout_methodCrypto', language),
+      description: getUIText('checkout_methodCryptoDesc', language),
+    },
+  ].filter((opt) => allowedMethods.includes(opt.value))
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -597,41 +704,41 @@ function CheckoutPageInner({ params: paramsProp }) {
             <Card>
               <CardHeader>
                 <CardTitle>{getUIText('checkout_selectMethod', language)}</CardTitle>
+                {paymentIntent?.id && (
+                  <p className="text-xs text-slate-500">
+                    {language === 'ru'
+                      ? `Методы из Payment Intent ${paymentIntent.id}`
+                      : `Methods from Payment Intent ${paymentIntent.id}`}
+                  </p>
+                )}
+                {invoice?.payment_method && (
+                  <p className="text-xs text-slate-500">
+                    {language === 'ru'
+                      ? `Рекомендуемый способ по счёту: ${String(invoice.payment_method).toUpperCase()}`
+                      : `Invoice-preferred method: ${String(invoice.payment_method).toUpperCase()}`}
+                  </p>
+                )}
               </CardHeader>
               <CardContent>
                 <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <div className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-slate-50 cursor-pointer">
-                    <RadioGroupItem value="CARD" id="card" />
-                    <Label htmlFor="card" className="flex items-center gap-3 cursor-pointer flex-1">
-                      <CreditCard className="h-5 w-5 text-slate-600" />
-                      <div>
-                        <p className="font-semibold">{getUIText('checkout_methodCard', language)}</p>
-                        <p className="text-sm text-slate-500">{getUIText('checkout_methodCardDesc', language)}</p>
+                  {paymentMethodOptions.map((opt) => {
+                    const Icon = opt.icon
+                    return (
+                      <div
+                        key={opt.value}
+                        className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-slate-50 cursor-pointer"
+                      >
+                        <RadioGroupItem value={opt.value} id={opt.id} />
+                        <Label htmlFor={opt.id} className="flex items-center gap-3 cursor-pointer flex-1">
+                          <Icon className={`h-5 w-5 ${opt.iconClassName}`} />
+                          <div>
+                            <p className="font-semibold">{opt.title}</p>
+                            <p className="text-sm text-slate-500">{opt.description}</p>
+                          </div>
+                        </Label>
                       </div>
-                    </Label>
-                  </div>
-
-                  <div className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-slate-50 cursor-pointer">
-                    <RadioGroupItem value="MIR" id="mir" />
-                    <Label htmlFor="mir" className="flex items-center gap-3 cursor-pointer flex-1">
-                      <CreditCard className="h-5 w-5 text-blue-600" />
-                      <div>
-                        <p className="font-semibold">{getUIText('checkout_methodMir', language)}</p>
-                        <p className="text-sm text-slate-500">{getUIText('checkout_methodMirDesc', language)}</p>
-                      </div>
-                    </Label>
-                  </div>
-
-                  <div className="flex items-center space-x-3 p-4 border rounded-lg hover:bg-slate-50 cursor-pointer">
-                    <RadioGroupItem value="CRYPTO" id="crypto" />
-                    <Label htmlFor="crypto" className="flex items-center gap-3 cursor-pointer flex-1">
-                      <Wallet className="h-5 w-5 text-amber-600" />
-                      <div>
-                        <p className="font-semibold">{getUIText('checkout_methodCrypto', language)}</p>
-                        <p className="text-sm text-slate-500">{getUIText('checkout_methodCryptoDesc', language)}</p>
-                      </div>
-                    </Label>
-                  </div>
+                    )
+                  })}
                 </RadioGroup>
               </CardContent>
             </Card>
@@ -693,7 +800,7 @@ function CheckoutPageInner({ params: paramsProp }) {
                 </>
               ) : (
                 interpolateTemplate(getUIText('checkout_payCta', language), {
-                  amount: formatPrice(totalWithFee, booking.currency, exchangeRates, language),
+                  amount: payableText,
                 })
               )}
             </Button>
@@ -712,19 +819,26 @@ function CheckoutPageInner({ params: paramsProp }) {
                     {new Date(booking.checkIn).toLocaleDateString(languageToNumberLocale(language))} –{' '}
                     {new Date(booking.checkOut).toLocaleDateString(languageToNumberLocale(language))}
                   </p>
+                  {invoice?.id && (
+                    <p className="text-xs text-slate-500 mt-1">
+                      Invoice #{String(invoice.id).slice(-8)} • {String(invoice.currency || 'THB').toUpperCase()}
+                    </p>
+                  )}
                 </div>
 
                 <div className="border-t pt-4 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">{getUIText('checkout_subtotal', language)}</span>
-                    <span
-                      className="font-medium"
-                      data-test-subtotal-value={priceRawForTest(booking.priceThb, 'THB', exchangeRates)}
-                    >
-                      {formatPrice(booking.priceThb, 'THB', exchangeRates, language)}
-                    </span>
-                  </div>
-                  {promoDiscount && (
+                  {!hasInvoiceCheckout && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">{getUIText('checkout_subtotal', language)}</span>
+                      <span
+                        className="font-medium"
+                        data-test-subtotal-value={priceRawForTest(booking.priceThb, 'THB', exchangeRates)}
+                      >
+                        {formatPrice(booking.priceThb, 'THB', exchangeRates, language)}
+                      </span>
+                    </div>
+                  )}
+                  {promoDiscount && !hasInvoiceCheckout && (
                     <div className="flex justify-between text-sm text-green-600">
                       <span className="flex items-center gap-1">
                         {interpolateTemplate(getUIText('checkout_discountLine', language), {
@@ -736,20 +850,22 @@ function CheckoutPageInner({ params: paramsProp }) {
                       </span>
                     </div>
                   )}
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">
-                      {interpolateTemplate(getUIText('checkout_serviceFeeLine', language), {
-                        pct: String(guestServiceFeePercent),
-                      })}
-                    </span>
-                    <span
-                      className="font-medium"
-                      data-test-fee-value={priceRawForTest(serviceFee, 'THB', exchangeRates)}
-                    >
-                      {formatPrice(serviceFee, 'THB', exchangeRates, language)}
-                    </span>
-                  </div>
-                  {roundingDiffPot > 0 && (
+                  {!hasInvoiceCheckout && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">
+                        {interpolateTemplate(getUIText('checkout_serviceFeeLine', language), {
+                          pct: String(guestServiceFeePercent),
+                        })}
+                      </span>
+                      <span
+                        className="font-medium"
+                        data-test-fee-value={priceRawForTest(serviceFee, 'THB', exchangeRates)}
+                      >
+                        {formatPrice(serviceFee, 'THB', exchangeRates, language)}
+                      </span>
+                    </div>
+                  )}
+                  {roundingDiffPot > 0 && !hasInvoiceCheckout && (
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Rounding pot</span>
                       <span className="font-medium">
@@ -761,10 +877,14 @@ function CheckoutPageInner({ params: paramsProp }) {
                     <span>{getUIText('checkout_total', language)}</span>
                     <span
                       className="text-teal-600"
-                      data-test-raw-value={priceRawForTest(totalWithFee, 'THB', exchangeRates)}
-                      data-test-total-thb={String(Math.round(Number(totalWithFee) || 0))}
+                      data-test-raw-value={
+                        hasInvoiceCheckout
+                          ? String(invoiceAmount)
+                          : priceRawForTest(totalWithFee, 'THB', exchangeRates)
+                      }
+                      data-test-total-thb={String(Math.round(Number(hasInvoiceCheckout ? invoice?.amount_thb || totalWithFee : totalWithFee) || 0))}
                     >
-                      {formatPrice(totalWithFee, 'THB', exchangeRates, language)}
+                      {payableText}
                     </span>
                   </div>
                   {canRenterCancelCheckout(booking.status) && (

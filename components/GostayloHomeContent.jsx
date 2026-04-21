@@ -114,6 +114,8 @@ export function GostayloHomeContent() {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [where, setWhere] = useState('all')
   const [dateRange, setDateRange] = useState({ from: null, to: null })
+  const [checkInTime, setCheckInTime] = useState('07:00')
+  const [checkOutTime, setCheckOutTime] = useState('07:00')
   const [guests, setGuests] = useState('2')
   const [searchQuery, setSearchQuery] = useState('')
   const [smartSearchOn, setSmartSearchOn] = useState(true)
@@ -133,6 +135,8 @@ export function GostayloHomeContent() {
   
   // Debounced values
   const debouncedDateRange = useDebounce(dateRange, 500)
+  const transportSearchMode = isTransportListingCategory(selectedCategory)
+
   const debouncedWhere = useDebounce(where, 300)
   const debouncedGuests = useDebounce(guests, 300)
   const debouncedSearchQuery = useDebounce(searchQuery, 400)
@@ -156,6 +160,8 @@ export function GostayloHomeContent() {
     const g = searchParams?.get('guests')
     const ci = searchParams?.get('checkIn')
     const co = searchParams?.get('checkOut')
+    const ciTime = searchParams?.get('checkInTime')
+    const coTime = searchParams?.get('checkOutTime')
     const qUrl = searchParams?.get('q')
     const sem = searchParams?.get('semantic')
     if (cat) setSelectedCategory(cat)
@@ -178,6 +184,8 @@ export function GostayloHomeContent() {
         setDateRange({ from: new Date(ci), to: new Date(co) })
       } catch {}
     }
+    if (ciTime) setCheckInTime(ciTime)
+    if (coTime) setCheckOutTime(coTime)
   }, [])
 
   useEffect(() => {
@@ -268,6 +276,10 @@ export function GostayloHomeContent() {
       if (dateRange.from && dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
         params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
         params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
+        if (transportSearchMode) {
+          params.set('checkInTime', checkInTime)
+          params.set('checkOutTime', checkOutTime)
+        }
       }
       if (guests && guests !== '1') params.set('guests', guests)
       const useSem =
@@ -293,7 +305,19 @@ export function GostayloHomeContent() {
       setLoading(false)
     }
     return 0
-  }, [selectedCategory, where, dateRange, guests, debouncedSearchQuery, searchQuery, semanticSiteEnabled, smartSearchOn])
+  }, [
+    selectedCategory,
+    where,
+    dateRange,
+    guests,
+    debouncedSearchQuery,
+    searchQuery,
+    semanticSiteEnabled,
+    smartSearchOn,
+    transportSearchMode,
+    checkInTime,
+    checkOutTime,
+  ])
 
   // Initial load
   useEffect(() => {
@@ -315,6 +339,10 @@ export function GostayloHomeContent() {
       if (dr?.from && dr?.to && !isSameDay(dr.from, dr.to)) {
         params.set('checkIn', format(dr.from, 'yyyy-MM-dd'))
         params.set('checkOut', format(dr.to, 'yyyy-MM-dd'))
+        if (isTransportListingCategory(cat)) {
+          params.set('checkInTime', checkInTime)
+          params.set('checkOutTime', checkOutTime)
+        }
       }
       if (g && g !== '1') params.set('guests', g)
       const qt = (searchQuery || '').trim()
@@ -328,7 +356,7 @@ export function GostayloHomeContent() {
     } finally {
       setCountLoading(false)
     }
-  }, [searchQuery])
+  }, [searchQuery, checkInTime, checkOutTime])
 
 
   const categoryIcons = { property: Home, vehicles: Bike, tours: Map, yachts: Anchor }
@@ -340,12 +368,28 @@ export function GostayloHomeContent() {
     if (where && where !== 'all') params.set('where', where)
     if (dateRange.from) params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
     if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
+    if (transportSearchMode && dateRange.from && dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
+      params.set('checkInTime', checkInTime)
+      params.set('checkOutTime', checkOutTime)
+    }
     if (guests && guests !== '1') params.set('guests', guests)
     const qt = searchQuery.trim()
     if (qt.length >= 2) params.set('q', qt)
     if (semanticSiteEnabled) params.set('semantic', smartSearchOn ? '1' : '0')
     router.push(params.toString() ? `/listings?${params.toString()}` : '/listings')
-  }, [selectedCategory, where, dateRange, guests, searchQuery, semanticSiteEnabled, smartSearchOn, router])
+  }, [
+    selectedCategory,
+    where,
+    dateRange,
+    guests,
+    searchQuery,
+    semanticSiteEnabled,
+    smartSearchOn,
+    router,
+    transportSearchMode,
+    checkInTime,
+    checkOutTime,
+  ])
 
   const handleHomeSearchSubmit = useCallback(() => {
     if (smartSearchOn && semanticSiteEnabled && searchQuery.trim().length >= 2) {
@@ -369,13 +413,17 @@ export function GostayloHomeContent() {
       if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
         params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
       }
+      if (isTransportListingCategory(slug) && dateRange.from && dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
+        params.set('checkInTime', checkInTime)
+        params.set('checkOutTime', checkOutTime)
+      }
       if (guests && guests !== '1') params.set('guests', guests)
       const qt = searchQuery.trim()
       if (qt.length >= 2) params.set('q', qt)
       if (semanticSiteEnabled) params.set('semantic', smartSearchOn ? '1' : '0')
       router.push(`/listings?${params.toString()}`)
     },
-    [where, dateRange, guests, searchQuery, semanticSiteEnabled, smartSearchOn, router]
+    [where, dateRange, guests, searchQuery, semanticSiteEnabled, smartSearchOn, router, checkInTime, checkOutTime]
   )
 
   const nights = dateRange.from && dateRange.to ? differenceInDays(dateRange.to, dateRange.from) : 0
@@ -419,6 +467,10 @@ export function GostayloHomeContent() {
               setWhere={setWhere}
               dateRange={dateRange}
               setDateRange={handleDateChange}
+              checkInTime={checkInTime}
+              setCheckInTime={setCheckInTime}
+              checkOutTime={checkOutTime}
+              setCheckOutTime={setCheckOutTime}
               guests={guests}
               setGuests={setGuests}
               onSearch={handleSearch}
@@ -453,6 +505,10 @@ export function GostayloHomeContent() {
                   if (where !== 'all') params.set('where', where)
                   if (dateRange.from) params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
                   if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
+                  if (isTransportListingCategory(cat.slug) && dateRange.from && dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
+                    params.set('checkInTime', checkInTime)
+                    params.set('checkOutTime', checkOutTime)
+                  }
                   if (guests !== '1') params.set('guests', guests)
                   const qt = searchQuery.trim()
                   if (qt.length >= 2) params.set('q', qt)
@@ -521,6 +577,10 @@ export function GostayloHomeContent() {
                 const listingParams = new URLSearchParams()
                 if (dateRange.from) listingParams.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
                 if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) listingParams.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
+                if (isTransportListingCategory(listing.category?.slug || listing.categorySlug) && dateRange.from && dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
+                  listingParams.set('checkInTime', checkInTime)
+                  listingParams.set('checkOutTime', checkOutTime)
+                }
                 if (guests !== '1') listingParams.set('guests', guests)
                 const listingUrl = listingParams.toString() ? `/listings/${listing.id}?${listingParams.toString()}` : `/listings/${listing.id}`
                 const thumbRaw = listing.coverImage || listing.images?.[0] || '/placeholder.svg'

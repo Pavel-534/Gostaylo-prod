@@ -149,7 +149,7 @@ async function enrichConversationRows(rows, viewerUserId) {
   if (bookingIds.length) {
     const inB = bookingIds.map((id) => encodeURIComponent(id)).join(',')
     const br = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=in.(${inB})&select=id,check_in,check_out,status,guest_name`,
+      `${SUPABASE_URL}/rest/v1/bookings?id=in.(${inB})&select=id,check_in,check_out,status,guest_name,price_thb,currency,guests_count`,
       { headers: hdr, cache: 'no-store' }
     )
     const bl = await br.json()

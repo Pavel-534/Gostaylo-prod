@@ -47,8 +47,8 @@ export function InvoiceBubble({
   const rawStatus = String(invoice.status || 'PENDING').toUpperCase()
   const statusInfo = STATUS_LABEL[rawStatus] || STATUS_LABEL.PENDING
   const isPaid = rawStatus === 'PAID'
-  const currency = invoice.currency || (paymentMethod === 'CARD' ? 'THB' : 'THB')
-  const sym = currency === 'THB' ? '฿' : '$'
+  const currency = String(invoice.currency || 'THB').toUpperCase()
+  const sym = currency === 'THB' ? '฿' : currency === 'RUB' ? '₽' : '$'
 
   function goCheckout(pm) {
     const bid = invoice.booking_id
@@ -218,6 +218,21 @@ export function InvoiceBubble({
               <span className="text-left">
                 <span className="block font-medium">Банковская карта</span>
                 <span className="text-xs text-slate-500">Visa, Mastercard, МИР</span>
+              </span>
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="justify-start gap-2 h-auto py-3"
+              onClick={() => {
+                setMethodOpen(false)
+                goCheckout('MIR')
+              }}
+            >
+              <CreditCard className="h-5 w-5 text-blue-600" />
+              <span className="text-left">
+                <span className="block font-medium">Карта МИР</span>
+                <span className="text-xs text-slate-500">Банки РФ</span>
               </span>
             </Button>
           </div>
