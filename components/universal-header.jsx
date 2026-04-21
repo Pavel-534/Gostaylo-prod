@@ -147,20 +147,34 @@ export function UniversalHeader() {
               >
                 <DropdownMenuTrigger asChild>
                   <Button variant='ghost' size='sm' className='flex items-center gap-1 sm:gap-2 h-8 sm:h-9 px-1.5 sm:px-2 rounded-full hover:bg-slate-100 border border-slate-200'>
-                    <Avatar className='h-6 w-6 sm:h-7 sm:w-7'>
-                      {user.avatar ? (
-                        <AvatarImage
-                          src={toPublicImageUrl(user.avatar)}
-                          alt=''
-                          className='object-cover'
-                        />
+                    <span className='relative inline-flex shrink-0'>
+                      <Avatar className='h-6 w-6 sm:h-7 sm:w-7'>
+                        {user.avatar ? (
+                          <AvatarImage
+                            src={toPublicImageUrl(user.avatar)}
+                            alt=''
+                            className='object-cover'
+                          />
+                        ) : null}
+                        <AvatarFallback className={`text-xs font-semibold text-white ${
+                          isAdmin ? 'bg-indigo-600' : isPartner ? 'bg-teal-600' : 'bg-slate-500'
+                        }`}>
+                          {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      {totalUnread > 0 ? (
+                        <span
+                          className='pointer-events-none absolute -right-1 -top-0.5 z-[1] hidden md:flex min-h-[16px] min-w-[16px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold leading-none text-white ring-2 ring-white'
+                          aria-label={
+                            language === 'en'
+                              ? `${totalUnread} unread messages`
+                              : `Непрочитанных сообщений: ${totalUnread}`
+                          }
+                        >
+                          {totalUnread > 99 ? '99+' : String(totalUnread)}
+                        </span>
                       ) : null}
-                      <AvatarFallback className={`text-xs font-semibold text-white ${
-                        isAdmin ? 'bg-indigo-600' : isPartner ? 'bg-teal-600' : 'bg-slate-500'
-                      }`}>
-                        {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
+                    </span>
                     <ChevronDown className='h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-500' />
                   </Button>
                 </DropdownMenuTrigger>

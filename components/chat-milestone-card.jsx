@@ -151,6 +151,22 @@ const MILESTONE_CFG = {
     textColor: 'text-slate-700',
     label: { ru: 'Статус обновлён', en: 'Status updated' },
   },
+  capacity_price_inquiry: {
+    icon: Bell,
+    bg: 'bg-white',
+    border: 'border-slate-200',
+    iconColor: 'text-teal-600',
+    textColor: 'text-slate-700',
+    label: { ru: 'Запрос цены и вместимости', en: 'Price & capacity inquiry' },
+  },
+  private_special_deal_inquiry: {
+    icon: Bell,
+    bg: 'bg-white',
+    border: 'border-slate-200',
+    iconColor: 'text-teal-600',
+    textColor: 'text-slate-700',
+    label: { ru: 'Индивидуальное предложение', en: 'Private / special deal request' },
+  },
   _default: {
     icon: Bell,
     bg: 'bg-slate-50',
@@ -182,23 +198,34 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole }) {
   const Icon = cfg.icon
   const lang = language === 'en' ? 'en' : 'ru'
 
-  // Текст — берём из meta.text / meta.message / message.content / message.message
-  const bodyText =
-    meta.text ||
-    meta.message ||
-    message.content ||
-    message.message ||
-    null
+  const isInquirySystem =
+    sk === 'capacity_price_inquiry' || sk === 'private_special_deal_inquiry'
+
+  // Текст — для inquiry: локализованные поля из metadata; иначе meta.text / content
+  const bodyText = isInquirySystem
+    ? (lang === 'en' ? meta.inquiry_body_en : meta.inquiry_body_ru) ||
+      meta.text ||
+      meta.message ||
+      message.content ||
+      message.message ||
+      null
+    : meta.text ||
+      meta.message ||
+      message.content ||
+      message.message ||
+      null
 
   // Специфические данные о бронировании
   const listingTitle = meta.listing_title ? String(meta.listing_title) : null
 
-  const bookingDates = meta.check_in && meta.check_out
-    ? `${meta.check_in} — ${meta.check_out}`
-    : null
-  const price = meta.price_thb
-    ? `${Number(meta.price_thb).toLocaleString()} THB`
-    : null
+  const bookingDates =
+    !isInquirySystem && meta.check_in && meta.check_out
+      ? `${meta.check_in} — ${meta.check_out}`
+      : null
+  const price =
+    !isInquirySystem && meta.price_thb
+      ? `${Number(meta.price_thb).toLocaleString()} THB`
+      : null
 
   // Время события
   const ts = message.created_at || message.createdAt
@@ -247,7 +274,7 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole }) {
               {cfg.label[lang]}
             </p>
             {bodyText && (
-              <p className="text-sm leading-snug text-slate-700">{bodyText}</p>
+              <p className="text-sm leading-snug text-slate-700 whitespace-pre-wrap">{bodyText}</p>
             )}
             {(bookingDates || price) && (
               <div className="space-y-1 border-t border-slate-200/60 pt-2.5">

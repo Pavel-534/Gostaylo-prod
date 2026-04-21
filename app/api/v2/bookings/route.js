@@ -213,6 +213,7 @@ export async function POST(request) {
         listing: {
           title: result.booking.listing?.title ?? null,
           district: result.booking.listing?.district ?? null,
+          category_slug: result.booking.listing?.category_slug ?? null,
         },
       });
 
@@ -304,6 +305,7 @@ export async function POST(request) {
       listing: {
         title: result.booking.listing?.title ?? null,
         district: result.booking.listing?.district ?? null,
+        category_slug: result.booking.listing?.category_slug ?? null,
       },
     });
     

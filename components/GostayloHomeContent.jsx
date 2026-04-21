@@ -47,6 +47,7 @@ import { proxifyUnsplashUrl } from '@/lib/proxify-unsplash-url'
 import { toPublicImageUrl, isRemoteHttpImageSrc } from '@/lib/public-image-url'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
 import { format, isSameDay, differenceInDays } from 'date-fns'
+import { formatDisplayDate } from '@/lib/date-display-format'
 import { LISTINGS_SEARCH_API_PATH } from '@/lib/search-endpoints'
 import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
 import {
@@ -56,7 +57,6 @@ import {
   showsPropertyInteriorSpecs,
 } from '@/lib/listing-category-slug'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
-import { ru, enUS } from 'date-fns/locale'
 
 // Debounce hook
 function useDebounce(value, delay) {
@@ -379,7 +379,6 @@ export function GostayloHomeContent() {
   )
 
   const nights = dateRange.from && dateRange.to ? differenceInDays(dateRange.to, dateRange.from) : 0
-  const locale = language === 'ru' ? ru : enUS
 
   // Handle calendar date change with live count update
   const handleDateChange = useCallback((newRange) => {
@@ -496,7 +495,7 @@ export function GostayloHomeContent() {
               </h2>
               <p className='text-slate-500 text-sm'>
                 {listings.length} {language === 'ru' ? 'объектов' : 'properties'}
-                {dateRange.from && dateRange.to && <span className='text-teal-600 ml-2'>• {format(dateRange.from, 'd MMM', { locale })} — {format(dateRange.to, 'd MMM', { locale })}</span>}
+                {dateRange.from && dateRange.to && <span className='text-teal-600 ml-2'>• {formatDisplayDate(dateRange.from)} — {formatDisplayDate(dateRange.to)}</span>}
               </p>
             </div>
             {listingsLoading && <Loader2 className='h-5 w-5 animate-spin text-teal-600' />}

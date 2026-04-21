@@ -395,7 +395,8 @@ export default function UnifiedMessagesClient({ params }) {
   const handleConfirmBooking = useCallback(async () => {
     const bid = booking?.id
     if (!bid || !selectedConv?.id || bookingMutationRef.current) return
-    if (String(booking?.status || '').toUpperCase() !== 'PENDING') return
+    const st = String(booking?.status || '').toUpperCase()
+    if (st !== 'PENDING' && st !== 'INQUIRY') return
     bookingMutationRef.current = true
     const prevBooking = booking
     setBooking((b) => (b ? { ...b, status: 'CONFIRMED' } : b))
@@ -432,7 +433,8 @@ export default function UnifiedMessagesClient({ params }) {
   const confirmDecline = useCallback(async () => {
     const bid = booking?.id
     if (!bid || !selectedConv?.id || bookingMutationRef.current) return
-    if (String(booking?.status || '').toUpperCase() !== 'PENDING') return
+    const st = String(booking?.status || '').toUpperCase()
+    if (st !== 'PENDING' && st !== 'INQUIRY') return
     if (declinePreset === 'other' && !declineOtherDetail.trim()) {
       toast.error(language === 'ru' ? 'Укажите комментарий' : 'Please add details')
       return
@@ -749,7 +751,10 @@ export default function UnifiedMessagesClient({ params }) {
       searchActive={searchActive}
       onDealInfoClick={() => setDealSheetOpen(true)}
       partnerBookingActions={{
-        visible: isHosting && !!booking?.id && String(booking.status || '').toUpperCase() === 'PENDING',
+        visible:
+          isHosting &&
+          !!booking?.id &&
+          ['PENDING', 'INQUIRY'].includes(String(booking.status || '').toUpperCase()),
         loading: false,
         onConfirm: handleConfirmBooking,
         onDecline: handleDeclineBooking,

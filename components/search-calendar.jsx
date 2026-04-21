@@ -31,6 +31,7 @@ import {
   DrawerClose,
 } from "@/components/ui/drawer"
 import { Badge } from "@/components/ui/badge"
+import { formatDisplayDate } from "@/lib/date-display-format"
 
 const locales = { ru, en: enUS }
 
@@ -325,7 +326,7 @@ function MobileCalendarDrawer({
           {tempRange.from && tempRange.to && nights > 0 && (
             <div className="flex items-center gap-2 mt-2">
               <Badge variant="secondary" className="bg-teal-100 text-teal-700">
-                {format(tempRange.from, 'd MMM', { locale: loc })} — {format(tempRange.to, 'd MMM', { locale: loc })}
+                {formatDisplayDate(tempRange.from)} — {formatDisplayDate(tempRange.to)}
               </Badge>
               <Badge variant="outline" className="border-teal-300 text-teal-600">
                 {nights} {locale === 'ru' ? (nights === 1 ? 'ночь' : nights < 5 ? 'ночи' : 'ночей') : `night${nights > 1 ? 's' : ''}`}
@@ -435,13 +436,13 @@ export function SearchCalendar({
   // Display text
   const displayText = React.useMemo(() => {
     if (dateRange.from && dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
-      return `${format(dateRange.from, 'd MMM', { locale: loc })} — ${format(dateRange.to, 'd MMM', { locale: loc })}`
+      return `${formatDisplayDate(dateRange.from)} — ${formatDisplayDate(dateRange.to)}`
     }
     if (dateRange.from) {
-      return `${format(dateRange.from, 'd MMM', { locale: loc })} — ...`
+      return `${formatDisplayDate(dateRange.from)} — …`
     }
     return placeholder || (locale === 'ru' ? 'Даты' : 'Dates')
-  }, [dateRange, locale, loc, placeholder])
+  }, [dateRange, locale, placeholder])
   
   // Trigger button content
   const TriggerContent = (

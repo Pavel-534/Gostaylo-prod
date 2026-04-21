@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { getUIText } from "@/lib/translations"
 import { formatRentalSpanLabel } from "@/lib/rental-period-labels"
 import { toListingDate } from "@/lib/listing-date"
+import { formatDisplayDate } from "@/lib/date-display-format"
 import {
   Drawer,
   DrawerContent,
@@ -459,14 +460,14 @@ export function GostayloCalendar({
     if (loading && calendarData.size === 0) return getUIText('loading', language)
     if (!value?.from) return `${getUIText('checkIn', language)} — ${getUIText('checkOut', language)}`
     if (!value.to) {
-      return `${format(value.from, 'd MMM', { locale: locales[locale] })} — ...`
+      return `${formatDisplayDate(value.from)} — …`
     }
     
     const nights = differenceInDays(value.to, value.from)
     const spanMode = rentalPeriodMode === "day" ? "day" : "night"
     const nightsText = formatRentalSpanLabel(nights, spanMode, language)
 
-    return `${format(value.from, 'd MMM', { locale: locales[locale] })} — ${format(value.to, 'd MMM', { locale: locales[locale] })} (${nightsText})`
+    return `${formatDisplayDate(value.from)} — ${formatDisplayDate(value.to)} (${nightsText})`
   }, [value, locale, language, loading, rentalPeriodMode, calendarData.size])
   
   // Trigger button

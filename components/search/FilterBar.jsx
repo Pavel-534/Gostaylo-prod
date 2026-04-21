@@ -8,8 +8,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MapPin, Users, CalendarIcon, X, Layers, SlidersHorizontal } from 'lucide-react';
-import { format } from 'date-fns';
-import { ru, enUS } from 'date-fns/locale';
+import { formatDisplayDate } from '@/lib/date-display-format';
 import { getUIText, getCategoryName } from '@/lib/translations';
 import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar';
 import { SearchFiltersDialog } from '@/components/search/SearchFiltersDialog';
@@ -38,7 +37,6 @@ export function FilterBar({
   /** Лупа / Enter в строке текста: полный поиск с ИИ (если включён) */
   onSearchSubmit,
 }) {
-  const locale = language === 'ru' ? ru : enUS;
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   return (
@@ -60,7 +58,7 @@ export function FilterBar({
               {(dateRange.from && dateRange.to) && (
                 <Badge className="bg-white text-teal-700 hover:bg-white/90 flex items-center gap-2 px-3 py-1">
                   <CalendarIcon className="h-4 w-4" />
-                  {format(dateRange.from, 'd MMM', { locale })} — {format(dateRange.to, 'd MMM', { locale })}
+                  {formatDisplayDate(dateRange.from)} — {formatDisplayDate(dateRange.to)}
                   <span className="text-teal-500">({nights} {language === 'ru' ? 'н.' : 'n.'})</span>
                   <button type="button" onClick={clearDates} className="ml-1 hover:text-red-600">
                     <X className="h-3 w-3" />

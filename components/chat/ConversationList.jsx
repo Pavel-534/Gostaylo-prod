@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 import { toPublicImageUrl } from '@/lib/public-image-url'
+import { formatDisplayDate } from '@/lib/date-display-format'
 import { ChatInboxRoleTabs } from '@/components/chat-inbox-role-tabs'
 import { isFavoriteConversationId } from '@/lib/chat-inbox-favorites'
 import { useAuth } from '@/contexts/auth-context'
@@ -78,11 +79,10 @@ function DealPreviewLine({ conv, lang = 'ru' }) {
   const cin = booking?.check_in ?? booking?.checkIn
   const cout = booking?.check_out ?? booking?.checkOut
   if (!title && !cin && !cout) return null
-  const locale = lang === 'en' ? undefined : ruLocale
   let dates = ''
   try {
-    const a = cin ? format(new Date(cin), 'd MMM', { locale }) : ''
-    const b = cout ? format(new Date(cout), 'd MMM yyyy', { locale }) : ''
+    const a = cin ? formatDisplayDate(cin) : ''
+    const b = cout ? formatDisplayDate(cout) : ''
     dates = [a, b].filter(Boolean).join(' — ')
   } catch {
     dates = ''

@@ -100,7 +100,9 @@ export function ChatActionBar({
   if (isHosting) {
     if (bookingStatus === 'CANCELLED' || bookingStatus === 'REFUNDED') return null
 
-    if (bookingStatus === 'PENDING' && (onConfirm || onDecline)) {
+    const hostAwaitingDecision = bookingStatus === 'PENDING' || bookingStatus === 'INQUIRY'
+
+    if (hostAwaitingDecision && (onConfirm || onDecline)) {
       return (
         <div
           className={`${barShell} flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:hidden`}

@@ -35,6 +35,7 @@
 
 import Link from 'next/link'
 import { Check, CreditCard, Images, Info, LifeBuoy, Loader2, MoreHorizontal, Search, X } from 'lucide-react'
+import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -107,7 +108,7 @@ export function ChatHeaderActions({
           >
             <>
               <Check className="h-3.5 w-3.5 mr-1" />
-              Confirm Booking
+              {getUIText('chatHeader_confirmBooking', language)}
             </>
           </Button>
           <Button
@@ -119,7 +120,7 @@ export function ChatHeaderActions({
             onClick={partnerBookingActions.onDecline}
           >
             <X className="h-3.5 w-3.5 mr-1" />
-            Decline
+            {getUIText('chatHeader_declineBooking', language)}
           </Button>
         </div>
       ) : null}
