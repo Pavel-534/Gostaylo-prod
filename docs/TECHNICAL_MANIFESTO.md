@@ -148,6 +148,7 @@
 ## 2. Календари и доступность
 
 - **Истина:** **`calendar_blocks`** + **`lib/services/calendar.service.js`**.
+- **Транспорт (`categories.slug === 'vehicles'`):** занятость по ночам **бинарная** (одна единица техники на дату), а не сумма **`guests_count`** по конкурирующим броням. Иначе «1 пассажир» в другой заявке «съедает» половину **`max_capacity`**, и партнёр не может подтвердить inquiry на 2 человек при **`BookingService.verifyInventoryBeforePartnerConfirm`**. Для остальных категорий по-прежнему суммируются гости (общий инвентарь: туры, shared yacht и т.д.); жильё/whole-yacht с **`max_capacity ≤ 1`** — как одна единица на ночь (**`buildCalendar`** / **`checkAvailability`**).
 - **iCal → блоки:** **`lib/services/ical-calendar-blocks-sync.js`**. Вызовы: **`/api/cron/ical-sync`**, **`/api/ical/sync`**, **`/api/v2/admin/ical`**. Логи: **`ical_sync_logs`**. Экспорт `.ics`: **`/api/v2/listings/[id]/ical`**.
 - **Надёжность импорта:** при ошибке **fetch/parse/insert** существующие блоки источника **не затираются** (вставка новых строк выполняется до удаления старых; при сбое удаления — откат вставленных id). Ошибки синхронизации в cron агрегируются и уходят в **системный Telegram** (**`notifySystemAlert`** в **`app/api/cron/ical-sync/route.js`** при **`errors > 0`**).
 - **День листинга:** **`Asia/Bangkok`** — **`lib/listing-date.js`**. All-day iCal: **`lib/ical-all-day-range.js`**.
