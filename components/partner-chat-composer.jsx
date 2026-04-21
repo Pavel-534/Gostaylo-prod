@@ -91,11 +91,11 @@ export function PartnerChatComposer({
           type="button"
           variant="outline"
           size="icon"
-          className="h-12 w-12 shrink-0 rounded-2xl border-slate-200 bg-white"
+          className="h-10 w-10 shrink-0 rounded-2xl border-slate-200 bg-white sm:h-11 sm:w-11"
           aria-label={isRu ? 'Вложения и действия' : 'Attachments & actions'}
           disabled={disabled}
         >
-          <Plus className="h-6 w-6" />
+          <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
@@ -158,12 +158,12 @@ export function PartnerChatComposer({
         type="button"
         variant="outline"
         size="icon"
-        className="h-12 w-12 shrink-0 rounded-2xl border-slate-200 bg-white"
+        className="h-10 w-10 shrink-0 rounded-2xl border-slate-200 bg-white sm:h-11 sm:w-11"
         disabled={disabled || attachBusy}
         aria-label={isRu ? 'Прикрепить файл' : 'Attach file'}
         onClick={() => fileRef.current?.click()}
       >
-        {attachBusy ? <Loader2 className="h-6 w-6 animate-spin" /> : <Paperclip className="h-6 w-6" />}
+        {attachBusy ? <Loader2 className="h-5 w-5 animate-spin sm:h-6 sm:w-6" /> : <Paperclip className="h-5 w-5 sm:h-6 sm:w-6" />}
       </Button>
     ) : null
 
@@ -179,7 +179,7 @@ export function PartnerChatComposer({
 
       <form
         onSubmit={onSubmit}
-        className="flex w-full min-w-0 items-center gap-2"
+        className="flex w-full min-w-0 items-end gap-1.5 sm:items-center sm:gap-2"
       >
         {/* Капсула (+), ⚡, поле, микрофон; Popover быстрых ответов привязан к капсуле (PopoverAnchor) — стабильнее при клавиатуре */}
         {showHostPlusMenu ? (
@@ -187,7 +187,7 @@ export function PartnerChatComposer({
             <PopoverAnchor asChild>
               <div
                 className={cn(
-                  'flex min-w-0 flex-1 items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-50 px-1 py-1 shadow-sm sm:gap-2 sm:px-1.5',
+                  'flex min-w-0 flex-1 items-end gap-1 rounded-2xl border border-slate-200 bg-slate-50 px-1 py-0.5 shadow-sm sm:items-center sm:gap-2 sm:px-1.5 sm:py-1',
                   voiceActive && 'border-teal-200/80 bg-teal-50/40',
                 )}
               >
@@ -197,12 +197,12 @@ export function PartnerChatComposer({
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="h-12 w-12 shrink-0 rounded-2xl border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    className="h-10 w-10 shrink-0 rounded-2xl border-slate-200 bg-white text-slate-600 hover:bg-slate-50 sm:h-11 sm:w-11"
                     aria-label={isRu ? 'Быстрые ответы' : 'Quick replies'}
                     disabled={disabled}
                     title={isRu ? 'Быстрые ответы' : 'Quick replies'}
                   >
-                    <Zap className="h-5 w-5" />
+                    <Zap className="h-4 w-4 sm:h-5 sm:w-5" />
                   </Button>
                 </PopoverTrigger>
                 {!voiceActive ? (
@@ -212,8 +212,9 @@ export function PartnerChatComposer({
                       onChange={onMessageChange}
                       placeholder={getUIText('chatComposerPlaceholder', language)}
                       disabled={sending || disabled}
-                      minHeightPx={44}
-                      className="min-h-[44px] border-0 bg-transparent py-3 text-[15px] leading-normal shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:text-sm"
+                      minHeightPx={36}
+                      maxHeightPx={120}
+                      className="min-h-[36px] border-0 bg-transparent py-2 text-[15px] leading-normal shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:min-h-[40px] sm:py-2.5 sm:text-sm"
                     />
                   </div>
                 ) : null}
@@ -253,7 +254,7 @@ export function PartnerChatComposer({
         ) : (
           <div
             className={cn(
-              'flex min-w-0 flex-1 items-center gap-1.5 rounded-2xl border border-slate-200 bg-slate-50 px-1 py-1 shadow-sm sm:gap-2 sm:px-1.5',
+              'flex min-w-0 flex-1 items-end gap-1 rounded-2xl border border-slate-200 bg-slate-50 px-1 py-0.5 shadow-sm sm:items-center sm:gap-2 sm:px-1.5 sm:py-1',
               voiceActive && 'border-teal-200/80 bg-teal-50/40',
             )}
           >
@@ -265,8 +266,9 @@ export function PartnerChatComposer({
                   onChange={onMessageChange}
                   placeholder={getUIText('chatComposerPlaceholder', language)}
                   disabled={sending || disabled}
-                  minHeightPx={44}
-                  className="min-h-[44px] border-0 bg-transparent py-3 text-[15px] leading-normal shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:text-sm"
+                  minHeightPx={36}
+                  maxHeightPx={120}
+                  className="min-h-[36px] border-0 bg-transparent py-2 text-[15px] leading-normal shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:min-h-[40px] sm:py-2.5 sm:text-sm"
                 />
               </div>
             ) : null}
@@ -287,9 +289,9 @@ export function PartnerChatComposer({
           <Button
             type="submit"
             disabled={!newMessage.trim() || sending || disabled}
-            className="h-12 w-12 min-h-[48px] min-w-[48px] shrink-0 rounded-2xl bg-teal-600 hover:bg-teal-700 sm:h-11 sm:w-auto sm:min-h-0 sm:min-w-0 sm:px-4"
+            className="h-10 w-10 min-h-0 min-w-0 shrink-0 self-end rounded-2xl bg-teal-600 hover:bg-teal-700 sm:h-11 sm:w-auto sm:self-center sm:px-4"
           >
-            {sending ? <Loader2 className="h-5 w-5 animate-spin sm:h-4 sm:w-4" /> : <Send className="h-5 w-5 sm:h-4 sm:w-4" />}
+            {sending ? <Loader2 className="h-4 w-4 animate-spin sm:h-4 sm:w-4" /> : <Send className="h-4 w-4 sm:h-4 sm:w-4" />}
           </Button>
         ) : null}
       </form>

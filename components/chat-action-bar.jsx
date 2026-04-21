@@ -12,19 +12,25 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, XCircle, Receipt, CreditCard } from 'lucide-react'
+import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
 
 const T = {
-  confirm: { ru: '✅ Подтвердить', en: '✅ Confirm' },
-  decline: { ru: '❌ Отклонить', en: '❌ Decline' },
+  confirm: { ru: 'Подтвердить', en: 'Confirm' },
+  decline: { ru: 'Отклонить', en: 'Decline' },
   invoice: { ru: '📄 Счёт', en: '📄 Invoice' },
   pay: { ru: '💳 Оплатить', en: '💳 Pay now' },
   awaitPay: { ru: '⏳ Ожидаем оплату', en: '⏳ Awaiting payment' },
 }
-const t = (key, lang) => T[key]?.[lang === 'en' ? 'en' : 'ru'] ?? ''
+const t = (key, lang) =>
+  key === 'confirm'
+    ? getUIText('chatHeader_confirmBooking', lang)
+    : key === 'decline'
+      ? getUIText('chatHeader_declineBooking', lang)
+      : T[key]?.[lang === 'en' ? 'en' : 'ru'] ?? ''
 
 const barShell =
-  'shrink-0 border-t border-slate-200 bg-white px-4 py-3 sm:px-5 shadow-[0_-4px_24px_-8px_rgba(15,23,42,0.06)]'
+  'shrink-0 border-t border-slate-200 bg-white px-3 py-2 sm:px-5 sm:py-3 shadow-[0_-4px_24px_-8px_rgba(15,23,42,0.06)]'
 
 const tactile = 'transition-[opacity,transform] duration-100 ease-out active:opacity-70 active:scale-[0.98]'
 
@@ -41,6 +47,8 @@ export function ChatActionBar({
   isHosting = false,
   isTraveling = false,
   booking = null,
+  /** INQUIRY: кнопки в карточке системного сообщения на мобилке — нижнюю панель не дублируем */
+  suppressMobileHostBar = false,
   payNowHref = null,
   /** Сразу скрыть панель гостя после нажатия «Оплатить» (оптимистичный UI). */
   suppressTravelPayBar = false,
@@ -102,15 +110,19 @@ export function ChatActionBar({
 
     const hostAwaitingDecision = bookingStatus === 'PENDING' || bookingStatus === 'INQUIRY'
 
+    if (suppressMobileHostBar && hostAwaitingDecision) {
+      return null
+    }
+
     if (hostAwaitingDecision && (onConfirm || onDecline)) {
       return (
         <div
-          className={`${barShell} flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:hidden`}
+          className={`${barShell} flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 lg:hidden`}
         >
-          <span className="text-sm font-semibold leading-snug text-slate-800 sm:min-w-0 sm:flex-1">
+          <span className="hidden text-xs font-medium leading-snug text-slate-600 sm:block sm:min-w-0 sm:flex-1 sm:text-sm sm:font-semibold sm:text-slate-800">
             {language === 'en' ? 'New booking request' : 'Новый запрос на бронирование'}
           </span>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end">
+          <div className="flex w-full flex-row gap-2 sm:justify-end">
             {onDecline && (
               <Button
                 type="button"
@@ -124,12 +136,12 @@ export function ChatActionBar({
                 onPointerCancel={() => setPressDecline(false)}
                 onPointerLeave={() => setPressDecline(false)}
                 className={cn(
-                  'h-12 min-h-[48px] w-full gap-2 rounded-2xl border border-slate-200 bg-white text-base font-bold text-slate-700 hover:bg-slate-50 sm:w-auto sm:min-w-[10rem]',
+                  'h-10 min-h-0 flex-1 gap-1.5 rounded-xl border border-slate-200 bg-white px-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:h-11 sm:min-h-[44px] sm:flex-initial sm:rounded-2xl sm:px-4 sm:text-base',
                   tactile,
                   pressDecline && 'opacity-70 scale-[0.98]',
                 )}
               >
-                <XCircle className="h-5 w-5" />
+                <XCircle className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
                 {t('decline', language)}
               </Button>
             )}
@@ -145,12 +157,12 @@ export function ChatActionBar({
                 onPointerCancel={() => setPressConfirm(false)}
                 onPointerLeave={() => setPressConfirm(false)}
                 className={cn(
-                  'h-12 min-h-[48px] w-full gap-2 rounded-2xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700 sm:w-auto sm:min-w-[10rem]',
+                  'h-10 min-h-0 flex-1 gap-1.5 rounded-xl bg-teal-600 px-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 sm:h-11 sm:min-h-[44px] sm:flex-initial sm:rounded-2xl sm:px-4 sm:text-base',
                   tactile,
                   pressConfirm && 'opacity-70 scale-[0.98]',
                 )}
               >
-                <CheckCircle2 className="h-5 w-5" />
+                <CheckCircle2 className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
                 {t('confirm', language)}
               </Button>
             )}

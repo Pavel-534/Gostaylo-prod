@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 3.6.4 | **Last Updated**: 2026-04-20 | **Status**: Production-Ready
+> **Version**: 3.6.5 | **Last Updated**: 2026-04-21 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -30,6 +30,7 @@
 - **API:** **`GET /api/v2/admin/health`** — только **`profiles.role === 'ADMIN'`** или email из **`ADMIN_HEALTH_EMAILS`** (см. **`lib/admin-health-access.js`**); данные через **`supabaseAdmin`**.
 - **Chat reliability (mobile/web):** глобальный presence трекинг через **`PresenceProvider`** (`app/layout.js`, канал `gostaylo-site-presence:v1`) и устойчивый badge unread из **`ChatContext`** (`GET /api/v2/chat/conversations?archived=all&enrich=1&limit=100`; события `messages` по Realtime проходят RLS, без ложного отбрасывания до синхронизации локального списка — см. v2.1.9 в манифесте).
 - **Messenger-grade v2.1.9:** как v2.1.8, плюс **единый ref-counted канал `typing:global:v1`** (`lib/chat/typing-global-channel.js`) для инбокса и треда; dev-подсказки при обрыве Realtime — **`lib/chat/realtime-dev-warn.js`** + опция **`channelLabel`** в **`subscribeRealtimeWithBackoff`**.
+- **Тред сообщений (хост, мобилка):** единый клиент **`app/messages/[id]/UnifiedMessagesClient.jsx`**. Решение по заявке (**PENDING** / **INQUIRY**): на **`lg+`** — компактные кнопки в **`ChatHeaderActions`**; на узкой ширине — под **`ChatMilestoneCard`** (**`partnerInquiryActions`**, см. **`components/chat-milestone-card.jsx`**) при **`suppressMobileHostBar`** у **`ChatActionBar`**, чтобы не дублировать нижнюю полосу. Канонические детали inquiry (TZ-якорь дат, формулировка party size по категории) — в **`docs/TECHNICAL_MANIFESTO.md`** (§5).
 
 ### 0.04 Card / acquiring webhook (Mandarin, YooKassa-совместимо)
 - **Route:** `POST /api/webhooks/payments/confirm` — секрет **`PAYMENT_ACQUIRING_WEBHOOK_SECRET`**; подпись **`X-Webhook-Signature`** = **hex** от **HMAC-SHA256(raw UTF-8 body, secret)**.

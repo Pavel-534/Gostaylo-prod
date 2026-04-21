@@ -11,7 +11,9 @@
  */
 
 import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { getUIText } from '@/lib/translations'
 import {
   CheckCircle2,
   XCircle,
@@ -190,8 +192,9 @@ function getConfig(systemKey, meta, lang) {
  * @param {object} message — объект сообщения из ленты
  * @param {string} language — 'ru' | 'en'
  * @param {string} [userRole] — 'renter' | 'partner' — для CTA кнопки отзыва
+ * @param {{ onConfirm?: () => void, onDecline?: () => void, loading?: boolean } | null} [partnerInquiryActions] — мобилка: подтвердить/отклонить под inquiry
  */
-export function ChatMilestoneCard({ message, language = 'ru', userRole }) {
+export function ChatMilestoneCard({ message, language = 'ru', userRole, partnerInquiryActions = null }) {
   const meta = message.metadata || {}
   const sk = meta.system_key
   const cfg = getConfig(sk, meta, language)
@@ -200,6 +203,10 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole }) {
 
   const isInquirySystem =
     sk === 'capacity_price_inquiry' || sk === 'private_special_deal_inquiry'
+
+  /** Карточка «новое бронирование» (PENDING) — те же действия, что и для inquiry */
+  const showMilestoneHostDecision =
+    isInquirySystem || sk === 'booking_created'
 
   // Текст — для inquiry: локализованные поля из metadata; иначе meta.text / content
   const bodyText = isInquirySystem
@@ -291,6 +298,33 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole }) {
             )}
           </div>
         </div>
+
+        {showMilestoneHostDecision &&
+        userRole === 'partner' &&
+        partnerInquiryActions?.onConfirm &&
+        partnerInquiryActions?.onDecline && (
+          <div className="flex gap-2 border-t border-slate-200 pt-3 lg:hidden">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={partnerInquiryActions.loading}
+              className="h-9 min-h-0 flex-1 rounded-xl border-slate-200 text-xs font-semibold"
+              onClick={partnerInquiryActions.onDecline}
+            >
+              {getUIText('chatHeader_declineBooking', language)}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={partnerInquiryActions.loading}
+              className="h-9 min-h-0 flex-1 rounded-xl bg-teal-600 text-xs font-semibold text-white hover:bg-teal-700"
+              onClick={partnerInquiryActions.onConfirm}
+            >
+              {getUIText('chatHeader_confirmBooking', language)}
+            </Button>
+          </div>
+        )}
 
         {showReviewCta && (
           <div className="border-t border-slate-200 pt-3">

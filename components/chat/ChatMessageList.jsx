@@ -88,6 +88,7 @@ function MessageItem({
   booking,
   listing,
   staffThread = false,
+  partnerInquiryActions = null,
 }) {
   // ── Группа изображений (коллаж) ────────────────────────────────────────────
   if (item._imageGroup) {
@@ -174,7 +175,12 @@ function MessageItem({
       : null
     return (
       <>
-        <ChatMilestoneCard message={msg} language={language} userRole={userRole} />
+        <ChatMilestoneCard
+          message={msg}
+          language={language}
+          userRole={userRole}
+          partnerInquiryActions={partnerInquiryActions}
+        />
         {transportHref ? (
           <div className="mt-1 flex w-full justify-center px-4 sm:px-5">
             <ChatTransportUpsell href={transportHref} language={language} />
@@ -281,6 +287,7 @@ export function ChatMessageList({
   booking,
   listing,
   staffThread = false,
+  partnerInquiryActions = null,
   className,
 }) {
   const bottomRef = useRef(null)
@@ -343,6 +350,7 @@ export function ChatMessageList({
                 booking={booking}
                 listing={listing}
                 staffThread={staffThread}
+                partnerInquiryActions={partnerInquiryActions}
               />
             </div>
           </Fragment>

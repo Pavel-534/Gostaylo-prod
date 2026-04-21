@@ -473,6 +473,18 @@ export default function UnifiedMessagesClient({ params }) {
     }
   }, [booking, selectedConv?.id, declinePreset, declineOtherDetail, setBooking, inbox, reloadThread, language])
 
+  /** Мобилка: Подтвердить/Отклонить в карточке системного сообщения — нижнюю панель не дублируем */
+  const partnerInquiryActionsForMilestone = useMemo(() => {
+    if (!isHosting || !booking?.id) return null
+    const st = String(booking.status || '').toUpperCase()
+    if (st !== 'PENDING' && st !== 'INQUIRY') return null
+    return {
+      onConfirm: handleConfirmBooking,
+      onDecline: handleDeclineBooking,
+      loading: false,
+    }
+  }, [isHosting, booking?.id, booking?.status, handleConfirmBooking, handleDeclineBooking])
+
   // ── Send handlers ────────────────────────────────────────────────────────────
   const handleSendText = useCallback(async (e) => {
     e?.preventDefault()
@@ -786,6 +798,7 @@ export default function UnifiedMessagesClient({ params }) {
       booking={booking}
       payNowHref={payNowHref}
       suppressTravelPayBar={payBarSuppressed}
+      suppressMobileHostBar={Boolean(partnerInquiryActionsForMilestone)}
       onPayNowClick={() => setPayBarSuppressed(true)}
       onConfirm={isHosting ? handleConfirmBooking : undefined}
       onDecline={isHosting ? handleDeclineBooking : undefined}
@@ -823,6 +836,7 @@ export default function UnifiedMessagesClient({ params }) {
             userRole={isHosting ? 'partner' : 'renter'}
             booking={booking}
             listing={listing}
+            partnerInquiryActions={partnerInquiryActionsForMilestone}
             onInvoiceCancelled={(msgId) => {
               setMessages((prev) => prev.map((m) =>
                 m.id === msgId
@@ -869,18 +883,18 @@ export default function UnifiedMessagesClient({ params }) {
           if (f) void handleAttachFile(f)
         }}
       />
-      <form onSubmit={handleSendText} className="flex w-full min-w-0 items-center gap-1.5 sm:gap-2">
+      <form onSubmit={handleSendText} className="flex w-full min-w-0 items-end gap-1.5 sm:items-center sm:gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               type="button"
               variant="outline"
               size="icon"
-              className="h-12 w-12 shrink-0 rounded-2xl border-slate-200 bg-white"
+              className="h-10 w-10 shrink-0 rounded-2xl border-slate-200 bg-white sm:h-11 sm:w-11"
               disabled={sending}
               aria-label={language === 'ru' ? 'Вложения' : 'Attachments'}
             >
-              <Plus className="h-6 w-6" />
+              <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
@@ -929,15 +943,15 @@ export default function UnifiedMessagesClient({ params }) {
           </div>
         ) : (
           <>
-            <div className="flex min-w-0 flex-1 items-center">
+            <div className="flex min-w-0 flex-1 items-end">
               <ChatGrowingTextarea
                 value={newMessage}
                 onChange={(v) => { setNewMessage(v); broadcastTyping() }}
-                onBlur={() => broadcastTypingStop()}
                 placeholder={getUIText('chatComposerPlaceholder', language)}
                 disabled={sending}
-                minHeightPx={44}
-                className="min-h-[44px] py-3 text-[15px] leading-normal sm:text-sm"
+                minHeightPx={36}
+                maxHeightPx={120}
+                className="min-h-[36px] py-2 text-[15px] leading-normal sm:min-h-[40px] sm:py-2.5 sm:text-sm"
               />
             </div>
             {!newMessage.trim() && (
@@ -945,20 +959,20 @@ export default function UnifiedMessagesClient({ params }) {
                 type="button"
                 variant="outline"
                 size="icon"
-                className="h-12 w-12 shrink-0 rounded-2xl border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                className="h-10 w-10 shrink-0 self-end rounded-2xl border-slate-200 bg-white text-slate-600 hover:bg-slate-50 sm:h-11 sm:w-11 sm:self-center"
                 disabled={sending}
                 onClick={startVoice}
                 title={language === 'ru' ? 'Голосовое сообщение' : 'Voice message'}
               >
-                <Mic className="h-5 w-5" />
+                <Mic className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             )}
             <Button
               type="submit"
               disabled={!newMessage.trim() || sending}
-              className="h-12 w-12 min-h-[48px] min-w-[48px] shrink-0 rounded-2xl bg-teal-600 hover:bg-teal-700 sm:h-10 sm:w-auto sm:min-h-0 sm:min-w-0 sm:px-4"
+              className="h-10 w-10 min-h-0 min-w-0 shrink-0 self-end rounded-2xl bg-teal-600 hover:bg-teal-700 sm:h-10 sm:w-auto sm:self-center sm:px-4"
             >
-              {sending ? <Loader2 className="h-5 w-5 animate-spin sm:h-4 sm:w-4" /> : <Send className="h-5 w-5 sm:h-4 sm:w-4" />}
+              {sending ? <Loader2 className="h-4 w-4 animate-spin sm:h-4 sm:w-4" /> : <Send className="h-4 w-4 sm:h-4 sm:w-4" />}
             </Button>
           </>
         )}
