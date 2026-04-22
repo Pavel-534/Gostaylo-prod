@@ -348,7 +348,7 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
   - Dates, Total Price, Commission Rate, Partner's Net Income
   - Guest's special_requests message
   - Inline buttons: [✅ Подтвердить] [❌ Отклонить]
-- **Callback Handler:** `/api/telegram/booking-callback` processes Approve/Decline
+- **Callback Handler:** `/api/webhooks/telegram` → `callbacks.js` processes Approve/Decline (legacy `/api/telegram/booking-callback` removed)
 
 ### 13. Admin Moderation Fix (2026-03-11)
 - **Bug Fixed:** Pending listings now appear in moderation (was using client-side service key)

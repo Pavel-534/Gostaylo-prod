@@ -13,8 +13,8 @@
 
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,7 +25,7 @@ import { ProxiedImage } from '@/components/proxied-image'
 import { 
   Calendar, MapPin, Loader2, ArrowLeft, 
   CreditCard, Clock, CheckCircle, XCircle,
-  AlertCircle, Home, Star
+  AlertCircle, Home, Star, MessageSquare
 } from 'lucide-react'
 import { format, parseISO, isPast, isFuture } from 'date-fns'
 import { listingDateToday } from '@/lib/listing-date'
@@ -40,6 +40,23 @@ import { CancelBookingDialog } from '@/components/renter/cancel-booking-dialog'
 
 function canRenterCancelBooking(status) {
   return !['CANCELLED', 'COMPLETED', 'REFUNDED', 'DECLINED'].includes(String(status || '').toUpperCase())
+}
+
+/** Вкладка списка, где видна бронь (для ?booking= из Telegram / push). */
+function tabForBookingDeepLink(b) {
+  if (!b) return 'all'
+  if (['CANCELLED', 'DECLINED'].includes(b.status)) return 'cancelled'
+  const checkOut = b.check_out ? parseISO(b.check_out) : null
+  if ((checkOut && isPast(checkOut)) || b.status === 'COMPLETED') return 'past'
+  const checkIn = b.check_in ? parseISO(b.check_in) : null
+  if (
+    checkIn &&
+    isFuture(checkIn) &&
+    ['CONFIRMED', 'AWAITING_PAYMENT', 'PAID', 'PAID_ESCROW', 'CHECKED_IN', 'THAWED'].includes(b.status)
+  ) {
+    return 'upcoming'
+  }
+  return 'all'
 }
 
 // Fetch renter bookings
@@ -239,8 +256,14 @@ function BookingCard({ booking, onReviewClick, onCancelClick, language }) {
     return null
   }
   
+  const chatLabel = getUIText('bookingCard_openChat', language)
+  const convId = booking.conversation_id || booking.conversationId
+
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+    <Card
+      className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+      data-booking-card={booking.id}
+    >
       <div className="flex flex-col sm:flex-row">
         {/* Image */}
         <div 
@@ -293,6 +316,14 @@ function BookingCard({ booking, onReviewClick, onCancelClick, language }) {
               </p>
             </div>
             <div className="flex flex-wrap gap-2 justify-end">
+              {convId && (
+                <Button type="button" variant="outline" className="border-teal-200 text-teal-800 hover:bg-teal-50" asChild>
+                  <Link href={`/messages/${encodeURIComponent(convId)}`} onClick={(e) => e.stopPropagation()}>
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    {chatLabel}
+                  </Link>
+                </Button>
+              )}
               {canRenterCancelBooking(booking.status) && (
                 <Button
                   type="button"
@@ -327,6 +358,9 @@ function BookingCard({ booking, onReviewClick, onCancelClick, language }) {
 
 export default function RenterBookingsPage() {
   const { language } = useI18n()
+  const searchParams = useSearchParams()
+  const deepTabDone = useRef(false)
+  const deepScrollDone = useRef(false)
   const [userId, setUserId] = useState(null)
   const [activeTab, setActiveTab] = useState('all')
   const queryClient = useQueryClient()
@@ -365,7 +399,7 @@ export default function RenterBookingsPage() {
   // Filter bookings by tab
   const filteredBookings = useMemo(() => {
     if (activeTab === 'all') return bookings
-    
+
     if (activeTab === 'upcoming') {
       return bookings.filter(b => {
         const checkIn = b.check_in ? parseISO(b.check_in) : null
@@ -390,7 +424,38 @@ export default function RenterBookingsPage() {
     
     return bookings
   }, [bookings, activeTab])
-  
+
+  useEffect(() => {
+    const tid = searchParams.get('booking')
+    if (!tid || deepTabDone.current || !bookings?.length) return
+    const b = bookings.find((x) => String(x.id) === String(tid))
+    if (!b) {
+      deepTabDone.current = true
+      deepScrollDone.current = true
+      return
+    }
+    deepTabDone.current = true
+    setActiveTab(tabForBookingDeepLink(b))
+  }, [bookings, searchParams])
+
+  useEffect(() => {
+    const tid = searchParams.get('booking')
+    if (!tid || deepScrollDone.current) return
+    const shown = filteredBookings.some((x) => String(x.id) === String(tid))
+    if (!shown) return
+    deepScrollDone.current = true
+    const tmr = window.setTimeout(() => {
+      const safe = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(tid) : tid.replace(/"/g, '')
+      const el = document.querySelector(`[data-booking-card="${safe}"]`)
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el?.classList.add('ring-2', 'ring-teal-500', 'ring-offset-2', 'rounded-xl')
+      window.setTimeout(() => {
+        el?.classList.remove('ring-2', 'ring-teal-500', 'ring-offset-2', 'rounded-xl')
+      }, 4000)
+    }, 200)
+    return () => window.clearTimeout(tmr)
+  }, [filteredBookings, searchParams])
+
   // Count badges
   const counts = useMemo(() => {
     return {

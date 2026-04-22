@@ -191,10 +191,13 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: marked.error || 'intent_mark_failed' }, { status: 500 })
     }
 
+    const captureGuestTotalThb = Number(intent.amountThb)
     const escrow = await EscrowService.moveToEscrow(bookingId, {
       txId: txid,
       gatewayRef: verification?.data?.blockNumber ? String(verification.data.blockNumber) : null,
       source: 'crypto_webhook_intent',
+      captureGuestTotalThb:
+        Number.isFinite(captureGuestTotalThb) && captureGuestTotalThb > 0 ? captureGuestTotalThb : undefined,
     })
     if (!escrow?.success) {
       return NextResponse.json({ success: false, error: escrow?.error || 'escrow_failed' }, { status: 502 })

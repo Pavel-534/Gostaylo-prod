@@ -9,7 +9,8 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -97,6 +98,8 @@ function bookingStatusLabel(status, lang) {
 
 export default function PartnerBookings() {
   const { language } = useI18n()
+  const searchParams = useSearchParams()
+  const deepLinkHandled = useRef(false)
   const { user, loading: authLoading, isAuthenticated } = useAuth()
   const [filter, setFilter] = useState('all')
   const [rejectDialog, setRejectDialog] = useState({ open: false, bookingId: null })
@@ -136,6 +139,36 @@ export default function PartnerBookings() {
   // Extract bookings and meta from query response
   const bookings = data?.bookings || []
   const totalBookings = data?.total || 0
+
+  const forcedAllForDeepLink = useRef(false)
+  useEffect(() => {
+    const tid = searchParams.get('booking')
+    if (!tid || forcedAllForDeepLink.current) return
+    forcedAllForDeepLink.current = true
+    setFilter('all')
+  }, [searchParams])
+
+  // ?booking=id — скролл к карточке после загрузки списка (фильтр «все»)
+  useEffect(() => {
+    const tid = searchParams.get('booking')
+    if (!tid || deepLinkHandled.current || !bookings?.length) return
+    const exists = bookings.some((b) => String(b.id) === String(tid))
+    if (!exists) {
+      deepLinkHandled.current = true
+      return
+    }
+    deepLinkHandled.current = true
+    const tmr = window.setTimeout(() => {
+      const safe = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(tid) : tid.replace(/"/g, '')
+      const el = document.querySelector(`[data-booking-card="${safe}"]`)
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el?.classList.add('ring-2', 'ring-teal-500', 'ring-offset-2', 'rounded-xl')
+      window.setTimeout(() => {
+        el?.classList.remove('ring-2', 'ring-teal-500', 'ring-offset-2', 'rounded-xl')
+      }, 4000)
+    }, 200)
+    return () => window.clearTimeout(tmr)
+  }, [bookings, searchParams])
 
   // Calculate stats from bookings
   const stats = {
@@ -371,6 +404,7 @@ export default function PartnerBookings() {
                 key={booking.id} 
                 className="overflow-hidden hover:shadow-md transition-shadow"
                 data-testid={`booking-card-${booking.id}`}
+                data-booking-card={booking.id}
               >
                 <CardContent className="p-0">
                   {/* Mobile Layout */}
@@ -495,7 +529,19 @@ export default function PartnerBookings() {
                     </div>
                     
                     {/* Action Buttons */}
-                    <div className="flex gap-2 mt-3">
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {booking.conversationId && (
+                        <Button
+                          asChild
+                          variant="outline"
+                          className="flex-1 min-w-[140px] border-teal-200 text-teal-800 hover:bg-teal-50"
+                        >
+                          <Link href={`/messages/${encodeURIComponent(booking.conversationId)}`}>
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            {getUIText('bookingCard_openChat', language)}
+                          </Link>
+                        </Button>
+                      )}
                       {booking.status === 'PENDING' && (
                         <>
                           <Button

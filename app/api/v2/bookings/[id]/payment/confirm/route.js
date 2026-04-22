@@ -95,10 +95,30 @@ export async function POST(request, { params }) {
       console.error('[PAYMENT CONFIRM] settlement snapshot attach', e);
     }
 
+    let captureGuestTotalThb;
+    if (effectiveIntentId) {
+      const ir = await PaymentIntentService.getById(effectiveIntentId);
+      if (ir.success && ir.intent && String(ir.intent.bookingId) === String(bookingId)) {
+        const n = Number(ir.intent.amountThb);
+        if (Number.isFinite(n) && n > 0) captureGuestTotalThb = n;
+      }
+    }
+    if (captureGuestTotalThb == null) {
+      const active = await PaymentIntentService.findActiveByBookingOrInvoice({
+        bookingId,
+        invoiceId: invoiceId || null,
+      });
+      if (active.success && active.intent && String(active.intent.bookingId) === String(bookingId)) {
+        const n = Number(active.intent.amountThb);
+        if (Number.isFinite(n) && n > 0) captureGuestTotalThb = n;
+      }
+    }
+
     const escrow = await EscrowService.moveToEscrow(bookingId, {
       txId: txId || null,
       gatewayRef: gatewayRef || null,
       source: 'payment_confirm',
+      captureGuestTotalThb,
     });
 
     if (!escrow?.success) {

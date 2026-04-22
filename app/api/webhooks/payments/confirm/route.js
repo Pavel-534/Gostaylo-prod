@@ -49,7 +49,22 @@ function parsePayload(json, adapterKey) {
   return { bookingId, paymentId, intentId, amount, currency, gatewayRef, normalizedStatus };
 }
 
-async function resolveExpectedGuestTotalThb(booking) {
+/** YooKassa-style nested object.metadata must include both booking and intent ids (our adapters always send them). */
+function assertGatewayObjectMetadata(json) {
+  const md = json?.object?.metadata;
+  if (!md || typeof md !== 'object' || Array.isArray(md)) return { ok: true };
+  const bid = md.booking_id || md.bookingId;
+  const pid = md.payment_intent_id || md.paymentIntentId;
+  if (!bid || !pid) {
+    return {
+      ok: false,
+      error: 'Gateway payment requires object.metadata.booking_id and object.metadata.payment_intent_id',
+    };
+  }
+  return { ok: true };
+}
+
+async function resolveExpectedGuestTotalThbFromBooking(booking) {
   const gross = parseFloat(booking.price_thb) || 0;
   const fee = parseFloat(booking.commission_thb) || 0;
   const pot = parseFloat(booking.rounding_diff_pot) || 0;
@@ -59,6 +74,30 @@ async function resolveExpectedGuestTotalThb(booking) {
     return Math.round(pp * ex * 100) / 100;
   }
   return Math.round((gross + fee + pot) * 100) / 100;
+}
+
+/**
+ * Resolve Payment Intent for amount verification (and later markPaid).
+ * If client sent explicit pi-* / intent id, it must exist and belong to bookingId.
+ */
+async function resolvePaymentIntentForWebhook({ bookingId, intentIdFromPayload, paymentIdFromPayload }) {
+  const explicitId =
+    intentIdFromPayload ||
+    (paymentIdFromPayload && String(paymentIdFromPayload).startsWith('pi-') ? paymentIdFromPayload : null);
+
+  if (explicitId) {
+    const r = await PaymentIntentService.getById(explicitId);
+    if (!r.success || !r.intent || String(r.intent.bookingId) !== String(bookingId)) {
+      return { intent: null, error: 'INTENT_NOT_FOUND_OR_BOOKING_MISMATCH' };
+    }
+    return { intent: r.intent, error: null };
+  }
+
+  const r2 = await PaymentIntentService.findActiveByBookingOrInvoice({ bookingId });
+  if (r2.success && r2.intent && String(r2.intent.bookingId) === String(bookingId)) {
+    return { intent: r2.intent, error: null };
+  }
+  return { intent: null, error: null };
 }
 
 export async function POST(request) {
@@ -87,6 +126,11 @@ export async function POST(request) {
     );
   }
 
+  const metaCheck = assertGatewayObjectMetadata(json);
+  if (!metaCheck.ok) {
+    return NextResponse.json({ success: false, error: metaCheck.error }, { status: 400 });
+  }
+
   const { bookingId, paymentId, intentId, amount, currency, gatewayRef, normalizedStatus } = parsePayload(
     json,
     adapterKey,
@@ -112,20 +156,6 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
   }
 
-  const expectedThb = await resolveExpectedGuestTotalThb(booking);
-  if (Number.isFinite(amount) && amount > 0 && String(currency || 'THB').toUpperCase() === 'THB') {
-    const tol = 1.0;
-    if (Math.abs(amount - expectedThb) > tol) {
-      void notifySystemAlert(
-        `💳 <b>Webhook payments/confirm</b> — расхождение суммы\nbooking: <code>${escapeSystemAlertHtml(bookingId)}</code>\nexpected THB: <b>${expectedThb}</b>, got: <b>${escapeSystemAlertHtml(String(amount))}</b>`,
-      );
-      return NextResponse.json(
-        { success: false, error: 'AMOUNT_MISMATCH', expectedThb, received: amount },
-        { status: 400 },
-      );
-    }
-  }
-
   let payId = paymentId;
   if (!payId && !intentId) {
     const { data: pay } = await supabaseAdmin
@@ -138,7 +168,26 @@ export async function POST(request) {
       .maybeSingle();
     payId = pay?.id || null;
   }
-  if (payId && !String(payId).startsWith('pi-') && !intentId) {
+
+  const isLegacyPaymentsPath = !!(payId && !String(payId).startsWith('pi-') && !intentId);
+
+  let resolvedIntentForEscrow = null;
+
+  if (isLegacyPaymentsPath) {
+    const expectedThb = await resolveExpectedGuestTotalThbFromBooking(booking);
+    if (Number.isFinite(amount) && amount > 0 && String(currency || 'THB').toUpperCase() === 'THB') {
+      const tol = 1.0;
+      if (Math.abs(amount - expectedThb) > tol) {
+        void notifySystemAlert(
+          `💳 <b>Webhook payments/confirm</b> — расхождение суммы (legacy payments)\nbooking: <code>${escapeSystemAlertHtml(bookingId)}</code>\nexpected THB: <b>${expectedThb}</b>, got: <b>${escapeSystemAlertHtml(String(amount))}</b>`,
+        );
+        return NextResponse.json(
+          { success: false, error: 'AMOUNT_MISMATCH', expectedThb, received: amount },
+          { status: 400 },
+        );
+      }
+    }
+
     const confirm = await PaymentsV3Service.confirmPayment(payId, {
       source: 'payment_acquiring_webhook',
       bookingId,
@@ -163,17 +212,50 @@ export async function POST(request) {
     });
   }
 
-  const explicitIntentId = intentId || (payId && String(payId).startsWith('pi-') ? payId : null)
-  const intentLookup = explicitIntentId
-    ? await PaymentIntentService.getById(explicitIntentId)
-    : await PaymentIntentService.findActiveByBookingOrInvoice({ bookingId })
-  if (!intentLookup.success || !intentLookup.intent) {
-    return NextResponse.json(
-      { success: false, error: 'No active payment intent for booking' },
-      { status: 409 },
-    )
+  const { intent: intentForAmount, error: intentResolveError } = await resolvePaymentIntentForWebhook({
+    bookingId,
+    intentIdFromPayload: intentId,
+    paymentIdFromPayload: payId,
+  });
+
+  if (intentResolveError) {
+    return NextResponse.json({ success: false, error: intentResolveError }, { status: 400 });
   }
-  const intent = intentLookup.intent
+
+  const expectedThb = intentForAmount
+    ? Number(intentForAmount.amountThb)
+    : await resolveExpectedGuestTotalThbFromBooking(booking);
+
+  if (Number.isFinite(amount) && amount > 0 && String(currency || 'THB').toUpperCase() === 'THB') {
+    const tol = 1.0;
+    if (Math.abs(amount - expectedThb) > tol) {
+      void notifySystemAlert(
+        `💳 <b>Webhook payments/confirm</b> — расхождение суммы\nbooking: <code>${escapeSystemAlertHtml(bookingId)}</code>\nexpected THB: <b>${expectedThb}</b> (${intentForAmount ? 'payment_intent' : 'booking'})\ngot: <b>${escapeSystemAlertHtml(String(amount))}</b>`,
+      );
+      return NextResponse.json(
+        { success: false, error: 'AMOUNT_MISMATCH', expectedThb, received: amount },
+        { status: 400 },
+      );
+    }
+  }
+
+  let intent = intentForAmount;
+  if (!intent) {
+    const explicitIntentId = intentId || (payId && String(payId).startsWith('pi-') ? payId : null);
+    const intentLookup = explicitIntentId
+      ? await PaymentIntentService.getById(explicitIntentId)
+      : await PaymentIntentService.findActiveByBookingOrInvoice({ bookingId });
+    if (!intentLookup.success || !intentLookup.intent) {
+      return NextResponse.json(
+        { success: false, error: 'No active payment intent for booking' },
+        { status: 409 },
+      );
+    }
+    intent = intentLookup.intent;
+  }
+  if (String(intent.bookingId) !== String(bookingId)) {
+    return NextResponse.json({ success: false, error: 'INTENT_BOOKING_MISMATCH' }, { status: 400 });
+  }
 
   const marked = await PaymentIntentService.markPaid(intent.id, {
     source: 'payment_acquiring_webhook',
@@ -183,18 +265,20 @@ export async function POST(request) {
       normalized_status: normalizedStatus,
       adapter_key: adapterKey,
     },
-  })
+  });
   if (!marked.success) {
-    return NextResponse.json({ success: false, error: marked.error || 'intent_mark_failed' }, { status: 500 })
+    return NextResponse.json({ success: false, error: marked.error || 'intent_mark_failed' }, { status: 500 });
   }
 
+  const captureGuestTotalThb = Number(intent.amountThb);
   const escrow = await EscrowService.moveToEscrow(bookingId, {
     txId: null,
     gatewayRef,
     source: 'payment_acquiring_webhook',
-  })
+    captureGuestTotalThb: Number.isFinite(captureGuestTotalThb) && captureGuestTotalThb > 0 ? captureGuestTotalThb : undefined,
+  });
   if (!escrow?.success) {
-    return NextResponse.json({ success: false, error: escrow?.error || 'escrow_failed' }, { status: 502 })
+    return NextResponse.json({ success: false, error: escrow?.error || 'escrow_failed' }, { status: 502 });
   }
   await applyInvoicePostPaymentEffects({
     bookingId,
@@ -202,14 +286,14 @@ export async function POST(request) {
     txId: null,
     gatewayRef,
     source: 'payment_acquiring_webhook',
-  })
+  });
 
   return NextResponse.json({
     success: true,
     intentId: intent.id,
     bookingId,
     escrow: escrow.escrow || null,
-  })
+  });
 }
 
 export async function GET() {

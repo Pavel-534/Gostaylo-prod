@@ -143,6 +143,7 @@ export async function GET(request) {
       const dc = await resolveDefaultCommissionPercent()
       let transformed = filtered.map((b) => transformBooking(b, dc))
       transformed = await enrichPartnerBookingsWithGuestStats(supabaseAdmin, userId, transformed)
+      transformed = await enrichPartnerBookingsWithConversationIds(supabaseAdmin, transformed)
 
       return NextResponse.json({
         status: 'success',
@@ -203,6 +204,7 @@ export async function GET(request) {
     const dc = await resolveDefaultCommissionPercent()
     let transformed = (bookings || []).map((b) => transformBooking(b, dc))
     transformed = await enrichPartnerBookingsWithGuestStats(supabaseAdmin, userId, transformed)
+    transformed = await enrichPartnerBookingsWithConversationIds(supabaseAdmin, transformed)
 
     console.log(`[PARTNER BOOKINGS] Found ${transformed.length} bookings for partner ${userId}`)
     
@@ -275,6 +277,27 @@ async function enrichPartnerBookingsWithGuestStats(admin, partnerId, rows) {
         (b.status === 'THAWED' || b.status === 'COMPLETED') && !!g && !reviewed.has(b.id),
     }
   })
+}
+
+/** Link partner list cards to unified chat thread. */
+async function enrichPartnerBookingsWithConversationIds(admin, rows) {
+  if (!rows?.length) return rows
+  if (!admin) {
+    return rows.map((b) => ({ ...b, conversationId: null }))
+  }
+  const ids = rows.map((r) => r.id).filter(Boolean)
+  if (!ids.length) return rows
+  const { data, error } = await admin.from('conversations').select('id, booking_id').in('booking_id', ids)
+  if (error) {
+    console.warn('[PARTNER BOOKINGS] conversation lookup', error.message)
+    return rows.map((b) => ({ ...b, conversationId: null }))
+  }
+  const firstByBooking = {}
+  for (const row of data || []) {
+    const bid = row.booking_id
+    if (bid && firstByBooking[bid] == null) firstByBooking[bid] = row.id
+  }
+  return rows.map((b) => ({ ...b, conversationId: firstByBooking[b.id] || null }))
 }
 
 /**
