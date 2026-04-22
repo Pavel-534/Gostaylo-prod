@@ -1,0 +1,2 @@
+export const GOSTAYLO_WALLET = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5'
+export const DEFAULT_ALLOWED_METHODS = ['CARD', 'MIR', 'CRYPTO']

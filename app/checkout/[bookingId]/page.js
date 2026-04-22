@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense, use } from 'react'
+import { Suspense, use, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
@@ -11,533 +11,79 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, CreditCard, Wallet, Loader2, CheckCircle2, Copy, ExternalLink, AlertCircle, Smartphone } from 'lucide-react'
-import { formatPrice, languageToNumberLocale, priceRawForTest } from '@/lib/currency'
+import {
+  ArrowLeft,
+  CreditCard,
+  Wallet,
+  Loader2,
+  CheckCircle2,
+  Copy,
+  ExternalLink,
+  AlertCircle,
+  Smartphone,
+} from 'lucide-react'
 import { toast } from 'sonner'
-import { detectLanguage, getUIText } from '@/lib/translations'
-
-function interpolateTemplate(str, vars = {}) {
-  let s = String(str)
-  for (const [k, v] of Object.entries(vars)) {
-    s = s.split(`{{${k}}}`).join(String(v))
-  }
-  return s
-}
+import { getUIText } from '@/lib/translations'
 import { QRCodeSVG } from 'qrcode.react'
-import { useCommission } from '@/hooks/use-commission'
-import { computeRoundedGuestTotalPot } from '@/lib/booking-price-integrity'
 import { CancelBookingDialog } from '@/components/renter/cancel-booking-dialog'
+import { useCheckoutPayment } from './hooks/useCheckoutPayment'
+import { useCheckoutPricing } from './hooks/useCheckoutPricing'
 
 function canRenterCancelCheckout(status) {
   return !['CANCELLED', 'COMPLETED', 'REFUNDED', 'DECLINED'].includes(String(status || '').toUpperCase())
 }
-
-// Official GoStayLo USDT TRC-20 Wallet Address
-const GOSTAYLO_WALLET = 'TXyfMKVxUNFkC8Q77GnbAqgnWFUWVaKwZ5';
-const DEFAULT_ALLOWED_METHODS = ['CARD', 'MIR', 'CRYPTO']
 
 function CheckoutPageInner({ params: paramsProp }) {
   const params = typeof paramsProp?.then === 'function' ? use(paramsProp) : paramsProp
   const searchParams = useSearchParams()
   const invoiceIdParam = searchParams.get('invoiceId')
   const { user, loading: authLoading } = useAuth()
-  const [loading, setLoading] = useState(true)
-  const [accessDenied, setAccessDenied] = useState(false)
-  const [booking, setBooking] = useState(null)
-  const [listing, setListing] = useState(null)
-  const [payment, setPayment] = useState(null)
-  const [invoice, setInvoice] = useState(null)
-  const [paymentIntent, setPaymentIntent] = useState(null)
-  const [paymentMethod, setPaymentMethod] = useState('CARD')
-  const [allowedMethods, setAllowedMethods] = useState(DEFAULT_ALLOWED_METHODS)
-  const [processing, setProcessing] = useState(false)
-  const [cryptoModalOpen, setCryptoModalOpen] = useState(false)
-  const [txId, setTxId] = useState('')
-  const [paymentSuccess, setPaymentSuccess] = useState(false)
-  const [_verificationStep, setVerificationStep] = useState(0) // 0: not started, 1: received, 2: verifying, 3: verified
-  const [_confirmations, setConfirmations] = useState(0)
-  const [verifying, setVerifying] = useState(false)
-  const [txidSubmitted, setTxidSubmitted] = useState(false)
-  const [liveVerification, setLiveVerification] = useState(null)
-  const [promoCode, setPromoCode] = useState('')
-  const [promoDiscount, setPromoDiscount] = useState(null)
-  const [promoLoading, setPromoLoading] = useState(false)
-  const [chatConversationId, setChatConversationId] = useState(null)
-  const [thbPerUsdt, setThbPerUsdt] = useState(null)
-  const commissionFromApi = useCommission()
-  const [language, setLanguage] = useState('ru')
-  const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
   const [cancelOpen, setCancelOpen] = useState(false)
 
-  useEffect(() => {
-    loadPaymentStatus()
-  }, [params.bookingId, invoiceIdParam])
+  const p = useCheckoutPayment({
+    bookingId: params.bookingId,
+    invoiceIdParam,
+    user,
+    authLoading,
+  })
 
-  useEffect(() => {
-    const lang = detectLanguage()
-    setLanguage(lang)
-    const h = (e) => {
-      if (e?.detail) setLanguage(e.detail)
-    }
-    window.addEventListener('language-change', h)
-    window.addEventListener('languageChange', h)
-    return () => {
-      window.removeEventListener('language-change', h)
-      window.removeEventListener('languageChange', h)
-    }
-  }, [])
+  const c = useCheckoutPricing({
+    booking: p.booking,
+    invoice: p.invoice,
+    paymentMethod: p.paymentMethod,
+    setPaymentMethod: p.setPaymentMethod,
+    allowedMethods: p.allowedMethods,
+    language: p.language,
+  })
 
-  useEffect(() => {
-    fetch('/api/v2/exchange-rates', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.success && j.rateMap && typeof j.rateMap === 'object') {
-          setExchangeRates({ THB: 1, ...j.rateMap })
-          if (j.rateMap.USDT != null) setThbPerUsdt(j.rateMap.USDT)
-        }
-      })
-      .catch(() => {})
-  }, [])
+  const paymentMethodOptions = [
+    {
+      value: 'CARD',
+      id: 'card',
+      icon: CreditCard,
+      iconClassName: 'text-slate-600',
+      title: getUIText('checkout_methodCard', c.language),
+      description: getUIText('checkout_methodCardDesc', c.language),
+    },
+    {
+      value: 'MIR',
+      id: 'mir',
+      icon: CreditCard,
+      iconClassName: 'text-blue-600',
+      title: getUIText('checkout_methodMir', c.language),
+      description: getUIText('checkout_methodMirDesc', c.language),
+    },
+    {
+      value: 'CRYPTO',
+      id: 'crypto',
+      icon: Wallet,
+      iconClassName: 'text-amber-600',
+      title: getUIText('checkout_methodCrypto', c.language),
+      description: getUIText('checkout_methodCryptoDesc', c.language),
+    },
+  ].filter((opt) => p.allowedMethods.includes(opt.value))
 
-  useEffect(() => {
-    const pm = searchParams.get('pm')
-    if (pm === 'CRYPTO') setPaymentMethod('CRYPTO')
-    if (pm === 'CARD') setPaymentMethod('CARD')
-    if (pm === 'MIR') setPaymentMethod('MIR')
-  }, [searchParams])
-
-  useEffect(() => {
-    if (searchParams.get('pm')) return
-    const preferred = String(invoice?.payment_method || '').toUpperCase()
-    if (preferred === 'CRYPTO' || preferred === 'CARD' || preferred === 'MIR') {
-      setPaymentMethod(preferred)
-    }
-  }, [invoice?.payment_method, searchParams])
-
-  useEffect(() => {
-    if (!Array.isArray(allowedMethods) || allowedMethods.length === 0) return
-    if (!allowedMethods.includes(paymentMethod)) {
-      setPaymentMethod(allowedMethods[0])
-    }
-  }, [allowedMethods, paymentMethod])
-
-  // Ownership check: when auth is ready and booking has renter_id, verify user owns it
-  useEffect(() => {
-    if (authLoading || !booking) return
-    if (booking.renter_id) {
-      if (!user?.id) {
-        setAccessDenied(true)
-        return
-      }
-      if (booking.renter_id !== user.id) {
-        setAccessDenied(true)
-      }
-    }
-  }, [authLoading, booking, user])
-
-  async function handleApplyPromoCode() {
-    if (!promoCode.trim()) {
-      toast.error(getUIText('checkout_toast_promoEmpty', language))
-      return
-    }
-
-    setPromoLoading(true)
-    try {
-      const res = await fetch('/api/v2/promo-codes/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          code: promoCode,
-          bookingAmount: booking.priceThb,
-        }),
-      })
-
-      const data = await res.json()
-
-      if (data.success) {
-        setPromoDiscount(data.data)
-        toast.success(
-          interpolateTemplate(getUIText('checkout_toast_promoOk', language), {
-            amount: String(data.data.discountAmount),
-          }),
-        )
-      } else {
-        toast.error(data.error || getUIText('checkout_toast_promoInvalid', language))
-        setPromoDiscount(null)
-      }
-    } catch (error) {
-      console.error('Failed to apply promo code:', error)
-      toast.error(getUIText('checkout_toast_promoCheckFail', language))
-    } finally {
-      setPromoLoading(false)
-    }
-  }
-
-  async function loadPaymentStatus() {
-    try {
-      // Use API route with service role to bypass RLS issues
-      const bookingRes = await fetch(`/api/v2/bookings/${params.bookingId}`, {
-        cache: 'no-store'
-      });
-      const bookingData = await bookingRes.json();
-      
-      if (!bookingData.success || !bookingData.data) {
-        console.error('[CHECKOUT] Booking not found:', bookingData.error);
-        setLoading(false);
-        return;
-      }
-      
-      const b = bookingData.data;
-      const l = b.listings;
-
-      // Ownership check deferred until auth is ready (see useEffect below)
-      
-      // Transform booking data
-      setBooking({
-        id: b.id,
-        renter_id: b.renter_id,
-        status: b.status,
-        checkIn: b.check_in,
-        checkOut: b.check_out,
-        priceThb: parseFloat(b.price_thb),
-        currency: b.currency || 'THB',
-        guestName: b.guest_name,
-        guestEmail: b.guest_email,
-        guestPhone: b.guest_phone,
-        specialRequests: b.special_requests,
-        createdAt: b.created_at,
-        metadata: b.metadata,
-        commissionRate: parseFloat(b.commission_rate),
-        commissionThb: parseFloat(b.commission_thb) || 0,
-        partnerEarningsThb: parseFloat(b.partner_earnings_thb) || 0,
-        roundingDiffPot: parseFloat(b.rounding_diff_pot) || 0,
-        taxableMarginAmount: parseFloat(b.taxable_margin_amount) || 0,
-      });
-      
-      if (l) {
-        setListing({
-          id: l.id,
-          title: l.title,
-          district: l.district,
-          coverImage: l.cover_image || l.images?.[0],
-          basePriceThb: parseFloat(l.base_price_thb)
-        });
-      }
-
-      let resolvedInvoice = null
-      if (invoiceIdParam) {
-        try {
-          const invRes = await fetch(`/api/v2/chat/invoice?id=${encodeURIComponent(invoiceIdParam)}`, {
-            credentials: 'include',
-            cache: 'no-store',
-          })
-          const invData = await invRes.json()
-          if (invRes.ok && invData.success && Array.isArray(invData.invoices) && invData.invoices.length > 0) {
-            resolvedInvoice = invData.invoices[0]
-            setInvoice(resolvedInvoice)
-          } else {
-            setInvoice(null)
-          }
-        } catch {
-          setInvoice(null)
-        }
-      } else {
-        setInvoice(null)
-      }
-
-      try {
-        const intentUrl = new URL(
-          `/api/v2/bookings/${encodeURIComponent(params.bookingId)}/payment-intent`,
-          window.location.origin,
-        )
-        const resolvedInvoiceId = resolvedInvoice?.id || invoiceIdParam
-        if (resolvedInvoiceId) intentUrl.searchParams.set('invoiceId', resolvedInvoiceId)
-        const intentRes = await fetch(intentUrl.toString(), {
-          credentials: 'include',
-          cache: 'no-store',
-        })
-        const intentData = await intentRes.json()
-        if (intentRes.ok && intentData?.success && intentData?.data) {
-          setPaymentIntent(intentData.data)
-          const allowed = Array.isArray(intentData.data.allowedMethods)
-            ? intentData.data.allowedMethods
-                .map((m) => String(m || '').toUpperCase())
-                .filter((m) => DEFAULT_ALLOWED_METHODS.includes(m))
-            : []
-          setAllowedMethods(allowed.length > 0 ? allowed : DEFAULT_ALLOWED_METHODS)
-        } else {
-          setPaymentIntent(null)
-          setAllowedMethods(DEFAULT_ALLOWED_METHODS)
-        }
-      } catch {
-        setPaymentIntent(null)
-        setAllowedMethods(DEFAULT_ALLOWED_METHODS)
-      }
-      
-      // Только PAID = реально оплачено. CONFIRMED = подтверждено партнёром, но ещё не оплачено.
-      if (b.status === 'PAID' || b.status === 'COMPLETED') {
-        setPayment({
-          id: `pay-${b.id}`,
-          status: 'COMPLETED',
-          method: 'CARD',
-          amount: b.price_thb
-        });
-        setPaymentSuccess(true);
-      }
-
-      // Try to find the linked conversation so we can offer a chat link on success screen.
-      try {
-        const convRes = await fetch(
-          `/api/v2/chat/conversations?id=${encodeURIComponent(b.id)}&enrich=0`,
-          { credentials: 'include' }
-        )
-        const convJson = await convRes.json()
-        const convId = convJson.data?.[0]?.id
-        if (convId) setChatConversationId(convId)
-        else {
-          // Fallback: search by booking_id param
-          const convRes2 = await fetch(
-            `/api/v2/chat/conversations?enrich=0`,
-            { credentials: 'include' }
-          )
-          const convJson2 = await convRes2.json()
-          const matched = Array.isArray(convJson2.data)
-            ? convJson2.data.find((c) => String(c.bookingId) === String(b.id))
-            : null
-          if (matched?.id) setChatConversationId(matched.id)
-        }
-      } catch {
-        // Non-critical — don't block checkout flow
-      }
-      
-      setLoading(false);
-    } catch (error) {
-      console.error('Failed to load payment status:', error)
-      setLoading(false)
-    }
-  }
-
-  async function handleInitiatePayment() {
-    setProcessing(true)
-
-    try {
-      const res = await fetch(`/api/v2/bookings/${params.bookingId}/payment/initiate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          method: paymentMethod,
-          invoiceId: invoiceIdParam || undefined,
-        }),
-      })
-
-      const data = await res.json()
-
-      if (data.success) {
-        setPayment(data.data)
-        
-        if (paymentMethod === 'CRYPTO') {
-          setCryptoModalOpen(true)
-        } else {
-          // Mock card/MIR payment - auto-confirm after 2 seconds
-          toast.success(getUIText('checkout_toast_mockRedirect', language))
-          setTimeout(() => {
-            handleConfirmPayment(null, `MOCK-${Date.now()}`)
-          }, 2000)
-        }
-      } else {
-        toast.error(data.error || getUIText('checkout_toast_paymentInitFail', language))
-      }
-    } catch (error) {
-      console.error('Failed to initiate payment:', error)
-      toast.error(getUIText('checkout_toast_paymentInitFail', language))
-    } finally {
-      setProcessing(false)
-    }
-  }
-
-  async function handleConfirmPayment(transactionId = null, gatewayRef = null) {
-    // For crypto payments, use blockchain verification
-    if (paymentMethod === 'CRYPTO' && transactionId) {
-      setVerifying(true)
-      setVerificationStep(1) // TXID Received
-      
-      try {
-        // Step 1: TXID Received
-        toast.info(getUIText('checkout_toast_txReceived', language))
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        // Step 2: Verifying on blockchain
-        setVerificationStep(2)
-        
-        // Simulate confirmations counting up
-        for (let i = 0; i <= 19; i++) {
-          setConfirmations(i)
-          await new Promise(resolve => setTimeout(resolve, 100))
-        }
-        
-        // Call verification webhook
-        const verifyRes = await fetch('/api/webhooks/crypto/confirm', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            txid: transactionId,
-            bookingId: params.bookingId,
-            expectedAmount: payment?.metadata?.amount_usdt || payment?.metadata?.amount || undefined,
-            targetWallet: payment?.metadata?.wallet_address || payment?.metadata?.walletAddress || undefined,
-          }),
-        })
-        
-        const verifyData = await verifyRes.json()
-        
-        if (!verifyData.verified) {
-          toast.error(verifyData.error || getUIText('checkout_toast_txNotVerified', language))
-          setVerifying(false)
-          setVerificationStep(0)
-          return
-        }
-        
-        // Step 3: Verified!
-        setVerificationStep(3)
-        toast.success(getUIText('checkout_toast_chainOk', language))
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        // Now confirm payment in our system
-        const res = await fetch(`/api/v2/bookings/${params.bookingId}/payment/confirm`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            txId: transactionId,
-            gatewayRef: verifyData.data.blockNumber,
-            invoiceId: invoiceIdParam || undefined,
-            intentId: payment?.intentId || payment?.id || undefined,
-          }),
-        })
-
-        const data = await res.json()
-
-        if (data.success) {
-          setPaymentSuccess(true)
-          setCryptoModalOpen(false)
-        } else {
-          toast.error(data.error || getUIText('checkout_toast_paymentConfirmFail', language))
-        }
-      } catch (error) {
-        console.error('Failed to verify crypto payment:', error)
-        toast.error(getUIText('checkout_toast_verifyPaymentFail', language))
-        setVerificationStep(0)
-      } finally {
-        setVerifying(false)
-      }
-      return
-    }
-    
-    // For card/MIR payments (original logic)
-    try {
-      const res = await fetch(`/api/v2/bookings/${params.bookingId}/payment/confirm`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          txId: transactionId || txId,
-          gatewayRef,
-          invoiceId: invoiceIdParam || undefined,
-          intentId: payment?.intentId || payment?.id || undefined,
-        }),
-      })
-
-      const data = await res.json()
-
-      if (data.success) {
-        toast.success(getUIText('checkout_toast_paymentOk', language))
-        setPaymentSuccess(true)
-        setCryptoModalOpen(false)
-      } else {
-        toast.error(data.error || getUIText('checkout_toast_paymentConfirmFail', language))
-      }
-    } catch (error) {
-      console.error('Failed to confirm payment:', error)
-      toast.error(getUIText('checkout_toast_paymentConfirmFail', language))
-    }
-  }
-
-  function copyToClipboard(text) {
-    navigator.clipboard.writeText(text)
-    toast.success(getUIText('checkout_copySuccess', language))
-  }
-
-  // Verify TXID via TronScan API
-  async function handleVerifyTxid() {
-    if (!txId.trim() || txId.length < 60) {
-      toast.error(getUIText('checkout_toast_txidShort', language))
-      return
-    }
-
-    setVerifying(true)
-    setLiveVerification(null)
-
-    try {
-      const res = await fetch('/api/v2/payments/verify-tron', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ txid: txId })
-      })
-
-      const data = await res.json()
-      setLiveVerification(data)
-
-      if (data.success) {
-        toast.success(getUIText('checkout_toast_txFound', language))
-      } else if (data.status === 'PENDING') {
-        toast.info(getUIText('checkout_toast_txPending', language))
-      } else if (data.status === 'NOT_FOUND') {
-        toast.warning(getUIText('checkout_toast_txNotFound', language))
-      } else {
-        toast.error(data.error || getUIText('checkout_toast_verifyError', language))
-      }
-    } catch (error) {
-      console.error('Verification error:', error)
-      toast.error(getUIText('checkout_toast_checkTxFail', language))
-    } finally {
-      setVerifying(false)
-    }
-  }
-
-  // Submit TXID to admin for verification
-  async function handleSubmitTxid() {
-    if (!txId.trim() || txId.length < 60) {
-      toast.error(getUIText('checkout_toast_txidShort', language))
-      return
-    }
-
-    setVerifying(true)
-
-    try {
-      const res = await fetch('/api/v2/payments/submit-txid', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bookingId: params.bookingId,
-          txid: txId,
-          paymentMethod: 'USDT_TRC20'
-        })
-      })
-
-      const data = await res.json()
-
-      if (data.success) {
-        toast.success(getUIText('checkout_toast_txSubmitOk', language))
-        setTxidSubmitted(true)
-      } else {
-        toast.error(data.error || getUIText('checkout_toast_txSubmitFail', language))
-      }
-    } catch (error) {
-      console.error('Submit TXID error:', error)
-      toast.error(getUIText('checkout_toast_txSubmitFail', language))
-    } finally {
-      setVerifying(false)
-    }
-  }
-
-  if (loading || authLoading) {
+  if (p.loading || authLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-teal-600" />
@@ -545,21 +91,19 @@ function CheckoutPageInner({ params: paramsProp }) {
     )
   }
 
-  if (accessDenied) {
+  if (p.accessDenied) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="pt-6 text-center">
-            <h3 className="text-xl font-semibold mb-2">{getUIText('checkout_accessDeniedTitle', language)}</h3>
-            <p className="text-slate-600 mb-4">
-              {getUIText('checkout_accessDeniedBody', language)}
-            </p>
+            <h3 className="text-xl font-semibold mb-2">{getUIText('checkout_accessDeniedTitle', c.language)}</h3>
+            <p className="text-slate-600 mb-4">{getUIText('checkout_accessDeniedBody', c.language)}</p>
             <div className="flex gap-2 justify-center">
               <Button asChild>
-                <Link href="/">{getUIText('checkout_home', language)}</Link>
+                <Link href="/">{getUIText('checkout_home', c.language)}</Link>
               </Button>
               <Button variant="outline" onClick={() => window.location.reload()}>
-                {getUIText('checkout_refresh', language)}
+                {getUIText('checkout_refresh', c.language)}
               </Button>
             </div>
           </CardContent>
@@ -568,15 +112,15 @@ function CheckoutPageInner({ params: paramsProp }) {
     )
   }
 
-  if (!booking || booking.status === 'CANCELLED') {
+  if (!p.booking || p.booking.status === 'CANCELLED') {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="pt-6 text-center">
-            <h3 className="text-xl font-semibold mb-2">{getUIText('checkout_unavailableTitle', language)}</h3>
-            <p className="text-slate-600 mb-4">{getUIText('checkout_unavailableBody', language)}</p>
+            <h3 className="text-xl font-semibold mb-2">{getUIText('checkout_unavailableTitle', c.language)}</h3>
+            <p className="text-slate-600 mb-4">{getUIText('checkout_unavailableBody', c.language)}</p>
             <Button asChild>
-              <Link href="/">{getUIText('checkout_home', language)}</Link>
+              <Link href="/">{getUIText('checkout_home', c.language)}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -584,28 +128,32 @@ function CheckoutPageInner({ params: paramsProp }) {
     )
   }
 
-  if (paymentSuccess) {
-    const chatHref = chatConversationId ? `/messages/${encodeURIComponent(chatConversationId)}` : null
+  if (p.paymentSuccess) {
+    const chatHref = p.chatConversationId
+      ? `/messages/${encodeURIComponent(p.chatConversationId)}`
+      : null
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Card className="max-w-md w-full mx-4">
           <CardContent className="pt-6 text-center">
             <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto mb-4" />
-            <h3 className="text-2xl font-bold mb-2">{getUIText('checkout_successTitle', language)}</h3>
-            <p className="text-slate-600 mb-6">
-              {getUIText('checkout_successBody', language)}
-            </p>
+            <h3 className="text-2xl font-bold mb-2">{getUIText('checkout_successTitle', c.language)}</h3>
+            <p className="text-slate-600 mb-6">{getUIText('checkout_successBody', c.language)}</p>
             <div className="space-y-3">
               {chatHref && (
                 <Button asChild className="w-full bg-teal-600 hover:bg-teal-700">
-                  <Link href={chatHref}>{getUIText('checkout_chatHost', language)}</Link>
+                  <Link href={chatHref}>{getUIText('checkout_chatHost', c.language)}</Link>
                 </Button>
               )}
-              <Button asChild variant={chatHref ? 'outline' : 'default'} className={`w-full${chatHref ? '' : ' bg-teal-600 hover:bg-teal-700'}`}>
-                <Link href="/">{getUIText('checkout_home', language)}</Link>
+              <Button
+                asChild
+                variant={chatHref ? 'outline' : 'default'}
+                className={`w-full${chatHref ? '' : ' bg-teal-600 hover:bg-teal-700'}`}
+              >
+                <Link href="/">{getUIText('checkout_home', c.language)}</Link>
               </Button>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/my-bookings">{getUIText('checkout_myBookings', language)}</Link>
+                <Link href="/my-bookings">{getUIText('checkout_myBookings', c.language)}</Link>
               </Button>
             </div>
           </CardContent>
@@ -614,113 +162,60 @@ function CheckoutPageInner({ params: paramsProp }) {
     )
   }
 
-  const guestServiceFeePercent = !commissionFromApi.loading &&
-    Number.isFinite(commissionFromApi.guestServiceFeePercent)
-      ? Number(commissionFromApi.guestServiceFeePercent)
-      : 5
-  if (commissionFromApi.loading) {
+  if (c.commissionLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
       </div>
     )
   }
-  const discountAmount = promoDiscount?.discountAmount || 0
-  const priceAfterDiscount = booking.priceThb - discountAmount
-  const serviceFee = promoDiscount
-    ? Math.round(priceAfterDiscount * (guestServiceFeePercent / 100))
-    : Math.round(booking.commissionThb || 0)
-  const guestTotalBeforeRounding = priceAfterDiscount + serviceFee
-  const promoRounded = promoDiscount ? computeRoundedGuestTotalPot(guestTotalBeforeRounding) : null
-  const roundingDiffPot = promoDiscount
-    ? promoRounded?.roundingDiffPotThb || 0
-    : Math.max(0, Math.round(Number(booking.roundingDiffPot) || 0))
-  const totalWithFee = promoDiscount
-    ? promoRounded?.roundedGuestTotalThb || Math.round(guestTotalBeforeRounding)
-    : Math.round(guestTotalBeforeRounding + roundingDiffPot)
-  const invoiceAmount = Number(invoice?.amount || 0)
-  const invoiceCurrency = String(invoice?.currency || 'THB').toUpperCase()
-  const hasInvoiceCheckout = Boolean(invoice?.id && Number.isFinite(invoiceAmount) && invoiceAmount > 0)
-  const payableText = hasInvoiceCheckout
-    ? `${invoiceCurrency === 'THB' ? '฿' : invoiceCurrency === 'RUB' ? '₽' : '$'}${invoiceAmount.toLocaleString()} ${invoiceCurrency}`
-    : formatPrice(totalWithFee, booking.currency, exchangeRates, language)
-  const paymentMethodOptions = [
-    {
-      value: 'CARD',
-      id: 'card',
-      icon: CreditCard,
-      iconClassName: 'text-slate-600',
-      title: getUIText('checkout_methodCard', language),
-      description: getUIText('checkout_methodCardDesc', language),
-    },
-    {
-      value: 'MIR',
-      id: 'mir',
-      icon: CreditCard,
-      iconClassName: 'text-blue-600',
-      title: getUIText('checkout_methodMir', language),
-      description: getUIText('checkout_methodMirDesc', language),
-    },
-    {
-      value: 'CRYPTO',
-      id: 'crypto',
-      icon: Wallet,
-      iconClassName: 'text-amber-600',
-      title: getUIText('checkout_methodCrypto', language),
-      description: getUIText('checkout_methodCryptoDesc', language),
-    },
-  ].filter((opt) => allowedMethods.includes(opt.value))
 
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Header */}
         <Link href="/" className="inline-flex items-center text-teal-600 hover:text-teal-700 mb-6">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          {getUIText('checkout_back', language)}
+          {getUIText('checkout_back', c.language)}
         </Link>
 
-        <h1 className="text-3xl font-bold text-slate-900 mb-8">{getUIText('checkout_title', language)}</h1>
+        <h1 className="text-3xl font-bold text-slate-900 mb-8">{getUIText('checkout_title', c.language)}</h1>
 
-        {/* Баннер для подтверждённого, но неоплаченного бронирования */}
-        {booking?.status === 'CONFIRMED' && (
+        {p.booking?.status === 'CONFIRMED' && (
           <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 flex items-start gap-3">
             <CheckCircle2 className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
             <div>
               <p className="font-semibold text-emerald-900 text-sm">
-                {getUIText('checkout_confirmedBannerTitle', language)}
+                {getUIText('checkout_confirmedBannerTitle', c.language)}
               </p>
               <p className="text-sm text-emerald-700 mt-0.5">
-                {getUIText('checkout_confirmedBannerBody', language)}
+                {getUIText('checkout_confirmedBannerBody', c.language)}
               </p>
             </div>
           </div>
         )}
 
         <div className="grid md:grid-cols-3 gap-6">
-          {/* Payment Form */}
           <div className="md:col-span-2 space-y-6">
-            {/* Payment Method Selection */}
             <Card>
               <CardHeader>
-                <CardTitle>{getUIText('checkout_selectMethod', language)}</CardTitle>
-                {paymentIntent?.id && (
+                <CardTitle>{getUIText('checkout_selectMethod', c.language)}</CardTitle>
+                {p.paymentIntent?.id && (
                   <p className="text-xs text-slate-500">
-                    {language === 'ru'
-                      ? `Методы из Payment Intent ${paymentIntent.id}`
-                      : `Methods from Payment Intent ${paymentIntent.id}`}
+                    {c.language === 'ru'
+                      ? `Методы из Payment Intent ${p.paymentIntent.id}`
+                      : `Methods from Payment Intent ${p.paymentIntent.id}`}
                   </p>
                 )}
-                {invoice?.payment_method && (
+                {p.invoice?.payment_method && (
                   <p className="text-xs text-slate-500">
-                    {language === 'ru'
-                      ? `Рекомендуемый способ по счёту: ${String(invoice.payment_method).toUpperCase()}`
-                      : `Invoice-preferred method: ${String(invoice.payment_method).toUpperCase()}`}
+                    {c.language === 'ru'
+                      ? `Рекомендуемый способ по счёту: ${String(p.invoice.payment_method).toUpperCase()}`
+                      : `Invoice-preferred method: ${String(p.invoice.payment_method).toUpperCase()}`}
                   </p>
                 )}
               </CardHeader>
               <CardContent>
-                <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+                <RadioGroup value={p.paymentMethod} onValueChange={p.setPaymentMethod}>
                   {paymentMethodOptions.map((opt) => {
                     const Icon = opt.icon
                     return (
@@ -743,158 +238,155 @@ function CheckoutPageInner({ params: paramsProp }) {
               </CardContent>
             </Card>
 
-            {/* Promo Code Section */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">{getUIText('checkout_promoTitle', language)}</CardTitle>
+                <CardTitle className="text-base">{getUIText('checkout_promoTitle', c.language)}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex gap-2">
                   <Input
-                    placeholder={getUIText('checkout_promoPlaceholder', language)}
-                    value={promoCode}
-                    onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                    disabled={promoDiscount !== null}
+                    placeholder={getUIText('checkout_promoPlaceholder', c.language)}
+                    value={c.promoCode}
+                    onChange={(e) => c.setPromoCode(e.target.value.toUpperCase())}
+                    disabled={c.promoDiscount !== null}
                     className="flex-1"
                   />
                   <Button
-                    onClick={handleApplyPromoCode}
-                    disabled={promoLoading || promoDiscount !== null || !promoCode.trim()}
+                    onClick={c.handleApplyPromoCode}
+                    disabled={c.promoLoading || c.promoDiscount !== null || !c.promoCode.trim()}
                     variant="outline"
                   >
-                    {promoLoading ? (
+                    {c.promoLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : promoDiscount ? (
+                    ) : c.promoDiscount ? (
                       '✓'
                     ) : (
-                      getUIText('checkout_apply', language)
+                      getUIText('checkout_apply', c.language)
                     )}
                   </Button>
                 </div>
-                {promoDiscount && (
+                {c.promoDiscount && (
                   <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                     <p className="text-sm font-medium text-green-900">
-                      {interpolateTemplate(getUIText('checkout_applied', language), {
-                        code: promoDiscount.code,
+                      {c.interpolateTemplate(getUIText('checkout_applied', c.language), {
+                        code: c.promoDiscount.code,
                       })}
                     </p>
                     <p className="text-xs text-green-700 mt-1">
-                      −{formatPrice(promoDiscount.discountAmount, 'THB', exchangeRates, language)}
+                      −{c.formatDisplayPrice(c.promoDiscount.discountAmount, 'THB')}
                     </p>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Pay Button */}
             <Button
-              onClick={handleInitiatePayment}
-              disabled={processing || !paymentMethod}
+              onClick={p.handleInitiatePayment}
+              disabled={p.processing || !p.paymentMethod}
               data-testid="checkout-pay-submit"
               className="w-full bg-teal-600 hover:bg-teal-700 h-12 text-lg"
             >
-              {processing ? (
+              {p.processing ? (
                 <>
                   <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  {getUIText('checkout_payProcessing', language)}
+                  {getUIText('checkout_payProcessing', c.language)}
                 </>
               ) : (
-                interpolateTemplate(getUIText('checkout_payCta', language), {
-                  amount: payableText,
+                c.interpolateTemplate(getUIText('checkout_payCta', c.language), {
+                  amount: c.payableText,
                 })
               )}
             </Button>
           </div>
 
-          {/* Order Summary */}
           <div>
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">{getUIText('checkout_orderTitle', language)}</CardTitle>
+                <CardTitle className="text-lg">{getUIText('checkout_orderTitle', c.language)}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="font-semibold text-slate-900">{listing?.title}</p>
+                  <p className="font-semibold text-slate-900">{p.listing?.title}</p>
                   <p className="text-sm text-slate-600 mt-1">
-                    {new Date(booking.checkIn).toLocaleDateString(languageToNumberLocale(language))} –{' '}
-                    {new Date(booking.checkOut).toLocaleDateString(languageToNumberLocale(language))}
+                    {new Date(p.booking.checkIn).toLocaleDateString(c.dateNumberLocale)} –{' '}
+                    {new Date(p.booking.checkOut).toLocaleDateString(c.dateNumberLocale)}
                   </p>
-                  {invoice?.id && (
+                  {p.invoice?.id && (
                     <p className="text-xs text-slate-500 mt-1">
-                      Invoice #{String(invoice.id).slice(-8)} • {String(invoice.currency || 'THB').toUpperCase()}
+                      Invoice #{String(p.invoice.id).slice(-8)} • {String(p.invoice.currency || 'THB').toUpperCase()}
                     </p>
                   )}
                 </div>
 
                 <div className="border-t pt-4 space-y-2">
-                  {!hasInvoiceCheckout && (
+                  {!c.hasInvoiceCheckout && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-600">{getUIText('checkout_subtotal', language)}</span>
+                      <span className="text-slate-600">{getUIText('checkout_subtotal', c.language)}</span>
                       <span
                         className="font-medium"
-                        data-test-subtotal-value={priceRawForTest(booking.priceThb, 'THB', exchangeRates)}
+                        data-test-subtotal-value={c.priceRawForTest(p.booking.priceThb, 'THB')}
                       >
-                        {formatPrice(booking.priceThb, 'THB', exchangeRates, language)}
+                        {c.formatDisplayPrice(p.booking.priceThb, 'THB')}
                       </span>
                     </div>
                   )}
-                  {promoDiscount && !hasInvoiceCheckout && (
+                  {c.promoDiscount && !c.hasInvoiceCheckout && (
                     <div className="flex justify-between text-sm text-green-600">
                       <span className="flex items-center gap-1">
-                        {interpolateTemplate(getUIText('checkout_discountLine', language), {
-                          code: promoDiscount.code,
+                        {c.interpolateTemplate(getUIText('checkout_discountLine', c.language), {
+                          code: c.promoDiscount.code,
                         })}
                       </span>
-                      <span className="font-medium">
-                        −{formatPrice(discountAmount, 'THB', exchangeRates, language)}
-                      </span>
+                      <span className="font-medium">−{c.formatDisplayPrice(c.discountAmount, 'THB')}</span>
                     </div>
                   )}
-                  {!hasInvoiceCheckout && (
+                  {!c.hasInvoiceCheckout && (
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">
-                        {interpolateTemplate(getUIText('checkout_serviceFeeLine', language), {
-                          pct: String(guestServiceFeePercent),
+                        {c.interpolateTemplate(getUIText('checkout_serviceFeeLine', c.language), {
+                          pct: String(c.guestServiceFeePercent),
                         })}
                       </span>
                       <span
                         className="font-medium"
-                        data-test-fee-value={priceRawForTest(serviceFee, 'THB', exchangeRates)}
+                        data-test-fee-value={c.priceRawForTest(c.serviceFee, 'THB')}
                       >
-                        {formatPrice(serviceFee, 'THB', exchangeRates, language)}
+                        {c.formatDisplayPrice(c.serviceFee, 'THB')}
                       </span>
                     </div>
                   )}
-                  {roundingDiffPot > 0 && !hasInvoiceCheckout && (
+                  {c.roundingDiffPot > 0 && !c.hasInvoiceCheckout && (
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-600">Rounding pot</span>
-                      <span className="font-medium">
-                        {formatPrice(roundingDiffPot, 'THB', exchangeRates, language)}
-                      </span>
+                      <span className="font-medium">{c.formatDisplayPrice(c.roundingDiffPot, 'THB')}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-lg font-bold border-t pt-2">
-                    <span>{getUIText('checkout_total', language)}</span>
+                    <span>{getUIText('checkout_total', c.language)}</span>
                     <span
                       className="text-teal-600"
                       data-test-raw-value={
-                        hasInvoiceCheckout
-                          ? String(invoiceAmount)
-                          : priceRawForTest(totalWithFee, 'THB', exchangeRates)
+                        c.hasInvoiceCheckout
+                          ? String(c.invoiceAmount)
+                          : c.priceRawForTest(c.totalWithFee, 'THB')
                       }
-                      data-test-total-thb={String(Math.round(Number(hasInvoiceCheckout ? invoice?.amount_thb || totalWithFee : totalWithFee) || 0))}
+                      data-test-total-thb={String(
+                        Math.round(
+                          Number(c.hasInvoiceCheckout ? p.invoice?.amount_thb || c.totalWithFee : c.totalWithFee) || 0,
+                        ),
+                      )}
                     >
-                      {payableText}
+                      {c.payableText}
                     </span>
                   </div>
-                  {canRenterCancelCheckout(booking.status) && (
+                  {canRenterCancelCheckout(p.booking.status) && (
                     <Button
                       type="button"
                       variant="outline"
                       className="w-full mt-3 border-red-200 text-red-700 hover:bg-red-50"
                       onClick={() => setCancelOpen(true)}
                     >
-                      {getUIText('renterCancel_button', language)}
+                      {getUIText('renterCancel_button', c.language)}
                     </Button>
                   )}
                 </div>
@@ -907,42 +399,37 @@ function CheckoutPageInner({ params: paramsProp }) {
           open={cancelOpen}
           onOpenChange={setCancelOpen}
           bookingId={params?.bookingId}
-          language={language}
+          language={c.language}
           onCancelled={() => {
-            loadPaymentStatus()
-            toast.success(
-              language === 'ru' ? 'Бронирование отменено' : 'Booking cancelled',
-            )
+            p.loadPaymentStatus()
+            toast.success(c.language === 'ru' ? 'Бронирование отменено' : 'Booking cancelled')
           }}
         />
 
-        {/* Crypto Payment Modal - USDT TRC-20 with QR Code */}
-        <Dialog open={cryptoModalOpen} onOpenChange={setCryptoModalOpen}>
+        <Dialog open={p.cryptoModalOpen} onOpenChange={p.setCryptoModalOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Wallet className="h-5 w-5 text-amber-600" />
-                {getUIText('checkout_cryptoModalTitle', language)}
+                {getUIText('checkout_cryptoModalTitle', c.language)}
               </DialogTitle>
             </DialogHeader>
 
             <div className="space-y-6">
-              {/* Network Warning */}
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <AlertCircle className="h-5 w-5 text-amber-600" />
                   <span className="text-lg font-bold text-amber-800">
-                    {getUIText('checkout_cryptoWarnTitle', language)}
+                    {getUIText('checkout_cryptoWarnTitle', c.language)}
                   </span>
                 </div>
-                <p className="text-sm text-amber-700">{getUIText('checkout_cryptoWarnBody', language)}</p>
+                <p className="text-sm text-amber-700">{getUIText('checkout_cryptoWarnBody', c.language)}</p>
               </div>
 
-              {/* QR Code Section */}
               <div className="flex flex-col items-center">
                 <div className="bg-white p-4 rounded-xl border-2 border-slate-200 shadow-sm">
-                  <QRCodeSVG 
-                    value={GOSTAYLO_WALLET}
+                  <QRCodeSVG
+                    value={p.GOSTAYLO_WALLET}
                     size={180}
                     level="H"
                     includeMargin={true}
@@ -951,18 +438,17 @@ function CheckoutPageInner({ params: paramsProp }) {
                 </div>
                 <div className="mt-3 flex items-center gap-2 text-slate-600">
                   <Smartphone className="h-4 w-4" />
-                  <span className="text-sm">{getUIText('checkout_scanHint', language)}</span>
+                  <span className="text-sm">{getUIText('checkout_scanHint', c.language)}</span>
                 </div>
               </div>
 
-              {/* Wallet Address with Copy */}
               <div>
                 <Label className="text-base font-semibold mb-2 block">
-                  {getUIText('checkout_walletLabel', language)}
+                  {getUIText('checkout_walletLabel', c.language)}
                 </Label>
                 <div className="flex items-center gap-2">
                   <Input
-                    value={GOSTAYLO_WALLET}
+                    value={p.GOSTAYLO_WALLET}
                     readOnly
                     className="font-mono text-sm bg-slate-50"
                     data-testid="usdt-wallet-address"
@@ -970,223 +456,227 @@ function CheckoutPageInner({ params: paramsProp }) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => copyToClipboard(GOSTAYLO_WALLET)}
+                    onClick={() => p.copyToClipboard(p.GOSTAYLO_WALLET)}
                     data-testid="copy-wallet-btn"
                     className="flex items-center gap-1"
                   >
                     <Copy className="h-4 w-4" />
-                    {getUIText('checkout_copy', language)}
+                    {getUIText('checkout_copy', c.language)}
                   </Button>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                    {getUIText('checkout_networkBadge', language)}
+                    {getUIText('checkout_networkBadge', c.language)}
                   </Badge>
                   <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
-                    {getUIText('checkout_tokenBadge', language)}
+                    {getUIText('checkout_tokenBadge', c.language)}
                   </Badge>
                 </div>
               </div>
 
-              {/* Amount to Pay */}
               <div>
                 <Label className="text-base font-semibold mb-2 block">
-                  {getUIText('checkout_amountLabel', language)}
+                  {getUIText('checkout_amountLabel', c.language)}
                 </Label>
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                   <p className="text-2xl font-bold text-amber-900" data-testid="usdt-amount">
-                    {payment?.metadata?.amount ??
-                      (thbPerUsdt
-                        ? Math.ceil((totalWithFee / thbPerUsdt) * 100) / 100
+                    {p.payment?.metadata?.amount ??
+                      (c.thbPerUsdt
+                        ? Math.ceil((c.totalWithFee / c.thbPerUsdt) * 100) / 100
                         : '—')}{' '}
                     USDT
                   </p>
                   <p className="text-sm text-amber-700 mt-1">
-                    ≈ {formatPrice(totalWithFee, 'THB', exchangeRates, language)}
+                    ≈ {c.formatDisplayPrice(c.totalWithFee, 'THB')}
                   </p>
                 </div>
               </div>
 
-              {/* TXID Submitted Success State */}
-              {txidSubmitted && (
+              {p.txidSubmitted && (
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <div className="flex items-center gap-3">
                     <CheckCircle2 className="h-6 w-6 text-green-600 flex-shrink-0" />
                     <div>
                       <p className="font-semibold text-green-900">
-                        {getUIText('checkout_txidSentTitle', language)}
+                        {getUIText('checkout_txidSentTitle', c.language)}
                       </p>
                       <p className="text-sm text-green-700 mt-1">
-                        {getUIText('checkout_txidSentBody', language)}
+                        {getUIText('checkout_txidSentBody', c.language)}
                       </p>
-                      <p className="text-xs text-green-600 mt-2 font-mono break-all">
-                        TXID: {txId}
-                      </p>
+                      <p className="text-xs text-green-600 mt-2 font-mono break-all">TXID: {p.txId}</p>
                     </div>
                   </div>
                   <div className="mt-4 flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="flex-1"
-                    >
-                      <a 
-                        href={`https://tronscan.org/#/transaction/${txId}`} 
-                        target="_blank" 
+                    <Button variant="outline" size="sm" asChild className="flex-1">
+                      <a
+                        href={`https://tronscan.org/#/transaction/${p.txId}`}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center justify-center gap-1"
                       >
                         <ExternalLink className="h-4 w-4" />
-                        {getUIText('checkout_viewExplorer', language)}
+                        {getUIText('checkout_viewExplorer', c.language)}
                       </a>
                     </Button>
                     <Button
                       variant="default"
                       size="sm"
                       className="flex-1 bg-teal-600 hover:bg-teal-700"
-                      onClick={() => setCryptoModalOpen(false)}
+                      onClick={() => p.setCryptoModalOpen(false)}
                     >
-                      {getUIText('checkout_close', language)}
+                      {getUIText('checkout_close', c.language)}
                     </Button>
                   </div>
                 </div>
               )}
 
-              {/* Live Verification Result */}
-              {liveVerification && !txidSubmitted && (
-                <div className={`rounded-lg p-4 border ${
-                  liveVerification.success 
-                    ? 'bg-green-50 border-green-200' 
-                    : liveVerification.status === 'PENDING'
-                    ? 'bg-yellow-50 border-yellow-200'
-                    : liveVerification.status === 'UNDERPAID'
-                    ? 'bg-orange-50 border-orange-200'
-                    : 'bg-red-50 border-red-200'
-                }`}>
+              {p.liveVerification && !p.txidSubmitted && (
+                <div
+                  className={`rounded-lg p-4 border ${
+                    p.liveVerification.success
+                      ? 'bg-green-50 border-green-200'
+                      : p.liveVerification.status === 'PENDING'
+                        ? 'bg-yellow-50 border-yellow-200'
+                        : p.liveVerification.status === 'UNDERPAID'
+                          ? 'bg-orange-50 border-orange-200'
+                          : 'bg-red-50 border-red-200'
+                  }`}
+                >
                   <div className="flex items-center gap-2 mb-2">
-                    {liveVerification.success ? (
+                    {p.liveVerification.success ? (
                       <CheckCircle2 className="h-5 w-5 text-green-600" />
-                    ) : liveVerification.status === 'PENDING' ? (
+                    ) : p.liveVerification.status === 'PENDING' ? (
                       <Loader2 className="h-5 w-5 text-yellow-600 animate-spin" />
                     ) : (
                       <AlertCircle className="h-5 w-5 text-red-600" />
                     )}
-                    <span className={`font-semibold ${
-                      liveVerification.success ? 'text-green-800' 
-                      : liveVerification.status === 'PENDING' ? 'text-yellow-800'
-                      : liveVerification.status === 'UNDERPAID' ? 'text-orange-800'
-                      : 'text-red-800'
-                    }`}>
-                      {liveVerification.badge?.labelRu || liveVerification.badge?.label || liveVerification.status}
+                    <span
+                      className={`font-semibold ${
+                        p.liveVerification.success
+                          ? 'text-green-800'
+                          : p.liveVerification.status === 'PENDING'
+                            ? 'text-yellow-800'
+                            : p.liveVerification.status === 'UNDERPAID'
+                              ? 'text-orange-800'
+                              : 'text-red-800'
+                      }`}
+                    >
+                      {p.liveVerification.badge?.labelRu ||
+                        p.liveVerification.badge?.label ||
+                        p.liveVerification.status}
                     </span>
                   </div>
-                  {liveVerification.data && (
+                  {p.liveVerification.data && (
                     <div className="text-sm space-y-1">
                       <p>
-                        {getUIText('checkout_verify_from', language)}{' '}
-                        <code className="text-xs">{liveVerification.data.from}</code>
+                        {getUIText('checkout_verify_from', c.language)}{' '}
+                        <code className="text-xs">{p.liveVerification.data.from}</code>
                       </p>
                       <p>
-                        {getUIText('checkout_verify_to', language)}{' '}
-                        <code className="text-xs">{liveVerification.data.to}</code>
+                        {getUIText('checkout_verify_to', c.language)}{' '}
+                        <code className="text-xs">{p.liveVerification.data.to}</code>
                       </p>
-                      {liveVerification.data.amount > 0 && (
+                      {p.liveVerification.data.amount > 0 && (
                         <p>
-                          {getUIText('checkout_verify_amount', language)}{' '}
+                          {getUIText('checkout_verify_amount', c.language)}{' '}
                           <strong>
-                            {liveVerification.data.amount} {liveVerification.data.token}
+                            {p.liveVerification.data.amount} {p.liveVerification.data.token}
                           </strong>
                         </p>
                       )}
-                      {/* Amount Verification Details */}
-                      {liveVerification.amountVerification && (
-                        <div className={`mt-2 p-2 rounded ${
-                          liveVerification.amountVerification.sufficient ? 'bg-green-100' : 'bg-red-100'
-                        }`}>
+                      {p.liveVerification.amountVerification && (
+                        <div
+                          className={`mt-2 p-2 rounded ${
+                            p.liveVerification.amountVerification.sufficient ? 'bg-green-100' : 'bg-red-100'
+                          }`}
+                        >
                           <p className="text-xs font-medium">
-                            {getUIText('checkout_verify_received', language)}{' '}
-                            {liveVerification.amountVerification.received} USDT
+                            {getUIText('checkout_verify_received', c.language)}{' '}
+                            {p.liveVerification.amountVerification.received} USDT
                           </p>
-                          {liveVerification.amountVerification.expected && (
+                          {p.liveVerification.amountVerification.expected && (
                             <p className="text-xs">
-                              {getUIText('checkout_verify_expected', language)}{' '}
-                              {liveVerification.amountVerification.expected} USDT
+                              {getUIText('checkout_verify_expected', c.language)}{' '}
+                              {p.liveVerification.amountVerification.expected} USDT
                             </p>
                           )}
-                          {liveVerification.amountVerification.difference !== 0 && (
-                            <p className={`text-xs ${liveVerification.amountVerification.difference > 0 ? 'text-green-700' : 'text-red-700'}`}>
-                              {getUIText('checkout_verify_diff', language)}{' '}
-                              {liveVerification.amountVerification.difference > 0 ? '+' : ''}
-                              {liveVerification.amountVerification.difference} USDT
+                          {p.liveVerification.amountVerification.difference !== 0 && (
+                            <p
+                              className={`text-xs ${
+                                p.liveVerification.amountVerification.difference > 0
+                                  ? 'text-green-700'
+                                  : 'text-red-700'
+                              }`}
+                            >
+                              {getUIText('checkout_verify_diff', c.language)}{' '}
+                              {p.liveVerification.amountVerification.difference > 0 ? '+' : ''}
+                              {p.liveVerification.amountVerification.difference} USDT
                             </p>
                           )}
                         </div>
                       )}
-                      {!liveVerification.data.isCorrectWallet && (
+                      {!p.liveVerification.data.isCorrectWallet && (
                         <p className="text-orange-600 font-medium">
-                          ⚠️ {getUIText('checkout_verify_wrongWallet', language)}
+                          ⚠️ {getUIText('checkout_verify_wrongWallet', c.language)}
                         </p>
                       )}
                     </div>
                   )}
-                  {liveVerification.error && (
-                    <p className="text-sm text-red-600">{liveVerification.error}</p>
+                  {p.liveVerification.error && (
+                    <p className="text-sm text-red-600">{p.liveVerification.error}</p>
                   )}
                 </div>
               )}
 
-              {/* TXID Input Form */}
-              {!txidSubmitted && (
+              {!p.txidSubmitted && (
                 <>
                   <div>
                     <Label htmlFor="txid" className="text-base font-semibold mb-2 block">
-                      {getUIText('checkout_txidLabel', language)}
+                      {getUIText('checkout_txidLabel', c.language)}
                     </Label>
                     <Input
                       id="txid"
-                      value={txId}
+                      value={p.txId}
                       onChange={(e) => {
-                        setTxId(e.target.value);
-                        setLiveVerification(null);
+                        p.setTxId(e.target.value)
+                        p.setLiveVerification(null)
                       }}
-                      placeholder={getUIText('checkout_txidPh', language)}
+                      placeholder={getUIText('checkout_txidPh', c.language)}
                       className="font-mono text-sm"
                       data-testid="txid-input"
                     />
                     <p className="text-xs text-slate-500 mt-1">
-                      {getUIText('checkout_txidHelp', language)}
+                      {getUIText('checkout_txidHelp', c.language)}
                     </p>
                   </div>
 
-                  {/* Action Buttons */}
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      onClick={handleVerifyTxid}
-                      disabled={!txId.trim() || txId.length < 60 || verifying}
+                      onClick={p.handleVerifyTxid}
+                      disabled={!p.txId.trim() || p.txId.length < 60 || p.verifying}
                       className="flex-1"
                       data-testid="verify-txid-btn"
                     >
-                      {verifying ? (
+                      {p.verifying ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          {getUIText('checkout_verifying', language)}
+                          {getUIText('checkout_verifying', c.language)}
                         </>
                       ) : (
                         <>
                           <ExternalLink className="h-4 w-4 mr-2" />
-                          {getUIText('checkout_verifyBtn', language)}
+                          {getUIText('checkout_verifyBtn', c.language)}
                         </>
                       )}
                     </Button>
                     <Button
-                      onClick={handleSubmitTxid}
-                      disabled={!txId.trim() || txId.length < 60 || verifying}
+                      onClick={p.handleSubmitTxid}
+                      disabled={!p.txId.trim() || p.txId.length < 60 || p.verifying}
                       className="flex-1 bg-teal-600 hover:bg-teal-700"
                       data-testid="submit-txid-btn"
                     >
-                      {getUIText('checkout_submitTxid', language)}
+                      {getUIText('checkout_submitTxid', c.language)}
                     </Button>
                   </div>
                 </>

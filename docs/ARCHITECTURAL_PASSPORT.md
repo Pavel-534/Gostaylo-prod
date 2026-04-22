@@ -1,12 +1,41 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 3.7.5 | **Last Updated**: 2026-04-22 | **Status**: Production-Ready
+> **Version**: 3.9.0 | **Last Updated**: 2026-04-22 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
 ---
 
 ## 0. Critical Routes & Services
+
+### 0.0b Booking service layout (Stage 2.1 modular split)
+- **Публичная точка входа (без изменений для API):** `lib/services/booking.service.js` — класс **`BookingService`**, реэкспорт **`resolveListingCategorySlug`**, **`ensureBookingConversation`**.
+- **`lib/services/booking/query.service.js`**: **`getBookings`**, **`getBookingById`**, **`mapBookingListingsJoin`**, **`attachConversationIdsToBookings`**, **`resolveListingCategorySlug`**.
+- **`lib/services/booking/pricing.service.js`**: settlement в **`pricing_snapshot`** — **`attachSettlementSnapshotForBooking`**, хелперы снимка (не путать с **`lib/services/pricing.service.js`** — канон цен/FX).
+- **`lib/services/booking/inquiry.service.js`**: чат (**`ensureBookingConversation`**), inquiry-тред и **`createInquiryBooking`**, **`checkAvailability`**, **`verifyInventoryBeforePartnerConfirm`**.
+- **`lib/services/booking/creation.js`**: стандартный **`createBooking`** (PENDING, календарь, чат).
+- **Статусы / чат:** **`BookingService.updateStatus`** остаётся в оркестраторе; после UPDATE по-прежнему вызывается **`syncBookingStatusToConversationChat`**.
+
+### 0.0c Notification service layout (Stage 2.2 modular split)
+- **Публичная точка входа (без смены импортов):** `lib/services/notification.service.js` — **`NotificationService.dispatch`**, оркестрация событий, **`safeNotifyChannel`** изолирует сбой одного канала (email / Telegram / топик) от остальных (например, **`NEW_BOOKING_REQUEST`**).
+- **`lib/services/notifications/telegram.service.js`:** Bot API (`sendMessage`), топики (`TELEGRAM_TOPIC_IDS`), DM, **`sendTelegramBookingRequest`** (inline + URL **`/partner/bookings?booking={id}`**).
+- **`lib/services/notifications/email.service.js`:** Resend для простых писем/фолбэков (`sendResendEmail`, text→HTML). Брендированные React-шаблоны остаются в **`lib/services/email.service.js`** (**`EmailService`**).
+- **`lib/services/notifications/push.service.js`:** реэкспорт **`PushService`** из **`lib/services/push.service.js`** (единая точка импорта из слоя уведомлений). Check-in push по-прежнему инициируется кроном **`/api/cron/checkin-reminder`** до **`NotificationService.dispatch('CHECKIN_REMINDER', …)`**.
+- **`lib/services/notifications/formatting.js`:** общие сниппеты для TG/HTML уведомлений (сумма, special_requests, escape).
+
+### 0.0d Email + Escrow layout (Stage 2.3)
+- **Канон ссылок «к брони» в списках (гость):** `lib/email/booking-routes.js` — **`renterBookingsListPath(id)`** → **`/renter/bookings?booking=…`**. Активные premium-шаблоны в **`lib/services/email.service.js`**: `bookingRequested`, `newLeadAlert` (для партнёра — **`partnerBookingsListPath`**), `paymentSuccessGuest` (как и ранее, **`bookingsUrl`** строится в хабе уведомлений). Мёртвый шаблон/метод **`sendBookingStatusChange` / `bookingStatusChange`** удалён (не использовался).
+- **`lib/services/escrow.service.js`:** оркестратор: **`moveToEscrow`**, баланс (**`getPartnerBalance`**, **`getPartnerBalanceByCategory`**, **`syncPartnerBalanceColumns`**, cron **`processDueEscrowThaws`**, политика/комиссия), реэкспорт **`BookingStatus`**, **`PayoutStatus`**.
+- **`lib/services/escrow/thaw.service.js`:** `PAID_ESCROW` → **`THAWED`**, превью/бэкфилл `escrow_thaw_at`, **`notifyUpcomingThaw`**, **`thawBookingToThawed`**.
+- **`lib/services/escrow/payout.service.js`:** авто-выплаты по крон-правилам, ручной **`requestPayout`**, **`processPayout`** / **`processAllPayoutsForToday`**.
+- **`lib/services/escrow/commission.js`**, **`utils.js`**, **`balance.service.js`**, **`ledger-capture.js`:** комиссия/settlement, утилиты, баланс партнёра, **отложенная** запись в ledger после перехода в эскроу (не блокирует успех оплаты).
+- **Tron verify API:** `POST /api/v2/payments/verify-tron` при **`bookingId` + успешной верификации** вызывает **`PaymentsV3Service.confirmPayment`** (а не «тихий» UPDATE `payments`), чтобы сработали **эскроу + фоновый ledger**, как у админского confirm.
+
+### 0.0e Checkout page hooks (Stage 2.4)
+- **UI:** `app/checkout/[bookingId]/page.js` — только разметка, `Suspense` и вызов хуков; без «тяжёлой» логики в файле страницы.
+- **`hooks/useCheckoutPayment.js`:** загрузка брони/инвойса, `GET` payment-intent, `allowedMethods`, проверка доступа, `language`, **`chatConversationId`**: сначала **`b.conversation_id`** из ответа **`GET /api/v2/bookings/[id]`** (см. **`getBookingById` + `attachConversationIdsToBookings`**), иначе fallback на **`GET /api/v2/chat/conversations`**. Initiate, **`POST .../payment/confirm`**, крипта: `POST /api/v2/payments/verify-tron` с **`{ txid, bookingId }`**, обработка **`paymentSettled`** (toast, **`loadPaymentStatus`**, success UI). Ошибки оплаты/верификации — через **toast** (не молчать).
+- **`hooks/useCheckoutPricing.js`:** курсы, комиссия (**`useCommission`**), промокод, итоги, формат цены, локаль дат; делит с платежным хуком только то, что нужно отображению.
+- **Вспомогательно:** `hooks/checkout-constants.js` (**`GOSTAYLO_WALLET`**, default methods), `hooks/interpolate.js` (шаблоны строк).
 
 ### 0.0a Admin Financial Health (Ledger)
 - **UI:** `app/admin/financial-health/page.jsx` — маршрут **`/admin/financial-health`**, карточки остатков по счетам **PROCESSING_POT_ROUNDING** («котёл на платёжки») и **INSURANCE_FUND_RESERVE** (страховой фонд), плюс **PLATFORM_FEE** и агрегат **PARTNER_EARNINGS**; блок **сверки Cash (MVP)** при **`marginLeakage`**; кнопка **«Сформировать реестр для Т-Банка»** (скачивание CSV); таблица выплат в **`PROCESSING`** с кнопками **PAID** / **FAILED** и **AlertDialog** подтверждения перед отправкой **PATCH**.
@@ -159,9 +188,17 @@ Pattern: Immediate Response + Fire-and-Forget
 ├── lib/
 │   ├── services/                 # Business logic services
 │   │   ├── pricing.service.js    # Seasonal pricing calculator
-│   │   ├── booking.service.js    # Booking management
+│   │   ├── booking.service.js    # Booking orchestrator (API entry)
+│   │   ├── booking/              # query / pricing snapshot / inquiry / creation
+│   │   │   ├── query.service.js
+│   │   │   ├── pricing.service.js
+│   │   │   ├── inquiry.service.js
+│   │   │   └── creation.js
 │   │   ├── payments-v3.service.js # Payment orchestration (active)
-│   │   └── notification.service.js # Telegram + Email dispatcher
+│   │   ├── notification.service.js # Event hub (dispatch → email / TG / FCM)
+│   │   ├── notifications/         # Stage 2.2: telegram, email (Resend), push re-export, formatting
+│   │   ├── escrow.service.js   # Stage 2.3: PAID_ESCROW / cron thaw / balance
+│   │   └── escrow/                # thaw, payout, balance, commission, utils, ledger-capture
 │   ├── supabase.js               # Supabase client instances
 │   └── currency.js               # Currency formatting
 ├── components/
@@ -534,17 +571,18 @@ Total:               ฿(Y+Z)
 ### 4.1 Architecture
 
 ```
-NotificationService (lib/services/notification.service.js)
+NotificationService (lib/services/notification.service.js) — dispatch + safeNotifyChannel
     │
-    ├── sendEmail(to, subject, text, html)  → Resend API
+    ├── lib/services/notifications/email.service.js
+    │         sendResendEmail / text→HTML (fallbacks; branded mail → lib/services/email.service.js)
     │
-    ├── sendTelegram(chatId, message)       → Telegram Bot API
+    ├── lib/services/notifications/telegram.service.js
+    │         sendTelegramMessagePayload, sendToAdminTopic, sendTelegramBookingRequest (?booking=)
     │
-    └── sendToAdminTopic(topic, message)    → Telegram Topics
-                │
-                ├── BOOKINGS (thread 15)
-                ├── FINANCE (thread 16)
-                └── NEW_PARTNERS (thread 17)
+    ├── lib/services/notifications/push.service.js → PushService (lib/services/push.service.js)
+    │
+    └── static helpers: sendEmail / textToHtml / sendTelegram* — thin delegates to the modules above
+            Telegram admin topics: BOOKINGS (15), FINANCE (16), NEW_PARTNERS (17), MESSAGES (18)
 ```
 
 ### 4.2 Event Dispatch

@@ -7,9 +7,10 @@
  */
 
 import { NextResponse } from 'next/server';
-import { verifyTronTransaction, verifyTransactionWithBooking, getStatusBadge, GOSTAYLO_WALLET, thbToUsdt } from '@/lib/services/tron.service';
+import { verifyTronTransaction, getStatusBadge, GOSTAYLO_WALLET, thbToUsdt } from '@/lib/services/tron.service';
 import { supabaseAdmin } from '@/lib/supabase';
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
+import { PaymentsV3Service } from '@/lib/services/payments-v3.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,20 +54,30 @@ export async function POST(request) {
     const result = await verifyTronTransaction(txid, expectedAmount);
     const badge = getStatusBadge(result.status);
 
-    // If bookingId provided and verification successful, update payment
+    /** If bookingId + Tron OK: same path as admin confirm → payments.CONFIRMED + escrow + ledger */
+    let paymentSettled = null
     if (bookingId && result.success) {
-      await supabaseAdmin
+      const { data: pendingPay } = await supabaseAdmin
         .from('payments')
-        .update({
-          status: 'CONFIRMED',
-          metadata: {
-            verification: result.data,
-            verified_at: new Date().toISOString(),
-            auto_verified: true
-          }
-        })
+        .select('id')
         .eq('booking_id', bookingId)
-        .eq('status', 'PENDING');
+        .eq('status', 'PENDING')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (pendingPay?.id) {
+        const conf = await PaymentsV3Service.confirmPayment(pendingPay.id, {
+          source: 'verify_tron_api',
+          txid,
+          tron: result.data,
+        })
+        paymentSettled = {
+          success: conf?.success === true,
+          error: conf?.success ? undefined : conf?.error,
+        }
+      } else {
+        paymentSettled = { success: false, error: 'no_pending_payment' }
+      }
     }
 
     return NextResponse.json({
@@ -76,6 +87,7 @@ export async function POST(request) {
       data: result.data,
       error: result.error,
       expectedWallet: GOSTAYLO_WALLET,
+      paymentSettled,
       amountVerification: result.data ? {
         received: result.data.amount,
         expected: result.data.expectedAmount,
