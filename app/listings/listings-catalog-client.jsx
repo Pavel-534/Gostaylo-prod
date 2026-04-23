@@ -10,6 +10,7 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ListingsCatalogSkeleton } from '@/components/listings-catalog-skeleton'
 import { format, parseISO, differenceInDays } from 'date-fns'
 import { fetchExchangeRates } from '@/lib/client-data'
 import { FilterBar } from '@/components/search/FilterBar'
@@ -18,7 +19,7 @@ import { SearchMapWrapper } from '@/components/search/SearchMapWrapper'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 import { useDebounce, useIntersectionObserver, useListingsFetch } from '@/lib/hooks/useListingsSearch'
-import { detectLanguage } from '@/lib/translations'
+import { detectLanguage, DEFAULT_UI_LANGUAGE } from '@/lib/translations'
 import { normalizeListingCategorySlugForSearch, isTransportListingCategory } from '@/lib/listing-category-slug'
 import {
   parseBBoxFromParams,
@@ -94,7 +95,7 @@ function ListingsContent() {
     else if (sem === '1') setSmartSearchOn(true)
   }, [searchParamsKey])
 
-  const [language, setLanguage] = useState('en')
+  const [language, setLanguage] = useState(DEFAULT_UI_LANGUAGE)
   const [currency, setCurrency] = useState('THB')
   const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
   const [showMap, setShowMap] = useState(false)
@@ -543,11 +544,7 @@ function ListingsContent() {
 export default function ListingsCatalogClient() {
   return (
     <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-          <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
-        </div>
-      }
+      fallback={<ListingsCatalogSkeleton />}
     >
       <ListingsContent />
     </Suspense>

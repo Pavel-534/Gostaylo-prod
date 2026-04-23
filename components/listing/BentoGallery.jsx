@@ -4,21 +4,28 @@
  * BentoGallery - Airbnb-style image grid (desktop) + swipe carousel (mobile).
  */
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel'
+import { toPublicImageUrl, isRemoteHttpImageSrc } from '@/lib/public-image-url'
+import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
+import { getUIText } from '@/lib/translations'
 
 export function BentoGallery({ images, title, language = 'en', onImageClick }) {
+  const displayUrls = useMemo(
+    () => (images || []).map((u) => toPublicImageUrl(u) || u).filter(Boolean),
+    [images],
+  )
   const [carouselApi, setCarouselApi] = useState(null)
   const [carouselIndex, setCarouselIndex] = useState(0)
 
   const openAt = useCallback(
     (index) => {
-      const i = Math.max(0, Math.min(index, (images?.length || 1) - 1))
+      const i = Math.max(0, Math.min(index, (displayUrls?.length || 1) - 1))
       onImageClick?.(i)
     },
-    [images?.length, onImageClick]
+    [displayUrls?.length, onImageClick]
   )
 
   useEffect(() => {
@@ -31,7 +38,7 @@ export function BentoGallery({ images, title, language = 'en', onImageClick }) {
     }
   }, [carouselApi])
 
-  if (!images || images.length === 0) {
+  if (!displayUrls || displayUrls.length === 0) {
     return null
   }
 
@@ -41,11 +48,11 @@ export function BentoGallery({ images, title, language = 'en', onImageClick }) {
       <div className="md:hidden relative mb-12 rounded-2xl overflow-hidden h-[50vh] min-h-[280px] max-h-[520px]">
         <Carousel
           setApi={setCarouselApi}
-          opts={{ align: 'start', loop: images.length > 1 }}
+          opts={{ align: 'start', loop: displayUrls.length > 1 }}
           className="h-full w-full"
         >
           <CarouselContent className="-ml-0 h-full">
-            {images.map((src, idx) => (
+            {displayUrls.map((src, idx) => (
               <CarouselItem key={idx} className="pl-0 basis-full h-full">
                 <button
                   type="button"
@@ -59,15 +66,18 @@ export function BentoGallery({ images, title, language = 'en', onImageClick }) {
                     className="object-cover"
                     sizes="100vw"
                     priority={idx === 0}
+                    placeholder="blur"
+                    blurDataURL={LISTING_CARD_BLUR_DATA_URL}
+                    unoptimized={isRemoteHttpImageSrc(src)}
                   />
                 </button>
               </CarouselItem>
             ))}
           </CarouselContent>
         </Carousel>
-        {images.length > 1 && (
+        {displayUrls.length > 1 && (
           <div className="pointer-events-none absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
-            {images.map((_, i) => (
+            {displayUrls.map((_, i) => (
               <span
                 key={i}
                 className={`h-1.5 rounded-full transition-all ${
@@ -77,9 +87,9 @@ export function BentoGallery({ images, title, language = 'en', onImageClick }) {
             ))}
           </div>
         )}
-        {images.length > 1 && (
+        {displayUrls.length > 1 && (
           <div className="pointer-events-none absolute top-3 right-3 rounded-full bg-black/50 px-2 py-0.5 text-xs font-medium text-white">
-            {carouselIndex + 1}/{images.length}
+            {carouselIndex + 1}/{displayUrls.length}
           </div>
         )}
       </div>
@@ -97,20 +107,23 @@ export function BentoGallery({ images, title, language = 'en', onImageClick }) {
           }
         }}
       >
-        {images[0] && (
+        {displayUrls[0] && (
           <div className="relative md:col-span-2 md:row-span-2 bg-slate-100">
             <Image
-              src={images[0]}
+              src={displayUrls[0]}
               alt={title}
               fill
               className="object-cover hover:scale-105 transition-transform duration-300"
               sizes="50vw"
               priority
+              placeholder="blur"
+              blurDataURL={LISTING_CARD_BLUR_DATA_URL}
+              unoptimized={isRemoteHttpImageSrc(displayUrls[0])}
             />
           </div>
         )}
 
-        {images.slice(1, 5).map((img, idx) => (
+        {displayUrls.slice(1, 5).map((img, idx) => (
           <div key={idx} className="relative bg-slate-100">
             <Image
               src={img}
@@ -118,11 +131,14 @@ export function BentoGallery({ images, title, language = 'en', onImageClick }) {
               fill
               className="object-cover hover:scale-105 transition-transform duration-300"
               sizes="25vw"
+              placeholder="blur"
+              blurDataURL={LISTING_CARD_BLUR_DATA_URL}
+              unoptimized={isRemoteHttpImageSrc(img)}
             />
-            {idx === 3 && images.length > 5 && (
+            {idx === 3 && displayUrls.length > 5 && (
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                <Button variant="secondary" size="sm">
-                  +{images.length - 5} {language === 'ru' ? 'фото' : 'more'}
+                <Button variant="secondary" size="sm" type="button">
+                  +{displayUrls.length - 5} {getUIText('listingGallery_morePhotos', language)}
                 </Button>
               </div>
             )}

@@ -14,7 +14,8 @@
     "lint": "eslint . --max-warnings 50",
     "lint:fix": "eslint . --fix",
     "verify:currency": "node scripts/verify-format-price.mjs",
-    "check:payout-methods": "node scripts/check-payout-methods.mjs"
+    "check:payout-methods": "node scripts/check-payout-methods.mjs",
+    "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -96,6 +97,7 @@
     "zod": "^3.25.67"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^14.2.0",
     "@playwright/test": "^1.59.1",
     "@types/node": "^25.5.2",
     "@types/react": "^18.3.12",

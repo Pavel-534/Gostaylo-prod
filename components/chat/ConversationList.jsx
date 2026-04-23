@@ -41,6 +41,7 @@ import { isFavoriteConversationId } from '@/lib/chat-inbox-favorites'
 import { useAuth } from '@/contexts/auth-context'
 import { usePresenceContext } from '@/lib/context/PresenceContext'
 import { useChatContext } from '@/lib/context/ChatContext'
+import { getUIText } from '@/lib/translations'
 
 const LIST_FILTER_ALL = 'all'
 const LIST_FILTER_UNREAD = 'unread'
@@ -103,7 +104,9 @@ function LastMessagePreview({ conv, lang = 'ru' }) {
   const type = String(last.type || '').toLowerCase()
   if (type === 'image') return <span className="text-slate-500">📷 {lang === 'ru' ? 'Фото' : 'Photo'}</span>
   if (type === 'voice') return <span className="text-slate-500">🎤 {lang === 'ru' ? 'Голосовое' : 'Voice'}</span>
-  if (type === 'invoice') return <span className="text-slate-500">🧾 {lang === 'ru' ? 'Счёт' : 'Invoice'}</span>
+  if (type === 'invoice') {
+    return <span className="text-slate-500">{getUIText('chatListPreview_invoice', lang)}</span>
+  }
   if (type === 'system') return <span className="text-slate-400 italic">{lang === 'ru' ? 'Системное' : 'System'}</span>
   if (['rejection', 'REJECTION'].includes(last.type)) {
     return (

@@ -1,25 +1,12 @@
 import { Suspense } from 'react';
 import { GostayloHomeContent } from '@/components/GostayloHomeContent';
-import { Loader2 } from 'lucide-react';
+import { HomePageSkeleton } from '@/components/home-page-skeleton';
 
-// Force dynamic rendering - fetch data from Supabase on every request
-export const dynamic = 'force-dynamic';
-
-// Loading fallback for Suspense
-function HomeLoading() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900">
-      <div className="text-center">
-        <Loader2 className="h-12 w-12 animate-spin text-teal-500 mx-auto mb-4" />
-        <p className="text-white text-lg">Loading GoStayLo...</p>
-      </div>
-    </div>
-  );
-}
+/** Статическая оболочка: данные тянет клиент (`GostayloHomeContent`); без `force-dynamic` — ниже TTFB. */
 
 export default function Page() {
   return (
-    <Suspense fallback={<HomeLoading />}>
+    <Suspense fallback={<HomePageSkeleton />}>
       <GostayloHomeContent />
     </Suspense>
   );

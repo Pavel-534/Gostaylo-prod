@@ -28,9 +28,11 @@ function Shimmer({ className }) {
   )
 }
 
-export function ListingCardSkeleton({ className }) {
+export function ListingCardSkeleton({ className, style }) {
   return (
-    <div className={cn(
+    <div
+      style={style}
+      className={cn(
       "bg-white rounded-xl overflow-hidden border border-slate-100 shadow-sm",
       className
     )}>

@@ -1,6 +1,7 @@
 /**
  * Каркас сообщений: фиксированный dvh, условный отступ под нижнюю навигацию (только холл).
  */
+import '@/lib/translations/register-chat-slice'
 import { MessagesViewportShell } from '@/components/messages-viewport-shell'
 
 export const metadata = {

@@ -30,7 +30,7 @@ import { toast } from 'sonner'
 import { mapApiMessageToRow, mergeRealtimeMessage } from '@/lib/chat/map-api-message'
 import { isMessageHiddenFromViewer } from '@/lib/chat-message-visibility'
 import { isRealtimeDebugEnabled } from '@/lib/chat/realtime-debug-log'
-import { useRealtimeMessages } from '@/hooks/use-realtime-chat'
+import { useChatRealtime } from '@/hooks/use-chat-realtime'
 import { useOptimisticSend } from '@/hooks/use-optimistic-send'
 import { uploadChatFile, uploadChatVoice } from '@/lib/chat-upload'
 
@@ -241,7 +241,7 @@ export function useChatThreadMessages({
     [resyncMissedMessages],
   )
 
-  const { isConnected } = useRealtimeMessages(
+  const { isConnected } = useChatRealtime(
     conversationId ?? null,
     handleRealtimeInsert,
     handleRealtimeUpdate,

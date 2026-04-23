@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 3.9.0 | **Last Updated**: 2026-04-22 | **Status**: Production-Ready
+> **Version**: 5.2.0 | **Last Updated**: 2026-04-22 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -31,11 +31,65 @@
 - **`lib/services/escrow/commission.js`**, **`utils.js`**, **`balance.service.js`**, **`ledger-capture.js`:** комиссия/settlement, утилиты, баланс партнёра, **отложенная** запись в ledger после перехода в эскроу (не блокирует успех оплаты).
 - **Tron verify API:** `POST /api/v2/payments/verify-tron` при **`bookingId` + успешной верификации** вызывает **`PaymentsV3Service.confirmPayment`** (а не «тихий» UPDATE `payments`), чтобы сработали **эскроу + фоновый ledger**, как у админского confirm.
 
-### 0.0e Checkout page hooks (Stage 2.4)
-- **UI:** `app/checkout/[bookingId]/page.js` — только разметка, `Suspense` и вызов хуков; без «тяжёлой» логики в файле страницы.
+### 0.0e Checkout page hooks (Stage 2.4 + 7.1 components)
+- **UI:** `app/checkout/[bookingId]/page.js` — **тонкий shell** (хуки, ветвления по состоянию, `Suspense`); вся разметка в **`app/checkout/[bookingId]/components/`** — **`CheckoutSummary`**, **`PaymentMethods`** (включая крипто-диалог), **`CheckoutStateViews`**. Логика по-прежнему в хуках, без дублирования бизнес-правил.
 - **`hooks/useCheckoutPayment.js`:** загрузка брони/инвойса, `GET` payment-intent, `allowedMethods`, проверка доступа, `language`, **`chatConversationId`**: сначала **`b.conversation_id`** из ответа **`GET /api/v2/bookings/[id]`** (см. **`getBookingById` + `attachConversationIdsToBookings`**), иначе fallback на **`GET /api/v2/chat/conversations`**. Initiate, **`POST .../payment/confirm`**, крипта: `POST /api/v2/payments/verify-tron` с **`{ txid, bookingId }`**, обработка **`paymentSettled`** (toast, **`loadPaymentStatus`**, success UI). Ошибки оплаты/верификации — через **toast** (не молчать).
 - **`hooks/useCheckoutPricing.js`:** курсы, комиссия (**`useCommission`**), промокод, итоги, формат цены, локаль дат; делит с платежным хуком только то, что нужно отображению.
-- **Вспомогательно:** `hooks/checkout-constants.js` (**`GOSTAYLO_WALLET`**, default methods), `hooks/interpolate.js` (шаблоны строк).
+- **Вспомогательно:** `hooks/checkout-constants.js` реэкспорт из **`lib/config/app-constants.js`** (**`GOSTAYLO_WALLET`**, **default methods**), `hooks/interpolate.js` (шаблоны строк).
+
+### 0.0g Partner listing creation & edit wizard (Stage 4.1 + 4.2)
+- **Создание — маршрут:** `app/partner/listings/new/page.js` — оболочка: **`Suspense`** + **`ListingWizardProvider`** (по умолчанию `mode="create"`) + **`ListingWizardPageInner`**.
+- **Редактирование — маршрут:** `app/partner/listings/[id]/page.js` — оболочка: **`Suspense`** + **`ListingWizardProvider` с `mode="edit"`** и **`initialListingId` из `params.id`** + **`EditPartnerListingView`**, который рендерит тот же **`ListingWizardPageInner`**, а под визардом (после общих шагов) — **`CalendarSyncManager`**, **`AvailabilityCalendar`**, **`SeasonalPriceManager`** (только не для transport-категории: `isTransportListingCategory` скрывает внешний iCal sync).
+- **SSoT состояния (единая база):** `app/partner/listings/new/context/ListingWizardContext.js` — `formData` (в т.ч. `cancellationPolicy`, `status`, `available` с сервера), `serverListing` и `listingNotFound`, шаг `currentStep` (1–5), `wizardMode` (`create` | `edit`), `tr` / `numberLocale` для шаблонов и форматов чисел, `loadExistingListing` по `?edit=` **или** по `initialListingId` (только при авторизованной сессии), обложка: первый снимок в `images` после выравнивания по `coverImage`.
+- **Сохранение:** `app/partner/listings/new/hooks/useListingSave.js` — для **`mode="create"`** по-прежнему черновик (POST/PUT) и публикация; для **`mode="edit"`** — **`PATCH`** списка полей (сохранение без смены `status`/`available` у активного листинга) и отдельный сценарий **публикации черновика** (как в старом flow: `PENDING`, нормализованный `metadata`); миграция внешних фото — после успешного сохранения; сезонные периоды в визарде — POST после публикации **create**-потока, как раньше.
+- **Константы по умолчанию:** `app/partner/listings/new/wizard-constants.js` — `WIZARD_DISTRICTS`, `getDefaultWizardFormData()`.
+- **Шаги (UI, `React.memo` на тяжёлых):** `app/partner/listings/new/components/`
+  - **`StepGeneralInfo.jsx`** — категория, импорт Airbnb (если не transport/tour), заголовок, описание, AI; **`WizardSpecsSection.jsx`** (спеки + удобства).
+  - **`StepLocation.jsx`** — район, геокод, `MapPicker`, координаты.
+  - **`StepPhotos.jsx`** — загрузка, сетка, `PartnerCalendarEducationCard`.
+  - **`StepPricing.jsx`** — база, валюта, **политика отмены**, превью «цена на сайте», min/max (или тур-группы), duration discount, сезонные периоды, `react-day-picker`.
+  - **`StepPreview.jsx`** — чек-лист и предпросмотр.
+- **Порядок шагов:** **basics+specs** → **location** → **gallery** → **pricing** → **live preview**; данные не сбрасываются при переходах.
+- **Тексты (Stage 4.2):** строки партнёрского визарда/редактора в **`lib/translations/listings-partner.js`** (включая `wizard*`, `draftDefaultTitle`, `defaultListingSeasonLabel`, `improveDescription*`);
+
+### 0.0h Guest listing page — modular shell (Stage 5.1)
+- **Маршрут:** `app/listings/[id]/page.js` — клиентская оболочка: загрузка листинга/курсов/календаря, **`Suspense`** с **`ListingPageSkeleton`**, без дублирования расчёта цены (хук **`useListingPricing`**).
+- **SSoT URL картинок для гостя:** `getListingDisplayImageUrls(listing)` в **`lib/listing-display-images.js`** — cover первым, дедуп, нормализация через **`toPublicImageUrl`** (same-origin **`/_storage/...`**) → **`next/image`** (WebP/AVIF) в **`BentoGallery`**.
+- **Компоненты страницы** (`app/listings/[id]/components/`):
+  - **`ListingGallery.jsx`** — обёртка над **`BentoGallery`**, тот же список URL, что и для **`GalleryModal`**.
+  - **`ListingPageNav.jsx`** — липкий верх: назад, избранное (i18n **`listingDetail_*`**).
+  - **`ListingHeader.jsx`** / **`ListingDescription.jsx`** — тонкие оболочки над **`GuestListingTitleBlock`** / **`GuestListingBodyBlock`** из **`components/listing/ListingInfo.jsx`**.
+  - **`ListingPageSkeleton.jsx`** — скелетон при **`loading`** и в **`Suspense`**.
+  - **`BookingWidget.jsx`** — реэкспорт **`DesktopBookingWidget`**, **`MobileBookingBar`**, **`PriceBreakdownBlock`** из **`components/listing/BookingWidget.jsx`**.
+- **Хуки:** `app/listings/[id]/hooks/useListingPricing.js` — субхук цены (итог, налоги/комиссия гостя, скидки по длительности), вместо inline-эффекта в `page.js`.
+- **i18n:** публичные строки гостевой карточки в **`lib/translations/listings-public.js`** (ключи **`listingDetail_*`**, `listingInfo_*`, `listingGallery_*` и др.).
+
+### 0.0i Messenger thread — modular shell (Stage 6.1)
+- **Маршрут:** `app/messages/[id]/page.js` — рендер **`UnifiedMessagesClient`**.
+- **SSoT треда (не путать с глобальным инбоксом):** `app/messages/[id]/context/ChatContext.js` — **`MessengerThreadProvider`**, **`useMessengerThread`**: `conversationId`, `messages` / `setMessages`, `selectedConv`, `listing`, `booking`, `isHosting`, и т.д. Глобальные бейджи/список — по-прежнему **`@/lib/context/ChatContext.jsx`**.
+- **Данные и Realtime:** **`hooks/use-chat-thread-messages.js`** — загрузка треда, оптимистичная отправка; подписка INSERT/UPDATE через **`useChatRealtime`** из **`hooks/use-chat-realtime.js`** (обёртка над **`useRealtimeMessages`** в **`hooks/use-realtime-chat.js`**). Точка входа модуля: **`app/messages/[id]/hooks/useChatRealtime.js`** (реэкспорт).
+- **Компоненты** (`app/messages/[id]/components/`):
+  - **`ConversationSidebar.jsx`** — обёртка над **`components/chat/ConversationList.jsx`** (вкладки, архив).
+  - **`MessageList.jsx`** — **`ChatMessageList`**, **`SafetyBanner`**, **`ChatMediaGallery`**, скелетон загрузки.
+  - **`MessageInput.jsx`** — хост: **`PartnerChatComposer`** (`next/dynamic`); гость: вложения, голос, **`ChatGrowingTextarea`**.
+  - **`BookingInfoSidebar.jsx`** — правая колонка: **`DealDetailsCard`** (`next/dynamic`).
+  - **`ThreadDealDetailsSheet.jsx`**, **`DeclineBookingDialog.jsx`** — мобильный sheet «детали сделки» и отклонение брони.
+- **Архив диалога:** **`app/messages/[id]/hooks/useThreadArchive.js`** (тосты и навигация).
+- **i18n треда:** ключи **`messengerThread_*`**, превью счёта в списке — **`chatListPreview_invoice`** в **`lib/translations/ui.js`**.
+
+### 0.0f Performance + i18n (Stage 3.1)
+- **Язык (единый дефолт RU):** `DEFAULT_UI_LANGUAGE` = **`ru`** в **`lib/translations/index.js`**. **`setLanguage` / I18nProvider** сохраняют выбор в **`localStorage`** и в cookie **`gostaylo_language`** (path=/, SameSite=Lax, max-age long-lived). Клиент **`detectLanguage`**: localStorage → cookie → `navigator` → **RU**. **SSR/SEO:** **`getLangFromRequest(cookies, headers)`** — **сначала cookie** `gostaylo_language`, затем **Accept-Language** (нормализация `en-US` → `en`), иначе **`ru`**. **`app/layout.js`:** `<html lang="ru">` и глобально **без** `leaflet.css` (см. ниже).
+- **TTFB главной:** `app/page.js` — **статическая** оболочка (убрано **`export const dynamic = 'force-dynamic'`**); список/курсы тянет **`GostayloHomeContent`** на клиенте. **Suspense fallback** — **`HomePageSkeleton`** (`components/home-page-skeleton.jsx`), а не полноэкранный спиннер.
+- **Каталог `/listings`:** Suspense оболочки в **`listings-catalog-client`** — fallback **`ListingsCatalogSkeleton`**, визуально согласован с шапкой/фильтром/сеткой+картой.
+- **i18n (тяжёлые словари):** база **`translation-state` → `uiTranslations`**; слайс чата/админ-блока **`slices/chat-ui.js`** мержится в рантайме через **`lib/translations/register-chat-slice.js`**; side-effect импорт в **`app/messages/layout.js`** и **`app/admin/layout.js`**, чтобы главная/чекаут не тянули чат-объём в initial chunk маршрута, но маршруты с этими layout получали ключи.
+- **Leaflet:** `leaflet/dist/leaflet.css` подключается только в компонентах с картой: **`components/listing/ListingMap.jsx`**, **`MapPicker.jsx`**, **`InteractiveSearchMap.jsx`** (уже импорт в последних двух; из корневого `layout` удалён).
+- **Сборка:** `npm run analyze` — `ANALYZE=true` + `@next/bundle-analyzer` (треemap страниц/чанков).
+- **Checkout vs эквайринг:** `POST /api/v2/bookings/[id]/payment/initiate` может отдавать **`checkoutUrl`**. Клиент **`useCheckoutPayment`**: при URL — `window.location.assign` (Mandarin **CARD_INTL** / YooKassa **MIR_RU** через `lib/services/payment-adapters`). **TODO(Production Flag):** mock-подтверждение без шлюза — **не в production** без `NEXT_PUBLIC_CHECKOUT_MOCK_ACQUIRING=1`; иначе toast `checkout_toast_acquiringNotConfigured`.
+- **Мёртвый слой:** **`lib/db-service.js`** удалён; списки/поиск — `run-listings-search`, API-роуты, **`BookingService`**.
+
+### 0.0j Global constants SSOT (Stage 7.1)
+- **Файл:** `lib/config/app-constants.js` — **`GOSTAYLO_WALLET`**, **`DEFAULT_CHECKOUT_ALLOWED_METHODS`**, **`TRANSPORT_CATEGORY_DB_SLUG`**, перечисление **`BOOKING_STATUS`**, наборы **`NO_PAY_TRAVEL_STATUSES`**, **`RENTER_CHECKOUT_NO_CANCEL_STATUSES`**.
+- **Потребители (не дублировать литералы):** `lib/listing-category-slug.js` (реэкспорт transport slug), `app/checkout/.../hooks/checkout-constants.js`, `lib/services/tron.service.js`, `components/chat-action-bar.jsx`, `app/checkout/.../components/CheckoutSummary.jsx` (порог отмены).
 
 ### 0.0a Admin Financial Health (Ledger)
 - **UI:** `app/admin/financial-health/page.jsx` — маршрут **`/admin/financial-health`**, карточки остатков по счетам **PROCESSING_POT_ROUNDING** («котёл на платёжки») и **INSURANCE_FUND_RESERVE** (страховой фонд), плюс **PLATFORM_FEE** и агрегат **PARTNER_EARNINGS**; блок **сверки Cash (MVP)** при **`marginLeakage`**; кнопка **«Сформировать реестр для Т-Банка»** (скачивание CSV); таблица выплат в **`PROCESSING`** с кнопками **PAID** / **FAILED** и **AlertDialog** подтверждения перед отправкой **PATCH**.

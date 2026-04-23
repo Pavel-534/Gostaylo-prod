@@ -335,16 +335,14 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole, partnerI
         {showReviewCta && (
           <div className="border-t border-slate-200 pt-3">
             <p className="mb-3 text-sm font-medium text-slate-800">
-              {lang === 'ru'
-                ? 'Как прошёл ваш отдых? Поделитесь впечатлениями!'
-                : 'How was your stay? Share your experience!'}
+              {getUIText('chatHowWasStay', language)}
             </p>
             <Link
               href={reviewHref}
               className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-teal-600 px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-teal-700"
             >
               <Star className="h-4 w-4 shrink-0 fill-white" />
-              {lang === 'ru' ? 'Оценить отдых' : 'Rate your stay'}
+              {getUIText('chatRateStay', language)}
             </Link>
           </div>
         )}

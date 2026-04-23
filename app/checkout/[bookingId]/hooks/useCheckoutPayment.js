@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
-import { getUIText, detectLanguage } from '@/lib/translations'
+import { getUIText, detectLanguage, DEFAULT_UI_LANGUAGE } from '@/lib/translations'
 import { GOSTAYLO_WALLET, DEFAULT_ALLOWED_METHODS } from './checkout-constants.js'
 
 /**
@@ -11,7 +11,7 @@ import { GOSTAYLO_WALLET, DEFAULT_ALLOWED_METHODS } from './checkout-constants.j
  * @param {boolean} opts.authLoading
  */
 export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoading }) {
-  const [language, setLanguage] = useState('ru')
+  const [language, setLanguage] = useState(DEFAULT_UI_LANGUAGE)
   const [loading, setLoading] = useState(true)
   const [accessDenied, setAccessDenied] = useState(false)
   const [booking, setBooking] = useState(null)
@@ -298,10 +298,26 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
       })
       const data = await res.json()
       if (data.success) {
-        setPayment(data.data)
+        const pay = data.data
+        setPayment(pay)
         if (paymentMethod === 'CRYPTO') {
           setCryptoModalOpen(true)
         } else {
+          const checkoutUrl = pay?.checkoutUrl
+          if (typeof checkoutUrl === 'string' && checkoutUrl.length > 0) {
+            window.location.assign(checkoutUrl)
+            return
+          }
+          // TODO(Production Flag): real acquiring (Mandarin CARD_INTL, YooKassa MIR_RU) returns `checkoutUrl` from
+          // `POST .../payment/initiate` via `lib/services/payment-adapters` + `PaymentIntentService.initiate`. Mock
+          // confirm is for local/staging, or set NEXT_PUBLIC_CHECKOUT_MOCK_ACQUIRING=1. Set NEXT_PUBLIC_CHECKOUT_MOCK_ACQUIRING=0 in prod to forbid auto-MOCK.
+          const mockAllowed =
+            process.env.NODE_ENV !== 'production' ||
+            process.env.NEXT_PUBLIC_CHECKOUT_MOCK_ACQUIRING === '1'
+          if (!mockAllowed) {
+            toast.error(getUIText('checkout_toast_acquiringNotConfigured', language))
+            return
+          }
           toast.success(getUIText('checkout_toast_mockRedirect', language))
           setTimeout(() => {
             void handleConfirmPayment(null, `MOCK-${Date.now()}`)

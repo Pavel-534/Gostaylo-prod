@@ -1,6 +1,5 @@
 import { Inter } from 'next/font/google'
 import './globals.css'
-import 'leaflet/dist/leaflet.css' // Leaflet map styles
 import { Toaster } from 'sonner'
 import { UniversalHeader } from '@/components/universal-header'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
@@ -69,7 +68,7 @@ export async function generateMetadata() {
 
 export default async function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="ru">
       <head>
         {/* Минимальная подстраховка, если .css из /_next/static не загрузились (сеть / Edge). */}
         <style

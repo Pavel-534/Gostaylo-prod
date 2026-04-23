@@ -11,31 +11,31 @@ import { useState, useEffect, useMemo, useRef, Suspense, useCallback } from 'rea
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ArrowLeft, Loader2, Heart } from 'lucide-react'
 import nextDynamic from 'next/dynamic'
-import { BentoGallery } from '@/components/listing/BentoGallery'
 import {
   DesktopBookingWidget,
   MobileBookingBar,
   PriceBreakdownBlock,
-} from '@/components/listing/BookingWidget'
+} from './components/BookingWidget'
+import { getListingDisplayImageUrls } from '@/lib/listing-display-images'
+import { useListingPricing } from './hooks/useListingPricing'
+import { ListingGallery } from './components/ListingGallery'
+import { ListingPageNav } from './components/ListingPageNav'
+import ListingHeader from './components/ListingHeader'
+import ListingDescription from './components/ListingDescription'
+import { ListingPageSkeleton } from './components/ListingPageSkeleton'
 import {
   getListingBookingUiMode,
   getListingRentalPeriodMode,
   isWholeVesselListing,
 } from '@/lib/listing-booking-ui'
 import { AmenitiesGrid } from '@/components/listing/AmenitiesGrid'
-import { ListingInfo } from '@/components/listing/ListingInfo'
 import { ReviewsSection } from '@/components/listing/ReviewsSection'
 import { GalleryModal } from '@/components/listing/GalleryModal'
 import { BookingModal } from '@/components/listing/BookingModal'
 import { toast } from 'sonner'
 import { detectLanguage, getUIText } from '@/lib/translations'
-import {
-  PricingService,
-  parseDurationDiscountTiers,
-  computeBestDurationDiscountPercent,
-} from '@/lib/services/pricing.service'
+import { parseDurationDiscountTiers, computeBestDurationDiscountPercent } from '@/lib/services/pricing.service'
 import { useAuth } from '@/contexts/auth-context'
 import { GostayloCalendar } from '@/components/gostaylo-calendar'
 import { useRecentlyViewed } from '@/lib/hooks/use-recently-viewed'
@@ -44,13 +44,11 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { GuestCountStepper } from '@/components/listing/GuestCountStepper'
 import { fetchExchangeRates } from '@/lib/client-data'
-import { cn } from '@/lib/utils'
 import { INBOX_TAB_TRAVELING, setRenterInboxTabPreference } from '@/lib/chat-inbox-tabs'
 import { useChatContext } from '@/lib/context/ChatContext'
 import { useCommission } from '@/hooks/use-commission'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import { getBookingApiUserMessage } from '@/lib/booking-error-message'
-import { computeRoundedGuestTotalPot } from '@/lib/booking-price-integrity'
 
 const CHAT_CACHE_TTL = 5 * 60 * 1000 // 5 min
 
@@ -130,7 +128,6 @@ function PremiumListingContent({ params }) {
   const [guests, setGuests] = useState(2)
   const [debouncedGuestsAvail, setDebouncedGuestsAvail] = useState(2)
   const [message, setMessage] = useState('')
-  const [priceCalc, setPriceCalc] = useState(null)
   const [calendarKey, _setCalendarKey] = useState(0)
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteLoading, setFavoriteLoading] = useState(false)
@@ -151,6 +148,15 @@ function PremiumListingContent({ params }) {
   const isVehicleListing = String(listing?.categorySlug || '').toLowerCase() === 'vehicles'
 
   const commissionHook = useCommission(listingPartnerId)
+
+  const priceCalc = useListingPricing({
+    listing,
+    dateRange,
+    guests,
+    commissionLoading: commissionHook.loading,
+    effectiveRate: commissionHook.effectiveRate,
+    guestServiceFeePercent: commissionHook.guestServiceFeePercent,
+  })
 
   const AVAILABILITY_GUESTS_DEBOUNCE_MS = 420
 
@@ -455,74 +461,6 @@ function PremiumListingContent({ params }) {
     }
   }, [user])
   
-  // Calculate pricing
-  useEffect(() => {
-    if (!listing || !dateRange?.from || !dateRange?.to) {
-      setPriceCalc(null)
-      return
-    }
-    
-    const nights = differenceInDays(dateRange.to, dateRange.from)
-    if (nights > 0) {
-      const calc = PricingService.calculatePrice({
-        basePriceThb: listing.basePriceThb,
-        seasonalPricing: listing.seasonalPricing || [],
-        dbSeasonalPrices: listing.dbSeasonalPrices || [],
-        metadata: listing.metadata || {},
-        checkIn: format(dateRange.from, 'yyyy-MM-dd'),
-        checkOut: format(dateRange.to, 'yyyy-MM-dd'),
-        listingCategorySlug: listing.categorySlug || '',
-        guestsCount: guests,
-      })
-
-      const cr = Number(listing.commissionRate)
-      let commissionPct =
-        Number.isFinite(cr) && cr >= 0
-          ? cr
-          : commissionHook.loading
-            ? null
-            : Number(commissionHook.effectiveRate)
-      if (commissionPct == null || !Number.isFinite(commissionPct)) {
-        setPriceCalc(null)
-        return
-      }
-      const guestFeePct = Number.isFinite(Number(commissionHook.guestServiceFeePercent))
-        ? Number(commissionHook.guestServiceFeePercent)
-        : 5
-      const serviceFeeRate = guestFeePct / 100
-      const hostCommissionRate = commissionPct / 100
-      const serviceFee = Math.round(calc.totalPrice * serviceFeeRate)
-      const commissionThbHost = Math.round(calc.totalPrice * hostCommissionRate)
-      const partnerPayoutThb = calc.totalPrice - commissionThbHost
-      const guestPayable = calc.totalPrice + serviceFee
-      const roundedGuestTotal = computeRoundedGuestTotalPot(guestPayable)
-      if (!roundedGuestTotal) {
-        setPriceCalc(null)
-        return
-      }
-      const baseRawSubtotal = Math.round(listing.basePriceThb * nights)
-      const seasonalAdjustment = calc.originalPrice - baseRawSubtotal
-
-      setPriceCalc({
-        ...calc,
-        nights,
-        baseRawSubtotal,
-        seasonalAdjustment,
-        subtotal: calc.totalPrice,
-        subtotalBeforeFee: calc.totalPrice,
-        commissionRate: commissionPct,
-        guestServiceFeePercent: guestFeePct,
-        serviceFee,
-        commissionThbHost,
-        partnerPayoutThb,
-        platformCutThb: serviceFee + commissionThbHost,
-        roundingDiffPot: roundedGuestTotal.roundingDiffPotThb,
-        finalTotalRaw: guestPayable,
-        finalTotal: roundedGuestTotal.roundedGuestTotalThb,
-      })
-    }
-  }, [listing, dateRange, guests, commissionHook.loading, commissionHook.effectiveRate, commissionHook.guestServiceFeePercent])
-  
   async function loadListing() {
     try {
       const res = await fetch(`/api/v2/listings/${params.id}`)
@@ -592,7 +530,7 @@ function PremiumListingContent({ params }) {
   async function handleContactPartner() {
     const partnerId = listing?.ownerId ?? listing?.owner?.id
     if (!partnerId) {
-      toast.error(language === 'ru' ? 'Объявление недоступно' : 'Listing unavailable')
+      toast.error(getUIText('listingDetail_listingUnavailable', language))
       return
     }
     if (!user) {
@@ -622,16 +560,16 @@ function PremiumListingContent({ params }) {
       })
       const json = await res.json()
       if (!res.ok || !json.success) {
-        toast.error(json.error || (language === 'ru' ? 'Не удалось открыть чат' : 'Could not open chat'))
+        toast.error(json.error || getUIText('listingDetail_chatOpenError', language))
         return
       }
       const id = json.data?.id
       if (id) {
-        const title = listing.title || (language === 'ru' ? 'объект' : 'this listing')
-        const draft =
-          language === 'ru'
-            ? `Здравствуйте! Меня интересует объект «${title}». Подскажите детали?`
-            : `Hello! I'm interested in "${title}". Could you share more details?`
+        const title = listing.title || getUIText('listingDetail_listingNameFallback', language)
+        const draft = getUIText('listingDetail_chatIntro', language).replace(
+          /\{\{title\}\}/g,
+          String(title).replace(/</g, '').slice(0, 200),
+        )
         try {
           setRenterInboxTabPreference(INBOX_TAB_TRAVELING)
           sessionStorage.setItem(`gostaylo_chat_prefill_${id}`, draft)
@@ -652,7 +590,7 @@ function PremiumListingContent({ params }) {
       }
     } catch (e) {
       console.error(e)
-      toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
+      toast.error(getUIText('listingDetail_networkError', language))
     } finally {
       setContactPartnerLoading(false)
     }
@@ -814,7 +752,7 @@ function PremiumListingContent({ params }) {
 
   function handleAskPartnerUnavailable() {
     if (!dateRange?.from || !dateRange?.to) {
-      toast.error(language === 'ru' ? 'Выберите даты' : 'Select dates')
+      toast.error(getUIText('listingDetail_selectDates', language))
       return
     }
     if (!user) {
@@ -842,47 +780,37 @@ function PremiumListingContent({ params }) {
       const data = await res.json()
       if (!data.success) {
         setIsFavorite(!newState)
-        toast.error(language === 'ru' ? 'Ошибка обновления избранного' : 'Failed to update favorites')
+        toast.error(getUIText('listingDetail_favoriteError', language))
       } else {
-        toast.success(newState
-          ? (language === 'ru' ? '❤️ Добавлено в избранное' : '❤️ Added to favorites')
-          : (language === 'ru' ? 'Удалено из избранного' : 'Removed from favorites'))
+        toast.success(
+          newState
+            ? getUIText('listingDetail_favoriteAdded', language)
+            : getUIText('listingDetail_favoriteRemoved', language),
+        )
       }
     } catch {
       setIsFavorite(!newState)
-      toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
+      toast.error(getUIText('listingDetail_networkError', language))
     } finally {
       setFavoriteLoading(false)
     }
   }
   
-  const allImages = useMemo(() => {
-    if (!listing) return []
-    const imgs = []
-    if (listing.coverImage) imgs.push(listing.coverImage)
-    if (listing.images?.length) {
-      listing.images.forEach(img => {
-        if (img !== listing.coverImage) imgs.push(img)
-      })
-    }
-    return imgs.length > 0 ? imgs : []
-  }, [listing])
-  
+  const galleryImageUrls = useMemo(() => getListingDisplayImageUrls(listing), [listing])
+
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
-      </div>
-    )
+    return <ListingPageSkeleton />
   }
-  
+
   if (!listing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
-          <h2 className="text-2xl font-semibold mb-2">Listing not found</h2>
+          <h2 className="text-2xl font-semibold mb-2">
+            {getUIText('listingDetail_notFound', language)}
+          </h2>
           <Button onClick={() => router.push('/listings')} variant="outline">
-            Back to listings
+            {getUIText('listingDetail_backToListings', language)}
           </Button>
         </div>
       </div>
@@ -893,40 +821,31 @@ function PremiumListingContent({ params }) {
     <>
       <div className="min-h-screen bg-white">
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-            <Button variant="ghost" onClick={() => router.back()} className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">{language === 'ru' ? 'Назад' : 'Back'}</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleFavoriteClick}
-              disabled={favoriteLoading}
-              aria-label={isFavorite ? (language === 'ru' ? 'Удалить из избранного' : 'Remove from favorites') : (language === 'ru' ? 'Добавить в избранное' : 'Add to favorites')}
-            >
-              <Heart className={cn('h-5 w-5', isFavorite && 'fill-red-500 text-red-500')} />
-            </Button>
-          </div>
-        </header>
-        
+        <ListingPageNav
+          language={language}
+          onBack={() => router.back()}
+          isFavorite={isFavorite}
+          favoriteLoading={favoriteLoading}
+          onFavorite={handleFavoriteClick}
+        />
+
         <main
           className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-40 lg:pb-8"
         >
-          <BentoGallery
-            images={allImages}
-            title={listing.title}
+          <ListingGallery
+            listing={listing}
             language={language}
             onImageClick={(index) => {
               setGalleryIndex(typeof index === 'number' ? index : 0)
               setGalleryOpen(true)
             }}
           />
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             <div className="lg:col-span-2 space-y-8">
-              <ListingInfo listing={listing} language={language} />
+              <ListingHeader listing={listing} language={language} />
+              <Separator />
+              <ListingDescription listing={listing} language={language} />
               
               {/* Mobile inline calendar */}
               <div className="lg:hidden">
@@ -983,16 +902,12 @@ function PremiumListingContent({ params }) {
                     {wholeVesselListing && dateRange?.from && dateRange?.to && (
                       <div className="text-sm text-teal-900 bg-teal-50/80 border border-teal-100 rounded-lg px-3 py-2">
                         {availabilityLoading ? (
-                          <span>{language === 'ru' ? 'Проверяем доступность…' : 'Checking availability…'}</span>
+                          <span>{getUIText('listingDetail_checkingAvailability', language)}</span>
                         ) : availabilitySnapshot != null ? (
                           <span>
                             {availabilitySnapshot.available
-                              ? language === 'ru'
-                                ? 'Судно свободно на выбранные даты'
-                                : 'Vessel available for these dates'
-                              : language === 'ru'
-                                ? 'Судно недоступно на эти даты'
-                                : 'Vessel not available for these dates'}
+                              ? getUIText('listingDetail_vesselAvailable', language)
+                              : getUIText('listingDetail_vesselUnavailable', language)}
                           </span>
                         ) : null}
                       </div>
@@ -1000,10 +915,10 @@ function PremiumListingContent({ params }) {
                     {bookingUiMode === 'shared' && !wholeVesselListing && dateRange?.from && dateRange?.to && (
                       <div className="text-sm text-teal-900 bg-teal-50/80 border border-teal-100 rounded-lg px-3 py-2">
                         {availabilityLoading ? (
-                          <span>{language === 'ru' ? 'Проверяем места…' : 'Checking spots…'}</span>
+                          <span>{getUIText('listingDetail_checkingSpots', language)}</span>
                         ) : availabilitySnapshot?.remaining_spots != null ? (
                           <span>
-                            {language === 'ru' ? 'Свободных мест' : 'Spots remaining'}:{' '}
+                            {getUIText('listingDetail_spotsLabel', language)}:{' '}
                             <strong>{availabilitySnapshot.remaining_spots}</strong>
                             {listing.maxCapacity > 1 ? ` / ${listing.maxCapacity}` : ''}
                           </span>
@@ -1012,7 +927,7 @@ function PremiumListingContent({ params }) {
                     )}
                     {exclusiveDatesUnavailable && (
                       <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-900">
-                        {language === 'ru' ? 'Даты заняты.' : 'Dates unavailable.'}
+                        {getUIText('listingDetail_datesUnavailable', language)}
                         <Button
                           type="button"
                           variant="outline"
@@ -1020,7 +935,7 @@ function PremiumListingContent({ params }) {
                           className="w-full mt-2 border-teal-300"
                           onClick={handleAskPartnerUnavailable}
                         >
-                          {language === 'ru' ? 'Спросить у хозяина в чате' : 'Ask partner in chat'}
+                          {getUIText('listingDetail_askPartnerChat', language)}
                         </Button>
                       </div>
                     )}
@@ -1032,9 +947,7 @@ function PremiumListingContent({ params }) {
                           className="w-full border border-teal-200"
                           onClick={() => (user ? openBookModal('private') : openLoginModal())}
                         >
-                          {language === 'ru'
-                            ? 'Приватный тур / индивидуальная цена'
-                            : 'Private trip / individual price'}
+                          {getUIText('listingDetail_privateTrip', language)}
                         </Button>
                         <Button
                           type="button"
@@ -1042,7 +955,7 @@ function PremiumListingContent({ params }) {
                           className="w-full border-dashed"
                           onClick={() => (user ? openBookModal('special') : openLoginModal())}
                         >
-                          {language === 'ru' ? 'Особая цена' : 'Special price'}
+                          {getUIText('listingDetail_specialPrice', language)}
                         </Button>
                       </div>
                     )}
@@ -1193,7 +1106,7 @@ function PremiumListingContent({ params }) {
         <GalleryModal
           open={galleryOpen}
           onOpenChange={setGalleryOpen}
-          images={allImages}
+          images={galleryImageUrls}
           currentIndex={galleryIndex}
           onIndexChange={setGalleryIndex}
           listingTitle={listing.title}
@@ -1234,11 +1147,9 @@ function PremiumListingContent({ params }) {
 
 export default function PremiumListingPage({ params }) {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
-      </div>
-    }>
+    <Suspense
+      fallback={<ListingPageSkeleton />}
+    >
       <PremiumListingContent params={params} />
     </Suspense>
   )

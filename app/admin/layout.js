@@ -1,5 +1,6 @@
 'use client';
 
+import '@/lib/translations/register-chat-slice';
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';

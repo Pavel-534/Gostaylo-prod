@@ -2,7 +2,9 @@
 
 /**
  * ListingMap — публичная карта объекта (круг 500 м или точный маркер по slug).
+ * CSS Leaflet только здесь (не в `app/layout.js`) — уменьшает глобальный бандл.
  */
+import 'leaflet/dist/leaflet.css'
 
 import { useMemo } from 'react'
 import dynamic from 'next/dynamic'
@@ -132,9 +134,4 @@ export function ListingMap({
       )}
     </div>
   )
-}
-
-/** Раньше тянули CSS с unpkg (ломалось по CSP). Стили Leaflet — `import 'leaflet/dist/leaflet.css'` в app/layout.js */
-export function LeafletCSS() {
-  return null
 }

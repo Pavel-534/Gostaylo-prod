@@ -2,25 +2,19 @@
 
 /**
  * @file app/messages/[id]/UnifiedMessagesClient.jsx
- *
- * Единый тред /messages/[id]: роль API по аккаунту, инструменты хозяина по isHosting.
+ * Единый тред: роль по аккаунту, инструменты хозяина по isHosting.
+ * Модульная оболочка: контекст `MessengerThreadProvider`, UI — `app/messages/[id]/components/`.
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import nextDynamic from 'next/dynamic'
 import { toast } from 'sonner'
-import {
-  Archive, Loader2,
-  LifeBuoy, Images, Search, Info,
-  Mic, MicOff, Paperclip, Send, Trash2, Plus,
-} from 'lucide-react'
-
+import { Archive, Loader2, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ChatGrowingTextarea } from '@/components/chat-growing-textarea'
 import { detectUnsafePatterns, SafetyBanner } from '@/components/chat-safety'
 import { uploadChatVoice } from '@/lib/chat-upload'
-import { CHAT_COMPOSER_SHELL_CLASS } from '@/lib/chat-ui'
 import { cn } from '@/lib/utils'
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 import { useVoiceRecorder } from '@/hooks/use-voice-recorder'
@@ -30,43 +24,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Dialog, DialogContent, DialogDescription,
-  DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-
 import { useI18n } from '@/contexts/i18n-context'
 import { useAuth } from '@/contexts/auth-context'
 import { useChatContext } from '@/lib/context/ChatContext'
 import { getUIText } from '@/lib/translations'
-
-// ─── Хуки Фазы 2 ──────────────────────────────────────────────────────────────
 import { useChatThreadMessages } from '@/hooks/use-chat-thread-messages'
 import { useConversationInbox } from '@/hooks/use-conversation-inbox'
-
-// ─── Инфраструктура Realtime / присутствие ────────────────────────────────────
 import { usePresenceContext } from '@/lib/context/PresenceContext'
 import { useMarkConversationRead } from '@/hooks/use-mark-conversation-read'
 import { useChatTyping } from '@/hooks/use-chat-typing'
-
-// ─── Компоненты Фазы 3 ────────────────────────────────────────────────────────
 import { ChatThreadChrome } from '@/components/chat/ChatThreadChrome'
-import { ChatMessageList } from '@/components/chat/ChatMessageList'
-import { ConversationList } from '@/components/chat/ConversationList'
 import { RealtimeDiagOverlay } from '@/components/chat/RealtimeDiagOverlay'
-
-// ─── Существующие компоненты ──────────────────────────────────────────────────
 import { StickyChatHeader } from '@/components/sticky-chat-header'
-import { PartnerChatComposer } from '@/components/partner-chat-composer'
 import { ChatActionBar } from '@/components/chat-action-bar'
 import { ChatSearchBar } from '@/components/chat-search-bar'
-import { ChatMediaGallery } from '@/components/chat-media-gallery'
 import { SupportRequestDialog } from '@/components/support-request-dialog'
-import { PartnerChatCalendarPeek } from '@/components/partner-chat-calendar-peek'
-import { DECLINE_REASON_PRESETS } from '@/lib/booking-chat-copy'
 import {
   INBOX_TAB_HOSTING,
   INBOX_TAB_TRAVELING,
@@ -75,59 +47,19 @@ import {
 import { isBookingPaid } from '@/lib/mask-contacts'
 import { countSearchResults } from '@/lib/chat/message-filters'
 import { mapApiMessageToRow } from '@/lib/chat/map-api-message'
-import { DealDetailsCard } from '@/components/chat/DealDetailsCard'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
+import { useThreadArchive } from './hooks/useThreadArchive'
+import { MessengerThreadProvider } from './context/ChatContext'
+import { ConversationSidebar } from './components/ConversationSidebar'
+import { MessageList } from './components/MessageList'
+import { MessageInput } from './components/MessageInput'
+import { BookingInfoSidebar } from './components/BookingInfoSidebar'
+import { ThreadDealDetailsSheet } from './components/ThreadDealDetailsSheet'
+import { DeclineBookingDialog } from './components/DeclineBookingDialog'
 
-// ─── Archive helper ───────────────────────────────────────────────────────────
-function useArchive({
-  language,
-  router,
-  inbox,
-  conversationId,
-  inboxListHref = '/messages/',
-  archivedListHref = '/messages/archived/',
-}) {
-  const archiveConversation = useCallback(async (convId) => {
-    if (!convId) return
-    try {
-      const res = await fetch('/api/v2/chat/conversations/archive', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId: convId, archived: true }),
-      })
-      const json = await res.json()
-      if (!res.ok || !json.success) {
-        toast.error(json.error || (language === 'ru' ? 'Не удалось скрыть' : 'Could not archive'))
-        return
-      }
-      toast.success(language === 'ru' ? 'Диалог скрыт' : 'Archived', {
-        action: {
-          label: language === 'ru' ? 'Архив' : 'Archive',
-          onClick: () => router.push(archivedListHref),
-        },
-      })
-      inbox.setConversations((prev) => prev.filter((c) => c.id !== convId))
-      if (String(conversationId) === String(convId)) {
-        const remaining = inbox.filteredConversations.filter((c) => c.id !== convId)
-        if (remaining[0]) {
-          router.push(`/messages/${remaining[0].id}/`)
-        } else router.push(inboxListHref)
-      }
-    } catch {
-      toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
-    }
-  }, [language, router, inbox, conversationId, inboxListHref, archivedListHref])
-
-  return { archiveConversation }
-}
-
-// ─── Главный компонент ────────────────────────────────────────────────────────
+const PartnerChatCalendarPeek = nextDynamic(
+  () => import('@/components/partner-chat-calendar-peek').then((m) => m.PartnerChatCalendarPeek),
+  { ssr: false, loading: () => null },
+)
 
 export default function UnifiedMessagesClient({ params }) {
   const router = useRouter()
@@ -136,19 +68,7 @@ export default function UnifiedMessagesClient({ params }) {
   const { markConversationRead: markGlobalRead, typingByConversation } = useChatContext()
 
   const conversationId = params?.id
-  const attachFileRef = useRef(null)
-
-  const isPartnerAccount = useMemo(() => {
-    const r = String(user?.role || '').toUpperCase()
-    return ['PARTNER', 'ADMIN', 'MODERATOR'].includes(r)
-  }, [user?.role])
-
-  const viewerRoleForHook = useMemo(
-    () => (isPartnerAccount ? 'partner' : 'renter'),
-    [isPartnerAccount]
-  )
-
-  // ── UI-стейт ────────────────────────────────────────────────────────────────
+  const bookingMutationRef = useRef(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchActive, setSearchActive] = useState(false)
   const [mediaGalleryOpen, setMediaGalleryOpen] = useState(false)
@@ -156,9 +76,6 @@ export default function UnifiedMessagesClient({ params }) {
   const [declineOpen, setDeclineOpen] = useState(false)
   const [declinePreset, setDeclinePreset] = useState('occupied')
   const [declineOtherDetail, setDeclineOtherDetail] = useState('')
-  /** Блок повторных PUT до завершения запроса (без спиннеров — статус меняется оптимистично). */
-  const bookingMutationRef = useRef(false)
-  /** Сразу скрыть гостевую панель «Оплатить» после клика. */
   const [payBarSuppressed, setPayBarSuppressed] = useState(false)
   const [sending, setSending] = useState(false)
   const [newMessage, setNewMessage] = useState('')
@@ -180,7 +97,16 @@ export default function UnifiedMessagesClient({ params }) {
     discardRecording: discardVoice,
   } = useVoiceRecorder()
 
-  // ── Инбокс (Фаза 2) ─────────────────────────────────────────────────────────
+  const isPartnerAccount = useMemo(() => {
+    const r = String(user?.role || '').toUpperCase()
+    return ['PARTNER', 'ADMIN', 'MODERATOR'].includes(r)
+  }, [user?.role])
+
+  const viewerRoleForHook = useMemo(
+    () => (isPartnerAccount ? 'partner' : 'renter'),
+    [isPartnerAccount],
+  )
+
   const inbox = useConversationInbox({
     userId: user?.id,
     defaultTab: isPartnerAccount ? INBOX_TAB_HOSTING : INBOX_TAB_TRAVELING,
@@ -205,13 +131,19 @@ export default function UnifiedMessagesClient({ params }) {
     [inbox.setConversations],
   )
 
-  // ── Тред (Фаза 2) ───────────────────────────────────────────────────────────
   const {
-    messages, isLoading: threadLoading, isConnected: _isConnected,
-    selectedConv, listing, booking,
-    sendMessage: _sendMessage, sendMedia,
+    messages,
+    isLoading: threadLoading,
+    isConnected: isRealtimeConnected,
+    selectedConv,
+    listing,
+    booking,
+    sendMessage: sendMessageText,
+    sendMedia,
     reload: reloadThread,
-    setMessages, setBooking, setSelectedConv,
+    setMessages,
+    setBooking,
+    setSelectedConv,
   } = useChatThreadMessages({
     conversationId,
     userId: user?.id,
@@ -228,7 +160,6 @@ export default function UnifiedMessagesClient({ params }) {
     },
   })
 
-  // Глобальный сброс при открытии треда
   useEffect(() => {
     if (conversationId) {
       markGlobalRead(conversationId)
@@ -240,7 +171,6 @@ export default function UnifiedMessagesClient({ params }) {
     setPayBarSuppressed(false)
   }, [conversationId, booking?.id])
 
-  // Вкладка «Сдаю / Снимаю» — только при смене открытого диалога (не перетирать ручной выбор при refresh)
   const tabSyncedForConvRef = useRef(null)
   useEffect(() => {
     tabSyncedForConvRef.current = null
@@ -254,7 +184,7 @@ export default function UnifiedMessagesClient({ params }) {
     const isHost =
       String(selectedConv.partnerId) === uid || String(selectedConv.ownerId) === uid
     inbox.setInboxTab(isHost ? INBOX_TAB_HOSTING : INBOX_TAB_TRAVELING)
-  }, [conversationId, selectedConv?.id, selectedConv?.partnerId, selectedConv?.ownerId, user?.id])
+  }, [conversationId, selectedConv?.id, selectedConv?.partnerId, selectedConv?.ownerId, user?.id, inbox.setInboxTab])
 
   useEffect(() => {
     if (!messages.length || safetyWarningShown) return
@@ -267,16 +197,13 @@ export default function UnifiedMessagesClient({ params }) {
     if (patterns.length) setDetectedPatterns(patterns)
   }, [messages, safetyWarningShown])
 
-  // ── Роли в диалоге ──────────────────────────────────────────────────────────
   const isHosting = useMemo(() => {
     if (!selectedConv?.id || !user?.id) return false
     const uid = String(user.id)
-    return (
-      String(selectedConv.partnerId) === uid || String(selectedConv.ownerId) === uid
-    )
+    return String(selectedConv.partnerId) === uid || String(selectedConv.ownerId) === uid
   }, [selectedConv, user])
-  const isTraveling = !isHosting
 
+  const isTraveling = !isHosting
   const inboxListHref = '/messages/'
   const archivedHallHref = '/messages/archived/'
 
@@ -294,19 +221,20 @@ export default function UnifiedMessagesClient({ params }) {
 
   const chatContactName = useMemo(() => {
     if (!selectedConv) return ''
-    if (selectedConv.adminId) return selectedConv.adminName || 'Поддержка'
-    if (String(selectedConv.partnerId) === String(user?.id)) {
-      return selectedConv.renterName || (language === 'ru' ? 'Клиент' : 'Guest')
+    if (selectedConv.adminId) {
+      return selectedConv.adminName || getUIText('messengerThread_labelSupport', language)
     }
-    return selectedConv.partnerName || (language === 'ru' ? 'Хозяин' : 'Host')
+    if (String(selectedConv.partnerId) === String(user?.id)) {
+      return selectedConv.renterName || getUIText('messengerThread_labelGuest', language)
+    }
+    return selectedConv.partnerName || getUIText('messengerThread_labelHost', language)
   }, [selectedConv, user, language])
 
   const peerParticipantId = useMemo(() => {
     if (!selectedConv?.id || !user?.id) return null
     if (selectedConv.adminId) return selectedConv.adminId
     if (String(selectedConv.partnerId) === String(user.id)) return selectedConv.renterId
-    const hostId = selectedConv.partnerId ?? selectedConv.ownerId
-    return hostId ?? null
+    return selectedConv.partnerId ?? selectedConv.ownerId ?? null
   }, [selectedConv, user])
 
   const persistedPeerLastSeenAt = useMemo(() => {
@@ -320,10 +248,8 @@ export default function UnifiedMessagesClient({ params }) {
     return selectedConv.partnerLastSeenAt ?? selectedConv.partner_last_seen_at ?? null
   }, [selectedConv, peerParticipantId])
 
-  // ── Presence / Typing ────────────────────────────────────────────────────────
   const { isUserOnline } = usePresenceContext()
   const peerOnline = useMemo(() => isUserOnline(peerParticipantId), [isUserOnline, peerParticipantId])
-
   const [peerLastSeenAt, setPeerLastSeenAt] = useState(null)
   useEffect(() => {
     setPeerLastSeenAt(persistedPeerLastSeenAt || null)
@@ -338,15 +264,16 @@ export default function UnifiedMessagesClient({ params }) {
 
   const { markNow } = useMarkConversationRead(conversationId, !!(conversationId && user?.id), peerOnline)
 
-  const unifiedDisplayName = useMemo(() => {
-    if (!user) return language === 'ru' ? 'Гость' : 'Guest'
-    return formatPrivacyDisplayNameForParticipant(
-      user.first_name,
-      user.last_name,
-      user.email,
-      language === 'ru' ? 'Гость' : 'Guest'
-    )
-  }, [user, language])
+  const unifiedDisplayName = useMemo(
+    () =>
+      formatPrivacyDisplayNameForParticipant(
+        user?.first_name,
+        user?.last_name,
+        user?.email,
+        getUIText('adminGuestLabel', language),
+      ),
+    [user, language],
+  )
 
   const { broadcastTyping, broadcastTypingStop } = useChatTyping(
     conversationId,
@@ -361,10 +288,12 @@ export default function UnifiedMessagesClient({ params }) {
 
   const typingLine = useMemo(() => {
     if (!peerTypingName) return null
-    return language === 'ru' ? `${peerTypingName} печатает…` : `${peerTypingName} is typing…`
+    return getUIText('messengerThread_typingByName', language).replace(
+      '{{name}}',
+      peerTypingName,
+    )
   }, [peerTypingName, language])
 
-  // ── Pay now href ─────────────────────────────────────────────────────────────
   const payNowHref = useMemo(() => {
     if (isHosting || !booking?.id) return null
     const st = String(booking.status || '').toUpperCase()
@@ -381,8 +310,7 @@ export default function UnifiedMessagesClient({ params }) {
     return null
   }, [messages, booking, isHosting])
 
-  // ── Archive ──────────────────────────────────────────────────────────────────
-  const { archiveConversation } = useArchive({
+  const { archiveConversation } = useThreadArchive({
     language,
     router,
     inbox,
@@ -391,7 +319,6 @@ export default function UnifiedMessagesClient({ params }) {
     archivedListHref: archivedHallHref,
   })
 
-  // ── Booking actions (Confirm / Decline) ─────────────────────────────────────
   const handleConfirmBooking = useCallback(async () => {
     const bid = booking?.id
     if (!bid || !selectedConv?.id || bookingMutationRef.current) return
@@ -410,15 +337,17 @@ export default function UnifiedMessagesClient({ params }) {
       const json = await res.json()
       if (json.status !== 'success') {
         setBooking(prevBooking)
-        toast.error(json.error || 'Ошибка')
+        toast.error(json.error || getUIText('chatPartner_toastBookingConfirmError', language))
         return
       }
       inbox.refresh()
       reloadThread()
-      toast.success(json.message || (language === 'ru' ? 'Бронирование подтверждено' : 'Booking confirmed'))
+      toast.success(
+        json.message || getUIText('chatPartner_toastBookingConfirmed', language),
+      )
     } catch {
       setBooking(prevBooking)
-      toast.error('Ошибка сети')
+      toast.error(getUIText('listingDetail_networkError', language))
     } finally {
       bookingMutationRef.current = false
     }
@@ -436,7 +365,7 @@ export default function UnifiedMessagesClient({ params }) {
     const st = String(booking?.status || '').toUpperCase()
     if (st !== 'PENDING' && st !== 'INQUIRY') return
     if (declinePreset === 'other' && !declineOtherDetail.trim()) {
-      toast.error(language === 'ru' ? 'Укажите комментарий' : 'Please add details')
+      toast.error(getUIText('messengerThread_declineOtherRequired', language))
       return
     }
     bookingMutationRef.current = true
@@ -458,22 +387,23 @@ export default function UnifiedMessagesClient({ params }) {
       if (json.status !== 'success') {
         setBooking(prevBooking)
         setDeclineOpen(true)
-        toast.error(json.error || 'Ошибка')
+        toast.error(json.error || getUIText('chatPartner_toastBookingDeclineError', language))
         return
       }
       inbox.refresh()
       reloadThread()
-      toast.success(json.message || (language === 'ru' ? 'Бронирование отклонено' : 'Booking declined'))
+      toast.success(
+        json.message || getUIText('chatPartner_toastBookingDeclined', language),
+      )
     } catch {
       setBooking(prevBooking)
       setDeclineOpen(true)
-      toast.error('Ошибка сети')
+      toast.error(getUIText('listingDetail_networkError', language))
     } finally {
       bookingMutationRef.current = false
     }
   }, [booking, selectedConv?.id, declinePreset, declineOtherDetail, setBooking, inbox, reloadThread, language])
 
-  /** Мобилка: Подтвердить/Отклонить в карточке системного сообщения — нижнюю панель не дублируем */
   const partnerInquiryActionsForMilestone = useMemo(() => {
     if (!isHosting || !booking?.id) return null
     const st = String(booking.status || '').toUpperCase()
@@ -485,23 +415,97 @@ export default function UnifiedMessagesClient({ params }) {
     }
   }, [isHosting, booking?.id, booking?.status, handleConfirmBooking, handleDeclineBooking])
 
-  // ── Send handlers ────────────────────────────────────────────────────────────
-  const handleSendText = useCallback(async (e) => {
-    e?.preventDefault()
-    if (!newMessage.trim() || !selectedConv || !user) return
-    broadcastTypingStop()
-    const text = newMessage.trim()
-    setNewMessage('')
-    setSending(true)
-    try {
-      await _sendMessage(text)
-      inbox.refresh()
-    } finally { setSending(false) }
-  }, [newMessage, selectedConv, user, _sendMessage, inbox, broadcastTypingStop])
+  const handleSendText = useCallback(
+    async (e) => {
+      e?.preventDefault()
+      if (!newMessage.trim() || !selectedConv || !user) return
+      broadcastTypingStop()
+      const text = newMessage.trim()
+      setNewMessage('')
+      setSending(true)
+      try {
+        await sendMessageText(text)
+        inbox.refresh()
+      } finally {
+        setSending(false)
+      }
+    },
+    [newMessage, selectedConv, user, sendMessageText, inbox, broadcastTypingStop],
+  )
 
-  const handleSendVoice = useCallback(async ({ url, duration }) => {
+  const handleSendVoice = useCallback(
+    async ({ url, duration }) => {
+      if (!selectedConv || !user) return
+      setSending(true)
+      try {
+        const res = await fetch('/api/v2/chat/messages', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: selectedConv.id,
+            type: 'voice',
+            content: '',
+            metadata: { voice_url: url, duration_sec: duration },
+          }),
+        })
+        const json = await res.json()
+        if (res.ok && json.success && json.data) {
+          const mapped = mapApiMessageToRow(json.data, {
+            viewerUserId: user.id,
+            viewerRole: viewerRoleForHook,
+            bookingStatus: booking?.status ?? null,
+            listingCategory: selectedConv?.listingCategory ?? null,
+            conversation: conversationForMapper,
+          })
+          if (mapped) setMessages((prev) => [...prev, mapped])
+          inbox.refresh()
+        } else {
+          toast.error(json.error || getUIText('listingDetail_networkError', language))
+        }
+      } catch {
+        toast.error(getUIText('listingDetail_networkError', language))
+      } finally {
+        setSending(false)
+      }
+    },
+    [selectedConv, user, booking?.status, setMessages, inbox, viewerRoleForHook, conversationForMapper, language],
+  )
+
+  const handleSendInvoice = useCallback(
+    async (invoiceData) => {
+      if (!selectedConv || !user) return
+      try {
+        const res = await fetch('/api/v2/chat/invoice', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            conversationId: selectedConv.id,
+            ...invoiceData,
+            bookingId: booking?.id,
+            listingId: listing?.id,
+            listingTitle: listing?.title,
+            checkIn: booking?.check_in,
+            checkOut: booking?.check_out,
+          }),
+        })
+        const data = await res.json()
+        if (data.success) {
+          setMessages((prev) => [...prev, data.message])
+          toast.success(getUIText('messengerThread_invoiceSent', language))
+        } else {
+          toast.error(data.error || getUIText('messengerThread_invoiceError', language))
+        }
+      } catch {
+        toast.error(getUIText('messengerThread_invoiceError', language))
+      }
+    },
+    [selectedConv, user, booking, listing, setMessages, language],
+  )
+
+  const handleSendPassportRequest = useCallback(async () => {
     if (!selectedConv || !user) return
-    setSending(true)
     try {
       const res = await fetch('/api/v2/chat/messages', {
         method: 'POST',
@@ -509,92 +513,48 @@ export default function UnifiedMessagesClient({ params }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           conversationId: selectedConv.id,
-          type: 'voice',
+          type: 'system',
           content: '',
-          metadata: { voice_url: url, duration_sec: duration },
+          metadata: { system_key: 'passport_request' },
         }),
       })
       const json = await res.json()
-      if (res.ok && json.success && json.data) {
-        const mapped = mapApiMessageToRow(json.data, {
-          viewerUserId: user.id,
-          viewerRole: viewerRoleForHook,
-          bookingStatus: booking?.status ?? null,
-          listingCategory: selectedConv?.listingCategory ?? null,
-          conversation: conversationForMapper,
-        })
-        if (mapped) setMessages((prev) => [...prev, mapped])
-        inbox.refresh()
-      } else {
-        toast.error(json.error || 'Ошибка отправки голосового')
+      if (!res.ok || !json.success) {
+        toast.error(json.error || getUIText('listingDetail_networkError', language))
+        return
       }
-    } catch { toast.error('Ошибка сети') }
-    finally { setSending(false) }
-  }, [selectedConv, user, booking?.status, setMessages, inbox, viewerRoleForHook, conversationForMapper])
-
-  const handleSendInvoice = useCallback(async (invoiceData) => {
-    if (!selectedConv || !user) return
-    try {
-      const res = await fetch('/api/v2/chat/invoice', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: selectedConv.id,
-          ...invoiceData,
-          bookingId: booking?.id,
-          listingId: listing?.id,
-          listingTitle: listing?.title,
-          checkIn: booking?.check_in,
-          checkOut: booking?.check_out,
-        }),
-      })
-      const data = await res.json()
-      if (data.success) {
-        setMessages((prev) => [...prev, data.message])
-        toast.success(language === 'ru' ? 'Счёт отправлен!' : 'Invoice sent!')
-      } else {
-        toast.error(data.error || 'Ошибка при отправке счёта')
-      }
-    } catch { toast.error('Ошибка при отправке счёта') }
-  }, [selectedConv, user, booking, listing, setMessages, language])
-
-  const handleSendPassportRequest = useCallback(async () => {
-    if (!selectedConv || !user) return
-    const res = await fetch('/api/v2/chat/messages', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        conversationId: selectedConv.id,
-        type: 'system',
-        content: '',
-        metadata: { system_key: 'passport_request' },
-      }),
-    })
-    const json = await res.json()
-    if (!res.ok || !json.success) throw new Error(json.error || 'Ошибка')
-    if (json.data) setMessages((prev) => [...prev, json.data])
-    inbox.refresh()
-  }, [selectedConv, user, setMessages, inbox])
-
-  const handleAttachFile = useCallback(async (file) => {
-    if (!selectedConv || !user) return
-    try {
-      await sendMedia(file, file.type.startsWith('image/') ? 'image' : 'file')
+      if (json.data) setMessages((prev) => [...prev, json.data])
       inbox.refresh()
-    } catch (err) {
-      toast.error(err?.message || 'Не удалось загрузить файл')
+    } catch {
+      toast.error(getUIText('listingDetail_networkError', language))
     }
-  }, [selectedConv, user, sendMedia, inbox])
+  }, [selectedConv, user, setMessages, inbox, language])
 
-  /** Голосовое с записи через микрофон (режим гостя / не хост) */
+  const handleAttachFile = useCallback(
+    async (file) => {
+      if (!selectedConv || !user) return
+      try {
+        await sendMedia(file, file.type.startsWith('image/') ? 'image' : 'file')
+        inbox.refresh()
+      } catch (err) {
+        toast.error(err?.message || getUIText('messengerThread_fileUploadFailed', language))
+      }
+    },
+    [selectedConv, user, sendMedia, inbox, language],
+  )
+
   const handleGuestVoiceBlobSend = useCallback(async () => {
     if (!voiceBlob || !user?.id || !selectedConv) return
     setVoiceSending(true)
     try {
       const mime = voiceBlob.type || 'audio/webm'
-      const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') ? 'm4a' : mime.includes('mpeg') ? 'mp3' : 'webm'
+      const ext = mime.includes('ogg')
+        ? 'ogg'
+        : mime.includes('mp4')
+          ? 'm4a'
+          : mime.includes('mpeg')
+            ? 'mp3'
+            : 'webm'
       const file = new File([voiceBlob], `voice_${Date.now()}.${ext}`, { type: mime })
       const { url: voiceUrl } = await uploadChatVoice(file, user.id)
       const res = await fetch('/api/v2/chat/messages', {
@@ -621,35 +581,98 @@ export default function UnifiedMessagesClient({ params }) {
         discardVoice()
         inbox.refresh()
       } else {
-        toast.error(json.error || 'Ошибка отправки голосового')
+        toast.error(json.error || getUIText('listingDetail_networkError', language))
       }
-    } catch { toast.error('Ошибка сети') }
-    finally { setVoiceSending(false) }
-  }, [voiceBlob, user, selectedConv, voiceDuration, booking?.status, setMessages, discardVoice, inbox, viewerRoleForHook, conversationForMapper])
-
-  // ── Обработчик вкладки инбокса — с навигацией ────────────────────────────────
-  const handleInboxTabChange = useCallback((next) => {
-    inbox.setInboxTab(next)
-    const list = inbox.conversations.filter((c) =>
-      next === INBOX_TAB_HOSTING
-        ? String(c.partnerId) === String(user?.id)
-        : String(c.renterId) === String(user?.id)
-    )
-    if (conversationId && !list.some((c) => c.id === conversationId)) {
-      if (list[0]) {
-        router.push(`/messages/${list[0].id}/`)
-      } else router.push('/messages/')
+    } catch {
+      toast.error(getUIText('listingDetail_networkError', language))
+    } finally {
+      setVoiceSending(false)
     }
-  }, [inbox, conversationId, router, user?.id])
+  }, [voiceBlob, user, selectedConv, voiceDuration, booking?.status, setMessages, discardVoice, inbox, viewerRoleForHook, conversationForMapper, language])
+
+  const handleInboxTabChange = useCallback(
+    (next) => {
+      inbox.setInboxTab(next)
+      const list = inbox.conversations.filter((c) =>
+        next === INBOX_TAB_HOSTING
+          ? String(c.partnerId) === String(user?.id)
+          : String(c.renterId) === String(user?.id),
+      )
+      if (conversationId && !list.some((c) => c.id === conversationId)) {
+        if (list[0]) {
+          router.push(`/messages/${list[0].id}/`)
+        } else router.push('/messages/')
+      }
+    },
+    [inbox, conversationId, router, user?.id],
+  )
 
   const handleConversationSelect = useCallback(
     (id) => {
       router.push(`/messages/${id}/`)
     },
-    [router]
+    [router],
   )
 
-  // ── Loading / Auth states ────────────────────────────────────────────────────
+  const onInvoiceCancelled = useCallback(
+    (msgId) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === msgId
+            ? {
+                ...m,
+                metadata: {
+                  ...m.metadata,
+                  invoice: { ...m.metadata?.invoice, status: 'CANCELLED' },
+                },
+              }
+            : m,
+        ),
+      )
+    },
+    [setMessages],
+  )
+
+  const threadContextValue = useMemo(
+    () => ({
+      conversationId,
+      user,
+      userId: user?.id,
+      language,
+      messages,
+      setMessages,
+      isLoading: threadLoading,
+      isConnected: isRealtimeConnected,
+      selectedConv,
+      setSelectedConv,
+      listing,
+      booking,
+      setBooking,
+      isHosting,
+      isTraveling,
+      isPartnerAccount,
+      chatContactName,
+    }),
+    [
+      conversationId,
+      user,
+      language,
+      messages,
+      setMessages,
+      threadLoading,
+      isRealtimeConnected,
+      selectedConv,
+      setSelectedConv,
+      listing,
+      booking,
+      setBooking,
+      isHosting,
+      isTraveling,
+      isPartnerAccount,
+      chatContactName,
+    ],
+  )
+
   if (authLoading) {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center">
@@ -660,41 +683,17 @@ export default function UnifiedMessagesClient({ params }) {
   if (!user) {
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-8">
-        <p className="text-slate-600">
-          {language === 'ru' ? 'Требуется авторизация' : 'Sign in required'}
-        </p>
+        <p className="text-slate-600">{getUIText('messengerThread_signInRequired', language)}</p>
         <Button className="bg-teal-600 hover:bg-teal-700" onClick={() => openLoginModal?.('login')}>
-          {language === 'ru' ? 'Войти' : 'Sign in'}
+          {getUIText('messengerThread_signIn', language)}
         </Button>
       </div>
     )
   }
 
-  const listingIdForCalendar =
-    listing?.id ?? selectedConv?.listingId ?? selectedConv?.listing_id ?? null
-
-  // ── Slots для ChatThreadChrome ────────────────────────────────────────────────
-
-  // Sidebar
-  const sidebarSlot = (
-    <ConversationList
-      inbox={{ ...inbox, setInboxTab: handleInboxTabChange }}
-      selectedId={conversationId}
-      onSelect={handleConversationSelect}
-      showListingName={false}
-      showGuestName={inbox.inboxTab === INBOX_TAB_TRAVELING}
-      onArchive={(id) => void archiveConversation(id)}
-      headerActionHref={archivedHallHref}
-      headerActionLabel={language === 'en' ? 'Archive' : 'Архив'}
-      language={language}
-      roleTabsVisible={isPartnerAccount}
-    />
-  )
-
+  const listingIdForCalendar = listing?.id ?? selectedConv?.listingId ?? selectedConv?.listing_id ?? null
   const mobileHeaderIconClass =
     'h-9 w-9 shrink-0 rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-[0_2px_12px_rgba(15,23,42,0.07)] hover:bg-slate-50'
-
-  // Header
   const headerSlot = selectedConv ? (
     <StickyChatHeader
       listing={listing}
@@ -714,8 +713,8 @@ export default function UnifiedMessagesClient({ params }) {
             variant="ghost"
             size="icon"
             className={cn(mobileHeaderIconClass)}
-            title={language === 'en' ? 'Deal details' : 'Детали сделки'}
-            aria-label={language === 'en' ? 'Deal details' : 'Детали сделки'}
+            title={getUIText('messengerThread_dealDetailsAria', language)}
+            aria-label={getUIText('messengerThread_dealDetailsAria', language)}
             onClick={() => setDealSheetOpen(true)}
           >
             <Info className="h-4 w-4" strokeWidth={2} />
@@ -727,23 +726,23 @@ export default function UnifiedMessagesClient({ params }) {
                 variant="ghost"
                 size="icon"
                 className={cn(mobileHeaderIconClass)}
-                title={language === 'ru' ? 'Архив диалогов' : 'Conversation archive'}
-                aria-label={language === 'ru' ? 'Архив' : 'Archive'}
+                title={getUIText('messengerThread_conversationArchiveAria', language)}
+                aria-label={getUIText('messengerThread_archive', language)}
               >
                 <Archive className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem
-                className="gap-2 cursor-pointer"
+                className="cursor-pointer gap-2"
                 onClick={() => void archiveConversation(selectedConv.id)}
               >
                 <Archive className="h-4 w-4 shrink-0" />
-                {language === 'ru' ? 'Скрыть этот диалог' : 'Archive this chat'}
+                {getUIText('messengerThread_archiveThisChat', language)}
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href={archivedHallHref} className="cursor-pointer gap-2">
-                  {language === 'ru' ? 'Все архивные диалоги' : 'All archived chats'}
+                  {getUIText('messengerThread_allArchivedChats', language)}
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -759,7 +758,10 @@ export default function UnifiedMessagesClient({ params }) {
       typingIndicator={typingLine}
       typingGateWithPresence
       onMediaGallery={() => setMediaGalleryOpen(true)}
-      onSearchToggle={() => { setSearchActive((v) => !v); setSearchQuery('') }}
+      onSearchToggle={() => {
+        setSearchActive((v) => !v)
+        setSearchQuery('')
+      }}
       searchActive={searchActive}
       onDealInfoClick={() => setDealSheetOpen(true)}
       partnerBookingActions={{
@@ -775,22 +777,23 @@ export default function UnifiedMessagesClient({ params }) {
       onPayNowClick={() => setPayBarSuppressed(true)}
       onSupportClick={() => setSupportDialogOpen(true)}
       supportPriorityActive={!!selectedConv?.isPriority}
-      supportLabel={language === 'ru' ? 'Поддержка' : 'Support'}
+      supportLabel={getUIText('messengerThread_labelSupport', language)}
     />
   ) : null
 
-  // Search bar
   const searchBarSlot = searchActive ? (
     <ChatSearchBar
       value={searchQuery}
       onChange={setSearchQuery}
       resultCount={searchQuery.trim() ? countSearchResults(messages, searchQuery) : null}
-      onClose={() => { setSearchActive(false); setSearchQuery('') }}
+      onClose={() => {
+        setSearchActive(false)
+        setSearchQuery('')
+      }}
       language={language}
     />
   ) : null
 
-  // Action bar
   const actionBarSlot = (
     <ChatActionBar
       isHosting={isHosting}
@@ -808,180 +811,8 @@ export default function UnifiedMessagesClient({ params }) {
     />
   )
 
-  // Messages
-  const messagesSlot = (
-    <>
-      <ChatMediaGallery messages={messages} open={mediaGalleryOpen} onClose={() => setMediaGalleryOpen(false)} language={language} />
-
-      <SafetyBanner
-        patterns={detectedPatterns}
-        onDismiss={() => setSafetyWarningShown(true)}
-        lang={language}
-      />
-
-      {threadLoading ? (
-        <div className="flex flex-1 items-center justify-center gap-3 py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
-        </div>
-      ) : (
-        <>
-          {/* support_joined: banner inside ChatMessageList (POST /api/v2/chat/support/join) */}
-          <ChatMessageList
-            messages={messages}
-            userId={user?.id}
-            language={language}
-            isBookingPaid={isBookingPaid(booking?.status)}
-            searchHighlight={searchQuery.trim() || undefined}
-            ownVariant="teal"
-            userRole={isHosting ? 'partner' : 'renter'}
-            booking={booking}
-            listing={listing}
-            partnerInquiryActions={partnerInquiryActionsForMilestone}
-            onInvoiceCancelled={(msgId) => {
-              setMessages((prev) => prev.map((m) =>
-                m.id === msgId
-                  ? { ...m, metadata: { ...m.metadata, invoice: { ...m.metadata?.invoice, status: 'CANCELLED' } } }
-                  : m
-              ))
-            }}
-          />
-        </>
-      )}
-    </>
-  )
-
-  // Composer: хозяин — PartnerChatComposer; гость — поле + голос как в ренторском клиенте
-  const composerSlot = isHosting ? (
-    <PartnerChatComposer
-      newMessage={newMessage}
-      onMessageChange={(v) => { setNewMessage(v); broadcastTyping() }}
-      onSubmit={handleSendText}
-      sending={sending}
-      disabled={!selectedConv}
-      booking={booking}
-      listing={listing}
-      language={language}
-      onSendInvoice={handleSendInvoice}
-      onSendPassportRequest={handleSendPassportRequest}
-      onAttachFile={handleAttachFile}
-      onSendVoice={handleSendVoice}
-      userId={user?.id}
-      showHostPlusMenu
-      invoiceDialogOpen={invoiceDialogOpen}
-      onInvoiceDialogOpenChange={setInvoiceDialogOpen}
-    />
-  ) : (
-    <div className={CHAT_COMPOSER_SHELL_CLASS}>
-      <input
-        ref={attachFileRef}
-        type="file"
-        className="hidden"
-        accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
-        onChange={(e) => {
-          const f = e.target.files?.[0]
-          e.target.value = ''
-          if (f) void handleAttachFile(f)
-        }}
-      />
-      <form onSubmit={handleSendText} className="flex w-full min-w-0 items-end gap-1.5 sm:items-center sm:gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="h-10 w-10 shrink-0 rounded-2xl border-slate-200 bg-white sm:h-11 sm:w-11"
-              disabled={sending}
-              aria-label={language === 'ru' ? 'Вложения' : 'Attachments'}
-            >
-              <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuItem
-              className="cursor-pointer gap-2"
-              onSelect={(e) => {
-                e.preventDefault()
-                attachFileRef.current?.click()
-              }}
-            >
-              <Paperclip className="h-4 w-4 text-slate-600" />
-              {language === 'ru' ? 'Фото или файл' : 'Photo or file'}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {voiceBlob ? (
-          <div className="flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-2 py-1.5 sm:px-3 sm:py-2">
-            <div className="min-w-0 flex-1 overflow-hidden">
-              <audio
-                key={voicePreviewUrl || 'voice-preview'}
-                src={voicePreviewUrl || undefined}
-                controls
-                playsInline
-                preload="auto"
-                className="block h-9 w-full max-w-full"
-              />
-            </div>
-            <span className="shrink-0 text-xs font-medium tabular-nums text-teal-700">{voiceDurationLabel}</span>
-            <Button type="button" variant="ghost" size="icon" className="h-11 w-11 shrink-0 rounded-2xl text-slate-600 hover:bg-slate-100" onClick={discardVoice}>
-              <Trash2 className="h-5 w-5" />
-            </Button>
-            <Button type="button" disabled={voiceSending} className="h-11 min-h-[44px] shrink-0 rounded-2xl bg-teal-600 px-4 hover:bg-teal-700" onClick={() => void handleGuestVoiceBlobSend()}>
-              {voiceSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-            </Button>
-          </div>
-        ) : voiceRecording ? (
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
-            <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
-            <span className="flex-1 text-sm font-medium text-red-700">
-              {language === 'ru' ? 'Запись...' : 'Recording...'} {voiceDurationLabel}
-            </span>
-            <Button type="button" size="icon" className="h-11 w-11 shrink-0 rounded-2xl bg-teal-600 hover:bg-teal-700" onClick={stopVoice}>
-              <MicOff className="h-5 w-5 text-white" />
-            </Button>
-          </div>
-        ) : (
-          <>
-            <div className="flex min-w-0 flex-1 items-end">
-              <ChatGrowingTextarea
-                value={newMessage}
-                onChange={(v) => { setNewMessage(v); broadcastTyping() }}
-                placeholder={getUIText('chatComposerPlaceholder', language)}
-                disabled={sending}
-                minHeightPx={36}
-                maxHeightPx={120}
-                className="min-h-[36px] py-2 text-[15px] leading-normal sm:min-h-[40px] sm:py-2.5 sm:text-sm"
-              />
-            </div>
-            {!newMessage.trim() && (
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 shrink-0 self-end rounded-2xl border-slate-200 bg-white text-slate-600 hover:bg-slate-50 sm:h-11 sm:w-11 sm:self-center"
-                disabled={sending}
-                onClick={startVoice}
-                title={language === 'ru' ? 'Голосовое сообщение' : 'Voice message'}
-              >
-                <Mic className="h-4 w-4 sm:h-5 sm:w-5" />
-              </Button>
-            )}
-            <Button
-              type="submit"
-              disabled={!newMessage.trim() || sending}
-              className="h-10 w-10 min-h-0 min-w-0 shrink-0 self-end rounded-2xl bg-teal-600 hover:bg-teal-700 sm:h-10 sm:w-auto sm:self-center sm:px-4"
-            >
-              {sending ? <Loader2 className="h-4 w-4 animate-spin sm:h-4 sm:w-4" /> : <Send className="h-4 w-4 sm:h-4 sm:w-4" />}
-            </Button>
-          </>
-        )}
-      </form>
-    </div>
-  )
-
   const dealDetailsPanel = selectedConv ? (
-    <DealDetailsCard
+    <BookingInfoSidebar
       listing={listing}
       booking={booking}
       language={language}
@@ -990,153 +821,127 @@ export default function UnifiedMessagesClient({ params }) {
     />
   ) : null
 
-  // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
-      <RealtimeDiagOverlay conversationId={conversationId} />
-      <ChatThreadChrome
-        hasThread={!!conversationId}
-        sidebarSlot={sidebarSlot}
-        headerSlot={headerSlot}
-        actionBarSlot={actionBarSlot}
-        searchBarSlot={searchBarSlot}
-        messagesSlot={messagesSlot}
-        composerSlot={composerSlot}
-        sidePanelSlot={dealDetailsPanel}
-        language={language}
-        className="h-full min-h-0 w-full flex-1"
-      />
+    <MessengerThreadProvider value={threadContextValue}>
+      <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
+        <RealtimeDiagOverlay conversationId={conversationId} />
+        <ChatThreadChrome
+          hasThread={!!conversationId}
+          sidebarSlot={
+            <ConversationSidebar
+              inbox={inbox}
+              onInboxTabChange={handleInboxTabChange}
+              conversationId={conversationId}
+              onSelectConversation={handleConversationSelect}
+              onArchive={(id) => void archiveConversation(id)}
+              archivedHallHref={archivedHallHref}
+              language={language}
+              isPartnerAccount={isPartnerAccount}
+            />
+          }
+          headerSlot={headerSlot}
+          actionBarSlot={actionBarSlot}
+          searchBarSlot={searchBarSlot}
+          messagesSlot={
+            <MessageList
+              messages={messages}
+              threadLoading={threadLoading}
+              userId={user?.id}
+              language={language}
+              booking={booking}
+              listing={listing}
+              searchQuery={searchQuery}
+              detectedPatterns={detectedPatterns}
+              onDismissSafety={() => setSafetyWarningShown(true)}
+              mediaGalleryOpen={mediaGalleryOpen}
+              onMediaGalleryOpenChange={setMediaGalleryOpen}
+              isHosting={isHosting}
+              partnerInquiryActions={partnerInquiryActionsForMilestone}
+              onInvoiceCancelled={onInvoiceCancelled}
+            />
+          }
+          composerSlot={
+            <MessageInput
+              isHosting={isHosting}
+              newMessage={newMessage}
+              onMessageChange={setNewMessage}
+              onSubmit={handleSendText}
+              sending={sending}
+              disabled={!selectedConv}
+              booking={booking}
+              listing={listing}
+              language={language}
+              onSendInvoice={handleSendInvoice}
+              onSendPassportRequest={handleSendPassportRequest}
+              onAttachFile={handleAttachFile}
+              onSendVoice={handleSendVoice}
+              userId={user?.id}
+              invoiceDialogOpen={invoiceDialogOpen}
+              onInvoiceDialogOpenChange={setInvoiceDialogOpen}
+              voiceBlob={voiceBlob}
+              voicePreviewUrl={voicePreviewUrl}
+              voiceDurationLabel={voiceDurationLabel}
+              voiceRecording={voiceRecording}
+              voiceSending={voiceSending}
+              onStartVoice={startVoice}
+              onStopVoice={stopVoice}
+              onDiscardVoice={discardVoice}
+              onGuestVoiceSend={handleGuestVoiceBlobSend}
+              broadcastTyping={broadcastTyping}
+              broadcastTypingStop={broadcastTypingStop}
+            />
+          }
+          sidePanelSlot={dealDetailsPanel}
+          language={language}
+          className="h-full min-h-0 w-full flex-1"
+        />
 
-      <PartnerChatCalendarPeek
-        mode={isHosting ? 'partner' : 'renter'}
-        listingId={listingIdForCalendar}
-        listingTitle={listing?.title}
-        language={language}
-        open={calendarOpen}
-        onOpenChange={setCalendarOpen}
-        hideTrigger
-      />
+        <PartnerChatCalendarPeek
+          mode={isHosting ? 'partner' : 'renter'}
+          listingId={listingIdForCalendar}
+          listingTitle={listing?.title}
+          language={language}
+          open={calendarOpen}
+          onOpenChange={setCalendarOpen}
+          hideTrigger
+        />
 
-      <Sheet open={dealSheetOpen} onOpenChange={setDealSheetOpen}>
-        <SheetContent
-          side="bottom"
-          className="flex max-h-[88dvh] flex-col gap-0 overflow-hidden rounded-t-2xl border-slate-200 p-0 z-[210]"
-        >
-          <div className="shrink-0 border-b border-slate-100 bg-background px-6 pb-3 pt-5 pr-14">
-            <SheetHeader className="space-y-0 p-0 text-left">
-              <SheetTitle className="text-lg font-semibold text-slate-900">
-                {language === 'ru' ? 'Детали сделки' : 'Deal details'}
-              </SheetTitle>
-            </SheetHeader>
-          </div>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
-            {dealDetailsPanel}
-            <div className="lg:hidden border-t border-slate-200 pt-4 mt-4 space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                {language === 'ru' ? 'Инструменты' : 'Tools'}
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full justify-start gap-2 text-slate-800"
-                onClick={() => {
-                  setDealSheetOpen(false)
-                  setSupportDialogOpen(true)
-                }}
-              >
-                <LifeBuoy className="h-4 w-4 text-teal-600 shrink-0" />
-                {language === 'ru' ? 'Помощь и поддержка' : 'Help & support'}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full justify-start gap-2 text-slate-800"
-                onClick={() => {
-                  setDealSheetOpen(false)
-                  setMediaGalleryOpen(true)
-                }}
-              >
-                <Images className="h-4 w-4 text-teal-600 shrink-0" />
-                {language === 'ru' ? 'Медиафайлы в чате' : 'Media in chat'}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full justify-start gap-2 text-slate-800"
-                onClick={() => {
-                  setDealSheetOpen(false)
-                  setSearchActive(true)
-                  setSearchQuery('')
-                }}
-              >
-                <Search className="h-4 w-4 text-teal-600 shrink-0" />
-                {language === 'ru' ? 'Поиск по сообщениям' : 'Search messages'}
-              </Button>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+        <ThreadDealDetailsSheet
+          open={dealSheetOpen}
+          onOpenChange={setDealSheetOpen}
+          dealDetailsPanel={dealDetailsPanel}
+          onOpenSupport={() => setSupportDialogOpen(true)}
+          onOpenMediaGallery={() => setMediaGalleryOpen(true)}
+          onOpenSearch={() => {
+            setSearchActive(true)
+            setSearchQuery('')
+          }}
+          language={language}
+        />
 
-      {/* ── Диалог отклонения бронирования ────────────────────────────── */}
-      <Dialog open={declineOpen} onOpenChange={setDeclineOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{language === 'ru' ? 'Отклонить бронирование?' : 'Decline booking?'}</DialogTitle>
-            <DialogDescription>
-              {language === 'ru'
-                ? 'Гость увидит уведомление в чате. По желанию укажите причину.'
-                : 'The guest will see an update in chat. Optionally add a reason.'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-2">
-            <Label>{language === 'ru' ? 'Причина отказа' : 'Decline reason'}</Label>
-            <RadioGroup value={declinePreset} onValueChange={setDeclinePreset} className="space-y-2">
-              {['occupied', 'repair', 'other'].map((key) => (
-                <label key={key} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 cursor-pointer hover:bg-slate-50">
-                  <RadioGroupItem value={key} id={`decline-${key}`} />
-                  <span className="text-sm text-slate-800">
-                    {language === 'ru' ? DECLINE_REASON_PRESETS[key].ru : DECLINE_REASON_PRESETS[key].en}
-                  </span>
-                </label>
-              ))}
-            </RadioGroup>
-            {declinePreset === 'other' && (
-              <div className="space-y-1">
-                <Label htmlFor="decline-other">{language === 'ru' ? 'Комментарий' : 'Details'}</Label>
-                <Textarea
-                  id="decline-other"
-                  value={declineOtherDetail}
-                  onChange={(e) => setDeclineOtherDetail(e.target.value)}
-                  rows={3}
-                  placeholder={language === 'ru' ? 'Кратко опишите причину…' : 'Briefly describe the reason…'}
-                  className="resize-none"
-                />
-              </div>
-            )}
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button type="button" variant="outline" onClick={() => setDeclineOpen(false)}>
-              {language === 'ru' ? 'Отмена' : 'Cancel'}
-            </Button>
-            <Button type="button" variant="destructive" onClick={() => void confirmDecline()}>
-              {language === 'ru' ? 'Отклонить' : 'Decline'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <DeclineBookingDialog
+          open={declineOpen}
+          onOpenChange={setDeclineOpen}
+          declinePreset={declinePreset}
+          onDeclinePresetChange={setDeclinePreset}
+          declineOtherDetail={declineOtherDetail}
+          onDeclineOtherDetailChange={setDeclineOtherDetail}
+          onConfirmDecline={confirmDecline}
+          language={language}
+        />
 
-      {/* ── Диалог поддержки ──────────────────────────────────────────────── */}
-      <SupportRequestDialog
-        open={supportDialogOpen}
-        onOpenChange={setSupportDialogOpen}
-        conversationId={selectedConv?.id}
-        language={language}
-        onSubmitted={() => {
-          setSelectedConv((prev) => prev ? { ...prev, isPriority: true } : prev)
-          reloadThread()
-          inbox.refresh()
-        }}
-      />
-    </div>
+        <SupportRequestDialog
+          open={supportDialogOpen}
+          onOpenChange={setSupportDialogOpen}
+          conversationId={selectedConv?.id}
+          language={language}
+          onSubmitted={() => {
+            setSelectedConv((prev) => (prev ? { ...prev, isPriority: true } : prev))
+            reloadThread()
+            inbox.refresh()
+          }}
+        />
+      </div>
+    </MessengerThreadProvider>
   )
 }
