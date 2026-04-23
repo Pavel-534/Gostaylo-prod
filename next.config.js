@@ -1,8 +1,15 @@
 /** @type {import('next').NextConfig} */
-
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-})
+/**
+ * Vercel production `npm install` may omit devDependencies, so @next/bundle-analyzer
+ * is optional. Local `npm install` + `npm run analyze` still load the package.
+ */
+let withBundleAnalyzer = (config) => config
+try {
+  const createAnalyzer = require('@next/bundle-analyzer')
+  withBundleAnalyzer = createAnalyzer({ enabled: process.env.ANALYZE === 'true' })
+} catch {
+  /* optional dev tool */
+}
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 

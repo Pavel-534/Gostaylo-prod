@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 5.2.0 | **Last Updated**: 2026-04-22 | **Status**: Production-Ready
+> **Version**: 5.3.0 | **Last Updated**: 2026-04-23 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -90,6 +90,13 @@
 ### 0.0j Global constants SSOT (Stage 7.1)
 - **Файл:** `lib/config/app-constants.js` — **`GOSTAYLO_WALLET`**, **`DEFAULT_CHECKOUT_ALLOWED_METHODS`**, **`TRANSPORT_CATEGORY_DB_SLUG`**, перечисление **`BOOKING_STATUS`**, наборы **`NO_PAY_TRAVEL_STATUSES`**, **`RENTER_CHECKOUT_NO_CANCEL_STATUSES`**.
 - **Потребители (не дублировать литералы):** `lib/listing-category-slug.js` (реэкспорт transport slug), `app/checkout/.../hooks/checkout-constants.js`, `lib/services/tron.service.js`, `components/chat-action-bar.jsx`, `app/checkout/.../components/CheckoutSummary.jsx` (порог отмены).
+
+### 0.0k Modular public UI (Stage 8.1)
+- **Главная — `components/GostayloHomeContent.jsx`:** тонкий оркестратор; **`components/home/`** — **`HomeHero`**, **`CategoryBar`**, **`TopListingsGrid`**, shared **`home-constants.js`**, **`useHomeFilters.js`** (What/Where/When/Who, дебаунс, сид из URL, semantic flag с сайта).
+- **Поиск (без дублирования ядра):** **`lib/api/run-listings-search-get.js`** — **единая** реализация **`runListingsSearchGet`**; её вызывают **`GET /api/v2/search`**, **`GET /api/v2/listings/search`** (прокси/сигнатуры) и **SSR ItemList** (`lib/seo/listings-catalog-itemlist.js`). API **v1** отдельного движка поиска **нет** в `app/api/v1/`.
+- **Профиль — `app/profile/page.js`:** секции **`ProfileInfo`**, **`ProfileSecurity`**, **`ProfilePreferences`** (`app/profile/components/`), сети и PATCH заявок/дока — **`app/profile/hooks/useProfileUpdate.js`**. Модалки «заявка партнёра» + welcome остаются в `page.js`.
+- **Сборка Vercel / bundle-analyzer:** `next.config.js` оборачивает движок опционально: при отсутствии `@next/bundle-analyzer` (только `dependencies` без `devDependencies` в prod install) используется identity, чтобы **`next build`** не падал. Локально **`npm run analyze`** с полным `npm install` — как раньше.
+- **Skeleton главной — `components/home-page-skeleton.jsx`:** зоны **hero / категории / сетка+футер** согласованы по высотам/отступам с реальной вёрсткой, **`min-h`** у блока сетки, чтобы снизить скачок при гидрации `GostayloHomeContent`.
 
 ### 0.0a Admin Financial Health (Ledger)
 - **UI:** `app/admin/financial-health/page.jsx` — маршрут **`/admin/financial-health`**, карточки остатков по счетам **PROCESSING_POT_ROUNDING** («котёл на платёжки») и **INSURANCE_FUND_RESERVE** (страховой фонд), плюс **PLATFORM_FEE** и агрегат **PARTNER_EARNINGS**; блок **сверки Cash (MVP)** при **`marginLeakage`**; кнопка **«Сформировать реестр для Т-Банка»** (скачивание CSV); таблица выплат в **`PROCESSING`** с кнопками **PAID** / **FAILED** и **AlertDialog** подтверждения перед отправкой **PATCH**.

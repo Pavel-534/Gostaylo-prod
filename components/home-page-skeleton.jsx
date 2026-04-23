@@ -35,15 +35,33 @@ export function HomePageSkeleton() {
           </div>
         </div>
       </section>
-      <section className="py-10 sm:py-14 bg-slate-50">
+      <section className="py-10 sm:py-14 bg-slate-50" aria-hidden>
         <div className="container mx-auto px-4">
-          <div className="mb-6 space-y-2">
-            <Shimmer className="h-8 rounded w-56" />
-            <Shimmer className="h-4 rounded w-40 bg-slate-200" />
+          <div className="flex items-center justify-between mb-6 min-h-[3.5rem]">
+            <div className="space-y-2 w-full max-w-sm">
+              <Shimmer className="h-8 rounded w-56" />
+              <Shimmer className="h-4 rounded w-40 bg-slate-200" />
+            </div>
+            <Shimmer className="h-5 w-5 rounded-full bg-slate-200 shrink-0" />
           </div>
-          <ListingGridSkeleton count={8} />
+          <div className="min-h-[520px] sm:min-h-[560px]">
+            <ListingGridSkeleton count={8} />
+          </div>
         </div>
       </section>
+      <footer className="bg-slate-900 text-white py-10" aria-hidden>
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Shimmer className="h-4 w-24 bg-slate-600/80 rounded" />
+                <Shimmer className="h-3 w-full max-w-[10rem] bg-slate-700/60 rounded" />
+              </div>
+            ))}
+          </div>
+          <Shimmer className="h-3 w-48 mx-auto mt-8 bg-slate-700/50 rounded" />
+        </div>
+      </footer>
     </div>
   )
 }
