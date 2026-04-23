@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2 } from 'lucide-react'
 import { useListingWizard } from '../context/ListingWizardContext'
+import { guessIanaTimezoneFromLatLon } from '@/lib/geo/listing-timezone-guess'
+import { WIZARD_IANA_TIMEZONES } from '@/lib/geo/wizard-iana-timezones'
 
 const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
 
@@ -30,6 +32,7 @@ function StepLocationInner() {
     selectGeocodeResult,
     handleMapSelect,
     coordsValid,
+    updateMetadata,
   } = w
 
   return (
@@ -103,6 +106,39 @@ function StepLocationInner() {
             onSelect={handleMapSelect}
             height={280}
           />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label className="text-base font-medium">{t('wizardListingTimezone')}</Label>
+        <p className="text-xs text-slate-500">{t('wizardListingTimezoneHint')}</p>
+        <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
+          <Select
+            value={String(formData.metadata?.timezone || 'Asia/Bangkok')}
+            onValueChange={(v) => updateMetadata('timezone', v)}
+          >
+            <SelectTrigger className="mt-1 h-11 sm:flex-1 sm:mt-0">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-64">
+              {WIZARD_IANA_TIMEZONES.map((z) => (
+                <SelectItem key={z} value={z}>
+                  {z}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            type="button"
+            variant="outline"
+            className="shrink-0"
+            disabled={formData.latitude == null || formData.longitude == null}
+            onClick={() => {
+              const z = guessIanaTimezoneFromLatLon(formData.latitude, formData.longitude)
+              if (z) updateMetadata('timezone', z)
+            }}
+          >
+            {t('wizardTimezoneAutoFromMap')}
+          </Button>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">

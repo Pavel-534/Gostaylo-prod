@@ -15,7 +15,14 @@ export const dynamic = 'force-dynamic';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
-const ALLOWED_BUCKETS = ['verification_documents', 'listing-images', 'chat-attachments', 'review-images', 'avatars']
+const ALLOWED_BUCKETS = [
+  'verification_documents',
+  'listing-images',
+  'chat-attachments',
+  'review-images',
+  'dispute-evidence',
+  'avatars',
+]
 
 function publicUrlToProxyPath(publicUrl, supabaseProjectUrl) {
   if (!publicUrl || !supabaseProjectUrl) return publicUrl
@@ -85,7 +92,7 @@ export async function POST(request) {
     }
     
     const isChatBucket = bucket === 'chat-attachments'
-    const isReviewBucket = bucket === 'review-images'
+    const isReviewBucket = bucket === 'review-images' || bucket === 'dispute-evidence'
     const isAvatarBucket = bucket === 'avatars'
     const chatImageAndDocTypes = [
       'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf',

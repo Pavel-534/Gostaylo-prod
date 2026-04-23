@@ -12,6 +12,7 @@ import {
   formatReviewerInitial,
 } from '@/lib/utils/name-formatter';
 import { shouldAllowReviewByLifecycle } from '@/lib/orders/order-timeline';
+import { ReputationService } from '@/lib/services/reputation.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,7 +81,7 @@ export async function GET(request) {
           reviews: [],
           stats: { total: 0, averageRating: 0 },
           tableExists: false,
-          setupInstructions: 'Run SQL from /app/database/reviews_table.sql in Supabase Dashboard'
+          setupInstructions: 'Run SQL from database/reviews_table.sql in Supabase Dashboard'
         }
       });
     }
@@ -117,19 +118,17 @@ export async function GET(request) {
       listingId: review.listing_id
     })) || [];
 
-    // Calculate stats
-    const totalReviews = formattedReviews.length;
-    const avgRating = totalReviews > 0 
-      ? formattedReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews 
-      : 0;
+    const stats = ReputationService.summarizeGuestReviewRatings(
+      (formattedReviews || []).map((r) => r.rating),
+    );
 
     return NextResponse.json({ 
       success: true, 
       data: {
         reviews: formattedReviews,
         stats: {
-          total: totalReviews,
-          averageRating: Math.round(avgRating * 10) / 10
+          total: stats.total,
+          averageRating: stats.averageRating,
         }
       }
     });

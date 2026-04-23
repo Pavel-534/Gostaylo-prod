@@ -240,6 +240,7 @@ export async function POST(request) {
         link,
         conversationId: finalId,
         messageId: msgId,
+        listingId,
       })
     } catch (e) {
       console.error('[from-profile] FCM', e?.message || e)

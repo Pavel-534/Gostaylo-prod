@@ -46,6 +46,7 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
+import { PartnerReputationSection } from '@/components/partner/PartnerReputationSection'
 
 // Welcome Partner Celebration Modal — shown once when renter becomes partner
 // Text: no commission, no property/real estate; uses user language
@@ -421,6 +422,8 @@ export default function PartnerDashboard() {
           </Button>
         </div>
       </div>
+
+      <PartnerReputationSection language={language} />
 
       {/* Today's Summary Banner */}
       {(stats?.today?.checkIns > 0 || stats?.today?.checkOuts > 0) && (

@@ -40,6 +40,8 @@ export function getDefaultWizardFormData() {
       specialization: '',
       group_size_min: 1,
       group_size_max: 10,
+      /** IANA TZ for quiet hours / SLA (Stage 21.0); saved in listings.metadata */
+      timezone: 'Asia/Bangkok',
     },
     seasonalPricing: [],
     cancellationPolicy: 'moderate',

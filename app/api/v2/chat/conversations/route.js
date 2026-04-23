@@ -549,6 +549,7 @@ export async function POST(request) {
           link,
           conversationId: finalId,
           messageId: msgId,
+          listingId,
         })
       } catch (e) {
         console.error('[chat/conversations] FCM intro', e?.message || e)

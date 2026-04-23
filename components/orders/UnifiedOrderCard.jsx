@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { ProxiedImage } from '@/components/proxied-image'
@@ -17,7 +18,9 @@ import {
   MapPin,
   MessageSquare,
   Phone,
+  Siren,
   Star,
+  Image as ImageIcon,
   X,
 } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
@@ -26,6 +29,7 @@ import OrderTypeIcon from '@/components/ui/OrderTypeIcon'
 import OrderStatusBadge from '@/components/ui/order-status-badge'
 import OrderTimeline from '@/components/orders/OrderTimeline'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import {
@@ -133,8 +137,29 @@ export default function UnifiedOrderCard({
   onCheckIn = null,
 }) {
   const [helpOpen, setHelpOpen] = useState(false)
+  /** 'pre' = Stage 19 renter nudge to contact host before dispute path */
+  const [helpStep, setHelpStep] = useState('main')
+  /** ISO — renter mediation window (Stage 20); blocks second submit until elapsed */
+  const [mediationUnlockAt, setMediationUnlockAt] = useState(null)
+  const [mediationTick, setMediationTick] = useState(0)
+  const [helpNudgeSending, setHelpNudgeSending] = useState(false)
+  const [emergencySending, setEmergencySending] = useState(false)
+  const [emergencyModalOpen, setEmergencyModalOpen] = useState(false)
+  const [emergencyRateBlocked, setEmergencyRateBlocked] = useState(false)
+  const [supportEscalating, setSupportEscalating] = useState(false)
+  const [emergencyCheck, setEmergencyCheck] = useState({
+    health_or_safety: false,
+    no_property_access: false,
+    disaster: false,
+  })
+  /** Stage 24.0 — server: lifecycle + partner quiet hours for emergency CTA */
+  const [emergencyCtx, setEmergencyCtx] = useState(null)
+  const [emergencyCtxReady, setEmergencyCtxReady] = useState(false)
+  const router = useRouter()
   const [disputeSubmitting, setDisputeSubmitting] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
+  const [disputeEvidenceFiles, setDisputeEvidenceFiles] = useState([])
+  const disputeEvidenceInputRef = useRef(null)
   const normalizedRole = normalizeRole(role)
   const normalizedOrder = normalizeUnifiedOrder(booking, unifiedOrder)
 
@@ -162,6 +187,53 @@ export default function UnifiedOrderCard({
     booking?.has_review === true ||
     booking?.reviewed === true ||
     booking?.review_submitted === true
+  useEffect(() => {
+    if (!mediationUnlockAt) return undefined
+    const id = setInterval(() => setMediationTick((n) => n + 1), 10_000)
+    return () => clearInterval(id)
+  }, [mediationUnlockAt])
+
+  const mediationLockActive =
+    normalizedRole === 'renter' &&
+    mediationUnlockAt &&
+    Date.now() < new Date(mediationUnlockAt).getTime()
+
+  void mediationTick
+
+  useEffect(() => {
+    setEmergencyCtx(null)
+    setEmergencyCtxReady(false)
+    if (normalizedRole !== 'renter' || !bookingId) {
+      return undefined
+    }
+    let cancelled = false
+    async function loadEmergencyCtx() {
+      try {
+        const res = await fetch(`/api/v2/bookings/${encodeURIComponent(bookingId)}/emergency-context`, {
+          credentials: 'include',
+        })
+        const json = await res.json().catch(() => ({}))
+        if (cancelled) return
+        if (res.ok && json.success && json.data) {
+          setEmergencyCtx(json.data)
+        } else {
+          setEmergencyCtx({ bookingEligible: false, partnerInQuietHours: false })
+        }
+      } catch {
+        if (!cancelled) setEmergencyCtx({ bookingEligible: false, partnerInQuietHours: false })
+      } finally {
+        if (!cancelled) setEmergencyCtxReady(true)
+      }
+    }
+    setEmergencyCtxReady(false)
+    void loadEmergencyCtx()
+    const id = setInterval(() => void loadEmergencyCtx(), 120_000)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+    }
+  }, [bookingId, normalizedRole, status, checkOut])
+
   const disputeEligibility = canOpenOfficialDispute({
     status,
     checkInIso: checkIn,
@@ -190,10 +262,118 @@ export default function UnifiedOrderCard({
   const showPartnerComplete =
     normalizedRole === 'partner' && canPartnerComplete(status) && typeof onComplete === 'function'
 
+  const canSubmitEmergency =
+    emergencyCheck.health_or_safety || emergencyCheck.no_property_access || emergencyCheck.disaster
+
+  function openEmergencyChecklistModal() {
+    setEmergencyRateBlocked(false)
+    setEmergencyCheck({
+      health_or_safety: false,
+      no_property_access: false,
+      disaster: false,
+    })
+    setEmergencyModalOpen(true)
+  }
+
+  async function handleEmergencySupportAfterLimit() {
+    if (!bookingId) return
+    setSupportEscalating(true)
+    try {
+      const res = await fetch(`/api/v2/bookings/${encodeURIComponent(bookingId)}/emergency-support-ticket`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lang: language }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json.success) {
+        toast.error(json.error || getUIText('orderHelp_emergencySupportError', language))
+        return
+      }
+      const cid = json.data?.conversationId
+      if (!cid) {
+        toast.error(getUIText('orderHelp_emergencySupportError', language))
+        return
+      }
+      setEmergencyModalOpen(false)
+      setEmergencyRateBlocked(false)
+      router.push(`/messages/${encodeURIComponent(String(cid))}`)
+    } catch {
+      toast.error(getUIText('orderHelp_emergencySupportError', language))
+    } finally {
+      setSupportEscalating(false)
+    }
+  }
+
+  async function handleEmergencySubmit() {
+    if (!bookingId || !canSubmitEmergency) return
+    setEmergencySending(true)
+    try {
+      const res = await fetch(`/api/v2/bookings/${encodeURIComponent(bookingId)}/emergency-contact`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ checklist: emergencyCheck }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (res.status === 429 && json.code === 'EMERGENCY_RATE_LIMIT') {
+        setEmergencyRateBlocked(true)
+        return
+      }
+      if (!res.ok || !json.success) {
+        toast.error(json.error || getUIText('orderHelp_emergencyError', language))
+        return
+      }
+      toast.success(getUIText('orderHelp_emergencySent', language))
+      setEmergencyModalOpen(false)
+    } catch {
+      toast.error(getUIText('orderHelp_emergencyError', language))
+    } finally {
+      setEmergencySending(false)
+    }
+  }
+
+  async function handleNotifyPartnerHelp() {
+    if (!bookingId) return
+    setHelpNudgeSending(true)
+    try {
+      const res = await fetch(`/api/v2/bookings/${encodeURIComponent(bookingId)}/guest-help-partner-nudge`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json.success) {
+        toast.error(json.error || getUIText('orderHelp_nudgeError', language))
+        return
+      }
+      toast.success(getUIText('orderHelp_nudgeSent', language))
+      setHelpStep('main')
+    } catch {
+      toast.error(getUIText('orderHelp_nudgeError', language))
+    } finally {
+      setHelpNudgeSending(false)
+    }
+  }
+
   async function handleCreateDispute() {
     if (!bookingId) return
     setDisputeSubmitting(true)
     try {
+      const evidenceUrls = []
+      for (const file of disputeEvidenceFiles) {
+        const fd = new FormData()
+        fd.append('file', file)
+        fd.append('bucket', 'dispute-evidence')
+        fd.append('folder', `booking-${bookingId.replace(/[^a-zA-Z0-9-_]/g, '')}`)
+        const up = await fetch('/api/v2/upload', { method: 'POST', body: fd, credentials: 'include' })
+        const uj = await up.json().catch(() => ({}))
+        if (!up.ok || !uj.success || !uj.url) {
+          toast.error(uj.error || getUIText('orderDispute_evidenceUploadError', language))
+          return
+        }
+        evidenceUrls.push(String(uj.url))
+      }
+
       const res = await fetch('/api/v2/disputes/create', {
         method: 'POST',
         credentials: 'include',
@@ -203,11 +383,24 @@ export default function UnifiedOrderCard({
           conversationId,
           reason: disputeReason.trim(),
           category: 'booking_dispute',
+          evidenceUrls,
         }),
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json.success) {
+        if (json.code === 'MEDIATION_WINDOW_ACTIVE') {
+          const m = Number(json.minutesLeft) || 1
+          toast.message(
+            getUIText('orderDispute_mediationWait', language).replace('{{mins}}', String(m)),
+          )
+          return
+        }
         toast.error(json.error || getUIText('orderDispute_createError', language))
+        return
+      }
+      if (json.phase === 'PENDING_MEDIATION' && json.unlockAt) {
+        setMediationUnlockAt(String(json.unlockAt))
+        toast.success(getUIText('orderDispute_mediationStarted', language))
         return
       }
       if (json.alreadyExists) {
@@ -215,8 +408,10 @@ export default function UnifiedOrderCard({
       } else {
         toast.success(getUIText('orderDispute_created', language))
       }
+      setMediationUnlockAt(null)
       setHelpOpen(false)
       setDisputeReason('')
+      setDisputeEvidenceFiles([])
     } catch {
       toast.error(getUIText('orderDispute_createError', language))
     } finally {
@@ -439,7 +634,14 @@ export default function UnifiedOrderCard({
           ) : null}
 
           {normalizedRole !== 'admin' && bookingId ? (
-            <Button type="button" variant="outline" onClick={() => setHelpOpen(true)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setHelpStep(normalizedRole === 'renter' ? 'pre' : 'main')
+                setHelpOpen(true)
+              }}
+            >
               <LifeBuoy className="h-4 w-4 mr-2" />
               {getUIText('orderAction_help', language)}
             </Button>
@@ -474,13 +676,57 @@ export default function UnifiedOrderCard({
         </div>
 
         {normalizedRole !== 'admin' ? (
-        <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
+        <>
+        <Dialog
+          open={helpOpen}
+          onOpenChange={(open) => {
+            setHelpOpen(open)
+            if (!open) {
+              setDisputeEvidenceFiles([])
+              setHelpStep('pre')
+              setMediationUnlockAt(null)
+              setEmergencyModalOpen(false)
+            }
+          }}
+        >
           <DialogContent className="sm:max-w-xl">
             <DialogHeader>
               <DialogTitle>{getUIText('orderHelp_title', language)}</DialogTitle>
               <DialogDescription>{getUIText('orderHelp_description', language)}</DialogDescription>
             </DialogHeader>
 
+            {helpStep === 'pre' && normalizedRole === 'renter' ? (
+              <div className="space-y-3 rounded-xl border border-teal-200 bg-teal-50/80 p-4">
+                <p className="text-sm font-semibold text-teal-950">{getUIText('orderHelp_preContactTitle', language)}</p>
+                <p className="text-sm text-teal-900/90">{getUIText('orderHelp_preContactDesc', language)}</p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {supportChatHref ? (
+                    <Button asChild variant="default" className="bg-teal-600 hover:bg-teal-700">
+                      <Link href={supportChatHref}>
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        {getUIText('orderHelp_openChat', language)}
+                      </Link>
+                    </Button>
+                  ) : null}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-teal-400"
+                    disabled={helpNudgeSending}
+                    onClick={() => void handleNotifyPartnerHelp()}
+                  >
+                    {helpNudgeSending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    {getUIText('orderHelp_notifyPartner', language)}
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={() => setHelpStep('main')}>
+                    {getUIText('orderHelp_skipPreStep', language)}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            {helpStep !== 'pre' || normalizedRole !== 'renter' ? (
+            <>
             <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
               <p className="text-sm font-medium text-slate-900">{getUIText('orderHelp_level1Title', language)}</p>
               <p className="text-sm text-slate-700">{getUIText('orderHelp_level1Desc', language)}</p>
@@ -499,6 +745,37 @@ export default function UnifiedOrderCard({
                     </Link>
                   </Button>
                 ) : null}
+                {normalizedRole === 'renter' && bookingId && emergencyCtxReady && emergencyCtx?.bookingEligible ? (
+                  <div className="w-full pt-2 border-t border-slate-200 mt-2 space-y-2">
+                    {emergencyCtx?.partnerInQuietHours ? (
+                      <>
+                        <p className="text-xs text-slate-600">{getUIText('orderHelp_emergencyHint', language)}</p>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          className="bg-red-700 hover:bg-red-800"
+                          disabled={emergencySending}
+                          onClick={openEmergencyChecklistModal}
+                        >
+                          <Siren className="h-4 w-4 mr-2" />
+                          {getUIText('orderHelp_emergencyContact', language)}
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs text-slate-600">{getUIText('orderHelp_emergencyDaytimeHint', language)}</p>
+                        {supportChatHref ? (
+                          <Button asChild variant="default" className="bg-teal-600 hover:bg-teal-700">
+                            <Link href={supportChatHref}>
+                              <MessageSquare className="h-4 w-4 mr-2" />
+                              {getUIText('orderHelp_writeToPartnerChat', language)}
+                            </Link>
+                          </Button>
+                        ) : null}
+                      </>
+                    )}
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -507,6 +784,21 @@ export default function UnifiedOrderCard({
               {disputeEligibility.allowed ? (
                 <>
                   <p className="text-sm text-amber-800">{getUIText('orderHelp_level2Allowed', language)}</p>
+                  {mediationLockActive ? (
+                    <p className="text-sm text-amber-950 bg-amber-100/80 border border-amber-300 rounded-lg px-3 py-2">
+                      {getUIText('orderDispute_mediationActiveHint', language).replace(
+                        '{{mins}}',
+                        String(
+                          Math.max(
+                            1,
+                            Math.ceil(
+                              (new Date(mediationUnlockAt).getTime() - Date.now()) / 60_000,
+                            ),
+                          ),
+                        ),
+                      )}
+                    </p>
+                  ) : null}
                   <Textarea
                     value={disputeReason}
                     onChange={(e) => setDisputeReason(e.target.value)}
@@ -514,6 +806,53 @@ export default function UnifiedOrderCard({
                     maxLength={2000}
                     rows={4}
                   />
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-amber-900">{getUIText('partnerTrust_evidenceLabel', language)}</p>
+                    <p className="text-xs text-amber-800/90">{getUIText('partnerTrust_evidenceHint', language)}</p>
+                    <input
+                      ref={disputeEvidenceInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const picked = Array.from(e.target.files || [])
+                        e.target.value = ''
+                        setDisputeEvidenceFiles((prev) => [...prev, ...picked].slice(0, 3))
+                      }}
+                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="border-amber-300"
+                        onClick={() => disputeEvidenceInputRef.current?.click()}
+                        disabled={disputeEvidenceFiles.length >= 3}
+                      >
+                        <ImageIcon className="h-4 w-4 mr-1.5" />
+                        {getUIText('orderDispute_addPhotos', language)}
+                      </Button>
+                      {disputeEvidenceFiles.length > 0 ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-amber-900"
+                          onClick={() => setDisputeEvidenceFiles([])}
+                        >
+                          {getUIText('orderDispute_clearPhotos', language)}
+                        </Button>
+                      ) : null}
+                    </div>
+                    {disputeEvidenceFiles.length > 0 ? (
+                      <ul className="text-xs text-amber-950 space-y-0.5 list-disc pl-4">
+                        {disputeEvidenceFiles.map((f) => (
+                          <li key={`${f.name}-${f.size}`}>{f.name}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
                 </>
               ) : (
                 <div className="inline-flex items-center gap-2 text-sm text-amber-900">
@@ -532,15 +871,122 @@ export default function UnifiedOrderCard({
                   type="button"
                   className="bg-amber-600 hover:bg-amber-700"
                   onClick={handleCreateDispute}
-                  disabled={disputeSubmitting}
+                  disabled={disputeSubmitting || mediationLockActive}
                 >
                   {disputeSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  {getUIText('orderHelp_openOfficialDispute', language)}
+                  {mediationLockActive
+                    ? getUIText('orderDispute_mediationButtonWait', language)
+                    : getUIText('orderHelp_openOfficialDispute', language)}
                 </Button>
               ) : null}
             </DialogFooter>
+            </>
+            ) : (
+              <DialogFooter className="gap-2">
+                <Button type="button" variant="outline" onClick={() => setHelpOpen(false)}>
+                  {getUIText('orderHelp_close', language)}
+                </Button>
+                <Button type="button" onClick={() => setHelpStep('main')}>
+                  {getUIText('orderHelp_continueSupport', language)}
+                </Button>
+              </DialogFooter>
+            )}
           </DialogContent>
         </Dialog>
+
+        <Dialog
+          open={emergencyModalOpen}
+          onOpenChange={(open) => {
+            setEmergencyModalOpen(open)
+            if (!open) setEmergencyRateBlocked(false)
+          }}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {emergencyRateBlocked
+                  ? getUIText('orderHelp_emergencyRateLimitTitle', language)
+                  : getUIText('orderHelp_emergencyModalTitle', language)}
+              </DialogTitle>
+              <DialogDescription>
+                {emergencyRateBlocked
+                  ? getUIText('orderHelp_emergencyRateLimited', language)
+                  : getUIText('orderHelp_emergencyModalIntro', language)}
+              </DialogDescription>
+            </DialogHeader>
+            {!emergencyRateBlocked ? (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950 leading-relaxed">
+                {getUIText('orderHelp_emergencyNightDisclaimer', language)}
+              </div>
+            ) : null}
+            {emergencyRateBlocked ? (
+              <div className="space-y-3 py-1">
+                <Button
+                  type="button"
+                  variant="default"
+                  className="w-full bg-teal-700 hover:bg-teal-800"
+                  disabled={supportEscalating}
+                  onClick={() => void handleEmergencySupportAfterLimit()}
+                >
+                  {supportEscalating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <LifeBuoy className="h-4 w-4 mr-2" />}
+                  {getUIText('orderHelp_emergencyWriteSupport', language)}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3 py-1">
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 text-sm text-slate-800">
+                  <Checkbox
+                    className="mt-0.5"
+                    checked={emergencyCheck.health_or_safety}
+                    onCheckedChange={(v) =>
+                      setEmergencyCheck((c) => ({ ...c, health_or_safety: v === true }))
+                    }
+                    aria-label={getUIText('orderHelp_emergencyCheck_health', language)}
+                  />
+                  <span>{getUIText('orderHelp_emergencyCheck_health', language)}</span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 text-sm text-slate-800">
+                  <Checkbox
+                    className="mt-0.5"
+                    checked={emergencyCheck.no_property_access}
+                    onCheckedChange={(v) =>
+                      setEmergencyCheck((c) => ({ ...c, no_property_access: v === true }))
+                    }
+                    aria-label={getUIText('orderHelp_emergencyCheck_access', language)}
+                  />
+                  <span>{getUIText('orderHelp_emergencyCheck_access', language)}</span>
+                </label>
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 text-sm text-slate-800">
+                  <Checkbox
+                    className="mt-0.5"
+                    checked={emergencyCheck.disaster}
+                    onCheckedChange={(v) => setEmergencyCheck((c) => ({ ...c, disaster: v === true }))}
+                    aria-label={getUIText('orderHelp_emergencyCheck_disaster', language)}
+                  />
+                  <span>{getUIText('orderHelp_emergencyCheck_disaster', language)}</span>
+                </label>
+              </div>
+            )}
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button type="button" variant="outline" onClick={() => setEmergencyModalOpen(false)}>
+                {getUIText('orderHelp_close', language)}
+              </Button>
+              {emergencyRateBlocked ? null : (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="bg-red-700 hover:bg-red-800"
+                  disabled={emergencySending || !canSubmitEmergency}
+                  onClick={() => void handleEmergencySubmit()}
+                >
+                  {emergencySending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Siren className="h-4 w-4 mr-2" />}
+                  {getUIText('orderHelp_emergencyConfirmSend', language)}
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        </>
         ) : null}
       </CardContent>
     </Card>

@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { resolveAdminHealthProfile } from '@/lib/admin-health-access'
+import { formatEmergencyChecklistRu } from '@/lib/emergency-contact-admin-notify'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -14,6 +15,7 @@ export const runtime = 'nodejs'
 const WINDOW_DAYS = 7
 const OPS_MISSING = "Could not find the table 'public.ops_job_runs'"
 const CRITICAL_MISSING = "Could not find the table 'public.critical_signal_events'"
+const SLA_NUDGE_MISSING = "Could not find the table 'public.partner_sla_nudge_events'"
 
 function sinceIso() {
   const d = new Date()
@@ -57,6 +59,12 @@ function aggregateJob(rows, jobName) {
       sumIcalErrors += Number(s.errors || 0)
       sumTotal += Number(s.total || 0)
     }
+    if (jobName === 'partner-sla-telegram-nudge') {
+      sumDelivered += Number(s.sent || 0)
+      sumStuckFound += Number(s.scanned || 0)
+      sumRemoved += Number(s.skipped || 0)
+      sumProbed += Number(s.errors || 0)
+    }
   }
 
   return {
@@ -75,7 +83,14 @@ function aggregateJob(rows, jobName) {
           ? { removed: sumRemoved, probed: sumProbed }
           : jobName === 'ical-sync'
             ? { synced: sumSynced, errors: sumIcalErrors, listings_considered: sumTotal }
-            : {},
+            : jobName === 'partner-sla-telegram-nudge'
+              ? {
+                  sent: sumDelivered,
+                  scanned: sumStuckFound,
+                  skipped: sumRemoved,
+                  errors: sumProbed,
+                }
+              : {},
   }
 }
 
@@ -146,8 +161,97 @@ export async function GET() {
     tamperRecent = Array.isArray(recentRows) ? recentRows : []
   }
 
-  const jobNames = ['ical-sync', 'push-sweeper', 'push-token-hygiene']
+  const jobNames = ['ical-sync', 'push-sweeper', 'push-token-hygiene', 'partner-sla-telegram-nudge']
   const jobs = Object.fromEntries(jobNames.map((name) => [name, aggregateJob(opsRows, name)]))
+
+  let slaNudge = {
+    tablePresent: true,
+    error: null,
+    events7d: 0,
+    lastCreatedAt: null,
+    uniquePartnersSample: 0,
+  }
+  const { count: slaCount, error: slaCountErr } = await supabaseAdmin
+    .from('partner_sla_nudge_events')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', since)
+
+  if (slaCountErr) {
+    if (String(slaCountErr.message || '').includes(SLA_NUDGE_MISSING)) {
+      slaNudge = { ...slaNudge, tablePresent: false, error: null }
+    } else {
+      slaNudge = { ...slaNudge, error: slaCountErr.message }
+    }
+  } else {
+    slaNudge.events7d = Number(slaCount || 0)
+  }
+
+  if (!slaNudge.error && slaNudge.tablePresent) {
+    const { data: lastSla, error: lastErr } = await supabaseAdmin
+      .from('partner_sla_nudge_events')
+      .select('created_at')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (lastErr && !String(lastErr.message || '').includes(SLA_NUDGE_MISSING)) {
+      slaNudge.error = lastErr.message
+    } else {
+      slaNudge.lastCreatedAt = lastSla?.created_at || null
+    }
+
+    const { data: partnerRows, error: partErr } = await supabaseAdmin
+      .from('partner_sla_nudge_events')
+      .select('partner_id')
+      .gte('created_at', since)
+      .limit(5000)
+    if (!partErr && Array.isArray(partnerRows)) {
+      slaNudge.uniquePartnersSample = new Set(partnerRows.map((r) => String(r.partner_id || ''))).size
+    }
+  }
+
+  const slaJob = jobs['partner-sla-telegram-nudge']
+  const sent7d = Number(slaJob?.totals?.sent || 0)
+  const coveragePct =
+    slaNudge.events7d > 0 ? Math.min(100, Math.round((sent7d / slaNudge.events7d) * 1000) / 10) : null
+
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  let emergencyContacts24h = 0
+  let emergencyScanError = null
+  /** @type {{ bookingId: string, at: string, reasonsRu: string }[]} */
+  const emergencyRecentBookings = []
+  const { data: bookingRows, error: bookErr } = await supabaseAdmin
+    .from('bookings')
+    .select('id, metadata, updated_at')
+    .gte('updated_at', since24h)
+    .limit(5000)
+
+  if (bookErr) {
+    emergencyScanError = bookErr.message
+  } else {
+    const t0 = new Date(since24h).getTime()
+    for (const row of bookingRows || []) {
+      const bid = row?.id != null ? String(row.id) : ''
+      const ev = row?.metadata?.emergency_contact_events
+      if (!Array.isArray(ev) || !bid) continue
+      for (const e of ev) {
+        const at = e?.at != null ? new Date(String(e.at)).getTime() : NaN
+        if (Number.isFinite(at) && at >= t0) {
+          emergencyContacts24h += 1
+          emergencyRecentBookings.push({
+            bookingId: bid,
+            at: String(e.at || ''),
+            reasonsRu: formatEmergencyChecklistRu(e?.checklist),
+          })
+        }
+      }
+    }
+    emergencyRecentBookings.sort((a, b) => {
+      const ta = new Date(String(a.at || 0)).getTime()
+      const tb = new Date(String(b.at || 0)).getTime()
+      return tb - ta
+    })
+  }
 
   return NextResponse.json({
     success: true,
@@ -158,6 +262,20 @@ export async function GET() {
       priceTamperingCount: tamperCount,
       recent: tamperRecent,
       error: criticalError,
+    },
+    slaNudge: {
+      ...slaNudge,
+      opsSent7d: sent7d,
+      opsScanned7d: Number(slaJob?.totals?.scanned || 0),
+      opsSkipped7d: Number(slaJob?.totals?.skipped || 0),
+      opsErrors7d: Number(slaJob?.totals?.errors || 0),
+      telegramVsDbPercent: coveragePct,
+    },
+    trustSafety: {
+      emergencyContacts24h,
+      emergencyScanSince: since24h,
+      emergencyScanError,
+      emergencyRecentBookings: emergencyRecentBookings.slice(0, 40),
     },
     meta: {
       opsError,

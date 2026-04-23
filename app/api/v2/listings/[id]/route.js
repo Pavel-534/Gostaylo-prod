@@ -16,6 +16,7 @@ import { getSessionPayload } from '@/lib/services/session-service'
 import { isStaffRole } from '@/lib/services/chat/access'
 import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes'
 import { normalizeCancellationPolicy } from '@/lib/cancellation-refund-rules'
+import { ReputationService } from '@/lib/services/reputation.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -133,6 +134,15 @@ export async function GET(request, context) {
       commissionRatePromise
     ])
 
+    let partnerTrust = null
+    if (listing.owner_id) {
+      try {
+        partnerTrust = await ReputationService.getPartnerTrustPublic(String(listing.owner_id))
+      } catch (e) {
+        console.warn('[LISTING GET] partner trust', e?.message)
+      }
+    }
+
     const session = await getSessionPayload()
     const viewerId = session?.userId ? String(session.userId) : null
     const viewerRole = String(session?.role || '').toUpperCase()
@@ -197,7 +207,8 @@ export async function GET(request, context) {
         seasonType: sp.season_type,
         priceDaily: parseFloat(sp.price_daily),
         priceMonthly: sp.price_monthly ? parseFloat(sp.price_monthly) : null
-      })) || []
+      })) || [],
+      partnerTrust,
     };
     
     return NextResponse.json({ success: true, data: transformed });

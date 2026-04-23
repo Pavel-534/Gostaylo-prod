@@ -124,7 +124,7 @@ export async function GET(request) {
       .limit(limit)
 
     if (filter === 'open') {
-      query = query.in('status', ['OPEN', 'IN_REVIEW'])
+      query = query.in('status', ['OPEN', 'IN_REVIEW', 'PENDING_MEDIATION'])
     } else if (filter === 'resolved') {
       query = query.in('status', ['RESOLVED', 'CLOSED', 'REJECTED'])
     } else if (filter === 'frozen') {

@@ -515,6 +515,7 @@ function PremiumListingContent({ params }) {
             return Number.isFinite(n) && n > 0 ? n : null
           })(),
           cancellationPolicy: l.cancellationPolicy ?? l.cancellation_policy ?? 'moderate',
+          partnerTrust: l.partnerTrust ?? null,
         })
       }
       setLoading(false)

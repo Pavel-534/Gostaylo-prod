@@ -79,6 +79,12 @@ export interface ListingMetadata extends Record<string, unknown> {
   /** @deprecated Используйте metadata.seo[lang]. Оставлено для обратной совместимости. */
   seo_description?: string
 
+  /**
+   * IANA timezone for fair-SLA quiet hours (Stage 20), e.g. `Asia/Bangkok`.
+   * If absent, `getListingDateTimeZone()` from env is used (listing wizard does not require this field today).
+   */
+  timezone?: string | null
+
   /** Подходит для удалённой работы (быстрый интернет в описании) */
   is_workation_ready?: boolean
 }

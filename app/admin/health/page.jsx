@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,8 +10,10 @@ import {
   AlertTriangle,
   CalendarSync,
   Loader2,
+  MessageCircleWarning,
   RefreshCw,
   ShieldAlert,
+  Siren,
   Sparkles,
   Trash2,
 } from 'lucide-react'
@@ -101,7 +104,10 @@ export default function AdminHealthPage() {
   const ical = data?.jobs?.['ical-sync']
   const sweeper = data?.jobs?.['push-sweeper']
   const hygiene = data?.jobs?.['push-token-hygiene']
+  const slaNudgeJob = data?.jobs?.['partner-sla-telegram-nudge']
+  const slaNudge = data?.slaNudge
   const security = data?.security
+  const trustSafety = data?.trustSafety
   const adapterEntries = Object.entries(adapterHealth?.adapters || {})
   const hasAdapterProblems = adapterEntries.some(([, row]) => !row?.ready) || !adapterHealth?.global?.ready
 
@@ -210,6 +216,112 @@ export default function AdminHealthPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {data && trustSafety ? (
+        <Card className="rounded-2xl border border-rose-100 bg-rose-50/40 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-rose-950">
+              <Siren className="h-5 w-5 text-rose-700" />
+              Trust &amp; Safety — экстренные вызовы (24 ч)
+            </CardTitle>
+            <CardDescription className="text-rose-900/80">
+              Счётчик по событиям в <code className="text-xs bg-white/80 px-1 rounded">bookings.metadata.emergency_contact_events</code> у
+              броней, обновлённых за последние 24 ч (выборка до 5000 строк).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <p className="text-slate-800">
+              <span className="text-slate-500">Событий за 24 ч:</span>{' '}
+              <span className="text-2xl font-bold tabular-nums text-rose-800">{trustSafety.emergencyContacts24h ?? 0}</span>
+            </p>
+            {trustSafety.emergencyScanError ? (
+              <p className="text-red-700 text-xs">{trustSafety.emergencyScanError}</p>
+            ) : (
+              <p className="text-xs text-slate-500">
+                Окно отсчёта: с {formatDt(trustSafety.emergencyScanSince)}
+              </p>
+            )}
+            {Array.isArray(trustSafety.emergencyRecentBookings) && trustSafety.emergencyRecentBookings.length > 0 ? (
+              <div className="pt-2 border-t border-rose-100">
+                <p className="text-xs font-medium text-rose-900 mb-2">События (клик — карточка брони)</p>
+                <ul className="space-y-2 text-xs text-slate-700 max-h-56 overflow-y-auto pr-1">
+                  {trustSafety.emergencyRecentBookings.map((row) => (
+                    <li key={`${row.bookingId}-${row.at}`} className="flex flex-col sm:flex-row sm:items-baseline sm:gap-x-3 gap-0.5 rounded-lg bg-white/70 border border-rose-100/80 px-2 py-1.5">
+                      <Link
+                        href={`/admin/bookings/${encodeURIComponent(String(row.bookingId))}`}
+                        className="font-mono text-teal-700 hover:underline shrink-0"
+                      >
+                        {row.bookingId}
+                      </Link>
+                      <span className="text-slate-500 whitespace-nowrap">{formatDt(row.at)}</span>
+                      <span className="text-slate-600 sm:flex-1">{row.reasonsRu}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {data ? (
+        <Card className="rounded-2xl border-slate-200 shadow-sm border-l-4 border-l-teal-500">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <MessageCircleWarning className="h-5 w-5 text-teal-600" />
+                SLA Telegram nudge
+              </CardTitle>
+              <StatusBadge status={slaNudgeJob?.lastStatus} />
+            </div>
+            <CardDescription>
+              Крон <code className="text-xs bg-slate-100 px-1 rounded">/api/cron/partner-sla-telegram-nudge</code> —{' '}
+              dedup в <code className="text-xs bg-slate-100 px-1">partner_sla_nudge_events</code>; «покрытие» = доля
+              реально отправленных TG от числа записей в БД за окно (если нет TG у партнёра — запись есть, отправки
+              нет).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-slate-600">
+            {!slaNudge?.tablePresent ? (
+              <p className="text-amber-700">Таблица partner_sla_nudge_events не найдена — примените миграцию 041.</p>
+            ) : null}
+            {slaNudge?.error ? <p className="text-red-600">{slaNudge.error}</p> : null}
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <p>
+                <span className="text-slate-400">Покрытие TG / БД (7д):</span>{' '}
+                <span className="font-semibold text-slate-900">
+                  {slaNudge?.telegramVsDbPercent != null ? `${slaNudge.telegramVsDbPercent}%` : '—'}
+                </span>
+                {slaNudge?.telegramVsDbPercent != null ? (
+                  <span className="text-xs text-slate-500 ml-1">
+                    ({slaNudge?.opsSent7d ?? 0} отправлено / {slaNudge?.events7d ?? 0} якорей в БД)
+                  </span>
+                ) : null}
+              </p>
+              <p>
+                <span className="text-slate-400">Записей в БД (7д):</span>{' '}
+                <span className="font-semibold text-teal-700">{slaNudge?.events7d ?? 0}</span>
+              </p>
+              <p>
+                <span className="text-slate-400">Уникальных партнёров (оценка, до 5k строк):</span>{' '}
+                <span className="font-medium text-slate-900">{slaNudge?.uniquePartnersSample ?? 0}</span>
+              </p>
+            </div>
+            <p className="text-xs text-slate-500 border-t border-slate-100 pt-2">
+              Ops (сумма за 7д): scanned {slaNudge?.opsScanned7d ?? 0} · sent {slaNudge?.opsSent7d ?? 0} · skipped{' '}
+              {slaNudge?.opsSkipped7d ?? 0} · errors {slaNudge?.opsErrors7d ?? 0} · прогонов{' '}
+              {slaNudgeJob?.runCount ?? 0} (OK {slaNudgeJob?.successRuns ?? 0} / ошибок {slaNudgeJob?.errorRuns ?? 0})
+            </p>
+            <p className="text-xs text-slate-400">
+              Последнее событие в БД: {formatDt(slaNudge?.lastCreatedAt)} · последний крон:{' '}
+              {formatDt(slaNudgeJob?.lastStartedAt)}
+            </p>
+            {slaNudgeJob?.lastErrorMessage ? (
+              <p className="text-xs text-red-600 line-clamp-3">{slaNudgeJob.lastErrorMessage}</p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {data ? (
         <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">

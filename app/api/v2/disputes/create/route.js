@@ -27,6 +27,13 @@ export async function POST(request) {
     const reason = String(body.reason || '').trim().slice(0, 2000)
     const category = normalizeCategory(body.category)
     const providedConversationId = String(body.conversationId || '').trim() || null
+    const rawEvidence = body.evidenceUrls ?? body.evidence_urls
+    const evidenceUrls = Array.isArray(rawEvidence)
+      ? rawEvidence
+          .map((u) => String(u || '').trim().slice(0, 800))
+          .filter((u) => u.startsWith('/_storage/') || u.startsWith('http'))
+          .slice(0, 3)
+      : []
 
     if (!bookingId) {
       return NextResponse.json({ success: false, error: 'bookingId is required' }, { status: 400 })
@@ -56,13 +63,16 @@ export async function POST(request) {
       reason,
       category,
       conversationId: providedConversationId,
+      evidenceUrls,
     })
 
     if (!created.success) {
       const status =
         created.code === 'FORBIDDEN'
           ? 403
-          : created.code === 'DISPUTE_NOT_ALLOWED' || created.code === 'COOLDOWN'
+          : created.code === 'DISPUTE_NOT_ALLOWED' ||
+              created.code === 'COOLDOWN' ||
+              created.code === 'MEDIATION_WINDOW_ACTIVE'
             ? 400
             : 500
       return NextResponse.json(
@@ -70,6 +80,9 @@ export async function POST(request) {
           success: false,
           error: created.error || 'Failed to create dispute',
           code: created.code || 'UNKNOWN_ERROR',
+          ...(created.code === 'MEDIATION_WINDOW_ACTIVE'
+            ? { unlockAt: created.unlockAt, minutesLeft: created.minutesLeft }
+            : {}),
         },
         { status },
       )
@@ -79,6 +92,9 @@ export async function POST(request) {
       success: true,
       data: created.dispute,
       alreadyExists: created.alreadyExists === true,
+      phase: created.phase || null,
+      unlockAt: created.unlockAt || null,
+      upgradedFromMediation: created.upgradedFromMediation === true,
     })
   } catch (error) {
     console.error('[DISPUTES CREATE]', error)

@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { formatPrivacyDisplayName } from '@/lib/utils/name-formatter'
+import { ReputationService } from '@/lib/services/reputation.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,6 +42,15 @@ export async function GET(request, context) {
 
     const rawAvatar = p.avatar && String(p.avatar).trim()
 
+    let partnerTrust = null
+    if (role === 'PARTNER') {
+      try {
+        partnerTrust = await ReputationService.getPartnerTrustPublic(String(p.id))
+      } catch (e) {
+        console.warn('[public-profile] partner trust', e?.message)
+      }
+    }
+
     return NextResponse.json({
       success: true,
       profile: {
@@ -53,6 +63,7 @@ export async function GET(request, context) {
         isVerified: !!p.is_verified,
         verificationStatus: p.verification_status,
         role,
+        partnerTrust,
       },
     })
   } catch (e) {

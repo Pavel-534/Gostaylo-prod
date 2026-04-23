@@ -15,6 +15,7 @@ import { useI18n } from '@/contexts/i18n-context'
 import { useAuth } from '@/contexts/auth-context'
 import { getUIText } from '@/lib/translations'
 import { ReviewPhotosGallery } from '@/components/review-photos-gallery'
+import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
 import { toast } from 'sonner'
 
 const DATE_LOCALES = { ru, en: enUS, zh: zhCN, th: thLocale }
@@ -185,6 +186,9 @@ export default function PublicUserProfilePage() {
                     </Badge>
                   )}
                 </div>
+                {String(profile.role || '').toUpperCase() === 'PARTNER' && profile.partnerTrust ? (
+                  <PartnerTrustBadge trust={profile.partnerTrust} language={language} />
+                ) : null}
                 {showMessageCta ? (
                   <div className="pt-2">
                     <Button

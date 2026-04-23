@@ -29,6 +29,7 @@ import { maskContactInfo } from '@/lib/mask-contacts'
 import { incrementContactLeakStrikes } from '@/lib/contact-leak-strikes'
 import { getChatSafetySettings } from '@/lib/chat-safety-settings'
 import { isMessageHiddenFromViewer } from '@/lib/chat-message-visibility'
+import { tryLogPartnerInitialResponseAfterMessage } from '@/lib/services/partner-response-performance'
 
 export const dynamic = 'force-dynamic'
 
@@ -593,6 +594,16 @@ export async function POST(request) {
     )
     return NextResponse.json({ success: false, error: msgData }, { status: 400 })
   }
+
+  if (String(userId) === String(conversation.partner_id)) {
+    void tryLogPartnerInitialResponseAfterMessage({
+      conversation,
+      partnerUserId: userId,
+      partnerMessageId: messageId,
+      partnerMessageCreatedAt: now,
+    }).catch(() => {})
+  }
+
   if (hasSafetyTrigger) {
     await recordContactLeakTelemetry({
       conversationId,
@@ -612,6 +623,8 @@ export async function POST(request) {
   const base = getPublicSiteUrl()
   const cid = encodeURIComponent(conversationId)
   const msgDeepLink = `${base}/messages/${cid}`
+  const pushBookingId = conversation.booking_id || bookingId || null
+  const pushListingId = conversation.listing_id || null
   const pushPreview = pushMessagePreview(outgoingText)
   const skipRecipientPush =
     messageData.metadata &&
@@ -632,6 +645,8 @@ export async function POST(request) {
         conversationId,
         messageId: messageData.id,
         message: pushPreview,
+        bookingId: pushBookingId || undefined,
+        listingId: pushListingId || undefined,
       }),
     )
   }
@@ -649,6 +664,8 @@ export async function POST(request) {
         conversationId,
         messageId: messageData.id,
         message: pushPreview,
+        bookingId: pushBookingId || undefined,
+        listingId: pushListingId || undefined,
       }),
     )
   }

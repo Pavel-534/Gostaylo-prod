@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 
 import UnifiedOrderCard from '@/components/orders/UnifiedOrderCard'
 import AdminDisputeChatPeek from '@/components/admin/AdminDisputeChatPeek'
+import { ProxiedImage } from '@/components/proxied-image'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -222,6 +223,13 @@ export default function AdminDisputesPage() {
 
   const conversationId = detail?.dispute?.conversationId || detail?.booking?.conversationId || null
 
+  const disputeEvidenceUrls = (() => {
+    const m = detail?.dispute?.metadata
+    const raw = m && typeof m === 'object' ? m.evidence_urls : null
+    if (!Array.isArray(raw)) return []
+    return raw.map((u) => String(u || '').trim()).filter(Boolean).slice(0, 6)
+  })()
+
   if (!authChecked) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center text-slate-500">
@@ -349,7 +357,36 @@ export default function AdminDisputesPage() {
             <div className="space-y-6 mt-4 pb-8">
               <UnifiedOrderCard booking={detail.booking} unifiedOrder={detail.unifiedOrder} role="admin" language="ru" />
 
+              {detail.booking?.id ? (
+                <div className="flex justify-end">
+                  <Button asChild variant="outline" size="sm" className="rounded-xl">
+                    <Link href={`/admin/bookings/${encodeURIComponent(String(detail.booking.id))}`}>
+                      Логи экстренной связи (бронь)
+                    </Link>
+                  </Button>
+                </div>
+              ) : null}
+
               <AdminDisputeChatPeek conversationId={conversationId} adminUserId={me?.id} />
+
+              {disputeEvidenceUrls.length > 0 ? (
+                <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2">
+                  <p className="text-sm font-semibold text-slate-900">Материалы от инициатора</p>
+                  <div className="flex flex-wrap gap-3">
+                    {disputeEvidenceUrls.map((src) => (
+                      <a
+                        key={src}
+                        href={src}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="relative block w-28 h-28 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shrink-0"
+                      >
+                        <ProxiedImage src={src} alt="" fill className="object-cover" sizes="112px" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 space-y-3">
                 <p className="text-sm font-semibold text-amber-950">Рычаги арбитража</p>

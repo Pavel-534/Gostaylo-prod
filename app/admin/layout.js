@@ -30,6 +30,7 @@ import {
   Scale,
   BadgeCheck,
   Gavel,
+  Ticket,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -46,6 +47,7 @@ const MODERATOR_RESTRICTED_PREFIXES = [
   '/admin/audit-export',
   '/admin/ai-usage',
   '/admin/system/ai',
+  '/admin/bookings',
 ];
 
 export default function AdminLayout({ children }) {
@@ -192,6 +194,7 @@ export default function AdminLayout({ children }) {
     { href: '/admin/partners', icon: UserCog, label: 'Заявки партнёров', moderatorAccess: false },
     { href: '/admin/messages/', icon: MessageSquare, label: 'Сообщения', moderatorAccess: true },
     { href: '/admin/disputes', icon: Gavel, label: 'Споры', moderatorAccess: true },
+    { href: '/admin/bookings', icon: Ticket, label: 'Бронь (ID)', moderatorAccess: false },
     { href: '/admin/finances', icon: Wallet, label: 'Финансы', moderatorAccess: false },
     { href: '/admin/financial-health', icon: Scale, label: 'Ledger / здоровье', moderatorAccess: false },
     { href: '/admin/payout-methods', icon: Landmark, label: 'Способы выплат', moderatorAccess: false },

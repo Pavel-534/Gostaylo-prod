@@ -36,6 +36,7 @@ import {
 } from '@/lib/listing-category-slug'
 import { normalizeVehicleModelYearForDisplay } from '@/lib/listing-vehicle-year'
 import { ListingCancellationPolicy } from '@/components/listing/ListingCancellationPolicy'
+import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
 
 function useGuestListingModel(listing) {
   return useMemo(() => {
@@ -265,6 +266,11 @@ export function GuestListingBodyBlock({ listing, language = 'en' }) {
                         <ShieldCheck className="h-3.5 w-3.5" />
                         {getUIText('hostIdentityVerified', language)}
                       </Badge>
+                    ) : null}
+                    {listing.partnerTrust ? (
+                      <div className="pt-2">
+                        <PartnerTrustBadge trust={listing.partnerTrust} language={language} />
+                      </div>
                     ) : null}
                   </div>
                 </Link>

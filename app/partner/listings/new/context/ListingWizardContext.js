@@ -30,6 +30,7 @@ import {
 import { isTransportListingCategory, isTourListingCategory } from '@/lib/listing-category-slug'
 import { pickPartnerFormDescription } from '@/lib/partner/listing-description-i18n'
 import { applyDurationDiscountField } from '@/lib/partner/duration-discount-helpers'
+import { guessIanaTimezoneFromLatLon } from '@/lib/geo/listing-timezone-guess'
 import { WIZARD_DISTRICTS, getDefaultWizardFormData } from '../wizard-constants'
 import { ru, enUS, zhCN, th as thDateLocale } from 'date-fns/locale'
 
@@ -618,18 +619,28 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
   }, [geocodeQuery, t])
 
   const selectGeocodeResult = useCallback((r) => {
-    setFormData((prev) => ({ ...prev, latitude: r.lat, longitude: r.lon }))
+    const guessed = guessIanaTimezoneFromLatLon(r.lat, r.lon)
+    setFormData((prev) => ({
+      ...prev,
+      latitude: r.lat,
+      longitude: r.lon,
+      metadata: {
+        ...prev.metadata,
+        ...(guessed ? { timezone: guessed } : {}),
+      },
+    }))
     setGeocodeResults([])
     setGeocodeQuery('')
   }, [])
 
   const handleMapSelect = useCallback((lat, lng, geo) => {
+    const guessed = guessIanaTimezoneFromLatLon(lat, lng)
     setFormData((prev) => {
       const next = {
         ...prev,
         latitude: lat,
         longitude: lng,
-        metadata: { ...prev.metadata },
+        metadata: { ...prev.metadata, ...(guessed ? { timezone: guessed } : {}) },
       }
       if (geo?.district) {
         next.district = geo.district

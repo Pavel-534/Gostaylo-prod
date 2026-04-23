@@ -32,6 +32,7 @@ import {
   showsPropertyInteriorSpecs,
 } from '@/lib/listing-category-slug'
 import { getListingCardBlurDataURL } from '@/lib/listing-image-blur'
+import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
 
 export function GostayloListingCard({
   listing,
@@ -72,6 +73,8 @@ export function GostayloListingCard({
     pricing = null,
     category,
     categorySlug: listingCategorySlug,
+    partnerTrust = null,
+    owner,
   } = listing
   
   const basePrice = basePriceThb || base_price_thb || 0
@@ -167,6 +170,12 @@ export function GostayloListingCard({
               <p className="text-sm text-slate-500 mt-0.5">
                 {typeLabel} • {district}
               </p>
+              <PartnerTrustBadge
+                trust={partnerTrust}
+                language={language}
+                compact
+                showVerifiedCompanion={!!(owner?.is_verified || listing?.owner?.is_verified)}
+              />
             </div>
             
             {/* Rating */}
