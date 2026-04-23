@@ -141,7 +141,7 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
         setAllowedMethods(DEFAULT_ALLOWED_METHODS)
       }
 
-      if (b.status === 'PAID' || b.status === 'COMPLETED') {
+      if (b.status === 'PAID' || b.status === 'PAID_ESCROW' || b.status === 'COMPLETED') {
         setPayment({
           id: `pay-${b.id}`,
           status: 'COMPLETED',
@@ -211,18 +211,17 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
             setConfirmations(i)
             await new Promise((r) => setTimeout(r, 100))
           }
-          const verifyRes = await fetch('/api/webhooks/crypto/confirm', {
+          // SECURITY: do not call secret-protected webhook from client.
+          const verifyRes = await fetch('/api/v2/payments/verify-tron', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               txid: transactionId,
               bookingId,
-              expectedAmount: payment?.metadata?.amount_usdt || payment?.metadata?.amount || undefined,
-              targetWallet: payment?.metadata?.wallet_address || payment?.metadata?.walletAddress || undefined,
             }),
           })
           const verifyData = await verifyRes.json()
-          if (!verifyData.verified) {
+          if (!verifyData.success) {
             toast.error(verifyData.error || getUIText('checkout_toast_txNotVerified', language))
             setVerifying(false)
             setVerificationStep(0)
@@ -231,23 +230,14 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
           setVerificationStep(3)
           toast.success(getUIText('checkout_toast_chainOk', language))
           await new Promise((r) => setTimeout(r, 500))
-          const res = await fetch(`/api/v2/bookings/${bookingId}/payment/confirm`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              txId: transactionId,
-              gatewayRef: verifyData.data?.blockNumber,
-              invoiceId: invoiceIdParam || undefined,
-              intentId: payment?.intentId || payment?.id || undefined,
-            }),
-          })
-          const data = await res.json()
-          if (data.success) {
+          if (verifyData.paymentSettled?.success === true) {
             setPaymentSuccess(true)
             setCryptoModalOpen(false)
             await loadPaymentStatus()
           } else {
-            toast.error(data.error || getUIText('checkout_toast_paymentConfirmFail', language))
+            toast.error(
+              verifyData.paymentSettled?.error || getUIText('checkout_toast_paymentConfirmFail', language),
+            )
           }
         } catch (error) {
           console.error('Failed to verify crypto payment:', error)

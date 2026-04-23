@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 5.3.0 | **Last Updated**: 2026-04-23 | **Status**: Production-Ready
+> **Version**: 5.8.0 | **Last Updated**: 2026-04-23 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -145,6 +145,39 @@
 - **Route:** `POST /api/webhooks/crypto/confirm` — **не** публичный: требуется **`CRYPTO_WEBHOOK_SHARED_SECRET`** (заголовок **`x-crypto-webhook-secret`** или поле **`webhookSecret`** в JSON), иначе **401/503**.
 - **Тело:** `txid`, `bookingId`; опционально `expectedAmount` (USDT), `targetWallet` (должен совпадать с платформенным кошельком из **`lib/services/tron.service.js`**).
 - **Логика:** **`verifyTronTransaction`** (TronScan) → последняя **`payments`** со статусом **`PENDING`** для брони → **`PaymentsV3Service.confirmPayment`** (эскроу + ledger).
+
+### 0.06 Security Baseline (Stage 9.0)
+- **API lockdown (booking reads/writes):** `GET /api/v2/bookings`, `GET /api/v2/bookings/[id]`, `PUT /api/v2/bookings/[id]`, `POST /api/v2/bookings/[id]/check-in/confirm` требуют валидный `gostaylo_session`; доступ к данным ограничен участниками брони или staff. Generic `PUT /api/v2/bookings/[id]` разрешён только **ADMIN/MODERATOR** (операционный endpoint).
+- **Seed hardening:** `POST/GET /api/db/seed` отключён по умолчанию; доступ только при заданном `DB_SEED_ROUTE_SECRET` и передаче секрета в `x-seed-secret` или `Authorization: Bearer`.
+- **Checkout crypto hardening:** клиент больше не вызывает `POST /api/webhooks/crypto/confirm`; подтверждение из checkout идёт через `POST /api/v2/payments/verify-tron` (server-side verify + settlement), что исключает утечку секрета вебхука в браузерный контур.
+- **Checkout success semantics:** `PAID_ESCROW` считается успешным платежным состоянием UI checkout.
+- **Chat contact policy:** `areContactsRevealedForBooking` учитывает `PAID_ESCROW` и `THAWED` как статусы раскрытия контактов после защищённой оплаты/разморозки.
+- **Password policy:** `POST /api/v2/auth/register` принимает пароль не короче 8 символов и требует базовую сложность (минимум одна буква и одна цифра).
+
+### 0.07 Stage 10.0 — Test completion + Unified Order
+- **API guard hardening tests:** Playwright проект `stage9-api-guard` стабилизирован до **8/8** без skip; mini-fixture `tests/e2e/paid-escrow-fixture.ts` создаёт тестовую бронь в `PAID_ESCROW` через защищённый endpoint `POST /api/v2/internal/e2e/paid-escrow-booking` (только при `E2E_FIXTURE_SECRET` + `x-e2e-fixture-secret`).
+- **Unified order envelope:** добавлен `lib/models/unified-order.js` с `toUnifiedOrder(booking)` для нормализации в единый контракт (`id`, `type`, `status`, `total_price`, `currency`, `dates`, `metadata`).
+- **Bookings list integration:** `GET /api/v2/bookings` сохраняет существующий payload и добавляет на каждый элемент поле `unified_order`, чтобы фронтенд мог строить общую ленту услуг независимо от категории.
+
+### 0.08 Stage 11.0 — Unified My Bookings UI
+- **Route/UI:** `app/my-bookings/page.js` отображает единый список заказов через `booking.unified_order` (тип услуги, статус, даты, сумма, валюта) и фильтры по типу (`all/home/transport/activity`).
+- **Universal atoms:** `components/ui/OrderTypeIcon.jsx` (Home/Bike/Activity) и `components/ui/order-status-badge.jsx` (единая палитра статусов + i18n через `chatBookingStatus_*`, включая `PAID_ESCROW`).
+- **Financial SSOT on frontend:** карточки и агрегаты на странице «Мои заказы» используют только `unified_order.total_price` и `unified_order.currency`, без ручного вычисления из legacy полей.
+- **Perceived UX:** при переключении фильтров типа применяются skeleton-состояния с фиксированной высотой контейнера, чтобы исключить визуальные скачки верстки.
+
+### 0.09 Stage 11.1 — UnifiedOrderCard across roles
+- **Atom component:** `components/orders/UnifiedOrderCard.jsx` — единый role-aware атом карточки заказа (`renter`, `partner`, `admin`) с общим layout, типом услуги, статусом, ценовым блоком и action-секцией.
+- **Cross-role integration:** `app/my-bookings/page.js` и `app/partner/bookings/page.js` используют один и тот же компонент; изменения дизайна карточки теперь автоматически распространяются на обе роли.
+- **Action policy by unified status:** доступность действий вычисляется внутри атома по `unified_order.status` (renter: cancel/check-in/review; partner: confirm/decline/complete), что снижает дублирование и расхождения между кабинетами.
+- **i18n sync:** новые action-label ключи (`orderAction_*`) добавлены в `lib/translations/ui.js` для RU/EN/ZH/TH и используются в карточке для всех ролей.
+
+### 0.10 Stage 12.0 — Stability, Revenue Protection & UI Cleanup
+- **Escrow SQL hardening (P0):** в `lib/services/escrow.service.js` удалены обращения к колонкам, отсутствующим в рабочей схеме (`profiles.name`, `bookings.escrow_at`, `bookings.net_amount_thb`). Поток `moveToEscrow` использует `profiles.first_name/last_name`, `metadata.escrow_started` и `partner_earnings_thb`.
+- **Escrow module schema alignment:** сопутствующие сервисы (`escrow/payout.service.js`, `escrow/thaw.service.js`, `escrow/balance.service.js`, partner pending-reviews API) переведены на `partner_earnings_thb`, чтобы исключить повторные runtime-падения из-за старого поля `net_amount_thb`.
+- **Regression E2E:** добавлен сценарий `tests/e2e/stage12-escrow-regression.spec.ts` + проект `stage12-escrow-regression` в Playwright: `pending -> confirmed -> payment/confirm -> PAID_ESCROW`.
+- **UI shared blocks (Stage 11.2):** `components/orders/OrderTypeFilter.jsx`, `components/orders/OrdersSummary.jsx`, `components/orders/OrdersSkeleton.jsx` используются в renter и partner кабинетах, устраняя дублирование type-filter/summary/skeleton.
+- **Review sync:** правило review в UI и API унифицировано: доступ после `check_out` (calendar reached) или при статусах `COMPLETED`/`FINISHED`.
+- **Legacy cleanup:** удалён `app/api/v2/listings/route.js` (`GET` legacy list endpoint), потребители списка переведены на `GET /api/v2/search`.
 
 ### 0.1 CRITICAL: Telegram Webhook
 ```
@@ -941,7 +974,7 @@ static calculateTotalWithAddons(baseTotal, addons = []) {
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/v2/listings` | List all approved listings |
-| GET | `/api/v2/listings?category=villas` | Filter by category |
+| GET | `/api/v2/search?category=villas` | Search listings (primary endpoint for list/filter) |
 | GET | `/api/v2/listings/[id]` | Get single listing |
 | POST | `/api/v2/listings` | Create listing (Partner) |
 | PATCH | `/api/v2/listings/[id]` | Update listing |
@@ -950,13 +983,13 @@ static calculateTotalWithAddons(baseTotal, addons = []) {
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/v2/bookings` | List user's bookings |
+| GET | `/api/v2/bookings` | List bookings (session required; self-scope for non-staff) + `unified_order` envelope on each item |
 | POST | `/api/v2/bookings` | Create booking |
 | GET | `/api/v2/bookings/[id]/payment-status` | Get booking + listing info |
 | POST | `/api/v2/bookings/[id]/payment/initiate` | Start payment flow |
 | POST | `/api/v2/bookings/[id]/payment/confirm` | Подтверждение оплаты гостем → **`PAID_ESCROW`** через **`EscrowService.moveToEscrow`** (ledger); идемпотентно при повторном вызове |
 | GET, POST | `/api/cron/review-reminder` | Cron: push + Telegram гостю на следующий календарный день после **`check_out`** (если ещё нет отзыва). **GET и POST** при валидном **`CRON_SECRET`** выполняют одну и ту же логику (Vercel Cron шлёт **GET**; внешний планировщик может использовать **POST**). Без **`CRON_SECRET`** в env → **503**. Сравнение Bearer-токена допускает пробелы после `Bearer`, значение секрета **trim**. |
-| POST | `/api/v2/bookings/[id]/check-in/confirm` | Confirm check-in |
+| POST | `/api/v2/bookings/[id]/check-in/confirm` | Confirm check-in (session + participant/staff access) |
 | GET | `/api/v2/admin/ledger-balances` | ADMIN: остатки ledger (THB) |
 | GET | `/api/v2/admin/ledger-reconciliation` | ADMIN: сверка clearing vs credits в журналах захвата оплаты (MVP) |
 | POST | `/api/v2/admin/payouts/tbank-registry` | ADMIN: CSV реестр Т-Банка + PROCESSING |

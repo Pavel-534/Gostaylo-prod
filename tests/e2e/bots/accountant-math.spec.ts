@@ -81,12 +81,12 @@ test.describe('@accountant-bot', () => {
     test.skip(!baseURL, 'baseURL')
 
     const api = request
-    const listingsRes = await api.get(`${baseURL}/api/v2/listings?category=vehicles&limit=24`)
+    const listingsRes = await api.get(`${baseURL}/api/v2/search?category=vehicles&limit=24`)
     expect(listingsRes.ok()).toBeTruthy()
     const listingsJson = (await listingsRes.json()) as {
-      data?: Array<{ id?: string; basePriceThb?: number }>
+      data?: { listings?: Array<{ id?: string; basePriceThb?: number }> }
     }
-    const rows = (listingsJson?.data || []).filter((x) => x?.id)
+    const rows = (listingsJson?.data?.listings || []).filter((x) => x?.id)
     const vehicle =
       rows.find((r) => Number(r.basePriceThb) * 3 >= 80) || rows[0]
     test.skip(!vehicle?.id, 'Нет листинга vehicles для сценария')

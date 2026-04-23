@@ -1,29 +1,86 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Star, Calendar, MapPin, Loader2, ArrowLeft } from 'lucide-react'
-import { formatPrice } from '@/lib/currency'
+import { Star, Calendar, Loader2, ArrowLeft } from 'lucide-react'
+import { useI18n } from '@/contexts/i18n-context'
+import UnifiedOrderCard from '@/components/orders/UnifiedOrderCard'
+import OrdersSummary from '@/components/orders/OrdersSummary'
+import OrderTypeFilter from '@/components/orders/OrderTypeFilter'
+import { OrdersListSkeleton, OrdersPageSkeleton } from '@/components/orders/OrdersSkeleton'
 import { toast } from 'sonner'
 import { processAndUploadReviewPhotos } from '@/lib/services/image-upload.service'
 
 const MAX_REVIEW_PHOTOS = 5
+const SWITCH_SKELETON_DELAY_MS = 120
+
+function toIsoOrNull(value) {
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? null : d.toISOString()
+}
+
+function normalizeOrderType(type) {
+  const t = String(type || '').trim().toLowerCase()
+  if (t === 'transport') return 'transport'
+  if (t === 'activity' || t === 'tour' || t === 'tours') return 'activity'
+  return 'home'
+}
+
+function normalizeUnifiedOrder(booking) {
+  if (booking?.unified_order && typeof booking.unified_order === 'object') {
+    return {
+      ...booking.unified_order,
+      type: normalizeOrderType(booking.unified_order.type),
+      status: String(booking.unified_order.status || booking.status || '').toUpperCase(),
+      currency: String(booking.unified_order.currency || booking.currency || 'THB').toUpperCase(),
+      total_price: Number(booking.unified_order.total_price),
+      dates: {
+        check_in: booking.unified_order?.dates?.check_in || toIsoOrNull(booking.check_in),
+        check_out: booking.unified_order?.dates?.check_out || toIsoOrNull(booking.check_out),
+        created_at: booking.unified_order?.dates?.created_at || toIsoOrNull(booking.created_at),
+        updated_at: booking.unified_order?.dates?.updated_at || toIsoOrNull(booking.updated_at),
+      },
+      metadata:
+        booking.unified_order?.metadata && typeof booking.unified_order.metadata === 'object'
+          ? booking.unified_order.metadata
+          : {},
+    }
+  }
+
+  return {
+    id: String(booking?.id || ''),
+    type: normalizeOrderType(booking?.listings?.category_slug),
+    status: String(booking?.status || '').toUpperCase(),
+    total_price: Number(booking?.price_paid ?? booking?.price_thb),
+    currency: String(booking?.currency || 'THB').toUpperCase(),
+    dates: {
+      check_in: toIsoOrNull(booking?.check_in),
+      check_out: toIsoOrNull(booking?.check_out),
+      created_at: toIsoOrNull(booking?.created_at),
+      updated_at: toIsoOrNull(booking?.updated_at),
+    },
+    metadata: booking?.metadata && typeof booking.metadata === 'object' ? booking.metadata : {},
+  }
+}
 
 export default function MyBookings() {
+  const { language } = useI18n()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [typeSwitchLoading, setTypeSwitchLoading] = useState(false)
+  const [activeType, setActiveType] = useState('all')
   const [reviewModalOpen, setReviewModalOpen] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [rating, setRating] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)
   const [comment, setComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [actionBookingId, setActionBookingId] = useState(null)
   const [currentUserId, setCurrentUserId] = useState(null)
   const [reviewPhotoFiles, setReviewPhotoFiles] = useState([])
 
@@ -53,8 +110,7 @@ export default function MyBookings() {
         return
       }
 
-      const completed = data.data.filter((b) => String(b.status || '').toUpperCase() === 'COMPLETED')
-      setBookings(completed)
+      setBookings(data.data)
     } catch (e) {
       console.error('Failed to load bookings:', e)
       setBookings([])
@@ -67,12 +123,105 @@ export default function MyBookings() {
     void loadBookings()
   }, [loadBookings])
 
+  const normalizedBookings = useMemo(
+    () =>
+      bookings.map((booking) => ({
+        ...booking,
+        unified_order: normalizeUnifiedOrder(booking),
+      })),
+    [bookings],
+  )
+
+  const typeCounters = useMemo(() => {
+    const counters = { all: normalizedBookings.length, home: 0, transport: 0, activity: 0 }
+    for (const booking of normalizedBookings) {
+      const type = normalizeOrderType(booking.unified_order?.type)
+      if (counters[type] == null) counters[type] = 0
+      counters[type] += 1
+    }
+    return counters
+  }, [normalizedBookings])
+
+  const visibleBookings = useMemo(() => {
+    if (activeType === 'all') return normalizedBookings
+    return normalizedBookings.filter((booking) => normalizeOrderType(booking.unified_order?.type) === activeType)
+  }, [activeType, normalizedBookings])
+
+  const spendTotals = useMemo(() => {
+    const byCurrency = new Map()
+    for (const booking of visibleBookings) {
+      const u = booking.unified_order || {}
+      const currency = String(u.currency || 'THB').toUpperCase()
+      const total = Number(u.total_price)
+      if (!Number.isFinite(total)) continue
+      byCurrency.set(currency, (byCurrency.get(currency) || 0) + total)
+    }
+    return Array.from(byCurrency.entries())
+  }, [visibleBookings])
+
+  function handleTypeSwitch(type) {
+    if (type === activeType) return
+    setTypeSwitchLoading(true)
+    setActiveType(type)
+    window.setTimeout(() => setTypeSwitchLoading(false), SWITCH_SKELETON_DELAY_MS)
+  }
+
   function openReviewModal(booking) {
     setSelectedBooking(booking)
     setRating(0)
     setComment('')
     setReviewPhotoFiles([])
     setReviewModalOpen(true)
+  }
+
+  async function handleCancelBooking(booking) {
+    const bookingId = booking?.id
+    if (!bookingId) return
+    setActionBookingId(bookingId)
+    try {
+      const res = await fetch(`/api/v2/bookings/${encodeURIComponent(bookingId)}/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ reason: 'Cancelled by renter from my-bookings' }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.success) {
+        toast.error(data.error || 'Не удалось отменить бронирование')
+        return
+      }
+      toast.success('Бронирование отменено')
+      void loadBookings()
+    } catch (error) {
+      console.error('Failed to cancel booking:', error)
+      toast.error('Не удалось отменить бронирование')
+    } finally {
+      setActionBookingId(null)
+    }
+  }
+
+  async function handleCheckInConfirm(booking) {
+    const bookingId = booking?.id
+    if (!bookingId) return
+    setActionBookingId(bookingId)
+    try {
+      const res = await fetch(`/api/v2/bookings/${encodeURIComponent(bookingId)}/check-in/confirm`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.success) {
+        toast.error(data.error || 'Не удалось подтвердить заселение')
+        return
+      }
+      toast.success('Заселение подтверждено')
+      void loadBookings()
+    } catch (error) {
+      console.error('Failed to confirm check-in:', error)
+      toast.error('Не удалось подтвердить заселение')
+    } finally {
+      setActionBookingId(null)
+    }
   }
 
   async function handleReviewSubmit(e) {
@@ -147,8 +296,10 @@ export default function MyBookings() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-teal-600" />
+      <div className="min-h-screen bg-slate-50">
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <OrdersPageSkeleton />
+        </div>
       </div>
     )
   }
@@ -185,16 +336,21 @@ export default function MyBookings() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             На главную
           </Link>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Мои завершённые бронирования</h1>
-          <p className="text-slate-600">Оставьте отзывы о вашем опыте</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Мои заказы</h1>
+          <p className="text-slate-600">Универсальный список бронирований жилья, транспорта и активностей</p>
         </div>
 
-        {bookings.length === 0 ? (
+        <OrdersSummary role="renter" visibleCount={visibleBookings.length} currencyTotals={spendTotals} />
+        <OrderTypeFilter activeType={activeType} counters={typeCounters} onChange={handleTypeSwitch} />
+
+        {typeSwitchLoading ? (
+          <OrdersListSkeleton count={2} />
+        ) : visibleBookings.length === 0 ? (
           <Card>
             <CardContent className="py-16 text-center">
               <Calendar className="h-16 w-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-slate-900 mb-2">Нет завершённых бронирований</h3>
-              <p className="text-slate-600 mb-4">После завершения аренды вы сможете оставить отзыв</p>
+              <h3 className="text-xl font-semibold text-slate-900 mb-2">Нет заказов для выбранного типа</h3>
+              <p className="text-slate-600 mb-4">Выберите другой фильтр или создайте новое бронирование</p>
               <Button asChild className="bg-teal-600 hover:bg-teal-700">
                 <Link href="/">Перейти к поиску</Link>
               </Button>
@@ -202,60 +358,19 @@ export default function MyBookings() {
           </Card>
         ) : (
           <div className="space-y-4">
-            {bookings.map((booking) => {
-              const title = booking.listings?.title || 'Объект'
-              const district = booking.listings?.district
-              const checkIn = booking.check_in
-              const checkOut = booking.check_out
-              const priceThb = booking.price_thb ?? booking.total_amount_thb
-              const isCompleted = String(booking.status || '').toUpperCase() === 'COMPLETED'
-
-              return (
-                <Card key={booking.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-xl mb-2">{title}</CardTitle>
-                        <CardDescription className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            <span>
-                              {checkIn && checkOut
-                                ? `${new Date(checkIn).toLocaleDateString('ru-RU')} — ${new Date(checkOut).toLocaleDateString('ru-RU')}`
-                                : '—'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="h-4 w-4" />
-                            <span>{district ? `${district}, Thailand` : 'Thailand'}</span>
-                          </div>
-                        </CardDescription>
-                      </div>
-                      <Badge className="bg-green-100 text-green-700">Завершено</Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between pt-4 border-t">
-                      <div>
-                        <p className="text-sm text-slate-600 mb-1">Стоимость</p>
-                        <p className="text-2xl font-bold text-slate-900">
-                          {priceThb != null ? formatPrice(priceThb, 'THB') : '—'}
-                        </p>
-                      </div>
-                      {isCompleted ? (
-                        <Button
-                          onClick={() => openReviewModal(booking)}
-                          className="bg-teal-600 hover:bg-teal-700"
-                        >
-                          <Star className="h-4 w-4 mr-2" />
-                          Оставить отзыв
-                        </Button>
-                      ) : null}
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+            {visibleBookings.map((booking) => (
+              <UnifiedOrderCard
+                key={booking.id}
+                booking={booking}
+                unifiedOrder={booking.unified_order}
+                role="renter"
+                language={language}
+                isBusy={actionBookingId === booking.id}
+                onReview={openReviewModal}
+                onCancel={handleCancelBooking}
+                onCheckIn={handleCheckInConfirm}
+              />
+            ))}
           </div>
         )}
 

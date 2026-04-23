@@ -4,10 +4,9 @@
  */
 
 import { NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase';
+import { validateAccess } from '@/lib/api/api-guard';
 export const dynamic = 'force-dynamic';
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function POST(request, { params }) {
   const bookingId = params.id;
@@ -17,24 +16,11 @@ export async function POST(request, { params }) {
   }
   
   try {
-    // Fetch booking
-    const bookingRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${bookingId}&select=*`,
-      {
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-        }
-      }
-    );
-    
-    const bookings = await bookingRes.json();
-    
-    if (!bookings || bookings.length === 0) {
-      return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
-    }
-    
-    const booking = bookings[0];
+    const access = await validateAccess(request, bookingId, ['renter', 'partner', 'staff'], {
+      select: 'id,status,renter_id,partner_id,price_thb,commission_thb,partner_earnings_thb,metadata',
+    });
+    if (!access.ok) return access.response;
+    const { booking, session } = access;
     
     if (booking.status === 'CHECKED_IN') {
       return NextResponse.json({
@@ -54,29 +40,22 @@ export async function POST(request, { params }) {
       }, { status: 400 });
     }
     
-    // Update booking status to CHECKED_IN
-    const updateRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${bookingId}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
+    const checkedInAt = new Date().toISOString();
+    const { error: updateErr } = await supabaseAdmin
+      .from('bookings')
+      .update({
+        status: 'CHECKED_IN',
+        checked_in_at: checkedInAt,
+        metadata: {
+          ...(booking.metadata || {}),
+          checkedInAt,
+          fundsReleasedAt: checkedInAt,
+          checkInConfirmedBy: session.userId,
         },
-        body: JSON.stringify({
-          status: 'CHECKED_IN',
-          metadata: {
-            ...booking.metadata,
-            checkedInAt: new Date().toISOString(),
-            fundsReleasedAt: new Date().toISOString()
-          }
-        })
-      }
-    );
+      })
+      .eq('id', bookingId);
     
-    if (!updateRes.ok) {
+    if (updateErr) {
       throw new Error('Failed to update booking');
     }
     
@@ -101,7 +80,7 @@ export async function POST(request, { params }) {
         status: 'CHECKED_IN',
         fundsReleased: true,
         partnerEarnings,
-        checkedInAt: new Date().toISOString()
+        checkedInAt
       }
     });
     

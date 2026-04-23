@@ -11,6 +11,7 @@ import { verifyTronTransaction, getStatusBadge, GOSTAYLO_WALLET, thbToUsdt } fro
 import { supabaseAdmin } from '@/lib/supabase';
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
 import { PaymentsV3Service } from '@/lib/services/payments-v3.service';
+import { getUserIdFromSession } from '@/lib/services/session-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,11 +32,27 @@ export async function POST(request) {
     
     // If booking ID provided, get the amount from booking
     if (bookingId && !expectedAmount) {
+      const sessionUserId = await getUserIdFromSession();
       const { data: booking } = await supabaseAdmin
         .from('bookings')
-        .select('price_thb, commission_rate')
+        .select('price_thb, commission_rate, renter_id')
         .eq('id', bookingId)
         .single();
+
+      if (booking?.renter_id) {
+        if (!sessionUserId) {
+          return NextResponse.json(
+            { success: false, error: 'Authentication required', status: 'UNAUTHORIZED' },
+            { status: 401 },
+          );
+        }
+        if (String(booking.renter_id) !== String(sessionUserId)) {
+          return NextResponse.json(
+            { success: false, error: 'Access denied', status: 'FORBIDDEN' },
+            { status: 403 },
+          );
+        }
+      }
 
       if (booking?.price_thb) {
         const cr = parseFloat(booking.commission_rate);
@@ -125,11 +142,27 @@ export async function GET(request) {
   let expectedUsdt = expectedAmount ? parseFloat(expectedAmount) : null;
   
   if (bookingId && !expectedUsdt) {
+    const sessionUserId = await getUserIdFromSession();
     const { data: booking } = await supabaseAdmin
       .from('bookings')
-      .select('price_thb, commission_rate')
+      .select('price_thb, commission_rate, renter_id')
       .eq('id', bookingId)
       .single();
+
+    if (booking?.renter_id) {
+      if (!sessionUserId) {
+        return NextResponse.json(
+          { success: false, error: 'Authentication required', status: 'UNAUTHORIZED' },
+          { status: 401 },
+        );
+      }
+      if (String(booking.renter_id) !== String(sessionUserId)) {
+        return NextResponse.json(
+          { success: false, error: 'Access denied', status: 'FORBIDDEN' },
+          { status: 403 },
+        );
+      }
+    }
 
     if (booking?.price_thb) {
       const cr = parseFloat(booking.commission_rate);

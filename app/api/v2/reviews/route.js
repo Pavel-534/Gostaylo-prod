@@ -231,19 +231,18 @@ export async function POST(request) {
 
     const today = listingDateToday();
     const checkOutStr = booking.check_out ? String(booking.check_out).slice(0, 10) : null;
-    const stayEndedByCalendar = checkOutStr && checkOutStr < today;
+    const stayEndedByCalendar = checkOutStr && checkOutStr <= today;
+    const status = String(booking.status || '').toUpperCase();
 
-    const mayReviewCompleted = booking.status === 'COMPLETED';
-    const mayReviewAfterCheckout =
-      stayEndedByCalendar &&
-      ['PAID_ESCROW', 'CHECKED_IN', 'THAWED'].includes(booking.status);
+    const mayReviewByStatus = status === 'COMPLETED' || status === 'FINISHED';
+    const mayReviewByCheckout = !!stayEndedByCalendar;
 
-    if (!mayReviewCompleted && !mayReviewAfterCheckout) {
+    if (!mayReviewByStatus && !mayReviewByCheckout) {
       return NextResponse.json(
         {
           success: false,
           error:
-            'You can leave a review after check-out (stay ended) or when the booking is completed',
+            'You can leave a review after check-out or when the booking is completed',
         },
         { status: 403 },
       );

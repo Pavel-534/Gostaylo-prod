@@ -56,6 +56,8 @@ const productionSmokeProjects =
  * Polyglot UX Bot: `tests/e2e/bots/polyglot-ux.spec.ts` — проект `polyglot-bot` (renter storage).
  * Chat Controller Bot: `tests/e2e/bots/chat-control.spec.ts` — проект `chat-control-bot`.
  * Security Bot: `tests/e2e/security-bot.spec.ts` — проект `security-bot` (без storageState).
+ * Stage 9 API Guard: `tests/e2e/stage9-api-guard.spec.ts` — проект `stage9-api-guard` (depends on setup).
+ * Stage 12 Escrow Regression: `tests/e2e/stage12-escrow-regression.spec.ts` — проект `stage12-escrow-regression`.
  * Speed Bot: `tests/e2e/speed-bot.spec.ts` — проект `speed-bot`.
  *
  * `npx playwright test` — все проекты; RBAC: `--project rbac-*`; чат: `--project chat-mobile-iphone --project chat-mobile-pixel --project chat-stress`
@@ -134,6 +136,26 @@ export default defineConfig({
       testDir: './tests',
       testMatch: '**/example.spec.ts',
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'stage9-api-guard',
+      dependencies: ['setup'],
+      testDir: './tests/e2e',
+      testMatch: '**/stage9-api-guard.spec.ts',
+      timeout: 180_000,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+    {
+      name: 'stage12-escrow-regression',
+      dependencies: ['setup'],
+      testDir: './tests/e2e',
+      testMatch: '**/stage12-escrow-regression.spec.ts',
+      timeout: 180_000,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
     },
     {
       name: 'security-bot',

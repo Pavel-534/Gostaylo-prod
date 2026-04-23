@@ -8,19 +8,16 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { BookingService } from '@/lib/services/booking.service';
 import { NotificationService, NotificationEvents } from '@/lib/services/notification.service';
-import { supabaseAdmin } from '@/lib/supabase';
+import { validateAccess } from '@/lib/api/api-guard';
 
 export async function GET(request, { params }) {
   try {
     const { id } = params;
-    
+    const access = await validateAccess(request, id, ['renter', 'partner', 'staff']);
+    if (!access.ok) return access.response;
     const booking = await BookingService.getBookingById(id);
-    
     if (!booking) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Booking not found' 
-      }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
     }
     
     return NextResponse.json({ success: true, data: booking });
@@ -34,6 +31,9 @@ export async function GET(request, { params }) {
 export async function PUT(request, { params }) {
   try {
     const { id } = params;
+    const access = await validateAccess(request, id, ['staff']);
+    if (!access.ok) return access.response;
+
     const body = await request.json();
     const { status, reason, declineReasonKey, declineReasonDetail } = body;
     

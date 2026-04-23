@@ -32,7 +32,7 @@ export async function GET() {
         guest_name,
         renter_id,
         price_thb,
-        net_amount_thb,
+        partner_earnings_thb,
         created_at,
         listing:listings(id, title, category_id)
       `,
@@ -72,7 +72,7 @@ export async function GET() {
       guestName: b.guest_name,
       renterId: b.renter_id,
       priceThb: b.price_thb,
-      netAmountThb: b.net_amount_thb,
+      netAmountThb: b.partner_earnings_thb,
       createdAt: b.created_at,
       listing: b.listing
         ? {

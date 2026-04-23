@@ -9,16 +9,12 @@
 
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { formatPrice } from '@/lib/currency'
 import { 
-  Calendar, Mail, Phone, User, Check, X, Clock, 
-  Loader2, AlertCircle, ChevronRight, MessageSquare,
-  CalendarDays, Home, DollarSign, Star
+  Calendar, Loader2, AlertCircle
 } from 'lucide-react'
 import {
   Select,
@@ -27,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ProxiedImage } from '@/components/proxied-image'
+import UnifiedOrderCard from '@/components/orders/UnifiedOrderCard'
 import {
   Dialog,
   DialogContent,
@@ -39,61 +35,48 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/auth-context'
 import { usePartnerBookings, useUpdateBookingStatus } from '@/lib/hooks/use-partner-bookings'
-import { differenceInDays, format } from 'date-fns'
-import { ru } from 'date-fns/locale'
 import Link from 'next/link'
-import { useCommission } from '@/hooks/use-commission'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import OrdersSummary from '@/components/orders/OrdersSummary'
+import OrderTypeFilter from '@/components/orders/OrderTypeFilter'
+import { OrdersPageSkeleton } from '@/components/orders/OrdersSkeleton'
 
-// Status configuration (labels via getUIText `chatBookingStatus_*`)
-const STATUS_CONFIG = {
-  PENDING: {
-    color: 'bg-amber-100 text-amber-700 border-amber-200',
-    icon: Clock
-  },
-  AWAITING_PAYMENT: {
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
-    icon: Clock
-  },
-  CONFIRMED: {
-    color: 'bg-green-100 text-green-700 border-green-200',
-    icon: Check
-  },
-  PAID: {
-    color: 'bg-blue-100 text-blue-700 border-blue-200',
-    icon: DollarSign
-  },
-  PAID_ESCROW: {
-    color: 'bg-teal-100 text-teal-800 border-teal-200',
-    icon: DollarSign
-  },
-  CHECKED_IN: {
-    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-    icon: Check
-  },
-  THAWED: {
-    color: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-    icon: DollarSign
-  },
-  CANCELLED: {
-    color: 'bg-red-100 text-red-700 border-red-200',
-    icon: X
-  },
-  COMPLETED: {
-    color: 'bg-slate-100 text-slate-700 border-slate-200',
-    icon: Check
-  },
-  REFUNDED: {
-    color: 'bg-purple-100 text-purple-700 border-purple-200',
-    icon: DollarSign
-  }
+function toIsoOrNull(value) {
+  const d = new Date(value)
+  return Number.isNaN(d.getTime()) ? null : d.toISOString()
 }
 
-function bookingStatusLabel(status, lang) {
-  const key = `chatBookingStatus_${status}`
-  const t = getUIText(key, lang)
-  return t !== key ? t : status
+function inferTypeFromSlug(slug) {
+  const s = String(slug || '').toLowerCase()
+  if (s.includes('vehicle') || s.includes('transport') || s.includes('bike') || s.includes('car')) {
+    return 'transport'
+  }
+  if (s.includes('tour') || s.includes('activity')) return 'activity'
+  return 'home'
+}
+
+function buildPartnerUnifiedOrder(booking) {
+  const listing = booking?.listing || booking?.listings || {}
+  const categorySlug =
+    listing?.category_slug ||
+    listing?.category?.slug ||
+    listing?.metadata?.category_slug ||
+    booking?.metadata?.listing_category_slug
+  return {
+    id: String(booking?.id || ''),
+    type: inferTypeFromSlug(categorySlug),
+    status: String(booking?.status || '').toUpperCase(),
+    total_price: Number(booking?.guestPayableThb ?? booking?.priceThb),
+    currency: 'THB',
+    dates: {
+      check_in: toIsoOrNull(booking?.checkIn || booking?.check_in),
+      check_out: toIsoOrNull(booking?.checkOut || booking?.check_out),
+      created_at: toIsoOrNull(booking?.createdAt || booking?.created_at),
+      updated_at: toIsoOrNull(booking?.updatedAt || booking?.updated_at),
+    },
+    metadata: booking?.metadata && typeof booking.metadata === 'object' ? booking.metadata : {},
+  }
 }
 
 export default function PartnerBookings() {
@@ -102,6 +85,7 @@ export default function PartnerBookings() {
   const deepLinkHandled = useRef(false)
   const { user, loading: authLoading, isAuthenticated } = useAuth()
   const [filter, setFilter] = useState('all')
+  const [activeType, setActiveType] = useState('all')
   const [rejectDialog, setRejectDialog] = useState({ open: false, bookingId: null })
   const [rejectReason, setRejectReason] = useState('')
   const [fallbackPartnerId, setFallbackPartnerId] = useState(null)
@@ -119,7 +103,6 @@ export default function PartnerBookings() {
   }, [user?.id])
 
   const partnerId = user?.id || fallbackPartnerId
-  const commissionHook = useCommission(partnerId || null)
 
   // TanStack Query hook for bookings
   const { 
@@ -138,7 +121,29 @@ export default function PartnerBookings() {
   
   // Extract bookings and meta from query response
   const bookings = data?.bookings || []
-  const totalBookings = data?.total || 0
+  const bookingsWithUnified = useMemo(
+    () =>
+      bookings.map((booking) => ({
+        ...booking,
+        _unified: buildPartnerUnifiedOrder(booking),
+      })),
+    [bookings],
+  )
+
+  const typeCounters = useMemo(() => {
+    const counters = { all: bookingsWithUnified.length, home: 0, transport: 0, activity: 0 }
+    for (const booking of bookingsWithUnified) {
+      const type = booking?._unified?.type || 'home'
+      if (counters[type] == null) counters[type] = 0
+      counters[type] += 1
+    }
+    return counters
+  }, [bookingsWithUnified])
+
+  const visibleBookings = useMemo(() => {
+    if (activeType === 'all') return bookingsWithUnified
+    return bookingsWithUnified.filter((booking) => booking?._unified?.type === activeType)
+  }, [activeType, bookingsWithUnified])
 
   const forcedAllForDeepLink = useRef(false)
   useEffect(() => {
@@ -172,12 +177,12 @@ export default function PartnerBookings() {
 
   // Calculate stats from bookings
   const stats = {
-    total: bookings.length,
-    pending: bookings.filter(b => b.status === 'PENDING').length,
-    confirmed: bookings.filter(b =>
+    total: visibleBookings.length,
+    pending: visibleBookings.filter(b => b.status === 'PENDING').length,
+    confirmed: visibleBookings.filter(b =>
       ['CONFIRMED', 'AWAITING_PAYMENT', 'PAID', 'PAID_ESCROW', 'CHECKED_IN', 'THAWED'].includes(b.status)
     ).length,
-    revenue: bookings
+    revenue: visibleBookings
       .filter(b =>
         ['CONFIRMED', 'AWAITING_PAYMENT', 'PAID', 'PAID_ESCROW', 'CHECKED_IN', 'THAWED', 'COMPLETED'].includes(
           b.status,
@@ -187,7 +192,9 @@ export default function PartnerBookings() {
   }
 
   // Handle confirm booking
-  const handleConfirm = (bookingId) => {
+  const handleConfirm = (bookingOrId) => {
+    const bookingId = typeof bookingOrId === 'string' ? bookingOrId : bookingOrId?.id
+    if (!bookingId) return
     updateStatusMutation.mutate({
       bookingId,
       status: 'CONFIRMED',
@@ -196,7 +203,9 @@ export default function PartnerBookings() {
   }
 
   // Handle reject booking (opens dialog)
-  const handleRejectClick = (bookingId) => {
+  const handleRejectClick = (bookingOrId) => {
+    const bookingId = typeof bookingOrId === 'string' ? bookingOrId : bookingOrId?.id
+    if (!bookingId) return
     setRejectDialog({ open: true, bookingId })
     setRejectReason('')
   }
@@ -219,7 +228,9 @@ export default function PartnerBookings() {
   }
 
   // Handle complete booking
-  const handleComplete = (bookingId) => {
+  const handleComplete = (bookingOrId) => {
+    const bookingId = typeof bookingOrId === 'string' ? bookingOrId : bookingOrId?.id
+    if (!bookingId) return
     updateStatusMutation.mutate({
       bookingId,
       status: 'COMPLETED',
@@ -230,10 +241,9 @@ export default function PartnerBookings() {
   // Loading state
   if (authLoading || isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-teal-600 mx-auto mb-3" />
-          <p className="text-sm text-slate-500">Загрузка бронирований...</p>
+      <div className="max-w-full overflow-x-hidden">
+        <div className="space-y-4">
+          <OrdersPageSkeleton />
         </div>
       </div>
     )
@@ -279,66 +289,8 @@ export default function PartnerBookings() {
         </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-slate-100 rounded-lg">
-                <Calendar className="h-5 w-5 text-slate-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
-                <p className="text-xs text-slate-500">Всего</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-amber-100 rounded-lg">
-                <Clock className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-amber-600">{stats.pending}</p>
-                <p className="text-xs text-slate-500">Ожидают</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Check className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-green-600">{stats.confirmed}</p>
-                <p className="text-xs text-slate-500">Подтверждено</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-teal-100 rounded-lg">
-                <DollarSign className="h-5 w-5 text-teal-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-teal-600">
-                  {formatPrice(stats.revenue, 'THB')}
-                </p>
-                <p className="text-xs text-slate-500">Ваш доход</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <OrdersSummary role="partner" partnerStats={stats} />
+      <OrderTypeFilter activeType={activeType} counters={typeCounters} onChange={setActiveType} />
 
       {/* Filter */}
       <div className="flex items-center gap-4 mb-4">
@@ -358,12 +310,12 @@ export default function PartnerBookings() {
           </SelectContent>
         </Select>
         <span className="text-sm text-slate-500">
-          Показано: {bookings.length}
+          Показано: {visibleBookings.length}
         </span>
       </div>
 
       {/* Bookings List */}
-      {bookings.length === 0 ? (
+      {visibleBookings.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Calendar className="h-12 w-12 text-slate-300 mb-4" />
@@ -379,244 +331,30 @@ export default function PartnerBookings() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {bookings.map((booking) => {
-            const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.PENDING
-            const StatusIcon = statusConfig.icon
-            const statusLabel = bookingStatusLabel(booking.status, language)
-            
-            // Calculate nights
-            const nights = booking.checkIn && booking.checkOut 
-              ? differenceInDays(new Date(booking.checkOut), new Date(booking.checkIn))
-              : 0
-            
-            // Format dates
-            const formatDate = (dateStr) => {
-              if (!dateStr) return 'N/A'
-              try {
-                return format(new Date(dateStr), 'd MMM', { locale: ru })
-              } catch {
-                return dateStr
-              }
-            }
-
-            return (
-              <Card 
-                key={booking.id} 
-                className="overflow-hidden hover:shadow-md transition-shadow"
-                data-testid={`booking-card-${booking.id}`}
-                data-booking-card={booking.id}
-              >
-                <CardContent className="p-0">
-                  {/* Mobile Layout */}
-                  <div className="p-4">
-                    {/* Header Row */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        {/* Listing Image */}
-                        <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
-                          {booking.listing?.images?.[0] || booking.listing?.coverImage ? (
-                            <ProxiedImage
-                              src={booking.listing?.images?.[0] || booking.listing?.coverImage}
-                              alt={booking.listing?.title || ''}
-                              fill
-                              className="object-cover"
-                              sizes="56px"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Home className="h-6 w-6 text-slate-300" />
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-slate-900 text-sm line-clamp-1">
-                            {booking.listing?.title || 'Объект'}
-                          </h3>
-                          <p className="text-xs text-slate-500">
-                            {booking.listing?.district || 'Phuket'}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      {/* Status Badge */}
-                      <Badge className={`${statusConfig.color} border text-xs flex-shrink-0`}>
-                        <StatusIcon className="h-3 w-3 mr-1" />
-                        {statusLabel}
-                      </Badge>
-                    </div>
-                    
-                    {/* Guest Info */}
-                    <div className="bg-slate-50 rounded-lg p-3 mb-3">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <User className="h-4 w-4 text-slate-400" />
-                        <span className="font-medium text-slate-900 text-sm">
-                          {booking.guestName || 'Гость'}
-                        </span>
-                        {booking.guestRatingAverage != null && (
-                          <span className="inline-flex items-center gap-0.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
-                            <Star className="h-3 w-3 fill-amber-400 text-amber-500" />
-                            {Number(booking.guestRatingAverage).toFixed(1)}
-                            {booking.guestReviewCount > 0 && (
-                              <span className="text-amber-600/80">({booking.guestReviewCount})</span>
-                            )}
-                          </span>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
-                        {booking.guestPhone && (
-                          <div className="flex items-center gap-1.5">
-                            <Phone className="h-3 w-3 text-slate-400" />
-                            <span>{booking.guestPhone}</span>
-                          </div>
-                        )}
-                        {booking.guestEmail && (
-                          <div className="flex items-center gap-1.5">
-                            <Mail className="h-3 w-3 text-slate-400" />
-                            <span className="truncate">{booking.guestEmail}</span>
-                          </div>
-                        )}
-                      </div>
-                      {booking.specialRequests && (
-                        <div className="mt-2 pt-2 border-t border-slate-200">
-                          <p className="text-xs text-slate-500 flex items-start gap-1.5">
-                            <MessageSquare className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                            <span className="italic">{booking.specialRequests}</span>
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Dates & Price Row */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2 text-sm">
-                        <CalendarDays className="h-4 w-4 text-teal-600" />
-                        <span className="font-medium text-slate-900">
-                          {formatDate(booking.checkIn)} — {formatDate(booking.checkOut)}
-                        </span>
-                        <span className="text-slate-400">
-                          ({nights} {nights === 1 ? 'ночь' : nights < 5 ? 'ночи' : 'ночей'})
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Financial Info */}
-                    <div className="flex items-center justify-between py-2 border-t border-slate-100">
-                      <div>
-                        <p className="text-lg font-bold text-teal-600">
-                          {formatPrice(booking.partnerEarningsThb || 0, 'THB')}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          Ваш доход (
-                          {(() => {
-                            const cr = Number(booking.commissionRate)
-                            const pct = Number.isFinite(cr)
-                              ? cr
-                              : Number(commissionHook.effectiveRate)
-                            return Number.isFinite(pct) ? `${100 - pct}%` : '—'
-                          })()}
-                          )
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-slate-700">
-                          {formatPrice((booking.guestPayableThb ?? booking.priceThb) || 0, 'THB')}
-                        </p>
-                        <p className="text-xs text-slate-400">
-                          {getUIText('checkout_total', language)}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {booking.conversationId && (
-                        <Button
-                          asChild
-                          variant="outline"
-                          className="flex-1 min-w-[140px] border-teal-200 text-teal-800 hover:bg-teal-50"
-                        >
-                          <Link href={`/messages/${encodeURIComponent(booking.conversationId)}`}>
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            {getUIText('bookingCard_openChat', language)}
-                          </Link>
-                        </Button>
-                      )}
-                      {booking.status === 'PENDING' && (
-                        <>
-                          <Button
-                            onClick={() => handleConfirm(booking.id)}
-                            disabled={updateStatusMutation.isPending}
-                            className="flex-1 bg-green-600 hover:bg-green-700"
-                            data-testid={`confirm-btn-${booking.id}`}
-                          >
-                            {updateStatusMutation.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <>
-                                <Check className="h-4 w-4 mr-2" />
-                                Подтвердить
-                              </>
-                            )}
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => handleRejectClick(booking.id)}
-                            disabled={updateStatusMutation.isPending}
-                            className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
-                            data-testid={`reject-btn-${booking.id}`}
-                          >
-                            <X className="h-4 w-4 mr-2" />
-                            Отклонить
-                          </Button>
-                        </>
-                      )}
-                      
-                      {(booking.status === 'THAWED' ||
-                        booking.status === 'PAID' ||
-                        booking.status === 'CHECKED_IN') && (
-                        <Button
-                          onClick={() => handleComplete(booking.id)}
-                          disabled={updateStatusMutation.isPending}
-                          variant="outline"
-                          className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50"
-                          data-testid={`complete-btn-${booking.id}`}
-                        >
-                          {updateStatusMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Check className="h-4 w-4 mr-2" />
-                              Завершить
-                            </>
-                          )}
-                        </Button>
-                      )}
-                      
-                      {(booking.status === 'COMPLETED' || booking.status === 'CANCELLED') && (
-                        <div className="flex-1 text-center py-2 text-sm text-slate-500">
-                          {booking.status === 'COMPLETED' ? '✓ Завершено' : '✗ Отменено'}
-                        </div>
-                      )}
-
-                      {booking.canSubmitGuestReview && (
-                        <Button
-                          asChild
-                          variant="outline"
-                          className="flex-1 border-amber-200 text-amber-900 hover:bg-amber-50"
-                        >
-                          <Link href={`/partner/bookings/${encodeURIComponent(booking.id)}/guest-review`}>
-                            <Star className="h-4 w-4 mr-2" />
-                            Оценить гостя
-                          </Link>
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
+          {visibleBookings.map((booking) => (
+            <div key={booking.id} data-testid={`booking-card-${booking.id}`}>
+              <UnifiedOrderCard
+                booking={booking}
+                unifiedOrder={booking._unified}
+                role="partner"
+                language={language}
+                cardAnchorId={booking.id}
+                isBusy={updateStatusMutation.isPending}
+                onConfirm={handleConfirm}
+                onDecline={handleRejectClick}
+                onComplete={handleComplete}
+              />
+              {booking.canSubmitGuestReview ? (
+                <div className="mt-2">
+                  <Button asChild variant="outline" className="border-amber-200 text-amber-900 hover:bg-amber-50">
+                    <Link href={`/partner/bookings/${encodeURIComponent(booking.id)}/guest-review`}>
+                      {getUIText('partnerBreadcrumb_reviews', language)}
+                    </Link>
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          ))}
         </div>
       )}
 

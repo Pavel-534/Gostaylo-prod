@@ -15,11 +15,11 @@ After migrating to Search Engine v2 with CalendarService integration, we perform
 
 | Endpoint | Status | Action |
 |----------|--------|--------|
-| `GET /api/v2/listings` | **DEPRECATED** | Marked as deprecated with console warning. Added JSDoc deprecation notice. Use `/api/v2/search` instead. |
+| `GET /api/v2/listings` | **REMOVED** | Legacy list endpoint deleted in Stage 12.0. Use `/api/v2/search` instead. |
 | `POST /api/v2/listings` | **ACTIVE** | Kept - required for creating new listings |
 | `GET /api/v2/search` | **PRIMARY** | New search API with CalendarService integration |
 
-**File Modified:** `/app/app/api/v2/listings/route.js`
+**File Status:** Legacy route removed (`app/api/v2/listings/route.js`)
 
 ### 2. Client Data Library
 
@@ -84,7 +84,7 @@ Search Flow:
 
 - [x] `/listings` page uses `/api/v2/search` exclusively
 - [x] Home page continues to work with `fetchListings` (no date filtering needed)
-- [x] `/api/v2/listings` POST still works for creating listings
+- [x] `GET /api/v2/listings` removed; consumers migrated to `/api/v2/search`
 - [x] No orphaned imports or unused functions
 - [x] All lint checks pass
 
@@ -93,7 +93,7 @@ Search Flow:
 ## Recommendations for Future
 
 1. **Phase out `fetchListings`:** When Home page is redesigned, switch to `/api/v2/search` with default parameters
-2. **Remove GET `/api/v2/listings`:** After verifying no external consumers depend on it
+2. **Done:** GET `/api/v2/listings` removed in Stage 12.0
 3. **Add monitoring:** Track usage of deprecated endpoints to measure migration progress
 
 ---

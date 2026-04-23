@@ -16,6 +16,8 @@ import { getJwtSecret } from '@/lib/auth/jwt-secret';
 export const dynamic = 'force-dynamic';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
+const PASSWORD_MIN_LENGTH = 8;
+const PASSWORD_COMPLEXITY_RE = /^(?=.*[A-Za-z])(?=.*\d).+$/;
 
 function generateVerificationToken(userId, email, jwtSecret) {
   return jwt.sign(
@@ -178,8 +180,18 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Email is required' }, { status: 400 });
   }
   
-  if (!password || password.length < 6) {
-    return NextResponse.json({ success: false, error: 'Password must be at least 6 characters' }, { status: 400 });
+  if (!password || password.length < PASSWORD_MIN_LENGTH) {
+    return NextResponse.json(
+      { success: false, error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters` },
+      { status: 400 },
+    );
+  }
+
+  if (!PASSWORD_COMPLEXITY_RE.test(password)) {
+    return NextResponse.json(
+      { success: false, error: 'Password must include at least one letter and one number' },
+      { status: 400 },
+    );
   }
   
   const normalizedEmail = email.toLowerCase().trim();

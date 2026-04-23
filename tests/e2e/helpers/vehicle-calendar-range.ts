@@ -14,10 +14,10 @@ export async function pickVehicleNDayRange(
   baseURL: string,
   spanDays: number,
 ): Promise<{ listingId: string; checkIn: string; checkOut: string } | null> {
-  const listingsRes = await request.get(`${baseURL}/api/v2/listings?category=vehicles&limit=20`)
+  const listingsRes = await request.get(`${baseURL}/api/v2/search?category=vehicles&limit=20`)
   if (!listingsRes.ok()) return null
-  const j = (await listingsRes.json()) as { data?: Array<{ id?: string }> }
-  const rows = (j?.data || []).filter((x) => x?.id)
+  const j = (await listingsRes.json()) as { data?: { listings?: Array<{ id?: string }> } }
+  const rows = (j?.data?.listings || []).filter((x) => x?.id)
   for (const row of rows) {
     const id = String(row.id)
     const calRes = await request.get(`${baseURL}/api/v2/listings/${id}/calendar?days=180`)

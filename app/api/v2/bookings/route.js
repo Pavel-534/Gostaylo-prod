@@ -16,29 +16,30 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { rateLimitCheck } from '@/lib/rate-limit';
 import { createBookingSchema } from '@/lib/validations/booking';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
+import { resolveBookingListScope } from '@/lib/api/api-guard';
+import { toUnifiedOrder } from '@/lib/models/unified-order';
 
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
+    const scope = await resolveBookingListScope(searchParams);
+    if (!scope.ok) return scope.response;
     
-    const filters = {
-      renterId: searchParams.get('renterId'),
-      partnerId: searchParams.get('partnerId'),
-      listingId: searchParams.get('listingId'),
-      status: searchParams.get('status'),
-      limit: parseInt(searchParams.get('limit')) || 50
-    };
-    
-    const result = await BookingService.getBookings(filters);
+    const result = await BookingService.getBookings(scope.filters);
     
     if (result.error) {
       return NextResponse.json({ success: false, error: result.error }, { status: 500 });
     }
     
+    const unifiedBookings = result.bookings.map((booking) => ({
+      ...booking,
+      unified_order: toUnifiedOrder(booking),
+    }));
+
     return NextResponse.json({ 
       success: true, 
-      data: result.bookings,
-      count: result.bookings.length
+      data: unifiedBookings,
+      count: unifiedBookings.length
     });
     
   } catch (error) {

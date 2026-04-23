@@ -75,11 +75,13 @@ test.describe('@seo-spy-bot', () => {
     test.skip(!baseURL, 'baseURL')
 
     const listRes = await request.get(
-      `${baseURL}/api/v2/listings?status=ACTIVE&limit=72`,
+      `${baseURL}/api/v2/search?status=ACTIVE&limit=72`,
     )
     expect(listRes.ok(), 'listings API').toBeTruthy()
-    const listJson = (await listRes.json()) as { data?: Array<{ id?: string; basePriceThb?: number }> }
-    const rows = (listJson?.data || []).filter(
+    const listJson = (await listRes.json()) as {
+      data?: { listings?: Array<{ id?: string; basePriceThb?: number }> }
+    }
+    const rows = (listJson?.data?.listings || []).filter(
       (x) => x?.id && String((x as { coverImage?: string }).coverImage || '').trim(),
     )
     test.skip(rows.length < 3, 'Недостаточно ACTIVE листингов с обложкой (og:image) для выборки')

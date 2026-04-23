@@ -1,7 +1,33 @@
 import { NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const DB_SEED_ROUTE_SECRET = String(process.env.DB_SEED_ROUTE_SECRET || '').trim();
+
+function assertSeedAccess(request) {
+  if (!DB_SEED_ROUTE_SECRET) {
+    return {
+      ok: false,
+      status: 503,
+      error: 'DB seed route disabled: DB_SEED_ROUTE_SECRET is not configured',
+    };
+  }
+  const headerSecret = request.headers.get('x-seed-secret') || '';
+  const bearer = request.headers.get('authorization') || '';
+  const bearerSecret = bearer.toLowerCase().startsWith('bearer ') ? bearer.slice(7).trim() : '';
+  const candidate = String(headerSecret || bearerSecret);
+  try {
+    const a = Buffer.from(DB_SEED_ROUTE_SECRET, 'utf8');
+    const b = Buffer.from(candidate, 'utf8');
+    if (a.length !== b.length || !timingSafeEqual(a, b)) {
+      return { ok: false, status: 401, error: 'Unauthorized' };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, status: 401, error: 'Unauthorized' };
+  }
+}
 
 async function insertIfNotExists(table, data, uniqueField = 'id') {
   // Check if exists
@@ -43,7 +69,12 @@ async function insertIfNotExists(table, data, uniqueField = 'id') {
   }
 }
 
-export async function POST() {
+export async function POST(request) {
+  const access = assertSeedAccess(request);
+  if (!access.ok) {
+    return NextResponse.json({ success: false, error: access.error }, { status: access.status });
+  }
+
   const results = {
     categories: [],
     exchange_rates: [],
@@ -162,7 +193,12 @@ export async function POST() {
   });
 }
 
-export async function GET() {
+export async function GET(request) {
+  const access = assertSeedAccess(request);
+  if (!access.ok) {
+    return NextResponse.json({ success: false, error: access.error }, { status: access.status });
+  }
+
   // Return current data counts
   const tables = ['profiles', 'categories', 'listings', 'bookings', 'promo_codes', 'exchange_rates', 'system_settings', 'payout_methods', 'partner_payout_profiles'];
   const counts = {};

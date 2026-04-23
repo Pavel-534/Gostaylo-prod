@@ -34,11 +34,11 @@ test.describe('@production-smoke', () => {
       return
     }
     const lr = await request.get(
-      `${baseURL}/api/v2/listings?category=${E2E_STRINGS.bikeCategory}&limit=30&status=ACTIVE`,
+      `${baseURL}/api/v2/search?category=${E2E_STRINGS.bikeCategory}&limit=30&status=ACTIVE`,
     )
     expect(lr.ok()).toBeTruthy()
     const lj = await lr.json()
-    const data = (lj?.data || []) as Array<{ id: string; title?: string }>
+    const data = (lj?.data?.listings || []) as Array<{ id: string; title?: string }>
     const bike =
       data.find((x) => E2E_STRINGS.bikeTitleRegex.test(String(x.title || ''))) || data[0]
     test.skip(!bike?.id, 'Нет активного vehicle в каталоге')
