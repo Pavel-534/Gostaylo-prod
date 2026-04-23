@@ -29,6 +29,7 @@ import {
   Activity,
   Scale,
   BadgeCheck,
+  Gavel,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -190,6 +191,7 @@ export default function AdminLayout({ children }) {
     { href: '/admin/moderation', icon: Shield, label: 'Модерация', moderatorAccess: true },
     { href: '/admin/partners', icon: UserCog, label: 'Заявки партнёров', moderatorAccess: false },
     { href: '/admin/messages/', icon: MessageSquare, label: 'Сообщения', moderatorAccess: true },
+    { href: '/admin/disputes', icon: Gavel, label: 'Споры', moderatorAccess: true },
     { href: '/admin/finances', icon: Wallet, label: 'Финансы', moderatorAccess: false },
     { href: '/admin/financial-health', icon: Scale, label: 'Ledger / здоровье', moderatorAccess: false },
     { href: '/admin/payout-methods', icon: Landmark, label: 'Способы выплат', moderatorAccess: false },

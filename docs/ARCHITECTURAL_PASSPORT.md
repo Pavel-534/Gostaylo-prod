@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 5.8.0 | **Last Updated**: 2026-04-23 | **Status**: Production-Ready
+> **Version**: 6.1.0 | **Last Updated**: 2026-04-23 | **Status**: Production-Ready
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -178,6 +178,30 @@
 - **UI shared blocks (Stage 11.2):** `components/orders/OrderTypeFilter.jsx`, `components/orders/OrdersSummary.jsx`, `components/orders/OrdersSkeleton.jsx` используются в renter и partner кабинетах, устраняя дублирование type-filter/summary/skeleton.
 - **Review sync:** правило review в UI и API унифицировано: доступ после `check_out` (calendar reached) или при статусах `COMPLETED`/`FINISHED`.
 - **Legacy cleanup:** удалён `app/api/v2/listings/route.js` (`GET` legacy list endpoint), потребители списка переведены на `GET /api/v2/search`.
+
+### 0.11 Stage 13.0 — Order Timeline & Smart Lifecycle
+- **Single source of truth for lifecycle:** добавлен `lib/orders/order-timeline.js` с общими правилами `buildOrderTimelineModel`, `shouldAllowReviewByLifecycle`, `shouldAllowCheckInToday`, `normalizeOrderType`. Этот модуль используют и чат, и карточки бронирований.
+- **Order timeline component:** `components/orders/OrderTimeline.jsx` отображает этапы `Created -> Paid -> In progress -> Completed -> Reviewed` и подсвечивает активный шаг по `unified_order.status`. Для транспорта шаг in-progress отображается как pickup.
+- **Chat/header sync:** `components/booking-chat-timeline.jsx` переведён на тот же lifecycle engine (`mode: 'chat'`), чтобы логика прогресса не расходилась между чатом и кабинетами.
+- **Smart contextual actions in order card:** `components/orders/UnifiedOrderCard.jsx` показывает `Confirm check-in` только в день заезда (`PAID_ESCROW + check_in == today`), review — по общему lifecycle-правилу, добавлена кнопка `Repeat booking` для завершённых заказов.
+- **Escrow transparency UX:** в `UnifiedOrderCard` добавлены role-aware плашки: для гостя — «оплачено и защищено эскроу», для партнёра — статус эскроу и дата выплаты (`check_out + 24h`), плюс отдельная плашка после разморозки.
+- **i18n additions:** в `lib/translations/ui.js` добавлены ключи `orderTimeline_*`, `orderEscrow_*`, `orderAction_repeatBooking` для RU/EN/ZH/TH.
+
+### 0.12 Stage 14.0 — Unified Dispute & Moderation Engine
+- **Existing support flow (audit baseline):** продакшен-эскалация помощи в чате идёт через `POST /api/v2/chat/escalate` (`conversations.is_priority` + structured `messages.metadata.support_ticket`), уведомления staff: FCM (`PushService.notifyStaffSupportEscalation`) + Telegram support topic; staff-join в тред — `POST /api/v2/chat/support/join` (`system_key=support_joined`).
+- **Unified dispute model:** добавлены `database/migrations/038_disputes_unified_engine.sql` и таблицы `public.disputes` (обязательная привязка `booking_id`) + `public.dispute_penalties` (подготовка для санкций). Статусы кейса: `OPEN/IN_REVIEW/RESOLVED/REJECTED/CLOSED`.
+- **Unified dispute API:** `POST /api/v2/disputes/create` создаёт официальный спор по брони, ставит `freeze_payment=true`, поднимает priority в разговоре, пишет system milestone (`system_key=dispute_opened`) и возвращает созданный кейс/флаг дубликата.
+- **Admin levers groundwork:** `POST /api/v2/admin/disputes/[id]/action` (ADMIN/MODERATOR) поддерживает команды `freeze_payment`, `force_refund`, `add_penalty` (запись в `dispute_penalties` + flags в `disputes.admin_action_flags`).
+- **Escrow safety coupling:** `EscrowService.processDueEscrowThaws` исключает `PAID_ESCROW` брони с активным dispute-флагом `freeze_payment=true`, предотвращая авто-разморозку до решения спора.
+- **Two-level anti-spam support protection:**  
+  1) **Level 1 (self-help first):** в `UnifiedOrderCard` кнопка «Помощь» всегда сначала ведёт к базе знаний (`/help/escrow-protection`) и чату по заказу.  
+  2) **Level 2 (official dispute gate):** кнопка «Открыть официальный спор» появляется только по lifecycle-условиям (`lib/disputes/dispute-eligibility.js`) и дублируется серверной валидацией + cooldown + ограничением `1 active dispute per booking`.
+
+### 0.13 Stage 14.1 — Admin Dispute Center & Resolution Console
+- **UI:** `app/admin/disputes/page.js` — единый стол споров с фильтрами **все / открытые (OPEN+IN_REVIEW) / заморозка (freeze_payment при активном кейсе) / закрытые (RESOLVED+CLOSED+REJECTED)**; скелетон загрузки; строка кликабельна.
+- **Панель решения:** `Sheet` справа: **`UnifiedOrderCard`** с `role="admin"` (карточка + блок гость/партнёр), компактная лента чата **`components/admin/AdminDisputeChatPeek.jsx`** (чтение через **`GET /api/v2/chat/messages?conversationId=`**), поле **вердикта**, выбор **виновной стороны** (рентер / партнёр / нет) и кнопки рычагов.
+- **API:** **`GET /api/v2/admin/disputes`** (список с embed `bookings` + `listing` + opener), **`GET /api/v2/admin/disputes/[id]`** (детальный кейс + `unified_order`); расширение **`POST /api/v2/admin/disputes/[id]/action`**: добавлено **`close_dispute`** (статус **CLOSED**, `freeze_payment=false`, `resolved_at`, `closed_by`, метаданные вердикта); при выбранной виновной стороне — запись в **`dispute_penalties`** (тот же контур, что **`add_penalty`**). Ответы **`freeze_payment` / `force_refund` / `add_penalty`** возвращают снимок **`dispute`** для мгновенного обновления таблицы на клиенте.
+- **Навигация:** пункт **«Споры»** в **`app/admin/layout.js`** (`moderatorAccess: true`).
 
 ### 0.1 CRITICAL: Telegram Webhook
 ```

@@ -11,7 +11,7 @@ import {
   formatPrivacyDisplayName,
   formatReviewerInitial,
 } from '@/lib/utils/name-formatter';
-import { listingDateToday } from '@/lib/listing-date';
+import { shouldAllowReviewByLifecycle } from '@/lib/orders/order-timeline';
 
 export const dynamic = 'force-dynamic';
 
@@ -229,15 +229,9 @@ export async function POST(request) {
       }, { status: 404 });
     }
 
-    const today = listingDateToday();
-    const checkOutStr = booking.check_out ? String(booking.check_out).slice(0, 10) : null;
-    const stayEndedByCalendar = checkOutStr && checkOutStr <= today;
     const status = String(booking.status || '').toUpperCase();
 
-    const mayReviewByStatus = status === 'COMPLETED' || status === 'FINISHED';
-    const mayReviewByCheckout = !!stayEndedByCalendar;
-
-    if (!mayReviewByStatus && !mayReviewByCheckout) {
+    if (!shouldAllowReviewByLifecycle(status, booking.check_out)) {
       return NextResponse.json(
         {
           success: false,

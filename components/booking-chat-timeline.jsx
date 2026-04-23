@@ -3,36 +3,7 @@
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
-
-const STEP_KEYS = [
-  'chatBookingStep_request',
-  'chatBookingStep_confirmed',
-  'chatBookingStep_paid',
-  'chatBookingStep_completed',
-]
-
-function stepStates(status) {
-  const s = String(status || '').toUpperCase()
-  if (s === 'COMPLETED') {
-    return STEP_KEYS.map(() => ({ done: true, current: false }))
-  }
-  if (s === 'PAID' || s === 'PAID_ESCROW') {
-    return STEP_KEYS.map((_, i) => ({
-      done: i < 2,
-      current: i === 2,
-    }))
-  }
-  if (s === 'CONFIRMED') {
-    return STEP_KEYS.map((_, i) => ({
-      done: i < 1,
-      current: i === 1,
-    }))
-  }
-  return STEP_KEYS.map((_, i) => ({
-    done: false,
-    current: i === 0,
-  }))
-}
+import { buildOrderTimelineModel, normalizeOrderType } from '@/lib/orders/order-timeline'
 
 /**
  * Горизонтальный прогресс брони для шапки чата (компактно на мобилках).
@@ -56,7 +27,19 @@ export function BookingChatTimeline({ booking, language = 'ru', variant = 'defau
     )
   }
 
-  const states = stepStates(st)
+  const type = normalizeOrderType(
+    booking?.unified_order?.type ||
+      booking?.listing?.category_slug ||
+      booking?.listings?.category_slug ||
+      booking?.metadata?.listing_category_slug,
+  )
+  const steps = buildOrderTimelineModel({
+    status: st,
+    type,
+    mode: 'chat',
+    reviewed: false,
+    checkOutIso: booking?.check_out || booking?.checkOut || null,
+  })
   const title = getUIText('chatBookingTimelineTitle', language)
   const slim = variant === 'slim'
 
@@ -73,14 +56,14 @@ export function BookingChatTimeline({ booking, language = 'ru', variant = 'defau
         </p>
       ) : null}
       <div className="flex w-full max-w-none items-start justify-between gap-0.5 md:justify-start md:gap-1">
-        {STEP_KEYS.map((stepKey, idx) => {
-          const { done, current } = states[idx]
-          const label = getUIText(stepKey, language)
-          const showLine = idx < STEP_KEYS.length - 1
-          const lineGreen = states[idx].done
+        {steps.map((step, idx) => {
+          const { done, current } = step
+          const label = getUIText(step.labelKey, language)
+          const showLine = idx < steps.length - 1
+          const lineGreen = steps[idx].done
 
           return (
-            <div key={stepKey} className="flex min-w-0 flex-1">
+            <div key={step.id} className="flex min-w-0 flex-1">
               <div className="flex min-w-0 flex-1 flex-col items-center">
                 <div
                   className={cn(

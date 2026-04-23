@@ -153,6 +153,14 @@ const MILESTONE_CFG = {
     textColor: 'text-slate-700',
     label: { ru: 'Статус обновлён', en: 'Status updated' },
   },
+  dispute_opened: {
+    icon: Bell,
+    bg: 'bg-amber-50',
+    border: 'border-amber-200',
+    iconColor: 'text-amber-700',
+    textColor: 'text-amber-900',
+    label: { ru: 'Официальный спор открыт', en: 'Official dispute opened' },
+  },
   capacity_price_inquiry: {
     icon: Bell,
     bg: 'bg-white',
