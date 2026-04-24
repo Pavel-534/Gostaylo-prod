@@ -22,6 +22,7 @@ CREATE TYPE payout_method AS ENUM ('PROMPTPAY', 'USDT');
 CREATE TYPE payout_status AS ENUM ('PENDING', 'PROCESSING', 'COMPLETED', 'REJECTED');
 CREATE TYPE season_type AS ENUM ('LOW', 'NORMAL', 'HIGH', 'PEAK');
 CREATE TYPE promo_type AS ENUM ('PERCENTAGE', 'FIXED');
+CREATE TYPE promo_created_by_type AS ENUM ('PLATFORM', 'PARTNER');
 CREATE TYPE blacklist_type AS ENUM ('WALLET', 'PHONE', 'EMAIL', 'IP');
 
 -- ============================================================================
@@ -242,11 +243,14 @@ CREATE TABLE promo_codes (
   valid_from TIMESTAMPTZ,
   valid_until TIMESTAMPTZ,
   is_active BOOLEAN DEFAULT TRUE,
+  created_by_type promo_created_by_type NOT NULL DEFAULT 'PLATFORM',
+  partner_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_promo_code ON promo_codes(code);
 CREATE INDEX idx_promo_active ON promo_codes(is_active);
+CREATE INDEX idx_promo_codes_partner_id ON promo_codes(partner_id);
 
 -- 10. BLACKLIST
 CREATE TABLE blacklist (

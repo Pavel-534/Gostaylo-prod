@@ -39,7 +39,8 @@ import {
   LogIn,
   Bell,
   ArrowLeft,
-  ExternalLink
+  ExternalLink,
+  Tag
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -50,6 +51,7 @@ import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib
 const SIDEBAR_CONFIG = [
   { nameKey: 'partnerNav_dashboard', href: '/partner/dashboard', icon: LayoutDashboard, descKey: 'partnerNav_dashboardDesc' },
   { nameKey: 'partnerNav_listings', href: '/partner/listings', icon: Briefcase, descKey: 'partnerNav_listingsDesc' },
+  { nameKey: 'partnerNav_promo', href: '/partner/promo', icon: Tag, descKey: 'partnerNav_promoDesc' },
   { nameKey: 'partnerNav_calendar', href: '/partner/calendar', icon: Calendar, descKey: 'partnerNav_calendarDesc' },
   { nameKey: 'partnerNav_bookings', href: '/partner/bookings', icon: Inbox, descKey: 'partnerNav_bookingsDesc' },
   { nameKey: 'partnerNav_messages', href: '/messages', icon: MessageSquare, descKey: 'partnerNav_messagesDesc', badge: null },

@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { resolveAdminSecurityProfile } from '@/lib/admin-security-access'
+import { attachPartnerTrustToBookings } from '@/lib/booking/attach-partner-trust-to-bookings'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,5 +35,6 @@ export async function GET(_request, { params }) {
     return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 })
   }
 
-  return NextResponse.json({ success: true, data: { booking } })
+  const [withTrust] = await attachPartnerTrustToBookings([booking])
+  return NextResponse.json({ success: true, data: { booking: withTrust } })
 }

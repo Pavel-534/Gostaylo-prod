@@ -59,10 +59,31 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
 
       const b = bookingData.data
       const l = b.listings
+      const categorySlug = String(
+        l?.category_slug ||
+          (l?.categories && !Array.isArray(l.categories) ? l.categories.slug : '') ||
+          (Array.isArray(l?.categories) ? l.categories[0]?.slug : '') ||
+          '',
+      ).toLowerCase()
+      const listingMeta =
+        l?.metadata && typeof l.metadata === 'object' && !Array.isArray(l.metadata) ? l.metadata : {}
+
+      const listingsForCheckout = l
+        ? {
+            id: l.id,
+            title: l.title,
+            district: l.district,
+            images: l.images,
+            cover_image: l.cover_image,
+            category_slug: categorySlug,
+            metadata: listingMeta,
+          }
+        : null
 
       setBooking({
         id: b.id,
         renter_id: b.renter_id,
+        listing_id: b.listing_id,
         status: b.status,
         checkIn: b.check_in,
         checkOut: b.check_out,
@@ -80,6 +101,7 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
         roundingDiffPot: parseFloat(b.rounding_diff_pot) || 0,
         taxableMarginAmount: parseFloat(b.taxable_margin_amount) || 0,
         pricing_snapshot: b.pricing_snapshot ?? null,
+        listings: listingsForCheckout,
       })
 
       if (l) {
@@ -89,6 +111,8 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
           district: l.district,
           coverImage: l.cover_image || l.images?.[0],
           basePriceThb: parseFloat(l.base_price_thb),
+          category_slug: categorySlug,
+          metadata: listingMeta,
         })
       }
 

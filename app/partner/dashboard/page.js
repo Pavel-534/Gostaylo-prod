@@ -23,7 +23,7 @@ import { ru } from 'date-fns/locale'
 import { useQueryClient } from '@tanstack/react-query'
 import { 
   TrendingUp, TrendingDown, Calendar, DollarSign, Users, 
-  Home, Clock, Check, X, ArrowRight, Plus, Lock, Download,
+  Home, Clock, Check, X, ArrowRight, Plus, Lock, Download, Tag,
   Loader2, AlertCircle, ChevronRight, UserCheck, UserMinus,
   CalendarDays, BarChart3, RefreshCw, Bell, Banknote
 } from 'lucide-react'
@@ -411,6 +411,12 @@ export default function PartnerDashboard() {
             <Link href="/partner/calendar">
               <Lock className="h-4 w-4 mr-2" />
               Блокировать даты
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/partner/promo">
+              <Tag className="h-4 w-4 mr-2" />
+              {getUIText('partnerNav_promo', language)}
             </Link>
           </Button>
           <Button 

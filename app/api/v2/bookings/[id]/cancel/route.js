@@ -13,6 +13,7 @@ import { NotificationService, NotificationEvents } from '@/lib/services/notifica
 import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-sync';
 import { computeRefundEstimateForBooking } from '@/lib/services/booking-refund-calculator.service';
 import { BookingService } from '@/lib/services/booking.service';
+import { revertPromoUsageAfterFullRefundCancel } from '@/lib/promo/revert-promo-usage-on-cancel.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -148,6 +149,20 @@ export async function POST(request, context) {
 
     if (upErr || !updated) {
       return NextResponse.json({ success: false, error: upErr?.message || 'update_failed' }, { status: 500 });
+    }
+
+    if (LEDGER_REFUND_STATUSES.has(bookingBefore.status) && estimate.ok) {
+      try {
+        await revertPromoUsageAfterFullRefundCancel({
+          bookingId,
+          previousStatus: bookingBefore.status,
+          refundGuestThb: estimate.refundGuestThb,
+          guestTotalThb: estimate.guestTotalThb,
+          bookingBefore,
+        });
+      } catch (e) {
+        console.warn('[cancel] promo usage revert', e?.message);
+      }
     }
 
     try {

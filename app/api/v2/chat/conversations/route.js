@@ -14,6 +14,7 @@ import { getPublicSiteUrl } from '@/lib/site-url.js'
 import { PushService } from '@/lib/services/push.service.js'
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 import { isMarkedE2eTestData } from '@/lib/e2e/test-data-tag'
+import { attachPartnerTrustToBookings } from '@/lib/booking/attach-partner-trust-to-bookings'
 
 export const dynamic = 'force-dynamic'
 
@@ -149,12 +150,16 @@ async function enrichConversationRows(rows, viewerUserId) {
   if (bookingIds.length) {
     const inB = bookingIds.map((id) => encodeURIComponent(id)).join(',')
     const br = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=in.(${inB})&select=id,check_in,check_out,status,guest_name,price_thb,currency,guests_count`,
+      `${SUPABASE_URL}/rest/v1/bookings?id=in.(${inB})&select=id,check_in,check_out,status,guest_name,price_thb,currency,guests_count,partner_id`,
       { headers: hdr, cache: 'no-store' }
     )
     const bl = await br.json()
     if (Array.isArray(bl)) {
       for (const b of bl) bookingsById[b.id] = b
+    }
+    const enrichedBookings = await attachPartnerTrustToBookings(Object.values(bookingsById))
+    for (const b of enrichedBookings) {
+      bookingsById[b.id] = b
     }
   }
 

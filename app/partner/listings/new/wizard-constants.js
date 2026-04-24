@@ -44,6 +44,12 @@ export function getDefaultWizardFormData() {
       group_size_max: 10,
       /** IANA TZ for quiet hours / SLA (Stage 21.0); saved in listings.metadata */
       timezone: 'Asia/Bangkok',
+      /** Stage 30.0 — копируется в booking.metadata при создании брони */
+      check_in_instructions: '',
+      /** Stage 31.0 — до 3 URL, копируются в booking.metadata как `check_in_photos` */
+      check_in_photos: [],
+      /** Stage 30.0 — `full_to_full` скрывает подсказку «топливо не включено» в чеке */
+      fuel_policy: '',
     },
     seasonalPricing: [],
     cancellationPolicy: 'moderate',

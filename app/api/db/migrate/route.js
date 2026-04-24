@@ -58,6 +58,10 @@ const migrations = [
   EXCEPTION WHEN duplicate_object THEN null; END $$;
   
   DO $$ BEGIN
+    CREATE TYPE promo_created_by_type AS ENUM ('PLATFORM', 'PARTNER');
+  EXCEPTION WHEN duplicate_object THEN null; END $$;
+  
+  DO $$ BEGIN
     CREATE TYPE blacklist_type AS ENUM ('WALLET', 'PHONE', 'EMAIL', 'IP');
   EXCEPTION WHEN duplicate_object THEN null; END $$;
   `,
@@ -292,11 +296,14 @@ const migrations = [
     valid_from TIMESTAMPTZ,
     valid_until TIMESTAMPTZ,
     is_active BOOLEAN DEFAULT TRUE,
+    created_by_type promo_created_by_type NOT NULL DEFAULT 'PLATFORM',
+    partner_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
   );
   
   CREATE INDEX IF NOT EXISTS idx_promo_code ON promo_codes(code);
   CREATE INDEX IF NOT EXISTS idx_promo_active ON promo_codes(is_active);
+  CREATE INDEX IF NOT EXISTS idx_promo_codes_partner_id ON promo_codes(partner_id);
   
   CREATE TABLE IF NOT EXISTS blacklist (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -442,7 +449,18 @@ const migrations = [
   
   DROP TRIGGER IF EXISTS trigger_seasonal_updated_at ON seasonal_prices;
   CREATE TRIGGER trigger_seasonal_updated_at BEFORE UPDATE ON seasonal_prices FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+  `,
+
+  // 10. Stage 31.0 — promo owner scope + partner_id (идемпотентно для уже созданных БД)
   `
+  DO $$ BEGIN
+    CREATE TYPE promo_created_by_type AS ENUM ('PLATFORM', 'PARTNER');
+  EXCEPTION WHEN duplicate_object THEN null; END $$;
+  
+  ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS created_by_type promo_created_by_type NOT NULL DEFAULT 'PLATFORM';
+  ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS partner_id UUID REFERENCES profiles(id) ON DELETE SET NULL;
+  CREATE INDEX IF NOT EXISTS idx_promo_codes_partner_id ON promo_codes(partner_id);
+  `,
 ];
 
 async function executeSql(sql) {

@@ -179,6 +179,16 @@ export default function UnifiedOrderCard({
     const s = obj.check_in_instructions
     return typeof s === 'string' ? s.trim() : ''
   }, [booking?.metadata])
+  const checkInPhotoUrls = useMemo(() => {
+    const m = booking?.metadata
+    const obj = m && typeof m === 'object' && !Array.isArray(m) ? m : {}
+    const raw = obj.check_in_photos
+    if (!Array.isArray(raw)) return []
+    return raw
+      .map((u) => (typeof u === 'string' ? u.trim() : ''))
+      .filter((u) => /^https?:\/\//i.test(u))
+      .slice(0, 3)
+  }, [booking?.metadata])
   const emergencyServiceKind = useMemo(() => {
     const api = emergencyCtx?.emergencyServiceKind
     if (api === 'transport' || api === 'service' || api === 'tour' || api === 'stay') return api
@@ -500,7 +510,7 @@ export default function UnifiedOrderCard({
           role={normalizedRole === 'partner' ? 'partner' : 'renter'}
         />
 
-        {normalizedRole === 'renter' && checkInInstructionsText ? (
+        {normalizedRole === 'renter' && (checkInInstructionsText || checkInPhotoUrls.length > 0) ? (
           <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-3 space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 flex items-center gap-2">
               {pickupServiceKind === 'transport' ? (
@@ -510,7 +520,27 @@ export default function UnifiedOrderCard({
               )}
               {getUIText('orderCheckInInstructions_title', language)}
             </p>
-            <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{checkInInstructionsText}</p>
+            {checkInInstructionsText ? (
+              <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{checkInInstructionsText}</p>
+            ) : null}
+            {checkInPhotoUrls.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-[11px] font-medium text-slate-600">{getUIText('orderCheckInPhotos_caption', language)}</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {checkInPhotoUrls.map((url) => (
+                    <a
+                      key={url}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="relative aspect-[4/3] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-teal-500"
+                    >
+                      <ProxiedImage src={url} alt="" fill className="object-cover" sizes="120px" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
 

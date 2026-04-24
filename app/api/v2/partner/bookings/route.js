@@ -14,6 +14,7 @@ import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/sessio
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { getGuestPayableRoundedThb } from '@/lib/booking-guest-total.js'
+import { attachPartnerTrustToBookings } from '@/lib/booking/attach-partner-trust-to-bookings'
 
 export const dynamic = 'force-dynamic'
 
@@ -144,6 +145,7 @@ export async function GET(request) {
       let transformed = filtered.map((b) => transformBooking(b, dc))
       transformed = await enrichPartnerBookingsWithGuestStats(supabaseAdmin, userId, transformed)
       transformed = await enrichPartnerBookingsWithConversationIds(supabaseAdmin, transformed)
+      transformed = await attachPartnerTrustToBookings(transformed)
 
       return NextResponse.json({
         status: 'success',
@@ -169,7 +171,10 @@ export async function GET(request) {
           images,
           cover_image,
           base_price_thb,
-          commission_rate
+          commission_rate,
+          metadata,
+          category_id,
+          categories ( slug )
         ),
         renter:profiles!renter_id (
           id,
@@ -205,6 +210,7 @@ export async function GET(request) {
     let transformed = (bookings || []).map((b) => transformBooking(b, dc))
     transformed = await enrichPartnerBookingsWithGuestStats(supabaseAdmin, userId, transformed)
     transformed = await enrichPartnerBookingsWithConversationIds(supabaseAdmin, transformed)
+    transformed = await attachPartnerTrustToBookings(transformed)
 
     console.log(`[PARTNER BOOKINGS] Found ${transformed.length} bookings for partner ${userId}`)
     
@@ -333,18 +339,30 @@ function transformBooking(booking, defaultCommissionPercent) {
     createdAt: booking.created_at,
     updatedAt: booking.updated_at,
     // Nested objects
-    listing: booking.listing ? {
-      id: booking.listing.id,
-      title: booking.listing.title,
-      district: booking.listing.district,
-      images: mapPublicImageUrls(booking.listing.images || []),
-      coverImage: booking.listing.cover_image ? toPublicImageUrl(booking.listing.cover_image) : null,
-      basePriceThb: parseFloat(booking.listing.base_price_thb) || 0,
-      commissionRate: (() => {
-        const n = parseFloat(booking.listing.commission_rate)
-        return Number.isFinite(n) && n >= 0 ? n : dc
-      })(),
-    } : null,
+    listing: booking.listing
+      ? (() => {
+          const L = booking.listing
+          const cat = L.categories
+          const c0 = Array.isArray(cat) ? cat[0] : cat
+          const slug = String(c0?.slug || '').toLowerCase()
+          const meta =
+            L.metadata && typeof L.metadata === 'object' && !Array.isArray(L.metadata) ? L.metadata : {}
+          return {
+            id: L.id,
+            title: L.title,
+            district: L.district,
+            images: mapPublicImageUrls(L.images || []),
+            coverImage: L.cover_image ? toPublicImageUrl(L.cover_image) : null,
+            basePriceThb: parseFloat(L.base_price_thb) || 0,
+            commissionRate: (() => {
+              const n = parseFloat(L.commission_rate)
+              return Number.isFinite(n) && n >= 0 ? n : dc
+            })(),
+            metadata: meta,
+            category_slug: slug,
+          }
+        })()
+      : null,
     renter: booking.renter
       ? {
           id: booking.renter.id,

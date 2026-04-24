@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSessionPayload } from '@/lib/services/session-service'
 import { supabaseAdmin } from '@/lib/supabase'
 import { toUnifiedOrder } from '@/lib/models/unified-order'
+import { normalizeEmbeddedListingBooking } from '@/lib/services/booking/query.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,10 +68,11 @@ export async function GET(_request, { params }) {
             id,
             title,
             district,
-            category_slug,
+            category_id,
             metadata,
             images,
-            cover_image
+            cover_image,
+            categories ( slug )
           ),
           renter:profiles!renter_id (
             id,
@@ -107,10 +109,11 @@ export async function GET(_request, { params }) {
       return value || null
     }
     const bookingRow = firstRel(row.bookings) || firstRel(row.booking)
-    const listing = bookingRow?.listing || bookingRow?.listings || null
-    const bookingForCard = bookingRow
+    const bookingNorm = bookingRow ? normalizeEmbeddedListingBooking(bookingRow) : null
+    const listing = bookingNorm?.listings || bookingNorm?.listing || null
+    const bookingForCard = bookingNorm
       ? {
-          ...bookingRow,
+          ...bookingNorm,
           listing,
           listings: listing,
           conversationId: row.conversation_id || null,

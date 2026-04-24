@@ -3,10 +3,26 @@
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
 import { buildGuestPriceBreakdownFromBooking } from '@/lib/booking/guest-price-breakdown'
+import { buildGuestPriceExclusionHints } from '@/lib/booking/guest-price-exclusions'
 
 function n(x) {
   const v = Number(x)
   return Number.isFinite(v) ? v : 0
+}
+
+function durationDiscountLabel(b, language) {
+  if (b.durationDiscountThb <= 0) return ''
+  if (language === 'ru' && b.durationCaptionRu) return b.durationCaptionRu
+  if (language !== 'ru' && b.durationCaptionEn) return b.durationCaptionEn
+  return b.durationCaptionEn || b.durationCaptionRu || getUIText('orderPrice_durationDiscount', language)
+}
+
+function promoDiscountLabel(b, language) {
+  if (b.promoDiscountThb <= 0) return ''
+  if (b.promoCode) {
+    return getUIText('orderPrice_promoDiscountWithCode', language).replace(/\{\{code\}\}/g, b.promoCode)
+  }
+  return getUIText('orderPrice_promoDiscount', language)
 }
 
 /**
@@ -27,20 +43,33 @@ export function OrderPriceBreakdown({ booking, breakdown = null, language = 'ru'
 
   const partnerShare = n(booking?.partner_earnings_thb ?? booking?.partnerEarningsThb)
 
+  const listing = booking?.listings || booking?.listing || {}
+  const categorySlug = String(listing?.category_slug || listing?.category?.slug || '').toLowerCase()
+  const meta =
+    listing?.metadata && typeof listing.metadata === 'object' && !Array.isArray(listing.metadata)
+      ? listing.metadata
+      : {}
+  const exclusionHints =
+    role === 'renter' && categorySlug ? buildGuestPriceExclusionHints(categorySlug, meta) : []
+
+  const showCatalogTop =
+    b.catalogSubtotalThb > 0 && (b.durationDiscountThb > 0 || b.promoDiscountThb > 0 || b.listPriceThb > 0)
+  const showListTop = !showCatalogTop && b.listPriceThb > 0 && b.discountThb > 0
+
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-3 space-y-2">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
         {getUIText('orderPrice_breakdownTitle', language)}
       </p>
-      {b.listPriceThb > 0 && b.discountThb > 0 ? (
-        <Row label={getUIText('orderPrice_listSubtotal', language)} value={b.listPriceThb} />
+      {showCatalogTop ? (
+        <Row label={getUIText('orderPrice_catalogSubtotal', language)} value={b.catalogSubtotalThb} />
       ) : null}
-      {b.discountThb > 0 ? (
-        <Row
-          label={getUIText('orderPrice_promoDiscount', language)}
-          value={-b.discountThb}
-          muted
-        />
+      {showListTop ? <Row label={getUIText('orderPrice_listSubtotal', language)} value={b.listPriceThb} /> : null}
+      {b.durationDiscountThb > 0 ? (
+        <Row label={durationDiscountLabel(b, language)} value={-b.durationDiscountThb} muted />
+      ) : null}
+      {b.promoDiscountThb > 0 ? (
+        <Row label={promoDiscountLabel(b, language)} value={-b.promoDiscountThb} muted />
       ) : null}
       <Row label={getUIText('orderPrice_serviceTariff', language)} value={b.serviceTariffThb} />
       {b.platformFeeThb > 0 ? (
@@ -51,6 +80,23 @@ export function OrderPriceBreakdown({ booking, breakdown = null, language = 'ru'
       ) : null}
       {b.roundingThb !== 0 ? (
         <Row label={getUIText('orderPrice_rounding', language)} value={b.roundingThb} muted />
+      ) : null}
+      {exclusionHints.length > 0 ? (
+        <div className="rounded-lg border border-amber-100 bg-amber-50/80 px-2.5 py-2 space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-900/90">
+            {getUIText('orderExcluded_title', language)}
+          </p>
+          <ul className="text-[11px] text-amber-950/90 space-y-1 leading-snug list-disc pl-4">
+            {exclusionHints.map((hint) => {
+              const base = getUIText(hint.key, language)
+              const line =
+                hint.amountThb != null && hint.amountThb > 0
+                  ? base.replace(/\{\{amount\}\}/g, formatPrice(hint.amountThb, currency))
+                  : base
+              return <li key={hint.key}>{line}</li>
+            })}
+          </ul>
+        </div>
       ) : null}
       <p className="text-[11px] text-slate-500 leading-snug border-t border-slate-100/80 pt-2">
         {getUIText('orderPrice_taxesNote', language)}

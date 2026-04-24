@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-sync'
 import { BookingService } from '@/lib/services/booking.service'
+import { attachPartnerTrustToBookings } from '@/lib/booking/attach-partner-trust-to-bookings'
 import { NotificationService, NotificationEvents } from '@/lib/services/notification.service'
 
 export const dynamic = 'force-dynamic'
@@ -61,7 +62,8 @@ export async function GET(request, { params }) {
       return NextResponse.json({ status: 'error', error: 'Booking not found' }, { status: 404 })
     }
     
-    return NextResponse.json({ status: 'success', data: bookings[0] })
+    const [withTrust] = await attachPartnerTrustToBookings([bookings[0]])
+    return NextResponse.json({ status: 'success', data: withTrust })
     
   } catch (error) {
     return NextResponse.json({ status: 'error', error: error.message }, { status: 500 })

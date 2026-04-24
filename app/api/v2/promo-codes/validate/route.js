@@ -6,11 +6,12 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { PricingService } from '@/lib/services/pricing.service';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { code, amount } = body;
+    const { code, amount, bookingAmount, listingId } = body;
     
     if (!code) {
       return NextResponse.json({ 
@@ -19,9 +20,21 @@ export async function POST(request) {
       }, { status: 400 });
     }
     
-    const bookingAmount = parseFloat(amount) || 0;
-    
-    const result = await PricingService.validatePromoCode(code, bookingAmount);
+    const rawAmount = amount ?? bookingAmount;
+    const bookingAmountNum = parseFloat(rawAmount) || 0;
+
+    let listingOwnerId = null;
+    const lid = listingId != null && listingId !== '' ? String(listingId).trim() : '';
+    if (lid && supabaseAdmin) {
+      const { data: listingRow } = await supabaseAdmin
+        .from('listings')
+        .select('owner_id')
+        .eq('id', lid)
+        .maybeSingle();
+      listingOwnerId = listingRow?.owner_id ?? null;
+    }
+
+    const result = await PricingService.validatePromoCode(code, bookingAmountNum, { listingOwnerId });
     
     if (!result.valid) {
       return NextResponse.json({ 

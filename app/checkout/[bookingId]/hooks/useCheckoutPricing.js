@@ -78,6 +78,7 @@ export function useCheckoutPricing({ booking, invoice, paymentMethod, setPayment
         body: JSON.stringify({
           code: promoCode,
           bookingAmount: booking.priceThb,
+          listingId: booking.listing_id || booking.listings?.id || null,
         }),
       })
       const data = await res.json()
@@ -151,6 +152,7 @@ export function useCheckoutPricing({ booking, invoice, paymentMethod, setPayment
         : buildGuestPriceBreakdownFromCheckoutTotals({
             listPriceThb: booking.priceThb ?? 0,
             discountThb: discountAmount,
+            promoCode: promoDiscount?.code || null,
             serviceTariffThb: priceAfterDiscount,
             platformFeeThb: serviceFee,
             roundingThb: roundingDiffPot,

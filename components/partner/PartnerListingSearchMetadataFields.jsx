@@ -119,6 +119,47 @@ export function PartnerListingSearchMetadataFields({
                 className="mt-2 h-11"
               />
             </div>
+            <div className="sm:col-span-2 grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
+                <Label className="text-sm font-medium text-slate-700">{t('fieldCleaningFeeThb')}</Label>
+                <Input
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="0"
+                  value={
+                    metadata.cleaning_fee_thb != null && metadata.cleaning_fee_thb !== ''
+                      ? String(metadata.cleaning_fee_thb)
+                      : ''
+                  }
+                  onChange={(e) => {
+                    const v = clampIntFromDigits(e.target.value, 0, 9_999_999, undefined)
+                    if (v === undefined) updateMetadata('cleaning_fee_thb', '')
+                    else updateMetadata('cleaning_fee_thb', v)
+                  }}
+                  className="mt-2 h-11"
+                />
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-slate-700">{t('fieldDepositThb')}</Label>
+                <Input
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="0"
+                  value={
+                    metadata.security_deposit_thb != null && metadata.security_deposit_thb !== ''
+                      ? String(metadata.security_deposit_thb)
+                      : ''
+                  }
+                  onChange={(e) => {
+                    const v = clampIntFromDigits(e.target.value, 0, 9_999_999, undefined)
+                    if (v === undefined) updateMetadata('security_deposit_thb', '')
+                    else updateMetadata('security_deposit_thb', v)
+                  }}
+                  className="mt-2 h-11"
+                />
+              </div>
+              <p className="sm:col-span-2 text-xs text-slate-500 leading-relaxed">{t('fieldFeesDisclaimer')}</p>
+            </div>
           </div>
         )}
       </div>
@@ -150,6 +191,26 @@ export function PartnerListingSearchMetadataFields({
         </div>
       </div>
     ))
+
+  const fuelPolicyRow = isTransportListingCategory(slug) ? (
+    <div className="sm:col-span-2 space-y-2">
+      <Label className="text-sm font-medium text-slate-700">{t('fieldFuelPolicy')}</Label>
+      <p className="text-xs text-slate-600 leading-relaxed">{t('fieldFuelPolicyHint')}</p>
+      <Select
+        value={metadata.fuel_policy ? String(metadata.fuel_policy).toLowerCase() : 'unset'}
+        onValueChange={(v) => updateMetadata('fuel_policy', v === 'unset' ? '' : v)}
+      >
+        <SelectTrigger className="mt-1 h-11">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="unset">{t('fieldFuelPolicyUnset')}</SelectItem>
+          <SelectItem value="full_to_full">{t('fieldFuelPolicyFull')}</SelectItem>
+          <SelectItem value="other">{t('fieldFuelPolicyOther')}</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  ) : null
 
   const transmissionFuelRow = (
     <>
@@ -269,6 +330,7 @@ export function PartnerListingSearchMetadataFields({
           {vehicleYearSeatsRow}
           {engineCcField}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">{transmissionFuelRow}</div>
+          {fuelPolicyRow}
         </>
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">

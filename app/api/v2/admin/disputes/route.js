@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSessionPayload } from '@/lib/services/session-service'
 import { supabaseAdmin } from '@/lib/supabase'
 import { toUnifiedOrder } from '@/lib/models/unified-order'
+import { normalizeEmbeddedListingBooking } from '@/lib/services/booking/query.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,8 +25,9 @@ function firstRel(value) {
 }
 
 function mapListRow(row) {
-  const booking = firstRel(row.bookings) || firstRel(row.booking)
-  const listing = booking?.listing || booking?.listings || null
+  const bookingRaw = firstRel(row.bookings) || firstRel(row.booking)
+  const booking = bookingRaw ? normalizeEmbeddedListingBooking(bookingRaw) : null
+  const listing = booking?.listings || booking?.listing || null
   const opener = firstRel(row.opener)
   const bForUnified = booking ? { ...booking, listings: listing, listing } : null
   const unified = bForUnified ? toUnifiedOrder(bForUnified) : null
@@ -106,10 +108,11 @@ export async function GET(request) {
             id,
             title,
             district,
-            category_slug,
+            category_id,
             metadata,
             images,
-            cover_image
+            cover_image,
+            categories ( slug )
           )
         ),
         opener:profiles!disputes_opened_by_fkey (

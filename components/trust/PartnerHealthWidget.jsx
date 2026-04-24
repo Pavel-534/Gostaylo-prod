@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Loader2, AlertTriangle, TrendingUp, Shield } from 'lucide-react'
+import { Loader2, AlertTriangle, TrendingUp, Shield, ImageIcon } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { getUIText } from '@/lib/translations'
@@ -85,6 +85,11 @@ export function PartnerHealthWidget({ language = 'ru', remote = null }) {
   const path = effData.pathToTop || {}
   const dominantKind = inferListingServiceTypeFromCategorySlug(effData.dominantCategorySlug ?? null)
   const slaCategoryLine = getPartnerSlaResponseContextLine(dominantKind, language)
+  const instr = effData.instructionPhotos
+  const showInstructionHint =
+    instr &&
+    Number(instr.activeListingCount) > 0 &&
+    Number(instr.listingsBelow3) > 0
 
   return (
     <Card className="border-teal-100 shadow-sm bg-gradient-to-br from-white to-teal-50/40">
@@ -154,6 +159,26 @@ export function PartnerHealthWidget({ language = 'ru', remote = null }) {
             </div>
           </div>
         </div>
+
+        {showInstructionHint ? (
+          <div className="rounded-xl border border-sky-200 bg-sky-50/90 px-3 py-2.5 space-y-1">
+            <p className="text-xs font-semibold text-sky-950 flex items-center gap-1.5">
+              <ImageIcon className="h-3.5 w-3.5 shrink-0" />
+              {getUIText('partnerHealth_instructionQualityTitle', language)}
+            </p>
+            <p className="text-[11px] text-sky-950/90 leading-relaxed">
+              {getUIText('partnerHealth_instructionPhotosTrustHint', language)}
+            </p>
+            {instr.avgInstructionPhotos != null ? (
+              <p className="text-[11px] text-sky-900/80 tabular-nums">
+                {getUIText('partnerHealth_instructionScoreLabel', language).replace(
+                  '{{score}}',
+                  String(instr.avgInstructionPhotos),
+                )}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         {factors.length > 0 ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 space-y-1.5">
