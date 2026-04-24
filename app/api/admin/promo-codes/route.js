@@ -27,8 +27,34 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  const promoRows = Array.isArray(data) ? data : []
+  const promoCodes = promoRows
+    .map((row) => String(row?.code || '').trim().toUpperCase())
+    .filter(Boolean)
+
+  const createdByPromo = new Map()
+  if (promoCodes.length > 0) {
+    const { data: bookingsRows, error: bookingsError } = await supabaseAdmin
+      .from('bookings')
+      .select('promo_code_used')
+      .in('promo_code_used', promoCodes)
+    if (!bookingsError && Array.isArray(bookingsRows)) {
+      for (const row of bookingsRows) {
+        const code = String(row?.promo_code_used || '').trim().toUpperCase()
+        if (!code) continue
+        createdByPromo.set(code, (createdByPromo.get(code) || 0) + 1)
+      }
+    }
+  }
+
   return NextResponse.json({
-    data: (data || []).map(mapPromoRowToAdminDto).filter(Boolean),
+    data: promoRows
+      .map((row) => ({
+        ...row,
+        bookings_created_count: createdByPromo.get(String(row?.code || '').trim().toUpperCase()) || 0,
+      }))
+      .map(mapPromoRowToAdminDto)
+      .filter(Boolean),
   })
 }
 

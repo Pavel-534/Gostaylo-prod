@@ -34,7 +34,10 @@ export async function POST(request) {
       listingOwnerId = listingRow?.owner_id ?? null;
     }
 
-    const result = await PricingService.validatePromoCode(code, bookingAmountNum, { listingOwnerId });
+    const result = await PricingService.validatePromoCode(code, bookingAmountNum, {
+      listingOwnerId,
+      listingId: lid || null,
+    });
     
     if (!result.valid) {
       return NextResponse.json({ 
@@ -54,7 +57,13 @@ export async function POST(request) {
         type: result.type,
         value: result.value,
         discountAmount: result.discountAmount,
-        newTotal: result.newTotal
+        newTotal: result.newTotal,
+        flashSale: Boolean(result.flashSale),
+        promoEndsAt: result.promoEndsAt ?? null,
+        secondsRemaining:
+          result.secondsRemaining != null && Number.isFinite(Number(result.secondsRemaining))
+            ? Number(result.secondsRemaining)
+            : null,
       }
     });
     

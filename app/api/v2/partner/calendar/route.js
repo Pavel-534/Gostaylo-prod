@@ -14,6 +14,8 @@ import { OCCUPYING_BOOKING_STATUSES } from '@/lib/booking-occupancy-statuses'
 import { mapCategorySlugToListingType } from '@/lib/partner-calendar-filters'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { toListingDate } from '@/lib/listing-date'
+import { PricingService } from '@/lib/services/pricing.service'
+import { normalizeAllowedListingIdsFromRow } from '@/lib/promo/allowed-listing-ids'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,31 +23,93 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 // Use service role to bypass RLS (partner listings may be restricted by RLS)
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-/**
- * Get seasonal price for a date
- */
-function getSeasonalPrice(seasonalPrices, listingId, date) {
-  const dateObj = parseISO(date)
-  const seasonal = seasonalPrices.find(sp => {
-    const spStart = parseISO(sp.start_date)
-    const spEnd = parseISO(sp.end_date)
-    const match = sp.listing_id === listingId &&
-                  dateObj >= spStart &&
-                  dateObj <= spEnd
-    
-    if (sp.listing_id === listingId && date >= '2025-12-20' && date <= '2025-12-27') {
-      console.log(`[SEASONAL] Checking ${date}: start=${sp.start_date}, end=${sp.end_date}, match=${match}`)
+function promoRowIsActive(row, nowMs) {
+  if (!row || row.is_active === false) return false
+  if (row.max_uses != null && Number(row.current_uses) >= Number(row.max_uses)) return false
+  if (!row.valid_until) return true
+  const endMs = new Date(row.valid_until).getTime()
+  return Number.isFinite(endMs) && endMs > nowMs
+}
+
+function promoAppliesToListing(row, listingId, ownerId) {
+  const listing = String(listingId || '')
+  const owner = String(ownerId || '')
+  const createdByType = String(row?.created_by_type || 'PLATFORM').toUpperCase()
+  const allowedIds = normalizeAllowedListingIdsFromRow(row?.allowed_listing_ids)
+
+  if (allowedIds && !allowedIds.includes(listing)) return false
+
+  if (createdByType === 'PARTNER') {
+    const pid = String(row?.partner_id || '')
+    return Boolean(pid) && pid === owner
+  }
+
+  return createdByType === 'PLATFORM'
+}
+
+function buildMarketingPromoForDay({ promos, listingId, ownerId, date, dailyPrice }) {
+  const daily = Math.max(0, Math.round(Number(dailyPrice) || 0))
+  if (daily <= 0 || !Array.isArray(promos) || promos.length === 0) return null
+
+  const dateEndMs = new Date(`${date}T23:59:59.999Z`).getTime()
+  let best = null
+
+  for (const row of promos) {
+    if (!promoAppliesToListing(row, listingId, ownerId)) continue
+    if (row.valid_until) {
+      const endMs = new Date(row.valid_until).getTime()
+      if (!Number.isFinite(endMs) || endMs < dateEndMs) continue
     }
-    
-    return match
-  })
-  
-  return seasonal ? {
-    price: seasonal.price_daily,
-    minStay: seasonal.min_stay || 1,
-    seasonType: seasonal.season_type,
-    label: seasonal.label
-  } : null
+
+    const promoType = String(row.promo_type || '').toUpperCase()
+    const rawValue = Number(row.value)
+    if (!Number.isFinite(rawValue) || rawValue <= 0) continue
+
+    let discount = 0
+    if (promoType === 'PERCENTAGE') {
+      discount = Math.round((daily * Math.min(100, rawValue)) / 100)
+    } else {
+      discount = Math.round(rawValue)
+    }
+    discount = Math.min(daily, Math.max(0, discount))
+    if (discount <= 0) continue
+
+    if (!best || discount > best.discountAmount) {
+      best = {
+        code: String(row.code || '').toUpperCase(),
+        discountAmount: discount,
+        promoType,
+        promoValue: rawValue,
+        isFlashSale: row.is_flash_sale === true,
+        validUntil: row.valid_until || null,
+      }
+    }
+  }
+
+  if (!best) return null
+  return {
+    ...best,
+    baseSeasonPrice: daily,
+    guestPrice: Math.max(0, daily - best.discountAmount),
+  }
+}
+
+function resolveMinStayForDate(date, dbSeasonalPrices, metadataSeasonalPricing) {
+  for (const season of dbSeasonalPrices || []) {
+    const startDate = season.start_date
+    const endDate = season.end_date
+    if (startDate && endDate && date >= startDate && date <= endDate) {
+      return Math.max(1, parseInt(season.min_stay, 10) || 1)
+    }
+  }
+  for (const season of metadataSeasonalPricing || []) {
+    const startDate = season.startDate || season.start_date
+    const endDate = season.endDate || season.end_date
+    if (startDate && endDate && date >= startDate && date <= endDate) {
+      return Math.max(1, parseInt(season.minStay ?? season.min_stay, 10) || 1)
+    }
+  }
+  return 1
 }
 
 /**
@@ -65,6 +129,7 @@ function processCalendarData(
   bookings,
   blocks,
   seasonalPrices,
+  promoRows,
   startDate,
   endDate,
   defaultListingCommission,
@@ -85,6 +150,11 @@ function processCalendarData(
     const lid = String(listing.id)
     const listingBookings = bookings.filter((b) => String(b.listing_id) === lid)
     const listingBlocks = blocks.filter((b) => String(b.listing_id) === lid)
+    const listingSeasonal = seasonalPrices.filter((sp) => String(sp.listing_id) === lid)
+    const metadataSeasonalPricing =
+      listing?.metadata && typeof listing.metadata === 'object'
+        ? listing.metadata.seasonal_pricing || []
+        : []
     
     const availability = {}
     
@@ -134,25 +204,53 @@ function processCalendarData(
           blockType: block.type
         }
       } else if (checkoutBooking) {
-        const seasonalData = getSeasonalPrice(seasonalPrices, listing.id, date)
+        const { dailyPrice, seasonLabel } = PricingService.calculateDailyPrice(
+          parseFloat(listing.base_price_thb) || 0,
+          date,
+          metadataSeasonalPricing,
+          listingSeasonal,
+        )
+        const marketingPromo = buildMarketingPromoForDay({
+          promos: promoRows,
+          listingId: listing.id,
+          ownerId: listing.owner_id,
+          date,
+          dailyPrice,
+        })
+        const minStay = resolveMinStayForDate(date, listingSeasonal, metadataSeasonalPricing)
         availability[date] = {
           status: 'AVAILABLE',
-          priceThb: seasonalData?.price || listing.base_price_thb,
-          minStay: seasonalData?.minStay || 1,
-          seasonType: seasonalData?.seasonType,
-          label: seasonalData?.label,
+          priceThb: dailyPrice,
+          minStay,
+          seasonType: null,
+          label: seasonLabel,
+          marketingPromo,
           isTransition: false,
           isCheckOut: true,
           previousGuestName: checkoutBooking.guest_name
         }
       } else {
-        const seasonalData = getSeasonalPrice(seasonalPrices, listing.id, date)
+        const { dailyPrice, seasonLabel } = PricingService.calculateDailyPrice(
+          parseFloat(listing.base_price_thb) || 0,
+          date,
+          metadataSeasonalPricing,
+          listingSeasonal,
+        )
+        const marketingPromo = buildMarketingPromoForDay({
+          promos: promoRows,
+          listingId: listing.id,
+          ownerId: listing.owner_id,
+          date,
+          dailyPrice,
+        })
+        const minStay = resolveMinStayForDate(date, listingSeasonal, metadataSeasonalPricing)
         availability[date] = {
           status: 'AVAILABLE',
-          priceThb: seasonalData?.price || listing.base_price_thb,
-          minStay: seasonalData?.minStay || 1,
-          seasonType: seasonalData?.seasonType,
-          label: seasonalData?.label
+          priceThb: dailyPrice,
+          minStay,
+          seasonType: null,
+          label: seasonLabel,
+          marketingPromo,
         }
       }
     })
@@ -237,20 +335,21 @@ export async function GET(request) {
         let bookings = []
         let blocks = []
         let seasonalPrices = []
+        let promoRows = []
 
         if (useAdmin) {
           // Use supabaseAdmin - bypasses RLS
           const { data: listingsData, error: listingsErr } = await supabaseAdmin
             .from('listings')
             .select(
-              'id,title,district,cover_image,base_price_thb,commission_rate,status,category_id,categories(id,name,slug,icon)'
+              'id,title,district,cover_image,base_price_thb,commission_rate,status,category_id,owner_id,metadata,categories(id,name,slug,icon)'
             )
             .eq('owner_id', userId)
           if (listingsErr) throw listingsErr
           listings = listingsData || []
         } else {
           const listingsRes = await fetch(
-            `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${userId}&select=id,title,district,cover_image,base_price_thb,commission_rate,status,category_id,categories(id,name,slug,icon)`,
+            `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${userId}&select=id,title,district,cover_image,base_price_thb,commission_rate,status,category_id,owner_id,metadata,categories(id,name,slug,icon)`,
             { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
           )
           const data = await listingsRes.json()
@@ -323,6 +422,19 @@ export async function GET(request) {
           } catch (e) {
             console.log('[CALENDAR] Error fetching seasonal_prices:', e.message)
           }
+
+          try {
+            const { data: promosData } = await supabaseAdmin
+              .from('promo_codes')
+              .select(
+                'code,promo_type,value,is_active,valid_until,max_uses,current_uses,created_by_type,partner_id,allowed_listing_ids,is_flash_sale',
+              )
+              .eq('is_active', true)
+            const nowMs = Date.now()
+            promoRows = (promosData || []).filter((row) => promoRowIsActive(row, nowMs))
+          } catch (e) {
+            console.log('[CALENDAR] Error fetching promo_codes:', e.message)
+          }
         } else {
           const listingIn =
             listingIds.length === 1
@@ -359,6 +471,18 @@ export async function GET(request) {
           } catch (e) {
             console.log('[CALENDAR] Error fetching seasonal_prices:', e.message)
           }
+
+          try {
+            const promosRes = await fetch(
+              `${SUPABASE_URL}/rest/v1/promo_codes?is_active=eq.true&select=code,promo_type,value,is_active,valid_until,max_uses,current_uses,created_by_type,partner_id,allowed_listing_ids,is_flash_sale`,
+              { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+            )
+            const pd = await promosRes.json()
+            const nowMs = Date.now()
+            promoRows = (Array.isArray(pd) ? pd : []).filter((row) => promoRowIsActive(row, nowMs))
+          } catch (e) {
+            console.log('[CALENDAR] Error fetching promo_codes:', e.message)
+          }
         }
         
         const defaultListingCommission = await resolveDefaultCommissionPercent()
@@ -367,6 +491,7 @@ export async function GET(request) {
           Array.isArray(bookings) ? bookings : [],
           blocks,
           seasonalPrices,
+          promoRows,
           startDate,
           endDate,
           defaultListingCommission,

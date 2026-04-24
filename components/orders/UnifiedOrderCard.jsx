@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -24,6 +25,8 @@ import {
   Star,
   Image as ImageIcon,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
@@ -166,6 +169,8 @@ export default function UnifiedOrderCard({
   const [disputeReason, setDisputeReason] = useState('')
   const [disputeEvidenceFiles, setDisputeEvidenceFiles] = useState([])
   const disputeEvidenceInputRef = useRef(null)
+  /** Stage 33 — полноэкранный просмотр фото инструкций */
+  const [photoLightboxIndex, setPhotoLightboxIndex] = useState(null)
   const normalizedRole = normalizeRole(role)
   const normalizedOrder = normalizeUnifiedOrder(booking, unifiedOrder)
 
@@ -189,6 +194,26 @@ export default function UnifiedOrderCard({
       .filter((u) => /^https?:\/\//i.test(u))
       .slice(0, 3)
   }, [booking?.metadata])
+
+  useEffect(() => {
+    if (photoLightboxIndex == null) return undefined
+    const onKey = (e) => {
+      if (e.key === 'Escape') setPhotoLightboxIndex(null)
+      if (e.key === 'ArrowRight' && checkInPhotoUrls.length > 1) {
+        setPhotoLightboxIndex((i) => ((i ?? 0) + 1) % checkInPhotoUrls.length)
+      }
+      if (e.key === 'ArrowLeft' && checkInPhotoUrls.length > 1) {
+        setPhotoLightboxIndex((i) => ((i ?? 0) - 1 + checkInPhotoUrls.length) % checkInPhotoUrls.length)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [photoLightboxIndex, checkInPhotoUrls.length])
   const emergencyServiceKind = useMemo(() => {
     const api = emergencyCtx?.emergencyServiceKind
     if (api === 'transport' || api === 'service' || api === 'tour' || api === 'stay') return api
@@ -457,7 +482,11 @@ export default function UnifiedOrderCard({
     }
   }
 
+  const lightboxUrl =
+    photoLightboxIndex != null ? checkInPhotoUrls[photoLightboxIndex] || null : null
+
   return (
+    <>
     <Card
       className="rounded-2xl overflow-hidden hover:shadow-md transition-shadow"
       data-booking-card={cardAnchorId || bookingId}
@@ -527,16 +556,16 @@ export default function UnifiedOrderCard({
               <div className="space-y-2">
                 <p className="text-[11px] font-medium text-slate-600">{getUIText('orderCheckInPhotos_caption', language)}</p>
                 <div className="grid grid-cols-3 gap-2">
-                  {checkInPhotoUrls.map((url) => (
-                    <a
+                  {checkInPhotoUrls.map((url, idx) => (
+                    <button
                       key={url}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="relative aspect-[4/3] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm outline-none ring-offset-2 focus-visible:ring-2 focus-visible:ring-teal-500"
+                      type="button"
+                      onClick={() => setPhotoLightboxIndex(idx)}
+                      className="relative aspect-[4/3] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm outline-none ring-offset-2 transition hover:ring-2 hover:ring-teal-400 focus-visible:ring-2 focus-visible:ring-teal-500 cursor-zoom-in"
+                      aria-label={getUIText('orderCheckInPhotos_openLightbox', language)}
                     >
                       <ProxiedImage src={url} alt="" fill className="object-cover" sizes="120px" />
-                    </a>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -1090,5 +1119,68 @@ export default function UnifiedOrderCard({
         ) : null}
       </CardContent>
     </Card>
+    {typeof document !== 'undefined' && lightboxUrl
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[300] flex flex-col items-center justify-center bg-black/95 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label={getUIText('orderCheckInPhotos_lightboxTitle', language)}
+            onClick={() => setPhotoLightboxIndex(null)}
+          >
+            <button
+              type="button"
+              className="absolute right-4 top-4 z-[2] rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+              onClick={(e) => {
+                e.stopPropagation()
+                setPhotoLightboxIndex(null)
+              }}
+              aria-label={getUIText('orderHelp_close', language)}
+            >
+              <X className="h-6 w-6" />
+            </button>
+            {checkInPhotoUrls.length > 1 ? (
+              <button
+                type="button"
+                className="absolute left-2 top-1/2 z-[2] -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 md:left-6"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setPhotoLightboxIndex(
+                    (i) => ((i ?? 0) - 1 + checkInPhotoUrls.length) % checkInPhotoUrls.length,
+                  )
+                }}
+                aria-label="Previous"
+              >
+                <ChevronLeft className="h-8 w-8" />
+              </button>
+            ) : null}
+            {checkInPhotoUrls.length > 1 ? (
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 z-[2] -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 md:right-6"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setPhotoLightboxIndex((i) => ((i ?? 0) + 1) % checkInPhotoUrls.length)
+                }}
+                aria-label="Next"
+              >
+                <ChevronRight className="h-8 w-8" />
+              </button>
+            ) : null}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={lightboxUrl}
+              alt=""
+              className="max-h-[min(92vh,920px)] max-w-[min(96vw,1200px)] object-contain shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <p className="mt-3 text-center text-xs text-white/70 tabular-nums">
+              {photoLightboxIndex != null ? `${photoLightboxIndex + 1} / ${checkInPhotoUrls.length}` : ''}
+            </p>
+          </div>,
+          document.body,
+        )
+      : null}
+    </>
   )
 }

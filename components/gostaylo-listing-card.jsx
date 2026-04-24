@@ -34,6 +34,8 @@ import {
 import { getListingCardBlurDataURL } from '@/lib/listing-image-blur'
 import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
 import { PartnerRenterTrustBadges } from '@/components/trust/PartnerRenterTrustBadges'
+import { Badge } from '@/components/ui/badge'
+import { UrgencyTimer } from '@/components/UrgencyTimer'
 
 export function GostayloListingCard({
   listing,
@@ -76,6 +78,8 @@ export function GostayloListingCard({
     categorySlug: listingCategorySlug,
     partnerTrust = null,
     owner,
+    catalog_promo_badge = null,
+    catalog_flash_urgency = null,
   } = listing
   
   const basePrice = basePriceThb || base_price_thb || 0
@@ -138,6 +142,10 @@ export function GostayloListingCard({
   }, [id, isFavorite, onFavorite])
 
   const typeLabel = getCategoryName(propertyType, language) || getCategoryName('property', language)
+  const promoBadgeLabel =
+    catalog_promo_badge && typeof catalog_promo_badge === 'object' && catalog_promo_badge.label
+      ? String(catalog_promo_badge.label)
+      : ''
 
   return (
     <article
@@ -158,7 +166,20 @@ export function GostayloListingCard({
         isFavorite={isFavorite}
         onFavoriteClick={handleFavorite}
         blurDataURL={getListingCardBlurDataURL(listing)}
+        topLeftBadge={
+          promoBadgeLabel ? (
+            <Badge className="border-0 bg-gradient-to-r from-rose-600 to-orange-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-md">
+              {promoBadgeLabel}
+            </Badge>
+          ) : null
+        }
       />
+
+      {catalog_flash_urgency?.ends_at ? (
+        <div className="px-4 pt-2">
+          <UrgencyTimer endsAt={catalog_flash_urgency.ends_at} language={language} variant="compact" />
+        </div>
+      ) : null}
 
       {/* Текст и цена — отдельная ссылка; сердце не внутри anchor (валидный DOM) */}
       <Link href={detailUrl} className="block p-4">

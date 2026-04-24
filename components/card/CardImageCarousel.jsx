@@ -23,6 +23,8 @@ export function CardImageCarousel({
   onImageLoad,
   /** Ссылка на карточку: прозрачный оверлей под сердцем и стрелками (кнопки не внутри одного anchor). */
   detailHref = null,
+  /** Stage 33 — бейдж скидки поверх фото (pointer-events: none). */
+  topLeftBadge = null,
   /** Низкокачественный плейсхолдер (LQIP), иначе нейтральный blur. */
   blurDataURL = LISTING_CARD_BLUR_DATA_URL,
 }) {
@@ -94,6 +96,15 @@ export function CardImageCarousel({
         >
           <span className="sr-only">{title}</span>
         </Link>
+      ) : null}
+
+      {topLeftBadge ? (
+        <div
+          className="pointer-events-none absolute left-2 top-2 z-[18] max-w-[calc(100%-4rem)]"
+          aria-hidden
+        >
+          {topLeftBadge}
+        </div>
       ) : null}
       
       {/* Navigation arrows */}

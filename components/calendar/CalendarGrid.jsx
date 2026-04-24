@@ -11,6 +11,7 @@ import { Home, Anchor, Bike, Car, Lock } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { ProxiedImage } from '@/components/proxied-image'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 // Type icons
 const TYPE_ICONS = {
@@ -44,8 +45,9 @@ export function CalendarGrid({
   scrollMaxHeight = 'calc(100vh - 280px)',
 }) {
   return (
-    <Card className="overflow-hidden border-0 shadow-lg">
-      <div className="relative">
+    <TooltipProvider>
+      <Card className="overflow-hidden border-0 shadow-lg">
+        <div className="relative">
         {/* Scrollable container */}
         <div 
           ref={scrollContainerRef}
@@ -182,6 +184,7 @@ export function CalendarGrid({
                       const isHighSeason = price > basePrice
                       const isLowSeason = price < basePrice
                       const minStay = cellData.minStay || 1
+                      const marketingPromo = cellData.marketingPromo || null
                       
                       // Price styling based on season
                       const priceColor = isHighSeason 
@@ -195,6 +198,30 @@ export function CalendarGrid({
                           <span className={cn('text-xs font-bold tabular-nums leading-tight', priceColor)}>
                             ฿{Math.round(price).toLocaleString('en-US')}
                           </span>
+                          {marketingPromo ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span
+                                  className={cn(
+                                    'inline-flex max-w-full cursor-help items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold leading-none',
+                                    marketingPromo.isFlashSale
+                                      ? 'bg-orange-100 text-orange-700'
+                                      : 'bg-indigo-100 text-indigo-700',
+                                  )}
+                                >
+                                  {marketingPromo.isFlashSale ? 'FLASH' : 'PROMO'}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-[240px] leading-relaxed">
+                                <p className="font-semibold">{marketingPromo.code || 'PROMO'}</p>
+                                <p>
+                                  ฿{Math.round(marketingPromo.baseSeasonPrice || price).toLocaleString('en-US')} - ฿
+                                  {Math.round(marketingPromo.discountAmount || 0).toLocaleString('en-US')} = ฿
+                                  {Math.round(marketingPromo.guestPrice || price).toLocaleString('en-US')}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : null}
                           {minStay > 1 && viewMode !== 'compact' && (
                             <span className="text-[9px] font-medium leading-none text-slate-500">мин {minStay}</span>
                           )}
@@ -234,7 +261,8 @@ export function CalendarGrid({
             </div>
           </div>
         </div>
-      </div>
-    </Card>
+        </div>
+      </Card>
+    </TooltipProvider>
   )
 }

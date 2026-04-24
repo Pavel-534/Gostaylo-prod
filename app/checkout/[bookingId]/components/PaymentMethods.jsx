@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { CreditCard, Wallet, Loader2, CheckCircle2, Copy, ExternalLink, AlertCircle, Smartphone } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
 import { QRCodeSVG } from 'qrcode.react'
+import { UrgencyTimer } from '@/components/UrgencyTimer'
 
 /**
  * @param {object} p — useCheckoutPayment
@@ -98,6 +99,22 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
               <p className="text-xs text-green-700 mt-1">−{c.formatDisplayPrice(c.promoDiscount.discountAmount, 'THB')}</p>
             </div>
           )}
+          {c.promoDiscount?.flashSale ? (
+            <div className="mt-4 space-y-3 rounded-lg border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-4">
+              <p className="text-sm font-semibold leading-snug text-orange-950">
+                {getUIText('checkout_flashFomoTitle', c.language)}
+              </p>
+              <p className="text-xs leading-relaxed text-orange-900/90">
+                {getUIText('checkout_flashFomoBody', c.language)}
+              </p>
+              {c.promoDiscount.promoEndsAt ? (
+                <UrgencyTimer endsAt={c.promoDiscount.promoEndsAt} language={c.language} variant="compact" />
+              ) : null}
+              <p className="text-[11px] leading-relaxed text-slate-600">
+                {getUIText('checkout_flashFomoDisclaimer', c.language)}
+              </p>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
@@ -27,8 +28,10 @@ export default function PartnerPromoPage() {
   const [listings, setListings] = useState([])
   const [loadingSession, setLoadingSession] = useState(true)
   const [loadingListings, setLoadingListings] = useState(false)
+  const [loadingPromos, setLoadingPromos] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [selectedListingIds, setSelectedListingIds] = useState(() => new Set())
+  const [promoCodes, setPromoCodes] = useState([])
 
   const [form, setForm] = useState({
     code: '',
@@ -36,6 +39,8 @@ export default function PartnerPromoPage() {
     value: '',
     expiryDate: '',
     usageLimit: '',
+    isFlashSale: false,
+    flashEndsInHours: '24',
   })
 
   useEffect(() => {
@@ -89,6 +94,30 @@ export default function PartnerPromoPage() {
     }
   }, [partnerId])
 
+  const loadPartnerPromos = useCallback(async () => {
+    if (!partnerId) return
+    setLoadingPromos(true)
+    try {
+      const res = await fetch('/api/v2/partner/promo-codes', {
+        credentials: 'include',
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json.success) {
+        setPromoCodes([])
+        return
+      }
+      setPromoCodes(Array.isArray(json.data) ? json.data : [])
+    } catch {
+      setPromoCodes([])
+    } finally {
+      setLoadingPromos(false)
+    }
+  }, [partnerId])
+
+  useEffect(() => {
+    void loadPartnerPromos()
+  }, [loadPartnerPromos])
+
   const toggleListing = (id) => {
     setSelectedListingIds((prev) => {
       const next = new Set(prev)
@@ -100,8 +129,16 @@ export default function PartnerPromoPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.code || !form.value || !form.expiryDate || !form.usageLimit) {
+    if (!form.code || !form.value || !form.usageLimit) {
       toast.error(t('partnerPromo_fillAll'))
+      return
+    }
+    if (!form.isFlashSale && !form.expiryDate) {
+      toast.error(t('partnerPromo_fillAll'))
+      return
+    }
+    if (form.isFlashSale && !['3', '6', '12', '24'].includes(String(form.flashEndsInHours))) {
+      toast.error(t('partnerPromo_flashNeedsDuration'))
       return
     }
     setSubmitting(true)
@@ -115,7 +152,9 @@ export default function PartnerPromoPage() {
           code: form.code,
           type: form.type,
           value: form.value,
-          expiryDate: form.expiryDate,
+          ...(form.isFlashSale
+            ? { isFlashSale: true, flashEndsInHours: Number(form.flashEndsInHours) }
+            : { expiryDate: form.expiryDate }),
           usageLimit: form.usageLimit,
           ...(listingIds ? { listingIds } : {}),
         }),
@@ -123,8 +162,17 @@ export default function PartnerPromoPage() {
       const json = await res.json().catch(() => ({}))
       if (res.ok && json.success) {
         toast.success(t('partnerPromo_success'))
-        setForm({ code: '', type: 'PERCENT', value: '', expiryDate: '', usageLimit: '' })
+        setForm({
+          code: '',
+          type: 'PERCENT',
+          value: '',
+          expiryDate: '',
+          usageLimit: '',
+          isFlashSale: false,
+          flashEndsInHours: '24',
+        })
         setSelectedListingIds(new Set())
+        void loadPartnerPromos()
       } else {
         toast.error(json.error || t('partnerPromo_error'))
       }
@@ -155,7 +203,7 @@ export default function PartnerPromoPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       <Button variant="ghost" size="sm" asChild className="-ml-2 text-slate-600">
         <Link href="/partner/dashboard">
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -209,15 +257,49 @@ export default function PartnerPromoPage() {
                 placeholder={form.type === 'PERCENT' ? '10' : '500'}
               />
             </div>
-            <div>
-              <Label>{t('partnerPromo_fieldExpiry')}</Label>
-              <Input
-                type="date"
-                className="mt-2"
-                value={form.expiryDate}
-                onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
+            <div className="flex items-start gap-3 rounded-lg border border-orange-100 bg-orange-50/60 p-3">
+              <Checkbox
+                id="flash-sale"
+                checked={form.isFlashSale}
+                onCheckedChange={(v) => setForm({ ...form, isFlashSale: Boolean(v) })}
               />
+              <div className="space-y-1">
+                <Label htmlFor="flash-sale" className="cursor-pointer font-medium text-orange-950">
+                  {t('partnerPromo_flashSale')}
+                </Label>
+                <p className="text-xs text-orange-900/85 leading-relaxed">{t('partnerPromo_flashSaleHint')}</p>
+              </div>
             </div>
+
+            {form.isFlashSale ? (
+              <div>
+                <Label>{t('partnerPromo_flashEndsIn')}</Label>
+                <Select
+                  value={String(form.flashEndsInHours)}
+                  onValueChange={(v) => setForm({ ...form, flashEndsInHours: v })}
+                >
+                  <SelectTrigger className="mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3">{t('partnerPromo_flashHours3')}</SelectItem>
+                    <SelectItem value="6">{t('partnerPromo_flashHours6')}</SelectItem>
+                    <SelectItem value="12">{t('partnerPromo_flashHours12')}</SelectItem>
+                    <SelectItem value="24">{t('partnerPromo_flashHours24')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div>
+                <Label>{t('partnerPromo_fieldExpiry')}</Label>
+                <Input
+                  type="date"
+                  className="mt-2"
+                  value={form.expiryDate}
+                  onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
+                />
+              </div>
+            )}
             <div>
               <Label>{t('partnerPromo_fieldLimit')}</Label>
               <Input
@@ -263,6 +345,58 @@ export default function PartnerPromoPage() {
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : t('partnerPromo_submit')}
             </Button>
           </form>
+        </CardContent>
+      </Card>
+
+      <Card className="border-slate-200 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg">Мои промокоды</CardTitle>
+          <CardDescription>Воронка эффективности: созданные брони vs оплаченные/завершенные.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingPromos ? (
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Загрузка промокодов...
+            </div>
+          ) : promoCodes.length === 0 ? (
+            <p className="text-sm text-slate-500">Пока нет промокодов. Создайте первый код выше.</p>
+          ) : (
+            <div className="space-y-2">
+              {promoCodes.map((promo) => {
+                const limitText =
+                  promo.usageLimit == null
+                    ? `${promo.usedCount}/∞`
+                    : `${promo.usedCount}/${promo.usageLimit}`
+                return (
+                  <div
+                    key={promo.id}
+                    className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-mono text-sm font-bold text-slate-900">{promo.code}</p>
+                      <p className="text-xs text-slate-500">
+                        {promo.type === 'PERCENT' ? `${promo.value}%` : `${promo.value} THB`}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge variant="outline" className="text-xs">
+                        Создано броней: {promo.bookingsCreatedCount || 0}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        Оплачено/завершено: {limitText}
+                      </Badge>
+                      {promo.isFlashSale ? (
+                        <Badge className="text-xs border-0 bg-gradient-to-r from-orange-500 to-rose-500 text-white">
+                          FLASH
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

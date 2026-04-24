@@ -1,20 +1,43 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { TrendingUp, Plus, Trash2, Percent, DollarSign, Calendar, AlertTriangle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { TrendingUp, Plus, Trash2, Percent, DollarSign, Calendar, AlertTriangle, Users, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+function promoExpiryEndMs(promo) {
+  if (promo?.validUntilIso) return new Date(promo.validUntilIso).getTime();
+  if (promo?.expiryDate) return new Date(`${promo.expiryDate}T23:59:59.999Z`).getTime();
+  return NaN;
+}
+
+function isPlatformPromoCritical(promo) {
+  if (String(promo.createdByType || '').toUpperCase() !== 'PLATFORM') return false;
+  const limit = promo.usageLimit;
+  if (limit == null || limit <= 0) return false;
+  if (!promo.isActive) return false;
+  const end = promoExpiryEndMs(promo);
+  if (Number.isFinite(end) && end < Date.now()) return false;
+  const used = Number(promo.usedCount) || 0;
+  return used / limit >= 0.9;
+}
 
 export default function MarketingPage() {
   const { toast } = useToast();
   const [promoCodes, setPromoCodes] = useState([]);
+  const [promoListFilter, setPromoListFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [extendingId, setExtendingId] = useState(null);
+  const [topPartners, setTopPartners] = useState([]);
+  const [allowedListingIdsRaw, setAllowedListingIdsRaw] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPromo, setNewPromo] = useState({
     code: '',
@@ -22,10 +45,29 @@ export default function MarketingPage() {
     value: '',
     expiryDate: '',
     usageLimit: '',
+    isFlashSale: false,
+    flashEndsInHours: '24',
   });
 
   useEffect(() => {
     loadPromoCodes();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadTop() {
+      try {
+        const res = await fetch('/api/admin/promo-codes/analytics/top-partners');
+        const j = await res.json().catch(() => ({}));
+        if (!cancelled && res.ok && Array.isArray(j.data)) setTopPartners(j.data);
+      } catch {
+        /* ignore */
+      }
+    }
+    void loadTop();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const loadPromoCodes = async () => {
@@ -51,7 +93,7 @@ export default function MarketingPage() {
   };
 
   const handleCreate = async () => {
-    if (!newPromo.code || !newPromo.value || !newPromo.expiryDate || !newPromo.usageLimit) {
+    if (!newPromo.code || !newPromo.value || !newPromo.usageLimit) {
       toast({
         title: 'Ошибка',
         description: 'Заполните все поля',
@@ -59,12 +101,43 @@ export default function MarketingPage() {
       });
       return;
     }
+    if (!newPromo.isFlashSale && !newPromo.expiryDate) {
+      toast({
+        title: 'Ошибка',
+        description: 'Укажите дату завершения акции',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (newPromo.isFlashSale && !['3', '6', '12', '24'].includes(String(newPromo.flashEndsInHours))) {
+      toast({
+        title: 'Ошибка',
+        description: 'Для Flash Sale выберите пресет времени: 3/6/12/24 часа',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
+      const allowedListingIds = allowedListingIdsRaw
+        .split(/[,;\s]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const payload = {
+        ...newPromo,
+        ...(newPromo.isFlashSale
+          ? {
+              validUntilIso: new Date(
+                Date.now() + Number(newPromo.flashEndsInHours || 24) * 3600 * 1000,
+              ).toISOString(),
+            }
+          : {}),
+        ...(allowedListingIds.length ? { allowedListingIds } : {}),
+      };
       const res = await fetch('/api/admin/promo-codes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newPromo),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -73,7 +146,16 @@ export default function MarketingPage() {
           description: `${newPromo.code} готов к использованию`,
         });
         setShowCreateModal(false);
-        setNewPromo({ code: '', type: 'PERCENT', value: '', expiryDate: '', usageLimit: '' });
+        setAllowedListingIdsRaw('');
+        setNewPromo({
+          code: '',
+          type: 'PERCENT',
+          value: '',
+          expiryDate: '',
+          usageLimit: '',
+          isFlashSale: false,
+          flashEndsInHours: '24',
+        });
         loadPromoCodes();
       } else {
         const err = await res.json().catch(() => ({}));
@@ -144,11 +226,24 @@ export default function MarketingPage() {
 
   const activePromos = promoCodes.filter((p) => {
     if (!p.isActive) return false;
-    if (!p.expiryDate) return true;
-    return new Date(p.expiryDate) > new Date();
+    const end = promoExpiryEndMs(p);
+    if (!Number.isFinite(end)) return true;
+    return end > Date.now();
   });
   const totalUsage = promoCodes.reduce((sum, p) => sum + p.usedCount, 0);
   const criticalPlatformPromos = promoCodes.filter(isPlatformPromoCritical);
+
+  const displayedPromos = useMemo(() => {
+    if (promoListFilter !== 'flash') return promoCodes;
+    return promoCodes.filter((p) => {
+      if (!p.isFlashSale) return false;
+      if (!p.isActive) return false;
+      const lim = p.usageLimit != null && p.usedCount >= p.usageLimit;
+      if (lim) return false;
+      const end = promoExpiryEndMs(p);
+      return Number.isFinite(end) && end > Date.now();
+    });
+  }, [promoCodes, promoListFilter]);
 
   if (loading) {
     return <div className="flex items-center justify-center h-64">
@@ -217,21 +312,101 @@ export default function MarketingPage() {
           <CardContent className="p-2 sm:p-4 pt-0"><div className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600">{promoCodes.length}</div></CardContent>
         </Card>
         <Card className="border-2 border-purple-100">
-          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2"><CardTitle className="text-xs sm:text-sm text-gray-600">Исп-ний</CardTitle></CardHeader>
+          <CardHeader className="p-2 sm:p-4 pb-1 sm:pb-2"><CardTitle className="text-xs sm:text-sm text-gray-600">Оплач./Заверш.</CardTitle></CardHeader>
           <CardContent className="p-2 sm:p-4 pt-0"><div className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600">{totalUsage}</div></CardContent>
         </Card>
       </div>
 
+      {topPartners.length > 0 ? (
+        <Card className="border border-indigo-100 bg-gradient-to-br from-indigo-50/80 to-white shadow-sm">
+          <CardHeader className="p-4 sm:p-6 pb-2">
+            <CardTitle className="flex items-center gap-2 text-base text-indigo-950">
+              <Users className="h-5 w-5 text-indigo-600 shrink-0" />
+              Топ партнёров по промокодам
+            </CardTitle>
+            <CardDescription className="text-sm text-indigo-900/80">
+              Кто создаёт больше всего PARTNER-кодов (вовлечённость в продвижение).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs text-gray-500">
+                    <th className="py-2 pr-2">#</th>
+                    <th className="py-2 pr-2">Партнёр</th>
+                    <th className="py-2 pr-2">Кодов</th>
+                    <th className="py-2">Использований</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topPartners.map((row, i) => (
+                    <tr key={row.partnerId} className="border-b border-gray-100 last:border-0">
+                      <td className="py-2 pr-2 text-gray-400">{i + 1}</td>
+                      <td className="py-2 pr-2 min-w-0">
+                        <div className="font-medium text-gray-900 truncate">
+                          {row.partnerName || row.partnerId}
+                        </div>
+                        {row.partnerEmail ? (
+                          <div className="text-xs text-gray-500 truncate">{row.partnerEmail}</div>
+                        ) : null}
+                        <div className="text-[11px] text-gray-400 font-mono truncate mt-0.5">
+                          {(row.codes || []).join(', ')}
+                        </div>
+                      </td>
+                      <td className="py-2 pr-2 tabular-nums font-semibold text-indigo-700">{row.promoCount}</td>
+                      <td className="py-2 tabular-nums text-gray-700">{row.totalUses}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {/* Table - Mobile Responsive */}
       <Card className="shadow-xl">
-        <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg"><TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />Промокоды</CardTitle>
-          <CardDescription className="text-sm">Коды для скидок и акций</CardDescription>
+        <CardHeader className="p-4 sm:p-6 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
+              Промокоды
+            </CardTitle>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={promoListFilter === 'all' ? 'default' : 'outline'}
+                className={promoListFilter === 'all' ? 'bg-indigo-600' : ''}
+                onClick={() => setPromoListFilter('all')}
+              >
+                Все
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={promoListFilter === 'flash' ? 'default' : 'outline'}
+                className={promoListFilter === 'flash' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                onClick={() => setPromoListFilter('flash')}
+              >
+                <Zap className="w-4 h-4 mr-1 inline" />
+                Flash Sales
+              </Button>
+            </div>
+          </div>
+          <CardDescription className="text-sm">
+            Коды для скидок и акций
+            {promoListFilter === 'flash'
+              ? ' — активные срочные акции (is_flash_sale + valid_until в будущем).'
+              : ''}
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-4 sm:p-6 pt-0">
           <div className="space-y-3 sm:space-y-4">
-            {promoCodes.map((promo) => {
-              const isExpired = Boolean(promo.expiryDate) && new Date(promo.expiryDate) < new Date();
+            {displayedPromos.map((promo) => {
+              const endMs = promoExpiryEndMs(promo);
+              const isExpired = Number.isFinite(endMs) && endMs < Date.now();
               const isLimitReached =
                 promo.usageLimit != null && promo.usedCount >= promo.usageLimit;
               const isActive = promo.isActive && !isExpired && !isLimitReached;
@@ -262,9 +437,22 @@ export default function MarketingPage() {
                           <Badge variant="outline" className="text-xs">{promo.type === 'PERCENT' ? `${promo.value}%` : `${promo.value} ₿`}</Badge>
                           <Badge variant="outline" className="text-xs">
                             {promo.usageLimit == null
-                              ? `${promo.usedCount}/∞`
-                              : `${promo.usedCount}/${promo.usageLimit}`}
+                              ? `Оплачено/завершено: ${promo.usedCount}/∞`
+                              : `Оплачено/завершено: ${promo.usedCount}/${promo.usageLimit}`}
                           </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            Создано броней: {promo.bookingsCreatedCount || 0}
+                          </Badge>
+                          {Array.isArray(promo.allowedListingIds) && promo.allowedListingIds.length > 0 ? (
+                            <Badge variant="outline" className="text-xs border-violet-200 text-violet-900">
+                              scope: {promo.allowedListingIds.length}
+                            </Badge>
+                          ) : null}
+                          {promo.isFlashSale ? (
+                            <Badge className="text-xs border-0 bg-gradient-to-r from-orange-500 to-rose-500 text-white">
+                              FLASH
+                            </Badge>
+                          ) : null}
                         </div>
                       </div>
                     </div>
@@ -272,7 +460,17 @@ export default function MarketingPage() {
                       <div>
                         <p className="text-xs sm:text-sm text-gray-600">Истекает:</p>
                         <p className="font-semibold text-sm sm:text-base">
-                          {promo.expiryDate ? new Date(promo.expiryDate).toLocaleDateString('ru-RU') : '—'}
+                          {promo.validUntilIso
+                            ? new Date(promo.validUntilIso).toLocaleString('ru-RU', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })
+                            : promo.expiryDate
+                              ? new Date(promo.expiryDate).toLocaleDateString('ru-RU')
+                              : '—'}
                         </p>
                       </div>
                       <div className="flex gap-2 sm:mt-2">
@@ -310,8 +508,52 @@ export default function MarketingPage() {
             <div><Label>Код *</Label><Input placeholder="PHUKET2025" value={newPromo.code} onChange={(e) => setNewPromo({ ...newPromo, code: e.target.value.toUpperCase() })} className="mt-2 font-mono text-lg" /></div>
             <div><Label>Тип скидки *</Label><Select value={newPromo.type} onValueChange={(value) => setNewPromo({ ...newPromo, type: value })}><SelectTrigger className="mt-2"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="PERCENT">Процент (%)</SelectItem><SelectItem value="FIXED">Фиксированная (THB)</SelectItem></SelectContent></Select></div>
             <div><Label>Значение *</Label><Input type="number" placeholder={newPromo.type === 'PERCENT' ? '10' : '5000'} value={newPromo.value} onChange={(e) => setNewPromo({ ...newPromo, value: e.target.value })} className="mt-2" /></div>
-            <div><Label>Дата истечения *</Label><Input type="date" value={newPromo.expiryDate} onChange={(e) => setNewPromo({ ...newPromo, expiryDate: e.target.value })} className="mt-2" /></div>
+            <div className="flex items-start gap-3 rounded-lg border border-orange-100 bg-orange-50/60 p-3">
+              <Checkbox
+                id="admin-flash-sale"
+                checked={newPromo.isFlashSale}
+                onCheckedChange={(v) => setNewPromo({ ...newPromo, isFlashSale: Boolean(v) })}
+              />
+              <div className="space-y-1">
+                <Label htmlFor="admin-flash-sale" className="cursor-pointer font-medium text-orange-950">
+                  Flash Sale
+                </Label>
+                <p className="text-xs text-orange-900/85 leading-relaxed">
+                  Срочная акция с коротким дедлайном. Время окончания уйдёт в valid_until.
+                </p>
+              </div>
+            </div>
+            {newPromo.isFlashSale ? (
+              <div>
+                <Label>Flash-пресет времени *</Label>
+                <Select
+                  value={String(newPromo.flashEndsInHours)}
+                  onValueChange={(value) => setNewPromo({ ...newPromo, flashEndsInHours: value })}
+                >
+                  <SelectTrigger className="mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3">3 часа</SelectItem>
+                    <SelectItem value="6">6 часов</SelectItem>
+                    <SelectItem value="12">12 часов</SelectItem>
+                    <SelectItem value="24">24 часа</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div><Label>Дата истечения *</Label><Input type="date" value={newPromo.expiryDate} onChange={(e) => setNewPromo({ ...newPromo, expiryDate: e.target.value })} className="mt-2" /></div>
+            )}
             <div><Label>Лимит использований *</Label><Input type="number" placeholder="100" value={newPromo.usageLimit} onChange={(e) => setNewPromo({ ...newPromo, usageLimit: e.target.value })} className="mt-2" /></div>
+            <div>
+              <Label>Лимит по листингам (опционально)</Label>
+              <Textarea
+                placeholder="UUID листингов через запятую — код сработает только на них"
+                value={allowedListingIdsRaw}
+                onChange={(e) => setAllowedListingIdsRaw(e.target.value)}
+                className="mt-2 min-h-[72px] text-sm font-mono"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateModal(false)}>Отмена</Button>

@@ -17,6 +17,11 @@ import { isStaffRole } from '@/lib/services/chat/access'
 import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes'
 import { normalizeCancellationPolicy } from '@/lib/cancellation-refund-rules'
 import { ReputationService } from '@/lib/services/reputation.service'
+import {
+  fetchActivePromoRowsForCatalog,
+  computeCatalogPromoBadgeForListing,
+  computeCatalogFlashUrgencyForListing,
+} from '@/lib/promo/catalog-promo-badges'
 
 export const dynamic = 'force-dynamic'
 
@@ -143,6 +148,16 @@ export async function GET(request, context) {
       }
     }
 
+    let catalog_promo_badge = null
+    let catalog_flash_urgency = null
+    try {
+      const promoRows = await fetchActivePromoRowsForCatalog(supabaseAdmin)
+      catalog_promo_badge = computeCatalogPromoBadgeForListing(listing, promoRows, 0)
+      catalog_flash_urgency = computeCatalogFlashUrgencyForListing(listing, promoRows)
+    } catch (e) {
+      console.warn('[LISTING GET] catalog promo', e?.message)
+    }
+
     const session = await getSessionPayload()
     const viewerId = session?.userId ? String(session.userId) : null
     const viewerRole = String(session?.role || '').toUpperCase()
@@ -209,6 +224,8 @@ export async function GET(request, context) {
         priceMonthly: sp.price_monthly ? parseFloat(sp.price_monthly) : null
       })) || [],
       partnerTrust,
+      catalog_promo_badge,
+      catalog_flash_urgency,
     };
     
     return NextResponse.json({ success: true, data: transformed });

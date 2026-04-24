@@ -49,6 +49,7 @@ import { useChatContext } from '@/lib/context/ChatContext'
 import { useCommission } from '@/hooks/use-commission'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import { getBookingApiUserMessage } from '@/lib/booking-error-message'
+import { UrgencyTimer } from '@/components/UrgencyTimer'
 
 const CHAT_CACHE_TTL = 5 * 60 * 1000 // 5 min
 
@@ -516,6 +517,7 @@ function PremiumListingContent({ params }) {
           })(),
           cancellationPolicy: l.cancellationPolicy ?? l.cancellation_policy ?? 'moderate',
           partnerTrust: l.partnerTrust ?? null,
+          catalog_flash_urgency: l.catalog_flash_urgency ?? null,
         })
       }
       setLoading(false)
@@ -841,6 +843,12 @@ function PremiumListingContent({ params }) {
               setGalleryOpen(true)
             }}
           />
+
+          {listing.catalog_flash_urgency?.ends_at ? (
+            <div className="mt-3 max-w-2xl">
+              <UrgencyTimer endsAt={listing.catalog_flash_urgency.ends_at} language={language} />
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             <div className="lg:col-span-2 space-y-8">
