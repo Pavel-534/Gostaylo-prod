@@ -18,6 +18,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { format, parseISO, differenceInDays } from 'date-fns'
+import { durationPhraseForBookingEmail } from '@/lib/email/booking-email-i18n'
 import { ru } from 'date-fns/locale'
 import { useQueryClient } from '@tanstack/react-query'
 import { 
@@ -716,7 +717,14 @@ export default function PartnerDashboard() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-slate-900 truncate">{arrival.guestName}</p>
                       <p className="text-xs text-slate-500 truncate">
-                        {arrival.listingTitle} • {arrival.nights} {arrival.nights === 1 ? 'ночь' : arrival.nights < 5 ? 'ночи' : 'ночей'}
+                        {arrival.listingTitle} •{' '}
+                        {durationPhraseForBookingEmail(
+                          arrival.checkIn,
+                          arrival.checkOut || arrival.checkIn,
+                          language,
+                          arrival.categorySlug ?? null,
+                          Math.max(1, Number(arrival.nights) || 1),
+                        )}
                       </p>
                     </div>
                     <div className="text-right">

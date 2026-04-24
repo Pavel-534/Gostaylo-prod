@@ -8,6 +8,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { getUserIdFromSession } from '@/lib/services/session-service'
 import { isPartnerInQuietHoursNow } from '@/lib/services/availability.service'
 import { canRenterUseEmergencyContactBooking } from '@/lib/emergency-contact-eligibility'
+import { resolveEmergencyServiceKindFromCategorySlug } from '@/lib/emergency-contact-protocol'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,7 +38,12 @@ export async function GET(_request, { params }) {
     if (!partnerId) {
       return NextResponse.json({
         success: true,
-        data: { bookingEligible: false, partnerInQuietHours: false, reason: 'no_partner' },
+        data: {
+          bookingEligible: false,
+          partnerInQuietHours: false,
+          emergencyServiceKind: 'stay',
+          reason: 'no_partner',
+        },
       })
     }
 
@@ -52,9 +58,27 @@ export async function GET(_request, { params }) {
         data: {
           bookingEligible: false,
           partnerInQuietHours: false,
+          emergencyServiceKind: 'stay',
           reason: life.reason,
         },
       })
+    }
+
+    let emergencyServiceKind = 'stay'
+    if (booking.listing_id) {
+      const { data: lst } = await supabaseAdmin
+        .from('listings')
+        .select('category_id')
+        .eq('id', booking.listing_id)
+        .maybeSingle()
+      if (lst?.category_id) {
+        const { data: cat } = await supabaseAdmin
+          .from('listing_categories')
+          .select('slug')
+          .eq('id', lst.category_id)
+          .maybeSingle()
+        if (cat?.slug) emergencyServiceKind = resolveEmergencyServiceKindFromCategorySlug(cat.slug)
+      }
     }
 
     const partnerInQuietHours = await isPartnerInQuietHoursNow(partnerId, {
@@ -67,6 +91,7 @@ export async function GET(_request, { params }) {
       data: {
         bookingEligible: true,
         partnerInQuietHours,
+        emergencyServiceKind,
         reason: null,
       },
     })

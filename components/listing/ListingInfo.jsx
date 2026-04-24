@@ -37,6 +37,7 @@ import {
 import { normalizeVehicleModelYearForDisplay } from '@/lib/listing-vehicle-year'
 import { ListingCancellationPolicy } from '@/components/listing/ListingCancellationPolicy'
 import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
+import { PartnerRenterTrustBadges } from '@/components/trust/PartnerRenterTrustBadges'
 
 function useGuestListingModel(listing) {
   return useMemo(() => {
@@ -268,8 +269,9 @@ export function GuestListingBodyBlock({ listing, language = 'en' }) {
                       </Badge>
                     ) : null}
                     {listing.partnerTrust ? (
-                      <div className="pt-2">
+                      <div className="pt-2 space-y-1.5">
                         <PartnerTrustBadge trust={listing.partnerTrust} language={language} />
+                        <PartnerRenterTrustBadges trust={listing.partnerTrust} language={language} />
                       </div>
                     ) : null}
                   </div>

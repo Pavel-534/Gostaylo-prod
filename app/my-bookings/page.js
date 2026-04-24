@@ -4,19 +4,15 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Star, Calendar, Loader2, ArrowLeft } from 'lucide-react'
+import { Calendar, Loader2, ArrowLeft } from 'lucide-react'
 import { useI18n } from '@/contexts/i18n-context'
 import UnifiedOrderCard from '@/components/orders/UnifiedOrderCard'
 import OrdersSummary from '@/components/orders/OrdersSummary'
 import OrderTypeFilter from '@/components/orders/OrderTypeFilter'
 import { OrdersListSkeleton, OrdersPageSkeleton } from '@/components/orders/OrdersSkeleton'
 import { toast } from 'sonner'
-import { processAndUploadReviewPhotos } from '@/lib/services/image-upload.service'
-
-const MAX_REVIEW_PHOTOS = 5
+import { ReviewModal } from '@/components/review-modal'
+import { useReviewSubmission } from '@/hooks/use-review-submission'
 const SWITCH_SKELETON_DELAY_MS = 120
 
 function toIsoOrNull(value) {
@@ -76,13 +72,8 @@ export default function MyBookings() {
   const [activeType, setActiveType] = useState('all')
   const [reviewModalOpen, setReviewModalOpen] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState(null)
-  const [rating, setRating] = useState(0)
-  const [hoverRating, setHoverRating] = useState(0)
-  const [comment, setComment] = useState('')
-  const [submitting, setSubmitting] = useState(false)
   const [actionBookingId, setActionBookingId] = useState(null)
   const [currentUserId, setCurrentUserId] = useState(null)
-  const [reviewPhotoFiles, setReviewPhotoFiles] = useState([])
 
   const loadBookings = useCallback(async () => {
     setLoading(true)
@@ -118,6 +109,16 @@ export default function MyBookings() {
       setLoading(false)
     }
   }, [])
+
+  const { submitReview, isPending: reviewSubmitPending } = useReviewSubmission({
+    language,
+    userId: currentUserId,
+    onSuccess: () => {
+      setReviewModalOpen(false)
+      setSelectedBooking(null)
+      void loadBookings()
+    },
+  })
 
   useEffect(() => {
     void loadBookings()
@@ -168,9 +169,6 @@ export default function MyBookings() {
 
   function openReviewModal(booking) {
     setSelectedBooking(booking)
-    setRating(0)
-    setComment('')
-    setReviewPhotoFiles([])
     setReviewModalOpen(true)
   }
 
@@ -224,74 +222,14 @@ export default function MyBookings() {
     }
   }
 
-  async function handleReviewSubmit(e) {
-    e.preventDefault()
-
-    if (!rating) {
-      toast.error('Поставьте оценку')
-      return
-    }
-
-    if (!comment.trim()) {
-      toast.error('Напишите комментарий')
-      return
-    }
-
-    if (!currentUserId) {
-      toast.error('Войдите в аккаунт')
-      return
-    }
-
-    const listingId = selectedBooking?.listing_id || selectedBooking?.listings?.id
-    const bookingId = selectedBooking?.id
-
-    if (!listingId || !bookingId) {
-      toast.error('Недостаточно данных бронирования')
-      return
-    }
-
-    setSubmitting(true)
-
-    try {
-      let photos = []
-      if (reviewPhotoFiles.length > 0) {
-        photos = await processAndUploadReviewPhotos(reviewPhotoFiles, currentUserId, bookingId)
-        if (photos.length !== reviewPhotoFiles.length) {
-          toast.error('Не удалось загрузить все фото')
-          setSubmitting(false)
-          return
-        }
-      }
-
-      const res = await fetch('/api/v2/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          listingId,
-          bookingId,
-          rating,
-          comment: comment.trim(),
-          ...(photos.length ? { photos } : {}),
-        }),
-      })
-
-      const data = await res.json().catch(() => ({}))
-
-      if (res.ok && data.success) {
-        toast.success('Отзыв опубликован! Спасибо за ваше мнение.')
-        setReviewModalOpen(false)
-        setReviewPhotoFiles([])
-        void loadBookings()
-      } else {
-        toast.error(data.error || 'Ошибка при публикации отзыва')
-      }
-    } catch (error) {
-      console.error('Failed to submit review:', error)
-      toast.error('Ошибка при публикации отзыва')
-    } finally {
-      setSubmitting(false)
-    }
+  async function handleReviewSubmit(reviewData) {
+    if (!selectedBooking) return
+    await submitReview({
+      booking: selectedBooking,
+      ratings: reviewData.ratings,
+      comment: reviewData.comment,
+      photos: reviewData.photos || [],
+    })
   }
 
   if (loading) {
@@ -374,127 +312,25 @@ export default function MyBookings() {
           </div>
         )}
 
-        <Dialog open={reviewModalOpen} onOpenChange={setReviewModalOpen}>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Оставьте отзыв</DialogTitle>
-            </DialogHeader>
-
-            <form onSubmit={handleReviewSubmit} className="space-y-6">
-              <div>
-                <Label className="text-base font-semibold mb-3 block">Ваша оценка</Label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setRating(star)}
-                      onMouseEnter={() => setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      className="transition-transform hover:scale-110"
-                    >
-                      <Star
-                        className={`h-10 w-10 ${
-                          star <= (hoverRating || rating)
-                            ? 'fill-amber-400 text-amber-400'
-                            : 'fill-slate-200 text-slate-200'
-                        }`}
-                      />
-                    </button>
-                  ))}
-                </div>
-                {rating > 0 && (
-                  <p className="text-sm text-slate-600 mt-2">
-                    {rating === 5 && '⭐ Отлично!'}
-                    {rating === 4 && '😊 Хорошо'}
-                    {rating === 3 && '🙂 Нормально'}
-                    {rating === 2 && '😐 Так себе'}
-                    {rating === 1 && '😞 Плохо'}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="comment" className="text-base font-semibold mb-3 block">
-                  Ваш отзыв
-                </Label>
-                <Textarea
-                  id="comment"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Поделитесь впечатлениями о вашей аренде..."
-                  rows={5}
-                  className="resize-none"
-                />
-                <p className="text-xs text-slate-500 mt-2">
-                  Имя в отзыве будет показано в формате «Имя Ф.» для конфиденциальности.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="review-photos-my-bookings" className="text-base font-semibold block">
-                  Фото (необязательно, до {MAX_REVIEW_PHOTOS})
-                </Label>
-                <input
-                  id="review-photos-my-bookings"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="text-sm text-slate-600 file:mr-2 file:rounded file:border file:border-slate-200 file:bg-white file:px-3 file:py-1"
-                  disabled={reviewPhotoFiles.length >= MAX_REVIEW_PHOTOS}
-                  onChange={(e) => {
-                    const picked = Array.from(e.target.files || []).filter((f) => f.type.startsWith('image/'))
-                    e.target.value = ''
-                    if (!picked.length) return
-                    setReviewPhotoFiles((prev) => {
-                      const next = [...prev, ...picked].slice(0, MAX_REVIEW_PHOTOS)
-                      if (prev.length + picked.length > MAX_REVIEW_PHOTOS) {
-                        toast.error(`Не более ${MAX_REVIEW_PHOTOS} фото`)
-                      }
-                      return next
-                    })
-                  }}
-                />
-                {reviewPhotoFiles.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500">{reviewPhotoFiles.length} файл(ов)</span>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setReviewPhotoFiles([])}>
-                      Сбросить
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-3">
-                <Button
-                  type="submit"
-                  disabled={!rating || !comment.trim() || submitting}
-                  className="flex-1 bg-teal-600 hover:bg-teal-700"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Публикация...
-                    </>
-                  ) : (
-                    <>
-                      <Star className="h-4 w-4 mr-2" />
-                      Опубликовать отзыв
-                    </>
-                  )}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setReviewModalOpen(false)}
-                  disabled={submitting}
-                >
-                  Отмена
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <ReviewModal
+          isOpen={reviewModalOpen}
+          onClose={() => {
+            setReviewModalOpen(false)
+            setSelectedBooking(null)
+          }}
+          booking={selectedBooking}
+          userId={currentUserId}
+          onSubmit={handleReviewSubmit}
+          isSubmitting={reviewSubmitPending}
+          language={language}
+          categorySlug={
+            selectedBooking
+              ? (selectedBooking.listing || selectedBooking.listings || {}).category_slug ??
+                (selectedBooking.listing || selectedBooking.listings || {}).categorySlug ??
+                null
+              : null
+          }
+        />
       </div>
     </div>
   )

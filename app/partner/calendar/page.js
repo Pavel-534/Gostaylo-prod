@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react'
 import { format, addDays, subDays, parseISO } from 'date-fns'
-import { Calendar, Loader2, AlertCircle, Plus } from 'lucide-react'
+import { Calendar, Loader2, AlertCircle, Plus, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import Link from 'next/link'
@@ -24,6 +24,9 @@ import { ActionModals } from '@/components/calendar/ActionModals'
 import { PartnerCalendarEducationCard } from '@/components/partner/PartnerCalendarEducationCard'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { detectLanguage, getUIText } from '@/lib/translations'
+import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-service-type'
+import { getPartnerCalendarDominantHint } from '@/lib/config/partner-category-sla-hints'
+import { usePartnerReputationHealthQuery } from '@/hooks/use-partner-reputation-health'
 
 // Day width options
 const DAY_WIDTHS = {
@@ -89,7 +92,10 @@ function MasterCalendarContent() {
       } catch (e) {}
     }
   }, [user?.id])
-  
+
+  const { data: reputationHealthData } = usePartnerReputationHealthQuery(!!partnerId)
+  const dominantCategorySlug = reputationHealthData?.dominantCategorySlug ?? null
+
   // View state
   const [viewMode, setViewMode] = useState('normal')
   const [daysToShow, setDaysToShow] = useState(30)
@@ -350,10 +356,19 @@ function MasterCalendarContent() {
   
   const { dates, listings, summary } = calendarData
   const dayWidth = DAY_WIDTHS[viewMode]
+
+  const calendarDominantHint = useMemo(() => {
+    const kind = inferListingServiceTypeFromCategorySlug(dominantCategorySlug)
+    return getPartnerCalendarDominantHint(kind, language)
+  }, [dominantCategorySlug, language])
   
   return (
     <div className="max-w-full overflow-hidden space-y-4 px-2 sm:px-0">
       <PartnerCalendarEducationCard variant="calendar-page" className="max-w-[1600px] mx-auto" />
+      <div className="max-w-[1600px] mx-auto flex gap-2 items-start rounded-xl border border-teal-100 bg-teal-50/50 px-3 py-2.5 text-xs text-teal-950">
+        <Sparkles className="h-4 w-4 shrink-0 text-teal-600 mt-0.5" aria-hidden />
+        <p className="leading-relaxed">{calendarDominantHint}</p>
+      </div>
       {openedFromChat ? (
         <div className="max-w-[1600px] mx-auto rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
           Вы перешли из чата — здесь можно заблокировать даты, создать ручную бронь или изменить цену по ячейке.

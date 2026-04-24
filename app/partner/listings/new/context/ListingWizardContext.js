@@ -28,6 +28,11 @@ import {
   isPartnerListingHousingCategory,
 } from '@/lib/partner/listing-wizard-metadata'
 import { isTransportListingCategory, isTourListingCategory } from '@/lib/listing-category-slug'
+import {
+  categorySlugMatchesListingServiceType,
+  defaultMetadataForListingServiceType,
+  inferListingServiceTypeFromCategorySlug,
+} from '@/lib/partner/listing-service-type'
 import { pickPartnerFormDescription } from '@/lib/partner/listing-description-i18n'
 import { applyDurationDiscountField } from '@/lib/partner/duration-discount-helpers'
 import { guessIanaTimezoneFromLatLon } from '@/lib/geo/listing-timezone-guess'
@@ -116,6 +121,12 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     () => categories.find((c) => c.id === formData.categoryId)?.slug ?? '',
     [categories, formData.categoryId],
   )
+
+  const wizardCategoriesForSelect = useMemo(() => {
+    const st = formData.listingServiceType
+    if (!st) return []
+    return categories.filter((c) => categorySlugMatchesListingServiceType(c.slug, st))
+  }, [categories, formData.listingServiceType])
   const transportWizard = isTransportListingCategory(listingCategorySlug)
   const toursWizard = isTourListingCategory(listingCategorySlug)
   const hideAirbnbImportBlock = transportWizard || toursWizard
@@ -139,7 +150,10 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
   /** Step validation: 1 general+specs; 2 location; 3 photos; 4 pricing; 5 preview. */
   const canProceed = useMemo(() => {
     const generalOk =
-      formData.categoryId && formData.title.length >= 10 && formData.description.length >= 20
+      Boolean(formData.listingServiceType) &&
+      formData.categoryId &&
+      formData.title.length >= 10 &&
+      formData.description.length >= 20
     const locOk = Boolean(formData.district) && coordsValid
     const photosOk = (formData.images || []).length >= 1
     const priceOk = parseFloat(String(formData.basePriceThb).replace(',', '.')) > 0
@@ -307,6 +321,23 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     }
   }, [currentStep])
 
+  const setListingServiceType = useCallback((type) => {
+    setFormData((prev) => {
+      const slug = categories.find((c) => c.id === prev.categoryId)?.slug
+      const keepCategory = Boolean(
+        slug && categorySlugMatchesListingServiceType(String(slug), String(type)),
+      )
+      const meta = defaultMetadataForListingServiceType(String(type), prev.metadata)
+      return {
+        ...prev,
+        listingServiceType: type,
+        categoryId: keepCategory ? prev.categoryId : '',
+        categoryName: keepCategory ? prev.categoryName : '',
+        metadata: meta,
+      }
+    })
+  }, [categories])
+
   const setCategoryId = useCallback(
     (value) => {
       const cat = categories.find((c) => c.id === value)
@@ -401,8 +432,10 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
               imagesOrdered = [coverU, ...rawImgs]
             }
           }
+          const inferredServiceType = inferListingServiceTypeFromCategorySlug(catSlug)
           setFormData({
             ...getDefaultWizardFormData(),
+            listingServiceType: inferredServiceType,
             categoryId: listing.categoryId || listing.category_id || '',
             categoryName: c?.name || '',
             title: listing.title || '',
@@ -730,6 +763,8 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     updateMetadata,
     updateDurationDiscountPercent,
     setCategoryId,
+    setListingServiceType,
+    wizardCategoriesForSelect,
     listingCategorySlug,
     transportWizard,
     toursWizard,

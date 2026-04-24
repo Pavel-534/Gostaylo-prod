@@ -5,6 +5,8 @@ export const WIZARD_DISTRICTS = [
 
 export function getDefaultWizardFormData() {
   return {
+    /** @type {'' | 'stay' | 'transport' | 'service' | 'tour'} Stage 26.0 */
+    listingServiceType: '',
     categoryId: '',
     categoryName: '',
     title: '',

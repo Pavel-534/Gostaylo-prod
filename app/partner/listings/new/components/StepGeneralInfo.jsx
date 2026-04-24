@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Loader2 } from 'lucide-react'
 import { PartnerListingImportBlock } from '@/components/partner/PartnerListingImportBlock'
@@ -23,7 +24,8 @@ function StepGeneralInfoInner() {
     updateField,
     updateDescription,
     setCategoryId,
-    categories,
+    setListingServiceType,
+    wizardCategoriesForSelect,
     transportWizard,
     hideAirbnbImportBlock,
     listingCategorySlug,
@@ -42,14 +44,41 @@ function StepGeneralInfoInner() {
         <h2 className="mb-2 text-2xl font-semibold">{t('tellUsAboutListing')}</h2>
         <p className="text-slate-600">{t('startWithBasics')}</p>
       </div>
+      <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+        <Label className="text-base font-medium">{t('wizardServiceTypeLabel')}</Label>
+        <p className="text-xs text-slate-600">{t('wizardServiceTypeHint')}</p>
+        <RadioGroup
+          value={formData.listingServiceType || ''}
+          onValueChange={setListingServiceType}
+          className="grid gap-2 sm:grid-cols-2"
+        >
+          {(['stay', 'transport', 'service', 'tour']).map((value) => (
+            <label
+              key={value}
+              className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm hover:border-teal-300"
+            >
+              <RadioGroupItem value={value} id={`svc-${value}`} />
+              <span className="font-medium text-slate-800">{t(`wizardServiceType_${value}`)}</span>
+            </label>
+          ))}
+        </RadioGroup>
+      </div>
       <div>
         <Label className="text-base font-medium">{t('selectCategory')}</Label>
-        <Select value={formData.categoryId} onValueChange={setCategoryId}>
+        <Select
+          value={formData.categoryId}
+          onValueChange={setCategoryId}
+          disabled={!formData.listingServiceType}
+        >
           <SelectTrigger className="mt-2 h-12">
-            <SelectValue placeholder={t('selectCategoryPlaceholder')} />
+            <SelectValue
+              placeholder={
+                formData.listingServiceType ? t('selectCategoryPlaceholder') : t('wizardSelectServiceTypeFirst')
+              }
+            />
           </SelectTrigger>
           <SelectContent>
-            {categories.map((cat) => (
+            {wizardCategoriesForSelect.map((cat) => (
               <SelectItem key={cat.id} value={cat.id}>
                 {getCategoryName(cat.slug, language) || cat.name}
               </SelectItem>

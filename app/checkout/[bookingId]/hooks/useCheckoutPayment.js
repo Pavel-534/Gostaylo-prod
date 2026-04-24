@@ -79,6 +79,7 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
         partnerEarningsThb: parseFloat(b.partner_earnings_thb) || 0,
         roundingDiffPot: parseFloat(b.rounding_diff_pot) || 0,
         taxableMarginAmount: parseFloat(b.taxable_margin_amount) || 0,
+        pricing_snapshot: b.pricing_snapshot ?? null,
       })
 
       if (l) {

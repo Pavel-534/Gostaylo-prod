@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -10,8 +10,10 @@ import {
   AlertTriangle,
   BookOpen,
   Calendar,
+  Car,
   Check,
   Home,
+  Key,
   LifeBuoy,
   Loader2,
   Mail,
@@ -28,6 +30,7 @@ import { getUIText } from '@/lib/translations'
 import OrderTypeIcon from '@/components/ui/OrderTypeIcon'
 import OrderStatusBadge from '@/components/ui/order-status-badge'
 import OrderTimeline from '@/components/orders/OrderTimeline'
+import { OrderPriceBreakdown } from '@/components/orders/OrderPriceBreakdown'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
@@ -38,6 +41,9 @@ import {
   shouldAllowReviewByLifecycle,
 } from '@/lib/orders/order-timeline'
 import { canOpenOfficialDispute } from '@/lib/disputes/dispute-eligibility'
+import { resolveEmergencyServiceKindFromListing } from '@/lib/emergency-contact-protocol'
+import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-service-type'
+import { PartnerRenterTrustBadges } from '@/components/trust/PartnerRenterTrustBadges'
 
 function normalizeRole(role) {
   const value = String(role || '').trim().toLowerCase()
@@ -71,21 +77,21 @@ function getOrderTypeLabel(type, language) {
   if (lang === 'en') {
     if (normalized === 'transport') return 'Transport'
     if (normalized === 'activity') return 'Activity'
-    return 'Home'
+    return 'Accommodation'
   }
   if (lang === 'th') {
     if (normalized === 'transport') return 'การเดินทาง'
     if (normalized === 'activity') return 'กิจกรรม'
-    return 'ที่พัก'
+    return 'ที่พัก/บริการ'
   }
   if (lang === 'zh') {
     if (normalized === 'transport') return '交通'
     if (normalized === 'activity') return '活动'
-    return '住宿'
+    return '住宿/服务'
   }
   if (normalized === 'transport') return 'Транспорт'
   if (normalized === 'activity') return 'Активности'
-  return 'Жильё'
+  return 'Размещение'
 }
 
 function canRenterCancel(status) {
@@ -164,7 +170,28 @@ export default function UnifiedOrderCard({
   const normalizedOrder = normalizeUnifiedOrder(booking, unifiedOrder)
 
   const listing = booking?.listing || booking?.listings || {}
-  const title = listing?.title || 'Объект'
+  const partnerTrustPublic = booking?.partner_trust || null
+  const listingCategorySlugForPickup = String(listing?.category_slug || listing?.category?.slug || '').toLowerCase()
+  const pickupServiceKind = inferListingServiceTypeFromCategorySlug(listingCategorySlugForPickup)
+  const checkInInstructionsText = useMemo(() => {
+    const m = booking?.metadata
+    const obj = m && typeof m === 'object' && !Array.isArray(m) ? m : {}
+    const s = obj.check_in_instructions
+    return typeof s === 'string' ? s.trim() : ''
+  }, [booking?.metadata])
+  const emergencyServiceKind = useMemo(() => {
+    const api = emergencyCtx?.emergencyServiceKind
+    if (api === 'transport' || api === 'service' || api === 'tour' || api === 'stay') return api
+    return resolveEmergencyServiceKindFromListing(listing)
+  }, [listing, emergencyCtx?.emergencyServiceKind])
+  const emergencyAccessCheckKey = useMemo(() => {
+    if (emergencyServiceKind === 'transport') return 'orderHelp_emergencyCheck_access_transport'
+    if (emergencyServiceKind === 'service') return 'orderHelp_emergencyCheck_access_service'
+    return 'orderHelp_emergencyCheck_access'
+  }, [emergencyServiceKind])
+  const debugEmergencyAlways =
+    typeof process !== 'undefined' && process.env.NEXT_PUBLIC_EMERGENCY_ALWAYS_VISIBLE === 'true'
+  const title = listing?.title || getUIText('myBookings_listingFallback', language)
   const district = listing?.district
   const checkIn = normalizedOrder.dates.check_in
   const checkOut = normalizedOrder.dates.check_out
@@ -217,10 +244,11 @@ export default function UnifiedOrderCard({
         if (res.ok && json.success && json.data) {
           setEmergencyCtx(json.data)
         } else {
-          setEmergencyCtx({ bookingEligible: false, partnerInQuietHours: false })
+          setEmergencyCtx({ bookingEligible: false, partnerInQuietHours: false, emergencyServiceKind: 'stay' })
         }
       } catch {
-        if (!cancelled) setEmergencyCtx({ bookingEligible: false, partnerInQuietHours: false })
+        if (!cancelled)
+          setEmergencyCtx({ bookingEligible: false, partnerInQuietHours: false, emergencyServiceKind: 'stay' })
       } finally {
         if (!cancelled) setEmergencyCtxReady(true)
       }
@@ -461,6 +489,30 @@ export default function UnifiedOrderCard({
           reviewed={reviewed}
           checkOut={checkOut}
         />
+
+        {normalizedRole === 'renter' && partnerTrustPublic ? (
+          <PartnerRenterTrustBadges trust={partnerTrustPublic} language={language} />
+        ) : null}
+
+        <OrderPriceBreakdown
+          booking={booking}
+          language={language}
+          role={normalizedRole === 'partner' ? 'partner' : 'renter'}
+        />
+
+        {normalizedRole === 'renter' && checkInInstructionsText ? (
+          <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-3 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 flex items-center gap-2">
+              {pickupServiceKind === 'transport' ? (
+                <Car className="h-4 w-4 text-slate-500 shrink-0" aria-hidden />
+              ) : (
+                <Key className="h-4 w-4 text-slate-500 shrink-0" aria-hidden />
+              )}
+              {getUIText('orderCheckInInstructions_title', language)}
+            </p>
+            <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{checkInInstructionsText}</p>
+          </div>
+        ) : null}
 
         {normalizedRole === 'admin' && booking?.renter && booking?.partner ? (
           <div className="grid sm:grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
@@ -747,33 +799,51 @@ export default function UnifiedOrderCard({
                 ) : null}
                 {normalizedRole === 'renter' && bookingId && emergencyCtxReady && emergencyCtx?.bookingEligible ? (
                   <div className="w-full pt-2 border-t border-slate-200 mt-2 space-y-2">
-                    {emergencyCtx?.partnerInQuietHours ? (
-                      <>
-                        <p className="text-xs text-slate-600">{getUIText('orderHelp_emergencyHint', language)}</p>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          className="bg-red-700 hover:bg-red-800"
-                          disabled={emergencySending}
-                          onClick={openEmergencyChecklistModal}
-                        >
-                          <Siren className="h-4 w-4 mr-2" />
-                          {getUIText('orderHelp_emergencyContact', language)}
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-xs text-slate-600">{getUIText('orderHelp_emergencyDaytimeHint', language)}</p>
-                        {supportChatHref ? (
-                          <Button asChild variant="default" className="bg-teal-600 hover:bg-teal-700">
-                            <Link href={supportChatHref}>
-                              <MessageSquare className="h-4 w-4 mr-2" />
-                              {getUIText('orderHelp_writeToPartnerChat', language)}
-                            </Link>
-                          </Button>
-                        ) : null}
-                      </>
-                    )}
+                    {(() => {
+                      const partnerQuiet = emergencyCtx?.partnerInQuietHours === true
+                      const showEmergencyButton = partnerQuiet || debugEmergencyAlways
+                      return (
+                        <>
+                          {partnerQuiet ? (
+                            <p className="text-xs text-slate-600">{getUIText('orderHelp_emergencyHint', language)}</p>
+                          ) : null}
+                          {debugEmergencyAlways && !partnerQuiet ? (
+                            <p className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
+                              <span className="font-semibold">{getUIText('orderHelp_emergencyDebugBadge', language)}</span>
+                              {' — '}
+                              {getUIText('orderHelp_emergencyDebugHint', language)}
+                            </p>
+                          ) : null}
+                          {showEmergencyButton ? (
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              className="bg-red-700 hover:bg-red-800"
+                              disabled={emergencySending}
+                              onClick={openEmergencyChecklistModal}
+                            >
+                              <Siren className="h-4 w-4 mr-2" />
+                              {getUIText('orderHelp_emergencyContact', language)}
+                            </Button>
+                          ) : null}
+                          {!showEmergencyButton ? (
+                            <>
+                              <p className="text-xs text-slate-600">
+                                {getUIText('orderHelp_emergencyDaytimeHint', language)}
+                              </p>
+                              {supportChatHref ? (
+                                <Button asChild variant="default" className="bg-teal-600 hover:bg-teal-700">
+                                  <Link href={supportChatHref}>
+                                    <MessageSquare className="h-4 w-4 mr-2" />
+                                    {getUIText('orderHelp_writeToPartnerChat', language)}
+                                  </Link>
+                                </Button>
+                              ) : null}
+                            </>
+                          ) : null}
+                        </>
+                      )
+                    })()}
                   </div>
                 ) : null}
               </div>
@@ -952,9 +1022,9 @@ export default function UnifiedOrderCard({
                     onCheckedChange={(v) =>
                       setEmergencyCheck((c) => ({ ...c, no_property_access: v === true }))
                     }
-                    aria-label={getUIText('orderHelp_emergencyCheck_access', language)}
+                    aria-label={getUIText(emergencyAccessCheckKey, language)}
                   />
-                  <span>{getUIText('orderHelp_emergencyCheck_access', language)}</span>
+                  <span>{getUIText(emergencyAccessCheckKey, language)}</span>
                 </label>
                 <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 text-sm text-slate-800">
                   <Checkbox

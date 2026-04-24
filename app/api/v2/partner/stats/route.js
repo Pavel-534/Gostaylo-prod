@@ -147,7 +147,7 @@ export async function GET(request) {
       
       // Fetch listings
       const listingsRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${userId}&select=id,title,base_price_thb`,
+        `${SUPABASE_URL}/rest/v1/listings?owner_id=eq.${userId}&select=id,title,base_price_thb,category_id`,
         {
           headers: {
             'apikey': SUPABASE_KEY,
@@ -160,6 +160,27 @@ export async function GET(request) {
       
       if (!Array.isArray(listings)) {
         throw new Error('Invalid listings response')
+      }
+
+      const categoryIds = [...new Set(listings.map((l) => l.category_id).filter(Boolean))]
+      const categorySlugById = {}
+      if (categoryIds.length) {
+        const catRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/listing_categories?id=in.(${categoryIds.join(',')})&select=id,slug`,
+          {
+            headers: {
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`,
+            },
+            cache: 'no-store',
+          },
+        )
+        const cats = await catRes.json()
+        if (Array.isArray(cats)) {
+          for (const c of cats) {
+            if (c?.id) categorySlugById[String(c.id)] = c.slug || null
+          }
+        }
       }
       
       // Fetch all bookings for this partner
@@ -251,6 +272,7 @@ export async function GET(request) {
         .slice(0, 5)
         .map(b => {
           const listing = listings.find(l => l.id === b.listing_id)
+          const catId = listing?.category_id ? String(listing.category_id) : ''
           return {
             id: b.id,
             guestName: b.guest_name,
@@ -258,6 +280,7 @@ export async function GET(request) {
             checkIn: b.check_in,
             checkOut: b.check_out,
             nights: differenceInDays(parseISO(b.check_out), parseISO(b.check_in)),
+            categorySlug: catId ? categorySlugById[catId] ?? null : null,
             priceThb: parseFloat(b.price_thb) || 0
           }
         })

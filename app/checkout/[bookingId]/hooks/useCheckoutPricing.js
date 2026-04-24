@@ -5,6 +5,7 @@ import { formatPrice, priceRawForTest, languageToNumberLocale } from '@/lib/curr
 import { getUIText } from '@/lib/translations'
 import { useCommission } from '@/hooks/use-commission'
 import { computeRoundedGuestTotalPot } from '@/lib/booking-price-integrity'
+import { buildGuestPriceBreakdownFromCheckoutTotals } from '@/lib/booking/guest-price-breakdown'
 import { interpolateTemplate } from './interpolate.js'
 
 /**
@@ -114,6 +115,7 @@ export function useCheckoutPricing({ booking, invoice, paymentMethod, setPayment
     invoiceCurrency,
     hasInvoiceCheckout,
     payableText,
+    guestCheckoutBreakdown,
   } = useMemo(() => {
     const discountAmount = promoDiscount?.discountAmount || 0
     const priceAfterDiscount = (booking?.priceThb ?? 0) - discountAmount
@@ -134,6 +136,28 @@ export function useCheckoutPricing({ booking, invoice, paymentMethod, setPayment
     const payableText = hasInvoiceCheckout
       ? `${invoiceCurrency === 'THB' ? '฿' : invoiceCurrency === 'RUB' ? '₽' : '$'}${invoiceAmount.toLocaleString()} ${invoiceCurrency}`
       : formatPrice(totalWithFee, booking?.currency || 'THB', exchangeRates, language)
+
+    const snap =
+      booking?.pricing_snapshot && typeof booking.pricing_snapshot === 'object'
+        ? booking.pricing_snapshot
+        : {}
+    const fs = snap.fee_split_v2 && typeof snap.fee_split_v2 === 'object' ? snap.fee_split_v2 : {}
+    const insuranceThb = Number(fs.insurance_reserve_thb)
+    const insuranceOk = Number.isFinite(insuranceThb) ? insuranceThb : 0
+
+    const guestCheckoutBreakdown =
+      !booking || hasInvoiceCheckout
+        ? null
+        : buildGuestPriceBreakdownFromCheckoutTotals({
+            listPriceThb: booking.priceThb ?? 0,
+            discountThb: discountAmount,
+            serviceTariffThb: priceAfterDiscount,
+            platformFeeThb: serviceFee,
+            roundingThb: roundingDiffPot,
+            insuranceThb: insuranceOk,
+            totalThb: totalWithFee,
+          })
+
     return {
       discountAmount,
       priceAfterDiscount,
@@ -144,6 +168,7 @@ export function useCheckoutPricing({ booking, invoice, paymentMethod, setPayment
       invoiceCurrency,
       hasInvoiceCheckout,
       payableText,
+      guestCheckoutBreakdown,
     }
   }, [booking, promoDiscount, guestServiceFeePercent, exchangeRates, language, invoice])
 
@@ -175,6 +200,7 @@ export function useCheckoutPricing({ booking, invoice, paymentMethod, setPayment
     invoiceCurrency,
     hasInvoiceCheckout,
     payableText,
+    guestCheckoutBreakdown,
     formatDisplayPrice,
     priceRawForTest: (n, c) => priceRawForTest(n, c, exchangeRates),
     interpolateTemplate,

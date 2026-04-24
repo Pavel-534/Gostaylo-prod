@@ -18,6 +18,7 @@ import { createBookingSchema } from '@/lib/validations/booking';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 import { resolveBookingListScope } from '@/lib/api/api-guard';
 import { toUnifiedOrder } from '@/lib/models/unified-order';
+import { ReputationService } from '@/lib/services/reputation.service';
 
 export async function GET(request) {
   try {
@@ -31,9 +32,14 @@ export async function GET(request) {
       return NextResponse.json({ success: false, error: result.error }, { status: 500 });
     }
     
+    const partnerIds = [...new Set(result.bookings.map((b) => b.partner_id).filter(Boolean))];
+    const trustByPartner =
+      partnerIds.length > 0 ? await ReputationService.getPartnersTrustPublicBatch(partnerIds) : new Map();
+
     const unifiedBookings = result.bookings.map((booking) => ({
       ...booking,
       unified_order: toUnifiedOrder(booking),
+      partner_trust: trustByPartner.get(String(booking.partner_id)) ?? null,
     }));
 
     return NextResponse.json({ 

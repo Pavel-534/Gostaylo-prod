@@ -33,6 +33,7 @@ import {
 } from '@/lib/listing-category-slug'
 import { getListingCardBlurDataURL } from '@/lib/listing-image-blur'
 import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
+import { PartnerRenterTrustBadges } from '@/components/trust/PartnerRenterTrustBadges'
 
 export function GostayloListingCard({
   listing,
@@ -170,12 +171,15 @@ export function GostayloListingCard({
               <p className="text-sm text-slate-500 mt-0.5">
                 {typeLabel} • {district}
               </p>
-              <PartnerTrustBadge
-                trust={partnerTrust}
-                language={language}
-                compact
-                showVerifiedCompanion={!!(owner?.is_verified || listing?.owner?.is_verified)}
-              />
+              <div className="space-y-1">
+                <PartnerTrustBadge
+                  trust={partnerTrust}
+                  language={language}
+                  compact
+                  showVerifiedCompanion={!!(owner?.is_verified || listing?.owner?.is_verified)}
+                />
+                <PartnerRenterTrustBadges trust={partnerTrust} language={language} />
+              </div>
             </div>
             
             {/* Rating */}

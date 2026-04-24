@@ -2,6 +2,7 @@
 
 /**
  * Оставить отзыв после поездки (ссылка из ChatMilestoneCard: ?bookingId=…)
+ * Stage 28.0 — тот же ReviewModal и отправка, что и в /renter/bookings.
  */
 
 import { Suspense, useCallback, useEffect, useState } from 'react'
@@ -9,49 +10,18 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format } from 'date-fns'
 import { ru, enUS, zhCN, th } from 'date-fns/locale'
-import { Loader2, Star, ArrowLeft } from 'lucide-react'
+import { Loader2, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { processAndUploadReviewPhotos } from '@/lib/services/image-upload.service'
+import { ReviewModal } from '@/components/review-modal'
+import { useReviewSubmission } from '@/hooks/use-review-submission'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { shouldAllowReviewByLifecycle } from '@/lib/orders/order-timeline'
 
 const DF_LOCALE = { ru, en: enUS, zh: zhCN, th }
-
-function tf(lang, key, vars = {}) {
-  let s = getUIText(key, lang)
-  Object.entries(vars).forEach(([k, v]) => {
-    s = s.split(`{${k}}`).join(String(v))
-  })
-  return s
-}
-
-const MAX_REVIEW_PHOTOS = 5
-
-function StarRow({ value, onChange, label }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => onChange(n)}
-            className="rounded p-0.5 text-amber-400 hover:scale-110 transition-transform"
-            aria-label={`${n}`}
-          >
-            <Star className={`h-8 w-8 ${n <= value ? 'fill-current' : ''}`} />
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
 
 function NewReviewContent() {
   const router = useRouter()
@@ -63,11 +33,29 @@ function NewReviewContent() {
   const [me, setMe] = useState(null)
   const [booking, setBooking] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [submitting, setSubmitting] = useState(false)
-  const [rating, setRating] = useState(5)
-  const [comment, setComment] = useState('')
-  const [photoFiles, setPhotoFiles] = useState([])
-  const [uploadingPhotos, setUploadingPhotos] = useState(false)
+
+  const listing = booking?.listings
+  const listingId = booking?.listing_id
+  const title = listing?.title || getUIText('listing', language)
+  const from = booking?.check_in
+  const to = booking?.check_out
+  let dateLine = ''
+  try {
+    if (from && to) {
+      dateLine = `${format(new Date(from), 'd MMM', { locale: dfLocale })} — ${format(new Date(to), 'd MMM yyyy', { locale: dfLocale })}`
+    }
+  } catch {
+    dateLine = ''
+  }
+
+  const { submitReview, isPending } = useReviewSubmission({
+    language,
+    userId: me?.id ?? null,
+    onSuccess: () => {
+      if (listingId) router.push(`/listings/${encodeURIComponent(listingId)}`)
+      else router.push('/renter/bookings')
+    },
+  })
 
   const load = useCallback(async () => {
     if (!bookingId) {
@@ -108,68 +96,6 @@ function NewReviewContent() {
   useEffect(() => {
     void load()
   }, [load])
-
-  const listing = booking?.listings
-  const listingId = booking?.listing_id
-  const title = listing?.title || getUIText('listing', language)
-  const from = booking?.check_in
-  const to = booking?.check_out
-  let dateLine = ''
-  try {
-    if (from && to) {
-      dateLine = `${format(new Date(from), 'd MMM', { locale: dfLocale })} — ${format(new Date(to), 'd MMM yyyy', { locale: dfLocale })}`
-    }
-  } catch {
-    dateLine = ''
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    if (!me?.id || !listingId || !bookingId) return
-    setSubmitting(true)
-    try {
-      let photos = []
-      if (photoFiles.length > 0) {
-        setUploadingPhotos(true)
-        photos = await processAndUploadReviewPhotos(photoFiles, me.id, bookingId)
-        setUploadingPhotos(false)
-        if (photos.length !== photoFiles.length) {
-          toast.error(getUIText('renterReviewPhotoUploadPartial', language))
-          setSubmitting(false)
-          return
-        }
-      }
-
-      const res = await fetch('/api/v2/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          listingId,
-          bookingId,
-          rating,
-          comment: comment.trim() || undefined,
-          ...(photos.length ? { photos } : {}),
-        }),
-      })
-      const json = await res.json()
-      if (!res.ok || !json.success) {
-        toast.error(json.error || getUIText('renterReviewSubmitError', language))
-        return
-      }
-      toast.success(getUIText('renterReviewSuccess', language))
-      if (listingId) {
-        router.push(`/listings/${encodeURIComponent(listingId)}`)
-      } else {
-        router.push('/renter/bookings')
-      }
-    } catch {
-      toast.error(getUIText('renterReviewNetworkError', language))
-    } finally {
-      setUploadingPhotos(false)
-      setSubmitting(false)
-    }
-  }
 
   if (!bookingId) {
     return (
@@ -244,7 +170,8 @@ function NewReviewContent() {
   }
 
   const status = String(booking.status || '').toUpperCase()
-  if (status !== 'COMPLETED') {
+  const canReview = shouldAllowReviewByLifecycle(status, booking.check_out)
+  if (!canReview) {
     return (
       <Card className="max-w-lg mx-auto mt-8 border-amber-200 bg-amber-50/50">
         <CardHeader>
@@ -271,79 +198,33 @@ function NewReviewContent() {
         </Link>
       </Button>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{getUIText('renterReviewFlow_rateTitle', language)}</CardTitle>
+      <Card className="mb-4 border-teal-100 bg-teal-50/40">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">{getUIText('renterReviewFlow_rateTitle', language)}</CardTitle>
           <CardDescription>
             {title}
             {dateLine ? ` · ${dateLine}` : ''}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <StarRow value={rating} onChange={setRating} label={getUIText('renterReviewOverallRating', language)} />
-
-            <div className="space-y-2">
-              <Label htmlFor="review-comment">{getUIText('renterReviewFlow_commentLabel', language)}</Label>
-              <Textarea
-                id="review-comment"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                rows={4}
-                placeholder={getUIText('renterReviewCommentPlaceholder', language)}
-                className="resize-y min-h-[100px]"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="review-photos-new">{tf(language, 'renterReviewFlow_photosLabel', { max: MAX_REVIEW_PHOTOS })}</Label>
-              <input
-                id="review-photos-new"
-                type="file"
-                accept="image/*"
-                multiple
-                disabled={photoFiles.length >= MAX_REVIEW_PHOTOS}
-                className="block w-full text-sm text-slate-600 file:mr-2 file:rounded file:border file:border-slate-200 file:bg-white file:px-3 file:py-1"
-                onChange={(e) => {
-                  const picked = Array.from(e.target.files || []).filter((f) => f.type.startsWith('image/'))
-                  e.target.value = ''
-                  if (!picked.length) return
-                  setPhotoFiles((prev) => {
-                    const next = [...prev, ...picked].slice(0, MAX_REVIEW_PHOTOS)
-                    if (prev.length + picked.length > MAX_REVIEW_PHOTOS) {
-                      toast.error(tf(language, 'renterReviewFlow_maxPhotos', { max: MAX_REVIEW_PHOTOS }))
-                    }
-                    return next
-                  })
-                }}
-              />
-              {photoFiles.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500">{tf(language, 'renterReviewFlow_filesCount', { n: photoFiles.length })}</span>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setPhotoFiles([])}>
-                    {getUIText('renterReviewFlow_clearPhotos', language)}
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full bg-teal-600 hover:bg-teal-700"
-              disabled={submitting || uploadingPhotos || rating < 1}
-            >
-              {submitting || uploadingPhotos ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {uploadingPhotos ? getUIText('renterReviewUploading', language) : getUIText('renterReviewSubmitting', language)}
-                </>
-              ) : (
-                getUIText('renterReviewSubmit', language)
-              )}
-            </Button>
-          </form>
-        </CardContent>
       </Card>
+
+      <ReviewModal
+        isOpen
+        onClose={() => router.push('/renter/bookings')}
+        booking={booking}
+        userId={me.id}
+        language={language}
+        categorySlug={listing?.category_slug ?? listing?.categorySlug ?? null}
+        isSubmitting={isPending}
+        onSubmit={async (reviewData) => {
+          await submitReview({
+            booking,
+            ratings: reviewData.ratings,
+            comment: reviewData.comment,
+            photos: reviewData.photos || [],
+          })
+        }}
+      />
     </div>
   )
 }

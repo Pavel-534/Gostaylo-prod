@@ -16,7 +16,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -29,7 +29,8 @@ import {
 } from 'lucide-react'
 import { format, parseISO, isPast, isFuture } from 'date-fns'
 import { listingDateToday } from '@/lib/listing-date'
-import { ru } from 'date-fns/locale'
+import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
+import { durationPhraseForBookingEmail } from '@/lib/email/booking-email-i18n'
 import { formatPrice } from '@/lib/currency'
 import { getGuestPayableRoundedThb } from '@/lib/booking-guest-total'
 import { ReviewModal } from '@/components/review-modal'
@@ -37,6 +38,9 @@ import { toast } from 'sonner'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { CancelBookingDialog } from '@/components/renter/cancel-booking-dialog'
+import { ListingCategoryIcon } from '@/components/booking/ListingCategoryIcon'
+import { useReviewSubmission } from '@/hooks/use-review-submission'
+import { OrderPriceBreakdown } from '@/components/orders/OrderPriceBreakdown'
 
 function canRenterCancelBooking(status) {
   return !['CANCELLED', 'COMPLETED', 'REFUNDED', 'DECLINED'].includes(String(status || '').toUpperCase())
@@ -192,12 +196,23 @@ function BookingCard({ booking, onReviewClick, onCancelClick, language }) {
   
   const checkInDate = booking.check_in ? parseISO(booking.check_in) : null
   const checkOutDate = booking.check_out ? parseISO(booking.check_out) : null
-  const nights = checkInDate && checkOutDate 
-    ? Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24))
-    : 0
-  
+  const nightsFallback =
+    checkInDate && checkOutDate
+      ? Math.max(1, Math.ceil((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24)))
+      : 1
+
   // Handle both 'listing' and 'listings' (Supabase join returns 'listings')
   const listing = booking.listing || booking.listings || {}
+  const categorySlug = listing.category_slug ?? listing.categorySlug ?? null
+  const dateLocale =
+    language === 'en' ? enUS : language === 'zh' ? zhCN : language === 'th' ? thLocale : ru
+  const durationLabel = durationPhraseForBookingEmail(
+    booking.check_in,
+    booking.check_out || booking.check_in,
+    language,
+    categorySlug,
+    nightsFallback,
+  )
   const listingImage = listing.images?.[0] || listing.cover_image || '/placeholder.svg'
   
   const canLeaveReview = () => {
@@ -272,7 +287,7 @@ function BookingCard({ booking, onReviewClick, onCancelClick, language }) {
         >
           <ProxiedImage
             src={listingImage}
-            alt={listing.title}
+            alt={listing.title || getUIText('myBookings_listingFallback', language)}
             fill
             className="object-cover hover:scale-105 transition-transform duration-300"
             sizes="(max-width: 640px) 100vw, 192px"
@@ -283,8 +298,9 @@ function BookingCard({ booking, onReviewClick, onCancelClick, language }) {
         <div className="flex-1 p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
-              <h3 className="text-xl font-semibold text-slate-900 mb-2 hover:text-teal-600 transition-colors">
-                {listing.title || 'Property'}
+              <h3 className="text-xl font-semibold text-slate-900 mb-2 hover:text-teal-600 transition-colors flex items-center gap-2 min-w-0">
+                <ListingCategoryIcon categorySlug={categorySlug} className="h-5 w-5 shrink-0 text-teal-700" />
+                <span className="min-w-0">{listing.title || getUIText('myBookings_listingFallback', language)}</span>
               </h3>
               
               <div className="space-y-1 text-sm text-slate-600">
@@ -297,7 +313,8 @@ function BookingCard({ booking, onReviewClick, onCancelClick, language }) {
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
                     <span>
-                      {format(checkInDate, 'd MMM', { locale: ru })} - {format(checkOutDate, 'd MMM yyyy', { locale: ru })} ({nights} {nights === 1 ? 'ночь' : nights < 5 ? 'ночи' : 'ночей'})
+                      {format(checkInDate, 'd MMM', { locale: dateLocale })} —{' '}
+                      {format(checkOutDate, 'd MMM yyyy', { locale: dateLocale })} · {durationLabel}
                     </span>
                   </div>
                 )}
@@ -342,11 +359,15 @@ function BookingCard({ booking, onReviewClick, onCancelClick, language }) {
           </div>
           
           {/* Special info */}
+          <div className="mt-4">
+            <OrderPriceBreakdown booking={booking} language={language} role="renter" />
+          </div>
+
           {booking.status === 'PENDING' && (
             <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-sm text-amber-800">
                 <AlertCircle className="h-4 w-4 inline mr-2" />
-                Ожидает подтверждения от владельца
+                {getUIText('myBookings_pendingPartnerConfirm', language)}
               </p>
             </div>
           )}
@@ -476,46 +497,27 @@ export default function RenterBookingsPage() {
     }
   }, [bookings])
   
-  // Submit review mutation
-  const submitReviewMutation = useMutation({
-    mutationFn: async ({ ratings, comment, photos = [] }) => {
-      const res = await fetch('/api/v2/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          listingId: selectedBooking.listing_id,
-          bookingId: selectedBooking.id,
-          ratings,
-          comment,
-          ...(photos?.length ? { photos } : {}),
-        })
-      })
-      
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || 'Failed to submit review')
-      }
-      
-      return await res.json()
-    },
+  const { submitReview, isPending: reviewSubmitPending } = useReviewSubmission({
+    language,
+    userId,
     onSuccess: () => {
-      toast.success(language === 'ru' ? 'Отзыв отправлен!' : 'Review submitted!')
-      queryClient.invalidateQueries({ queryKey: ['renter-bookings', userId] })
+      void queryClient.invalidateQueries({ queryKey: ['renter-bookings', userId] })
     },
-    onError: (error) => {
-      toast.error(error.message)
-    }
   })
-  
-  // Handle review click
+
   const handleReviewClick = (booking) => {
     setSelectedBooking(booking)
     setReviewModalOpen(true)
   }
-  
+
   const handleReviewSubmit = async (reviewData) => {
-    await submitReviewMutation.mutateAsync(reviewData)
+    if (!selectedBooking) return
+    await submitReview({
+      booking: selectedBooking,
+      ratings: reviewData.ratings,
+      comment: reviewData.comment,
+      photos: reviewData.photos || [],
+    })
   }
   
   return (
@@ -652,7 +654,15 @@ export default function RenterBookingsPage() {
         booking={selectedBooking}
         userId={userId}
         onSubmit={handleReviewSubmit}
-        isSubmitting={submitReviewMutation.isPending}
+        isSubmitting={reviewSubmitPending}
+        language={language}
+        categorySlug={
+          selectedBooking
+            ? (selectedBooking.listing || selectedBooking.listings || {}).category_slug ??
+              (selectedBooking.listing || selectedBooking.listings || {}).categorySlug ??
+              null
+            : null
+        }
       />
 
       <CancelBookingDialog

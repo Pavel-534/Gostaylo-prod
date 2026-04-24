@@ -5,6 +5,9 @@ import { Loader2, AlertTriangle, TrendingUp, Shield } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { getUIText } from '@/lib/translations'
+import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-service-type'
+import { getPartnerSlaResponseContextLine } from '@/lib/config/partner-category-sla-hints'
+import { ListingCategoryIcon } from '@/components/booking/ListingCategoryIcon'
 
 function factorLabel(key, language) {
   const k = `partnerHealth_factor_${key}`
@@ -80,6 +83,8 @@ export function PartnerHealthWidget({ language = 'ru', remote = null }) {
   const tier = String(snap.tier || 'NEW').toUpperCase()
   const factors = Array.isArray(effData.criticalFactors) ? effData.criticalFactors : []
   const path = effData.pathToTop || {}
+  const dominantKind = inferListingServiceTypeFromCategorySlug(effData.dominantCategorySlug ?? null)
+  const slaCategoryLine = getPartnerSlaResponseContextLine(dominantKind, language)
 
   return (
     <Card className="border-teal-100 shadow-sm bg-gradient-to-br from-white to-teal-50/40">
@@ -128,6 +133,26 @@ export function PartnerHealthWidget({ language = 'ru', remote = null }) {
           <p className="text-[11px] text-slate-500 leading-relaxed">
             {getUIText('partnerHealth_responseRankingHint', language)}
           </p>
+          <div
+            className={`mt-2 flex gap-2.5 rounded-lg border px-3 py-2.5 ${
+              dominantKind === 'service'
+                ? 'border-amber-300 bg-gradient-to-br from-amber-50 via-white to-orange-50 shadow-sm'
+                : 'border-teal-200 bg-teal-50/80'
+            }`}
+          >
+            <ListingCategoryIcon
+              categorySlug={effData.dominantCategorySlug}
+              className={`h-5 w-5 shrink-0 mt-0.5 ${dominantKind === 'service' ? 'text-amber-800' : 'text-teal-800'}`}
+            />
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <p className="text-xs font-medium text-slate-900 leading-relaxed">{slaCategoryLine}</p>
+              {dominantKind === 'service' ? (
+                <p className="text-[11px] font-semibold text-amber-950 leading-snug border border-amber-200/80 rounded-md bg-amber-100/60 px-2 py-1.5">
+                  {getUIText('partnerHealth_slaServiceEmphasis', language)}
+                </p>
+              ) : null}
+            </div>
+          </div>
         </div>
 
         {factors.length > 0 ? (

@@ -3,14 +3,18 @@
 import { AlertTriangle, Sparkles, Shield, TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { getUIText } from '@/lib/translations'
+import { getSuccessGuideOpsRuleLine } from '@/lib/config/success-guide-content'
+import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-service-type'
 
 /**
  * Partner onboarding: how reliability tiers and TOP rules map to product metrics.
- * @param {{ language?: string, snapshot?: { topBlockedByGuestReviews?: boolean } | null }} props
+ * @param {{ language?: string, snapshot?: { topBlockedByGuestReviews?: boolean } | null, dominantCategorySlug?: string | null }} props
  */
-export function SuccessGuide({ language = 'ru', snapshot = null }) {
+export function SuccessGuide({ language = 'ru', snapshot = null, dominantCategorySlug = null }) {
   const t = (key) => getUIText(key, language)
   const topBlocked = Boolean(snapshot?.topBlockedByGuestReviews)
+  const opsKind = inferListingServiceTypeFromCategorySlug(dominantCategorySlug)
+  const opsLine = getSuccessGuideOpsRuleLine(opsKind, language)
 
   const levels = [
     { key: 'successGuide_level1Title', body: 'successGuide_level1Body', Icon: Shield, tone: 'slate' },
@@ -19,11 +23,12 @@ export function SuccessGuide({ language = 'ru', snapshot = null }) {
   ]
 
   const rules = [
-    'successGuide_ruleSla',
-    'successGuide_ruleDisputes',
-    'successGuide_ruleCancels',
-    'successGuide_ruleReviews',
-    'successGuide_ruleTopStars',
+    { type: 'text', value: opsLine },
+    { type: 'i18n', key: 'successGuide_ruleSla' },
+    { type: 'i18n', key: 'successGuide_ruleDisputes' },
+    { type: 'i18n', key: 'successGuide_ruleCancels' },
+    { type: 'i18n', key: 'successGuide_ruleReviews' },
+    { type: 'i18n', key: 'successGuide_ruleTopStars' },
   ]
 
   return (
@@ -70,8 +75,10 @@ export function SuccessGuide({ language = 'ru', snapshot = null }) {
         <div className="rounded-2xl border border-slate-200 bg-slate-50/60 px-3 py-3">
           <p className="text-xs font-semibold text-slate-800 mb-2">{t('successGuide_rulesHeading')}</p>
           <ul className="text-xs text-slate-600 space-y-1.5 pl-4 list-disc">
-            {rules.map((k) => (
-              <li key={k}>{t(k)}</li>
+            {rules.map((item, idx) => (
+              <li key={item.type === 'i18n' ? item.key : `ops-${idx}`}>
+                {item.type === 'i18n' ? t(item.key) : item.value}
+              </li>
             ))}
           </ul>
         </div>
