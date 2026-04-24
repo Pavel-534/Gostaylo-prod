@@ -30,15 +30,15 @@
     },
     {
       "path": "/api/cron/partner-sla-telegram-nudge",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 1 * * *"
     },
     {
       "path": "/api/cron/dispute-mediation-monitor",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 2 * * *"
     },
     {
       "path": "/api/cron/flash-sale-reminder",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }
