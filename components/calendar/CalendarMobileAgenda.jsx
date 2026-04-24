@@ -351,10 +351,12 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
       const promo = cellData.marketingPromo
       const badge = promo.isFlashSale ? 'FLASH' : 'PROMO'
       promoLine = (
-        <div className="text-right leading-tight mt-0.5">
-          <p className="text-[10px] font-semibold text-orange-700">{badge}</p>
-          <p className="text-[10px] text-slate-500 tabular-nums">
-            ฿{Math.round(promo.baseSeasonPrice || 0).toLocaleString('en-US')} - ฿
+        <div className="mt-1 w-full max-w-full rounded-md border border-orange-100/90 bg-orange-50/90 px-1.5 py-1 text-right leading-tight">
+          <span className="inline-block rounded bg-orange-600/95 px-1 py-px text-[8px] font-bold uppercase tracking-wide text-white">
+            {badge}
+          </span>
+          <p className="mt-0.5 break-words text-[9px] font-medium tabular-nums text-slate-600">
+            ฿{Math.round(promo.baseSeasonPrice || 0).toLocaleString('en-US')} − ฿
             {Math.round(promo.discountAmount || 0).toLocaleString('en-US')} = ฿
             {Math.round(promo.guestPrice || 0).toLocaleString('en-US')}
           </p>
@@ -402,7 +404,7 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
         </div>
 
         {priceLine ? (
-          <div className="shrink-0 pl-1">
+          <div className="flex min-w-0 max-w-[min(52%,11.5rem)] shrink-0 flex-col items-end justify-center gap-1 pl-1">
             {priceLine}
             {promoLine}
           </div>

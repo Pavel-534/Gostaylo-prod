@@ -34,8 +34,9 @@ model Profile {
   firstName         String?
   lastName          String?
   avatar            String?
-  language          String   @default("ru") // ru, en
-  
+  language            String   @default("ru") // ru, en (legacy UI / site)
+  preferredLanguage   String?  @map("preferred_language") // ru|en|zh|th — override for notifications & UI when set
+
   // Listing configuration
   externalCalUrl    String?  // iCal URL for calendar sync
   blockDates        String[] // Array of blocked dates (YYYY-MM-DD format)

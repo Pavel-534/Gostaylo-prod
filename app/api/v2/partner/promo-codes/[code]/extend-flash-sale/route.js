@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { supabaseAdmin } from '@/lib/supabase'
+import { insertAuditLog } from '@/lib/services/audit/insert-audit-log'
+import { rateLimitCheck } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +16,11 @@ export async function POST(request, { params }) {
     if (!access) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
+
+    const limited = rateLimitCheck(request, 'promo_extend', String(userId))
+    if (limited) {
+      return NextResponse.json(limited.body, { status: limited.status, headers: limited.headers })
+    }
     if (!supabaseAdmin) {
       return NextResponse.json({ success: false, error: 'Database not configured' }, { status: 500 })
     }
@@ -26,10 +33,13 @@ export async function POST(request, { params }) {
     }
 
     let hours = 6
+    let extensionSource = 'partner_web'
     try {
       const body = await request.json()
       const parsed = Number(body?.hours)
       if (Number.isFinite(parsed) && parsed > 0) hours = Math.min(24, Math.max(1, Math.round(parsed)))
+      const src = String(body?.extensionSource || body?.source || '').trim().toLowerCase()
+      if (src === 'telegram_deeplink' || src === 'telegram') extensionSource = 'telegram_deeplink'
     } catch {
       // keep default 6h
     }
@@ -79,9 +89,24 @@ export async function POST(request, { params }) {
       return NextResponse.json({ success: false, error: updateError.message }, { status: 500 })
     }
 
+    await insertAuditLog({
+      userId: String(userId),
+      action: 'PARTNER_FLASH_SALE_EXTENDED',
+      entityType: 'promo_code',
+      entityId: String(promoRow.id),
+      payload: {
+        code,
+        partner_id: String(promoRow.partner_id || userId),
+        promo_id: String(promoRow.id),
+        hours_added: hours,
+        valid_until_after: nextEndIso,
+        extension_source: extensionSource,
+      },
+    })
+
     return NextResponse.json({
       success: true,
-      data: { code, validUntilIso: nextEndIso, hoursAdded: hours },
+      data: { code, validUntilIso: nextEndIso, hoursAdded: hours, extensionSource },
     })
   } catch (error) {
     return NextResponse.json({ success: false, error: error?.message || 'Internal error' }, { status: 500 })

@@ -50,6 +50,8 @@ import { useCommission } from '@/hooks/use-commission'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import { getBookingApiUserMessage } from '@/lib/booking-error-message'
 import { UrgencyTimer } from '@/components/UrgencyTimer'
+import { ListingFlashHotStrip } from '@/components/listing/ListingFlashHotStrip'
+import { shouldShowFlashUrgencyTimerAboveStrip } from '@/lib/listing/flash-hot-strip'
 
 const CHAT_CACHE_TTL = 5 * 60 * 1000 // 5 min
 
@@ -845,22 +847,21 @@ function PremiumListingContent({ params }) {
             }}
           />
 
-          {listing.catalog_flash_urgency?.ends_at ? (
+          {shouldShowFlashUrgencyTimerAboveStrip(
+            listing.catalog_flash_urgency,
+            listing.catalog_flash_social_proof,
+          ) ? (
             <div className="mt-3 max-w-2xl">
               <UrgencyTimer endsAt={listing.catalog_flash_urgency.ends_at} language={language} />
             </div>
           ) : null}
 
-          {listing.catalog_flash_social_proof?.bookingsCreatedCount > 0 ? (
-            <div className="mt-2 max-w-2xl">
-              <p className="text-sm font-medium text-rose-700">
-                {getUIText('listingDetail_flashSocialProof', language).replace(
-                  /\{\{count\}\}/g,
-                  String(listing.catalog_flash_social_proof.bookingsCreatedCount),
-                )}
-              </p>
-            </div>
-          ) : null}
+          <ListingFlashHotStrip
+            catalog_flash_urgency={listing.catalog_flash_urgency}
+            catalog_flash_social_proof={listing.catalog_flash_social_proof}
+            language={language}
+            className="mt-2 max-w-2xl"
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             <div className="lg:col-span-2 space-y-8">

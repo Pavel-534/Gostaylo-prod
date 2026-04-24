@@ -154,6 +154,8 @@ export function CalendarGrid({
                     const cellData = item.availability[date] || { status: 'AVAILABLE' }
                     const isCurrentDay = isToday(parseISO(date))
                     const isWeekend = parseISO(date).getDay() === 0 || parseISO(date).getDay() === 6
+                    const flashSaleDay =
+                      cellData.status === 'AVAILABLE' && cellData.marketingPromo?.isFlashSale === true
                     
                     // Determine cell appearance
                     let cellClass = STATUS_COLORS.AVAILABLE
@@ -234,8 +236,11 @@ export function CalendarGrid({
                         key={date}
                         onClick={() => onCellClick(item.listing, date, cellData)}
                         className={cn(
-                          'flex min-h-[72px] cursor-pointer items-center justify-center border-b border-r border-slate-100 transition-all',
+                          'relative flex min-h-[72px] cursor-pointer items-center justify-center border-b border-r border-slate-100 transition-all',
                           cellClass,
+                          flashSaleDay &&
+                            !isCurrentDay &&
+                            'shadow-[inset_0_0_0_1px_rgba(249,115,22,0.5)]',
                           isCurrentDay && "ring-2 ring-inset ring-teal-400",
                           isWeekend && cellData.status === 'AVAILABLE' && "bg-slate-50",
                           cellData.isTransition && "border-l-2 border-l-dashed border-l-teal-400",
@@ -252,6 +257,13 @@ export function CalendarGrid({
                           : 'Доступно - нажмите для действия'
                         }
                       >
+                        {flashSaleDay ? (
+                          <span
+                            className="pointer-events-none absolute right-1 top-1 z-[1] h-2 w-2 rounded-full bg-orange-500 shadow-sm ring-2 ring-white"
+                            title="Flash Sale"
+                            aria-hidden
+                          />
+                        ) : null}
                         {content}
                       </div>
                     )

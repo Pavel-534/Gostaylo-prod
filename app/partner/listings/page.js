@@ -66,16 +66,13 @@ export default function PartnerListings() {
 
   async function loadListings(userId) {
     try {
-      console.log('[LISTINGS] Loading listings for user:', userId)
-      
       // Use API route that has server-side access
       const res = await fetch(`/api/v2/partner/listings?partnerId=${userId}`, {
         credentials: 'include'
       })
       
       const result = await res.json()
-      console.log('[LISTINGS] API response:', result)
-      
+
       if (result.success && result.data) {
         // Transform API response to match expected format
         const transformedListings = result.data.map(l => ({
@@ -98,7 +95,6 @@ export default function PartnerListings() {
           metadata: l.metadata || {}
         }))
         setListings(transformedListings)
-        console.log('[LISTINGS] Loaded:', transformedListings.length, 'listings')
       } else {
         console.error('[LISTINGS] API error:', result.error)
         setListings([])

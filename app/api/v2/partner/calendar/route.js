@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { addDays, format, parseISO } from 'date-fns'
 import { toPublicImageUrl } from '@/lib/public-image-url'
@@ -287,8 +287,6 @@ export async function GET(request) {
       }, { status: 403 })
     }
     
-    console.log(`[CALENDAR API] Fetching calendar for partner: ${userId}`)
-    
     const { searchParams } = new URL(request.url)
     const today = new Date()
     const defaultStart = format(today, 'yyyy-MM-dd')
@@ -343,7 +341,6 @@ export async function GET(request) {
         }
 
         if (!listings.length) {
-          console.log(`[CALENDAR] No listings found for partner ${userId}`)
           return NextResponse.json({
             status: 'success',
             data: { dates: [], listings: [], summary: { totalListings: 0, totalBookings: 0, totalBlocks: 0 } },
@@ -352,8 +349,7 @@ export async function GET(request) {
         }
         
         const listingIds = listings.map(l => l.id)
-        console.log(`[CALENDAR] Found ${listings.length} listings for partner ${userId}`)
-        
+
         // Bookings by listing_id (not partner_id): matches public availability. Some rows may have
         // missing/wrong partner_id while listing_id still points at this owner's listing.
         if (useAdmin) {
@@ -378,8 +374,8 @@ export async function GET(request) {
               .gte('end_date', startDate)
               .lte('start_date', endDate)
             blocks = blocksData || []
-          } catch (e) {
-            console.log('[CALENDAR] No calendar_blocks table:', e.message)
+          } catch {
+            /* optional table */
           }
           
           try {
@@ -390,8 +386,8 @@ export async function GET(request) {
               .gte('end_date', startDate)
               .lte('start_date', endDate)
             seasonalPrices = seasonalData || []
-          } catch (e) {
-            console.log('[CALENDAR] Error fetching seasonal_prices:', e.message)
+          } catch {
+            /* optional */
           }
 
           try {
@@ -403,8 +399,8 @@ export async function GET(request) {
               .eq('is_active', true)
             const nowMs = Date.now()
             promoRows = (promosData || []).filter((row) => promoIsActiveAt(row, nowMs).ok)
-          } catch (e) {
-            console.log('[CALENDAR] Error fetching promo_codes:', e.message)
+          } catch {
+            /* optional */
           }
         } else {
           const listingIn =
@@ -428,8 +424,8 @@ export async function GET(request) {
               { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
             )
             blocks = Array.isArray(await blocksRes.json()) ? await blocksRes.json() : []
-          } catch (e) {
-            console.log('[CALENDAR] No calendar_blocks table or error:', e.message)
+          } catch {
+            /* optional table */
           }
           
           try {
@@ -439,8 +435,8 @@ export async function GET(request) {
             )
             const sd = await seasonalRes.json()
             seasonalPrices = Array.isArray(sd) ? sd : []
-          } catch (e) {
-            console.log('[CALENDAR] Error fetching seasonal_prices:', e.message)
+          } catch {
+            /* optional */
           }
 
           try {
@@ -451,11 +447,11 @@ export async function GET(request) {
             const pd = await promosRes.json()
             const nowMs = Date.now()
             promoRows = (Array.isArray(pd) ? pd : []).filter((row) => promoIsActiveAt(row, nowMs).ok)
-          } catch (e) {
-            console.log('[CALENDAR] Error fetching promo_codes:', e.message)
+          } catch {
+            /* optional */
           }
         }
-        
+
         const defaultListingCommission = await resolveDefaultCommissionPercent()
         const calendarData = processCalendarData(
           listings,

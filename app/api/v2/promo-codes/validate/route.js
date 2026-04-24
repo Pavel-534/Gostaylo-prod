@@ -7,9 +7,15 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { PricingService } from '@/lib/services/pricing.service';
 import { supabaseAdmin } from '@/lib/supabase';
+import { rateLimitCheck } from '@/lib/rate-limit';
 
 export async function POST(request) {
   try {
+    const limited = rateLimitCheck(request, 'promo_validate');
+    if (limited) {
+      return NextResponse.json(limited.body, { status: limited.status, headers: limited.headers });
+    }
+
     const body = await request.json();
     const { code, amount, bookingAmount, listingId } = body;
     
@@ -46,8 +52,6 @@ export async function POST(request) {
         error: result.error 
       }, { status: 400 });
     }
-    
-    console.log(`[PROMO] Code validated: ${code} - Discount: ${result.discountAmount} THB`);
     
     return NextResponse.json({ 
       success: true, 

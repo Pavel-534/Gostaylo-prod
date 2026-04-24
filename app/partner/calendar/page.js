@@ -7,7 +7,7 @@
 
 'use client'
 
-import React, { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, Suspense } from 'react'
 import { format, addDays, subDays, parseISO } from 'date-fns'
 import { Calendar, Loader2, AlertCircle, Plus, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -89,7 +89,9 @@ function MasterCalendarContent() {
       try {
         const parsed = JSON.parse(stored)
         if (parsed?.id) setPartnerId(parsed.id)
-      } catch (e) {}
+      } catch {
+        /* ignore */
+      }
     }
   }, [user?.id])
 
@@ -98,7 +100,7 @@ function MasterCalendarContent() {
 
   // View state
   const [viewMode, setViewMode] = useState('normal')
-  const [daysToShow, setDaysToShow] = useState(30)
+  const [daysToShow] = useState(30)
   const [startDate, setStartDate] = useState(() => format(new Date(), 'yyyy-MM-dd'))
 
   // Переход из чата: ?focusDate=YYYY-MM-DD — показать окно с этой датой в видимой полосе
@@ -175,7 +177,12 @@ function MasterCalendarContent() {
   const createBlockMutation = useCreateBlock()
   const createBookingMutation = useCreateManualBooking()
   const upsertSeasonalPriceMutation = useUpsertSeasonalPrice()
-  
+
+  const calendarDominantHint = useMemo(() => {
+    const kind = inferListingServiceTypeFromCategorySlug(dominantCategorySlug)
+    return getPartnerCalendarDominantHint(kind, language)
+  }, [dominantCategorySlug, language])
+
   // Navigation handlers
   const goToToday = useCallback(() => {
     setStartDate(format(new Date(), 'yyyy-MM-dd'))
@@ -219,7 +226,7 @@ function MasterCalendarContent() {
         notes: ''
       })
     } else if (cellData.status === 'BOOKED') {
-      console.log('Booking:', cellData)
+      /* booked cell — detail drill-down can be added here */
     }
   }, [])
   
@@ -357,11 +364,6 @@ function MasterCalendarContent() {
   const { dates, listings, summary } = calendarData
   const dayWidth = DAY_WIDTHS[viewMode]
 
-  const calendarDominantHint = useMemo(() => {
-    const kind = inferListingServiceTypeFromCategorySlug(dominantCategorySlug)
-    return getPartnerCalendarDominantHint(kind, language)
-  }, [dominantCategorySlug, language])
-  
   return (
     <div className="max-w-full overflow-hidden space-y-4 px-2 sm:px-0">
       <PartnerCalendarEducationCard variant="calendar-page" className="max-w-[1600px] mx-auto" />

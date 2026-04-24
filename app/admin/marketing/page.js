@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { TrendingUp, Plus, Trash2, Percent, DollarSign, Calendar, AlertTriangle, Users, Zap } from 'lucide-react';
+import { TrendingUp, Plus, Trash2, Calendar, AlertTriangle, Users, Zap, Type } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { validateMarketingUiStringsPayload } from '@/lib/marketing/validate-marketing-ui-strings';
 
 function promoExpiryEndMs(promo) {
   if (promo?.validUntilIso) return new Date(promo.validUntilIso).getTime();
@@ -48,6 +49,9 @@ export default function MarketingPage() {
     promoCodeIds: [],
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [marketingUiText, setMarketingUiText] = useState('{}');
+  const [marketingUiLoading, setMarketingUiLoading] = useState(true);
+  const [marketingUiSaving, setMarketingUiSaving] = useState(false);
   const [newPromo, setNewPromo] = useState({
     code: '',
     type: 'PERCENT',
@@ -61,7 +65,79 @@ export default function MarketingPage() {
   useEffect(() => {
     loadPromoCodes();
     loadCampaigns();
+    loadMarketingUiStrings();
   }, []);
+
+  const loadMarketingUiStrings = async () => {
+    setMarketingUiLoading(true);
+    try {
+      const res = await fetch('/api/admin/marketing/ui-strings');
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.data && typeof data.data === 'object') {
+        setMarketingUiText(JSON.stringify(data.data, null, 2));
+      } else {
+        setMarketingUiText('{}');
+        if (!res.ok) {
+          toast({
+            title: 'Не удалось загрузить UI Copywriting',
+            description: data.error || res.statusText,
+            variant: 'destructive',
+          });
+        }
+      }
+    } catch {
+      setMarketingUiText('{}');
+      toast({ title: 'Ошибка сети (UI Copywriting)', variant: 'destructive' });
+    } finally {
+      setMarketingUiLoading(false);
+    }
+  };
+
+  const handleSaveMarketingUiStrings = async () => {
+    let parsedJson;
+    try {
+      parsedJson = JSON.parse(marketingUiText);
+    } catch (e) {
+      toast({
+        title: 'Некорректный JSON',
+        description: e?.message || 'Проверьте синтаксис',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const validated = validateMarketingUiStringsPayload(parsedJson);
+    if (!validated.ok) {
+      toast({
+        title: 'Плейсхолдеры или структура',
+        description: (validated.errors || []).slice(0, 4).join(' · ') || 'Ошибка валидации',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setMarketingUiSaving(true);
+    try {
+      const res = await fetch('/api/admin/marketing/ui-strings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: validated.value }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          Array.isArray(data.details) && data.details.length
+            ? data.details.join(' · ')
+            : data.error || res.statusText;
+        toast({ title: 'Сервер отклонил сохранение', description: msg, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'UI Copywriting сохранён', description: 'Каталог подхватит строки в течение ~2 мин (CDN).' });
+      setMarketingUiText(JSON.stringify(data.data || validated.value, null, 2));
+    } catch {
+      toast({ title: 'Ошибка сети', variant: 'destructive' });
+    } finally {
+      setMarketingUiSaving(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -256,7 +332,7 @@ export default function MarketingPage() {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Ошибка',
         description: 'Не удалось создать промокод',
@@ -310,7 +386,7 @@ export default function MarketingPage() {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({ title: 'Ошибка удаления', variant: 'destructive' });
     }
   };
@@ -413,6 +489,64 @@ export default function MarketingPage() {
           <CardContent className="p-2 sm:p-4 pt-0"><div className="text-xl sm:text-2xl lg:text-3xl font-bold text-purple-600">{totalUsage}</div></CardContent>
         </Card>
       </div>
+
+      <Card className="border border-amber-200 bg-gradient-to-br from-amber-50/90 to-white shadow-sm">
+        <CardHeader className="p-4 sm:p-6 pb-2">
+          <CardTitle className="flex items-center gap-2 text-base text-amber-950">
+            <Type className="h-5 w-5 text-amber-600 shrink-0" />
+            UI Copywriting
+          </CardTitle>
+          <CardDescription className="text-sm text-amber-950/85">
+            Редактирование <code className="rounded bg-amber-100/80 px-1">system_settings.marketing_ui_strings</code> —
+            плашка Flash / social proof на карточках листинга. Ключи языков: <strong>ru</strong>, <strong>en</strong>,{' '}
+            <strong>zh</strong>, <strong>th</strong>. Внутри каждого языка допустимы поля{' '}
+            <code className="rounded bg-amber-100/80 px-1">flashHotBookingsToday</code>,{' '}
+            <code className="rounded bg-amber-100/80 px-1">flashHotExpiresIn</code>.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 p-4 sm:p-6 pt-0">
+          <ul className="list-disc space-y-1 pl-5 text-xs text-slate-700">
+            <li>
+              <code>flashHotBookingsToday</code> — обязательно содержит подстроку <code>{'{{count}}'}</code>
+            </li>
+            <li>
+              <code>flashHotExpiresIn</code> — обязательно содержит <code>{'{{hm}}'}</code>
+            </li>
+            <li>Пустой объект <code>{'{}'}</code> сбрасывает переопределения (останутся дефолты из кода).</li>
+          </ul>
+          {marketingUiLoading ? (
+            <p className="text-sm text-slate-500">Загрузка…</p>
+          ) : (
+            <Textarea
+              value={marketingUiText}
+              onChange={(e) => setMarketingUiText(e.target.value)}
+              spellCheck={false}
+              className="min-h-[220px] font-mono text-xs leading-relaxed"
+              placeholder={'{\n  "ru": {\n    "flashHotBookingsToday": "Популярно: {{count}} сегодня",\n    "flashHotExpiresIn": "Осталось {{hm}}"\n  }\n}'}
+            />
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void loadMarketingUiStrings()}
+              disabled={marketingUiLoading || marketingUiSaving}
+            >
+              Перезагрузить из БД
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="bg-amber-600 hover:bg-amber-700"
+              onClick={() => void handleSaveMarketingUiStrings()}
+              disabled={marketingUiLoading || marketingUiSaving}
+            >
+              {marketingUiSaving ? 'Сохранение…' : 'Сохранить (валидация + PUT)'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {topPartners.length > 0 ? (
         <Card className="border border-indigo-100 bg-gradient-to-br from-indigo-50/80 to-white shadow-sm">

@@ -136,7 +136,10 @@ export default function PartnerPromoPage() {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ hours: quickExtendHours }),
+          body: JSON.stringify({
+            hours: quickExtendHours,
+            extensionSource: 'telegram_deeplink',
+          }),
         },
       )
       const json = await res.json().catch(() => ({}))
