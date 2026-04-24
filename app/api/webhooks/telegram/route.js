@@ -11,6 +11,7 @@ import { sendTelegram, withMainMenuForChat } from '@/lib/services/telegram/api.j
 import { extractEmailFromLinkCommand } from '@/lib/services/telegram/parse.js'
 import { handleStatusCheck, handleDeepLink, handleLinkAccount } from '@/lib/services/telegram/handlers/accounts.js'
 import { handleMyDrafts } from '@/lib/services/telegram/handlers/drafts.js'
+import { handlePartnerPromoCommand } from '@/lib/services/telegram/handlers/partner-promos.js'
 import {
   handlePhotoUpload,
   flushLazyRealtorAlbum,
@@ -169,6 +170,11 @@ export async function POST(request) {
 
     if (text.startsWith('/my')) {
       await handleMyDrafts(chatId, lang)
+      return NextResponse.json({ ok: true })
+    }
+
+    if (text.startsWith('/promo')) {
+      await handlePartnerPromoCommand(chatId, lang)
       return NextResponse.json({ ok: true })
     }
 

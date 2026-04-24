@@ -5,7 +5,7 @@
  * Phase 7.6 Final
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import {
   Star,
@@ -80,6 +80,7 @@ export function GostayloListingCard({
     owner,
     catalog_promo_badge = null,
     catalog_flash_urgency = null,
+    catalog_flash_social_proof = null,
   } = listing
   
   const basePrice = basePriceThb || base_price_thb || 0
@@ -178,6 +179,17 @@ export function GostayloListingCard({
       {catalog_flash_urgency?.ends_at ? (
         <div className="px-4 pt-2">
           <UrgencyTimer endsAt={catalog_flash_urgency.ends_at} language={language} variant="compact" />
+        </div>
+      ) : null}
+
+      {catalog_flash_social_proof?.bookingsCreatedCount > 0 ? (
+        <div className="px-4 pt-1.5">
+          <p className="text-xs font-medium text-rose-700 leading-snug">
+            {getUIText('listingDetail_flashSocialProof', language).replace(
+              /\{\{count\}\}/g,
+              String(catalog_flash_social_proof.bookingsCreatedCount),
+            )}
+          </p>
         </div>
       ) : null}
 

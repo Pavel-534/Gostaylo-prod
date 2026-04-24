@@ -518,6 +518,7 @@ function PremiumListingContent({ params }) {
           cancellationPolicy: l.cancellationPolicy ?? l.cancellation_policy ?? 'moderate',
           partnerTrust: l.partnerTrust ?? null,
           catalog_flash_urgency: l.catalog_flash_urgency ?? null,
+          catalog_flash_social_proof: l.catalog_flash_social_proof ?? null,
         })
       }
       setLoading(false)
@@ -847,6 +848,17 @@ function PremiumListingContent({ params }) {
           {listing.catalog_flash_urgency?.ends_at ? (
             <div className="mt-3 max-w-2xl">
               <UrgencyTimer endsAt={listing.catalog_flash_urgency.ends_at} language={language} />
+            </div>
+          ) : null}
+
+          {listing.catalog_flash_social_proof?.bookingsCreatedCount > 0 ? (
+            <div className="mt-2 max-w-2xl">
+              <p className="text-sm font-medium text-rose-700">
+                {getUIText('listingDetail_flashSocialProof', language).replace(
+                  /\{\{count\}\}/g,
+                  String(listing.catalog_flash_social_proof.bookingsCreatedCount),
+                )}
+              </p>
             </div>
           ) : null}
 

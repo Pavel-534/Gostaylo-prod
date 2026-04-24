@@ -21,6 +21,8 @@ import {
   fetchActivePromoRowsForCatalog,
   computeCatalogPromoBadgeForListing,
   computeCatalogFlashUrgencyForListing,
+  computeCatalogFlashSocialProofForListing,
+  fetchBookingsCreatedTodayCountsByPromoCodes,
 } from '@/lib/promo/catalog-promo-badges'
 
 export const dynamic = 'force-dynamic'
@@ -150,10 +152,21 @@ export async function GET(request, context) {
 
     let catalog_promo_badge = null
     let catalog_flash_urgency = null
+    let catalog_flash_social_proof = null
     try {
       const promoRows = await fetchActivePromoRowsForCatalog(supabaseAdmin)
       catalog_promo_badge = computeCatalogPromoBadgeForListing(listing, promoRows, 0)
       catalog_flash_urgency = computeCatalogFlashUrgencyForListing(listing, promoRows)
+      const flashCodes = (promoRows || [])
+        .filter((p) => p.is_flash_sale)
+        .map((p) => String(p.code || '').trim().toUpperCase())
+        .filter(Boolean)
+      const flashTodayCounts = await fetchBookingsCreatedTodayCountsByPromoCodes(supabaseAdmin, flashCodes)
+      catalog_flash_social_proof = computeCatalogFlashSocialProofForListing(
+        listing,
+        promoRows,
+        flashTodayCounts,
+      )
     } catch (e) {
       console.warn('[LISTING GET] catalog promo', e?.message)
     }
@@ -226,6 +239,7 @@ export async function GET(request, context) {
       partnerTrust,
       catalog_promo_badge,
       catalog_flash_urgency,
+      catalog_flash_social_proof,
     };
     
     return NextResponse.json({ success: true, data: transformed });
