@@ -35,6 +35,10 @@
     {
       "path": "/api/cron/dispute-mediation-monitor",
       "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/flash-sale-reminder",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

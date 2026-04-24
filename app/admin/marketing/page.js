@@ -33,11 +33,20 @@ function isPlatformPromoCritical(promo) {
 export default function MarketingPage() {
   const { toast } = useToast();
   const [promoCodes, setPromoCodes] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
   const [promoListFilter, setPromoListFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [campaignLoading, setCampaignLoading] = useState(false);
   const [extendingId, setExtendingId] = useState(null);
   const [topPartners, setTopPartners] = useState([]);
   const [allowedListingIdsRaw, setAllowedListingIdsRaw] = useState('');
+  const [campaignForm, setCampaignForm] = useState({
+    title: '',
+    subtitle: '',
+    startsAtIso: '',
+    endsAtIso: '',
+    promoCodeIds: [],
+  });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPromo, setNewPromo] = useState({
     code: '',
@@ -51,6 +60,7 @@ export default function MarketingPage() {
 
   useEffect(() => {
     loadPromoCodes();
+    loadCampaigns();
   }, []);
 
   useEffect(() => {
@@ -89,6 +99,87 @@ export default function MarketingPage() {
       toast({ title: 'Ошибка сети', description: 'Повторите позже', variant: 'destructive' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCampaigns = async () => {
+    setCampaignLoading(true);
+    try {
+      const res = await fetch('/api/admin/marketing/campaigns');
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setCampaigns(Array.isArray(data.data) ? data.data : []);
+      } else {
+        toast({
+          title: 'Не удалось загрузить кампании',
+          description: data.error || res.statusText,
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({ title: 'Ошибка сети при загрузке кампаний', variant: 'destructive' });
+    } finally {
+      setCampaignLoading(false);
+    }
+  };
+
+  const toggleCampaignPromo = (promoId) => {
+    setCampaignForm((prev) => {
+      const has = prev.promoCodeIds.includes(promoId);
+      return {
+        ...prev,
+        promoCodeIds: has
+          ? prev.promoCodeIds.filter((id) => id !== promoId)
+          : [...prev.promoCodeIds, promoId],
+      };
+    });
+  };
+
+  const handleCreateCampaign = async () => {
+    if (!campaignForm.title.trim()) {
+      toast({ title: 'Введите заголовок кампании', variant: 'destructive' });
+      return;
+    }
+    if (campaignForm.promoCodeIds.length < 1) {
+      toast({ title: 'Выберите минимум 1 PLATFORM-код', variant: 'destructive' });
+      return;
+    }
+    try {
+      const payload = {
+        title: campaignForm.title.trim(),
+        subtitle: campaignForm.subtitle.trim(),
+        promoCodeIds: campaignForm.promoCodeIds,
+        startsAtIso: campaignForm.startsAtIso
+          ? new Date(campaignForm.startsAtIso).toISOString()
+          : null,
+        endsAtIso: campaignForm.endsAtIso ? new Date(campaignForm.endsAtIso).toISOString() : null,
+      };
+      const res = await fetch('/api/admin/marketing/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          title: 'Не удалось создать кампанию',
+          description: data.error || res.statusText,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({ title: 'Global Campaign создана' });
+      setCampaignForm({
+        title: '',
+        subtitle: '',
+        startsAtIso: '',
+        endsAtIso: '',
+        promoCodeIds: [],
+      });
+      await loadCampaigns();
+    } catch {
+      toast({ title: 'Ошибка сети', variant: 'destructive' });
     }
   };
 
@@ -245,6 +336,12 @@ export default function MarketingPage() {
     });
   }, [promoCodes, promoListFilter]);
 
+  const platformPromos = useMemo(
+    () =>
+      promoCodes.filter((p) => String(p.createdByType || '').toUpperCase() === 'PLATFORM' && p.isActive),
+    [promoCodes],
+  );
+
   if (loading) {
     return <div className="flex items-center justify-center h-64">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
@@ -364,6 +461,110 @@ export default function MarketingPage() {
           </CardContent>
         </Card>
       ) : null}
+
+      <Card className="border border-rose-100 bg-gradient-to-br from-rose-50/70 to-white shadow-sm">
+        <CardHeader className="p-4 sm:p-6 pb-2">
+          <CardTitle className="flex items-center gap-2 text-base text-rose-950">
+            <Calendar className="h-5 w-5 text-rose-600 shrink-0" />
+            Global Campaign Landing
+          </CardTitle>
+          <CardDescription className="text-sm text-rose-900/80">
+            Объединяйте несколько PLATFORM-промокодов под единой распродажей и заголовком.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label>Заголовок Campaign *</Label>
+              <Input
+                value={campaignForm.title}
+                onChange={(e) => setCampaignForm((prev) => ({ ...prev, title: e.target.value }))}
+                placeholder="Summer Super Sale"
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label>Подзаголовок</Label>
+              <Input
+                value={campaignForm.subtitle}
+                onChange={(e) => setCampaignForm((prev) => ({ ...prev, subtitle: e.target.value }))}
+                placeholder="До -30% на selected listings"
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label>Старт (опционально)</Label>
+              <Input
+                type="datetime-local"
+                value={campaignForm.startsAtIso}
+                onChange={(e) => setCampaignForm((prev) => ({ ...prev, startsAtIso: e.target.value }))}
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label>Финиш (опционально)</Label>
+              <Input
+                type="datetime-local"
+                value={campaignForm.endsAtIso}
+                onChange={(e) => setCampaignForm((prev) => ({ ...prev, endsAtIso: e.target.value }))}
+                className="mt-2"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label>PLATFORM-коды для объединения *</Label>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {platformPromos.slice(0, 24).map((promo) => (
+                <label
+                  key={promo.id}
+                  className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm"
+                >
+                  <Checkbox
+                    checked={campaignForm.promoCodeIds.includes(promo.id)}
+                    onCheckedChange={() => toggleCampaignPromo(promo.id)}
+                  />
+                  <span className="font-mono">{promo.code}</span>
+                </label>
+              ))}
+            </div>
+            {platformPromos.length === 0 ? (
+              <p className="mt-2 text-xs text-slate-500">Нет активных PLATFORM-кодов для объединения.</p>
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-600">
+              Выбрано кодов: <span className="font-semibold">{campaignForm.promoCodeIds.length}</span>
+            </p>
+            <Button onClick={handleCreateCampaign} className="bg-rose-600 hover:bg-rose-700">
+              Создать Campaign
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Активные кампании</p>
+            {campaignLoading ? (
+              <p className="text-sm text-slate-500">Загрузка…</p>
+            ) : campaigns.length === 0 ? (
+              <p className="text-sm text-slate-500">Пока нет кампаний.</p>
+            ) : (
+              campaigns.map((campaign) => (
+                <div key={campaign.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                  <p className="font-semibold text-slate-900">{campaign.title}</p>
+                  {campaign.subtitle ? (
+                    <p className="text-xs text-slate-600 mt-0.5">{campaign.subtitle}</p>
+                  ) : null}
+                  <p className="text-xs text-slate-500 mt-1">
+                    Codes: {(campaign.promoCodeIds || []).length} |{' '}
+                    {(campaign.promoCodeIds || []).join(', ')}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Table - Mobile Responsive */}
       <Card className="shadow-xl">

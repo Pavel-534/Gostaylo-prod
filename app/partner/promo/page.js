@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,6 +22,7 @@ import { getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
 
 export default function PartnerPromoPage() {
+  const searchParams = useSearchParams()
   const { language } = useI18n()
   const t = useCallback((key) => getUIText(key, language), [language])
 
@@ -32,6 +34,7 @@ export default function PartnerPromoPage() {
   const [submitting, setSubmitting] = useState(false)
   const [selectedListingIds, setSelectedListingIds] = useState(() => new Set())
   const [promoCodes, setPromoCodes] = useState([])
+  const [extendingFlashCode, setExtendingFlashCode] = useState(false)
 
   const [form, setForm] = useState({
     code: '',
@@ -113,6 +116,42 @@ export default function PartnerPromoPage() {
       setLoadingPromos(false)
     }
   }, [partnerId])
+
+  const quickFlashCode = String(searchParams.get('flashCode') || '')
+    .trim()
+    .toUpperCase()
+  const quickExtendHoursRaw = Number(searchParams.get('extendHours') || 6)
+  const quickExtendHours =
+    Number.isFinite(quickExtendHoursRaw) && quickExtendHoursRaw > 0
+      ? Math.min(24, Math.max(1, Math.round(quickExtendHoursRaw)))
+      : 6
+
+  const handleQuickFlashExtend = async () => {
+    if (!quickFlashCode) return
+    setExtendingFlashCode(true)
+    try {
+      const res = await fetch(
+        `/api/v2/partner/promo-codes/${encodeURIComponent(quickFlashCode)}/extend-flash-sale`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hours: quickExtendHours }),
+        },
+      )
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json.success) {
+        toast.error(json.error || 'Не удалось продлить Flash Sale')
+        return
+      }
+      toast.success(`Flash Sale ${quickFlashCode} продлен на ${quickExtendHours} ч`)
+      void loadPartnerPromos()
+    } catch {
+      toast.error('Ошибка сети при продлении Flash Sale')
+    } finally {
+      setExtendingFlashCode(false)
+    }
+  }
 
   useEffect(() => {
     void loadPartnerPromos()
@@ -218,6 +257,29 @@ export default function PartnerPromoPage() {
         </h1>
         <p className="mt-1 text-slate-600">{t('partnerPromo_pageSubtitle')}</p>
       </div>
+
+      {quickFlashCode ? (
+        <Card className="border-orange-200 bg-orange-50/70 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Flash Sale из Telegram</CardTitle>
+            <CardDescription>
+              Код <span className="font-mono">{quickFlashCode}</span>. Быстрое действие для продления акции.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              onClick={handleQuickFlashExtend}
+              disabled={extendingFlashCode}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {extendingFlashCode ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Продлить на {quickExtendHours} часов
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card className="border-slate-200 shadow-sm">
         <CardHeader>

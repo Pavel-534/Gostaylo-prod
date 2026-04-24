@@ -15,7 +15,11 @@ import { mapCategorySlugToListingType } from '@/lib/partner-calendar-filters'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { toListingDate } from '@/lib/listing-date'
 import { PricingService } from '@/lib/services/pricing.service'
-import { normalizeAllowedListingIdsFromRow } from '@/lib/promo/allowed-listing-ids'
+import {
+  checkApplicabilityCached,
+  promoIsActiveAt,
+  calculatePromoDiscountAmount,
+} from '@/lib/promo/promo-engine'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,63 +27,30 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 // Use service role to bypass RLS (partner listings may be restricted by RLS)
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-function promoRowIsActive(row, nowMs) {
-  if (!row || row.is_active === false) return false
-  if (row.max_uses != null && Number(row.current_uses) >= Number(row.max_uses)) return false
-  if (!row.valid_until) return true
-  const endMs = new Date(row.valid_until).getTime()
-  return Number.isFinite(endMs) && endMs > nowMs
-}
-
-function promoAppliesToListing(row, listingId, ownerId) {
-  const listing = String(listingId || '')
-  const owner = String(ownerId || '')
-  const createdByType = String(row?.created_by_type || 'PLATFORM').toUpperCase()
-  const allowedIds = normalizeAllowedListingIdsFromRow(row?.allowed_listing_ids)
-
-  if (allowedIds && !allowedIds.includes(listing)) return false
-
-  if (createdByType === 'PARTNER') {
-    const pid = String(row?.partner_id || '')
-    return Boolean(pid) && pid === owner
-  }
-
-  return createdByType === 'PLATFORM'
-}
-
 function buildMarketingPromoForDay({ promos, listingId, ownerId, date, dailyPrice }) {
   const daily = Math.max(0, Math.round(Number(dailyPrice) || 0))
   if (daily <= 0 || !Array.isArray(promos) || promos.length === 0) return null
-
-  const dateEndMs = new Date(`${date}T23:59:59.999Z`).getTime()
   let best = null
 
   for (const row of promos) {
-    if (!promoAppliesToListing(row, listingId, ownerId)) continue
-    if (row.valid_until) {
-      const endMs = new Date(row.valid_until).getTime()
-      if (!Number.isFinite(endMs) || endMs < dateEndMs) continue
-    }
+    const applicable = checkApplicabilityCached(row, {
+      mode: 'calendar',
+      listingId,
+      listingOwnerId: ownerId,
+      targetDate: date,
+      requireTargetDateCoverage: true,
+    })
+    if (!applicable.ok) continue
 
-    const promoType = String(row.promo_type || '').toUpperCase()
-    const rawValue = Number(row.value)
-    if (!Number.isFinite(rawValue) || rawValue <= 0) continue
-
-    let discount = 0
-    if (promoType === 'PERCENTAGE') {
-      discount = Math.round((daily * Math.min(100, rawValue)) / 100)
-    } else {
-      discount = Math.round(rawValue)
-    }
-    discount = Math.min(daily, Math.max(0, discount))
+    const discount = calculatePromoDiscountAmount(row, daily)
     if (discount <= 0) continue
 
     if (!best || discount > best.discountAmount) {
       best = {
         code: String(row.code || '').toUpperCase(),
         discountAmount: discount,
-        promoType,
-        promoValue: rawValue,
+        promoType: String(row.promo_type || '').toUpperCase(),
+        promoValue: Number(row.value) || 0,
         isFlashSale: row.is_flash_sale === true,
         validUntil: row.valid_until || null,
       }
@@ -431,7 +402,7 @@ export async function GET(request) {
               )
               .eq('is_active', true)
             const nowMs = Date.now()
-            promoRows = (promosData || []).filter((row) => promoRowIsActive(row, nowMs))
+            promoRows = (promosData || []).filter((row) => promoIsActiveAt(row, nowMs).ok)
           } catch (e) {
             console.log('[CALENDAR] Error fetching promo_codes:', e.message)
           }
@@ -479,7 +450,7 @@ export async function GET(request) {
             )
             const pd = await promosRes.json()
             const nowMs = Date.now()
-            promoRows = (Array.isArray(pd) ? pd : []).filter((row) => promoRowIsActive(row, nowMs))
+            promoRows = (Array.isArray(pd) ? pd : []).filter((row) => promoIsActiveAt(row, nowMs).ok)
           } catch (e) {
             console.log('[CALENDAR] Error fetching promo_codes:', e.message)
           }

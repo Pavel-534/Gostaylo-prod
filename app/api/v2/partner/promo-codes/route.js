@@ -8,6 +8,7 @@ import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/sessio
 import { supabaseAdmin } from '@/lib/supabase'
 import { buildPartnerPromoInsert, verifyListingIdsOwnedByPartner } from '@/lib/promo/partner-promo-codes'
 import { mapPromoRowToAdminDto } from '@/lib/promo/promo-codes-admin-map'
+import { MarketingNotificationsService } from '@/lib/services/marketing-notifications.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -112,6 +113,13 @@ export async function POST(request) {
         return NextResponse.json({ success: false, error: 'Promo code already exists' }, { status: 409 })
       }
       return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    }
+
+    if (data?.is_flash_sale === true) {
+      await MarketingNotificationsService.onPartnerFlashSaleCreated({
+        promoRow: data,
+        partnerId: userId,
+      })
     }
 
     return NextResponse.json({ success: true, data }, { status: 201 })

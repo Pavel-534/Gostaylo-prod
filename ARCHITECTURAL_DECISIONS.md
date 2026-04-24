@@ -112,6 +112,15 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 - **Туры — размер группы и дни в БД:** лимит гостей задаётся в **`listings.metadata.group_size_min` / `group_size_max`**; при создании брони **`POST /api/v2/bookings`** для `categories.slug === 'tours'` проверяется **`guestsCount`**, а не длина периода против min/max дней. Колонки **`min_booking_days` / `max_booking_days`** для туров в партнёрском потоке выставляются в **1 / 730** (не семантика «группа»). Миграция старых значений из колонок в metadata: **`mergeTourGroupMetadataFromListingColumns`** в **`lib/partner/listing-wizard-metadata.js`**. Подробная таблица — **`docs/TECHNICAL_MANIFESTO.md`** §3.
 - **Чат:** отправка сообщений с клиента — **`POST /api/v2/chat/messages`**. Роута **`/api/messages`** в App Router нет; системные сообщения о статусе брони пишет сервер через **`syncBookingStatusToConversationChat`** (**`lib/booking-status-chat-sync.js`**), а не отдельный устаревший HTTP-вызов с фронта.
 
+### Promo Applicability ADR (Stage 36.0)
+
+- **Единый движок применимости:** `lib/promo/promo-engine.js` — канон для `isCodeApplicable`, `promoIsActiveAt`, `calculatePromoDiscountAmount`. Любая новая проверка применимости/скидки добавляется только сюда, а не в route/UI.
+- **Кто использует канон:** `PricingService.validatePromoCode`, `CalendarService` (маркетинговый слой дня), `lib/promo/catalog-promo-badges.js`, а также partner calendar API (`GET /api/v2/partner/calendar`) через тот же движок.
+- **Базовые ограничения (одинаковы везде):** `is_active`, `max_uses/current_uses`, `valid_until`, scope по `created_by_type` (`PARTNER` требует `partner_id === listing.owner_id`), allowlist по `allowed_listing_ids`.
+- **Контекстные ограничения:** для каталога действует «conservative mode» (глобальные PLATFORM-коды без allowlist не показываются как бейдж в листинге); для календарных дневных индикаторов включена проверка покрытия даты (`targetDate` должен входить в окно действия промо до конца суток).
+- **Операционный слой (alpha):** при создании partner Flash Sale логируется событие в `MarketingNotificationsService`; крон `GET/POST /api/cron/flash-sale-reminder` готовит уведомление партнёру за 1 час до конца с KPI `N` созданных броней (`promo_code_used`).
+- **Delivery + anti-spam (Stage 37.0):** reminder доставляется партнёру через Telegram adapter (`sendTelegramMessagePayload`) с inline CTA на quick-action продление; дедуп регулируется в `promo_codes.metadata.last_reminder_sent_at` (окно блокировки 45 минут). Любые новые каналы/триггеры обязаны уважать это окно или расширять policy в этом ADR.
+
 ### Currency System
 
 - **Канон:** один серверный модуль **`lib/services/currency.service.js`** (курсы, USDT, дефолтная комиссия, **`getEffectiveRate`** с **`resolveChatInvoiceRateMultiplier`** для счетов в чате). Устаревший реэкспорт **`currency-helper.js`** удалён — импорты только из **`currency.service.js`**.

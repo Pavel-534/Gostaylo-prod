@@ -311,6 +311,7 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
   let label = 'Свободно'
   let sub = null
   let priceLine = null
+  let promoLine = null
 
   if (cellData.status === 'BOOKED') {
     badgeClass = STATUS_BADGE[cellData.bookingStatus] || STATUS_BADGE.CONFIRMED
@@ -346,6 +347,20 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
         {minStay > 1 ? <p className="text-[10px] font-medium text-slate-500">мин.{minStay}</p> : null}
       </div>
     )
+    if (cellData.marketingPromo) {
+      const promo = cellData.marketingPromo
+      const badge = promo.isFlashSale ? 'FLASH' : 'PROMO'
+      promoLine = (
+        <div className="text-right leading-tight mt-0.5">
+          <p className="text-[10px] font-semibold text-orange-700">{badge}</p>
+          <p className="text-[10px] text-slate-500 tabular-nums">
+            ฿{Math.round(promo.baseSeasonPrice || 0).toLocaleString('en-US')} - ฿
+            {Math.round(promo.discountAmount || 0).toLocaleString('en-US')} = ฿
+            {Math.round(promo.guestPrice || 0).toLocaleString('en-US')}
+          </p>
+        </div>
+      )
+    }
     label = 'Свободно'
   }
 
@@ -386,7 +401,12 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
           {sub ? <p className="mt-0.5 truncate text-xs font-semibold text-slate-800">{sub}</p> : null}
         </div>
 
-        {priceLine ? <div className="shrink-0 pl-1">{priceLine}</div> : null}
+        {priceLine ? (
+          <div className="shrink-0 pl-1">
+            {priceLine}
+            {promoLine}
+          </div>
+        ) : null}
 
         {cellData.status === 'BLOCKED' && !priceLine ? (
           <div className="shrink-0 text-slate-500">
