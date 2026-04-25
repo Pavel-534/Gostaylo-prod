@@ -19,16 +19,19 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { 
-  DollarSign, TrendingUp, Wallet, Download, 
-  Calendar, Building2, Clock, ArrowDownToLine, Loader2
+  Wallet, Download, FileDown, Receipt,
+  Calendar, Clock, ArrowDownToLine, Loader2, Shield, Banknote
 } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
-import { format } from 'date-fns'
+import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
+import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFinancialSnapshotDialog'
 
 // Fetch partner bookings with financial data
 async function fetchPartnerPayouts() {
@@ -74,62 +77,29 @@ async function fetchPartnerFinances(partnerId) {
   return data.data ?? []
 }
 
-// Fetch effective commission rate from admin settings (profiles.custom_commission_rate or system_settings)
-async function fetchCommissionRate(partnerId) {
-  if (!partnerId) return { effectiveRate: 15, partnerEarningsPercent: 85 }
-  try {
-    const res = await fetch(`/api/v2/commission?partnerId=${partnerId}`, { cache: 'no-store' })
-    const json = await res.json()
-    if (json?.data) {
-      return { effectiveRate: json.data.effectiveRate ?? 15, partnerEarningsPercent: json.data.partnerEarningsPercent ?? 85 }
-    }
-  } catch { /* ignore */ }
-  return { effectiveRate: 15, partnerEarningsPercent: 85 }
+async function fetchFinancesSummary() {
+  const res = await fetch('/api/v2/partner/finances-summary', {
+    cache: 'no-store',
+    credentials: 'include',
+  })
+  const json = await res.json()
+  if (!res.ok) {
+    throw new Error(json?.error || 'Failed to fetch finances summary')
+  }
+  return json.data
 }
 
-// Financial calculations — uses per-booking commission_rate when available
-const DEFAULT_COMMISSION_RATE = 15
-
-function calculateFinances(bookings) {
-  let totalGrossRevenue = 0
-  let totalGoStayLoFee = 0
-  let totalNetEarnings = 0
-  let pendingRevenue = 0
-  let completedRevenue = 0
-  
-  bookings.forEach(booking => {
-    const gross = parseFloat(booking.priceThb || booking.total_price_thb) || 0
-    const rate = parseFloat(booking.commissionRate ?? booking.listing?.commissionRate) || DEFAULT_COMMISSION_RATE
-    const feeRate = rate / 100
-    const fee = gross * feeRate
-    const net = parseFloat(booking.partnerEarningsThb) || (gross - fee)
-    
-    totalGrossRevenue += gross
-    totalGoStayLoFee += fee
-    totalNetEarnings += net
-    
-    if (booking.status === 'COMPLETED') {
-      completedRevenue += net
-    } else if (['CONFIRMED', 'PAID', 'PAID_ESCROW'].includes(booking.status)) {
-      pendingRevenue += net
+/** SSOT amounts from API `financial_snapshot` (Stage 45.3). */
+function snapshotMoney(booking) {
+  const s = booking?.financial_snapshot
+  if (s && typeof s === 'object' && Number.isFinite(Number(s.gross))) {
+    return {
+      gross: Number(s.gross) || 0,
+      fee: Number(s.fee) || 0,
+      net: Number(s.net) || 0,
     }
-  })
-  
-  const avgFeePercent = totalGrossRevenue > 0 
-    ? Math.round((totalGoStayLoFee / totalGrossRevenue) * 100) 
-    : DEFAULT_COMMISSION_RATE
-  const netPercent = 100 - avgFeePercent
-  
-  return {
-    totalGrossRevenue,
-    totalGoStayLoFee,
-    totalNetEarnings,
-    completedRevenue,
-    pendingRevenue,
-    transactionCount: bookings.length,
-    avgFeePercent,
-    netPercent
   }
+  return { gross: 0, fee: 0, net: 0 }
 }
 
 // Status badge colors
@@ -201,6 +171,10 @@ function PartnerFinancesV2Content() {
   const [currency, setCurrency] = useState('THB')
   const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
   const [defaultPayoutProfile, setDefaultPayoutProfile] = useState(null)
+  const [pdfDateFrom, setPdfDateFrom] = useState(() => format(startOfMonth(new Date()), 'yyyy-MM-dd'))
+  const [pdfDateTo, setPdfDateTo] = useState(() => format(new Date(), 'yyyy-MM-dd'))
+  const [pdfLoading, setPdfLoading] = useState(false)
+  const [financeFocusBooking, setFinanceFocusBooking] = useState(null)
 
   // Get partner ID from localStorage
   useEffect(() => {
@@ -329,11 +303,17 @@ function PartnerFinancesV2Content() {
     return () => cancelAnimationFrame(id)
   }, [escrowBookingFilter, isLoading, partnerId])
 
-  // Fetch effective commission rate (from admin: 7% global, 4% per-user)
-  const { data: commissionData } = useQuery({
-    queryKey: ['partner-commission', partnerId],
-    queryFn: () => fetchCommissionRate(partnerId),
-    enabled: !!partnerId
+  const {
+    data: financesSummary,
+    isLoading: summaryLoading,
+    isError: summaryError,
+    error: summaryErr,
+    refetch: refetchSummary,
+  } = useQuery({
+    queryKey: ['partner-finances-summary', partnerId],
+    queryFn: fetchFinancesSummary,
+    enabled: !!partnerId,
+    staleTime: 30 * 1000,
   })
 
   const {
@@ -355,13 +335,8 @@ function PartnerFinancesV2Content() {
     staleTime: 30 * 1000,
   })
 
-  // Calculate financial stats
-  const finances = calculateFinances(bookings)
-  
-  // When no bookings: use effective rate from admin settings. When bookings exist: use calculated avg
-  const displayFeePercent = finances.transactionCount > 0 ? finances.avgFeePercent : (commissionData?.effectiveRate ?? DEFAULT_COMMISSION_RATE)
-  const displayNetPercent = finances.transactionCount > 0 ? finances.netPercent : (commissionData?.partnerEarningsPercent ?? (100 - DEFAULT_COMMISSION_RATE))
-  const pendingPayoutPreview = calcPayoutMath(finances.pendingRevenue)
+  const pendingPayoutPreview = calcPayoutMath(financesSummary?.availableThb ?? 0)
+  const summaryLoadingCombined = isLoading || summaryLoading
 
   // Export to CSV
   const handleExportCSV = () => {
@@ -373,10 +348,7 @@ function PartnerFinancesV2Content() {
     const csvRows = [
       ['Date', 'Booking ID', t('listing'), t('guest'), 'Status', t('gross'), t('fee'), t('netEarnings')].join(','),
       ...bookings.map(b => {
-        const gross = parseFloat(b.priceThb || b.total_price_thb) || 0
-        const rate = parseFloat(b.commissionRate ?? b.listing?.commissionRate) || DEFAULT_COMMISSION_RATE
-        const fee = gross * (rate / 100)
-        const net = parseFloat(b.partnerEarningsThb) || (gross - fee)
+        const { gross, fee, net } = snapshotMoney(b)
         return [
           format(new Date(b.createdAt || b.created_at), 'yyyy-MM-dd'),
           b.id,
@@ -401,6 +373,50 @@ function PartnerFinancesV2Content() {
     toast.success(t('reportDownloaded'))
   }
 
+  const handleExportPdf = async () => {
+    if (!pdfDateFrom || !pdfDateTo || pdfDateFrom > pdfDateTo) {
+      toast.error(t('partnerFinances_pdfError'))
+      return
+    }
+    setPdfLoading(true)
+    try {
+      const qs = new URLSearchParams({ from: pdfDateFrom, to: pdfDateTo })
+      const res = await fetch(`/api/v2/partner/finances-statement-pdf?${qs}`, {
+        credentials: 'include',
+        cache: 'no-store',
+      })
+      if (!res.ok) {
+        let detail = ''
+        try {
+          const j = await res.json()
+          if (j?.error) detail = String(j.error)
+        } catch {
+          /* ignore */
+        }
+        throw new Error(detail || t('partnerFinances_pdfError'))
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `gostaylo-financial-statement-${pdfDateFrom}_${pdfDateTo}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success(t('partnerFinances_pdfSuccess'))
+    } catch (e) {
+      toast.error(e?.message || t('partnerFinances_pdfError'))
+    } finally {
+      setPdfLoading(false)
+    }
+  }
+
+  const applyPdfMonthPreset = (which) => {
+    const now = new Date()
+    const ref = which === 'prev' ? subMonths(now, 1) : now
+    setPdfDateFrom(format(startOfMonth(ref), 'yyyy-MM-dd'))
+    setPdfDateTo(format(endOfMonth(ref), 'yyyy-MM-dd'))
+  }
+
   return (
     <div className="space-y-8 min-w-0 max-w-full">
       {/* Header */}
@@ -414,32 +430,30 @@ function PartnerFinancesV2Content() {
             <CardHeader className="py-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Wallet className="h-4 w-4 text-teal-700" />
-                {language === 'en' ? 'Escrow vs available' : 'Эскроу и доступно к выводу'}
+                {t('partnerFinances_escrowCardTitle')}
               </CardTitle>
               <CardDescription className="text-xs">
-                {language === 'en'
-                  ? 'Frozen = paid, not yet thawed by category rules. Available = THAWED; use Request Payout.'
-                  : 'Заморожено = оплачено, разморозка по правилам категории. Доступно = THAWED; вывод — «Запрос выплаты».'}
+                {t('partnerFinances_escrowCardDesc')}
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-600">{language === 'en' ? 'Frozen (escrow)' : 'В эскроу'}</span>
+                <span className="text-slate-600">{t('partnerFinances_escrowFrozenLabel')}</span>
                 <span className="font-semibold">{formatPrice(balanceBreakdown.frozenBalanceThb ?? 0, 'THB')}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-600">{language === 'en' ? 'Available' : 'К выводу'}</span>
+                <span className="text-slate-600">{t('partnerFinances_escrowAvailableLabel')}</span>
                 <span className="font-semibold text-teal-800">{formatPrice(balanceBreakdown.availableBalanceThb ?? 0, 'THB')}</span>
               </div>
               {balanceBreakdown.byCategory && Object.keys(balanceBreakdown.byCategory).length > 0 && (
                 <div className="pt-2 border-t border-teal-100 text-xs text-slate-600 space-y-1">
-                  <p className="font-medium text-slate-700">{language === 'en' ? 'By category' : 'По категориям'}</p>
+                  <p className="font-medium text-slate-700">{t('partnerFinances_escrowByCategory')}</p>
                   {Object.entries(balanceBreakdown.byCategory).map(([slug, row]) => (
                     <div key={slug} className="flex justify-between gap-2">
                       <span className="truncate">{slug}</span>
                       <span>
-                        {language === 'en' ? 'F' : 'З'} {formatPrice(row.frozenThb ?? 0, 'THB')} / {language === 'en' ? 'A' : 'Д'}{' '}
-                        {formatPrice(row.availableThb ?? 0, 'THB')}
+                        {t('partnerFinances_escrowFrozenShort')} {formatPrice(row.frozenThb ?? 0, 'THB')} /{' '}
+                        {t('partnerFinances_escrowAvailableShort')} {formatPrice(row.availableThb ?? 0, 'THB')}
                       </span>
                     </div>
                   ))}
@@ -459,69 +473,149 @@ function PartnerFinancesV2Content() {
         </Button>
       </div>
 
-      {/* Financial Stats Grid */}
+      <Card className="border-slate-200 bg-slate-50/40">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">{t('partnerFinances_pdfSectionTitle')}</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">{t('partnerFinances_pdfSectionDesc')}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-wrap gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="partner-pdf-from" className="text-xs text-slate-600">
+                {t('partnerFinances_pdfFrom')}
+              </Label>
+              <Input
+                id="partner-pdf-from"
+                type="date"
+                value={pdfDateFrom}
+                onChange={(e) => setPdfDateFrom(e.target.value)}
+                className="w-[11.5rem] bg-white"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="partner-pdf-to" className="text-xs text-slate-600">
+                {t('partnerFinances_pdfTo')}
+              </Label>
+              <Input
+                id="partner-pdf-to"
+                type="date"
+                value={pdfDateTo}
+                onChange={(e) => setPdfDateTo(e.target.value)}
+                className="w-[11.5rem] bg-white"
+              />
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => applyPdfMonthPreset('current')}>
+                {t('partnerFinances_pdfThisMonth')}
+              </Button>
+              <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => applyPdfMonthPreset('prev')}>
+                {t('partnerFinances_pdfPrevMonth')}
+              </Button>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              className="gap-2 shrink-0 border-teal-200 bg-white hover:bg-teal-50"
+              disabled={pdfLoading}
+              onClick={handleExportPdf}
+            >
+              {pdfLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <FileDown className="h-4 w-4" aria-hidden />
+              )}
+              {pdfLoading ? t('partnerFinances_pdfDownloading') : t('partnerFinances_pdfDownload')}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {summaryError ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          {summaryErr?.message}
+          <Button variant="outline" size="sm" className="ml-2" onClick={() => refetchSummary()}>
+            {t('retry')}
+          </Button>
+        </div>
+      ) : null}
+
+      {financesSummary?.reconciliation && !financesSummary.reconciliation.withinTolerance ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-900">
+          {t('partnerFinances_reconciliationWarn')}
+          <span className="ml-2 font-mono text-xs">
+            Δ {formatPrice(financesSummary.reconciliation.differenceThb ?? 0, 'THB')}
+          </span>
+        </div>
+      ) : financesSummary?.reconciliation?.withinTolerance ? (
+        <p className="text-xs text-slate-500">{t('partnerFinances_reconciliationOk')}</p>
+      ) : null}
+
+      {/* Financial buckets (server / ledger SSOT) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          icon={DollarSign}
-          title={t('totalGrossRevenue')}
-          value={formatPrice(finances.totalGrossRevenue, currency, exchangeRates)}
-          subtitle={t('beforeFees')}
-          loading={isLoading}
+          icon={Calendar}
+          title={t('partnerFinances_bucketPendingTitle')}
+          value={formatPrice(financesSummary?.pendingThb ?? 0, currency, exchangeRates)}
+          subtitle={t('partnerFinances_bucketPendingDesc')}
+          loading={summaryLoadingCombined}
         />
-        
         <StatCard
-          icon={Building2}
-          title={`${t('platformFee')} (${displayFeePercent}%)`}
-          value={formatPrice(finances.totalGoStayLoFee, currency, exchangeRates)}
-          subtitle={t('platformFee')}
-          loading={isLoading}
+          icon={Shield}
+          title={t('partnerFinances_bucketEscrowTitle')}
+          value={formatPrice(financesSummary?.escrowThb ?? 0, currency, exchangeRates)}
+          subtitle={t('partnerFinances_bucketEscrowDesc')}
+          loading={summaryLoadingCombined}
         />
-        
         <StatCard
           icon={Wallet}
-          title={`${t('netEarnings')} (${displayNetPercent}%)`}
-          value={formatPrice(finances.totalNetEarnings, currency, exchangeRates)}
-          subtitle={t('yourShare')}
-          loading={isLoading}
+          title={t('partnerFinances_bucketAvailableTitle')}
+          value={formatPrice(financesSummary?.availableThb ?? 0, currency, exchangeRates)}
+          subtitle={t('partnerFinances_bucketAvailableDesc')}
+          loading={summaryLoadingCombined}
         />
-        
         <StatCard
-          icon={TrendingUp}
-          title={t('transactions')}
-          value={finances.transactionCount}
-          subtitle={`${bookings.filter(b => b.status === 'COMPLETED').length} ${t('completed')}`}
-          loading={isLoading}
+          icon={Banknote}
+          title={t('partnerFinances_bucketTotalPaidTitle')}
+          value={formatPrice(financesSummary?.totalPaidThb ?? 0, currency, exchangeRates)}
+          subtitle={t('partnerFinances_bucketTotalPaidDesc')}
+          loading={summaryLoadingCombined}
         />
       </div>
 
-      {/* Revenue Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border-green-200">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500" />
-              {t('completedRevenue')}
-            </CardTitle>
-            <CardDescription>{t('fundsFromCompleted')}</CardDescription>
+      {/* Portfolio roll-up (server SSOT, active bookings) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-slate-600">{t('partnerFinances_portfolioGrossTitle')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">
-              {formatPrice(finances.completedRevenue, currency, exchangeRates)}
+            <div className="text-2xl font-bold text-slate-900">
+              {summaryLoadingCombined ? '—' : formatPrice(financesSummary?.portfolio?.grossThb ?? 0, currency, exchangeRates)}
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              {financesSummary?.portfolio?.bookingCount ?? 0} {t('partnerFinances_portfolioBookingsLabel')}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-slate-600">{t('partnerFinances_portfolioFeeTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-700">
+              {summaryLoadingCombined ? '—' : formatPrice(financesSummary?.portfolio?.feeThb ?? 0, currency, exchangeRates)}
             </div>
           </CardContent>
         </Card>
-
-        <Card className="border-amber-200">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-amber-500" />
-              {t('pendingRevenue')}
-            </CardTitle>
-            <CardDescription>{t('upcomingBookings')}</CardDescription>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-slate-600">{t('partnerFinances_portfolioNetTitle')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-amber-600">
-              {formatPrice(finances.pendingRevenue, currency, exchangeRates)}
+            <div className="text-2xl font-bold text-emerald-700">
+              {summaryLoadingCombined ? '—' : formatPrice(financesSummary?.portfolio?.netThb ?? 0, currency, exchangeRates)}
             </div>
           </CardContent>
         </Card>
@@ -531,9 +625,9 @@ function PartnerFinancesV2Content() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <ArrowDownToLine className="h-5 w-5 text-slate-600" />
-            История выплат
+            {t('partnerFinances_payoutHistoryTitle')}
           </CardTitle>
-          <CardDescription>Дата, метод, суммы и статус вывода средств</CardDescription>
+          <CardDescription>{t('partnerFinances_payoutHistoryDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           {payoutsLoading ? (
@@ -542,11 +636,11 @@ function PartnerFinancesV2Content() {
             <div className="text-sm text-red-700">
               {payoutsErr?.message}
               <Button variant="outline" size="sm" className="ml-2" onClick={() => refetchPayouts()}>
-                Повторить
+                {t('retry')}
               </Button>
             </div>
           ) : payouts.length === 0 ? (
-            <p className="text-sm text-slate-500 py-4">Пока нет заявок на выплату.</p>
+            <p className="text-sm text-slate-500 py-4">{t('partnerFinances_payoutNoRows')}</p>
           ) : (
             <>
               <div className="md:hidden space-y-3 min-w-0">
@@ -577,17 +671,17 @@ function PartnerFinancesV2Content() {
                       <p className="font-medium text-slate-800 break-words">{methodName}</p>
                       <div className="grid grid-cols-1 gap-1 text-xs sm:text-sm">
                         <div className="flex justify-between gap-2 min-w-0">
-                          <span className="text-slate-500 shrink-0">Gross</span>
+                          <span className="text-slate-500 shrink-0">{t('partnerFinances_colMobileGross')}</span>
                           <span className="tabular-nums text-right break-all">{fmtMoney(p.grossAmount)}</span>
                         </div>
                         <div className="flex justify-between gap-2 min-w-0">
-                          <span className="text-slate-500 shrink-0">Комиссия</span>
+                          <span className="text-slate-500 shrink-0">{t('partnerFinances_colMobileBankFee')}</span>
                           <span className="tabular-nums text-amber-800 text-right break-all">
                             −{fmtMoney(p.payoutFeeAmount)}
                           </span>
                         </div>
                         <div className="flex justify-between gap-2 pt-1 border-t border-slate-200 font-semibold min-w-0">
-                          <span className="text-slate-700 shrink-0">Итого</span>
+                          <span className="text-slate-700 shrink-0">{t('partnerFinances_colMobileFinal')}</span>
                           <span className="tabular-nums text-emerald-800 text-right break-all">
                             {fmtMoney(p.finalAmount)}
                           </span>
@@ -601,12 +695,12 @@ function PartnerFinancesV2Content() {
                 <table className="w-full text-sm min-w-[640px]">
                   <thead className="bg-slate-50 text-slate-600 text-left">
                     <tr>
-                      <th className="px-3 py-2 font-medium">Дата</th>
-                      <th className="px-3 py-2 font-medium">Метод</th>
-                      <th className="px-3 py-2 font-medium text-right">Gross</th>
-                      <th className="px-3 py-2 font-medium text-right">Комиссия банка</th>
-                      <th className="px-3 py-2 font-medium text-right">Итого к получению</th>
-                      <th className="px-3 py-2 font-medium">Статус</th>
+                      <th className="px-3 py-2 font-medium">{t('partnerFinances_colDate')}</th>
+                      <th className="px-3 py-2 font-medium">{t('partnerFinances_colMethod')}</th>
+                      <th className="px-3 py-2 font-medium text-right">{t('partnerFinances_colGross')}</th>
+                      <th className="px-3 py-2 font-medium text-right">{t('partnerFinances_colBankFee')}</th>
+                      <th className="px-3 py-2 font-medium text-right">{t('partnerFinances_colFinal')}</th>
+                      <th className="px-3 py-2 font-medium">{t('partnerFinances_colStatus')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -656,18 +750,16 @@ function PartnerFinancesV2Content() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Clock className="h-5 w-5 text-slate-600 shrink-0" />
-            {language === 'en' ? 'Ledger activity' : 'Движения по счёту (ledger)'}
+            {t('partnerFinances_ledgerTitle')}
           </CardTitle>
           <CardDescription>
-            {language === 'en'
-              ? 'Recent partner ledger entries: thaw, refunds, payouts (from balance API).'
-              : 'Последние проводки: разморозка, возвраты, выплаты (из ledger).'}
+            {t('partnerFinances_ledgerDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {!balanceBreakdown?.recentLedgerTransactions?.length ? (
             <p className="text-sm text-slate-500 py-2">
-              {language === 'en' ? 'No ledger entries yet.' : 'Пока нет проводок в ledger.'}
+              {t('partnerFinances_ledgerEmpty')}
             </p>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-slate-200 -mx-0">
@@ -675,13 +767,13 @@ function PartnerFinancesV2Content() {
                 <thead className="bg-slate-50 text-slate-600 text-left">
                   <tr>
                     <th className="px-3 py-2 font-medium whitespace-nowrap">
-                      {language === 'en' ? 'Date' : 'Дата'}
+                      {t('partnerFinances_ledgerColDate')}
                     </th>
-                    <th className="px-3 py-2 font-medium">Event</th>
-                    <th className="px-3 py-2 font-medium">Side</th>
-                    <th className="px-3 py-2 font-medium text-right">THB</th>
-                    <th className="px-3 py-2 font-medium">Booking</th>
-                    <th className="px-3 py-2 font-medium">{language === 'en' ? 'Note' : 'Описание'}</th>
+                    <th className="px-3 py-2 font-medium">{t('partnerFinances_ledgerColEvent')}</th>
+                    <th className="px-3 py-2 font-medium">{t('partnerFinances_ledgerColSide')}</th>
+                    <th className="px-3 py-2 font-medium text-right">{t('partnerFinances_ledgerColThb')}</th>
+                    <th className="px-3 py-2 font-medium">{t('partnerFinances_ledgerColBooking')}</th>
+                    <th className="px-3 py-2 font-medium">{t('partnerFinances_ledgerColNote')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -700,7 +792,7 @@ function PartnerFinancesV2Content() {
                       <td className="px-3 py-2 font-mono text-xs">
                         {row.bookingId ? (
                           <Link
-                            href="/partner/bookings"
+                            href={`/partner/bookings?booking=${encodeURIComponent(String(row.bookingId))}`}
                             className="text-teal-700 hover:underline"
                             title={row.bookingId}
                           >
@@ -724,28 +816,28 @@ function PartnerFinancesV2Content() {
 
       <Card className="border-indigo-200 bg-indigo-50/50 min-w-0 overflow-hidden">
         <CardHeader>
-          <CardTitle className="text-lg">Payout Math</CardTitle>
+          <CardTitle className="text-lg">{t('partnerFinances_payoutMathTitle')}</CardTitle>
           <CardDescription>
             {defaultPayoutProfile?.method?.name
-              ? `Default method: ${defaultPayoutProfile.method.name}`
-              : 'Добавьте payout-профиль в разделе «Реквизиты для выплат», чтобы видеть банковскую комиссию заранее.'}
+              ? `${t('partnerFinances_payoutMathDefaultMethod')}: ${defaultPayoutProfile.method.name}`
+              : t('partnerFinances_payoutMathDescNoProfile')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm min-w-0 overflow-x-auto">
           <div className="flex justify-between gap-3 min-w-0">
-            <span className="text-slate-600 shrink-0">BasePayout (pending)</span>
+            <span className="text-slate-600 shrink-0">{t('partnerFinances_payoutMathBaseAvailable')}</span>
             <span className="font-medium tabular-nums text-right break-all min-w-0">
-              {formatPrice(finances.pendingRevenue, currency, exchangeRates)}
+              {formatPrice(financesSummary?.availableThb ?? 0, currency, exchangeRates)}
             </span>
           </div>
           <div className="flex justify-between gap-3 min-w-0">
-            <span className="text-slate-600 shrink-0">Payout Fee</span>
+            <span className="text-slate-600 shrink-0">{t('partnerFinances_payoutMathFee')}</span>
             <span className="font-medium tabular-nums text-right break-all min-w-0">
               -{formatPrice(pendingPayoutPreview.fee, currency, exchangeRates)}
             </span>
           </div>
           <div className="flex justify-between gap-3 pt-2 border-t border-indigo-200 text-base font-semibold min-w-0">
-            <span className="shrink-0">FinalAmount</span>
+            <span className="shrink-0">{t('partnerFinances_payoutMathFinal')}</span>
             <span className="text-indigo-700 tabular-nums text-right break-all min-w-0">
               {formatPrice(pendingPayoutPreview.final, currency, exchangeRates)}
             </span>
@@ -760,12 +852,12 @@ function PartnerFinancesV2Content() {
           <CardDescription>{t('transactionHistoryDesc')}</CardDescription>
           {escrowBookingFilter ? (
             <div className="mt-3 flex flex-col gap-2 rounded-lg border border-teal-200 bg-teal-50/80 px-3 py-2 text-sm text-teal-950 sm:flex-row sm:items-center sm:justify-between">
-              <span>Показаны только брони в статусе PAID_ESCROW (оплачено, удержано на платформе).</span>
+              <span>{t('partnerFinances_escrowFilterBanner')}</span>
               <Link
                 href="/partner/finances"
                 className="shrink-0 font-semibold text-teal-800 underline underline-offset-2 hover:text-teal-900"
               >
-                Показать все брони
+                {t('partnerFinances_escrowFilterShowAll')}
               </Link>
             </div>
           ) : null}
@@ -793,21 +885,18 @@ function PartnerFinancesV2Content() {
             </div>
           ) : displayedBookings.length === 0 ? (
             <div className="text-center py-10 text-slate-600">
-              <p className="font-medium text-slate-800 mb-2">Нет броней в статусе PAID_ESCROW</p>
+              <p className="font-medium text-slate-800 mb-2">{t('partnerFinances_noEscrowTitle')}</p>
               <p className="text-sm text-slate-500 mb-4">
-                Сейчас ни одна бронь не находится в оплате с удержанием средств, либо фильтр слишком узкий.
+                {t('partnerFinances_noEscrowRows')}
               </p>
               <Button variant="outline" asChild>
-                <Link href="/partner/finances">Показать все брони</Link>
+                <Link href="/partner/finances">{t('partnerFinances_escrowFilterShowAll')}</Link>
               </Button>
             </div>
           ) : (
             <div className="space-y-4">
               {displayedBookings.map((booking) => {
-                const gross = parseFloat(booking.priceThb || booking.total_price_thb) || 0
-                const rate = parseFloat(booking.commissionRate ?? booking.listing?.commissionRate) || DEFAULT_COMMISSION_RATE
-                const fee = gross * (rate / 100)
-                const net = parseFloat(booking.partnerEarningsThb) || (gross - fee)
+                const { gross, fee, net } = snapshotMoney(booking)
                 const payoutMath = calcPayoutMath(net)
                 const checkIn = booking.checkIn || booking.check_in
                 const checkOut = booking.checkOut || booking.check_out
@@ -856,8 +945,22 @@ function PartnerFinancesV2Content() {
                       </div>
                       <p className="text-xs text-slate-500">{t('yourNetEarnings')}</p>
                       <p className="text-xs text-indigo-700">
-                        Payout: {formatPrice(net, currency, exchangeRates)} - {formatPrice(payoutMath.fee, currency, exchangeRates)} = {formatPrice(payoutMath.final, currency, exchangeRates)}
+                        {t('partnerFinances_payoutLine')}: {formatPrice(net, currency, exchangeRates)} −{' '}
+                        {formatPrice(payoutMath.fee, currency, exchangeRates)} ={' '}
+                        {formatPrice(payoutMath.final, currency, exchangeRates)}
                       </p>
+                      {booking.financial_snapshot ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 gap-1.5 border-teal-200 text-teal-900 hover:bg-teal-50"
+                          onClick={() => setFinanceFocusBooking(booking)}
+                        >
+                          <Receipt className="h-4 w-4 shrink-0" aria-hidden />
+                          {t('partnerFinances_rowOpenDetails')}
+                        </Button>
+                      ) : null}
                     </div>
                   </div>
                 )
@@ -881,6 +984,18 @@ function PartnerFinancesV2Content() {
           </div>
         </CardContent>
       </Card>
+
+      <PartnerFinancialSnapshotDialog
+        open={!!financeFocusBooking}
+        onOpenChange={(open) => {
+          if (!open) setFinanceFocusBooking(null)
+        }}
+        snapshot={financeFocusBooking?.financial_snapshot}
+        bookingTitle={financeFocusBooking?.listing?.title || t('listing')}
+        bookingId={String(financeFocusBooking?.id || '')}
+        status={financeFocusBooking?.status}
+        language={language}
+      />
     </div>
   )
 }

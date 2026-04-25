@@ -417,6 +417,7 @@ function MasterCalendarContent() {
           onCellClick={handleCellClick}
           todayRef={isNarrowCalendar ? null : todayGridRef}
           scrollContainerRef={scrollContainerRef}
+          language={language}
         />
       </div>
 
@@ -430,6 +431,7 @@ function MasterCalendarContent() {
           onCellClick={handleCellClick}
           todayAnchorRef={isNarrowCalendar ? todayAgendaRef : null}
           initialExpandedListingId={filterListingId || undefined}
+          language={language}
         />
       </div>
       

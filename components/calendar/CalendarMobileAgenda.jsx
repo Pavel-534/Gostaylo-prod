@@ -7,17 +7,19 @@
  * @param {React.RefObject<HTMLElement|null>} [props.todayAnchorRef] — якорь для «Сегодня»
  * @param {string} [props.initialExpandedListingId] — развернуть объект (например из ?listingId=)
  * @param {boolean} [props.bare] — встроенный вид (чат): без панели фильтров, все секции открыты
+ * @param {string} [props.language] — UI language (ru|en|zh|th)
  */
 
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { format, parseISO, isToday as isDateToday, addDays } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
 import { Home, Anchor, Bike, Car, Lock, ChevronDown, Search } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { ProxiedImage } from '@/components/proxied-image'
 import { listingMatchesPartnerMobileCategoryFilter } from '@/lib/partner-calendar-filters'
+import { getUIText } from '@/lib/translations'
 
 const TYPE_ICONS = {
   villa: Home,
@@ -37,18 +39,21 @@ const STATUS_BADGE = {
   AVAILABLE: 'bg-slate-100 text-slate-800 border border-slate-200',
 }
 
-const CATEGORY_CHIPS = [
-  { key: 'all', label: 'Все' },
-  { key: 'villas', label: 'Виллы' },
-  { key: 'transport', label: 'Транспорт' },
-  { key: 'tours', label: 'Туры' },
-]
+const DATE_FNS_LOCALE = { ru, en: enUS, zh: zhCN, th: thLocale }
 
 const SHORT_WINDOW = 10
 
 const TODAY_SCROLL_MARGIN = 'scroll-mt-[5.5rem]'
 
-function findBookingCheckoutLabel(availability, datesSorted, startDateStr) {
+function trTpl(template, vars) {
+  let s = String(template || '')
+  for (const [k, v] of Object.entries(vars || {})) {
+    s = s.split(`{{${k}}}`).join(String(v))
+  }
+  return s
+}
+
+function findBookingCheckoutLabel(availability, datesSorted, startDateStr, dfLocale) {
   const cell = availability[startDateStr]
   if (!cell || cell.status !== 'BOOKED' || cell.bookingId == null) return null
   const bid = cell.bookingId
@@ -59,30 +64,30 @@ function findBookingCheckoutLabel(availability, datesSorted, startDateStr) {
     if (c?.status === 'BOOKED' && c.bookingId === bid && d >= lastNight) lastNight = d
   }
   try {
-    return format(addDays(parseISO(lastNight), 1), 'd MMM', { locale: ru })
+    return format(addDays(parseISO(lastNight), 1), 'd MMM', { locale: dfLocale })
   } catch {
     return null
   }
 }
 
-function buildCollapsedSummary(item, dates) {
+function buildCollapsedSummary(item, dates, t, dfLocale) {
   const { availability } = item
   const todayStr = format(new Date(), 'yyyy-MM-dd')
   const anchorDate = dates.includes(todayStr) ? todayStr : dates[0]
-  if (!anchorDate) return { text: 'Нет дат в окне', tone: 'muted' }
+  if (!anchorDate) return { text: t('partnerCal_collapsedNoDates'), tone: 'muted' }
 
   const cell = availability[anchorDate] || { status: 'AVAILABLE' }
-  const prefix = anchorDate === todayStr ? 'Сегодня: ' : ''
+  const prefix = anchorDate === todayStr ? t('partnerCal_collapsedToday') : ''
 
   if (cell.status === 'BOOKED') {
-    const until = findBookingCheckoutLabel(availability, dates, anchorDate)
-    if (until) return { text: `${prefix}Занято до ${until}`, tone: 'busy' }
-    return { text: `${prefix}Занято`, tone: 'busy' }
+    const until = findBookingCheckoutLabel(availability, dates, anchorDate, dfLocale)
+    if (until) return { text: prefix + trTpl(t('partnerCal_collapsedBusyUntil'), { date: until }), tone: 'busy' }
+    return { text: prefix + t('partnerCal_collapsedBusy'), tone: 'busy' }
   }
   if (cell.status === 'BLOCKED') {
-    return { text: `${prefix}Закрыто`, tone: 'block' }
+    return { text: prefix + t('partnerCal_collapsedClosed'), tone: 'block' }
   }
-  return { text: `${prefix}Свободно`, tone: 'free' }
+  return { text: prefix + t('partnerCal_collapsedFree'), tone: 'free' }
 }
 
 export function CalendarMobileAgenda({
@@ -92,7 +97,21 @@ export function CalendarMobileAgenda({
   bare = false,
   todayAnchorRef = null,
   initialExpandedListingId = null,
+  language = 'ru',
 }) {
+  const t = (key) => getUIText(key, language)
+  const dfLocale = DATE_FNS_LOCALE[language] || ru
+
+  const categoryChips = useMemo(
+    () => [
+      { key: 'all', label: t('partnerCal_categoryAll') },
+      { key: 'villas', label: t('partnerCal_categoryVillas') },
+      { key: 'transport', label: t('partnerCal_categoryTransport') },
+      { key: 'tours', label: t('partnerCal_categoryTours') },
+    ],
+    [language],
+  )
+
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedIds, setExpandedIds] = useState(() => new Set())
@@ -142,7 +161,7 @@ export function CalendarMobileAgenda({
   const toolbar = !bare && (
     <div className="space-y-3 border-b border-slate-200 bg-slate-50/90 px-3 py-3">
       <div className="flex gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {CATEGORY_CHIPS.map(({ key, label }) => (
+        {categoryChips.map(({ key, label }) => (
           <button
             key={key}
             type="button"
@@ -163,13 +182,13 @@ export function CalendarMobileAgenda({
         <Input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Поиск по названию…"
+          placeholder={t('partnerCal_searchPlaceholder')}
           className="h-10 border-slate-200 bg-white pl-9 text-sm"
-          aria-label="Поиск объекта по названию"
+          aria-label={t('partnerCal_searchPlaceholder')}
         />
       </div>
       {filteredListings.length === 0 ? (
-        <p className="text-center text-xs text-slate-500">Нет объектов по фильтру</p>
+        <p className="text-center text-xs text-slate-500">{t('partnerCal_noListingsFilter')}</p>
       ) : null}
     </div>
   )
@@ -181,7 +200,7 @@ export function CalendarMobileAgenda({
         const TypeIcon = TYPE_ICONS[item.listing.type] || TYPE_ICONS.default
         const id = item.listing.id
         const expanded = bare || expandedIds.has(id)
-        const summary = buildCollapsedSummary(item, dates)
+        const summary = buildCollapsedSummary(item, dates, t, dfLocale)
         const showFull = !!fullMonthById[id]
         const visibleDates =
           expanded && !showFull ? dates.slice(0, Math.min(SHORT_WINDOW, dates.length)) : dates
@@ -260,7 +279,9 @@ export function CalendarMobileAgenda({
                       }}
                       className="text-xs font-semibold text-teal-700 underline-offset-2 hover:underline"
                     >
-                      {showFull ? `Свернуть до ${SHORT_WINDOW} дней` : 'Показать весь месяц'}
+                      {showFull
+                        ? trTpl(t('partnerCal_collapseToTen'), { n: SHORT_WINDOW })
+                        : t('partnerCal_showAllDays')}
                     </button>
                   </div>
                 ) : null}
@@ -280,6 +301,7 @@ export function CalendarMobileAgenda({
                         onCellClick={onCellClick}
                         listItemRef={attachTodayAnchor ? todayAnchorRef : undefined}
                         todayScrollMarginClass={attachTodayAnchor ? TODAY_SCROLL_MARGIN : undefined}
+                        language={language}
                       />
                     )
                   })}
@@ -301,14 +323,17 @@ export function CalendarMobileAgenda({
   return <Card className="overflow-hidden border-0 shadow-lg">{inner}</Card>
 }
 
-function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClass }) {
+function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClass, language = 'ru' }) {
+  const t = (key) => getUIText(key, language)
+  const dfLocale = DATE_FNS_LOCALE[language] || ru
+
   const cellData = item.availability[date] || { status: 'AVAILABLE' }
   const dateObj = parseISO(date)
   const today = isDateToday(dateObj)
   const weekend = dateObj.getDay() === 0 || dateObj.getDay() === 6
 
   let badgeClass = STATUS_BADGE.AVAILABLE
-  let label = 'Свободно'
+  let label = t('partnerCal_rowFree')
   let sub = null
   let priceLine = null
   let promoLine = null
@@ -317,14 +342,14 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
     badgeClass = STATUS_BADGE[cellData.bookingStatus] || STATUS_BADGE.CONFIRMED
     label =
       cellData.bookingStatus === 'PENDING'
-        ? 'Ожидает'
+        ? t('partnerCal_rowPending')
         : cellData.bookingStatus === 'PAID'
-          ? 'Оплачено'
-          : 'Бронь'
-    sub = cellData.guestName || 'Гость'
+          ? t('partnerCal_rowPaid')
+          : t('partnerCal_rowBooked')
+    sub = cellData.guestName || t('partnerCal_guestShort')
   } else if (cellData.status === 'BLOCKED') {
     badgeClass = STATUS_BADGE.BLOCKED
-    label = 'Закрыто'
+    label = t('partnerCal_rowBlocked')
     sub = cellData.reason ? String(cellData.reason).slice(0, 36) : null
   } else {
     const price = cellData.priceThb || item.listing.basePriceThb
@@ -344,26 +369,30 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
         >
           ฿{Math.round(price).toLocaleString('en-US')}
         </span>
-        {minStay > 1 ? <p className="text-[10px] font-medium text-slate-500">мин.{minStay}</p> : null}
+        {minStay > 1 ? (
+          <p className="text-[10px] font-medium text-slate-500">{trTpl(t('partnerCal_minStayShort'), { n: minStay })}</p>
+        ) : null}
       </div>
     )
     if (cellData.marketingPromo) {
       const promo = cellData.marketingPromo
-      const badge = promo.isFlashSale ? 'FLASH' : 'PROMO'
+      const badge = promo.isFlashSale ? t('partnerCal_chipFlash') : t('partnerCal_chipPromo')
       promoLine = (
         <div className="mt-1 w-full max-w-full rounded-md border border-orange-100/90 bg-orange-50/90 px-1.5 py-1 text-right leading-tight">
           <span className="inline-block rounded bg-orange-600/95 px-1 py-px text-[8px] font-bold uppercase tracking-wide text-white">
             {badge}
           </span>
           <p className="mt-0.5 break-words text-[9px] font-medium tabular-nums text-slate-600">
-            ฿{Math.round(promo.baseSeasonPrice || 0).toLocaleString('en-US')} − ฿
-            {Math.round(promo.discountAmount || 0).toLocaleString('en-US')} = ฿
-            {Math.round(promo.guestPrice || 0).toLocaleString('en-US')}
+            {trTpl(t('partnerCal_tooltipPromoLine'), {
+              base: `฿${Math.round(promo.baseSeasonPrice || 0).toLocaleString('en-US')}`,
+              discount: `฿${Math.round(promo.discountAmount || 0).toLocaleString('en-US')}`,
+              guest: `฿${Math.round(promo.guestPrice || 0).toLocaleString('en-US')}`,
+            })}
           </p>
         </div>
       )
     }
-    label = 'Свободно'
+    label = t('partnerCal_rowFree')
   }
 
   return (
@@ -385,10 +414,10 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
           )}
         >
           <span className="text-[9px] font-semibold uppercase leading-none text-slate-500">
-            {format(dateObj, 'EEE', { locale: ru })}
+            {format(dateObj, 'EEE', { locale: dfLocale })}
           </span>
           <span className="text-base leading-none">{format(dateObj, 'd')}</span>
-          <span className="text-[8px] font-medium text-slate-500">{format(dateObj, 'MMM', { locale: ru })}</span>
+          <span className="text-[8px] font-medium text-slate-500">{format(dateObj, 'MMM', { locale: dfLocale })}</span>
         </div>
 
         <div className="min-w-0 flex-1">

@@ -10,11 +10,37 @@ import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-s
 import { BookingService } from '@/lib/services/booking.service'
 import { attachPartnerTrustToBookings } from '@/lib/booking/attach-partner-trust-to-bookings'
 import { NotificationService, NotificationEvents } from '@/lib/services/notification.service'
+import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
+import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
+import { buildBookingFinancialSnapshotFromRow } from '@/lib/services/booking-financial-read-model.service'
+import { transformPartnerBookingToClient } from '@/lib/partner/partner-booking-transform'
 
 export const dynamic = 'force-dynamic'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+const PARTNER_BOOKING_DETAIL_SELECT = `
+  *,
+  listing:listings (
+    id,
+    title,
+    district,
+    images,
+    cover_image,
+    base_price_thb,
+    commission_rate,
+    metadata,
+    category_id,
+    categories ( slug )
+  ),
+  renter:profiles!renter_id (
+    id,
+    first_name,
+    last_name,
+    email
+  )
+`
 
 const STATUS_TRANSITIONS = {
   PENDING: ['CONFIRMED', 'CANCELLED'],
@@ -35,36 +61,46 @@ export async function GET(request, { params }) {
   try {
     const { id } = await params
     const userId = await getUserIdFromSession()
-    
+
     if (!userId) {
       return NextResponse.json({ status: 'error', error: 'Authentication required' }, { status: 401 })
     }
-    
-    if (!SUPABASE_URL || !SUPABASE_KEY) {
+
+    const partner = await verifyPartnerAccess(userId)
+    if (!partner) {
+      return NextResponse.json({ status: 'error', error: 'Partner access denied' }, { status: 403 })
+    }
+
+    if (!isSupabaseConfigured() || !supabaseAdmin) {
       return NextResponse.json({
         status: 'success',
-        data: { id, partnerId: userId, status: 'PENDING', guestName: 'Test' }
+        data: {
+          id,
+          partnerId: userId,
+          status: 'PENDING',
+          guestName: 'Test',
+          financial_snapshot: null,
+        },
       })
     }
-    
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}&partner_id=eq.${userId}&select=*`,
-      {
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`
-        }
-      }
-    )
-    const bookings = await res.json()
-    
-    if (!Array.isArray(bookings) || bookings.length === 0) {
+
+    const { data: row, error } = await supabaseAdmin
+      .from('bookings')
+      .select(PARTNER_BOOKING_DETAIL_SELECT)
+      .eq('id', id)
+      .eq('partner_id', userId)
+      .maybeSingle()
+
+    if (error || !row) {
       return NextResponse.json({ status: 'error', error: 'Booking not found' }, { status: 404 })
     }
-    
-    const [withTrust] = await attachPartnerTrustToBookings([bookings[0]])
-    return NextResponse.json({ status: 'success', data: withTrust })
-    
+
+    const dc = await resolveDefaultCommissionPercent()
+    const dto = transformPartnerBookingToClient(row, dc)
+    const financial_snapshot = buildBookingFinancialSnapshotFromRow(row)
+    const [merged] = await attachPartnerTrustToBookings([{ ...dto, financial_snapshot }])
+
+    return NextResponse.json({ status: 'success', data: merged })
   } catch (error) {
     return NextResponse.json({ status: 'error', error: error.message }, { status: 500 })
   }

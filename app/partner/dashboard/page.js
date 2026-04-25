@@ -19,7 +19,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { format, parseISO, differenceInDays } from 'date-fns'
 import { durationPhraseForBookingEmail } from '@/lib/email/booking-email-i18n'
-import { ru } from 'date-fns/locale'
+import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
 import { useQueryClient } from '@tanstack/react-query'
 import { 
   TrendingUp, TrendingDown, Calendar, DollarSign, Users, 
@@ -213,14 +213,29 @@ function IncomeChartTooltip({ active, payload }) {
   )
 }
 
-function PendingBookingCard({ booking, onApprove, onDecline, isLoading }) {
+const DASH_DATE_LOCALE = { ru, en: enUS, zh: zhCN, th: thLocale }
+
+function partnerListAmountThb(booking) {
+  const net = Number(booking?.partnerNetThb)
+  if (Number.isFinite(net)) return net
+  const gross = Number(booking?.priceThb)
+  return Number.isFinite(gross) ? gross : 0
+}
+
+function PendingBookingCard({ booking, onApprove, onDecline, isLoading, language = 'ru' }) {
+  const dateLocale = DASH_DATE_LOCALE[language] || ru
+  const amountThb = partnerListAmountThb(booking)
   return (
     <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
       <div className="flex-1 min-w-0">
         <p className="font-medium text-slate-900 truncate">{booking.guestName}</p>
         <p className="text-xs text-slate-500 truncate">{booking.listingTitle}</p>
-        <p className="text-xs text-amber-600 mt-0.5">
-          {booking.checkIn && format(parseISO(booking.checkIn), 'd MMM', { locale: ru })} • {formatPrice(booking.priceThb, 'THB')}
+        <p
+          className="text-xs text-amber-600 mt-0.5"
+          title={getUIText('partnerDashboard_amountNetTooltip', language)}
+        >
+          {booking.checkIn && format(parseISO(booking.checkIn), 'd MMM', { locale: dateLocale })} •{' '}
+          {formatPrice(amountThb, 'THB')}
         </p>
       </div>
       <div className="flex gap-1.5 ml-2">
@@ -665,6 +680,7 @@ export default function PartnerDashboard() {
                   onApprove={handleApprove}
                   onDecline={handleDecline}
                   isLoading={updateStatusMutation.isPending}
+                  language={language}
                 />
               ))
             ) : (
@@ -707,7 +723,10 @@ export default function PartnerDashboard() {
           <CardContent>
             {stats?.upcoming?.length > 0 ? (
               <div className="space-y-3">
-                {stats.upcoming.map((arrival, idx) => (
+                {stats.upcoming.map((arrival) => {
+                  const arrLocale = DASH_DATE_LOCALE[language] || ru
+                  const arrivalNetThb = partnerListAmountThb(arrival)
+                  return (
                   <div 
                     key={arrival.id}
                     className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
@@ -717,7 +736,7 @@ export default function PartnerDashboard() {
                         {arrival.checkIn && format(parseISO(arrival.checkIn), 'd')}
                       </span>
                       <span className="text-[10px] text-teal-600 uppercase">
-                        {arrival.checkIn && format(parseISO(arrival.checkIn), 'MMM', { locale: ru })}
+                        {arrival.checkIn && format(parseISO(arrival.checkIn), 'MMM', { locale: arrLocale })}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -734,12 +753,16 @@ export default function PartnerDashboard() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-teal-600">
-                        {formatPrice(arrival.priceThb, 'THB')}
+                      <p
+                        className="text-sm font-medium text-teal-600"
+                        title={getUIText('partnerDashboard_amountNetTooltip', language)}
+                      >
+                        {formatPrice(arrivalNetThb, 'THB')}
                       </p>
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <div className="text-center py-8 text-slate-500">

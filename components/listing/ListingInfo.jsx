@@ -81,7 +81,7 @@ export function GuestListingTitleBlock({ listing, language = 'en' }) {
   const {
     bedrooms,
     bathrooms,
-    categorySlug,
+    categorySlug: _categorySlug,
     transportListing,
     propertyInterior,
     yachtLike,
@@ -94,6 +94,9 @@ export function GuestListingTitleBlock({ listing, language = 'en' }) {
     engineCc,
   } = m
 
+  const ownerVerified =
+    listing.ownerVerified === true || listing.owner?.is_verified === true
+
   return (
     <div>
       <div className="flex items-start justify-between mb-3">
@@ -101,6 +104,17 @@ export function GuestListingTitleBlock({ listing, language = 'en' }) {
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900 mb-2">
             {listing.title}
           </h1>
+          {ownerVerified ? (
+            <div className="mb-2">
+              <Badge
+                variant="secondary"
+                className="gap-1 bg-teal-50 text-teal-800 border-teal-200 font-normal"
+              >
+                <ShieldCheck className="h-3.5 w-3.5" />
+                {getUIText('listingCard_verifiedPartner', language)}
+              </Badge>
+            </div>
+          ) : null}
           <div className="flex items-center gap-4 text-slate-600">
             <div className="flex items-center gap-1">
               <MapPin className="h-4 w-4" />
@@ -259,15 +273,6 @@ export function GuestListingBodyBlock({ listing, language = 'en' }) {
                         getUIText('hostNamePlaceholder', language)}
                     </h3>
                     <p className="text-sm text-slate-500">{getUIText('propertyOwner', language)}</p>
-                    {listing.ownerVerified === true || listing.owner.is_verified ? (
-                      <Badge
-                        variant="secondary"
-                        className="gap-1 bg-teal-50 text-teal-800 border-teal-200 font-normal"
-                      >
-                        <ShieldCheck className="h-3.5 w-3.5" />
-                        {getUIText('listingCard_verifiedPartner', language)}
-                      </Badge>
-                    ) : null}
                     {listing.partnerTrust ? (
                       <div className="pt-2 space-y-1.5">
                         <PartnerTrustBadge trust={listing.partnerTrust} language={language} />

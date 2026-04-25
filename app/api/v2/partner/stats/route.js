@@ -20,6 +20,8 @@ import {
 } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { toListingDate, listingDateToday, addListingDays } from '@/lib/listing-date'
+import { buildBookingFinancialSnapshotFromRow } from '@/lib/services/booking-financial-read-model.service'
+import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,19 +41,10 @@ function getSeasonalPriceForDate(seasonalPrices, listingId, date) {
   return seasonal?.price_daily || null
 }
 
-/** Доход партнёра без захардкоженного «85%» — только из снимка брони. */
-function partnerEarningsThbFromBooking(b) {
-  const pe = parseFloat(b.partner_earnings_thb)
-  if (Number.isFinite(pe)) return pe
-  const price = parseFloat(b.price_thb)
-  if (!Number.isFinite(price) || price <= 0) return 0
-  const commThb = parseFloat(b.commission_thb)
-  if (Number.isFinite(commThb) && commThb >= 0) return Math.max(0, price - commThb)
-  const cr = parseFloat(b.commission_rate)
-  if (Number.isFinite(cr) && cr >= 0 && cr <= 100) {
-    return Math.round(price * (1 - cr / 100))
-  }
-  return 0
+/** Partner net (THB) — read-model SSOT (Stage 46.0). */
+function partnerNetThbFromBookingRow(b) {
+  const s = buildBookingFinancialSnapshotFromRow(b)
+  return s && Number.isFinite(s.net) ? s.net : 0
 }
 
 /** Последние 6 календарных месяцев (ключ yyyy-MM) + суммы выплат PAID/COMPLETED (нетто до удержания метода). */
@@ -230,9 +223,9 @@ export async function GET(request) {
       const pendingBookings = allBookings.filter(b => pendingStatuses.includes(b.status))
       
       // Revenue
-      const confirmedRevenue = confirmedBookings.reduce((sum, b) => sum + partnerEarningsThbFromBooking(b), 0)
-      
-      const pendingRevenue = pendingBookings.reduce((sum, b) => sum + partnerEarningsThbFromBooking(b), 0)
+      const confirmedRevenue = confirmedBookings.reduce((sum, b) => sum + partnerNetThbFromBookingRow(b), 0)
+
+      const pendingRevenue = pendingBookings.reduce((sum, b) => sum + partnerNetThbFromBookingRow(b), 0)
       
       // Occupancy (this month)
       const monthBookings = confirmedBookings.filter(b => {
@@ -281,19 +274,21 @@ export async function GET(request) {
             checkOut: b.check_out,
             nights: differenceInDays(parseISO(b.check_out), parseISO(b.check_in)),
             categorySlug: catId ? categorySlugById[catId] ?? null : null,
-            priceThb: parseFloat(b.price_thb) || 0
+            priceThb: parseFloat(b.price_thb) || 0,
+            partnerNetThb: partnerNetThbFromBookingRow(b),
           }
         })
       
       // Pending items
-      const pendingItems = pendingBookings.slice(0, 5).map(b => {
-        const listing = listings.find(l => l.id === b.listing_id)
+      const pendingItems = pendingBookings.slice(0, 5).map((b) => {
+        const listing = listings.find((l) => l.id === b.listing_id)
         return {
           id: b.id,
           guestName: b.guest_name,
           listingTitle: listing?.title || 'Объект',
           checkIn: b.check_in,
-          priceThb: parseFloat(b.price_thb) || 0
+          priceThb: parseFloat(b.price_thb) || 0,
+          partnerNetThb: partnerNetThbFromBookingRow(b),
         }
       })
       
@@ -304,37 +299,34 @@ export async function GET(request) {
         const dayStr = format(parseISO(date), 'EEE')
         const dayRevenue = confirmedBookings
           .filter((b) => toListingDate(b.check_in) === date)
-          .reduce((sum, b) => sum + partnerEarningsThbFromBooking(b), 0)
+          .reduce((sum, b) => sum + partnerNetThbFromBookingRow(b), 0)
         trend.push({ day: dayStr, revenue: dayRevenue })
       }
       
-      // Calculate potential revenue (next 30 days, available dates only)
+      // Calculate potential revenue (next 30 days, available dates only) — partner share from default commission SSOT
       let potentialRevenue = 0
-      const next30Days = format(addDays(today, 30), 'yyyy-MM-dd')
-      
+      const defaultCommissionPct = await resolveDefaultCommissionPercent()
+      const partnerShareRatio = Math.max(0, Math.min(1, (100 - defaultCommissionPct) / 100))
+
       for (const listing of listings) {
         const basePrice = parseFloat(listing.base_price_thb) || 0
-        
-        // Generate all dates for next 30 days
+
         for (let i = 0; i < 30; i++) {
           const date = format(addDays(today, i), 'yyyy-MM-dd')
-          
-          // Check if date is booked
-          const isBooked = confirmedBookings.some(b => {
+
+          const isBooked = confirmedBookings.some((b) => {
             const checkIn = parseISO(b.check_in)
             const checkOut = parseISO(b.check_out)
             const currentDate = parseISO(date)
-            return b.listing_id === listing.id && 
-                   currentDate >= checkIn && 
-                   currentDate < checkOut
+            return (
+              b.listing_id === listing.id && currentDate >= checkIn && currentDate < checkOut
+            )
           })
-          
-          // If available, add price to potential revenue
+
           if (!isBooked) {
             const seasonalPrice = getSeasonalPriceForDate(seasonalPrices, listing.id, date)
             const dailyPrice = seasonalPrice || basePrice
-            // Assume 85% commission (partner earnings)
-            potentialRevenue += dailyPrice * 0.85
+            potentialRevenue += dailyPrice * partnerShareRatio
           }
         }
       }
@@ -345,7 +337,7 @@ export async function GET(request) {
         const escrowBookings = allBookings.filter((b) => b.status === 'PAID_ESCROW')
         moneyInTransitThb =
           Math.round(
-            escrowBookings.reduce((sum, b) => sum + partnerEarningsThbFromBooking(b), 0) * 100,
+            escrowBookings.reduce((sum, b) => sum + partnerNetThbFromBookingRow(b), 0) * 100,
           ) / 100
 
         const { data: payoutRows, error: payoutsErr } = await supabaseAdmin

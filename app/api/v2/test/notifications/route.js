@@ -15,11 +15,13 @@ export async function POST(request) {
       NEW_BOOKING_REQUEST: {
         booking: {
           id: 'test-booking-123',
+          partner_id: '00000000-0000-0000-0000-000000000001',
+          status: 'PENDING',
           guest_name: 'Test User',
           guest_email: 'test@example.com',
           check_in: '2025-04-01',
           check_out: '2025-04-05',
-          total_price_thb: 15000,
+          price_thb: 15000,
           commission_rate: 15,
           commission_thb: 2250,
           partner_earnings_thb: 12750

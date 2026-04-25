@@ -904,6 +904,9 @@ export default function UnifiedMessagesClient({ params }) {
           open={calendarOpen}
           onOpenChange={setCalendarOpen}
           hideTrigger
+          bookingId={booking?.id ?? null}
+          bookingStatus={booking?.status ?? null}
+          financialSnapshotInitial={booking?.financial_snapshot ?? null}
         />
 
         <ThreadDealDetailsSheet

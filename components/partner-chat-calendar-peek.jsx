@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { format, addDays } from 'date-fns'
-import { Calendar, ExternalLink, Loader2 } from 'lucide-react'
+import { Calendar, ExternalLink, Loader2, Receipt } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,8 @@ import { CalendarGrid } from '@/components/calendar/CalendarGrid'
 import { CalendarMobileAgenda } from '@/components/calendar/CalendarMobileAgenda'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
+import { getUIText } from '@/lib/translations'
+import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFinancialSnapshotDialog'
 
 /**
  * Быстрый просмотр занятости одного листинга из шапки чата (без ухода со страницы).
@@ -33,8 +35,12 @@ export function PartnerChatCalendarPeek({
   onOpenChange: onOpenChangeControlled,
   hideTrigger = false,
   mode = 'partner',
+  bookingId = null,
+  bookingStatus = null,
+  financialSnapshotInitial = null,
 }) {
   const router = useRouter()
+  const t = useCallback((key) => getUIText(key, language), [language])
   const isMobile = useMediaQuery('(max-width: 767px)')
   const [openInternal, setOpenInternal] = useState(false)
   const isControlled = openControlled !== undefined
@@ -44,13 +50,18 @@ export function PartnerChatCalendarPeek({
       onOpenChangeControlled?.(next)
       if (!isControlled) setOpenInternal(next)
     },
-    [isControlled, onOpenChangeControlled]
+    [isControlled, onOpenChangeControlled],
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [calendarPayload, setCalendarPayload] = useState(null)
   const scrollRef = useRef(null)
   const todayRef = useRef(null)
+
+  const [financeOpen, setFinanceOpen] = useState(false)
+  const [financeSnapshot, setFinanceSnapshot] = useState(null)
+  const [financeLoading, setFinanceLoading] = useState(false)
+  const [financeError, setFinanceError] = useState(null)
 
   const startDate = useMemo(() => format(new Date(), 'yyyy-MM-dd'), [])
   const endDate = useMemo(() => format(addDays(new Date(), 44), 'yyyy-MM-dd'), [])
@@ -111,11 +122,41 @@ export function PartnerChatCalendarPeek({
     [mode, router, setOpen],
   )
 
-  const isRu = language !== 'en'
+  const openFinanceModal = useCallback(async () => {
+    if (!bookingId) return
+    setFinanceError(null)
+    setFinanceOpen(true)
+    if (financialSnapshotInitial && typeof financialSnapshotInitial === 'object') {
+      setFinanceSnapshot(financialSnapshotInitial)
+      return
+    }
+    setFinanceLoading(true)
+    setFinanceSnapshot(null)
+    try {
+      const res = await fetch(`/api/v2/partner/bookings/${encodeURIComponent(String(bookingId))}`, {
+        credentials: 'include',
+        cache: 'no-store',
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || json?.status === 'error') {
+        throw new Error(json?.error || json?.message || 'HTTP')
+      }
+      const snap = json?.data?.financial_snapshot
+      if (!snap) throw new Error('no_snapshot')
+      setFinanceSnapshot(snap)
+    } catch {
+      setFinanceError(t('chatCalendarPeek_financeLoadError'))
+      setFinanceSnapshot(null)
+    } finally {
+      setFinanceLoading(false)
+    }
+  }, [bookingId, financialSnapshotInitial, t])
+
   const dates = calendarPayload?.dates || []
   const listings = calendarPayload?.listings || []
 
   const peekDayWidth = 44
+  const showFinanceBtn = mode === 'partner' && !!bookingId
 
   return (
     <>
@@ -125,12 +166,12 @@ export function PartnerChatCalendarPeek({
           variant="outline"
           size="sm"
           className={triggerClassName}
-          title={isRu ? 'Календарь объекта' : 'Listing calendar'}
+          title={t('chatCalendarPeek_triggerTitle')}
           onClick={() => onOpenChange(true)}
           disabled={!listingId}
         >
           <Calendar className="h-3.5 w-3.5 sm:mr-1" />
-          <span className="hidden sm:inline">{isRu ? 'Календарь' : 'Calendar'}</span>
+          <span className="hidden sm:inline">{t('chatCalendarPeek_triggerShort')}</span>
         </Button>
       )}
 
@@ -151,11 +192,9 @@ export function PartnerChatCalendarPeek({
               isMobile ? 'px-4 pr-12' : 'pr-8',
             )}
           >
-            <SheetTitle className={isMobile ? 'text-lg' : ''}>
-              {isRu ? 'Занятость объекта' : 'Listing availability'}
-            </SheetTitle>
+            <SheetTitle className={isMobile ? 'text-lg' : ''}>{t('chatCalendarPeek_sheetTitle')}</SheetTitle>
             <SheetDescription className="line-clamp-2">
-              {listingTitle || (isRu ? 'Выбранное объявление' : 'Selected listing')}
+              {listingTitle || t('chatCalendarPeek_sheetDescFallback')}
             </SheetDescription>
           </SheetHeader>
 
@@ -168,24 +207,16 @@ export function PartnerChatCalendarPeek({
             {loading ? (
               <div className="flex items-center justify-center gap-2 py-16 text-slate-500">
                 <Loader2 className="h-5 w-5 animate-spin" />
-                {isRu ? 'Загрузка…' : 'Loading…'}
+                {t('chatCalendarPeek_loading')}
               </div>
             ) : error ? (
               <p className="py-6 text-sm text-red-600">{error}</p>
             ) : listings.length === 0 ? (
-              <p className="py-6 text-sm text-slate-600">
-                {isRu ? 'Нет данных календаря для этого объекта.' : 'No calendar rows for this listing.'}
-              </p>
+              <p className="py-6 text-sm text-slate-600">{t('chatCalendarPeek_noData')}</p>
             ) : (
               <>
                 <p className="text-sm font-medium leading-relaxed text-slate-600">
-                  {mode === 'renter'
-                    ? isRu
-                      ? 'Нажмите на день, чтобы открыть страницу объекта и забронировать.'
-                      : 'Tap a day to open the listing and book.'
-                    : isRu
-                      ? 'Нажмите на день — откроется полный календарь: блокировка дат, ручная бронь и цены.'
-                      : 'Tap a day to open the full calendar: block dates, manual booking, and prices.'}
+                  {mode === 'renter' ? t('chatCalendarPeek_hintRenter') : t('chatCalendarPeek_hintPartner')}
                 </p>
                 <div className={cn('min-h-0', isMobile && 'min-h-0 flex-1 overflow-y-auto overscroll-contain')}>
                   {isMobile ? (
@@ -194,6 +225,7 @@ export function PartnerChatCalendarPeek({
                       dates={dates}
                       listings={listings}
                       onCellClick={handleCellClick}
+                      language={language}
                     />
                   ) : (
                     <CalendarGrid
@@ -205,6 +237,7 @@ export function PartnerChatCalendarPeek({
                       todayRef={todayRef}
                       scrollContainerRef={scrollRef}
                       scrollMaxHeight="min(58vh, 480px)"
+                      language={language}
                     />
                   )}
                 </div>
@@ -219,34 +252,64 @@ export function PartnerChatCalendarPeek({
                 )}
               >
                 <p className="text-xs font-medium leading-snug text-slate-600">
-                  {mode === 'renter'
-                    ? isRu
-                      ? 'Управление ценами и бронями — у владельца в кабинете партнёра.'
-                      : 'Pricing and bookings are managed by the host in the partner dashboard.'
-                    : isRu
-                      ? 'В чате только просмотр. Все действия с датами — в разделе «Календарь».'
-                      : 'This panel is read-only. Manage dates in the Calendar section.'}
+                  {mode === 'renter' ? t('chatCalendarPeek_footerRenter') : t('chatCalendarPeek_footerPartner')}
                 </p>
-                {mode === 'partner' ? (
-                  <Button asChild className="h-11 w-full bg-teal-600 text-base hover:bg-teal-700 sm:h-10 sm:w-auto sm:text-sm">
-                    <Link href={`/partner/calendar?listingId=${encodeURIComponent(listingId)}&from=chat`}>
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      {isRu ? 'Открыть полный календарь' : 'Open full calendar'}
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button asChild variant="outline" className="h-11 w-full text-base sm:h-10 sm:w-auto sm:text-sm">
-                    <Link href={listingId ? `/listings/${listingId}` : '#'}>
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      {isRu ? 'Страница объекта' : 'Listing page'}
-                    </Link>
-                  </Button>
-                )}
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                  {showFinanceBtn ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-11 w-full gap-2 border-teal-200 text-teal-900 hover:bg-teal-50 sm:h-10 sm:w-auto sm:text-sm"
+                      onClick={() => void openFinanceModal()}
+                    >
+                      <Receipt className="h-4 w-4 shrink-0" aria-hidden />
+                      {t('chatCalendarPeek_financeBooking')}
+                    </Button>
+                  ) : null}
+                  {mode === 'partner' ? (
+                    <Button asChild className="h-11 w-full bg-teal-600 text-base hover:bg-teal-700 sm:h-10 sm:w-auto sm:text-sm">
+                      <Link href={`/partner/calendar?listingId=${encodeURIComponent(listingId)}&from=chat`}>
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        {t('chatCalendarPeek_openFullCalendar')}
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button asChild variant="outline" className="h-11 w-full text-base sm:h-10 sm:w-auto sm:text-sm">
+                      <Link href={listingId ? `/listings/${listingId}` : '#'}>
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        {t('chatCalendarPeek_listingPage')}
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+                {financeLoading ? (
+                  <p className="flex items-center gap-2 text-xs text-slate-500">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    {t('chatCalendarPeek_loading')}
+                  </p>
+                ) : null}
+                {financeError ? <p className="text-xs text-red-600">{financeError}</p> : null}
               </div>
             ) : null}
           </div>
         </SheetContent>
       </Sheet>
+
+      <PartnerFinancialSnapshotDialog
+        open={financeOpen}
+        onOpenChange={(v) => {
+          setFinanceOpen(v)
+          if (!v) {
+            setFinanceSnapshot(null)
+            setFinanceError(null)
+          }
+        }}
+        snapshot={financeSnapshot}
+        bookingTitle={listingTitle || '—'}
+        bookingId={bookingId}
+        status={bookingStatus}
+        language={language}
+      />
     </>
   )
 }

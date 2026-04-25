@@ -27,6 +27,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Receipt,
 } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
@@ -47,6 +48,7 @@ import { canOpenOfficialDispute } from '@/lib/disputes/dispute-eligibility'
 import { resolveEmergencyServiceKindFromListing } from '@/lib/emergency-contact-protocol'
 import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-service-type'
 import { PartnerRenterTrustBadges } from '@/components/trust/PartnerRenterTrustBadges'
+import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFinancialSnapshotDialog'
 
 function normalizeRole(role) {
   const value = String(role || '').trim().toLowerCase()
@@ -171,6 +173,7 @@ export default function UnifiedOrderCard({
   const disputeEvidenceInputRef = useRef(null)
   /** Stage 33 — полноэкранный просмотр фото инструкций */
   const [photoLightboxIndex, setPhotoLightboxIndex] = useState(null)
+  const [partnerFinanceOpen, setPartnerFinanceOpen] = useState(false)
   const normalizedRole = normalizeRole(role)
   const normalizedOrder = normalizeUnifiedOrder(booking, unifiedOrder)
 
@@ -538,6 +541,30 @@ export default function UnifiedOrderCard({
           language={language}
           role={normalizedRole === 'partner' ? 'partner' : 'renter'}
         />
+
+        {normalizedRole === 'partner' && booking?.financial_snapshot ? (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto gap-2 border-teal-200 text-teal-900 hover:bg-teal-50"
+              onClick={() => setPartnerFinanceOpen(true)}
+            >
+              <Receipt className="h-4 w-4 shrink-0" aria-hidden />
+              {getUIText('partnerFinancial_openBreakdown', language)}
+            </Button>
+            <PartnerFinancialSnapshotDialog
+              open={partnerFinanceOpen}
+              onOpenChange={setPartnerFinanceOpen}
+              snapshot={booking.financial_snapshot}
+              bookingTitle={title}
+              bookingId={bookingId}
+              status={status}
+              language={language}
+            />
+          </>
+        ) : null}
 
         {normalizedRole === 'renter' && (checkInInstructionsText || checkInPhotoUrls.length > 0) ? (
           <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-3 space-y-2">

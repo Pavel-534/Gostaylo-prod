@@ -17,6 +17,11 @@ import { getUIText } from '@/lib/translations'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { getListingLocationDisplayMode } from '@/lib/listing-location-privacy'
 import { formatPrice } from '@/lib/currency'
+import {
+  extractListingLatLng,
+  createLeafletPricePillDivIcon,
+  leafletBoundsAroundPointMeters,
+} from '@/lib/maps/map-provider-adapter'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -26,25 +31,12 @@ L.Icon.Default.mergeOptions({
 })
 
 function getListingPosition(listing) {
-  const lat = listing.latitude ?? listing.lat
-  const lng = listing.longitude ?? listing.lng
-  if (lat != null && lng != null) {
-    return [parseFloat(lat), parseFloat(lng)]
-  }
-  return null
+  const ll = extractListingLatLng(listing)
+  return ll ? [ll.lat, ll.lng] : null
 }
 
 function listingCategorySlug(listing) {
   return listing.categorySlug ?? listing.category?.slug ?? null
-}
-
-function boundsAroundPointMeters(latlng, radiusMeters) {
-  const lat = latlng[0]
-  const lng = latlng[1]
-  const dLat = radiusMeters / 111320
-  const cosLat = Math.cos((lat * Math.PI) / 180) || 1
-  const dLng = radiusMeters / (111320 * cosLat)
-  return L.latLngBounds([lat - dLat, lng - dLng], [lat + dLat, lng + dLng])
 }
 
 function listingLocationBounds(listing, hasConfirmedBookingFn) {
@@ -59,24 +51,9 @@ function listingLocationBounds(listing, hasConfirmedBookingFn) {
     categoryId: listing.category_id ?? listing.categoryId,
   })
   if (mode === 'privacy') {
-    return boundsAroundPointMeters(pos, 500)
+    return leafletBoundsAroundPointMeters(L, { lat: pos[0], lng: pos[1] }, 500)
   }
   return L.latLngBounds(pos, pos)
-}
-
-function createPricePillIcon(priceText, { selected, approximate }) {
-  const safe = String(priceText)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-  const approxClass = approximate ? ' gostaylo-price-pill--approx' : ''
-  const selClass = selected ? ' gostaylo-price-pill--selected' : ''
-  return L.divIcon({
-    className: 'gostaylo-price-pill-icon-root',
-    html: `<div class="gostaylo-price-pill-anchor"><div class="gostaylo-price-pill${approxClass}${selClass}">${safe}</div></div>`,
-    iconSize: [1, 1],
-    iconAnchor: [0, 0],
-  })
 }
 
 function MapSearchThisAreaButton({
@@ -250,7 +227,7 @@ function ListingPriceMarker({
 }) {
   const map = useMap()
   const icon = useMemo(
-    () => createPricePillIcon(priceLabel, { selected, approximate }),
+    () => createLeafletPricePillDivIcon(L, priceLabel, { selected, approximate }),
     [priceLabel, selected, approximate]
   )
 

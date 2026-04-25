@@ -6,12 +6,23 @@
 'use client'
 
 import { format, parseISO, isToday } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { ru, enUS, zhCN, th as thLocale } from 'date-fns/locale'
 import { Home, Anchor, Bike, Car, Lock } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { ProxiedImage } from '@/components/proxied-image'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { getUIText } from '@/lib/translations'
+
+const DATE_FNS_LOCALE = { ru, en: enUS, zh: zhCN, th: thLocale }
+
+function trTpl(template, vars) {
+  let s = String(template || '')
+  for (const [k, v] of Object.entries(vars || {})) {
+    s = s.split(`{{${k}}}`).join(String(v))
+  }
+  return s
+}
 
 // Type icons
 const TYPE_ICONS = {
@@ -41,9 +52,13 @@ export function CalendarGrid({
   onCellClick,
   todayRef,
   scrollContainerRef,
+  language = 'ru',
   /** В модалках/шитах задайте меньше (например min(60vh, 420px)), иначе пустота снизу */
   scrollMaxHeight = 'calc(100vh - 280px)',
 }) {
+  const t = (key) => getUIText(key, language)
+  const dfLocale = DATE_FNS_LOCALE[language] || ru
+
   return (
     <TooltipProvider>
       <Card className="overflow-hidden border-0 shadow-lg">
@@ -59,7 +74,7 @@ export function CalendarGrid({
             <div className="sticky left-0 z-20 bg-white border-r border-slate-200 shadow-sm">
               {/* Corner cell */}
               <div className="flex h-16 items-center justify-center border-b border-slate-200 bg-slate-50 px-4">
-                <span className="text-sm font-semibold text-slate-600">Объект</span>
+                <span className="text-sm font-semibold text-slate-600">{t('partnerCal_gridColumnListing')}</span>
               </div>
               
               {/* Listing rows */}
@@ -130,7 +145,7 @@ export function CalendarGrid({
                           isCurrentDay ? 'font-bold text-teal-700' : 'text-slate-500',
                         )}
                       >
-                        {format(dateObj, 'EEE', { locale: ru })}
+                        {format(dateObj, 'EEE', { locale: dfLocale })}
                       </span>
                       <span
                         className={cn(
@@ -168,7 +183,7 @@ export function CalendarGrid({
                       if (cellData.isCheckIn || viewMode === 'wide') {
                         content = (
                           <span className="truncate px-0.5 text-[10px] font-semibold leading-tight">
-                            {cellData.guestName?.split(' ')[0] || 'Гость'}
+                            {cellData.guestName?.split(' ')[0] || t('partnerCal_guestShort')}
                           </span>
                         )
                       }
@@ -211,21 +226,25 @@ export function CalendarGrid({
                                       : 'bg-indigo-100 text-indigo-700',
                                   )}
                                 >
-                                  {marketingPromo.isFlashSale ? 'FLASH' : 'PROMO'}
+                                  {marketingPromo.isFlashSale ? t('partnerCal_chipFlash') : t('partnerCal_chipPromo')}
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent side="top" className="max-w-[240px] leading-relaxed">
                                 <p className="font-semibold">{marketingPromo.code || 'PROMO'}</p>
                                 <p>
-                                  ฿{Math.round(marketingPromo.baseSeasonPrice || price).toLocaleString('en-US')} - ฿
-                                  {Math.round(marketingPromo.discountAmount || 0).toLocaleString('en-US')} = ฿
-                                  {Math.round(marketingPromo.guestPrice || price).toLocaleString('en-US')}
+                                  {trTpl(t('partnerCal_tooltipPromoLine'), {
+                                    base: `฿${Math.round(marketingPromo.baseSeasonPrice || price).toLocaleString('en-US')}`,
+                                    discount: `฿${Math.round(marketingPromo.discountAmount || 0).toLocaleString('en-US')}`,
+                                    guest: `฿${Math.round(marketingPromo.guestPrice || price).toLocaleString('en-US')}`,
+                                  })}
                                 </p>
                               </TooltipContent>
                             </Tooltip>
                           ) : null}
                           {minStay > 1 && viewMode !== 'compact' && (
-                            <span className="text-[9px] font-medium leading-none text-slate-500">мин {minStay}</span>
+                            <span className="text-[9px] font-medium leading-none text-slate-500">
+                              {trTpl(t('partnerCal_minStayShort'), { n: minStay })}
+                            </span>
                           )}
                         </div>
                       )
@@ -248,19 +267,25 @@ export function CalendarGrid({
                           cellData.isCheckOut && "rounded-r"
                         )}
                         style={{ width: dayWidth, minWidth: dayWidth }}
-                        title={cellData.status === 'BOOKED' 
-                          ? `${cellData.guestName} (${cellData.bookingStatus})`
-                          : cellData.status === 'BLOCKED'
-                          ? cellData.reason
-                          : cellData.previousGuestName
-                          ? `Выезд ${cellData.previousGuestName} — можно бронировать заезд`
-                          : 'Доступно - нажмите для действия'
+                        title={
+                          cellData.status === 'BOOKED'
+                            ? trTpl(t('partnerCal_cellTitleBooked'), {
+                                name: cellData.guestName || t('partnerCal_guestShort'),
+                                status: cellData.bookingStatus || '',
+                              })
+                            : cellData.status === 'BLOCKED'
+                              ? String(cellData.reason || t('partnerCal_cellTitleBlocked'))
+                              : cellData.previousGuestName
+                                ? trTpl(t('partnerCal_cellTitleCheckout'), {
+                                    name: cellData.previousGuestName,
+                                  })
+                                : t('partnerCal_cellTitleAvailable')
                         }
                       >
                         {flashSaleDay ? (
                           <span
                             className="pointer-events-none absolute right-1 top-1 z-[1] h-2 w-2 rounded-full bg-orange-500 shadow-sm ring-2 ring-white"
-                            title="Flash Sale"
+                            title={t('partnerCal_chipFlash')}
                             aria-hidden
                           />
                         ) : null}

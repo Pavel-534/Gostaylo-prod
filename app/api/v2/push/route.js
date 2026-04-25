@@ -107,10 +107,12 @@ export async function GET() {
     templates: [
       'NEW_MESSAGE',
       'BOOKING_REQUEST',
+      'BOOKING_INSTANT_PARTNER',
       'BOOKING_CONFIRMED',
       'PAYMENT_RECEIVED',
       'CHECKIN_REMINDER',
       'PAYOUT_READY',
+      'FUNDS_THAWED_PARTNER',
       'PARTNER_GUEST_REVIEW',
     ],
     endpoints: {
