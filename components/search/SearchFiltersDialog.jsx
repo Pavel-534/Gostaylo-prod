@@ -237,6 +237,20 @@ export function SearchFiltersDialog({
                   })}
                 </div>
               </div>
+              <div className="rounded-lg border border-slate-200 p-3">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                  <Checkbox
+                    checked={extraFilters.instantBookingOnly === true}
+                    onCheckedChange={(checked) =>
+                      onExtraFiltersChange((p) => ({
+                        ...p,
+                        instantBookingOnly: checked === true,
+                      }))
+                    }
+                  />
+                  <span>{t('Только мгновенное бронирование', 'Instant booking only')}</span>
+                </label>
+              </div>
             </section>
           )}
 

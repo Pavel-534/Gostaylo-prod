@@ -36,6 +36,8 @@ function hasMeaningfulSearchParams(sp) {
     'bathrooms',
     'bathrooms_min',
     'amenities',
+    'instant_booking',
+    'instantBooking',
     'transmission',
     'fuel_type',
     'fuelType',

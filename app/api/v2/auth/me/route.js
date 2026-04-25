@@ -1,7 +1,7 @@
 /**
  * GoStayLo - Current User API
  * GET /api/v2/auth/me — session user from DB
- * PATCH /api/v2/auth/me — update allowed profile fields (name, phone, avatar, notification prefs)
+ * PATCH /api/v2/auth/me — update allowed profile fields (name, phone, avatar, notification prefs, locale, instant booking)
  */
 
 import { NextResponse } from 'next/server';
@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { stripLegacyModeratorMarker } from '@/lib/auth/display-name';
+import { buildCommonProfileUpdates } from '@/lib/validation/profile-schema';
 export const dynamic = 'force-dynamic';
 
 function mapRowToClientUser(user, dbRole) {
@@ -51,6 +52,10 @@ function mapRowToClientUser(user, dbRole) {
     quiet_hour_start: user.quiet_hour_start || '22:00:00',
     quiet_hour_end: user.quiet_hour_end || '08:00:00',
     quiet_mode_enabled: user.quiet_mode_enabled === true,
+    instant_booking: user.instant_booking === true,
+    instantBooking: user.instant_booking === true,
+    preferred_language: user.preferred_language ?? null,
+    preferredLanguage: user.preferred_language ?? null,
   };
 }
 
@@ -193,43 +198,9 @@ export async function PATCH(request) {
     return NextResponse.json({ success: false, error: 'Profile not found' }, { status: 404 });
   }
 
-  const updates = {};
-
-  if (body.first_name !== undefined) {
-    updates.first_name = String(body.first_name || '').trim().slice(0, 100) || null;
-  }
-  if (body.firstName !== undefined && body.first_name === undefined) {
-    updates.first_name = String(body.firstName || '').trim().slice(0, 100) || null;
-  }
-
-  if (body.last_name !== undefined) {
-    updates.last_name = String(body.last_name || '').trim().slice(0, 100) || null;
-  }
-  if (body.lastName !== undefined && body.last_name === undefined) {
-    updates.last_name = String(body.lastName || '').trim().slice(0, 100) || null;
-  }
-
-  if (body.phone !== undefined) {
-    const p = body.phone == null ? null : String(body.phone).trim().slice(0, 50);
-    updates.phone = p || null;
-  }
-
-  if (body.avatar !== undefined) {
-    if (body.avatar === null || body.avatar === '') {
-      updates.avatar = null;
-    } else {
-      const a = String(body.avatar).trim().slice(0, 2048);
-      updates.avatar = a || null;
-    }
-  }
-
-  const incomingPrefs = body.notification_preferences ?? body.notificationPreferences;
-  if (incomingPrefs !== undefined && incomingPrefs !== null && typeof incomingPrefs === 'object') {
-    const base =
-      current.notification_preferences && typeof current.notification_preferences === 'object'
-        ? { ...current.notification_preferences }
-        : { email: true, telegram: false, telegramChatId: null };
-    updates.notification_preferences = { ...base, ...incomingPrefs };
+  const { updates, error: commonProfileValidationError } = buildCommonProfileUpdates(body, current);
+  if (commonProfileValidationError) {
+    return NextResponse.json({ success: false, error: commonProfileValidationError }, { status: 400 });
   }
 
   if (body.quiet_mode_enabled !== undefined) {
@@ -262,6 +233,24 @@ export async function PATCH(request) {
       { success: false, error: upErr?.message || 'Update failed' },
       { status: 400 }
     );
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, 'instant_booking')) {
+    const prevInstant = current.instant_booking === true;
+    const nextInstant = updates.instant_booking === true;
+    if (prevInstant !== nextInstant) {
+      const { error: listingSyncError } = await supabase
+        .from('listings')
+        .update({
+          instant_booking: nextInstant,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('owner_id', decoded.userId)
+        .eq('instant_booking', prevInstant);
+      if (listingSyncError) {
+        console.warn('[AUTH/ME PATCH] listing instant booking sync failed:', listingSyncError.message);
+      }
+    }
   }
 
   const dbRole = String(updated.role || 'RENTER').toUpperCase();

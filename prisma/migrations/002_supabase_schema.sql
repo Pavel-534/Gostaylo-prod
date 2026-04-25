@@ -105,6 +105,7 @@ CREATE TABLE listings (
   cover_image TEXT,
   metadata JSONB,
   available BOOLEAN DEFAULT TRUE,
+  instant_booking BOOLEAN DEFAULT FALSE,
   is_featured BOOLEAN DEFAULT FALSE,
   min_booking_days INT DEFAULT 1,
   max_booking_days INT,

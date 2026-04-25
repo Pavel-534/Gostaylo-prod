@@ -31,16 +31,8 @@ import { CurrencySelector } from '@/components/currency-selector';
 import { useAuth } from '@/contexts/auth-context';
 import { useChatContext } from '@/lib/context/ChatContext';
 import { useI18n } from '@/contexts/i18n-context'
-import { getUIText } from '@/lib/translations'
+import { getUIText, supportedLanguages } from '@/lib/translations'
 import { Flag } from '@/components/flags'
-
-// Supported languages
-const LANGUAGES = [
-  { code: 'ru', name: 'Русский' },
-  { code: 'en', name: 'English' },
-  { code: 'zh', name: '中文' },
-  { code: 'th', name: 'ไทย' },
-];
 
 export function UniversalHeader() {
   const [mounted, setMounted] = useState(false);
@@ -117,11 +109,11 @@ export function UniversalHeader() {
                   className='h-8 w-8 sm:h-9 sm:w-9 p-0 rounded-full hover:bg-slate-100'
                   data-testid='language-selector-trigger'
                 >
-                  {renderLangFlag(LANGUAGES.find(l => l.code === language)?.code || 'ru')}
+                  {renderLangFlag(supportedLanguages.find(l => l.code === language)?.code || 'ru')}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align='end' className='min-w-[140px]'>
-                {LANGUAGES.map((lang) => (
+                {supportedLanguages.map((lang) => (
                   <DropdownMenuItem 
                     key={lang.code} 
                     onClick={() => handleLanguageChange(lang.code)}

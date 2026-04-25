@@ -122,6 +122,7 @@ model Listing {
   
   // Availability
   available       Boolean       @default(true)
+  instantBooking  Boolean       @default(false) @map("instant_booking")
   minBookingDays  Int           @default(1)
   maxBookingDays  Int?
   /// Concurrent inventory spots (1 = single-unit property; >1 for tours/yachts/fleet)

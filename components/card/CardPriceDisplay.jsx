@@ -44,13 +44,6 @@ export function CardPriceDisplay({
     return basePrice
   }, [pricing, nights, basePrice])
   
-  const perNightPrice = useMemo(() => {
-    if (pricing?.perNight) {
-      return pricing.perNight
-    }
-    return basePrice
-  }, [pricing, basePrice])
-  
   const spanMode = getListingRentalPeriodMode(categorySlug)
   const dayUnit = spanMode === 'day'
 
@@ -68,6 +61,11 @@ export function CardPriceDisplay({
           ? `/ ${formatRentalSpanLabel(nights, spanMode, language)}`
           : `/ ${getUIText(dayUnit ? 'listingPriceUnitDay' : 'night', language)}`}
       </span>
+      {pricing?.isPromoApplied ? (
+        <span className="ml-1 rounded-full bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-600">
+          SALE
+        </span>
+      ) : null}
     </div>
   )
 }

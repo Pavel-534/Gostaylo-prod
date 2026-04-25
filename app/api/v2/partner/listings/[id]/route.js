@@ -127,6 +127,7 @@ export async function GET(request, context) {
       commissionRate,
       minBookingDays: listing.min_booking_days ?? 1,
       maxBookingDays: listing.max_booking_days ?? 90,
+      instantBooking: listing.instant_booking === true,
       cancellationPolicy: normalizeCancellationPolicy(listing.cancellation_policy),
       images: mapPublicImageUrls(listing.images || []),
       coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
@@ -160,6 +161,7 @@ export async function GET(request, context) {
       commissionRate,
       minBookingDays: listing.min_booking_days ?? 1,
       maxBookingDays: listing.max_booking_days ?? 90,
+      instantBooking: listing.instant_booking === true,
       cancellationPolicy: normalizeCancellationPolicy(listing.cancellation_policy),
       images: mapPublicImageUrls(listing.images || []),
       coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
@@ -218,7 +220,7 @@ export async function PATCH(request, context) {
   // First verify ownership
   const { data: existing } = await supabase
     .from('listings')
-    .select('owner_id, metadata')
+    .select('owner_id, metadata, instant_booking')
     .eq('id', listingId)
     .single();
   
@@ -256,6 +258,10 @@ export async function PATCH(request, context) {
   if (body.coverImage !== undefined) updateData.cover_image = body.coverImage;
   if (body.status !== undefined) updateData.status = body.status;
   if (body.available !== undefined) updateData.available = body.available;
+  if (body.instantBooking !== undefined || body.instant_booking !== undefined) {
+    const raw = body.instantBooking ?? body.instant_booking;
+    updateData.instant_booking = raw === true;
+  }
   if (body.cancellationPolicy !== undefined || body.cancellation_policy !== undefined) {
     const raw = body.cancellationPolicy ?? body.cancellation_policy;
     updateData.cancellation_policy = normalizeCancellationPolicy(raw);
@@ -283,6 +289,19 @@ export async function PATCH(request, context) {
   if (error) {
     console.error('[PARTNER-LISTING] Update error:', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updateData, 'instant_booking')) {
+    const { error: profileSyncError } = await supabase
+      .from('profiles')
+      .update({
+        instant_booking: updateData.instant_booking === true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.owner_id);
+    if (profileSyncError) {
+      console.warn('[PARTNER-LISTING] instant booking profile sync failed:', profileSyncError.message);
+    }
   }
   
   console.log('[PARTNER-LISTING] Updated successfully');

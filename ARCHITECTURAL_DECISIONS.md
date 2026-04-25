@@ -143,6 +143,13 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 - **Содержимое (v1):** строится `buildBookingPricingSnapshot` в `lib/booking-pricing-snapshot.js` при создании брони в `BookingService` — ночи, субтоталы, блок `duration_discount` (процент, сумма THB, порог ночей, подписи ru/en), опционально `promo`.
 - **Назначение:** зафиксировать детальный расчёт на момент бронирования для чеков, споров и истории; не подменять задним числом расчёт из текущих `metadata` листинга.
 
+### Locale & `preferred_language` ADR (Stage 42.1)
+
+- **Канон UI-локали (веб + серверные уведомления + Telegram):** функция **`resolveUserLocale(profile)`** в **`lib/i18n/locale-resolver.js`** — порядок **`profiles.preferred_language`** → **`profiles.language`** → нормализация к одному из **`ru` \| `en` \| `zh` \| `th`** (список **`SUPPORTED_UI_LANGUAGES`**). Не дублировать приоритет в маркетинге/боте вручную.
+- **Запись выбора пользователя с сайта:** при смене языка в **`I18nProvider`** (авторизованный пользователь) — debounced **`PATCH /api/v2/profile/me`** с телом **`{ preferred_language }`** (сессия та же, что у **`/api/v2/auth/me`**). Пакетное обновление профиля в настройках по-прежнему может использовать **`PATCH /api/v2/auth/me`** с тем же полем **`preferred_language`** (валидация кодов — та же).
+- **Telegram-бот:** **`resolveTelegramLanguageForChat`** запрашивает **`preferred_language`** и **`language`**; тексты **zh/th** до отдельных пакетов совпадают с **en**; подписи inline-меню для **zh/th** — как у **en** (см. **`telegramMenuButtonLocale`**). Хардкод **`lang = 'ru'`** в кронах/уведомлениях для локализуемых строк **запрещён** — только резолвер по профилю.
+- **Поиск с датами:** при исключении листинга из-за **ошибки** вызова **`CalendarService.checkAvailability`** листинг **не** попадает в выдачу (консервативное поведение против овербукинга).
+
 ### Профили, публичная идентичность и приватность
 
 - **Источник данных сессии (рентер / партнёр / общий UI):** серверный **`GET` / `PATCH /api/v2/auth/me`** читает и обновляет строку в **`profiles`** (JWT из cookie `gostaylo_session`). Клиент после успешных ответов обновляет **`localStorage['gostaylo_user']`** и должен диспатчить **`gostaylo-refresh-session`** (и при необходимости опираться на **`auth-change`**) чтобы шапка сайта, сайдбар партнёра и портал рентера подхватывали **аватар** и поля профиля без перезагрузки страницы.

@@ -75,6 +75,7 @@ export async function GET(request) {
       rating: parseFloat(l.rating) || 0,
       category: l.categories,
       metadata: l.metadata || {},
+      instantBooking: l.instant_booking === true,
       createdAt: l.created_at,
       updatedAt: l.updated_at
     }));
@@ -117,6 +118,8 @@ export async function POST(request) {
       images,
       metadata,
       baseCurrency,
+      instantBooking,
+      instant_booking,
     } = parseResult.data;
 
     if (partnerId !== sessionUserId) {
@@ -126,7 +129,7 @@ export async function POST(request) {
     // Verify partner exists and is verified
     const { data: partner } = await supabaseAdmin
       .from('profiles')
-      .select('id, is_verified, custom_commission_rate')
+      .select('id, is_verified, custom_commission_rate, instant_booking')
       .eq('id', partnerId)
       .single();
     
@@ -152,6 +155,12 @@ export async function POST(request) {
         : Number.isFinite(settingsComm) && settingsComm >= 0
           ? settingsComm
           : await resolveDefaultCommissionPercent();
+    const instantBookingValue =
+      instantBooking === true || instant_booking === true
+        ? true
+        : instantBooking === false || instant_booking === false
+          ? false
+          : partner.instant_booking === true;
     
     // Create listing
     const { data: listing, error } = await supabaseAdmin
@@ -169,6 +178,7 @@ export async function POST(request) {
         images: images || [],
         cover_image: images?.[0] || null,
         metadata: metadata || {},
+        instant_booking: instantBookingValue,
         available: false
       })
       .select()
@@ -176,6 +186,19 @@ export async function POST(request) {
     
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    if (instantBooking !== undefined || instant_booking !== undefined) {
+      const { error: profileSyncError } = await supabaseAdmin
+        .from('profiles')
+        .update({
+          instant_booking: instantBookingValue,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', partnerId);
+      if (profileSyncError) {
+        console.warn('[PARTNER LISTINGS POST] instant booking profile sync failed:', profileSyncError.message);
+      }
     }
     
     console.log(`[PARTNER] New listing created: ${listing.id} by ${partnerId}`);
@@ -188,7 +211,8 @@ export async function POST(request) {
         status: listing.status,
         basePriceThb: parseFloat(listing.base_price_thb),
         baseCurrency: listing.base_currency || 'THB',
-        commissionRate: parseFloat(listing.commission_rate)
+        commissionRate: parseFloat(listing.commission_rate),
+        instantBooking: listing.instant_booking === true,
       }
     });
     
