@@ -79,6 +79,7 @@ export function GostayloListingCard({
     category,
     categorySlug: listingCategorySlug,
     partnerTrust = null,
+    ownerVerified: listingOwnerVerified,
     owner,
     catalog_promo_badge = null,
     catalog_flash_urgency = null,
@@ -88,7 +89,13 @@ export function GostayloListingCard({
   const basePrice = basePriceThb || base_price_thb || 0
   const actualCoverImage = coverImage || cover_image
   const actualIsFeatured = isFeatured || is_featured
-  const displayRating = average_rating || rating || 0
+  const ownerVerified =
+    listingOwnerVerified === true ||
+    owner?.is_verified === true ||
+    listing?.owner?.is_verified === true
+  const displayRatingRaw =
+    listing?.avgRating ?? listing?.average_rating ?? average_rating ?? rating ?? 0
+  const displayRating = parseFloat(displayRatingRaw) || 0
   const displayReviewsCount = reviews_count || reviewsCount || 0
   
   // Extract metadata
@@ -197,9 +204,19 @@ export function GostayloListingCard({
           {/* Title Row */}
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-slate-900 line-clamp-1 text-base group-hover:text-teal-700 transition-colors">
-                {title}
-              </h3>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-semibold text-slate-900 line-clamp-1 text-base group-hover:text-teal-700 transition-colors">
+                  {title}
+                </h3>
+                {ownerVerified ? (
+                  <Badge
+                    variant="outline"
+                    className="shrink-0 border-teal-300 bg-teal-50 px-2 py-0 text-[10px] font-semibold uppercase tracking-wide text-teal-800"
+                  >
+                    {getUIText('listingCard_verifiedPartner', language)}
+                  </Badge>
+                ) : null}
+              </div>
               <p className="text-sm text-slate-500 mt-0.5">
                 {typeLabel} • {district}
               </p>

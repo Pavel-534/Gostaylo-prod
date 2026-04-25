@@ -259,13 +259,13 @@ export function GuestListingBodyBlock({ listing, language = 'en' }) {
                         getUIText('hostNamePlaceholder', language)}
                     </h3>
                     <p className="text-sm text-slate-500">{getUIText('propertyOwner', language)}</p>
-                    {listing.owner.is_verified ? (
+                    {listing.ownerVerified === true || listing.owner.is_verified ? (
                       <Badge
                         variant="secondary"
                         className="gap-1 bg-teal-50 text-teal-800 border-teal-200 font-normal"
                       >
                         <ShieldCheck className="h-3.5 w-3.5" />
-                        {getUIText('hostIdentityVerified', language)}
+                        {getUIText('listingCard_verifiedPartner', language)}
                       </Badge>
                     ) : null}
                     {listing.partnerTrust ? (

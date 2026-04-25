@@ -26,6 +26,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { getSearchFilterPanelKind } from '@/lib/search/search-filter-panel-kind'
 import { PROPERTY_PARTNER_AMENITY_SLUGS } from '@/lib/listing-wizard-amenities'
+import { AmenityLucideIcon } from '@/lib/listing/amenity-lucide-icon'
 import { amenityTranslations } from '@/lib/translations/categories'
 import {
   LISTINGS_PRICE_SLIDER_MAX_THB,
@@ -231,6 +232,7 @@ export function SearchFiltersDialog({
                           checked={checked}
                           onCheckedChange={() => toggleAmenity(slug)}
                         />
+                        <AmenityLucideIcon slug={slug} className="h-4 w-4 shrink-0 text-teal-600" />
                         <span className="truncate">{amenityLabel(slug, language)}</span>
                       </label>
                     )

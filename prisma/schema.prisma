@@ -111,6 +111,8 @@ model Listing {
   
   // Category-specific metadata (JSONB)
   metadata        Json?         // Flexible field for category-specific data
+  bedroomsCount   Int           @default(0) @map("bedrooms_count")
+  bathroomsCount  Int           @default(0) @map("bathrooms_count")
 
   /// pgvector(1536) — см. prisma/migrations/004_listings_embedding.sql
   embedding       Unsupported("vector(1536)")?
@@ -132,6 +134,8 @@ model Listing {
   views           Int           @default(0)
   bookingsCount   Int           @default(0)
   rating          Float         @default(0)
+  /// Denormalized average from guest `reviews` (Stage 44.0); триггер держит в синхроне с `reviews_count`.
+  avgRating       Float         @default(0) @map("avg_rating")
   reviewsCount    Int           @default(0)
   
   // Timestamps

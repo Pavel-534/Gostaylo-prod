@@ -132,7 +132,7 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 
 ### Calendar & Timezones
 
-- **Календарные даты листингов (день без времени):** каноническая таймзона — **`Asia/Bangkok`** через `lib/listing-date.js` (`LISTING_DATE_TZ` / `NEXT_PUBLIC_LISTING_DATE_TZ`).
+- **Календарные даты листингов (день без времени):** канонический TZ — **таймзона листинга** (приоритет: `listings.metadata.timezone` IANA → fallback по стране/региону → env default `LISTING_DATE_TZ` / `NEXT_PUBLIC_LISTING_DATE_TZ`). JS и SQL-расчёты доступности обязаны использовать один и тот же резолвер (Stage 45.2: `lib/geo/listing-timezone-ssot.js` + SQL `resolve_listing_timezone_v1`).
 - **Доступность и блокировки:** единая модель **`calendar_blocks`** + `CalendarService` (см. Golden rule §8); устаревший путь **`availability_blocks`** не использовать для записи из партнёрских API.
 - **iCal (прод, синхронизация внешних календарей → `calendar_blocks`):** единый модуль **`lib/services/ical-calendar-blocks-sync.js`** (разбор VEVENT с unfold строк, all-day и datetime, запись в **`calendar_blocks`**, логи **`ical_sync_logs`**). Его вызывают **`GET/POST /api/cron/ical-sync`** (Vercel Cron по **`vercel.json`**), **`app/api/ical/sync/route.js`**, **`app/api/v2/admin/ical/route.js`**; включение источников — **`isIcalSyncSourceEnabled`**. **Экспорт** подписного `.ics` для гостя: **`app/api/v2/listings/[id]/ical/route.js`** (`X-WR-TIMEZONE:Asia/Bangkok`). Файл **`lib/services/ical-sync.service.js`** **удалён** (был не подключён к роутам; дублировал логику).
 - **Операционные кроны** (время в комментариях к route): payouts / check-in reminder завязаны на **Bangkok** как продуктовый локальный день.

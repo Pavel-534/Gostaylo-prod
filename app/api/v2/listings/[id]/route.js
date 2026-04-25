@@ -209,7 +209,10 @@ export async function GET(request, context) {
       views: (listing.views || 0) + 1,
       bookingsCount: listing.bookings_count || 0,
       rating: parseFloat(listing.rating) || 0,
+      avgRating: parseFloat(listing.avg_rating ?? listing.rating) || 0,
+      average_rating: parseFloat(listing.avg_rating ?? listing.rating) || 0,
       reviewsCount: reviewsCount || 0,
+      ownerVerified: listing.owner?.is_verified === true,
       createdAt: listing.created_at,
       owner: listing.owner
         ? {

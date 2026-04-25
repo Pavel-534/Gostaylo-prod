@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 import { BookingService } from '@/lib/services/booking.service';
 import { NotificationService, NotificationEvents } from '@/lib/services/notification.service';
 import { validateAccess } from '@/lib/api/api-guard';
+import { readBookingFinancialSnapshot } from '@/lib/services/booking-financial-read-model.service';
 
 export async function GET(request, { params }) {
   try {
@@ -19,8 +20,14 @@ export async function GET(request, { params }) {
     if (!booking) {
       return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
     }
-    
-    return NextResponse.json({ success: true, data: booking });
+
+    const financial = await readBookingFinancialSnapshot(id);
+    const data = {
+      ...booking,
+      financial_snapshot_read_model: financial.success ? financial.data : null,
+    };
+
+    return NextResponse.json({ success: true, data });
     
   } catch (error) {
     console.error('[BOOKING GET ERROR]', error);

@@ -88,7 +88,7 @@ export async function POST(request) {
 
     const { data: listingData } = await supabaseAdmin
       .from('listings')
-      .select('min_booking_days, max_booking_days, title, max_capacity, metadata, category_id')
+      .select('min_booking_days, max_booking_days, title, max_capacity, metadata, category_id, instant_booking')
       .eq('id', listingId)
       .single();
 
@@ -178,10 +178,15 @@ export async function POST(request) {
     }
 
     const minRem = availabilityCheck.min_remaining_spots ?? 0;
+    const instantBookingEnforced =
+      listingData?.instant_booking === true &&
+      privateTrip !== true &&
+      negotiationRequest !== true;
     const needsInquiry =
+      !instantBookingEnforced && (
       privateTrip === true ||
       negotiationRequest === true ||
-      (!isVehicleListing && guestsCount > minRem);
+      (!isVehicleListing && guestsCount > minRem));
 
     if (needsInquiry) {
       const result = await BookingService.createInquiryBooking({
@@ -285,6 +290,7 @@ export async function POST(request) {
       guestsCount,
       clientQuotedSubtotalThb,
       clientQuotedGuestTotalThb,
+      forceStatus: instantBookingEnforced ? 'CONFIRMED' : 'PENDING',
     });
 
     if (result.error) {
