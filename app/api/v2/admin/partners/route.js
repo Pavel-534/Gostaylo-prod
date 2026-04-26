@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
-import { getPublicSiteUrl } from '@/lib/site-url.js';
+import { getPublicSiteUrl, getSiteDisplayName } from '@/lib/site-url.js';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 
@@ -62,7 +62,7 @@ async function sendEmail(to, subject, html) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'GoStayLo <noreply@gostaylo.com>',
+        from: `${getSiteDisplayName()} <noreply@gostaylo.com>`,
         to: [to],
         subject,
         html
@@ -268,9 +268,10 @@ export async function POST(request) {
     }
     
     // Send approval notifications
+    const brand = getSiteDisplayName();
     const emailHtml = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-        <h1 style="color: #0d9488;">🎉 Добро пожаловать в GoStayLo!</h1>
+        <h1 style="color: #0d9488;">🎉 Добро пожаловать в ${brand}!</h1>
         <p>Ваша заявка на партнёрство одобрена!</p>
         <p>Теперь вы можете:</p>
         <ul>
@@ -283,7 +284,7 @@ export async function POST(request) {
             Перейти в панель партнёра
           </a>
         </p>
-        <p style="color: #666; font-size: 14px;">С уважением,<br>Команда GoStayLo</p>
+        <p style="color: #666; font-size: 14px;">С уважением,<br>Команда ${brand}</p>
       </div>
     `;
     
@@ -291,7 +292,7 @@ export async function POST(request) {
     
     if (user.telegram_id) {
       await sendTelegramToUser(user.telegram_id, 
-        `🎉 <b>Поздравляем!</b>\n\nВаша заявка на партнёрство в GoStayLo одобрена!\n\n` +
+        `🎉 <b>Поздравляем!</b>\n\nВаша заявка на партнёрство в ${getSiteDisplayName()} одобрена!\n\n` +
         `Теперь вы можете добавлять объекты и принимать бронирования.\n\n` +
         `<a href="${APP_URL}/partner/dashboard">Перейти в панель партнёра</a>`
       );
@@ -326,13 +327,14 @@ export async function POST(request) {
     // The partner_applications table already tracks the rejection
     
     // Send rejection notifications
+    const rejectBrand = getSiteDisplayName();
     const emailHtml = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #64748b;">Заявка на партнёрство</h1>
         <p>К сожалению, ваша заявка на партнёрство не была одобрена.</p>
         <p><strong>Причина:</strong> ${rejectionReason}</p>
         <p>Вы можете подать новую заявку позже, учтя указанные замечания.</p>
-        <p style="color: #666; font-size: 14px;">С уважением,<br>Команда GoStayLo</p>
+        <p style="color: #666; font-size: 14px;">С уважением,<br>Команда ${rejectBrand}</p>
       </div>
     `;
     

@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server'
 import { PushService } from '@/lib/services/push.service'
 import { getSessionPayload } from '@/lib/services/session-service'
 import { supabaseAdmin } from '@/lib/supabase'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 async function requireSession() {
   const session = await getSessionPayload()
@@ -83,7 +84,7 @@ export async function POST(request) {
         return NextResponse.json({ success: false, error: 'token required' }, { status: 400 })
       }
       const result = await PushService.sendPush(token, 'NEW_MESSAGE', {
-        sender: 'GoStayLo Test',
+        sender: `${getSiteDisplayName()} Test`,
         link: '/',
       })
       return NextResponse.json(result)

@@ -5,22 +5,13 @@
 
 import { NextResponse } from 'next/server'
 import DisputeService from '@/lib/services/dispute.service'
+import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'
 
 export const dynamic = 'force-dynamic'
 
-const CRON_SECRET = process.env.CRON_SECRET
-
-function authorize(request) {
-  if (!CRON_SECRET) return false
-  const authHeader = request.headers.get('authorization')
-  const cronHeader = request.headers.get('x-cron-secret')
-  return authHeader === `Bearer ${CRON_SECRET}` || cronHeader === CRON_SECRET
-}
-
 export async function POST(request) {
-  if (!authorize(request)) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = assertCronAuthorized(request)
+  if (denied) return denied
   try {
     const result = await DisputeService.processStaleMediationDisputes({ maxAgeHours: 24, limit: 80 })
     return NextResponse.json({ success: true, ...result })

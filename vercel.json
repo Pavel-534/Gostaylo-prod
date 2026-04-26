@@ -17,6 +17,10 @@
       "schedule": "0 0 * * *"
     },
     {
+      "path": "/api/cron/partner-client-review-invite",
+      "schedule": "30 0 * * *"
+    },
+    {
       "path": "/api/cron/cleanup-drafts",
       "schedule": "0 0 * * *"
     },

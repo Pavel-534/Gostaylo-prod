@@ -5,6 +5,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { getNominatimUserAgent } from '@/lib/http-client-identity'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,7 +33,7 @@ export async function GET(request) {
 
     const res = await fetch(`${NOMINATIM_REVERSE}?${params}`, {
       headers: {
-        'User-Agent': 'GoStayLo/1.0 (contact@gostaylo.com)',
+        'User-Agent': getNominatimUserAgent(),
         'Accept-Language': 'en',
       },
     })

@@ -2,7 +2,9 @@
  * Обогащение строки листинга при импорте с Airbnb: гео-район Пхукета, SEO-мета, workation.
  */
 
-/** Популярные районы GoStayLo — те же названия, что в мастере партнёра */
+import { getSiteDisplayName } from '@/lib/site-url'
+
+/** Популярные районы платформы — те же названия, что в мастере партнёра */
 export const PHUKET_POPULAR_DISTRICTS: { name: string; lat: number; lng: number }[] = [
   { name: 'Rawai',    lat: 7.7665, lng: 98.3165 },
   { name: 'Nai Harn', lat: 7.777,  lng: 98.302  },
@@ -85,34 +87,33 @@ const LANG_CFG: Record<Lang, LangConfig> = {
   en: {
     phuket: 'Phuket',
     separator: ' · ',
-    bookSuffix: ', Phuket — book on GoStayLo.',
+    bookSuffix: ', Phuket — book on {brand}.',
     descSep: '.',
     amenitySep: '.',
   },
   ru: {
     phuket: 'Пхукет',
     separator: ' · ',
-    bookSuffix: ', Пхукет — бронируйте на GoStayLo.',
+    bookSuffix: ', Пхукет — бронируйте на {brand}.',
     descSep: '.',
     amenitySep: '.',
   },
   zh: {
     phuket: '普吉岛',
     separator: ' · ',
-    bookSuffix: '，普吉岛 — 在GoStayLo预订。',
+    bookSuffix: '，普吉岛 — 在{brand}预订。',
     descSep: '。',
     amenitySep: '。',
   },
   th: {
     phuket: 'ภูเก็ต',
     separator: ' · ',
-    bookSuffix: ', ภูเก็ต — จองผ่าน GoStayLo.',
+    bookSuffix: ', ภูเก็ต — จองผ่าน {brand}.',
     descSep: '.',
     amenitySep: '.',
   },
 }
 
-const BRAND = ' | GoStayLo'
 const TITLE_MAX = 60
 const DESC_MAX = 160
 const SNIPPET_MAX = 120
@@ -135,11 +136,12 @@ export interface ImportSeoInput {
 }
 
 function buildOneLang(cfg: LangConfig, input: ImportSeoInput): ImportSeoBlock {
+  const brand = getSiteDisplayName()
   const district = (input.district && String(input.district).trim()) || cfg.phuket
   const rawTitle = (input.title && String(input.title).trim()) || 'Holiday rental'
 
   // title
-  const suffix = `${cfg.separator}${district}${cfg.separator}${cfg.phuket}${BRAND}`
+  const suffix = `${cfg.separator}${district}${cfg.separator}${cfg.phuket} | ${brand}`
   let title = rawTitle + suffix
   if (title.length > TITLE_MAX) {
     const room = TITLE_MAX - suffix.length - 1
@@ -152,8 +154,9 @@ function buildOneLang(cfg: LangConfig, input: ImportSeoInput): ImportSeoBlock {
   const labels = (input.amenityLabels || []).map((s) => String(s).trim()).filter(Boolean).slice(0, 5)
   const amenityPart = labels.length ? labels.join(', ') + cfg.amenitySep + ' ' : ''
   const snippetPart = snippet ? snippet + (snippet.endsWith(cfg.descSep) ? ' ' : cfg.descSep + ' ') : ''
+  const bookSuffix = cfg.bookSuffix.replace(/\{brand\}/g, brand)
   const description = clamp(
-    (snippetPart + amenityPart + district + cfg.bookSuffix).replace(/\s+/g, ' ').trim(),
+    (snippetPart + amenityPart + district + bookSuffix).replace(/\s+/g, ' ').trim(),
     DESC_MAX
   )
 

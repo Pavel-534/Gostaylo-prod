@@ -3,10 +3,14 @@
  */
 import '@/lib/translations/register-chat-slice'
 import { MessagesViewportShell } from '@/components/messages-viewport-shell'
+import { getSiteDisplayName } from '@/lib/site-url'
 
-export const metadata = {
-  title: 'Сообщения | GoStayLo',
-  description: 'Диалоги с гостями и хозяевами в одном месте',
+export async function generateMetadata() {
+  const brand = getSiteDisplayName()
+  return {
+    title: `Сообщения | ${brand}`,
+    description: 'Диалоги с гостями и хозяевами в одном месте',
+  }
 }
 
 export default function MessagesLayout({ children }) {

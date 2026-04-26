@@ -47,6 +47,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { Badge } from '@/components/ui/badge'
 import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 const SIDEBAR_CONFIG = [
   { nameKey: 'partnerNav_dashboard', href: '/partner/dashboard', icon: LayoutDashboard, descKey: 'partnerNav_dashboardDesc' },
@@ -439,7 +440,7 @@ export default function PartnerLayout({ children }) {
                 </svg>
               </div>
               <div>
-                <h1 className="font-bold text-slate-900">GoStayLo</h1>
+                <h1 className="font-bold text-slate-900">{getSiteDisplayName()}</h1>
                 <p className="text-[10px] text-teal-600 font-semibold tracking-wide">
                   {getUIText('partnerLayout_partnerPortalTagline', language)}
                 </p>

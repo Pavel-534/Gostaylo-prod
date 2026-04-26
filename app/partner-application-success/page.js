@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, Clock, ArrowRight, Home, Mail } from 'lucide-react'
 import Link from 'next/link'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 export default function PartnerApplicationSuccessPage() {
   const router = useRouter()
@@ -31,7 +32,7 @@ export default function PartnerApplicationSuccessPage() {
             Заявка принята!
           </h1>
           <p className='text-slate-600'>
-            Спасибо за интерес к партнёрству с GoStayLo
+            Спасибо за интерес к партнёрству с {getSiteDisplayName()}
           </p>
         </div>
 

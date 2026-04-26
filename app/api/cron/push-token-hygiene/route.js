@@ -7,21 +7,14 @@ import { NextResponse } from 'next/server'
 import { PushService } from '@/lib/services/push.service'
 import { supabaseAdmin } from '@/lib/supabase'
 import { startOpsJobRun, finishOpsJobRun } from '@/lib/ops-job-runs'
+import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
-const CRON_SECRET = process.env.CRON_SECRET
 const BATCH = 25
 const MAX_TOKENS = 800
-
-function authorize(request) {
-  if (!CRON_SECRET) return false
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = request.headers.get('x-cron-secret')
-  return authHeader === `Bearer ${CRON_SECRET}` || cronSecret === CRON_SECRET
-}
 
 async function runHygiene() {
   if (!supabaseAdmin) {
@@ -75,9 +68,8 @@ async function runHygiene() {
 }
 
 export async function POST(request) {
-  if (!authorize(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = assertCronAuthorized(request)
+  if (denied) return denied
   const run = await startOpsJobRun('push-token-hygiene')
   try {
     const result = await runHygiene()

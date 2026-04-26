@@ -23,6 +23,7 @@ import { useEffect, useState } from 'react'
 import { format, formatDistanceToNow } from 'date-fns'
 import { ru as ruLocale } from 'date-fns/locale'
 import Link from 'next/link'
+import { getSiteDisplayName } from '@/lib/site-url'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Building2, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -195,7 +196,7 @@ export function StickyChatHeader({
             href="/"
             className="shrink-0 text-xs font-bold tracking-tight text-teal-800 hover:text-teal-950"
           >
-            GoStayLo
+            {getSiteDisplayName()}
           </Link>
         </div>
       ) : null}

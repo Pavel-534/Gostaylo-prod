@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
 import { PaymentsV3Service } from '@/lib/services/payments-v3.service';
 import { getUserIdFromSession } from '@/lib/services/session-service';
+import { isPartnerProfileAdminVerified } from '@/lib/partner/partner-payout-kyc';
 
 export async function GET(request) {
   try {
@@ -93,7 +94,15 @@ export async function POST(request) {
     if (partnerId !== sessionUserId) {
       return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
     }
-    
+
+    const kycOk = await isPartnerProfileAdminVerified(sessionUserId);
+    if (!kycOk) {
+      return NextResponse.json(
+        { success: false, error: 'PROFILE_NOT_VERIFIED', code: 'PROFILE_NOT_VERIFIED' },
+        { status: 403 },
+      );
+    }
+
     // Request payout using service
     const result = await PaymentsV3Service.requestPayout(partnerId, amount, method || 'MANUAL', {
       walletAddress,
@@ -104,9 +113,7 @@ export async function POST(request) {
     if (result.error) {
       return NextResponse.json({ success: false, error: result.error }, { status: 400 });
     }
-    
-    console.log(`[PAYOUT] New payout request: ${result.payout.id} for ${amount} THB`);
-    
+
     return NextResponse.json({
       success: true,
       data: result.payout,

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { DollarSign, Users, ShoppingBag, TrendingUp, AlertCircle, UserPlus, CreditCard, RefreshCw, Send, Home, Wallet, Handshake, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getSiteDisplayName } from '@/lib/site-url';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -26,7 +27,8 @@ export default function AdminDashboard() {
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
       const res = await fetch('/api/v2/telegram/test', {
-        signal: controller.signal
+        signal: controller.signal,
+        credentials: 'include',
       });
       clearTimeout(timeoutId);
       
@@ -34,55 +36,29 @@ export default function AdminDashboard() {
         const data = await res.json();
         setTelegramStatus(data);
       } else {
-        // Fallback - show as configured if we have env vars
-        setTelegramStatus({ 
-          configured: true, 
-          bot: { username: 'GoStayLo_bot', firstName: 'GoStayLo_Admin' },
-          chat: { title: 'GoStayLo HQ', id: '-1003832026983' }
-        });
+        setTelegramStatus({ configured: false, bot: null, chat: null });
       }
     } catch (error) {
       console.error('Telegram status check failed:', error);
-      // Fallback - assume configured
-      setTelegramStatus({ 
-        configured: true, 
-        bot: { username: 'GoStayLo_bot', firstName: 'GoStayLo_Admin' },
-        chat: { title: 'GoStayLo HQ', id: '-1003832026983' }
-      });
+      setTelegramStatus({ configured: false, bot: null, chat: null });
     }
   };
 
   const sendTestAlert = async (type) => {
     setSendingAlert(type);
     try {
-      // Direct Telegram API call to avoid k8s routing issues
-      const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-      const GROUP_ID = '-1003832026983';
-      const TOPICS = { booking: 15, finance: 16, partner: 17 };
-      
-      const messages = {
-        booking: `🏠 <b>ТЕСТ BOOKING ALERT</b>\n\n📍 Test Villa\n👤 Test Guest\n📅 01.03 - 07.03.2025\n💰 125,000 THB\n\n✅ Test from Admin Dashboard`,
-        finance: `💰 <b>ТЕСТ FINANCE ALERT</b>\n\n📝 Booking: TEST-${Date.now()}\n💵 3,500 USDT\n🔗 USDT TRC-20\n\n✅ Test from Admin Dashboard`,
-        partner: `🤝 <b>ТЕСТ PARTNER ALERT</b>\n\n👤 New Test Partner\n📧 test@example.com\n\n✅ Test from Admin Dashboard`
-      };
-
-      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      const response = await fetch('/api/v2/telegram/test', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: GROUP_ID,
-          message_thread_id: TOPICS[type],
-          text: messages[type] || messages.booking,
-          parse_mode: 'HTML'
-        })
+        body: JSON.stringify({ type }),
       });
-
       const result = await response.json();
-      
-      if (result.ok) {
+
+      if (result.success) {
         alert(`✅ ${type.toUpperCase()} alert sent successfully!`);
       } else {
-        alert(`❌ Failed: ${result.description}`);
+        alert(`❌ Failed: ${result.error || result.description || 'Unknown error'}`);
       }
     } catch (error) {
       alert(`❌ Error: ${error.message}`);
@@ -252,7 +228,7 @@ export default function AdminDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-sm lg:text-base text-gray-600 mt-1">Панель управления GoStayLo</p>
+          <p className="text-sm lg:text-base text-gray-600 mt-1">Панель управления {getSiteDisplayName()}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button 

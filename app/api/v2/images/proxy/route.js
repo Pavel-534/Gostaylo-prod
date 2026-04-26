@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getImageProxyUserAgent } from '@/lib/http-client-identity'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +34,7 @@ export async function GET(request) {
     upstream = await fetch(raw, {
       headers: {
         Accept: 'image/avif,image/webp,image/*,*/*;q=0.8',
-        'User-Agent': 'GoStayLoImageProxy/1.0',
+        'User-Agent': getImageProxyUserAgent(),
       },
       redirect: 'follow',
       cache: 'no-store',

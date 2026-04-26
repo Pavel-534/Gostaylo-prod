@@ -96,6 +96,17 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 - **Server modes (ENV `CONTACT_SAFETY_MODE`):** `ADVISORY` (default) — warning UI to recipient; `REDACT` — mask contacts in stored message text; `BLOCK` — reject send with **403**. Repeat telemetry: `profiles.contact_leak_strikes` incremented on each detector firing (not for **ADMIN/MODERATOR**); **`GET /api/v2/admin/contact-leak-dashboard`** (ADMIN) aggregates `CONTACT_LEAK_ATTEMPT` with **THB-based** risk converted via **`exchange_rates`** (no ad-hoc FX). **Auto-shadowban** is **off** unless **`system_settings.general.chatSafety.autoShadowbanEnabled`**; when on and strikes ≥ **`strikeThreshold`**, leak-flagged messages carry **`metadata.hidden_from_recipient`** and are omitted for the recipient in **`GET /api/v2/chat/messages`**.
 - Any future change that weakens contact protection in chat requires explicit update in this SSOT + mirrored updates in **`docs/TECHNICAL_MANIFESTO.md`** and **`docs/ARCHITECTURAL_PASSPORT.md`**.
 
+### 10. Listing categories (universal rental) — SSOT map (no silent drift)
+
+- **Canonical row:** **`categories.slug`** referenced by **`listings.category_id`**. Do not invent parallel category strings in product logic.
+- **Resolve id → slug (server):** **`resolveListingCategorySlug`** in **`lib/services/booking/query.service.js`** (Supabase read). **Snapshot on booking:** **`bookings.metadata.listing_category_slug`** is written when entering escrow (**`EscrowService.moveToEscrow`**) so thaw and downstream flows do not depend on join shape alone.
+- **Slug predicates (no DB):** **`lib/listing-category-slug.js`** — transport aliases to **`vehicles`**, **`isTourListingCategory`**, **`isYachtLikeCategory`**, **`showsPropertyInteriorSpecs`**.
+- **Escrow thaw time (financial bucket):** **`lib/escrow-thaw-rules.js`** — **`getEscrowThawBucketFromCategorySlug`** + **`computeEscrowThawAt`**. **Important:** tours / `tour*` slugs map to thaw bucket **`service`** (start + 2h), not a separate thaw type. Changing this requires an explicit ADR and regression on **`escrow_thaw_at`** / cron thaw.
+- **Wizard / reviews UX (four logical types):** **`lib/partner/listing-service-type.js`** — **`inferListingServiceTypeFromCategorySlug`** exposes **`tour`** separately from **`service`** for metadata defaults and copy. This is **intentionally different** from the thaw bucket for tours; do not merge the two models without review.
+- **Copy that must match thaw buckets:** **`lib/notification-category-terminology.js`** uses the same buckets as **`escrow-thaw-rules.js`**.
+- **Separate heuristics (sync when adding categories):** **`lib/listing-location-privacy.js`** (map vs exact marker), **`lib/partner-calendar-filters.js`** (chip slug sets). When **`categories`** gains a new slug, update these if the category needs distinct map/privacy or calendar grouping.
+- **Full file index and checklist:** **`docs/ARCHITECTURAL_PASSPORT.md`** §**0.0d-cat** (Stage 47.3 doc).
+
 ---
 
 ## LIVE PRODUCT STATE

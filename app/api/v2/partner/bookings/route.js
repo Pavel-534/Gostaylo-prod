@@ -37,6 +37,7 @@ const mockBookings = [
     guest_email: 'ivan@example.com',
     special_requests: 'Ранний заезд если возможно',
     created_at: '2026-03-10T10:00:00Z',
+    metadata: { listing_category_slug: 'property' },
     listing: {
       id: 'lst-001',
       title: 'Роскошная вилла с бассейном',
@@ -61,6 +62,7 @@ const mockBookings = [
     guest_email: 'maria@example.com',
     special_requests: null,
     created_at: '2026-03-08T14:30:00Z',
+    metadata: { listing_category_slug: 'vehicles' },
     listing: {
       id: 'lst-002',
       title: 'Современные апартаменты в центре',
@@ -87,6 +89,7 @@ const mockBookings = [
     confirmed_at: '2026-02-28T12:00:00Z',
     completed_at: '2026-03-05T11:00:00Z',
     created_at: '2026-02-25T09:15:00Z',
+    metadata: { listing_category_slug: 'tours' },
     listing: {
       id: 'lst-001',
       title: 'Роскошная вилла с бассейном',

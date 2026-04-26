@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Eye, EyeOff, Mail, CheckCircle } from 'lucide-react';
 import { signIn, signUp, getCurrentUser, signOut } from '@/lib/auth';
 import { toast } from 'sonner';
+import { getSiteDisplayName } from '@/lib/site-url';
 
 const AuthContext = createContext(null);
 
@@ -422,8 +423,8 @@ export function AuthProvider({ children }) {
                   {authMode === 'login' ? 'Вход в систему' : 'Регистрация'}
                 </DialogTitle>
                 <DialogDescription className='text-sm'>
-                  {authMode === 'login' 
-                    ? 'Войдите в свой аккаунт GoStayLo'
+                  {authMode === 'login'
+                    ? `Войдите в свой аккаунт ${getSiteDisplayName()}`
                     : 'Создайте новый аккаунт'}
                 </DialogDescription>
               </DialogHeader>

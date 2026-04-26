@@ -26,6 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
+import { getSiteDisplayName } from '@/lib/site-url'
 import { useChatContext } from '@/lib/context/ChatContext'
 
 // TanStack Query client configuration
@@ -242,7 +243,7 @@ export default function RenterLayout({ children }) {
                   <span className="text-white font-bold text-lg">GS</span>
                 </div>
                 <div className="hidden sm:block">
-                  <span className="font-bold text-slate-900 text-lg">GoStayLo</span>
+                  <span className="font-bold text-slate-900 text-lg">{getSiteDisplayName()}</span>
                   <span className="block text-xs text-slate-500">My Trips</span>
                 </div>
               </Link>
@@ -411,7 +412,7 @@ export default function RenterLayout({ children }) {
         {/* Footer */}
         <footer className="bg-white border-t mt-12">
           <div className="container mx-auto px-4 py-6 text-center text-sm text-slate-600">
-            <p>© 2026 GoStayLo. Luxury rentals in Phuket.</p>
+            <p>© 2026 {getSiteDisplayName()}. Luxury rentals in Phuket.</p>
           </div>
         </footer>
       </div>

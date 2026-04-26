@@ -7,28 +7,19 @@ import { NextResponse } from 'next/server'
 import { PushService } from '@/lib/services/push.service'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 import { startOpsJobRun, finishOpsJobRun } from '@/lib/ops-job-runs'
+import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
-
-const CRON_SECRET = process.env.CRON_SECRET
-
-function authorize(request) {
-  if (!CRON_SECRET) return false
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = request.headers.get('x-cron-secret')
-  return authHeader === `Bearer ${CRON_SECRET}` || cronSecret === CRON_SECRET
-}
 
 async function runSweep() {
   return PushService.runStaleChatPushSweeper({ staleMinutes: 10, limit: 200 })
 }
 
 export async function POST(request) {
-  if (!authorize(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = assertCronAuthorized(request)
+  if (denied) return denied
   const run = await startOpsJobRun('push-sweeper')
   try {
     const result = await runSweep()

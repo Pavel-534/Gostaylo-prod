@@ -14,6 +14,7 @@ import {
   Column,
 } from '@react-email/components'
 import { theme } from '@/lib/theme/constants'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 interface PaymentSuccessEmailProps {
   guestName: string
@@ -46,6 +47,7 @@ export default function PaymentSuccessEmail({
   pdfReceiptUrl = '',
   bookingDetailsUrl = 'https://funnyrent.com/renter/bookings',
 }: PaymentSuccessEmailProps) {
+  const brand = getSiteDisplayName()
   return (
     <Html>
       <Head />
@@ -53,7 +55,7 @@ export default function PaymentSuccessEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={logoSection}>
-            <Heading style={mainHeading}>GoStayLo</Heading>
+            <Heading style={mainHeading}>{brand}</Heading>
           </Section>
 
           <Section style={successBadge}>
@@ -158,7 +160,7 @@ export default function PaymentSuccessEmail({
 
           <Text style={footer}>
             Желаем вам прекрасного отдыха на Пхукете! 🌴<br />
-            Команда <strong>GoStayLo</strong>
+            Команда <strong>{brand}</strong>
           </Text>
 
           <Text style={footerSmall}>

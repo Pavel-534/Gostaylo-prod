@@ -9,15 +9,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { NotificationService } from '@/lib/services/notification.service'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
-
-const CRON_SECRET = process.env.CRON_SECRET
-
-function isAuthorizedPost(request) {
-  if (!CRON_SECRET) return false
-  const authHeader = request.headers.get('authorization')
-  const cronHeader = request.headers.get('x-cron-secret')
-  return authHeader === `Bearer ${CRON_SECRET}` || cronHeader === CRON_SECRET
-}
+import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'
 
 async function runAndRespond() {
   const result = await NotificationService.runDailyDraftDigestReminders()
@@ -26,9 +18,8 @@ async function runAndRespond() {
 
 export async function GET(request) {
   try {
-    if (!isAuthorizedPost(request)) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    }
+    const denied = assertCronAuthorized(request)
+    if (denied) return denied
     return await runAndRespond()
   } catch (e) {
     console.error('[CRON DRAFT DIGEST GET]', e)
@@ -41,9 +32,8 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    if (!isAuthorizedPost(request)) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    }
+    const denied = assertCronAuthorized(request)
+    if (denied) return denied
     return await runAndRespond()
   } catch (e) {
     console.error('[CRON DRAFT DIGEST POST]', e)

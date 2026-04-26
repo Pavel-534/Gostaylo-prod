@@ -1,23 +1,9 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { MarketingNotificationsService } from '@/lib/services/marketing-notifications.service'
+import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'
 
 export const dynamic = 'force-dynamic'
-
-function cronSecretConfigured() {
-  return Boolean(String(process.env.CRON_SECRET || '').trim())
-}
-
-function authorize(request) {
-  const secret = String(process.env.CRON_SECRET || '').trim()
-  if (!secret) return false
-  const cronHeader = String(request.headers.get('x-cron-secret') || '').trim()
-  if (cronHeader === secret) return true
-  const authHeader = request.headers.get('authorization')
-  if (!authHeader) return false
-  const m = authHeader.match(/^Bearer\s+(.+)$/i)
-  return Boolean(m && String(m[1]).trim() === secret)
-}
 
 async function runJob() {
   const nowMs = Date.now()
@@ -60,12 +46,8 @@ async function runJob() {
 }
 
 async function handle(request) {
-  if (!cronSecretConfigured()) {
-    return NextResponse.json({ success: false, error: 'CRON_SECRET not configured' }, { status: 503 })
-  }
-  if (!authorize(request)) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = assertCronAuthorized(request)
+  if (denied) return denied
   try {
     return await runJob()
   } catch (error) {

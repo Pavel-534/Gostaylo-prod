@@ -16,23 +16,11 @@ import { PushService } from '@/lib/services/push.service';
 import { NotificationService } from '@/lib/services/notification.service';
 import { listingDateToday, toListingDate } from '@/lib/listing-date';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
-
-const CRON_SECRET = process.env.CRON_SECRET;
-
-function authorize(request) {
-  if (!CRON_SECRET) return false;
-  const authHeader = request.headers.get('authorization');
-  const cronHeader = request.headers.get('x-cron-secret');
-  return authHeader === `Bearer ${CRON_SECRET}` || cronHeader === CRON_SECRET;
-}
+import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js';
 
 export async function POST(request) {
-  if (!authorize(request)) {
-    return NextResponse.json(
-      { success: false, error: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
+  const denied = assertCronAuthorized(request);
+  if (denied) return denied;
   try {
     console.log('[CRON CHECK-IN] Sending check-in reminders...');
     
@@ -118,12 +106,8 @@ export async function POST(request) {
 
 // GET for status check
 export async function GET(request) {
-  if (!authorize(request)) {
-    return NextResponse.json(
-      { success: false, error: 'Unauthorized' },
-      { status: 401 }
-    );
-  }
+  const denied = assertCronAuthorized(request);
+  if (denied) return denied;
 
   // Get today's check-ins
   const today = listingDateToday();

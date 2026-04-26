@@ -15,18 +15,10 @@ import {
 } from '@/lib/services/ical-calendar-blocks-sync'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 import { startOpsJobRun, finishOpsJobRun } from '@/lib/ops-job-runs'
+import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
-
-const CRON_SECRET = process.env.CRON_SECRET
-
-function authorize(request) {
-  if (!CRON_SECRET) return false
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = request.headers.get('x-cron-secret')
-  return authHeader === `Bearer ${CRON_SECRET}` || cronSecret === CRON_SECRET
-}
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -157,9 +149,8 @@ async function runSync() {
 }
 
 export async function GET(request) {
-  if (!authorize(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = assertCronAuthorized(request)
+  if (denied) return denied
   const run = await startOpsJobRun('ical-sync')
   try {
     const result = await runSync()
@@ -194,9 +185,8 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  if (!authorize(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const denied = assertCronAuthorized(request)
+  if (denied) return denied
   const run = await startOpsJobRun('ical-sync')
   try {
     const result = await runSync()

@@ -11,7 +11,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getSessionPayload } from '@/lib/services/session-service'
 import { isStaffRole, effectiveRoleFromProfile } from '@/lib/services/chat/access'
-import { getPublicSiteUrl } from '@/lib/site-url.js'
+import { getPublicSiteUrl, getSiteDisplayName } from '@/lib/site-url.js'
 import { PushService } from '@/lib/services/push.service.js'
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 
@@ -193,14 +193,15 @@ export async function POST(request) {
 
   const finalId = convId
   const listingTitle = listingRow.title || 'listing'
+  const brand = getSiteDisplayName()
   const introText =
     langRaw === 'ru'
-      ? `Здравствуйте! Пишу вам со страницы профиля GoStayLo по объекту «${listingTitle}».`
+      ? `Здравствуйте! Пишу вам со страницы профиля ${brand} по объекту «${listingTitle}».`
       : langRaw === 'zh'
-        ? `您好！我在 GoStayLo 用户资料页看到「${listingTitle}」，想和您联系。`
+        ? `您好！我在 ${brand} 用户资料页看到「${listingTitle}」，想和您联系。`
         : langRaw === 'th'
-          ? `สวัสดีครับ/ค่ะ เขียนจากหน้าโปรไฟล์ GoStayLo เกี่ยวกับ «${listingTitle}»`
-          : `Hello! I'm messaging you from your GoStayLo profile page regarding «${listingTitle}».`
+          ? `สวัสดีครับ/ค่ะ เขียนจากหน้าโปรไฟล์ ${brand} เกี่ยวกับ «${listingTitle}»`
+          : `Hello! I'm messaging you from your ${brand} profile page regarding «${listingTitle}».`
   const msgId = `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
   const msgNow = new Date().toISOString()
   const accessRole = effectiveRoleFromProfile(viewer)

@@ -15,6 +15,7 @@ import { useProfileUpdate } from '@/app/profile/hooks/useProfileUpdate'
 import { ProfileInfo } from '@/app/profile/components/ProfileInfo'
 import { ProfileSecurity } from '@/app/profile/components/ProfileSecurity'
 import { ProfilePreferences } from '@/app/profile/components/ProfilePreferences'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 const KYC_LABELS = {
   label: 'Документ (паспорт/ID)',
@@ -336,7 +337,8 @@ function ProfileContent() {
             </div>
             <h2 className="text-2xl font-bold text-slate-900 mb-2">Добро пожаловать в партнёры!</h2>
             <p className="text-slate-600 mb-6">
-              Ваша заявка одобрена. Теперь вы можете добавлять свои объекты и получать бронирования через GoStayLo.
+              Ваша заявка одобрена. Теперь вы можете добавлять свои объекты и получать бронирования через{' '}
+              {getSiteDisplayName()}.
             </p>
             <div className="space-y-3">
               <Button

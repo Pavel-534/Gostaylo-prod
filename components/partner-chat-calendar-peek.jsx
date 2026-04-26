@@ -20,6 +20,17 @@ import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
 import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFinancialSnapshotDialog'
 
+/** Кнопка «Финансы брони» только при наличии read-model в треде (нет снапшота — старые тестовые брони). */
+function hasUsableFinancialSnapshot(snap) {
+  if (snap == null || typeof snap !== 'object' || Array.isArray(snap)) return false
+  return (
+    snap.partnerPayoutThb != null ||
+    snap.net != null ||
+    snap.gross != null ||
+    snap.fee != null
+  )
+}
+
 /**
  * Быстрый просмотр занятости одного листинга из шапки чата (без ухода со страницы).
  * На max-md — нижняя шторка ~90dvh; на sm+ — боковая панель.
@@ -156,7 +167,8 @@ export function PartnerChatCalendarPeek({
   const listings = calendarPayload?.listings || []
 
   const peekDayWidth = 44
-  const showFinanceBtn = mode === 'partner' && !!bookingId
+  const showFinanceBtn =
+    mode === 'partner' && !!bookingId && hasUsableFinancialSnapshot(financialSnapshotInitial)
 
   return (
     <>

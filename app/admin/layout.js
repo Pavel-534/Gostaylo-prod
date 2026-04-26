@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { getSiteDisplayName } from '@/lib/site-url';
 
 const MODERATOR_RESTRICTED_PREFIXES = [
   '/admin/finances',
@@ -282,7 +283,7 @@ export default function AdminLayout({ children }) {
               <div className="w-7 h-7 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center shadow-md">
                 <span className="text-white text-xs font-bold">FR</span>
               </div>
-              <h1 className="text-sm font-bold tracking-tight">GoStayLo Admin</h1>
+              <h1 className="text-sm font-bold tracking-tight">{getSiteDisplayName()} Admin</h1>
             </div>
           </div>
           
@@ -322,7 +323,7 @@ export default function AdminLayout({ children }) {
                 <span className="text-white text-sm font-bold">FR</span>
               </div>
               <div>
-                <h1 className="text-lg font-bold tracking-tight">GoStayLo</h1>
+                <h1 className="text-lg font-bold tracking-tight">{getSiteDisplayName()}</h1>
                 <p className="text-[10px] text-teal-400 font-medium uppercase tracking-wider">
                   {user?.isModerator ? 'Moderator' : 'Admin Panel'}
                 </p>

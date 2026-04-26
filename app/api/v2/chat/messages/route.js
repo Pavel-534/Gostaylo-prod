@@ -17,7 +17,7 @@ import {
 import { insertAuditLog } from '@/lib/services/audit/insert-audit-log'
 import { normalizeMessageType } from '@/lib/services/chat/message-types'
 import { PushService } from '@/lib/services/push.service.js'
-import { getPublicSiteUrl } from '@/lib/site-url.js'
+import { getPublicSiteUrl, getSiteDisplayName } from '@/lib/site-url.js'
 import { registerTelegramReplyTarget } from '@/lib/services/telegram/telegram-reply-map.js'
 import { getEffectiveRate } from '@/lib/services/currency.service'
 import { otherPartyHasReadRaw } from '@/lib/chat/read-receipts'
@@ -176,10 +176,11 @@ async function sendNewMessageTelegramPing({
 }) {
   if (!TELEGRAM_BOT_TOKEN || !recipientTelegramChatId || !recipientUserId || !conversationId) return false
   const clip = String(textBody || '').substring(0, 450)
+  const siteName = escHtmlTelegram(getSiteDisplayName())
   const text =
     `💬 <b>Новое сообщение</b> · ${escHtmlTelegram(senderName)}\n\n` +
     `«${escHtmlTelegram(clip)}${String(textBody || '').length > 450 ? '…' : ''}»\n\n` +
-    '<i>Ответьте на это сообщение здесь — текст уйдёт в чат на сайте GoStayLo.</i>'
+    `<i>Ответьте на это сообщение здесь — текст уйдёт в чат на сайте ${siteName}.</i>`
   try {
     const tgRes = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
@@ -531,8 +532,7 @@ export async function POST(request) {
     return NextResponse.json(
       {
         success: false,
-        error:
-          'Contact details are not allowed in chat while CONTACT_SAFETY_MODE=BLOCK. Keep communication on GoStayLo.',
+        error: `Contact details are not allowed in chat while CONTACT_SAFETY_MODE=BLOCK. Keep communication on ${getSiteDisplayName()}.`,
         code: 'CONTACT_SAFETY_BLOCKED',
       },
       { status: 403 },

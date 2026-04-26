@@ -16,6 +16,7 @@ import {
   getCategoryName,
   getUIText,
 } from '@/lib/translations'
+import { getSiteDisplayName } from '@/lib/site-url'
 import { LISTINGS_SEARCH_API_PATH } from '@/lib/search-endpoints'
 import { isTransportListingCategory } from '@/lib/listing-category-slug'
 import { useHomeFilters } from '@/components/home/useHomeFilters'
@@ -464,7 +465,9 @@ export function GostayloHomeContent() {
             </div>
           </div>
           <div className="border-t border-slate-800 mt-8 pt-6 text-center text-sm text-slate-400">
-            <p>© 2025 GoStayLo. {getUIText('allRightsReserved', language)}</p>
+            <p>
+              © {new Date().getFullYear()} {getSiteDisplayName()}. {getUIText('allRightsReserved', language)}
+            </p>
           </div>
         </div>
       </footer>

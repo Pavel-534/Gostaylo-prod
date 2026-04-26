@@ -19,6 +19,7 @@ import {
   Wallet, UserCheck, ChevronRight, DollarSign, 
   Power, Bot, Globe, FileCheck, ListChecks, Star
 } from 'lucide-react';
+import { getSiteDisplayName } from '@/lib/site-url';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
@@ -244,7 +245,7 @@ export function AppSidebar() {
               <Home className='h-5 w-5 text-white' />
             </div>
             <div>
-              <SheetTitle className='text-left'>GoStayLo</SheetTitle>
+              <SheetTitle className='text-left'>{getSiteDisplayName()}</SheetTitle>
               <p className='text-xs text-slate-500'>{currentSection}</p>
             </div>
           </div>

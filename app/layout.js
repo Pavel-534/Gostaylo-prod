@@ -11,6 +11,7 @@ import { PresenceProvider } from '@/lib/context/PresenceContext'
 import { SupabaseRealtimeAuthSync } from '@/components/supabase-realtime-auth-sync'
 import { PushClientInit } from '@/components/push-client-init'
 import { getRequestSiteUrl } from '@/lib/server-site-url'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] })
 
@@ -24,19 +25,20 @@ export const viewport = {
 
 export async function generateMetadata() {
   const siteUrl = await getRequestSiteUrl()
+  const brand = getSiteDisplayName()
+  const title = `${brand} - Premium Global Rentals`
+  const description = `Premium villas, yachts, transport and tours worldwide. Book your perfect stay with ${brand}.`
   return {
     metadataBase: new URL(siteUrl),
-    title: 'GoStayLo - Premium Global Rentals',
-    description:
-      'Premium villas, yachts, transport and tours worldwide. Book your perfect stay with GoStayLo.',
-    manifest: '/manifest.json',
+    title,
+    description,
     keywords: 'rentals, villas, yachts, phuket, thailand, luxury, vacation, holiday',
-    authors: [{ name: 'GoStayLo' }],
+    authors: [{ name: brand }],
     openGraph: {
-      title: 'GoStayLo - Premium Global Rentals',
-      description: 'Premium villas, yachts, transport and tours worldwide. Book your perfect stay.',
+      title,
+      description: `Premium villas, yachts, transport and tours worldwide. Book your perfect stay.`,
       url: siteUrl,
-      siteName: 'GoStayLo',
+      siteName: brand,
       locale: 'en_US',
       type: 'website',
       images: [
@@ -44,20 +46,20 @@ export async function generateMetadata() {
           url: '/og-image.png',
           width: 1200,
           height: 630,
-          alt: 'GoStayLo - Premium Global Rentals',
+          alt: title,
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'GoStayLo - Premium Global Rentals',
+      title,
       description: 'Premium villas, yachts, transport and tours worldwide.',
       images: ['/og-image.png'],
     },
     appleWebApp: {
       capable: true,
       statusBarStyle: 'default',
-      title: 'GoStayLo',
+      title: brand,
     },
     // Яндекс.Вебмастер (метод «Метатег»); файл yandex_*.html в public/ — метод «HTML-файл»
     verification: {
@@ -67,6 +69,7 @@ export async function generateMetadata() {
 }
 
 export default async function RootLayout({ children }) {
+  const appleTitle = getSiteDisplayName()
   return (
     <html lang="ru">
       <head>
@@ -88,7 +91,7 @@ button{font:inherit}
         <link rel="icon" href="/favicon.ico" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="GoStayLo" />
+        <meta name="apple-mobile-web-app-title" content={appleTitle} />
         <meta name="theme-color" content="#0d9488" />
       </head>
       <body className={inter.className}>

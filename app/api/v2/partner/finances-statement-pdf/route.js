@@ -56,7 +56,10 @@ export async function GET(request) {
     const { data: rows, error } = await supabaseAdmin
       .from('bookings')
       .select(
-        'id,status,created_at,currency,listing_currency,price_thb,price_paid,exchange_rate,commission_thb,commission_rate,applied_commission_rate,partner_earnings_thb,taxable_margin_amount,rounding_diff_pot,pricing_snapshot,guest_name',
+        `
+        id,status,created_at,currency,listing_currency,price_thb,price_paid,exchange_rate,commission_thb,commission_rate,applied_commission_rate,partner_earnings_thb,taxable_margin_amount,rounding_diff_pot,pricing_snapshot,guest_name,metadata,
+        listing:listings(category_id,categories(slug))
+      `,
       )
       .eq('partner_id', userId)
       .gte('created_at', fromIso)

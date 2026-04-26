@@ -36,6 +36,7 @@
 import Link from 'next/link'
 import { Check, CreditCard, Images, Info, LifeBuoy, Loader2, MoreHorizontal, Search, X } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
+import { getSiteDisplayName } from '@/lib/site-url'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -80,6 +81,7 @@ export function ChatHeaderActions({
   if (!hasActions) return null
 
   const isRu = language !== 'en' && language !== 'th' && language !== 'zh'
+  const siteBrand = getSiteDisplayName()
   const secondaryCount =
     (onSupportClick ? 1 : 0) + (onMediaGallery ? 1 : 0) + (onSearchToggle ? 1 : 0)
   const showDesktopMoreMenu = groupDesktopTools && secondaryCount > 0
@@ -169,7 +171,7 @@ export function ChatHeaderActions({
                   )}
                   <div className="flex min-w-0 flex-col">
                     <span className="font-medium">
-                      {isRu ? 'Поддержка GoStayLo' : 'GoStayLo support'}
+                      {isRu ? `Поддержка ${siteBrand}` : `${siteBrand} support`}
                     </span>
                     {supportPriorityActive ? (
                       <span className="text-[11px] font-normal text-amber-700">{supportDoneLabel}</span>

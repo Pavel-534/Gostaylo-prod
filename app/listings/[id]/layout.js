@@ -5,6 +5,7 @@
 
 import { cookies, headers } from 'next/headers';
 import { getUIText, getLangFromRequest } from '@/lib/translations';
+import { getSiteDisplayName } from '@/lib/site-url';
 import { getRequestSiteUrl } from '@/lib/server-site-url';
 import { getCachedActiveListingForLayout } from '@/lib/seo/listing-layout-data';
 import ListingSchema from '@/components/seo/ListingSchema';
@@ -20,9 +21,10 @@ export async function generateMetadata({ params }) {
   const baseUrl = await getRequestSiteUrl();
 
   if (!listing) {
+    const b = getSiteDisplayName();
     return {
-      title: 'Listing | GoStayLo',
-      description: 'Premium rentals on GoStayLo'
+      title: `Listing | ${b}`,
+      description: `Premium rentals on ${b}`,
     };
   }
 

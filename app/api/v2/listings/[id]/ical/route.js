@@ -12,6 +12,7 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { listingDateToday, toListingDate } from '@/lib/listing-date';
+import { getSiteDisplayName } from '@/lib/site-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -100,7 +101,7 @@ export async function GET(request, { params }) {
   const statusUp = String(listing.status || '').toUpperCase();
   const publiclyBookable = statusUp === 'ACTIVE' && listing.available !== false;
   
-  // Occupying / in-progress stays: OTAs must see BUSY as soon as a request exists on GoStayLo
+  // Occupying / in-progress stays: OTAs must see BUSY as soon as a request exists on the platform
   // (PENDING, PAID_ESCROW) plus paid/confirmed/completed. Excludes CANCELLED/REFUNDED/DECLINED etc.
   const ICAL_EXPORT_BOOKING_STATUSES = [
     'PENDING',
@@ -132,12 +133,14 @@ export async function GET(request, { params }) {
   
   // Build iCal content
   const now = formatICalDate(new Date());
-  const calName = `GoStayLo - ${listing.title}`;
+  const brand = getSiteDisplayName();
+  const prodVendor = String(brand).replace(/[^\w.-]/g, '').slice(0, 40) || 'Platform';
+  const calName = `${brand} - ${listing.title}`;
   
   let ical = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//GoStayLo//Calendar Export//EN',
+    `PRODID:-//${prodVendor}//Calendar Export//EN`,
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${calName}`,
@@ -154,8 +157,8 @@ export async function GET(request, { params }) {
       `DTSTAMP:${now}`,
       `DTSTART;VALUE=DATE:${formatICalDateOnly(todayYmd)}`,
       `DTEND;VALUE=DATE:${icalExclusiveEndFromInclusive(endInc)}`,
-      'SUMMARY:GoStayLo — объект недоступен',
-      `DESCRIPTION:${escapeIcalText('Объявление не активно или скрыто на GoStayLo. Бронирование через календарь недоступно.')}`,
+      `SUMMARY:${escapeIcalText(`${brand} — объект недоступен`)}`,
+      `DESCRIPTION:${escapeIcalText(`Объявление не активно или скрыто на ${brand}. Бронирование через календарь недоступно.`)}`,
       'STATUS:CONFIRMED',
       'TRANSP:OPAQUE',
       'END:VEVENT'
@@ -169,10 +172,10 @@ export async function GET(request, { params }) {
       st === 'PENDING' || st === 'PAID_ESCROW' ? 'Guest' : booking.guest_name || 'Guest';
     const summary =
       st === 'PENDING'
-        ? `GoStayLo — Pending request`
+        ? `${brand} — Pending request`
         : st === 'PAID_ESCROW'
-          ? `GoStayLo — Escrow / paid hold`
-          : `GoStayLo Booking - ${summaryGuest}`;
+          ? `${brand} — Escrow / paid hold`
+          : `${brand} Booking - ${summaryGuest}`;
     ical.push(
       'BEGIN:VEVENT',
       `UID:${uid}`,
@@ -180,7 +183,7 @@ export async function GET(request, { params }) {
       `DTSTART;VALUE=DATE:${formatICalDateOnly(booking.check_in)}`,
       `DTEND;VALUE=DATE:${formatICalDateOnly(booking.check_out)}`,
       `SUMMARY:${escapeIcalText(summary)}`,
-      `DESCRIPTION:${escapeIcalText(`GoStayLo ${st}. Blocks calendar on external platforms.`)}`,
+      `DESCRIPTION:${escapeIcalText(`${brand} ${st}. Blocks calendar on external platforms.`)}`,
       'STATUS:CONFIRMED',
       'TRANSP:OPAQUE',
       'END:VEVENT'
@@ -197,7 +200,7 @@ export async function GET(request, { params }) {
       `DTSTART;VALUE=DATE:${formatICalDateOnly(block.start_date)}`,
       `DTEND;VALUE=DATE:${icalExclusiveEndFromInclusive(block.end_date)}`,
       `SUMMARY:${escapeIcalText(block.reason || 'Blocked')}`,
-      `DESCRIPTION:${escapeIcalText(`Занято в GoStayLo (${src || 'block'})`)}`,
+      `DESCRIPTION:${escapeIcalText(`Занято в ${brand} (${src || 'block'})`)}`,
       'STATUS:CONFIRMED',
       'TRANSP:OPAQUE',
       'END:VEVENT'
@@ -217,8 +220,8 @@ export async function GET(request, { params }) {
       `DTSTAMP:${now}`,
       `DTSTART;VALUE=DATE:${formatICalDateOnly(sp.start_date)}`,
       `DTEND;VALUE=DATE:${icalExclusiveEndFromInclusive(sp.end_date)}`,
-      `SUMMARY:${escapeIcalText(`GoStayLo — ${label}${price ? ` (${price})` : ''}`)}`,
-      `DESCRIPTION:${escapeIcalText('Сезонные цены GoStayLo. Событие информационное (TRANSPARENT), не блокирует календарь в большинстве OTA.')}`,
+      `SUMMARY:${escapeIcalText(`${brand} — ${label}${price ? ` (${price})` : ''}`)}`,
+      `DESCRIPTION:${escapeIcalText(`Сезонные цены ${brand}. Событие информационное (TRANSPARENT), не блокирует календарь в большинстве OTA.`)}`,
       'STATUS:CONFIRMED',
       'TRANSP:TRANSPARENT',
       'END:VEVENT'

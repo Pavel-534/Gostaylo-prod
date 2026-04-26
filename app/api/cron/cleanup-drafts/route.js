@@ -17,24 +17,17 @@
 
 import { NextResponse } from 'next/server';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
+import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const CRON_SECRET = process.env.CRON_SECRET;
 const STORAGE_BUCKETS = ['listing-images', 'listings'];
 
 // Draft expiry in days
 const DRAFT_EXPIRY_DAYS = 30;
-
-function authorize(request) {
-  if (!CRON_SECRET) return false;
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = request.headers.get('x-cron-secret');
-  return authHeader === `Bearer ${CRON_SECRET}` || cronSecret === CRON_SECRET;
-}
 
 /**
  * Delete images from Supabase Storage for a listing (per-URL; DB trigger also clears prefix on DELETE).
@@ -82,9 +75,8 @@ async function deleteListingImages(listingId, images) {
  * Main cleanup handler
  */
 export async function POST(request) {
-  if (!authorize(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = assertCronAuthorized(request);
+  if (denied) return denied;
   try {
     console.log('[CLEANUP] Starting draft cleanup job...');
     
@@ -215,9 +207,8 @@ export async function POST(request) {
  * Status endpoint - shows what would be cleaned up (dry run)
  */
 export async function GET(request) {
-  if (!authorize(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = assertCronAuthorized(request);
+  if (denied) return denied;
   try {
     // Calculate cutoff date
     const cutoffDate = new Date();

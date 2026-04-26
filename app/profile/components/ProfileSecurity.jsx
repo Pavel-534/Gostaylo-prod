@@ -4,6 +4,7 @@ import { MessageSquare, Shield } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { telegramAccountLinkUrl } from '@/lib/telegram-bot-public'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 export function ProfileSecurity({ user, onToast }) {
   return (
@@ -50,7 +51,7 @@ export function ProfileSecurity({ user, onToast }) {
             <div>
               <h3 className="font-medium text-slate-700 text-sm">Безопасность</h3>
               <p className="text-xs text-slate-500 mt-1">
-                Всегда оплачивайте через GoStayLo для защиты ваших средств. Не переводите деньги напрямую
+                Всегда оплачивайте через {getSiteDisplayName()} для защиты ваших средств. Не переводите деньги напрямую
                 незнакомым лицам.
               </p>
             </div>

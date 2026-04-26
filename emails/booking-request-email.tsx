@@ -14,6 +14,7 @@ import {
   Column,
 } from '@react-email/components'
 import { theme } from '@/lib/theme/constants'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 interface BookingRequestEmailProps {
   partnerName: string
@@ -52,6 +53,7 @@ export default function BookingRequestEmail({
   commissionPercent = 15,
   bookingUrl = 'https://funnyrent.com/partner/bookings',
 }: BookingRequestEmailProps) {
+  const brand = getSiteDisplayName()
   return (
     <Html>
       <Head />
@@ -59,7 +61,7 @@ export default function BookingRequestEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={logoSection}>
-            <Heading style={mainHeading}>GoStayLo</Heading>
+            <Heading style={mainHeading}>{brand}</Heading>
           </Section>
 
           {/* Main Heading */}
@@ -144,7 +146,7 @@ export default function BookingRequestEmail({
 
           <Text style={footer}>
             С уважением,<br />
-            Команда <strong>GoStayLo</strong>
+            Команда <strong>{brand}</strong>
           </Text>
         </Container>
       </Body>

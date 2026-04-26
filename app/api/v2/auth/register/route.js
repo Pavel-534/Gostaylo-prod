@@ -12,6 +12,7 @@ import jwt from 'jsonwebtoken';
 import { rateLimitCheck } from '@/lib/rate-limit';
 import { getTransactionalFromAddress } from '@/lib/email-env';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { getSiteDisplayName } from '@/lib/site-url';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +39,8 @@ async function sendVerificationEmail(user, token) {
   }
   
   const verifyUrl = `${BASE_URL}/api/v2/auth/verify?token=${token}`;
-  
+  const siteName = getSiteDisplayName();
+
   try {
     console.log('[EMAIL] Sending verification to:', user.email);
     console.log('[EMAIL] From:', EMAIL_FROM);
@@ -52,7 +54,7 @@ async function sendVerificationEmail(user, token) {
       body: JSON.stringify({
         from: EMAIL_FROM,
         to: user.email,
-        subject: 'Подтвердите ваш email - GoStayLo',
+        subject: `Подтвердите ваш email - ${siteName}`,
         html: `
           <!DOCTYPE html>
           <html>
@@ -67,7 +69,7 @@ async function sendVerificationEmail(user, token) {
                   <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
                     <tr>
                       <td style="background:linear-gradient(135deg,#0d9488 0%,#0f766e 100%);padding:32px;text-align:center;">
-                        <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;">GoStayLo</h1>
+                        <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:800;">${siteName}</h1>
                       </td>
                     </tr>
                     <tr>
@@ -82,7 +84,7 @@ async function sendVerificationEmail(user, token) {
                           Подтвердить email
                         </a>
                         <p style="margin:24px 0 0;color:#94a3b8;font-size:14px;">
-                          Ссылка действительна 24 часа. Если вы не регистрировались на GoStayLo, просто проигнорируйте это письмо.
+                          Ссылка действительна 24 часа. Если вы не регистрировались на ${siteName}, просто проигнорируйте это письмо.
                         </p>
                       </td>
                     </tr>

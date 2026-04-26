@@ -5,7 +5,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { getPublicSiteUrl, getTelegramWebhookUrl } from '@/lib/site-url.js';
+import { getPublicSiteUrl, getTelegramWebhookUrl, getSiteDisplayName } from '@/lib/site-url.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -173,7 +173,7 @@ export async function POST(request) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: chatId,
-          text: `✅ *Тест подключения GoStayLo*\n\n🌐 Домен: ${BASE_URL}\n⏰ Время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Bangkok' })}`,
+          text: `✅ *Тест подключения ${getSiteDisplayName()}*\n\n🌐 Домен: ${BASE_URL}\n⏰ Время: ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Bangkok' })}`,
           parse_mode: 'Markdown'
         })
       });

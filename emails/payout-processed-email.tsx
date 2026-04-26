@@ -12,6 +12,7 @@ import {
 } from '@react-email/components';
 import * as React from 'react';
 import { theme } from '@/lib/theme/constants';
+import { getSiteDisplayName } from '@/lib/site-url';
 
 export default function PayoutProcessedEmail({
   partnerName,
@@ -29,7 +30,7 @@ export default function PayoutProcessedEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Heading style={brand}>GoStayLo</Heading>
+            <Heading style={brand}>{siteName}</Heading>
             <Heading style={h1}>Выплата отправлена</Heading>
           </Section>
 

@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { getAdminDiagnosticsUserAgent } from '@/lib/http-client-identity';
 import { 
   Power, 
   Bot, 
@@ -375,7 +376,7 @@ export default function SystemControlPage() {
           action: action,
           details: details,
           ip_address: 'admin-panel',
-          user_agent: 'GoStayLo Admin'
+          user_agent: getAdminDiagnosticsUserAgent()
         })
       });
       

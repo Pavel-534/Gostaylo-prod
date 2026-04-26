@@ -12,6 +12,7 @@ import {
   Hr,
 } from '@react-email/components'
 import { theme } from '@/lib/theme/constants'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 interface WelcomeEmailProps {
   userName: string
@@ -24,14 +25,15 @@ export default function WelcomeEmail({
   referralCode = 'ABC123',
   loginUrl = 'https://funnyrent.com/login',
 }: WelcomeEmailProps) {
+  const brand = getSiteDisplayName()
   return (
     <Html>
       <Head />
-      <Preview>Добро пожаловать в GoStayLo</Preview>
+      <Preview>Добро пожаловать в {brand}</Preview>
       <Body style={main}>
         <Container style={container}>
           <Section style={logoSection}>
-            <Heading style={mainHeading}>GoStayLo</Heading>
+            <Heading style={mainHeading}>{brand}</Heading>
             <Text style={tagline}>Premium rentals in Phuket</Text>
           </Section>
 
@@ -43,7 +45,7 @@ export default function WelcomeEmail({
           </Text>
 
           <Text style={text}>
-            Спасибо за регистрацию в <strong>GoStayLo</strong> — вашем надёжном партнёре для аренды на Пхукете.
+            Спасибо за регистрацию в <strong>{brand}</strong> — вашем надёжном партнёре для аренды на Пхукете.
             Виллы, яхты, транспорт и экскурсии — всё в одном месте.
           </Text>
 
@@ -68,7 +70,7 @@ export default function WelcomeEmail({
           {/* Footer */}
           <Text style={footer}>
             С уважением,<br />
-            Команда <strong>GoStayLo</strong>
+            Команда <strong>{brand}</strong>
           </Text>
 
           <Text style={footerSmall}>

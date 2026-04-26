@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { KycUploader } from '@/components/kyc-uploader'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 const PENDING_KYC_LABELS = {
   label: 'Документ (паспорт/ID)',
@@ -116,7 +117,7 @@ export function ProfileInfo({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-teal-800">
               <Briefcase className="h-5 w-5" />
-              Станьте партнёром GoStayLo
+              Станьте партнёром {getSiteDisplayName()}
             </CardTitle>
             <CardDescription>
               Сдавайте свою недвижимость и получайте доход. Присоединяйтесь к нашей сети владельцев на Пхукете.

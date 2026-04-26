@@ -12,8 +12,10 @@ import {
 } from '@react-email/components';
 import * as React from 'react';
 import { theme } from '@/lib/theme/constants';
+import { getSiteDisplayName } from '@/lib/site-url';
 
 export default function PartnerVerifiedEmail({ partnerName, loginUrl }) {
+  const siteName = getSiteDisplayName();
   return (
     <Html>
       <Head />
@@ -21,7 +23,7 @@ export default function PartnerVerifiedEmail({ partnerName, loginUrl }) {
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Heading style={brand}>GoStayLo</Heading>
+            <Heading style={brand}>{siteName}</Heading>
             <Heading style={h1}>Аккаунт верифицирован</Heading>
           </Section>
 
@@ -31,7 +33,7 @@ export default function PartnerVerifiedEmail({ partnerName, loginUrl }) {
             </Text>
 
             <Text style={text}>
-              Отличные новости! Администратор GoStayLo одобрил вашу заявку.
+              Отличные новости! Администратор {siteName} одобрил вашу заявку.
               Теперь вы официальный партнер платформы!
             </Text>
 

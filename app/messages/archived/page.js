@@ -19,6 +19,7 @@ import {
   INBOX_TAB_HOSTING,
   INBOX_TAB_TRAVELING,
 } from '@/lib/chat-inbox-tabs'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 const HOSTING_ROLES = new Set(['PARTNER', 'ADMIN', 'MODERATOR'])
 
@@ -111,7 +112,7 @@ export default function MessagesArchivedPage() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-teal-500 to-teal-600">
                 <span className="text-sm font-bold text-white">GS</span>
               </div>
-              <span className="font-bold text-slate-900">GoStayLo</span>
+              <span className="font-bold text-slate-900">{getSiteDisplayName()}</span>
             </Link>
           </div>
         </header>
@@ -135,7 +136,7 @@ export default function MessagesArchivedPage() {
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-teal-500 to-teal-600">
               <span className="text-sm font-bold text-white">GS</span>
             </div>
-            <span className="truncate font-bold text-slate-900">GoStayLo</span>
+            <span className="truncate font-bold text-slate-900">{getSiteDisplayName()}</span>
           </Link>
           <Button asChild variant="ghost" size="sm" className="shrink-0">
             <Link href="/">

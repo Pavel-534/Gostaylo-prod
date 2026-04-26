@@ -24,7 +24,8 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { 
   Wallet, Download, FileDown, Receipt,
-  Calendar, Clock, ArrowDownToLine, Loader2, Shield, Banknote
+  Calendar, Clock, ArrowDownToLine, Loader2, Shield, Banknote, TrendingUp,
+  Home, Car, Briefcase, MapPin,
 } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
@@ -32,6 +33,15 @@ import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
 import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFinancialSnapshotDialog'
+import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-service-type'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 // Fetch partner bookings with financial data
 async function fetchPartnerPayouts() {
@@ -133,6 +143,40 @@ const STATUS_COLORS = {
   REFUNDED: 'bg-slate-100 text-slate-800 border-slate-200'
 }
 
+/** Partner finances: four UX income streams (thaw still maps tour→service bucket — см. паспорт 49.0). */
+function partnerFinancesIncomeDisplayKind(categorySlug) {
+  const st = inferListingServiceTypeFromCategorySlug(categorySlug || '')
+  if (st === 'transport') return 'transport'
+  if (st === 'stay') return 'stay'
+  if (st === 'tour') return 'tour'
+  return 'service'
+}
+
+function PartnerBookingIncomeKindBadge({ categorySlug, t }) {
+  const kind = partnerFinancesIncomeDisplayKind(
+    typeof categorySlug === 'string' ? categorySlug : '',
+  )
+  const Icon =
+    kind === 'stay' ? Home : kind === 'transport' ? Car : kind === 'tour' ? MapPin : Briefcase
+  const labelKey =
+    kind === 'stay'
+      ? 'partnerFinances_incomeTypeStay'
+      : kind === 'transport'
+        ? 'partnerFinances_incomeTypeTransport'
+        : kind === 'tour'
+          ? 'partnerFinances_incomeTypeTour'
+          : 'partnerFinances_incomeTypeService'
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-700 shadow-sm shrink-0"
+      title={t(labelKey)}
+    >
+      <Icon className="h-3.5 w-3.5 shrink-0 text-slate-500" aria-hidden />
+      <span className="max-w-[4.5rem] truncate sm:max-w-none">{t(labelKey)}</span>
+    </span>
+  )
+}
+
 function StatCard({ icon: Icon, title, value, subtitle, trend, loading }) {
   return (
     <Card>
@@ -175,6 +219,10 @@ function PartnerFinancesV2Content() {
   const [pdfDateTo, setPdfDateTo] = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const [pdfLoading, setPdfLoading] = useState(false)
   const [financeFocusBooking, setFinanceFocusBooking] = useState(null)
+  const [withdrawOpen, setWithdrawOpen] = useState(false)
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false)
+  /** `null` until /api/v2/auth/me — KYC gate for payout (profiles.is_verified). */
+  const [partnerProfileVerified, setPartnerProfileVerified] = useState(null)
 
   // Get partner ID from localStorage
   useEffect(() => {
@@ -247,6 +295,12 @@ function PartnerFinancesV2Content() {
 
         if (meRes.ok) {
           const me = await meRes.json()
+          const verified =
+            me?.user?.is_verified === true ||
+            me?.user?.isVerified === true
+          if (isMounted) {
+            setPartnerProfileVerified(verified)
+          }
           const pref =
             String(
               me?.user?.preferredPayoutCurrency ||
@@ -258,6 +312,8 @@ function PartnerFinancesV2Content() {
               .toUpperCase()
               .trim() || 'THB'
           if (isMounted) setCurrency(pref)
+        } else if (isMounted) {
+          setPartnerProfileVerified(false)
         }
 
         if (fxRes.ok) {
@@ -338,6 +394,51 @@ function PartnerFinancesV2Content() {
   const pendingPayoutPreview = calcPayoutMath(financesSummary?.availableThb ?? 0)
   const summaryLoadingCombined = isLoading || summaryLoading
 
+  const handleWithdrawSubmit = async () => {
+    if (!partnerId) {
+      toast.error(t('partnerFinances_withdrawErrorToast'))
+      return
+    }
+    setWithdrawSubmitting(true)
+    try {
+      const res = await fetch('/api/v2/partner/payouts/request', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          partnerId,
+          availableThb: financesSummary?.availableThb ?? 0,
+          payoutPreviewFinal: pendingPayoutPreview.final,
+          payoutFee: pendingPayoutPreview.fee,
+          payoutProfileId: defaultPayoutProfile?.id ?? null,
+          payoutMethodId:
+            defaultPayoutProfile?.method_id ?? defaultPayoutProfile?.method?.id ?? null,
+          profileSnapshot: defaultPayoutProfile
+            ? {
+                methodName: defaultPayoutProfile.method?.name,
+                channel: defaultPayoutProfile.method?.channel,
+                data: defaultPayoutProfile.data,
+              }
+            : null,
+        }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || json?.success === false) {
+        if (res.status === 403 && (json?.code === 'PROFILE_NOT_VERIFIED' || json?.error === 'PROFILE_NOT_VERIFIED')) {
+          toast.error(t('partnerFinances_payoutKycBlockedHint'))
+          return
+        }
+        throw new Error(json?.error || 'HTTP')
+      }
+      toast.success(t('partnerFinances_withdrawSuccessToast'))
+      setWithdrawOpen(false)
+    } catch {
+      toast.error(t('partnerFinances_withdrawErrorToast'))
+    } finally {
+      setWithdrawSubmitting(false)
+    }
+  }
+
   // Export to CSV
   const handleExportCSV = () => {
     if (bookings.length === 0) {
@@ -346,12 +447,14 @@ function PartnerFinancesV2Content() {
     }
 
     const csvRows = [
-      ['Date', 'Booking ID', t('listing'), t('guest'), 'Status', t('gross'), t('fee'), t('netEarnings')].join(','),
+      ['Date', 'Booking ID', t('partnerFinances_csvCategory'), t('listing'), t('guest'), 'Status', t('gross'), t('fee'), t('netEarnings')].join(','),
       ...bookings.map(b => {
         const { gross, fee, net } = snapshotMoney(b)
+        const categorySlug = String(b.financial_snapshot?.category_slug ?? '').replace(/"/g, '""')
         return [
           format(new Date(b.createdAt || b.created_at), 'yyyy-MM-dd'),
           b.id,
+          `"${categorySlug}"`,
           `"${b.listing?.title || 'N/A'}"`,
           `"${b.guestName || b.guest_name || 'N/A'}"`,
           b.status,
@@ -842,6 +945,29 @@ function PartnerFinancesV2Content() {
               {formatPrice(pendingPayoutPreview.final, currency, exchangeRates)}
             </span>
           </div>
+          {partnerProfileVerified === false ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-sm text-amber-950">
+              <p>{t('partnerFinances_payoutKycBlockedHint')}</p>
+              <Button variant="link" className="h-auto p-0 mt-1 text-amber-900 underline" asChild>
+                <Link href="/partner/settings">{t('partnerFinances_payoutKycLinkSettings')}</Link>
+              </Button>
+            </div>
+          ) : null}
+          <div className="pt-4">
+            <Button
+              type="button"
+              className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700 sm:w-auto"
+              onClick={() => setWithdrawOpen(true)}
+              disabled={
+                summaryLoading ||
+                !partnerId ||
+                partnerProfileVerified !== true
+              }
+            >
+              <ArrowDownToLine className="h-4 w-4 shrink-0" aria-hidden />
+              {t('partnerFinances_withdrawCta')}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -908,10 +1034,14 @@ function PartnerFinancesV2Content() {
                   >
                     {/* Left: Booking Info */}
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
                         <h4 className="font-semibold text-slate-900">
                           {booking.listing?.title || t('listing')}
                         </h4>
+                        <PartnerBookingIncomeKindBadge
+                          categorySlug={booking.financial_snapshot?.category_slug}
+                          t={t}
+                        />
                         <Badge className={`text-xs ${STATUS_COLORS[booking.status] || 'bg-slate-100'}`}>
                           {booking.status}
                         </Badge>
@@ -984,6 +1114,81 @@ function PartnerFinancesV2Content() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t('partnerFinances_withdrawDialogTitle')}</DialogTitle>
+            <DialogDescription>{t('partnerFinances_withdrawDialogDesc')}</DialogDescription>
+          </DialogHeader>
+          {partnerProfileVerified === false ? (
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+              {t('partnerFinances_payoutKycBlockedHint')}
+              <div className="mt-2">
+                <Link
+                  href="/partner/settings"
+                  className="font-semibold text-amber-900 underline underline-offset-2"
+                >
+                  {t('partnerFinances_payoutKycLinkSettings')}
+                </Link>
+              </div>
+            </div>
+          ) : null}
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between gap-2 border-b border-slate-200 pb-2">
+              <span className="text-slate-600">{t('partnerFinances_withdrawAvailableLabel')}</span>
+              <span className="font-semibold tabular-nums">
+                {formatPrice(financesSummary?.availableThb ?? 0, currency, exchangeRates)}
+              </span>
+            </div>
+            <div className="flex justify-between gap-2 border-b border-slate-200 pb-2">
+              <span className="text-slate-600">{t('partnerFinances_withdrawEstimatedLabel')}</span>
+              <span className="font-semibold tabular-nums text-indigo-700">
+                {formatPrice(pendingPayoutPreview.final, currency, exchangeRates)}
+              </span>
+            </div>
+            <div>
+              <p className="font-medium text-slate-800">{t('partnerFinances_withdrawRequisites')}</p>
+              {defaultPayoutProfile ? (
+                <div className="mt-1 space-y-1 rounded-md bg-slate-50 p-2 text-xs text-slate-700">
+                  <p>
+                    <span className="text-slate-500">{t('partnerFinances_colMethod')}: </span>
+                    {defaultPayoutProfile.method?.name || '—'}
+                  </p>
+                  <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-all font-mono">
+                    {JSON.stringify(defaultPayoutProfile.data ?? {}, null, 2)}
+                  </pre>
+                </div>
+              ) : (
+                <p className="mt-1 text-amber-800">{t('partnerFinances_withdrawNoProfile')}</p>
+              )}
+            </div>
+            {!defaultPayoutProfile ? (
+              <Button variant="outline" asChild className="w-full">
+                <Link href="/partner/payout-profiles">{t('partnerFinances_withdrawLinkProfiles')}</Link>
+              </Button>
+            ) : null}
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setWithdrawOpen(false)}>
+              {t('partnerFinances_withdrawCancel')}
+            </Button>
+            <Button
+              type="button"
+              className="gap-2"
+              onClick={() => void handleWithdrawSubmit()}
+              disabled={
+                withdrawSubmitting ||
+                !partnerId ||
+                partnerProfileVerified !== true
+              }
+            >
+              {withdrawSubmitting ? <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden /> : null}
+              {t('partnerFinances_withdrawConfirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <PartnerFinancialSnapshotDialog
         open={!!financeFocusBooking}

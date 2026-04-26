@@ -28,6 +28,7 @@ import {
   appendExtraFiltersToParams,
   defaultExtraFilters,
 } from '@/lib/search/listings-page-url'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 const ITEMS_PER_PAGE = 12
 
@@ -449,8 +450,10 @@ function ListingsContent() {
             <span className="hidden sm:inline">{language === 'ru' ? 'На главную' : 'Back'}</span>
           </Link>
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center text-white font-bold">G</div>
-            <span className="font-semibold text-lg hidden sm:inline">GoStayLo</span>
+            <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center text-white font-bold">
+              {(getSiteDisplayName().trim().charAt(0) || 'P').toUpperCase()}
+            </div>
+            <span className="font-semibold text-lg hidden sm:inline">{getSiteDisplayName()}</span>
           </Link>
           <Badge variant="secondary" className="bg-teal-100 text-teal-700">
             {loading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : `${allListings.length}`}

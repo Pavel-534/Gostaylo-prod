@@ -3,6 +3,7 @@
 import { AlertTriangle, Shield, X } from 'lucide-react'
 import { useState } from 'react'
 import { detectContactSafety } from '@/lib/chat/contact-safety-detection'
+import { getSiteDisplayName } from '@/lib/site-url'
 
 /**
  * Detects potentially unsafe patterns in messages:
@@ -30,19 +31,20 @@ export function SafetyBanner({ patterns = [], onDismiss, lang = 'ru' }) {
   
   if (dismissed || patterns.length === 0) return null
   
+  const brand = getSiteDisplayName()
   const texts = {
     ru: {
       title: 'Безопасность превыше всего',
-      body: 'Мы обнаружили контактные данные в сообщении. Всегда оплачивайте через GoStayLo для защиты ваших средств. Избегайте прямых переводов незнакомым людям.',
-      dismiss: 'Понятно'
+      body: `Мы обнаружили контактные данные в сообщении. Всегда оплачивайте через ${brand} для защиты ваших средств. Избегайте прямых переводов незнакомым людям.`,
+      dismiss: 'Понятно',
     },
     en: {
       title: 'Safety First',
-      body: 'We detected contact information in the message. Always pay through GoStayLo to protect your funds. Avoid direct transfers to strangers.',
-      dismiss: 'Got it'
-    }
+      body: `We detected contact information in the message. Always pay through ${brand} to protect your funds. Avoid direct transfers to strangers.`,
+      dismiss: 'Got it',
+    },
   }
-  
+
   const t = texts[lang] || texts.en
   
   return (

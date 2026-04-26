@@ -32,6 +32,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useChatContext } from '@/lib/context/ChatContext';
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText, supportedLanguages } from '@/lib/translations'
+import { getSiteDisplayName } from '@/lib/site-url'
 import { Flag } from '@/components/flags'
 
 export function UniversalHeader() {
@@ -95,7 +96,7 @@ export function UniversalHeader() {
             <div className='w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-sm'>
               <span className='text-white font-bold text-sm sm:text-base'>G</span>
             </div>
-            <span className='font-bold text-lg sm:text-xl text-slate-800 tracking-tight'>GoStayLo</span>
+            <span className='font-bold text-lg sm:text-xl text-slate-800 tracking-tight'>{getSiteDisplayName()}</span>
           </Link>
 
           {/* Right - Controls */}

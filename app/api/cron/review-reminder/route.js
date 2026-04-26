@@ -17,22 +17,7 @@ import { PushService } from '@/lib/services/push.service';
 import { NotificationService } from '@/lib/services/notification.service';
 import { listingDateToday, addListingDays, toListingDate } from '@/lib/listing-date';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
-
-function cronSecretConfigured() {
-  return Boolean(String(process.env.CRON_SECRET || '').trim());
-}
-
-function authorize(request) {
-  const secret = String(process.env.CRON_SECRET || '').trim();
-  if (!secret) return false;
-  const cronHeader = String(request.headers.get('x-cron-secret') || '').trim();
-  if (cronHeader === secret) return true;
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader) return false;
-  const m = authHeader.match(/^Bearer\s+(.+)$/i);
-  if (m && String(m[1]).trim() === secret) return true;
-  return false;
-}
+import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js';
 
 const ELIGIBLE_STATUSES = ['PAID_ESCROW', 'CHECKED_IN', 'THAWED', 'COMPLETED'];
 
@@ -128,12 +113,8 @@ async function runReviewReminderJob() {
 }
 
 export async function POST(request) {
-  if (!cronSecretConfigured()) {
-    return NextResponse.json({ success: false, error: 'CRON_SECRET not configured' }, { status: 503 });
-  }
-  if (!authorize(request)) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = assertCronAuthorized(request);
+  if (denied) return denied;
 
   try {
     return await runReviewReminderJob();
@@ -147,12 +128,8 @@ export async function POST(request) {
 }
 
 export async function GET(request) {
-  if (!cronSecretConfigured()) {
-    return NextResponse.json({ success: false, error: 'CRON_SECRET not configured' }, { status: 503 });
-  }
-  if (!authorize(request)) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = assertCronAuthorized(request);
+  if (denied) return denied;
 
   try {
     return await runReviewReminderJob();
