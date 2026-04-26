@@ -79,12 +79,14 @@ export function SearchFiltersDialog({
   onOpenChange,
   language = 'ru',
   categorySlug = 'all',
+  /** Stage 67.0 — `categories.wizard_profile` для выбранной категории */
+  categoryWizardProfile = null,
   extraFilters,
   onExtraFiltersChange,
   listingsSample = [],
   resultCount = 0,
 }) {
-  const panel = getSearchFilterPanelKind(categorySlug)
+  const panel = getSearchFilterPanelKind(categorySlug, categoryWizardProfile)
   const t = (ru, en) => (language === 'ru' ? ru : en)
 
   const slideMin = extraFilters.minPriceThb ?? 0
@@ -332,13 +334,13 @@ export function SearchFiltersDialog({
             </section>
           )}
 
-          {panel === 'nanny' && (
+          {panel === 'service' && (
             <section className="space-y-4">
               <Label className="text-base font-semibold text-slate-900">
-                {t('Няня / услуги', 'Nanny / services')}
+                {t('Услуги (няни, повара, массаж)', 'Services (nannies, chefs, massage)')}
               </Label>
               <div className="space-y-2">
-                <Label className="text-xs text-slate-600">{t('Языки', 'Languages')}</Label>
+                <Label className="text-xs text-slate-600">{t('Языки (все выбранные)', 'Languages (match all)')}</Label>
                 <div className="flex flex-wrap gap-2">
                   {NANNY_LANGS.map((row) => {
                     const checked = extraFilters.nannyLangs?.includes(row.id)
@@ -360,9 +362,23 @@ export function SearchFiltersDialog({
                   })}
                 </div>
               </div>
+              <div className="rounded-lg border border-slate-200 p-3">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                  <Checkbox
+                    checked={extraFilters.serviceHomeVisitOnly === true}
+                    onCheckedChange={(checked) =>
+                      onExtraFiltersChange((p) => ({
+                        ...p,
+                        serviceHomeVisitOnly: checked === true,
+                      }))
+                    }
+                  />
+                  <span>{t('Выезд на дом', 'Home visit')}</span>
+                </label>
+              </div>
               <div className="space-y-2">
                 <Label className="text-xs text-slate-600">
-                  {t('Опыт от, лет', 'Experience from (years)')}
+                  {t('Опыт работы от, лет', 'Work experience from (years)')}
                 </Label>
                 <Select
                   value={String(extraFilters.nannyExperienceMin ?? 0)}

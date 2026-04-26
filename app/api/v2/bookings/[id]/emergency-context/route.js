@@ -73,7 +73,7 @@ export async function GET(_request, { params }) {
         .maybeSingle()
       if (lst?.category_id) {
         const { data: cat } = await supabaseAdmin
-          .from('listing_categories')
+          .from('categories')
           .select('slug')
           .eq('id', lst.category_id)
           .maybeSingle()

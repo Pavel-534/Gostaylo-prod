@@ -12,7 +12,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
-import { Search, Users, Layers, MapPin, Home, Bike, Anchor, Baby, Sparkles } from 'lucide-react'
+import { Search, Users, Layers, MapPin, Sparkles } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,16 +26,11 @@ import { getUIText, getCategoryName } from '@/lib/translations'
 import { buildWhereOptions, filterWhereOptions, getOptionLabel } from '@/lib/locations/where-options'
 import { getStaticLocationsSeed } from '@/lib/locations/locations-seed'
 import { cn } from '@/lib/utils'
+import { isTransportIntervalWizardProfile } from '@/lib/config/category-wizard-profile-db'
+import { chipIconForCategory } from '@/components/search/category-chip-icon'
+import { orderedCategoriesForSearchUi, effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
 
 const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12]
-
-/** Порядок чипов на мобильном hero: подбираем slug из ответа /api/v2/categories */
-const QUICK_CHIP_SPECS = [
-  { candidates: ['property', 'villa', 'apartment', 'apartments', 'house'], icon: Home },
-  { candidates: ['vehicles', 'vehicle', 'transport', 'transportation'], icon: Bike },
-  { candidates: ['yachts', 'yacht', 'boats'], icon: Anchor },
-  { candidates: ['nanny', 'babysitter'], icon: Baby },
-]
 
 export function UnifiedSearchBar({
   variant = 'hero',
@@ -57,6 +52,8 @@ export function UnifiedSearchBar({
   guests,
   setGuests,
   onSearch,
+  /** `categories.wizard_profile` для текущего `category` (SSOT транспортный интервал и т.д.) */
+  categoryWizardProfile = null,
   /** Мобильный hero: мгновенный переход в /listings с выбранной категорией */
   onQuickCategorySearch,
   /** Текстовый поиск + умный поиск (semantic=1); если setTextQuery не передан — строка скрыта */
@@ -139,24 +136,28 @@ export function UnifiedSearchBar({
   }
 
   const quickChips = useMemo(() => {
-    return QUICK_CHIP_SPECS.map((spec) => {
-      const cat = categories.find((c) =>
-        spec.candidates.includes(String(c.slug || '').toLowerCase())
-      )
-      if (!cat) return null
-      return {
+    return [...(categories || [])]
+      .filter((c) => c && c.slug && !(c.parentId || c.parent_id))
+      .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0))
+      .slice(0, 12)
+      .map((cat) => ({
         slug: cat.slug,
-        icon: spec.icon,
+        icon: chipIconForCategory(cat),
         label: getCategoryName(cat.slug, language, cat.name),
-      }
-    }).filter(Boolean)
+      }))
   }, [categories, language])
+
+  const orderedCategoryRows = useMemo(() => orderedCategoriesForSearchUi(categories), [categories])
 
   const triggerBase = 'flex items-center gap-2 text-left hover:bg-slate-50 transition-colors'
   const triggerHero = 'px-4 py-3 border-r border-slate-200 min-w-0'
 
   const showTextSearch = typeof setTextQuery === 'function'
-  const transportIntervalMode = String(category || '').toLowerCase() === 'vehicles'
+  const transportIntervalMode = useMemo(() => {
+    const eff =
+      categoryWizardProfile ?? effectiveCategoryWizardProfileRaw(category, categories)
+    return isTransportIntervalWizardProfile(eff, category)
+  }, [categoryWizardProfile, category, categories])
 
   const textSearchRow = showTextSearch ? (
     <TooltipProvider delayDuration={250}>
@@ -247,8 +248,11 @@ export function UnifiedSearchBar({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{language === 'ru' ? 'Всё' : 'All'}</SelectItem>
-            {categories.map(c => (
-              <SelectItem key={c.id} value={c.slug}>{getCategoryName(c.slug, language) || c.name}</SelectItem>
+            {orderedCategoryRows.map(({ cat: c, depth }) => (
+              <SelectItem key={c.id} value={c.slug} className={depth ? 'pl-7' : ''}>
+                {depth ? '· ' : ''}
+                {getCategoryName(c.slug, language) || c.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -350,7 +354,7 @@ export function UnifiedSearchBar({
               >
                 {language === 'ru' ? 'Всё' : 'All'}
               </button>
-              {categories.map(c => (
+              {orderedCategoryRows.map(({ cat: c, depth }) => (
                 <button
                   type="button"
                   key={c.id}
@@ -358,8 +362,9 @@ export function UnifiedSearchBar({
                     setCategory?.(c.slug)
                     setCategoryPopoverOpen(false)
                   }}
-                  className={`w-full text-left px-3 py-2 rounded-md text-sm ${category === c.slug ? 'bg-teal-50 text-teal-700' : 'hover:bg-slate-100'}`}
+                  className={`w-full rounded-md py-2 text-left text-sm ${depth ? 'pl-6 pr-3' : 'px-3'} ${category === c.slug ? 'bg-teal-50 text-teal-700' : 'hover:bg-slate-100'}`}
                 >
+                  {depth ? '· ' : ''}
                   {getCategoryName(c.slug, language) || c.name}
                 </button>
               ))}
@@ -559,7 +564,7 @@ export function UnifiedSearchBar({
             >
               {language === 'ru' ? 'Всё' : 'All'}
             </button>
-            {categories.map((c) => (
+            {orderedCategoryRows.map(({ cat: c, depth }) => (
               <button
                 key={c.id}
                 type="button"
@@ -567,12 +572,15 @@ export function UnifiedSearchBar({
                   setCategory?.(c.slug)
                   setCategoryDrawerOpen(false)
                 }}
-                className={`w-full rounded-lg border px-3 py-3 text-left text-sm ${
+                className={`w-full rounded-lg border py-3 text-left text-sm ${
+                  depth ? 'border-slate-200 pl-6 pr-3' : 'border-slate-200 px-3'
+                } ${
                   category === c.slug
                     ? 'border-teal-600 bg-teal-50 text-teal-900'
                     : 'border-slate-200 hover:bg-slate-50'
                 }`}
               >
+                {depth ? '· ' : ''}
                 {getCategoryName(c.slug, language) || c.name}
               </button>
             ))}

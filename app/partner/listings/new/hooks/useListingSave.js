@@ -9,6 +9,7 @@ import {
   mergeDescriptionTranslationsForSave,
 } from '@/lib/partner/listing-description-i18n'
 import { normalizePartnerListingMetadata } from '@/lib/partner/listing-wizard-metadata'
+import { normalizeCategoryWizardProfileColumn } from '@/lib/config/category-wizard-profile-db'
 import { isTourListingCategory } from '@/lib/listing-category-slug'
 import {
   migrateExternalImagesAfterSave,
@@ -47,6 +48,7 @@ export function useListingSave() {
     language,
     partnerCommissionRate,
     listingCategorySlug,
+    listingCategoryWizardProfile,
     serverListing,
     wizardMode,
     setSavingDraft,
@@ -74,9 +76,12 @@ export function useListingSave() {
         { ...formData.metadata, description_translations: descTranslations },
         categorySlug,
         formData.categoryName || '',
+        listingCategoryWizardProfile,
       )
       const tourBd =
-        categorySlug && isTourListingCategory(categorySlug)
+        categorySlug &&
+        (isTourListingCategory(categorySlug) ||
+          normalizeCategoryWizardProfileColumn(listingCategoryWizardProfile) === 'tour')
           ? { minBookingDays: 1, maxBookingDays: 730 }
           : {
               minBookingDays: parseInt(String(formData.minBookingDays), 10) || 1,
@@ -133,6 +138,7 @@ export function useListingSave() {
     formData,
     language,
     listingCategorySlug,
+    listingCategoryWizardProfile,
     t,
   ])
 
@@ -162,7 +168,9 @@ export function useListingSave() {
         ...(prevMeta.source === 'TELEGRAM_LAZY_REALTOR' ? { submitted_from: 'telegram' } : {}),
       }
       const tourBd =
-        categorySlug && isTourListingCategory(categorySlug)
+        categorySlug &&
+        (isTourListingCategory(categorySlug) ||
+          normalizeCategoryWizardProfileColumn(listingCategoryWizardProfile) === 'tour')
           ? { minBookingDays: 1, maxBookingDays: 730 }
           : {
               minBookingDays: parseInt(String(formData.minBookingDays), 10) || 1,
@@ -185,7 +193,12 @@ export function useListingSave() {
           images: formData.images,
           coverImage,
           status: 'PENDING',
-          metadata: normalizePartnerListingMetadata(mergedMeta, categorySlug, formData.categoryName || ''),
+          metadata: normalizePartnerListingMetadata(
+            mergedMeta,
+            categorySlug,
+            formData.categoryName || '',
+            listingCategoryWizardProfile,
+          ),
           cancellationPolicy: formData.cancellationPolicy || 'moderate',
           ...tourBd,
         }),
@@ -219,6 +232,7 @@ export function useListingSave() {
     formData,
     language,
     listingCategorySlug,
+    listingCategoryWizardProfile,
     router,
     serverListing,
     t,
@@ -236,7 +250,9 @@ export function useListingSave() {
         return
       }
       const categorySlug = listingCategorySlug
-      const tourCat = isTourListingCategory(categorySlug)
+      const tourCat =
+        isTourListingCategory(categorySlug) ||
+        normalizeCategoryWizardProfileColumn(listingCategoryWizardProfile) === 'tour'
       const bookingDaysPayload = tourCat
         ? { minBookingDays: 1, maxBookingDays: 730 }
         : {
@@ -252,6 +268,7 @@ export function useListingSave() {
         { ...formData.metadata, description_translations: descTranslations, is_draft: true },
         categorySlug,
         formData.categoryName || '',
+        listingCategoryWizardProfile,
       )
 
       if (isEditMode && editId) {
@@ -328,7 +345,19 @@ export function useListingSave() {
     } finally {
       setSavingDraft(false)
     }
-  }, [editId, formData, isEditMode, language, listingCategorySlug, router, savePatchForEdit, setSavingDraft, t, wizardMode])
+  }, [
+    editId,
+    formData,
+    isEditMode,
+    language,
+    listingCategorySlug,
+    listingCategoryWizardProfile,
+    router,
+    savePatchForEdit,
+    setSavingDraft,
+    t,
+    wizardMode,
+  ])
 
   const publishListing = useCallback(async () => {
     if (wizardMode === 'edit' && isEditMode) {
@@ -345,7 +374,9 @@ export function useListingSave() {
         return
       }
       const categorySlug = listingCategorySlug
-      const tourCat = isTourListingCategory(categorySlug)
+      const tourCat =
+        isTourListingCategory(categorySlug) ||
+        normalizeCategoryWizardProfileColumn(listingCategoryWizardProfile) === 'tour'
       const bookingDaysPayload = tourCat
         ? { minBookingDays: 1, maxBookingDays: 730 }
         : {
@@ -361,6 +392,7 @@ export function useListingSave() {
         { ...formData.metadata, description_translations: descTranslations, is_draft: false },
         categorySlug,
         formData.categoryName || '',
+        listingCategoryWizardProfile,
       )
       const payload = {
         ...formData,
@@ -435,6 +467,7 @@ export function useListingSave() {
     isEditMode,
     language,
     listingCategorySlug,
+    listingCategoryWizardProfile,
     partnerCommissionRate,
     publishFromDraft,
     router,

@@ -159,7 +159,7 @@ export async function GET(request) {
       const categorySlugById = {}
       if (categoryIds.length) {
         const catRes = await fetch(
-          `${SUPABASE_URL}/rest/v1/listing_categories?id=in.(${categoryIds.join(',')})&select=id,slug`,
+          `${SUPABASE_URL}/rest/v1/categories?id=in.(${categoryIds.join(',')})&select=id,slug`,
           {
             headers: {
               apikey: SUPABASE_KEY,

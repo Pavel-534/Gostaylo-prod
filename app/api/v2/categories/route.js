@@ -1,98 +1,83 @@
 /**
  * GoStayLo - Categories API (v2)
- * GET /api/v2/categories - Get all active categories
+ * GET /api/v2/categories — активные категории для каталога/поиска (публично).
+ * Stage 68.0: `parentId`, опционально `?tree=1` — поле `dataTree` (корни с `children`).
  */
 
-import { NextResponse } from 'next/server';
-export const dynamic = 'force-dynamic';
-import { supabaseAdmin } from '@/lib/supabase';
+import { NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabase'
 
-export async function GET(request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const includeInactive = searchParams.get('all') === 'true';
-    
-    let query = supabaseAdmin
-      .from('categories')
-      .select('*')
-      .order('order', { ascending: true });
-    
-    // Only active categories for public API
-    if (!includeInactive) {
-      query = query.eq('is_active', true);
-    }
-    
-    const { data: categories, error } = await query;
-    
-    if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
-    
-    // Transform for frontend compatibility
-    const transformed = categories.map(c => ({
-      id: c.id,
-      name: c.name,
-      slug: c.slug,
-      description: c.description,
-      icon: c.icon,
-      order: c.order,
-      isActive: c.is_active
-    }));
-    
-    return NextResponse.json({ success: true, data: transformed }, {
-      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' }
-    });
-    
-  } catch (error) {
-    console.error('[CATEGORIES GET ERROR]', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+export const dynamic = 'force-dynamic'
+
+function mapPublicCategory(c) {
+  return {
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    description: c.description,
+    icon: c.icon,
+    order: c.order,
+    isActive: c.is_active,
+    wizardProfile: c.wizard_profile ?? null,
+    parentId: c.parent_id ?? null,
+    nameI18n: c.name_i18n && typeof c.name_i18n === 'object' ? c.name_i18n : null,
   }
 }
 
-export async function POST(request) {
+/**
+ * @param {Array<ReturnType<typeof mapPublicCategory>>} items
+ */
+function buildCategoryTree(items) {
+  const byId = new Map(items.map((n) => [n.id, { ...n, children: [] }]))
+  const roots = []
+  for (const n of items) {
+    const node = byId.get(n.id)
+    if (n.parentId && byId.has(n.parentId)) {
+      byId.get(n.parentId).children.push(node)
+    } else {
+      roots.push(node)
+    }
+  }
+  const sortNested = (node) => {
+    node.children.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0))
+    for (const ch of node.children) sortNested(ch)
+  }
+  roots.sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0))
+  for (const r of roots) sortNested(r)
+  return roots
+}
+
+export async function GET(request) {
   try {
-    const body = await request.json();
-    
-    const { name, slug, icon, description, order } = body;
-    
-    if (!name || !slug) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Missing required fields: name, slug' 
-      }, { status: 400 });
+    const { searchParams } = new URL(request.url)
+    const includeInactive = searchParams.get('all') === 'true'
+    const asTree = searchParams.get('tree') === '1'
+
+    let query = supabaseAdmin.from('categories').select('*').order('order', { ascending: true })
+
+    if (!includeInactive) {
+      query = query.eq('is_active', true)
     }
-    
-    const { data: category, error } = await supabaseAdmin
-      .from('categories')
-      .insert({
-        name,
-        slug,
-        icon,
-        description,
-        order: order || 0,
-        is_active: true
-      })
-      .select()
-      .single();
-    
+
+    const { data: categories, error } = await query
+
     if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
-    
-    console.log(`[ADMIN] Category created: ${name}`);
-    
-    return NextResponse.json({ 
-      success: true, 
-      data: {
-        id: category.id,
-        name: category.name,
-        slug: category.slug,
-        isActive: category.is_active
-      }
-    });
-    
+
+    const transformed = (categories || []).map(mapPublicCategory)
+
+    const payload = {
+      success: true,
+      data: transformed,
+      ...(asTree ? { dataTree: buildCategoryTree(transformed) } : {}),
+    }
+
+    return NextResponse.json(payload, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
+    })
   } catch (error) {
-    console.error('[CATEGORIES POST ERROR]', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    console.error('[CATEGORIES GET ERROR]', error)
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }

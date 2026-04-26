@@ -5,20 +5,20 @@ import { Building2 } from 'lucide-react'
 import { Label as UiLabel } from '@/components/ui/label'
 import { Button as UiButton } from '@/components/ui/button'
 import { useListingWizard } from '../context/ListingWizardContext'
-import { isTransportListingCategory } from '@/lib/listing-category-slug'
+import { isTransportWizardCategory } from '@/lib/config/category-wizard-profile-db'
 import { getWizardSpecsSectionFields } from '@/lib/config/category-form-schema'
 import { WizardSchemaFields } from '@/components/partner/WizardSchemaFields'
 
 function SpecsFields() {
   const w = useListingWizard()
-  const { formData, updateMetadata, t, language, listingCategorySlug } = w
+  const { formData, updateMetadata, t, language, listingCategorySlug, listingCategoryWizardProfile } = w
   const slug = (listingCategorySlug || '').toLowerCase()
 
-  if (isTransportListingCategory(slug)) {
+  if (isTransportWizardCategory(slug, listingCategoryWizardProfile)) {
     return null
   }
 
-  const specsFields = getWizardSpecsSectionFields(slug, formData.categoryName)
+  const specsFields = getWizardSpecsSectionFields(slug, formData.categoryName, listingCategoryWizardProfile)
   if (specsFields.length > 0) {
     const showFeesDisclaimer = specsFields.some(
       (f) => f.key === 'cleaning_fee_thb' || f.key === 'security_deposit_thb',

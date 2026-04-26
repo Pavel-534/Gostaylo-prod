@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ImageIcon, Loader2, X } from 'lucide-react'
@@ -17,6 +16,7 @@ import { WizardSchemaFields } from '@/components/partner/WizardSchemaFields'
 import { getWizardStep1TransportFields } from '@/lib/config/category-form-schema'
 import { useListingWizard } from '../context/ListingWizardContext'
 import { WizardSpecsSection } from './WizardSpecsSection'
+import { PartnerCategoryPickerTwoStep } from '@/components/partner/PartnerCategoryPickerTwoStep'
 
 function pickupInstructionsPlaceholder(listingServiceType, t) {
   switch (listingServiceType) {
@@ -47,9 +47,11 @@ function StepGeneralInfoInner() {
     transportWizard,
     hideAirbnbImportBlock,
     listingCategorySlug,
+    listingCategoryWizardProfile,
     isEditMode,
     editId,
     getCategoryName,
+    getCategoryDisplayName,
     aiDescriptionLoading,
     aiDescQuota,
     handleAiImproveDescription,
@@ -86,30 +88,27 @@ function StepGeneralInfoInner() {
       </div>
       <div>
         <Label className="text-base font-medium">{t('selectCategory')}</Label>
-        <Select
-          value={formData.categoryId}
-          onValueChange={setCategoryId}
-          disabled={!formData.listingServiceType}
-        >
-          <SelectTrigger className="mt-2 h-12">
-            <SelectValue
-              placeholder={
-                formData.listingServiceType ? t('selectCategoryPlaceholder') : t('wizardSelectServiceTypeFirst')
-              }
-            />
-          </SelectTrigger>
-          <SelectContent>
-            {wizardCategoriesForSelect.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>
-                {getCategoryName(cat.slug, language) || cat.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <p className="mt-1 text-xs text-slate-600">
+          {formData.listingServiceType ? t('wizardCategoryTwoStepHint') : t('wizardSelectServiceTypeFirst')}
+        </p>
+        <div className="mt-3">
+          <PartnerCategoryPickerTwoStep
+            categories={wizardCategoriesForSelect}
+            listingServiceType={formData.listingServiceType}
+            categoryId={formData.categoryId}
+            language={language}
+            getCategoryDisplayName={getCategoryDisplayName}
+            onSelectCategoryId={setCategoryId}
+            disabled={!formData.listingServiceType}
+          />
+        </div>
       </div>
       {transportWizard && formData.categoryId ? (
         (() => {
-          const transportFields = getWizardStep1TransportFields(listingCategorySlug)
+          const transportFields = getWizardStep1TransportFields(
+            listingCategorySlug,
+            listingCategoryWizardProfile,
+          )
           if (!transportFields.length) return null
           return (
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">

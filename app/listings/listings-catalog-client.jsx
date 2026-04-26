@@ -20,7 +20,10 @@ import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 import { useDebounce, useIntersectionObserver, useListingsFetch } from '@/lib/hooks/useListingsSearch'
 import { detectLanguage, DEFAULT_UI_LANGUAGE } from '@/lib/translations'
-import { normalizeListingCategorySlugForSearch, isTransportListingCategory } from '@/lib/listing-category-slug'
+import { normalizeListingCategorySlugForSearch } from '@/lib/listing-category-slug'
+import { effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
+import { getCatalogSearchHeadlines } from '@/lib/search/catalog-search-headlines'
+import { isCatalogTransportIntervalMode } from '@/lib/search/catalog-transport-interval'
 import {
   parseBBoxFromParams,
   bboxToSearchParams,
@@ -97,6 +100,7 @@ function ListingsContent() {
   }, [searchParamsKey])
 
   const [language, setLanguage] = useState(DEFAULT_UI_LANGUAGE)
+  const [catalogCategories, setCatalogCategories] = useState([])
   const [currency, setCurrency] = useState('THB')
   const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
   const [showMap, setShowMap] = useState(false)
@@ -123,6 +127,36 @@ function ListingsContent() {
   })
   const [semanticSiteEnabled, setSemanticSiteEnabled] = useState(true)
 
+  useEffect(() => {
+    fetch('/api/v2/categories')
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.success && Array.isArray(j.data)) setCatalogCategories(j.data)
+      })
+      .catch(() => {})
+  }, [])
+
+  /** Slug → эффективный `wizard_profile` (колонка или наследование от родителя, Stage 68.0). */
+  const wizardProfileBySlug = useMemo(() => {
+    const m = {}
+    for (const c of catalogCategories || []) {
+      if (!c?.slug) continue
+      const s = String(c.slug).toLowerCase()
+      m[s] = effectiveCategoryWizardProfileRaw(s, catalogCategories)
+    }
+    return m
+  }, [catalogCategories])
+
+  const selectedCategoryWizardProfile = useMemo(() => {
+    if (!selectedCategory || selectedCategory === 'all') return null
+    return effectiveCategoryWizardProfileRaw(selectedCategory, catalogCategories)
+  }, [selectedCategory, catalogCategories])
+
+  const catalogHeadlines = useMemo(
+    () => getCatalogSearchHeadlines(selectedCategory, catalogCategories, language),
+    [selectedCategory, catalogCategories, language],
+  )
+
   const lastPushedSearchRef = useRef('')
   const didInitUrlHydrateRef = useRef(false)
   const skipNextUrlPushRef = useRef(false)
@@ -134,11 +168,20 @@ function ListingsContent() {
         where,
         dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : '',
         dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : '',
-        isTransportListingCategory(selectedCategory) ? checkInTime : '',
-        isTransportListingCategory(selectedCategory) ? checkOutTime : '',
+        isCatalogTransportIntervalMode(selectedCategory, wizardProfileBySlug) ? checkInTime : '',
+        isCatalogTransportIntervalMode(selectedCategory, wizardProfileBySlug) ? checkOutTime : '',
         guests,
       ].join('|'),
-    [selectedCategory, where, dateRange.from, dateRange.to, checkInTime, checkOutTime, guests],
+    [
+      selectedCategory,
+      where,
+      dateRange.from,
+      dateRange.to,
+      checkInTime,
+      checkOutTime,
+      guests,
+      wizardProfileBySlug,
+    ],
   )
 
   useEffect(() => {
@@ -229,6 +272,7 @@ function ListingsContent() {
     retry,
   } = useListingsFetch({
     selectedCategory,
+    categoryWizardProfile: selectedCategoryWizardProfile,
     debouncedWhere,
     debouncedDateRange,
     debouncedGuests,
@@ -317,6 +361,7 @@ function ListingsContent() {
     debouncedSearchQuery,
     appliedBbox,
     extraFilters,
+    wizardProfileBySlug,
   ])
 
   useEffect(() => {
@@ -330,7 +375,7 @@ function ListingsContent() {
     if (debouncedDateRange.from) params.set('checkIn', format(debouncedDateRange.from, 'yyyy-MM-dd'))
     if (debouncedDateRange.to) params.set('checkOut', format(debouncedDateRange.to, 'yyyy-MM-dd'))
     if (
-      isTransportListingCategory(selectedCategory) &&
+      isCatalogTransportIntervalMode(selectedCategory, wizardProfileBySlug) &&
       debouncedDateRange.from &&
       debouncedDateRange.to
     ) {
@@ -358,6 +403,7 @@ function ListingsContent() {
     debouncedSearchQuery,
     appliedBbox,
     extraFilters,
+    wizardProfileBySlug,
   ])
 
   const clearDates = () => setDateRange({ from: null, to: null })
@@ -417,7 +463,7 @@ function ListingsContent() {
   )
 
   const transportBroadenHref = useMemo(() => {
-    if (!isTransportListingCategory(selectedCategory)) return null
+    if (!isCatalogTransportIntervalMode(selectedCategory, wizardProfileBySlug)) return null
     const params = new URLSearchParams()
     params.set('category', 'vehicles')
     if (dateRange.from) params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
@@ -427,7 +473,7 @@ function ListingsContent() {
       params.set('checkOutTime', checkOutTime)
     }
     return `/listings?${params.toString()}`
-  }, [selectedCategory, dateRange.from, dateRange.to, checkInTime, checkOutTime])
+  }, [selectedCategory, dateRange.from, dateRange.to, checkInTime, checkOutTime, wizardProfileBySlug])
 
   const cardDates = useMemo(
     () => ({
@@ -469,7 +515,12 @@ function ListingsContent() {
         setCheckInTime={setCheckInTime}
         checkOutTime={checkOutTime}
         setCheckOutTime={setCheckOutTime}
+        categoriesForHierarchy={catalogCategories}
+        catalogHeadline={catalogHeadlines.h1}
+        catalogSubline={catalogHeadlines.sub}
+        catalogParentBlurb={catalogHeadlines.parentBlurb}
         selectedCategory={selectedCategory}
+        selectedCategoryWizardProfile={selectedCategoryWizardProfile}
         setSelectedCategory={setSelectedCategory}
         where={where}
         setWhere={setWhere}
@@ -519,6 +570,7 @@ function ListingsContent() {
               filterWhere={where}
               transportBroadenHref={transportBroadenHref}
               highlightedListingId={mapSelectedListingId}
+              catalogCategories={catalogCategories}
             />
           </div>
 

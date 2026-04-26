@@ -73,6 +73,14 @@ model Category {
   icon        String?   // Icon name or emoji
   order       Int       @default(0)
   active      Boolean   @default(true)
+  /// Stage 67.0 SSOT: stay | transport | transport_helicopter | yacht | tour | nanny | chef | massage | service_generic
+  wizardProfile String? @map("wizard_profile")
+  /// Stage 68.0 — parent row in `categories` (null = root); column type follows `id` (TEXT in legacy DBs)
+  parentId    String?   @map("parent_id")
+  parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryHierarchy")
+  /// Stage 69.0 — optional localized names `{"ru","en","zh","th"}`
+  nameI18n    Json?     @map("name_i18n")
   
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -81,6 +89,7 @@ model Category {
   
   @@index([slug])
   @@index([active])
+  @@index([parentId])
   @@map("categories")
 }
 

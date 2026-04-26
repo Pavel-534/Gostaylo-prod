@@ -29,11 +29,16 @@ import {
 } from '@/lib/partner/listing-wizard-metadata'
 import { isTransportListingCategory, isTourListingCategory } from '@/lib/listing-category-slug'
 import {
+  normalizeCategoryWizardProfileColumn,
+  isTransportWizardCategory,
+} from '@/lib/config/category-wizard-profile-db'
+import {
   categorySlugMatchesListingServiceType,
   defaultMetadataForListingServiceType,
   inferListingServiceTypeFromCategorySlug,
 } from '@/lib/partner/listing-service-type'
 import { pickPartnerFormDescription } from '@/lib/partner/listing-description-i18n'
+import { resolveCategoryDisplayName } from '@/lib/category-display-name'
 import { applyDurationDiscountField } from '@/lib/partner/duration-discount-helpers'
 import { guessIanaTimezoneFromLatLon } from '@/lib/geo/listing-timezone-guess'
 import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js'
@@ -123,13 +128,35 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     [categories, formData.categoryId],
   )
 
+  const listingCategoryWizardProfile = useMemo(() => {
+    const c = categories.find((x) => x.id === formData.categoryId)
+    return c?.wizardProfile ?? c?.wizard_profile ?? null
+  }, [categories, formData.categoryId])
+
   const wizardCategoriesForSelect = useMemo(() => {
     const st = formData.listingServiceType
     if (!st) return []
-    return categories.filter((c) => categorySlugMatchesListingServiceType(c.slug, st))
+    return categories.filter((c) =>
+      categorySlugMatchesListingServiceType(c.slug, st, c.wizardProfile ?? c.wizard_profile),
+    )
   }, [categories, formData.listingServiceType])
-  const transportWizard = isTransportListingCategory(listingCategorySlug)
-  const toursWizard = isTourListingCategory(listingCategorySlug)
+
+  const getCategoryDisplayName = useCallback(
+    (cat) =>
+      resolveCategoryDisplayName(cat, language, (slug, langArg, fb) =>
+        getCategoryName(slug, langArg || language, fb),
+      ),
+    [language],
+  )
+  const transportWizard = useMemo(() => {
+    const wp = String(listingCategoryWizardProfile || '').toLowerCase()
+    if (wp === 'transport' || wp === 'transport_helicopter') return true
+    return isTransportListingCategory(listingCategorySlug)
+  }, [listingCategoryWizardProfile, listingCategorySlug])
+  const toursWizard = useMemo(() => {
+    if (String(listingCategoryWizardProfile || '').toLowerCase() === 'tour') return true
+    return isTourListingCategory(listingCategorySlug)
+  }, [listingCategoryWizardProfile, listingCategorySlug])
   const hideAirbnbImportBlock = transportWizard || toursWizard
   const partnerAmenitySlugs = useMemo(
     () => amenitySlugsForPartnerCategory(listingCategorySlug),
@@ -324,9 +351,15 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
 
   const setListingServiceType = useCallback((type) => {
     setFormData((prev) => {
-      const slug = categories.find((c) => c.id === prev.categoryId)?.slug
+      const catRow = categories.find((c) => c.id === prev.categoryId)
+      const slug = catRow?.slug
       const keepCategory = Boolean(
-        slug && categorySlugMatchesListingServiceType(String(slug), String(type)),
+        slug &&
+          categorySlugMatchesListingServiceType(
+            String(slug),
+            String(type),
+            catRow?.wizardProfile ?? catRow?.wizard_profile,
+          ),
       )
       const meta = defaultMetadataForListingServiceType(String(type), prev.metadata)
       return {
@@ -350,7 +383,7 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
           Array.isArray(baseMeta.amenities) ? baseMeta.amenities : [],
         )
         const next = { ...prev, categoryId: value, categoryName: cat?.name || '' }
-        if (isTransportListingCategory(slug)) {
+        if (isTransportWizardCategory(slug, cat?.wizardProfile ?? cat?.wizard_profile)) {
           next.metadata = {
             ...baseMeta,
             bedrooms: 0,
@@ -360,7 +393,10 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
             amenities: amenityFiltered,
             property_type: '',
           }
-        } else if (isTourListingCategory(slug)) {
+        } else if (
+          isTourListingCategory(slug) ||
+          normalizeCategoryWizardProfileColumn(cat?.wizardProfile ?? cat?.wizard_profile) === 'tour'
+        ) {
           const { discounts: _d, ...restMeta } = baseMeta
           const gmin =
             restMeta.group_size_min != null && restMeta.group_size_min !== ''
@@ -411,7 +447,9 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
           const rawMeta = listing.metadata || {}
           const shapedMeta = partnerMetadataStateFromServer(rawMeta)
           const catSlug = c?.slug || ''
-          const tourCat = isTourListingCategory(catSlug)
+          const tourCat =
+            isTourListingCategory(catSlug) ||
+            normalizeCategoryWizardProfileColumn(c?.wizard_profile ?? c?.wizardProfile) === 'tour'
           const metaForForm = tourCat
             ? mergeTourGroupMetadataFromListingColumns(
                 shapedMeta,
@@ -433,7 +471,10 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
               imagesOrdered = [coverU, ...rawImgs]
             }
           }
-          const inferredServiceType = inferListingServiceTypeFromCategorySlug(catSlug)
+          const inferredServiceType = inferListingServiceTypeFromCategorySlug(
+            catSlug,
+            c?.wizard_profile ?? c?.wizardProfile,
+          )
           setFormData({
             ...getDefaultWizardFormData(),
             listingServiceType: inferredServiceType,
@@ -731,6 +772,7 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     authLoading,
     isAuthenticated,
     getCategoryName: (slug, l) => getCategoryName(slug, l || language),
+    getCategoryDisplayName,
     getAmenityName: (slug, l) => getAmenityName(slug, l || language),
     editId,
     isEditMode,
@@ -767,6 +809,7 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     setListingServiceType,
     wizardCategoriesForSelect,
     listingCategorySlug,
+    listingCategoryWizardProfile,
     transportWizard,
     toursWizard,
     hideAirbnbImportBlock,

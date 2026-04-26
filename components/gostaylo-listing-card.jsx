@@ -24,6 +24,7 @@ import { CardImageCarousel } from '@/components/card/CardImageCarousel'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
 import { cn } from '@/lib/utils'
 import { getUIText, getCategoryName } from '@/lib/translations'
+import { buildListingCategoryLineLabel } from '@/lib/category-display-name'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import {
   isTransportListingCategory,
@@ -50,6 +51,8 @@ export function GostayloListingCard({
   isFavorited = false,
   className,
   isMapHighlighted = false,
+  /** Stage 69.0 — плоский список из `/api/v2/categories` для строки «Родитель • Подтип» */
+  catalogCategories = null,
 }) {
   const [isFavorite, setIsFavorite] = useState(isFavorited)
   
@@ -151,7 +154,10 @@ export function GostayloListingCard({
     onFavorite?.(id, newState)
   }, [id, isFavorite, onFavorite])
 
-  const typeLabel = getCategoryName(propertyType, language) || getCategoryName('property', language)
+  const categoryLine =
+    Array.isArray(catalogCategories) && catalogCategories.length > 0
+      ? buildListingCategoryLineLabel(listing, catalogCategories, language, getCategoryName)
+      : getCategoryName(propertyType, language) || getCategoryName('property', language)
   const promoBadgeLabel =
     catalog_promo_badge && typeof catalog_promo_badge === 'object' && catalog_promo_badge.label
       ? String(catalog_promo_badge.label)
@@ -217,9 +223,14 @@ export function GostayloListingCard({
                   </Badge>
                 ) : null}
               </div>
-              <p className="text-sm text-slate-500 mt-0.5">
-                {typeLabel} • {district}
-              </p>
+              <div className="mt-1 space-y-0.5">
+                {categoryLine ? (
+                  <p className="text-[11px] font-medium leading-snug text-slate-400">{categoryLine}</p>
+                ) : null}
+                {district ? (
+                  <p className="text-sm text-slate-500">{district}</p>
+                ) : null}
+              </div>
               <div className="space-y-1">
                 <PartnerTrustBadge
                   trust={partnerTrust}

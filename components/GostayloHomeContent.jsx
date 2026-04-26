@@ -18,7 +18,8 @@ import {
 } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { LISTINGS_SEARCH_API_PATH } from '@/lib/search-endpoints'
-import { isTransportListingCategory } from '@/lib/listing-category-slug'
+import { isTransportIntervalWizardProfile } from '@/lib/config/category-wizard-profile-db'
+import { effectiveCategoryWizardProfileRaw, hasCategoryParent } from '@/lib/config/category-hierarchy'
 import { useHomeFilters } from '@/components/home/useHomeFilters'
 import { HomeHero } from '@/components/home/HomeHero'
 import { CategoryBar } from '@/components/home/CategoryBar'
@@ -29,7 +30,11 @@ export function GostayloHomeContent() {
   const searchParams = useSearchParams()
   const { user: authUser, openLoginModal } = useAuth()
 
-  const filters = useHomeFilters()
+  const [currency, setCurrency] = useState('THB')
+  const [language, setLanguageState] = useState('ru')
+  const [categories, setCategories] = useState([])
+
+  const filters = useHomeFilters(categories)
   const {
     selectedCategory,
     setSelectedCategory,
@@ -58,9 +63,6 @@ export function GostayloHomeContent() {
     transportSearchMode,
   } = filters
 
-  const [currency, setCurrency] = useState('THB')
-  const [language, setLanguageState] = useState('ru')
-  const [categories, setCategories] = useState([])
   const [listings, setListings] = useState([])
   const [exchangeRates, setExchangeRates] = useState({})
   const [loading, setLoading] = useState(true)
@@ -219,7 +221,8 @@ export function GostayloHomeContent() {
         if (dr?.from && dr?.to && !isSameDay(dr.from, dr.to)) {
           params.set('checkIn', format(dr.from, 'yyyy-MM-dd'))
           params.set('checkOut', format(dr.to, 'yyyy-MM-dd'))
-          if (isTransportListingCategory(cat)) {
+          const wpRow = categories.find((c) => String(c.slug) === String(cat))
+          if (isTransportIntervalWizardProfile(wpRow?.wizardProfile ?? wpRow?.wizard_profile, cat)) {
             params.set('checkInTime', checkInTime)
             params.set('checkOutTime', checkOutTime)
           }
@@ -237,7 +240,7 @@ export function GostayloHomeContent() {
         setCountLoading(false)
       }
     },
-    [searchQuery, checkInTime, checkOutTime],
+    [searchQuery, checkInTime, checkOutTime, categories],
   )
 
   const handleSearch = useCallback(() => {
@@ -307,8 +310,9 @@ export function GostayloHomeContent() {
       if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
         params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
       }
+      const wpRow = categories.find((c) => String(c.slug) === String(categorySlug))
       if (
-        isTransportListingCategory(categorySlug) &&
+        isTransportIntervalWizardProfile(wpRow?.wizardProfile ?? wpRow?.wizard_profile, categorySlug) &&
         dateRange.from &&
         dateRange.to &&
         !isSameDay(dateRange.from, dateRange.to)
@@ -323,6 +327,7 @@ export function GostayloHomeContent() {
       router.push(`/listings?${params.toString()}`)
     },
     [
+      categories,
       setSelectedCategory,
       where,
       dateRange,
@@ -348,9 +353,21 @@ export function GostayloHomeContent() {
     [dateRange],
   )
 
+  const selectedCategoryWizardProfile = useMemo(() => {
+    if (!selectedCategory || selectedCategory === 'all') return null
+    return effectiveCategoryWizardProfileRaw(selectedCategory, categories)
+  }, [categories, selectedCategory])
+
+  const categoryBarRoots = useMemo(() => {
+    return [...(categories || [])]
+      .filter((c) => c && c.slug && !hasCategoryParent(c))
+      .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0))
+  }, [categories])
+
   const searchBarRest = useMemo(
     () => ({
       category: selectedCategory,
+      categoryWizardProfile: selectedCategoryWizardProfile,
       setCategory: setSelectedCategory,
       where,
       setWhere,
@@ -376,6 +393,7 @@ export function GostayloHomeContent() {
     }),
     [
       selectedCategory,
+      selectedCategoryWizardProfile,
       setSelectedCategory,
       where,
       dateRange,
@@ -407,7 +425,7 @@ export function GostayloHomeContent() {
 
       <CategoryBar
         language={language}
-        categories={categories}
+        categories={categoryBarRoots}
         mediaFallback={mediaFallback}
         onCategorySelect={onCategorySelect}
         markMediaFailed={markMediaFailed}

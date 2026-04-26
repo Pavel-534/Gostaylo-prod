@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { isTransportListingCategory } from '@/lib/listing-category-slug'
+import { isTransportIntervalWizardProfile } from '@/lib/config/category-wizard-profile-db'
+import { effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value)
@@ -15,8 +16,9 @@ function useDebounce(value, delay) {
 
 /**
  * Home search filters: What / Where / When / Who, URL seed, smart search toggles.
+ * @param {Array<{ slug?: string, wizardProfile?: string | null }>} [categoriesFromApi] — для SSOT транспортного интервала
  */
-export function useHomeFilters() {
+export function useHomeFilters(categoriesFromApi = []) {
   const searchParams = useSearchParams()
 
   const [selectedCategory, setSelectedCategory] = useState('all')
@@ -32,10 +34,10 @@ export function useHomeFilters() {
   const [aiGridPending, setAiGridPending] = useState(false)
 
   const debouncedDateRange = useDebounce(dateRange, 500)
-  const transportSearchMode = useMemo(
-    () => isTransportListingCategory(selectedCategory),
-    [selectedCategory],
-  )
+  const transportSearchMode = useMemo(() => {
+    const eff = effectiveCategoryWizardProfileRaw(selectedCategory, categoriesFromApi)
+    return isTransportIntervalWizardProfile(eff, selectedCategory)
+  }, [categoriesFromApi, selectedCategory])
   const debouncedWhere = useDebounce(where, 300)
   const debouncedGuests = useDebounce(guests, 300)
   const debouncedSearchQuery = useDebounce(searchQuery, 400)

@@ -43,6 +43,7 @@ function ListingSidebarComponent({
   filterWhere = 'all',
   transportBroadenHref = null,
   highlightedListingId = null,
+  catalogCategories = null,
 }) {
   useEffect(() => {
     if (!highlightedListingId) return;
@@ -171,6 +172,7 @@ function ListingSidebarComponent({
                 onFavorite={onFavorite}
                 isFavorited={userFavorites.has(listing.id)}
                 isMapHighlighted={highlightedListingId === listing.id}
+                catalogCategories={catalogCategories}
               />
             </div>
           ))}

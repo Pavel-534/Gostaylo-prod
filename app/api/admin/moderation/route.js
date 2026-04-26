@@ -19,7 +19,7 @@ const ADMIN_TOPIC_ID = '-1003832026983'
 const LISTINGS_THREAD_ID = 3
 
 const LISTING_SELECT =
-  '*,owner:profiles!listings_owner_id_fkey(id,first_name,last_name,email,phone,telegram_id,custom_commission_rate),categories(slug,name)'
+  '*,owner:profiles!listings_owner_id_fkey(id,first_name,last_name,email,phone,telegram_id,custom_commission_rate),categories(slug,name,wizard_profile)'
 
 function supabaseHeaders(extra = {}) {
   return {
@@ -160,7 +160,14 @@ export async function PATCH(request) {
             ? { ...listing.metadata }
             : {}
         const merged = { ...prevMeta, ...metadataPatch }
-        updateData.metadata = normalizePartnerListingMetadata(merged, categorySlug, nameFb)
+        const catRow = listing?.categories
+        const wp =
+          (catRow && typeof catRow === 'object' && !Array.isArray(catRow)
+            ? catRow.wizard_profile
+            : Array.isArray(catRow)
+              ? catRow[0]?.wizard_profile
+              : null) ?? null
+        updateData.metadata = normalizePartnerListingMetadata(merged, categorySlug, nameFb, wp)
       }
     } else if (action === 'reject') {
       if (!rejectReason) {
