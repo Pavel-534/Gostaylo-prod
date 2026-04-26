@@ -15,7 +15,11 @@ export function useListingPricing({
   commissionLoading,
   effectiveRate,
   guestServiceFeePercent,
-}) {
+  /** Stage 57.0 — from `GET /api/v2/commission`; 0 = hidden tax (same UX as pre–Stage 56). */
+  taxRatePercent = 0,
+  /** Stage 58.0 — `GET .../availability` → `pricing` for current dates/guests (tax SSOT with server). */
+  syncPricing = null,
+} = {}) {
   const [priceCalc, setPriceCalc] = useState(null)
 
   useEffect(() => {
@@ -30,6 +34,9 @@ export function useListingPricing({
       return
     }
 
+    const tr = Number(taxRatePercent)
+    const taxRateForCalc = Number.isFinite(tr) && tr >= 0 ? tr : 0
+
     const calc = PricingService.calculatePrice({
       basePriceThb: listing.basePriceThb,
       seasonalPricing: listing.seasonalPricing || [],
@@ -39,6 +46,7 @@ export function useListingPricing({
       checkOut: format(dateRange.to, 'yyyy-MM-dd'),
       listingCategorySlug: listing.categorySlug || '',
       guestsCount: guests,
+      taxRatePercent: taxRateForCalc,
     })
 
     const cr = Number(listing.commissionRate)
@@ -57,10 +65,19 @@ export function useListingPricing({
       : 5
     const serviceFeeRate = guestFeePct / 100
     const hostCommissionRate = commissionPct / 100
+    const sync = syncPricing && typeof syncPricing === 'object' ? syncPricing : null
+    const taxAmt =
+      sync && Number.isFinite(Number(sync.taxAmountThb))
+        ? Math.round(Number(sync.taxAmountThb))
+        : Math.round(Number(calc.taxAmountThb) || 0)
+    const taxRateForDisplay =
+      sync && Number.isFinite(Number(sync.taxRatePercent))
+        ? Number(sync.taxRatePercent)
+        : taxRateForCalc
     const serviceFee = Math.round(calc.totalPrice * serviceFeeRate)
     const commissionThbHost = Math.round(calc.totalPrice * hostCommissionRate)
     const partnerPayoutThb = calc.totalPrice - commissionThbHost
-    const guestPayable = calc.totalPrice + serviceFee
+    const guestPayable = calc.totalPrice + taxAmt + serviceFee
     const roundedGuestTotal = computeRoundedGuestTotalPot(guestPayable)
     if (!roundedGuestTotal) {
       setPriceCalc(null)
@@ -76,6 +93,8 @@ export function useListingPricing({
       seasonalAdjustment,
       subtotal: calc.totalPrice,
       subtotalBeforeFee: calc.totalPrice,
+      taxAmountThb: taxAmt,
+      taxRatePercent: taxRateForDisplay,
       commissionRate: commissionPct,
       guestServiceFeePercent: guestFeePct,
       serviceFee,
@@ -86,7 +105,17 @@ export function useListingPricing({
       finalTotalRaw: guestPayable,
       finalTotal: roundedGuestTotal.roundedGuestTotalThb,
     })
-  }, [listing, dateRange?.from, dateRange?.to, guests, commissionLoading, effectiveRate, guestServiceFeePercent])
+  }, [
+    listing,
+    dateRange?.from,
+    dateRange?.to,
+    guests,
+    commissionLoading,
+    effectiveRate,
+    guestServiceFeePercent,
+    taxRatePercent,
+    syncPricing,
+  ])
 
   return priceCalc
 }

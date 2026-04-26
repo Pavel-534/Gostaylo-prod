@@ -18,6 +18,7 @@ import { createBookingSchema } from '@/lib/validations/booking';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 import { resolveBookingListScope } from '@/lib/api/api-guard';
 import { toUnifiedOrder } from '@/lib/models/unified-order';
+import { withCorrelationFromRequest } from '@/lib/request-correlation.js';
 
 export async function GET(request) {
   try {
@@ -49,6 +50,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  return withCorrelationFromRequest(request, async () => {
   const rl = rateLimitCheck(request, 'booking');
   if (rl) {
     return NextResponse.json(rl.body, { status: rl.status, headers: rl.headers });
@@ -334,4 +336,5 @@ export async function POST(request) {
     )
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
+  })
 }

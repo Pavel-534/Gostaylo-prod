@@ -11,8 +11,9 @@ import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { v4 as uuidv4 } from 'uuid'
 import { differenceInDays, parseISO } from 'date-fns'
-import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { CalendarService } from '@/lib/services/calendar.service'
+import { PricingService } from '@/lib/services/pricing.service'
+import { computeRoundedGuestTotalPot } from '@/lib/booking-price-integrity'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 import { normalizeBookingInstantForDb } from '@/lib/listing-date'
 import { resolveListingCategorySlug } from '@/lib/services/booking.service'
@@ -163,15 +164,48 @@ export async function POST(request) {
       )
     }
 
-    // Calculate price if not provided
-    const finalPrice = priceThb || (listing.base_price_thb * nights)
-    const rawComm = parseFloat(listing.commission_rate)
-    const commissionRate =
-      Number.isFinite(rawComm) && rawComm >= 0 ? rawComm : await resolveDefaultCommissionPercent()
-    const commissionThb = finalPrice * (commissionRate / 100)
-    const partnerEarningsThb = finalPrice - commissionThb
-    
-    // Create booking
+    const rawSub =
+      priceThb != null && priceThb !== '' && Number.isFinite(Number(priceThb))
+        ? Number(priceThb)
+        : Number(listing.base_price_thb) * nights
+    const subtotalThb = Math.max(0, Math.round(rawSub))
+
+    const feeSplit = await PricingService.calculateFeeSplit(subtotalThb, listing.owner_id)
+    const roundedPot = computeRoundedGuestTotalPot(feeSplit.guestPayableThb)
+    if (!roundedPot) {
+      return NextResponse.json(
+        { status: 'error', error: 'Could not compute guest payable total' },
+        { status: 500 },
+      )
+    }
+    const { roundedGuestTotalThb, roundingDiffPotThb } = roundedPot
+    const taxableMarginAmount = Math.max(0, roundedGuestTotalThb - feeSplit.partnerEarningsThb)
+    const nowIso = new Date().toISOString()
+    const pricingSnapshot = {
+      v: 1,
+      computed_at: nowIso,
+      tax: {
+        rate_percent: feeSplit.taxRatePercent ?? 0,
+        amount_thb: feeSplit.taxAmountThb ?? 0,
+      },
+      fee_split_v2: {
+        immutable: true,
+        guest_service_fee_percent: feeSplit.guestServiceFeePercent,
+        guest_service_fee_thb: feeSplit.guestServiceFeeThb,
+        host_commission_percent: feeSplit.hostCommissionRate,
+        host_commission_thb: feeSplit.hostCommissionThb,
+        platform_gross_revenue_thb: feeSplit.platformGrossRevenueThb,
+        insurance_fund_percent: feeSplit.insuranceFundPercent,
+        insurance_reserve_thb: feeSplit.insuranceReserveThb,
+        tax_rate_percent: feeSplit.taxRatePercent ?? 0,
+        tax_amount_thb: feeSplit.taxAmountThb ?? 0,
+        guest_payable_thb: feeSplit.guestPayableThb,
+        guest_payable_rounded_thb: roundedGuestTotalThb,
+        rounding_diff_pot_thb: roundingDiffPotThb,
+      },
+    }
+
+    // Create booking (fee split SSOT: commission_thb = guest service fee; commission_rate = host %)
     const { data: booking, error: bookingError } = await supabaseAdmin
       .from('bookings')
       .insert({
@@ -183,10 +217,19 @@ export async function POST(request) {
         guest_name: guestName,
         guest_phone: guestPhone || null,
         guest_email: guestEmail || null,
-        price_thb: finalPrice,
-        commission_rate: commissionRate,
-        commission_thb: commissionThb,
-        partner_earnings_thb: partnerEarningsThb,
+        price_thb: subtotalThb,
+        currency: 'THB',
+        price_paid: subtotalThb,
+        exchange_rate: 1,
+        commission_rate: feeSplit.hostCommissionRate,
+        applied_commission_rate: feeSplit.hostCommissionRate,
+        commission_thb: feeSplit.guestServiceFeeThb,
+        partner_earnings_thb: feeSplit.partnerEarningsThb,
+        rounding_diff_pot: roundingDiffPotThb,
+        taxable_margin_amount: taxableMarginAmount,
+        net_amount_local: Math.round(feeSplit.partnerEarningsThb * 100) / 100,
+        listing_currency: 'THB',
+        pricing_snapshot: pricingSnapshot,
         notes,
         guests_count: guestsCount,
         status: 'CONFIRMED',

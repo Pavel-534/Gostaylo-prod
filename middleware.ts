@@ -91,10 +91,18 @@ function legacyMessagesRedirect(request: NextRequest): NextResponse | null {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // В matcher сейчас нет /api — оставляем явный bypass на случай расширения matcher (i18n и т.д.).
-  // Вебхуки и прочие API не должны проходить через редиректы авторизации.
+  /** Stage 56.0 — propagate correlation id into API route handlers (Node ALS picks it up at boundary). */
   if (pathname.startsWith('/api/')) {
-    return NextResponse.next();
+    const existing = request.headers.get('x-correlation-id');
+    const id =
+      existing && String(existing).trim().length > 0
+        ? String(existing).trim()
+        : globalThis.crypto.randomUUID();
+    const reqHeaders = new Headers(request.headers);
+    reqHeaders.set('x-correlation-id', id);
+    const res = NextResponse.next({ request: { headers: reqHeaders } });
+    res.headers.set('x-correlation-id', id);
+    return res;
   }
 
   const legacy = legacyMessagesRedirect(request);
@@ -169,9 +177,10 @@ export async function middleware(request: NextRequest) {
 // Configure which routes to run middleware on
 export const config = {
   matcher: [
+    '/api/:path*',
     '/admin/:path*',
     '/partner/:path*',
     '/renter/:path*',
     '/messages/:path*',
-  ]
+  ],
 };

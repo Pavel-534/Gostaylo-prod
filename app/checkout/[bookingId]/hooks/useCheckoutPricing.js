@@ -6,6 +6,7 @@ import { getUIText } from '@/lib/translations'
 import { useCommission } from '@/hooks/use-commission'
 import { computeRoundedGuestTotalPot } from '@/lib/booking-price-integrity'
 import { buildGuestPriceBreakdownFromCheckoutTotals } from '@/lib/booking/guest-price-breakdown'
+import { getGuestPayableRoundedThb } from '@/lib/booking-guest-total'
 import { interpolateTemplate } from './interpolate.js'
 
 /**
@@ -120,17 +121,32 @@ export function useCheckoutPricing({ booking, invoice, paymentMethod, setPayment
   } = useMemo(() => {
     const discountAmount = promoDiscount?.discountAmount || 0
     const priceAfterDiscount = (booking?.priceThb ?? 0) - discountAmount
+
+    const snap =
+      booking?.pricing_snapshot && typeof booking.pricing_snapshot === 'object'
+        ? booking.pricing_snapshot
+        : {}
+    const fs = snap.fee_split_v2 && typeof snap.fee_split_v2 === 'object' ? snap.fee_split_v2 : {}
+    const taxSnap = snap.tax && typeof snap.tax === 'object' ? snap.tax : {}
+    const taxRatePercent = Number(fs.tax_rate_percent ?? taxSnap.rate_percent ?? 0) || 0
+
     const serviceFee = promoDiscount
       ? Math.round(priceAfterDiscount * (guestServiceFeePercent / 100))
       : Math.round((booking?.commissionThb || 0) || 0)
-    const guestTotalBeforeRounding = priceAfterDiscount + serviceFee
+    const taxAmountCheckout = promoDiscount
+      ? Math.round(priceAfterDiscount * (taxRatePercent / 100))
+      : Math.round(Number(fs.tax_amount_thb ?? taxSnap.amount_thb ?? 0) || 0)
+
+    const guestTotalBeforeRounding = priceAfterDiscount + taxAmountCheckout + serviceFee
     const promoRounded = promoDiscount ? computeRoundedGuestTotalPot(guestTotalBeforeRounding) : null
     const roundingDiffPot = promoDiscount
       ? promoRounded?.roundingDiffPotThb || 0
       : Math.max(0, Math.round(Number(booking?.roundingDiffPot) || 0))
     const totalWithFee = promoDiscount
       ? promoRounded?.roundedGuestTotalThb || Math.round(guestTotalBeforeRounding)
-      : Math.round(guestTotalBeforeRounding + roundingDiffPot)
+      : booking
+        ? getGuestPayableRoundedThb(booking)
+        : Math.round(guestTotalBeforeRounding + roundingDiffPot)
     const invoiceAmount = Number(invoice?.amount || 0)
     const invoiceCurrency = String(invoice?.currency || 'THB').toUpperCase()
     const hasInvoiceCheckout = Boolean(invoice?.id && Number.isFinite(invoiceAmount) && invoiceAmount > 0)
@@ -138,11 +154,6 @@ export function useCheckoutPricing({ booking, invoice, paymentMethod, setPayment
       ? `${invoiceCurrency === 'THB' ? '฿' : invoiceCurrency === 'RUB' ? '₽' : '$'}${invoiceAmount.toLocaleString()} ${invoiceCurrency}`
       : formatPrice(totalWithFee, booking?.currency || 'THB', exchangeRates, language)
 
-    const snap =
-      booking?.pricing_snapshot && typeof booking.pricing_snapshot === 'object'
-        ? booking.pricing_snapshot
-        : {}
-    const fs = snap.fee_split_v2 && typeof snap.fee_split_v2 === 'object' ? snap.fee_split_v2 : {}
     const insuranceThb = Number(fs.insurance_reserve_thb)
     const insuranceOk = Number.isFinite(insuranceThb) ? insuranceThb : 0
 
@@ -154,6 +165,8 @@ export function useCheckoutPricing({ booking, invoice, paymentMethod, setPayment
             discountThb: discountAmount,
             promoCode: promoDiscount?.code || null,
             serviceTariffThb: priceAfterDiscount,
+            taxAmountThb: taxAmountCheckout,
+            taxRatePercent,
             platformFeeThb: serviceFee,
             roundingThb: roundingDiffPot,
             insuranceThb: insuranceOk,

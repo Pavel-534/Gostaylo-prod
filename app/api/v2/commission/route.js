@@ -81,6 +81,10 @@ export async function GET(request) {
         ? parsedMarkup
         : await resolveChatInvoiceRateMultiplier()
 
+    const parsedTax = parseFloat(general?.taxRatePercent)
+    const taxRatePercent =
+      Number.isFinite(parsedTax) && parsedTax >= 0 && parsedTax <= 100 ? parsedTax : 0
+
     let personalRate = null
     if (partnerIdParam) {
       const profileRes = await fetch(
@@ -115,6 +119,7 @@ export async function GET(request) {
         hostCommissionPercent: effectiveRate,
         insuranceFundPercent,
         chatInvoiceRateMultiplier,
+        taxRatePercent,
       },
     })
   } catch (error) {
@@ -131,6 +136,7 @@ export async function GET(request) {
         hostCommissionPercent: fallback,
         insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
         chatInvoiceRateMultiplier: await resolveChatInvoiceRateMultiplier(),
+        taxRatePercent: 0,
       },
     })
   }

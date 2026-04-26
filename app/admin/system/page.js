@@ -69,8 +69,32 @@ export default function SystemControlPage() {
   const [icalSyncFrequency, setIcalSyncFrequency] = useState('1h');
   const [icalSyncing, setIcalSyncing] = useState(false);
 
+  const [outboxWorkerLoading, setOutboxWorkerLoading] = useState(false);
+  const [outboxLastResult, setOutboxLastResult] = useState(null);
+  const [outboxStats, setOutboxStats] = useState(null);
+
   useEffect(() => {
     loadSystemStatus();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function tick() {
+      try {
+        const res = await fetch('/api/admin/notification-outbox/stats', { credentials: 'include' });
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (res.ok && data.success) setOutboxStats(data);
+      } catch {
+        if (!cancelled) setOutboxStats(null);
+      }
+    }
+    tick();
+    const id = setInterval(tick, 25000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, []);
 
   async function loadSystemStatus() {
@@ -331,6 +355,42 @@ export default function SystemControlPage() {
       }
     } catch (error) {
       toast.error('Ошибка отправки');
+    }
+  }
+
+  async function loadOutboxStats() {
+    try {
+      const res = await fetch('/api/admin/notification-outbox/stats', { credentials: 'include' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) setOutboxStats(data);
+    } catch {
+      setOutboxStats(null);
+    }
+  }
+
+  async function handleProcessNotificationOutbox() {
+    setOutboxWorkerLoading(true);
+    try {
+      const res = await fetch('/api/admin/notification-outbox/process', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        setOutboxLastResult(data);
+        const rc = data.reclaimed != null && data.reclaimed > 0 ? `, возврат из processing: ${data.reclaimed}` : '';
+        toast.success(
+          `Очередь: обработано ${data.claimed ?? 0}, отправлено ${data.sent ?? 0}, повтор ${data.failed ?? 0}, фатально ${data.permanentFailure ?? 0}${rc}`,
+        );
+        await logActivity('NOTIFICATION_OUTBOX_RUN', JSON.stringify(data));
+        await loadOutboxStats();
+      } else {
+        toast.error(data.error || 'Не удалось обработать очередь');
+      }
+    } catch (e) {
+      toast.error(e?.message || 'Ошибка запроса');
+    } finally {
+      setOutboxWorkerLoading(false);
     }
   }
 
@@ -606,6 +666,69 @@ export default function SystemControlPage() {
               <li>Кнопка "Aloha" отправляет сообщение напрямую</li>
             </ul>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-slate-50">
+        <CardHeader className="p-4 lg:p-6 pb-2 lg:pb-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+              <MessageSquare className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
+            </div>
+            <div className="min-w-0">
+              <CardTitle className="text-base lg:text-lg">Очередь уведомлений (outbox)</CardTitle>
+              <CardDescription className="text-xs lg:text-sm">
+                Требуется <code className="text-[11px]">NOTIFICATION_OUTBOX=1</code> и миграции Stage 57–60 (в т.ч.{' '}
+                <code className="text-[11px]">updated_at</code> для reclaim). Cron:{' '}
+                <code className="text-[11px]">/api/cron/notification-outbox</code> каждые 5 мин. Статистика обновляется
+                каждые ~25 с.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 lg:p-6 pt-0 space-y-3">
+          {outboxStats?.counts ? (
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 rounded-lg border border-violet-100 bg-white/70 p-3 text-[11px] sm:text-xs">
+              {[
+                { key: 'pending', label: 'Ожидают' },
+                { key: 'processing', label: 'В работе' },
+                { key: 'failed', label: 'Ошибка' },
+                { key: 'permanent_failure', label: 'Фатально' },
+                { key: 'sent', label: 'Отправлено' },
+              ].map(({ key, label }) => (
+                <div key={key} className="rounded-md bg-violet-50/80 px-2 py-2 text-center">
+                  <div className="font-medium text-violet-950 tabular-nums text-sm sm:text-base">
+                    {outboxStats.counts[key] ?? 0}
+                  </div>
+                  <div className="text-slate-600 leading-tight">{label}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">
+              Статистика очереди недоступна (проверьте сессию ADMIN и применение миграций).
+            </p>
+          )}
+          <Button
+            type="button"
+            onClick={handleProcessNotificationOutbox}
+            disabled={outboxWorkerLoading}
+            className="bg-violet-600 hover:bg-violet-700 text-white"
+          >
+            {outboxWorkerLoading ? (
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin inline" />
+            ) : (
+              <Zap className="w-4 h-4 mr-2 inline" />
+            )}
+            Обработать очередь сейчас
+          </Button>
+          {outboxLastResult?.success ? (
+            <p className="text-xs text-slate-600">
+              Последний запуск: reclaim {outboxLastResult.reclaimed ?? 0}, claimed {outboxLastResult.claimed ?? 0}, sent{' '}
+              {outboxLastResult.sent ?? 0}, retry {outboxLastResult.failed ?? 0}, permanent{' '}
+              {outboxLastResult.permanentFailure ?? 0}, skipped {outboxLastResult.skipped ?? 0}
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 

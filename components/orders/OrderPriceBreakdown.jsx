@@ -25,6 +25,12 @@ function promoDiscountLabel(b, language) {
   return getUIText('orderPrice_promoDiscount', language)
 }
 
+function taxVatLineLabel(b, language) {
+  if (n(b.taxAmountThb) <= 0) return ''
+  const rate = Number(b.taxRatePercent) || 0
+  return getUIText('orderPrice_taxVatLine', language).replace(/\{\{rate\}\}/g, String(rate))
+}
+
 /**
  * Блок «Детализация цены» для Super-App (гость / партнёр — прозрачность).
  * @param {{ booking?: object | null, breakdown?: object | null, language?: string, role?: 'renter' | 'partner' }} props
@@ -72,6 +78,7 @@ export function OrderPriceBreakdown({ booking, breakdown = null, language = 'ru'
         <Row label={promoDiscountLabel(b, language)} value={-b.promoDiscountThb} muted />
       ) : null}
       <Row label={getUIText('orderPrice_serviceTariff', language)} value={b.serviceTariffThb} />
+      {n(b.taxAmountThb) > 0 ? <Row label={taxVatLineLabel(b, language)} value={b.taxAmountThb} muted /> : null}
       {b.platformFeeThb > 0 ? (
         <Row label={getUIText('orderPrice_platformFee', language)} value={b.platformFeeThb} />
       ) : null}
@@ -99,7 +106,9 @@ export function OrderPriceBreakdown({ booking, breakdown = null, language = 'ru'
         </div>
       ) : null}
       <p className="text-[11px] text-slate-500 leading-snug border-t border-slate-100/80 pt-2">
-        {getUIText('orderPrice_taxesNote', language)}
+        {n(b.taxAmountThb) > 0
+          ? getUIText('orderPrice_taxesNoteWithVatLine', language)
+          : getUIText('orderPrice_taxesNote', language)}
       </p>
       <div className="border-t border-slate-200 pt-2 flex justify-between gap-3 text-sm font-semibold text-slate-900">
         <span>

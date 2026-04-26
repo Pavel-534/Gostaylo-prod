@@ -50,6 +50,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [settings, setSettings] = useState({
     defaultCommissionRate: 15,
+    taxRatePercent: 0,
     guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
     hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
     insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
@@ -82,6 +83,10 @@ export default function SettingsPage() {
         const d = data.data || {};
         setSettings({
           ...d,
+          taxRatePercent: (() => {
+            const n = Number(d.taxRatePercent)
+            return Number.isFinite(n) && n >= 0 && n <= 100 ? n : 0
+          })(),
           chatSafety: {
             autoShadowbanEnabled: false,
             strikeThreshold: 5,
@@ -150,10 +155,11 @@ export default function SettingsPage() {
   const previewGuestFee = Math.round(
     previewBaseThb * ((Number(settings.guestServiceFeePercent) || 0) / 100)
   );
+  const previewTax = Math.round(previewBaseThb * ((Number(settings.taxRatePercent) || 0) / 100));
   const previewHostCommission = Math.round(
     previewBaseThb * ((Number(settings.hostCommissionPercent) || 0) / 100)
   );
-  const previewGuestTotal = previewBaseThb + previewGuestFee;
+  const previewGuestTotal = previewBaseThb + previewTax + previewGuestFee;
   const previewPartnerPayout = previewBaseThb - previewHostCommission;
   const previewPlatformMargin = previewGuestFee + previewHostCommission;
   const previewInsuranceReserve = Math.round(
@@ -390,6 +396,29 @@ export default function SettingsPage() {
                 className="mt-2"
               />
             </div>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <Label htmlFor="taxRatePercent">Tax Rate (%)</Label>
+              <Input
+                id="taxRatePercent"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={settings.taxRatePercent ?? 0}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value)
+                  setSettings({
+                    ...settings,
+                    taxRatePercent: Number.isFinite(v) && v >= 0 ? v : 0,
+                  })
+                }}
+                className="mt-2 max-w-xs"
+              />
+              <p className="text-xs text-gray-500 mt-1.5">
+                Stored as <code className="rounded bg-slate-100 px-1">general.taxRatePercent</code>. Set to 0 to
+                hide tax lines in UI.
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -427,6 +456,12 @@ export default function SettingsPage() {
             <p className="text-sm font-semibold text-slate-900">Preview (на примере ฿10,000):</p>
             <p className="text-xs text-slate-600 mt-1">{payoutPolicyHint} Час выплаты: {settings.settlementPayoutHourLocal}:00.</p>
             <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+              {previewTax > 0 ? (
+                <p>
+                  Налог (оценка на субтотал):{' '}
+                  <strong>฿{previewTax.toLocaleString('ru-RU')}</strong> ({Number(settings.taxRatePercent) || 0}%)
+                </p>
+              ) : null}
               <p>Гость платит: <strong>฿{previewGuestTotal.toLocaleString('ru-RU')}</strong></p>
               <p>Партнер получает: <strong>฿{previewPartnerPayout.toLocaleString('ru-RU')}</strong></p>
               <p>Маржа платформы: <strong>฿{previewPlatformMargin.toLocaleString('ru-RU')}</strong></p>

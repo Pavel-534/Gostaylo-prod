@@ -209,6 +209,19 @@ export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, langua
           {formatPrice(priceCalc.subtotalBeforeFee ?? priceCalc.totalPrice, currency, exchangeRates, language)}
         </span>
       </div>
+      {Number(priceCalc.taxAmountThb) > 0 ? (
+        <div className="flex justify-between gap-2 text-slate-600">
+          <span>
+            {getUIText('orderPrice_taxVatLine', language).replace(
+              /\{\{rate\}\}/g,
+              String(Number(priceCalc.taxRatePercent) || 0),
+            )}
+          </span>
+          <span className="font-medium tabular-nums">
+            {formatPrice(priceCalc.taxAmountThb, currency, exchangeRates, language)}
+          </span>
+        </div>
+      ) : null}
       {priceCalc.serviceFee > 0 && (
         <div className="flex justify-between gap-2">
           <span className="text-slate-600">{getUIText('serviceFee', language)}</span>

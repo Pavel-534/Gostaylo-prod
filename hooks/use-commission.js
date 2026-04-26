@@ -17,6 +17,7 @@ export function useCommission(partnerId = null) {
     hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
     insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
     chatInvoiceRateMultiplier: platformDefaultChatInvoiceRateMultiplier(),
+    taxRatePercent: 0,
     loading: true,
     error: null,
   })
@@ -100,6 +101,9 @@ export async function getCommissionRate(partnerId = null) {
     const insuranceFundPercent =
       Number.isFinite(ins) && ins >= 0 && ins <= 100 ? ins : PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent
 
+    const tx = parseFloat(settings?.value?.taxRatePercent)
+    const taxRatePercent = Number.isFinite(tx) && tx >= 0 && tx <= 100 ? tx : 0
+
     return {
       systemRate,
       personalRate,
@@ -108,6 +112,7 @@ export async function getCommissionRate(partnerId = null) {
       guestServiceFeePercent,
       hostCommissionPercent: effectiveRate,
       insuranceFundPercent,
+      taxRatePercent,
     }
   } catch (error) {
     console.error('getCommissionRate error:', error)
@@ -121,6 +126,7 @@ export async function getCommissionRate(partnerId = null) {
       guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
       hostCommissionPercent: fallback,
       insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
+      taxRatePercent: 0,
     }
   }
 }

@@ -43,6 +43,10 @@
     {
       "path": "/api/cron/flash-sale-reminder",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/notification-outbox",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

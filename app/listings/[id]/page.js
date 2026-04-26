@@ -152,6 +152,15 @@ function PremiumListingContent({ params }) {
 
   const commissionHook = useCommission(listingPartnerId)
 
+  const availabilitySyncPricing = useMemo(() => {
+    if (!availabilitySnapshot?.success || availabilitySnapshot?.pricing == null) return null
+    const p = availabilitySnapshot.pricing
+    return {
+      taxRatePercent: Number(p.taxRatePercent) || 0,
+      taxAmountThb: Math.round(Number(p.taxAmountThb) || 0),
+    }
+  }, [availabilitySnapshot])
+
   const priceCalc = useListingPricing({
     listing,
     dateRange,
@@ -159,6 +168,8 @@ function PremiumListingContent({ params }) {
     commissionLoading: commissionHook.loading,
     effectiveRate: commissionHook.effectiveRate,
     guestServiceFeePercent: commissionHook.guestServiceFeePercent,
+    taxRatePercent: commissionHook.loading ? 0 : Number(commissionHook.taxRatePercent) || 0,
+    syncPricing: availabilitySyncPricing,
   })
 
   const AVAILABILITY_GUESTS_DEBOUNCE_MS = 420

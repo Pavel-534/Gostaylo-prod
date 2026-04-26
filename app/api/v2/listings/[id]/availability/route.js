@@ -75,7 +75,18 @@ export async function GET(request, { params }) {
         );
       }
 
-      const priceRow = await PricingService.calculateBookingPrice(listingId, startDate, endDate);
+      const priceRow = await PricingService.calculateBookingPrice(listingId, startDate, endDate, null, {
+        guestsCount,
+        listingCategorySlug: calResult.data?.listingCategorySlug || '',
+      });
+
+      const taxRatePercent = priceRow.error ? 0 : Number(priceRow.taxRate ?? 0) || 0;
+      const taxAmountThb = priceRow.error ? 0 : Math.round(Number(priceRow.taxAmountThb ?? 0) || 0);
+      const pricing = {
+        ...(chk.pricing && typeof chk.pricing === 'object' ? chk.pricing : {}),
+        taxRatePercent,
+        taxAmountThb,
+      };
 
       return NextResponse.json({
         success: true,
@@ -91,6 +102,7 @@ export async function GET(request, { params }) {
         durationDiscountAmount: priceRow.error ? null : priceRow.durationDiscountAmount,
         durationDiscountMinNights: priceRow.error ? null : priceRow.durationDiscountMinNights ?? null,
         durationDiscountSourceKey: priceRow.error ? null : priceRow.durationDiscountSourceKey ?? null,
+        pricing,
         data: {
           blockedNights,
           listingActive,

@@ -13,6 +13,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { PaymentsV3Service } from '@/lib/services/payments-v3.service';
 import { getSessionPayload } from '@/lib/services/session-service';
 import { getGuestPayableRoundedThb } from '@/lib/booking-guest-total';
+import { withCorrelationFromRequest } from '@/lib/request-correlation.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,6 +67,7 @@ async function resolveExpectedUsdtFromBooking(bookingId) {
 }
 
 export async function POST(request) {
+  return withCorrelationFromRequest(request, async () => {
   try {
     const body = await request.json();
     const { txid, bookingId, expectedAmountUsdt, expectedAmountThb } = body;
@@ -156,9 +158,11 @@ export async function POST(request) {
       { status: 500 }
     );
   }
+  })
 }
 
 export async function GET(request) {
+  return withCorrelationFromRequest(request, async () => {
   const { searchParams } = new URL(request.url);
   const txid = searchParams.get('txid');
   const expectedAmountParam = searchParams.get('expectedAmount');
@@ -204,4 +208,5 @@ export async function GET(request) {
         }
       : null,
   });
+  })
 }

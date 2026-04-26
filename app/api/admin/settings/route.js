@@ -22,6 +22,7 @@ const defaultChatSafety = {
 
 let mockSettings = {
   defaultCommissionRate: 15,
+  taxRatePercent: 0,
   guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
   hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
   insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
@@ -82,6 +83,7 @@ export async function GET() {
     const rawHostCommission = parseFloat(data.value?.hostCommissionPercent)
     const rawInsurance = parseFloat(data.value?.insuranceFundPercent)
     const rawChatMult = parseFloat(data.value?.chatInvoiceRateMultiplier)
+    const rawTax = parseFloat(data.value?.taxRatePercent)
     const rawCs = data.value?.chatSafety
     const chatSafety = {
       autoShadowbanEnabled: rawCs?.autoShadowbanEnabled === true,
@@ -99,6 +101,7 @@ export async function GET() {
       defaultCommissionRate: Number.isFinite(rawComm) && rawComm >= 0
         ? rawComm
         : await resolveDefaultCommissionPercent(),
+      taxRatePercent: Number.isFinite(rawTax) && rawTax >= 0 && rawTax <= 100 ? rawTax : 0,
       guestServiceFeePercent:
         Number.isFinite(rawGuestFee) && rawGuestFee >= 0 && rawGuestFee <= 100 ? rawGuestFee : 5,
       hostCommissionPercent:
@@ -140,6 +143,7 @@ export async function PUT(request) {
     const body = await request.json()
     const {
       defaultCommissionRate,
+      taxRatePercent,
       guestServiceFeePercent,
       hostCommissionPercent,
       insuranceFundPercent,
@@ -187,6 +191,10 @@ export async function PUT(request) {
         defaultCommissionRate: Number.isFinite(parsedMock) && parsedMock >= 0
           ? parsedMock
           : await resolveDefaultCommissionPercent(),
+        taxRatePercent: (() => {
+          const n = parseFloat(taxRatePercent)
+          return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.taxRatePercent ?? 0
+        })(),
         guestServiceFeePercent: (() => {
           const n = parseFloat(guestServiceFeePercent)
           return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.guestServiceFeePercent
@@ -225,6 +233,7 @@ export async function PUT(request) {
       .single()
 
     const parsedPut = parseFloat(defaultCommissionRate)
+    const parsedTaxRate = parseFloat(taxRatePercent)
     const parsedGuestFee = parseFloat(guestServiceFeePercent)
     const parsedHostCommission = parseFloat(hostCommissionPercent)
     const parsedInsurance = parseFloat(insuranceFundPercent)
@@ -233,6 +242,12 @@ export async function PUT(request) {
     const resolvedComm = Number.isFinite(parsedPut) && parsedPut >= 0
       ? parsedPut
       : await resolveDefaultCommissionPercent()
+    const resolvedTaxRate =
+      Number.isFinite(parsedTaxRate) && parsedTaxRate >= 0 && parsedTaxRate <= 100
+        ? parsedTaxRate
+        : Number.isFinite(parseFloat(existing?.value?.taxRatePercent))
+          ? parseFloat(existing?.value?.taxRatePercent)
+          : 0
     const resolvedGuestFee =
       Number.isFinite(parsedGuestFee) && parsedGuestFee >= 0 && parsedGuestFee <= 100
         ? parsedGuestFee
@@ -291,6 +306,7 @@ export async function PUT(request) {
     const newValue = {
       ...(existing?.value || {}),
       defaultCommissionRate: resolvedComm,
+      taxRatePercent: resolvedTaxRate,
       guestServiceFeePercent: resolvedGuestFee,
       hostCommissionPercent: resolvedHostCommission,
       insuranceFundPercent: resolvedInsurance,
