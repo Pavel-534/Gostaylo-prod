@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel'
@@ -16,11 +16,10 @@ import { ProxiedImage } from '@/components/proxied-image'
 import { 
   CheckCircle, XCircle, Loader2, Building2, User, Clock, 
   AlertTriangle, MapPin, DollarSign, Percent,
-  MessageSquare, Send, X, Sparkles, ExternalLink, Phone, Mail
+  X, Sparkles, ExternalLink, Phone, Mail, Pencil
 } from 'lucide-react'
 
 export default function ModerationPage() {
-  const router = useRouter()
   const [pendingListings, setPendingListings] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedListing, setSelectedListing] = useState(null)
@@ -28,10 +27,20 @@ export default function ModerationPage() {
   const [rejectReason, setRejectReason] = useState('')
   const [rejectingListing, setRejectingListing] = useState(null)
   const [processing, setProcessing] = useState(false)
+  const [editTextMode, setEditTextMode] = useState(false)
+  const [draftTitle, setDraftTitle] = useState('')
+  const [draftDescription, setDraftDescription] = useState('')
 
   useEffect(() => {
     loadData()
   }, [])
+
+  useEffect(() => {
+    if (!selectedListing) return
+    setEditTextMode(false)
+    setDraftTitle(selectedListing.title ?? '')
+    setDraftDescription(selectedListing.description ?? '')
+  }, [selectedListing?.id])
 
   async function loadData() {
     setLoading(true)
@@ -53,12 +62,23 @@ export default function ModerationPage() {
   }
 
   async function handleApproveListing(listingId) {
+    const titleTrim = (draftTitle || '').trim()
+    if (!titleTrim) {
+      toast.error('Укажите заголовок объявления')
+      return
+    }
+
     setProcessing(true)
     try {
       const res = await fetch('/api/admin/moderation', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listingId, action: 'approve' })
+        body: JSON.stringify({
+          listingId,
+          action: 'approve',
+          title: titleTrim,
+          description: draftDescription ?? '',
+        }),
       })
 
       const data = await res.json()
@@ -125,27 +145,32 @@ export default function ModerationPage() {
     }
   }
 
-  async function handleToggleFeatured(listingId, currentStatus) {
+  async function handleToggleFeatured(listingId, isFeatured) {
     try {
-      const res = await fetch('/api/admin/users', {
+      const res = await fetch('/api/admin/moderation', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          userId: listingId, // Using this API for simplicity, should create separate one
-          updates: { is_featured: !currentStatus }
-        })
+        body: JSON.stringify({
+          listingId,
+          action: 'set_featured',
+          isFeatured,
+        }),
       })
+      const data = await res.json()
+      if (!data.success) {
+        throw new Error(data.error || 'Failed')
+      }
 
-      // Update local state regardless
-      setPendingListings(prev => 
-        prev.map(l => l.id === listingId ? { ...l, is_featured: !currentStatus } : l)
+      setPendingListings((prev) =>
+        prev.map((l) => (l.id === listingId ? { ...l, is_featured: isFeatured } : l)),
       )
       if (selectedListing?.id === listingId) {
-        setSelectedListing({ ...selectedListing, is_featured: !currentStatus })
+        setSelectedListing({ ...selectedListing, is_featured: isFeatured })
       }
-      toast.success(currentStatus ? 'Убрано из рекомендаций' : 'Добавлено в рекомендации')
+      toast.success(isFeatured ? 'Добавлено в рекомендации' : 'Убрано из рекомендаций')
     } catch (error) {
-      toast.error('Ошибка')
+      console.error(error)
+      toast.error('Не удалось обновить «Рекомендуем»')
     }
   }
 
@@ -255,7 +280,12 @@ export default function ModerationPage() {
       )}
 
       {/* Detailed View Modal */}
-      <Dialog open={!!selectedListing} onOpenChange={() => setSelectedListing(null)}>
+      <Dialog
+        open={!!selectedListing}
+        onOpenChange={(open) => {
+          if (!open) setSelectedListing(null)
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto p-0 gap-0 [&>button]:hidden">
           {selectedListing && (
             <>
@@ -303,15 +333,57 @@ export default function ModerationPage() {
               {/* Content */}
               <div className="p-4 md:p-6 space-y-4">
                 {/* Title & Badge */}
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl md:text-2xl font-bold text-slate-900 leading-tight">
-                      {selectedListing.title || 'Без названия'}
-                    </h2>
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    {editTextMode ? (
+                      <div>
+                        <Label htmlFor="mod-title" className="text-xs text-slate-500">
+                          Заголовок
+                        </Label>
+                        <Input
+                          id="mod-title"
+                          value={draftTitle}
+                          onChange={(e) => setDraftTitle(e.target.value)}
+                          className="mt-1 font-semibold text-base md:text-lg"
+                          maxLength={255}
+                        />
+                      </div>
+                    ) : (
+                      <h2 className="text-xl md:text-2xl font-bold text-slate-900 leading-tight">
+                        {selectedListing.title || 'Без названия'}
+                      </h2>
+                    )}
                     <p className="text-slate-600 flex items-center gap-1 mt-1">
-                      <MapPin className="h-4 w-4" />
+                      <MapPin className="h-4 w-4 shrink-0" />
                       {selectedListing.district || 'Район не указан'}
                     </p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {!editTextMode ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-slate-700"
+                          onClick={() => setEditTextMode(true)}
+                        >
+                          <Pencil className="h-4 w-4 mr-1.5" />
+                          Править текст
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setDraftTitle(selectedListing.title ?? '')
+                            setDraftDescription(selectedListing.description ?? '')
+                            setEditTextMode(false)
+                          }}
+                        >
+                          Сбросить правки
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <Badge className="bg-orange-500 shrink-0">На проверке</Badge>
                 </div>
@@ -408,7 +480,9 @@ export default function ModerationPage() {
                       </div>
                       <Switch
                         checked={selectedListing.is_featured || false}
-                        onCheckedChange={() => handleToggleFeatured(selectedListing.id, selectedListing.is_featured)}
+                        onCheckedChange={(checked) => {
+                          handleToggleFeatured(selectedListing.id, checked)
+                        }}
                         className="data-[state=checked]:bg-amber-500"
                       />
                     </div>
@@ -419,12 +493,27 @@ export default function ModerationPage() {
                 </div>
 
                 {/* Description */}
-                {selectedListing.description && (
+                {(editTextMode || selectedListing.description) && (
                   <div className="bg-slate-50 rounded-xl p-4">
                     <h3 className="font-semibold text-slate-900 mb-2">Описание</h3>
-                    <p className="text-slate-600 text-sm whitespace-pre-wrap">
-                      {selectedListing.description}
-                    </p>
+                    {editTextMode ? (
+                      <>
+                        <Label htmlFor="mod-desc" className="sr-only">
+                          Описание
+                        </Label>
+                        <Textarea
+                          id="mod-desc"
+                          value={draftDescription}
+                          onChange={(e) => setDraftDescription(e.target.value)}
+                          className="min-h-[200px] text-sm text-slate-700"
+                          maxLength={50000}
+                        />
+                      </>
+                    ) : (
+                      <p className="text-slate-600 text-sm whitespace-pre-wrap">
+                        {selectedListing.description}
+                      </p>
+                    )}
                   </div>
                 )}
 

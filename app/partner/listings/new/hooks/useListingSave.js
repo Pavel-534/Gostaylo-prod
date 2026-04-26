@@ -73,6 +73,7 @@ export function useListingSave() {
       const metadata = normalizePartnerListingMetadata(
         { ...formData.metadata, description_translations: descTranslations },
         categorySlug,
+        formData.categoryName || '',
       )
       const tourBd =
         categorySlug && isTourListingCategory(categorySlug)
@@ -184,7 +185,7 @@ export function useListingSave() {
           images: formData.images,
           coverImage,
           status: 'PENDING',
-          metadata: normalizePartnerListingMetadata(mergedMeta, categorySlug),
+          metadata: normalizePartnerListingMetadata(mergedMeta, categorySlug, formData.categoryName || ''),
           cancellationPolicy: formData.cancellationPolicy || 'moderate',
           ...tourBd,
         }),
@@ -250,6 +251,7 @@ export function useListingSave() {
       const draftMeta = normalizePartnerListingMetadata(
         { ...formData.metadata, description_translations: descTranslations, is_draft: true },
         categorySlug,
+        formData.categoryName || '',
       )
 
       if (isEditMode && editId) {
@@ -358,6 +360,7 @@ export function useListingSave() {
       const publishMeta = normalizePartnerListingMetadata(
         { ...formData.metadata, description_translations: descTranslations, is_draft: false },
         categorySlug,
+        formData.categoryName || '',
       )
       const payload = {
         ...formData,

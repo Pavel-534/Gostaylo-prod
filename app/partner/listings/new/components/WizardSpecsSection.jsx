@@ -3,79 +3,45 @@
 import { memo } from 'react'
 import { Building2 } from 'lucide-react'
 import { Label as UiLabel } from '@/components/ui/label'
-import { Input as UiInput } from '@/components/ui/input'
 import { Button as UiButton } from '@/components/ui/button'
 import { useListingWizard } from '../context/ListingWizardContext'
-import { clampIntFromDigits } from '@/lib/listing-wizard-numeric'
 import { isTransportListingCategory } from '@/lib/listing-category-slug'
-import { isPartnerListingHousingCategory } from '@/lib/partner/listing-wizard-metadata'
-import { PartnerListingSearchMetadataFields } from '@/components/partner/PartnerListingSearchMetadataFields'
+import { getWizardSpecsSectionFields } from '@/lib/config/category-form-schema'
+import { WizardSchemaFields } from '@/components/partner/WizardSchemaFields'
 
 function SpecsFields() {
   const w = useListingWizard()
-  const { formData, updateMetadata, t, getCategoryName, language, listingCategorySlug } = w
-  const categoryName = formData.categoryName?.toLowerCase() || ''
+  const { formData, updateMetadata, t, language, listingCategorySlug } = w
   const slug = (listingCategorySlug || '').toLowerCase()
 
-  if (slug === 'yachts' || categoryName.includes('yacht') || categoryName.includes('boat')) {
-    return (
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <div>
-          <UiLabel className="text-sm font-medium text-slate-700">{t('fieldPassengers')}</UiLabel>
-          <UiInput
-            inputMode="numeric"
-            autoComplete="off"
-            value={String(formData.metadata.passengers)}
-            onChange={(e) => updateMetadata('passengers', clampIntFromDigits(e.target.value, 1, 999, 1))}
-            className="mt-2 h-11"
-          />
-        </div>
-        <div>
-          <UiLabel className="text-sm font-medium text-slate-700">{t('fieldEngineType')}</UiLabel>
-          <UiInput
-            type="text"
-            placeholder={t('fieldEnginePlaceholder')}
-            value={formData.metadata.engine}
-            onChange={(e) => updateMetadata('engine', e.target.value)}
-            className="mt-2 h-11"
-          />
-        </div>
-      </div>
-    )
-  }
-  if (slug === 'tours' || categoryName.includes('tour')) {
-    return (
-      <div>
-        <UiLabel className="text-sm font-medium text-slate-700">{t('fieldDuration')}</UiLabel>
-        <UiInput
-          type="text"
-          placeholder={t('fieldDurationPlaceholder')}
-          value={formData.metadata.duration}
-          onChange={(e) => updateMetadata('duration', e.target.value)}
-          className="mt-2 h-11"
-        />
-      </div>
-    )
-  }
   if (isTransportListingCategory(slug)) {
     return null
   }
-  if (
-    slug === 'nanny' ||
-    slug === 'babysitter' ||
-    isPartnerListingHousingCategory(slug, formData.categoryName)
-  ) {
+
+  const specsFields = getWizardSpecsSectionFields(slug, formData.categoryName)
+  if (specsFields.length > 0) {
+    const showFeesDisclaimer = specsFields.some(
+      (f) => f.key === 'cleaning_fee_thb' || f.key === 'security_deposit_thb',
+    )
     return (
-      <PartnerListingSearchMetadataFields
-        categorySlug={slug}
-        categoryNameFallback={formData.categoryName}
-        language={language}
-        metadata={formData.metadata}
-        updateMetadata={updateMetadata}
-        variant="wizard"
-      />
+      <div className="space-y-4">
+        <p className="rounded-r-md border-l-[3px] border-teal-500 bg-teal-50/50 py-2 pl-3 text-sm leading-relaxed text-slate-600">
+          {t('wizardSpecsSearchHint')}
+        </p>
+        <WizardSchemaFields
+          fields={specsFields}
+          metadata={formData.metadata}
+          updateMetadata={updateMetadata}
+          t={t}
+          language={language}
+        />
+        {showFeesDisclaimer ? (
+          <p className="text-xs text-slate-500 leading-relaxed">{t('fieldFeesDisclaimer')}</p>
+        ) : null}
+      </div>
     )
   }
+
   return (
     <div className="py-8 text-center text-slate-500">
       <Building2 className="mx-auto mb-2 h-12 w-12 text-slate-300" />

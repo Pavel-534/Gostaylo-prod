@@ -29,13 +29,17 @@ import {
   getListingRentalPeriodMode,
   isWholeVesselListing,
 } from '@/lib/listing-booking-ui'
+import { isTransportListingCategory } from '@/lib/listing-category-slug'
 import { AmenitiesGrid } from '@/components/listing/AmenitiesGrid'
 import { ReviewsSection } from '@/components/listing/ReviewsSection'
 import { GalleryModal } from '@/components/listing/GalleryModal'
 import { BookingModal } from '@/components/listing/BookingModal'
 import { toast } from 'sonner'
 import { detectLanguage, getUIText } from '@/lib/translations'
-import { parseDurationDiscountTiers, computeBestDurationDiscountPercent } from '@/lib/services/pricing.service'
+import {
+  parseDurationDiscountTiers,
+  computeBestDurationDiscountPercent,
+} from '@/lib/listing/duration-discount-tiers.js'
 import { useAuth } from '@/contexts/auth-context'
 import { GostayloCalendar } from '@/components/gostaylo-calendar'
 import { useRecentlyViewed } from '@/lib/hooks/use-recently-viewed'
@@ -148,7 +152,9 @@ function PremiumListingContent({ params }) {
     () => listing?.ownerId ?? listing?.owner?.id ?? null,
     [listing?.ownerId, listing?.owner?.id],
   )
-  const isVehicleListing = String(listing?.categorySlug || '').toLowerCase() === 'vehicles'
+  const isVehicleListing = isTransportListingCategory(
+    listing?.categorySlug || listing?.category?.slug,
+  )
 
   const commissionHook = useCommission(listingPartnerId)
 
@@ -1013,7 +1019,9 @@ function PremiumListingContent({ params }) {
               
               <div>
                 <h2 className="text-2xl font-medium tracking-tight mb-4">
-                  {getUIText('whereYoullBe', language)}
+                  {getUIText('whereYoullBe', language, {
+                    listingCategorySlug: listing?.categorySlug || listing?.category?.slug,
+                  })}
                 </h2>
                 <ListingMap
                   latitude={listing.latitude}

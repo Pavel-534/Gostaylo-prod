@@ -15,6 +15,7 @@ import { Loader2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { formatPrice } from '@/lib/currency'
+import { isTransportListingCategory } from '@/lib/listing-category-slug'
 
 export function BookingModal({
   open,
@@ -42,7 +43,7 @@ export function BookingModal({
   setVehicleStartTime,
   setVehicleEndTime,
 }) {
-  const isVehicle = String(listingCategorySlug || '').toLowerCase() === 'vehicles'
+  const isVehicle = isTransportListingCategory(listingCategorySlug)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent

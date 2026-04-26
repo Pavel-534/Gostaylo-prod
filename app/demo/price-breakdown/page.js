@@ -2,10 +2,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PriceBreakdown } from '@/components/price-breakdown'
-import { useCommission } from '@/hooks/use-commission'
+
+/** Demo-only rate — avoid `useCommission` (pulls server-only graph into client bundle). */
+const DEMO_COMMISSION_RATE = 0.15
 
 export default function PriceBreakdownDemo() {
-  const { effectiveRate, loading } = useCommission()
   // Mock data: Booking that spans two seasons
   // 5 days in LOW season (8,000 THB/day) + 3 days in HIGH season (18,000 THB/day)
   const mockPriceData = {
@@ -50,16 +51,14 @@ export default function PriceBreakdownDemo() {
           </CardHeader>
         </Card>
 
-        {!loading && effectiveRate != null && (
-          <PriceBreakdown
-            priceData={mockPriceData}
-            commissionRate={effectiveRate}
-            currency="THB"
-            language="ru"
-            exchangeRates={{ THB: 1 }}
-            showDetails={true}
-          />
-        )}
+        <PriceBreakdown
+          priceData={mockPriceData}
+          commissionRate={DEMO_COMMISSION_RATE}
+          currency="THB"
+          language="ru"
+          exchangeRates={{ THB: 1 }}
+          showDetails={true}
+        />
 
         <Card className="bg-teal-50 border-teal-200">
           <CardContent className="py-6">

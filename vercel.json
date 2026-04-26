@@ -46,7 +46,7 @@
     },
     {
       "path": "/api/cron/notification-outbox",
-      "schedule": "*/5 * * * *"
+      "schedule": "15 4 * * *"
     }
   ]
 }

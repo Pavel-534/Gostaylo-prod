@@ -17,6 +17,7 @@ import { computeRoundedGuestTotalPot } from '@/lib/booking-price-integrity'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 import { normalizeBookingInstantForDb } from '@/lib/listing-date'
 import { resolveListingCategorySlug } from '@/lib/services/booking.service'
+import { isTransportListingCategory } from '@/lib/listing-category-slug'
 
 export const dynamic = 'force-dynamic'
 
@@ -121,7 +122,7 @@ export async function POST(request) {
     }
     
     const listingCategorySlug = await resolveListingCategorySlug(listing?.category_id)
-    const isVehicleListing = listingCategorySlug === 'vehicles'
+    const isVehicleListing = isTransportListingCategory(listingCategorySlug)
 
     const maxCap = Math.max(1, parseInt(listing.max_capacity, 10) || 1)
     if (!isVehicleListing && guestsCount > maxCap) {

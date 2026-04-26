@@ -22,12 +22,8 @@ export function getDefaultWizardFormData() {
     images: [],
     coverImage: '',
     metadata: {
-      bedrooms: 0,
-      bathrooms: 0,
-      max_guests: 2,
-      area: 0,
+      /** Жильё/транспорт подставляются при выборе типа и категории (`defaultMetadataForListingServiceType`, `setCategoryId`). */
       amenities: [],
-      property_type: 'Villa',
       passengers: 0,
       engine: '',
       duration: '',

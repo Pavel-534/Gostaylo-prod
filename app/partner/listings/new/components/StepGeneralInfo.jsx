@@ -13,7 +13,8 @@ import { ImageIcon, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { ProxiedImage } from '@/components/proxied-image'
 import { PartnerListingImportBlock } from '@/components/partner/PartnerListingImportBlock'
-import { PartnerListingSearchMetadataFields } from '@/components/partner/PartnerListingSearchMetadataFields'
+import { WizardSchemaFields } from '@/components/partner/WizardSchemaFields'
+import { getWizardStep1TransportFields } from '@/lib/config/category-form-schema'
 import { useListingWizard } from '../context/ListingWizardContext'
 import { WizardSpecsSection } from './WizardSpecsSection'
 
@@ -107,14 +108,23 @@ function StepGeneralInfoInner() {
         </Select>
       </div>
       {transportWizard && formData.categoryId ? (
-        <PartnerListingSearchMetadataFields
-          categorySlug={listingCategorySlug}
-          categoryNameFallback={formData.categoryName}
-          language={language}
-          metadata={formData.metadata}
-          updateMetadata={updateMetadata}
-          variant="wizard"
-        />
+        (() => {
+          const transportFields = getWizardStep1TransportFields(listingCategorySlug)
+          if (!transportFields.length) return null
+          return (
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
+              <p className="text-sm leading-relaxed text-slate-600">{t('wizardSpecsVehicleSearchHint')}</p>
+              <WizardSchemaFields
+                fields={transportFields}
+                metadata={formData.metadata}
+                updateMetadata={updateMetadata}
+                t={t}
+                language={language}
+                fuelPolicyHint
+              />
+            </div>
+          )
+        })()
       ) : null}
       {formData.categoryId && !hideAirbnbImportBlock ? (
         <PartnerListingImportBlock

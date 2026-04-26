@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { format, differenceInDays } from 'date-fns'
-import { PricingService } from '@/lib/services/pricing.service'
+import { calculatePrice } from '@/lib/listing/listing-price-sync.js'
 import { computeRoundedGuestTotalPot } from '@/lib/booking-price-integrity'
 
 /**
@@ -37,7 +37,7 @@ export function useListingPricing({
     const tr = Number(taxRatePercent)
     const taxRateForCalc = Number.isFinite(tr) && tr >= 0 ? tr : 0
 
-    const calc = PricingService.calculatePrice({
+    const calc = calculatePrice({
       basePriceThb: listing.basePriceThb,
       seasonalPricing: listing.seasonalPricing || [],
       dbSeasonalPrices: listing.dbSeasonalPrices || [],

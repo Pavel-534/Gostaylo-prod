@@ -24,6 +24,7 @@ import {
   Clock,
   Route,
   Car,
+  Info,
 } from 'lucide-react'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { getUIText, getListingText, getCategoryName } from '@/lib/translations'
@@ -38,6 +39,10 @@ import { normalizeVehicleModelYearForDisplay } from '@/lib/listing-vehicle-year'
 import { ListingCancellationPolicy } from '@/components/listing/ListingCancellationPolicy'
 import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
 import { PartnerRenterTrustBadges } from '@/components/trust/PartnerRenterTrustBadges'
+import {
+  getPublicListingMetadataSpecEntries,
+  listingMetadataSpecUiKey,
+} from '@/lib/listing-public-metadata-specs'
 
 function useGuestListingModel(listing) {
   return useMemo(() => {
@@ -76,6 +81,10 @@ function useGuestListingModel(listing) {
  */
 export function GuestListingTitleBlock({ listing, language = 'en' }) {
   const m = useGuestListingModel(listing)
+  const extraMetadataSpecs = useMemo(
+    () => getPublicListingMetadataSpecEntries(listing?.metadata),
+    [listing?.metadata],
+  )
   if (!m || !listing) return null
 
   const {
@@ -216,6 +225,20 @@ export function GuestListingTitleBlock({ listing, language = 'en' }) {
             <span>{getUIText('listingInfo_areaSqm', language).replace(/\{\{n\}\}/g, String(area))}</span>
           </div>
         )}
+        {extraMetadataSpecs.map(({ key, value }) => {
+          const uiKey = listingMetadataSpecUiKey(key)
+          const labelRaw = getUIText(uiKey, language)
+          const label = labelRaw !== uiKey ? labelRaw : key.replace(/_/g, ' ')
+          return (
+            <div key={key} className="flex items-center gap-2 text-slate-700">
+              <Info className="h-5 w-5 text-slate-400 shrink-0" aria-hidden />
+              <span className="tabular-nums">
+                <span className="text-slate-500">{label}: </span>
+                {value}
+              </span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

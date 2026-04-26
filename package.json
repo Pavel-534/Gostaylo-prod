@@ -15,6 +15,7 @@
     "lint:fix": "eslint . --fix",
     "verify:currency": "node scripts/verify-format-price.mjs",
     "check:payout-methods": "node scripts/check-payout-methods.mjs",
+    "check:i18n": "node scripts/check-i18n-duplicates.mjs",
     "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {

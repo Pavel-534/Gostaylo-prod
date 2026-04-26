@@ -13,8 +13,9 @@ import { TimeSelect } from '@/components/ui/time-select'
 import { Star, ArrowRight, MessageCircle, Loader2, Sparkles } from 'lucide-react'
 import { formatPrice, priceRawForTest } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
-import { parseDurationDiscountTiers } from '@/lib/services/pricing.service'
+import { parseDurationDiscountTiers } from '@/lib/listing/duration-discount-tiers.js'
 import { getListingRentalPeriodMode, isWholeVesselListing } from '@/lib/listing-booking-ui'
+import { isTransportListingCategory } from '@/lib/listing-category-slug'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import { formatRentalSpanLabel } from '@/lib/rental-period-labels'
 import { GostayloCalendar } from '@/components/gostaylo-calendar'
@@ -315,6 +316,9 @@ export function DesktopBookingWidget({
   const remaining = availabilitySnapshot?.remaining_spots
   const sharedMode = bookingUiMode === 'shared'
   const wholeVessel = isWholeVesselListing(listing?.categorySlug, listing?.metadata)
+  const listingCategorySlug = listing?.categorySlug || listing?.category?.slug || ''
+  const uiListingCtx = listingCategorySlug ? { listingCategorySlug } : undefined
+  const tx = (k) => getUIText(k, language, uiListingCtx)
 
   return (
     <div className="hidden lg:block sticky top-24">
@@ -337,7 +341,7 @@ export function DesktopBookingWidget({
                 className="text-sm text-slate-500"
                 data-testid="booking-per-period-label"
               >
-                {getUIText(rentalPeriodMode === 'day' ? 'perBookingDay' : 'perNight', language)}
+                {tx(rentalPeriodMode === 'day' ? 'perBookingDay' : 'perNight')}
               </p>
             </div>
             {(listing.rating > 0 || (listing.reviewsCount || listing.reviews_count || 0) > 0) && (
@@ -407,9 +411,8 @@ export function DesktopBookingWidget({
             <div className="flex gap-2 rounded-lg border border-emerald-200 bg-emerald-50/90 px-3 py-2 text-sm text-emerald-900">
               <Sparkles className="h-4 w-4 shrink-0 mt-0.5" />
               <p>
-                {getUIText(
+                {tx(
                   rentalPeriodMode === 'day' ? 'durationDiscountTeaserActiveDay' : 'durationDiscountTeaserActiveNight',
-                  language,
                 ).replace(/\{\{pct\}\}/g, String(durationDiscountPercentActive))}
               </p>
             </div>
@@ -417,7 +420,7 @@ export function DesktopBookingWidget({
 
           <div>
             <Label className="text-sm font-medium mb-2 block">
-              {getUIText(rentalPeriodMode === 'day' ? 'travelDatesRental' : 'travelDates', language)}
+              {tx(rentalPeriodMode === 'day' ? 'travelDatesRental' : 'travelDates')}
             </Label>
             <GostayloCalendar
               key={calendarKey}
@@ -432,7 +435,7 @@ export function DesktopBookingWidget({
             />
           </div>
 
-          {String(listing?.categorySlug || '').toLowerCase() === 'vehicles' && (
+          {isTransportListingCategory(listing?.categorySlug || listing?.category?.slug) && (
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs text-slate-600 mb-1.5 block">
@@ -459,7 +462,7 @@ export function DesktopBookingWidget({
 
           <div>
             <Label className="text-sm font-medium mb-2 block">
-              {getUIText(rentalPeriodMode === 'day' ? 'numberOfSeats' : 'numberOfGuests', language)}
+              {tx(rentalPeriodMode === 'day' ? 'numberOfSeats' : 'numberOfGuests')}
             </Label>
             <GuestCountStepper
               value={guests}
@@ -491,12 +494,12 @@ export function DesktopBookingWidget({
               >
                 <MessageCircle className="mr-2 h-4 w-4" />
                 {askPartnerLoading
-                  ? getUIText('loading', language)
+                  ? tx('loading')
                   : hasExistingConversation
                     ? language === 'ru'
                       ? 'Продолжить диалог'
                       : 'Continue chat'
-                    : getUIText('askListingQuestion', language)}
+                    : tx('askListingQuestion')}
               </Button>
               <ChatPreviewBadge
                 preview={lastMessagePreview}
@@ -516,7 +519,7 @@ export function DesktopBookingWidget({
               ? language === 'ru'
                 ? 'Даты недоступны'
                 : 'Dates unavailable'
-              : getUIText('bookNow', language)}
+              : tx('bookNow')}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
 
@@ -564,7 +567,7 @@ export function DesktopBookingWidget({
           )}
 
           {(!dateRange?.from || !dateRange?.to) && (
-            <p className="text-xs text-center text-slate-500">{getUIText('selectDatesToBook', language)}</p>
+            <p className="text-xs text-center text-slate-500">{tx('selectDatesToBook')}</p>
           )}
         </CardContent>
       </Card>
@@ -595,13 +598,16 @@ export function MobileBookingBar({
   onSpecialPriceClick,
 }) {
   const rentalPeriodMode = getListingRentalPeriodMode(listing?.categorySlug || listing?.category?.slug)
+  const listingCategorySlug = listing?.categorySlug || listing?.category?.slug || ''
+  const uiListingCtx = listingCategorySlug ? { listingCategorySlug } : undefined
+  const tx = (k) => getUIText(k, language, uiListingCtx)
   const askLabel = askPartnerLoading
-    ? getUIText('loading', language)
+    ? tx('loading')
     : hasExistingConversation
       ? language === 'ru'
         ? 'Продолжить диалог'
         : 'Continue chat'
-      : getUIText('askListingQuestion', language)
+      : tx('askListingQuestion')
 
   const sharedMode = bookingUiMode === 'shared'
   const mobileOfferTiers = parseDurationDiscountTiers(listing?.metadata?.discounts)
@@ -614,7 +620,7 @@ export function MobileBookingBar({
       {mobileOfferTiers.length > 0 && (
         <div className="mb-2 flex flex-wrap items-center gap-1.5">
           <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-800/90">
-            {getUIText('specialOffersTitle', language)}
+            {tx('specialOffersTitle')}
           </span>
           {mobileOfferTiers.map((t) => (
             <span
@@ -670,7 +676,7 @@ export function MobileBookingBar({
             {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates, language)}
           </div>
           <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
-            {getUIText(rentalPeriodMode === 'day' ? 'perBookingDay' : 'perNight', language)}
+            {tx(rentalPeriodMode === 'day' ? 'perBookingDay' : 'perNight')}
             {priceCalc
               ? ` • ${formatRentalSpanLabel(
                   priceCalc.nights,
@@ -728,7 +734,7 @@ export function MobileBookingBar({
               ? language === 'ru'
                 ? 'Недоступно'
                 : 'Unavailable'
-              : getUIText('bookNow', language)}
+              : tx('bookNow')}
           </Button>
         </div>
       </div>
