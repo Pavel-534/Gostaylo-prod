@@ -2,18 +2,68 @@
  * GoStayLo - TRON Transaction Verification API v2.0
  * POST /api/v2/payments/verify-tron
  * GET /api/v2/payments/verify-tron?txid=[TXID]&expectedAmount=[USDT]
- * 
- * Live verification with FULL AMOUNT check
+ *
+ * Ожидаемая сумма USDT: из `bookingId` — **тот же гостевой итог THB**, что и чекаут (`getGuestPayableRoundedThb` + `pricing_snapshot`), Stage 51.0.
+ * `expectedAmountThb` без `bookingId` — полный гостевой payable THB (не умножать на «сервисный %» на клиенте).
  */
 
 import { NextResponse } from 'next/server';
 import { verifyTronTransaction, getStatusBadge, GOSTAYLO_WALLET, thbToUsdt } from '@/lib/services/tron.service';
 import { supabaseAdmin } from '@/lib/supabase';
-import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
 import { PaymentsV3Service } from '@/lib/services/payments-v3.service';
-import { getUserIdFromSession } from '@/lib/services/session-service';
+import { getSessionPayload } from '@/lib/services/session-service';
+import { getGuestPayableRoundedThb } from '@/lib/booking-guest-total';
 
 export const dynamic = 'force-dynamic';
+
+const STAFF_ROLES = new Set(['ADMIN', 'MODERATOR']);
+
+/**
+ * @param {{ renter_id?: string | null }} booking
+ * @param {{ userId?: string | null, role?: string | null } | null} session
+ */
+function assertBookingTronAmountAccess(booking, session) {
+  if (!booking?.renter_id) return { ok: true };
+  const uid = session?.userId ? String(session.userId) : '';
+  if (!uid) {
+    return { ok: false, status: 401, error: 'Authentication required', code: 'UNAUTHORIZED' };
+  }
+  const role = String(session?.role || '').toUpperCase();
+  if (STAFF_ROLES.has(role)) return { ok: true };
+  if (String(booking.renter_id) === uid) return { ok: true };
+  return { ok: false, status: 403, error: 'Access denied', code: 'FORBIDDEN' };
+}
+
+async function resolveExpectedUsdtFromBooking(bookingId) {
+  const { data: booking, error } = await supabaseAdmin
+    .from('bookings')
+    .select('price_thb, commission_thb, rounding_diff_pot, pricing_snapshot, renter_id')
+    .eq('id', bookingId)
+    .single();
+
+  if (error || !booking) {
+    return { ok: false, error: 'Booking not found', status: 404 };
+  }
+
+  const session = await getSessionPayload();
+  const gate = assertBookingTronAmountAccess(booking, session);
+  if (!gate.ok) {
+    return {
+      ok: false,
+      error: gate.error,
+      status: gate.status,
+      code: gate.code,
+    };
+  }
+
+  const totalThb = getGuestPayableRoundedThb(booking);
+  if (!Number.isFinite(totalThb) || totalThb <= 0) {
+    return { ok: false, error: 'Booking has no payable amount', status: 400 };
+  }
+
+  const expectedAmount = await thbToUsdt(totalThb);
+  return { ok: true, expectedAmount, guestPayableThb: totalThb };
+}
 
 export async function POST(request) {
   try {
@@ -27,52 +77,35 @@ export async function POST(request) {
       );
     }
 
-    // Determine expected amount
-    let expectedAmount = expectedAmountUsdt;
-    
-    // If booking ID provided, get the amount from booking
-    if (bookingId && !expectedAmount) {
-      const sessionUserId = await getUserIdFromSession();
-      const { data: booking } = await supabaseAdmin
-        .from('bookings')
-        .select('price_thb, commission_rate, renter_id')
-        .eq('id', bookingId)
-        .single();
+    let expectedAmount = expectedAmountUsdt != null && expectedAmountUsdt !== '' ? parseFloat(expectedAmountUsdt) : null;
+    if (expectedAmount != null && !Number.isFinite(expectedAmount)) expectedAmount = null;
 
-      if (booking?.renter_id) {
-        if (!sessionUserId) {
-          return NextResponse.json(
-            { success: false, error: 'Authentication required', status: 'UNAUTHORIZED' },
-            { status: 401 },
-          );
-        }
-        if (String(booking.renter_id) !== String(sessionUserId)) {
-          return NextResponse.json(
-            { success: false, error: 'Access denied', status: 'FORBIDDEN' },
-            { status: 403 },
-          );
-        }
+    if (bookingId && expectedAmount == null) {
+      const resolved = await resolveExpectedUsdtFromBooking(String(bookingId));
+      if (!resolved.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: resolved.error,
+            status: resolved.code || 'ERROR',
+          },
+          { status: resolved.status || 500 },
+        );
       }
+      expectedAmount = resolved.expectedAmount;
+    }
 
-      if (booking?.price_thb) {
-        const cr = parseFloat(booking.commission_rate);
-        const pct =
-          Number.isFinite(cr) && cr >= 0 ? cr : await resolveDefaultCommissionPercent();
-        const totalThb = parseFloat(booking.price_thb) * (1 + pct / 100);
-        expectedAmount = await thbToUsdt(totalThb);
+    if (expectedAmount == null && expectedAmountThb != null && expectedAmountThb !== '') {
+      const rawThb = parseFloat(expectedAmountThb);
+      if (Number.isFinite(rawThb) && rawThb > 0) {
+        expectedAmount = await thbToUsdt(rawThb);
       }
     }
 
-    if (expectedAmountThb && !expectedAmount) {
-      expectedAmount = await thbToUsdt(parseFloat(expectedAmountThb));
-    }
-
-    // Verify transaction with amount check
     const result = await verifyTronTransaction(txid, expectedAmount);
     const badge = getStatusBadge(result.status);
 
-    /** If bookingId + Tron OK: same path as admin confirm → payments.CONFIRMED + escrow + ledger */
-    let paymentSettled = null
+    let paymentSettled = null;
     if (bookingId && result.success) {
       const { data: pendingPay } = await supabaseAdmin
         .from('payments')
@@ -81,19 +114,19 @@ export async function POST(request) {
         .eq('status', 'PENDING')
         .order('created_at', { ascending: false })
         .limit(1)
-        .maybeSingle()
+        .maybeSingle();
       if (pendingPay?.id) {
         const conf = await PaymentsV3Service.confirmPayment(pendingPay.id, {
           source: 'verify_tron_api',
           txid,
           tron: result.data,
-        })
+        });
         paymentSettled = {
           success: conf?.success === true,
           error: conf?.success ? undefined : conf?.error,
-        }
+        };
       } else {
-        paymentSettled = { success: false, error: 'no_pending_payment' }
+        paymentSettled = { success: false, error: 'no_pending_payment' };
       }
     }
 
@@ -105,16 +138,17 @@ export async function POST(request) {
       error: result.error,
       expectedWallet: GOSTAYLO_WALLET,
       paymentSettled,
-      amountVerification: result.data ? {
-        received: result.data.amount,
-        expected: result.data.expectedAmount,
-        difference: result.data.amountDifference,
-        percentage: result.data.amountPercentage,
-        status: result.data.amountStatus,
-        sufficient: result.data.isAmountSufficient
-      } : null
+      amountVerification: result.data
+        ? {
+            received: result.data.amount,
+            expected: result.data.expectedAmount,
+            difference: result.data.amountDifference,
+            percentage: result.data.amountPercentage,
+            status: result.data.amountStatus,
+            sufficient: result.data.isAmountSufficient,
+          }
+        : null,
     });
-
   } catch (error) {
     console.error('[VERIFY TRON API ERROR]', error);
     return NextResponse.json(
@@ -124,53 +158,29 @@ export async function POST(request) {
   }
 }
 
-// GET for quick status check
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const txid = searchParams.get('txid');
-  const expectedAmount = searchParams.get('expectedAmount');
+  const expectedAmountParam = searchParams.get('expectedAmount');
   const bookingId = searchParams.get('bookingId');
 
   if (!txid) {
-    return NextResponse.json(
-      { success: false, error: 'TXID query parameter is required' },
-      { status: 400 }
-    );
+    return NextResponse.json({ success: false, error: 'TXID query parameter is required' }, { status: 400 });
   }
 
-  // Get expected amount from booking if provided
-  let expectedUsdt = expectedAmount ? parseFloat(expectedAmount) : null;
-  
-  if (bookingId && !expectedUsdt) {
-    const sessionUserId = await getUserIdFromSession();
-    const { data: booking } = await supabaseAdmin
-      .from('bookings')
-      .select('price_thb, commission_rate, renter_id')
-      .eq('id', bookingId)
-      .single();
+  let expectedUsdt =
+    expectedAmountParam != null && expectedAmountParam !== '' ? parseFloat(expectedAmountParam) : null;
+  if (expectedUsdt != null && !Number.isFinite(expectedUsdt)) expectedUsdt = null;
 
-    if (booking?.renter_id) {
-      if (!sessionUserId) {
-        return NextResponse.json(
-          { success: false, error: 'Authentication required', status: 'UNAUTHORIZED' },
-          { status: 401 },
-        );
-      }
-      if (String(booking.renter_id) !== String(sessionUserId)) {
-        return NextResponse.json(
-          { success: false, error: 'Access denied', status: 'FORBIDDEN' },
-          { status: 403 },
-        );
-      }
+  if (bookingId && expectedUsdt == null) {
+    const resolved = await resolveExpectedUsdtFromBooking(String(bookingId));
+    if (!resolved.ok) {
+      return NextResponse.json(
+        { success: false, error: resolved.error, status: resolved.code || 'ERROR' },
+        { status: resolved.status || 500 },
+      );
     }
-
-    if (booking?.price_thb) {
-      const cr = parseFloat(booking.commission_rate);
-      const pct =
-        Number.isFinite(cr) && cr >= 0 ? cr : await resolveDefaultCommissionPercent();
-      const totalThb = parseFloat(booking.price_thb) * (1 + pct / 100);
-      expectedUsdt = await thbToUsdt(totalThb);
-    }
+    expectedUsdt = resolved.expectedAmount;
   }
 
   const result = await verifyTronTransaction(txid, expectedUsdt);
@@ -183,13 +193,15 @@ export async function GET(request) {
     data: result.data,
     error: result.error,
     expectedWallet: GOSTAYLO_WALLET,
-    amountVerification: result.data ? {
-      received: result.data.amount,
-      expected: result.data.expectedAmount,
-      difference: result.data.amountDifference,
-      percentage: result.data.amountPercentage,
-      status: result.data.amountStatus,
-      sufficient: result.data.isAmountSufficient
-    } : null
+    amountVerification: result.data
+      ? {
+          received: result.data.amount,
+          expected: result.data.expectedAmount,
+          difference: result.data.amountDifference,
+          percentage: result.data.amountPercentage,
+          status: result.data.amountStatus,
+          sufficient: result.data.isAmountSufficient,
+        }
+      : null,
   });
 }

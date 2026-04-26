@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { timingSafeEqual } from 'crypto';
+import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -161,13 +162,13 @@ export async function POST(request) {
     key: 'general',
     value: {
       defaultCommissionRate: 15,
-      guestServiceFeePercent: 5,
-      hostCommissionPercent: 0,
-      insuranceFundPercent: 0.5,
+      guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
+      hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
+      insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
       maintenanceMode: false,
       heroTitle: 'Luxury Rentals in Phuket',
       heroSubtitle: 'Villas, Bikes, Yachts & Tours',
-      serviceFeePercent: 5
+      serviceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
     }
   };
   

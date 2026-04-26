@@ -4,6 +4,8 @@
  */
 
 import { useState, useEffect } from 'react'
+import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js'
+import { platformDefaultChatInvoiceRateMultiplier } from '@/lib/services/currency-last-resort.js'
 
 export function useCommission(partnerId = null) {
   const [commission, setCommission] = useState({
@@ -11,10 +13,10 @@ export function useCommission(partnerId = null) {
     personalRate: null,
     effectiveRate: null,
     partnerEarningsPercent: null,
-    guestServiceFeePercent: 5,
-    hostCommissionPercent: 0,
-    insuranceFundPercent: 0.5,
-    chatInvoiceRateMultiplier: 1.02,
+    guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
+    hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
+    insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
+    chatInvoiceRateMultiplier: platformDefaultChatInvoiceRateMultiplier(),
     loading: true,
     error: null,
   })
@@ -26,7 +28,7 @@ export function useCommission(partnerId = null) {
           ? `/api/v2/commission?partnerId=${partnerId}`
           : '/api/v2/commission'
 
-        const res = await fetch(url)
+        const res = await fetch(url, { credentials: 'include' })
         const data = await res.json()
 
         if (data.success && data.data) {
@@ -90,14 +92,22 @@ export async function getCommissionRate(partnerId = null) {
 
     const effectiveRate = personalRate !== null ? personalRate : systemRate
 
+    const g = parseFloat(settings?.value?.guestServiceFeePercent ?? settings?.value?.serviceFeePercent)
+    const guestServiceFeePercent =
+      Number.isFinite(g) && g >= 0 && g <= 100 ? g : PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent
+
+    const ins = parseFloat(settings?.value?.insuranceFundPercent)
+    const insuranceFundPercent =
+      Number.isFinite(ins) && ins >= 0 && ins <= 100 ? ins : PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent
+
     return {
       systemRate,
       personalRate,
       effectiveRate,
       partnerEarningsPercent: 100 - effectiveRate,
-      guestServiceFeePercent: parseFloat(settings?.value?.guestServiceFeePercent ?? 5) || 5,
+      guestServiceFeePercent,
       hostCommissionPercent: effectiveRate,
-      insuranceFundPercent: parseFloat(settings?.value?.insuranceFundPercent ?? 0.5) || 0.5,
+      insuranceFundPercent,
     }
   } catch (error) {
     console.error('getCommissionRate error:', error)
@@ -108,9 +118,9 @@ export async function getCommissionRate(partnerId = null) {
       personalRate: null,
       effectiveRate: fallback,
       partnerEarningsPercent: 100 - fallback,
-      guestServiceFeePercent: 5,
+      guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
       hostCommissionPercent: fallback,
-      insuranceFundPercent: 0.5,
+      insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
     }
   }
 }

@@ -6,6 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { platformDefaultChatInvoiceRateMultiplier } from '@/lib/services/currency-last-resort'
 
@@ -21,9 +22,9 @@ const defaultChatSafety = {
 
 let mockSettings = {
   defaultCommissionRate: 15,
-  guestServiceFeePercent: 5,
-  hostCommissionPercent: 0,
-  insuranceFundPercent: 0.5,
+  guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
+  hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
+  insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
   settlementPayoutDelayDays: 1,
   settlementPayoutHourLocal: 18,
   chatInvoiceRateMultiplier: platformDefaultChatInvoiceRateMultiplier(),

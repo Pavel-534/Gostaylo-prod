@@ -36,6 +36,7 @@ import {
 import { pickPartnerFormDescription } from '@/lib/partner/listing-description-i18n'
 import { applyDurationDiscountField } from '@/lib/partner/duration-discount-helpers'
 import { guessIanaTimezoneFromLatLon } from '@/lib/geo/listing-timezone-guess'
+import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js'
 import { WIZARD_DISTRICTS, getDefaultWizardFormData } from '../wizard-constants'
 import { ru, enUS, zhCN, th as thDateLocale } from 'date-fns/locale'
 
@@ -97,9 +98,9 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
   })
   const [partnerCommissionRate, setPartnerCommissionRate] = useState(null)
   const [pricingPolicy, setPricingPolicy] = useState({
-    guestServiceFeePercent: 5,
-    hostCommissionPercent: 0,
-    insuranceFundPercent: 0.5,
+    guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
+    hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
+    insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
     chatInvoiceRateMultiplier: 1.025,
   })
   const [formData, setFormData] = useState(getDefaultWizardFormData)

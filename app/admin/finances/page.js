@@ -90,18 +90,28 @@ export default function FinancePage() {
     }
   }
 
-  async function handleVerifyTron(txid, expectedAmountThb = null) {
+  async function handleVerifyTron(txid, bookingId = null) {
     setVerifying(true)
     setVerificationResult(null)
 
     try {
+      if (!bookingId) {
+        toast({
+          title: 'Нет привязки к брони',
+          description: 'Для проверки суммы у платежа должен быть booking_id (как на чекауте).',
+          variant: 'destructive',
+        })
+        setVerifying(false)
+        return
+      }
+
       const res = await fetch('/api/v2/payments/verify-tron', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           txid,
-          expectedAmountThb: expectedAmountThb ? parseFloat(expectedAmountThb) * 1.15 : null  // Include 15% service fee
-        })
+          bookingId,
+        }),
       })
 
       const data = await res.json()
@@ -479,7 +489,9 @@ export default function FinancePage() {
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
-                          onClick={() => handleVerifyTron(selectedPayment.txid, selectedPayment.booking?.price_thb)}
+                          onClick={() =>
+                            handleVerifyTron(selectedPayment.txid, selectedPayment.bookingId ?? selectedPayment.booking_id)
+                          }
                           disabled={verifying}
                           className="flex-1"
                           data-testid="live-verify-btn"

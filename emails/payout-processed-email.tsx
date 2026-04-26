@@ -30,7 +30,7 @@ export default function PayoutProcessedEmail({
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Heading style={brand}>{siteName}</Heading>
+            <Heading style={brand}>{getSiteDisplayName()}</Heading>
             <Heading style={h1}>Выплата отправлена</Heading>
           </Section>
 

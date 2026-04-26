@@ -1,5 +1,6 @@
 'use client';
 
+import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,9 +15,9 @@ const FEE_SPLIT_PRESETS = {
     id: 'russia_fast',
     title: 'РФ / Быстрые выплаты',
     description: 'MIR/банки, выплаты в день заселения',
-    guestServiceFeePercent: 5,
-    hostCommissionPercent: 0,
-    insuranceFundPercent: 0.5,
+    guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
+    hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
+    insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
     chatInvoiceRateMultiplier: 1.01,
     settlementPayoutDelayDays: 0,
     settlementPayoutHourLocal: 20,
@@ -25,9 +26,9 @@ const FEE_SPLIT_PRESETS = {
     id: 'thailand_standard',
     title: 'Таиланд / Стандарт',
     description: 'Следующий день, баланс скорость/риски',
-    guestServiceFeePercent: 5,
-    hostCommissionPercent: 0,
-    insuranceFundPercent: 0.5,
+    guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
+    hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
+    insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
     chatInvoiceRateMultiplier: 1.025,
     settlementPayoutDelayDays: 1,
     settlementPayoutHourLocal: 18,
@@ -49,9 +50,9 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [settings, setSettings] = useState({
     defaultCommissionRate: 15,
-    guestServiceFeePercent: 5,
-    hostCommissionPercent: 0,
-    insuranceFundPercent: 0.5,
+    guestServiceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
+    hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
+    insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
     settlementPayoutDelayDays: 1,
     settlementPayoutHourLocal: 18,
     chatInvoiceRateMultiplier: 1.02,
@@ -375,7 +376,7 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <Label htmlFor="insuranceFundPercent">Insurance fund (%)</Label>
+              <Label htmlFor="insuranceFundPercent">Reserve fund / insurance (% of platform margin)</Label>
               <Input
                 id="insuranceFundPercent"
                 type="number"
