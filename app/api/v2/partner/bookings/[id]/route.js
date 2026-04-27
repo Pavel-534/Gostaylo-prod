@@ -14,6 +14,7 @@ import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { buildBookingFinancialSnapshotFromRow } from '@/lib/services/booking-financial-read-model.service'
 import { transformPartnerBookingToClient } from '@/lib/partner/partner-booking-transform'
+import ReferralPnlService from '@/lib/services/marketing/referral-pnl.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -262,6 +263,19 @@ export async function PUT(request, { params }) {
         }
       } catch (e) {
         console.error('[BOOKING UPDATE] BOOKING_CONFIRMED notify', e)
+      }
+    }
+
+    if (newStatus === 'COMPLETED') {
+      try {
+        const referralResult = await ReferralPnlService.distribute(id, {
+          trigger: 'partner_status_completed',
+        })
+        if (referralResult?.success !== true && referralResult?.error) {
+          console.warn('[BOOKING UPDATE] referral distribute failed:', referralResult.error)
+        }
+      } catch (e) {
+        console.error('[BOOKING UPDATE] referral distribute', e)
       }
     }
 

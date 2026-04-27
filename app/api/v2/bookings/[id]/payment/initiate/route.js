@@ -8,6 +8,7 @@ import { getUserIdFromSession } from '@/lib/services/session-service'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 import { supabaseAdmin } from '@/lib/supabase'
 import PaymentIntentService from '@/lib/services/payment-intent.service'
+import WalletService from '@/lib/services/finance/wallet.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +28,7 @@ export async function POST(request, { params }) {
     const body = await request.json()
     const method = normalizeMethod(body?.method)
     const invoiceId = body?.invoiceId ? String(body.invoiceId) : null
+    const walletUseRequestedThb = Number(body?.walletUseThb ?? body?.wallet_use_thb ?? 0)
     if (!method) {
       return NextResponse.json({ success: false, error: 'Invalid payment method' }, { status: 400 })
     }
@@ -72,8 +74,75 @@ export async function POST(request, { params }) {
       invoice = inv
     }
 
+    let walletUseAppliedThb = 0
+    let walletSpendResult = null
+    let bookingForIntent = booking
+    const existingWalletDiscountThb = Math.max(0, Math.round(Number(booking?.metadata?.wallet_discount_thb || 0)))
+    if (existingWalletDiscountThb > 0) {
+      walletUseAppliedThb = existingWalletDiscountThb
+      bookingForIntent = {
+        ...booking,
+        commission_thb: Math.max(0, Math.round(Number(booking.commission_thb || 0) - walletUseAppliedThb)),
+      }
+    }
+    if (!invoiceId && walletUseAppliedThb <= 0 && Number.isFinite(walletUseRequestedThb) && walletUseRequestedThb > 0) {
+      const policy = await WalletService.getWalletPolicy()
+      const maxByPercent = Math.round(
+        ((Number(booking.price_thb || 0) + Number(booking.commission_thb || 0) + Number(booking.rounding_diff_pot || 0)) *
+          (Number(policy.walletMaxDiscountPercent || 0) / 100)),
+      )
+      const maxByPlatformFee = Math.max(0, Math.round(Number(booking.commission_thb || 0)))
+      walletUseAppliedThb = Math.max(
+        0,
+        Math.min(Math.round(walletUseRequestedThb), maxByPercent, maxByPlatformFee),
+      )
+      if (walletUseAppliedThb > 0) {
+        const renterId = booking.renter_id || sessionUserId
+        const activationGate = await WalletService.assertWalletSpendAllowed(renterId)
+        if (!activationGate.ok) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: activationGate.error || 'WALLET_ACTIVATION_REQUIRED',
+              code: 'WALLET_ACTIVATION_REQUIRED',
+            },
+            { status: activationGate.status || 403 },
+          )
+        }
+        const spend = await WalletService.spendFunds(
+          renterId,
+          walletUseAppliedThb,
+          bookingId,
+          {
+            trigger: 'payment_initiate',
+            wallet_max_discount_percent: policy.walletMaxDiscountPercent,
+          },
+        )
+        if (!spend.success && spend.error !== 'ALREADY_APPLIED') {
+          return NextResponse.json(
+            { success: false, error: spend.error || 'WALLET_SPEND_REJECTED' },
+            { status: spend.status || 409 },
+          )
+        }
+        walletSpendResult = spend.data || null
+        const reducedCommission = Math.max(
+          0,
+          Math.round(Number(booking.commission_thb || 0) - walletUseAppliedThb),
+        )
+        bookingForIntent = {
+          ...booking,
+          commission_thb: reducedCommission,
+          metadata: {
+            ...(booking.metadata || {}),
+            wallet_discount_thb: walletUseAppliedThb,
+            wallet_spend_transaction_id: spend?.data?.transactionId || null,
+          },
+        }
+      }
+    }
+
     const intentRes = await PaymentIntentService.resolveOrCreateForCheckout({
-      booking,
+      booking: bookingForIntent,
       invoice,
       createdBy: sessionUserId || null,
     })
@@ -100,6 +169,9 @@ export async function POST(request, { params }) {
           paymentMethod: initiated.selectedMethod,
           paymentInitiatedAt: new Date().toISOString(),
           invoiceId: invoiceId || null,
+          wallet_discount_thb: walletUseAppliedThb > 0 ? walletUseAppliedThb : booking?.metadata?.wallet_discount_thb || 0,
+          wallet_spend_transaction_id:
+            walletSpendResult?.transactionId || booking?.metadata?.wallet_spend_transaction_id || null,
         },
       })
       .eq('id', bookingId)
@@ -119,6 +191,7 @@ export async function POST(request, { params }) {
         provider: initiated.provider,
         checkoutUrl: initiated.checkoutUrl,
         metadata: initiated.providerPayload || null,
+        walletUseAppliedThb,
       },
     })
   } catch (error) {

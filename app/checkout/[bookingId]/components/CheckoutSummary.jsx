@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { getUIText } from '@/lib/translations'
 import { RENTER_CHECKOUT_NO_CANCEL_STATUSES } from '@/lib/config/app-constants'
 import { OrderPriceBreakdown } from '@/components/orders/OrderPriceBreakdown'
@@ -36,6 +37,28 @@ export function CheckoutSummary({ p, c, onOpenCancel }) {
             )}
           </div>
 
+          {!c.hasInvoiceCheckout ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-amber-900">Ваш баланс: {Math.round(p.walletBalanceThb || 0)} THB</p>
+                <Switch
+                  checked={Boolean(p.useWalletBonuses)}
+                  onCheckedChange={p.setUseWalletBonuses}
+                  disabled={p.walletLoading || Number(p.walletBalanceThb || 0) <= 0}
+                  aria-label="Use wallet bonuses"
+                />
+              </div>
+              <p className="text-xs text-amber-800">
+                Использовать бонусы для скидки? Лимит {Math.round(p.walletMaxDiscountPercent || 0)}% от суммы заказа.
+              </p>
+              {Number(c.walletAppliedThb || 0) > 0 ? (
+                <p className="text-xs font-semibold text-emerald-700">
+                  Применено из кошелька: -{Math.round(c.walletAppliedThb)} THB (только платформа)
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <div className="border-t pt-4 space-y-2">
             {!c.hasInvoiceCheckout && c.guestCheckoutBreakdown?.hasDetail ? (
               <div
@@ -64,6 +87,14 @@ export function CheckoutSummary({ p, c, onOpenCancel }) {
                   )}
                 >
                   {c.payableText}
+                </span>
+              </div>
+            ) : null}
+            {!c.hasInvoiceCheckout ? (
+              <div className="flex justify-between text-lg font-bold border-t pt-2">
+                <span>{getUIText('checkout_total', c.language)}</span>
+                <span className="text-teal-600">
+                  {c.formatDisplayPrice(c.totalWithFee, p.booking?.currency || 'THB')}
                 </span>
               </div>
             ) : null}

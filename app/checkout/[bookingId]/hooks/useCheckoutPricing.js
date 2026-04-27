@@ -19,7 +19,15 @@ import { interpolateTemplate } from './interpolate.js'
  * @param {string[]} opts.allowedMethods
  * @param {string} opts.language
  */
-export function useCheckoutPricing({ booking, invoice, paymentMethod, setPaymentMethod, allowedMethods, language }) {
+export function useCheckoutPricing({
+  booking,
+  invoice,
+  paymentMethod,
+  setPaymentMethod,
+  allowedMethods,
+  language,
+  walletUseThb = 0,
+}) {
   const searchParams = useSearchParams()
   const commissionFromApi = useCommission()
   const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
@@ -118,6 +126,9 @@ export function useCheckoutPricing({ booking, invoice, paymentMethod, setPayment
     hasInvoiceCheckout,
     payableText,
     guestCheckoutBreakdown,
+    walletAppliedThb,
+    serviceFeeBeforeWallet,
+    serviceFeeAfterWallet,
   } = useMemo(() => {
     const discountAmount = promoDiscount?.discountAmount || 0
     const priceAfterDiscount = (booking?.priceThb ?? 0) - discountAmount
@@ -137,7 +148,13 @@ export function useCheckoutPricing({ booking, invoice, paymentMethod, setPayment
       ? Math.round(priceAfterDiscount * (taxRatePercent / 100))
       : Math.round(Number(fs.tax_amount_thb ?? taxSnap.amount_thb ?? 0) || 0)
 
-    const guestTotalBeforeRounding = priceAfterDiscount + taxAmountCheckout + serviceFee
+    const serviceFeeBeforeWallet = Math.max(0, Math.round(serviceFee))
+    const walletAppliedThb = Math.max(
+      0,
+      Math.min(Math.round(Number(walletUseThb || 0)), serviceFeeBeforeWallet),
+    )
+    const serviceFeeAfterWallet = Math.max(0, serviceFeeBeforeWallet - walletAppliedThb)
+    const guestTotalBeforeRounding = priceAfterDiscount + taxAmountCheckout + serviceFeeAfterWallet
     const promoRounded = promoDiscount ? computeRoundedGuestTotalPot(guestTotalBeforeRounding) : null
     const roundingDiffPot = promoDiscount
       ? promoRounded?.roundingDiffPotThb || 0
@@ -167,7 +184,7 @@ export function useCheckoutPricing({ booking, invoice, paymentMethod, setPayment
             serviceTariffThb: priceAfterDiscount,
             taxAmountThb: taxAmountCheckout,
             taxRatePercent,
-            platformFeeThb: serviceFee,
+            platformFeeThb: serviceFeeAfterWallet,
             roundingThb: roundingDiffPot,
             insuranceThb: insuranceOk,
             totalThb: totalWithFee,
@@ -184,8 +201,11 @@ export function useCheckoutPricing({ booking, invoice, paymentMethod, setPayment
       hasInvoiceCheckout,
       payableText,
       guestCheckoutBreakdown,
+      walletAppliedThb,
+      serviceFeeBeforeWallet,
+      serviceFeeAfterWallet,
     }
-  }, [booking, promoDiscount, guestServiceFeePercent, exchangeRates, language, invoice])
+  }, [booking, promoDiscount, guestServiceFeePercent, exchangeRates, language, invoice, walletUseThb])
 
   const formatDisplayPrice = useCallback(
     (n, c) => formatPrice(n, c, exchangeRates, language),
@@ -216,6 +236,9 @@ export function useCheckoutPricing({ booking, invoice, paymentMethod, setPayment
     hasInvoiceCheckout,
     payableText,
     guestCheckoutBreakdown,
+    walletAppliedThb,
+    serviceFeeBeforeWallet,
+    serviceFeeAfterWallet,
     formatDisplayPrice,
     priceRawForTest: (n, c) => priceRawForTest(n, c, exchangeRates),
     interpolateTemplate,

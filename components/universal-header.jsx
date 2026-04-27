@@ -15,7 +15,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
   User, LogOut, ChevronDown, Heart, CalendarDays,
-  Briefcase, Shield, MessageCircle
+  Briefcase, Shield, MessageCircle, Gift
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -211,6 +211,13 @@ export function UniversalHeader() {
                           {totalUnread > 99 ? '99+' : String(totalUnread)}
                         </span>
                       )}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className='cursor-pointer py-2.5'
+                      onSelect={() => { navigate('/profile/referral'); }}
+                    >
+                      <Gift className='h-4 w-4 mr-3 text-slate-400' />
+                      <span>Реферальная программа</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className='cursor-pointer py-2.5'

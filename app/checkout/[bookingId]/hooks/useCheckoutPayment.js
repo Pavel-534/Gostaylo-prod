@@ -31,6 +31,11 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
   const [txidSubmitted, setTxidSubmitted] = useState(false)
   const [liveVerification, setLiveVerification] = useState(null)
   const [chatConversationId, setChatConversationId] = useState(null)
+  const [walletLoading, setWalletLoading] = useState(true)
+  const [walletBalanceThb, setWalletBalanceThb] = useState(0)
+  const [walletMaxDiscountPercent, setWalletMaxDiscountPercent] = useState(30)
+  const [useWalletBonuses, setUseWalletBonuses] = useState(false)
+  const [walletUseThb, setWalletUseThb] = useState(0)
 
   useEffect(() => {
     const lang = detectLanguage()
@@ -103,6 +108,11 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
         pricing_snapshot: b.pricing_snapshot ?? null,
         listings: listingsForCheckout,
       })
+      const existingWalletDiscount = Math.max(0, Math.round(Number(b?.metadata?.wallet_discount_thb || 0)))
+      if (existingWalletDiscount > 0) {
+        setUseWalletBonuses(true)
+        setWalletUseThb(existingWalletDiscount)
+      }
 
       if (l) {
         setListing({
@@ -206,9 +216,47 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
     }
   }, [bookingId, invoiceIdParam])
 
+  const loadWalletState = useCallback(async () => {
+    setWalletLoading(true)
+    try {
+      const res = await fetch('/api/v2/wallet/me', {
+        credentials: 'include',
+        cache: 'no-store',
+      })
+      const data = await res.json()
+      if (res.ok && data?.success) {
+        const balance = Math.max(0, Math.round(Number(data?.data?.wallet?.balance_thb || 0)))
+        const maxDiscount = Number(data?.data?.policy?.walletMaxDiscountPercent || 30)
+        setWalletBalanceThb(balance)
+        setWalletMaxDiscountPercent(Number.isFinite(maxDiscount) ? Math.max(0, Math.min(100, maxDiscount)) : 30)
+      } else {
+        setWalletBalanceThb(0)
+      }
+    } catch {
+      setWalletBalanceThb(0)
+    } finally {
+      setWalletLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     loadPaymentStatus()
   }, [loadPaymentStatus])
+
+  useEffect(() => {
+    loadWalletState()
+  }, [loadWalletState])
+
+  useEffect(() => {
+    if (!booking) return
+    const total = Math.round(
+      Number(booking?.priceThb || 0) + Number(booking?.commissionThb || 0) + Number(booking?.roundingDiffPot || 0),
+    )
+    const maxByPercent = Math.round((total * walletMaxDiscountPercent) / 100)
+    const maxByPlatformFee = Math.max(0, Math.round(Number(booking?.commissionThb || 0)))
+    const cap = Math.max(0, Math.min(walletBalanceThb, maxByPercent, maxByPlatformFee))
+    setWalletUseThb(useWalletBonuses ? cap : 0)
+  }, [booking, walletBalanceThb, walletMaxDiscountPercent, useWalletBonuses])
 
   useEffect(() => {
     if (authLoading || !booking) return
@@ -309,6 +357,7 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
         body: JSON.stringify({
           method: paymentMethod,
           invoiceId: invoiceIdParam || undefined,
+          walletUseThb: useWalletBonuses ? walletUseThb : 0,
         }),
       })
       const data = await res.json()
@@ -347,7 +396,7 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
     } finally {
       setProcessing(false)
     }
-  }, [bookingId, invoiceIdParam, paymentMethod, language, handleConfirmPayment])
+  }, [bookingId, invoiceIdParam, paymentMethod, language, handleConfirmPayment, useWalletBonuses, walletUseThb])
 
   const copyToClipboard = useCallback(
     (text) => {
@@ -448,6 +497,12 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
     paymentMethod,
     setPaymentMethod,
     processing,
+    walletLoading,
+    walletBalanceThb,
+    walletMaxDiscountPercent,
+    useWalletBonuses,
+    setUseWalletBonuses,
+    walletUseThb,
     cryptoModalOpen,
     setCryptoModalOpen,
     txId,

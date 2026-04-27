@@ -14,6 +14,8 @@ import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-s
 import { computeRefundEstimateForBooking } from '@/lib/services/booking-refund-calculator.service';
 import { BookingService } from '@/lib/services/booking.service';
 import { revertPromoUsageAfterFullRefundCancel } from '@/lib/promo/revert-promo-usage-on-cancel.js';
+import { restoreWalletSpendOnBookingCancel } from '@/lib/services/booking/cancel-wallet-restore.service.js';
+import ReferralPnlService from '@/lib/services/marketing/referral-pnl.service.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -151,6 +153,20 @@ export async function POST(request, context) {
       return NextResponse.json({ success: false, error: upErr?.message || 'update_failed' }, { status: 500 });
     }
 
+    try {
+      await ReferralPnlService.cancelPendingLedgerForBooking(bookingId);
+    } catch (e) {
+      console.warn('[cancel] referral ledger cancel pending', e?.message);
+    }
+
+    let walletRestore = null;
+    try {
+      walletRestore = await restoreWalletSpendOnBookingCancel(bookingBefore, bookingId);
+    } catch (e) {
+      console.warn('[cancel] wallet restore', e?.message);
+      walletRestore = { restored: false, error: e?.message };
+    }
+
     if (LEDGER_REFUND_STATUSES.has(bookingBefore.status) && estimate.ok) {
       try {
         await revertPromoUsageAfterFullRefundCancel({
@@ -199,6 +215,7 @@ export async function POST(request, context) {
         ledger: ledgerResult
           ? { success: ledgerResult.success, skipped: ledgerResult.skipped, journalId: ledgerResult.journalId }
           : null,
+        walletRestore,
       },
     });
   } catch (error) {

@@ -42,6 +42,7 @@ function CheckoutPageInner({ params: paramsProp }) {
     setPaymentMethod: p.setPaymentMethod,
     allowedMethods: p.allowedMethods,
     language: p.language,
+    walletUseThb: p.walletUseThb,
   })
 
   const paymentMethodOptions = [

@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAdminSystemPage } from '@/hooks/useAdminSystemPage'
 import { SystemSettingsGeneral } from '@/components/admin/system/SystemSettingsGeneral'
 import { SystemSettingsFinance } from '@/components/admin/system/SystemSettingsFinance'
+import { SystemSettingsMarketing } from '@/components/admin/system/SystemSettingsMarketing'
 import { SystemSettingsServices } from '@/components/admin/system/SystemSettingsServices'
 import { SystemSettingsMaintenance } from '@/components/admin/system/SystemSettingsMaintenance'
 
@@ -31,6 +32,9 @@ export default function SystemControlPage() {
           <TabsTrigger value="finance" className="text-xs sm:text-sm">
             Финансы
           </TabsTrigger>
+          <TabsTrigger value="marketing" className="text-xs sm:text-sm">
+            Маркетинг
+          </TabsTrigger>
           <TabsTrigger value="services" className="text-xs sm:text-sm">
             Сервисы
           </TabsTrigger>
@@ -45,6 +49,10 @@ export default function SystemControlPage() {
 
         <TabsContent value="finance" className="mt-4">
           <SystemSettingsFinance />
+        </TabsContent>
+
+        <TabsContent value="marketing" className="mt-4">
+          <SystemSettingsMarketing />
         </TabsContent>
 
         <TabsContent value="services" className="mt-4">

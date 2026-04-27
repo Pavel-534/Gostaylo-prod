@@ -47,6 +47,10 @@
     {
       "path": "/api/cron/notification-outbox",
       "schedule": "15 4 * * *"
+    },
+    {
+      "path": "/api/cron/wallet-welcome-expiry",
+      "schedule": "45 4 * * *"
     }
   ]
 }

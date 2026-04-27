@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -432,9 +433,17 @@ export default function MarketingPage() {
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Маркетинг</h1>
           <p className="text-sm sm:text-base text-gray-600 mt-1">Управление промокодами и акциями</p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 w-full sm:w-auto">
-          <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />Создать промокод
-        </Button>
+        <div className="flex w-full sm:w-auto gap-2">
+          <Button asChild variant="outline" className="w-full sm:w-auto">
+            <Link href="/admin/marketing/audit">Tank Audit</Link>
+          </Button>
+          <Button asChild variant="outline" className="w-full sm:w-auto">
+            <Link href="/admin/marketing/wallet-audit">Wallet Audit</Link>
+          </Button>
+          <Button onClick={() => setShowCreateModal(true)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 w-full sm:w-auto">
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />Создать промокод
+          </Button>
+        </div>
       </div>
 
       {criticalPlatformPromos.length > 0 ? (

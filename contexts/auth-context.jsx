@@ -38,6 +38,28 @@ function normalizeAuthUser(u) {
   };
 }
 
+function getStableReferralFingerprint() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const existing = localStorage.getItem('gostaylo_ref_fingerprint');
+    if (existing) return existing;
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'na';
+    const raw = [
+      navigator.userAgent || 'ua',
+      navigator.language || 'lang',
+      navigator.platform || 'platform',
+      String(window.screen?.width || 0),
+      String(window.screen?.height || 0),
+      tz,
+    ].join('|');
+    const fp = btoa(unescape(encodeURIComponent(raw))).slice(0, 160);
+    localStorage.setItem('gostaylo_ref_fingerprint', fp);
+    return fp;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -52,6 +74,9 @@ export function AuthProvider({ children }) {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [promoCode, setPromoCode] = useState('');
+  const [promoStatus, setPromoStatus] = useState('idle'); // idle | checking | valid | invalid
+  const [promoMessage, setPromoMessage] = useState('');
   const [verificationEmail, setVerificationEmail] = useState('');
   const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
 
@@ -131,6 +156,9 @@ export function AuthProvider({ children }) {
     setEmail('');
     setPassword('');
     setName('');
+    setPromoCode('');
+    setPromoStatus('idle');
+    setPromoMessage('');
     setError('');
     setLoginModalOpen(true);
   }, []);
@@ -210,11 +238,22 @@ export function AuthProvider({ children }) {
     setError('');
 
     try {
+      const hasPromo = String(promoCode || '').trim().length > 0;
+      if (hasPromo) {
+        const promoOk = await validatePromoCode();
+        if (!promoOk) {
+          setError('Проверьте корректность промокода перед регистрацией');
+          setSubmitting(false);
+          return;
+        }
+      }
       const result = await signUp({
         email: email.toLowerCase().trim(),
         password,
         name: name.trim(),
-        role: 'RENTER'
+        role: 'RENTER',
+        referredBy: promoStatus === 'valid' ? promoCode : null,
+        referralFingerprint: getStableReferralFingerprint(),
       });
       
       if (result.error) {
@@ -241,6 +280,42 @@ export function AuthProvider({ children }) {
       setSubmitting(false);
     }
   };
+
+  const validatePromoCode = useCallback(async () => {
+    const code = String(promoCode || '').trim().toUpperCase();
+    if (!code) {
+      setPromoStatus('idle');
+      setPromoMessage('');
+      return false;
+    }
+    setPromoStatus('checking');
+    setPromoMessage('');
+    try {
+      const res = await fetch('/api/v2/referral/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          email: email.toLowerCase().trim(),
+          fingerprint: getStableReferralFingerprint(),
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json?.valid) {
+        setPromoCode(code);
+        setPromoStatus('valid');
+        setPromoMessage('Промокод принят');
+        return true;
+      }
+      setPromoStatus('invalid');
+      setPromoMessage(json?.error || 'Промокод недействителен');
+      return false;
+    } catch {
+      setPromoStatus('invalid');
+      setPromoMessage('Не удалось проверить промокод');
+      return false;
+    }
+  }, [promoCode, email]);
 
   // Forgot password handler
   const handleForgotPassword = async (e) => {
@@ -480,6 +555,51 @@ export function AuthProvider({ children }) {
                         className='h-11 text-base'
                         required
                       />
+                    </div>
+                  )}
+
+                  {authMode === 'register' && (
+                    <div className='space-y-1.5'>
+                      <div className='flex items-center justify-between'>
+                        <Label htmlFor='auth-referral-code' className='text-sm'>
+                          У меня есть промокод
+                        </Label>
+                        <button
+                          type='button'
+                          className='text-xs text-teal-600 hover:text-teal-700 hover:underline'
+                          onClick={() => void validatePromoCode()}
+                          disabled={!promoCode || promoStatus === 'checking'}
+                        >
+                          Проверить
+                        </button>
+                      </div>
+                      <Input
+                        id='auth-referral-code'
+                        type='text'
+                        placeholder='AIR-ID123'
+                        value={promoCode}
+                        onChange={(e) => {
+                          setPromoCode(String(e.target.value || '').toUpperCase());
+                          setPromoStatus('idle');
+                          setPromoMessage('');
+                        }}
+                        onBlur={() => void validatePromoCode()}
+                        autoComplete='off'
+                        className='h-11 text-base uppercase'
+                      />
+                      {promoMessage ? (
+                        <p
+                          className={`text-xs ${
+                            promoStatus === 'valid'
+                              ? 'text-emerald-600'
+                              : promoStatus === 'checking'
+                                ? 'text-slate-500'
+                                : 'text-red-500'
+                          }`}
+                        >
+                          {promoMessage}
+                        </p>
+                      ) : null}
                     </div>
                   )}
                   

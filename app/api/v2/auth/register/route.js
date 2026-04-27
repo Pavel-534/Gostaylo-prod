@@ -13,12 +13,29 @@ import { rateLimitCheck } from '@/lib/rate-limit';
 import { getTransactionalFromAddress } from '@/lib/email-env';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { getSiteDisplayName } from '@/lib/site-url';
+import { PricingService } from '@/lib/services/pricing.service';
+import ReferralGuardService, {
+  resolveClientIpFromRequest,
+} from '@/lib/services/marketing/referral-guard.service';
+import WalletService from '@/lib/services/finance/wallet.service';
 
 export const dynamic = 'force-dynamic';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
 const PASSWORD_MIN_LENGTH = 8;
 const PASSWORD_COMPLEXITY_RE = /^(?=.*[A-Za-z])(?=.*\d).+$/;
+
+function makeId(prefix) {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function makeReferralCode(profileId) {
+  const clean = String(profileId || '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .slice(-6)
+    .toUpperCase();
+  return `AIR-${clean || Math.floor(100000 + Math.random() * 900000)}`;
+}
 
 function generateVerificationToken(userId, email, jwtSecret) {
   return jwt.sign(
@@ -176,7 +193,7 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
   }
   
-  const { email, password, firstName, lastName, phone, referredBy } = body;
+  const { email, password, firstName, lastName, phone, referredBy, referralFingerprint } = body;
   
   if (!email) {
     return NextResponse.json({ success: false, error: 'Email is required' }, { status: 400 });
@@ -209,12 +226,32 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Email already registered' }, { status: 400 });
   }
   
+  // Optional referral pre-validation (for onboarding UX + anti-fraud gate).
+  const normalizedReferredBy = String(referredBy || '').trim().toUpperCase();
+  const normalizedFingerprint = String(referralFingerprint || '').trim().slice(0, 160);
+  let prevalidatedReferral = null;
+  if (normalizedReferredBy) {
+    const guard = await ReferralGuardService.validateActivation({
+      code: normalizedReferredBy,
+      candidateEmail: normalizedEmail,
+      request,
+      fingerprint: normalizedFingerprint || null,
+    });
+    if (!guard.success) {
+      return NextResponse.json(
+        { success: false, error: guard.error || 'REFERRAL_VALIDATION_FAILED' },
+        { status: guard.status || 400 },
+      );
+    }
+    prevalidatedReferral = guard.data;
+  }
+
   // Hash password
   const passwordHash = await bcrypt.hash(password, 10);
   
   // Generate IDs
   const profileId = `user-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`;
-  const refCode = `GS${Math.floor(10000 + Math.random() * 90000)}`;
+  const refCode = makeReferralCode(profileId);
   
   // Insert user (NOT verified yet)
   const { data: user, error } = await supabase
@@ -228,7 +265,7 @@ export async function POST(request) {
       last_name: lastName?.trim() || null,
       phone: phone?.trim() || null,
       referral_code: refCode,
-      referred_by: referredBy || null,
+      referred_by: normalizedReferredBy || null,
       is_verified: false,
       verification_status: 'PENDING',
       preferred_currency: 'THB',
@@ -254,22 +291,78 @@ export async function POST(request) {
   // Send Telegram notification (non-blocking)
   sendTelegramNotification(user).catch(() => {});
   
-  // Handle referral
-  if (referredBy) {
+  // Keep `referral_codes` table in sync for new user.
+  try {
+    const ownerIp = resolveClientIpFromRequest(request);
+    await supabase.from('referral_codes').upsert(
+      {
+        id: makeId('rfc'),
+        user_id: user.id,
+        code: refCode,
+        is_active: true,
+        metadata: { owner_ip: ownerIp || null, source: 'auth_register' },
+      },
+      { onConflict: 'user_id', ignoreDuplicates: false },
+    );
+  } catch (syncError) {
+    console.warn('[REGISTER] referral_codes sync warning:', syncError?.message || syncError);
+  }
+
+  // Handle referral relation using Stage 71 tables.
+  if (normalizedReferredBy && prevalidatedReferral?.referrerId) {
     try {
-      const { data: referrer } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('referral_code', referredBy)
-        .single();
-      
-      if (referrer) {
-        await supabase.from('referrals').insert({
-          referrer_id: referrer.id,
-          referred_id: user.id
-        });
+      const nowIso = new Date().toISOString();
+      await supabase.from('referral_relations').upsert(
+        {
+          id: makeId('rfr'),
+          referrer_id: prevalidatedReferral.referrerId,
+          referee_id: user.id,
+          referral_code_id: prevalidatedReferral.referralCodeId || null,
+          referred_at: nowIso,
+          created_at: nowIso,
+          metadata: {
+            referral_code: prevalidatedReferral.code,
+            referee_email: normalizedEmail,
+            referee_ip: resolveClientIpFromRequest(request) || null,
+            device_fingerprint: normalizedFingerprint || null,
+            trigger: 'register',
+          },
+        },
+        { onConflict: 'referee_id', ignoreDuplicates: false },
+      );
+    } catch (e) {
+      console.warn('[REGISTER] referral relation warning:', e?.message || e);
+    }
+  }
+
+  // Welcome bonus for referred registrations (available immediately in wallet).
+  if (normalizedReferredBy && prevalidatedReferral?.referrerId) {
+    try {
+      const general = await PricingService.getGeneralPricingSettings();
+      const welcomeBonusAmount = Number(
+        general?.welcome_bonus_amount ?? general?.welcomeBonusAmount ?? 0,
+      );
+      if (Number.isFinite(welcomeBonusAmount) && welcomeBonusAmount > 0) {
+        const welcomeExpiresAtIso = new Date(Date.now() + 30 * 86400000).toISOString();
+        const credit = await WalletService.addFunds(
+          user.id,
+          welcomeBonusAmount,
+          'welcome_bonus',
+          `welcome_bonus:${String(user.id)}`,
+          {
+            trigger: 'register_referred',
+            referralCode: normalizedReferredBy,
+            referrerId: prevalidatedReferral.referrerId,
+          },
+          welcomeExpiresAtIso,
+        );
+        if (credit.success) {
+          await WalletService.syncWelcomeBonusGrant(user.id, welcomeBonusAmount, welcomeExpiresAtIso);
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[REGISTER] welcome bonus warning:', e?.message || e);
+    }
   }
   
   return NextResponse.json({ 

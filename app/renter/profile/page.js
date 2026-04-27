@@ -26,7 +26,7 @@ import {
   Mail, Phone, Calendar,
   Home, Heart, Settings, LogOut,
   Send, Shield, TrendingUp, Clock, Zap,
-  CheckCircle, XCircle, Loader2,
+  CheckCircle, XCircle, Loader2, Gift,
   Sparkles, Circle
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -769,7 +769,7 @@ export default function RenterProfilePage() {
           <CardTitle className="text-lg">{getUIText('quickActions', language)}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <Button
               asChild
               variant="outline"
@@ -792,6 +792,17 @@ export default function RenterProfilePage() {
               </Link>
             </Button>
             
+            <Button
+              asChild
+              variant="outline"
+              className="flex flex-col h-auto py-4"
+            >
+              <Link href="/profile/referral">
+                <Gift className="h-6 w-6 mb-2" />
+                <span className="text-sm">Рефералка</span>
+              </Link>
+            </Button>
+
             <Button
               asChild
               variant="outline"
