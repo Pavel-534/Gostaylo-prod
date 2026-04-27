@@ -27,6 +27,8 @@ export const E2E_ROUTES = {
   seoSpyAlert: '/api/v2/internal/e2e/seo-spy-alert',
   financialErrorAlert: '/api/v2/internal/e2e/financial-error-alert',
   performanceLowAlert: '/api/v2/internal/e2e/performance-low-alert',
+  /** Stage 72.4 — симуляция реферальных сумм / wallet buckets (см. lib/e2e/stage72-referral-cashflow-fixture.js). */
+  stage72ReferralCashflow: '/api/v2/internal/e2e/stage72-referral-cashflow',
   authMe: '/api/v2/auth/me',
   authLogin: '/api/v2/auth/login',
   chatConversations: '/api/v2/chat/conversations',

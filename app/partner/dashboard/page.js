@@ -48,6 +48,7 @@ import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
 import { PartnerReputationSection } from '@/components/partner/PartnerReputationSection'
+import { PartnerDashboardWalletOverview } from '@/components/wallet/PartnerDashboardWalletOverview'
 
 // Welcome Partner Celebration Modal — shown once when renter becomes partner
 // Text: no commission, no property/real estate; uses user language
@@ -396,6 +397,8 @@ export default function PartnerDashboard() {
 
   return (
     <div className="space-y-6">
+      <PartnerDashboardWalletOverview />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

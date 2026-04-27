@@ -17,9 +17,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { QueryClientProvider } from '@tanstack/react-query'
-import { getQueryClient } from '@/lib/query-client'
 import { useChatContext } from '@/lib/context/ChatContext'
+import { HeaderWalletCompact } from '@/components/wallet/HeaderWalletCompact'
 import { 
   LayoutDashboard,
   Briefcase,
@@ -40,7 +39,8 @@ import {
   Bell,
   ArrowLeft,
   ExternalLink,
-  Tag
+  Tag,
+  Gift
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -53,6 +53,7 @@ const SIDEBAR_CONFIG = [
   { nameKey: 'partnerNav_dashboard', href: '/partner/dashboard', icon: LayoutDashboard, descKey: 'partnerNav_dashboardDesc' },
   { nameKey: 'partnerNav_listings', href: '/partner/listings', icon: Briefcase, descKey: 'partnerNav_listingsDesc' },
   { nameKey: 'partnerNav_promo', href: '/partner/promo', icon: Tag, descKey: 'partnerNav_promoDesc' },
+  { nameKey: 'partnerNav_referral', href: '/profile/referral', icon: Gift, descKey: 'partnerNav_referralDesc' },
   { nameKey: 'partnerNav_calendar', href: '/partner/calendar', icon: Calendar, descKey: 'partnerNav_calendarDesc' },
   { nameKey: 'partnerNav_bookings', href: '/partner/bookings', icon: Inbox, descKey: 'partnerNav_bookingsDesc' },
   { nameKey: 'partnerNav_messages', href: '/messages', icon: MessageSquare, descKey: 'partnerNav_messagesDesc', badge: null },
@@ -355,11 +356,7 @@ export default function PartnerLayout({ children }) {
     )
   }
 
-  // Get stable QueryClient instance
-  const queryClient = getQueryClient()
-
   return (
-    <QueryClientProvider client={queryClient}>
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Mobile Overlay */}
       {sidebarOpen && (
@@ -410,7 +407,8 @@ export default function PartnerLayout({ children }) {
           </div>
           
           {/* Mobile Quick Actions */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
+            <HeaderWalletCompact className="h-8 px-1.5" />
             <Link 
               href="/"
               className="p-2 hover:bg-slate-100 rounded-lg transition-all"
@@ -471,6 +469,9 @@ export default function PartnerLayout({ children }) {
                 </p>
                 <p className="text-xs text-slate-500 truncate">{user?.email}</p>
               </div>
+            </div>
+            <div className="mt-3 flex justify-start">
+              <HeaderWalletCompact className="w-full justify-between max-w-[220px]" />
             </div>
           </div>
 
@@ -611,6 +612,7 @@ export default function PartnerLayout({ children }) {
 
               {/* Quick Actions */}
               <div className="flex items-center gap-3">
+                <HeaderWalletCompact />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -651,6 +653,5 @@ export default function PartnerLayout({ children }) {
         </main>
       </div>
     </div>
-    </QueryClientProvider>
   )
 }

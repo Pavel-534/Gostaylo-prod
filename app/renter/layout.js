@@ -15,7 +15,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { 
   Home, Calendar, MessageSquare, Heart, User, 
   Menu, X, LogOut, Loader2, MapPin, Settings
@@ -28,18 +27,7 @@ import { toPublicImageUrl } from '@/lib/public-image-url'
 import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { useChatContext } from '@/lib/context/ChatContext'
-
-// TanStack Query client configuration
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60 * 1000, // 1 minute
-      cacheTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: false,
-      retry: 1
-    }
-  }
-})
+import { HeaderWalletCompact } from '@/components/wallet/HeaderWalletCompact'
 
 // Navigation items
 const NAV_ITEMS = [
@@ -229,7 +217,6 @@ export default function RenterLayout({ children }) {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-slate-50 flex flex-col">
         {/* На мобиле fixed надёжнее sticky (Yandex/Chrome); отступ под шапку только &lt;md */}
         <div className="h-16 shrink-0 md:hidden" aria-hidden="true" />
@@ -290,6 +277,7 @@ export default function RenterLayout({ children }) {
 
               {/* User Menu */}
               <div className="flex items-center gap-3">
+                <HeaderWalletCompact />
                 <Avatar className="h-9 w-9 border border-slate-200 hidden sm:flex">
                   {user?.avatar ? (
                     <AvatarImage src={toPublicImageUrl(user.avatar)} alt="" className="object-cover" />
@@ -416,6 +404,5 @@ export default function RenterLayout({ children }) {
           </div>
         </footer>
       </div>
-    </QueryClientProvider>
   )
 }

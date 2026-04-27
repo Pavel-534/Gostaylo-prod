@@ -3,6 +3,7 @@ import { getSessionPayload } from '@/lib/services/session-service';
 import { supabaseAdmin } from '@/lib/supabase';
 import { PricingService } from '@/lib/services/pricing.service';
 import ReferralPnlService from '@/lib/services/marketing/referral-pnl.service';
+import { buildReferralTeamMembers } from '@/lib/referral/build-referral-team';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,7 +84,14 @@ export async function GET(request) {
     .trim();
   const code = await getOrCreateReferralCode(profile.id, profile.referral_code, ownerIp);
 
-  const [{ data: ledger }, { count: invitedCount }, { data: myInviteEdge }, tiers, directPartnersInvited] = await Promise.all([
+  const [
+    { data: ledger },
+    { count: invitedCount },
+    { data: myInviteEdge },
+    tiers,
+    directPartnersInvited,
+    teamMembers,
+  ] = await Promise.all([
     supabaseAdmin
       .from('referral_ledger')
       .select('status,amount_thb,referee_id')
@@ -99,6 +107,7 @@ export async function GET(request) {
       .maybeSingle(),
     ReferralPnlService.getReferralTiers(),
     ReferralPnlService.countDirectPartnersInvited(profile.id),
+    buildReferralTeamMembers(supabaseAdmin, profile.id),
   ]);
   const general = await PricingService.getGeneralPricingSettings();
 
@@ -207,6 +216,8 @@ export async function GET(request) {
               : 0,
           }
         : null,
+      /** Stage 72.6 — прямые приглашённые (дерево уровнем 1); чат-поиск по таблице conversations */
+      teamMembers,
     },
   });
 }

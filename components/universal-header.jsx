@@ -34,6 +34,7 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getUIText, supportedLanguages } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { Flag } from '@/components/flags'
+import { HeaderWalletCompact } from '@/components/wallet/HeaderWalletCompact'
 
 export function UniversalHeader() {
   const [mounted, setMounted] = useState(false);
@@ -130,6 +131,8 @@ export function UniversalHeader() {
 
             {/* Currency Selector */}
             <CurrencySelector value={currency} onChange={setCurrency} />
+
+            {user ? <HeaderWalletCompact /> : null}
 
             {/* User Menu */}
             {user ? (

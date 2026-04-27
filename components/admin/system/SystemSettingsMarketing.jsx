@@ -567,7 +567,7 @@ export function SystemSettingsMarketing() {
                 onChange={(e) => setMlmLevel2Percent(clamp(e.target.value, 0, 100))}
               />
               <p className="text-xs text-slate-500">
-                Stage 72.3 safety gate enforces L1 + L2 <= 100%.
+                Контроль суммы: L1 + L2 не больше 100%.
               </p>
             </div>
             <div className="space-y-2">

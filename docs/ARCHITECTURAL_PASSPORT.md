@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 12.9.0 | **Last Updated**: 2026-04-27 | **Status**: Production-Ready — **Stage 72.6 (Cohort ROI + tier grace + referral OAuth prep):** `GET /api/v2/admin/referral/analytics` включает **`cohortRoi`** (M0–M6); ambassador downgrade grace (**`referral_tier_grace_until`**); **`/?ref=`** → **`gostaylo_pending_ref`** до успешной регистрации; см. **`docs/AUTH_GATEWAY_OAUTH.md`**.
+> **Version**: 12.11.0 | **Last Updated**: 2026-04-27 | **Status**: Production-Ready — **Stage 73.1:** глобальный **`wallet-me`** UI (**`HeaderWalletCompact`**) + **`GET /api/v2/referral/activity`** / лента команды; **`teamMembers.chatUnreadCount`**; прежнее: Stage 72.6 / 72.6b (**`teamMembers`**, **`partnerEscrow`**).
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -100,6 +100,19 @@
 - **Analytics:** `ReferralPnlService.buildCohortRoiSeries` + поле **`cohortRoi`** в ответе **`GET /api/v2/admin/referral/analytics`**; cohort по месяцу якоря (`referred_at` или `profiles.created_at`), затраты = сумма **earned** строк `referral_ledger` по referee cohort, комиссия = **`bookings.commission_thb`** для COMPLETED броней referee в окнах от якоря (M0/M1/M3/M6). UI `/admin/marketing/analytics` — ComposedChart + таблица.
 - **Referral capture:** `contexts/auth-context.jsx` читает **`?ref=`**, пишет cookie **`gostaylo_pending_ref`** и **`localStorage`** ключ **`gostaylo_pending_ref_code`**; **`POST /api/v2/auth/register`** мержит JSON **`referredBy`** с cookie, при успехе ответ очищает cookie; **`lib/auth.js`** — `credentials: 'include'` на register.
 - **Auth gateway doc:** `docs/AUTH_GATEWAY_OAUTH.md` — текущая JWT-сессия, включение Google/Apple в Supabase, redirect checklist, связка с referral после OAuth.
+
+### Stage 72.6b — Referral team list & unified wallet UI (2026-04)
+
+- **Team directory SSOT:** `lib/referral/build-referral-team.js` — прямые приглашённые (`referral_relations.referrer_id = current`), имя из профиля, роль, «active» если есть COMPLETED бронь как `renter_id` или `partner_id`, привязка к **`conversations`** для кнопки «Написать» (иначе старт через **`POST /api/v2/chat/conversations/from-profile`** при активном листинге одной из сторон).
+- **API:** `GET /api/v2/referral/me` → **`data.teamMembers[]`**; `GET /api/v2/wallet/me` → **`data.partnerEscrow`** (только для **`profiles.role = PARTNER`**).
+- **UI:** `components/referral/ReferralTeamSection.jsx`, `components/wallet/UnifiedBalanceSummary.jsx`, обёртка `PartnerDashboardWalletOverview` на `/partner/dashboard`; меню партнёра (`app/partner/layout.js`) — ссылка на `/profile/referral`; страница `app/profile/referral/page.js` — i18n `referralStage726_*`, единый блок балансов, «Распределение бонусов» вместо англ. jargon.
+
+### Stage 73.1 — Header wallet, activity feed, team unread (2026-04)
+
+- **TanStack Query:** `components/providers/app-query-provider.jsx` + **`AppQueryProvider`** в корневом **`app/layout.js`** (общий кэш; убраны вложенные **`QueryClientProvider`** из **`app/renter/layout.js`** и **`app/partner/layout.js`**).
+- **Wallet:** `GET /api/v2/wallet/me` кэшируется клиентом ключом **`['wallet-me']`** (**`lib/hooks/use-wallet-me.js`**); **`HeaderWalletCompact`** — иконка + сумма (маркетинговый кошелёк + сумма эскроу партнёра), выпадающее меню с расшифровкой и ссылкой **`/profile/referral`**.
+- **Лента команды:** **`GET /api/v2/referral/activity`** (**`lib/referral/build-referral-activity-feed.js`**) — события по прямым рефералам (регистрация, первая COMPLETED-поездка с бонусом из `referral_ledger`, первый активный листинг); UI **`ReferralActivityFeed`** на **`/profile/referral`**.
+- **Чат:** в **`GET /api/v2/referral/me` → `teamMembers[]`** добавлено **`chatUnreadCount`** (та же логика, что **`computeUnreadCountByConversationId`** для списка чатов).
 
 ## 0. Critical Routes & Services
 

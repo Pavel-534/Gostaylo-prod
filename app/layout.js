@@ -10,6 +10,7 @@ import { ChatProvider } from '@/lib/context/ChatContext'
 import { PresenceProvider } from '@/lib/context/PresenceContext'
 import { SupabaseRealtimeAuthSync } from '@/components/supabase-realtime-auth-sync'
 import { PushClientInit } from '@/components/push-client-init'
+import { AppQueryProvider } from '@/components/providers/app-query-provider'
 import { getRequestSiteUrl } from '@/lib/server-site-url'
 import { getSiteDisplayName } from '@/lib/site-url'
 
@@ -97,12 +98,13 @@ button{font:inherit}
       <body className={inter.className}>
         <I18nProvider>
           <AuthProvider>
-            <SupabaseRealtimeAuthSync />
-            <PushClientInit />
-            <PresenceProvider>
-              <ChatProvider>
-                <UniversalHeader />
-                <MainContent>{children}</MainContent>
+            <AppQueryProvider>
+              <SupabaseRealtimeAuthSync />
+              <PushClientInit />
+              <PresenceProvider>
+                <ChatProvider>
+                  <UniversalHeader />
+                  <MainContent>{children}</MainContent>
                 <MobileBottomNav />
                 <Toaster
                   position="top-center"
@@ -121,8 +123,9 @@ button{font:inherit}
                     },
                   }}
                 />
-              </ChatProvider>
-            </PresenceProvider>
+                </ChatProvider>
+              </PresenceProvider>
+            </AppQueryProvider>
           </AuthProvider>
         </I18nProvider>
       </body>

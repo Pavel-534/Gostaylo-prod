@@ -35,6 +35,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getSiteDisplayName } from '@/lib/site-url';
+import { HeaderWalletCompact } from '@/components/wallet/HeaderWalletCompact';
 
 const MODERATOR_RESTRICTED_PREFIXES = [
   '/admin/finances',
@@ -289,6 +290,7 @@ export default function AdminLayout({ children }) {
           
           {/* Mobile Quick Actions */}
           <div className="flex items-center gap-1">
+            <HeaderWalletCompact variant="inverted" className="h-9 px-2" />
             <Link 
               href="/"
               className="p-2.5 hover:bg-white/10 rounded-xl transition-all active:scale-95"
@@ -437,6 +439,7 @@ export default function AdminLayout({ children }) {
               </Link>
             </div>
             <div className="flex items-center gap-3">
+              <HeaderWalletCompact />
               <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg">
                 <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
                 <span className="font-medium">{user?.isModerator ? 'Moderator' : 'Admin'}</span>

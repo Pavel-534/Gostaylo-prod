@@ -55,6 +55,7 @@ const productionSmokeProjects =
  * Accountant Bot: `tests/e2e/bots/accountant-math.spec.ts` — проект `accountant-bot`.
  * Polyglot UX Bot: `tests/e2e/bots/polyglot-ux.spec.ts` — проект `polyglot-bot` (renter storage).
  * Chat Controller Bot: `tests/e2e/bots/chat-control.spec.ts` — проект `chat-control-bot`.
+ * Stage 72.4 referral cashflow: `tests/e2e/stage72-referral-cashflow.spec.ts` — проект `stage72-referral-cashflow` (Supabase + E2E_FIXTURE_SECRET).
  * Security Bot: `tests/e2e/security-bot.spec.ts` — проект `security-bot` (без storageState).
  * Stage 9 API Guard: `tests/e2e/stage9-api-guard.spec.ts` — проект `stage9-api-guard` (depends on setup).
  * Stage 12 Escrow Regression: `tests/e2e/stage12-escrow-regression.spec.ts` — проект `stage12-escrow-regression`.
@@ -240,6 +241,15 @@ export default defineConfig({
       dependencies: ['setup'],
       testDir: './tests/e2e',
       testMatch: '**/chat-sync.spec.ts',
+      timeout: 180_000,
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+    {
+      name: 'stage72-referral-cashflow',
+      testDir: './tests/e2e',
+      testMatch: '**/stage72-referral-cashflow.spec.ts',
       timeout: 180_000,
       use: {
         ...devices['Desktop Chrome'],
