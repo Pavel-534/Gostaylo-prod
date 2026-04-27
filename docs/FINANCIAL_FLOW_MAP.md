@@ -4,7 +4,7 @@
 
 **Related code:** `lib/services/pricing.service.js`, `lib/services/finance/wallet.service.js`, `lib/services/marketing/referral-pnl.service.js`, `lib/services/escrow/payout.service.js`, `app/api/v2/bookings/[id]/payment/initiate/route.js`, `lib/services/payment-intent.service.js`, `lib/services/booking/cancel-wallet-restore.service.js`, `app/api/v2/bookings/[id]/cancel/route.js`.
 
-**Version:** Stage 71.7 | **Last updated:** 2026-04-27
+**Version:** Stage 72.5 | **Last updated:** 2026-04-27
 
 ---
 
@@ -90,6 +90,51 @@ flowchart TB
 **Where:** `POST /api/v2/bookings/[id]/payment/initiate`.
 
 **Applied to payment math:** only **`commission_thb`** is reduced when building the amount passed into **`PaymentIntentService`** — **not** `price_thb`, **not** `partner_earnings_thb`.
+
+---
+
+## 4.1 Supply-side activation (host referral)
+
+**Trigger:** `ReferralPnlService.distributeHostPartnerActivation(bookingId)` runs on booking completion paths and applies only on the **first COMPLETED booking** where listing owner is an invited partner (`referral_relations.referee_id`).
+
+**Mechanism:**
+
+1. Read fixed bonus from `system_settings.general.partner_activation_bonus`.
+2. Debit promo tank via `adjust_marketing_promo_pot(-bonus, 'host_activation_bonus_debit', ...)`.
+3. Build L1/L2 recipients from `ancestor_path` + `referrer_id`.
+4. Split by `mlm_level1_percent` / `mlm_level2_percent`.
+5. Insert `referral_ledger` rows with `referral_type='host_activation'` and `ledger_depth` 1..2.
+6. Credit wallets of uplines (`WalletService.addFunds`).
+
+**Admin safety gate:** `PUT /api/admin/settings` validates that configured payout+cost envelope does not exceed platform margin budget before persistence.
+
+---
+
+## 4.2 Retention split (hybrid payout)
+
+`WalletService` applies ratio from `system_settings.general.payout_to_internal_ratio` when crediting `referral_bonus`:
+
+- withdrawable part -> `user_wallets.withdrawable_balance_thb`
+- retained part -> `user_wallets.internal_credits_thb`
+
+`referral_cashback` and `welcome_bonus` stay internal-only.
+
+For ratio `70` and earned bonus `1000 THB`:
+
+- payout-eligible: `700 THB`
+- internal-only: `300 THB`
+
+Checkout spend is limited to internal credits; payout readiness uses withdrawable balance only.
+
+## 4.3 Ambassador tiers override (Stage 72.5)
+
+`payout_to_internal_ratio` remains the global baseline, but for ambassador accounts `WalletService` can override it with user tier ratio:
+
+- source order: `profiles.referral_tier_payout_ratio` -> `system_settings.general.payout_to_internal_ratio`
+- tier catalog: `referral_tiers` (Beginner 60, Pro 75, Ambassador 85 by default)
+- tier sync trigger: referral completion flows in `ReferralPnlService` after COMPLETED booking payout path
+
+Important safety note: tier ratio changes only **internal vs withdrawable buckets** for already-earned referral bonus; it does **not** increase referral pool itself, so margin safety gate (`projectedTotalBurnPercent <= platformMarginPercent`) remains valid.
 
 ---
 
@@ -199,7 +244,38 @@ flowchart TB
 
 ---
 
-## 11. Audit conclusion (integrity)
+## 11. Multi-level depth & cumulative payout budget (Stage 72.2)
+
+**Stored structure**
+
+- **`referral_relations.network_depth`** — distance from acquisition root along invite chain (computed at registration).
+- **`referral_relations.ancestor_path`** — ordered profile ids from root down to direct referrer (see `lib/referral/referral-network.js`).
+- **`referral_ledger.ledger_depth`** — snapshot of depth at attribution time.
+- **`referral_ledger.referral_type`** — `guest_booking` (current P&L path) vs `host_activation` (supply-side bonus; hook stub `distributeHostPartnerActivation`).
+
+**Financial inequality (target invariant for any future multi-level weights)**
+
+Let **N** = NetProfitOrder (after insurance / acquiring / operational reserve in **`ReferralPnlService.deriveNetProfitAfterVariableCosts`**).  
+Referral reinvestment draws at most **`referral_reinvestment_percent × N`**, then safety cap vs **platform gross**. Any **additional** depth-level bonuses must be carved from that same pool (or from an explicit ADR budget), so that:
+
+\[
+\sum_{\text{all referral cash outs on the order}} \le \text{referral pool after safety lock} \le \text{platform-margin budget}.
+\]
+
+Tax lines are already inside **`pricing_snapshot`** / fee split; acquiring and operational **percent** reduce **N** before reinvestment — they must **not** be double-subtracted in a second referral budget.
+
+**Product guardrail:** before enabling MLM-style multipliers, add an ADR that caps ∑ level payouts per booking and mirrors it in **`ReferralPnlService`**.
+
+---
+
+## 12. Wallet payout eligibility (Stage 72.2)
+
+- **`WalletService.getPayoutEligibility`**: balance ≥ **`wallet_min_payout_thb`** (`system_settings.general`), **`profiles.is_verified`**, **`user_wallets.verified_for_payout`** (compliance / future card KYC).
+- Exposed on **`GET /api/v2/wallet/me`** as **`data.payout`** for UI (e.g. `/profile/referral`).
+
+---
+
+## 13. Audit conclusion (integrity)
 
 - **Pricing / fee percentages:** single pipeline through **`PricingService`** + persisted **`pricing_snapshot`**; referrals read the same snapshot helpers.
 - **Wallet caps:** **`system_settings.general`** via **`PricingService.getGeneralPricingSettings()`** — wallet and referral services do not hardcode commission %.

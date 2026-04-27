@@ -39,6 +39,11 @@ export function SystemSettingsMarketing() {
   const [referralBoostAllocationRule, setReferralBoostAllocationRule] = useState('split_50_50')
   const [welcomeBonusAmount, setWelcomeBonusAmount] = useState(0)
   const [walletMaxDiscountPercent, setWalletMaxDiscountPercent] = useState(30)
+  const [walletMinPayoutThb, setWalletMinPayoutThb] = useState(1000)
+  const [partnerActivationBonus, setPartnerActivationBonus] = useState(500)
+  const [mlmLevel1Percent, setMlmLevel1Percent] = useState(70)
+  const [mlmLevel2Percent, setMlmLevel2Percent] = useState(30)
+  const [payoutToInternalRatio, setPayoutToInternalRatio] = useState(70)
 
   useEffect(() => {
     let cancelled = false
@@ -79,6 +84,15 @@ export function SystemSettingsMarketing() {
           setWelcomeBonusAmount(clamp(s.welcomeBonusAmount ?? s.welcome_bonus_amount ?? 0, 0, 1000000))
           setWalletMaxDiscountPercent(
             clamp(s.walletMaxDiscountPercent ?? s.wallet_max_discount_percent ?? 30, 0, 100),
+          )
+          setWalletMinPayoutThb(clamp(s.walletMinPayoutThb ?? s.wallet_min_payout_thb ?? 1000, 0, 1000000))
+          setPartnerActivationBonus(
+            clamp(s.partnerActivationBonus ?? s.partner_activation_bonus ?? 500, 0, 1000000000),
+          )
+          setMlmLevel1Percent(clamp(s.mlmLevel1Percent ?? s.mlm_level1_percent ?? 70, 0, 100))
+          setMlmLevel2Percent(clamp(s.mlmLevel2Percent ?? s.mlm_level2_percent ?? 30, 0, 100))
+          setPayoutToInternalRatio(
+            clamp(s.payoutToInternalRatio ?? s.payout_to_internal_ratio ?? 70, 0, 100),
           )
         } else {
           toast.error('Не удалось загрузить настройки маркетинга')
@@ -129,6 +143,10 @@ export function SystemSettingsMarketing() {
             : 'split_50_50',
         welcomeBonusAmount: clamp(welcomeBonusAmount, 0, 1000000),
         walletMaxDiscountPercent: clamp(walletMaxDiscountPercent, 0, 100),
+        partnerActivationBonus: clamp(partnerActivationBonus, 0, 1000000000),
+        mlmLevel1Percent: clamp(mlmLevel1Percent, 0, 100),
+        mlmLevel2Percent: clamp(mlmLevel2Percent, 0, 100),
+        payoutToInternalRatio: clamp(payoutToInternalRatio, 0, 100),
         marketingPromoPot: clamp(monitor?.marketingPromoPotThb ?? settingsSnapshot?.marketingPromoPot ?? 0, 0, 1000000000),
         referral_reinvestment_percent: clamp(reinvestmentPercent, 0, 95),
         referral_split_ratio: referralSplitRatio,
@@ -145,6 +163,12 @@ export function SystemSettingsMarketing() {
             : 'split_50_50',
         welcome_bonus_amount: clamp(welcomeBonusAmount, 0, 1000000),
         wallet_max_discount_percent: clamp(walletMaxDiscountPercent, 0, 100),
+        partner_activation_bonus: clamp(partnerActivationBonus, 0, 1000000000),
+        mlm_level1_percent: clamp(mlmLevel1Percent, 0, 100),
+        mlm_level2_percent: clamp(mlmLevel2Percent, 0, 100),
+        payout_to_internal_ratio: clamp(payoutToInternalRatio, 0, 100),
+        walletMinPayoutThb: clamp(walletMinPayoutThb, 0, 1000000),
+        wallet_min_payout_thb: clamp(walletMinPayoutThb, 0, 1000000),
         marketing_promo_pot: clamp(monitor?.marketingPromoPotThb ?? settingsSnapshot?.marketingPromoPot ?? 0, 0, 1000000000),
       }
       const res = await fetch('/api/admin/settings', {
@@ -154,7 +178,8 @@ export function SystemSettingsMarketing() {
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.success) {
-        throw new Error(json?.error || 'SAVE_FAILED')
+        const details = Array.isArray(json?.details) ? json.details.join(' ') : ''
+        throw new Error(details || json?.error || 'SAVE_FAILED')
       }
       setSettingsSnapshot(json.data || payload)
       toast.success('Маркетинговые настройки сохранены')
@@ -481,6 +506,86 @@ export function SystemSettingsMarketing() {
                 value={walletMaxDiscountPercent}
                 onChange={(e) => setWalletMaxDiscountPercent(clamp(e.target.value, 0, 100))}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="walletMinPayoutThb" className="text-sm font-medium">
+                Min balance for payout (THB)
+              </Label>
+              <Input
+                id="walletMinPayoutThb"
+                type="number"
+                min={0}
+                step={100}
+                value={walletMinPayoutThb}
+                onChange={(e) => setWalletMinPayoutThb(clamp(e.target.value, 0, 1000000))}
+              />
+              <p className="text-xs text-slate-500">
+                Порог для UI «можно вывести» + `profiles.is_verified` + `user_wallets.verified_for_payout` (см. Stage 72.2).
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="partnerActivationBonus" className="text-sm font-medium">
+                Partner activation bonus (THB)
+              </Label>
+              <Input
+                id="partnerActivationBonus"
+                type="number"
+                min={0}
+                step={1}
+                value={partnerActivationBonus}
+                onChange={(e) => setPartnerActivationBonus(clamp(e.target.value, 0, 1000000000))}
+              />
+              <p className="text-xs text-slate-500">
+                Fixed debit from marketing promo pot on first COMPLETED booking of invited host.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="mlmLevel1Percent" className="text-sm font-medium">
+                MLM level 1 %
+              </Label>
+              <Input
+                id="mlmLevel1Percent"
+                type="number"
+                min={0}
+                max={100}
+                step={0.1}
+                value={mlmLevel1Percent}
+                onChange={(e) => setMlmLevel1Percent(clamp(e.target.value, 0, 100))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="mlmLevel2Percent" className="text-sm font-medium">
+                MLM level 2 %
+              </Label>
+              <Input
+                id="mlmLevel2Percent"
+                type="number"
+                min={0}
+                max={100}
+                step={0.1}
+                value={mlmLevel2Percent}
+                onChange={(e) => setMlmLevel2Percent(clamp(e.target.value, 0, 100))}
+              />
+              <p className="text-xs text-slate-500">
+                Stage 72.3 safety gate enforces L1 + L2 <= 100%.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="payoutToInternalRatio" className="text-sm font-medium">
+                Payout to internal ratio %
+              </Label>
+              <Input
+                id="payoutToInternalRatio"
+                type="number"
+                min={0}
+                max={100}
+                step={0.1}
+                value={payoutToInternalRatio}
+                onChange={(e) => setPayoutToInternalRatio(clamp(e.target.value, 0, 100))}
+              />
+              <p className="text-xs text-slate-500">
+                Пример: 70 = к выводу 70%, в internal credits 30%.
+              </p>
             </div>
           </div>
           <div className="space-y-2">

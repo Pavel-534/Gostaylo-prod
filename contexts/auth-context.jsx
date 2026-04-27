@@ -38,6 +38,35 @@ function normalizeAuthUser(u) {
   };
 }
 
+/** Persisted referral for landing `?ref=` + OAuth/email continuation (Stage 72.6). */
+const PENDING_REF_COOKIE = 'gostaylo_pending_ref';
+const PENDING_REF_LS = 'gostaylo_pending_ref_code';
+
+function readPendingRefFromCookie() {
+  if (typeof document === 'undefined') return '';
+  try {
+    const row = document.cookie.split(';').map((s) => s.trim());
+    const hit = row.find((c) => c.startsWith(`${PENDING_REF_COOKIE}=`));
+    if (!hit) return '';
+    const raw = decodeURIComponent(hit.slice(PENDING_REF_COOKIE.length + 1));
+    return String(raw || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+function persistPendingReferralCode(codeRaw) {
+  const code = String(codeRaw || '').trim().toUpperCase();
+  if (!code || typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(PENDING_REF_LS, code);
+    const secure = window.location.protocol === 'https:';
+    document.cookie = `${PENDING_REF_COOKIE}=${encodeURIComponent(code)}; Path=/; Max-Age=${60 * 60 * 24 * 120}; SameSite=Lax${secure ? '; Secure' : ''}`;
+  } catch {
+    /* ignore */
+  }
+}
+
 function getStableReferralFingerprint() {
   if (typeof window === 'undefined') return null;
   try {
@@ -118,6 +147,48 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
+  /** Capture `?ref=` on load and sync cookie/localStorage so OAuth/email flows cannot drop the referrer. */
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const fromUrl = params.get('ref')?.trim();
+      const fromCookie = readPendingRefFromCookie();
+      const fromLs = localStorage.getItem(PENDING_REF_LS)?.trim();
+      const picked = fromUrl || fromCookie || fromLs || '';
+      if (!picked) return;
+      persistPendingReferralCode(picked);
+      setPromoCode(String(picked).trim().toUpperCase());
+      setPromoStatus('checking');
+      setPromoMessage('');
+      void fetch('/api/v2/referral/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: String(picked).trim().toUpperCase(),
+          email: '',
+          fingerprint: getStableReferralFingerprint(),
+        }),
+      })
+        .then(async (res) => {
+          const json = await res.json().catch(() => ({}));
+          if (res.ok && json?.valid) {
+            setPromoStatus('valid');
+            setPromoMessage('Реферальный код сохранён');
+          } else {
+            setPromoStatus('invalid');
+            setPromoMessage(json?.error || 'Реферальный код недействителен');
+          }
+        })
+        .catch(() => {
+          setPromoStatus('invalid');
+          setPromoMessage('Не удалось проверить реферальный код');
+        });
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   const refreshUserFromServer = useCallback(async () => {
     try {
       const serverUser = await getCurrentUser();
@@ -156,9 +227,22 @@ export function AuthProvider({ children }) {
     setEmail('');
     setPassword('');
     setName('');
-    setPromoCode('');
-    setPromoStatus('idle');
-    setPromoMessage('');
+    try {
+      const persisted =
+        readPendingRefFromCookie() ||
+        (typeof window !== 'undefined' ? localStorage.getItem(PENDING_REF_LS)?.trim() : '');
+      if (persisted) {
+        setPromoCode(String(persisted).trim().toUpperCase());
+      } else {
+        setPromoCode('');
+      }
+      setPromoStatus('idle');
+      setPromoMessage('');
+    } catch {
+      setPromoCode('');
+      setPromoStatus('idle');
+      setPromoMessage('');
+    }
     setError('');
     setLoginModalOpen(true);
   }, []);
@@ -238,21 +322,52 @@ export function AuthProvider({ children }) {
     setError('');
 
     try {
-      const hasPromo = String(promoCode || '').trim().length > 0;
-      if (hasPromo) {
-        const promoOk = await validatePromoCode();
-        if (!promoOk) {
-          setError('Проверьте корректность промокода перед регистрацией');
+      const typedRef = String(promoCode || '').trim().toUpperCase();
+      let fallbackRef = '';
+      try {
+        fallbackRef =
+          readPendingRefFromCookie().trim().toUpperCase() ||
+          String(localStorage.getItem(PENDING_REF_LS) || '').trim().toUpperCase();
+      } catch {
+        fallbackRef = '';
+      }
+      const effectiveRef = typedRef || fallbackRef || '';
+
+      let referredByPayload = null;
+      if (effectiveRef) {
+        try {
+          const vr = await fetch('/api/v2/referral/validate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: effectiveRef,
+              email: email.toLowerCase().trim(),
+              fingerprint: getStableReferralFingerprint(),
+            }),
+          });
+          const vjson = await vr.json().catch(() => ({}));
+          if (!vr.ok || !vjson?.valid) {
+            setError(vjson?.error || 'Проверьте корректность реферального кода перед регистрацией');
+            setSubmitting(false);
+            return;
+          }
+          referredByPayload = effectiveRef;
+          setPromoStatus('valid');
+          setPromoMessage('Промокод принят');
+          setPromoCode(effectiveRef);
+        } catch {
+          setError('Не удалось проверить реферальный код');
           setSubmitting(false);
           return;
         }
       }
+
       const result = await signUp({
         email: email.toLowerCase().trim(),
         password,
         name: name.trim(),
         role: 'RENTER',
-        referredBy: promoStatus === 'valid' ? promoCode : null,
+        referredBy: referredByPayload,
         referralFingerprint: getStableReferralFingerprint(),
       });
       
@@ -260,6 +375,13 @@ export function AuthProvider({ children }) {
         setError(result.error);
         setSubmitting(false);
         return;
+      }
+
+      try {
+        document.cookie = `${PENDING_REF_COOKIE}=; Path=/; Max-Age=0`;
+        localStorage.removeItem(PENDING_REF_LS);
+      } catch {
+        /* ignore */
       }
 
       // Show verification pending screen

@@ -225,7 +225,17 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
       })
       const data = await res.json()
       if (res.ok && data?.success) {
-        const balance = Math.max(0, Math.round(Number(data?.data?.wallet?.balance_thb || 0)))
+        const balance = Math.max(
+          0,
+          Math.round(
+            Number(
+              data?.data?.balances?.internalCreditsThb ??
+                data?.data?.wallet?.internal_credits_thb ??
+                data?.data?.wallet?.balance_thb ??
+                0,
+            ),
+          ),
+        )
         const maxDiscount = Number(data?.data?.policy?.walletMaxDiscountPercent || 30)
         setWalletBalanceThb(balance)
         setWalletMaxDiscountPercent(Number.isFinite(maxDiscount) ? Math.max(0, Math.min(100, maxDiscount)) : 30)

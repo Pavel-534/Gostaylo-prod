@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSessionPayload } from '@/lib/services/session-service';
 import { supabaseAdmin } from '@/lib/supabase';
 import { PricingService } from '@/lib/services/pricing.service';
+import ReferralPnlService from '@/lib/services/marketing/referral-pnl.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,11 +55,20 @@ export async function GET(request) {
     return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data: profile, error: profileError } = await supabaseAdmin
+  let { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
-    .select('id,referral_code')
+    .select('id,referral_code,referral_tier_id,referral_tier_name,referral_tier_payout_ratio')
     .eq('id', session.userId)
     .maybeSingle();
+  if (profileError && /referral_tier_/i.test(String(profileError?.message || ''))) {
+    const fallback = await supabaseAdmin
+      .from('profiles')
+      .select('id,referral_code')
+      .eq('id', session.userId)
+      .maybeSingle();
+    profile = fallback.data;
+    profileError = fallback.error;
+  }
   if (profileError || !profile?.id) {
     return NextResponse.json(
       { success: false, error: profileError?.message || 'PROFILE_NOT_FOUND' },
@@ -73,7 +83,7 @@ export async function GET(request) {
     .trim();
   const code = await getOrCreateReferralCode(profile.id, profile.referral_code, ownerIp);
 
-  const [{ data: ledger }, { count: invitedCount }] = await Promise.all([
+  const [{ data: ledger }, { count: invitedCount }, { data: myInviteEdge }, tiers, directPartnersInvited] = await Promise.all([
     supabaseAdmin
       .from('referral_ledger')
       .select('status,amount_thb,referee_id')
@@ -82,6 +92,13 @@ export async function GET(request) {
       .from('referral_relations')
       .select('id', { head: true, count: 'exact' })
       .eq('referrer_id', profile.id),
+    supabaseAdmin
+      .from('referral_relations')
+      .select('network_depth,ancestor_path,referrer_id')
+      .eq('referee_id', profile.id)
+      .maybeSingle(),
+    ReferralPnlService.getReferralTiers(),
+    ReferralPnlService.countDirectPartnersInvited(profile.id),
   ]);
   const general = await PricingService.getGeneralPricingSettings();
 
@@ -96,11 +113,27 @@ export async function GET(request) {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
   const referralLink = `${String(baseUrl).replace(/\/$/, '')}/?ref=${encodeURIComponent(code)}`;
-  const ambassadorTargetInvites = 10;
   const friendsInvited = Number(invitedCount || 0);
+  const directPartnersCount = Number(directPartnersInvited || 0);
+  const tierState = ReferralPnlService.resolveTierForPartnerCount(tiers, directPartnersCount);
+  const currentTier = tierState.currentTier;
+  const nextTier = tierState.nextTier;
+  const remainingToNextTier = Math.max(
+    0,
+    Number(nextTier?.minPartnersInvited || 0) - Number(directPartnersCount || 0),
+  );
+  const currentTierFloor = Number(currentTier?.minPartnersInvited || 0);
+  const tierSpan = Math.max(1, Number(nextTier?.minPartnersInvited || currentTierFloor + 1) - currentTierFloor);
+  const tierProgressPercent = Math.min(
+    100,
+    Math.max(0, Math.round(((directPartnersCount - currentTierFloor) / tierSpan) * 100)),
+  );
+  const payoutRatioFromTier = Number(
+    profile?.referral_tier_payout_ratio ?? currentTier?.payoutRatio ?? 0,
+  );
   const ambassadorProgressPercent = Math.min(
     100,
-    Math.round((friendsInvited / Math.max(1, ambassadorTargetInvites)) * 100),
+    Math.round((friendsInvited / Math.max(1, Number(nextTier?.minPartnersInvited || 10))) * 100),
   );
   const shareMessage = `Присоединяйся к GoStayLo! Используй мой код ${code} и получай бонусы: ${referralLink}`;
   const referralSplitRatioRaw = Number(
@@ -128,7 +161,28 @@ export async function GET(request) {
       referralLink,
       shareMessage,
       ambassador: {
-        targetInvites: ambassadorTargetInvites,
+        currentTier: {
+          id: profile?.referral_tier_id || currentTier?.id || null,
+          name: profile?.referral_tier_name || currentTier?.name || 'Beginner',
+          payoutRatio: Math.round((Number.isFinite(payoutRatioFromTier) ? payoutRatioFromTier : 60) * 100) / 100,
+          minPartnersInvited: Number(currentTier?.minPartnersInvited || 0),
+        },
+        nextTier: nextTier
+          ? {
+              id: nextTier.id,
+              name: nextTier.name,
+              payoutRatio: nextTier.payoutRatio,
+              minPartnersInvited: nextTier.minPartnersInvited,
+            }
+          : null,
+        tiers,
+        directPartnersInvited: directPartnersCount,
+        remainingToNextTier,
+        tierProgressPercent,
+        payoutTooltip: `Ваш текущий уровень позволяет выводить ${Math.round(
+          Number.isFinite(payoutRatioFromTier) ? payoutRatioFromTier : 60,
+        )}% заработка на карту.`,
+        targetInvites: Number(nextTier?.minPartnersInvited || 10),
         currentInvites: friendsInvited,
         progressPercent: ambassadorProgressPercent,
       },
@@ -144,6 +198,15 @@ export async function GET(request) {
         earnedThb: Math.round(earnedThb * 100) / 100,
         friendsInvited,
       },
+      inviteNetwork: myInviteEdge
+        ? {
+            depth: Number(myInviteEdge.network_depth || 1),
+            directReferrerId: myInviteEdge.referrer_id || null,
+            ancestorChainLength: Array.isArray(myInviteEdge.ancestor_path)
+              ? myInviteEdge.ancestor_path.length
+              : 0,
+          }
+        : null,
     },
   });
 }

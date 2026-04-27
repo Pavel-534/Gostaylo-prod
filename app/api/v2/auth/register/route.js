@@ -18,6 +18,7 @@ import ReferralGuardService, {
   resolveClientIpFromRequest,
 } from '@/lib/services/marketing/referral-guard.service';
 import WalletService from '@/lib/services/finance/wallet.service';
+import { computeInviteTreeFields } from '@/lib/referral/referral-network.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -194,6 +195,21 @@ export async function POST(request) {
   }
   
   const { email, password, firstName, lastName, phone, referredBy, referralFingerprint } = body;
+
+  /** Landing/OAuth continuity: client sets `gostaylo_pending_ref` when user hits `/?ref=` (Stage 72.6). */
+  let cookieReferralRaw = '';
+  try {
+    cookieReferralRaw = request.cookies.get('gostaylo_pending_ref')?.value || '';
+  } catch {
+    cookieReferralRaw = '';
+  }
+  let cookieReferral = '';
+  try {
+    cookieReferral = decodeURIComponent(cookieReferralRaw).trim();
+  } catch {
+    cookieReferral = String(cookieReferralRaw || '').trim();
+  }
+  const mergedReferralInput = String(referredBy || cookieReferral || '').trim();
   
   if (!email) {
     return NextResponse.json({ success: false, error: 'Email is required' }, { status: 400 });
@@ -227,7 +243,7 @@ export async function POST(request) {
   }
   
   // Optional referral pre-validation (for onboarding UX + anti-fraud gate).
-  const normalizedReferredBy = String(referredBy || '').trim().toUpperCase();
+  const normalizedReferredBy = mergedReferralInput.toUpperCase();
   const normalizedFingerprint = String(referralFingerprint || '').trim().slice(0, 160);
   let prevalidatedReferral = null;
   if (normalizedReferredBy) {
@@ -312,6 +328,7 @@ export async function POST(request) {
   if (normalizedReferredBy && prevalidatedReferral?.referrerId) {
     try {
       const nowIso = new Date().toISOString();
+      const tree = await computeInviteTreeFields(supabase, prevalidatedReferral.referrerId);
       await supabase.from('referral_relations').upsert(
         {
           id: makeId('rfr'),
@@ -320,6 +337,8 @@ export async function POST(request) {
           referral_code_id: prevalidatedReferral.referralCodeId || null,
           referred_at: nowIso,
           created_at: nowIso,
+          network_depth: tree.network_depth,
+          ancestor_path: tree.ancestor_path,
           metadata: {
             referral_code: prevalidatedReferral.code,
             referee_email: normalizedEmail,
@@ -365,7 +384,7 @@ export async function POST(request) {
     }
   }
   
-  return NextResponse.json({ 
+  const res = NextResponse.json({
     success: true,
     requiresVerification: true,
     emailSent: emailResult.success,
@@ -376,9 +395,11 @@ export async function POST(request) {
       role: user.role,
       firstName: user.first_name,
       isVerified: false,
-      verificationStatus: 'PENDING'
-    }
+      verificationStatus: 'PENDING',
+    },
   });
+  res.cookies.set('gostaylo_pending_ref', '', { path: '/', maxAge: 0, sameSite: 'lax' });
+  return res;
 }
 
 export async function GET() {

@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server'
 import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { platformDefaultChatInvoiceRateMultiplier } from '@/lib/services/currency-last-resort'
+import ReferralPnlService from '@/lib/services/marketing/referral-pnl.service'
 
 // Force dynamic rendering to prevent caching
 export const dynamic = 'force-dynamic'
@@ -35,6 +36,10 @@ let mockSettings = {
   promoTurboModeEnabled: false,
   organicToPromoPotPercent: 0,
   referralBoostAllocationRule: 'split_50_50',
+  partnerActivationBonus: 500,
+  mlmLevel1Percent: 70,
+  mlmLevel2Percent: 30,
+  payoutToInternalRatio: 70,
   welcomeBonusAmount: 0,
   walletMaxDiscountPercent: 30,
   settlementPayoutDelayDays: 1,
@@ -53,6 +58,61 @@ function getSupabaseClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!url || !key) return null
   return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
+}
+
+function asNumber(value, fallback = NaN) {
+  const n = parseFloat(value)
+  return Number.isFinite(n) ? n : fallback
+}
+
+function buildReferralSafetyGuard(values) {
+  const budget = ReferralPnlService.computePlatformMarginBudget(values)
+  const errors = []
+  if (budget.mlmLevelsTotalPercent > 100) {
+    errors.push('MLM split invalid: level1 + level2 must be <= 100%.')
+  }
+  if (!budget.isWithinMargin) {
+    errors.push(
+      `Safety gate: payouts+costs (${budget.projectedTotalBurnPercent.toFixed(2)}%) exceed platform margin (${budget.platformMarginPercent.toFixed(2)}%).`,
+    )
+  }
+  if (budget.platformMarginPercent <= 0) {
+    errors.push('Platform margin must be > 0 (guestServiceFeePercent + hostCommissionPercent).')
+  }
+  return {
+    ok: errors.length === 0,
+    errors,
+    budget,
+  }
+}
+
+async function loadTierPayoutAudit() {
+  const supabase = getSupabaseClient()
+  if (!supabase) {
+    return { maxTierPayoutRatio: null, tiersCount: 0, note: 'Supabase not configured' }
+  }
+  const { data, error } = await supabase
+    .from('referral_tiers')
+    .select('id,payout_ratio')
+  if (error) {
+    const msg = String(error?.message || '')
+    if (/relation .*referral_tiers|does not exist/i.test(msg)) {
+      return { maxTierPayoutRatio: null, tiersCount: 0, note: 'referral_tiers not migrated' }
+    }
+    return { maxTierPayoutRatio: null, tiersCount: 0, note: msg }
+  }
+  const rows = Array.isArray(data) ? data : []
+  let maxTierPayoutRatio = 0
+  for (const row of rows) {
+    const ratio = asNumber(row?.payout_ratio, 0)
+    if (ratio > maxTierPayoutRatio) maxTierPayoutRatio = ratio
+  }
+  return {
+    maxTierPayoutRatio: Number.isFinite(maxTierPayoutRatio) ? maxTierPayoutRatio : 0,
+    tiersCount: rows.length,
+    note:
+      'Tier payout ratio redistributes withdrawable/internal buckets and does not increase total referral payout burn.',
+  }
 }
 
 export async function GET() {
@@ -117,6 +177,18 @@ export async function GET() {
     const rawBoostRule = String(
       data.value?.referral_boost_allocation_rule ?? data.value?.referralBoostAllocationRule ?? 'split_50_50',
     ).toLowerCase()
+    const rawPartnerActivationBonus = asNumber(
+      data.value?.partner_activation_bonus ?? data.value?.partnerActivationBonus,
+    )
+    const rawMlmLevel1Percent = asNumber(
+      data.value?.mlm_level1_percent ?? data.value?.mlmLevel1Percent,
+    )
+    const rawMlmLevel2Percent = asNumber(
+      data.value?.mlm_level2_percent ?? data.value?.mlmLevel2Percent,
+    )
+    const rawPayoutToInternalRatio = asNumber(
+      data.value?.payout_to_internal_ratio ?? data.value?.payoutToInternalRatio,
+    )
     const rawChatMult = parseFloat(data.value?.chatInvoiceRateMultiplier)
     const rawTax = parseFloat(data.value?.taxRatePercent)
     const rawCs = data.value?.chatSafety
@@ -183,6 +255,24 @@ export async function GET() {
         rawBoostRule === '100_to_referrer' || rawBoostRule === '100_to_referee' || rawBoostRule === 'split_50_50'
           ? rawBoostRule
           : 'split_50_50',
+      partnerActivationBonus:
+        Number.isFinite(rawPartnerActivationBonus) && rawPartnerActivationBonus >= 0
+          ? rawPartnerActivationBonus
+          : 500,
+      mlmLevel1Percent:
+        Number.isFinite(rawMlmLevel1Percent) && rawMlmLevel1Percent >= 0 && rawMlmLevel1Percent <= 100
+          ? rawMlmLevel1Percent
+          : 70,
+      mlmLevel2Percent:
+        Number.isFinite(rawMlmLevel2Percent) && rawMlmLevel2Percent >= 0 && rawMlmLevel2Percent <= 100
+          ? rawMlmLevel2Percent
+          : 30,
+      payoutToInternalRatio:
+        Number.isFinite(rawPayoutToInternalRatio) &&
+        rawPayoutToInternalRatio >= 0 &&
+        rawPayoutToInternalRatio <= 100
+          ? rawPayoutToInternalRatio
+          : 70,
       welcomeBonusAmount:
         Number.isFinite(rawWelcomeBonusAmount) && rawWelcomeBonusAmount >= 0 ? rawWelcomeBonusAmount : 0,
       walletMaxDiscountPercent:
@@ -210,6 +300,19 @@ export async function GET() {
       chatSafety,
     }
 
+    settings.referralSafetyBudget = ReferralPnlService.computePlatformMarginBudget({
+      guestServiceFeePercent: settings.guestServiceFeePercent,
+      hostCommissionPercent: settings.hostCommissionPercent,
+      insuranceFundPercent: settings.insuranceFundPercent,
+      acquiringFeePercent: settings.acquiringFeePercent,
+      operationalReservePercent: settings.operationalReservePercent,
+      taxRatePercent: settings.taxRatePercent,
+      referralReinvestmentPercent: settings.referralReinvestmentPercent,
+      mlmLevel1Percent: settings.mlmLevel1Percent,
+      mlmLevel2Percent: settings.mlmLevel2Percent,
+    })
+    settings.referralSafetyBudget.tierPayoutAudit = await loadTierPayoutAudit()
+
     return NextResponse.json({ data: settings })
   } catch (error) {
     console.error('Settings GET error:', error)
@@ -235,6 +338,10 @@ export async function PUT(request) {
       promoTurboModeEnabled,
       organicToPromoPotPercent,
       referralBoostAllocationRule,
+      partnerActivationBonus,
+      mlmLevel1Percent,
+      mlmLevel2Percent,
+      payoutToInternalRatio,
       welcomeBonusAmount,
       walletMaxDiscountPercent,
       settlementPayoutDelayDays,
@@ -275,6 +382,67 @@ export async function PUT(request) {
       const est = parseFloat(String(nextChatSafety.estimatedBookingValueThb ?? ''))
       nextChatSafety.estimatedBookingValueThb =
         Number.isFinite(est) && est >= 0 ? est : defaultChatSafety.estimatedBookingValueThb
+      const mockPartnerActivationBonus = (() => {
+        const n = asNumber(partnerActivationBonus ?? body?.partner_activation_bonus)
+        return Number.isFinite(n) && n >= 0 ? n : mockSettings.partnerActivationBonus ?? 500
+      })()
+      const mockMlmLevel1Percent = (() => {
+        const n = asNumber(mlmLevel1Percent ?? body?.mlm_level1_percent)
+        return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.mlmLevel1Percent ?? 70
+      })()
+      const mockMlmLevel2Percent = (() => {
+        const n = asNumber(mlmLevel2Percent ?? body?.mlm_level2_percent)
+        return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.mlmLevel2Percent ?? 30
+      })()
+      const mockPayoutToInternalRatio = (() => {
+        const n = asNumber(payoutToInternalRatio ?? body?.payout_to_internal_ratio)
+        return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.payoutToInternalRatio ?? 70
+      })()
+      const mockAcquiring = (() => {
+        const n = asNumber(acquiringFeePercent ?? body?.acquiring_fee_percent)
+        return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.acquiringFeePercent ?? 0
+      })()
+      const mockOperational = (() => {
+        const n = asNumber(operationalReservePercent ?? body?.operational_reserve_percent)
+        return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.operationalReservePercent ?? 0
+      })()
+      const mockReferralReinvestment = (() => {
+        const n = asNumber(referralReinvestmentPercent ?? body?.referral_reinvestment_percent)
+        return Number.isFinite(n) && n >= 0 && n <= 95 ? n : mockSettings.referralReinvestmentPercent
+      })()
+      const mockTaxRate = (() => {
+        const n = asNumber(taxRatePercent)
+        return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.taxRatePercent ?? 0
+      })()
+      const mockGuestFee = (() => {
+        const n = asNumber(guestServiceFeePercent)
+        return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.guestServiceFeePercent
+      })()
+      const mockHostFee = (() => {
+        const n = asNumber(hostCommissionPercent)
+        return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.hostCommissionPercent
+      })()
+      const mockInsurance = (() => {
+        const n = asNumber(insuranceFundPercent)
+        return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.insuranceFundPercent
+      })()
+      const mockGuard = buildReferralSafetyGuard({
+        guestServiceFeePercent: mockGuestFee,
+        hostCommissionPercent: mockHostFee,
+        insuranceFundPercent: mockInsurance,
+        acquiringFeePercent: mockAcquiring,
+        operationalReservePercent: mockOperational,
+        taxRatePercent: mockTaxRate,
+        referralReinvestmentPercent: mockReferralReinvestment,
+        mlmLevel1Percent: mockMlmLevel1Percent,
+        mlmLevel2Percent: mockMlmLevel2Percent,
+      })
+      if (!mockGuard.ok) {
+        return NextResponse.json(
+          { success: false, error: 'SAFETY_GATE_REJECTED', details: mockGuard.errors, budget: mockGuard.budget },
+          { status: 400 },
+        )
+      }
 
       mockSettings = {
         ...mockSettings,
@@ -297,24 +465,13 @@ export async function PUT(request) {
           const n = parseFloat(insuranceFundPercent)
           return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.insuranceFundPercent
         })(),
-        referralReinvestmentPercent: (() => {
-          const n = parseFloat(referralReinvestmentPercent)
-          return Number.isFinite(n) && n >= 0 && n <= 95 ? n : mockSettings.referralReinvestmentPercent
-        })(),
+        referralReinvestmentPercent: mockReferralReinvestment,
         referralSplitRatio: (() => {
           const n = parseFloat(referralSplitRatio)
           return Number.isFinite(n) && n >= 0 && n <= 1 ? n : mockSettings.referralSplitRatio
         })(),
-        acquiringFeePercent: (() => {
-          const n = parseFloat(acquiringFeePercent ?? body?.acquiring_fee_percent)
-          return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.acquiringFeePercent ?? 0
-        })(),
-        operationalReservePercent: (() => {
-          const n = parseFloat(operationalReservePercent ?? body?.operational_reserve_percent)
-          return Number.isFinite(n) && n >= 0 && n <= 100
-            ? n
-            : mockSettings.operationalReservePercent ?? 0
-        })(),
+        acquiringFeePercent: mockAcquiring,
+        operationalReservePercent: mockOperational,
         marketingPromoPot: (() => {
           const n = parseFloat(marketingPromoPot ?? body?.marketing_promo_pot)
           return Number.isFinite(n) && n >= 0 ? n : mockSettings.marketingPromoPot ?? 0
@@ -337,6 +494,10 @@ export async function PUT(request) {
             ? r
             : 'split_50_50'
         })(),
+        partnerActivationBonus: mockPartnerActivationBonus,
+        mlmLevel1Percent: mockMlmLevel1Percent,
+        mlmLevel2Percent: mockMlmLevel2Percent,
+        payoutToInternalRatio: mockPayoutToInternalRatio,
         welcomeBonusAmount: (() => {
           const n = parseFloat(welcomeBonusAmount ?? body?.welcome_bonus_amount)
           return Number.isFinite(n) && n >= 0 ? n : mockSettings.welcomeBonusAmount ?? 0
@@ -395,6 +556,14 @@ export async function PUT(request) {
     const parsedBoostAllocationRule = String(
       referralBoostAllocationRule ?? body?.referral_boost_allocation_rule ?? '',
     ).toLowerCase()
+    const parsedPartnerActivationBonus = asNumber(
+      partnerActivationBonus ?? body?.partner_activation_bonus,
+    )
+    const parsedMlmLevel1Percent = asNumber(mlmLevel1Percent ?? body?.mlm_level1_percent)
+    const parsedMlmLevel2Percent = asNumber(mlmLevel2Percent ?? body?.mlm_level2_percent)
+    const parsedPayoutToInternalRatio = asNumber(
+      payoutToInternalRatio ?? body?.payout_to_internal_ratio,
+    )
     const parsedDelayDays = parseInt(String(settlementPayoutDelayDays ?? ''), 10)
     const parsedPayoutHour = parseInt(String(settlementPayoutHourLocal ?? ''), 10)
     const resolvedComm = Number.isFinite(parsedPut) && parsedPut >= 0
@@ -524,6 +693,44 @@ export async function PUT(request) {
           : Number.isFinite(parseFloat(existing?.value?.walletMaxDiscountPercent))
             ? parseFloat(existing?.value?.walletMaxDiscountPercent)
             : 30
+    const resolvedPartnerActivationBonus =
+      Number.isFinite(parsedPartnerActivationBonus) && parsedPartnerActivationBonus >= 0
+        ? parsedPartnerActivationBonus
+        : Number.isFinite(parseFloat(existing?.value?.partner_activation_bonus))
+          ? parseFloat(existing?.value?.partner_activation_bonus)
+          : Number.isFinite(parseFloat(existing?.value?.partnerActivationBonus))
+            ? parseFloat(existing?.value?.partnerActivationBonus)
+            : 500
+    const resolvedMlmLevel1Percent =
+      Number.isFinite(parsedMlmLevel1Percent) &&
+      parsedMlmLevel1Percent >= 0 &&
+      parsedMlmLevel1Percent <= 100
+        ? parsedMlmLevel1Percent
+        : Number.isFinite(parseFloat(existing?.value?.mlm_level1_percent))
+          ? parseFloat(existing?.value?.mlm_level1_percent)
+          : Number.isFinite(parseFloat(existing?.value?.mlmLevel1Percent))
+            ? parseFloat(existing?.value?.mlmLevel1Percent)
+            : 70
+    const resolvedMlmLevel2Percent =
+      Number.isFinite(parsedMlmLevel2Percent) &&
+      parsedMlmLevel2Percent >= 0 &&
+      parsedMlmLevel2Percent <= 100
+        ? parsedMlmLevel2Percent
+        : Number.isFinite(parseFloat(existing?.value?.mlm_level2_percent))
+          ? parseFloat(existing?.value?.mlm_level2_percent)
+          : Number.isFinite(parseFloat(existing?.value?.mlmLevel2Percent))
+            ? parseFloat(existing?.value?.mlmLevel2Percent)
+            : 30
+    const resolvedPayoutToInternalRatio =
+      Number.isFinite(parsedPayoutToInternalRatio) &&
+      parsedPayoutToInternalRatio >= 0 &&
+      parsedPayoutToInternalRatio <= 100
+        ? parsedPayoutToInternalRatio
+        : Number.isFinite(parseFloat(existing?.value?.payout_to_internal_ratio))
+          ? parseFloat(existing?.value?.payout_to_internal_ratio)
+          : Number.isFinite(parseFloat(existing?.value?.payoutToInternalRatio))
+            ? parseFloat(existing?.value?.payoutToInternalRatio)
+            : 70
     const resolvedPayoutDelayDays =
       Number.isFinite(parsedDelayDays) && parsedDelayDays >= 0 && parsedDelayDays <= 60
         ? parsedDelayDays
@@ -560,6 +767,28 @@ export async function PUT(request) {
     const estPut = parseFloat(String(mergedCs.estimatedBookingValueThb ?? ''))
     mergedCs.estimatedBookingValueThb =
       Number.isFinite(estPut) && estPut >= 0 ? estPut : defaultChatSafety.estimatedBookingValueThb
+    const safetyGuard = buildReferralSafetyGuard({
+      guestServiceFeePercent: resolvedGuestFee,
+      hostCommissionPercent: resolvedHostCommission,
+      insuranceFundPercent: resolvedInsurance,
+      acquiringFeePercent: resolvedAcquiringFeePercent,
+      operationalReservePercent: resolvedOperationalReservePercent,
+      taxRatePercent: resolvedTaxRate,
+      referralReinvestmentPercent: resolvedReferralReinvestment,
+      mlmLevel1Percent: resolvedMlmLevel1Percent,
+      mlmLevel2Percent: resolvedMlmLevel2Percent,
+    })
+    if (!safetyGuard.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'SAFETY_GATE_REJECTED',
+          details: safetyGuard.errors,
+          budget: safetyGuard.budget,
+        },
+        { status: 400 },
+      )
+    }
 
     const newValue = {
       ...(existing?.value || {}),
@@ -577,6 +806,14 @@ export async function PUT(request) {
       promo_turbo_mode_enabled: resolvedPromoTurboModeEnabled === true,
       organic_to_promo_pot_percent: resolvedOrganicToPromoPotPercent,
       referral_boost_allocation_rule: resolvedReferralBoostAllocationRule,
+      partnerActivationBonus: resolvedPartnerActivationBonus,
+      mlmLevel1Percent: resolvedMlmLevel1Percent,
+      mlmLevel2Percent: resolvedMlmLevel2Percent,
+      payoutToInternalRatio: resolvedPayoutToInternalRatio,
+      partner_activation_bonus: resolvedPartnerActivationBonus,
+      mlm_level1_percent: resolvedMlmLevel1Percent,
+      mlm_level2_percent: resolvedMlmLevel2Percent,
+      payout_to_internal_ratio: resolvedPayoutToInternalRatio,
       welcome_bonus_amount: resolvedWelcomeBonusAmount,
       wallet_max_discount_percent: resolvedWalletMaxDiscountPercent,
       settlementPayoutDelayDays: resolvedPayoutDelayDays,

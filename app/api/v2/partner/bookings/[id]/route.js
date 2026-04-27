@@ -277,6 +277,17 @@ export async function PUT(request, { params }) {
       } catch (e) {
         console.error('[BOOKING UPDATE] referral distribute', e)
       }
+      try {
+        const hostActivationResult = await ReferralPnlService.distributeHostPartnerActivation(id)
+        if (hostActivationResult?.success !== true && hostActivationResult?.error) {
+          console.warn(
+            '[BOOKING UPDATE] host activation distribute failed:',
+            hostActivationResult.error,
+          )
+        }
+      } catch (e) {
+        console.error('[BOOKING UPDATE] host activation distribute', e)
+      }
     }
 
     return NextResponse.json({

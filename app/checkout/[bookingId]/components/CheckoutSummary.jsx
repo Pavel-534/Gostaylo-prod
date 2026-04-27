@@ -40,7 +40,9 @@ export function CheckoutSummary({ p, c, onOpenCancel }) {
           {!c.hasInvoiceCheckout ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-amber-900">Ваш баланс: {Math.round(p.walletBalanceThb || 0)} THB</p>
+                <p className="text-sm font-medium text-amber-900">
+                  Internal credits: {Math.round(p.walletBalanceThb || 0)} THB
+                </p>
                 <Switch
                   checked={Boolean(p.useWalletBonuses)}
                   onCheckedChange={p.setUseWalletBonuses}
@@ -49,8 +51,13 @@ export function CheckoutSummary({ p, c, onOpenCancel }) {
                 />
               </div>
               <p className="text-xs text-amber-800">
-                Использовать бонусы для скидки? Лимит {Math.round(p.walletMaxDiscountPercent || 0)}% от суммы заказа.
+                Использовать internal credits для скидки? Лимит {Math.round(p.walletMaxDiscountPercent || 0)}% от суммы заказа.
               </p>
+              {Number(c.serviceFee || 0) > 0 && Number(c.walletAppliedThb || 0) >= Math.round(Number(c.serviceFee || 0)) ? (
+                <p className="text-xs font-semibold text-emerald-700">
+                  Бонусы покроют 100% комиссии за этот заказ.
+                </p>
+              ) : null}
               {Number(c.walletAppliedThb || 0) > 0 ? (
                 <p className="text-xs font-semibold text-emerald-700">
                   Применено из кошелька: -{Math.round(c.walletAppliedThb)} THB (только платформа)

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Gift, Copy, Loader2, Users, Wallet, Share2, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { toast } from 'sonner';
@@ -70,6 +71,23 @@ export default function ReferralProfilePage() {
     const days = Math.ceil((exp.getTime() - now.getTime()) / 86400000);
     return { rem, days, expIso };
   })();
+  const payoutProgress = (() => {
+    const balances = walletData?.balances;
+    if (!balances) return null;
+    const withdrawable = Number(
+      balances.withdrawableBalanceThb ?? walletData?.wallet?.withdrawable_balance_thb ?? 0,
+    );
+    const internal = Number(
+      balances.internalCreditsThb ?? walletData?.wallet?.internal_credits_thb ?? 0,
+    );
+    const total = Math.max(0, withdrawable + internal);
+    return {
+      withdrawable: Math.max(0, withdrawable),
+      internal: Math.max(0, internal),
+      total,
+      withdrawablePct: total > 0 ? Math.round((Math.max(0, withdrawable) / total) * 100) : 0,
+    };
+  })();
 
   async function handleCopyLink() {
     const link = String(data?.referralLink || '').trim();
@@ -109,6 +127,101 @@ export default function ReferralProfilePage() {
 
   return (
     <div className="container mx-auto max-w-3xl px-4 py-8 space-y-4">
+      {data?.inviteNetwork ? (
+        <Card className="border border-slate-200 bg-slate-50/80">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Сеть приглашений</CardTitle>
+            <CardDescription className="text-xs">
+              Глубина цепочки от корневого промоутера (Stage 72.2). Не зависит от роли «рентер / партнёр».
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-slate-800 space-y-1">
+            <p>
+              Ваша глубина:{' '}
+              <span className="font-semibold tabular-nums">{Number(data.inviteNetwork.depth || 1)}</span>
+            </p>
+            <p className="text-xs text-slate-600">
+              Звеньев до корня (ancestor chain):{' '}
+              <span className="font-mono tabular-nums">{Number(data.inviteNetwork.ancestorChainLength || 0)}</span>
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border border-dashed border-slate-200 bg-white">
+          <CardContent className="py-4 text-sm text-slate-600">
+            Вы зарегистрировались без реферального кода — вы в корне своей ветки как пригласитель.
+          </CardContent>
+        </Card>
+      )}
+
+      {walletData?.payout ? (
+        <Card
+          className={
+            walletData.payout.payoutEligible
+              ? 'border border-emerald-200 bg-emerald-50/70'
+              : 'border border-slate-200 bg-white'
+          }
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-emerald-700" />
+              Вывод бонусного баланса
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Минимум {formatThb(walletData.payout.minPayoutThb)} THB, подтверждённый email и допуск к выплатам.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm space-y-2">
+            <p className={walletData.payout.payoutEligible ? 'text-emerald-900 font-medium' : 'text-slate-700'}>
+              {walletData.payout.payoutEligible
+                ? 'Условия для запроса вывода выполнены (после запуска продукта «вывод на карту»).'
+                : `Пока недоступно: ${(walletData.payout.blockers || []).join(', ') || 'см. настройки профиля'}.`}
+            </p>
+            {!walletData.payout.profileVerified ? (
+              <p className="text-xs text-amber-800">Подтвердите email в профиле.</p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {payoutProgress ? (
+        <Card className="border border-indigo-200 bg-indigo-50/40">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Retention split бонусов</CardTitle>
+            <CardDescription className="text-xs">
+              Доступно к выводу: {formatThb(payoutProgress.withdrawable)} THB. На будущие поездки:{' '}
+              {formatThb(payoutProgress.internal)} THB.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Progress value={payoutProgress.withdrawablePct} className="h-2" />
+            <p className="text-xs text-slate-600">
+              Withdrawable {payoutProgress.withdrawablePct}% / Internal {Math.max(0, 100 - payoutProgress.withdrawablePct)}%
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {payoutProgress && payoutProgress.internal > 0 ? (
+        <Card className="border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Маркетинговый push</CardTitle>
+            <CardDescription className="text-xs text-amber-900">
+              У вас накопилось {formatThb(payoutProgress.internal)} THB внутренних бонусов. Вы можете потратить их на
+              оплату сервисного сбора или Priority Listing для ваших объектов.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => router.push('/profile/bookings')}>
+              Потратить на сервисный сбор
+            </Button>
+            <Button onClick={() => router.push('/partner/listings?upsell=priority')}>
+              Включить Priority Listing
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card className="border-2 border-teal-200 bg-gradient-to-br from-teal-50 to-white">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -167,18 +280,40 @@ export default function ReferralProfilePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Твой путь к Амбассадору</CardTitle>
+          <CardTitle className="text-base">Твой путь по уровням Амбассадора</CardTitle>
           <CardDescription>
-            Пригласи {Number(data?.ambassador?.targetInvites || 10).toLocaleString('ru-RU')} друзей для статуса.
+            {data?.ambassador?.remainingToNextTier > 0 && data?.ambassador?.nextTier?.name
+              ? `До следующего уровня (${data.ambassador.nextTier.name}) осталось пригласить ${Number(
+                  data.ambassador.remainingToNextTier,
+                ).toLocaleString('ru-RU')} партнеров.`
+              : 'Вы на максимальном уровне. Поддерживайте эффективность ветки и качество партнеров.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          <Progress value={Number(data?.ambassador?.progressPercent || 0)} className="h-2" />
-          <p className="text-sm text-slate-600">
-            {Number(data?.ambassador?.currentInvites || 0).toLocaleString('ru-RU')}
-            {' / '}
-            {Number(data?.ambassador?.targetInvites || 10).toLocaleString('ru-RU')} приглашений
-          </p>
+          <Progress value={Number(data?.ambassador?.tierProgressPercent || 0)} className="h-2" />
+          <div className="text-sm text-slate-600 flex flex-wrap items-center gap-2">
+            <span>
+              Уровень: <strong>{data?.ambassador?.currentTier?.name || 'Beginner'}</strong>
+            </span>
+            <span>·</span>
+            <span>
+              Партнеров приглашено: {Number(data?.ambassador?.directPartnersInvited || 0).toLocaleString('ru-RU')}
+            </span>
+            <TooltipProvider delayDuration={150}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-xs underline underline-offset-2 text-indigo-700"
+                    aria-label="Как работает вывод по уровню"
+                  >
+                    Как работает вывод
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{data?.ambassador?.payoutTooltip || 'Tier payout tooltip'}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </CardContent>
       </Card>
 
@@ -197,7 +332,9 @@ export default function ReferralProfilePage() {
               </p>
             ) : walletData?.wallet?.balance_thb != null ? (
               <p className="text-xs text-slate-500">
-                Баланс бонусного кошелька: ฿{formatThb(walletData.wallet.balance_thb)}
+                Баланс бонусного кошелька: ฿{formatThb(walletData.wallet.balance_thb)} (internal:{' '}
+                ฿{formatThb(walletData?.wallet?.internal_credits_thb || 0)}, withdrawable:{' '}
+                ฿{formatThb(walletData?.wallet?.withdrawable_balance_thb || 0)})
               </p>
             ) : null}
           </CardContent>

@@ -26,7 +26,11 @@ function applyTypeFilter(query, type) {
     return query.in('entry_type', ['organic_topup', 'manual_topup']);
   }
   if (t === 'debit') {
-    return query.in('entry_type', ['referral_boost_debit', 'manual_debit']);
+    return query.in('entry_type', [
+      'referral_boost_debit',
+      'manual_debit',
+      'host_activation_bonus_debit',
+    ]);
   }
   if (t === 'manual') {
     return query.in('entry_type', ['manual_topup', 'manual_debit']);

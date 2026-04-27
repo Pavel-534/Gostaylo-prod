@@ -435,6 +435,15 @@ export default function MarketingPage() {
         </div>
         <div className="flex w-full sm:w-auto gap-2">
           <Button asChild variant="outline" className="w-full sm:w-auto">
+            <Link href="/admin/marketing/settings">Referral Settings</Link>
+          </Button>
+          <Button asChild variant="outline" className="w-full sm:w-auto">
+            <Link href="/admin/marketing/payouts">Payouts</Link>
+          </Button>
+          <Button asChild variant="outline" className="w-full sm:w-auto">
+            <Link href="/admin/marketing/analytics">ROI Analytics</Link>
+          </Button>
+          <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link href="/admin/marketing/audit">Tank Audit</Link>
           </Button>
           <Button asChild variant="outline" className="w-full sm:w-auto">

@@ -11,7 +11,7 @@ export async function GET() {
   }
   const [wallet, policy] = await Promise.all([
     WalletService.getWalletSummary(session.userId),
-    WalletService.getWalletPolicy(),
+    WalletService.getWalletPolicy(session.userId),
   ]);
   if (!wallet.success) {
     return NextResponse.json(
