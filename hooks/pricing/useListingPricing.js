@@ -6,7 +6,8 @@ import { calculatePrice } from '@/lib/listing/listing-price-sync.js'
 import { computeRoundedGuestTotalPot } from '@/lib/booking-price-integrity'
 
 /**
- * Guest listing page: price breakdown (subtotal, service fee, guest total) from dates + guests + commission.
+ * PDP / booking widget: guest price breakdown (subtotal, service fee, guest total) from dates + guests + commission.
+ * Used from **`hooks/useListingBookingFlow.js`** (and reusable elsewhere on the client).
  */
 export function useListingPricing({
   listing,

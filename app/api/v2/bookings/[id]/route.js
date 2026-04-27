@@ -16,7 +16,9 @@ export async function GET(request, { params }) {
     const { id } = params;
     const access = await validateAccess(request, id, ['renter', 'partner', 'staff']);
     if (!access.ok) return access.response;
-    const booking = await BookingService.getBookingById(id);
+    const booking = await BookingService.getBookingById(id, {
+      viewerUserId: access.session.userId,
+    });
     if (!booking) {
       return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
     }
