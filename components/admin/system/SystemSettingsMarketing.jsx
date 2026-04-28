@@ -44,6 +44,7 @@ export function SystemSettingsMarketing() {
   const [mlmLevel1Percent, setMlmLevel1Percent] = useState(70)
   const [mlmLevel2Percent, setMlmLevel2Percent] = useState(30)
   const [payoutToInternalRatio, setPayoutToInternalRatio] = useState(70)
+  const [referralMonthlyGoalThb, setReferralMonthlyGoalThb] = useState(10000)
 
   useEffect(() => {
     let cancelled = false
@@ -93,6 +94,9 @@ export function SystemSettingsMarketing() {
           setMlmLevel2Percent(clamp(s.mlmLevel2Percent ?? s.mlm_level2_percent ?? 30, 0, 100))
           setPayoutToInternalRatio(
             clamp(s.payoutToInternalRatio ?? s.payout_to_internal_ratio ?? 70, 0, 100),
+          )
+          setReferralMonthlyGoalThb(
+            clamp(s.referralMonthlyGoalThb ?? s.referral_monthly_goal_thb ?? 10000, 1, 999999999),
           )
         } else {
           toast.error('Не удалось загрузить настройки маркетинга')
@@ -169,6 +173,8 @@ export function SystemSettingsMarketing() {
         payout_to_internal_ratio: clamp(payoutToInternalRatio, 0, 100),
         walletMinPayoutThb: clamp(walletMinPayoutThb, 0, 1000000),
         wallet_min_payout_thb: clamp(walletMinPayoutThb, 0, 1000000),
+        referralMonthlyGoalThb: clamp(referralMonthlyGoalThb, 1, 999999999),
+        referral_monthly_goal_thb: clamp(referralMonthlyGoalThb, 1, 999999999),
         marketing_promo_pot: clamp(monitor?.marketingPromoPotThb ?? settingsSnapshot?.marketingPromoPot ?? 0, 0, 1000000000),
       }
       const res = await fetch('/api/admin/settings', {
@@ -492,6 +498,22 @@ export function SystemSettingsMarketing() {
                 value={welcomeBonusAmount}
                 onChange={(e) => setWelcomeBonusAmount(clamp(e.target.value, 0, 1000000))}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="referralMonthlyGoalThb" className="text-sm font-medium">
+                Referral monthly goal default (THB)
+              </Label>
+              <Input
+                id="referralMonthlyGoalThb"
+                type="number"
+                min={1}
+                step={100}
+                value={referralMonthlyGoalThb}
+                onChange={(e) => setReferralMonthlyGoalThb(clamp(e.target.value, 1, 999999999))}
+              />
+              <p className="text-xs text-slate-500">
+                Если у пользователя не задана личная цель в профиле — используется это значение для прогресса «цель месяца».
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="walletMaxDiscountPercent" className="text-sm font-medium">

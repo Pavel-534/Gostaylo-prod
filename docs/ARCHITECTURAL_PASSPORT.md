@@ -1,6 +1,6 @@
 # Gostaylo — Architectural Passport
 
-> **Version**: 12.11.0 | **Last Updated**: 2026-04-27 | **Status**: Production-Ready — **Stage 73.1:** глобальный **`wallet-me`** UI (**`HeaderWalletCompact`**) + **`GET /api/v2/referral/activity`** / лента команды; **`teamMembers.chatUnreadCount`**; прежнее: Stage 72.6 / 72.6b (**`teamMembers`**, **`partnerEscrow`**).
+> **Version**: 12.20.0 | **Last Updated**: 2026-04-27 | **Status**: Production-Ready — **Stage 74.3:** публичная визитка **`/u/[id]`**, **`GET /api/v2/referral/landing-meta/[userId]`**, короткий URL в QR/PDF/Stories (**`lib/referral/public-landing-url.js`**), toast на рост **`friendsInvited`**; **74.2:** RPC лидерборда, **`GET /api/v2/admin/referral/leaderboard`** (UTC), бейджи + Stories copy; **74.1:** **`GET /api/v2/referral/leaderboard`**, L1/L2; **73.7:** TZ seed; **73.6:** **`resolveReferralStatsTimeZone`**; **73.5:** **`teammate_joined`**.
 > 
 > Архитектура, маршруты, схемы и стандарты. **Порядок для агентов:** сначала **`ARCHITECTURAL_DECISIONS.md`** (SSOT), затем **`docs/TECHNICAL_MANIFESTO.md`** (code-truth), затем этот паспорт. Синхронизация с кодом — **`AGENTS.md`** и **`.cursor/rules/gostaylo-docs-constitution.mdc`**.
 
@@ -111,8 +111,77 @@
 
 - **TanStack Query:** `components/providers/app-query-provider.jsx` + **`AppQueryProvider`** в корневом **`app/layout.js`** (общий кэш; убраны вложенные **`QueryClientProvider`** из **`app/renter/layout.js`** и **`app/partner/layout.js`**).
 - **Wallet:** `GET /api/v2/wallet/me` кэшируется клиентом ключом **`['wallet-me']`** (**`lib/hooks/use-wallet-me.js`**); **`HeaderWalletCompact`** — иконка + сумма (маркетинговый кошелёк + сумма эскроу партнёра), выпадающее меню с расшифровкой и ссылкой **`/profile/referral`**.
-- **Лента команды:** **`GET /api/v2/referral/activity`** (**`lib/referral/build-referral-activity-feed.js`**) — события по прямым рефералам (регистрация, первая COMPLETED-поездка с бонусом из `referral_ledger`, первый активный листинг); UI **`ReferralActivityFeed`** на **`/profile/referral`**.
+- **Лента команды:** **`GET /api/v2/referral/activity`** (**`lib/referral/build-referral-activity-feed.js`**) — читает **`referral_team_events`** (после Stage 73.3); UI **`ReferralActivityFeed`** на **`/profile/referral`**.
 - **Чат:** в **`GET /api/v2/referral/me` → `teamMembers[]`** добавлено **`chatUnreadCount`** (та же логика, что **`computeUnreadCountByConversationId`** для списка чатов).
+
+### Stage 73.2 — Localization, wallet refresh, activity paging, ambassador stats (2026-04)
+
+- **i18n:** ключи **`stage73_*`**, **`referralFeed_*`**, блоки показателей — **RU/EN/ZH/TH** в **`lib/translations/slices/profile-app.js`**.
+- **Wallet UX:** **`invalidateWalletMeQuery`** / **`useInvalidateWalletMe`** в **`lib/hooks/use-wallet-me.js`**; вызов из **`useCheckoutPayment`** после успешного **`payment/confirm`**, TRON verify / settle, **`payment/initiate`** при списании **`walletUseAppliedThb`**.
+- **Лента:** **`GET /api/v2/referral/activity`** — параметры **`limit`**, **`cursor`** (cursor = offset в общем отсортированном списке, **`referral-activity-cursor.js`**); ответ **`items`**, **`nextCursor`**, **`total`**, **`page`**; UI **`ReferralActivityFeed`** — «Показать ещё», счётчик **`referralFeed_shownOf`**.
+- **Аналитика (API):** **`GET /api/v2/referral/me` → `stats.monthlyEarnedThb`**, **`stats.expectedPendingThb`** (= **`pendingThb`**); карточки на **`/profile/referral`** (календарный месяц в TZ пользователя — **Stage 73.3**).
+
+### Stage 73.3 — Referral team events SSOT, TZ/month goal, QR marketing kit (2026-04)
+
+- **DB:** **`migrations/stage73_3_referral_team_events.sql`** — **`profiles.iana_timezone`**, **`profiles.referral_monthly_goal_thb`**, таблица **`referral_team_events`** (`teammate_joined` \| `teammate_first_stay` \| `teammate_new_listing` \| `referral_bonus_earned`), индекс **`(referrer_id, created_at DESC)`**, backfill joined из **`referral_relations`**.
+- **Запись событий:** **`lib/referral/insert-referral-team-event.js`**, **`lib/referral/referral-feed-recorder.js`** — после **`ReferralPnlService.distribute`** / **`distributeHostPartnerActivation`** (бонусы + первая поездка), при **`PATCH /api/admin/moderation`** **`approve`** (первый ACTIVE листинг партнёра). **`teammate_joined`** при новой строке **`referral_relations`** — триггер БД (**Stage 73.5**), не дублировать из **`register`**.
+- **Лента:** **`lib/referral/build-referral-activity-feed.js`** — только **`referral_team_events`** (пагинация **`limit`/`cursor`** без изменений контракта).
+- **Аналитика:** **`GET /api/v2/referral/me`** — **`stats.monthlyEarnedThb`** / **`yearlyEarnedThb`** / **`sparklineEarningsThb`** / **`sparkMonthlyYtdThb`** по календарю **`resolveReferralStatsTimeZone(profile)`** (**Stage 73.6**; **`referralReport.statsCalendarIana`**); **`stats.monthlyGoalThb`**, **`stats.monthlyGoalProgressPercent`**; **`referralReport`** (**`ianaTimezone`**, персональная цель).
+- **Профиль:** **`PATCH /api/v2/profile/me`** — опционально **`iana_timezone`**, **`referral_monthly_goal_thb`** (**`lib/validation/iana-timezone.js`**).
+- **Админ:** **`system_settings.general.referral_monthly_goal_thb`** / **`referralMonthlyGoalThb`** — **`SystemSettingsMarketing`**, **`PUT /api/admin/settings`**.
+- **UI:** **`components/referral/ReferralMarketingKit.jsx`** (QR **`qrcode`/`qrcode.react`**, WA/Telegram/FB), **`ReferralMiniSparkline.jsx`**, **`/profile/referral`** — цель месяца + форма TZ/цели, sparkline в карточке «доход за месяц».
+
+### Stage 73.4 — Ambassador PDF card, share copy, feed name hygiene (2026-04)
+
+- **PDF:** зависимость **`jspdf`**; генерация **`lib/referral/ambassador-card-pdf.js`** (ландшафт 90×54 mm, типографика, QR); кнопка в **`ReferralMarketingKit`**.
+- **API:** **`GET /api/v2/referral/me`** → **`brandName`** (**`getSiteDisplayName()`**), **`marketingCard.displayName`**, **`marketingCard.ambassadorBadge`** (`gold` если текущий tier = верхний из **`referral_tiers`**, иначе **`silver`**), **`shareMessage`** (англ. fallback для совместимости); UI строит текст шаринга из i18n (**`stage73_shareBodyDefault`**).
+- **Лента:** **`lib/referral/uuid-like.js`** фильтрует UUID в **`build-referral-activity-feed.js`**; клиент **`ReferralActivityFeed`** не подставляет UUID вместо имени.
+- **UX цели месяца:** строка **`stage73_monthlyGoalPercentLine`** на **`/profile/referral`**.
+
+### Stage 73.5 — Referral feed trigger & index (2026-04)
+
+- **DB:** **`migrations/stage73_5_referral_team_events_triggers.sql`** — функция **`trg_referral_relations_insert_team_joined`**, триггер **`trg_referral_relations_team_joined`** на **`referral_relations`** ( **`teammate_joined`**, анти-дубль по паре referrer/referee/тип ); замена индекса ленты на покрывающий **`idx_referral_team_events_referrer_created_cover`**.
+- **Register:** **`POST /api/v2/auth/register`** полагается на триггер для join-события (удалён ручной **`insertReferralTeamEvent`**).
+- **COMPLETED / бонусы:** по-прежнему **`lib/referral/referral-feed-recorder.js`** из payout/P&L.
+
+### Stage 73.6 — Referral stats TZ SSOT, DD.MM.YYYY, guard alignment (2026-04)
+
+- **SSOT TZ:** **`lib/referral/resolve-referral-stats-timezone.js`** — **`resolveReferralStatsTimeZone`**, **`referralStatsCalendarMonthStartUtcIso`** (профиль → fallback **UTC**).
+- **API:** **`GET /api/v2/referral/me`** — все месячные/годовые bucket’ы и sparklines в резолвенной TZ; **`referralReport.statsCalendarIana`**.
+- **Guard:** **`ReferralGuardService`** — месячный лимит приглашений от начала месяца в TZ **реферера** (как статистика).
+- **ROI (админ):** **`ReferralPnlService.buildCohortRoiSeries`** — когорты по **UTC**-месяцу (без изменения; глобальная аналитика).
+- **UI/PDF:** **`lib/referral/format-referral-datetime.js`** — **DD.MM.YYYY**; лента **`ReferralActivityFeed`**; дата на PDF-визитке; i18n **`stage73_referralStatsTzHint`**.
+
+### Stage 73.7 — Silent growth: TZ seed, Stories asset, feed icons, mobile order (2026-04)
+
+- **TZ:** **`app/profile/referral/page.js`** — если **`referralReport.ianaTimezone`** пусто, клиент записывает **`Intl.DateTimeFormat().resolvedOptions().timeZone`** через **`PATCH /api/v2/profile/me`** без уведомлений и перезапрашивает **`GET /api/v2/referral/me`** (далее SSOT как в **73.6**).
+- **Stories:** **`components/referral/ReferralMarketingKit.jsx`** — шаблон **9:16**, экспорт PNG (**`html-to-image`** **`toPng`**), QR + Airrento-стиль копирайта; i18n **`stage73_downloadStoriesCard`**, **`stage73_storiesCardHeadline`**.
+- **Лента:** **`ReferralActivityFeed`** — **`UserPlus` / `Coins` / `KeyRound` / `Home`** по типам **`teammate_joined`**, **`referral_bonus_earned`**, **`teammate_first_stay`**, **`teammate_new_listing`**.
+- **Графики:** **`ReferralMiniSparkline`** — tooltip с датами **DD.MM.YYYY** (**`stage73_sparkTooltip14d`** / **`stage73_sparkTooltipYtd`** на странице).
+- **Mobile UX:** порядок секций на **`/profile/referral`**: показатели/spark (**статистика**) выше блока команды и маркетинг-кита (**инструменты**).
+
+### Stage 74.1 — Leaderboard, L1/L2 insights, Stories tier line (2026-04)
+
+- **API:** **`GET /api/v2/referral/leaderboard`** (session) — топ **10** по сумме **`referral_ledger.amount_thb`** со **`status=earned`** за текущий календарный месяц (**`referralStatsCurrentMonthBoundsUtc`** + **`resolveReferralStatsTimeZone`**); ответ **`periodStartDdMmYyyy`** / **`periodEndDdMmYyyy`** (**DD.MM.YYYY** в TZ статистики), **`rows[]`** (**`rank`**, **`displayName`** маской, **`amountThb`**). Сборка — **`lib/referral/build-referral-leaderboard.js`**, маски — **`lib/referral/leaderboard-privacy.js`**.
+- **API:** **`GET /api/v2/referral/me` → `stats.monthlyL1EarnedThb`** (**`ledger_depth === 1`**) и **`stats.monthlyNetworkEarnedThb`** (**`ledger_depth >= 2`**) за текущий месяц (та же TZ, что **`monthlyEarnedThb`**).
+- **UI:** **`components/referral/ReferralMonthlyLeaderboard.jsx`**, блок L1/L2 на **`app/profile/referral/page.js`**; Stories — **`ReferralMarketingKit`** prop **`storiesTierStatusLine`** (i18n **`stage74_storiesTierLine`**).
+- **Масштаб:** агрегация пользовательского лидерборда — RPC (**Stage 74.2**); отдельный админ-эндпоинт UTC — **Stage 74.2**.
+
+### Stage 74.2 — Global UTC leaderboard (admin), RPC, badges, dual Stories (2026-04)
+
+- **DB:** **`migrations/stage74_2_referral_leaderboard_rpc.sql`** — **`referral_ledger_leaderboard_for_period(p_period_start, p_period_end_exclusive, p_limit)`**; агрегация в Node: **`lib/referral/referral-leaderboard-db.js`** (**`aggregateReferralLeaderboardFromDb`**) с fallback на постраничное чтение.
+- **Admin API:** **`GET /api/v2/admin/referral/leaderboard`** — query **`year`**, **`month`** (календарный **UTC**), **`limit`**; полные имена, **`adminProfileUrl`** → **`/admin/users/:id`**; период в ответе **DD.MM.YYYY** для UTC.
+- **Admin UI:** **`/admin/marketing/analytics`** — виджет «Global referral leaderboard (UTC)», фильтр **`input type=month`**.
+- **User API:** **`GET /api/v2/referral/me`** — **`referralGamification`** (бейджи + **`badgeSnapshot`** для metadata), **`referralStoriesCopy`** (RU/EN/ZH/TH по **`preferred_language`** \| **`language`**).
+- **UI:** **`ReferralMarketingKit`** — два off-screen шаблона Stories (амбассадор + «доход команды»), **`Loader2`** на кнопках генерации PNG.
+
+### Stage 74.3 — Social landings: `/u/[id]` + short URL QR (2026-04)
+
+- **SSOT короткой ссылки:** **`lib/referral/public-landing-url.js`** — **`buildAmbassadorLandingUrl(userId)`**, **`ambassadorLandingShortLabel(userId)`** (хост через **`getPublicSiteUrl()`**).
+- **Публичный API:** **`GET /api/v2/referral/landing-meta/[userId]`** — **`referralCode`**, **`displayName`**, **`tierLabel`**, **`badgeLabel`**, **`landingUrl`**, **`landingShortLabel`** (без сессии).
+- **Authenticated API:** **`GET /api/v2/referral/me`** дополняет **`referralLandingUrl`**, **`referralLandingShortDisplay`** (camelCase как в ответе).
+- **Клиент:** **`lib/referral/persist-pending-ref-client.js`** — те же ключи **`gostaylo_pending_ref`** / **`gostaylo_pending_ref_code`**, что в **`AuthProvider`**, чтобы **`/u/[id]`** подставлял код в **`openLoginModal('register')`**.
+- **UI:** **`app/u/[id]/page.js`** — лендинг (призыв, «Почему Airrento», **`bg-background`/`text-foreground`**), отложенная загрузка отзывов; **`ReferralMarketingKit`** + **`lib/referral/ambassador-card-pdf.js`** — QR и подпись на короткий URL при наличии; **`app/profile/referral/page.js`** — строка копирования визитки, опрос **`GET /api/v2/referral/me`** + toast при росте **`stats.friendsInvited`**.
 
 ## 0. Critical Routes & Services
 

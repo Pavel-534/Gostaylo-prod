@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { getUIText, detectLanguage, DEFAULT_UI_LANGUAGE } from '@/lib/translations'
+import { invalidateWalletMeQuery } from '@/lib/hooks/use-wallet-me'
 import { GOSTAYLO_WALLET, DEFAULT_ALLOWED_METHODS } from './checkout-constants.js'
 
 /**
@@ -11,6 +13,7 @@ import { GOSTAYLO_WALLET, DEFAULT_ALLOWED_METHODS } from './checkout-constants.j
  * @param {boolean} opts.authLoading
  */
 export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoading }) {
+  const queryClient = useQueryClient()
   const [language, setLanguage] = useState(DEFAULT_UI_LANGUAGE)
   const [loading, setLoading] = useState(true)
   const [accessDenied, setAccessDenied] = useState(false)
@@ -249,6 +252,11 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
     }
   }, [])
 
+  const refreshWalletEverywhere = useCallback(async () => {
+    await invalidateWalletMeQuery(queryClient)
+    await loadWalletState()
+  }, [queryClient, loadWalletState])
+
   useEffect(() => {
     loadPaymentStatus()
   }, [loadPaymentStatus])
@@ -317,6 +325,7 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
             setPaymentSuccess(true)
             setCryptoModalOpen(false)
             await loadPaymentStatus()
+            await refreshWalletEverywhere()
           } else {
             toast.error(
               verifyData.paymentSettled?.error || getUIText('checkout_toast_paymentConfirmFail', language),
@@ -347,6 +356,8 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
           toast.success(getUIText('checkout_toast_paymentOk', language))
           setPaymentSuccess(true)
           setCryptoModalOpen(false)
+          await loadPaymentStatus()
+          await refreshWalletEverywhere()
         } else {
           toast.error(data.error || getUIText('checkout_toast_paymentConfirmFail', language))
         }
@@ -355,7 +366,16 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
         toast.error(getUIText('checkout_toast_paymentConfirmFail', language))
       }
     },
-    [paymentMethod, bookingId, language, payment, txId, invoiceIdParam, loadPaymentStatus],
+    [
+      paymentMethod,
+      bookingId,
+      language,
+      payment,
+      txId,
+      invoiceIdParam,
+      loadPaymentStatus,
+      refreshWalletEverywhere,
+    ],
   )
 
   const handleInitiatePayment = useCallback(async () => {
@@ -374,6 +394,9 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
       if (data.success) {
         const pay = data.data
         setPayment(pay)
+        if (Number(data?.data?.walletUseAppliedThb || 0) > 0) {
+          await refreshWalletEverywhere()
+        }
         if (paymentMethod === 'CRYPTO') {
           setCryptoModalOpen(true)
         } else {
@@ -406,7 +429,16 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
     } finally {
       setProcessing(false)
     }
-  }, [bookingId, invoiceIdParam, paymentMethod, language, handleConfirmPayment, useWalletBonuses, walletUseThb])
+  }, [
+    bookingId,
+    invoiceIdParam,
+    paymentMethod,
+    language,
+    handleConfirmPayment,
+    useWalletBonuses,
+    walletUseThb,
+    refreshWalletEverywhere,
+  ])
 
   const copyToClipboard = useCallback(
     (text) => {
@@ -438,6 +470,7 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
           setPaymentSuccess(true)
           setCryptoModalOpen(false)
           void loadPaymentStatus()
+          void refreshWalletEverywhere()
         } else if (data.paymentSettled && data.paymentSettled.success === false && data.paymentSettled.error) {
           toast.error(
             language === 'ru'
@@ -458,7 +491,7 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
     } finally {
       setVerifying(false)
     }
-  }, [txId, bookingId, language, loadPaymentStatus])
+  }, [txId, bookingId, language, loadPaymentStatus, refreshWalletEverywhere])
 
   const handleSubmitTxid = useCallback(async () => {
     if (!txId.trim() || txId.length < 60) {

@@ -4,6 +4,7 @@
  */
 import globals from "globals";
 import react from "eslint-plugin-react";
+import reactHooks from "eslint-plugin-react-hooks";
 import unusedImports from "eslint-plugin-unused-imports";
 
 /** Browser + Node so API routes (AbortController, fetch) and client (navigator) both lint clean */
@@ -34,6 +35,7 @@ export default [
     files: ["**/*.js", "**/*.jsx"],
     plugins: {
       react,
+      "react-hooks": reactHooks,
       "unused-imports": unusedImports,
     },
     settings: {
@@ -56,6 +58,8 @@ export default [
       // JSX identifiers count as variable uses (fixes false unused-imports on <Card /> etc.)
       "react/jsx-uses-vars": "warn",
       "react/react-in-jsx-scope": "off",
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
 
       // Catches unused imports that can be removed
       "unused-imports/no-unused-imports": "warn",

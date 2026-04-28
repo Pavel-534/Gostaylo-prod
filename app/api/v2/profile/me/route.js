@@ -1,5 +1,5 @@
 /**
- * PATCH /api/v2/profile/me — update `preferred_language` and `instant_booking`.
+ * PATCH /api/v2/profile/me — preferred_language, instant_booking, iana_timezone, referral_monthly_goal_thb.
  * Session: cookie `gostaylo_session` (same as `/api/v2/auth/me`).
  */
 
@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server'
 import { getSessionPayload } from '@/lib/services/session-service'
 import { supabaseAdmin } from '@/lib/supabase'
 import { normalizePreferredLanguageInput } from '@/lib/validation/profile-schema'
+import { isValidIanaTimezone } from '@/lib/validation/iana-timezone'
 
 export async function PATCH(request) {
   const session = await getSessionPayload()
@@ -28,9 +29,18 @@ export async function PATCH(request) {
 
   const rawPreferred = body?.preferred_language ?? body?.preferredLanguage
   const hasInstant = body?.instant_booking !== undefined || body?.instantBooking !== undefined
-  if (rawPreferred === undefined && !hasInstant) {
+  const rawTz = body?.iana_timezone ?? body?.ianaTimezone
+  const hasTz = rawTz !== undefined
+  const rawGoal = body?.referral_monthly_goal_thb ?? body?.referralMonthlyGoalThb
+  const hasGoal = rawGoal !== undefined
+
+  if (rawPreferred === undefined && !hasInstant && !hasTz && !hasGoal) {
     return NextResponse.json(
-      { success: false, error: 'preferred_language or instant_booking is required' },
+      {
+        success: false,
+        error:
+          'At least one of preferred_language, instant_booking, iana_timezone, referral_monthly_goal_thb is required',
+      },
       { status: 400 },
     )
   }
@@ -44,6 +54,27 @@ export async function PATCH(request) {
     normalizedPreferred = preferred.value
   }
   const nextInstant = hasInstant ? (body?.instant_booking ?? body?.instantBooking) === true : null
+
+  let nextTimezone = null
+  if (hasTz) {
+    const s = String(rawTz || '').trim()
+    if (s && !isValidIanaTimezone(s)) {
+      return NextResponse.json({ success: false, error: 'Invalid iana_timezone' }, { status: 400 })
+    }
+    nextTimezone = s || null
+  }
+
+  let nextGoalThb = undefined
+  if (hasGoal) {
+    const n = Number(rawGoal)
+    if (rawGoal === null || rawGoal === '') {
+      nextGoalThb = null
+    } else if (!Number.isFinite(n) || n < 0 || n > 999999999) {
+      return NextResponse.json({ success: false, error: 'referral_monthly_goal_thb invalid' }, { status: 400 })
+    } else {
+      nextGoalThb = Math.round(n * 100) / 100
+    }
+  }
 
   const { data: beforeProfile, error: beforeProfileError } = await supabaseAdmin
     .from('profiles')
@@ -59,6 +90,8 @@ export async function PATCH(request) {
   }
   if (normalizedPreferred !== null) updates.preferred_language = normalizedPreferred
   if (hasInstant) updates.instant_booking = nextInstant
+  if (hasTz) updates.iana_timezone = nextTimezone
+  if (hasGoal) updates.referral_monthly_goal_thb = nextGoalThb
 
   const { error } = await supabaseAdmin
     .from('profiles')
@@ -66,9 +99,14 @@ export async function PATCH(request) {
     .eq('id', session.userId)
 
   if (error) {
-    if (/preferred_language|column/i.test(String(error.message || ''))) {
+    if (/preferred_language|iana_timezone|referral_monthly_goal|column/i.test(String(error.message || ''))) {
       return NextResponse.json(
-        { success: false, error: 'preferred_language column missing; run migration 009_stage41_profile_preferred_language.sql' },
+        {
+          success: false,
+          error:
+            error.message ||
+            'Profile columns missing; run migrations (preferred_language / Stage 73.3 referral profile fields)',
+        },
         { status: 503 },
       )
     }
@@ -97,5 +135,7 @@ export async function PATCH(request) {
     success: true,
     preferred_language: normalizedPreferred,
     instant_booking: hasInstant ? nextInstant : null,
+    iana_timezone: hasTz ? nextTimezone : null,
+    referral_monthly_goal_thb: hasGoal ? nextGoalThb : null,
   })
 }

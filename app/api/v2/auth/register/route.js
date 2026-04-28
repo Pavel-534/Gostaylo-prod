@@ -349,6 +349,7 @@ export async function POST(request) {
         },
         { onConflict: 'referee_id', ignoreDuplicates: false },
       );
+      /** teammate_joined → см. триггер `trg_referral_relations_team_joined` (stage73_5). */
     } catch (e) {
       console.warn('[REGISTER] referral relation warning:', e?.message || e);
     }

@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
+import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Gift, Copy, Loader2, Users, Wallet, Share2, MessageCircle } from 'lucide-react'
+import { Gift, Copy, Loader2, Users, Wallet } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
@@ -15,7 +16,17 @@ import { toast } from 'sonner'
 import { UnifiedBalanceSummary } from '@/components/wallet/UnifiedBalanceSummary'
 import { ReferralTeamSection } from '@/components/referral/ReferralTeamSection'
 import { ReferralActivityFeed } from '@/components/referral/ReferralActivityFeed'
+import { ReferralMarketingKit } from '@/components/referral/ReferralMarketingKit'
+import { ReferralMonthlyLeaderboard } from '@/components/referral/ReferralMonthlyLeaderboard'
+import { ReferralMiniSparkline } from '@/components/referral/ReferralMiniSparkline'
 import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
+import { formatReferralDateDdMmYyyy } from '@/lib/referral/format-referral-datetime'
+import { isValidIanaTimeZone } from '@/lib/referral/resolve-referral-stats-timezone'
+
+const REPORT_TZ_OPTIONS = ['Asia/Bangkok', 'Asia/Singapore', 'Europe/Moscow', 'Asia/Dubai', 'UTC']
+
+/** Базовая строка для сравнения «новый партнёр по ссылке» (toast). */
+const REF_FRIENDS_SEEN_STORAGE = 'gostaylo:lastReferralFriendsCount'
 
 function formatThb(value, locale = 'ru-RU') {
   const n = Number(value)
@@ -32,6 +43,10 @@ export default function ReferralProfilePage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
+  const [reportTz, setReportTz] = useState('UTC')
+  const [reportGoalInput, setReportGoalInput] = useState('')
+  const [prefsSaving, setPrefsSaving] = useState(false)
+  const silentTzSyncRef = useRef(false)
   const { data: walletData } = useWalletMeQuery({
     enabled: !authLoading && isAuthenticated,
   })
@@ -49,7 +64,15 @@ export default function ReferralProfilePage() {
         const json = await refRes.json().catch(() => ({}))
         if (!cancelled) {
           if (refRes.ok && json?.success) {
-            setData(json.data || null)
+            const d = json.data || null
+            setData(d)
+            try {
+              if (d?.stats?.friendsInvited != null && sessionStorage.getItem(REF_FRIENDS_SEEN_STORAGE) == null) {
+                sessionStorage.setItem(REF_FRIENDS_SEEN_STORAGE, String(Number(d.stats.friendsInvited)))
+              }
+            } catch {
+              /* ignore */
+            }
           } else {
             toast.error(json?.error || t('referralStage726_loadErr'))
           }
@@ -64,6 +87,107 @@ export default function ReferralProfilePage() {
       cancelled = true
     }
   }, [authLoading, isAuthenticated, router, t])
+
+  useEffect(() => {
+    const rr = data?.referralReport
+    if (!rr) return
+    setReportTz(String(rr.ianaTimezone || 'UTC'))
+    const pg = rr.referralMonthlyGoalThbProfile
+    setReportGoalInput(pg != null && pg !== '' ? String(pg) : '')
+  }, [data?.referralReport])
+
+  /** Stage 73.7: без плашек — если TZ в профиле пуст, один раз подставляем IANA из браузера и перезагружаем stats. */
+  useEffect(() => {
+    if (!data?.referralReport || silentTzSyncRef.current) return
+    const stored = String(data.referralReport.ianaTimezone ?? '').trim()
+    if (stored) return
+    if (typeof window === 'undefined' || typeof Intl === 'undefined') return
+    let browserTz = ''
+    try {
+      browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+    } catch {
+      return
+    }
+    if (!browserTz || !isValidIanaTimeZone(browserTz)) return
+    silentTzSyncRef.current = true
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/v2/profile/me', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ iana_timezone: browserTz }),
+        })
+        const json = await res.json().catch(() => ({}))
+        if (cancelled || !res.ok || !json?.success) {
+          silentTzSyncRef.current = false
+          return
+        }
+        const refRes = await fetch('/api/v2/referral/me', { credentials: 'include', cache: 'no-store' })
+        const refJson = await refRes.json().catch(() => ({}))
+        if (!cancelled && refRes.ok && refJson?.success) setData(refJson.data || null)
+      } catch {
+        silentTzSyncRef.current = false
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [data?.referralReport])
+
+  /** Live: новая регистрация по ссылке → toast (без WebSocket). */
+  useEffect(() => {
+    if (!isAuthenticated || authLoading || loading) return
+    const id = window.setInterval(async () => {
+      try {
+        const refRes = await fetch('/api/v2/referral/me', { credentials: 'include', cache: 'no-store' })
+        const json = await refRes.json().catch(() => ({}))
+        if (!refRes.ok || !json?.success || !json.data) return
+        const next = json.data
+        const cur = Number(next?.stats?.friendsInvited ?? 0)
+        let prevStored = ''
+        try {
+          prevStored = sessionStorage.getItem(REF_FRIENDS_SEEN_STORAGE) ?? ''
+        } catch {
+          prevStored = ''
+        }
+        if (prevStored === '') {
+          try {
+            sessionStorage.setItem(REF_FRIENDS_SEEN_STORAGE, String(cur))
+          } catch {
+            /* ignore */
+          }
+        } else {
+          const prev = Number(prevStored)
+          if (Number.isFinite(prev) && cur > prev) {
+            toast.success(t('stage74_3_newPartnerToast'))
+          }
+          try {
+            sessionStorage.setItem(REF_FRIENDS_SEEN_STORAGE, String(cur))
+          } catch {
+            /* ignore */
+          }
+        }
+        setData(next)
+      } catch {
+        /* ignore */
+      }
+    }, 56000)
+    return () => clearInterval(id)
+  }, [isAuthenticated, authLoading, loading, t])
+
+  const sparkTooltip14d = useMemo(() => {
+    const end = new Date()
+    const start = new Date(Date.now() - 13 * 86400000)
+    return t('stage73_sparkTooltip14d')
+      .replace('{from}', formatReferralDateDdMmYyyy(start))
+      .replace('{to}', formatReferralDateDdMmYyyy(end))
+  }, [t])
+
+  const sparkTooltipYtd = useMemo(() => {
+    return t('stage73_sparkTooltipYtd').replace('{year}', String(new Date().getFullYear()))
+  }, [t])
 
   const welcomeExpiryHint = (() => {
     const w = walletData?.wallet
@@ -104,22 +228,53 @@ export default function ReferralProfilePage() {
     }
   }
 
-  function handleShareTelegram() {
-    const text = encodeURIComponent(String(data?.shareMessage || data?.referralLink || ''))
-    if (!text) return
-    window.open(`https://t.me/share/url?url=&text=${text}`, '_blank', 'noopener,noreferrer')
-  }
-
-  function handleShareWhatsApp() {
-    const text = encodeURIComponent(String(data?.shareMessage || data?.referralLink || ''))
-    if (!text) return
-    window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer')
+  async function saveReportPrefs() {
+    setPrefsSaving(true)
+    try {
+      const goalRaw = String(reportGoalInput || '').trim()
+      if (goalRaw !== '') {
+        const gn = Number(goalRaw)
+        if (!Number.isFinite(gn) || gn < 0 || gn > 999999999) {
+          toast.error(t('referralStage726_loadErr'))
+          return
+        }
+      }
+      const body = {
+        iana_timezone: reportTz,
+        referral_monthly_goal_thb: goalRaw === '' ? null : Number(goalRaw),
+      }
+      const res = await fetch('/api/v2/profile/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.success) {
+        toast.error(json?.error || t('stage73_profileSaveErr'))
+        return
+      }
+      toast.success(t('stage73_prefsSaved'))
+      const refRes = await fetch('/api/v2/referral/me', { credentials: 'include', cache: 'no-store' })
+      const refJson = await refRes.json().catch(() => ({}))
+      if (refRes.ok && refJson?.success) setData(refJson.data || null)
+    } catch {
+      toast.error(t('referralStage726_pageErr'))
+    } finally {
+      setPrefsSaving(false)
+    }
   }
 
   function pluralDays(n) {
     if (language === 'en') return n === 1 ? t('referralStage726_day') : t('referralStage726_days5')
     return n === 1 ? t('referralStage726_day') : n >= 2 && n <= 4 ? t('referralStage726_days2') : t('referralStage726_days5')
   }
+
+  const tzSelectOptions = useMemo(() => {
+    const o = [...REPORT_TZ_OPTIONS]
+    if (reportTz && !o.includes(reportTz)) o.unshift(reportTz)
+    return o
+  }, [reportTz])
 
   const ambassadorSubtitle = useMemo(() => {
     const amb = data?.ambassador
@@ -131,6 +286,27 @@ export default function ReferralProfilePage() {
     }
     return t('referralStage726_ambassadorMax')
   }, [data?.ambassador, t, locale])
+
+  const localizedShareBody = useMemo(() => {
+    const brand = String(data?.brandName || '').trim() || 'Airrento'
+    const shareLink =
+      String(data?.referralLandingUrl || '').trim() || String(data?.referralLink || '').trim()
+    return t('stage73_shareBodyDefault').replace('{brand}', brand).replace('{link}', shareLink)
+  }, [data?.brandName, data?.referralLandingUrl, data?.referralLink, t])
+
+  const storiesTierStatusLine = useMemo(() => {
+    const brand = String(data?.brandName || '').trim() || 'Platform'
+    const tierName =
+      String(data?.ambassador?.currentTier?.name || '').trim() || t('stage73_tierFallbackBeginner')
+    const badge =
+      String(data?.marketingCard?.ambassadorBadge || '').toLowerCase() === 'gold'
+        ? t('stage73_badgeGold')
+        : t('stage73_badgeSilver')
+    return t('stage74_storiesTierLine')
+      .replace('{brand}', brand)
+      .replace('{tier}', tierName)
+      .replace('{badge}', badge)
+  }, [data?.brandName, data?.ambassador?.currentTier?.name, data?.marketingCard?.ambassadorBadge, t])
 
   if (authLoading || loading) {
     return (
@@ -149,7 +325,202 @@ export default function ReferralProfilePage() {
     <div className="container mx-auto max-w-3xl px-4 py-8 space-y-4">
       {walletData ? <UnifiedBalanceSummary walletPayload={walletData} t={t} /> : null}
 
+      <p className="text-[11px] text-slate-500 px-0.5 -mb-1">{t('stage73_referralStatsTzHint')}</p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <p className="text-xs text-slate-500">{t('referralStage726_statMonthlyEarned')}</p>
+            <div className="flex flex-row items-start justify-between gap-2">
+              <p className="text-xl font-semibold text-teal-800 flex items-center gap-2 min-w-0">
+                <Wallet className="h-4 w-4 shrink-0" />{' '}
+                <span className="tabular-nums">฿{formatThb(data?.stats?.monthlyEarnedThb, locale)}</span>
+              </p>
+              <ReferralMiniSparkline
+                tooltip={sparkTooltip14d}
+                values={Array.isArray(data?.stats?.sparklineEarningsThb) ? data.stats.sparklineEarningsThb : []}
+              />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <p className="text-xs text-slate-500">{t('stage73_statYearlyEarned')}</p>
+            <div className="flex flex-row items-start justify-between gap-2">
+              <p className="text-xl font-semibold text-teal-900 flex items-center gap-2 min-w-0">
+                <Wallet className="h-4 w-4 shrink-0" />{' '}
+                <span className="tabular-nums">฿{formatThb(data?.stats?.yearlyEarnedThb, locale)}</span>
+              </p>
+              <ReferralMiniSparkline
+                strokeClassName="text-indigo-600"
+                tooltip={sparkTooltipYtd}
+                values={
+                  Array.isArray(data?.stats?.sparkMonthlyYtdThb) ? data.stats.sparkMonthlyYtdThb : []
+                }
+              />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <p className="text-xs text-slate-500">{t('referralStage726_statExpectedPending')}</p>
+            <p className="text-xl font-semibold text-sky-800 flex items-center gap-2">
+              <Wallet className="h-4 w-4" /> ฿{formatThb(data?.stats?.expectedPendingThb, locale)}
+            </p>
+            {welcomeExpiryHint ? (
+              <p className="text-xs rounded-md bg-amber-50 border border-amber-200 text-amber-950 px-2 py-1.5 leading-snug">
+                {t('referralStage726_welcomeBurn')
+                  .replace('{amount}', formatThb(welcomeExpiryHint.rem, locale))
+                  .replace('{days}', String(welcomeExpiryHint.days))
+                  .replace('{daysLabel}', pluralDays(welcomeExpiryHint.days))}
+              </p>
+            ) : walletData?.wallet?.balance_thb != null ? (
+              <p className="text-xs text-slate-500">
+                {t('referralStage726_walletBreakdown')
+                  .replace('{total}', formatThb(walletData.wallet.balance_thb, locale))
+                  .replace('{internal}', formatThb(walletData?.wallet?.internal_credits_thb || 0, locale))
+                  .replace('{withdrawable}', formatThb(walletData?.wallet?.withdrawable_balance_thb || 0, locale))}
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-slate-500">{t('referralStage726_statEarned')}</p>
+            <p className="text-xl font-semibold text-emerald-700 flex items-center gap-2">
+              <Wallet className="h-4 w-4" /> ฿{formatThb(data?.stats?.earnedThb, locale)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-slate-500">{t('referralStage726_statFriends')}</p>
+            <p className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              {Number(data?.stats?.friendsInvited || 0).toLocaleString(locale)}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border border-slate-200 bg-white">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">{t('stage74_l1l2Title')}</CardTitle>
+          <CardDescription className="text-xs">{t('stage74_l1l2Hint')}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="rounded-lg border border-teal-100 bg-teal-50/40 px-4 py-3">
+            <p className="text-xs text-slate-600">{t('stage74_statL1Monthly')}</p>
+            <p className="text-lg font-semibold text-teal-900 tabular-nums mt-1">
+              ฿{formatThb(data?.stats?.monthlyL1EarnedThb ?? 0, locale)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 px-4 py-3">
+            <p className="text-xs text-slate-600">{t('stage74_statL2Monthly')}</p>
+            <p className="text-lg font-semibold text-indigo-900 tabular-nums mt-1">
+              ฿{formatThb(data?.stats?.monthlyNetworkEarnedThb ?? 0, locale)}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {Array.isArray(data?.referralGamification?.badgesEarned) && data.referralGamification.badgesEarned.length ? (
+        <p className="text-xs text-slate-600 px-0.5 -my-1">
+          {t('stage74_badgesEarned')}:{' '}
+          {data.referralGamification.badgesEarned
+            .map((id) => t(`stage74_badge_${String(id)}`))
+            .join(' · ')}
+        </p>
+      ) : null}
+
+      <ReferralMonthlyLeaderboard t={t} formatThb={formatThb} locale={locale} />
+
       <ReferralTeamSection members={data?.teamMembers || []} t={t} language={language} />
+
+      <ReferralMarketingKit
+        referralLink={data?.referralLink || ''}
+        landingShareUrl={data?.referralLandingUrl || ''}
+        landingShortLabel={data?.referralLandingShortDisplay || ''}
+        shareBody={localizedShareBody}
+        shareMessage={data?.shareMessage || ''}
+        code={data?.code || ''}
+        brandName={data?.brandName || ''}
+        displayName={data?.marketingCard?.displayName || ''}
+        ambassadorBadge={data?.marketingCard?.ambassadorBadge || 'silver'}
+        pdfButtonLabel={t('stage73_pdfCard')}
+        pdfCtaLine={t('stage73_pdfCta')}
+        pdfOfficialStatusLine={t('stage73_pdfOfficialStatus')}
+        pdfAirrentoSubtitle={t('stage73_airrentoSubtitle')}
+        badgeGoldLabel={t('stage73_badgeGold')}
+        badgeSilverLabel={t('stage73_badgeSilver')}
+        marketingTitle={t('stage73_marketingKitTitle')}
+        marketingSubtitle={t('stage73_marketingKitSubtitle')}
+        downloadLabel={t('stage73_downloadQr')}
+        shareFbLabel={t('stage73_shareFb')}
+        shareTgLabel={t('referralStage726_shareTg')}
+        shareWaLabel={t('referralStage726_shareWa')}
+        storiesDownloadLabel={t('stage73_downloadStoriesCard')}
+        storiesCardHeadline={t('stage73_storiesCardHeadline')}
+        storiesTierStatusLine={storiesTierStatusLine}
+        storiesAmbassadorBadgeLine={data?.referralStoriesCopy?.ambassadorBadgeLine || ''}
+        storiesTeamHeadline={data?.referralStoriesCopy?.teamHeadline || ''}
+        storiesTeamAmountLine={data?.referralStoriesCopy?.teamAmountLine || ''}
+        storiesTeamCtaLine={data?.referralStoriesCopy?.teamCtaLine || ''}
+        storiesTeamDownloadLabel={t('stage74_storiesTeamDownload')}
+      />
+
+      <Card className="border border-slate-200 bg-white">
+        <CardHeader className="pb-2 space-y-1">
+          <CardTitle className="text-base">{t('stage73_monthlyGoalTitle')}</CardTitle>
+          <p className="text-sm font-medium text-slate-800 leading-snug">
+            {t('stage73_monthlyGoalPercentLine')
+              .replace('{goal}', formatThb(data?.stats?.monthlyGoalThb, locale))
+              .replace(
+                '{percent}',
+                String(Math.round(Number(data?.stats?.monthlyGoalProgressPercent || 0))),
+              )}
+          </p>
+          <CardDescription className="text-xs">
+            {t('stage73_monthlyGoalProgress')
+              .replace('{current}', formatThb(data?.stats?.monthlyEarnedThb, locale))
+              .replace('{goal}', formatThb(data?.stats?.monthlyGoalThb, locale))}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Progress value={Number(data?.stats?.monthlyGoalProgressPercent || 0)} className="h-2" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t('stage73_tzLabel')}</Label>
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={reportTz}
+                onChange={(e) => setReportTz(e.target.value)}
+              >
+                {tzSelectOptions.map((z) => (
+                  <option key={z} value={z}>
+                    {z}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t('stage73_goalLabel')}</Label>
+              <Input
+                type="number"
+                min={0}
+                step={100}
+                placeholder={t('stage73_goalPlaceholder')}
+                value={reportGoalInput}
+                onChange={(e) => setReportGoalInput(e.target.value)}
+              />
+            </div>
+          </div>
+          <Button type="button" size="sm" onClick={() => void saveReportPrefs()} disabled={prefsSaving}>
+            {prefsSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            {t('stage73_saveReportPrefs')}
+          </Button>
+        </CardContent>
+      </Card>
 
       <ReferralActivityFeed />
 
@@ -266,16 +637,19 @@ export default function ReferralProfilePage() {
               </Button>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Button type="button" variant="outline" onClick={handleShareTelegram}>
-              <MessageCircle className="h-4 w-4 mr-1" />
-              {t('referralStage726_shareTg')}
-            </Button>
-            <Button type="button" variant="outline" onClick={handleShareWhatsApp}>
-              <Share2 className="h-4 w-4 mr-1" />
-              {t('referralStage726_shareWa')}
-            </Button>
-          </div>
+          {data?.referralLandingUrl ? (
+            <div className="space-y-2">
+              <p className="text-xs text-slate-500">{t('stage74_3_shortLandingLabel')}</p>
+              <div className="flex gap-2">
+                <Input value={data.referralLandingUrl} readOnly className="font-mono text-xs" />
+                <Button type="button" variant="secondary" onClick={() => void handleCopyLanding()}>
+                  <Copy className="h-4 w-4 mr-1" />
+                  {t('referralStage726_copy')}
+                </Button>
+              </div>
+              <p className="text-[11px] text-slate-500">{t('stage74_3_shortLandingHint')}</p>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -320,7 +694,7 @@ export default function ReferralProfilePage() {
           <div className="text-sm text-slate-600 flex flex-wrap items-center gap-2">
             <span>
               {t('referralStage726_ambassadorTier')}:{' '}
-              <strong>{data?.ambassador?.currentTier?.name || 'Beginner'}</strong>
+              <strong>{data?.ambassador?.currentTier?.name || t('stage73_tierFallbackBeginner')}</strong>
             </span>
             <span>·</span>
             <span>
@@ -352,48 +726,6 @@ export default function ReferralProfilePage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Card>
-          <CardContent className="p-4 space-y-2">
-            <p className="text-xs text-slate-500">{t('referralStage726_statPending')}</p>
-            <p className="text-xl font-semibold text-amber-700 flex items-center gap-2">
-              <Wallet className="h-4 w-4" /> ฿{formatThb(data?.stats?.pendingThb, locale)}
-            </p>
-            {welcomeExpiryHint ? (
-              <p className="text-xs rounded-md bg-amber-50 border border-amber-200 text-amber-950 px-2 py-1.5 leading-snug">
-                {t('referralStage726_welcomeBurn')
-                  .replace('{amount}', formatThb(welcomeExpiryHint.rem, locale))
-                  .replace('{days}', String(welcomeExpiryHint.days))
-                  .replace('{daysLabel}', pluralDays(welcomeExpiryHint.days))}
-              </p>
-            ) : walletData?.wallet?.balance_thb != null ? (
-              <p className="text-xs text-slate-500">
-                {t('referralStage726_walletBreakdown')
-                  .replace('{total}', formatThb(walletData.wallet.balance_thb, locale))
-                  .replace('{internal}', formatThb(walletData?.wallet?.internal_credits_thb || 0, locale))
-                  .replace('{withdrawable}', formatThb(walletData?.wallet?.withdrawable_balance_thb || 0, locale))}
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-500">{t('referralStage726_statEarned')}</p>
-            <p className="text-xl font-semibold text-emerald-700 flex items-center gap-2">
-              <Wallet className="h-4 w-4" /> ฿{formatThb(data?.stats?.earnedThb, locale)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-500">{t('referralStage726_statFriends')}</p>
-            <p className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              {Number(data?.stats?.friendsInvited || 0).toLocaleString(locale)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   )
 }

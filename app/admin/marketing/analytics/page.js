@@ -13,7 +13,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { ArrowLeft, RefreshCw, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowLeft, RefreshCw, TrendingDown, TrendingUp, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -26,10 +26,18 @@ function formatThb(value) {
   return n.toLocaleString('ru-RU', { maximumFractionDigits: 2 });
 }
 
+function ymUtcNowString() {
+  const d = new Date();
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
 export default function MarketingAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState(null);
+  const [leaderboardYm, setLeaderboardYm] = useState(() => ymUtcNowString());
+  const [leaderboardData, setLeaderboardData] = useState(null);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
   async function loadAnalytics(silent = false) {
     if (silent) setRefreshing(true);
@@ -59,6 +67,31 @@ export default function MarketingAnalyticsPage() {
     }, 30000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLeaderboardLoading(true);
+      try {
+        const [y, m] = leaderboardYm.split('-').map((x) => Number.parseInt(x, 10));
+        const res = await fetch(
+          `/api/v2/admin/referral/leaderboard?year=${y}&month=${m}&limit=25`,
+          { credentials: 'include', cache: 'no-store' },
+        );
+        const json = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (res.ok && json?.success) setLeaderboardData(json.data || null);
+        else setLeaderboardData(null);
+      } catch {
+        if (!cancelled) setLeaderboardData(null);
+      } finally {
+        if (!cancelled) setLeaderboardLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [leaderboardYm]);
 
   const funnelMax = useMemo(() => {
     const funnel = data?.conversionFunnel;
@@ -154,6 +187,75 @@ export default function MarketingAnalyticsPage() {
               </CardContent>
             </Card>
           </div>
+
+          <Card className="border-violet-200 bg-violet-50/40">
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Trophy className="h-5 w-5 text-violet-700" />
+                  Global referral leaderboard (UTC)
+                </CardTitle>
+                <CardDescription>
+                  Full names, admin profile links; calendar month in UTC (company SSOT). Differs from user-facing
+                  leaderboard (masked, user timezone).
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <label className="text-xs text-slate-600" htmlFor="admin-lb-month">
+                  Month (UTC)
+                </label>
+                <input
+                  id="admin-lb-month"
+                  type="month"
+                  className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm tabular-nums"
+                  value={leaderboardYm}
+                  onChange={(e) => setLeaderboardYm(e.target.value)}
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {leaderboardLoading ? (
+                <p className="text-sm text-slate-500">Loading leaderboard…</p>
+              ) : leaderboardData?.rows?.length ? (
+                <>
+                  <p className="text-xs text-slate-600 mb-3 tabular-nums">
+                    Period (UTC): {leaderboardData.periodStartDdMmYyyy} — {leaderboardData.periodEndDdMmYyyy}
+                  </p>
+                  <div className="rounded-md border bg-white overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-slate-50 text-left">
+                          <th className="p-2 font-medium">#</th>
+                          <th className="p-2 font-medium">Referrer</th>
+                          <th className="p-2 font-medium">Earned THB</th>
+                          <th className="p-2 font-medium">Admin</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {leaderboardData.rows.map((row) => (
+                          <tr key={row.referrerId} className="border-b border-slate-100">
+                            <td className="p-2 tabular-nums">{row.rank}</td>
+                            <td className="p-2 font-medium">{row.displayNameFull}</td>
+                            <td className="p-2 tabular-nums">{formatThb(row.amountThb)}</td>
+                            <td className="p-2">
+                              <Link
+                                href={row.adminProfileUrl}
+                                className="text-violet-700 underline font-medium hover:text-violet-900"
+                              >
+                                Profile
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-slate-500">No earned referral bonuses in this UTC month.</p>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>

@@ -9,6 +9,7 @@ import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url'
 import { getPublicSiteUrl } from '@/lib/site-url.js'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { normalizePartnerListingMetadata } from '@/lib/partner/listing-wizard-metadata'
+import { recordTeammateNewListingIfFirst } from '@/lib/referral/referral-feed-recorder'
 
 export const dynamic = 'force-dynamic'
 
@@ -194,6 +195,12 @@ export async function PATCH(request) {
       const errText = await updateRes.text().catch(() => '')
       console.error('Moderation listing PATCH failed', updateRes.status, errText)
       throw new Error('Failed to update listing')
+    }
+
+    if (action === 'approve') {
+      void recordTeammateNewListingIfFirst(String(listingId)).catch((err) =>
+        console.warn('[moderation] referral_team_events listing:', err?.message || err),
+      )
     }
 
     const finalTitle = updateData.title ?? listing.title

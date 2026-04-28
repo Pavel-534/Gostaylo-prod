@@ -3,6 +3,7 @@
 /**
  * Stage 72.6 — единый снимок «бонусы маркетинга» vs «эскроу партнёра» (разные потоки в БД).
  * Данные: GET /api/v2/wallet/me (поле partnerEscrow для PARTNER).
+ * Даты здесь не выводятся; формат DD.MM.YYYY для рефералки см. `lib/referral/format-referral-datetime.js`.
  */
 
 import { Wallet, PiggyBank, Landmark, Info } from 'lucide-react'

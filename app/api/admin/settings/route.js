@@ -41,6 +41,8 @@ let mockSettings = {
   mlmLevel2Percent: 30,
   payoutToInternalRatio: 70,
   welcomeBonusAmount: 0,
+  /** Stage 73.3 — дефолтная цель дохода реферала за месяц (THB), если не задана в профиле */
+  referralMonthlyGoalThb: 10000,
   walletMaxDiscountPercent: 30,
   settlementPayoutDelayDays: 1,
   settlementPayoutHourLocal: 18,
@@ -171,6 +173,9 @@ export async function GET() {
     const rawWelcomeBonusAmount = parseFloat(
       data.value?.welcome_bonus_amount ?? data.value?.welcomeBonusAmount,
     )
+    const rawReferralMonthlyGoalThb = parseFloat(
+      data.value?.referral_monthly_goal_thb ?? data.value?.referralMonthlyGoalThb,
+    )
     const rawWalletMaxDiscountPercent = parseFloat(
       data.value?.wallet_max_discount_percent ?? data.value?.walletMaxDiscountPercent,
     )
@@ -275,6 +280,10 @@ export async function GET() {
           : 70,
       welcomeBonusAmount:
         Number.isFinite(rawWelcomeBonusAmount) && rawWelcomeBonusAmount >= 0 ? rawWelcomeBonusAmount : 0,
+      referralMonthlyGoalThb:
+        Number.isFinite(rawReferralMonthlyGoalThb) && rawReferralMonthlyGoalThb > 0
+          ? Math.round(rawReferralMonthlyGoalThb * 100) / 100
+          : 10000,
       walletMaxDiscountPercent:
         Number.isFinite(rawWalletMaxDiscountPercent) &&
         rawWalletMaxDiscountPercent >= 0 &&
@@ -343,6 +352,7 @@ export async function PUT(request) {
       mlmLevel2Percent,
       payoutToInternalRatio,
       welcomeBonusAmount,
+      referralMonthlyGoalThb,
       walletMaxDiscountPercent,
       settlementPayoutDelayDays,
       settlementPayoutHourLocal,
@@ -502,6 +512,10 @@ export async function PUT(request) {
           const n = parseFloat(welcomeBonusAmount ?? body?.welcome_bonus_amount)
           return Number.isFinite(n) && n >= 0 ? n : mockSettings.welcomeBonusAmount ?? 0
         })(),
+        referralMonthlyGoalThb: (() => {
+          const n = parseFloat(referralMonthlyGoalThb ?? body?.referral_monthly_goal_thb)
+          return Number.isFinite(n) && n > 0 && n <= 999999999 ? Math.round(n * 100) / 100 : mockSettings.referralMonthlyGoalThb ?? 10000
+        })(),
         walletMaxDiscountPercent: (() => {
           const n = parseFloat(walletMaxDiscountPercent ?? body?.wallet_max_discount_percent)
           return Number.isFinite(n) && n >= 0 && n <= 100 ? n : mockSettings.walletMaxDiscountPercent ?? 30
@@ -566,6 +580,9 @@ export async function PUT(request) {
     )
     const parsedDelayDays = parseInt(String(settlementPayoutDelayDays ?? ''), 10)
     const parsedPayoutHour = parseInt(String(settlementPayoutHourLocal ?? ''), 10)
+    const parsedReferralMonthlyGoalThb = parseFloat(
+      referralMonthlyGoalThb ?? body?.referral_monthly_goal_thb ?? '',
+    )
     const resolvedComm = Number.isFinite(parsedPut) && parsedPut >= 0
       ? parsedPut
       : await resolveDefaultCommissionPercent()
@@ -743,6 +760,16 @@ export async function PUT(request) {
         : Number.isFinite(parseInt(String(existing?.value?.settlementPayoutHourLocal ?? ''), 10))
           ? parseInt(String(existing?.value?.settlementPayoutHourLocal ?? ''), 10)
           : 18
+    const resolvedReferralMonthlyGoalThb =
+      Number.isFinite(parsedReferralMonthlyGoalThb) &&
+      parsedReferralMonthlyGoalThb > 0 &&
+      parsedReferralMonthlyGoalThb <= 999999999
+        ? Math.round(parsedReferralMonthlyGoalThb * 100) / 100
+        : Number.isFinite(parseFloat(existing?.value?.referral_monthly_goal_thb))
+          ? parseFloat(existing?.value?.referral_monthly_goal_thb)
+          : Number.isFinite(parseFloat(existing?.value?.referralMonthlyGoalThb))
+            ? parseFloat(existing?.value?.referralMonthlyGoalThb)
+            : 10000
     const parsedChat =
       chatInvoiceRateMultiplier != null && chatInvoiceRateMultiplier !== ''
         ? parseFloat(chatInvoiceRateMultiplier)
@@ -815,6 +842,8 @@ export async function PUT(request) {
       mlm_level2_percent: resolvedMlmLevel2Percent,
       payout_to_internal_ratio: resolvedPayoutToInternalRatio,
       welcome_bonus_amount: resolvedWelcomeBonusAmount,
+      referralMonthlyGoalThb: resolvedReferralMonthlyGoalThb,
+      referral_monthly_goal_thb: resolvedReferralMonthlyGoalThb,
       wallet_max_discount_percent: resolvedWalletMaxDiscountPercent,
       settlementPayoutDelayDays: resolvedPayoutDelayDays,
       settlementPayoutHourLocal: resolvedPayoutHourLocal,
