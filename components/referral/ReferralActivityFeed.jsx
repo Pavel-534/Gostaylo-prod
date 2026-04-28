@@ -163,11 +163,18 @@ export function ReferralActivityFeed() {
       } else {
         text = name
       }
+      const partnerStatus =
+        ev.type === 'teammate_first_stay'
+          ? t('stage77_partnerStatusActive')
+          : ev.type === 'teammate_joined'
+            ? t('stage77_partnerStatusRegistered')
+            : ''
       return {
         key: `${ev.type}:${ev.refereeId}:${ev.at}`,
         type: ev.type,
         text,
         when: formatWhen(ev.at),
+        partnerStatus,
       }
     })
   }, [items, t, locale])
@@ -202,6 +209,11 @@ export function ReferralActivityFeed() {
                   <EventIcon type={row.type} />
                   <div className="min-w-0 flex-1">
                     <p className="text-slate-800">{row.text}</p>
+                    {row.partnerStatus ? (
+                      <span className="inline-flex mt-1 rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-800">
+                        {row.partnerStatus}
+                      </span>
+                    ) : null}
                     {row.when ? <p className="text-xs text-slate-500 mt-0.5 tabular-nums">{row.when}</p> : null}
                   </div>
                 </li>

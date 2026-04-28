@@ -11,6 +11,7 @@ import { downloadAmbassadorCardPdf } from '@/lib/referral/ambassador-card-pdf'
 import { isUuidLike } from '@/lib/referral/uuid-like'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { STORIES_TEAM_MIN_DIRECT_PARTNERS } from '@/lib/referral/referral-badges'
+import { toast } from 'sonner'
 
 /**
  * QR + PDF-визитка + PNG + Stories 9:16 (два шаблона) + шаринг.
@@ -44,6 +45,16 @@ export function ReferralMarketingKit({
   storiesTeamAmountLine = '',
   storiesTeamCtaLine = '',
   storiesTeamDownloadLabel = 'Stories · team',
+  postTextsTitle = 'Тексты для постов',
+  postTextsSubtitle = '',
+  postTextShortLabel = 'Короткий (Stories)',
+  postTextMediumLabel = 'Средний (Telegram)',
+  postTextLongLabel = 'Длинный (Post)',
+  postCopyLabel = 'Скопировать',
+  postCopiedToast = 'Текст скопирован, удачи в продвижении!',
+  postTextShortTemplate = '',
+  postTextMediumTemplate = '',
+  postTextLongTemplate = '',
   shareFbLabel,
   shareTgLabel,
   shareWaLabel,
@@ -229,6 +240,47 @@ export function ReferralMarketingKit({
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${u}`, '_blank', 'noopener,noreferrer')
   }
 
+  const readyTexts = useMemo(
+    () => [
+      {
+        id: 'short',
+        label: postTextShortLabel,
+        value: String(postTextShortTemplate || '').replace(/\{brand\}/g, brandChip).replace(/\{link\}/g, qrLink),
+      },
+      {
+        id: 'medium',
+        label: postTextMediumLabel,
+        value: String(postTextMediumTemplate || '').replace(/\{brand\}/g, brandChip).replace(/\{link\}/g, qrLink),
+      },
+      {
+        id: 'long',
+        label: postTextLongLabel,
+        value: String(postTextLongTemplate || '').replace(/\{brand\}/g, brandChip).replace(/\{link\}/g, qrLink),
+      },
+    ],
+    [
+      postTextLongLabel,
+      postTextLongTemplate,
+      postTextMediumLabel,
+      postTextMediumTemplate,
+      postTextShortLabel,
+      postTextShortTemplate,
+      brandChip,
+      qrLink,
+    ],
+  )
+
+  async function handleCopyPostText(text) {
+    const value = String(text || '').trim()
+    if (!value) return
+    try {
+      await navigator.clipboard.writeText(value)
+      toast.success(postCopiedToast)
+    } catch {
+      toast.error(postCopiedToast)
+    }
+  }
+
   const badgeChip = String(storiesAmbassadorBadgeLine || '').trim()
 
   return (
@@ -257,7 +309,6 @@ export function ReferralMarketingKit({
           <p className="mt-2 text-sm font-medium text-teal-700">{badgeLine}</p>
           <div className="mt-auto flex flex-1 flex-col items-center justify-center pb-10 pt-4">
             {storyQrDataUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={storyQrDataUrl}
                 alt=""
@@ -286,7 +337,6 @@ export function ReferralMarketingKit({
           <p className="mt-6 px-2 text-[15px] font-medium leading-snug text-slate-700">{storiesTeamCtaLine}</p>
           <div className="mt-auto flex flex-1 flex-col items-center justify-center pb-10 pt-6">
             {storyQrDataUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={storyQrDataUrl}
                 alt=""
@@ -394,6 +444,29 @@ export function ReferralMarketingKit({
                   {shareFbLabel}
                 </Button>
               </div>
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-1">
+            <p className="text-sm font-semibold text-slate-900">{postTextsTitle}</p>
+            {postTextsSubtitle ? <p className="text-xs text-slate-500">{postTextsSubtitle}</p> : null}
+            <div className="space-y-2">
+              {readyTexts.map((item) => (
+                <div key={item.id} className="rounded-lg border border-slate-200 bg-slate-50/50 p-3">
+                  <p className="text-xs font-medium text-slate-600">{item.label}</p>
+                  <p className="mt-1 text-sm leading-snug text-slate-900 whitespace-pre-wrap">{item.value}</p>
+                  <div className="mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void handleCopyPostText(item.value)}
+                    >
+                      {postCopyLabel}
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </CardContent>

@@ -697,6 +697,16 @@ export default function ReferralProfilePage() {
         badgeSilverLabel={t('stage73_badgeSilver')}
         marketingTitle={t('stage73_marketingKitTitle')}
         marketingSubtitle={t('stage73_marketingKitSubtitle')}
+        postTextsTitle={t('stage77_postTextsTitle')}
+        postTextsSubtitle={t('stage77_postTextsSubtitle')}
+        postTextShortLabel={t('stage77_postTextShortLabel')}
+        postTextMediumLabel={t('stage77_postTextMediumLabel')}
+        postTextLongLabel={t('stage77_postTextLongLabel')}
+        postCopyLabel={t('stage77_postCopyLabel')}
+        postCopiedToast={t('stage77_postCopiedToast')}
+        postTextShortTemplate={t('stage77_postTextShortTemplate')}
+        postTextMediumTemplate={t('stage77_postTextMediumTemplate')}
+        postTextLongTemplate={t('stage77_postTextLongTemplate')}
         downloadLabel={t('stage73_downloadQr')}
         shareFbLabel={t('stage73_shareFb')}
         shareTgLabel={t('referralStage726_shareTg')}

@@ -33,6 +33,7 @@ export async function generateMetadata({ params }) {
   const description = getUIText('stage74_4_uMetaDescription', lang)
 
   const metadataBase = new URL(getPublicSiteUrl())
+  const ogImage = `/u/${encodeURIComponent(uid)}/opengraph-image`
 
   return {
     metadataBase,
@@ -44,11 +45,20 @@ export async function generateMetadata({ params }) {
       description,
       type: 'website',
       locale: lang === 'ru' ? 'ru_RU' : lang === 'en' ? 'en_US' : lang === 'zh' ? 'zh_CN' : 'th_TH',
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
+      images: [ogImage],
     },
   }
 }
