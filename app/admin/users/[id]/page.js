@@ -13,11 +13,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { 
   ArrowLeft, User, Mail, Phone, Shield, Calendar, Building2, 
   DollarSign, FileText, Image as ImageIcon, CheckCircle, XCircle, Clock,
-  LogIn, ExternalLink, AlertTriangle, Percent, Send
+  LogIn, ExternalLink, AlertTriangle, Percent, Send, Medal
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProxiedImage } from '@/components/proxied-image';
 import { toAdminVerificationDocProxyUrl } from '@/lib/verification-doc-admin-url';
+
+const ADMIN_BADGE_LABEL_RU = {
+  fast_start: 'Быстрый старт',
+  network_builder: 'Сеть растёт',
+  top10_monthly: 'Топ-10 месяца',
+};
 
 export default function UserDetailPage() {
   const params = useParams();
@@ -31,6 +37,8 @@ export default function UserDetailPage() {
   const [verifying, setVerifying] = useState(false);
   const [systemCommission, setSystemCommission] = useState(null);
   const [customCommission, setCustomCommission] = useState('');
+  /** SSOT с `/profile/referral` (`buildReferralGamificationForUser`). */
+  const [referralGamification, setReferralGamification] = useState(null);
 
   useEffect(() => {
     loadUserData();
@@ -106,6 +114,8 @@ export default function UserDetailPage() {
       if (data.listings) {
         setListings(data.listings);
       }
+
+      setReferralGamification(data.referralGamification ?? null);
 
     } catch (error) {
       console.error('Failed to load user data:', error);
@@ -432,6 +442,46 @@ export default function UserDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {referralGamification ? (
+            <Card className="border border-teal-100 bg-teal-50/40">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Medal className="w-5 h-5 text-teal-600 shrink-0" />
+                  Реферальные медали
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Расчёт как на странице реферала пользователя (те же правила бейджей и активаций партнёров).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm text-gray-800">
+                <p>
+                  <span className="font-medium text-gray-600">Медали:</span>{' '}
+                  {Array.isArray(referralGamification.badgesEarned) && referralGamification.badgesEarned.length
+                    ? referralGamification.badgesEarned
+                        .map((id) => ADMIN_BADGE_LABEL_RU[String(id)] || String(id))
+                        .join(' · ')
+                    : '—'}
+                </p>
+                <p>
+                  <span className="font-medium text-gray-600">Fast Start (окно 14 дней до первого earned):</span>{' '}
+                  {referralGamification.fastStartEligible ? 'да' : 'нет'}
+                </p>
+                <p>
+                  <span className="font-medium text-gray-600">Место в лидерборде месяца:</span>{' '}
+                  {referralGamification.leaderboardRankMonthly != null
+                    ? `#${referralGamification.leaderboardRankMonthly}`
+                    : '—'}
+                </p>
+                <p>
+                  <span className="font-medium text-gray-600">Активированных партнёров (прямых):</span>{' '}
+                  {referralGamification.directPartnersInvited != null
+                    ? String(referralGamification.directPartnersInvited)
+                    : '—'}
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
 
           {/* Identity Verification Card */}
           <Card className={`border-2 ${

@@ -1,7 +1,7 @@
 /**
  * GoStayLo - Exchange Rates API (v2)
  * GET /api/v2/exchange-rates — `rateMap`: THB за 1 единицу валюты.
- * Сервер: сначала Supabase `exchange_rates`; ExchangeRate-API не чаще 1× / 6 ч,
+ * Сервер: сначала Supabase `exchange_rates`; ExchangeRate-API не чаще 1× / 2 ч,
  * после ответа — upsert в БД (`getDisplayRateMap`, `EXCHANGE_RATES_DB_TTL_MS`).
  * POST /api/v2/exchange-rates — ручная правка (admin).
  */
@@ -33,6 +33,8 @@ export async function GET(request) {
       .from('exchange_rates')
       .select('*');
 
+    let ratesUpdatedAt = null
+
     if (error) {
       const transformed = Object.entries(rateMap)
         .filter(([code]) => code !== 'THB')
@@ -41,7 +43,7 @@ export async function GET(request) {
           rateToThb,
           symbol: CURRENCY_SYMBOLS[code] || code,
         }));
-      return NextResponse.json({ success: true, data: transformed, rateMap, applyRetailMarkup });
+      return NextResponse.json({ success: true, data: transformed, rateMap, applyRetailMarkup, ratesUpdatedAt });
     }
 
     const transformed = rates.map((r) => ({
@@ -49,8 +51,14 @@ export async function GET(request) {
       rateToThb: parseFloat(r.rate_to_thb),
       symbol: CURRENCY_SYMBOLS[r.currency_code] || r.currency_code,
     }));
+    for (const row of rates || []) {
+      if (!row?.updated_at) continue
+      if (!ratesUpdatedAt || new Date(row.updated_at).getTime() > new Date(ratesUpdatedAt).getTime()) {
+        ratesUpdatedAt = row.updated_at
+      }
+    }
 
-    return NextResponse.json({ success: true, data: transformed, rateMap, applyRetailMarkup });
+    return NextResponse.json({ success: true, data: transformed, rateMap, applyRetailMarkup, ratesUpdatedAt });
   } catch (error) {
     console.error('[EXCHANGE RATES ERROR]', error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });

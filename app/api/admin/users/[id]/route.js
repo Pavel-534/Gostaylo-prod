@@ -5,6 +5,8 @@
  */
 
 import { NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/lib/supabase'
+import { buildReferralGamificationForUser } from '@/lib/referral/build-referral-gamification-for-user'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,13 +82,23 @@ export async function GET(request, { params }) {
       listings = listingsRes.ok ? await listingsRes.json() : []
     }
 
+    let referralGamification = null
+    if (supabaseAdmin && profile?.id) {
+      try {
+        referralGamification = await buildReferralGamificationForUser(supabaseAdmin, profile)
+      } catch (e) {
+        console.warn('[ADMIN USER] referralGamification:', e?.message || e)
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         profile,
         applications,
-        listings
-      }
+        listings,
+        referralGamification,
+      },
     })
 
   } catch (error) {

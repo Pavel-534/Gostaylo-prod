@@ -81,6 +81,11 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 - **All user-facing name formatting** that shows a person to another user (reviews, chat labels, invoice sender, typing indicator, etc.) must use **`lib/utils/name-formatter.js`** (`formatPrivacyDisplayName`, `formatPrivacyDisplayNameForParticipant`, `formatReviewerInitial`) so display stays **first name + last initial**, with **`stripLegacyModeratorMarker`** applied via that module — do not reimplement ad hoc.
 - **All browser image uploads** that end up in product Storage must go through **`lib/services/image-upload.service.js`** (compression to WebP, resize, then `POST /api/v2/upload`) so behavior stays consistent; new buckets must be allowlisted in **`app/api/v2/upload/route.js`**.
 
+### 7a. Dynamic product brand in UI copy (SSOT)
+
+- **Запрещено** вшивать торговое / продуктовое имя платформы литералами в строки **`lib/translations/**`** (и любые другие i18n-срезы). Используйте только плейсхолдер **`{brand}`**; подстановка значения — **`getSiteDisplayName()`** из **`lib/site-url.js`** (**`NEXT_PUBLIC_SITE_NAME`** / **`SITE_DISPLAY_NAME`**, см. комментарий в модуле). На клиенте **`getUIText`** уже выполняет **`injectBrand`** для `{brand}`.
+- Для имён людей, чисел и прочего контекста — отдельные плейсхолдеры (**`{name}`**, **`{count}`** и т.д.) и **`.replace(...)`** в компоненте или данные с API; не смешивать с литералом бренда.
+
 ### 8. Calendar blocking (single source of truth)
 
 - **Manual blocks, iCal imports, and availability checks** must use **`calendar_blocks`** together with **`CalendarService`** / booking overlap rules. Do not add parallel block tables for product flows; **`availability_blocks`** is legacy and must not be written from partner APIs.
@@ -138,8 +143,9 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 - **Канон:** один серверный модуль **`lib/services/currency.service.js`** (курсы, USDT, дефолтная комиссия, **`getEffectiveRate`** с **`resolveChatInvoiceRateMultiplier`** для счетов в чате). Устаревший реэкспорт **`currency-helper.js`** удалён — импорты только из **`currency.service.js`**.
 - **Last-resort без литералов в CurrencyService:** **`lib/services/currency-last-resort.js`** — `FALLBACK_THB_PER_USDT`, `DEFAULT_COMMISSION_PERCENT`, `CHAT_INVOICE_RATE_MULTIPLIER`, опционально **`general.fallbackThbPerUsdt`** в `system_settings`; дефолт множителя чата — **`platformDefaultChatInvoiceRateMultiplier`**.
 - **Источник истины для курсов отображения:** таблица **`exchange_rates`** в Supabase (`rate_to_thb` = сколько THB за **1** единицу валюты). Символы и список валют селектора: `lib/currency.js` (`CURRENCIES`), API: `GET /api/v2/exchange-rates` (`app/api/v2/exchange-rates/route.js`).
-- **Серверный TTL «свежести» БД:** `EXCHANGE_RATES_DB_TTL_MS` = **6 часов** в `lib/services/currency.service.js` — пока строки не старше TTL, внешний **ExchangeRate-API** не дергается; при необходимости обновления выполняется запрос и **upsert** в `exchange_rates` (ключи `EXCHANGE_RATE_KEY` / `EXCHANGE_API_KEY`).
-- **Клиент:** `fetchExchangeRates()` в `lib/client-data.js` ходит на тот же API и кеширует `rateMap` в **localStorage** с TTL, **согласованным с 6 часами** (тот же горизонт, что и серверный TTL БД), чтобы не долбить `/api/v2/exchange-rates` на каждом монтировании.
+- **Серверный TTL «свежести» БД:** `EXCHANGE_RATES_DB_TTL_MS` = **2 часа** в `lib/services/currency.service.js` — пока строки не старше TTL, внешний **ExchangeRate-API** не дергается; при необходимости обновления выполняется запрос и **upsert** в `exchange_rates` (ключи `EXCHANGE_RATE_KEY` / `EXCHANGE_API_KEY`).
+- **Клиент:** `fetchExchangeRates()` в `lib/client-data.js` ходит на тот же API и кеширует `rateMap` в **localStorage** с TTL, **согласованным с 2 часами** (тот же горизонт, что и серверный TTL БД), чтобы не долбить `/api/v2/exchange-rates` на каждом монтировании.
+- **Синхронизация валют профиля (Stage 76.2):** `profiles.referral_display_currency` и `profiles.preferred_currency` должны меняться синхронно (единая валюта пользователя для реферального кабинета и остального профиля). Канон записи — `PATCH /api/v2/profile/me`.
 - **Отображение сумм:** `formatPrice` в **`lib/currency.js`** использует только переданный **`exchangeRates`** (как `rateMap` с API); в модуле **нет** захардкоженной таблицы курсов для отображения (удалены неиспользуемые `convertFromThb` / `convertToThb` с литералами).
 
 ### Calendar & Timezones

@@ -51,6 +51,10 @@
     {
       "path": "/api/cron/wallet-welcome-expiry",
       "schedule": "45 4 * * *"
+    },
+    {
+      "path": "/api/cron/exchange-rates-refresh",
+      "schedule": "0 */3 * * *"
     }
   ]
 }

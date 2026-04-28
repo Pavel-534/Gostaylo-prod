@@ -7,6 +7,8 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { formatPrivacyDisplayName } from '@/lib/utils/name-formatter'
 import { buildAmbassadorLandingUrl, ambassadorLandingShortLabel } from '@/lib/referral/public-landing-url'
+import { getSiteDisplayName } from '@/lib/site-url'
+import ReferralPnlService from '@/lib/services/marketing/referral-pnl.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,6 +44,14 @@ export async function GET(request, context) {
 
     const tierLabel = String(p.referral_tier_name || '').trim()
 
+    const { count: invitedCount } = await supabaseAdmin
+      .from('referral_relations')
+      .select('id', { head: true, count: 'exact' })
+      .eq('referrer_id', userId)
+
+    const friendsInvited = Number(invitedCount || 0)
+    const directPartnersInvited = Number((await ReferralPnlService.countDirectPartnersInvited(userId)) || 0)
+
     return NextResponse.json({
       success: true,
       data: {
@@ -52,6 +62,12 @@ export async function GET(request, context) {
         badgeLabel: tierLabel || 'Ambassador',
         landingUrl: buildAmbassadorLandingUrl(userId),
         landingShortLabel: ambassadorLandingShortLabel(userId),
+        /** Регистрации по реф-ссылке (широкий охват). */
+        friendsInvited,
+        /** Активации партнёров — SSOT с tier и Stories unlock (`Stage 75.3`). */
+        directPartnersInvited,
+        /** SSOT отображаемого бренда (дублирует env для публичного клиента без лишнего запроса). */
+        siteDisplayName: getSiteDisplayName(),
       },
     })
   } catch (e) {

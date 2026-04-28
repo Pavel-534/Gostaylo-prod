@@ -9,9 +9,10 @@ import { Loader2, Trophy } from 'lucide-react'
  *  t: (key: string, ctx?: Record<string, string | number>) => string,
  *  formatThb: (n: number, locale: string) => string,
  *  locale: string,
+ *  formatAmountLine?: (amountThb: number) => string,
  * }} props
  */
-export function ReferralMonthlyLeaderboard({ t, formatThb, locale }) {
+export function ReferralMonthlyLeaderboard({ t, formatThb, formatAmountLine, locale }) {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState(false)
   const [payload, setPayload] = useState(null)
@@ -48,6 +49,10 @@ export function ReferralMonthlyLeaderboard({ t, formatThb, locale }) {
       : ''
 
   const rows = Array.isArray(payload?.rows) ? payload.rows : []
+  const fmtLine =
+    typeof formatAmountLine === 'function'
+      ? formatAmountLine
+      : (amountThb) => `฿${formatThb(amountThb, locale)}`
 
   return (
     <Card className="border border-amber-200/80 bg-gradient-to-br from-amber-50/90 via-white to-teal-50/40">
@@ -85,8 +90,8 @@ export function ReferralMonthlyLeaderboard({ t, formatThb, locale }) {
                   {t('stage74_leaderboardRank').replace('{n}', String(row.rank))}
                 </span>
                 <span className="font-medium text-slate-900 truncate min-w-0 flex-1">{row.displayName}</span>
-                <span className="tabular-nums font-semibold text-teal-800 shrink-0">
-                  ฿{formatThb(row.amountThb, locale)}
+                <span className="tabular-nums font-semibold text-teal-800 shrink-0 text-right max-w-[11rem] leading-tight">
+                  {fmtLine(Number(row.amountThb) || 0)}
                 </span>
               </li>
             ))}

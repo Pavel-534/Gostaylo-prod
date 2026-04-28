@@ -7,26 +7,37 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Label } from '@/components/ui/label'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Gift, Copy, Loader2, Users, Wallet } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { getSiteDisplayName } from '@/lib/site-url'
 import { toast } from 'sonner'
 import { UnifiedBalanceSummary } from '@/components/wallet/UnifiedBalanceSummary'
 import { ReferralTeamSection } from '@/components/referral/ReferralTeamSection'
 import { ReferralActivityFeed } from '@/components/referral/ReferralActivityFeed'
 import { ReferralMarketingKit } from '@/components/referral/ReferralMarketingKit'
+import { ReferralYourStatusCard } from '@/components/referral/ReferralYourStatusCard'
 import { ReferralMonthlyLeaderboard } from '@/components/referral/ReferralMonthlyLeaderboard'
 import { ReferralMiniSparkline } from '@/components/referral/ReferralMiniSparkline'
 import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
 import { formatReferralDateDdMmYyyy } from '@/lib/referral/format-referral-datetime'
 import { isValidIanaTimeZone } from '@/lib/referral/resolve-referral-stats-timezone'
+import { formatPrice } from '@/lib/currency'
+import {
+  normalizeReferralDisplayCurrency,
+  REFERRAL_DISPLAY_CURRENCY_CODES,
+} from '@/lib/finance/referral-display-currency'
+import { playReferralAchievementChime } from '@/lib/referral/referral-achievement-chime'
 
 const REPORT_TZ_OPTIONS = ['Asia/Bangkok', 'Asia/Singapore', 'Europe/Moscow', 'Asia/Dubai', 'UTC']
 
 /** Базовая строка для сравнения «новый партнёр по ссылке» (toast). */
 const REF_FRIENDS_SEEN_STORAGE = 'gostaylo:lastReferralFriendsCount'
+/** Последний известный `referral_team_events.id` (teammate_joined) — точнее счётчика (Stage 74.4). */
+const REF_JOIN_EVENT_SEEN_STORAGE = 'gostaylo:lastReferralTeammateJoinEventId'
+/** Baseline digest медалей — «дзынь» только при появлении нового id (Stage 76.1). */
+const REF_BADGE_SEEN_STORAGE = 'gostaylo:referralGamificationSeenBadges:v1'
 
 function formatThb(value, locale = 'ru-RU') {
   const n = Number(value)
@@ -46,6 +57,10 @@ export default function ReferralProfilePage() {
   const [reportTz, setReportTz] = useState('UTC')
   const [reportGoalInput, setReportGoalInput] = useState('')
   const [prefsSaving, setPrefsSaving] = useState(false)
+  const [currencySaving, setCurrencySaving] = useState(false)
+  const [fairRateMap, setFairRateMap] = useState(null)
+  const [ratesUpdatedAt, setRatesUpdatedAt] = useState(null)
+  const [displayCurrency, setDisplayCurrency] = useState('THB')
   const silentTzSyncRef = useRef(false)
   const { data: walletData } = useWalletMeQuery({
     enabled: !authLoading && isAuthenticated,
@@ -70,6 +85,12 @@ export default function ReferralProfilePage() {
               if (d?.stats?.friendsInvited != null && sessionStorage.getItem(REF_FRIENDS_SEEN_STORAGE) == null) {
                 sessionStorage.setItem(REF_FRIENDS_SEEN_STORAGE, String(Number(d.stats.friendsInvited)))
               }
+              if (sessionStorage.getItem(REF_JOIN_EVENT_SEEN_STORAGE) == null) {
+                sessionStorage.setItem(
+                  REF_JOIN_EVENT_SEEN_STORAGE,
+                  d?.referralLastTeammateJoinEventId ? String(d.referralLastTeammateJoinEventId) : '',
+                )
+              }
             } catch {
               /* ignore */
             }
@@ -87,6 +108,66 @@ export default function ReferralProfilePage() {
       cancelled = true
     }
   }, [authLoading, isAuthenticated, router, t])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        // Амбассадорам показываем чистый биржевой курс, наценка 2.5% применяется только к рентерам.
+        const res = await fetch('/api/v2/exchange-rates?retail=0', { cache: 'no-store' })
+        const j = await res.json().catch(() => ({}))
+        if (!cancelled && j?.success) {
+          if (j?.rateMap && typeof j.rateMap === 'object') {
+            setFairRateMap({ THB: 1, ...j.rateMap })
+          }
+          setRatesUpdatedAt(j?.ratesUpdatedAt ? String(j.ratesUpdatedAt) : null)
+        }
+      } catch {
+        /* ignore */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    const c = normalizeReferralDisplayCurrency(data?.stats?.referralDisplayCurrency)
+    setDisplayCurrency(c)
+  }, [data?.stats?.referralDisplayCurrency])
+
+  useEffect(() => {
+    if (loading || !data?.referralGamification) return
+    const ids = Array.isArray(data.referralGamification.badgesEarned)
+      ? [...data.referralGamification.badgesEarned].map((x) => String(x)).sort()
+      : []
+    let prev = []
+    try {
+      const raw = sessionStorage.getItem(REF_BADGE_SEEN_STORAGE)
+      if (raw) prev = JSON.parse(raw)
+    } catch {
+      prev = []
+    }
+    if (!Array.isArray(prev)) prev = []
+    if (prev.length === 0) {
+      try {
+        sessionStorage.setItem(REF_BADGE_SEEN_STORAGE, JSON.stringify(ids))
+      } catch {
+        /* ignore */
+      }
+      return
+    }
+    const prevSet = new Set(prev.map((x) => String(x)))
+    const hasNew = ids.some((id) => !prevSet.has(id))
+    try {
+      sessionStorage.setItem(REF_BADGE_SEEN_STORAGE, JSON.stringify(ids))
+    } catch {
+      /* ignore */
+    }
+    if (hasNew && ids.length) {
+      window.setTimeout(() => playReferralAchievementChime(), 120)
+    }
+  }, [data, loading])
 
   useEffect(() => {
     const rr = data?.referralReport
@@ -146,28 +227,37 @@ export default function ReferralProfilePage() {
         if (!refRes.ok || !json?.success || !json.data) return
         const next = json.data
         const cur = Number(next?.stats?.friendsInvited ?? 0)
-        let prevStored = ''
+        const nextJoinId = next?.referralLastTeammateJoinEventId ? String(next.referralLastTeammateJoinEventId) : ''
+        let prevJoin = ''
+        let prevFriendsStored = ''
         try {
-          prevStored = sessionStorage.getItem(REF_FRIENDS_SEEN_STORAGE) ?? ''
+          prevJoin = sessionStorage.getItem(REF_JOIN_EVENT_SEEN_STORAGE) ?? ''
+          prevFriendsStored = sessionStorage.getItem(REF_FRIENDS_SEEN_STORAGE) ?? ''
         } catch {
-          prevStored = ''
+          prevJoin = ''
+          prevFriendsStored = ''
         }
-        if (prevStored === '') {
+        let showPartnerToast = false
+        if (nextJoinId) {
+          if (prevJoin !== '' && nextJoinId !== prevJoin) showPartnerToast = true
+          else if (!prevJoin && prevFriendsStored !== '') {
+            const prevN = Number(prevFriendsStored)
+            if (Number.isFinite(prevN) && cur > prevN) showPartnerToast = true
+          }
           try {
-            sessionStorage.setItem(REF_FRIENDS_SEEN_STORAGE, String(cur))
+            sessionStorage.setItem(REF_JOIN_EVENT_SEEN_STORAGE, nextJoinId)
           } catch {
             /* ignore */
           }
-        } else {
-          const prev = Number(prevStored)
-          if (Number.isFinite(prev) && cur > prev) {
-            toast.success(t('stage74_3_newPartnerToast'))
-          }
-          try {
-            sessionStorage.setItem(REF_FRIENDS_SEEN_STORAGE, String(cur))
-          } catch {
-            /* ignore */
-          }
+        } else if (prevFriendsStored !== '') {
+          const prevFriends = Number(prevFriendsStored)
+          if (Number.isFinite(prevFriends) && cur > prevFriends) showPartnerToast = true
+        }
+        if (showPartnerToast) toast.success(t('stage74_3_newPartnerToast'))
+        try {
+          sessionStorage.setItem(REF_FRIENDS_SEEN_STORAGE, String(cur))
+        } catch {
+          /* ignore */
         }
         setData(next)
       } catch {
@@ -228,6 +318,17 @@ export default function ReferralProfilePage() {
     }
   }
 
+  async function handleCopyLanding() {
+    const url = String(data?.referralLandingUrl || '').trim()
+    if (!url) return
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success(t('referralStage726_linkCopied'))
+    } catch {
+      toast.error(t('referralStage726_copyFail'))
+    }
+  }
+
   async function saveReportPrefs() {
     setPrefsSaving(true)
     try {
@@ -265,6 +366,33 @@ export default function ReferralProfilePage() {
     }
   }
 
+  async function saveReferralDisplayCurrency(nextRaw) {
+    const next = normalizeReferralDisplayCurrency(nextRaw)
+    setCurrencySaving(true)
+    try {
+      const res = await fetch('/api/v2/profile/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ referral_display_currency: next }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.success) {
+        toast.error(json?.error || t('stage73_profileSaveErr'))
+        return
+      }
+      setDisplayCurrency(next)
+      toast.success(t('stage73_prefsSaved'))
+      const refRes = await fetch('/api/v2/referral/me', { credentials: 'include', cache: 'no-store' })
+      const refJson = await refRes.json().catch(() => ({}))
+      if (refRes.ok && refJson?.success) setData(refJson.data || null)
+    } catch {
+      toast.error(t('referralStage726_pageErr'))
+    } finally {
+      setCurrencySaving(false)
+    }
+  }
+
   function pluralDays(n) {
     if (language === 'en') return n === 1 ? t('referralStage726_day') : t('referralStage726_days5')
     return n === 1 ? t('referralStage726_day') : n >= 2 && n <= 4 ? t('referralStage726_days2') : t('referralStage726_days5')
@@ -275,6 +403,43 @@ export default function ReferralProfilePage() {
     if (reportTz && !o.includes(reportTz)) o.unshift(reportTz)
     return o
   }, [reportTz])
+
+  const ledgerBase = data?.stats?.ledgerBaseCurrency || 'THB'
+  const ratesFreshnessLabel = useMemo(() => {
+    if (!ratesUpdatedAt) return ''
+    const ts = Date.parse(ratesUpdatedAt)
+    if (!Number.isFinite(ts)) return ''
+    const mins = Math.max(0, Math.round((Date.now() - ts) / 60000))
+    return t('stage76_ratesUpdatedAgo').replace('{mins}', String(mins))
+  }, [ratesUpdatedAt, t])
+
+  const dualMoney = useMemo(() => {
+    const map = fairRateMap && typeof fairRateMap === 'object' ? fairRateMap : { THB: 1 }
+    const cur = normalizeReferralDisplayCurrency(displayCurrency)
+    return {
+      cur,
+      primary(amountThb) {
+        const n = Number(amountThb) || 0
+        if (cur === 'THB') return `฿${formatThb(n, locale)}`
+        return formatPrice(n, cur, map, language)
+      },
+      thPlain(amountThb) {
+        const n = Number(amountThb) || 0
+        return `฿${formatThb(n, locale)}`
+      },
+      thbLedgerLine(amountThb) {
+        const n = Number(amountThb) || 0
+        return t('stage76_ambassadorDualThb')
+          .replace('{amt}', formatThb(n, locale))
+          .replace('{ledgerBase}', ledgerBase)
+      },
+      leaderboardCell(amountThb) {
+        const n = Number(amountThb) || 0
+        if (cur === 'THB') return `฿${formatThb(n, locale)}`
+        return `${formatPrice(n, cur, map, language)} · ${formatThb(n, locale)} ${ledgerBase}`
+      },
+    }
+  }, [fairRateMap, displayCurrency, locale, language, t, ledgerBase])
 
   const ambassadorSubtitle = useMemo(() => {
     const amb = data?.ambassador
@@ -288,7 +453,7 @@ export default function ReferralProfilePage() {
   }, [data?.ambassador, t, locale])
 
   const localizedShareBody = useMemo(() => {
-    const brand = String(data?.brandName || '').trim() || 'Airrento'
+    const brand = String(data?.brandName || '').trim() || getSiteDisplayName()
     const shareLink =
       String(data?.referralLandingUrl || '').trim() || String(data?.referralLink || '').trim()
     return t('stage73_shareBodyDefault').replace('{brand}', brand).replace('{link}', shareLink)
@@ -325,16 +490,44 @@ export default function ReferralProfilePage() {
     <div className="container mx-auto max-w-3xl px-4 py-8 space-y-4">
       {walletData ? <UnifiedBalanceSummary walletPayload={walletData} t={t} /> : null}
 
-      <p className="text-[11px] text-slate-500 px-0.5 -mb-1">{t('stage73_referralStatsTzHint')}</p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between px-0.5 -mb-1">
+        <p className="text-[11px] text-slate-500">{t('stage73_referralStatsTzHint')}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Label className="text-[11px] text-slate-600 shrink-0">{t('stage76_referralDisplayCurrencyLabel')}</Label>
+          <select
+            className="h-9 min-w-[7rem] rounded-md border border-input bg-background px-2 py-1 text-sm disabled:opacity-60"
+            value={dualMoney.cur}
+            disabled={currencySaving}
+            onChange={(e) => void saveReferralDisplayCurrency(e.target.value)}
+            aria-label={t('stage76_referralDisplayCurrencyLabel')}
+          >
+            {REFERRAL_DISPLAY_CURRENCY_CODES.map((code) => (
+              <option key={code} value={code}>
+                {code}
+              </option>
+            ))}
+          </select>
+          {currencySaving ? <Loader2 className="h-4 w-4 animate-spin text-slate-500" aria-hidden /> : null}
+        </div>
+      </div>
+      <p className="text-[10px] text-slate-500 px-0.5 -mt-1">{t('stage76_referralDisplayCurrencyHint')}</p>
+      {ratesFreshnessLabel ? <p className="text-[10px] text-slate-500 px-0.5 -mt-1">{ratesFreshnessLabel}</p> : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <Card>
           <CardContent className="p-4 space-y-2">
             <p className="text-xs text-slate-500">{t('referralStage726_statMonthlyEarned')}</p>
             <div className="flex flex-row items-start justify-between gap-2">
-              <p className="text-xl font-semibold text-teal-800 flex items-center gap-2 min-w-0">
-                <Wallet className="h-4 w-4 shrink-0" />{' '}
-                <span className="tabular-nums">฿{formatThb(data?.stats?.monthlyEarnedThb, locale)}</span>
+              <p className="text-xl font-semibold text-teal-800 flex items-start gap-2 min-w-0">
+                <Wallet className="h-4 w-4 shrink-0 mt-0.5" />{' '}
+                <span className="tabular-nums inline-flex flex-col gap-0.5">
+                  <span>{dualMoney.primary(data?.stats?.monthlyEarnedThb ?? 0)}</span>
+                  {dualMoney.cur !== 'THB' ? (
+                    <span className="text-[11px] font-normal text-slate-600 leading-snug">
+                      {dualMoney.thbLedgerLine(data?.stats?.monthlyEarnedThb ?? 0)}
+                    </span>
+                  ) : null}
+                </span>
               </p>
               <ReferralMiniSparkline
                 tooltip={sparkTooltip14d}
@@ -347,9 +540,16 @@ export default function ReferralProfilePage() {
           <CardContent className="p-4 space-y-2">
             <p className="text-xs text-slate-500">{t('stage73_statYearlyEarned')}</p>
             <div className="flex flex-row items-start justify-between gap-2">
-              <p className="text-xl font-semibold text-teal-900 flex items-center gap-2 min-w-0">
-                <Wallet className="h-4 w-4 shrink-0" />{' '}
-                <span className="tabular-nums">฿{formatThb(data?.stats?.yearlyEarnedThb, locale)}</span>
+              <p className="text-xl font-semibold text-teal-900 flex items-start gap-2 min-w-0">
+                <Wallet className="h-4 w-4 shrink-0 mt-0.5" />{' '}
+                <span className="tabular-nums inline-flex flex-col gap-0.5">
+                  <span>{dualMoney.primary(data?.stats?.yearlyEarnedThb ?? 0)}</span>
+                  {dualMoney.cur !== 'THB' ? (
+                    <span className="text-[11px] font-normal text-slate-600 leading-snug">
+                      {dualMoney.thbLedgerLine(data?.stats?.yearlyEarnedThb ?? 0)}
+                    </span>
+                  ) : null}
+                </span>
               </p>
               <ReferralMiniSparkline
                 strokeClassName="text-indigo-600"
@@ -364,8 +564,16 @@ export default function ReferralProfilePage() {
         <Card>
           <CardContent className="p-4 space-y-2">
             <p className="text-xs text-slate-500">{t('referralStage726_statExpectedPending')}</p>
-            <p className="text-xl font-semibold text-sky-800 flex items-center gap-2">
-              <Wallet className="h-4 w-4" /> ฿{formatThb(data?.stats?.expectedPendingThb, locale)}
+            <p className="text-xl font-semibold text-sky-800 flex items-start gap-2">
+              <Wallet className="h-4 w-4 shrink-0 mt-0.5" />{' '}
+              <span className="tabular-nums inline-flex flex-col gap-0.5">
+                <span>{dualMoney.primary(data?.stats?.expectedPendingThb ?? 0)}</span>
+                {dualMoney.cur !== 'THB' ? (
+                  <span className="text-[11px] font-normal text-slate-600 leading-snug">
+                    {dualMoney.thbLedgerLine(data?.stats?.expectedPendingThb ?? 0)}
+                  </span>
+                ) : null}
+              </span>
             </p>
             {welcomeExpiryHint ? (
               <p className="text-xs rounded-md bg-amber-50 border border-amber-200 text-amber-950 px-2 py-1.5 leading-snug">
@@ -387,8 +595,16 @@ export default function ReferralProfilePage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-slate-500">{t('referralStage726_statEarned')}</p>
-            <p className="text-xl font-semibold text-emerald-700 flex items-center gap-2">
-              <Wallet className="h-4 w-4" /> ฿{formatThb(data?.stats?.earnedThb, locale)}
+            <p className="text-xl font-semibold text-emerald-700 flex items-start gap-2">
+              <Wallet className="h-4 w-4 shrink-0 mt-0.5" />{' '}
+              <span className="tabular-nums inline-flex flex-col gap-0.5">
+                <span>{dualMoney.primary(data?.stats?.earnedThb ?? 0)}</span>
+                {dualMoney.cur !== 'THB' ? (
+                  <span className="text-[11px] font-normal text-slate-600 leading-snug">
+                    {dualMoney.thbLedgerLine(data?.stats?.earnedThb ?? 0)}
+                  </span>
+                ) : null}
+              </span>
             </p>
           </CardContent>
         </Card>
@@ -411,29 +627,46 @@ export default function ReferralProfilePage() {
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="rounded-lg border border-teal-100 bg-teal-50/40 px-4 py-3">
             <p className="text-xs text-slate-600">{t('stage74_statL1Monthly')}</p>
-            <p className="text-lg font-semibold text-teal-900 tabular-nums mt-1">
-              ฿{formatThb(data?.stats?.monthlyL1EarnedThb ?? 0, locale)}
-            </p>
+            <span className="text-lg font-semibold text-teal-900 tabular-nums mt-1 inline-flex flex-col gap-0.5">
+              <span>{dualMoney.primary(data?.stats?.monthlyL1EarnedThb ?? 0)}</span>
+              {dualMoney.cur !== 'THB' ? (
+                <span className="text-[11px] font-normal text-slate-600">
+                  {dualMoney.thbLedgerLine(data?.stats?.monthlyL1EarnedThb ?? 0)}
+                </span>
+              ) : null}
+            </span>
           </div>
           <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 px-4 py-3">
             <p className="text-xs text-slate-600">{t('stage74_statL2Monthly')}</p>
-            <p className="text-lg font-semibold text-indigo-900 tabular-nums mt-1">
-              ฿{formatThb(data?.stats?.monthlyNetworkEarnedThb ?? 0, locale)}
-            </p>
+            <span className="text-lg font-semibold text-indigo-900 tabular-nums mt-1 inline-flex flex-col gap-0.5">
+              <span>{dualMoney.primary(data?.stats?.monthlyNetworkEarnedThb ?? 0)}</span>
+              {dualMoney.cur !== 'THB' ? (
+                <span className="text-[11px] font-normal text-slate-600">
+                  {dualMoney.thbLedgerLine(data?.stats?.monthlyNetworkEarnedThb ?? 0)}
+                </span>
+              ) : null}
+            </span>
           </div>
         </CardContent>
       </Card>
 
-      {Array.isArray(data?.referralGamification?.badgesEarned) && data.referralGamification.badgesEarned.length ? (
-        <p className="text-xs text-slate-600 px-0.5 -my-1">
-          {t('stage74_badgesEarned')}:{' '}
-          {data.referralGamification.badgesEarned
-            .map((id) => t(`stage74_badge_${String(id)}`))
-            .join(' · ')}
-        </p>
-      ) : null}
+      <ReferralYourStatusCard
+        t={t}
+        locale={locale}
+        ambassador={data?.ambassador}
+        badgesEarned={data?.referralGamification?.badgesEarned}
+        statusSubtitle={ambassadorSubtitle}
+        brandName={data?.brandName || ''}
+        displayName={data?.marketingCard?.displayName || ''}
+        ledgerFootnote={dualMoney.cur !== 'THB' ? t('stage76_referralDisplayCurrencyHint') : ''}
+      />
 
-      <ReferralMonthlyLeaderboard t={t} formatThb={formatThb} locale={locale} />
+      <ReferralMonthlyLeaderboard
+        t={t}
+        formatThb={formatThb}
+        formatAmountLine={(n) => dualMoney.leaderboardCell(n)}
+        locale={locale}
+      />
 
       <ReferralTeamSection members={data?.teamMembers || []} t={t} language={language} />
 
@@ -447,10 +680,19 @@ export default function ReferralProfilePage() {
         brandName={data?.brandName || ''}
         displayName={data?.marketingCard?.displayName || ''}
         ambassadorBadge={data?.marketingCard?.ambassadorBadge || 'silver'}
+        directPartnersInvitedCount={Number(
+          data?.stats?.directPartnersInvited ?? data?.ambassador?.directPartnersInvited ?? 0,
+        )}
+        storiesTeamLockedHint={t('stage75_storiesTeamLocked')}
         pdfButtonLabel={t('stage73_pdfCard')}
         pdfCtaLine={t('stage73_pdfCta')}
         pdfOfficialStatusLine={t('stage73_pdfOfficialStatus')}
-        pdfAirrentoSubtitle={t('stage73_airrentoSubtitle')}
+        pdfBrandSubtitle={t('stage73_brandSubtitle')}
+        pdfElitePartner={
+          Array.isArray(data?.referralGamification?.badgesEarned) &&
+          data.referralGamification.badgesEarned.includes('top10_monthly')
+        }
+        pdfElitePartnerLine={t('stage75_pdfElitePartner')}
         badgeGoldLabel={t('stage73_badgeGold')}
         badgeSilverLabel={t('stage73_badgeSilver')}
         marketingTitle={t('stage73_marketingKitTitle')}
@@ -474,7 +716,7 @@ export default function ReferralProfilePage() {
           <CardTitle className="text-base">{t('stage73_monthlyGoalTitle')}</CardTitle>
           <p className="text-sm font-medium text-slate-800 leading-snug">
             {t('stage73_monthlyGoalPercentLine')
-              .replace('{goal}', formatThb(data?.stats?.monthlyGoalThb, locale))
+              .replace('{goal}', dualMoney.primary(data?.stats?.monthlyGoalThb ?? 0))
               .replace(
                 '{percent}',
                 String(Math.round(Number(data?.stats?.monthlyGoalProgressPercent || 0))),
@@ -482,8 +724,8 @@ export default function ReferralProfilePage() {
           </p>
           <CardDescription className="text-xs">
             {t('stage73_monthlyGoalProgress')
-              .replace('{current}', formatThb(data?.stats?.monthlyEarnedThb, locale))
-              .replace('{goal}', formatThb(data?.stats?.monthlyGoalThb, locale))}
+              .replace('{current}', dualMoney.primary(data?.stats?.monthlyEarnedThb ?? 0))
+              .replace('{goal}', dualMoney.primary(data?.stats?.monthlyGoalThb ?? 0))}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -561,7 +803,8 @@ export default function ReferralProfilePage() {
               {t('referralStage726_payoutTitle')}
             </CardTitle>
             <CardDescription className="text-xs">
-              {t('referralStage726_payoutMin').replace('{amount}', formatThb(walletData.payout.minPayoutThb, locale))}
+              {t('referralStage726_payoutMin').replace('{amount}', dualMoney.primary(walletData.payout.minPayoutThb ?? 0))}{' '}
+              ({ledgerBase})
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm space-y-2">
@@ -585,8 +828,8 @@ export default function ReferralProfilePage() {
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="text-sm text-slate-700">
-              {t('referralStage726_withdrawableLabel')}: {formatThb(payoutProgress.withdrawable, locale)} THB ·{' '}
-              {t('referralStage726_internalServicesLabel')}: {formatThb(payoutProgress.internal, locale)} THB
+              {t('referralStage726_withdrawableLabel')}: {dualMoney.primary(payoutProgress.withdrawable)} ({ledgerBase}) ·{' '}
+              {t('referralStage726_internalServicesLabel')}: {dualMoney.primary(payoutProgress.internal)} ({ledgerBase})
             </p>
             <Progress value={payoutProgress.withdrawablePct} className="h-2" />
             <p className="text-xs text-slate-600">
@@ -658,73 +901,21 @@ export default function ReferralProfilePage() {
           <CardHeader>
             <CardTitle className="text-amber-900">{t('referralStage726_turboTitle')}</CardTitle>
             <CardDescription className="text-amber-800">
-              {t('referralStage726_turboDesc')} +{formatThb(data?.turbo?.promoBoostPerBookingThb, locale)} THB
+              {t('referralStage726_turboDesc')} +{dualMoney.primary(data?.turbo?.promoBoostPerBookingThb ?? 0)} (
+              {ledgerBase})
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="text-sm text-slate-700">{t('referralStage726_turboBoostLine')}</p>
             <p className="text-xl font-bold text-amber-700">
               <span className="line-through text-slate-400 mr-2">
-                +฿{formatThb(data?.turbo?.oldReferrerBonusWithBoostThb, locale)}
+                +{dualMoney.primary(data?.turbo?.oldReferrerBonusWithBoostThb ?? 0)}
               </span>
-              +฿{formatThb(data?.turbo?.newReferrerBonusWithBoostThb, locale)}
+              +{dualMoney.primary(data?.turbo?.newReferrerBonusWithBoostThb ?? 0)}
             </p>
           </CardContent>
         </Card>
       ) : null}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t('referralStage726_ambassadorTitle')}</CardTitle>
-          <CardDescription>{ambassadorSubtitle}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-xs text-slate-500">{t('stage73_ambassadorProgressCaption')}</p>
-          <Progress value={Number(data?.ambassador?.tierProgressPercent || 0)} className="h-2" />
-          {data?.ambassador?.nextTier?.name ? (
-            <p className="text-sm text-emerald-900 font-medium leading-snug">
-              {t('stage73_ambassadorBenefitNext')
-                .replace('{tier}', String(data.ambassador.nextTier.name))
-                .replace(
-                  '{pct}',
-                  String(Math.round(Number(data.ambassador.nextTier.payoutRatio ?? 0) * 100) / 100),
-                )}
-            </p>
-          ) : null}
-          <div className="text-sm text-slate-600 flex flex-wrap items-center gap-2">
-            <span>
-              {t('referralStage726_ambassadorTier')}:{' '}
-              <strong>{data?.ambassador?.currentTier?.name || t('stage73_tierFallbackBeginner')}</strong>
-            </span>
-            <span>·</span>
-            <span>
-              {t('referralStage726_ambassadorPartners')}:{' '}
-              {Number(data?.ambassador?.directPartnersInvited || 0).toLocaleString(locale)}
-            </span>
-            <TooltipProvider delayDuration={150}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    className="text-xs underline underline-offset-2 text-indigo-700"
-                    aria-label={t('referralStage726_payoutHow')}
-                  >
-                    {t('referralStage726_payoutHow')}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {t('referralStage726_payoutTooltipDynamic').replace(
-                    '{pct}',
-                    String(
-                      Math.round(Number(data?.ambassador?.currentTier?.payoutRatio ?? 0) * 100) / 100,
-                    ),
-                  )}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </CardContent>
-      </Card>
 
     </div>
   )

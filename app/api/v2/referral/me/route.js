@@ -10,14 +10,13 @@ import { buildReferralEarningsSparklineThb } from '@/lib/referral/sparkline-earn
 import { getSiteDisplayName } from '@/lib/site-url';
 import { ambassadorLandingShortLabel, buildAmbassadorLandingUrl } from '@/lib/referral/public-landing-url';
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter';
-import { referralStatsCurrentMonthBoundsUtc } from '@/lib/referral/referral-stats-month-bounds';
-import { aggregateReferralLeaderboardFromDb } from '@/lib/referral/referral-leaderboard-db';
-import { computeReferralBadgeResult } from '@/lib/referral/referral-badges';
+import { buildReferralGamificationForUser } from '@/lib/referral/build-referral-gamification-for-user';
 import {
   badgeLabelForLang,
   buildStoriesCopy,
   normalizeStoriesLang,
 } from '@/lib/referral/referral-stories-copy';
+import { normalizeReferralDisplayCurrency } from '@/lib/finance/referral-display-currency';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,7 +72,7 @@ export async function GET(request) {
   let { data: profile, error: profileError } = await supabaseAdmin
     .from('profiles')
     .select(
-      'id,referral_code,referral_tier_id,referral_tier_name,referral_tier_payout_ratio,iana_timezone,referral_monthly_goal_thb,first_name,last_name,email,created_at,language,preferred_language,metadata',
+      'id,referral_code,referral_tier_id,referral_tier_name,referral_tier_payout_ratio,iana_timezone,referral_monthly_goal_thb,referral_display_currency,first_name,last_name,email,created_at,language,preferred_language',
     )
     .eq('id', session.userId)
     .maybeSingle();
@@ -81,12 +80,23 @@ export async function GET(request) {
     const fallback = await supabaseAdmin
       .from('profiles')
       .select(
-        'id,referral_code,iana_timezone,referral_monthly_goal_thb,first_name,last_name,email,created_at,language,preferred_language,metadata',
+        'id,referral_code,iana_timezone,referral_monthly_goal_thb,referral_display_currency,first_name,last_name,email,created_at,language,preferred_language',
       )
       .eq('id', session.userId)
       .maybeSingle();
     profile = fallback.data;
     profileError = fallback.error;
+  }
+  if (profileError && /referral_display_currency/i.test(String(profileError?.message || ''))) {
+    const fb2 = await supabaseAdmin
+      .from('profiles')
+      .select(
+        'id,referral_code,referral_tier_id,referral_tier_name,referral_tier_payout_ratio,iana_timezone,referral_monthly_goal_thb,first_name,last_name,email,created_at,language,preferred_language',
+      )
+      .eq('id', session.userId)
+      .maybeSingle();
+    profile = fb2.data ? { ...fb2.data, referral_display_currency: 'THB' } : profile;
+    profileError = fb2.error;
   }
   if (profileError || !profile?.id) {
     return NextResponse.json(
@@ -236,12 +246,10 @@ export async function GET(request) {
     100,
     Math.max(0, Math.round(((directPartnersCount - currentTierFloor) / tierSpan) * 100)),
   );
+  const referralDisplayCurrency = normalizeReferralDisplayCurrency(profile?.referral_display_currency);
+
   const payoutRatioFromTier = Number(
     profile?.referral_tier_payout_ratio ?? currentTier?.payoutRatio ?? 0,
-  );
-  const ambassadorProgressPercent = Math.min(
-    100,
-    Math.round((friendsInvited / Math.max(1, Number(nextTier?.minPartnersInvited || 10))) * 100),
   );
   const brandName = getSiteDisplayName();
   const marketingDisplayName = formatPrivacyDisplayNameForParticipant(
@@ -282,6 +290,7 @@ export async function GET(request) {
     badgesEarned: [],
     primaryBadge: null,
     leaderboardRankMonthly: null,
+    fastStartEligible: false,
     badgeSnapshot: null,
   };
   let referralStoriesCopy = buildStoriesCopy(normalizeStoriesLang(profile?.preferred_language || profile?.language), {
@@ -292,53 +301,15 @@ export async function GET(request) {
   });
 
   if (supabaseAdmin) {
-    const monthBounds = referralStatsCurrentMonthBoundsUtc(statsTz);
-    const [topRows, firstEarnedRes] = await Promise.all([
-      aggregateReferralLeaderboardFromDb(
-        supabaseAdmin,
-        monthBounds.monthStartUtcIso,
-        monthBounds.monthEndExclusiveUtcIso,
-        10,
-      ),
-      supabaseAdmin
-        .from('referral_ledger')
-        .select('earned_at')
-        .eq('referrer_id', profile.id)
-        .eq('status', 'earned')
-        .order('earned_at', { ascending: true })
-        .limit(1)
-        .maybeSingle(),
-    ]);
-    const idx = topRows.findIndex((r) => r.referrerId === profile.id);
-    const leaderboardRankForMonth = idx >= 0 ? idx + 1 : null;
-    let fastStartEligible = false;
-    const createdAt = profile?.created_at;
-    const firstEarnIso = firstEarnedRes?.data?.earned_at;
-    if (createdAt && firstEarnIso) {
-      const c = Date.parse(String(createdAt));
-      const e = Date.parse(String(firstEarnIso));
-      if (Number.isFinite(c) && Number.isFinite(e)) {
-        const days = (e - c) / 86400000;
-        fastStartEligible = days >= 0 && days <= FAST_START_MAX_DAYS;
-      }
-    }
-    const badgeResult = computeReferralBadgeResult({
-      monthlyNetworkEarnedThb,
-      friendsInvited,
-      leaderboardRankForMonth,
-      fastStartEligible,
-    });
+    const gam = await buildReferralGamificationForUser(supabaseAdmin, profile, { monthlyNetworkEarnedThb });
     const langNorm = normalizeStoriesLang(profile?.preferred_language || profile?.language);
-    const primaryLabel = badgeResult.primary ? badgeLabelForLang(badgeResult.primary, langNorm) : '';
+    const primaryLabel = gam.primaryBadge ? badgeLabelForLang(gam.primaryBadge, langNorm) : '';
     referralGamification = {
-      badgesEarned: badgeResult.earned,
-      primaryBadge: badgeResult.primary,
-      leaderboardRankMonthly: leaderboardRankForMonth,
-      badgeSnapshot: {
-        badges_earned: badgeResult.earned,
-        primary_badge: badgeResult.primary,
-        leaderboard_rank_monthly: leaderboardRankForMonth,
-      },
+      badgesEarned: gam.badgesEarned,
+      primaryBadge: gam.primaryBadge,
+      leaderboardRankMonthly: gam.leaderboardRankMonthly,
+      fastStartEligible: gam.fastStartEligible,
+      badgeSnapshot: gam.badgeSnapshot,
     };
     referralStoriesCopy = buildStoriesCopy(langNorm, {
       brandName,
@@ -346,6 +317,20 @@ export async function GET(request) {
       badgeLabel: primaryLabel,
       monthlyNetworkEarnedThb,
     });
+  }
+
+  /** Последнее событие «партнёр присоединился» — для toast без эвристики по счётчику (Stage 74.4). */
+  let referralLastTeammateJoinEventId = null;
+  if (supabaseAdmin) {
+    const { data: lastJoinEv } = await supabaseAdmin
+      .from('referral_team_events')
+      .select('id')
+      .eq('referrer_id', profile.id)
+      .eq('event_type', 'teammate_joined')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (lastJoinEv?.id) referralLastTeammateJoinEventId = String(lastJoinEv.id);
   }
 
   return NextResponse.json({
@@ -357,6 +342,7 @@ export async function GET(request) {
       referralLandingShortDisplay,
       shareMessage,
       brandName,
+      referralLastTeammateJoinEventId,
       marketingCard: {
         displayName: marketingDisplayName,
         ambassadorBadge,
@@ -384,8 +370,8 @@ export async function GET(request) {
           Number.isFinite(payoutRatioFromTier) ? payoutRatioFromTier : 60,
         )}% of credited bonuses toward card payout (when eligible).`,
         targetInvites: Number(nextTier?.minPartnersInvited || 10),
-        currentInvites: friendsInvited,
-        progressPercent: ambassadorProgressPercent,
+        /** Активированные партнёры (SSOT с tier и Stories unlock). */
+        currentInvites: directPartnersCount,
       },
       turbo: {
         enabled: promoTurboModeEnabled,
@@ -395,9 +381,15 @@ export async function GET(request) {
         newReferrerBonusWithBoostThb,
       },
       stats: {
+        /** Ledger / бухгалтерия — всегда THB (SSOT сумм начислений). */
+        ledgerBaseCurrency: 'THB',
+        /** Выбранная валюта отображения в кабинете амбаcсадора. */
+        referralDisplayCurrency,
         pendingThb: Math.round(pendingThb * 100) / 100,
         earnedThb: Math.round(earnedThb * 100) / 100,
         friendsInvited,
+        /** Партнёры с активацией (та же метрика, что tier / Stories unlock). */
+        directPartnersInvited: directPartnersCount,
         /** referral_ledger earned в текущем календарном месяце (границы месяца в TZ профиля → fallback UTC). */
         monthlyEarnedThb,
         /** referral_ledger earned с 1 янв. текущего года по календарю TZ статистики */
@@ -421,7 +413,7 @@ export async function GET(request) {
         statsCalendarIana: statsTz,
         referralMonthlyGoalThbProfile: profileGoalNum,
       },
-      /** Stage 74.2 — бейджи (метаданные для Stories/UI; snapshot можно дублировать в profiles.metadata на клиенте). */
+      /** Stage 74.2 — earned-бейджи + snapshot для UI/Stories. */
       referralGamification,
       /** Тексты Stories PNG по языку профиля (RU/EN/ZH/TH). */
       referralStoriesCopy,

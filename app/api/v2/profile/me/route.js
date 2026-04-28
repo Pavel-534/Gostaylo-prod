@@ -1,5 +1,6 @@
 /**
- * PATCH /api/v2/profile/me — preferred_language, instant_booking, iana_timezone, referral_monthly_goal_thb.
+ * PATCH /api/v2/profile/me — preferred_language, instant_booking, iana_timezone, referral_monthly_goal_thb,
+ * referral_display_currency и preferred_currency (Stage 76.2: синхронизированы).
  * Session: cookie `gostaylo_session` (same as `/api/v2/auth/me`).
  */
 
@@ -10,6 +11,7 @@ import { getSessionPayload } from '@/lib/services/session-service'
 import { supabaseAdmin } from '@/lib/supabase'
 import { normalizePreferredLanguageInput } from '@/lib/validation/profile-schema'
 import { isValidIanaTimezone } from '@/lib/validation/iana-timezone'
+import { normalizeReferralDisplayCurrency } from '@/lib/finance/referral-display-currency'
 
 export async function PATCH(request) {
   const session = await getSessionPayload()
@@ -33,13 +35,17 @@ export async function PATCH(request) {
   const hasTz = rawTz !== undefined
   const rawGoal = body?.referral_monthly_goal_thb ?? body?.referralMonthlyGoalThb
   const hasGoal = rawGoal !== undefined
+  const rawDisplayCur = body?.referral_display_currency ?? body?.referralDisplayCurrency
+  const hasDisplayCur = rawDisplayCur !== undefined
+  const rawPreferredCurrency = body?.preferred_currency ?? body?.preferredCurrency
+  const hasPreferredCurrency = rawPreferredCurrency !== undefined
 
-  if (rawPreferred === undefined && !hasInstant && !hasTz && !hasGoal) {
+  if (rawPreferred === undefined && !hasInstant && !hasTz && !hasGoal && !hasDisplayCur && !hasPreferredCurrency) {
     return NextResponse.json(
       {
         success: false,
         error:
-          'At least one of preferred_language, instant_booking, iana_timezone, referral_monthly_goal_thb is required',
+          'At least one of preferred_language, instant_booking, iana_timezone, referral_monthly_goal_thb, referral_display_currency, preferred_currency is required',
       },
       { status: 400 },
     )
@@ -76,6 +82,28 @@ export async function PATCH(request) {
     }
   }
 
+  let nextDisplayCurrency = undefined
+  if (hasDisplayCur) {
+    if (rawDisplayCur === null || rawDisplayCur === '') {
+      nextDisplayCurrency = 'THB'
+    } else {
+      nextDisplayCurrency = normalizeReferralDisplayCurrency(rawDisplayCur)
+    }
+  }
+  let nextPreferredCurrency = undefined
+  if (hasPreferredCurrency) {
+    if (rawPreferredCurrency === null || rawPreferredCurrency === '') {
+      nextPreferredCurrency = 'THB'
+    } else {
+      nextPreferredCurrency = normalizeReferralDisplayCurrency(rawPreferredCurrency)
+    }
+  }
+  const mergedCurrency = hasDisplayCur
+    ? nextDisplayCurrency
+    : hasPreferredCurrency
+      ? nextPreferredCurrency
+      : undefined
+
   const { data: beforeProfile, error: beforeProfileError } = await supabaseAdmin
     .from('profiles')
     .select('instant_booking')
@@ -92,6 +120,11 @@ export async function PATCH(request) {
   if (hasInstant) updates.instant_booking = nextInstant
   if (hasTz) updates.iana_timezone = nextTimezone
   if (hasGoal) updates.referral_monthly_goal_thb = nextGoalThb
+  if (mergedCurrency) {
+    // Stage 76.2 SSOT: ambassador and global profile currency must remain synchronized.
+    updates.referral_display_currency = mergedCurrency
+    updates.preferred_currency = mergedCurrency
+  }
 
   const { error } = await supabaseAdmin
     .from('profiles')
@@ -99,7 +132,7 @@ export async function PATCH(request) {
     .eq('id', session.userId)
 
   if (error) {
-    if (/preferred_language|iana_timezone|referral_monthly_goal|column/i.test(String(error.message || ''))) {
+    if (/preferred_language|iana_timezone|referral_monthly_goal|referral_display_currency|preferred_currency|column/i.test(String(error.message || ''))) {
       return NextResponse.json(
         {
           success: false,
@@ -137,5 +170,7 @@ export async function PATCH(request) {
     instant_booking: hasInstant ? nextInstant : null,
     iana_timezone: hasTz ? nextTimezone : null,
     referral_monthly_goal_thb: hasGoal ? nextGoalThb : null,
+    referral_display_currency: mergedCurrency,
+    preferred_currency: mergedCurrency,
   })
 }

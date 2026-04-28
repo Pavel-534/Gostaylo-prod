@@ -6,9 +6,11 @@ import QRCode from 'qrcode'
 import { toPng } from 'html-to-image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Download, Facebook, FileText, Loader2, MessageCircle, Share2, Smartphone } from 'lucide-react'
+import { Download, Facebook, FileText, Loader2, Lock, MessageCircle, Share2, Smartphone } from 'lucide-react'
 import { downloadAmbassadorCardPdf } from '@/lib/referral/ambassador-card-pdf'
 import { isUuidLike } from '@/lib/referral/uuid-like'
+import { getSiteDisplayName } from '@/lib/site-url'
+import { STORIES_TEAM_MIN_DIRECT_PARTNERS } from '@/lib/referral/referral-badges'
 
 /**
  * QR + PDF-визитка + PNG + Stories 9:16 (два шаблона) + шаринг.
@@ -32,7 +34,7 @@ export function ReferralMarketingKit({
   downloadLabel,
   storiesDownloadLabel = 'Stories',
   /** Фиксированный текст на PNG Stories (бренд). */
-  storiesCardHeadline = 'Путешествуй и зарабатывай с Airrento',
+  storiesCardHeadline = '',
   /** Динамическая строка статуса (Stage 74.1): «Мой уровень в {brand}: …». */
   storiesTierStatusLine = '',
   /** Stage 74.2 — бейдж на первой карточке Stories (из referralStoriesCopy). */
@@ -48,13 +50,33 @@ export function ReferralMarketingKit({
   badgeGoldLabel = 'Gold Ambassador',
   badgeSilverLabel = 'Silver Ambassador',
   pdfOfficialStatusLine = '',
-  pdfAirrentoSubtitle = '',
+  /** Подзаголовок бренда под логотипом PDF — из i18n с `{brand}`. */
+  pdfBrandSubtitle = '',
+  /** Stage 75.1 — Top 10 Monthly: золотая рамка и Elite Partner в PDF. */
+  pdfElitePartner = false,
+  pdfElitePartnerLine = '',
+  /** SSOT: `stats.directPartnersInvited` — активированные партнёры (как tier); порог — `STORIES_TEAM_MIN_DIRECT_PARTNERS`. */
+  directPartnersInvitedCount = 0,
+  storiesTeamLockedHint = '',
 }) {
   const link = String(referralLink || '').trim()
   const landing = String(landingShareUrl || '').trim()
   /** Основная ссылка для QR, PNG, TG/FB: короткая визитка, иначе длинный ref. */
   const qrLink = landing || link
   const linkCaption = String(landingShortLabel || '').trim() || qrLink
+
+  const brandChip = useMemo(() => {
+    const b = String(brandName || '').trim()
+    return b || getSiteDisplayName()
+  }, [brandName])
+
+  const storiesHeadlineResolved = useMemo(() => {
+    const raw = String(storiesCardHeadline || '').trim()
+    if (raw) return raw.replace(/\{brand\}/g, getSiteDisplayName())
+    const site = getSiteDisplayName()
+    return site ? `Travel and earn with ${site}` : 'Travel and earn'
+  }, [storiesCardHeadline])
+
   const [downloading, setDownloading] = useState(false)
   const [pdfBusy, setPdfBusy] = useState(false)
   const [storiesBusy, setStoriesBusy] = useState(false)
@@ -71,12 +93,16 @@ export function ReferralMarketingKit({
 
   const badgeLine = String(ambassadorBadge).toLowerCase() === 'gold' ? badgeGoldLabel : badgeSilverLabel
 
+  const partnerActivations = Number(directPartnersInvitedCount) || 0
+  const teamStoriesLocked = partnerActivations < STORIES_TEAM_MIN_DIRECT_PARTNERS
+  const partnersNeededForTeamStories = Math.max(0, STORIES_TEAM_MIN_DIRECT_PARTNERS - partnerActivations)
+
   const defaultPitch = useMemo(() => {
     const fromI18n = String(shareBody || '').trim()
     if (fromI18n) return fromI18n
     const legacy = String(shareMessage || '').trim()
     if (legacy) return legacy
-    const b = String(brandName || '').trim() || 'Platform'
+    const b = String(brandName || '').trim() || getSiteDisplayName()
     return `Travel and earn with ${b}! Your bonus link: ${qrLink}`.trim()
   }, [shareBody, shareMessage, brandName, qrLink])
 
@@ -118,7 +144,7 @@ export function ReferralMarketingKit({
   }
 
   async function handleDownloadPdf() {
-    if (!link || typeof window === 'undefined') return
+    if (!qrLink || typeof window === 'undefined') return
     setPdfBusy(true)
     try {
       const safeBrand = String(brandName || 'platform')
@@ -129,10 +155,14 @@ export function ReferralMarketingKit({
         displayName: safeDisplayName,
         ambassadorBadgeLabel: badgeLine,
         referralLink: link,
+        landingShareUrl: landing || undefined,
+        landingShortLabel: landing ? String(landingShortLabel || '').trim() || undefined : undefined,
         ctaLine: pdfCtaLine || undefined,
         fileBaseName: `${safeBrand}-ambassador-card`,
         officialStatusLine: pdfOfficialStatusLine || undefined,
-        airrentoSubtitle: pdfAirrentoSubtitle || undefined,
+        brandSubtitle: pdfBrandSubtitle || undefined,
+        pdfVariant: pdfElitePartner ? 'elite' : 'standard',
+        elitePartnerLine: pdfElitePartner ? String(pdfElitePartnerLine || '').trim() || undefined : undefined,
       })
     } finally {
       setPdfBusy(false)
@@ -152,7 +182,7 @@ export function ReferralMarketingKit({
       const safeCode = String(code || 'invite').replace(/[^\w-]+/g, '_').slice(0, 24)
       const a = document.createElement('a')
       a.href = dataUrl
-      a.download = `airrento-stories-ambassador-${safeCode}.png`
+      a.download = `gostaylo-stories-ambassador-${safeCode}.png`
       a.click()
     } catch (e) {
       console.warn('[ReferralMarketingKit] stories ambassador export:', e?.message || e)
@@ -174,7 +204,7 @@ export function ReferralMarketingKit({
       const safeCode = String(code || 'invite').replace(/[^\w-]+/g, '_').slice(0, 24)
       const a = document.createElement('a')
       a.href = dataUrl
-      a.download = `airrento-stories-team-${safeCode}.png`
+      a.download = `gostaylo-stories-team-${safeCode}.png`
       a.click()
     } catch (e) {
       console.warn('[ReferralMarketingKit] stories team export:', e?.message || e)
@@ -213,8 +243,8 @@ export function ReferralMarketingKit({
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-600 text-lg font-bold text-white shadow-sm">
             A
           </div>
-          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">Airrento</p>
-          <p className="mt-6 px-1 text-[17px] font-semibold leading-snug text-slate-800">{storiesCardHeadline}</p>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">{brandChip}</p>
+          <p className="mt-6 px-1 text-[17px] font-semibold leading-snug text-slate-800">{storiesHeadlineResolved}</p>
           {badgeChip ? (
             <p className="mt-2 px-2 text-[13px] font-semibold leading-snug text-amber-800">{badgeChip}</p>
           ) : null}
@@ -250,7 +280,7 @@ export function ReferralMarketingKit({
         aria-hidden
       >
         <div className="pointer-events-none flex flex-1 flex-col px-6 pt-12 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-700">Airrento</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-700">{brandChip}</p>
           <p className="mt-6 px-1 text-[18px] font-bold leading-snug text-slate-900">{storiesTeamHeadline}</p>
           <p className="mt-8 text-4xl font-black tabular-nums text-indigo-800">{storiesTeamAmountLine}</p>
           <p className="mt-6 px-2 text-[15px] font-medium leading-snug text-slate-700">{storiesTeamCtaLine}</p>
@@ -324,13 +354,32 @@ export function ReferralMarketingKit({
               <Button
                 type="button"
                 variant="outline"
-                className="w-full border-indigo-200 bg-indigo-50/80 hover:bg-indigo-50 text-indigo-950"
-                disabled={!qrLink || storiesTeamBusy || !storyQrDataUrl}
-                onClick={() => void handleDownloadStoriesTeam()}
+                className="w-full border-indigo-200 bg-indigo-50/80 hover:bg-indigo-50 text-indigo-950 disabled:opacity-70"
+                disabled={teamStoriesLocked || !qrLink || storiesTeamBusy || !storyQrDataUrl}
+                onClick={() => {
+                  if (teamStoriesLocked) return
+                  void handleDownloadStoriesTeam()
+                }}
               >
-                {storiesTeamBusy ? <Loader2 className="h-4 w-4 mr-2 shrink-0 animate-spin" /> : <Smartphone className="h-4 w-4 mr-2 shrink-0" />}
+                {storiesTeamBusy ? (
+                  <Loader2 className="h-4 w-4 mr-2 shrink-0 animate-spin" />
+                ) : teamStoriesLocked ? (
+                  <Lock className="h-4 w-4 mr-2 shrink-0" />
+                ) : (
+                  <Smartphone className="h-4 w-4 mr-2 shrink-0" />
+                )}
                 {storiesTeamDownloadLabel}
               </Button>
+              {teamStoriesLocked && String(storiesTeamLockedHint || '').trim() ? (
+                <p className="text-[11px] leading-snug text-muted-foreground flex items-start gap-1.5">
+                  <Lock className="h-3.5 w-3.5 shrink-0 mt-0.5 opacity-80" aria-hidden />
+                  <span>
+                    {String(storiesTeamLockedHint || '')
+                      .trim()
+                      .replace('{n}', String(partnersNeededForTeamStories))}
+                  </span>
+                </p>
+              ) : null}
               <div className="flex flex-wrap gap-2 justify-center sm:justify-start w-full pt-1">
                 <Button type="button" variant="outline" className="min-w-[132px] flex-1 justify-center sm:flex-initial" onClick={openWa}>
                   <Share2 className="h-4 w-4 mr-1 shrink-0" />
