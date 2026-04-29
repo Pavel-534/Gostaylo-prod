@@ -542,7 +542,7 @@ export function SystemSettingsMarketing() {
                 onChange={(e) => setWalletMinPayoutThb(clamp(e.target.value, 0, 1000000))}
               />
               <p className="text-xs text-slate-500">
-                Порог для UI «можно вывести» + `profiles.is_verified` + `user_wallets.verified_for_payout` (см. Stage 72.2).
+                Порог «Доступен вывод» + проверка профиля + админ-допуск на выплату (см. Stage 72.2).
               </p>
             </div>
             <div className="space-y-2">

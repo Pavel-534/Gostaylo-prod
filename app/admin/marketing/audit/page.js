@@ -49,6 +49,9 @@ function escapeCsvCell(value) {
 export default function MarketingTankAuditPage() {
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState([]);
+  const [promoPotThb, setPromoPotThb] = useState(0);
+  const [topupAmount, setTopupAmount] = useState('');
+  const [topupBusy, setTopupBusy] = useState(false);
   const [filters, setFilters] = useState({
     type: 'all',
     dateFrom: '',
@@ -72,6 +75,14 @@ export default function MarketingTankAuditPage() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json?.success) throw new Error(json?.error || 'LOAD_FAILED');
       setEvents(Array.isArray(json.data) ? json.data : []);
+      const monRes = await fetch('/api/v2/admin/referral/pnl-monitor', {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      const monJson = await monRes.json().catch(() => ({}));
+      if (monRes.ok && monJson?.success) {
+        setPromoPotThb(Number(monJson?.data?.marketingPromoPotThb || 0));
+      }
     } catch (error) {
       toast.error(error?.message || 'Не удалось загрузить события бака');
     } finally {
@@ -127,6 +138,32 @@ export default function MarketingTankAuditPage() {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+  }
+
+  async function handleQuickTopup() {
+    const amountThb = Number(topupAmount);
+    if (!Number.isFinite(amountThb) || amountThb <= 0) {
+      toast.error('Введите сумму > 0');
+      return;
+    }
+    setTopupBusy(true);
+    try {
+      const res = await fetch('/api/v2/admin/referral/pnl-monitor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'topup', amountThb, note: 'quick_topup_from_tank_audit' }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.success) throw new Error(json?.error || 'TOPUP_FAILED');
+      toast.success('Бак пополнен');
+      setTopupAmount('');
+      await loadEvents(filters);
+    } catch (error) {
+      toast.error(error?.message || 'Не удалось пополнить бак');
+    } finally {
+      setTopupBusy(false);
+    }
   }
 
   return (
@@ -203,6 +240,33 @@ export default function MarketingTankAuditPage() {
             <Button variant="outline" onClick={handleExportCsv}>
               <FileDown className="h-4 w-4 mr-2" />
               Export CSV
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Сводка бака</CardTitle>
+          <CardDescription>Текущий остаток и быстрое ручное пополнение.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-2xl font-semibold tabular-nums">{formatAmount(promoPotThb)} THB</p>
+          <div className="flex flex-wrap gap-2 items-end">
+            <div className="space-y-1">
+              <Label htmlFor="quick-topup">Quick top-up (THB)</Label>
+              <Input
+                id="quick-topup"
+                type="number"
+                min={1}
+                step={1}
+                value={topupAmount}
+                onChange={(e) => setTopupAmount(e.target.value)}
+                placeholder="5000"
+              />
+            </div>
+            <Button type="button" onClick={() => void handleQuickTopup()} disabled={topupBusy}>
+              {topupBusy ? 'Пополнение…' : 'Пополнить'}
             </Button>
           </div>
         </CardContent>

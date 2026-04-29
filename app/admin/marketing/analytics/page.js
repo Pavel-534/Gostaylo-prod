@@ -252,7 +252,7 @@ export default function MarketingAnalyticsPage() {
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-slate-500">No earned referral bonuses in this UTC month.</p>
+                <p className="text-sm text-slate-500">Пока нет начисленных бонусов за друзей в этом UTC-месяце.</p>
               )}
             </CardContent>
           </Card>

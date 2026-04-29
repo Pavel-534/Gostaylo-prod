@@ -82,4 +82,14 @@ export default async function globalTeardown() {
   console.log(
     `[Playwright teardown] surgical E2E cleanup: bookings=${bookingIds.length}, conversations=${uniqueConversationIds.length} (listings/profiles не трогаем)`,
   )
+
+  if (process.env.PLAYWRIGHT_E2E_DEEP_PROFILE_CLEANUP === '1') {
+    try {
+      const { deepCleanupE2eTestActors } = await import('../lib/e2e/deep-cleanup-e2e-actors.js')
+      const deep = await deepCleanupE2eTestActors(sb, { dryRun: false })
+      console.log('[Playwright teardown] deep profile/referral/wallet cleanup:', deep)
+    } catch (e) {
+      console.warn('[Playwright teardown] deep cleanup failed:', (e as Error)?.message || e)
+    }
+  }
 }

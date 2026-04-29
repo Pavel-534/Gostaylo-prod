@@ -37,6 +37,14 @@ function escapeCsvCell(value) {
   return str;
 }
 
+function txTypeLabel(value) {
+  const v = String(value || '').trim().toLowerCase();
+  if (v === 'referral_bonus') return 'Бонус за друга';
+  if (v === 'referral_cashback') return 'Ваш кешбэк';
+  if (v === 'welcome_bonus') return 'Приветственный бонус';
+  return String(value || '—');
+}
+
 export default function WalletAuditPage() {
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
@@ -239,7 +247,9 @@ export default function WalletAuditPage() {
                     <TableCell className="text-right tabular-nums font-medium">
                       {formatAmount(row.amount_thb)}
                     </TableCell>
-                    <TableCell className="text-xs max-w-[140px] break-words">{row.tx_type}</TableCell>
+                    <TableCell className="text-xs max-w-[180px] break-words">
+                      {txTypeLabel(row.tx_type)}
+                    </TableCell>
                     <TableCell className="text-xs font-mono max-w-[180px] break-all">
                       {row.reference_id || '—'}
                     </TableCell>

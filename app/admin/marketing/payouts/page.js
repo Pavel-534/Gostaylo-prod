@@ -100,7 +100,7 @@ export default function MarketingPayoutsPage() {
     const map = {
       BELOW_MIN_PAYOUT: `Balance below min threshold (${formatThb(minPayoutThb)} THB)`,
       PROFILE_NOT_VERIFIED: 'Profile is not verified',
-      WALLET_NOT_CLEARED_FOR_PAYOUT: 'Wallet not cleared by admin',
+      WALLET_NOT_CLEARED_FOR_PAYOUT: 'Доступен вывод: нет (нужен допуск админа)',
     };
     return map;
   }, [minPayoutThb]);
@@ -178,9 +178,7 @@ export default function MarketingPayoutsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Users</CardTitle>
-          <CardDescription>
-            Toggle <code>verified_for_payout</code> to control card/bank payout access.
-          </CardDescription>
+          <CardDescription>Переключатель «Доступен вывод» управляет доступом к выплате на карту/банк.</CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           {loading ? (
@@ -223,10 +221,10 @@ export default function MarketingPayoutsPage() {
                     <TableCell>
                       {row.verifiedForPayout ? (
                         <span className="inline-flex items-center gap-1 text-emerald-700 text-xs">
-                          <CheckCircle2 className="h-4 w-4" /> enabled
+                          <CheckCircle2 className="h-4 w-4" /> Доступен вывод
                         </span>
                       ) : (
-                        <span className="text-rose-700 text-xs">disabled</span>
+                        <span className="text-rose-700 text-xs">Доступен вывод: нет</span>
                       )}
                     </TableCell>
                     <TableCell className="text-xs">
@@ -252,8 +250,8 @@ export default function MarketingPayoutsPage() {
                         {togglingId === row.userId
                           ? '...'
                           : row.verifiedForPayout
-                            ? 'Disable payout'
-                            : 'Verify for payout'}
+                            ? 'Отключить вывод'
+                            : 'Открыть вывод'}
                       </Button>
                     </TableCell>
                   </TableRow>

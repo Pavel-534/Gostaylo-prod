@@ -154,12 +154,12 @@ export function ReferralActivityFeed() {
       } else if (ev.type === 'referral_bonus_earned') {
         const amount = Number(ev.meta?.amountThb ?? ev.meta?.amount_thb ?? 0)
         const rt = String(ev.meta?.referralType || '')
-        let kindKey = 'referralFeed_bonusKind_other'
-        if (rt === 'guest_booking') kindKey = 'referralFeed_bonusKind_guest_booking'
-        else if (rt === 'host_activation') kindKey = 'referralFeed_bonusKind_host_activation'
+        let kind = 'Ваш кешбэк'
+        if (rt === 'guest_booking') kind = 'Бонус за друга'
+        else if (rt === 'host_activation') kind = t('referralFeed_bonusKind_host_activation')
         text = t('referralFeed_bonusEarned')
           .replace('{amount}', amount.toLocaleString(locale, { maximumFractionDigits: 2 }))
-          .replace('{kind}', t(kindKey))
+          .replace('{kind}', kind)
       } else {
         text = name
       }

@@ -23,6 +23,14 @@ export default function MarketingSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [snapshot, setSnapshot] = useState(null);
+  const [promoPotThb, setPromoPotThb] = useState(null);
+  const [tankLog, setTankLog] = useState([]);
+  const [tankLogLoading, setTankLogLoading] = useState(false);
+  const [topupAmount, setTopupAmount] = useState('');
+  const [topupNote, setTopupNote] = useState('');
+  const [topupBusy, setTopupBusy] = useState(false);
+  const [retryBookingId, setRetryBookingId] = useState('');
+  const [retryBusy, setRetryBusy] = useState(false);
   const [form, setForm] = useState({
     referralReinvestmentPercent: 70,
     acquiringFeePercent: 0,
@@ -77,6 +85,21 @@ export default function MarketingSettingsPage() {
         setLastBudget(s.referralSafetyBudget || null);
         if (statsRes.ok && statsJson?.success) {
           setPayoutStats(statsJson?.data || null);
+        }
+        const [monRes, logRes] = await Promise.all([
+          fetch('/api/v2/admin/referral/pnl-monitor', { cache: 'no-store', credentials: 'include' }),
+          fetch('/api/v2/admin/referral/tank-events?type=manual&limit=25', {
+            cache: 'no-store',
+            credentials: 'include',
+          }),
+        ]);
+        const monJson = await monRes.json().catch(() => ({}));
+        const logJson = await logRes.json().catch(() => ({}));
+        if (monRes.ok && monJson?.data?.marketingPromoPotThb != null) {
+          setPromoPotThb(Number(monJson.data.marketingPromoPotThb));
+        }
+        if (logRes.ok && Array.isArray(logJson?.data)) {
+          setTankLog(logJson.data);
         }
       } catch (error) {
         if (!cancelled) toast.error(error?.message || 'Failed to load marketing settings');
@@ -136,6 +159,98 @@ export default function MarketingSettingsPage() {
     }
   }
 
+  async function refreshTankData() {
+    setTankLogLoading(true);
+    try {
+      const [monRes, logRes] = await Promise.all([
+        fetch('/api/v2/admin/referral/pnl-monitor', { cache: 'no-store', credentials: 'include' }),
+        fetch('/api/v2/admin/referral/tank-events?type=manual&limit=25', {
+          cache: 'no-store',
+          credentials: 'include',
+        }),
+      ]);
+      const monJson = await monRes.json().catch(() => ({}));
+      const logJson = await logRes.json().catch(() => ({}));
+      if (monRes.ok && monJson?.data?.marketingPromoPotThb != null) {
+        setPromoPotThb(Number(monJson.data.marketingPromoPotThb));
+      }
+      if (logRes.ok && Array.isArray(logJson?.data)) {
+        setTankLog(logJson.data);
+      }
+    } finally {
+      setTankLogLoading(false);
+    }
+  }
+
+  async function handleManualTopup(e) {
+    e?.preventDefault?.();
+    const amt = Number(topupAmount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      toast.error('Укажите сумму пополнения > 0');
+      return;
+    }
+    setTopupBusy(true);
+    try {
+      const res = await fetch('/api/v2/admin/referral/pnl-monitor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          action: 'topup',
+          amountThb: amt,
+          note: topupNote || undefined,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || 'TOPUP_FAILED');
+      }
+      toast.success('Promo tank пополнен');
+      setTopupAmount('');
+      setTopupNote('');
+      await refreshTankData();
+      const statsRes = await fetch('/api/v2/admin/referral/payout-stats', {
+        cache: 'no-store',
+        credentials: 'include',
+      });
+      const statsJson = await statsRes.json().catch(() => ({}));
+      if (statsRes.ok && statsJson?.success) setPayoutStats(statsJson?.data || null);
+    } catch (err) {
+      toast.error(err?.message || 'Top-up failed');
+    } finally {
+      setTopupBusy(false);
+    }
+  }
+
+  async function handleRetryHostActivation(e) {
+    e?.preventDefault?.();
+    const bid = String(retryBookingId || '').trim();
+    if (!bid) {
+      toast.error('Укажите booking ID');
+      return;
+    }
+    setRetryBusy(true);
+    try {
+      const res = await fetch('/api/v2/admin/referral/retry-host-activation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ bookingId: bid }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json?.success === false) {
+        throw new Error(json?.error || json?.data?.error || 'RETRY_FAILED');
+      }
+      toast.success('Retry выполнен (см. ответ в консоли / data)');
+      setRetryBookingId('');
+      await refreshTankData();
+    } catch (err) {
+      toast.error(err?.message || 'Retry failed');
+    } finally {
+      setRetryBusy(false);
+    }
+  }
+
   if (loading) {
     return <div className="text-sm text-slate-500">Loading marketing safety settings...</div>;
   }
@@ -154,6 +269,9 @@ export default function MarketingSettingsPage() {
           <p className="text-sm text-slate-600 mt-1">
             Stage 72.3: partner activation bonus, MLM depth split, margin safety gate.
           </p>
+          <p className="text-xs text-emerald-700 mt-1">
+            Ваши основные аккаунты (pavel_534 и др.) защищены от автоматической очистки.
+          </p>
         </div>
         <Button onClick={() => void handleSave()} disabled={saving}>
           <Save className="h-4 w-4 mr-2" />
@@ -163,8 +281,147 @@ export default function MarketingSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Referral engine</CardTitle>
-          <CardDescription>Core payout settings and supply-side activation policy.</CardDescription>
+          <CardTitle>Marketing promo tank (виртуальный бюджет)</CardTitle>
+          <CardDescription>
+            SSOT баланса: <code className="text-xs">system_settings.general.marketing_promo_pot</code> + журнал{' '}
+            <code className="text-xs">marketing_promo_tank_ledger</code>.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm text-slate-700">
+          <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-2">
+            <p className="font-medium text-slate-900">Откуда берутся деньги в баке</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>
+                <strong>Organic top-up</strong> — доля от чистой маржи завершённых <em>нереферальных</em> броней (
+                <code>organic_to_promo_pot_percent</code>), начисляется в{' '}
+                <code>ReferralPnlService.distribute</code>.
+              </li>
+              <li>
+                <strong>Manual top-up</strong> — ручное пополнение админом (кнопка ниже); в леджере{' '}
+                <code>manual_topup</code> с <code>metadata.admin_user_id</code> / <code>admin_email</code>.
+              </li>
+              <li>
+                <strong>Welcome return</strong> — истёкший welcome-бонус возвращается в бак (
+                <code>welcome_bonus_return</code>, cron).
+              </li>
+            </ul>
+            <p className="text-slate-600">
+              <strong>Списания:</strong> Turbo boost (<code>referral_boost_debit</code>), бонус активации партнёра (
+              <code>host_activation_bonus_debit</code>), ручной debit (<code>manual_debit</code>).
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span>
+              Текущий баланс (monitor):{' '}
+              <strong>{promoPotThb != null ? `${Number(promoPotThb).toLocaleString('ru-RU')} THB` : '—'}</strong>
+            </span>
+            <Button type="button" variant="outline" size="sm" onClick={() => void refreshTankData()}>
+              {tankLogLoading ? '…' : 'Обновить бак / лог'}
+            </Button>
+          </div>
+          <form className="grid gap-3 sm:grid-cols-3 border-t border-slate-100 pt-4" onSubmit={handleManualTopup}>
+            <div className="space-y-2">
+              <Label htmlFor="manualTopupAmount">Manual top-up (THB)</Label>
+              <Input
+                id="manualTopupAmount"
+                type="number"
+                min={1}
+                step={1}
+                value={topupAmount}
+                onChange={(e) => setTopupAmount(e.target.value)}
+                placeholder="5000"
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="manualTopupNote">Комментарий (в metadata)</Label>
+              <Input
+                id="manualTopupNote"
+                value={topupNote}
+                onChange={(e) => setTopupNote(e.target.value)}
+                placeholder="Напр. пополнение Q2"
+              />
+            </div>
+            <div className="sm:col-span-3">
+              <Button type="submit" disabled={topupBusy}>
+                {topupBusy ? 'Пополнение…' : 'Пополнить promo tank'}
+              </Button>
+            </div>
+          </form>
+          <div className="border-t border-slate-100 pt-4 space-y-2">
+            <p className="font-medium text-slate-900">Retry host activation (после пополнения бака)</p>
+            <p className="text-xs text-slate-600">
+              Если бронь в <code>metadata.host_activation_promo_tank.status = pending_tank_refill</code>, введите её ID
+              и нажмите Retry.
+            </p>
+            <div className="flex flex-wrap gap-2 items-end">
+              <div className="flex-1 min-w-[200px] space-y-2">
+                <Label htmlFor="retryBookingId">booking_id</Label>
+                <Input
+                  id="retryBookingId"
+                  value={retryBookingId}
+                  onChange={(e) => setRetryBookingId(e.target.value)}
+                  placeholder="b-…"
+                />
+              </div>
+              <Button type="button" variant="secondary" disabled={retryBusy} onClick={handleRetryHostActivation}>
+                {retryBusy ? '…' : 'Retry host activation'}
+              </Button>
+            </div>
+          </div>
+          <div>
+            <p className="font-medium text-slate-900 mb-2">Лог ручных движений бака (кто пополнил)</p>
+            <div className="rounded-md border border-slate-200 overflow-x-auto max-h-64 overflow-y-auto text-xs">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 text-left border-b border-slate-200">
+                    <th className="p-2">Время (UTC)</th>
+                    <th className="p-2">Тип</th>
+                    <th className="p-2">THB</th>
+                    <th className="p-2">Кто</th>
+                    <th className="p-2">Примечание</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(tankLog || []).length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-3 text-slate-500">
+                        Нет записей. Выполните top-up или откройте /admin/marketing/audit.
+                      </td>
+                    </tr>
+                  ) : (
+                    tankLog.map((row) => {
+                      const md = row?.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+                      const who =
+                        md.admin_email || md.admin_user_id
+                          ? [md.admin_email, md.admin_user_id].filter(Boolean).join(' · ')
+                          : '—';
+                      const note = md.note || md.trigger || '—';
+                      return (
+                        <tr key={row.id} className="border-b border-slate-100">
+                          <td className="p-2 whitespace-nowrap">{row.created_at || '—'}</td>
+                          <td className="p-2">{row.entry_type}</td>
+                          <td className="p-2 tabular-nums">{Number(row.amount_thb).toLocaleString('ru-RU')}</td>
+                          <td className="p-2 max-w-[200px] truncate" title={who}>
+                            {who}
+                          </td>
+                          <td className="p-2 max-w-[240px] truncate" title={note}>
+                            {String(note).slice(0, 120)}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Бонусы</CardTitle>
+          <CardDescription>Настройки выплат за рекомендации и активацию партнера.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -256,8 +513,8 @@ export default function MarketingSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Variable costs</CardTitle>
-          <CardDescription>Used by server-side safety gate for margin validation.</CardDescription>
+          <CardTitle>Экономика сети</CardTitle>
+          <CardDescription>Комиссии и резервы, влияющие на маржу и устойчивость программы.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -301,7 +558,7 @@ export default function MarketingSettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShieldAlert className={`h-4 w-4 ${mlmTotalPercent > 100 ? 'text-red-600' : 'text-emerald-600'}`} />
-            Safety gate preview
+            Лимиты безопасности
           </CardTitle>
           <CardDescription>
             Save is blocked if MLM split is above 100% or if payouts + costs exceed platform margin.

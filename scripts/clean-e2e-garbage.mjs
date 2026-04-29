@@ -19,6 +19,7 @@ loadEnvConfig(path.resolve(process.cwd()))
 const TEST_TAG = String(process.env.E2E_TEST_DATA_TAG || '[E2E_TEST_DATA]').trim() || '[E2E_TEST_DATA]'
 const LIKE = `%${TEST_TAG}%`
 const dryRun = process.argv.includes('--dry-run')
+const deepProfiles = process.argv.includes('--deep-profiles')
 const JOB_NAME = 'clean-e2e-garbage'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -88,6 +89,7 @@ async function logOpsJobRun({ status, stats, errorMessage, startedAt }) {
 async function main() {
   const started = Date.now()
   const jobStartedAt = new Date().toISOString()
+
   const bookingIds = await fetchTaggedBookingIds()
   const conversationIds = bookingIds.length ? await fetchConversationIdsForBookings(bookingIds) : []
 
@@ -101,6 +103,10 @@ async function main() {
 
   if (dryRun) {
     console.log('[clean-e2e-garbage] dry-run — БД не изменена, ops_job_runs не пишем')
+    if (deepProfiles) {
+      const { deepCleanupE2eTestActors } = await import('../lib/e2e/deep-cleanup-e2e-actors.js')
+      await deepCleanupE2eTestActors(sb, { dryRun: true })
+    }
     return
   }
 
@@ -138,10 +144,19 @@ async function main() {
   await safeDeleteIn('conversations', 'id', conversationIds)
   await safeDeleteIn('bookings', 'id', bookingIds)
 
+  let deepReport = null
+  if (deepProfiles) {
+    const { deepCleanupE2eTestActors } = await import('../lib/e2e/deep-cleanup-e2e-actors.js')
+    deepReport = await deepCleanupE2eTestActors(sb, { dryRun })
+    console.log('[clean-e2e-garbage] --deep-profiles', deepReport)
+  }
+
   const durationMs = Date.now() - started
   const summaryRu =
     `Уборка завершена. Удалено тестовых броней: ${bookingIds.length}. ` +
-    `Личные данные пользователя не затронуты (profiles и listings не удалялись).`
+    (deepProfiles
+      ? `Глубокая уборка тестовых профилей/рефералки/кошельков выполнена (см. stats.deep_profiles). `
+      : `Без --deep-profiles: личные профили не удалялись. `)
 
   await logOpsJobRun({
     status: 'success',
@@ -155,6 +170,7 @@ async function main() {
       deleted_invoices: deletedInvoices,
       duration_ms: durationMs,
       marker: TEST_TAG,
+      deep_profiles: deepReport,
     },
     errorMessage: null,
   })

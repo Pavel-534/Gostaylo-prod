@@ -17,7 +17,7 @@ async function requireAdmin() {
   if (String(data?.role || '').toUpperCase() !== 'ADMIN') {
     return { error: 'Admin access required', status: 403 };
   }
-  return { ok: true };
+  return { ok: true, session };
 }
 
 export async function GET() {
@@ -64,6 +64,8 @@ export async function POST(request) {
       metadata: {
         trigger: 'admin_manual_topup',
         note: String(body?.note || '').slice(0, 500),
+        admin_user_id: auth.session?.userId ? String(auth.session.userId) : null,
+        admin_email: auth.session?.email ? String(auth.session.email).slice(0, 320) : null,
       },
     });
     if (!result.applied) {
