@@ -150,7 +150,7 @@ export function UnifiedSearchBar({
   const orderedCategoryRows = useMemo(() => orderedCategoriesForSearchUi(categories), [categories])
 
   const triggerBase = 'flex items-center gap-2 text-left hover:bg-slate-50 transition-colors'
-  const triggerHero = 'px-4 py-3 border-r border-slate-200 min-w-0'
+  const triggerHero = 'px-6 py-4 border-r border-slate-200/80 min-w-0'
 
   const showTextSearch = typeof setTextQuery === 'function'
   const transportIntervalMode = useMemo(() => {
@@ -315,16 +315,16 @@ export function UnifiedSearchBar({
   return (
     <div
       className={cn(
-        'box-border w-full min-w-0 max-w-full overflow-x-hidden border border-slate-200 bg-white shadow-2xl md:overflow-visible',
-        textSearchRow ? 'rounded-2xl' : 'rounded-2xl md:rounded-full',
+        'box-border w-full min-w-0 max-w-full overflow-x-hidden border border-slate-200/90 bg-white md:overflow-visible',
+        'rounded-[26px] shadow-[0_32px_64px_rgba(0,102,102,0.16),0_10px_24px_rgba(15,23,42,0.12)]',
       )}
     >
-      {textSearchRow ? <div className="overflow-hidden rounded-t-2xl">{textSearchRow}</div> : null}
+      {textSearchRow ? <div className="overflow-hidden rounded-t-[26px]">{textSearchRow}</div> : null}
       <div
         className={cn(
           // overflow-visible: иначе WhereCombobox (absolute top-full) обрезается и подсказки «Куда» не видны
           'hidden md:flex items-center overflow-visible',
-          textSearchRow ? 'rounded-b-2xl' : 'rounded-full',
+          textSearchRow ? 'rounded-b-[26px]' : 'rounded-[26px]',
         )}
       >
         {/* What - Category */}
@@ -335,11 +335,11 @@ export function UnifiedSearchBar({
                 triggerBase,
                 triggerHero,
                 'flex-1 min-w-[120px]',
-                !textSearchRow && 'rounded-l-full',
+                !textSearchRow && 'rounded-l-[26px]',
               )}
             >
-              <Layers className="h-4 w-4 text-teal-600 flex-shrink-0" />
-              <span className="text-sm text-slate-700 truncate">{categoryLabel}</span>
+              <Layers className="h-4 w-4 text-[#006666] flex-shrink-0" />
+              <span className="text-[15px] font-medium text-slate-800 truncate">{categoryLabel}</span>
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-56 p-2" align="start">
@@ -400,7 +400,7 @@ export function UnifiedSearchBar({
         <Popover open={guestsPopoverOpen} onOpenChange={setGuestsPopoverOpen}>
           <PopoverTrigger asChild>
             <button className={`${triggerBase} ${triggerHero}`}>
-              <Users className="h-4 w-4 text-teal-600" />
+              <Users className="h-4 w-4 text-[#006666]" />
               <span className="text-sm text-slate-700">{guests}</span>
             </button>
           </PopoverTrigger>
@@ -426,8 +426,8 @@ export function UnifiedSearchBar({
         <Button
           onClick={handleHeroFindClick}
           className={cn(
-            'h-12 px-6 m-1 bg-teal-600 hover:bg-teal-700',
-            textSearchRow ? 'rounded-br-2xl rounded-tr-2xl' : 'rounded-full',
+            'h-[54px] px-8 m-1.5 bg-[#006666] hover:bg-[#004c4c] text-[15px] font-semibold shadow-[0_12px_24px_rgba(0,102,102,0.28)]',
+            textSearchRow ? 'rounded-br-[22px] rounded-tr-[22px]' : 'rounded-[20px]',
           )}
           data-testid="unified-search-button"
         >
@@ -436,17 +436,17 @@ export function UnifiedSearchBar({
       </div>
 
       {/* Mobile Hero — stack Where + Guests (2-col row overflows narrow Android viewports) */}
-      <div className="flex min-w-0 flex-col gap-2 p-3 md:hidden">
+      <div className="flex min-w-0 flex-col gap-2 p-4 md:hidden">
         <button
           type="button"
           onClick={() => setCategoryDrawerOpen(true)}
-          className="flex w-full items-center gap-2 rounded-xl border border-slate-200 px-3 py-3 text-left hover:bg-slate-50"
+          className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3.5 text-left hover:bg-slate-50"
           data-testid="mobile-category-trigger"
         >
-          <Layers className="h-4 w-4 shrink-0 text-teal-600" />
+          <Layers className="h-4 w-4 shrink-0 text-[#006666]" />
           <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{categoryLabel}</span>
         </button>
-        <div className="rounded-xl border border-slate-200 overflow-hidden">
+        <div className="rounded-2xl border border-slate-200 overflow-hidden">
           <SearchCalendar
             value={dateRange}
             onChange={setDateRange}
@@ -475,10 +475,10 @@ export function UnifiedSearchBar({
           <button
             type="button"
             onClick={() => setLocationDrawerOpen(true)}
-            className="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left hover:bg-slate-50"
+          className="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2.5 text-left hover:bg-slate-50"
             data-testid="mobile-where-trigger"
           >
-            <MapPin className="h-4 w-4 shrink-0 text-teal-600" />
+            <MapPin className="h-4 w-4 shrink-0 text-[#006666]" />
             <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{whereLabel}</span>
           </button>
           <button
@@ -487,9 +487,9 @@ export function UnifiedSearchBar({
               setTempGuests(guests || '2')
               setGuestsDrawerOpen(true)
             }}
-            className="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-left hover:bg-slate-50"
+            className="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2.5 text-left hover:bg-slate-50"
           >
-            <Users className="h-4 w-4 shrink-0 text-teal-600" />
+            <Users className="h-4 w-4 shrink-0 text-[#006666]" />
             <span className="min-w-0 flex-1 truncate text-sm text-slate-800">
               {guests} {getUIText('guests', language)}
             </span>
@@ -497,7 +497,7 @@ export function UnifiedSearchBar({
         </div>
         <Button
           onClick={handleHeroFindClick}
-          className="h-11 w-full rounded-xl bg-teal-600 hover:bg-teal-700"
+          className="h-12 w-full rounded-2xl bg-[#006666] hover:bg-[#004c4c] text-[15px] font-semibold shadow-[0_10px_22px_rgba(0,102,102,0.25)]"
           data-testid="unified-search-button"
         >
           <Search className="mr-2 h-4 w-4" />

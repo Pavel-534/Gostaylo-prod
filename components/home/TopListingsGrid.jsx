@@ -51,11 +51,11 @@ export function TopListingsGrid({
   onViewAll,
 }) {
   return (
-    <section id="listings-section" className="py-10 sm:py-14 bg-slate-50">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between mb-6 min-h-[3.5rem]">
+    <section id="listings-section" className="py-14 sm:py-[5rem] bg-[#f7f9fb]">
+      <div className="container mx-auto px-6">
+        <div className="flex items-center justify-between mb-8 min-h-[3.5rem]">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
+            <h2 className="text-[32px] leading-10 tracking-[-0.01em] font-semibold text-slate-900 mb-1">
               {dateRange.from && dateRange.to
                 ? language === 'ru'
                   ? 'Доступные объекты'
@@ -64,16 +64,16 @@ export function TopListingsGrid({
                   ? 'Топ объекты'
                   : 'Top Properties'}
             </h2>
-            <p className="text-slate-500 text-sm min-h-[1.25rem]">
+            <p className="text-slate-600 text-base min-h-[1.5rem]">
               {listings.length} {language === 'ru' ? 'объектов' : 'properties'}
               {dateRange.from && dateRange.to && (
-                <span className="text-teal-600 ml-2">
+                <span className="text-[#006666] ml-2">
                   • {formatDisplayDate(dateRange.from)} — {formatDisplayDate(dateRange.to)}
                 </span>
               )}
             </p>
           </div>
-          {listingsLoading && <Loader2 className="h-5 w-5 animate-spin text-teal-600 shrink-0" aria-hidden />}
+          {listingsLoading && <Loader2 className="h-5 w-5 animate-spin text-[#006666] shrink-0" aria-hidden />}
         </div>
 
         {aiGridPending && listingsLoading ? (
@@ -92,7 +92,7 @@ export function TopListingsGrid({
             <p className="text-slate-600">{language === 'ru' ? 'Ничего не найдено' : 'No results'}</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {listings.map((listing, idx) => {
               const listingParams = new URLSearchParams()
               if (dateRange.from) listingParams.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
@@ -117,8 +117,8 @@ export function TopListingsGrid({
 
               return (
                 <Link key={listing.id} href={listingUrl}>
-                  <Card className="group h-full flex flex-col overflow-hidden hover:shadow-lg transition-all border hover:border-teal-400 bg-white">
-                    <div className="relative h-40 sm:h-44 overflow-hidden flex-shrink-0">
+                  <Card className="group h-full flex flex-col overflow-hidden rounded-2xl transition-all border border-slate-200 hover:border-[#006666] bg-white shadow-[0_8px_18px_rgba(15,23,42,0.05),0_2px_6px_rgba(0,102,102,0.06)] hover:shadow-[0_30px_64px_rgba(0,102,102,0.16),0_12px_28px_rgba(15,23,42,0.12)]">
+                    <div className="relative h-44 sm:h-48 overflow-hidden flex-shrink-0">
                       <Image
                         src={mediaFallback[`lst-${listing.id}`] ? '/placeholder.svg' : thumbSrc}
                         alt={listing.title}
@@ -130,7 +130,7 @@ export function TopListingsGrid({
                         )}
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                         priority={idx < 4}
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="object-cover group-hover:scale-110 transition-transform duration-500"
                         onError={() => markMediaFailed(`lst-${listing.id}`)}
                       />
                       {listing.isFeatured && (
@@ -139,14 +139,14 @@ export function TopListingsGrid({
                         </Badge>
                       )}
                       {listing.rating > 0 && (
-                        <Badge className="absolute top-2 right-2 bg-teal-600">⭐ {listing.rating}</Badge>
+                        <Badge className="absolute top-2 right-2 bg-[#006666]">⭐ {listing.rating}</Badge>
                       )}
                     </div>
-                    <div className="flex flex-col flex-grow p-3">
-                      <h3 className="font-semibold text-slate-900 line-clamp-1 text-sm mb-1">
+                    <div className="flex flex-col flex-grow p-5">
+                      <h3 className="font-semibold text-slate-900 line-clamp-1 text-[18px] leading-6 tracking-[-0.01em] mb-1.5">
                         {getListingText(listing, 'title', language)}
                       </h3>
-                      <div className="flex items-center gap-1 text-xs text-slate-500 mb-2">
+                      <div className="flex items-center gap-1 text-sm text-slate-500 mb-3">
                         <MapPin className="h-3 w-3" />
                         <span>{listing.district}</span>
                       </div>
@@ -171,7 +171,7 @@ export function TopListingsGrid({
                           cap > 0
                         if (!showSpecs) return null
                         return (
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mb-2">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mb-3">
                             {propertyInterior && listing.bedrooms > 0 && (
                               <span className="flex items-center gap-0.5">
                                 <BedDouble className="h-3 w-3 shrink-0" aria-hidden />
@@ -231,7 +231,7 @@ export function TopListingsGrid({
                         )
                       })()}
                       <div className="mt-auto flex items-baseline justify-between">
-                        <span className="text-lg font-bold text-teal-600">
+                        <span className="text-[24px] leading-8 font-bold tracking-[-0.01em] text-[#006666]">
                           {formatPrice(
                             listing.pricing?.totalPrice || listing.basePriceThb,
                             currency,
@@ -239,7 +239,7 @@ export function TopListingsGrid({
                             language,
                           )}
                         </span>
-                        <span className="text-xs text-slate-400">
+                        <span className="text-sm text-slate-500">
                           /
                           {listing.pricing
                             ? `${nights}${language === 'ru' ? 'н.' : 'n'}`
@@ -264,7 +264,7 @@ export function TopListingsGrid({
               type="button"
               variant="outline"
               onClick={onViewAll}
-              className="border-teal-600 text-teal-600 hover:bg-teal-50"
+              className="rounded-2xl border-[#006666] text-[#006666] hover:bg-[#006666]/10"
             >
               {language === 'ru' ? 'Смотреть все' : 'View all'} →
             </Button>

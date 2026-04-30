@@ -31,6 +31,7 @@ export function ReferralYourStatusCard({
   displayName = '',
   /** Подсказка SSOT (бат / конвертация) — Stage 76.1 */
   ledgerFootnote = '',
+  turboMultiplier = 1,
 }) {
   const amb = ambassador
   const shareCardRef = useRef(null)
@@ -38,6 +39,8 @@ export function ReferralYourStatusCard({
 
   const earned = Array.isArray(badgesEarned) ? badgesEarned.map((id) => String(id)) : []
   const orderedMedals = BADGE_PROGRESSION_ORDER.filter((id) => earned.includes(id))
+  const turboX = Number(turboMultiplier || 1)
+  const turboActive = Number.isFinite(turboX) && turboX > 1
 
   const brandChip = useMemo(() => {
     const b = String(brandName || '').trim()
@@ -152,6 +155,25 @@ export function ReferralYourStatusCard({
                 {t('referralStage726_ambassadorTier')}:{' '}
                 <strong>{amb.currentTier?.name || t('stage73_tierFallbackBeginner')}</strong>
               </span>
+              {turboActive ? (
+                <TooltipProvider delayDuration={150}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="rounded-full border border-teal-300 bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-800 shadow-sm transition hover:bg-teal-100 animate-[pulse_2.8s_ease-in-out_infinite]"
+                        aria-label={`Turbo x${turboX.toFixed(2).replace(/\.00$/, '')}`}
+                      >
+                        Ваш ускоритель бонусов: Turbo x{turboX.toFixed(2).replace(/\.00$/, '')}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Ваши бонусы увеличиваются в {turboX.toFixed(2).replace(/\.00$/, '')} раз благодаря активной
+                      акции!
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : null}
               <span aria-hidden>·</span>
               <span>
                 {t('referralStage726_ambassadorPartners')}:{' '}
@@ -162,7 +184,7 @@ export function ReferralYourStatusCard({
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      className="text-xs underline underline-offset-2 text-indigo-700"
+                      className="text-xs underline underline-offset-2 text-teal-700"
                       aria-label={t('referralStage726_payoutHow')}
                     >
                       {t('referralStage726_payoutHow')}

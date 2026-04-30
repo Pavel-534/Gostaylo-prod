@@ -91,8 +91,8 @@ export function MobileBottomNav() {
   };
 
   return (
-    <nav className='md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 safe-area-pb'>
-      <div className='flex items-center justify-around h-16 px-2'>
+    <nav className='md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 rounded-t-2xl shadow-[0_-4px_12px_rgba(0,102,102,0.04)] safe-area-pb'>
+      <div className='flex items-center justify-around h-20 px-3'>
         {NAV_ITEMS.map((item) => {
           const active = isActive(item);
           const Icon = item.icon;
@@ -106,9 +106,9 @@ export function MobileBottomNav() {
               key={item.href}
               href={href}
               onClick={(e) => handleNavClick(item, e)}
-              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
+              className={`flex flex-col items-center justify-center flex-1 h-full rounded-xl transition-all duration-200 ${
                 active 
-                  ? 'text-teal-600' 
+                  ? 'text-[#006666] bg-[#006666]/10' 
                   : 'text-slate-400 hover:text-slate-600'
               }`}
             >

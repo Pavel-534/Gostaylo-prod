@@ -28,6 +28,7 @@ import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib
 import { getSiteDisplayName } from '@/lib/site-url'
 import { useChatContext } from '@/lib/context/ChatContext'
 import { HeaderWalletCompact } from '@/components/wallet/HeaderWalletCompact'
+import { AirentoLogo } from '@/components/brand/airento-logo'
 
 // Navigation items
 const NAV_ITEMS = [
@@ -221,18 +222,12 @@ export default function RenterLayout({ children }) {
         {/* На мобиле fixed надёжнее sticky (Yandex/Chrome); отступ под шапку только &lt;md */}
         <div className="h-16 shrink-0 md:hidden" aria-hidden="true" />
         {/* Top Navigation Bar */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b shadow-sm md:static md:z-auto">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b shadow-sm shadow-teal-900/5 md:static md:z-auto">
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between h-16">
               {/* Logo */}
               <Link href="/" className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">GS</span>
-                </div>
-                <div className="hidden sm:block">
-                  <span className="font-bold text-slate-900 text-lg">{getSiteDisplayName()}</span>
-                  <span className="block text-xs text-slate-500">My Trips</span>
-                </div>
+                <AirentoLogo compact label={getSiteDisplayName()} />
               </Link>
 
               {/* Desktop Navigation */}

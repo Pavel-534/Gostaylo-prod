@@ -288,7 +288,7 @@ export function ReferralMarketingKit({
       {/* Off-screen 9:16 — амбассадор */}
       <div
         ref={storiesCardRef}
-        className="fixed left-[-9999px] top-0 z-0 flex h-[640px] w-[360px] flex-col overflow-hidden rounded-none bg-gradient-to-b from-sky-50 via-white to-teal-50 text-slate-900 shadow-none"
+        className="fixed left-[-9999px] top-0 z-0 flex h-[640px] w-[360px] flex-col overflow-hidden rounded-none bg-gradient-to-b from-teal-50 via-white to-teal-100/50 text-slate-900 shadow-none"
         aria-hidden
       >
         <div className="pointer-events-none flex flex-1 flex-col px-6 pt-10 text-center">
@@ -327,13 +327,13 @@ export function ReferralMarketingKit({
       {/* Off-screen 9:16 — доход команды */}
       <div
         ref={storiesTeamCardRef}
-        className="fixed left-[-9999px] top-0 z-0 flex h-[640px] w-[360px] flex-col overflow-hidden rounded-none bg-gradient-to-b from-indigo-50 via-white to-sky-50 text-slate-900 shadow-none"
+        className="fixed left-[-9999px] top-0 z-0 flex h-[640px] w-[360px] flex-col overflow-hidden rounded-none bg-gradient-to-b from-teal-50 via-white to-teal-100/50 text-slate-900 shadow-none"
         aria-hidden
       >
         <div className="pointer-events-none flex flex-1 flex-col px-6 pt-12 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-700">{brandChip}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">{brandChip}</p>
           <p className="mt-6 px-1 text-[18px] font-bold leading-snug text-slate-900">{storiesTeamHeadline}</p>
-          <p className="mt-8 text-4xl font-black tabular-nums text-indigo-800">{storiesTeamAmountLine}</p>
+          <p className="mt-8 text-4xl font-black tabular-nums text-teal-800">{storiesTeamAmountLine}</p>
           <p className="mt-6 px-2 text-[15px] font-medium leading-snug text-slate-700">{storiesTeamCtaLine}</p>
           <div className="mt-auto flex flex-1 flex-col items-center justify-center pb-10 pt-6">
             {storyQrDataUrl ? (
@@ -352,7 +352,7 @@ export function ReferralMarketingKit({
         </div>
       </div>
 
-      <Card className="border border-teal-200 bg-white overflow-hidden">
+      <Card className="border border-teal-200 bg-white overflow-hidden transition-all duration-300 hover:shadow-md">
         <CardHeader className="pb-2 text-center sm:text-left px-4 pt-5">
           <CardTitle className="text-base flex items-center justify-center sm:justify-start gap-2">
             <Share2 className="h-4 w-4 text-teal-600 shrink-0" />
@@ -404,7 +404,7 @@ export function ReferralMarketingKit({
               <Button
                 type="button"
                 variant="outline"
-                className="w-full border-indigo-200 bg-indigo-50/80 hover:bg-indigo-50 text-indigo-950 disabled:opacity-70"
+                className="w-full border-teal-200 bg-teal-50/80 hover:bg-teal-50 text-teal-950 disabled:opacity-70"
                 disabled={teamStoriesLocked || !qrLink || storiesTeamBusy || !storyQrDataUrl}
                 onClick={() => {
                   if (teamStoriesLocked) return
@@ -431,15 +431,15 @@ export function ReferralMarketingKit({
                 </p>
               ) : null}
               <div className="flex flex-wrap gap-2 justify-center sm:justify-start w-full pt-1">
-                <Button type="button" variant="outline" className="min-w-[132px] flex-1 justify-center sm:flex-initial" onClick={openWa}>
+                <Button type="button" variant="outline" className="min-w-[132px] flex-1 justify-center sm:flex-initial transition-all duration-200 hover:scale-[1.03] hover:shadow-md" onClick={openWa}>
                   <Share2 className="h-4 w-4 mr-1 shrink-0" />
                   {shareWaLabel}
                 </Button>
-                <Button type="button" variant="outline" className="min-w-[132px] flex-1 justify-center sm:flex-initial" onClick={openTg}>
+                <Button type="button" variant="outline" className="min-w-[132px] flex-1 justify-center sm:flex-initial transition-all duration-200 hover:scale-[1.03] hover:shadow-md" onClick={openTg}>
                   <MessageCircle className="h-4 w-4 mr-1 shrink-0" />
                   {shareTgLabel}
                 </Button>
-                <Button type="button" variant="outline" className="min-w-[132px] flex-1 justify-center sm:flex-initial" onClick={openFb}>
+                <Button type="button" variant="outline" className="min-w-[132px] flex-1 justify-center sm:flex-initial transition-all duration-200 hover:scale-[1.03] hover:shadow-md" onClick={openFb}>
                   <Facebook className="h-4 w-4 mr-1 shrink-0" />
                   {shareFbLabel}
                 </Button>

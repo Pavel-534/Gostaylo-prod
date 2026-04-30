@@ -1,0 +1,230 @@
+'use client'
+
+import { useEffect, useMemo, useState } from 'react'
+import { Search, MapPin, Users, Layers, Sparkles } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { SearchCalendar } from '@/components/search-calendar'
+import { WhereCombobox } from '@/components/search/WhereCombobox'
+import { getUIText, getCategoryName } from '@/lib/translations'
+import { buildWhereOptions } from '@/lib/locations/where-options'
+import { getStaticLocationsSeed } from '@/lib/locations/locations-seed'
+import { Input } from '@/components/ui/input'
+import { HERO_BACKGROUND_IMAGE } from './home-constants'
+
+const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12]
+
+export function HomeHeroLuxe({
+  language,
+  categoryTabs = [],
+  category,
+  setCategory,
+  where,
+  setWhere,
+  dateRange,
+  setDateRange,
+  guests,
+  setGuests,
+  onSearch,
+  textQuery = '',
+  setTextQuery,
+  smartSearchOn = true,
+  setSmartSearchOn,
+  semanticSearchFeatureEnabled = true,
+  onSearchSubmit,
+  liveCount = null,
+  countLoading = false,
+}) {
+  const [locations, setLocations] = useState(getStaticLocationsSeed)
+  const [locationsLoading, setLocationsLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/v2/search/locations')
+      .then((r) => r.json())
+      .then((locRes) => {
+        if (locRes.success && locRes.data) setLocations(locRes.data)
+      })
+      .catch(() => {})
+      .finally(() => setLocationsLoading(false))
+  }, [])
+
+  const whereOptionsFull = useMemo(() => buildWhereOptions(locations, language), [locations, language])
+
+  const handleSearchClick = () => {
+    onSearchSubmit?.()
+    onSearch?.()
+  }
+
+  return (
+    <section
+      className="relative isolate min-h-[870px] overflow-hidden pt-20"
+      style={{ backgroundImage: `url(${HERO_BACKGROUND_IMAGE})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+    >
+      <div className="absolute inset-0 bg-black/30" />
+      <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-b from-transparent to-[#f7f9fb]" />
+
+      <div className="relative z-10 mx-auto flex min-h-[760px] w-full max-w-[1280px] flex-col items-center justify-center px-6 text-center">
+        <h1 className="mb-8 max-w-4xl text-[40px] font-bold leading-[48px] tracking-[-0.02em] text-white sm:text-[56px] sm:leading-[62px]">
+          {getUIText('heroTitle', language)}{' '}
+          <span className="text-[#a2f0ef]">{getUIText('heroTitleHighlight', language)}</span>
+        </h1>
+
+        <div className="w-full max-w-5xl rounded-[28px] border border-white/70 bg-white p-2 shadow-[0_44px_100px_rgba(0,24,24,0.35),0_18px_42px_rgba(0,102,102,0.18)]">
+          <div className="mb-2 flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/90 px-3 py-2">
+            <button
+              type="button"
+              onClick={handleSearchClick}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700"
+              aria-label={getUIText('findButton', language)}
+            >
+              <Search className="h-4 w-4" />
+            </button>
+            <Input
+              type="search"
+              value={textQuery}
+              onChange={(e) => setTextQuery?.(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleSearchClick()
+                }
+              }}
+              placeholder={getUIText('catalogTextSearchPlaceholder', language)}
+              className="h-9 min-w-0 flex-1 border-0 bg-transparent text-sm shadow-none focus-visible:ring-0"
+              aria-label={getUIText('catalogTextSearchPlaceholder', language)}
+            />
+            <button
+              type="button"
+              disabled={!semanticSearchFeatureEnabled}
+              aria-pressed={smartSearchOn && semanticSearchFeatureEnabled}
+              onClick={() => {
+                if (!semanticSearchFeatureEnabled || !setSmartSearchOn) return
+                const next = !smartSearchOn
+                setSmartSearchOn(next)
+                try {
+                  localStorage.setItem('gostaylo_smart_search', next ? '1' : '0')
+                } catch {
+                  /* ignore */
+                }
+              }}
+              className={`flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 transition-colors ${
+                !semanticSearchFeatureEnabled
+                  ? 'cursor-not-allowed opacity-50'
+                  : smartSearchOn
+                    ? 'border-violet-300 bg-violet-50 text-violet-700'
+                    : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              <Sparkles className="h-4 w-4 shrink-0" />
+              <span className="text-xs font-semibold tracking-tight">{language === 'ru' ? 'ИИ' : 'Smart'}</span>
+            </button>
+          </div>
+
+          <div className="mb-4 flex flex-wrap items-center gap-1 border-b border-slate-100 px-3 pt-1">
+            {categoryTabs.map((tab) => {
+              const active = category === tab.slug
+              return (
+                <button
+                  key={tab.slug}
+                  type="button"
+                  onClick={() => setCategory?.(tab.slug)}
+                  className={`px-6 py-3 text-sm font-semibold tracking-tight transition-colors ${
+                    active
+                      ? 'border-b-2 border-[#006666] text-[#006666]'
+                      : 'text-slate-500 hover:text-[#006666]'
+                  }`}
+                >
+                  {getCategoryName(tab.slug, language, tab.name)}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 px-3 pb-3 md:grid-cols-[1.3fr_1.15fr_0.85fr_0.7fr]">
+            <div className="min-w-0 border-r border-slate-100 px-3 text-left">
+              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                {language === 'ru' ? 'Категория' : 'Category'}
+              </label>
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-[#006666]" />
+                <span className="truncate text-[15px] font-medium text-slate-800">
+                  {category && category !== 'all'
+                    ? getCategoryName(category, language)
+                    : getUIText('mobileSearchWhatTitle', language)}
+                </span>
+              </div>
+            </div>
+
+            <div className="min-w-0 border-r border-slate-100 px-3 text-left">
+              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                {language === 'ru' ? 'Локация' : 'Location'}
+              </label>
+              <WhereCombobox
+                options={whereOptionsFull}
+                value={where || 'all'}
+                onChange={setWhere}
+                placeholder={getUIText('wherePlaceholder', language)}
+                loading={locationsLoading}
+                variant="hero"
+                className="min-h-[40px] min-w-0 [&_button]:h-auto [&_button]:min-h-[40px] [&_button]:rounded-none [&_button]:border-0 [&_button]:px-0 [&_button]:shadow-none [&_button]:focus:ring-0"
+              />
+            </div>
+
+            <div className="min-w-0 border-r border-slate-100 px-3 text-left">
+              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+                {language === 'ru' ? 'Даты' : 'Dates'}
+              </label>
+              <SearchCalendar
+                value={dateRange}
+                onChange={setDateRange}
+                locale={language}
+                placeholder={getUIText('dates', language)}
+                liveCount={liveCount}
+                countLoading={countLoading}
+                className="min-h-[40px] justify-start border-0 px-0 shadow-none"
+              />
+            </div>
+
+            <div className="flex items-end px-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="mr-2 flex h-12 min-w-[90px] items-center justify-start gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-700">
+                    <Users className="h-4 w-4 text-[#006666]" />
+                    {guests}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-2" align="start">
+                  <div className="grid grid-cols-4 gap-1">
+                    {GUEST_OPTIONS.map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setGuests?.(String(n))}
+                        className={`rounded-md p-2 text-sm ${guests === String(n) ? 'bg-[#006666] text-white' : 'hover:bg-slate-100'}`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Button
+                onClick={handleSearchClick}
+                className="h-12 flex-1 rounded-2xl bg-[#006666] text-[15px] font-semibold text-white shadow-[0_12px_24px_rgba(0,102,102,0.28)] hover:bg-[#004c4c]"
+              >
+                <Search className="mr-2 h-4 w-4" />
+                {getUIText('findButton', language)}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 flex items-center gap-2 text-white/90">
+          <MapPin className="h-4 w-4 text-[#a2f0ef]" />
+          <span className="text-base">{getUIText('heroSubtitle', language)}</span>
+        </div>
+      </div>
+    </section>
+  )
+}
+

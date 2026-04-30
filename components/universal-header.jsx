@@ -35,10 +35,12 @@ import { getUIText, supportedLanguages } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { Flag } from '@/components/flags'
 import { HeaderWalletCompact } from '@/components/wallet/HeaderWalletCompact'
+import { AirentoLogo } from '@/components/brand/airento-logo'
 
 export function UniversalHeader() {
   const [mounted, setMounted] = useState(false);
   const [currency, setCurrency] = useState('THB');
+  const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   
@@ -50,6 +52,13 @@ export function UniversalHeader() {
     setMounted(true);
     const savedCurrency = localStorage.getItem('gostaylo_currency');
     if (savedCurrency) setCurrency(savedCurrency);
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   function handleLanguageChange(langCode) {
@@ -89,16 +98,43 @@ export function UniversalHeader() {
   }
 
   return (
-    <header className='fixed top-0 left-0 right-0 z-[100] bg-white border-b border-slate-200'>
+    <header
+      className='fixed top-0 left-0 right-0 z-[100] border-b border-slate-200/80 backdrop-blur-md shadow-sm shadow-[#006666]/10 transition-all duration-300'
+      style={{
+        background:
+          'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(247,249,251,0.92) 100%)',
+      }}
+    >
       <div className='container mx-auto px-3 sm:px-4'>
-        <div className='flex items-center justify-between h-14'>
+        <div className='flex items-center justify-between h-16 gap-4'>
           {/* Left - Logo */}
-          <Link href='/' className='flex items-center gap-2 hover:opacity-80 transition-opacity flex-shrink-0'>
-            <div className='w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-sm'>
-              <span className='text-white font-bold text-sm sm:text-base'>G</span>
+          <Link
+            href='/'
+            className='group flex-shrink-0 rounded-2xl border border-white/70 bg-white/75 px-2.5 py-1.5 shadow-[0_10px_26px_rgba(0,102,102,0.1)] backdrop-blur-md transition-all hover:border-[#006666]/35 hover:shadow-[0_14px_30px_rgba(0,102,102,0.16)]'
+          >
+            <div className='flex items-center gap-3'>
+              <AirentoLogo compact label={getSiteDisplayName()} scrolled={scrolled} />
+              <span className='hidden sm:block h-8 w-px bg-slate-200' />
+              <span className='hidden sm:block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500'>
+                super-app
+              </span>
             </div>
-            <span className='font-bold text-lg sm:text-xl text-slate-800 tracking-tight'>{getSiteDisplayName()}</span>
           </Link>
+
+          <nav className='hidden lg:flex items-center gap-6 flex-1'>
+            <Link href='/listings' className='text-sm font-medium text-[#006666] border-b-2 border-[#006666] pb-1'>
+              Listings
+            </Link>
+            <Link href='/' className='text-sm font-medium text-slate-600 hover:text-[#006666] transition-colors'>
+              Destinations
+            </Link>
+            <Link href='/profile/referral' className='text-sm font-medium text-slate-600 hover:text-[#006666] transition-colors'>
+              Membership
+            </Link>
+            <Link href='/messages' className='text-sm font-medium text-slate-600 hover:text-[#006666] transition-colors'>
+              Help
+            </Link>
+          </nav>
 
           {/* Right - Controls */}
           <div className='flex items-center gap-1 sm:gap-2'>

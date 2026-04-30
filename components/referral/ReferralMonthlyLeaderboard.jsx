@@ -55,10 +55,10 @@ export function ReferralMonthlyLeaderboard({ t, formatThb, formatAmountLine, loc
       : (amountThb) => `฿${formatThb(amountThb, locale)}`
 
   return (
-    <Card className="border border-amber-200/80 bg-gradient-to-br from-amber-50/90 via-white to-teal-50/40">
+    <Card className="rounded-2xl border border-slate-200 bg-white shadow-[0_4px_12px_rgba(0,102,102,0.04)]">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
-          <Trophy className="h-4 w-4 text-amber-600 shrink-0" />
+          <Trophy className="h-4 w-4 text-teal-700 shrink-0" />
           {t('stage74_leaderboardTitle')}
         </CardTitle>
         <CardDescription className="text-xs space-y-1">
@@ -84,7 +84,7 @@ export function ReferralMonthlyLeaderboard({ t, formatThb, formatAmountLine, loc
             {rows.map((row) => (
               <li
                 key={row.referrerId}
-                className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg border border-slate-200/80 bg-white/90 px-3 py-2 text-sm"
+                className="flex flex-wrap items-baseline justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2 text-sm"
               >
                 <span className="text-slate-600 tabular-nums shrink-0">
                   {t('stage74_leaderboardRank').replace('{n}', String(row.rank))}

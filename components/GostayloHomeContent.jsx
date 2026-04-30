@@ -19,9 +19,9 @@ import {
 import { getSiteDisplayName } from '@/lib/site-url'
 import { LISTINGS_SEARCH_API_PATH } from '@/lib/search-endpoints'
 import { isTransportIntervalWizardProfile } from '@/lib/config/category-wizard-profile-db'
-import { effectiveCategoryWizardProfileRaw, hasCategoryParent } from '@/lib/config/category-hierarchy'
+import { hasCategoryParent } from '@/lib/config/category-hierarchy'
 import { useHomeFilters } from '@/components/home/useHomeFilters'
-import { HomeHero } from '@/components/home/HomeHero'
+import { HomeHeroLuxe } from '@/components/home/HomeHeroLuxe'
 import { CategoryBar } from '@/components/home/CategoryBar'
 import { TopListingsGrid } from '@/components/home/TopListingsGrid'
 
@@ -43,9 +43,7 @@ export function GostayloHomeContent() {
     dateRange,
     setDateRange,
     checkInTime,
-    setCheckInTime,
     checkOutTime,
-    setCheckOutTime,
     guests,
     setGuests,
     searchQuery,
@@ -200,8 +198,24 @@ export function GostayloHomeContent() {
       transportSearchMode,
       checkInTime,
       checkOutTime,
+      pendingHomeSemanticRef,
     ],
   )
+  const handleHomeSearchSubmit = useCallback(() => {
+    if (smartSearchOn && semanticSiteEnabled && searchQuery.trim().length >= 2) {
+      setAiGridPending(true)
+    }
+    pendingHomeSemanticRef.current = true
+    fetchListingsData(false)
+  }, [
+    smartSearchOn,
+    semanticSiteEnabled,
+    searchQuery,
+    fetchListingsData,
+    setAiGridPending,
+    pendingHomeSemanticRef,
+  ])
+
 
   useEffect(() => {
     fetchListingsData()
@@ -272,17 +286,9 @@ export function GostayloHomeContent() {
     checkOutTime,
   ])
 
-  const handleHomeSearchSubmit = useCallback(() => {
-    if (smartSearchOn && semanticSiteEnabled && searchQuery.trim().length >= 2) {
-      setAiGridPending(true)
-    }
-    pendingHomeSemanticRef.current = true
-    fetchListingsData(false)
-  }, [smartSearchOn, semanticSiteEnabled, searchQuery, fetchListingsData])
-
   useEffect(() => {
     if (!listingsLoading) setAiGridPending(false)
-  }, [listingsLoading])
+  }, [listingsLoading, setAiGridPending])
 
   const handleDateChange = useCallback(
     (newRange) => {
@@ -343,20 +349,10 @@ export function GostayloHomeContent() {
 
   const onCategorySelect = useCallback((cat) => goToListingsForCategory(cat.slug), [goToListingsForCategory])
 
-  const handleQuickCategorySearch = useCallback(
-    (slug) => goToListingsForCategory(slug),
-    [goToListingsForCategory],
-  )
-
   const nights = useMemo(
     () => (dateRange.from && dateRange.to ? differenceInDays(dateRange.to, dateRange.from) : 0),
     [dateRange],
   )
-
-  const selectedCategoryWizardProfile = useMemo(() => {
-    if (!selectedCategory || selectedCategory === 'all') return null
-    return effectiveCategoryWizardProfileRaw(selectedCategory, categories)
-  }, [categories, selectedCategory])
 
   const categoryBarRoots = useMemo(() => {
     return [...(categories || [])]
@@ -364,64 +360,38 @@ export function GostayloHomeContent() {
       .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0))
   }, [categories])
 
-  const searchBarRest = useMemo(
-    () => ({
-      category: selectedCategory,
-      categoryWizardProfile: selectedCategoryWizardProfile,
-      setCategory: setSelectedCategory,
-      where,
-      setWhere,
-      dateRange,
-      setDateRange: handleDateChange,
-      checkInTime,
-      setCheckInTime,
-      checkOutTime,
-      setCheckOutTime,
-      guests,
-      setGuests,
-      onSearch: handleSearch,
-      onQuickCategorySearch: handleQuickCategorySearch,
-      textQuery: searchQuery,
-      setTextQuery: setSearchQuery,
-      smartSearchOn,
-      setSmartSearchOn,
-      semanticSearchFeatureEnabled: semanticSiteEnabled,
-      onSearchSubmit: handleHomeSearchSubmit,
-      liveCount,
-      countLoading,
-      nights,
-    }),
-    [
-      selectedCategory,
-      selectedCategoryWizardProfile,
-      setSelectedCategory,
-      where,
-      dateRange,
-      handleDateChange,
-      checkInTime,
-      checkOutTime,
-      guests,
-      handleSearch,
-      handleQuickCategorySearch,
-      searchQuery,
-      setSearchQuery,
-      smartSearchOn,
-      setSmartSearchOn,
-      semanticSiteEnabled,
-      handleHomeSearchSubmit,
-      liveCount,
-      countLoading,
-      nights,
-      setCheckInTime,
-      setCheckOutTime,
-      setGuests,
-      setWhere,
-    ],
-  )
+  const heroTabs = useMemo(() => {
+    const preferred = ['property', 'vehicles', 'yachts', 'tours']
+    const picked = preferred
+      .map((slug) => categoryBarRoots.find((c) => c.slug === slug))
+      .filter(Boolean)
+    if (picked.length >= 3) return picked
+    return categoryBarRoots.slice(0, 4)
+  }, [categoryBarRoots])
 
   return (
     <div className="min-h-screen bg-white">
-      <HomeHero language={language} searchBarRest={searchBarRest} />
+      <HomeHeroLuxe
+        language={language}
+        categoryTabs={heroTabs}
+        category={selectedCategory}
+        setCategory={setSelectedCategory}
+        where={where}
+        setWhere={setWhere}
+        dateRange={dateRange}
+        setDateRange={handleDateChange}
+        guests={guests}
+        setGuests={setGuests}
+        onSearch={handleSearch}
+        textQuery={searchQuery}
+        setTextQuery={setSearchQuery}
+        smartSearchOn={smartSearchOn}
+        setSmartSearchOn={setSmartSearchOn}
+        semanticSearchFeatureEnabled={semanticSiteEnabled}
+        onSearchSubmit={handleHomeSearchSubmit}
+        liveCount={liveCount}
+        countLoading={countLoading}
+      />
 
       <CategoryBar
         language={language}

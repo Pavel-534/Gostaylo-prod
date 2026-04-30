@@ -61,7 +61,7 @@ export function ReferralTeamSection({ members = [], t, language = 'ru' }) {
   }
 
   return (
-    <Card className="border border-teal-200 bg-white">
+    <Card className="rounded-2xl border border-slate-200 bg-white shadow-[0_4px_12px_rgba(0,102,102,0.04)]">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
           <Users className="h-5 w-5 text-teal-700" />
@@ -73,9 +73,9 @@ export function ReferralTeamSection({ members = [], t, language = 'ru' }) {
         {!members.length ? (
           <p className="text-sm text-slate-600 py-2">{t('referralStage726_teamEmpty')}</p>
         ) : (
-          <ul className="divide-y divide-slate-100 rounded-lg border border-slate-100 overflow-hidden">
+          <ul className="divide-y divide-slate-100 rounded-xl border border-slate-100 overflow-hidden">
             {members.map((m) => (
-              <li key={m.refereeId} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-slate-50/50 hover:bg-slate-50">
+              <li key={m.refereeId} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-slate-50/50 hover:bg-teal-50/40">
                 <div className="min-w-0 space-y-1">
                   <p className="font-medium text-slate-900 truncate">{m.displayName}</p>
                   <div className="flex flex-wrap gap-2 items-center">
