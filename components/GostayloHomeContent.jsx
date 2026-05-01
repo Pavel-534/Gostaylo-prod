@@ -25,6 +25,7 @@ import { useHomeFilters } from '@/components/home/useHomeFilters'
 import { HomeHeroLuxe } from '@/components/home/HomeHeroLuxe'
 import { CategoryBar } from '@/components/home/CategoryBar'
 import { TopListingsGrid } from '@/components/home/TopListingsGrid'
+import { TrustBar } from '@/components/home/TrustBar'
 
 export function GostayloHomeContent() {
   const router = useRouter()
@@ -364,6 +365,9 @@ export function GostayloHomeContent() {
         liveCount={liveCount}
         countLoading={countLoading}
       />
+
+      {/* Trust Bar — social proof под hero, над категориями */}
+      <TrustBar language={language} />
 
       <CategoryBar
         language={language}

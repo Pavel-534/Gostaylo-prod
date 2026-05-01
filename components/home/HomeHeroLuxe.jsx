@@ -14,6 +14,17 @@ import { HERO_BACKGROUND_IMAGE } from './home-constants'
 
 const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12]
 
+/**
+ * SSOT: статичные fallback-вкладки показываются немедленно, до ответа API.
+ * Это устраняет «пустой» Hero при медленном соединении.
+ */
+const STATIC_FALLBACK_TABS = [
+  { slug: 'property' },
+  { slug: 'vehicles' },
+  { slug: 'yachts' },
+  { slug: 'tours' },
+]
+
 export function HomeHeroLuxe({
   language,
   categoryTabs = [],
@@ -50,6 +61,10 @@ export function HomeHeroLuxe({
 
   const whereOptionsFull = useMemo(() => buildWhereOptions(locations, language), [locations, language])
 
+  // SSOT fallback: show static tabs immediately, replace with real data when loaded
+  const displayTabs = categoryTabs.length > 0 ? categoryTabs : STATIC_FALLBACK_TABS
+  const tabsReady = categoryTabs.length > 0
+
   const handleSearchClick = () => {
     onSearchSubmit?.()
     onSearch?.()
@@ -57,19 +72,35 @@ export function HomeHeroLuxe({
 
   return (
     <section
-      className="relative isolate min-h-[870px] pt-20"
-      style={{ backgroundImage: `url(${HERO_BACKGROUND_IMAGE})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+      className="relative isolate min-h-[820px] pt-20"
+      style={{ backgroundImage: `url(${HERO_BACKGROUND_IMAGE})`, backgroundSize: 'cover', backgroundPosition: 'center top' }}
     >
-      <div className="absolute inset-0 bg-black/30" />
-      <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-b from-transparent to-[#f7f9fb]" />
+      {/* Cinematic layered overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/30 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/10" />
+      <div className="absolute inset-x-0 bottom-0 h-52 bg-gradient-to-b from-transparent to-[#f7f9fb]" />
 
-      <div className="relative z-10 mx-auto flex min-h-[760px] w-full max-w-[1280px] flex-col items-center justify-center px-6 text-center">
-        <h1 className="mb-8 max-w-4xl text-[40px] font-bold leading-[48px] tracking-[-0.02em] text-white sm:text-[56px] sm:leading-[62px]">
-          {getUIText('heroTitle', language)}{' '}
-          <span className="text-[#a2f0ef]">{getUIText('heroTitleHighlight', language)}</span>
-        </h1>
+      {/* Content layer */}
+      <div className="relative z-10 mx-auto flex min-h-[730px] w-full max-w-[1280px] flex-col items-center justify-center px-6 text-center">
 
-        <div className="w-full max-w-5xl rounded-[28px] border border-white/70 bg-white p-2 shadow-[0_44px_100px_rgba(0,24,24,0.35),0_18px_42px_rgba(0,102,102,0.18)]">
+        {/* Editorial headline */}
+        <div className="mb-6 space-y-2">
+          <h1 className="max-w-3xl text-[42px] font-extrabold leading-[1.1] tracking-[-0.03em] text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.45)] sm:text-[60px] sm:leading-[1.08]">
+            {getUIText('heroTitle', language)}{' '}
+            <span className="bg-gradient-to-r from-[#a2f0ef] to-[#5dd8d5] bg-clip-text text-transparent">
+              {getUIText('heroTitleHighlight', language)}
+            </span>
+          </h1>
+          <p className="text-[15px] font-medium text-white/80 drop-shadow-sm sm:text-base">
+            <MapPin className="mr-1 inline-block h-4 w-4 text-[#a2f0ef]" />
+            {getUIText('heroSubtitle', language)}
+          </p>
+        </div>
+
+        {/* Search capsule */}
+        <div className="w-full max-w-4xl rounded-[28px] border border-white/70 bg-white/98 p-2 shadow-[0_44px_100px_rgba(0,24,24,0.38),0_18px_42px_rgba(0,102,102,0.22)] backdrop-blur-sm transition-all duration-300 focus-within:shadow-[0_44px_100px_rgba(0,24,24,0.45),0_0_0_3px_rgba(0,102,102,0.18)] focus-within:-translate-y-0.5">
+
+          {/* Keyword row */}
           <div className="mb-2 flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/90 px-3 py-2">
             <button
               type="button"
@@ -120,26 +151,31 @@ export function HomeHeroLuxe({
             </button>
           </div>
 
-          <div className="mb-4 flex flex-wrap items-center gap-1 border-b border-slate-100 px-3 pt-1">
-            {categoryTabs.map((tab) => {
+          {/* Category tabs row */}
+          <div className="mb-3 flex flex-wrap items-center gap-0 border-b border-slate-100 px-2 pt-0">
+            {displayTabs.map((tab) => {
               const active = category === tab.slug
               return (
                 <button
                   key={tab.slug}
                   type="button"
                   onClick={() => setCategory?.(tab.slug)}
-                  className={`px-6 py-3 text-sm font-semibold tracking-tight transition-colors ${
+                  className={`relative px-5 py-2.5 text-sm font-semibold tracking-tight transition-all duration-200 ${
                     active
-                      ? 'border-b-2 border-[#006666] text-[#006666]'
+                      ? 'text-[#006666]'
                       : 'text-slate-500 hover:text-[#006666]'
-                  }`}
+                  } ${!tabsReady ? 'animate-pulse opacity-60' : ''}`}
                 >
                   {getCategoryName(tab.slug, language, tab.name)}
+                  {active && (
+                    <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-[#006666]" />
+                  )}
                 </button>
               )
             })}
           </div>
 
+          {/* Fields grid */}
           <div className="grid grid-cols-1 gap-2 px-3 pb-3 md:grid-cols-[1.3fr_1.15fr_0.85fr_0.7fr] overflow-visible">
             <div className="min-w-0 border-r border-slate-100 px-3 text-left overflow-visible">
               <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
@@ -188,7 +224,7 @@ export function HomeHeroLuxe({
             <div className="flex items-end px-2">
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="mr-2 flex h-12 min-w-[90px] items-center justify-start gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-700">
+                  <button className="mr-2 flex h-12 min-w-[90px] items-center justify-start gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-700 transition-colors hover:border-teal-300 hover:bg-teal-50">
                     <Users className="h-4 w-4 text-[#006666]" />
                     {guests}
                   </button>
@@ -200,7 +236,7 @@ export function HomeHeroLuxe({
                         key={n}
                         type="button"
                         onClick={() => setGuests?.(String(n))}
-                        className={`rounded-md p-2 text-sm ${guests === String(n) ? 'bg-[#006666] text-white' : 'hover:bg-slate-100'}`}
+                        className={`rounded-md p-2 text-sm transition-colors ${guests === String(n) ? 'bg-[#006666] text-white' : 'hover:bg-slate-100'}`}
                       >
                         {n}
                       </button>
@@ -210,18 +246,13 @@ export function HomeHeroLuxe({
               </Popover>
               <Button
                 onClick={handleSearchClick}
-                className="h-12 flex-1 rounded-2xl bg-[#006666] text-[15px] font-semibold text-white shadow-[0_12px_24px_rgba(0,102,102,0.28)] hover:bg-[#004c4c]"
+                className="h-12 flex-1 rounded-2xl bg-[#006666] text-[15px] font-semibold text-white shadow-[0_12px_24px_rgba(0,102,102,0.28)] transition-all hover:bg-[#004c4c] hover:shadow-[0_16px_32px_rgba(0,102,102,0.36)] active:scale-[0.98]"
               >
                 <Search className="mr-2 h-4 w-4" />
                 {getUIText('findButton', language)}
               </Button>
             </div>
           </div>
-        </div>
-
-        <div className="mt-8 flex items-center gap-2 text-white/90">
-          <MapPin className="h-4 w-4 text-[#a2f0ef]" />
-          <span className="text-base">{getUIText('heroSubtitle', language)}</span>
         </div>
       </div>
     </section>

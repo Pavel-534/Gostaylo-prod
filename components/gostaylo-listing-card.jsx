@@ -168,10 +168,14 @@ export function GostayloListingCard({
       id={`listing-card-${id}`}
       data-testid={`listing-card-${id}`}
       className={cn(
-        'group scroll-mt-24 overflow-hidden rounded-xl border bg-white transition-all duration-300 hover:shadow-xl md:group-hover:overflow-visible',
+        // Base
+        'group scroll-mt-24 overflow-hidden rounded-2xl border bg-white',
+        // Premium hover: lift + deepen shadow + teal border accent
+        'transition-all duration-300 ease-out',
+        'hover:-translate-y-1.5 hover:shadow-[0_16px_48px_rgba(0,102,102,0.14),0_4px_16px_rgba(0,0,0,0.06)]',
         isMapHighlighted
           ? 'relative z-0 border-teal-500 shadow-lg ring-2 ring-teal-500/40 ring-offset-2 hover:z-20'
-          : 'relative z-0 border-slate-100 md:hover:z-20 hover:border-teal-200',
+          : 'relative z-0 border-slate-100 hover:border-teal-200/80 md:hover:z-20',
         className
       )}
     >

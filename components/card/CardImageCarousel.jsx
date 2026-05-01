@@ -63,7 +63,7 @@ export function CardImageCarousel({
 
   return (
     <div 
-      className="relative aspect-[4/3] overflow-hidden bg-slate-100 md:group-hover:overflow-visible"
+      className="relative aspect-[4/3] overflow-hidden bg-slate-100"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -76,9 +76,9 @@ export function CardImageCarousel({
         blurDataURL={blurDataURL}
         unoptimized={unoptimized}
         className={cn(
-          'object-cover transition-all duration-500',
+          'object-cover transition-transform duration-500 ease-out will-change-transform',
           imageLoaded ? 'opacity-100' : 'opacity-0',
-          'group-hover:scale-105'
+          'group-hover:scale-[1.06]'
         )}
         onLoad={handleLoad}
         onError={() => {
