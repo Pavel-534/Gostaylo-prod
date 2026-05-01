@@ -36,7 +36,7 @@ const POPULAR_LOCATIONS = [
 ]
 
 // ---------- FAB Button ----------
-export function MobileSearchFAB({ onClick, language = 'ru', hasActiveFilters = false }) {
+export function MobileSearchFAB({ onClick, language = 'ru', hasActiveFilters = false, hidden = false }) {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
@@ -46,20 +46,24 @@ export function MobileSearchFAB({ onClick, language = 'ru', hasActiveFilters = f
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  const shown = visible && !hidden
+
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={getUIText('findButton', language)}
+      aria-hidden={!shown}
+      tabIndex={shown ? 0 : -1}
       data-testid="mobile-search-fab"
       className={cn(
-        'fixed bottom-[80px] left-1/2 z-40 -translate-x-1/2',
+        'fixed bottom-[80px] left-1/2 z-30 -translate-x-1/2',
         'flex items-center gap-2 rounded-full bg-[#006666] px-5 py-3',
         'text-sm font-semibold text-white',
         'shadow-[0_10px_30px_rgba(0,102,102,0.45)]',
         'transition-all duration-300 ease-out will-change-transform',
         'active:scale-95',
-        visible ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0 pointer-events-none',
+        shown ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0 pointer-events-none',
         'md:hidden',
       )}
     >

@@ -410,6 +410,7 @@ export function GostayloHomeContent() {
       {/* Mobile Floating Search — FAB появляется на скролле, Bottom Sheet при нажатии */}
       <MobileSearchFAB
         language={language}
+        hidden={mobileSearchOpen}
         hasActiveFilters={
           (selectedCategory && selectedCategory !== 'all') ||
           (where && where !== 'all') ||
