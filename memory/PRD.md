@@ -926,3 +926,82 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 
 **Next sprint (Backend):** миграция БД схемы Listings — добавить колонки `country_code`, `region_code`, `city_code` (FK на справочники), сохранить `district` как сабобласть города. Migration helper для существующих Phuket-листингов.
 
+
+### 33. Global Database & Geo-Logic Sprint (2026-02)
+
+**Цель:** Заложить фундамент глобальной империи — БД-схема для Country/Region/City, Smart Geolocation, иерархический поиск parent → children, динамический TrustBar.
+
+#### 1. Backend Migration (P0) — ✅ ГОТОВО, готово к применению
+- **`/app/supabase/migrations/20260201_global_pivot.sql`** — идемпотентная DDL (350 строк):
+  - `ALTER TABLE listings ADD COLUMN IF NOT EXISTS country_code/region_code/city_code TEXT`
+  - `UPDATE` для backfill всех Phuket-листингов в TH/TH-PHK/phuket-city (с COALESCE-guard)
+  - 4 индекса: by country, by region, by city, composite hierarchical (для ACTIVE)
+  - Новая таблица `geo_locations` (level/code/parent_code/labels × 4 lang/flag/iso) + RLS public-read
+  - Seed: 4 страны, 9 регионов, 9 городов
+  - Verification queries в trailing comments
+- **`/app/scripts/migrate-global-pivot.mjs`** — Node runner с тремя режимами:
+  - Direct PG (если `SUPABASE_DB_URL` или `DATABASE_URL`)
+  - Management API (`SUPABASE_ACCESS_TOKEN` + `SUPABASE_PROJECT_REF`)
+  - Fallback — печатает понятную инструкцию для применения через Dashboard SQL Editor (без traceback)
+
+**ВАЖНО:** Миграция НЕ применена к Supabase в preview env (нет DB_URL/access token). Для применения откройте Supabase Dashboard → SQL Editor → вставьте содержимое `.sql` файла → Run. SQL idempotent.
+
+#### 2. Smart Geolocation (P1) — ✅
+- **`/app/lib/hooks/useUserGeo.js`** — 3-уровневая стратегия:
+  - localStorage cache `gostaylo_user_geo_v1` (TTL 7 дней)
+  - `/api/v2/geo/whoami` (cf-ipcountry / x-vercel-ip-country / ipapi.co fallback) — Edge runtime
+  - `navigator.language` (RU→RU, TH→TH, ZH→CN, ID→ID) → ультимат TH
+- **`/app/app/api/v2/geo/whoami/route.js`** — Edge endpoint, 2-сек timeout на ipapi.co, частный кэш 1 час
+- **`/app/lib/locations/reorder-by-geo.js`** — RU/BY/UA/KZ/AM/KG/TJ/UZ → Russia first; TH/MY/VN/SG/LA/KH/ID → Thailand first; default → World первая.
+- Применено в `WhereCombobox.jsx` + `MobileSearchBottomSheet.jsx` через `useMemo`.
+- **Verified:** RU-юзер видит Россию первой, TH-юзер — Таиланд первый. Подтверждено screenshot-тестом с `addInitScript`.
+
+#### 3. Global Search Logic (P1) — ✅ + защитный schema-probe
+- **`/app/lib/locations/resolve-where-target.js`** — slug/code → `{level: country|region|city, ...children codes, ...districts}`. Поддержка label-match для всех 4 языков.
+- **`/app/lib/api/run-listings-search-get.js` `applySmartWhereFilter`** — теперь async, строит OR-clause:
+  - `country_code.eq.{X}` ИЛИ всех ребятей-регионов ИЛИ ребятей-городов (когда поиск по стране)
+  - Аналогично каскад для region и city
+  - Legacy `district.eq.{X}` для всех known districts (фолбэк до миграции)
+  - `metadata.cs.{city: X}` для импортированных листингов
+- **`/app/lib/api/geo-schema-probe.js`** (CRITICAL fix из iteration_5) — schema probe с 5-минутным кешем + `inflightPromise` singleton. Distinguishes 42703 (definitive, кешируем false) vs transient errors (НЕ кешируем). Гарантирует что новые column-предикаты НЕ emit пока миграция не применена → НЕТ HTTP 500.
+- **Backward-compat verified:** `where=phuket` → 200 (legacy district), `where=RU` → 200 (empty), `where=moscow` → 200 (empty), `where=patong` → 200 (1 listing). После применения миграции автоматически активируются geo-предикаты.
+
+#### 4. Dynamic TrustBar (✅)
+- `TrustBar.jsx` — новый prop `locationContext` (default 'all'). Лейбл первой statiс:
+  - `where=all` или null → `«objects worldwide»` / `«объектов по всему миру»`
+  - `where=RU` → `«objects in Russia»` / `«объектов в Россия»` (через resolveWhereTarget + COUNTRY_PRESETS labels)
+  - `where=phuket` → `«objects in Phuket»` / `«объектов в Пхукет»`
+  - `where=moscow` → `«objects in Moscow»` / `«объектов в Москва»`
+- Новые ключи `trustListingsIn`, `trustListingsWorldwide` × 4 языка в `common.js`.
+- `GostayloHomeContent.jsx` пробрасывает `locationContext={where || 'all'}`.
+
+#### Bonus pre-existing fix
+- **JWT_SECRET добавлен в `/app/.env` + `/app/frontend/.env`** (через `openssl rand -base64 32`) — `/api/v2/auth/me` больше не возвращает HTTP 500 (теперь корректно 401 для незалогиненного юзера). Очищает 6 console errors на каждый рендер.
+
+**Files created:**
+- `/app/supabase/migrations/20260201_global_pivot.sql`
+- `/app/scripts/migrate-global-pivot.mjs`
+- `/app/lib/hooks/useUserGeo.js`
+- `/app/app/api/v2/geo/whoami/route.js`
+- `/app/lib/locations/reorder-by-geo.js`
+- `/app/lib/locations/resolve-where-target.js`
+- `/app/lib/api/geo-schema-probe.js`
+
+**Files modified:**
+- `/app/components/search/WhereCombobox.jsx` (useUserGeo + reorder)
+- `/app/components/search/MobileSearchBottomSheet.jsx` (useUserGeo + reorder)
+- `/app/components/home/TrustBar.jsx` (locationContext + getLocationDisplayName)
+- `/app/components/GostayloHomeContent.jsx` (locationContext={where})
+- `/app/lib/api/run-listings-search-get.js` (async applySmartWhereFilter + schema probe)
+- `/app/lib/translations/common.js` (trustListingsIn / trustListingsWorldwide × 4 lang)
+- `/app/.env` + `/app/frontend/.env` (JWT_SECRET)
+
+**Tested (testing_agent_v3 iterations 5-6):**
+- Iteration 5: 8/9 PASS, нашёл CRITICAL — applySmartWhereFilter падал 500 без schema probe
+- Iteration 6: после fix → 100% backend (4/4 search retest), 100% frontend (geo reorder, dynamic TrustBar, hero chip flow). Cold probe ~820ms, warm ~3-5ms.
+
+**Pending (вне sprint):**
+- Применить SQL миграцию через Supabase Dashboard SQL Editor (1-click).
+- После миграции: смок `where=RU/TH/phuket/moscow/bali` чтобы проверить что hierarchical rollup активирован.
+- Booking enum mismatch (DECLINED/FINISHED) в reputation/data-provider — отдельный спринт.
+
