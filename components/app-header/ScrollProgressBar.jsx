@@ -46,14 +46,22 @@ export function ScrollProgressBar() {
 
   if (!enabled) return null
 
+  const isComplete = progress >= 99.5
+
   return (
     <div
       data-testid="app-header-scroll-progress"
+      data-complete={isComplete ? 'true' : 'false'}
       aria-hidden
       className="pointer-events-none absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden"
     >
       <div
-        className="h-full origin-left bg-gradient-to-r from-[#006666] via-[#14a8a8] to-[#5dd8d5] shadow-[0_0_6px_rgba(0,168,168,0.45)] transition-[width] duration-150 ease-out"
+        className={
+          'h-full origin-left bg-gradient-to-r from-[#006666] via-[#14a8a8] to-[#5dd8d5] transition-[width] duration-150 ease-out ' +
+          (isComplete
+            ? 'shadow-[0_0_14px_rgba(0,168,168,0.9)] animate-scroll-glow-pulse'
+            : 'shadow-[0_0_6px_rgba(0,168,168,0.45)]')
+        }
         style={{ width: `${progress}%` }}
       />
     </div>
