@@ -10,6 +10,7 @@ import { memo, useEffect } from 'react';
 import Link from 'next/link';
 import { GostayloListingCard } from '@/components/gostaylo-listing-card';
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton';
+import { EmptyState } from '@/components/empty-state';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw, Loader2, List as ListIcon, Map as MapIcon, CalendarX } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -101,28 +102,32 @@ function ListingSidebarComponent({
       filterWhere &&
       filterWhere !== 'all';
     return (
-      <div className="text-center py-20 px-2">
-        <div className="text-6xl mb-4">{transportMode ? '🚗' : '🏠'}</div>
-        <h3 className="text-xl font-semibold mb-2">
-          {getUIText('noResults', language)}
-        </h3>
-        <p className="text-slate-500 mb-2 max-w-md mx-auto">{unavailText}</p>
-        {meta?.availabilityFiltered && (
-          <p className="text-sm text-slate-600 mb-4 max-w-md mx-auto leading-relaxed">
-            {getUIText('searchHint_availabilityDates', language)}
-          </p>
+      <EmptyState
+        language={language}
+        hint={unavailText}
+        ctaLabel={getUIText('noResults', language) && (language === 'ru' ? 'Показать все объекты' : 'Show all listings')}
+        ctaHref="/listings"
+      >
+        {(meta?.availabilityFiltered || transportMode || showBroaden) && (
+          <div className="flex flex-col items-center gap-3 text-center">
+            {meta?.availabilityFiltered && (
+              <p className="text-sm text-slate-600 max-w-md leading-relaxed">
+                {getUIText('searchHint_availabilityDates', language)}
+              </p>
+            )}
+            {transportMode && (
+              <p className="text-sm text-slate-600 max-w-md leading-relaxed">
+                {getUIText('transportEmptyHint', language)}
+              </p>
+            )}
+            {showBroaden && (
+              <Button asChild variant="outline" className="rounded-2xl border-teal-300 text-teal-800 hover:bg-teal-50">
+                <Link href={transportBroadenHref}>{getUIText('transportBroadenCta', language)}</Link>
+              </Button>
+            )}
+          </div>
         )}
-        {transportMode && (
-          <p className="text-sm text-slate-600 mb-4 max-w-md mx-auto leading-relaxed">
-            {getUIText('transportEmptyHint', language)}
-          </p>
-        )}
-        {showBroaden && (
-          <Button asChild variant="outline" className="border-teal-300 text-teal-800 hover:bg-teal-50">
-            <Link href={transportBroadenHref}>{getUIText('transportBroadenCta', language)}</Link>
-          </Button>
-        )}
-      </div>
+      </EmptyState>
     );
   }
   

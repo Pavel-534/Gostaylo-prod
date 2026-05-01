@@ -28,6 +28,7 @@ import { HowItWorks } from '@/components/home/HowItWorks'
 import { TopListingsGrid } from '@/components/home/TopListingsGrid'
 import { TrustBar } from '@/components/home/TrustBar'
 import { PartnerCTA } from '@/components/home/PartnerCTA'
+import { MobileSearchFAB, MobileSearchBottomSheet } from '@/components/search/MobileSearchBottomSheet'
 
 export function GostayloHomeContent() {
   const router = useRouter()
@@ -71,6 +72,9 @@ export function GostayloHomeContent() {
   const [exchangeRates, setExchangeRates] = useState({})
   const [loading, setLoading] = useState(true)
   const [listingsLoading, setListingsLoading] = useState(false)
+
+  // Mobile floating search sheet
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
 
   const [liveCount, setLiveCount] = useState(null)
   const [countLoading, setCountLoading] = useState(false)
@@ -402,6 +406,33 @@ export function GostayloHomeContent() {
 
       {/* Partner CTA перед футером */}
       <PartnerCTA language={language} />
+
+      {/* Mobile Floating Search — FAB появляется на скролле, Bottom Sheet при нажатии */}
+      <MobileSearchFAB
+        language={language}
+        hasActiveFilters={
+          (selectedCategory && selectedCategory !== 'all') ||
+          (where && where !== 'all') ||
+          (guests && guests !== '1') ||
+          Boolean(dateRange?.from)
+        }
+        onClick={() => setMobileSearchOpen(true)}
+      />
+      <MobileSearchBottomSheet
+        open={mobileSearchOpen}
+        onClose={() => setMobileSearchOpen(false)}
+        language={language}
+        categoryTabs={heroTabs}
+        category={selectedCategory}
+        setCategory={setSelectedCategory}
+        where={where}
+        setWhere={setWhere}
+        dateRange={dateRange}
+        setDateRange={handleDateChange}
+        guests={guests}
+        setGuests={setGuests}
+        onSearch={handleSearch}
+      />
 
       <footer className="bg-slate-900 text-white py-10">
         <div className="container mx-auto px-4">

@@ -1,0 +1,37 @@
+{
+  "summary": "Sprint P3 frontend-only testing: Mobile FAB + Bottom Sheet search, Premium Empty States, About/Help pages with Serif typography. 23/30 assertions passed. Core mobile search sheet works; Empty State render on /listings is BLOCKED by a production-build environment issue (missing NEXT_PUBLIC_SUPABASE_* → page shows 'Loading error HTTP 429' instead of EmptyState). About page fully correct. Help page fully correct (my string assertion was wrong). Footer links all present (/about, /help, /help#contact, /help#terms). Backdrop click to close sheet is flaky/possibly broken.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "MobileSearchBottomSheet", "issue": "Clicking the backdrop area above the sheet (e.g. y=20) did NOT close the sheet in one reproducible test run (transform remained matrix(1,0,0,1,0,0) after click). Close button (X) and Escape both work correctly. Possible z-index/pointer-events conflict between backdrop (z-40) and FAB (z-40) — FAB may still be catching pointer events. Please verify backdrop element is actually top-most and receiving clicks.", "selector": "[data-testid=\"mobile-search-sheet\"] backdrop", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Premium EmptyState on /listings with impossible filters", "issue": "CRITICAL BUILD-TIME ENV ISSUE. Browser console repeatedly logs '[CLIENT-DATA] CRITICAL: Supabase credentials missing! {url: MISSING, key: MISSING}'. The production Next.js build (next start) was produced WITHOUT NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY baked in (NEXT_PUBLIC_* vars are inlined at build time). As a result, /listings falls through to a fallback path that emits 'HTTP 429: Too Many Requests' and renders a red 'Loading error' box instead of the premium EmptyState (data-testid=\"empty-state\"). Need to rebuild with env vars present, or fix client data init to read from already-available config. This blocks verification of EmptyState render + CTA on /listings.", "affected_selectors": ["[data-testid=\"empty-state\"]", "[data-testid=\"empty-state-cta\"]"]}
+    ],
+    "design_issues": [
+      {"screen": "Mobile Bottom Sheet (category active state)", "issues": ["Active category tab computed bg was rgb(8,107,107) while Tailwind class specifies bg-[#006666] = rgb(0,102,102). Difference is visually imperceptible (~3% off); likely captured mid-transition. Screenshot confirms teal active state works. Not a real bug, informational only."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "CRITICAL: Fix production build so NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY are inlined (rebuild with env available). /listings currently shows 'HTTP 429 Loading error' instead of premium EmptyState — making it impossible for users to see any listings search results in production-preview mode.",
+    "Investigate why backdrop click (above the sheet) does not close the MobileSearchBottomSheet. Consider adding an explicit higher z-index on the backdrop, or set pointer-events:none on the FAB when the sheet is open.",
+    "Minor: Active category tab color reported as rgb(8,107,107) vs #006666 — verify no stray global style is adjusting teal values (likely harmless CSS transition timing)."
+  ],
+  "critical_code_review_comments": [
+    "MobileSearchBottomSheet: when sheet is open, the FAB (z-40) and backdrop (z-40) share the same z-index, which can cause click interception. The FAB is still rendered and could catch clicks in the top area. Recommend pointer-events:none on FAB when sheet open, OR raising backdrop to z-45.",
+    "EmptyState component implementation looks clean and correct; integration with TopListingsGrid and ListingSidebar is wired properly — cannot functionally verify on /listings due to the Supabase env build issue described above.",
+    "Home page (next start build) emits multiple console errors on load: Failed to fetch exchange rates, categories, listings + [CLIENT-DATA] CRITICAL Supabase credentials missing + [AUTH] getCurrentUser Failed to fetch. Strongly suggests a rebuild with correct env is required.",
+    "Help page H1 text is 'Мы на связи — 24 / 7, на 4 языках.' (with spaces around /) — current copy matches design spec."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (not tested)", "frontend": "85% (23/27 real assertions; excluding false-fails)"},
+  "seed_data_creation": "",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "VERIFIED WORKING: Mobile FAB appears after scroll >160px (opacity 0→1); Bottom Sheet opens via FAB; Category/Location chips clickable + active styling; Date inputs accept ISO values; Guests +/- counter with min=1/max=20 clamps correctly; Submit navigates to /listings with query params; Close (X) button closes sheet; Escape closes sheet; FAB hidden on desktop viewport (display:none via md:hidden); About page full content (hero 'Аренда без посредников', 4 principles, 'Наша история', Cormorant Garamond on H1); Help page full content (FAQ sections Для гостей/Escrow/Оплата/Для партнёров, Условия использования, Связаться с нами, #terms + #contact anchors, mailto link, details/summary toggles); Footer hrefs: /about, /help, /help#contact, /help#terms all present. BLOCKED/NEEDS RETEST: (1) Premium EmptyState on /listings with impossible filters — blocked by missing NEXT_PUBLIC_SUPABASE_* in production build causing 'HTTP 429 Loading error' screen. After env/build fix, navigate to /listings?category=yachts&where=kata&checkIn=2028-01-01&checkOut=2028-01-05&guests=10 and verify [data-testid='empty-state'] + [data-testid='empty-state-cta'] are visible. (2) Backdrop-click close on MobileSearchBottomSheet — one test run failed, may be z-index issue with FAB.",
+  "rca of the issue": "RCA of EmptyState not rendering on /listings: Next.js inlines NEXT_PUBLIC_* env vars at BUILD time (next build). The current /app is running via `next start` on a pre-built artifact that was compiled without Supabase credentials present — browser console confirms '[CLIENT-DATA] CRITICAL: Supabase credentials missing! {url: MISSING, key: MISSING}'. Downstream effect: client-side Supabase queries fall through to an error path that returns HTTP 429, which the /listings page renders as a red 'Loading error' box (see screenshot) instead of delegating 0-result state to ListingSidebar's EmptyState. Mitigation: (a) ensure /app/frontend/.env contains NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY BEFORE `yarn build`, then restart with `yarn start`; OR (b) switch to runtime config pattern (fetch env from /api/config on client). The .env in /app/.env and /app/frontend/.env has the vars, but they were not present during build."
+}

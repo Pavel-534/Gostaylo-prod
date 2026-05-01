@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/currency'
 import { getUIText, getListingText, getCategoryName } from '@/lib/translations'
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton'
+import { EmptyState } from '@/components/empty-state'
 import { toPublicImageUrl, isRemoteHttpImageSrc } from '@/lib/public-image-url'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
 import { format, isSameDay } from 'date-fns'
@@ -89,9 +90,11 @@ export function TopListingsGrid({
         {loading ? (
           <ListingGridSkeleton count={8} />
         ) : listings.length === 0 ? (
-          <div className="text-center py-12 min-h-[200px] flex items-center justify-center">
-            <p className="text-slate-600">{language === 'ru' ? 'Ничего не найдено' : 'No results'}</p>
-          </div>
+          <EmptyState
+            language={language}
+            onCtaClick={onViewAll}
+            ctaLabel={language === 'ru' ? 'Показать все объявления' : 'Show all listings'}
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {listings.map((listing, idx) => {
