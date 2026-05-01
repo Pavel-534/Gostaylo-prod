@@ -124,7 +124,7 @@ export function FilterBar({
                 <Badge className="bg-white text-teal-700 hover:bg-white/90 flex items-center gap-2 px-3 py-1">
                   <CalendarIcon className="h-4 w-4" />
                   {formatDisplayDate(dateRange.from)} — {formatDisplayDate(dateRange.to)}
-                  <span className="text-teal-500">({nights} {language === 'ru' ? 'н.' : 'n.'})</span>
+                  <span className="text-teal-500">({nights} {getUIText('nightShort', language)})</span>
                   <button type="button" onClick={clearDates} className="ml-1 hover:text-red-600">
                     <X className="h-3 w-3" />
                   </button>
@@ -133,7 +133,7 @@ export function FilterBar({
               {guests !== '1' && (
                 <Badge className="bg-white text-teal-700">
                   <Users className="h-4 w-4 mr-1" />
-                  {guests} {language === 'ru' ? 'гостей' : 'guests'}
+                  {guests} {getUIText('guests', language)}
                 </Badge>
               )}
               {where && where !== 'all' && (
@@ -183,7 +183,7 @@ export function FilterBar({
               data-testid="search-filters-button"
             >
               <SlidersHorizontal className="mr-2 h-4 w-4 text-teal-600" />
-              {language === 'ru' ? 'Фильтры' : 'Filters'}
+              {getUIText('filtersBtn', language)}
             </Button>
           </div>
           {showRefineRow ? (
@@ -195,9 +195,9 @@ export function FilterBar({
                     onClick={() => setSelectedCategory?.(parentCategoryObj.slug)}
                     className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:border-teal-400 hover:text-teal-800"
                   >
-                    <span className="text-slate-500">{language === 'ru' ? '←' : '←'}</span>
+                    <span className="text-slate-500">←</span>
                     <span>
-                      {language === 'ru' ? 'Вся группа: ' : 'All: '}
+                      {getUIText('groupBackTo', language)}
                       <span className="font-semibold text-slate-900">
                         {getCategoryName(parentCategoryObj.slug, language) || parentCategoryObj.name}
                       </span>

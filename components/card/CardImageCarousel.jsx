@@ -8,7 +8,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Heart } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Heart, Share2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { mapPublicImageUrls, isRemoteHttpImageSrc } from '@/lib/public-image-url'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
@@ -20,6 +20,8 @@ export function CardImageCarousel({
   title,
   isFavorite,
   onFavoriteClick,
+  onShareClick,
+  shareLabel,
   onImageLoad,
   /** Ссылка на карточку: прозрачный оверлей под сердцем и стрелками (кнопки не внутри одного anchor). */
   detailHref = null,
@@ -129,20 +131,34 @@ export function CardImageCarousel({
         </>
       )}
       
-      {/* Favorite button */}
-      <button
-        type="button"
-        onClick={onFavoriteClick}
-        className="absolute right-3 top-3 z-20 rounded-full bg-white/90 p-2 shadow-md transition-all hover:bg-white"
-        aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-      >
-        <Heart 
-          className={cn(
-            "h-4 w-4 transition-colors",
-            isFavorite ? "fill-red-500 text-red-500" : "text-slate-700"
-          )} 
-        />
-      </button>
+      {/* Action buttons stack: Share + Favorite */}
+      <div className="absolute right-3 top-3 z-20 flex items-center gap-1.5">
+        {onShareClick && (
+          <button
+            type="button"
+            onClick={onShareClick}
+            data-testid="card-share-button"
+            className="rounded-full bg-white/90 p-2 shadow-md transition-all hover:bg-white hover:scale-105 active:scale-95"
+            aria-label={shareLabel || 'Share'}
+            title={shareLabel || 'Share'}
+          >
+            <Share2 className="h-4 w-4 text-slate-700" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onFavoriteClick}
+          className="rounded-full bg-white/90 p-2 shadow-md transition-all hover:bg-white hover:scale-105 active:scale-95"
+          aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          <Heart
+            className={cn(
+              "h-4 w-4 transition-colors",
+              isFavorite ? "fill-red-500 text-red-500" : "text-slate-700"
+            )}
+          />
+        </button>
+      </div>
       
       {/* Image indicators */}
       {imagesProxied.length > 1 && (

@@ -1,0 +1,34 @@
+{
+  "summary": "Squash Sprint final QA — frontend only. Tested 7 scenarios across desktop+mobile. PASS rate ~95%. (1) TrustBar mobile placeholders verified — 9 animate-pulse skeleton divs render before stats load, then animated counters appear with real data; no layout jump. (2) /terms route renders correctly — h1 'Условия использования' in Cormorant Garamond serif, all 7 numbered sections found (01-07: Платформа, Бронирование, Escrow, Отмена, Персональные данные, Запрещённый контент, Изменения), mailto:legal@gostaylo.com + /help links present. (3) Footer link to '/terms' works (no longer /help#terms). (4) Web Share — [data-testid='card-share-button'] present on every card (7 buttons); navigator.share called correctly with title/text/url payload; clipboard fallback also works (window.__copied populated, toast 'Link copied'/'Ссылка скопирована' shown). (5) i18n /listings RU: 'Результаты поиска', 'Что?', 'Куда?' (input placeholder), 'Даты', 'Фильтры', 'Показать карту', 'ИИ' badge (NOT 'Smart'), '1 гостей', 'patong' badge — all clean. Favorite click without auth toasts 'Войдите, чтобы добавить в избранное' correctly. (6) i18n /listings EN: 'Search Results', 'What?', 'Filters', 'Show map', 'Smart', 'Property', '3 guests', 'patong' — all clean, no RU leakage. (7) Smoke regression: home loads, EmptyState renders on impossible-filters URL, /about + /help unaffected, mobile FAB still present.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Card favorite button", "issue": "aria-label is hardcoded English 'Add to favorites' even when language=ru. Title/aria-label should be localized (e.g. 'Добавить в избранное'). The Share button correctly localizes its aria/title to 'Поделиться'.", "selector": "button[aria-label='Add to favorites']", "priority": "LOW"},
+      {"component": "/listings back-arrow link (top-left mobile header)", "issue": "The back-arrow <a href='/'> has NO aria-label and NO title attribute. Spec expected 'На главную' / 'Back to Home' label. Adds an a11y/i18n gap.", "selector": "a[href='/'] (top-left arrow icon on /listings)", "priority": "LOW"},
+      {"component": "Russian plural for guests count", "issue": "Renders '1 гостей' instead of '1 гость'. Russian plural rules: 1 → гость, 2-4 → гостя, 5+ → гостей.", "selector": "guest count badge in UnifiedSearchBar", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "LOW: Localize aria-label on the Heart/Favorite button on listing cards (currently hardcoded 'Add to favorites' in all languages). The Share2 button correctly switches to 'Поделиться' in RU — replicate that pattern.",
+    "LOW: Add aria-label and/or visible/sr-only text 'На главную' / 'Back to Home' to the back-arrow <a href='/'> at top of /listings (mobile header).",
+    "LOW: Apply Russian plural rules to the guest count label so '1 гостей' becomes '1 гость' (use a small pluralization helper or Intl.PluralRules with ru → one/few/many).",
+    "INFO: All 4 Squash Sprint deliverables verified working as designed — TrustBar placeholders, /terms route + footer link, Web Share + clipboard fallback, /listings i18n. No critical regressions."
+  ],
+  "critical_code_review_comments": [
+    "useShareListing.js — clean implementation. Correctly handles AbortError silently, falls through to clipboard on other share failures, language-aware toast messages via getUIText. Good UX.",
+    "TrustBar.jsx — replaced opacity-0 placeholder with animate-pulse rounded bar (h-6 w-16 mobile, h-7 w-20 sm). Skeleton bar component (TrustBarSkeleton) shown while loadingStats=true, then per-counter placeholder shown before IntersectionObserver fires (visible=false). No layout jump on mobile observed. rootMargin '0px 0px 200px 0px' is sufficient for 390x844 viewport.",
+    "/app/app/terms/page.js — well-structured: 7 numbered sections with Serif headers, mailto + /help CTAs. Page title set correctly to 'Условия использования | Platform'. ",
+    "Heart aria-label not localized — minor i18n leak. Back-arrow link missing aria-label is an a11y issue (screen readers will read it as just 'link to home page' generic).",
+    "Cookies/localStorage language switching works correctly across pages — verified RU↔EN switching with localStorage.setItem('gostaylo_language', ...) + reload."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only run)", "frontend": "95% (all 4 sprint deliverables verified; 3 minor i18n/a11y nits found)"},
+  "seed_data_creation": "None. Used existing seeded /listings data (7 cards including 'Финальный тест - Вилла Premium', 'Honda PCX 160', 'Beachfront Paradise Villa - Rawai', 'Luxury Yacht - Andaman Dream', etc.).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Squash Sprint scope (TrustBar placeholders, /terms route, footer link to /terms, Web Share, /listings i18n) all verified working. 3 minor unrelated nits remain: (1) Heart button aria-label not i18n'd, (2) /listings back-arrow has no aria-label, (3) Russian plural form for '1 гостей'. None are blockers. /listings now has 7 real cards rendering. localStorage key for language is 'gostaylo_language' (values: ru/en/zh/ko). Web Share button data-testid='card-share-button' is present on EVERY card (left of the heart). Mobile viewport for testing: 390x844; for /listings header i18n testing, use empty filters URL (http://localhost:3000/listings) so 'Что?'/'What?'/'Куда?'/'Where?' placeholders appear (with category= or where= URL params they get replaced by selected values).",
+  "rca of the issue": "N/A — no critical bugs. The earlier false-positive 'missing Что?/Куда?/What?' from initial test run was caused by URL params (?category=property&where=patong) replacing placeholders with selected values. Re-tested with empty-filters URL → placeholders present and correctly localized."
+}

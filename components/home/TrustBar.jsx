@@ -79,11 +79,11 @@ export function TrustBar({ language = 'ru' }) {
   const [loadingStats, setLoadingStats] = useState(true)
   const ref = useRef(null)
 
-  // Trigger counter when bar enters viewport
+  // Trigger counter when bar enters viewport (early trigger via rootMargin so мобайл успевает)
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) setVisible(true) },
-      { threshold: 0.3 },
+      { threshold: 0.05, rootMargin: '0px 0px 200px 0px' },
     )
     if (ref.current) observer.observe(ref.current)
     return () => observer.disconnect()
@@ -159,7 +159,11 @@ export function TrustBar({ language = 'ru' }) {
                           decimals={item.decimals}
                         />
                       ) : (
-                        <span className="opacity-0 select-none">0</span>
+                        // Pre-visible placeholder: keeps height + showcases skeleton bar (no jumpy layout on mobile)
+                        <span
+                          className="inline-block h-6 w-16 animate-pulse rounded bg-teal-100/70 align-middle sm:h-7 sm:w-20"
+                          aria-hidden
+                        />
                       )}
                     </span>
                   </div>

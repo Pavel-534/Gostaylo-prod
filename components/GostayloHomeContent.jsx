@@ -484,7 +484,7 @@ export function GostayloHomeContent() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/help#terms" className="hover:text-teal-400 transition-colors">
+                  <Link href="/terms" className="hover:text-teal-400 transition-colors">
                     {getUIText('terms', language)}
                   </Link>
                 </li>

@@ -19,7 +19,7 @@ import { SearchMapWrapper } from '@/components/search/SearchMapWrapper'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 import { useDebounce, useIntersectionObserver, useListingsFetch } from '@/lib/hooks/useListingsSearch'
-import { detectLanguage, DEFAULT_UI_LANGUAGE } from '@/lib/translations'
+import { detectLanguage, DEFAULT_UI_LANGUAGE, getUIText } from '@/lib/translations'
 import { normalizeListingCategorySlugForSearch } from '@/lib/listing-category-slug'
 import { effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
 import { getCatalogSearchHeadlines } from '@/lib/search/catalog-search-headlines'
@@ -410,7 +410,7 @@ function ListingsContent() {
 
   const handleFavorite = async (listingId, newIsFavorite) => {
     if (!user?.id) {
-      toast.error(language === 'ru' ? 'Войдите, чтобы добавить в избранное' : 'Please login to add favorites')
+      toast.error(getUIText('favoriteLoginRequired', language))
       return
     }
 
@@ -435,7 +435,7 @@ function ListingsContent() {
           newIsFavorite ? next.delete(listingId) : next.add(listingId)
           return next
         })
-        toast.error(language === 'ru' ? 'Ошибка обновления избранного' : 'Failed to update favorites')
+        toast.error(getUIText('favoriteUpdateError', language))
       } else {
         toast.success(
           newIsFavorite
@@ -453,7 +453,7 @@ function ListingsContent() {
         newIsFavorite ? next.delete(listingId) : next.add(listingId)
         return next
       })
-      toast.error(language === 'ru' ? 'Ошибка сети' : 'Network error')
+      toast.error(getUIText('networkError', language))
     }
   }
 
@@ -493,7 +493,7 @@ function ListingsContent() {
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-slate-600 hover:text-teal-600 transition-colors">
             <ArrowLeft className="h-5 w-5" />
-            <span className="hidden sm:inline">{language === 'ru' ? 'На главную' : 'Back'}</span>
+            <span className="hidden sm:inline">{getUIText('backToHome', language)}</span>
           </Link>
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center text-white font-bold">

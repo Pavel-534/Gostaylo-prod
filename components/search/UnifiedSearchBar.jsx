@@ -217,7 +217,7 @@ export function UnifiedSearchBar({
             >
               <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
               <span className="text-xs font-semibold tracking-tight">
-                {language === 'ru' ? 'ИИ' : 'Smart'}
+                {getUIText('aiBadge', language)}
               </span>
             </button>
           </TooltipTrigger>
@@ -243,11 +243,11 @@ export function UnifiedSearchBar({
           <SelectTrigger className="h-9">
             <Layers className="h-4 w-4 mr-2 text-teal-600" />
             <span className="truncate">
-              {category && category !== 'all' ? (getCategoryName(category, language) || category) : (language === 'ru' ? 'Что?' : 'What?')}
+              {category && category !== 'all' ? (getCategoryName(category, language) || category) : getUIText('whatPlaceholder', language)}
             </span>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{language === 'ru' ? 'Всё' : 'All'}</SelectItem>
+            <SelectItem value="all">{getUIText('allLabel', language)}</SelectItem>
             {orderedCategoryRows.map(({ cat: c, depth }) => (
               <SelectItem key={c.id} value={c.slug} className={depth ? 'pl-7' : ''}>
                 {depth ? '· ' : ''}
@@ -352,7 +352,7 @@ export function UnifiedSearchBar({
                 }}
                 className={`w-full text-left px-3 py-2 rounded-md text-sm ${(!category || category === 'all') ? 'bg-teal-50 text-teal-700' : 'hover:bg-slate-100'}`}
               >
-                {language === 'ru' ? 'Всё' : 'All'}
+                {getUIText('allLabel', language)}
               </button>
               {orderedCategoryRows.map(({ cat: c, depth }) => (
                 <button
@@ -562,7 +562,7 @@ export function UnifiedSearchBar({
                   : 'border-slate-200 hover:bg-slate-50'
               }`}
             >
-              {language === 'ru' ? 'Всё' : 'All'}
+              {getUIText('allLabel', language)}
             </button>
             {orderedCategoryRows.map(({ cat: c, depth }) => (
               <button

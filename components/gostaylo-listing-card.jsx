@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { CardImageCarousel } from '@/components/card/CardImageCarousel'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
+import { useShareListing } from '@/lib/hooks/useShareListing'
 import { cn } from '@/lib/utils'
 import { getUIText, getCategoryName } from '@/lib/translations'
 import { buildListingCategoryLineLabel } from '@/lib/category-display-name'
@@ -154,6 +155,14 @@ export function GostayloListingCard({
     onFavorite?.(id, newState)
   }, [id, isFavorite, onFavorite])
 
+  // Web Share — нативный sharesheet (iOS/Android) или clipboard fallback
+  const handleShare = useShareListing({
+    url: detailUrl,
+    title: getUIText('shareListing', language) + ' · ' + title,
+    text: title,
+    language,
+  })
+
   const categoryLine =
     Array.isArray(catalogCategories) && catalogCategories.length > 0
       ? buildListingCategoryLineLabel(listing, catalogCategories, language, getCategoryName)
@@ -185,6 +194,8 @@ export function GostayloListingCard({
         title={title}
         isFavorite={isFavorite}
         onFavoriteClick={handleFavorite}
+        onShareClick={handleShare}
+        shareLabel={getUIText('shareListing', language)}
         blurDataURL={getListingCardBlurDataURL(listing)}
         topLeftBadge={
           promoBadgeLabel ? (
