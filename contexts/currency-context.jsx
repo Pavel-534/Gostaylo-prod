@@ -10,19 +10,24 @@
  *   CN/HK                    → CNY
  *   EU (DE/FR/IT/ES/NL/...)  → EUR
  *   default (US/GB/...)      → USD
- *   Только если юзер САМ не выбирал валюту (no localStorage entry).
+ *   Только если юзер САМ не выбирал валюту.
+ *
+ * @refactor 2026-02 Убрали setState-in-effect:
+ *   - state = ТОЛЬКО явный выбор пользователя (userChoice), хранится в localStorage.
+ *   - currency = useMemo(userChoice ?? countryToCurrency(country) ?? DEFAULT).
+ *   - useEffect только для side-effects (localStorage/event), без setState.
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useUserGeo } from '@/lib/hooks/useUserGeo'
 
 const STORAGE_KEY = 'gostaylo_currency'
-const EXPLICIT_KEY = 'gostaylo_currency_explicit' // set to '1' when user manually picks currency
+const EXPLICIT_KEY = 'gostaylo_currency_explicit' // '1' если юзер явно выбирал
 const DEFAULT_CURRENCY = 'THB'
-/** @deprecated — оставлен для обратной совместимости со старыми слушателями */
+/** @deprecated — legacy event для старых слушателей */
 const LEGACY_EVENT = 'currency-change'
 
-/** Маппинг страны (ISO-2) → валюта. Покрывает основные регионы. */
+/** Маппинг страны (ISO-2) → валюта. */
 const COUNTRY_TO_CURRENCY = {
   // RU-зона → RUB
   RU: 'RUB', BY: 'RUB', UA: 'RUB', KZ: 'RUB', AM: 'RUB', KG: 'RUB', TJ: 'RUB', UZ: 'RUB', MD: 'RUB',
@@ -37,66 +42,71 @@ const COUNTRY_TO_CURRENCY = {
 }
 
 export function countryToCurrency(country) {
-  if (!country) return 'USD'
-  return COUNTRY_TO_CURRENCY[country.toUpperCase()] || 'USD'
+  if (!country) return null
+  return COUNTRY_TO_CURRENCY[country.toUpperCase()] || null
+}
+
+/** Lazy-init reader — читает userChoice из localStorage один раз на mount. SSR-safe. */
+function readUserChoice() {
+  if (typeof window === 'undefined') return null
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    return saved && typeof saved === 'string' ? saved : null
+  } catch {
+    return null
+  }
 }
 
 const CurrencyContext = createContext(null)
 
 export function CurrencyProvider({ children }) {
-  const [currency, setCurrencyState] = useState(DEFAULT_CURRENCY)
-  const initializedRef = useRef(false)
+  // state = ЯВНЫЙ выбор пользователя (или null). Auto-geo никогда не пишет сюда.
+  const [userChoice, setUserChoice] = useState(readUserChoice)
   const { country, isResolved } = useUserGeo()
+  const geoPersistedRef = useRef(false)
 
-  // Инициализация из localStorage (только клиент)
-  useEffect(() => {
-    if (initializedRef.current) return
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (saved) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setCurrencyState(saved)
-        initializedRef.current = true
-      }
-    } catch {
-      /* SSR guard */
-    }
-  }, [])
+  // Derived currency — приоритет: явный выбор → авто-гео → default
+  const currency = useMemo(() => {
+    if (userChoice) return userChoice
+    const geoSuggest = countryToCurrency(country)
+    if (geoSuggest) return geoSuggest
+    return DEFAULT_CURRENCY
+  }, [userChoice, country])
 
-  // Auto-currency by geo — только если user не выбирал явно и localStorage пуст
+  // Side-effect: персистим auto-geo suggestion в localStorage (без setState!)
+  // Это чтобы другие компоненты (вкладки) при чтении видели ту же валюту.
   useEffect(() => {
+    if (geoPersistedRef.current) return
     if (!isResolved || !country) return
-    if (initializedRef.current) return
+    if (typeof window === 'undefined') return
     try {
       const explicitlyChosen = localStorage.getItem(EXPLICIT_KEY) === '1'
-      const saved = localStorage.getItem(STORAGE_KEY)
-      if (explicitlyChosen || saved) {
-        initializedRef.current = true
+      if (explicitlyChosen) {
+        geoPersistedRef.current = true
         return
       }
+      const suggested = countryToCurrency(country)
+      if (!suggested) {
+        geoPersistedRef.current = true
+        return
+      }
+      const existing = localStorage.getItem(STORAGE_KEY)
+      if (existing !== suggested) {
+        localStorage.setItem(STORAGE_KEY, suggested)
+        window.dispatchEvent(new CustomEvent(LEGACY_EVENT, { detail: suggested }))
+      }
+      geoPersistedRef.current = true
     } catch {
-      /* SSR guard */
+      /* ignore */
     }
-    const suggested = countryToCurrency(country)
-    setCurrencyState(suggested)
-    try {
-      localStorage.setItem(STORAGE_KEY, suggested)
-      // НЕ помечаем EXPLICIT_KEY — это автоматический выбор, юзер может поменять
-      window.dispatchEvent(new CustomEvent(LEGACY_EVENT, { detail: suggested }))
-    } catch {
-      /* SSR guard */
-    }
-    initializedRef.current = true
   }, [isResolved, country])
 
   const setCurrency = useCallback((code, opts = {}) => {
     if (!code) return
-    setCurrencyState(code)
+    setUserChoice(code) // ← setState вне effect — OK
     try {
       localStorage.setItem(STORAGE_KEY, code)
-      // Помечаем что юзер выбрал ЯВНО — auto-geo больше не перезаписывает
       if (opts.explicit !== false) localStorage.setItem(EXPLICIT_KEY, '1')
-      // Legacy event — backward compat для старых подписчиков
       window.dispatchEvent(new CustomEvent(LEGACY_EVENT, { detail: code }))
     } catch {
       /* SSR guard */

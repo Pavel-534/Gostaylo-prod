@@ -1005,3 +1005,45 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - После миграции: смок `where=RU/TH/phuket/moscow/bali` чтобы проверить что hierarchical rollup активирован.
 - Booking enum mismatch (DECLINED/FINISHED) в reputation/data-provider — отдельный спринт.
 
+
+
+### 33. Global Engagement & Defaults — Auto-currency, Geo-Toast, Footer Switchers (2026-02-05)
+
+**Sprint ship status:** ✅ Build green. Frontend запущен (`yarn build` 85s, `next start`). Smoke verified.
+
+**Delivered:**
+1. **Auto-currency by geo** — `/app/contexts/currency-context.jsx`
+   - Derived-state refactor: state хранит ТОЛЬКО явный `userChoice`, currency = `useMemo(userChoice ?? countryToCurrency(country) ?? DEFAULT)`.
+   - Убран `set-state-in-effect` lint warning (React 19-ready pattern).
+   - Side-effect только персистит suggested currency в localStorage + `currency-change` event, без setState.
+   - Mapping: RU-зона→RUB, TH→THB, CN/HK→CNY, Eurozone→EUR, default→USD.
+2. **GeoSuggestToast** — `/app/components/geo/GeoSuggestToast.jsx` (подключён в `app/layout.js`). Показывается справа-снизу с призывом «We found listings for you — {Country} — Show / Later».
+3. **FooterSwitchers** — `/app/components/FooterSwitchers.jsx` (встроен в `GostayloHomeContent.jsx`). 4 языка (ru/en/zh/th) + 5 валют (THB/USD/EUR/RUB/CNY) с полным набором data-testid.
+4. **Country-presets expansion** — `/app/lib/locations/country-presets.js`: добавлены TR (Istanbul, Antalya, Bodrum, Fethiye), AE (Dubai, Abu Dhabi), ID (Denpasar, Ubud, Uluwatu, Jakarta). Всё зерцально в SQL-справочнике `geo_locations`.
+5. **Admin geo-schema refresh** — `POST /api/v2/admin/geo-schema-refresh`. Сброс 5-минутного probe-кеша в `geo-schema-probe.js` для моментального переключения на новые колонки после миграции.
+
+**Migration status:**
+- `20260201_global_pivot.sql` **применена пользователем в Supabase** (2026-02-05).
+- Schema probe подтвердил: `hasCountryCode=true, hasRegionCode=true, hasCityCode=true`.
+- Backfill (`UPDATE ... SET country_code='TH', region_code='TH-PHK', city_code='phuket-city' WHERE district IS NOT NULL`) отработал — `where=TH`, `where=phuket-city`, `where=patong` все возвращают листинг `lst-test-final-1772285152`.
+
+**Smoke test (manual, iteration logs):**
+- `curl /api/v2/admin/geo-schema-refresh` → `{success:true, schema:{hasCountryCode:true,hasRegionCode:true,hasCityCode:true}}`
+- `curl /api/v2/search?where=TH&limit=3` → 1 matching listing (Patong) ✅
+- `curl /api/v2/search?where=phuket-city` → 1 matching listing ✅
+- `curl /api/v2/search?where=RU-MOW` → 0 (нет RU-листингов в seed) ✅ (корректно)
+- Screenshot главной: GeoSuggestToast с «Thailand» виден, THB автовыбран в хедере, FooterSwitchers рендерится (все 14 data-testid присутствуют).
+
+**Lint:** `/app/contexts/currency-context.jsx` + GeoSuggestToast + FooterSwitchers + resolve-where-target + geo-schema-probe + admin route — `No issues found`.
+
+**Pending (next sprint — «Лицо сайта»):**
+- Sticky Search Header (прилипание SearchBlock при скролле).
+- Z-index audit (overlap модалок/toaster/header).
+- Воронка продаж: CTA density, trust-signals визуал, conversion optimizations.
+
+**Files modified/created:**
+- `/app/contexts/currency-context.jsx` (rewrite — derived-state pattern)
+- `/app/app/api/v2/admin/geo-schema-refresh/route.js` (new)
+- `/app/components/geo/GeoSuggestToast.jsx` (prev sprint, validated)
+- `/app/components/FooterSwitchers.jsx` (prev sprint, validated)
+- `/app/supabase/migrations/20260201_global_pivot.sql` (applied ✅)
