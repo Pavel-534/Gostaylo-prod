@@ -863,3 +863,66 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 
 **Tested (testing_agent_v3 iteration 3):** 95% pass rate, все 4 deliverables верифицированы, 3 LOW нита исправлены и проверены screenshot-тестом — '1 гость' вместо '1 гостей', favorite aria локализован, back-arrow aria-label установлен.
 
+
+### 32. Global Pivot Sprint — Стратегический разворот (2026-02)
+
+**Цель:** Переход с phuket-only гида на ГЛОБАЛЬНЫЙ агрегатор аренды (РФ, Таиланд, Бали, Дубай, далее — мир). Подготовка UI и схемы данных к мировым стандартам Airbnb/Booking.
+
+#### 1. Viral Analytics — UTM в Web Share (✅)
+- `/app/lib/hooks/useShareListing.js` — функция `appendShareUtm(url, listingId)` идемпотентно добавляет: `utm_source=share`, `utm_medium=guest`, `utm_campaign=listing`, `utm_id={listing_id}`
+- `gostaylo-listing-card.jsx` пробрасывает `listingId={id}` в хук
+- Тест-агент верифицировал захват URL через clipboard mock — utm_id матчит реальный listing_id
+
+#### 2. Global Search UI — Popular Destinations (✅)
+- `/app/lib/locations/popular-destinations.js` — единый источник POPULAR_DESTINATION_GROUPS:
+  - 🇷🇺 Россия: Москва, Санкт-Петербург, Сочи, Казань
+  - 🇹🇭 Таиланд: Пхукет, Бангкок, Самуи, Паттайя, Краби
+  - 🌍 Мир: Бали, Дубай, Стамбул, Барселона
+  - Все с переводами × 4 языка (RU/EN/ZH/TH)
+- `WhereCombobox.jsx` — POPULAR_PHUKET → группированный рендер с флагами; chips приоритет над list при пустом input
+- `MobileSearchBottomSheet.jsx` — кнопка "Везде" + 3 группы по странам
+- Новые keys в `common.js`: `popularDestinations`, `locationLabel` × 4 языка
+- BUG FIX (post-test): клик на "Москва" больше не показывает slug "moscow", через `overrideLabelRef` — подтверждено скриншот-тестом
+
+#### 3. Listing Form Country/Region/City Cascade (✅)
+- `/app/lib/geo/country-presets.js` — source-of-truth для географической иерархии:
+  - 4 страны: TH (Пхукет/Бангкок/Самуи/Краби), RU (Москва/СПб/Сочи), ID (Бали/Денпасар), AE (Дубай)
+  - Каждая с regions → cities → districts × 4 языка
+- `wizard-constants.js` — defaults: `country: 'TH'`, `region: 'TH-PHK'`, `city: 'phuket-city'`
+- `StepLocation.jsx` — 3 каскадных Select; смена страны сбрасывает нижестоящие уровни и подгружает районы
+- Новые i18n ключи: `country`, `region`, `city`, `districtHintGlobal` × 4 языка
+
+#### 4. Multi-language /about и /terms (✅)
+- `/app/components/about/AboutContent.jsx` — клиентский компонент с useI18n, 4 языковых пакета
+- `/app/components/terms/TermsContent.jsx` — то же для /terms (7 секций × 4 языка)
+- Server pages теперь только устанавливают metadata и делегируют UI клиенту
+- В тексте упомянуты GDPR, ФЗ-152 РФ, PDPA Таиланда — для подготовки к глобальной юрисдикции
+
+**Files created:**
+- `/app/lib/locations/popular-destinations.js`
+- `/app/lib/geo/country-presets.js`
+- `/app/components/about/AboutContent.jsx`
+- `/app/components/terms/TermsContent.jsx`
+- `/app/memory/test_credentials.md` (Supabase keys + test users)
+
+**Files modified:**
+- `/app/lib/hooks/useShareListing.js` (UTM)
+- `/app/components/gostaylo-listing-card.jsx` (listingId)
+- `/app/components/search/WhereCombobox.jsx` (groups + override fix)
+- `/app/components/search/MobileSearchBottomSheet.jsx` (groups)
+- `/app/components/home/HomeHeroLuxe.jsx` (language prop + locationLabel/dates i18n)
+- `/app/components/search/UnifiedSearchBar.jsx` (language prop)
+- `/app/app/partner/listings/new/components/StepLocation.jsx` (3 selects)
+- `/app/app/partner/listings/new/wizard-constants.js` (defaults)
+- `/app/lib/translations/common.js` (popularDestinations + locationLabel)
+- `/app/lib/translations/listings-partner.js` (country/region/city/districtHintGlobal)
+- `/app/app/about/page.js` & `/app/app/terms/page.js` (server wrappers)
+
+**Tested (testing_agent_v3 iteration 4):** 95% pass (7/8 runtime, 1 cascade — code review из-за Supabase login недоступности в preview). UTM, WhereCombobox RU/EN, Mobile Sheet, About/Terms × 4 языка — все ✅. LOW bug "Москва → moscow" исправлен и подтверждён.
+
+**Known minor:**
+- TrustBar mobile labels всё ещё содержат "Phuket" — мигрировать на "worldwide"/"globally" в следующем спринте
+- Listing form cascade — нужна реальная проверка через partner login (Supabase auth недоступен в preview)
+
+**Next sprint (Backend):** миграция БД схемы Listings — добавить колонки `country_code`, `region_code`, `city_code` (FK на справочники), сохранить `district` как сабобласть города. Migration helper для существующих Phuket-листингов.
+

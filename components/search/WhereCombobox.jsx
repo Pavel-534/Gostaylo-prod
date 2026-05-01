@@ -34,6 +34,10 @@ export function WhereCombobox({
   const inputRef = useRef(null)
   const listRef = useRef(null)
   const listboxId = useRef(`where-listbox-${Math.random().toString(36).slice(2, 9)}`).current
+  // Override-карта { value → localizedLabel } — нужна когда option.label из API это slug ("moscow"),
+  // а chip принёс локализованную строку ("Москва"). Без этого sync-effect на value→label
+  // перезаписывал бы наш override на slug.
+  const overrideLabelRef = useRef({})
 
   // Синхронизация подписи с выбранным каноническим значением
   useEffect(() => {
@@ -41,7 +45,8 @@ export function WhereCombobox({
       setInputValue('')
       return
     }
-    const label = getOptionLabel(options, value)
+    const override = overrideLabelRef.current?.[value]
+    const label = override || getOptionLabel(options, value)
     setInputValue(label)
   }, [value, options])
 
@@ -66,12 +71,12 @@ export function WhereCombobox({
   }, [highlightedIndex, open, displayed])
 
   const handleSelect = useCallback(
-    (opt) => {
+    (opt, displayLabelOverride) => {
       onChange?.(opt.value)
       if (opt.type === 'all') {
         setInputValue('')
       } else {
-        setInputValue(opt.label)
+        setInputValue(displayLabelOverride || opt.label)
       }
       setOpen(false)
       setHighlightedIndex(-1)
@@ -99,7 +104,8 @@ export function WhereCombobox({
         setHighlightedIndex(-1)
         setInputValue((prev) => {
           if (value === 'all' || !value) return ''
-          return getOptionLabel(options, value) || prev
+          const override = overrideLabelRef.current?.[value]
+          return override || getOptionLabel(options, value) || prev
         })
       }
     }
@@ -170,6 +176,9 @@ export function WhereCombobox({
   // Быстрый выбор локации по chip
   const handleChipSelect = useCallback(
     (chip) => {
+      const localized = chip.labels?.[language] || chip.labels?.en || chip.value
+      // Регистрируем override ДО вызова onChange — чтобы sync-effect использовал его, а не slug.
+      overrideLabelRef.current = { ...overrideLabelRef.current, [chip.value]: localized }
       // Ищем в options по value (предпочтительно) или по любому label
       const labelEn = chip.labels?.en?.toLowerCase() || ''
       const valLower = chip.value?.toLowerCase() || ''
@@ -180,11 +189,12 @@ export function WhereCombobox({
           (o.label || '').toLowerCase().includes(valLower),
       )
       if (found) {
-        handleSelect(found)
+        // override visible label с локализованной строкой chip
+        handleSelect(found, localized)
       } else {
         // Фолбэк: ставим slug + локализованную надпись (динамика готова к расширению options)
         onChange?.(chip.value)
-        setInputValue(chip.labels?.[language] || chip.labels?.en || chip.value)
+        setInputValue(localized)
         setOpen(false)
       }
     },
