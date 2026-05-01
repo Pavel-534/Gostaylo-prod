@@ -410,7 +410,7 @@ export default function AdminLayout({ children }) {
       <main
         className={cn(
           'w-full max-w-full flex-1 overflow-x-hidden lg:ml-64 lg:pt-0',
-          UNIFIED_HEADER_ENABLED ? 'pt-[var(--app-header-height,56px)]' : 'pt-14',
+          UNIFIED_HEADER_ENABLED ? 'pt-[var(--app-header-height,64px)]' : 'pt-14',
           isAdminMessagesSection &&
             'flex min-h-0 flex-col overflow-hidden max-lg:flex-1'
         )}

@@ -573,7 +573,7 @@ export default function PartnerLayout({ children }) {
           className={
             'flex-1 lg:ml-64 w-full min-w-0 max-w-full overflow-x-hidden ' +
             (UNIFIED_HEADER_ENABLED
-              ? 'pt-[var(--app-header-height,56px)] lg:pt-0'
+              ? 'pt-[var(--app-header-height,64px)] lg:pt-0'
               : 'pt-14 lg:pt-0')
           }
         >

@@ -1224,3 +1224,59 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - Modified: `/app/app/layout.js`, `/app/app/renter/layout.js`, `/app/components/main-content.jsx`
 - `.env` + `frontend/.env`: `NEXT_PUBLIC_UNIFIED_HEADER=on`
 
+
+### 37. Unified Header — Step 3 + Scroll Polish (2026-02-05)
+
+**Sprint ship status:** ✅ testing iteration_10 = 8/9 PASS (1 partial — mobile sidebar, explicitly allowed by spec). 89% success rate. Build 97s green.
+
+**Delivered:**
+
+1. **Partner + Admin migration:**
+   - `/app/app/partner/layout.js`: legacy white mobile header обёрнут в `!UNIFIED_HEADER_ENABLED`, заменён на `<AppHeader variant="workspace" onMenuClick={setSidebarOpen} />`. Main `pt-14` → `pt-[var(--app-header-height,64px)] lg:pt-0`.
+   - `/app/app/admin/layout.js`: **dark slate-900 gradient header УДАЛЁН** из default-пути (обёрнут в `!UNIFIED_HEADER_ENABLED`), заменён на `<AppHeader variant="workspace" />`. AdminImpersonationStripe теперь единственный источник акцента (красная pill-полоса). Main padding тоже на var(--app-header-height).
+   - Testing confirmed: `legacy_count=0` для обоих патернов (`bg-white border-slate-200 z-30 lg:hidden` и `from-slate-900`).
+
+2. **Dynamic spacing — CSS var `--app-header-height`:**
+   - `/app/components/app-header/AppHeader.jsx`: `ResizeObserver` измеряет `<header>` и записывает высоту в `document.documentElement.style` как `--app-header-height`.
+   - Re-runs при изменении pathname / impersonation state.
+   - Покрывает случай с AdminImpersonationStripe: когда stripe активна → header = 65+28 = 93px → `var` = '93px' → main-content корректно отступает.
+   - `/app/components/main-content.jsx` + partner/admin main: используют `var(--app-header-height, 64px)` (fallback 64 — выровнено с реальной высотой 65px).
+   - Testing confirmed: cssVar='65px' на / и /listings, wrapper padding применён корректно без двойных отступов.
+
+3. **ScrollProgressBar** — `/app/components/app-header/ScrollProgressBar.jsx` (63 LOC):
+   - 2px teal gradient (`from-[#006666] via-[#14a8a8] to-[#5dd8d5]`) с мягким glow shadow.
+   - `requestAnimationFrame` throttled scroll handler.
+   - Скрыт на коротких страницах (`scrollHeight - clientHeight < 100`).
+   - `transition-[width] 150ms ease-out` — премиальная плавность.
+   - Прогрессия в тестах: 0 → 14.27% (300px scroll) → 100% (bottom). PASS.
+   - Data-testid: `app-header-scroll-progress`.
+
+4. **UserMenuDropdown split** — `/app/components/app-header/UserMenuDropdown.jsx` (164 LOC):
+   - Вынесены avatar, dropdown items (Profile/Bookings/Messages/Referral/Favorites), Admin/Partner shortcuts, Logout.
+   - Сам хэндлит `if (!user)` → Login-button.
+   - `AppHeader.jsx` уменьшен с 380 → **279 LOC** (ниже порога 300).
+   - SRP чистый: AppHeader = layout/variants, UserMenuDropdown = user-interaction.
+
+5. **Minor polish:**
+   - `Destinations` link разделён: `/listings?group=destinations` (вместо прежнего дубля `/listings`) — фиксит одновременное active-состояние у двух nav-links.
+   - Active-detection учитывает query string (`window.location.search.includes('group=destinations')`).
+
+**Files created/modified:**
+- Created: `/app/components/app-header/UserMenuDropdown.jsx`, `ScrollProgressBar.jsx`
+- Modified: `AppHeader.jsx` (split), `main-content.jsx` (partner/admin exclusion), `app/partner/layout.js`, `app/admin/layout.js`
+
+**Verified (iteration_10):**
+- `/`, `/listings`, `/help` → `[data-testid=app-header-public]`, `--app-header-height='65px'`, scroll-progress teal gradient работает ✅
+- `/partner/dashboard`, `/admin` → legacy-headers count=0 (dark gradient исчез) ✅
+- AppHeader.jsx split clean (266→279 LOC после active-logic patch), UserMenuDropdown separate, ScrollProgressBar separate ✅
+- Mobile menu-btn testid присутствует на workspace pages ✅
+
+**Pending:**
+- Step 4: `/messages/*` → `<AppHeader variant=chat />` wrapping StickyChatHeader.
+- Step 5: cleanup — удалить `universal-header.jsx`, legacy blocks, feature flag.
+
+**Code review notes (testing agent):**
+- 279 LOC AppHeader.jsx — clean SRP.
+- `--app-header-height` ResizeObserver корректно покрывает impersonation stripe (iteration_9 concern закрыт).
+- No double-padding detected.
+

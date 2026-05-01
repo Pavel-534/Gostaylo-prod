@@ -73,7 +73,7 @@ function getWorkspaceTitle(pathname, language) {
 
 const PUBLIC_NAV = [
   { href: '/listings', key: 'navListings' },
-  { href: '/listings', key: 'navDestinations' },
+  { href: '/listings?group=destinations', key: 'navDestinations' },
   { href: '/profile/referral', key: 'navMembership' },
   { href: '/help', key: 'navHelp' },
 ]
@@ -200,10 +200,23 @@ export function AppHeader({
           {isPublic && (
             <nav className="hidden lg:flex flex-1 items-center gap-6">
               {PUBLIC_NAV.map((item, idx) => {
-                const active =
-                  (item.href === '/listings' && (pathname === '/listings' || pathname?.startsWith('/listings/'))) ||
-                  (item.href === '/profile/referral' && pathname?.startsWith('/profile/referral')) ||
-                  (item.href === '/help' && pathname?.startsWith('/help'))
+                // Извлекаем query group для точного active-detection
+                const [itemPath, itemQuery] = item.href.split('?')
+                const hasDestQuery = itemQuery?.includes('group=destinations')
+
+                let active = false
+                if (item.href === '/profile/referral') {
+                  active = pathname?.startsWith('/profile/referral')
+                } else if (item.href === '/help') {
+                  active = pathname?.startsWith('/help')
+                } else if (itemPath === '/listings') {
+                  const onListings = pathname === '/listings' || pathname?.startsWith('/listings/')
+                  if (hasDestQuery) {
+                    active = onListings && typeof window !== 'undefined' && window.location.search.includes('group=destinations')
+                  } else {
+                    active = onListings && !(typeof window !== 'undefined' && window.location.search.includes('group=destinations'))
+                  }
+                }
                 return (
                   <Link
                     key={`${item.href}-${idx}`}
