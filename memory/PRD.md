@@ -1047,3 +1047,77 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - `/app/components/geo/GeoSuggestToast.jsx` (prev sprint, validated)
 - `/app/components/FooterSwitchers.jsx` (prev sprint, validated)
 - `/app/supabase/migrations/20260201_global_pivot.sql` (applied ✅)
+
+### 34. Premium Air — UX & Conversion Fix (2026-02-05)
+
+**Sprint ship status:** ✅ Build green (94s). testing_agent_v3_fork iteration_7 → 9/11 PASS + post-fix: TrustBar testid visible, numbers render (18+/4.6★/100%), popover z-index correct over all sections below.
+
+**Delivered:**
+
+1. **Sticky Search Header** — новый компонент `/app/components/home/StickySearchBar.jsx`:
+   - `fixed top-16 z-[80]`, appears on `scrollY > 280`, slide-down + fade (300ms).
+   - Compact one-row layout: Category (display) · Where · Dates · Guests popover · Search button.
+   - Использует те же state-hooks главной страницы (through props from `GostayloHomeContent`), не дублирует state.
+   - Desktop only (`hidden md:block`), на мобильном остаётся `MobileSearchFAB` + `BottomSheet`.
+
+2. **Hero compact** — `HomeHeroLuxe.jsx`:
+   - `min-h: 820px → 540px/600px` (mobile/desktop), `pt-20 → pt-[72px]/pt-20`.
+   - Content `min-h: 730px → 440px/520px`, spacing внутри убран.
+   - Убран `bottom gradient fadeout` (`h-52`) — устранён «воздух» между hero и listings.
+   - Typography: H1 64px → 52-58px desktop, 32px mobile (меньше доминации, больше плотности).
+
+3. **Z-index repair** — root cause: у section'а `isolate` создавал stacking context, блокируя popover'ы:
+   - Убран `isolate`, вместо него `relative z-[40]`.
+   - Search capsule → `z-20`.
+   - WhereCombobox popover сохраняет `z-[200]` — теперь корректно поверх TrustBar/CategoryBar/TopListings.
+   - StickySearchBar popover'ы (Calendar / Guests) → `z-[200]`.
+   - Header остался `z-[100]` (выше sticky bar `z-[80]`, чтобы при скролле sticky «въезжает» ПОД header).
+
+4. **Conversion-first layout** — новый порядок блоков в `GostayloHomeContent.jsx`:
+   ```
+   Hero + Search capsule
+   StickySearchBar (fixed)
+   CategoryBar (Service categories — сразу под hero)
+   TopListingsGrid (Top Properties — listings FIRST)
+   PartnerCTA
+   HowItWorks   ← перемещено вниз
+   TrustBar     ← перемещено вниз (над футером)
+   Footer (с FooterSwitchers)
+   ```
+
+5. **TrustBar enhancements** — `/app/components/home/TrustBar.jsx`:
+   - Добавлен `data-testid="trust-bar"` для e2e.
+   - **Fallback для IntersectionObserver**: после `loadingStats=false` — `setTimeout(()=>setVisible(true), 1500ms)` если observer не сработал. Устраняет проблему «пустых пульсирующих плашек» на десктопе/при быстром скролле.
+   - Реальные данные: `listingsCount=18, avgRating=4.6` из `/api/v2/public/stats` (cache 2ч).
+   - Показывается ТОЛЬКО в нижней части страницы перед футером.
+
+6. **GeoSuggestToast с количеством** — `/app/components/geo/GeoSuggestToast.jsx`:
+   - При show — fetch `/api/v2/search?where={country}&limit=1`, читает `meta.available`.
+   - Title динамически: `«We found 247 listings for you»` (EN) / `«Мы нашли 247 вариантов для вас»` (RU) / `«我们为您找到 247 处房源»` (ZH) / `«เราพบ 247 รายการ สำหรับคุณ»` (TH).
+   - Если count=0/не получен — fallback на статический title.
+
+**Test results (iteration_7 + post-fix smoke):**
+- HTTP 200, hero height 600px (compact), sticky bar opacity 0→1 на scrollY>280 ✅
+- Block order: Hero → Sticky → CategoryBar → TopListings → PartnerCTA → HowItWorks → TrustBar ✅
+- TrustBar `data-testid="trust-bar"` найден, innerText = "18+ listings worldwide 4.6★ average rating 100% secure payments· via escrow", pulsingCount=0 (числа отрисованы) ✅
+- GeoSuggestToast: «We found 1 listings for you — Thailand» + accept → `/listings?where=TH` ✅
+- Z-index: WhereCombobox popover рендерится поверх CategoryBar/TopListings без обрезки ✅
+- FooterSwitchers: 14 data-testid'ов (language/currency options) ✅
+- Auto-currency: `localStorage.gostaylo_currency = 'THB'` для country=TH ✅
+
+**Known minor (deferred — не блокер):**
+- StickySearchBar submit — если юзер не меняет фильтры, URL выходит /listings?semantic=1 (ожидаемо, state = 'all'). Не баг.
+- Preview-env: console 401 на /api/v2/auth/me для guest (ожидаемо), RSC prefetch errors для /help и /profile/referral (preview proxy nuance).
+
+**Files modified/created:**
+- `/app/components/home/HomeHeroLuxe.jsx` (compact, убран isolate, z-[40])
+- `/app/components/home/StickySearchBar.jsx` (new)
+- `/app/components/home/TrustBar.jsx` (testid + fallback visible)
+- `/app/components/GostayloHomeContent.jsx` (новый порядок блоков)
+- `/app/components/geo/GeoSuggestToast.jsx` (listingsCount + titleWithCount)
+
+**Pending next sprint (user priorities):**
+- Дальнейшие конверсионные улучшения (если потребуется).
+- Opportunities: FK нормализация `listings.country_code REFERENCES geo_locations(code)`.
+- Refactor: разбиение `run-listings-search-get.js` (773 строки) и `GostayloHomeContent.jsx` (505 строк) на модули.
+

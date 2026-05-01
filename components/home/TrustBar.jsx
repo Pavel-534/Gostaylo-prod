@@ -120,6 +120,15 @@ export function TrustBar({ language = 'ru', locationContext = 'all' }) {
     return () => observer.disconnect()
   }, [])
 
+  // Fallback: after stats loaded, flip visible to true within 1.5s if observer didn't fire.
+  // Защищает от случаев когда observer не срабатывает (viewport уже revealed, zoom, и т.п.)
+  useEffect(() => {
+    if (loadingStats) return
+    if (visible) return
+    const t = setTimeout(() => setVisible(true), 1500)
+    return () => clearTimeout(t)
+  }, [loadingStats, visible])
+
   // Fetch live stats from public API
   useEffect(() => {
     let cancelled = false
