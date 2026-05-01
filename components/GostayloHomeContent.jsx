@@ -133,6 +133,7 @@ export function GostayloHomeContent() {
 
       try {
         const params = new URLSearchParams({ limit: '12', featured: 'true' })
+        params.set('softAvailability', '0')
         if (selectedCategory && selectedCategory !== 'all') params.set('category', selectedCategory)
         if (where && where !== 'all') params.set('where', where)
         if (dateRange.from && dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
@@ -211,6 +212,7 @@ export function GostayloHomeContent() {
       setCountLoading(true)
       try {
         const params = new URLSearchParams({ limit: '50' })
+        params.set('softAvailability', '0')
         if (cat && cat !== 'all') params.set('category', cat)
         if (w && w !== 'all') params.set('where', w)
         if (dr?.from && dr?.to && !isSameDay(dr.from, dr.to)) {

@@ -99,6 +99,10 @@ export function TopListingsGrid({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {listings.map((listing, idx) => {
+              const promoBadgeText =
+                listing.catalog_promo_badge && typeof listing.catalog_promo_badge === 'object'
+                  ? String(listing.catalog_promo_badge.label || '')
+                  : (listing.catalog_promo_badge || '')
               const listingParams = new URLSearchParams()
               if (dateRange.from) listingParams.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
               if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
@@ -149,13 +153,13 @@ export function TopListingsGrid({
                           {language === 'ru' ? 'Уточняйте доступность' : 'Check availability'}
                         </Badge>
                       )}
-                      {(listing.catalog_flash_urgency || listing.catalog_promo_badge) && (
+                      {(listing.catalog_flash_urgency || promoBadgeText) && (
                         <Badge
                           data-testid={`listing-flash-deal-${listing.id}`}
                           className="absolute bottom-2 left-2 flex items-center gap-1 border-0 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[10px] font-bold px-2 py-1 shadow-[0_4px_12px_rgba(225,29,72,0.35)] animate-[pulse_2.2s_ease-in-out_infinite]"
                         >
                           <Flame className="h-3 w-3" aria-hidden />
-                          {listing.catalog_promo_badge || (language === 'ru' ? 'FLASH' : 'FLASH')}
+                          {promoBadgeText || (language === 'ru' ? 'FLASH' : 'FLASH')}
                         </Badge>
                       )}
                       {listing.catalog_flash_social_proof && (
