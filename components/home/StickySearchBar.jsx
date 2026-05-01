@@ -37,8 +37,17 @@ const APPEAR_SCROLL_PX = 280
 /** Находим локализованный label для where-значения из плоского списка опций */
 function resolveWhereLabel(whereValue, options) {
   if (!whereValue || whereValue === 'all') return null
-  const match = (options || []).find((o) => o.value === whereValue)
-  return match?.label || whereValue
+  const v = String(whereValue).toLowerCase()
+  const match = (options || []).find((o) => String(o.value).toLowerCase() === v)
+  if (match?.label) return match.label
+  // Fallback: title-case raw value ('phuket' → 'Phuket', 'koh-samui' → 'Koh Samui')
+  return String(whereValue)
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w))
+    .join(' ')
 }
 
 /** Форматирование диапазона дат: «12–19 мая» / «May 12–19» / «12 May – 3 Jun» */

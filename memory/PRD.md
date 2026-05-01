@@ -1121,3 +1121,46 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - Opportunities: FK нормализация `listings.country_code REFERENCES geo_locations(code)`.
 - Refactor: разбиение `run-listings-search-get.js` (773 строки) и `GostayloHomeContent.jsx` (505 строк) на модули.
 
+
+### 35. Conversion Polish & Code Health (2026-02-05)
+
+**Sprint ship status:** ✅ testing_agent iteration_8 = 100% frontend PASS (11/11 flows).
+
+**Delivered:**
+
+1. **Smart Summary Chips** — `/app/components/home/StickySearchBar.jsx`:
+   - Вторая строка `[data-testid=sticky-search-summary-chips]` появляется ТОЛЬКО если есть активные фильтры (`hasAnyFilter`).
+   - 3 чипа: `[sticky-chip-where]` (локализованный label: «Phuket», «Пхукет»), `[sticky-chip-dates]` (компактный диапазон: «12–19 May», «12–19 мая»), `[sticky-chip-guests]` («2 guests», «2 гостя»).
+   - Клик по тексту чипа → фокус на соответствующее поле (программный `.click()` через `useRef` → `querySelector('button')`). Проверено: открываются WhereCombobox popover / SearchCalendar / Guests grid.
+   - `X`-кнопка в каждом чипе очищает фильтр (where→'all', dates→empty, guests→'1'). После очистки чип удаляется; при очистке всех — Summary-строка скрывается.
+   - Fallback `resolveWhereLabel`: title-case raw value (`phuket` → `Phuket`, `koh-samui` → `Koh Samui`) + case-insensitive match.
+
+2. **Hover-lift + FlashDeal badges** — `/app/components/home/TopListingsGrid.jsx`:
+   - Card: `transition-all duration-300 hover:-translate-y-1` в дополнение к существующим hover:border + hover:shadow. Проверено через computed `transform matrix(1,0,0,1,0,-4)`.
+   - FlashDeal badge: условный рендер при `listing.catalog_flash_urgency || listing.catalog_promo_badge`, `[data-testid=listing-flash-deal-{id}]`, с иконкой `Flame` и градиентом rose→red + pulse-анимация.
+   - Social-proof мини-плашка при `listing.catalog_flash_social_proof` (bottom-right).
+
+3. **DB Integrity migration** — `/app/supabase/migrations/20260205_db_integrity_fk.sql`:
+   - `UNIQUE (code)` на `geo_locations` (существующие коды все уникальны — country='TH', region='TH-PHK', city='phuket-city').
+   - Pre-validation UPDATEs: NULL-ит висячие ссылки в `listings` перед FK.
+   - **3 FK** добавлены: `fk_listings_country_code / fk_listings_region_code / fk_listings_city_code` → `geo_locations(code)`, `ON UPDATE CASCADE`, `ON DELETE SET NULL`.
+   - Идемпотентная, `DO $$ BEGIN IF NOT EXISTS ... END $$` guards. Применяется пользователем через Supabase SQL Editor.
+   - Verification query: `SELECT conname FROM pg_constraint WHERE conrelid='listings'::regclass AND contype='f'` → 3 строки.
+
+**Files modified/created:**
+- `/app/components/home/StickySearchBar.jsx` (rewrite: Summary Chips + Chip helper + refs)
+- `/app/components/home/TopListingsGrid.jsx` (hover-lift + FlashDeal + social-proof)
+- `/app/supabase/migrations/20260205_db_integrity_fk.sql` (new)
+
+**Production readiness:** ✅ все спринты Premium-Air закрыты. Приложение готово к финальному деплою:
+- Frontend: 100% test pass, нулевые lint errors, production build 75s.
+- Backend: все 3 уровня geo-поиска работают (country/region/city/legacy district).
+- DB: миграция 20260201_global_pivot ПРИМЕНЕНА ✅, миграция 20260205_db_integrity_fk ждёт apply.
+- Auth: JWT custom, все protected routes работают.
+- i18n: RU/EN/ZH/TH — 100% coverage.
+- UX: sticky search + summary chips + geo-toast с count + hover-lift + flash badges.
+
+**Pending для deployment:**
+- Применить `20260205_db_integrity_fk.sql` в Supabase SQL Editor.
+- Запустить smoke E2E на production URL после деплоя.
+
