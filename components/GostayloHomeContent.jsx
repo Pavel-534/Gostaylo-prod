@@ -24,6 +24,7 @@ import { hasCategoryParent } from '@/lib/config/category-hierarchy'
 import { useHomeFilters } from '@/components/home/useHomeFilters'
 import { HomeHeroLuxe } from '@/components/home/HomeHeroLuxe'
 import { CategoryBar } from '@/components/home/CategoryBar'
+import { HowItWorks } from '@/components/home/HowItWorks'
 import { TopListingsGrid } from '@/components/home/TopListingsGrid'
 import { TrustBar } from '@/components/home/TrustBar'
 
@@ -376,6 +377,9 @@ export function GostayloHomeContent() {
         onCategorySelect={onCategorySelect}
         markMediaFailed={markMediaFailed}
       />
+
+      {/* How It Works — между категориями и листингами */}
+      <HowItWorks language={language} />
 
       <TopListingsGrid
         language={language}

@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { GostayloListingCard } from '@/components/gostaylo-listing-card';
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw, Loader2, List as ListIcon, Map as MapIcon } from 'lucide-react';
+import { AlertCircle, RefreshCw, Loader2, List as ListIcon, Map as MapIcon, CalendarX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getUIText } from '@/lib/translations';
 import { isTransportListingCategory } from '@/lib/listing-category-slug';
@@ -85,6 +85,10 @@ function ListingSidebarComponent({
     );
   }
   
+  // ── Soft Fallback Banner ──────────────────────────────────────────────────────
+  // Показывается над карточками когда сработал автоматический fallback-поиск.
+  const isSoftFallback = meta?.isSoftFallback === true && listings.length > 0
+
   // Empty State
   if (!error && listings.length === 0) {
     const unavailText = meta?.filteredOutByAvailability > 0
@@ -144,7 +148,34 @@ function ListingSidebarComponent({
           )}
         </Button>
       </div>
-      
+
+      {/* Soft Fallback Banner — показываем когда точный поиск дал 0, но есть похожие */}
+      {isSoftFallback && (
+        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-3">
+          <CalendarX className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800">
+              {language === 'ru'
+                ? 'На выбранные даты нет свободных объектов'
+                : language === 'zh'
+                  ? '所选日期没有可用房源'
+                  : language === 'th'
+                    ? 'ไม่มีที่พักว่างสำหรับวันที่เลือก'
+                    : 'No listings available for selected dates'}
+            </p>
+            <p className="mt-0.5 text-xs text-amber-700">
+              {language === 'ru'
+                ? 'Показываем все объекты — уточните доступность напрямую у партнёра.'
+                : language === 'zh'
+                  ? '显示所有房源 — 请直接向合作伙伴确认可用性。'
+                  : language === 'th'
+                    ? 'แสดงที่พักทั้งหมด — กรุณาตรวจสอบความพร้อมกับพาร์ทเนอร์โดยตรง'
+                    : 'Showing all listings — please confirm availability with the partner directly.'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Listings Grid */}
       <div className={cn(
         "flex-1",

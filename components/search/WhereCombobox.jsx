@@ -3,12 +3,23 @@
 /**
  * Поле «Куда» в стиле Airbnb: ввод в строке + подсказки (RU/EN/ZH/TH).
  * Клавиатура: ↑↓ навигация, Enter — выбор, Esc — закрыть.
+ * Quick Chips: популярные локации Пхукета показываются при пустом поле.
  */
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { MapPin, X, Loader2 } from 'lucide-react'
 import { filterWhereOptions, getOptionLabel } from '@/lib/locations/where-options'
 import { cn } from '@/lib/utils'
+
+/** Популярные локации Пхукета — статичный список для быстрого выбора */
+const POPULAR_PHUKET = [
+  { labelKey: 'Patong',   value: 'patong'   },
+  { labelKey: 'Bang Tao', value: 'bang_tao' },
+  { labelKey: 'Kamala',   value: 'kamala'   },
+  { labelKey: 'Rawai',    value: 'rawai'    },
+  { labelKey: 'Kata',     value: 'kata'     },
+  { labelKey: 'Karon',    value: 'karon'    },
+]
 
 export function WhereCombobox({
   options,
@@ -155,6 +166,28 @@ export function WhereCombobox({
 
   const isHero = variant === 'hero'
   const showList = open && !loading && displayed.length > 0
+  // Показываем chips когда открыто, поле пустое, нет текста фильтрации
+  const showQuickChips = open && !loading && inputValue.trim() === '' && !showList
+
+  // Быстрый выбор локации по chip
+  const handleChipSelect = useCallback(
+    (chip) => {
+      // Ищем в options по частичному совпадению label
+      const lowerKey = chip.labelKey.toLowerCase()
+      const found = options.find(
+        (o) => o.label?.toLowerCase().includes(lowerKey) || o.value?.toLowerCase().includes(chip.value)
+      )
+      if (found) {
+        handleSelect(found)
+      } else {
+        // Фолбэк: ставим как есть
+        onChange?.(chip.value)
+        setInputValue(chip.labelKey)
+        setOpen(false)
+      }
+    },
+    [options, handleSelect, onChange]
+  )
 
   return (
     <div
@@ -250,6 +283,39 @@ export function WhereCombobox({
             )
           })}
         </ul>
+      )}
+
+      {/* Quick Chips — популярные локации при пустом поле */}
+      {showQuickChips && (
+        <div
+          className={cn(
+            'absolute left-0 top-full z-[200] mt-1 rounded-xl border border-slate-200 bg-white p-3 shadow-xl',
+            isHero ? 'min-w-[min(100vw-2rem,22rem)]' : 'right-0 min-w-48'
+          )}
+        >
+          <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+            Phuket
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {POPULAR_PHUKET.map((chip) => (
+              <button
+                key={chip.value}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleChipSelect(chip)}
+                className={cn(
+                  'flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150',
+                  value === chip.value
+                    ? 'border-teal-400 bg-teal-50 text-teal-700'
+                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-teal-300 hover:bg-teal-50/60 hover:text-teal-700'
+                )}
+              >
+                <MapPin className="h-3 w-3 shrink-0 text-teal-500" aria-hidden />
+                {chip.labelKey}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   )
