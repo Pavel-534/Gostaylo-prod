@@ -81,6 +81,7 @@ export default function GeoSuggestToast() {
   const router = useRouter()
   const [visible, setVisible] = useState(false)
   const [closing, setClosing] = useState(false)
+  const [listingsCount, setListingsCount] = useState(null)
 
   useEffect(() => {
     // Показываем ТОЛЬКО на главной
@@ -96,9 +97,20 @@ export default function GeoSuggestToast() {
       /* SSR guard */
     }
 
+    // Pre-fetch live count — «We found 247 listings in X»
+    let cancelled = false
+    fetch(`/api/v2/search?where=${encodeURIComponent(geo.where)}&limit=1`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return
+        const n = data?.data?.meta?.available
+        if (typeof n === 'number' && n > 0) setListingsCount(n)
+      })
+      .catch(() => {})
+
     // Delay 3 sec — не перебиваем первое впечатление
     const timer = setTimeout(() => setVisible(true), 3000)
-    return () => clearTimeout(timer)
+    return () => { clearTimeout(timer); cancelled = true }
   }, [pathname, isResolved, country])
 
   const dismiss = () => {
@@ -129,6 +141,21 @@ export default function GeoSuggestToast() {
   const s = STRINGS[language] || STRINGS.ru
   const placeLabel = geo.label[language] || geo.label.en
 
+  // Format count with thin space as thousand separator (ru/th style)
+  const fmtCount = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f')
+  const countPrefix = listingsCount && listingsCount > 0
+    ? { ru: `${fmtCount(listingsCount)} вариантов`, en: `${fmtCount(listingsCount)} listings`, zh: `${fmtCount(listingsCount)} 处房源`, th: `${fmtCount(listingsCount)} รายการ` }
+    : null
+  const titleWithCount = countPrefix
+    ? (language === 'ru'
+        ? `Мы нашли ${countPrefix.ru} для вас`
+        : language === 'zh'
+          ? `我们为您找到 ${countPrefix.zh}`
+          : language === 'th'
+            ? `เราพบ ${countPrefix.th} สำหรับคุณ`
+            : `We found ${countPrefix.en} for you`)
+    : s.title
+
   return (
     <div
       data-testid="geo-suggest-toast"
@@ -154,8 +181,8 @@ export default function GeoSuggestToast() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <p className="font-serif text-lg font-semibold tracking-tight text-slate-900 leading-tight">
-                {s.title}
+              <p className="font-serif text-lg font-semibold tracking-tight text-slate-900 leading-tight" data-testid="geo-suggest-title">
+                {titleWithCount}
               </p>
               <button
                 type="button"

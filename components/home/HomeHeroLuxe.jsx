@@ -72,33 +72,33 @@ export function HomeHeroLuxe({
 
   return (
     <section
-      className="relative isolate min-h-[820px] pt-20"
+      data-hero-search
+      className="relative z-[40] min-h-[540px] pt-[72px] sm:min-h-[600px] sm:pt-20"
       style={{ backgroundImage: `url(${HERO_BACKGROUND_IMAGE})`, backgroundSize: 'cover', backgroundPosition: 'center top' }}
     >
       {/* Cinematic layered overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/30 to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/10" />
-      <div className="absolute inset-x-0 bottom-0 h-52 bg-gradient-to-b from-transparent to-[#f7f9fb]" />
 
-      {/* Content layer */}
-      <div className="relative z-10 mx-auto flex min-h-[730px] w-full max-w-[1280px] flex-col items-center justify-center px-6 text-center">
+      {/* Content layer — compact: search capsule вплотную к хедеру */}
+      <div className="relative z-10 mx-auto flex min-h-[440px] w-full max-w-[1280px] flex-col items-center justify-start px-4 pt-6 text-center sm:min-h-[520px] sm:px-6 sm:pt-10">
 
-        {/* Editorial headline */}
-        <div className="mb-6 space-y-2">
-          <h1 className="max-w-3xl font-serif text-[44px] font-semibold leading-[1.1] tracking-[-0.01em] text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)] sm:text-[64px] sm:leading-[1.06]">
+        {/* Editorial headline — сжато, без subtitle-отступа */}
+        <div className="mb-5 space-y-1 sm:mb-6">
+          <h1 className="max-w-3xl font-serif text-[32px] font-semibold leading-[1.08] tracking-[-0.01em] text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)] sm:text-[52px] sm:leading-[1.06] lg:text-[58px]">
             {getUIText('heroTitle', language)}{' '}
             <span className="bg-gradient-to-r from-[#a2f0ef] to-[#5dd8d5] bg-clip-text font-bold italic text-transparent">
               {getUIText('heroTitleHighlight', language)}
             </span>
           </h1>
-          <p className="text-[15px] font-medium text-white/80 drop-shadow-sm sm:text-base">
-            <MapPin className="mr-1 inline-block h-4 w-4 text-[#a2f0ef]" />
+          <p className="text-[13px] font-medium text-white/85 drop-shadow-sm sm:text-sm">
+            <MapPin className="mr-1 inline-block h-3.5 w-3.5 text-[#a2f0ef]" />
             {getUIText('heroSubtitle', language)}
           </p>
         </div>
 
         {/* Search capsule */}
-        <div className="w-full max-w-4xl rounded-[28px] border border-white/70 bg-white/98 p-2 shadow-[0_44px_100px_rgba(0,24,24,0.38),0_18px_42px_rgba(0,102,102,0.22)] backdrop-blur-sm transition-all duration-300 focus-within:shadow-[0_44px_100px_rgba(0,24,24,0.45),0_0_0_3px_rgba(0,102,102,0.18)] focus-within:-translate-y-0.5">
+        <div className="relative z-20 w-full max-w-4xl rounded-[28px] border border-white/70 bg-white/98 p-2 shadow-[0_44px_100px_rgba(0,24,24,0.38),0_18px_42px_rgba(0,102,102,0.22)] backdrop-blur-sm transition-all duration-300 focus-within:shadow-[0_44px_100px_rgba(0,24,24,0.45),0_0_0_3px_rgba(0,102,102,0.18)] focus-within:-translate-y-0.5">
 
           {/* Keyword row */}
           <div className="mb-2 flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/90 px-3 py-2">

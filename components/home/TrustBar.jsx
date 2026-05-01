@@ -175,6 +175,7 @@ export function TrustBar({ language = 'ru', locationContext = 'all' }) {
       ref={ref}
       role="region"
       aria-label="Platform trust signals"
+      data-testid="trust-bar"
       className="relative border-y border-teal-100/80 bg-gradient-to-r from-teal-50/60 via-white to-teal-50/60"
     >
       <div className="container mx-auto px-4">

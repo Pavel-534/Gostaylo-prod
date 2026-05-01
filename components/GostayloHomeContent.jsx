@@ -23,6 +23,7 @@ import { isTransportIntervalWizardProfile } from '@/lib/config/category-wizard-p
 import { hasCategoryParent } from '@/lib/config/category-hierarchy'
 import { useHomeFilters } from '@/components/home/useHomeFilters'
 import { HomeHeroLuxe } from '@/components/home/HomeHeroLuxe'
+import { StickySearchBar } from '@/components/home/StickySearchBar'
 import { CategoryBar } from '@/components/home/CategoryBar'
 import { HowItWorks } from '@/components/home/HowItWorks'
 import { TopListingsGrid } from '@/components/home/TopListingsGrid'
@@ -373,9 +374,20 @@ export function GostayloHomeContent() {
         countLoading={countLoading}
       />
 
-      {/* Trust Bar — social proof под hero, над категориями */}
-      <TrustBar language={language} locationContext={where || 'all'} />
+      {/* Sticky search — появляется при скролле, поверх контента */}
+      <StickySearchBar
+        language={language}
+        category={selectedCategory}
+        where={where}
+        setWhere={setWhere}
+        dateRange={dateRange}
+        setDateRange={handleDateChange}
+        guests={guests}
+        setGuests={setGuests}
+        onSearch={handleSearch}
+      />
 
+      {/* Category filters — сразу под hero, для фильтрации grid'а */}
       <CategoryBar
         language={language}
         categories={categoryBarRoots}
@@ -384,9 +396,7 @@ export function GostayloHomeContent() {
         markMediaFailed={markMediaFailed}
       />
 
-      {/* How It Works — между категориями и листингами */}
-      <HowItWorks language={language} />
-
+      {/* Listings Grid — конверсия first, юзер видит объявления сразу */}
       <TopListingsGrid
         language={language}
         dateRange={dateRange}
@@ -405,8 +415,14 @@ export function GostayloHomeContent() {
         onViewAll={handleSearch}
       />
 
-      {/* Partner CTA перед футером */}
+      {/* Partner CTA — после listings */}
       <PartnerCTA language={language} />
+
+      {/* How It Works — контент-блок перемещён вниз (текст после воронки) */}
+      <HowItWorks language={language} />
+
+      {/* Trust Bar — social proof у footer'а */}
+      <TrustBar language={language} locationContext={where || 'all'} />
 
       {/* Mobile Floating Search — FAB появляется на скролле, Bottom Sheet при нажатии */}
       <MobileSearchFAB

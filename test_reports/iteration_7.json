@@ -1,0 +1,72 @@
+{
+  "summary": "Frontend-only UI/UX testing of Sprint 'Premium Air: UX & Conversion Fix'. Validated all 11 acceptance criteria on http://localhost:3000/. 9 of 11 PASS; 2 FAIL around TrustBar rendering (missing data-testid in DOM + numbers stuck in pre-visible skeleton state).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "home/TrustBar.jsx",
+        "issue": "data-testid=\"trust-bar\" attribute NOT present in rendered DOM although source code at line 178 defines it. querySelectorAll('[data-testid=\"trust-bar\"]') returns 0 matches after scrolling to bottom. The element IS rendered (role='region', matching Tailwind classes 'relative border-y border-teal-100/80 bg-gradient-to-r from-teal-50/60 via-white ...') but the test-id attribute is stripped. Likely stale Next.js build — needs `rm -rf .next && yarn dev` (or supervisor restart of frontend) to pick up TrustBar.jsx changes.",
+        "selector": "[data-testid=\"trust-bar\"]",
+        "priority": "HIGH"
+      },
+      {
+        "component": "home/TrustBar.jsx",
+        "issue": "After /api/v2/public/stats loads (verified API returns {listingsCount:18, avgRating:4.6, success:true}), TrustBar shows labels ('listings worldwide', 'average rating', 'secure payments · via escrow') but NUMBERS stay as empty animated-pulse bars (green skeleton boxes) because the IntersectionObserver `visible` state is never set to true. Spec explicitly forbids empty skeleton bars after load: 'без пустых skeleton bars после загрузки'. Observer config: threshold 0.05, rootMargin '0px 0px 200px 0px'. Repro: scroll to bottom of page on desktop 1920x900 — numbers remain as pulsating placeholders instead of animated counters showing 18 / 4.6 / 100%.",
+        "selector": "[data-testid=\"trust-bar\"] span.animate-pulse",
+        "priority": "HIGH"
+      },
+      {
+        "component": "StickySearchBar submit",
+        "issue": "Click on [data-testid=sticky-search-submit] navigates to /listings?semantic=1 instead of /listings?where=<country>&guests=1&... — the filters (where/guests/dates) selected via sticky bar are not propagated to URL query. Only the semantic flag is preserved.",
+        "selector": "[data-testid=\"sticky-search-submit\"]",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Page load console errors (preview env)",
+        "issue": "Multiple console errors on / load: 2× 'Failed to load resource: 401 Unauthorized', 'Listings fetch error: TypeError: Failed to fetch', 'Exchange rates fetch error: TypeError: Failed to fetch', 3× 'Failed to fetch RSC payload for /help|/profile/referral|/listings'. Page still renders but spec requires 'рендерится без console errors'. Most appear preview-env specific (auth/RSC), but 'Listings fetch error' and 'Exchange rates fetch error' likely user-facing regression.",
+        "affected_selectors": ["console"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_7.json"],
+  "action_items": [
+    "Restart frontend (`sudo supervisorctl restart frontend` or clear .next cache) and re-verify that data-testid=\"trust-bar\" appears in DOM — component source already has it on line 178; issue appears to be stale bundle.",
+    "Fix TrustBar IntersectionObserver: `visible` state does not activate on desktop 1920x900 — numbers remain as animated-pulse placeholders. Consider lowering threshold, widening rootMargin, or forcing visible=true after first in-view check / after loadingStats=false on small screens. Spec: numbers (18 / 4.6 / 100%) MUST render, no empty skeleton bars after load.",
+    "StickySearchBar onSubmit: ensure where/guests/dates are passed to /listings query string (currently only ?semantic=1 is appended).",
+    "Investigate console errors on home load: 'Listings fetch error', 'Exchange rates fetch error', 401 Unauthorized × 2 — spec requires zero console errors on /."
+  ],
+  "critical_code_review_comments": [
+    "TrustBar.jsx line 142 returns `<TrustBarSkeleton />` while loading, which has NO data-testid — that is fine. But main element has data-testid on line 178 and it's not reaching the DOM in preview — likely Next.js cache issue or duplicate TrustBar getting imported.",
+    "AnimatedCounter visibility gating via IntersectionObserver with rootMargin '0px 0px 200px 0px' + threshold 0.05 is fragile. On viewports where TrustBar is revealed via a fast scroll-to-bottom (or already in view), observer should fire but may not. Recommend: fallback `setTimeout(() => setVisible(true), 1500)` after `loadingStats=false` so numbers always render.",
+    "StickySearchBar should include all active filters (where, guests, dates) in submit URL, not only semantic flag.",
+    "GostayloHomeContent.jsx file size ≥522 lines — consider splitting hero handlers / filter hooks into smaller modules."
+  ],
+  "passed_tests": [
+    "HTTP 200 on /",
+    "Hero height compact (600px, min-h:600px — within spec 540-600)",
+    "StickySearchBar @ scrollY=0: opacity=0, aria-hidden=true, pointer-events=none, position:fixed top:64px z-index:80",
+    "StickySearchBar @ scrollY=500: opacity=1, aria-hidden=false, position:fixed top:64px",
+    "StickySearchBar contains Search button [data-testid=sticky-search-submit] → navigates to /listings",
+    "Block order (source-level): Hero → StickySearchBar → CategoryBar → TopListingsGrid → PartnerCTA → HowItWorks → TrustBar → MobileFAB",
+    "TrustBar renders ONLY below HowItWorks before footer (confirmed via screenshot — not under hero)",
+    "Z-index: hero WhereCombobox 'Popular destinations' popover renders OVER CategoryBar/TopListings without clipping",
+    "GeoSuggestToast [data-testid=geo-suggest-toast] appears ~3s after load with text 'We found 1 listings for you — Thailand — Want to see popular spots right now?'",
+    "GeoSuggestAccept [data-testid=geo-suggest-accept] click navigates to /listings?where=TH ✓",
+    "FooterSwitchers [data-testid=footer-switchers] visible inside <footer> after TrustBar",
+    "Auto-currency: localStorage.gostaylo_currency='THB' for country=TH ✓",
+    "MobileSearchFAB [data-testid=mobile-search-fab] exists (hidden on desktop as expected)"
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (not tested per request)", "frontend": "82% (9/11 acceptance criteria fully pass; TrustBar testid + counter rendering fail)"},
+  "seed_data_creation": "None — used existing Supabase data (listingsCount=18, avgRating=4.6).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Main bug cluster is TrustBar: (1) data-testid missing in DOM despite source at /app/components/home/TrustBar.jsx:178 — try restarting frontend first; (2) IntersectionObserver `visible` state never fires on desktop → numbers stay as empty pulse boxes. After fix, retest: querySelectorAll('[data-testid=\"trust-bar\"]').length===1, and its innerText must contain '18' and '4.6'. Sticky bar, geo toast, z-index, footer switchers all work. Verify sticky submit URL contains ?where=/guests=/dates= params too.",
+  "rca_of_the_issue": "TrustBar testid missing: suspected stale Next.js client bundle — source has the attribute but served page-*.js may have been compiled before the testid was added. Skeleton branch (TrustBarSkeleton) returns early on loadingStats=true and has no testid, but network shows /api/v2/public/stats returns 200 with data, so we ARE past skeleton (labels 'listings worldwide' etc are visible — those only exist in main TrustBar). The IntersectionObserver gate keeps `visible=false` so only animate-pulse placeholders show inside the <span> wrappers — and apparently the outer wrapper's data-testid somehow didn't survive the build. Mitigation: clear .next cache, hard-reload, OR add a setTimeout fallback to flip visible=true after 1500ms regardless of observer."
+}
