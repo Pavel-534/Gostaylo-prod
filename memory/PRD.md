@@ -753,3 +753,60 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
   - `/app/app/listings/page.js`
 - **Tested:** Screenshot verification (Desktop calendar, Mobile home, Skeleton loading)
 
+
+### 30. Premium Air Sprints P0–P3 (2026-02 — Production-Ready Polish)
+
+**Goal:** Закрыть логические разрывы, привести SSOT в порядок, отполировать главную и мобайл до уровня Premium Air. Пользователь явно требовал production-ready состояние.
+
+#### Sprint P0 — SSOT & Geometry (✅)
+- Единый `CurrencyContext` (`/app/contexts/currency-context.jsx`) — больше нет рассинхрона между header/cards/checkout
+- `guests` повсюду нормализован к строке `'1'` по умолчанию
+- Полная локализация `UniversalHeader` и `MobileBottomNav` (4 языка)
+- Z-index/overflow исправления в `HomeHeroLuxe.jsx`, `WhereCombobox.jsx`
+- Hover-эффекты (scale + shadow) на `gostaylo-listing-card.jsx`
+
+#### Sprint P1 — UX Flow (✅)
+- Soft Search Fallback в `useListingsSearch.js` + amber-баннер в `ListingSidebar.jsx` ("На выбранные даты нет — показываем все")
+- `/app/components/home/HowItWorks.jsx` — 3 премиум-шага между категориями и листингами
+- Quick Location chips (Patong, Kamala, Bang Tao, Kata, Rawai, Karon) в `WhereCombobox.jsx`
+- Активные ссылки футера и категорий
+
+#### Sprint P2 — Dynamic Trust & Premium Typography (✅)
+- `/app/components/home/TrustBar.jsx` + endpoint `/app/app/api/v2/public/stats/route.js` (live статистика)
+- `/app/components/home/PartnerCTA.jsx` (CTA перед футером)
+- `/app/components/card/AnimatedPrice.jsx` (flip-анимация при смене валюты)
+- `Cormorant Garamond` (font-serif) — `tailwind.config.js` + `/app/app/layout.js`, применён ко всем H1/H2
+
+#### Sprint P3 — Mobile + Empty States + Stub Pages (✅, 2026-02)
+- **Mobile Floating Search:** `/app/components/search/MobileSearchBottomSheet.jsx`
+  - `MobileSearchFAB` — pill-кнопка над tabbar, появляется на скролле >160px, скрывается когда sheet открыт (pointer-events:none + aria-hidden + tabIndex=-1)
+  - `MobileSearchBottomSheet` — slide-up sheet (z-[120]) с backdrop (z-[110]) выше Header (z-[100]) — клик в любой части backdrop закрывает sheet
+  - Контролы: горизонтальный scroll категорий, popular location chips (Patong/Kamala/Bang Tao/Kata/Rawai/Karon/All Phuket), native date inputs (checkin/checkout), guests +/- counter (1-20)
+  - Search button → `handleSearch()` в `GostayloHomeContent` → навигация на `/listings` с применёнными фильтрами
+- **Premium Empty State:** `/app/components/empty-state.jsx`
+  - Концентрические teal-круги с иконкой Search в центре + плавающие MapPin/Calendar бейджи
+  - Serif заголовок (Cormorant) + многоязычные дефолты (RU/EN/ZH/TH)
+  - CTA "Показать все объявления" → `/listings` или onCtaClick callback
+  - Используется в `TopListingsGrid.jsx` (главная) и `ListingSidebar.jsx` (поиск, с дополнительными hint-сообщениями для transport/availability)
+- **Premium stub pages с Serif-типографикой:**
+  - `/app/app/about/page.js` — Hero, 4 принципа в карточках, "Наша история", CTA
+  - `/app/app/help/page.js` — Hero, 4 FAQ-секции (Для гостей, Escrow, Оплата, Для партнёров), `#terms` anchor, `#contact` anchor с `mailto:support@gostaylo.com`
+- **Build env fix:** `/app/.env` теперь содержит `NEXT_PUBLIC_SUPABASE_URL/KEY` чтобы они инлайнились в production build (раньше при `next build` из `/app` они отсутствовали → /listings показывал HTTP 429)
+
+**Files created (P3):**
+- `/app/components/search/MobileSearchBottomSheet.jsx`
+- `/app/components/empty-state.jsx`
+
+**Files modified (P3):**
+- `/app/components/GostayloHomeContent.jsx` (интеграция FAB+sheet)
+- `/app/components/home/TopListingsGrid.jsx` (EmptyState)
+- `/app/components/search/ListingSidebar.jsx` (EmptyState с доп. hint)
+- `/app/app/about/page.js` (full premium content)
+- `/app/app/help/page.js` (Help Center с FAQ + Terms + Contact)
+
+**Tested (testing_agent_v3 iterations 1-2):** ✅ Mobile FAB visibility on scroll, sheet open/close (X / Escape / backdrop incl. y=20 над header), category/location chips, date inputs, guests counter, navigation to /listings, EmptyState render с CTA, About/Help контент с Serif, footer ссылки. Frontend success rate: 100% после фиксов.
+
+**Known minor (вне P3 scope):**
+- TrustBar числа иногда не успевают подгрузиться на mobile (cosmetic timing) — fix позже
+- Next.js RSC prefetch иногда падает в preview (`Failed to fetch RSC payload`) — браузерный fallback работает, не блокер
+

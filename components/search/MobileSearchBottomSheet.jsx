@@ -145,7 +145,7 @@ export function MobileSearchBottomSheet({
       <div
         onClick={onClose}
         className={cn(
-          'fixed inset-0 z-40 bg-slate-900/55 backdrop-blur-sm transition-opacity duration-300 md:hidden',
+          'fixed inset-0 z-[110] bg-slate-900/55 backdrop-blur-sm transition-opacity duration-300 md:hidden',
           open ? 'opacity-100' : 'opacity-0 pointer-events-none',
         )}
         aria-hidden
@@ -159,7 +159,7 @@ export function MobileSearchBottomSheet({
         aria-label={getUIText('findButton', language)}
         data-testid="mobile-search-sheet"
         className={cn(
-          'fixed inset-x-0 bottom-0 z-50 flex flex-col rounded-t-3xl bg-white md:hidden',
+          'fixed inset-x-0 bottom-0 z-[120] flex flex-col rounded-t-3xl bg-white md:hidden',
           'shadow-[0_-24px_64px_rgba(15,23,42,0.22)]',
           'transition-transform duration-300 ease-out will-change-transform',
           open ? 'translate-y-0' : 'translate-y-full',
