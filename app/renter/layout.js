@@ -13,24 +13,20 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { 
   Home, Calendar, MessageSquare, Heart, User, 
-  Menu, X, LogOut, Loader2, MapPin, Settings
+  X, Loader2, Settings
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
-import { toPublicImageUrl } from '@/lib/public-image-url'
 import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { useChatContext } from '@/lib/context/ChatContext'
-import { HeaderWalletCompact } from '@/components/wallet/HeaderWalletCompact'
-import { AirentoLogo } from '@/components/brand/airento-logo'
-import { UNIFIED_HEADER_ENABLED } from '@/lib/feature-flags'
 import { AppHeader } from '@/components/app-header/AppHeader'
+import { useAuth } from '@/contexts/auth-context'
 
 // Navigation items
 const NAV_ITEMS = [
@@ -73,15 +69,11 @@ const NAV_ITEMS = [
 ]
 
 export default function RenterLayout({ children }) {
-  const router = useRouter()
   const pathname = usePathname()
-  
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [accessDenied, setAccessDenied] = useState(false)
   const [language, setLanguage] = useState('ru')
   const { totalUnread } = useChatContext()
+  const { user, loading: authLoading, isAuthenticated } = useAuth()
 
   useEffect(() => {
     const initial = detectLanguage()
@@ -121,67 +113,11 @@ export default function RenterLayout({ children }) {
     }))
   }, [language])
 
-  // Session validation & auth check
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // Get user from localStorage (client-side session)
-        const storedUser = localStorage.getItem('gostaylo_user')
-        
-        if (!storedUser) {
-          setAccessDenied(true)
-          setLoading(false)
-          return
-        }
-
-        const parsedUser = JSON.parse(storedUser)
-        
-        // Validate role - Renter portal accepts RENTER, ADMIN, MODERATOR, PARTNER (partner can also book as renter)
-        const allowedRoles = ['RENTER', 'ADMIN', 'MODERATOR', 'PARTNER']
-        
-        if (!allowedRoles.includes(parsedUser.role)) {
-          setAccessDenied(true)
-          setLoading(false)
-          return
-        }
-
-        setUser(parsedUser)
-        setLoading(false)
-        
-      } catch (error) {
-        setAccessDenied(true)
-        setLoading(false)
-      }
-    }
-
-    checkAuth()
-  }, [])
-
-  useEffect(() => {
-    const onSync = () => {
-      try {
-        const raw = localStorage.getItem('gostaylo_user')
-        if (raw) setUser(JSON.parse(raw))
-      } catch {
-        /* ignore */
-      }
-    }
-    window.addEventListener('gostaylo-refresh-session', onSync)
-    window.addEventListener('auth-change', onSync)
-    return () => {
-      window.removeEventListener('gostaylo-refresh-session', onSync)
-      window.removeEventListener('auth-change', onSync)
-    }
-  }, [])
-
-  // Handle logout
-  const handleLogout = () => {
-    localStorage.removeItem('gostaylo_user')
-    router.push('/')
-  }
+  const allowedRoles = ['RENTER', 'ADMIN', 'MODERATOR', 'PARTNER']
+  const accessDenied = !authLoading && (!isAuthenticated || !allowedRoles.includes(String(user?.role || '').toUpperCase()))
 
   // Loading state
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="text-center">
@@ -221,161 +157,40 @@ export default function RenterLayout({ children }) {
 
   return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
-        {/* На мобиле fixed надёжнее sticky (Yandex/Chrome); отступ под шапку только &lt;md.
-            Когда UNIFIED_HEADER=on — MainContent уже добавляет pt-16, spacer не нужен. */}
-        {!UNIFIED_HEADER_ENABLED && (
-          <div className="h-16 shrink-0 md:hidden" aria-hidden="true" />
-        )}
-
-        {/* === NEW: Unified AppHeader (feature-flagged) === */}
-        {UNIFIED_HEADER_ENABLED && (
-          <AppHeader
-            variant="workspace"
-            onMenuClick={() => setSidebarOpen((v) => !v)}
-            centerSlot={
-              <nav className="hidden md:flex items-center gap-1">
-                {navItems.map((item) => {
-                  const Icon = item.icon
-                  const isMessagesItem = item.href === '/messages'
-                  const isActive = isMessagesItem
-                    ? pathname === '/messages' || pathname?.startsWith('/messages/')
-                    : pathname === item.href || pathname.startsWith(item.href + '/')
-                  const showBadge = isMessagesItem && totalUnread > 0 && !isActive
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        'flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors relative text-sm',
-                        isActive
-                          ? 'bg-teal-50 text-teal-700 font-medium'
-                          : 'text-slate-600 hover:bg-slate-50',
-                      )}
-                    >
-                      <span className="relative">
-                        <Icon className="h-4 w-4" />
-                        {showBadge && (
-                          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white" />
-                        )}
-                      </span>
-                      <span>{item.label}</span>
-                    </Link>
-                  )
-                })}
-              </nav>
-            }
-          />
-        )}
-
-        {/* === LEGACY: Top Navigation Bar (rendered only when flag = off) === */}
-        {!UNIFIED_HEADER_ENABLED && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b shadow-sm shadow-teal-900/5 md:static md:z-auto">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between h-16">
-              {/* Logo */}
-              <Link href="/" className="flex items-center gap-2">
-                <AirentoLogo compact label={getSiteDisplayName()} />
-              </Link>
-
-              {/* Desktop Navigation */}
-              <nav className="hidden md:flex items-center gap-1">
-                {navItems.map((item) => {
-                  const Icon = item.icon
-                  const isMessagesItem = item.href === '/messages'
-                  const isActive = isMessagesItem
-                    ? pathname === '/messages' ||
-                      pathname?.startsWith('/messages/')
-                    : pathname === item.href || pathname.startsWith(item.href + '/')
-                  const isMessages = isMessagesItem
-                  const showBadge = isMessages && totalUnread > 0 && !isActive
-                  
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-lg transition-colors relative",
-                        isActive 
-                          ? "bg-teal-50 text-teal-700 font-medium" 
-                          : "text-slate-600 hover:bg-slate-50"
-                      )}
-                    >
-                      <span className="relative">
-                        <Icon className="h-4 w-4" />
-                        {showBadge && (
-                          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white" />
-                        )}
-                      </span>
-                      <span className="text-sm">{item.label}</span>
+        <AppHeader
+          variant="workspace"
+          onMenuClick={() => setSidebarOpen((v) => !v)}
+          centerSlot={
+            <nav className="hidden md:flex items-center gap-1">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                const isMessagesItem = item.href === '/messages'
+                const isActive = isMessagesItem
+                  ? pathname === '/messages' || pathname?.startsWith('/messages/')
+                  : pathname === item.href || pathname.startsWith(item.href + '/')
+                const showBadge = isMessagesItem && totalUnread > 0 && !isActive
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors relative text-sm',
+                      isActive ? 'bg-teal-50 text-teal-700 font-medium' : 'text-slate-600 hover:bg-slate-50',
+                    )}
+                  >
+                    <span className="relative">
+                      <Icon className="h-4 w-4" />
                       {showBadge && (
-                        <Badge variant="destructive" className="h-4 min-w-[16px] px-1 text-[9px] leading-none">
-                          {totalUnread > 99 ? '99+' : totalUnread}
-                        </Badge>
+                        <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white" />
                       )}
-                    </Link>
-                  )
-                })}
-              </nav>
-
-              {/* User Menu */}
-              <div className="flex items-center gap-3">
-                <HeaderWalletCompact />
-                <Avatar className="h-9 w-9 border border-slate-200 hidden sm:flex">
-                  {user?.avatar ? (
-                    <AvatarImage src={toPublicImageUrl(user.avatar)} alt="" className="object-cover" />
-                  ) : null}
-                  <AvatarFallback className="bg-teal-100 text-teal-800 text-sm font-semibold">
-                    {(user?.first_name?.[0] || user?.name?.[0] || user?.email?.[0] || 'G').toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                {/* User Info */}
-                <div className="hidden lg:block text-right">
-                  <p className="text-sm font-medium text-slate-900">
-                    {user?.first_name || user?.name || 'Guest'}
-                  </p>
-                  <p className="text-xs text-slate-500">{user?.email}</p>
-                </div>
-
-                {/* Browse Listings Button */}
-                <Button 
-                  asChild 
-                  variant="outline" 
-                  size="sm"
-                  className="hidden sm:flex border-teal-200 text-teal-700 hover:bg-teal-50"
-                >
-                  <Link href="/listings">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    {getUIText('browse', language)}
+                    </span>
+                    <span>{item.label}</span>
                   </Link>
-                </Button>
-
-                {/* Logout */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="text-slate-600 hover:text-red-600"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-
-                {/* Mobile Menu Toggle */}
-                <button
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                  className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
-                >
-                  {sidebarOpen ? (
-                    <X className="h-6 w-6" />
-                  ) : (
-                    <Menu className="h-6 w-6" />
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        )}
-        {/* === END LEGACY === */}
+                )
+              })}
+            </nav>
+          }
+        />
 
         {/* Mobile Sidebar Overlay */}
         {sidebarOpen && (

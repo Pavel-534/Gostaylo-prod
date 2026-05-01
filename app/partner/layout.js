@@ -19,8 +19,8 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useChatContext } from '@/lib/context/ChatContext'
 import { HeaderWalletCompact } from '@/components/wallet/HeaderWalletCompact'
-import { UNIFIED_HEADER_ENABLED } from '@/lib/feature-flags'
 import { AppHeader } from '@/components/app-header/AppHeader'
+import { useAuth } from '@/contexts/auth-context'
 import { 
   LayoutDashboard,
   Briefcase,
@@ -68,14 +68,14 @@ const SIDEBAR_CONFIG = [
 export default function PartnerLayout({ children }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [isImpersonating, setIsImpersonating] = useState(false)
-  const [accessDenied, setAccessDenied] = useState(false)
-  const [isNotLoggedIn, setIsNotLoggedIn] = useState(false)
   const { totalUnread } = useChatContext()
   const [language, setLanguage] = useState('ru')
+  const { user, loading: authLoading, isAuthenticated, logout } = useAuth()
+  const isImpersonating = user?.is_impersonating === true
+  const allowedRoles = ['PARTNER', 'ADMIN', 'MODERATOR']
+  const accessDenied = !authLoading && (!isAuthenticated || !allowedRoles.includes(String(user?.role || '').toUpperCase()))
+  const isNotLoggedIn = !authLoading && !isAuthenticated
 
   useEffect(() => {
     const initial = detectLanguage()
@@ -115,137 +115,10 @@ export default function PartnerLayout({ children }) {
   }, [pathname])
 
   useEffect(() => {
-    const syncUserFromSession = async () => {
-      try {
-        const res = await fetch('/api/v2/auth/me', { credentials: 'include' })
-        const data = await res.json()
-        if (res.ok && data.success && data.user) {
-          const u = data.user
-          const merged = {
-            id: u.id,
-            email: u.email,
-            role: u.role,
-            name: u.name,
-            first_name: u.first_name,
-            last_name: u.last_name,
-            phone: u.phone,
-            avatar: u.avatar,
-            referral_code: u.referral_code,
-            is_verified: u.is_verified,
-            telegram_id: u.telegram_id,
-            telegram_username: u.telegram_username,
-          }
-          localStorage.setItem('gostaylo_user', JSON.stringify(merged))
-          setUser((prev) => (prev?.isImpersonated ? prev : merged))
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-    window.addEventListener('gostaylo-refresh-session', syncUserFromSession)
-    window.addEventListener('auth-change', syncUserFromSession)
-    return () => {
-      window.removeEventListener('gostaylo-refresh-session', syncUserFromSession)
-      window.removeEventListener('auth-change', syncUserFromSession)
+    if (typeof window !== 'undefined') {
+      setSidebarOpen(window.innerWidth >= 1024)
     }
   }, [])
-
-  // Partner access from DB via /auth/me (fixes stale localStorage after role change); keep impersonation path
-  useEffect(() => {
-    let cancelled = false
-
-    async function resolveAccess() {
-      let parsed = null
-      try {
-        const raw = localStorage.getItem('gostaylo_user')
-        if (raw) parsed = JSON.parse(raw)
-      } catch {
-        parsed = null
-      }
-
-      if (parsed?.isImpersonated) {
-        if (cancelled) return
-        setUser(parsed)
-        setIsImpersonating(true)
-        const hasAccess = ['PARTNER', 'ADMIN', 'MODERATOR'].includes(parsed.role)
-        setAccessDenied(!hasAccess)
-        setIsNotLoggedIn(false)
-        setLoading(false)
-        if (typeof window !== 'undefined') {
-          setSidebarOpen(window.innerWidth >= 1024)
-        }
-        return
-      }
-
-      setLoading(true)
-      try {
-        const res = await fetch('/api/v2/auth/me', { credentials: 'include' })
-        const data = await res.json()
-        if (cancelled) return
-
-        if (res.ok && data.success && data.user) {
-          const u = data.user
-          const merged = {
-            id: u.id,
-            email: u.email,
-            role: u.role,
-            name: u.name,
-            first_name: u.first_name,
-            last_name: u.last_name,
-            phone: u.phone,
-            avatar: u.avatar,
-            referral_code: u.referral_code,
-            is_verified: u.is_verified,
-            telegram_id: u.telegram_id,
-            telegram_username: u.telegram_username,
-          }
-          localStorage.setItem('gostaylo_user', JSON.stringify(merged))
-          setUser(merged)
-          setIsImpersonating(false)
-          const hasAccess = ['PARTNER', 'ADMIN', 'MODERATOR'].includes(u.role)
-          setAccessDenied(!hasAccess)
-          setIsNotLoggedIn(false)
-        } else {
-          if (res.status === 401) {
-            setUser(null)
-            setAccessDenied(true)
-            setIsNotLoggedIn(true)
-          } else if (parsed) {
-            const hasAccess = ['PARTNER', 'ADMIN', 'MODERATOR'].includes(parsed.role)
-            setUser(parsed)
-            setIsImpersonating(false)
-            setAccessDenied(!hasAccess)
-            setIsNotLoggedIn(false)
-          } else {
-            setUser(null)
-            setAccessDenied(true)
-            setIsNotLoggedIn(true)
-          }
-        }
-      } catch {
-        if (cancelled) return
-        if (parsed) {
-          const hasAccess = ['PARTNER', 'ADMIN', 'MODERATOR'].includes(parsed.role)
-          setUser(parsed)
-          setAccessDenied(!hasAccess)
-          setIsNotLoggedIn(false)
-        } else {
-          setAccessDenied(true)
-          setIsNotLoggedIn(true)
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-        if (typeof window !== 'undefined') {
-          setSidebarOpen(window.innerWidth >= 1024)
-        }
-      }
-    }
-
-    resolveAccess()
-    return () => {
-      cancelled = true
-    }
-  }, [pathname])
 
   // Generate breadcrumbs from pathname
   const breadcrumbs = useMemo(() => {
@@ -287,23 +160,11 @@ export default function PartnerLayout({ children }) {
     router.push('/profile?login=true')
   }
 
-  const handleReturnToAdmin = () => {
-    const savedAdmin = localStorage.getItem('gostaylo_original_admin')
-    if (savedAdmin) {
-      localStorage.setItem('gostaylo_user', savedAdmin)
-      localStorage.removeItem('gostaylo_original_admin')
-      window.location.href = '/admin/users'
-    }
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem('gostaylo_user')
-    localStorage.removeItem('gostaylo_original_admin')
-    window.location.href = '/'
-  }
+  const handleReturnToAdmin = () => router.push('/admin/users')
+  const handleLogout = () => logout()
 
   // Loading state
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
@@ -369,69 +230,10 @@ export default function PartnerLayout({ children }) {
         />
       )}
 
-      {/* === NEW: Unified AppHeader (feature-flagged) === */}
-      {UNIFIED_HEADER_ENABLED && (
-        <AppHeader
-          variant="workspace"
-          onMenuClick={() => setSidebarOpen((v) => !v)}
-        />
-      )}
-
-      {/* Mobile Top Header — legacy (rendered only when flag = off) */}
-      {!UNIFIED_HEADER_ENABLED && (
-      <header className="fixed top-0 left-0 right-0 bg-white border-b border-slate-200 z-30 lg:hidden">
-        {/* Impersonation Banner - Mobile */}
-        {isImpersonating && (
-          <div className="bg-amber-500 text-amber-900 px-3 py-2 flex items-center justify-between">
-            <span className="text-xs font-medium truncate flex-1">
-              👤 {getUIText('partnerLayout_impersonationMode', language)} {user?.name}
-            </span>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={handleReturnToAdmin}
-              className="bg-white text-amber-900 hover:bg-amber-100 h-7 px-2 text-xs ml-2"
-              data-testid="return-to-admin-mobile"
-            >
-              <ArrowLeft className="w-3 h-3 mr-1" />
-              {getUIText('partnerLayout_back', language)}
-            </Button>
-          </div>
-        )}
-        
-        {/* Main Mobile Header */}
-        <div className="h-14 flex items-center justify-between px-4">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-all"
-            aria-label="Menu"
-          >
-            <Menu className="w-5 h-5 text-slate-700" />
-          </button>
-          
-          <div className="text-center flex-1 mx-3">
-            <Link href="/partner/dashboard" className="flex items-center justify-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                <span className="text-white text-xs font-bold">GS</span>
-              </div>
-              <span className="font-semibold text-slate-900">{getUIText('partnerLayout_brandPartner', language)}</span>
-            </Link>
-          </div>
-          
-          {/* Mobile Quick Actions */}
-          <div className="flex items-center gap-0.5">
-            <HeaderWalletCompact className="h-8 px-1.5" />
-            <Link 
-              href="/"
-              className="p-2 hover:bg-slate-100 rounded-lg transition-all"
-              aria-label={getUIText('partnerLayout_backToSiteAria', language)}
-            >
-              <Home className="w-5 h-5 text-slate-500" />
-            </Link>
-          </div>
-        </div>
-      </header>
-      )}
+      <AppHeader
+        variant="workspace"
+        onMenuClick={() => setSidebarOpen((v) => !v)}
+      />
 
       {/* Main Layout */}
       <div className="flex min-h-0 flex-1">
@@ -569,14 +371,7 @@ export default function PartnerLayout({ children }) {
         </aside>
 
         {/* Main Content */}
-        <main
-          className={
-            'flex-1 lg:ml-64 w-full min-w-0 max-w-full overflow-x-hidden ' +
-            (UNIFIED_HEADER_ENABLED
-              ? 'pt-[var(--app-header-height,64px)] lg:pt-0'
-              : 'pt-14 lg:pt-0')
-          }
-        >
+        <main className="flex-1 lg:ml-64 w-full min-w-0 max-w-full overflow-x-hidden pt-[var(--app-header-height,64px)] lg:pt-0">
           {/* Desktop Top Bar */}
           <div className="hidden lg:block sticky top-0 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 z-10">
             {/* Impersonation Banner - Desktop */}

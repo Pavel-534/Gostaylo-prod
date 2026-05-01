@@ -9,13 +9,12 @@
  * StickyChatHeader сам владеет верхней зоной.
  */
 
-import { UNIFIED_HEADER_ENABLED } from '@/lib/feature-flags'
 import { ChatTopBar } from '@/components/app-header/ChatTopBar'
 
 export function MessagesViewportShell({ children }) {
   return (
     <div className="flex h-dvh max-h-dvh min-h-0 flex-col overflow-hidden bg-white">
-      {UNIFIED_HEADER_ENABLED && <ChatTopBar />}
+      <ChatTopBar />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
     </div>
   )

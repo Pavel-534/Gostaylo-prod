@@ -36,8 +36,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getSiteDisplayName } from '@/lib/site-url';
 import { HeaderWalletCompact } from '@/components/wallet/HeaderWalletCompact';
-import { UNIFIED_HEADER_ENABLED } from '@/lib/feature-flags';
 import { AppHeader } from '@/components/app-header/AppHeader';
+import { useAuth } from '@/contexts/auth-context';
 
 const MODERATOR_RESTRICTED_PREFIXES = [
   '/admin/finances',
@@ -57,11 +57,9 @@ const MODERATOR_RESTRICTED_PREFIXES = [
 export default function AdminLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isImpersonating, setIsImpersonating] = useState(false);
-  const [originalAdmin, setOriginalAdmin] = useState(null);
+  const { user, loading: authLoading, isAuthenticated, logout } = useAuth();
+  const isImpersonating = user?.is_impersonating === true;
 
   // Close sidebar on mobile when route changes
   useEffect(() => {
@@ -77,115 +75,28 @@ export default function AdminLayout({ children }) {
     }
   }, [pathname, user?.isModerator, router]);
 
-  /**
-   * Доступ: только cookie-сессия + GET /api/v2/auth/me (роль из БД).
-   * localStorage не используется для решения «пускать / не пускать».
-   * Исключение: режим «войти как» — в JWT остаётся ADMIN; UI берётся из localStorage
-   * только если сервер подтвердил роль ADMIN (см. app/admin/users/page.js).
-   */
   useEffect(() => {
-    let cancelled = false;
-
-    async function checkAdminAccess() {
-      try {
-        let parsedImpersonation = null;
-        try {
-          const raw = localStorage.getItem('gostaylo_user');
-          if (raw) parsedImpersonation = JSON.parse(raw);
-        } catch {
-          /* ignore */
-        }
-
-        const res = await fetch('/api/v2/auth/me', { credentials: 'include' });
-        const data = await res.json().catch(() => ({}));
-
-        if (cancelled) return;
-
-        if (!res.ok || !data.success || !data.user) {
-          const loc = typeof window !== 'undefined' ? window.location : null;
-          const path = loc ? encodeURIComponent(`${loc.pathname || ''}${loc.search || ''}`) : '';
-          router.replace(path ? `/login?redirect=${path}` : '/login');
-          return;
-        }
-
-        const u = data.user;
-        const serverRole = String(u.role || '').toUpperCase();
-
-        if (!['ADMIN', 'MODERATOR'].includes(serverRole)) {
-          router.replace('/');
-          return;
-        }
-
-        if (parsedImpersonation?.isImpersonated && serverRole === 'ADMIN') {
-          const r = String(parsedImpersonation.role || '').toUpperCase();
-          setUser({
-            id: parsedImpersonation.id,
-            email: parsedImpersonation.email,
-            role: r,
-            name: parsedImpersonation.name || parsedImpersonation.email || '',
-            isModerator: r === 'MODERATOR' || parsedImpersonation.isModerator === true,
-            isImpersonated: true,
-          });
-          setIsImpersonating(true);
-          try {
-            const saved = localStorage.getItem('gostaylo_original_admin');
-            setOriginalAdmin(saved ? JSON.parse(saved) : null);
-          } catch {
-            setOriginalAdmin(null);
-          }
-        } else {
-          setUser({
-            id: u.id,
-            email: u.email,
-            role: serverRole,
-            name: u.name || u.email || '',
-            isModerator: serverRole === 'MODERATOR' || u.isModerator === true,
-          });
-          setIsImpersonating(false);
-          setOriginalAdmin(null);
-          try {
-            localStorage.setItem('gostaylo_user', JSON.stringify(u));
-          } catch {
-            /* ignore */
-          }
-        }
-      } catch (error) {
-        console.error('Failed to check admin access:', error);
-        if (!cancelled) router.replace('/login');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    checkAdminAccess();
     if (typeof window !== 'undefined') {
       setSidebarOpen(window.innerWidth >= 1024);
     }
+  }, []);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
-
-  const handleReturnToAdmin = () => {
-    if (originalAdmin) {
-      localStorage.setItem('gostaylo_user', JSON.stringify(originalAdmin));
-      localStorage.removeItem('gostaylo_original_admin');
-      // Force full page reload to update all UI state
-      window.location.href = '/admin/users';
+  useEffect(() => {
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      const loc = typeof window !== 'undefined' ? window.location : null;
+      const path = loc ? encodeURIComponent(`${loc.pathname || ''}${loc.search || ''}`) : '';
+      router.replace(path ? `/login?redirect=${path}` : '/login');
+      return;
     }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/v2/auth/logout', { method: 'POST', credentials: 'include' });
-    } catch {
-      /* ignore */
+    const role = String(user?.role || '').toUpperCase();
+    if (!['ADMIN', 'MODERATOR'].includes(role)) {
+      router.replace('/');
     }
-    localStorage.removeItem('gostaylo_user');
-    localStorage.removeItem('gostaylo_original_admin');
-    window.location.href = '/';
-  };
+  }, [authLoading, isAuthenticated, user?.role, router]);
+
+  const handleReturnToAdmin = () => router.push('/admin/users');
+  const handleLogout = () => logout();
 
   // Menu items with access control
   // MODERATOR can only access: Dashboard, Moderation, Categories
@@ -218,7 +129,7 @@ export default function AdminLayout({ children }) {
     ? allMenuItems.filter(item => item.moderatorAccess)
     : allMenuItems;
 
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -250,77 +161,10 @@ export default function AdminLayout({ children }) {
         />
       )}
 
-      {/* === NEW: Unified AppHeader (feature-flagged) === */}
-      {UNIFIED_HEADER_ENABLED && (
-        <AppHeader
-          variant="workspace"
-          onMenuClick={() => setSidebarOpen((v) => !v)}
-        />
-      )}
-
-      {/* Mobile Top Header — legacy dark gradient (rendered only when flag = off) */}
-      {!UNIFIED_HEADER_ENABLED && (
-      <header className="fixed top-0 left-0 right-0 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white z-30 lg:hidden shadow-lg">
-        {/* Impersonation Banner - Mobile */}
-        {isImpersonating && (
-          <div className="bg-gradient-to-r from-amber-400 to-amber-500 text-amber-900 px-3 py-2 flex items-center justify-between">
-            <span className="text-xs font-medium truncate flex-1">
-              👤 Режим: {user?.name}
-            </span>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={handleReturnToAdmin}
-              className="bg-white text-amber-900 hover:bg-amber-100 h-7 px-2 text-xs ml-2 flex-shrink-0 shadow-sm"
-              data-testid="return-to-admin-mobile"
-            >
-              <ArrowLeft className="w-3 h-3 mr-1" />
-              Назад
-            </Button>
-          </div>
-        )}
-        
-        {/* Main Mobile Header */}
-        <div className="h-14 flex items-center justify-between px-4">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2.5 hover:bg-white/10 rounded-xl transition-all active:scale-95"
-            aria-label="Menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-          
-          <div className="text-center flex-1 mx-3">
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-7 h-7 bg-gradient-to-br from-teal-400 to-teal-600 rounded-lg flex items-center justify-center shadow-md">
-                <span className="text-white text-xs font-bold">FR</span>
-              </div>
-              <h1 className="text-sm font-bold tracking-tight">{getSiteDisplayName()} Admin</h1>
-            </div>
-          </div>
-          
-          {/* Mobile Quick Actions */}
-          <div className="flex items-center gap-1">
-            <HeaderWalletCompact variant="inverted" className="h-9 px-2" />
-            <Link 
-              href="/"
-              className="p-2.5 hover:bg-white/10 rounded-xl transition-all active:scale-95"
-              aria-label="На сайт"
-            >
-              <Home className="w-5 h-5" />
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="p-2.5 hover:bg-red-500/20 rounded-xl transition-all active:scale-95 text-red-400"
-              aria-label="Выход"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </header>
-      )}
-      {/* === END LEGACY MOBILE HEADER === */}
+      <AppHeader
+        variant="workspace"
+        onMenuClick={() => setSidebarOpen((v) => !v)}
+      />
 
       {/* Main Content Area — min-h-0: дочерний main может сжиматься, скролл остаётся внутри чата */}
       <div className={cn('flex min-h-0 flex-1', isAdminMessagesSection && 'overflow-hidden')}>
@@ -410,7 +254,7 @@ export default function AdminLayout({ children }) {
       <main
         className={cn(
           'w-full max-w-full flex-1 overflow-x-hidden lg:ml-64 lg:pt-0',
-          UNIFIED_HEADER_ENABLED ? 'pt-[var(--app-header-height,64px)]' : 'pt-14',
+          'pt-[var(--app-header-height,64px)]',
           isAdminMessagesSection &&
             'flex min-h-0 flex-col overflow-hidden max-lg:flex-1'
         )}

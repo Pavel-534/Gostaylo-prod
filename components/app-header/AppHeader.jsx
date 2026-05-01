@@ -117,6 +117,15 @@ export function AppHeader({
 
   if (!mounted) return null
 
+  // Root-level header does not own workspace shells.
+  if (!variantOverride && pathname && (
+    pathname.startsWith('/renter') ||
+    pathname.startsWith('/partner') ||
+    pathname.startsWith('/admin')
+  )) {
+    return null
+  }
+
   const variant = variantOverride || detectVariant(pathname)
   if (variant === 'chat') return null
 
