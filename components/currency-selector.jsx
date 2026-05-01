@@ -79,7 +79,7 @@ export function CurrencySelector({
           <ChevronDown className="ml-0.5 h-3 w-3 text-slate-400" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="z-[220] w-48">
         {CURRENCIES.map((curr) => (
           <DropdownMenuItem
             key={curr.code}

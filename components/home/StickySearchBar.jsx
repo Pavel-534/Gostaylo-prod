@@ -198,7 +198,7 @@ export function StickySearchBar({
                 {guests}
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-48 p-2 z-[200]" align="end">
+            <PopoverContent className="z-[90] w-48 p-2" align="end">
               <div className="grid grid-cols-4 gap-1">
                 {GUEST_OPTIONS.map((n) => (
                   <button

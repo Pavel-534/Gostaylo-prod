@@ -83,7 +83,7 @@ export function UserMenuDropdown() {
           <ChevronDown className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-500" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-60">
+      <DropdownMenuContent align="end" className="z-[220] w-60">
         <div className="border-b border-slate-100 px-3 py-2.5">
           <p className="truncate font-semibold text-slate-900">{user.name || 'User'}</p>
           <p className="truncate text-xs text-slate-500">{user.email}</p>

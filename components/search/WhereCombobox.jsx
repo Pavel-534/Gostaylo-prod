@@ -213,7 +213,7 @@ export function WhereCombobox({
   return (
     <div
       ref={containerRef}
-      className={cn('relative', (showList || showQuickChips) && 'z-[110]', className)}
+      className={cn('relative', (showList || showQuickChips) && 'z-[70]', className)}
     >
       <div
         className={cn(
@@ -270,7 +270,7 @@ export function WhereCombobox({
           id={listboxId}
           className={cn(
             // top-full обязателен: без top/left-базиса absolute ведёт себя как static и ломает flex-строку поиска
-            'absolute left-0 top-full z-[200] mt-1 bg-white shadow-xl border border-slate-200 rounded-xl overflow-y-auto max-h-72',
+            'absolute left-0 top-full z-[90] mt-1 bg-white shadow-xl border border-slate-200 rounded-xl overflow-y-auto max-h-72',
             isHero ? 'min-w-[min(100vw-2rem,22rem)] w-max max-w-[calc(100vw-2rem)]' : 'right-0'
           )}
           role="listbox"
@@ -310,7 +310,7 @@ export function WhereCombobox({
       {showQuickChips && (
         <div
           className={cn(
-            'absolute left-0 top-full z-[200] mt-1 max-h-[60vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-xl',
+            'absolute left-0 top-full z-[90] mt-1 max-h-[60vh] overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-xl',
             isHero ? 'min-w-[min(100vw-2rem,22rem)]' : 'right-0 min-w-56',
           )}
         >

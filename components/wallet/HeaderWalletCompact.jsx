@@ -80,7 +80,7 @@ export function HeaderWalletCompact({ className = '', variant = 'default' }) {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72">
+      <DropdownMenuContent align="end" className="z-[220] w-72">
         <DropdownMenuLabel className="font-normal space-y-1">
           <p className="text-xs text-slate-500">{t('stage73_walletHeaderTitle')}</p>
           <p className="text-lg font-semibold tabular-nums text-slate-900">

@@ -235,12 +235,12 @@ code {
 
 /* Scroll progress «glow pulse» — micro-moment when user reaches 100% scroll */
 @keyframes scroll-glow-pulse {
-  0%   { box-shadow: 0 0 8px  rgba(0, 168, 168, 0.55); }
-  50%  { box-shadow: 0 0 18px rgba(0, 168, 168, 1.00), 0 0 28px rgba(93, 216, 213, 0.75); }
-  100% { box-shadow: 0 0 8px  rgba(0, 168, 168, 0.55); }
+  0%   { box-shadow: 0 0 6px  rgba(0, 168, 168, 0.38); }
+  50%  { box-shadow: 0 0 12px rgba(0, 168, 168, 0.62), 0 0 20px rgba(93, 216, 213, 0.42); }
+  100% { box-shadow: 0 0 6px  rgba(0, 168, 168, 0.38); }
 }
 .animate-scroll-glow-pulse {
-  animation: scroll-glow-pulse 2s ease-in-out infinite;
+  animation: scroll-glow-pulse 3.6s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .animate-scroll-glow-pulse {

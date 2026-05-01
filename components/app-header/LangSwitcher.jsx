@@ -45,7 +45,7 @@ export function LangSwitcher({ size = 'default', testid = 'language-selector-tri
           {renderFlag(language)}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-[140px]">
+      <DropdownMenuContent align="end" className="z-[220] min-w-[140px]">
         {supportedLanguages.map((lang) => (
           <DropdownMenuItem
             key={lang.code}
