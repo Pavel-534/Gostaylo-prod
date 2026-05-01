@@ -13,6 +13,8 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { MapPin, X, Loader2 } from 'lucide-react'
 import { filterWhereOptions, getOptionLabel } from '@/lib/locations/where-options'
 import { POPULAR_DESTINATION_GROUPS } from '@/lib/locations/popular-destinations'
+import { reorderDestinationsByGeo } from '@/lib/locations/reorder-by-geo'
+import { useUserGeo } from '@/lib/hooks/useUserGeo'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
 
@@ -38,6 +40,13 @@ export function WhereCombobox({
   // а chip принёс локализованную строку ("Москва"). Без этого sync-effect на value→label
   // перезаписывал бы наш override на slug.
   const overrideLabelRef = useRef({})
+
+  // Smart geolocation — re-order popular destinations by user's country
+  const { country: userCountry } = useUserGeo()
+  const orderedGroups = useMemo(
+    () => reorderDestinationsByGeo(POPULAR_DESTINATION_GROUPS, userCountry),
+    [userCountry],
+  )
 
   // Синхронизация подписи с выбранным каноническим значением
   useEffect(() => {
@@ -309,7 +318,7 @@ export function WhereCombobox({
             {getUIText('popularDestinations', language)}
           </p>
           <div className="space-y-3">
-            {POPULAR_DESTINATION_GROUPS.map((group) => (
+            {orderedGroups.map((group) => (
               <div key={group.id}>
                 <p className="mb-1.5 flex items-center gap-1.5 px-1 text-[11px] font-semibold text-slate-500">
                   <span aria-hidden>{group.flag}</span>

@@ -373,7 +373,7 @@ export function GostayloHomeContent() {
       />
 
       {/* Trust Bar — social proof под hero, над категориями */}
-      <TrustBar language={language} />
+      <TrustBar language={language} locationContext={where || 'all'} />
 
       <CategoryBar
         language={language}

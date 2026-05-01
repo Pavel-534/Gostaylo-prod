@@ -8,7 +8,32 @@
 
 import { Home, Star, ShieldCheck } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
-import { useEffect, useRef, useState } from 'react'
+import { resolveWhereTarget } from '@/lib/locations/resolve-where-target'
+import { COUNTRY_PRESETS } from '@/lib/geo/country-presets'
+import { useEffect, useMemo, useRef, useState } from 'react'
+
+/** Resolve human-readable location name (localized) for trust label */
+function getLocationDisplayName(locationContext, language) {
+  if (!locationContext || locationContext === 'all') return null
+  const target = resolveWhereTarget(locationContext)
+  if (!target) return null
+  if (target.level === 'country') {
+    const c = COUNTRY_PRESETS.find((co) => co.code === target.countryCode)
+    return c ? (c.labels[language] || c.labels.en) : null
+  }
+  if (target.level === 'region') {
+    const c = COUNTRY_PRESETS.find((co) => co.code === target.countryCode)
+    const r = c?.regions.find((rr) => rr.code === target.regionCode)
+    return r ? (r.labels[language] || r.labels.en) : null
+  }
+  if (target.level === 'city') {
+    const c = COUNTRY_PRESETS.find((co) => co.code === target.countryCode)
+    const r = c?.regions.find((rr) => rr.code === target.regionCode)
+    const ci = r?.cities.find((cc) => cc.code === target.cityCode)
+    return ci ? (ci.labels[language] || ci.labels.en) : null
+  }
+  return null
+}
 
 // ---------- Animated counter ----------
 function AnimatedCounter({ target, duration = 1400, suffix = '', decimals = 0 }) {
@@ -73,7 +98,13 @@ function TrustBarSkeleton() {
 }
 
 // ---------- Main TrustBar ----------
-export function TrustBar({ language = 'ru' }) {
+/**
+ * @param {object} p
+ * @param {string} [p.language='ru']
+ * @param {string} [p.locationContext='all'] — динамический контекст: 'all' | country code | region code | city slug.
+ *   Влияет на label "objects in {…}". Если не передано / 'all' — показываем «по всему миру».
+ */
+export function TrustBar({ language = 'ru', locationContext = 'all' }) {
   const [visible, setVisible] = useState(false)
   const [stats, setStats] = useState(null)
   const [loadingStats, setLoadingStats] = useState(true)
@@ -102,7 +133,17 @@ export function TrustBar({ language = 'ru' }) {
     return () => { cancelled = true }
   }, [])
 
+  // Dynamic listings label: «1200+ объектов в {place}» или «… по всему миру»
+  const placeName = useMemo(
+    () => getLocationDisplayName(locationContext, language),
+    [locationContext, language],
+  )
+
   if (loadingStats) return <TrustBarSkeleton />
+
+  const listingsLabel = placeName
+    ? `${getUIText('trustListingsIn', language)} ${placeName}`
+    : getUIText('trustListingsWorldwide', language)
 
   const ITEMS = [
     {
@@ -110,7 +151,7 @@ export function TrustBar({ language = 'ru' }) {
       value: stats?.listingsCount && stats.listingsCount > 0 ? stats.listingsCount : 1200,
       suffix: '+',
       decimals: 0,
-      label: getUIText('trustListingsLabel', language),
+      label: listingsLabel,
     },
     {
       icon: Star,

@@ -1,0 +1,67 @@
+{
+  "summary": "Sprint Global DB & Geo-Logic (migration + Smart Geolocation + Global Search + Dynamic TrustBar) verified. 8/9 feature tests PASS. 1 CRITICAL regression: search API 500 on any hierarchical where= (country/region/city) because SQL migration NOT applied to Supabase yet and applySmartWhereFilter has NO defensive fallback. Legacy district slugs still work.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/v2/search?where={country|region|city}",
+        "issue": "Returns HTTP 500 with PostgREST error 'column listings.country_code does not exist' (or region_code / city_code). applySmartWhereFilter unconditionally pushes new columns into OR-clause, but migration 20260201_global_pivot.sql has NOT been applied to Supabase DB in preview/prod. Reproduced: /api/v2/search?where=phuket, ?where=RU, ?where=TH, ?where=moscow all 500. Only raw legacy district slugs (e.g. where=patong) succeed because resolveWhereTarget returns null for them. This BREAKS every hero chip click (Moscow/Phuket/Bangkok/Bali/Dubai/...) on both desktop WhereCombobox and MobileSearchBottomSheet until the migration is applied. E1's claim in the review note ('frontend backward-compatible, country_code/region_code/city_code будут IS NULL до применения миграции, но OR-clause работает через district fallback') is INCORRECT — PostgREST rejects the whole query with 400/500 when the column doesn't exist; it does not silently ignore the predicate.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": [
+      {"endpoint": "/api/v2/search (listings) + /api/v1/exchange/rates", "issue": "Intermittent 'Failed to fetch' / 500 in browser console on home page (pre-existing from iteration_4; unrelated to this sprint)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Hero search chip → /listings?where=<slug>",
+        "issue": "Every non-district chip (Moscow/Phuket/Bangkok/Bali/Dubai/…) triggers the 500 in the search API described above; /listings page will render EmptyState or error state instead of filtered results until migration runs.",
+        "affected_selectors": ["[data-testid*='where-combobox']", "[data-testid*='mobile-search-location']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "tests_performed": {
+    "geo_whoami": "PASS — GET /api/v2/geo/whoami → 200 {country: null, source: 'unknown'} on localhost (expected, no cf-ipcountry header).",
+    "geo_reorder_RU_cache": "PASS — with localStorage gostaylo_user_geo_v1={country:'RU'} injected via addInitScript, WhereCombobox popover shows Russia group FIRST, then Thailand, then World. DOM position check iRu=73 < iTh=115 < iWorld=159. Screenshot confirms visually (flag 🇷🇺 Russia with Moscow/SPb/Sochi/Kazan on top).",
+    "trustbar_default_worldwide": "PASS — goto /, scroll to TrustBar: first <p> label reads 'listings worldwide' (EN).",
+    "trustbar_where_phuket": "PASS — /?where=phuket → label 'listings in Phuket'.",
+    "trustbar_where_moscow": "PASS — /?where=moscow → label 'listings in Moscow'.",
+    "trustbar_where_RU_country_code": "PASS — /?where=RU → label 'listings in Russia' (localization from COUNTRY_PRESETS).",
+    "resolve_where_target_code_review": "PASS — /app/lib/locations/resolve-where-target.js correctly returns {level:'country', countryCode:'TH', regions:[TH-PHK,TH-BKK,TH-SUR,TH-KRA,TH-CHN], cities:[phuket-city,bangkok,…], districts:[Patong,Kamala,…]} for input 'TH'. City/region/label-match paths all implemented.",
+    "applySmartWhereFilter_code_review": "PASS (logic) / FAIL (runtime) — OR-clause correctly composed with country_code.eq / region_code.eq / city_code.eq / district.eq, BUT no feature-flag to skip new columns when migration not applied → runtime 500 (see critical issue).",
+    "api_search_where_phuket": "FAIL — HTTP 500 'column listings.region_code does not exist'.",
+    "api_search_where_RU": "FAIL — HTTP 500 'column listings.country_code does not exist'.",
+    "api_search_where_moscow": "FAIL — HTTP 500 'column listings.city_code does not exist'.",
+    "api_search_where_patong_legacy": "PASS — HTTP 200, 1 listing (legacy district path, resolveWhereTarget returns null, only district OR applied).",
+    "api_search_no_where": "PASS — HTTP 200, listings returned.",
+    "migration_sql_integrity": "PASS — /app/supabase/migrations/20260201_global_pivot.sql contains BEGIN/COMMIT, ALTER TABLE listings ADD COLUMN IF NOT EXISTS country_code/region_code/city_code, idempotent UPDATE for Phuket (COALESCE guards), 4 CREATE INDEX, CREATE TABLE IF NOT EXISTS geo_locations with CHECK + UNIQUE, seed INSERT … ON CONFLICT DO NOTHING for 4 countries / 9 regions / 9 cities, and RLS policy wrapped in DO $$ / pg_policies check. Fully idempotent.",
+    "migration_runner_safety": "PASS — node /app/scripts/migrate-global-pivot.mjs without env vars prints clear instructions ('MIGRATION NOT APPLIED AUTOMATICALLY', list of env vars, path to SQL) and exits 0 without traceback.",
+    "smoke_listings_about_terms": "PASS — /listings 200, /about 200, /terms 200, no HTTP 429.",
+    "mobile_bottom_sheet": "Not re-tested this run (already PASS in iteration_4 with same country-groups structure)."
+  },
+  "test_report_links": ["/app/supabase/migrations/20260201_global_pivot.sql", "/app/scripts/migrate-global-pivot.mjs", "/app/test_reports/iteration_5.json"],
+  "action_items": [
+    "CRITICAL: Either (a) apply migration 20260201_global_pivot.sql to Supabase DB before releasing, OR (b) guard applySmartWhereFilter in /app/lib/api/run-listings-search-get.js so it does NOT emit country_code.eq / region_code.eq / city_code.eq predicates until migration is applied. Suggested: env flag NEXT_PUBLIC_GLOBAL_PIVOT_APPLIED=true, or lazy schema probe cached at startup. Current state: every hero destination chip (Moscow/Phuket/Bangkok/Bali/Dubai/…) produces HTTP 500 on /api/v2/search.",
+    "Optional after migration applied: smoke-test the hierarchical search queries again to confirm parent→children rollup works (e.g. where=RU returns Moscow+SPb listings; where=TH returns Phuket+Bangkok)."
+  ],
+  "critical_code_review_comments": [
+    "applySmartWhereFilter in /app/lib/api/run-listings-search-get.js (lines 132-170) has no DB-schema awareness. The claim 'backward-compatible because district fallback exists' is wrong — PostgREST fails the WHOLE OR clause when ANY referenced column is missing, not just the specific predicate. Must guard with a flag or schema probe.",
+    "resolveWhereTarget is clean, well-commented, handles country/region/city/label-match; no issues.",
+    "useUserGeo correctly implements 3-tier strategy (cache → /api/v2/geo/whoami → Accept-Language), 7-day TTL, silent localStorage failures; no bugs.",
+    "reorderDestinationsByGeo: mapping RU/BY/UA/KZ/AM/KG/TJ/UZ→russia and TH/MY/VN/SG/LA/KH/ID→thailand is sensible. Works as verified by UI test.",
+    "TrustBar: getLocationDisplayName correctly resolves country/region/city via COUNTRY_PRESETS labels with language fallback to en; dynamic listingsLabel composed via getUIText('trustListingsIn'/'trustListingsWorldwide'); verified RU/EN runtime.",
+    "Migration SQL is well-structured, IDEMPOTENT, and includes verification queries in a trailing comment block — production-safe to apply.",
+    "migrate-global-pivot.mjs gracefully exits with user-friendly instructions when env vars absent — good UX."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "20% (1/5 search-api runtime tests pass; migration not applied)", "frontend": "100% (geo reorder + TrustBar + whoami all pass)"},
+  "test_credentials": "N/A — no auth flows tested this sprint.",
+  "seed_data_creation": "None.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Migration 20260201_global_pivot.sql must be applied (via Supabase Dashboard → SQL Editor, since no SUPABASE_DB_URL/ACCESS_TOKEN in preview env) OR applySmartWhereFilter must be guarded before any re-test of /api/v2/search?where=<country|region|city>. Frontend UI + hooks + TrustBar labels are solid and do NOT need re-test. After migration apply, smoke-test: where=RU, where=TH, where=phuket, where=moscow, where=bali, where=patong (legacy), all should 200 with listings.",
+  "rca of the issue": "RCA: applySmartWhereFilter constructs a PostgREST .or() string like 'country_code.eq.RU,region_code.eq.RU-MOW,...,district.eq.Патонг'. PostgREST parses the filter client-side but Postgres evaluates the predicate in the WHERE clause; if any column name is unknown the query fails with SQLSTATE 42703 ('column … does not exist'). There is no per-term graceful-degrade in PostgREST OR clauses. Mitigations: (a) apply the migration (preferred, 1-click in Supabase SQL Editor — SQL is idempotent), (b) add a schema-probe cache at supabaseAdmin bootstrap that records which of country_code/region_code/city_code exist, and conditionally append only available predicates to orParts."
+}

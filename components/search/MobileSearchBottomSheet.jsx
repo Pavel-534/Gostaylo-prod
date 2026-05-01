@@ -18,11 +18,13 @@
  * @created 2026-02 Sprint P3 — Premium Air, мобильная оптимизация
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Search, X, MapPin, Calendar as CalendarIcon, Users, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { getCategoryName, getUIText } from '@/lib/translations'
 import { POPULAR_DESTINATION_GROUPS } from '@/lib/locations/popular-destinations'
+import { reorderDestinationsByGeo } from '@/lib/locations/reorder-by-geo'
+import { useUserGeo } from '@/lib/hooks/useUserGeo'
 import { cn } from '@/lib/utils'
 
 /** Популярные направления — синхрон с WhereCombobox (импорт из popular-destinations.js) */
@@ -88,6 +90,13 @@ export function MobileSearchBottomSheet({
   onSearch,
 }) {
   const sheetRef = useRef(null)
+
+  // Smart geolocation — re-order popular destinations by user's country
+  const { country: userCountry } = useUserGeo()
+  const orderedGroups = useMemo(
+    () => reorderDestinationsByGeo(POPULAR_DESTINATION_GROUPS, userCountry),
+    [userCountry],
+  )
 
   // Закрытие по Escape + lock body scroll
   useEffect(() => {
@@ -235,7 +244,7 @@ export function MobileSearchBottomSheet({
               >
                 {ALL_OPTION.labels[language] || ALL_OPTION.labels.en}
               </button>
-              {POPULAR_DESTINATION_GROUPS.map((group) => (
+              {orderedGroups.map((group) => (
                 <div key={group.id}>
                   <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
                     <span aria-hidden>{group.flag}</span>
