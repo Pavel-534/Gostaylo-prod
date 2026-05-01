@@ -1,0 +1,38 @@
+{
+  "summary": "Frontend smoke + retest of CRITICAL geo-schema-probe fix from iteration_5. All 4 critical /api/v2/search where-cases (phuket, RU, moscow, patong) return 200 with no 500. Schema probe + 5-min cache verified — cold ~820ms, warm ~3-5ms. Hero combobox flow Moscow→Search → /listings?where=moscow renders EmptyState (no 500). /about /terms work for ru/en/th/zh via NEXT_LOCALE cookie. Discovered separate pre-existing backend bug: /api/v2/auth/me returns 500 because JWT_SECRET is missing in .env (triggers 6 console errors per page load).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "/api/v2/auth/me", "issue": "Returns 500 with 'JWT_SECRET is not configured. Set a strong, unique JWT_SECRET in the environment'. Triggered on every page load (6x in console). Pre-existing — unrelated to geo schema fix but pollutes UX and breaks auth status check.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "reputation/data-provider", "issue": "Repeated log noise: 'invalid input value for enum booking_status: DECLINED / FINISHED' — enum mismatch between code and DB."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Auth status banner / login state", "issue": "Console flooded with 'Failed to load resource: 500' from /api/v2/auth/me on every page render due to missing JWT_SECRET.", "affected_selectors": ["/api/v2/auth/me"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_6.json"
+  ],
+  "action_items": [
+    "Set JWT_SECRET in /app/.env (e.g. `openssl rand -base64 32`) and restart backend — clears /api/v2/auth/me 500 and removes 6 console errors on every page load. NOT introduced by the geo fix but blocking clean console.",
+    "Optional: harmonize booking_status enum (DECLINED/FINISHED) between data-provider and DB."
+  ],
+  "critical_code_review_comments": [
+    "geo-schema-probe.js — clean. probeColumn correctly catches 42703 + regex fallback for 'column does not exist'. inflightPromise prevents thundering herd on cold cache. 5-min TTL reasonable.",
+    "Minor: probeColumn returns false for ANY error (including transient network/connection). After miscellaneous transient error the cache will hold false for 5 min — idempotent but could falsely disable new geo predicates. Consider distinguishing 42703 (definitive) from generic errors (don't cache, retry next call).",
+    "run-listings-search-get.js — buildListingsQuery now async and awaited correctly at both call sites (lines 461 and 471). applySmartWhereFilter signature is async and properly awaited in line 415."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (4/4 geo-search RETEST cases passed)", "frontend": "100% (homepage, /listings, /listings?where=moscow|phuket, hero chip→Search, /about, /terms in 4 langs)"},
+  "test_credentials": "n/a — no auth flows tested",
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "iteration_5 CRITICAL bug (500 on phuket/moscow/RU chips) is fully resolved by /app/lib/api/geo-schema-probe.js + async applySmartWhereFilter. Backward-compat path tested with migration UNAPPLIED — listings search uses legacy district-only fallback; phuket and patong still return seed listing 'lst-test-final-1772285152' via district='Patong'. Probe cache: cold first call ~820ms, warm ~3-5ms. Pre-existing bug: JWT_SECRET missing → /api/v2/auth/me 500. Routes /about /terms NOT under [lang]/ — they use cookie NEXT_LOCALE. Bare /about returns 200 for all 4 locales.",
+  "rca_of_jwt_secret_bug": "Backend /app/.env contains no JWT_SECRET key. Code at /app/v2/auth/me throws if JWT_SECRET is missing (defensive guard). Mitigation: add JWT_SECRET=$(openssl rand -base64 32) to /app/.env and `sudo supervisorctl restart frontend` (Next.js loads env at start)."
+}
