@@ -14,6 +14,7 @@ import {
   Anchor,
   Loader2,
   CalendarX,
+  Flame,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -121,7 +122,7 @@ export function TopListingsGrid({
 
               return (
                 <Link key={listing.id} href={listingUrl}>
-                  <Card className="group h-full flex flex-col overflow-hidden rounded-2xl transition-all border border-slate-200 hover:border-[#006666] bg-white shadow-[0_8px_18px_rgba(15,23,42,0.05),0_2px_6px_rgba(0,102,102,0.06)] hover:shadow-[0_30px_64px_rgba(0,102,102,0.16),0_12px_28px_rgba(15,23,42,0.12)]">
+                  <Card className="group h-full flex flex-col overflow-hidden rounded-2xl transition-all duration-300 border border-slate-200 hover:border-[#006666] hover:-translate-y-1 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.05),0_2px_6px_rgba(0,102,102,0.06)] hover:shadow-[0_30px_64px_rgba(0,102,102,0.16),0_12px_28px_rgba(15,23,42,0.12)]">
                     <div className="relative h-44 sm:h-48 overflow-hidden flex-shrink-0">
                       <Image
                         src={mediaFallback[`lst-${listing.id}`] ? '/placeholder.svg' : thumbSrc}
@@ -147,6 +148,20 @@ export function TopListingsGrid({
                           <CalendarX className="h-3 w-3" />
                           {language === 'ru' ? 'Уточняйте доступность' : 'Check availability'}
                         </Badge>
+                      )}
+                      {(listing.catalog_flash_urgency || listing.catalog_promo_badge) && (
+                        <Badge
+                          data-testid={`listing-flash-deal-${listing.id}`}
+                          className="absolute bottom-2 left-2 flex items-center gap-1 border-0 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[10px] font-bold px-2 py-1 shadow-[0_4px_12px_rgba(225,29,72,0.35)] animate-[pulse_2.2s_ease-in-out_infinite]"
+                        >
+                          <Flame className="h-3 w-3" aria-hidden />
+                          {listing.catalog_promo_badge || (language === 'ru' ? 'FLASH' : 'FLASH')}
+                        </Badge>
+                      )}
+                      {listing.catalog_flash_social_proof && (
+                        <span className="absolute bottom-2 right-2 rounded-md bg-slate-900/75 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                          {listing.catalog_flash_social_proof}
+                        </span>
                       )}
                       {listing.rating > 0 && (
                         <Badge className="absolute top-2 right-2 bg-[#006666]">⭐ {listing.rating}</Badge>

@@ -1,22 +1,27 @@
 'use client'
 
 /**
- * StickySearchBar — compact sticky поисковая панель.
+ * StickySearchBar — compact sticky поисковая панель + Summary Chips.
  *
  * UX (Airbnb-like):
  *   - При скролле ниже hero (~280px) появляется fixed-бар под header'ом.
  *   - Одна строка: Категория · Локация · Даты · Гости · Поиск.
- *   - Плавная анимация (slide-down + fade), transition 200ms.
+ *   - Вторая строка (если есть активные фильтры) — Summary Chips: «Phuket • 12–19 May • 2 guests».
+ *     Клик по чипу фокусирует соответствующее поле (Where/Dates/Guests).
+ *   - Плавная анимация (slide-down + fade), transition 300ms.
  *   - Popover/calendar поднимаются из бара с z-[200] — перекрывают весь контент ниже.
  *
  * Z-index: fixed top-[64px] z-[80] (ниже header z-[100], но выше всех контентных
  * блоков — TrustBar, TopListingsGrid не перекрывают popover).
  *
  * @created 2026-02-05 Premium Air UX & Conversion Fix
+ * @updated 2026-02-05 Conversion Polish — Summary Chips с фокусом на поля
  */
 
-import { useEffect, useMemo, useState } from 'react'
-import { Search, MapPin, Users, Layers } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Search, MapPin, Users, Layers, Calendar, X } from 'lucide-react'
+import { format, isSameDay } from 'date-fns'
+import { ru as ruLocale } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SearchCalendar } from '@/components/search-calendar'
@@ -28,6 +33,30 @@ import { cn } from '@/lib/utils'
 
 const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8]
 const APPEAR_SCROLL_PX = 280
+
+/** Находим локализованный label для where-значения из плоского списка опций */
+function resolveWhereLabel(whereValue, options) {
+  if (!whereValue || whereValue === 'all') return null
+  const match = (options || []).find((o) => o.value === whereValue)
+  return match?.label || whereValue
+}
+
+/** Форматирование диапазона дат: «12–19 мая» / «May 12–19» / «12 May – 3 Jun» */
+function formatDateRangeShort(dateRange, language) {
+  if (!dateRange?.from) return null
+  const locale = language === 'ru' ? ruLocale : undefined
+  if (!dateRange.to || isSameDay(dateRange.from, dateRange.to)) {
+    return format(dateRange.from, language === 'ru' ? 'd MMM' : 'MMM d', { locale })
+  }
+  const sameMonth = dateRange.from.getMonth() === dateRange.to.getMonth()
+  if (sameMonth) {
+    const monthFmt = language === 'ru' ? 'MMM' : 'MMM'
+    const m = format(dateRange.from, monthFmt, { locale })
+    return `${format(dateRange.from, 'd')}–${format(dateRange.to, 'd')} ${m}`
+  }
+  const mk = (d) => format(d, language === 'ru' ? 'd MMM' : 'MMM d', { locale })
+  return `${mk(dateRange.from)} – ${mk(dateRange.to)}`
+}
 
 export function StickySearchBar({
   language = 'ru',
@@ -43,6 +72,11 @@ export function StickySearchBar({
   const [visible, setVisible] = useState(false)
   const [locations, setLocations] = useState(getStaticLocationsSeed)
   const [locationsLoading, setLocationsLoading] = useState(true)
+
+  // Refs на контейнеры полей — для программного focus через Summary Chips
+  const whereRef = useRef(null)
+  const datesRef = useRef(null)
+  const guestsTriggerRef = useRef(null)
 
   useEffect(() => {
     fetch('/api/v2/search/locations')
@@ -73,6 +107,33 @@ export function StickySearchBar({
       ? getCategoryName(category, language)
       : getUIText('mobileSearchWhatTitle', language)
 
+  const whereLabel = useMemo(() => resolveWhereLabel(where, whereOptions), [where, whereOptions])
+  const datesLabel = useMemo(() => formatDateRangeShort(dateRange, language), [dateRange, language])
+  const guestsLabel = useMemo(() => {
+    if (!guests || guests === '1') return null
+    const n = parseInt(guests, 10)
+    if (!Number.isFinite(n) || n < 2) return null
+    if (language === 'ru') return `${n} ${n === 1 ? 'гость' : n < 5 ? 'гостя' : 'гостей'}`
+    return `${n} guests`
+  }, [guests, language])
+
+  const hasAnyFilter = Boolean(whereLabel || datesLabel || guestsLabel)
+
+  /** Программный фокус на поле через querySelector по ref'у */
+  const focusField = (ref, opts = {}) => {
+    const el = ref?.current
+    if (!el) return
+    const btn = el.querySelector('button')
+    if (btn) {
+      btn.click()
+      if (opts.focus !== false) btn.focus({ preventScroll: true })
+    }
+  }
+
+  const handleClearWhere = (e) => { e.stopPropagation(); setWhere?.('all') }
+  const handleClearDates = (e) => { e.stopPropagation(); setDateRange?.({ from: undefined, to: undefined }) }
+  const handleClearGuests = (e) => { e.stopPropagation(); setGuests?.('1') }
+
   return (
     <div
       data-testid="sticky-search-bar"
@@ -91,7 +152,7 @@ export function StickySearchBar({
           </div>
 
           {/* Where */}
-          <div className="min-w-0 flex-1 border-r border-slate-100 px-2">
+          <div ref={whereRef} className="min-w-0 flex-1 border-r border-slate-100 px-2">
             <WhereCombobox
               options={whereOptions}
               value={where || 'all'}
@@ -105,7 +166,7 @@ export function StickySearchBar({
           </div>
 
           {/* Dates */}
-          <div className="min-w-0 flex-1 border-r border-slate-100 px-2">
+          <div ref={datesRef} className="min-w-0 flex-1 border-r border-slate-100 px-2">
             <SearchCalendar
               value={dateRange}
               onChange={setDateRange}
@@ -119,6 +180,7 @@ export function StickySearchBar({
           <Popover>
             <PopoverTrigger asChild>
               <button
+                ref={guestsTriggerRef}
                 type="button"
                 data-testid="sticky-search-guests"
                 className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 hover:border-teal-300 hover:bg-teal-50"
@@ -153,8 +215,79 @@ export function StickySearchBar({
             <span className="hidden sm:inline">{getUIText('findButton', language)}</span>
           </Button>
         </div>
+
+        {/* Summary Chips — появляются ТОЛЬКО если есть активные фильтры */}
+        {hasAnyFilter && (
+          <div
+            data-testid="sticky-search-summary-chips"
+            className="mt-2 flex flex-wrap items-center gap-1.5 px-1"
+          >
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+              {language === 'ru' ? 'Фильтры' : 'Filters'}:
+            </span>
+            {whereLabel && (
+              <Chip
+                icon={MapPin}
+                testid="sticky-chip-where"
+                onClick={() => focusField(whereRef)}
+                onClear={handleClearWhere}
+                clearAriaLabel={language === 'ru' ? 'Убрать локацию' : 'Clear location'}
+              >
+                {whereLabel}
+              </Chip>
+            )}
+            {datesLabel && (
+              <Chip
+                icon={Calendar}
+                testid="sticky-chip-dates"
+                onClick={() => focusField(datesRef)}
+                onClear={handleClearDates}
+                clearAriaLabel={language === 'ru' ? 'Убрать даты' : 'Clear dates'}
+              >
+                {datesLabel}
+              </Chip>
+            )}
+            {guestsLabel && (
+              <Chip
+                icon={Users}
+                testid="sticky-chip-guests"
+                onClick={() => guestsTriggerRef.current?.click()}
+                onClear={handleClearGuests}
+                clearAriaLabel={language === 'ru' ? 'Сбросить гостей' : 'Clear guests'}
+              >
+                {guestsLabel}
+              </Chip>
+            )}
+          </div>
+        )}
       </div>
     </div>
+  )
+}
+
+function Chip({ icon: Icon, children, onClick, onClear, testid, clearAriaLabel }) {
+  return (
+    <span
+      className="group inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50/80 pl-2.5 pr-1 py-1 text-xs font-semibold text-teal-800 shadow-sm transition-all hover:border-teal-400 hover:bg-teal-100 hover:shadow"
+      data-testid={testid}
+    >
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex items-center gap-1.5 cursor-pointer focus:outline-none"
+      >
+        <Icon className="h-3 w-3 text-teal-600" aria-hidden />
+        <span>{children}</span>
+      </button>
+      <button
+        type="button"
+        onClick={onClear}
+        aria-label={clearAriaLabel}
+        className="flex h-5 w-5 items-center justify-center rounded-full text-teal-500 transition-colors hover:bg-teal-200 hover:text-teal-900"
+      >
+        <X className="h-3 w-3" aria-hidden />
+      </button>
+    </span>
   )
 }
 
