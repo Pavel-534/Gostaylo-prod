@@ -131,6 +131,7 @@ export function AppHeader({
         'fixed top-0 left-0 right-0 z-[100] transition-all duration-300',
         isPublic && 'border-b border-slate-200/80 backdrop-blur-md shadow-sm shadow-[#006666]/10',
         isWorkspace && 'border-b border-slate-200 bg-white',
+        user?.is_impersonating && 'ring-1 ring-rose-200',
       )}
       style={
         isPublic
@@ -141,7 +142,7 @@ export function AppHeader({
           : undefined
       }
     >
-      {/* Admin impersonation stripe — всегда на самом верху */}
+      {/* Admin impersonation stripe — всегда на самом верху; увеличивает header height */}
       <AdminImpersonationStripe />
 
       <div className="container mx-auto px-3 sm:px-4">

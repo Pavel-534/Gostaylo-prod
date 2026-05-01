@@ -221,8 +221,11 @@ export default function RenterLayout({ children }) {
 
   return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
-        {/* На мобиле fixed надёжнее sticky (Yandex/Chrome); отступ под шапку только &lt;md */}
-        <div className="h-16 shrink-0 md:hidden" aria-hidden="true" />
+        {/* На мобиле fixed надёжнее sticky (Yandex/Chrome); отступ под шапку только &lt;md.
+            Когда UNIFIED_HEADER=on — MainContent уже добавляет pt-16, spacer не нужен. */}
+        {!UNIFIED_HEADER_ENABLED && (
+          <div className="h-16 shrink-0 md:hidden" aria-hidden="true" />
+        )}
 
         {/* === NEW: Unified AppHeader (feature-flagged) === */}
         {UNIFIED_HEADER_ENABLED && (

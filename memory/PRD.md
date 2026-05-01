@@ -1164,3 +1164,63 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - Применить `20260205_db_integrity_fk.sql` в Supabase SQL Editor.
 - Запустить smoke E2E на production URL после деплоя.
 
+
+### 36. Unified Header — Step 1+2 (2026-02-05)
+
+**Sprint ship status:** ✅ Build green (99s). Testing iteration_9 = 8/10 PASS, 2 blocked by env (impersonation-stripe requires backend session, cannot be mocked via localStorage). Post-fix applied.
+
+**Delivered:**
+
+1. **Framework** — `/app/components/app-header/AppHeader.jsx` (~380 LOC):
+   - Автодетект режима через `usePathname`: `public | workspace | chat`.
+   - Mode A (public): glass-white с backdrop-blur + 4 nav-links (Listings/Destinations/Membership/Help).
+   - Mode B (workspace): solid-white + border-b + role-badge + menu-btn (mobile) + home-back-link.
+   - Mode C (chat): `return null` — StickyChatHeader остаётся владельцем.
+   - Shadow recipe unified: `shadow-[0_10px_26px_rgba(0,102,102,0.1)]` + `border-white/70` + `backdrop-blur-md` для public.
+   - H=64px (+1px border = 65 effective) — единый контракт по всем modes.
+   - Все interactive элементы с data-testid (app-header-public/workspace, logo, nav-*, menu-btn, home-link, user-menu, login).
+   - `variant` prop override + `centerSlot` для custom content + `onMenuClick` callback для sidebar.
+
+2. **Sub-components (SSOT):**
+   - `/app/components/app-header/LangSwitcher.jsx` — единый переключатель языка (RU/EN/ZH/TH) с Flag компонентом.
+   - `/app/components/app-header/AdminImpersonationStripe.jsx` — красная pill-stripe сверху хедера (градиент rose-500 → red-500), data-testid=admin-impersonation-stripe, с кнопкой «← Назад» (return-to-admin). Заменяет старый dark-gradient admin header.
+   - `/app/components/app-header/HeaderSwitcher.jsx` — feature-flag-aware switch между UniversalHeader (legacy) и AppHeader. Плюс контракт: на `/renter/*`, `/partner/*`, `/admin/*` root-level HeaderSwitcher возвращает `null` — section layouts сами владеют своим хедером (нет двойного рендера).
+
+3. **Feature flag** — `/app/lib/feature-flags.js`:
+   - `UNIFIED_HEADER_ENABLED = process.env.NEXT_PUBLIC_UNIFIED_HEADER === 'on' || '1'`.
+   - `.env` и `frontend/.env` получили `NEXT_PUBLIC_UNIFIED_HEADER=on` — новый хедер активен в preview.
+   - Чтобы откатить: `NEXT_PUBLIC_UNIFIED_HEADER=off`, rebuild — legacy UniversalHeader вернётся без кода-правок.
+
+4. **Renter migration** — `/app/app/renter/layout.js`:
+   - Inline fixed-top-0 header обёрнут в `{!UNIFIED_HEADER_ENABLED && (...)}` — скрывается когда flag=on.
+   - Замена: `<AppHeader variant="workspace" onMenuClick={setSidebarOpen} centerSlot={<RenterNav />}>` — рендерит те же nav-items (Dashboard/Bookings/Messages/Favorites/Profile/Settings) внутри workspace-варианта. Сохраняет весь существующий UX.
+   - Fix: spacer `<div className="h-16 shrink-0 md:hidden">` на мобильном теперь условный (только когда UNIFIED=off) — убрано double-padding (raised iteration_9).
+
+5. **MainContent padding** — `/app/components/main-content.jsx`:
+   - Две ветки: UNIFIED vs legacy.
+   - Renter + все не-exception routes получают `pt-16` (64px) когда UNIFIED=on.
+   - Home, Admin, Partner, Messages — без padding (как и раньше).
+
+**Verified flows (iteration_9):**
+- `/` → 1 header `[data-testid=app-header-public]`, 4 nav-links, logo, login ✅
+- `/listings` → public header, активный Listings с border-b teal ✅
+- `/renter/dashboard` (desktop) → 1 header `[data-testid=app-header-workspace]`, RENTER badge, home-link, NO legacy inline header ✅
+- Mobile menu-btn → click открывает sidebar overlay (drawer toggle) ✅
+- Lint: все новые файлы без ошибок ✅
+
+**Known deferred (non-blockers):**
+- Impersonation stripe: увеличивает effective header height (~28px stripe + 65px header). MainContent `pt-16` не динамический — под stripe контент может частично прятаться. Будет исправлено в Step 3 через CSS custom-property `--app-header-height` с измерением ResizeObserver'ом.
+- PUBLIC_NAV: `Destinations` и `Listings` оба ссылаются на `/listings` (унаследовано от legacy). TODO: выделить `/destinations` как отдельную SEO-страницу.
+- AppHeader.jsx 380 LOC — близко к порогу для split'а. Candidate для extraction: UserMenuDropdown (~100 LOC).
+
+**Pending next sprints:**
+- Step 3: workspace для `/partner/*` и `/admin/*` — заменить их inline mobile headers на `<AppHeader variant="workspace" />`.
+- Step 4: `/messages/*` — обернуть StickyChatHeader в `<AppHeader variant="chat" />`.
+- Step 5: cleanup — удалить universal-header.jsx, inline blocks из layouts, упростить MainContent до 5 строк, убрать feature flag.
+
+**Files created/modified:**
+- Created: `/app/components/app-header/AppHeader.jsx`, `HeaderSwitcher.jsx`, `LangSwitcher.jsx`, `AdminImpersonationStripe.jsx`
+- Created: `/app/lib/feature-flags.js`
+- Modified: `/app/app/layout.js`, `/app/app/renter/layout.js`, `/app/components/main-content.jsx`
+- `.env` + `frontend/.env`: `NEXT_PUBLIC_UNIFIED_HEADER=on`
+
