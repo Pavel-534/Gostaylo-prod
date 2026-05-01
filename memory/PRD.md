@@ -1280,3 +1280,64 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - `--app-header-height` ResizeObserver корректно покрывает impersonation stripe (iteration_9 concern закрыт).
 - No double-padding detected.
 
+
+### 38. Unified Header — Step 4 + Scroll Glow (2026-02-05)
+
+**Sprint ship status:** ✅ testing iteration_11 = **100% (9/9)** PASS после fix CSS bug'а.
+
+**Delivered:**
+
+1. **ChatTopBar** — `/app/components/app-header/ChatTopBar.jsx` (~100 LOC):
+   - Slim h-12 (48px), `sticky top-0 z-[100]`, **desktop-only** (`hidden lg:flex`).
+   - `[← Back] [Logo] [MessageCircle + "Messages" title + unread badge] [LangSwitcher] [UserMenuDropdown]`.
+   - Back-button использует `router.push('/messages')` (или custom `onBack` prop).
+   - `ResizeObserver` → `--app-header-height='48px'` (StickyChatHeader может использовать это для sticky-offset).
+   - Mobile (< lg): возвращает `display:none` → thread-UI полноэкранный, StickyChatHeader владеет верхом (best UX для мобильного чата).
+
+2. **MessagesViewportShell integration** — `/app/components/messages-viewport-shell.jsx`:
+   - Рендерит `<ChatTopBar />` над thread flex-контейнером когда `UNIFIED_HEADER_ENABLED=on`.
+   - Legacy путь остаётся без ChatTopBar (backward compat).
+
+3. **Scroll glow pulse** — `/app/components/app-header/ScrollProgressBar.jsx` + `/app/app/globals.css`:
+   - При `progress >= 99.5%` div получает класс `animate-scroll-glow-pulse` + атрибут `data-complete="true"`.
+   - CSS keyframes: 2s ease-in-out infinite, box-shadow пульсирует от `8px teal @ 0.55α` → `18px teal + 28px cyan @ 1.0α` → назад.
+   - `prefers-reduced-motion: reduce` → анимация отключена, остаётся статичный teal glow. Accessibility ✅.
+   - Data-testid `app-header-scroll-progress` с `data-complete` для e2e assertion.
+
+4. **CSS fix (critical)** — в процессе тестирования обнаружен long-standing баг в `globals.css`:
+   - `.gostaylo-price-pill--selected:hover` блок был **без закрывающей скобки** (существовал до этого спринта).
+   - Моя вставка `@keyframes` оказалась **внутри** этого незакрытого блока → postcss-nesting сгенерил невалидный CSS: keyframes scoped to selector, `.animate-scroll-glow-pulse` применялся только когда ancestor=`.gostaylo-price-pill--selected:hover`.
+   - Testing agent починил: закрыл hover-блок + вытащил keyframes/класс/media-rule на top level. Проверено: `animationName='scroll-glow-pulse'` в compiled CSS, анимация работает.
+   - Recommendation: добавить stylelint для ловли незакрытых braces в CI.
+
+5. **Regression verification:**
+   - `/partner/dashboard` mobile 390×844 → legacy white header count=0 (UNIFIED mode) ✅
+   - `/admin` mobile 390×844 → legacy dark-gradient header (`from-slate-900`) count=0 ✅
+   - Partner/Admin mobile auth-guard редиректит в /profile (ожидаемо). `[data-testid=app-header-workspace]` рендерится на fallback странице.
+
+**Files created/modified:**
+- Created: `/app/components/app-header/ChatTopBar.jsx`
+- Modified: `/app/components/messages-viewport-shell.jsx` (ChatTopBar integration), `/app/components/app-header/ScrollProgressBar.jsx` (glow class + data-complete), `/app/app/globals.css` (keyframes + fix hover block)
+
+**Test results (100%):**
+| Test | Result |
+|---|---|
+| T1 /messages inbox desktop ChatTopBar | PASS h=48, var=48px |
+| T2 /messages mobile hidden | PASS display:none |
+| T3 /messages/:id desktop sticky | PASS top-0 z-100 |
+| T4 Back button → /messages | PASS |
+| T5 Scroll glow pulse @ 100% | PASS animation active |
+| T6 prefers-reduced-motion | PASS static glow |
+| T7 Partner mobile no legacy | PASS count=0 |
+| T8 Admin mobile no legacy | PASS count=0 |
+
+**Ops note:** frontend runs `next start` (production). CSS edits в `globals.css` требуют `yarn build` + `sudo supervisorctl restart frontend` — hot-reload НЕ применяется к production CSS bundle.
+
+**Pending (Step 5 — передача Cursor'у):**
+- Удалить `/app/components/universal-header.jsx`.
+- Удалить legacy `{!UNIFIED_HEADER_ENABLED && ...}` ветки из `app/renter/layout.js`, `app/partner/layout.js`, `app/admin/layout.js`.
+- Упростить `main-content.jsx` до unified branch.
+- Удалить `NEXT_PUBLIC_UNIFIED_HEADER` из .env и `lib/feature-flags.js`.
+- Удалить `HeaderSwitcher` wrapper (root layout напрямую использует `<AppHeader />`).
+- Предложение: добавить stylelint в CI с правилом `no-unknown-nested-selector` + brace matcher.
+
