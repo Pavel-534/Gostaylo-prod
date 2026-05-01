@@ -69,12 +69,13 @@ CREATE TABLE IF NOT EXISTS public.geo_locations (
 CREATE INDEX IF NOT EXISTS idx_geo_locations_level_code ON public.geo_locations (level, code);
 CREATE INDEX IF NOT EXISTS idx_geo_locations_parent     ON public.geo_locations (parent_code);
 
--- Seed: страны (4 для старта)
+-- Seed: страны (5 для старта — добавлена Турция)
 INSERT INTO public.geo_locations (level, code, parent_code, label_en, label_ru, label_zh, label_th, flag, iso_country) VALUES
   ('country', 'TH', NULL, 'Thailand',  'Таиланд',  '泰国',          'ประเทศไทย', '🇹🇭', 'TH'),
   ('country', 'RU', NULL, 'Russia',    'Россия',   '俄罗斯',        'รัสเซีย',    '🇷🇺', 'RU'),
   ('country', 'ID', NULL, 'Indonesia', 'Индонезия','印度尼西亚',     'อินโดนีเซีย','🇮🇩', 'ID'),
-  ('country', 'AE', NULL, 'UAE',       'ОАЭ',      '阿联酋',        'ยูเออี',      '🇦🇪', 'AE')
+  ('country', 'AE', NULL, 'UAE',       'ОАЭ',      '阿联酋',        'ยูเออี',      '🇦🇪', 'AE'),
+  ('country', 'TR', NULL, 'Turkey',    'Турция',   '土耳其',        'ตุรกี',      '🇹🇷', 'TR')
 ON CONFLICT (level, code) DO NOTHING;
 
 -- Seed: регионы
@@ -87,7 +88,12 @@ INSERT INTO public.geo_locations (level, code, parent_code, label_en, label_ru, 
   ('region', 'RU-SPB', 'RU', 'Saint Petersburg', 'Санкт-Петербург',  '圣彼得堡市', 'เซนต์ปีเตอร์สเบิร์ก','RU'),
   ('region', 'RU-KDA', 'RU', 'Krasnodar Krai',   'Краснодарский край','克拉斯诺达尔','ครัสโนดาร์',     'RU'),
   ('region', 'ID-BA',  'ID', 'Bali',             'Бали',             '巴厘省',     'บาหลี',           'ID'),
-  ('region', 'AE-DU',  'AE', 'Dubai',            'Дубай',            '迪拜',       'ดูไบ',            'AE')
+  ('region', 'ID-JK',  'ID', 'Jakarta',          'Джакарта',         '雅加达',     'จาการ์ตา',        'ID'),
+  ('region', 'AE-DU',  'AE', 'Dubai',            'Дубай',            '迪拜',       'ดูไบ',            'AE'),
+  ('region', 'AE-AZ',  'AE', 'Abu Dhabi',        'Абу-Даби',         '阿布扎比',   'อาบูดาบี',        'AE'),
+  ('region', 'TR-34',  'TR', 'Istanbul',         'Стамбул',          '伊斯坦布尔省','อิสตันบูล',      'TR'),
+  ('region', 'TR-07',  'TR', 'Antalya',          'Анталия',          '安塔利亚省', 'อันตัลยา',        'TR'),
+  ('region', 'TR-48',  'TR', 'Muğla',            'Мугла',            '穆拉省',     'มูลา',            'TR')
 ON CONFLICT (level, code) DO NOTHING;
 
 -- Seed: города
@@ -100,7 +106,15 @@ INSERT INTO public.geo_locations (level, code, parent_code, label_en, label_ru, 
   ('city', 'spb',         'RU-SPB', 'Saint Petersburg', 'Санкт-Петербург', '圣彼得堡', 'เซนต์ปีเตอร์สเบิร์ก','RU'),
   ('city', 'sochi',       'RU-KDA', 'Sochi',      'Сочи',             '索契',       'โซชี',            'RU'),
   ('city', 'denpasar',    'ID-BA',  'Denpasar',   'Денпасар',         '登巴萨',     'เดนปาซาร์',       'ID'),
-  ('city', 'dubai',       'AE-DU',  'Dubai',      'Дубай',            '迪拜',       'ดูไบ',            'AE')
+  ('city', 'ubud',        'ID-BA',  'Ubud',       'Убуд',             '乌布',       'อูบุด',           'ID'),
+  ('city', 'uluwatu',     'ID-BA',  'Uluwatu',    'Улувату',          '乌鲁瓦图',   'อูลูวาตู',        'ID'),
+  ('city', 'jakarta',     'ID-JK',  'Jakarta',    'Джакарта',         '雅加达',     'จาการ์ตา',        'ID'),
+  ('city', 'dubai',       'AE-DU',  'Dubai',      'Дубай',            '迪拜',       'ดูไบ',            'AE'),
+  ('city', 'abu-dhabi',   'AE-AZ',  'Abu Dhabi',  'Абу-Даби',         '阿布扎比',   'อาบูดาบี',        'AE'),
+  ('city', 'istanbul',    'TR-34',  'Istanbul',   'Стамбул',          '伊斯坦布尔', 'อิสตันบูล',       'TR'),
+  ('city', 'antalya',     'TR-07',  'Antalya',    'Анталия',          '安塔利亚',   'อันตัลยา',        'TR'),
+  ('city', 'bodrum',      'TR-48',  'Bodrum',     'Бодрум',           '博德鲁姆',   'บอดรุม',          'TR'),
+  ('city', 'fethiye',     'TR-48',  'Fethiye',    'Фетхие',           '费特希耶',   'เฟทิเย',          'TR')
 ON CONFLICT (level, code) DO NOTHING;
 
 -- 5) RLS policy — публичное чтение справочника -----------------------

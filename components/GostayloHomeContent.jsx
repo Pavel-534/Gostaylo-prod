@@ -29,6 +29,7 @@ import { TopListingsGrid } from '@/components/home/TopListingsGrid'
 import { TrustBar } from '@/components/home/TrustBar'
 import { PartnerCTA } from '@/components/home/PartnerCTA'
 import { MobileSearchFAB, MobileSearchBottomSheet } from '@/components/search/MobileSearchBottomSheet'
+import { FooterSwitchers } from '@/components/FooterSwitchers'
 
 export function GostayloHomeContent() {
   const router = useRouter()
@@ -491,10 +492,11 @@ export function GostayloHomeContent() {
               </ul>
             </div>
           </div>
-          <div className="border-t border-slate-800 mt-8 pt-6 text-center text-sm text-slate-400">
+          <div className="border-t border-slate-800 mt-8 pt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-sm text-slate-400">
             <p>
               © {new Date().getFullYear()} {getSiteDisplayName()}. {getUIText('allRightsReserved', language)}
             </p>
+            <FooterSwitchers />
           </div>
         </div>
       </footer>

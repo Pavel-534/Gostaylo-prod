@@ -91,3 +91,12 @@ homepage-screenshot.png
 blob-report/
 playwright/.cache/
 playwright/.auth/
+-e 
+# Environment and credential files
+.env
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials

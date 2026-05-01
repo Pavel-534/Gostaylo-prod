@@ -1,6 +1,7 @@
 import { Inter, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
+import GeoSuggestToast from '@/components/geo/GeoSuggestToast'
 import { UniversalHeader } from '@/components/universal-header'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { MainContent } from '@/components/main-content'
@@ -116,6 +117,7 @@ button{font:inherit}
                   <UniversalHeader />
                   <MainContent>{children}</MainContent>
                 <MobileBottomNav />
+                <GeoSuggestToast />
                 <Toaster
                   position="top-center"
                   richColors
