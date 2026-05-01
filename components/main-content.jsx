@@ -1,16 +1,15 @@
 /**
  * MainContent wrapper — conditionally adds padding for header.
  *
- * Legacy (UNIFIED_HEADER=off):
- *   - Admin/Partner/Renter/Messages — свой inline header, pad=0.
- *   - Home — hero сам padding'ует, pad=0.
- *   - Остальное — pt-14 под UniversalHeader (56px).
- *
  * Unified (UNIFIED_HEADER=on):
- *   - Admin/Partner — свой sidebar layout обрабатывает header, pad=0.
  *   - Home — hero сам padding'ует, pad=0.
- *   - Messages — StickyChatHeader управляет, pad=0.
- *   - Renter + остальные — pt-16 под AppHeader (64px).
+ *   - /messages/* — StickyChatHeader управляет, pad=0.
+ *   - Renter/Partner/Admin + public — padding = var(--app-header-height, 64px)
+ *     (динамически учитывает AdminImpersonationStripe когда активна).
+ *
+ * Legacy (UNIFIED_HEADER=off):
+ *   - Admin/Partner/Renter/Messages/Home — свой inline header, pad=0.
+ *   - Остальное — pt-14 под UniversalHeader.
  */
 
 'use client';
@@ -28,13 +27,19 @@ export function MainContent({ children }) {
   const isRenterPage = pathname?.startsWith('/renter');
 
   if (UNIFIED_HEADER_ENABLED) {
-    // AppHeader рендерится во всех workspace режимах → renter нуждается в padding.
-    // Partner/Admin пока оставляют свои layouts (mobile inline header) — их мигрируем позже.
-    if (isAdminPage || isPartnerPage || isHomePage || isUnifiedMessagesHall) {
+    if (isHomePage || isUnifiedMessagesHall) {
       return <>{children}</>;
     }
-    // Renter + public (кроме /) — AppHeader h-16 → pt-16
-    return <div className="pt-16">{children}</div>;
+    // Partner/Admin сами контролируют mobile header padding через свой main.
+    // Renter + public — под AppHeader, dynamic height из CSS var.
+    if (isPartnerPage || isAdminPage) {
+      return <>{children}</>;
+    }
+    return (
+      <div style={{ paddingTop: 'var(--app-header-height, 64px)' }}>
+        {children}
+      </div>
+    );
   }
 
   // Legacy path

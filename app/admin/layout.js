@@ -36,6 +36,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getSiteDisplayName } from '@/lib/site-url';
 import { HeaderWalletCompact } from '@/components/wallet/HeaderWalletCompact';
+import { UNIFIED_HEADER_ENABLED } from '@/lib/feature-flags';
+import { AppHeader } from '@/components/app-header/AppHeader';
 
 const MODERATOR_RESTRICTED_PREFIXES = [
   '/admin/finances',
@@ -248,7 +250,16 @@ export default function AdminLayout({ children }) {
         />
       )}
 
-      {/* Mobile Top Header - Premium Deep Sea Design */}
+      {/* === NEW: Unified AppHeader (feature-flagged) === */}
+      {UNIFIED_HEADER_ENABLED && (
+        <AppHeader
+          variant="workspace"
+          onMenuClick={() => setSidebarOpen((v) => !v)}
+        />
+      )}
+
+      {/* Mobile Top Header — legacy dark gradient (rendered only when flag = off) */}
+      {!UNIFIED_HEADER_ENABLED && (
       <header className="fixed top-0 left-0 right-0 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white z-30 lg:hidden shadow-lg">
         {/* Impersonation Banner - Mobile */}
         {isImpersonating && (
@@ -308,6 +319,8 @@ export default function AdminLayout({ children }) {
           </div>
         </div>
       </header>
+      )}
+      {/* === END LEGACY MOBILE HEADER === */}
 
       {/* Main Content Area — min-h-0: дочерний main может сжиматься, скролл остаётся внутри чата */}
       <div className={cn('flex min-h-0 flex-1', isAdminMessagesSection && 'overflow-hidden')}>
@@ -396,7 +409,8 @@ export default function AdminLayout({ children }) {
       {/* Main Content */}
       <main
         className={cn(
-          'w-full max-w-full flex-1 overflow-x-hidden pt-14 lg:ml-64 lg:pt-0',
+          'w-full max-w-full flex-1 overflow-x-hidden lg:ml-64 lg:pt-0',
+          UNIFIED_HEADER_ENABLED ? 'pt-[var(--app-header-height,56px)]' : 'pt-14',
           isAdminMessagesSection &&
             'flex min-h-0 flex-col overflow-hidden max-lg:flex-1'
         )}

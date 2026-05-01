@@ -6,42 +6,34 @@
  * Три режима (автодетект по pathname, override через prop variant):
  *   • public    → /, /listings, /help, /about, /u/* — glass-white, hero-aware
  *   • workspace → /renter, /partner, /admin, /settings — solid-white + menu toggle
- *   • chat      → /messages/* — slim, минимальный (этап 3 sprint)
+ *   • chat      → /messages/* — slim, минимальный (этап 4)
  *
- * Shadow recipe (единый воздух):
- *   - public:    backdrop-blur + subtle teal shadow
- *   - workspace: border-b + no glass (чётко для работы)
- *   - все:       h-16 (64px), sticky top-0 z-[100]
+ * Dynamic spacing: ResizeObserver записывает высоту <header> в
+ * CSS custom property `--app-header-height` на <html>. Это покрывает
+ * переменную высоту когда активен AdminImpersonationStripe (~28px + 65px).
+ * MainContent читает этот var для pt-[var(--app-header-height)].
+ *
+ * Shadow recipe: единый воздушный border + teal-tinted shadow.
+ * Scroll-progress: 2px teal gradient в bottom border.
  *
  * @created 2026-02-05 Unified Header Sprint
+ * @updated 2026-02-05 Step 3 — UserMenuDropdown split + dynamic spacing + scroll progress
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import {
-  Menu, User, LogOut, ChevronDown, Heart, CalendarDays,
-  Briefcase, Shield, MessageCircle, Gift, Home as HomeIcon,
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { toPublicImageUrl } from '@/lib/public-image-url'
+import { usePathname } from 'next/navigation'
+import { Menu, Home as HomeIcon } from 'lucide-react'
 import { CurrencySelector } from '@/components/currency-selector'
 import { HeaderWalletCompact } from '@/components/wallet/HeaderWalletCompact'
 import { AirentoLogo } from '@/components/brand/airento-logo'
 import { LangSwitcher } from '@/components/app-header/LangSwitcher'
 import { AdminImpersonationStripe } from '@/components/app-header/AdminImpersonationStripe'
+import { UserMenuDropdown } from '@/components/app-header/UserMenuDropdown'
+import { ScrollProgressBar } from '@/components/app-header/ScrollProgressBar'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { useCurrency } from '@/contexts/currency-context'
-import { useChatContext } from '@/lib/context/ChatContext'
 import { getUIText } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { cn } from '@/lib/utils'
@@ -79,7 +71,6 @@ function getWorkspaceTitle(pathname, language) {
   return null
 }
 
-// Public nav-links — только в Mode A
 const PUBLIC_NAV = [
   { href: '/listings', key: 'navListings' },
   { href: '/listings', key: 'navDestinations' },
@@ -89,19 +80,18 @@ const PUBLIC_NAV = [
 
 export function AppHeader({
   variant: variantOverride,
-  centerSlot,              // опциональный custom slot в центре (напр. renter tabs)
-  onMenuClick,             // workspace mobile — trigger sidebar drawer
-  showMenuButton = true,   // workspace mode — показывать ли кнопку меню на мобильном
+  centerSlot,
+  onMenuClick,
+  showMenuButton = true,
 }) {
   const pathname = usePathname()
-  const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const headerRef = useRef(null)
 
   const { language } = useI18n()
   const { currency, setCurrency } = useCurrency()
-  const { user, logout, openLoginModal, isAdmin, isPartner, refreshUserFromServer } = useAuth()
-  const { totalUnread } = useChatContext()
+  const { user } = useAuth()
 
   useEffect(() => { setMounted(true) }, [])
   useEffect(() => {
@@ -111,27 +101,37 @@ export function AppHeader({
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  // Dynamic height → --app-header-height (покрывает impersonation stripe, вариации padding)
+  useEffect(() => {
+    if (!headerRef.current) return
+    const el = headerRef.current
+    const apply = () => {
+      const h = Math.ceil(el.getBoundingClientRect().height)
+      document.documentElement.style.setProperty('--app-header-height', `${h}px`)
+    }
+    apply()
+    const ro = new ResizeObserver(apply)
+    ro.observe(el)
+    return () => { ro.disconnect() }
+  }, [mounted, user?.is_impersonating, pathname])
+
   if (!mounted) return null
 
   const variant = variantOverride || detectVariant(pathname)
-
-  // Mode C (chat) — не рендерим здесь, StickyChatHeader управляет своей зоной
   if (variant === 'chat') return null
 
   const isPublic = variant === 'public'
   const isWorkspace = variant === 'workspace'
   const workspaceTitle = isWorkspace && !centerSlot ? getWorkspaceTitle(pathname, language) : null
 
-  const navigate = (href) => router.push(href)
-
   return (
     <header
+      ref={headerRef}
       data-testid={`app-header-${variant}`}
       className={cn(
         'fixed top-0 left-0 right-0 z-[100] transition-all duration-300',
         isPublic && 'border-b border-slate-200/80 backdrop-blur-md shadow-sm shadow-[#006666]/10',
         isWorkspace && 'border-b border-slate-200 bg-white',
-        user?.is_impersonating && 'ring-1 ring-rose-200',
       )}
       style={
         isPublic
@@ -142,13 +142,12 @@ export function AppHeader({
           : undefined
       }
     >
-      {/* Admin impersonation stripe — всегда на самом верху; увеличивает header height */}
       <AdminImpersonationStripe />
 
       <div className="container mx-auto px-3 sm:px-4">
         <div className="flex h-16 items-center justify-between gap-3 sm:gap-4">
 
-          {/* LEFT — Menu toggle (workspace mobile) + Logo */}
+          {/* LEFT */}
           <div className="flex items-center gap-2 min-w-0">
             {isWorkspace && showMenuButton && (
               <button
@@ -197,7 +196,7 @@ export function AppHeader({
             </Link>
           </div>
 
-          {/* CENTER — public nav OR workspace title OR custom slot */}
+          {/* CENTER */}
           {isPublic && (
             <nav className="hidden lg:flex flex-1 items-center gap-6">
               {PUBLIC_NAV.map((item, idx) => {
@@ -235,9 +234,8 @@ export function AppHeader({
             </div>
           )}
 
-          {/* RIGHT — switchers + wallet + user */}
+          {/* RIGHT */}
           <div className="flex items-center gap-1 sm:gap-2">
-            {/* Home-back на workspace */}
             {isWorkspace && (
               <Link
                 href="/"
@@ -254,126 +252,13 @@ export function AppHeader({
 
             {user ? <HeaderWalletCompact /> : null}
 
-            {user ? (
-              <DropdownMenu onOpenChange={(open) => { if (open) refreshUserFromServer?.() }}>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    data-testid="app-header-user-menu"
-                    className="flex h-8 sm:h-9 items-center gap-1 sm:gap-2 rounded-full border border-slate-200 px-1.5 sm:px-2 hover:bg-slate-100"
-                  >
-                    <span className="relative inline-flex shrink-0">
-                      <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
-                        {user.avatar ? (
-                          <AvatarImage src={toPublicImageUrl(user.avatar)} alt="" className="object-cover" />
-                        ) : null}
-                        <AvatarFallback
-                          className={cn(
-                            'text-xs font-semibold text-white',
-                            isAdmin ? 'bg-indigo-600' : isPartner ? 'bg-teal-600' : 'bg-slate-500',
-                          )}
-                        >
-                          {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      {totalUnread > 0 && (
-                        <span className="pointer-events-none absolute -right-1 -top-0.5 hidden md:flex min-h-[16px] min-w-[16px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold leading-none text-white ring-2 ring-white">
-                          {totalUnread > 99 ? '99+' : String(totalUnread)}
-                        </span>
-                      )}
-                    </span>
-                    <ChevronDown className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-500" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-60">
-                  <div className="border-b border-slate-100 px-3 py-2.5">
-                    <p className="truncate font-semibold text-slate-900">{user.name || 'User'}</p>
-                    <p className="truncate text-xs text-slate-500">{user.email}</p>
-                  </div>
-                  <div className="py-1">
-                    <DropdownMenuItem className="cursor-pointer py-2.5" onSelect={() => navigate('/renter/profile')}>
-                      <User className="mr-3 h-4 w-4 text-slate-400" />
-                      <span>{language === 'ru' ? 'Профиль' : 'Profile'}</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer py-2.5" onSelect={() => navigate('/renter/bookings')}>
-                      <CalendarDays className="mr-3 h-4 w-4 text-slate-400" />
-                      <span>{language === 'ru' ? 'Мои бронирования' : 'My Bookings'}</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="hidden md:flex cursor-pointer flex-row items-center justify-between gap-2 py-2.5 pr-2"
-                      onSelect={() => navigate('/messages/')}
-                    >
-                      <span className="flex min-w-0 items-center">
-                        <MessageCircle className="mr-3 h-4 w-4 shrink-0 text-slate-400" />
-                        <span>{language === 'ru' ? 'Сообщения' : 'Messages'}</span>
-                      </span>
-                      {totalUnread > 0 && (
-                        <span className="flex min-h-[18px] min-w-[18px] shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
-                          {totalUnread > 99 ? '99+' : String(totalUnread)}
-                        </span>
-                      )}
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer py-2.5" onSelect={() => navigate('/profile/referral')}>
-                      <Gift className="mr-3 h-4 w-4 text-slate-400" />
-                      <span>{language === 'ru' ? 'Реферальная программа' : 'Referral'}</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer py-2.5" onSelect={() => navigate('/renter/favorites')}>
-                      <Heart className="mr-3 h-4 w-4 text-slate-400" />
-                      <span>{language === 'ru' ? 'Избранное' : 'Favorites'}</span>
-                    </DropdownMenuItem>
-                  </div>
-                  {(isAdmin || isPartner) && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <div className="py-1">
-                        <DropdownMenuItem className="cursor-pointer py-2.5" onSelect={() => navigate('/partner/dashboard')}>
-                          <Briefcase className="mr-3 h-4 w-4 text-teal-600" />
-                          <span className="font-medium text-teal-700">
-                            {language === 'ru' ? 'Панель партнёра' : 'Partner Dashboard'}
-                          </span>
-                        </DropdownMenuItem>
-                      </div>
-                    </>
-                  )}
-                  {isAdmin && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <div className="py-1">
-                        <DropdownMenuItem className="cursor-pointer py-2.5" onSelect={() => navigate('/admin')}>
-                          <Shield className="mr-3 h-4 w-4 text-indigo-600" />
-                          <span className="font-medium text-indigo-700">
-                            {language === 'ru' ? 'Админ-панель' : 'Admin'}
-                          </span>
-                        </DropdownMenuItem>
-                      </div>
-                    </>
-                  )}
-                  <DropdownMenuSeparator />
-                  <div className="py-1">
-                    <DropdownMenuItem
-                      onClick={logout}
-                      className="cursor-pointer py-2.5 text-red-600 focus:bg-red-50 focus:text-red-600"
-                    >
-                      <LogOut className="mr-3 h-4 w-4" />
-                      <span>{getUIText('logout', language)}</span>
-                    </DropdownMenuItem>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <Button
-                size="sm"
-                data-testid="app-header-login"
-                className="h-9 rounded-full bg-teal-600 px-4 font-medium hover:bg-teal-700"
-                onClick={openLoginModal}
-              >
-                {getUIText('login', language)}
-              </Button>
-            )}
+            <UserMenuDropdown />
           </div>
         </div>
       </div>
+
+      {/* Premium scroll progress (2px teal gradient) */}
+      <ScrollProgressBar />
     </header>
   )
 }

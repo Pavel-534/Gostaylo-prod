@@ -19,6 +19,8 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useChatContext } from '@/lib/context/ChatContext'
 import { HeaderWalletCompact } from '@/components/wallet/HeaderWalletCompact'
+import { UNIFIED_HEADER_ENABLED } from '@/lib/feature-flags'
+import { AppHeader } from '@/components/app-header/AppHeader'
 import { 
   LayoutDashboard,
   Briefcase,
@@ -367,7 +369,16 @@ export default function PartnerLayout({ children }) {
         />
       )}
 
-      {/* Mobile Top Header */}
+      {/* === NEW: Unified AppHeader (feature-flagged) === */}
+      {UNIFIED_HEADER_ENABLED && (
+        <AppHeader
+          variant="workspace"
+          onMenuClick={() => setSidebarOpen((v) => !v)}
+        />
+      )}
+
+      {/* Mobile Top Header — legacy (rendered only when flag = off) */}
+      {!UNIFIED_HEADER_ENABLED && (
       <header className="fixed top-0 left-0 right-0 bg-white border-b border-slate-200 z-30 lg:hidden">
         {/* Impersonation Banner - Mobile */}
         {isImpersonating && (
@@ -420,6 +431,7 @@ export default function PartnerLayout({ children }) {
           </div>
         </div>
       </header>
+      )}
 
       {/* Main Layout */}
       <div className="flex min-h-0 flex-1">
@@ -557,7 +569,14 @@ export default function PartnerLayout({ children }) {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 lg:ml-64 pt-14 lg:pt-0 w-full min-w-0 max-w-full overflow-x-hidden">
+        <main
+          className={
+            'flex-1 lg:ml-64 w-full min-w-0 max-w-full overflow-x-hidden ' +
+            (UNIFIED_HEADER_ENABLED
+              ? 'pt-[var(--app-header-height,56px)] lg:pt-0'
+              : 'pt-14 lg:pt-0')
+          }
+        >
           {/* Desktop Top Bar */}
           <div className="hidden lg:block sticky top-0 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 z-10">
             {/* Impersonation Banner - Desktop */}
