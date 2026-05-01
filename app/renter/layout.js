@@ -29,6 +29,8 @@ import { getSiteDisplayName } from '@/lib/site-url'
 import { useChatContext } from '@/lib/context/ChatContext'
 import { HeaderWalletCompact } from '@/components/wallet/HeaderWalletCompact'
 import { AirentoLogo } from '@/components/brand/airento-logo'
+import { UNIFIED_HEADER_ENABLED } from '@/lib/feature-flags'
+import { AppHeader } from '@/components/app-header/AppHeader'
 
 // Navigation items
 const NAV_ITEMS = [
@@ -221,7 +223,49 @@ export default function RenterLayout({ children }) {
       <div className="min-h-screen bg-slate-50 flex flex-col">
         {/* На мобиле fixed надёжнее sticky (Yandex/Chrome); отступ под шапку только &lt;md */}
         <div className="h-16 shrink-0 md:hidden" aria-hidden="true" />
-        {/* Top Navigation Bar */}
+
+        {/* === NEW: Unified AppHeader (feature-flagged) === */}
+        {UNIFIED_HEADER_ENABLED && (
+          <AppHeader
+            variant="workspace"
+            onMenuClick={() => setSidebarOpen((v) => !v)}
+            centerSlot={
+              <nav className="hidden md:flex items-center gap-1">
+                {navItems.map((item) => {
+                  const Icon = item.icon
+                  const isMessagesItem = item.href === '/messages'
+                  const isActive = isMessagesItem
+                    ? pathname === '/messages' || pathname?.startsWith('/messages/')
+                    : pathname === item.href || pathname.startsWith(item.href + '/')
+                  const showBadge = isMessagesItem && totalUnread > 0 && !isActive
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        'flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors relative text-sm',
+                        isActive
+                          ? 'bg-teal-50 text-teal-700 font-medium'
+                          : 'text-slate-600 hover:bg-slate-50',
+                      )}
+                    >
+                      <span className="relative">
+                        <Icon className="h-4 w-4" />
+                        {showBadge && (
+                          <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white" />
+                        )}
+                      </span>
+                      <span>{item.label}</span>
+                    </Link>
+                  )
+                })}
+              </nav>
+            }
+          />
+        )}
+
+        {/* === LEGACY: Top Navigation Bar (rendered only when flag = off) === */}
+        {!UNIFIED_HEADER_ENABLED && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b shadow-sm shadow-teal-900/5 md:static md:z-auto">
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between h-16">
@@ -327,6 +371,8 @@ export default function RenterLayout({ children }) {
             </div>
           </div>
         </div>
+        )}
+        {/* === END LEGACY === */}
 
         {/* Mobile Sidebar Overlay */}
         {sidebarOpen && (

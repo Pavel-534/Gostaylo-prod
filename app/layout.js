@@ -2,7 +2,7 @@ import { Inter, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
 import GeoSuggestToast from '@/components/geo/GeoSuggestToast'
-import { UniversalHeader } from '@/components/universal-header'
+import { HeaderSwitcher } from '@/components/app-header/HeaderSwitcher'
 import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { MainContent } from '@/components/main-content'
 import { AuthProvider } from '@/contexts/auth-context'
@@ -114,7 +114,7 @@ button{font:inherit}
               <PushClientInit />
               <PresenceProvider>
                 <ChatProvider>
-                  <UniversalHeader />
+                  <HeaderSwitcher />
                   <MainContent>{children}</MainContent>
                 <MobileBottomNav />
                 <GeoSuggestToast />
