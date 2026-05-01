@@ -23,6 +23,7 @@ import { SearchCalendar } from '@/components/search-calendar'
 import { WhereCombobox } from '@/components/search/WhereCombobox'
 import { TimeSelect } from '@/components/ui/time-select'
 import { getUIText, getCategoryName } from '@/lib/translations'
+import { pluralizeGuests } from '@/lib/i18n/pluralize'
 import { buildWhereOptions, filterWhereOptions, getOptionLabel } from '@/lib/locations/where-options'
 import { getStaticLocationsSeed } from '@/lib/locations/locations-seed'
 import { cn } from '@/lib/utils'
@@ -298,11 +299,11 @@ export function UnifiedSearchBar({
         <Select value={guests} onValueChange={setGuests}>
           <SelectTrigger className="h-9">
             <Users className="h-4 w-4 mr-2 text-teal-600" />
-            <span>{guests} {getUIText('guests', language)}</span>
+            <span>{guests} {pluralizeGuests(guests, language)}</span>
           </SelectTrigger>
           <SelectContent>
             {GUEST_OPTIONS.map(n => (
-              <SelectItem key={n} value={n.toString()}>{n} {getUIText('guests', language)}</SelectItem>
+              <SelectItem key={n} value={n.toString()}>{n} {pluralizeGuests(n, language)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -491,7 +492,7 @@ export function UnifiedSearchBar({
           >
             <Users className="h-4 w-4 shrink-0 text-[#006666]" />
             <span className="min-w-0 flex-1 truncate text-sm text-slate-800">
-              {guests} {getUIText('guests', language)}
+              {guests} {pluralizeGuests(guests, language)}
             </span>
           </button>
         </div>

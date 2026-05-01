@@ -491,7 +491,12 @@ function ListingsContent() {
     <div className="min-h-screen bg-slate-50">
       <div className="bg-white shadow-sm sticky top-0 z-20">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 text-slate-600 hover:text-teal-600 transition-colors">
+          <Link
+            href="/"
+            aria-label={getUIText('backToHome', language)}
+            title={getUIText('backToHome', language)}
+            className="flex items-center gap-2 text-slate-600 hover:text-teal-600 transition-colors"
+          >
             <ArrowLeft className="h-5 w-5" />
             <span className="hidden sm:inline">{getUIText('backToHome', language)}</span>
           </Link>

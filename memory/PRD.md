@@ -810,3 +810,56 @@ Gostaylo is a rental marketplace platform for properties in Thailand (Phuket). I
 - TrustBar числа иногда не успевают подгрузиться на mobile (cosmetic timing) — fix позже
 - Next.js RSC prefetch иногда падает в preview (`Failed to fetch RSC payload`) — браузерный fallback работает, не блокер
 
+
+### 31. Squash Sprint — Виральность & Зачистка (2026-02)
+
+**Цель:** Финальная полировка после P3. 4 задачи + 3 минорных фикса по а11y/i18n.
+
+#### 1. TrustBar Mobile Fix (✅)
+- `IntersectionObserver` теперь с `threshold: 0.05` + `rootMargin: '0px 0px 200px 0px'` — триггер срабатывает раньше на мобильных
+- Pre-visible placeholder теперь не `opacity-0`, а animate-pulse `h-6 w-16` skeleton — нет «прыжков» layout, всегда сохраняется размер строки
+
+#### 2. Dedicated /terms Route (✅)
+- `/app/app/terms/page.js` — 7 пронумерованных секций (01–07: Платформа, Бронирование, Escrow, Отмена, Персональные данные, Запрещённый контент, Изменения), Cormorant Garamond serif заголовки, mailto:legal@gostaylo.com + ссылка на /help
+- Footer в `GostayloHomeContent.jsx` теперь ведёт на `/terms` (раньше был anchor `/help#terms`)
+
+#### 3. Web Share API на карточках листингов (✅) — ключевая фича для виральности
+- `/app/lib/hooks/useShareListing.js` — новый хук: `navigator.share()` (нативный sharesheet iOS/Android/Edge) с fallback на `navigator.clipboard.writeText()` + sonner toast. AbortError silent.
+- `/app/components/card/CardImageCarousel.jsx` — добавлены props `onShareClick` + `shareLabel`; Share2 кнопка слева от Heart в правом верхнем углу карточки (data-testid='card-share-button')
+- `/app/components/gostaylo-listing-card.jsx` — пробрасывает hook + локализованные aria-labels
+- Toasts локализованы для всех 4 языков: shareCopied, shareCopyError
+
+#### 4. i18n полный аудит /listings (✅)
+- Удалены ВСЕ хардкоженные `language === 'ru' ? ...` тернарники в:
+  - `FilterBar.jsx` (Filters, "n.", гостей, "Вся группа")
+  - `UnifiedSearchBar.jsx` (ИИ/Smart, Что?/What?, Всё/All ×3)
+  - `listings-catalog-client.jsx` (toasts: favoriteLogin, favoriteUpdate, networkError; "На главную")
+- Новые ключи в `/app/lib/translations/listings-public.js` для всех 4 языков (RU/EN/ZH/TH):
+  - filtersBtn, whatPlaceholder, allLabel, aiBadge, groupBackTo
+  - favoriteLoginRequired, favoriteUpdateError, networkError
+  - shareListing, shareCopied, shareCopyError
+  - favoriteAdd, favoriteRemove
+  - nightShort
+
+#### Доп. полировка (LOW priority items из test report)
+- **Heart aria-label локализован** через новые ключи `favoriteAdd`/`favoriteRemove`
+- **Back-arrow** на `/listings` теперь имеет `aria-label` + `title` = `getUIText('backToHome', language)`
+- **Russian plural** для гостей: новый хелпер `/app/lib/i18n/pluralize.js` с правилами RU (1 → гость, 2-4 → гостя, 5+ → гостей), EN (1 → guest, n → guests), ZH/TH без склонения. Применён в `UnifiedSearchBar.jsx` (3 места) и `FilterBar.jsx` (1 место).
+
+**Files created:**
+- `/app/app/terms/page.js`
+- `/app/lib/hooks/useShareListing.js`
+- `/app/lib/i18n/pluralize.js`
+
+**Files modified:**
+- `/app/components/home/TrustBar.jsx`
+- `/app/components/card/CardImageCarousel.jsx`
+- `/app/components/gostaylo-listing-card.jsx`
+- `/app/components/GostayloHomeContent.jsx` (footer link → /terms)
+- `/app/components/search/FilterBar.jsx`
+- `/app/components/search/UnifiedSearchBar.jsx`
+- `/app/app/listings/listings-catalog-client.jsx`
+- `/app/lib/translations/listings-public.js` (15+ новых ключей × 4 языка)
+
+**Tested (testing_agent_v3 iteration 3):** 95% pass rate, все 4 deliverables верифицированы, 3 LOW нита исправлены и проверены screenshot-тестом — '1 гость' вместо '1 гостей', favorite aria локализован, back-arrow aria-label установлен.
+

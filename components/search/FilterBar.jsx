@@ -16,6 +16,7 @@ import {
 } from '@/lib/config/category-hierarchy';
 import { formatDisplayDate } from '@/lib/date-display-format';
 import { getUIText, getCategoryName } from '@/lib/translations';
+import { pluralizeGuests } from '@/lib/i18n/pluralize';
 import { UnifiedSearchBar } from '@/components/search/UnifiedSearchBar';
 import { SearchFiltersDialog } from '@/components/search/SearchFiltersDialog';
 
@@ -133,7 +134,7 @@ export function FilterBar({
               {guests !== '1' && (
                 <Badge className="bg-white text-teal-700">
                   <Users className="h-4 w-4 mr-1" />
-                  {guests} {getUIText('guests', language)}
+                  {guests} {pluralizeGuests(guests, language)}
                 </Badge>
               )}
               {where && where !== 'all' && (

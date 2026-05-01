@@ -194,6 +194,8 @@ export function GostayloListingCard({
         title={title}
         isFavorite={isFavorite}
         onFavoriteClick={handleFavorite}
+        favoriteAddLabel={getUIText('favoriteAdd', language)}
+        favoriteRemoveLabel={getUIText('favoriteRemove', language)}
         onShareClick={handleShare}
         shareLabel={getUIText('shareListing', language)}
         blurDataURL={getListingCardBlurDataURL(listing)}

@@ -20,6 +20,8 @@ export function CardImageCarousel({
   title,
   isFavorite,
   onFavoriteClick,
+  favoriteAddLabel,
+  favoriteRemoveLabel,
   onShareClick,
   shareLabel,
   onImageLoad,
@@ -149,7 +151,8 @@ export function CardImageCarousel({
           type="button"
           onClick={onFavoriteClick}
           className="rounded-full bg-white/90 p-2 shadow-md transition-all hover:bg-white hover:scale-105 active:scale-95"
-          aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          aria-label={isFavorite ? (favoriteRemoveLabel || 'Remove from favorites') : (favoriteAddLabel || 'Add to favorites')}
+          title={isFavorite ? favoriteRemoveLabel : favoriteAddLabel}
         >
           <Heart
             className={cn(
