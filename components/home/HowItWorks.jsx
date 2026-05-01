@@ -42,7 +42,7 @@ export function HowItWorks({ language = 'ru' }) {
           <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-teal-600">
             {getUIText('howItWorksEyebrow', language)}
           </p>
-          <h2 className="text-[30px] font-extrabold leading-tight tracking-[-0.02em] text-slate-900 sm:text-[40px]">
+          <h2 className="font-serif text-[34px] font-semibold leading-tight tracking-[-0.01em] text-slate-900 sm:text-[44px]">
             {getUIText('howItWorksTitle', language)}
           </h2>
         </div>

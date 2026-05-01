@@ -21,6 +21,7 @@ module.exports = {
     extend: {
       fontFamily: {
         sans: FONT_STACK_PARTS,
+        serif: ['var(--font-serif)', '"Cormorant Garamond"', 'Georgia', 'Cambria', 'serif'],
       },
       colors: {
         // GoStayLo brand colors - modern travel

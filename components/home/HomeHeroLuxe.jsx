@@ -85,9 +85,9 @@ export function HomeHeroLuxe({
 
         {/* Editorial headline */}
         <div className="mb-6 space-y-2">
-          <h1 className="max-w-3xl text-[42px] font-extrabold leading-[1.1] tracking-[-0.03em] text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.45)] sm:text-[60px] sm:leading-[1.08]">
+          <h1 className="max-w-3xl font-serif text-[44px] font-semibold leading-[1.1] tracking-[-0.01em] text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)] sm:text-[64px] sm:leading-[1.06]">
             {getUIText('heroTitle', language)}{' '}
-            <span className="bg-gradient-to-r from-[#a2f0ef] to-[#5dd8d5] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#a2f0ef] to-[#5dd8d5] bg-clip-text font-bold italic text-transparent">
               {getUIText('heroTitleHighlight', language)}
             </span>
           </h1>

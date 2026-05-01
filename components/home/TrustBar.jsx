@@ -2,10 +2,8 @@
 
 /**
  * TrustBar — узкая полоса «social proof» под Hero-секцией.
- * Показывает три ключевых доверительных сигнала платформы.
- *
- * SSOT: переводы через getUIText, статистика передаётся как props (готово к динамике).
- * При желании подключить к /api/v2/public/stats — достаточно передать stats из родителя.
+ * SSOT: статистика из /api/v2/public/stats (кэш 2ч), переводы через getUIText.
+ * Пока данные грузятся — показываются skeleton placeholders (3 серые плашки).
  */
 
 import { Home, Star, ShieldCheck } from 'lucide-react'
@@ -21,26 +19,29 @@ function AnimatedCounter({ target, duration = 1400, suffix = '', decimals = 0 })
   useEffect(() => {
     const numericTarget = typeof target === 'number' ? target : parseFloat(target) || 0
     if (numericTarget === 0) { setDisplay('0'); return }
+    startRef.current = null
 
     const animate = (ts) => {
       if (!startRef.current) startRef.current = ts
       const progress = Math.min((ts - startRef.current) / duration, 1)
       const eased = 1 - Math.pow(1 - progress, 3)
       const current = eased * numericTarget
-      const formatted = decimals > 0
-        ? current.toFixed(decimals)
-        : Math.floor(current) >= 1000
-          ? Math.floor(current).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f')
-          : String(Math.floor(current))
+      const formatted =
+        decimals > 0
+          ? current.toFixed(decimals)
+          : Math.floor(current) >= 1000
+            ? Math.floor(current).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f')
+            : String(Math.floor(current))
       setDisplay(formatted)
       if (progress < 1) rafRef.current = requestAnimationFrame(animate)
-      else setDisplay(
-        decimals > 0
-          ? numericTarget.toFixed(decimals)
-          : numericTarget >= 1000
-            ? numericTarget.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f')
-            : String(numericTarget)
-      )
+      else
+        setDisplay(
+          decimals > 0
+            ? numericTarget.toFixed(decimals)
+            : numericTarget >= 1000
+              ? numericTarget.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f')
+              : String(numericTarget),
+        )
     }
 
     rafRef.current = requestAnimationFrame(animate)
@@ -50,9 +51,32 @@ function AnimatedCounter({ target, duration = 1400, suffix = '', decimals = 0 })
   return <span>{display}{suffix}</span>
 }
 
+// ---------- Skeleton bar ----------
+function TrustBarSkeleton() {
+  return (
+    <div className="relative border-y border-teal-100/80 bg-gradient-to-r from-teal-50/60 via-white to-teal-50/60">
+      <div className="container mx-auto px-4">
+        <div className="flex items-stretch justify-center divide-x divide-teal-100">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex flex-1 items-center justify-center gap-3 px-6 py-4 sm:gap-4 sm:px-10 sm:py-5">
+              <div className="hidden h-10 w-10 animate-pulse rounded-xl bg-teal-100/60 sm:block" />
+              <div className="space-y-2">
+                <div className="h-7 w-20 animate-pulse rounded-md bg-teal-100/70" />
+                <div className="h-3.5 w-28 animate-pulse rounded bg-slate-100" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------- Main TrustBar ----------
-export function TrustBar({ language = 'ru', stats }) {
+export function TrustBar({ language = 'ru' }) {
   const [visible, setVisible] = useState(false)
+  const [stats, setStats] = useState(null)
+  const [loadingStats, setLoadingStats] = useState(true)
   const ref = useRef(null)
 
   // Trigger counter when bar enters viewport
@@ -65,23 +89,35 @@ export function TrustBar({ language = 'ru', stats }) {
     return () => observer.disconnect()
   }, [])
 
+  // Fetch live stats from public API
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/v2/public/stats')
+      .then((r) => r.json())
+      .then((json) => {
+        if (!cancelled && json.success) setStats(json.data)
+      })
+      .catch(() => { /* use fallback */ })
+      .finally(() => { if (!cancelled) setLoadingStats(false) })
+    return () => { cancelled = true }
+  }, [])
+
+  if (loadingStats) return <TrustBarSkeleton />
+
   const ITEMS = [
     {
       icon: Home,
-      value: stats?.listingsCount ?? 1200,
+      value: stats?.listingsCount && stats.listingsCount > 0 ? stats.listingsCount : 1200,
       suffix: '+',
       decimals: 0,
       label: getUIText('trustListingsLabel', language),
-      ariaLabel: `${stats?.listingsCount ?? '1 200+'} ${getUIText('trustListingsLabel', language)}`,
     },
     {
       icon: Star,
-      value: stats?.avgRating ?? 4.9,
+      value: stats?.avgRating && stats.avgRating > 0 ? stats.avgRating : 4.9,
       suffix: '★',
       decimals: 1,
-      isStar: true,
       label: getUIText('trustRatingLabel', language),
-      ariaLabel: `${stats?.avgRating ?? 4.9} ${getUIText('trustRatingLabel', language)}`,
     },
     {
       icon: ShieldCheck,
@@ -90,7 +126,6 @@ export function TrustBar({ language = 'ru', stats }) {
       decimals: 0,
       label: getUIText('trustSecurityLabel', language),
       sublabel: getUIText('trustEscrowLabel', language),
-      ariaLabel: `100% ${getUIText('trustSecurityLabel', language)}`,
     },
   ]
 
@@ -99,7 +134,7 @@ export function TrustBar({ language = 'ru', stats }) {
       ref={ref}
       role="region"
       aria-label="Platform trust signals"
-      className="relative border-y border-teal-100/80 bg-gradient-to-r from-teal-50/60 via-white to-teal-50/60 py-0"
+      className="relative border-y border-teal-100/80 bg-gradient-to-r from-teal-50/60 via-white to-teal-50/60"
     >
       <div className="container mx-auto px-4">
         <div className="flex items-stretch justify-center divide-x divide-teal-100">
@@ -108,27 +143,23 @@ export function TrustBar({ language = 'ru', stats }) {
             return (
               <div
                 key={idx}
-                aria-label={item.ariaLabel}
                 className="flex flex-1 items-center justify-center gap-3 px-6 py-4 sm:gap-4 sm:px-10 sm:py-5"
               >
-                {/* Icon bubble */}
                 <div className="hidden shrink-0 items-center justify-center rounded-xl bg-teal-100/80 p-2 sm:flex">
                   <Icon className="h-4 w-4 text-teal-600" aria-hidden />
                 </div>
-
-                {/* Value + label */}
                 <div className="text-center sm:text-left">
-                  <div className="flex items-baseline gap-1">
+                  <div className="flex items-baseline gap-0.5">
                     <span className="text-2xl font-black leading-none tracking-tight text-teal-700 sm:text-3xl">
                       {visible ? (
                         <AnimatedCounter
                           target={item.value}
-                          duration={item.isStar ? 900 : 1400}
+                          duration={item.decimals > 0 ? 900 : 1400}
                           suffix={item.suffix}
                           decimals={item.decimals}
                         />
                       ) : (
-                        <span className="opacity-0">0</span>
+                        <span className="opacity-0 select-none">0</span>
                       )}
                     </span>
                   </div>
@@ -147,3 +178,4 @@ export function TrustBar({ language = 'ru', stats }) {
     </div>
   )
 }
+

@@ -27,6 +27,7 @@ import { CategoryBar } from '@/components/home/CategoryBar'
 import { HowItWorks } from '@/components/home/HowItWorks'
 import { TopListingsGrid } from '@/components/home/TopListingsGrid'
 import { TrustBar } from '@/components/home/TrustBar'
+import { PartnerCTA } from '@/components/home/PartnerCTA'
 
 export function GostayloHomeContent() {
   const router = useRouter()
@@ -398,6 +399,9 @@ export function GostayloHomeContent() {
         markMediaFailed={markMediaFailed}
         onViewAll={handleSearch}
       />
+
+      {/* Partner CTA перед футером */}
+      <PartnerCTA language={language} />
 
       <footer className="bg-slate-900 text-white py-10">
         <div className="container mx-auto px-4">

@@ -11,6 +11,7 @@ import { formatPrice, priceRawForTest } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
 import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
 import { formatRentalSpanLabel } from '@/lib/rental-period-labels'
+import { AnimatedPrice } from '@/components/card/AnimatedPrice'
 
 export function CardPriceDisplay({
   basePrice,
@@ -43,6 +44,9 @@ export function CardPriceDisplay({
     }
     return basePrice
   }, [pricing, nights, basePrice])
+
+  // Formatted price string — меняется при смене валюты → AnimatedPrice делает flip
+  const formattedPrice = formatPrice(displayPrice, currency, rates, language)
   
   const spanMode = getListingRentalPeriodMode(categorySlug)
   const dayUnit = spanMode === 'day'
@@ -54,7 +58,7 @@ export function CardPriceDisplay({
         data-test-raw-value={priceRawForTest(displayPrice, currency, rates)}
         data-test-fee-value="0"
       >
-        {formatPrice(displayPrice, currency, rates, language)}
+        <AnimatedPrice value={formattedPrice} />
       </span>
       <span className="text-sm text-slate-500">
         {nights > 0

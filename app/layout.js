@@ -1,4 +1,4 @@
-import { Inter } from 'next/font/google'
+import { Inter, Cormorant_Garamond } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
 import { UniversalHeader } from '@/components/universal-header'
@@ -15,7 +15,15 @@ import { AppQueryProvider } from '@/components/providers/app-query-provider'
 import { getRequestSiteUrl } from '@/lib/server-site-url'
 import { getSiteDisplayName } from '@/lib/site-url'
 
-const inter = Inter({ subsets: ['latin', 'cyrillic'] })
+const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-sans' })
+
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['600', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-serif',
+  display: 'swap',
+})
 
 export const viewport = {
   width: 'device-width',
@@ -96,7 +104,7 @@ button{font:inherit}
         <meta name="apple-mobile-web-app-title" content={appleTitle} />
         <meta name="theme-color" content="#0d9488" />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${cormorant.variable} font-sans`}>
         <I18nProvider>
           <CurrencyProvider>
           <AuthProvider>
