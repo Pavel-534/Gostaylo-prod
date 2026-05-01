@@ -57,7 +57,7 @@ export function HomeHeroLuxe({
 
   return (
     <section
-      className="relative isolate min-h-[870px] overflow-hidden pt-20"
+      className="relative isolate min-h-[870px] pt-20"
       style={{ backgroundImage: `url(${HERO_BACKGROUND_IMAGE})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
       <div className="absolute inset-0 bg-black/30" />
@@ -140,8 +140,8 @@ export function HomeHeroLuxe({
             })}
           </div>
 
-          <div className="grid grid-cols-1 gap-2 px-3 pb-3 md:grid-cols-[1.3fr_1.15fr_0.85fr_0.7fr]">
-            <div className="min-w-0 border-r border-slate-100 px-3 text-left">
+          <div className="grid grid-cols-1 gap-2 px-3 pb-3 md:grid-cols-[1.3fr_1.15fr_0.85fr_0.7fr] overflow-visible">
+            <div className="min-w-0 border-r border-slate-100 px-3 text-left overflow-visible">
               <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
                 {language === 'ru' ? 'Категория' : 'Category'}
               </label>
@@ -155,7 +155,7 @@ export function HomeHeroLuxe({
               </div>
             </div>
 
-            <div className="min-w-0 border-r border-slate-100 px-3 text-left">
+            <div className="min-w-0 border-r border-slate-100 px-3 text-left overflow-visible">
               <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
                 {language === 'ru' ? 'Локация' : 'Location'}
               </label>

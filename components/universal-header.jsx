@@ -31,6 +31,7 @@ import { CurrencySelector } from '@/components/currency-selector';
 import { useAuth } from '@/contexts/auth-context';
 import { useChatContext } from '@/lib/context/ChatContext';
 import { useI18n } from '@/contexts/i18n-context'
+import { useCurrency } from '@/contexts/currency-context'
 import { getUIText, supportedLanguages } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { Flag } from '@/components/flags'
@@ -39,19 +40,17 @@ import { AirentoLogo } from '@/components/brand/airento-logo'
 
 export function UniversalHeader() {
   const [mounted, setMounted] = useState(false);
-  const [currency, setCurrency] = useState('THB');
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   
   const { language, setLanguage } = useI18n()
+  const { currency, setCurrency } = useCurrency()
   const { user, logout, openLoginModal, isAdmin, isPartner, refreshUserFromServer } = useAuth();
   const { totalUnread } = useChatContext();
 
   useEffect(() => {
     setMounted(true);
-    const savedCurrency = localStorage.getItem('gostaylo_currency');
-    if (savedCurrency) setCurrency(savedCurrency);
   }, []);
 
   useEffect(() => {
@@ -122,17 +121,41 @@ export function UniversalHeader() {
           </Link>
 
           <nav className='hidden lg:flex items-center gap-6 flex-1'>
-            <Link href='/listings' className='text-sm font-medium text-[#006666] border-b-2 border-[#006666] pb-1'>
-              Listings
+            <Link
+              href='/listings'
+              className={`text-sm font-medium transition-colors pb-1 ${
+                pathname === '/listings' || pathname?.startsWith('/listings/')
+                  ? 'text-[#006666] border-b-2 border-[#006666]'
+                  : 'text-slate-600 hover:text-[#006666]'
+              }`}
+            >
+              {getUIText('navListings', language)}
             </Link>
-            <Link href='/' className='text-sm font-medium text-slate-600 hover:text-[#006666] transition-colors'>
-              Destinations
+            <Link
+              href='/listings'
+              className='text-sm font-medium text-slate-600 hover:text-[#006666] transition-colors'
+            >
+              {getUIText('navDestinations', language)}
             </Link>
-            <Link href='/profile/referral' className='text-sm font-medium text-slate-600 hover:text-[#006666] transition-colors'>
-              Membership
+            <Link
+              href='/profile/referral'
+              className={`text-sm font-medium transition-colors ${
+                pathname?.startsWith('/profile/referral')
+                  ? 'text-[#006666]'
+                  : 'text-slate-600 hover:text-[#006666]'
+              }`}
+            >
+              {getUIText('navMembership', language)}
             </Link>
-            <Link href='/messages' className='text-sm font-medium text-slate-600 hover:text-[#006666] transition-colors'>
-              Help
+            <Link
+              href='/help'
+              className={`text-sm font-medium transition-colors ${
+                pathname?.startsWith('/help')
+                  ? 'text-[#006666]'
+                  : 'text-slate-600 hover:text-[#006666]'
+              }`}
+            >
+              {getUIText('navHelp', language)}
             </Link>
           </nav>
 

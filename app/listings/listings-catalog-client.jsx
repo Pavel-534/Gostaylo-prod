@@ -62,7 +62,7 @@ function ListingsContent() {
     ),
   )
   const setWhere = useCallback((w) => setWhereState(canonicalWhere(w)), [])
-  const [guests, setGuests] = useState(searchParams.get('guests') || '2')
+  const [guests, setGuests] = useState(searchParams.get('guests') || '1')
   const [dateRange, setDateRange] = useState({
     from: searchParams.get('checkIn') ? parseISO(searchParams.get('checkIn')) : null,
     to: searchParams.get('checkOut') ? parseISO(searchParams.get('checkOut')) : null,
@@ -86,7 +86,7 @@ function ListingsContent() {
           'all',
       ),
     )
-    setGuests(searchParams.get('guests') || '2')
+    setGuests(searchParams.get('guests') || '1')
     setDateRange({
       from: searchParams.get('checkIn') ? parseISO(searchParams.get('checkIn')) : null,
       to: searchParams.get('checkOut') ? parseISO(searchParams.get('checkOut')) : null,

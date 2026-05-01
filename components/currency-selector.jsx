@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ChevronDown, Check } from 'lucide-react';
 import { CurrencyFlag } from '@/components/flags'
+import { useCurrency } from '@/contexts/currency-context'
 
 // Supported currencies with metadata
 const CURRENCIES = [
@@ -35,26 +36,19 @@ export function CurrencySelector({
   className = '',
   compact = false 
 }) {
-  const [currency, setCurrency] = useState(value || 'THB');
   const [mounted, setMounted] = useState(false);
+  // SSOT: currency из CurrencyContext, fallback на prop для backward compat
+  const currencyCtx = useCurrency()
+  const currency = currencyCtx?.currency || value || 'THB'
+  const setCurrencyCtx = currencyCtx?.setCurrency
 
-  // Load saved currency on mount
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved && CURRENCIES.find(c => c.code === saved)) {
-      setCurrency(saved);
-      onChange?.(saved);
-    }
   }, []);
 
   const handleSelect = (code) => {
-    setCurrency(code);
-    localStorage.setItem(STORAGE_KEY, code);
-    onChange?.(code);
-    
-    // Dispatch custom event for other components
-    window.dispatchEvent(new CustomEvent('currency-change', { detail: code }));
+    setCurrencyCtx?.(code)
+    onChange?.(code)
   };
 
   const currentCurrency = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];

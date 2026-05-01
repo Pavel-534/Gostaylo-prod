@@ -15,31 +15,33 @@ import { usePathname } from 'next/navigation';
 import { Home, Search, MessageCircle, User } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useChatContext } from '@/lib/context/ChatContext';
+import { useI18n } from '@/contexts/i18n-context';
+import { getUIText } from '@/lib/translations';
 
 const NAV_ITEMS = [
   { 
     href: '/', 
     icon: Home, 
-    label: 'Главная',
+    labelKey: 'mobileNavHome',
     activeExact: true 
   },
   { 
     href: '/listings', 
     icon: Search, 
-    label: 'Поиск',
+    labelKey: 'mobileNavSearch',
     activeMatches: ['/listings', '/search']
   },
   { 
     href: '/messages', 
     icon: MessageCircle, 
-    label: 'Сообщения',
+    labelKey: 'mobileNavMessages',
     activeMatches: ['/messages'],
     requiresAuth: true
   },
   { 
     href: '/renter/profile', 
     icon: User, 
-    label: 'Профиль',
+    labelKey: 'mobileNavProfile',
     activeMatches: ['/renter/profile', '/renter/bookings', '/renter/favorites', '/profile', '/settings'],
     requiresAuth: true
   },
@@ -50,6 +52,7 @@ export function MobileBottomNav() {
   const pathname = usePathname();
   const { user, openLoginModal } = useAuth();
   const { totalUnread } = useChatContext();
+  const { language } = useI18n();
 
   useEffect(() => {
     setMounted(true);
@@ -124,7 +127,7 @@ export function MobileBottomNav() {
                 )}
               </span>
               <span className={`text-[10px] mt-1 ${active ? 'font-semibold' : 'font-medium'}`}>
-                {item.label}
+                {getUIText(item.labelKey, language)}
               </span>
             </Link>
           );

@@ -345,6 +345,11 @@ export function GostayloListingCard({
                 TOP
               </span>
             )}
+            {listing?.is_availability_mismatch && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/90 text-white text-xs font-medium mt-1">
+                {language === 'ru' ? 'Уточняйте доступность' : 'Check availability'}
+              </span>
+            )}
           </div>
       </Link>
     </article>

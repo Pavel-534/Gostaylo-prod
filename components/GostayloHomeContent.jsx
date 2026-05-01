@@ -5,14 +5,15 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { format, isSameDay, differenceInDays } from 'date-fns'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/auth-context'
+import { useI18n } from '@/contexts/i18n-context'
+import { useCurrency } from '@/contexts/currency-context'
 import { fetchCategories, fetchExchangeRates } from '@/lib/client-data'
 import {
-  detectLanguage,
-  setLanguage as persistLanguage,
   getCategoryName,
   getUIText,
 } from '@/lib/translations'
@@ -30,8 +31,10 @@ export function GostayloHomeContent() {
   const searchParams = useSearchParams()
   const { user: authUser, openLoginModal } = useAuth()
 
-  const [currency, setCurrency] = useState('THB')
-  const [language, setLanguageState] = useState('ru')
+  // SSOT: язык из I18nProvider, валюта из CurrencyProvider
+  const { language } = useI18n()
+  const { currency } = useCurrency()
+
   const [categories, setCategories] = useState([])
 
   const filters = useHomeFilters(categories)
@@ -105,37 +108,6 @@ export function GostayloHomeContent() {
       window.history.replaceState({}, '', '/')
     }
   }, [searchParams, language, openLoginModal])
-
-  useEffect(() => {
-    const initial = detectLanguage()
-    setLanguageState(initial)
-    persistLanguage(initial)
-    document.documentElement.lang = initial
-
-    const handleLang = (e) => {
-      const next = e?.detail
-      if (!next) return
-      setLanguageState(next)
-      persistLanguage(next)
-      document.documentElement.lang = next
-    }
-
-    window.addEventListener('language-change', handleLang)
-    window.addEventListener('languageChange', handleLang)
-    return () => {
-      window.removeEventListener('language-change', handleLang)
-      window.removeEventListener('languageChange', handleLang)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const savedCurrency = localStorage.getItem('gostaylo_currency')
-    if (savedCurrency) setCurrency(savedCurrency)
-    const handleCurrencyChange = (e) => setCurrency(e.detail)
-    window.addEventListener('currency-change', handleCurrencyChange)
-    return () => window.removeEventListener('currency-change', handleCurrencyChange)
-  }, [])
 
   useEffect(() => {
     Promise.all([fetchCategories(), fetchExchangeRates()])
@@ -433,22 +405,45 @@ export function GostayloHomeContent() {
               <h4 className="font-semibold mb-3 text-sm">{getUIText('footerCategories', language)}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
                 {categories.map((c) => (
-                  <li key={c.id}>{getCategoryName(c.slug, language, c.name)}</li>
+                  <li key={c.id}>
+                    <Link
+                      href={`/listings?category=${c.slug}`}
+                      className="hover:text-teal-400 transition-colors"
+                    >
+                      {getCategoryName(c.slug, language, c.name)}
+                    </Link>
+                  </li>
                 ))}
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-3 text-sm">{getUIText('footerCompany', language)}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
-                <li>{getUIText('aboutUs', language)}</li>
-                <li>{getUIText('contactUs', language)}</li>
+                <li>
+                  <Link href="/about" className="hover:text-teal-400 transition-colors">
+                    {getUIText('aboutUs', language)}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/help#contact" className="hover:text-teal-400 transition-colors">
+                    {getUIText('contactUs', language)}
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold mb-3 text-sm">{getUIText('footerSupport', language)}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
-                <li>{getUIText('helpCenter', language)}</li>
-                <li>{getUIText('terms', language)}</li>
+                <li>
+                  <Link href="/help" className="hover:text-teal-400 transition-colors">
+                    {getUIText('helpCenter', language)}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/help#terms" className="hover:text-teal-400 transition-colors">
+                    {getUIText('terms', language)}
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>

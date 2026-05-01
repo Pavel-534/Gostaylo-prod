@@ -6,6 +6,7 @@ import { MobileBottomNav } from '@/components/mobile-bottom-nav'
 import { MainContent } from '@/components/main-content'
 import { AuthProvider } from '@/contexts/auth-context'
 import { I18nProvider } from '@/contexts/i18n-context'
+import { CurrencyProvider } from '@/contexts/currency-context'
 import { ChatProvider } from '@/lib/context/ChatContext'
 import { PresenceProvider } from '@/lib/context/PresenceContext'
 import { SupabaseRealtimeAuthSync } from '@/components/supabase-realtime-auth-sync'
@@ -97,6 +98,7 @@ button{font:inherit}
       </head>
       <body className={inter.className}>
         <I18nProvider>
+          <CurrencyProvider>
           <AuthProvider>
             <AppQueryProvider>
               <SupabaseRealtimeAuthSync />
@@ -127,6 +129,7 @@ button{font:inherit}
               </PresenceProvider>
             </AppQueryProvider>
           </AuthProvider>
+          </CurrencyProvider>
         </I18nProvider>
       </body>
     </html>

@@ -13,6 +13,7 @@ import {
   Car,
   Anchor,
   Loader2,
+  CalendarX,
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -136,6 +137,12 @@ export function TopListingsGrid({
                       {listing.isFeatured && (
                         <Badge className="absolute top-2 left-2 bg-gradient-to-r from-purple-600 to-pink-600">
                           ⭐ TOP
+                        </Badge>
+                      )}
+                      {listing.is_availability_mismatch && (
+                        <Badge className="absolute top-2 left-2 flex items-center gap-1 bg-amber-500/95 text-white text-[10px] px-2 py-1">
+                          <CalendarX className="h-3 w-3" />
+                          {language === 'ru' ? 'Уточняйте доступность' : 'Check availability'}
                         </Badge>
                       )}
                       {listing.rating > 0 && (
