@@ -82,7 +82,7 @@ test.describe('Stage 9.1 API guard security matrix', () => {
     const noSession = await anonymousApi.get('/api/v2/bookings', { failOnStatusCode: false })
     expect(noSession.status()).toBe(401)
 
-    const forbidden = await renterApi.get('/api/v2/bookings?partnerId=00000000-0000-0000-0000-000000000001', {
+    const forbidden = await renterApi.get('/api/v2/bookings?partnerId=full-stack-check-6', {
       failOnStatusCode: false,
     })
     expect(forbidden.status()).toBe(403)
