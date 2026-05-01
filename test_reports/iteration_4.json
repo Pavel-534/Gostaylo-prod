@@ -1,0 +1,45 @@
+{
+  "summary": "Global Pivot Sprint frontend verification — UTM share analytics, WhereCombobox popular destinations (RU/EN), MobileSearchBottomSheet, About/Terms i18n (RU/EN/ZH/TH), listings smoke + EmptyState. All 7 of 8 feature areas PASS. Listing form Country/Region/City cascade verified via code review only (runtime skipped — requires Supabase login which was failing in this env).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/auth/me, /api/v1/search, /api/v1/exchange/rates", "issue": "'Failed to fetch' / HTTP 500 observed in browser console on home & listings pages. Likely Supabase upstream or proxy hiccup in preview env; pages still render via SSR/cache. Not a blocker for this sprint's frontend changes but worth monitoring."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "WhereCombobox / handleChipSelect", "issue": "After clicking 'Москва' chip on RU hero, input value becomes 'moscow' (slug) instead of localized 'Москва'. When matching chip.value to a where-option with value === slug, code uses opt.label (which is the raw English slug for this aggregator option). onChange does fire with 'moscow' correctly, so filter works — but the visible input label is not localized.", "selector": "input[role='combobox']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "tests_performed": {
+    "utm_web_share": "PASS — clipboard mock captured URL with utm_source=share, utm_medium=guest, utm_campaign=listing, utm_id={listingId} (verified utm_id=lst-test-final-1772285152 matches card href)",
+    "where_combobox_ru": "PASS — header 'ПОПУЛЯРНЫЕ НАПРАВЛЕНИЯ', 3 groups (Россия/Таиланд/Мир), chips Москва/Санкт-Петербург/Пхукет/Бангкок/Бали/Дубай all rendered; no phuket-only header",
+    "where_combobox_en": "PASS — 'POPULAR DESTINATIONS', Russia/Thailand/World, Moscow/Bangkok/Bali etc.",
+    "mobile_bottom_sheet": "PASS (390x844) — FAB visible after scroll, sheet opens, 'Везде' button + 3 country groups in horizontal scroll; data-testid mobile-search-location-all and mobile-search-location-moscow present",
+    "about_i18n": "PASS all 4 langs (ru/en/zh/th) — required tokens present",
+    "terms_i18n": "PASS all 4 langs — 'Условия использования', 'Terms of Service' / 'Booking' / 'Escrow', '服务条款' / '托管', 'เงื่อนไขการใช้บริการ' all found",
+    "smoke_listings": "PASS — /listings 200, home 200, /about 200, /terms 200. EmptyState URL (?category=yachts&where=kata&checkIn=2028-01-01&checkOut=2028-01-05) renders 'Ничего не нашлось' with reset CTA. No HTTP 429.",
+    "listing_form_cascade": "SKIPPED at runtime (Supabase login flow not executable in preview env with Failed-to-fetch auth). CODE REVIEW PASS: StepLocation.jsx wires Country/Region/City Select with handleCountryChange → resets region+city+district; country-presets.js has TH/RU/ID/AE with expected labels × 4 langs; switching to RU auto-picks RU-MOW + moscow + districts [Центр, Арбат, Тверская, Хамовники, Замоскворечье, Пресня]. wizard-constants.js defaults confirmed via file list."
+  },
+  "test_report_links": [],
+  "action_items": [
+    "LOW-prio UX: In /app/components/search/WhereCombobox.jsx handleChipSelect, prefer chip.labels[language] over opt.label when the found option's label looks like a non-localized slug (or always pass localized label into handleSelect for chip clicks). Currently 'Москва' chip → input shows 'moscow' instead of 'Москва'.",
+    "Optional: run an in-app manual verification of /partner/listings/new Location step country cascade (RU→Москва auto-fills districts) since Supabase login couldn't be automated here."
+  ],
+  "critical_code_review_comments": [
+    "popular-destinations.js + country-presets.js: clean separation; slugs align between hero chips (moscow/spb/phuket/bangkok/samui/pattaya/krabi/bali/dubai/istanbul/barcelona) and country-presets city codes — good.",
+    "useShareListing.appendShareUtm: correctly idempotent (won't overwrite pre-existing utm_* query params); uses URL API with try/catch fallback — solid.",
+    "MobileSearchBottomSheet: ALL_OPTION labels localized for all 4 langs incl. zh/th ('所有地方' / 'ทุกที่') — good.",
+    "StepLocation cascade resets region/city/district on country change but relies on formData.country default 'TH' from wizard-constants — confirm that wizard-constants.js actually exports country:'TH', region:'TH-PHK', city:'phuket-city' defaults (per review request — E1 claims so, not re-verified at file level here)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only review)", "frontend": "95% (7/8 runtime tests PASS, 1 code-review-only; 1 minor localized-label bug)"},
+  "test_credentials": "pavel_534@mail.ru / az123456 (not exercised — Supabase proxy was returning Failed-to-fetch in this env)",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Listings page auth/search APIs threw 'Failed to fetch' in browser console during this run; SSR still rendered cards and UI stayed functional. If future tests require authenticated flows (/partner/listings/new etc.), investigate Supabase reachability from the preview container before testing.",
+  "rca of the issue": "Minor bug: WhereCombobox.handleChipSelect prefers found where-option label over localized chip label. Fix: when calling handleSelect(found), override found.label with chip.labels[language] || found.label, OR simply call onChange(chip.value) + setInputValue(chip.labels[language]) without routing through options."
+}

@@ -10,6 +10,13 @@ import { Loader2 } from 'lucide-react'
 import { useListingWizard } from '../context/ListingWizardContext'
 import { guessIanaTimezoneFromLatLon } from '@/lib/geo/listing-timezone-guess'
 import { WIZARD_IANA_TIMEZONES } from '@/lib/geo/wizard-iana-timezones'
+import {
+  COUNTRY_PRESETS,
+  findCountry,
+  findRegion,
+  findCity,
+  getLabel,
+} from '@/lib/geo/country-presets'
 
 const MapPicker = dynamic(() => import('@/components/listing/MapPicker'), { ssr: false })
 
@@ -35,6 +42,40 @@ function StepLocationInner() {
     updateMetadata,
   } = w
 
+  // GP-1 cascade: Country → Region → City → District
+  const country = findCountry(formData.country) || COUNTRY_PRESETS[0]
+  const region = findRegion(formData.country, formData.region) || country.regions[0]
+  const city = findCity(formData.country, formData.region, formData.city) || region.cities[0]
+
+  const cityDistricts = (() => {
+    const fromPreset = city?.districts || []
+    // Сохраняем custom-районы (geocode) и backward-compat с WIZARD_DISTRICTS если страна = TH
+    const legacy = formData.country === 'TH' ? WIZARD_DISTRICTS : []
+    return Array.from(new Set([...fromPreset, ...legacy, ...customDistricts]))
+  })()
+
+  const handleCountryChange = (code) => {
+    const c = findCountry(code)
+    if (!c) return
+    const r = c.regions[0]
+    const ci = r?.cities?.[0]
+    updateField('country', c.code)
+    updateField('region', r?.code || '')
+    updateField('city', ci?.code || '')
+    updateField('district', '')
+  }
+  const handleRegionChange = (code) => {
+    const r = findRegion(formData.country, code)
+    const ci = r?.cities?.[0]
+    updateField('region', r?.code || '')
+    updateField('city', ci?.code || '')
+    updateField('district', '')
+  }
+  const handleCityChange = (code) => {
+    updateField('city', code)
+    updateField('district', '')
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -45,6 +86,53 @@ function StepLocationInner() {
           {transportWizard ? t('helpGuestsFindTransport') : t('helpGuestsFind')}
         </p>
       </div>
+
+      {/* GP-1 cascade: Country → Region → City */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div>
+          <Label className="text-sm font-medium">{t('country') || 'Country'}</Label>
+          <Select value={formData.country || 'TH'} onValueChange={handleCountryChange}>
+            <SelectTrigger className="mt-1.5 h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {COUNTRY_PRESETS.map((c) => (
+                <SelectItem key={c.code} value={c.code}>
+                  <span className="mr-2" aria-hidden>{c.flag}</span>
+                  {getLabel(c, language)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-sm font-medium">{t('region') || 'Region'}</Label>
+          <Select value={formData.region || region.code} onValueChange={handleRegionChange}>
+            <SelectTrigger className="mt-1.5 h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {country.regions.map((r) => (
+                <SelectItem key={r.code} value={r.code}>{getLabel(r, language)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-sm font-medium">{t('city') || 'City'}</Label>
+          <Select value={formData.city || city.code} onValueChange={handleCityChange}>
+            <SelectTrigger className="mt-1.5 h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {region.cities.map((ci) => (
+                <SelectItem key={ci.code} value={ci.code}>{getLabel(ci, language)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div>
         <Label className="text-base font-medium">{t('selectDistrict')}</Label>
         <Select value={formData.district} onValueChange={(v) => updateField('district', v)}>
@@ -52,13 +140,17 @@ function StepLocationInner() {
             <SelectValue placeholder={t('selectDistrictPlaceholder')} />
           </SelectTrigger>
           <SelectContent>
-            {[...WIZARD_DISTRICTS, ...customDistricts.filter((d) => !WIZARD_DISTRICTS.includes(d))].map((d) => (
+            {cityDistricts.map((d) => (
               <SelectItem key={d} value={d}>
                 {d}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+        <p className="mt-1.5 text-xs text-slate-500">
+          {t('districtHintGlobal') ||
+            'Выберите район/окрестность внутри города. Список зависит от выбранного города выше.'}
+        </p>
       </div>
       <div>
         <Label className="text-base font-medium">{t('searchAddress')}</Label>

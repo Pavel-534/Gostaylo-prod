@@ -22,18 +22,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Search, X, MapPin, Calendar as CalendarIcon, Users, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { getCategoryName, getUIText } from '@/lib/translations'
+import { POPULAR_DESTINATION_GROUPS } from '@/lib/locations/popular-destinations'
 import { cn } from '@/lib/utils'
 
-/** Популярные локации Пхукета — синхрон с WhereCombobox */
-const POPULAR_LOCATIONS = [
-  { value: 'all',      labels: { ru: 'Весь Пхукет', en: 'All Phuket', zh: '全普吉岛', th: 'ภูเก็ตทั้งหมด' } },
-  { value: 'patong',   labels: { ru: 'Патонг',     en: 'Patong',     zh: '芭东',    th: 'ป่าตอง' } },
-  { value: 'kamala',   labels: { ru: 'Камала',     en: 'Kamala',     zh: '卡马拉',  th: 'กมลา' } },
-  { value: 'bang_tao', labels: { ru: 'Банг Тао',   en: 'Bang Tao',   zh: '邦涛',    th: 'บางเทา' } },
-  { value: 'kata',     labels: { ru: 'Ката',       en: 'Kata',       zh: '卡塔',    th: 'กะตะ' } },
-  { value: 'rawai',    labels: { ru: 'Равай',      en: 'Rawai',      zh: '拉威',    th: 'ราไวย์' } },
-  { value: 'karon',    labels: { ru: 'Карон',      en: 'Karon',      zh: '卡伦',    th: 'กะรน' } },
-]
+/** Популярные направления — синхрон с WhereCombobox (импорт из popular-destinations.js) */
+const ALL_DESTINATION_VALUES = POPULAR_DESTINATION_GROUPS.flatMap((g) => g.items)
+const ALL_OPTION = { value: 'all', labels: { ru: 'Везде', en: 'Anywhere', zh: '所有地方', th: 'ทุกที่' } }
 
 // ---------- FAB Button ----------
 export function MobileSearchFAB({ onClick, language = 'ru', hasActiveFilters = false, hidden = false }) {
@@ -218,34 +212,58 @@ export function MobileSearchBottomSheet({
             </div>
           </div>
 
-          {/* Location — popular chips */}
+          {/* Location — popular destinations grouped (Russia / Thailand / World) */}
           <div className="mb-5">
             <div className="mb-2 flex items-center gap-1.5">
               <MapPin className="h-3 w-3 text-teal-600" />
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                {sectionLabel('Локация', 'Location')}
+                {getUIText('popularDestinations', language)}
               </p>
             </div>
-            <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 scrollbar-none">
-              {POPULAR_LOCATIONS.map((loc) => {
-                const active = where === loc.value || (!where && loc.value === 'all')
-                return (
-                  <button
-                    key={loc.value}
-                    type="button"
-                    onClick={() => setWhere?.(loc.value)}
-                    data-testid={`mobile-search-location-${loc.value}`}
-                    className={cn(
-                      'shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-150 active:scale-95',
-                      active
-                        ? 'border-teal-600 bg-teal-50 text-teal-800'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300',
-                    )}
-                  >
-                    {loc.labels[language] || loc.labels.en}
-                  </button>
-                )
-              })}
+            <div className="space-y-3">
+              {/* «Везде» chip — на всю ширину для сброса фильтра */}
+              <button
+                type="button"
+                onClick={() => setWhere?.(ALL_OPTION.value)}
+                data-testid={`mobile-search-location-${ALL_OPTION.value}`}
+                className={cn(
+                  'rounded-full border px-4 py-2 text-sm font-medium transition-all duration-150 active:scale-95',
+                  (where === ALL_OPTION.value || !where)
+                    ? 'border-teal-600 bg-teal-50 text-teal-800'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300',
+                )}
+              >
+                {ALL_OPTION.labels[language] || ALL_OPTION.labels.en}
+              </button>
+              {POPULAR_DESTINATION_GROUPS.map((group) => (
+                <div key={group.id}>
+                  <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+                    <span aria-hidden>{group.flag}</span>
+                    <span>{group.titles[language] || group.titles.en}</span>
+                  </p>
+                  <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 scrollbar-none">
+                    {group.items.map((loc) => {
+                      const active = where === loc.value
+                      return (
+                        <button
+                          key={loc.value}
+                          type="button"
+                          onClick={() => setWhere?.(loc.value)}
+                          data-testid={`mobile-search-location-${loc.value}`}
+                          className={cn(
+                            'shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-150 active:scale-95',
+                            active
+                              ? 'border-teal-600 bg-teal-50 text-teal-800'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300',
+                          )}
+                        >
+                          {loc.labels[language] || loc.labels.en}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

@@ -193,7 +193,7 @@ export function HomeHeroLuxe({
 
             <div className="min-w-0 border-r border-slate-100 px-3 text-left overflow-visible">
               <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                {language === 'ru' ? 'Локация' : 'Location'}
+                {getUIText('locationLabel', language)}
               </label>
               <WhereCombobox
                 options={whereOptionsFull}
@@ -202,13 +202,14 @@ export function HomeHeroLuxe({
                 placeholder={getUIText('wherePlaceholder', language)}
                 loading={locationsLoading}
                 variant="hero"
+                language={language}
                 className="min-h-[40px] min-w-0 [&_button]:h-auto [&_button]:min-h-[40px] [&_button]:rounded-none [&_button]:border-0 [&_button]:px-0 [&_button]:shadow-none [&_button]:focus:ring-0"
               />
             </div>
 
             <div className="min-w-0 border-r border-slate-100 px-3 text-left">
               <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                {language === 'ru' ? 'Даты' : 'Dates'}
+                {getUIText('dates', language)}
               </label>
               <SearchCalendar
                 value={dateRange}

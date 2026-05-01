@@ -267,6 +267,7 @@ export function UnifiedSearchBar({
           loading={locationsLoading}
           loadingPlaceholder={getUIText('loading', language)}
           variant="compact"
+          language={language}
           className="min-w-0"
         />
 
@@ -382,6 +383,7 @@ export function UnifiedSearchBar({
           loading={locationsLoading}
           loadingPlaceholder={getUIText('loading', language)}
           variant="hero"
+          language={language}
           className="flex-1 min-w-[140px]"
         />
 

@@ -161,6 +161,7 @@ export function GostayloListingCard({
     title: getUIText('shareListing', language) + ' · ' + title,
     text: title,
     language,
+    listingId: id,
   })
 
   const categoryLine =
