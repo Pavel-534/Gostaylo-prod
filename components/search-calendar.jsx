@@ -3,7 +3,7 @@
 /**
  * SearchCalendar - Simplified Calendar for Search Bar
  * 
- * Unlike GostayloCalendar (requires a listingId for pricing data),
+ * Unlike PlatformCalendar (requires a listingId for pricing data),
  * this component is for date selection only - used in search bars
  * 
  * Features:

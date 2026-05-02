@@ -61,7 +61,7 @@ test.describe('@polyglot-ux-bot', () => {
     expect(calResponse.ok(), 'calendar API').toBeTruthy()
 
     const desktopBookingCard = page.locator('div.hidden.lg\\:block.sticky.top-24')
-    const calendarTrigger = desktopBookingCard.getByTestId('gostaylo-calendar-trigger')
+    const calendarTrigger = desktopBookingCard.getByTestId('platform-calendar-trigger')
     await expect(calendarTrigger).toBeVisible({ timeout: 25_000 })
     await calendarTrigger.click()
     const datePickerDialog = page.getByRole('dialog')

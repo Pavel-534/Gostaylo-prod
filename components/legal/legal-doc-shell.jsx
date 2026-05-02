@@ -1,12 +1,22 @@
+'use client'
+
 import Link from 'next/link'
+import { useI18n } from '@/contexts/i18n-context'
+import { getPublicSupportEmail } from '@/lib/config/public-support-email'
+import { getUIText } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
 
 /**
  * Оболочка «Airy Premium» для статичных юр. страниц:
  * Inter через font-sans, slate-50 фон, slate-900 текст, просторные отступы.
+ * Футер и mailto поддержки локализуются через getUIText.
  */
 export function LegalDocShell({ eyebrow = 'Legal', title, lead, publisher, children }) {
   const brand = getSiteDisplayName()
+  const { language } = useI18n()
+  const supportEmail = publisher?.email ?? getPublicSupportEmail()
+
+  const t = (key) => getUIText(key, language)
 
   return (
     <main className="min-h-screen bg-slate-50 font-sans antialiased text-slate-900">
@@ -21,32 +31,35 @@ export function LegalDocShell({ eyebrow = 'Legal', title, lead, publisher, child
           <p className="mt-6 text-lg leading-relaxed text-slate-600">{lead}</p>
         ) : null}
 
-        <PublisherCard publisher={publisher} />
+        <PublisherCard publisher={{ ...publisher, email: supportEmail }} />
 
         <div className="prose prose-slate mt-12 max-w-none prose-headings:font-semibold prose-headings:tracking-tight prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-relaxed prose-li:text-slate-600">
           {children}
         </div>
 
         <footer className="mt-16 border-t border-slate-200 pt-10 text-sm text-slate-500">
-          <p>Вопросы по документам: </p>
-          <a href={`mailto:${publisher.email}`} className="mt-2 inline-block font-medium text-teal-800 hover:text-teal-900 underline-offset-4 hover:underline">
-            {publisher.email}
+          <p>{t('legalFooter_contactIntro')} </p>
+          <a
+            href={`mailto:${supportEmail}`}
+            className="mt-2 inline-block font-medium text-teal-800 hover:text-teal-900 underline-offset-4 hover:underline"
+          >
+            {supportEmail}
           </a>
           <p className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
-            <Link href="/legal/public-offer" className="text-teal-800 hover:underline">
-              Public offer
+            <Link href="/legal/public-offer/" className="text-teal-800 hover:underline">
+              {t('footerPublicOffer')}
             </Link>
-            <Link href="/legal/privacy" className="text-teal-800 hover:underline">
-              Privacy
+            <Link href="/legal/privacy/" className="text-teal-800 hover:underline">
+              {t('privacyPolicy')}
             </Link>
-            <Link href="/legal/refund" className="text-teal-800 hover:underline">
-              Refunds
+            <Link href="/legal/refund/" className="text-teal-800 hover:underline">
+              {t('footerRefundPolicy')}
             </Link>
-            <Link href="/terms" className="text-slate-600 hover:text-slate-900">
-              Terms of Service
+            <Link href="/terms/" className="text-slate-600 hover:text-slate-900">
+              {t('terms')}
             </Link>
-            <Link href="/help" className="text-slate-600 hover:text-slate-900">
-              Help Center
+            <Link href="/help/" className="text-slate-600 hover:text-slate-900">
+              {t('helpCenter')}
             </Link>
           </p>
         </footer>

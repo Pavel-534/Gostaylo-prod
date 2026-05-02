@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * GostayloHomeContent — домашняя страница: секции в `components/home/`, фильтры в `useHomeFilters`.
+ * PlatformHomeContent — домашняя страница: секции в `components/home/`, фильтры в `useHomeFilters`.
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
@@ -18,6 +18,7 @@ import {
   getUIText,
 } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
+import { getPublicSupportEmail } from '@/lib/config/public-support-email'
 import { LISTINGS_SEARCH_API_PATH } from '@/lib/search-endpoints'
 import { isTransportIntervalWizardProfile } from '@/lib/config/category-wizard-profile-db'
 import { hasCategoryParent } from '@/lib/config/category-hierarchy'
@@ -32,7 +33,7 @@ import { PartnerCTA } from '@/components/home/PartnerCTA'
 import { MobileSearchFAB, MobileSearchBottomSheet } from '@/components/search/MobileSearchBottomSheet'
 import { FooterSwitchers } from '@/components/FooterSwitchers'
 
-export function GostayloHomeContent() {
+export function PlatformHomeContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user: authUser, openLoginModal } = useAuth()
@@ -40,6 +41,7 @@ export function GostayloHomeContent() {
   // SSOT: язык из I18nProvider, валюта из CurrencyProvider
   const { language } = useI18n()
   const { currency } = useCurrency()
+  const supportEmail = getPublicSupportEmail()
 
   const [categories, setCategories] = useState([])
 
@@ -497,27 +499,32 @@ export function GostayloHomeContent() {
               <h4 className="font-semibold mb-3 text-sm">{getUIText('footerSupport', language)}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
                 <li>
-                  <Link href="/help" className="hover:text-teal-400 transition-colors">
+                  <Link href="/help/" className="hover:text-teal-400 transition-colors">
                     {getUIText('helpCenter', language)}
                   </Link>
                 </li>
                 <li>
-                  <Link href="/terms" className="hover:text-teal-400 transition-colors">
+                  <a href={`mailto:${supportEmail}`} className="hover:text-teal-400 transition-colors">
+                    {getUIText('contactUs', language)}
+                  </a>
+                </li>
+                <li>
+                  <Link href="/terms/" className="hover:text-teal-400 transition-colors">
                     {getUIText('terms', language)}
                   </Link>
                 </li>
                 <li>
-                  <Link href="/legal/public-offer" className="hover:text-teal-400 transition-colors">
+                  <Link href="/legal/public-offer/" className="hover:text-teal-400 transition-colors">
                     {getUIText('footerPublicOffer', language)}
                   </Link>
                 </li>
                 <li>
-                  <Link href="/legal/privacy" className="hover:text-teal-400 transition-colors">
+                  <Link href="/legal/privacy/" className="hover:text-teal-400 transition-colors">
                     {getUIText('privacyPolicy', language)}
                   </Link>
                 </li>
                 <li>
-                  <Link href="/legal/refund" className="hover:text-teal-400 transition-colors">
+                  <Link href="/legal/refund/" className="hover:text-teal-400 transition-colors">
                     {getUIText('footerRefundPolicy', language)}
                   </Link>
                 </li>

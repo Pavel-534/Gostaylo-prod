@@ -32,7 +32,7 @@ function isAbortError(err) {
 }
 
 /**
- * GostayloCalendar - High-Performance Airbnb-Style Calendar
+ * PlatformCalendar — календарь выбора дат для бронирования.
  * 
  * Features:
  * - Fetches data once from /api/v2/listings/[id]/calendar
@@ -249,7 +249,7 @@ function MonthGrid({
 /**
  * Main Calendar Component
  */
-export function GostayloCalendar({
+export function PlatformCalendar({
   listingId,
   value = { from: null, to: null },
   onChange,
@@ -477,7 +477,7 @@ export function GostayloCalendar({
     <Button
       variant="outline"
       disabled={showBlockingChrome}
-      data-testid="gostaylo-calendar-trigger"
+      data-testid="platform-calendar-trigger"
       className={cn(
         "w-full h-12 justify-start text-left font-normal",
         !value?.from && "text-muted-foreground",
@@ -520,7 +520,7 @@ export function GostayloCalendar({
         <div
           className="pointer-events-none absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-md bg-white/85 px-2 py-1 text-[11px] font-medium text-slate-400 shadow-sm ring-1 ring-slate-200/80 backdrop-blur-[2px]"
           aria-live="polite"
-          data-testid="gostaylo-calendar-refreshing"
+          data-testid="platform-calendar-refreshing"
         >
           <Loader2 className="h-3 w-3 shrink-0 animate-spin text-slate-400" aria-hidden />
           <span>{getUIText('calendarRefreshing', language)}</span>
@@ -649,7 +649,7 @@ const transitionDayStyles = `
 
 // Inject styles
 if (typeof document !== 'undefined') {
-  const styleId = 'gostaylo-calendar-styles'
+  const styleId = 'platform-calendar-styles'
   if (!document.getElementById(styleId)) {
     const style = document.createElement('style')
     style.id = styleId
@@ -658,4 +658,4 @@ if (typeof document !== 'undefined') {
   }
 }
 
-export default GostayloCalendar
+export default PlatformCalendar

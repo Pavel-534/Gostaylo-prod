@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
-import { GostayloListingCard } from '@/components/gostaylo-listing-card'
+import { ListingCard } from '@/components/listing-card'
 import { useListingWizard } from '../context/ListingWizardContext'
 import { useListingSave } from '../hooks/useListingSave'
 import { StepGeneralInfo } from './StepGeneralInfo'
@@ -234,7 +234,7 @@ export function ListingWizardPageInner() {
               <h3 className="mb-4 text-lg font-semibold tracking-tight text-slate-800">{t('livePreview')}</h3>
               <Card className="border-slate-200 bg-white shadow-sm">
                 <CardContent className="p-4 sm:p-5">
-                  <GostayloListingCard
+                  <ListingCard
                     listing={{
                       id: 'preview',
                       title: formData.title || t('previewTitlePlaceholder'),

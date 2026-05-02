@@ -1,5 +1,6 @@
+import Link from 'next/link'
 import { LegalDocShell } from '@/components/legal/legal-doc-shell'
-import { LEGAL_DETAILS } from '@/lib/config/legal-details'
+import { getLegalPublisherDetails } from '@/lib/config/legal-details'
 import { getSiteDisplayName } from '@/lib/site-url'
 
 export const metadata = {
@@ -10,13 +11,14 @@ export const metadata = {
 
 export default function RefundPage() {
   const brand = getSiteDisplayName()
+  const publisher = getLegalPublisherDetails()
 
   return (
     <LegalDocShell
       eyebrow="Refunds"
       title="Политика возвратов средств и отмены бронирования"
       lead={`Платформа ${brand} использует модель обеспеченного платежа («депозит безопасности»): до наступления условий, описанных ниже и в карточке предложения, средства остаются в контуре платёжной защиты и не считаются окончательно переданными Партнёру.`}
-      publisher={LEGAL_DETAILS}
+      publisher={publisher}
     >
       <h2>1. Термины</h2>
       <ul>
@@ -70,9 +72,9 @@ export default function RefundPage() {
 
       <p className="text-sm text-slate-500 mt-12">
         Подробности по роли платформы и природе агентского посредничества см. документ{' '}
-        <a href="/legal/public-offer" className="text-teal-800 hover:underline">
+        <Link href="/legal/public-offer/" className="text-teal-800 hover:underline">
           публичной оферты
-        </a>
+        </Link>
         .
       </p>
     </LegalDocShell>

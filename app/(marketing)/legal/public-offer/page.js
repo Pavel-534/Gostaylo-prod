@@ -1,5 +1,6 @@
+import Link from 'next/link'
 import { LegalDocShell } from '@/components/legal/legal-doc-shell'
-import { LEGAL_DETAILS } from '@/lib/config/legal-details'
+import { getLegalPublisherDetails } from '@/lib/config/legal-details'
 import { getSiteDisplayName } from '@/lib/site-url'
 
 export const metadata = {
@@ -10,13 +11,14 @@ export const metadata = {
 
 export default function PublicOfferPage() {
   const brand = getSiteDisplayName()
+  const publisher = getLegalPublisherDetails()
 
   return (
     <LegalDocShell
       eyebrow="Public agency agreement"
       title="Публичный договор об оказании услуг по организации расчётов (агентский договор)"
       lead={`Настоящий документ определяет порядок использования платформы ${brand} (далее — «Платформа»). Оплатая бронирование или подтверждая действия в интерфейсе, Пользователь принимает условия настоящей оферты.`}
-      publisher={LEGAL_DETAILS}
+      publisher={publisher}
     >
       <h2>1. Стороны и природа правоотношений</h2>
       <p>
@@ -71,7 +73,13 @@ export default function PublicOfferPage() {
       </p>
 
       <h2>6. Персональные данные</h2>
-      <p>Обработка персональных данных регламентируется политикой конфиденциальности, размещённой по адресу /legal/privacy.</p>
+      <p>
+        Обработка персональных данных регламентируется политикой конфиденциальности, размещённой по адресу{' '}
+        <Link href="/legal/privacy/" className="font-medium text-teal-800 hover:underline">
+          /legal/privacy/
+        </Link>
+        .
+      </p>
 
       <h2>7. Заключительные положения</h2>
       <p>

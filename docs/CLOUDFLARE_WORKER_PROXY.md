@@ -2,7 +2,7 @@
 
 Цель: запросы к `gostaylo.ru` обрабатывает Cloudflare (обычно не режется так же, как прямой доступ к Vercel), Worker проксирует на деплой `*.vercel.app`, подставляя нужный `Host`.
 
-Код в репозитории: [`workers/gostaylo-vercel-proxy.js`](../workers/gostaylo-vercel-proxy.js).
+Код в репозитории: [`workers/platform-vercel-proxy.js`](../workers/platform-vercel-proxy.js).
 
 ## 1. Переменные Worker
 
@@ -26,7 +26,7 @@
 1. Войдите в [Cloudflare Dashboard](https://dash.cloudflare.com) → выберите зону **gostaylo.ru**.
 2. **Workers & Pages** → **Create** → **Create Worker**.
 3. Назовите worker (например `gostaylo-proxy`).
-4. Откройте **Quick edit** / **Edit code**, удалите шаблон и вставьте содержимое файла `workers/gostaylo-vercel-proxy.js`.
+4. Откройте **Quick edit** / **Edit code**, удалите шаблон и вставьте содержимое файла `workers/platform-vercel-proxy.js`.
 5. **Save and deploy**.
 6. На вкладке **Settings** → **Variables** добавьте переменные из таблицы выше (для секретов можно использовать **Encrypt**, для URL обычно достаточно plain text).
 7. Ещё раз **Save** / redeploy при необходимости.

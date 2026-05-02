@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * ListingCardSkeleton - premium loading placeholder for listing cards (GostayloListingCard layout)
+ * ListingCardSkeleton — premium loading placeholder for listing cards (ListingCard layout)
  * 
  * Features:
  * - Shimmer effect for premium feel

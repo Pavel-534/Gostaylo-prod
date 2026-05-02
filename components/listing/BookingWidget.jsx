@@ -18,7 +18,7 @@ import { getListingRentalPeriodMode, isWholeVesselListing } from '@/lib/listing-
 import { isTransportListingCategory } from '@/lib/listing-category-slug'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import { formatRentalSpanLabel } from '@/lib/rental-period-labels'
-import { GostayloCalendar } from '@/components/gostaylo-calendar'
+import { PlatformCalendar } from '@/components/platform-calendar'
 import { GuestCountStepper } from '@/components/listing/GuestCountStepper'
 import { cn } from '@/lib/utils'
 
@@ -422,7 +422,7 @@ export function DesktopBookingWidget({
             <Label className="text-sm font-medium mb-2 block">
               {tx(rentalPeriodMode === 'day' ? 'travelDatesRental' : 'travelDates')}
             </Label>
-            <GostayloCalendar
+            <PlatformCalendar
               key={calendarKey}
               listingId={listing.id}
               value={dateRange}

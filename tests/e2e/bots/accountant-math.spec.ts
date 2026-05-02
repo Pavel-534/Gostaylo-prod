@@ -117,7 +117,7 @@ test.describe('@accountant-bot', () => {
     test.skip(checkInDays.length === 0, 'нет can_check_in')
 
     const desktopBookingCard = page.locator('div.hidden.lg\\:block.sticky.top-24')
-    const calendarTrigger = desktopBookingCard.getByTestId('gostaylo-calendar-trigger')
+    const calendarTrigger = desktopBookingCard.getByTestId('platform-calendar-trigger')
     await expect(calendarTrigger).toBeVisible({ timeout: 25_000 })
     await calendarTrigger.click()
 

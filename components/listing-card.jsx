@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * GostayloListingCard - Refactored Clean Version
+ * ListingCard — карточка листинга в сетках и сайдбаре.
  * Phase 7.6 Final
  */
 
@@ -41,7 +41,7 @@ import { UrgencyTimer } from '@/components/UrgencyTimer'
 import { ListingFlashHotStrip } from '@/components/listing/ListingFlashHotStrip'
 import { shouldShowFlashUrgencyTimerAboveStrip } from '@/lib/listing/flash-hot-strip'
 
-export function GostayloListingCard({
+export function ListingCard({
   listing,
   initialDates = { checkIn: null, checkOut: null },
   guests = '2',

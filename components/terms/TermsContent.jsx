@@ -10,7 +10,7 @@
 import Link from 'next/link'
 import { useI18n } from '@/contexts/i18n-context'
 import { getSiteDisplayName } from '@/lib/site-url'
-import { LEGAL_DETAILS } from '@/lib/config/legal-details'
+import { getPublicSupportEmail } from '@/lib/config/public-support-email'
 import { ScrollText, Mail } from 'lucide-react'
 
 const STR = {
@@ -179,6 +179,7 @@ const STR = {
 export default function TermsContent() {
   const { language } = useI18n()
   const s = STR[language] || STR.ru
+  const supportEmail = getPublicSupportEmail()
 
   return (
     <main className="min-h-screen bg-white">
@@ -236,13 +237,13 @@ export default function TermsContent() {
           <p className="text-slate-600 mb-7 max-w-xl mx-auto">{s.contactSub}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a
-              href={`mailto:${LEGAL_DETAILS.email}`}
+              href={`mailto:${supportEmail}`}
               className="inline-flex items-center justify-center rounded-2xl bg-[#006666] px-7 py-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)] transition-all hover:bg-[#005555] active:scale-[0.98]"
             >
-              {LEGAL_DETAILS.email}
+              {supportEmail}
             </a>
             <Link
-              href="/help"
+              href="/help/"
               className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-7 py-4 text-sm font-semibold text-slate-700 transition-colors hover:border-teal-400 hover:text-teal-700"
             >
               {s.helpLink}

@@ -8,7 +8,7 @@
 
 import { memo, useEffect } from 'react';
 import Link from 'next/link';
-import { GostayloListingCard } from '@/components/gostaylo-listing-card';
+import { ListingCard } from '@/components/listing-card';
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton';
 import { EmptyState } from '@/components/empty-state';
 import { Button } from '@/components/ui/button';
@@ -198,7 +198,7 @@ function ListingSidebarComponent({
               className="animate-in fade-in slide-in-from-bottom-4 duration-300"
               style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
             >
-              <GostayloListingCard 
+              <ListingCard 
                 listing={listing}
                 initialDates={cardDates}
                 guests={guests}

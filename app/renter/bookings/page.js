@@ -5,7 +5,7 @@
  * - TanStack Query for data fetching
  * - Real user ID from localStorage
  * - Status filters: "Upcoming", "Past", "Cancelled"
- * - GostayloListingCard component
+ * - ListingCard component
  * - Shimmer loading skeletons
  * 
  * @version 2.0 (v2 Architecture)

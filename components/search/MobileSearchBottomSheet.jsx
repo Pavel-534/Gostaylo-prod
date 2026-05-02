@@ -13,7 +13,7 @@
  * - На "Найти" → onSearch() навигация на /listings с применёнными фильтрами
  *
  * SSOT: принимает те же пропсы что и HomeHeroLuxe, через useHomeFilters.
- * Используется в GostayloHomeContent (только mobile: md:hidden).
+ * Используется в PlatformHomeContent (только mobile: md:hidden).
  *
  * @created 2026-02 Sprint P3 — Premium Air, мобильная оптимизация
  */

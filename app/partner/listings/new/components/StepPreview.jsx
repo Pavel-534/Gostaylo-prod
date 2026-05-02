@@ -3,7 +3,7 @@
 import { memo } from 'react'
 import { CheckCircle2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { GostayloListingCard } from '@/components/gostaylo-listing-card'
+import { ListingCard } from '@/components/listing-card'
 import { useListingWizard } from '../context/ListingWizardContext'
 
 function StepPreviewInner() {
@@ -53,7 +53,7 @@ function StepPreviewInner() {
       )}
       <Card className="border-slate-200 bg-white shadow-sm">
         <CardContent className="p-4 sm:p-5">
-          <GostayloListingCard
+          <ListingCard
             listing={{
               id: 'preview',
               title: formData.title || t('previewTitlePlaceholder'),

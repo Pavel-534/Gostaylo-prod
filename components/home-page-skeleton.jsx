@@ -3,7 +3,7 @@
 import { Shimmer, ListingGridSkeleton } from '@/components/listing-card-skeleton'
 
 /**
- * Layout-aligned shell for home while `GostayloHomeContent` hydrates / first paint.
+ * Layout-aligned shell for home while `PlatformHomeContent` hydrates / first paint.
  * Reduces full-screen spinner → hero-shaped placeholder.
  */
 export function HomePageSkeleton() {

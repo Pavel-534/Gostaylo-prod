@@ -1,5 +1,5 @@
 import { LegalDocShell } from '@/components/legal/legal-doc-shell'
-import { LEGAL_DETAILS } from '@/lib/config/legal-details'
+import { getLegalPublisherDetails } from '@/lib/config/legal-details'
 import { getSiteDisplayName } from '@/lib/site-url'
 
 export const metadata = {
@@ -10,19 +10,21 @@ export const metadata = {
 
 export default function PrivacyPage() {
   const brand = getSiteDisplayName()
+  const publisher = getLegalPublisherDetails()
+  const supportEmail = publisher.email
 
   return (
     <LegalDocShell
       eyebrow="Privacy Policy"
       title="Политика в отношении обработки персональных данных"
       lead={`Документ описывает порядок сбора, хранения и использования информации пользователей платформы ${brand} для целей аудита платёжных партнёров и соответствия требованиям GDPR и Федерального закона РФ №152-ФЗ «О персональных данных» (далее — «152-ФЗ»).`}
-      publisher={LEGAL_DETAILS}
+      publisher={publisher}
     >
       <h2>1. Общие положения и контакт по вопросам данных</h2>
       <p>
         Контролёр/оператор в той юридической роли, которая применима в конкретной обработке, — Интернет-сервис, реквизиты которого приведены в блоке выше (
         «Оператор платформы»). По вопросам персональных данных вы можете связаться по адресу электронной почты{' '}
-        <a href={`mailto:${LEGAL_DETAILS.email}`}>{LEGAL_DETAILS.email}</a>.
+        <a href={`mailto:${supportEmail}`}>{supportEmail}</a>.
       </p>
       <p>
         Если вы находитесь в ЕЭЗ или Великобритании, дополнительно применима логика GDPR: законность и прозрачность обработки, минимизация данных, ограничение цели,

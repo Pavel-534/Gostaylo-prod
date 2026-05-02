@@ -2,7 +2,7 @@
 
 /**
  * CurrencyContext — единый источник истины для валюты (SSOT).
- * Заменяет разрозненные localStorage + custom events в Header, GostayloHomeContent и CurrencySelector.
+ * Заменяет разрозненные localStorage + custom events в Header, PlatformHomeContent и CurrencySelector.
  *
  * @updated 2026-02 Global Engagement — auto-currency by geo (useUserGeo):
  *   RU/BY/UA/KZ/AM/KG/TJ/UZ → RUB

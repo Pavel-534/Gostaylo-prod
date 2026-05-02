@@ -1,7 +1,7 @@
 import { proxifyUnsplashUrl } from '@/lib/proxify-unsplash-url'
 import { Home, Bike, Map, Anchor } from 'lucide-react'
 
-/** Внешние фото главной: unoptimized + proxify (см. GostayloHomeContent). */
+/** Внешние фото главной: unoptimized + proxify (см. PlatformHomeContent). */
 export const HERO_BACKGROUND_IMAGE = proxifyUnsplashUrl(
   'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1920&q=80',
 )

@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { getSiteDisplayName } from '@/lib/site-url'
-import { LEGAL_DETAILS } from '@/lib/config/legal-details'
+import { getPublicSupportEmail } from '@/lib/config/public-support-email'
 import { Shield, MessageCircle, CreditCard, MapPin, BadgeCheck, Mail } from 'lucide-react'
 
 export const metadata = {
@@ -47,6 +47,8 @@ const SECTIONS = [
 ]
 
 export default function HelpPage() {
+  const supportEmail = getPublicSupportEmail()
+
   return (
     <main className="min-h-screen bg-white">
       {/* Hero */}
@@ -146,10 +148,10 @@ export default function HelpPage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <a
-            href={`mailto:${LEGAL_DETAILS.email}`}
+            href={`mailto:${supportEmail}`}
             className="inline-flex items-center justify-center rounded-2xl bg-[#006666] px-7 py-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)] transition-all hover:bg-[#005555] active:scale-[0.98]"
           >
-            {LEGAL_DETAILS.email}
+            {supportEmail}
           </a>
           <Link
             href="/listings"

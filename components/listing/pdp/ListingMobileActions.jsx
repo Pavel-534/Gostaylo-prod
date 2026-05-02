@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { GostayloCalendar } from '@/components/gostaylo-calendar'
+import { PlatformCalendar } from '@/components/platform-calendar'
 import { GuestCountStepper } from '@/components/listing/GuestCountStepper'
 import { MobileBookingBar, PriceBreakdownBlock } from '@/app/listings/[id]/components/BookingWidget'
 import { getUIText } from '@/lib/translations'
@@ -51,7 +51,7 @@ export function ListingMobileActions({
               <Label className="text-sm font-medium mb-2 block">
                 {tx(listingRentalPeriodMode === 'day' ? 'travelDatesRental' : 'travelDates')}
               </Label>
-              <GostayloCalendar
+              <PlatformCalendar
                 key={calendarKey}
                 listingId={listing.id}
                 value={dateRange}

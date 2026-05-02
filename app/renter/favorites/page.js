@@ -8,7 +8,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { GostayloListingCard } from '@/components/gostaylo-listing-card';
+import { ListingCard } from '@/components/listing-card';
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton';
 import { Button } from '@/components/ui/button';
 import { Heart, ArrowLeft, RefreshCw } from 'lucide-react';
@@ -168,7 +168,7 @@ export default function FavoritesPage() {
         {!loading && !error && favorites.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {favorites.map(listing => (
-              <GostayloListingCard
+              <ListingCard
                 key={listing.id}
                 listing={listing}
                 language={language}
