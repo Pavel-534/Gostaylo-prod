@@ -16,6 +16,9 @@ import { Loader2, Eye, EyeOff, Mail, CheckCircle } from 'lucide-react';
 import { signIn, signUp, getCurrentUser, signOut } from '@/lib/auth';
 import { toast } from 'sonner';
 import { getSiteDisplayName } from '@/lib/site-url';
+import { useI18n } from '@/contexts/i18n-context';
+import { getUIText } from '@/lib/translations';
+import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow';
 
 const AuthContext = createContext(null);
 
@@ -28,6 +31,7 @@ function normalizeAuthUser(u) {
     `${first_name} ${last_name}`.trim() ||
     u.email ||
     '';
+  const legalTs = u.legalTermsAcceptedAt ?? u.legal_terms_accepted_at ?? null;
   return {
     ...u,
     first_name,
@@ -35,6 +39,8 @@ function normalizeAuthUser(u) {
     firstName: u.firstName ?? first_name,
     lastName: u.lastName ?? last_name,
     name,
+    legalTermsAcceptedAt: legalTs,
+    legal_terms_accepted_at: legalTs,
   };
 }
 
@@ -91,6 +97,7 @@ function getStableReferralFingerprint() {
 
 export function AuthProvider({ children }) {
   const router = useRouter();
+  const { language: uiLanguage } = useI18n();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -108,6 +115,7 @@ export function AuthProvider({ children }) {
   const [promoMessage, setPromoMessage] = useState('');
   const [verificationEmail, setVerificationEmail] = useState('');
   const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
+  const [registerLegalConsent, setRegisterLegalConsent] = useState(false);
 
   // Load user on mount (from cookie session)
   useEffect(() => {
@@ -244,6 +252,7 @@ export function AuthProvider({ children }) {
       setPromoMessage('');
     }
     setError('');
+    setRegisterLegalConsent(false);
     setLoginModalOpen(true);
   }, []);
 
@@ -362,6 +371,12 @@ export function AuthProvider({ children }) {
         }
       }
 
+      if (!registerLegalConsent) {
+        setError(getUIText('auth_registerLegalRequired', uiLanguage));
+        setSubmitting(false);
+        return;
+      }
+
       const result = await signUp({
         email: email.toLowerCase().trim(),
         password,
@@ -369,6 +384,7 @@ export function AuthProvider({ children }) {
         role: 'RENTER',
         referredBy: referredByPayload,
         referralFingerprint: getStableReferralFingerprint(),
+        acceptedLegalTerms: true,
       });
       
       if (result.error) {
@@ -629,9 +645,10 @@ export function AuthProvider({ children }) {
               <div className='flex border-b mb-3 flex-shrink-0'>
                 <button
                   type='button'
-                  onClick={() => { 
-                    setAuthMode('login'); 
-                    setError(''); 
+                  onClick={() => {
+                    setAuthMode('login');
+                    setRegisterLegalConsent(false);
+                    setError('');
                     // Focus email field after mode switch
                     setTimeout(() => document.getElementById('auth-email')?.focus(), 100);
                   }}
@@ -645,9 +662,10 @@ export function AuthProvider({ children }) {
                 </button>
                 <button
                   type='button'
-                  onClick={() => { 
-                    setAuthMode('register'); 
-                    setError(''); 
+                  onClick={() => {
+                    setAuthMode('register');
+                    setRegisterLegalConsent(false);
+                    setError('');
                     // Focus name field after mode switch
                     setTimeout(() => document.getElementById('auth-name')?.focus(), 100);
                   }}
@@ -786,6 +804,16 @@ export function AuthProvider({ children }) {
                   {error && (
                     <p className='text-red-500 text-sm'>{error}</p>
                   )}
+
+                  {authMode === 'register' && (
+                    <LegalConsentCheckboxRow
+                      language={uiLanguage}
+                      checked={registerLegalConsent}
+                      onCheckedChange={setRegisterLegalConsent}
+                      id='auth-register-legal-consent'
+                      className='rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5'
+                    />
+                  )}
                 </div>
                 
                 {/* Fixed button at bottom - always visible */}
@@ -793,7 +821,10 @@ export function AuthProvider({ children }) {
                   <Button 
                     type='submit' 
                     className='w-full bg-teal-600 hover:bg-teal-700 h-12 text-base font-medium'
-                    disabled={submitting}
+                    disabled={
+                      submitting ||
+                      (authMode === 'register' && !registerLegalConsent)
+                    }
                   >
                     {submitting ? (
                       <>

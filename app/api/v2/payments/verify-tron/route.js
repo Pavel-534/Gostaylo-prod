@@ -12,6 +12,7 @@ import { verifyTronTransaction, getStatusBadge, GOSTAYLO_WALLET, thbToUsdt } fro
 import { supabaseAdmin } from '@/lib/supabase';
 import { PaymentsV3Service } from '@/lib/services/payments-v3.service';
 import { getSessionPayload } from '@/lib/services/session-service';
+import { ensureProfileLegalConsentForPayment } from '@/lib/legal-consent';
 import { getGuestPayableRoundedThb } from '@/lib/booking-guest-total';
 import { withCorrelationFromRequest } from '@/lib/request-correlation.js';
 
@@ -109,6 +110,30 @@ export async function POST(request) {
 
     let paymentSettled = null;
     if (bookingId && result.success) {
+      const { data: rentRow } = await supabaseAdmin
+        .from('bookings')
+        .select('renter_id')
+        .eq('id', String(bookingId))
+        .maybeSingle();
+      if (rentRow?.renter_id) {
+        const session = await getSessionPayload();
+        const consent = await ensureProfileLegalConsentForPayment(
+          session?.userId ? String(session.userId) : null,
+          body?.acceptedLegalTerms ?? body?.accepted_legal_terms,
+        );
+        if (!consent.ok) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: consent.error,
+              status: consent.code || 'LEGAL_CONSENT_REQUIRED',
+              code: consent.code,
+            },
+            { status: consent.status || 403 },
+          );
+        }
+      }
+
       const { data: pendingPay } = await supabaseAdmin
         .from('payments')
         .select('id')

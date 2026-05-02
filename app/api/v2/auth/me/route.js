@@ -56,6 +56,8 @@ function mapRowToClientUser(user, dbRole) {
     instantBooking: user.instant_booking === true,
     preferred_language: user.preferred_language ?? null,
     preferredLanguage: user.preferred_language ?? null,
+    legal_terms_accepted_at: user.legal_terms_accepted_at ?? null,
+    legalTermsAcceptedAt: user.legal_terms_accepted_at ?? null,
   };
 }
 

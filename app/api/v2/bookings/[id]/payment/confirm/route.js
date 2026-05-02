@@ -11,6 +11,7 @@ import { BookingService } from '@/lib/services/booking.service';
 import EscrowService from '@/lib/services/escrow.service';
 import { applyInvoicePostPaymentEffects } from '@/lib/services/invoice-extension.service';
 import PaymentIntentService from '@/lib/services/payment-intent.service';
+import { ensureProfileLegalConsentForPayment } from '@/lib/legal-consent';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +50,18 @@ export async function POST(request, { params }) {
         return NextResponse.json(
           { success: false, error: 'Access denied. This is not your booking.' },
           { status: 403 },
+        );
+      }
+
+      const consent = await ensureProfileLegalConsentForPayment(sessionUserId, body?.acceptedLegalTerms);
+      if (!consent.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: consent.error,
+            code: consent.code || 'LEGAL_CONSENT_BLOCKED',
+          },
+          { status: consent.status || 403 },
         );
       }
     }

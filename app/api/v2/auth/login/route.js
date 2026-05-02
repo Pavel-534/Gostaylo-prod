@@ -147,6 +147,7 @@ export async function POST(request) {
       telegram_id: user.telegram_id || null,
       telegram_username: user.telegram_username || null,
       isModerator: role === 'MODERATOR',
+      legalTermsAcceptedAt: user.legal_terms_accepted_at || null,
     },
     redirectTo,
   });

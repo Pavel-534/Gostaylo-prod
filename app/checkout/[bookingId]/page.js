@@ -114,7 +114,11 @@ function CheckoutPageInner({ params: paramsProp }) {
         )}
 
         <div className="grid md:grid-cols-3 gap-6">
-          <PaymentMethods p={p} c={c} paymentMethodOptions={paymentMethodOptions} />
+          <PaymentMethods
+            p={p}
+            c={c}
+            paymentMethodOptions={paymentMethodOptions}
+          />
           <CheckoutSummary p={p} c={c} onOpenCancel={() => setCancelOpen(true)} />
         </div>
 

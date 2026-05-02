@@ -44,6 +44,9 @@ model Profile {
   maxStay           Int      @default(90)
   instantBooking    Boolean  @default(false)
   
+  // Legal / compliance (Supabase migrations — source of truth for column sync)
+  legalTermsAcceptedAt DateTime? @map("legal_terms_accepted_at")
+
   // Timestamps
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

@@ -458,9 +458,8 @@ export function GostayloHomeContent() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="col-span-2 md:col-span-1">
-              <div className="flex flex-col leading-none mb-3">
-                <span className="text-xl font-black text-white tracking-tight">Go</span>
-                <span className="text-xl font-black text-teal-400 tracking-tight ml-4 -mt-1">staylo</span>
+              <div className="mb-3">
+                <span className="text-xl font-black tracking-tight text-white">{getSiteDisplayName()}</span>
               </div>
               <p className="text-slate-400 text-sm">{getUIText('footerDesc', language)}</p>
             </div>
@@ -505,6 +504,21 @@ export function GostayloHomeContent() {
                 <li>
                   <Link href="/terms" className="hover:text-teal-400 transition-colors">
                     {getUIText('terms', language)}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/legal/public-offer" className="hover:text-teal-400 transition-colors">
+                    {getUIText('footerPublicOffer', language)}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/legal/privacy" className="hover:text-teal-400 transition-colors">
+                    {getUIText('privacyPolicy', language)}
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/legal/refund" className="hover:text-teal-400 transition-colors">
+                    {getUIText('footerRefundPolicy', language)}
                   </Link>
                 </li>
               </ul>

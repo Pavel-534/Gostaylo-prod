@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { getUIText, detectLanguage, DEFAULT_UI_LANGUAGE } from '@/lib/translations'
 import { invalidateWalletMeQuery } from '@/lib/hooks/use-wallet-me'
 import { GOSTAYLO_WALLET, DEFAULT_ALLOWED_METHODS } from './checkout-constants.js'
+import { LEGAL_CONSENT_ERROR_CODE } from '@/lib/legal-consent'
 
 /**
  * @param {object} opts
@@ -39,6 +40,16 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
   const [walletMaxDiscountPercent, setWalletMaxDiscountPercent] = useState(30)
   const [useWalletBonuses, setUseWalletBonuses] = useState(false)
   const [walletUseThb, setWalletUseThb] = useState(0)
+  const [checkoutLegalConsent, setCheckoutLegalConsent] = useState(false)
+
+  const userHasLegalConsent = Boolean(
+    user?.legalTermsAcceptedAt || user?.legal_terms_accepted_at,
+  )
+  const checkoutNeedsLegalConsent = Boolean(user?.id && !userHasLegalConsent)
+
+  useEffect(() => {
+    setCheckoutLegalConsent(userHasLegalConsent)
+  }, [user?.id, userHasLegalConsent])
 
   useEffect(() => {
     const lang = detectLanguage()
@@ -289,6 +300,8 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
     }
   }, [authLoading, booking, user])
 
+  const acceptedLegalTermsForPayment = checkoutNeedsLegalConsent ? checkoutLegalConsent : true
+
   const handleConfirmPayment = useCallback(
     async (transactionId = null, gatewayRef = null) => {
       if (paymentMethod === 'CRYPTO' && transactionId) {
@@ -309,9 +322,20 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
             body: JSON.stringify({
               txid: transactionId,
               bookingId,
+              acceptedLegalTerms: acceptedLegalTermsForPayment,
             }),
           })
           const verifyData = await verifyRes.json()
+          if (
+            !verifyRes.ok &&
+            (verifyData?.code === LEGAL_CONSENT_ERROR_CODE ||
+              verifyData?.status === LEGAL_CONSENT_ERROR_CODE)
+          ) {
+            toast.error(getUIText('checkout_legalConsentRequiredToast', language))
+            setVerifying(false)
+            setVerificationStep(0)
+            return
+          }
           if (!verifyData.success) {
             toast.error(verifyData.error || getUIText('checkout_toast_txNotVerified', language))
             setVerifying(false)
@@ -349,9 +373,14 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
             gatewayRef,
             invoiceId: invoiceIdParam || undefined,
             intentId: payment?.intentId || payment?.id || undefined,
+            acceptedLegalTerms: acceptedLegalTermsForPayment,
           }),
         })
         const data = await res.json()
+        if (data.code === LEGAL_CONSENT_ERROR_CODE) {
+          toast.error(getUIText('checkout_legalConsentRequiredToast', language))
+          return
+        }
         if (data.success) {
           toast.success(getUIText('checkout_toast_paymentOk', language))
           setPaymentSuccess(true)
@@ -375,6 +404,7 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
       invoiceIdParam,
       loadPaymentStatus,
       refreshWalletEverywhere,
+      acceptedLegalTermsForPayment,
     ],
   )
 
@@ -388,9 +418,14 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
           method: paymentMethod,
           invoiceId: invoiceIdParam || undefined,
           walletUseThb: useWalletBonuses ? walletUseThb : 0,
+          acceptedLegalTerms: acceptedLegalTermsForPayment,
         }),
       })
       const data = await res.json()
+      if (data.code === LEGAL_CONSENT_ERROR_CODE) {
+        toast.error(getUIText('checkout_legalConsentRequiredToast', language))
+        return
+      }
       if (data.success) {
         const pay = data.data
         setPayment(pay)
@@ -438,6 +473,7 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
     useWalletBonuses,
     walletUseThb,
     refreshWalletEverywhere,
+    acceptedLegalTermsForPayment,
   ])
 
   const copyToClipboard = useCallback(
@@ -459,10 +495,22 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
       const res = await fetch('/api/v2/payments/verify-tron', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ txid: txId, bookingId }),
+        body: JSON.stringify({
+          txid: txId,
+          bookingId,
+          acceptedLegalTerms: acceptedLegalTermsForPayment,
+        }),
       })
       const data = await res.json()
       setLiveVerification(data)
+      if (
+        (!res.ok && (data.code === LEGAL_CONSENT_ERROR_CODE || data.status === LEGAL_CONSENT_ERROR_CODE)) ||
+        (data.code === LEGAL_CONSENT_ERROR_CODE && !data.success) ||
+        (data.status === LEGAL_CONSENT_ERROR_CODE && !data.success)
+      ) {
+        toast.error(getUIText('checkout_legalConsentRequiredToast', language))
+        return
+      }
       if (data.success) {
         toast.success(getUIText('checkout_toast_txFound', language))
         if (data.paymentSettled?.success === true) {
@@ -491,7 +539,14 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
     } finally {
       setVerifying(false)
     }
-  }, [txId, bookingId, language, loadPaymentStatus, refreshWalletEverywhere])
+  }, [
+    txId,
+    bookingId,
+    language,
+    loadPaymentStatus,
+    refreshWalletEverywhere,
+    acceptedLegalTermsForPayment,
+  ])
 
   const handleSubmitTxid = useCallback(async () => {
     if (!txId.trim() || txId.length < 60) {
@@ -564,5 +619,8 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
     copyToClipboard,
     handleVerifyTxid,
     handleSubmitTxid,
+    checkoutNeedsLegalConsent,
+    checkoutLegalConsent,
+    setCheckoutLegalConsent,
   }
 }

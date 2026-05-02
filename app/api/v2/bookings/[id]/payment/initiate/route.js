@@ -9,6 +9,7 @@ import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-
 import { supabaseAdmin } from '@/lib/supabase'
 import PaymentIntentService from '@/lib/services/payment-intent.service'
 import WalletService from '@/lib/services/finance/wallet.service'
+import { ensureProfileLegalConsentForPayment } from '@/lib/legal-consent'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,6 +50,18 @@ export async function POST(request, { params }) {
       }
       if (String(booking.renter_id) !== String(sessionUserId)) {
         return NextResponse.json({ success: false, error: 'Access denied. This is not your booking.' }, { status: 403 })
+      }
+
+      const consent = await ensureProfileLegalConsentForPayment(sessionUserId, body?.acceptedLegalTerms)
+      if (!consent.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: consent.error,
+            code: consent.code || 'LEGAL_CONSENT_BLOCKED',
+          },
+          { status: consent.status || 403 },
+        )
       }
     }
     if (booking.status === 'CANCELLED') {

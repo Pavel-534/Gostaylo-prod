@@ -194,7 +194,8 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
   }
   
-  const { email, password, firstName, lastName, phone, referredBy, referralFingerprint } = body;
+  const { email, password, firstName, lastName, phone, referredBy, referralFingerprint, acceptedLegalTerms } =
+    body;
 
   /** Landing/OAuth continuity: client sets `gostaylo_pending_ref` when user hits `/?ref=` (Stage 72.6). */
   let cookieReferralRaw = '';
@@ -215,6 +216,17 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Email is required' }, { status: 400 });
   }
   
+  if (!acceptedLegalTerms) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Подтвердите согласие с Публичной офертой и Политикой конфиденциальности',
+        code: 'LEGAL_TERMS_REQUIRED',
+      },
+      { status: 400 },
+    );
+  }
+
   if (!password || password.length < PASSWORD_MIN_LENGTH) {
     return NextResponse.json(
       { success: false, error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters` },
@@ -264,11 +276,12 @@ export async function POST(request) {
 
   // Hash password
   const passwordHash = await bcrypt.hash(password, 10);
-  
+  const legalAcceptedAt = new Date().toISOString();
+
   // Generate IDs
   const profileId = `user-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 5)}`;
   const refCode = makeReferralCode(profileId);
-  
+
   // Insert user (NOT verified yet)
   const { data: user, error } = await supabase
     .from('profiles')
@@ -286,7 +299,8 @@ export async function POST(request) {
       verification_status: 'PENDING',
       preferred_currency: 'THB',
       preferred_payout_currency: 'THB',
-      language: 'ru'
+      language: 'ru',
+      legal_terms_accepted_at: legalAcceptedAt,
     })
     .select('id, email, role, first_name, last_name, referral_code')
     .single();

@@ -98,6 +98,7 @@ export default function UserDetailPage() {
           telegramId: profile.telegram_id,
           telegramUsername: profile.telegram_username,
           createdAt: profile.created_at,
+          legalTermsAcceptedAt: profile.legal_terms_accepted_at || null,
           verificationDocUrl: profile.verification_doc_url,
           verificationDocType: profile.verification_doc_type,
           verificationSubmittedAt: profile.verification_submitted_at,
@@ -419,6 +420,21 @@ export default function UserDetailPage() {
                   <p className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-gray-400" />
                     {user.createdAt ? new Date(user.createdAt).toLocaleDateString('ru-RU') : 'N/A'}
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-xs text-gray-500">
+                    Юр. согласие (оферта + privacy)
+                  </Label>
+                  <p className="flex items-center gap-2 text-sm">
+                    <FileText className="w-4 h-4 text-gray-400 shrink-0" />
+                    {user.legalTermsAcceptedAt ? (
+                      <span className="text-green-700">
+                        {new Date(user.legalTermsAcceptedAt).toLocaleString('ru-RU')}
+                      </span>
+                    ) : (
+                      <span className="text-amber-700">Не зафиксировано (легаси / до внедрения)</span>
+                    )}
                   </p>
                 </div>
               </div>

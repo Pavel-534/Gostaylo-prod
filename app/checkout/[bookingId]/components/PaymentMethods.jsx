@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge'
 import { CreditCard, Wallet, Loader2, CheckCircle2, Copy, ExternalLink, AlertCircle, Smartphone } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
+import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow'
 import { QRCodeSVG } from 'qrcode.react'
 import { UrgencyTimer } from '@/components/UrgencyTimer'
 
@@ -118,9 +119,23 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
         </CardContent>
       </Card>
 
+      {p.checkoutNeedsLegalConsent ? (
+        <LegalConsentCheckboxRow
+          language={c.language}
+          checked={Boolean(p.checkoutLegalConsent)}
+          onCheckedChange={p.setCheckoutLegalConsent}
+          id="checkout-legal-consent"
+          className="rounded-xl border border-slate-200 bg-white px-3 py-3"
+        />
+      ) : null}
+
       <Button
         onClick={p.handleInitiatePayment}
-        disabled={p.processing || !p.paymentMethod}
+        disabled={
+          p.processing ||
+          !p.paymentMethod ||
+          (p.checkoutNeedsLegalConsent && !p.checkoutLegalConsent)
+        }
         data-testid="checkout-pay-submit"
         className="w-full bg-teal-600 hover:bg-teal-700 h-12 text-lg"
       >

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getSiteDisplayName } from '@/lib/site-url'
+import { LEGAL_DETAILS } from '@/lib/config/legal-details'
 import { Shield, MessageCircle, CreditCard, MapPin, BadgeCheck, Mail } from 'lucide-react'
 
 export const metadata = {
@@ -145,10 +146,10 @@ export default function HelpPage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <a
-            href="mailto:support@gostaylo.com"
+            href={`mailto:${LEGAL_DETAILS.email}`}
             className="inline-flex items-center justify-center rounded-2xl bg-[#006666] px-7 py-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)] transition-all hover:bg-[#005555] active:scale-[0.98]"
           >
-            support@gostaylo.com
+            {LEGAL_DETAILS.email}
           </a>
           <Link
             href="/listings"
