@@ -46,6 +46,8 @@ model Profile {
   
   // Legal / compliance (Supabase migrations — source of truth for column sync)
   legalTermsAcceptedAt DateTime? @map("legal_terms_accepted_at")
+  /** Supabase Auth user id (`auth.users.id`) when linked via OAuth; Stage 79.0 */
+  authUserId          String?  @unique @map("auth_user_id")
 
   // Timestamps
   createdAt         DateTime @default(now())

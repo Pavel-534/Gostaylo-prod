@@ -27,7 +27,7 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 |--------|--------|
 | **App** | Next.js (App Router), React |
 | **Database** | PostgreSQL via **Supabase** (REST + `supabase-js` / service role on server) |
-| **Auth** | Custom JWT in HttpOnly cookie (`gostaylo_session`), bcrypt passwords in `profiles` |
+| **Auth** | Основное SSO приложения — custom JWT (**`gostaylo_session`**), bcrypt в **`profiles`**; дополнительно **OAuth (Google/Apple)** через Supabase Auth на клиенте, PKCE **`/auth/callback/`**, мост **`profiles.auth_user_id`** (**Stage 79.0**) — финальная сессия приложения те же JWT+`profiles`. |
 | **ORM / schema** | **Prisma `schema.prisma`** as **documentation and typing reference** for tables/enums — **not** the primary runtime data layer |
 | **Realtime / storage** | Supabase (where configured): Realtime, Storage |
 | **Email** | Resend (when `RESEND_API_KEY` is set) |

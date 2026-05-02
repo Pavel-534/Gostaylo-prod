@@ -8,10 +8,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import { rateLimitCheck } from '@/lib/rate-limit';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
-import { stripLegacyModeratorMarker } from '@/lib/auth/display-name';
+import {
+  attachGostayloSessionCookie,
+  profileRowToAuthUser,
+  signJwtForProfile,
+} from '@/lib/auth/app-session-issue';
 
 export const dynamic = 'force-dynamic';
 
@@ -113,54 +116,17 @@ export async function POST(request) {
 
   await supabase.from('profiles').update({ last_login_at: new Date().toISOString() }).eq('id', user.id);
 
-  const displayLast = stripLegacyModeratorMarker(user.last_name);
-  const rawAvatar = user.avatar && String(user.avatar).trim();
-
-  const token = jwt.sign(
-    {
-      userId: user.id,
-      email: user.email,
-      role,
-      firstName: user.first_name,
-    },
-    jwtSecret,
-    { expiresIn: '30d' }
-  );
+  const token = signJwtForProfile(user, jwtSecret);
 
   const redirectTo = requestedRedirect || ROLE_REDIRECTS[role] || '/';
 
   const response = NextResponse.json({
     success: true,
-    user: {
-      id: user.id,
-      email: user.email,
-      role,
-      firstName: user.first_name,
-      lastName: displayLast,
-      name: `${user.first_name || ''} ${displayLast}`.trim(),
-      phone: user.phone || null,
-      avatar: rawAvatar || null,
-      referralCode: user.referral_code,
-      isVerified: user.is_verified,
-      preferredCurrency: user.preferred_currency,
-      preferredPayoutCurrency: user.preferred_payout_currency || user.preferred_currency || 'THB',
-      telegram_id: user.telegram_id || null,
-      telegram_username: user.telegram_username || null,
-      isModerator: role === 'MODERATOR',
-      legalTermsAcceptedAt: user.legal_terms_accepted_at || null,
-    },
+    user: profileRowToAuthUser(user),
     redirectTo,
   });
 
-  const secureCookie =
-    process.env.NODE_ENV === 'production' || process.env.FORCE_SECURE_COOKIES === 'true';
-  response.cookies.set('gostaylo_session', token, {
-    httpOnly: true,
-    secure: secureCookie,
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 30,
-    path: '/',
-  });
+  attachGostayloSessionCookie(response, token);
 
   return response;
 }

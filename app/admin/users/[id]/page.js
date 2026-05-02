@@ -99,6 +99,7 @@ export default function UserDetailPage() {
           telegramUsername: profile.telegram_username,
           createdAt: profile.created_at,
           legalTermsAcceptedAt: profile.legal_terms_accepted_at || null,
+          authUserId: profile.auth_user_id || null,
           verificationDocUrl: profile.verification_doc_url,
           verificationDocType: profile.verification_doc_type,
           verificationSubmittedAt: profile.verification_submitted_at,
@@ -435,6 +436,12 @@ export default function UserDetailPage() {
                     ) : (
                       <span className="text-amber-700">Не зафиксировано (легаси / до внедрения)</span>
                     )}
+                  </p>
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-xs text-gray-500">Supabase OAuth (Stage 79)</Label>
+                  <p className="flex items-start gap-2 font-mono text-xs text-gray-800 break-all pt-1">
+                    {user.authUserId ? user.authUserId : <span className="text-gray-400 font-sans text-sm">—</span>}
                   </p>
                 </div>
               </div>
