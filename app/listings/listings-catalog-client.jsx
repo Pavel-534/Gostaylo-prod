@@ -63,6 +63,10 @@ function ListingsContent() {
   )
   const setWhere = useCallback((w) => setWhereState(canonicalWhere(w)), [])
   const [guests, setGuests] = useState(searchParams.get('guests') || '1')
+  const [guestsBreakdown, setGuestsBreakdown] = useState(() => {
+    const total = Math.max(1, parseInt(searchParams.get('guests') || '1', 10) || 1)
+    return { adults: total, children: 0, infants: 0 }
+  })
   const [dateRange, setDateRange] = useState({
     from: searchParams.get('checkIn') ? parseISO(searchParams.get('checkIn')) : null,
     to: searchParams.get('checkOut') ? parseISO(searchParams.get('checkOut')) : null,
@@ -86,7 +90,10 @@ function ListingsContent() {
           'all',
       ),
     )
-    setGuests(searchParams.get('guests') || '1')
+    const nextGuests = searchParams.get('guests') || '1'
+    setGuests(nextGuests)
+    const totalGuests = Math.max(1, parseInt(nextGuests, 10) || 1)
+    setGuestsBreakdown({ adults: totalGuests, children: 0, infants: 0 })
     setDateRange({
       from: searchParams.get('checkIn') ? parseISO(searchParams.get('checkIn')) : null,
       to: searchParams.get('checkOut') ? parseISO(searchParams.get('checkOut')) : null,
@@ -98,6 +105,16 @@ function ListingsContent() {
     if (sem === '0') setSmartSearchOn(false)
     else if (sem === '1') setSmartSearchOn(true)
   }, [searchParamsKey])
+
+  useEffect(() => {
+    const total = Math.max(1, parseInt(guests, 10) || 1)
+    const currentTotal =
+      Math.max(1, parseInt(guestsBreakdown?.adults, 10) || 1) +
+      Math.max(0, parseInt(guestsBreakdown?.children, 10) || 0) +
+      Math.max(0, parseInt(guestsBreakdown?.infants, 10) || 0)
+    if (currentTotal === total) return
+    setGuestsBreakdown({ adults: total, children: 0, infants: 0 })
+  }, [guests, guestsBreakdown])
 
   const [language, setLanguage] = useState(DEFAULT_UI_LANGUAGE)
   const [catalogCategories, setCatalogCategories] = useState([])
@@ -531,6 +548,8 @@ function ListingsContent() {
         setWhere={setWhere}
         guests={guests}
         setGuests={setGuests}
+        guestsBreakdown={guestsBreakdown}
+        setGuestsBreakdown={setGuestsBreakdown}
         clearDates={clearDates}
         nights={nights}
         extraFilters={extraFilters}

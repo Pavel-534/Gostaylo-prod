@@ -27,6 +27,7 @@ export function useHomeFilters(categoriesFromApi = []) {
   const [checkInTime, setCheckInTime] = useState('07:00')
   const [checkOutTime, setCheckOutTime] = useState('07:00')
   const [guests, setGuests] = useState('1')
+  const [guestsBreakdown, setGuestsBreakdown] = useState({ adults: 1, children: 0, infants: 0 })
   const [searchQuery, setSearchQuery] = useState('')
   const [smartSearchOn, setSmartSearchOn] = useState(true)
   const [semanticSiteEnabled, setSemanticSiteEnabled] = useState(true)
@@ -55,7 +56,11 @@ export function useHomeFilters(categoriesFromApi = []) {
     const sem = searchParams?.get('semantic')
     if (cat) setSelectedCategory(cat)
     if (w) setWhere(w)
-    if (g) setGuests(g)
+    if (g) {
+      const total = Math.max(1, parseInt(g, 10) || 1)
+      setGuests(String(total))
+      setGuestsBreakdown({ adults: total, children: 0, infants: 0 })
+    }
     if (qUrl) setSearchQuery(qUrl)
     if (sem === '0') setSmartSearchOn(false)
     else if (sem === '1') setSmartSearchOn(true)
@@ -91,6 +96,16 @@ export function useHomeFilters(categoriesFromApi = []) {
       .catch(() => {})
   }, [])
 
+  useEffect(() => {
+    const total = Math.max(1, parseInt(guests, 10) || 1)
+    const currentTotal =
+      Math.max(1, parseInt(guestsBreakdown?.adults, 10) || 1) +
+      Math.max(0, parseInt(guestsBreakdown?.children, 10) || 0) +
+      Math.max(0, parseInt(guestsBreakdown?.infants, 10) || 0)
+    if (currentTotal === total) return
+    setGuestsBreakdown({ adults: total, children: 0, infants: 0 })
+  }, [guests, guestsBreakdown])
+
   return {
     selectedCategory,
     setSelectedCategory,
@@ -104,6 +119,8 @@ export function useHomeFilters(categoriesFromApi = []) {
     setCheckOutTime,
     guests,
     setGuests,
+    guestsBreakdown,
+    setGuestsBreakdown,
     searchQuery,
     setSearchQuery,
     smartSearchOn,

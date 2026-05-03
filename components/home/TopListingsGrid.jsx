@@ -65,7 +65,7 @@ export function TopListingsGrid({
         : 'Top Properties'
   const sectionTitle = cleanCustomTitle.length > 0 ? cleanCustomTitle : fallbackTitle
   return (
-    <section id="listings-section" className="bg-white pt-6 pb-12 sm:pt-8 sm:pb-16">
+    <section id="listings-section" className="bg-white py-12 sm:py-16">
       <div className="container mx-auto px-6">
         <div className="flex items-center justify-between mb-8 min-h-[3.5rem]">
           <div>

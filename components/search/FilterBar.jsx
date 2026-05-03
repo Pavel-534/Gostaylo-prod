@@ -38,6 +38,8 @@ export function FilterBar({
   setWhere,
   guests,
   setGuests,
+  guestsBreakdown = null,
+  setGuestsBreakdown,
   clearDates,
   nights = 0,
   extraFilters,
@@ -168,6 +170,8 @@ export function FilterBar({
                 setCheckOutTime={setCheckOutTime}
                 guests={guests}
                 setGuests={setGuests}
+                guestsBreakdown={guestsBreakdown}
+                setGuestsBreakdown={setGuestsBreakdown}
                 textQuery={textQuery}
                 setTextQuery={setTextQuery}
                 smartSearchOn={smartSearchOn}

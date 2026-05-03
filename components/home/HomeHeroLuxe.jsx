@@ -1,19 +1,18 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Search, Users, Sparkles, Home, Bike, Map as MapIcon, Anchor, Calendar } from 'lucide-react'
+import Image from 'next/image'
+import { Search, Sparkles, Home, Bike, Map as MapIcon, Anchor, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SearchCalendar } from '@/components/search-calendar'
 import { WhereCombobox } from '@/components/search/WhereCombobox'
+import { GuestsPopover } from '@/components/search/GuestsPopover'
 import { getUIText, getCategoryName } from '@/lib/translations'
 import { buildWhereOptions } from '@/lib/locations/where-options'
 import { getStaticLocationsSeed } from '@/lib/locations/locations-seed'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { HOME_CATEGORY_ICONS } from './home-constants'
-
-const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12]
 
 /** SSOT fallback-вкладки до ответа API — устраняет «пустой» Hero. */
 const STATIC_FALLBACK_TABS = [
@@ -29,7 +28,7 @@ const STATIC_FALLBACK_TABS = [
  * `rounded-2xl`, deлiкатный `slate-200` бордер и одинаковый focus-ring (Teal `#006666`).
  */
 const FIELD_BASE_CLASS =
-  'flex h-[60px] w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-0 text-left text-base font-medium text-slate-900 transition-all duration-200 hover:border-slate-300 hover:bg-white focus-within:border-[#006666] focus-within:shadow-[0_0_0_3px_rgba(0,102,102,0.12)] focus-visible:border-[#006666] focus-visible:shadow-[0_0_0_3px_rgba(0,102,102,0.12)] focus-visible:outline-none'
+  'flex h-[60px] w-full min-h-[60px] max-h-[60px] items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-0 text-left text-base font-medium leading-none text-slate-900 transition-all duration-200 hover:border-slate-300 hover:bg-white focus-within:border-[#006666] focus-within:shadow-[0_0_0_3px_rgba(0,102,102,0.12)] focus-visible:border-[#006666] focus-visible:shadow-[0_0_0_3px_rgba(0,102,102,0.12)] focus-visible:outline-none'
 
 /**
  * Airy Premium hero: светлый фон, опциональный заголовок (`heroTitle`),
@@ -48,6 +47,8 @@ export function HomeHeroLuxe({
   setDateRange,
   guests,
   setGuests,
+  guestsBreakdown = null,
+  setGuestsBreakdown,
   onSearch,
   textQuery = '',
   setTextQuery,
@@ -85,27 +86,44 @@ export function HomeHeroLuxe({
   const cleanTitle = typeof heroTitle === 'string' ? heroTitle.trim() : ''
   const showTitle = cleanTitle.length > 0
 
-  const guestsLabel =
-    guests && guests !== '1'
-      ? `${guests} ${language === 'ru' ? 'гостей' : 'guests'}`
-      : language === 'ru'
-        ? 'Гости'
-        : 'Guests'
-
   return (
     <section
       data-hero-search
-      className="relative z-[40] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-teal-50 via-white to-white pt-[calc(var(--app-header-height,64px)+8px)] pb-8 sm:pb-10"
+      className="relative isolate z-[40] min-h-[min(600px,82svh)] overflow-visible pt-[calc(var(--app-header-height,64px)+8px)] pb-12"
     >
-      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center px-4 sm:px-6">
+      {/*
+        Фон hero: чёткое фото (без blur на оверлее) + лёгкое затемнение + радиальный «тил»-градиент.
+        Нижний слой — плавное растворение в белый (`TopListingsGrid`), ~80–120px.
+      */}
+      <div
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          maskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 85%, transparent 100%)',
+        }}
+        aria-hidden
+      >
+        <Image
+          src="/images/home-hero-nature-luxe.jpg"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/50" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-teal-900/10 via-black/30 to-transparent" />
+      </div>
+
+      <div className="relative z-20 mx-auto flex w-full max-w-6xl flex-col items-center px-4 sm:px-6">
         {showTitle ? (
-          <h1 className="mb-6 max-w-3xl text-center text-[28px] font-semibold leading-[1.1] tracking-[-0.015em] text-slate-900 sm:mb-8 sm:text-[40px] lg:text-[44px]">
+          <h1 className="mb-6 max-w-3xl text-center text-[28px] font-semibold leading-[1.1] tracking-[-0.015em] text-white drop-shadow-md sm:mb-8 sm:text-[40px] lg:text-[44px]">
             {cleanTitle}
           </h1>
         ) : null}
 
-        {/* Search capsule — glass + глубокая мягкая тень (Airy Luxe) */}
-        <div className="relative z-20 w-full rounded-3xl border border-slate-200/70 bg-white/72 p-3 shadow-[0_32px_64px_-15px_rgba(0,102,102,0.1),0_12px_40px_-18px_rgba(15,23,42,0.08)] backdrop-blur-xl backdrop-saturate-150 transition-all duration-300 focus-within:border-[#006666]/25 focus-within:shadow-[0_32px_64px_-15px_rgba(0,102,102,0.14),0_0_0_3px_rgba(0,102,102,0.1)] sm:p-4">
+        {/* Search capsule — glass на фото (rounded-3xl SSOT внешней капсулы) */}
+        <div className="relative z-20 w-full rounded-3xl border border-white/35 bg-white/78 p-3 shadow-[0_32px_64px_-15px_rgba(0,102,102,0.14),0_12px_40px_-18px_rgba(0,0,0,0.2)] backdrop-blur-xl backdrop-saturate-150 transition-all duration-300 focus-within:border-[#006666]/35 focus-within:shadow-[0_32px_64px_-15px_rgba(0,102,102,0.18),0_0_0_3px_rgba(0,102,102,0.12)] sm:p-4">
           {/* Category tabs — pill buttons */}
           <div className="mb-3 flex flex-wrap items-center gap-2 sm:mb-4">
             {displayTabs.map((tab) => {
@@ -121,7 +139,7 @@ export function HomeHeroLuxe({
                     'inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-sm font-semibold tracking-tight transition-all duration-200',
                     active
                       ? 'border-[#006666] bg-[#006666] text-white shadow-[0_8px_22px_-6px_rgba(0,102,102,0.55)]'
-                      : 'border-slate-200 bg-white text-slate-700 hover:border-[#006666]/60 hover:text-[#006666]',
+                      : 'border-slate-200/90 bg-white/95 text-slate-700 hover:border-[#006666]/60 hover:text-[#006666]',
                     !tabsReady && 'animate-pulse opacity-60',
                   )}
                 >
@@ -133,7 +151,7 @@ export function HomeHeroLuxe({
           </div>
 
           {/* Keyword row — то же 60px, slate-900 текст */}
-          <div className="mb-3 flex h-[60px] items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 pl-3 pr-2">
+          <div className="mb-3 flex h-[60px] min-h-[60px] max-h-[60px] items-center gap-2 rounded-2xl border border-slate-200/90 bg-white/90 pl-3 pr-2 backdrop-blur-sm">
             <button
               type="button"
               onClick={handleSearchClick}
@@ -153,7 +171,7 @@ export function HomeHeroLuxe({
                 }
               }}
               placeholder={getUIText('catalogTextSearchPlaceholder', language)}
-              className="h-full min-w-0 flex-1 border-0 bg-transparent text-base font-medium text-slate-900 placeholder:text-slate-500 shadow-none focus-visible:ring-0"
+              className="h-full min-h-0 min-w-0 flex-1 border-0 bg-transparent text-base font-medium leading-none text-slate-900 placeholder:text-slate-500 shadow-none focus-visible:ring-0"
               aria-label={getUIText('catalogTextSearchPlaceholder', language)}
             />
             <button
@@ -211,39 +229,21 @@ export function HomeHeroLuxe({
               className={cn(FIELD_BASE_CLASS, 'cursor-pointer')}
             />
 
-            {/* Guests */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <button type="button" className={cn(FIELD_BASE_CLASS, 'min-w-[148px] cursor-pointer')}>
-                  <Users className="h-5 w-5 shrink-0 text-[#006666]" aria-hidden />
-                  <span className="truncate">{guestsLabel}</span>
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56 p-2" align="start">
-                <div className="grid grid-cols-4 gap-1">
-                  {GUEST_OPTIONS.map((n) => (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setGuests?.(String(n))}
-                      className={cn(
-                        'rounded-xl p-2 text-sm font-medium transition-colors',
-                        guests === String(n)
-                          ? 'bg-[#006666] text-white'
-                          : 'text-slate-700 hover:bg-slate-100',
-                      )}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
+            {/* Guests (SSOT Airbnb-style popover) */}
+            <GuestsPopover
+              language={language}
+              guests={guests}
+              setGuests={setGuests}
+              guestsBreakdown={guestsBreakdown}
+              setGuestsBreakdown={setGuestsBreakdown}
+              align="start"
+              triggerClassName={cn(FIELD_BASE_CLASS, 'min-w-[148px] cursor-pointer')}
+            />
 
             {/* Search CTA — тот же h-[60px], тот же rounded-2xl */}
             <Button
               onClick={handleSearchClick}
-              className="h-[60px] min-w-[148px] rounded-2xl bg-[#006666] px-6 text-base font-semibold text-white shadow-[0_14px_28px_-8px_rgba(0,102,102,0.42)] transition-all hover:bg-[#004c4c] hover:shadow-[0_18px_36px_-8px_rgba(0,102,102,0.50)] active:scale-[0.98]"
+              className="!h-[60px] min-h-[60px] max-h-[60px] min-w-[148px] shrink-0 rounded-2xl bg-[#006666] px-6 text-base font-semibold leading-none text-white shadow-[0_14px_28px_-8px_rgba(0,102,102,0.42)] transition-all hover:bg-[#004c4c] hover:shadow-[0_18px_36px_-8px_rgba(0,102,102,0.50)] active:scale-[0.98]"
             >
               <Search className="mr-2 h-5 w-5" />
               {getUIText('findButton', language)}
@@ -252,8 +252,8 @@ export function HomeHeroLuxe({
 
           {/* Hint — деликатная подсказка под рядом, не ломает геометрию */}
           {!dateRange?.from ? (
-            <p className="mt-3 hidden items-center gap-1.5 px-1 text-xs text-slate-400 md:flex">
-              <Calendar className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+            <p className="mt-3 hidden items-center gap-1.5 px-1 text-xs text-white/75 md:flex">
+              <Calendar className="h-3.5 w-3.5 text-white/70" aria-hidden />
               {language === 'ru'
                 ? 'Выберите даты, чтобы увидеть точные цены и доступность'
                 : 'Pick dates to see live pricing and availability'}

@@ -449,7 +449,7 @@ export function SearchCalendar({
     <>
       <CalendarIcon className="h-5 w-5 text-teal-600 flex-shrink-0" />
       <span className={cn(
-        "text-base font-medium truncate",
+        "text-base font-medium leading-none truncate",
         dateRange.from ? "text-slate-900" : "text-slate-500"
       )}>
         {displayText}
@@ -470,7 +470,7 @@ export function SearchCalendar({
           type="button"
           onClick={() => setDrawerOpen(true)}
           className={cn(
-            "flex items-center gap-2 px-4 py-3 text-left hover:bg-slate-50 transition-colors",
+            "flex w-full min-w-0 items-center gap-3 text-left font-medium transition-colors hover:bg-slate-50/90",
             className
           )}
           data-testid="search-calendar-trigger"
@@ -500,7 +500,7 @@ export function SearchCalendar({
         <button
           type="button"
           className={cn(
-            "flex items-center gap-2 px-4 py-3 text-left hover:bg-slate-50 transition-colors",
+            "flex w-full min-w-0 items-center gap-3 text-left font-medium transition-colors hover:bg-slate-50/90",
             className
           )}
           data-testid="search-calendar-trigger"

@@ -12,26 +12,24 @@
  */
 
 import { useState, useEffect, useMemo } from 'react'
-import { Search, Users, Layers, MapPin, Sparkles } from 'lucide-react'
+import { Search, Layers, MapPin, Sparkles } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter, DrawerClose } from '@/components/ui/drawer'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from '@/components/ui/drawer'
 import { SearchCalendar } from '@/components/search-calendar'
 import { WhereCombobox } from '@/components/search/WhereCombobox'
+import { GuestsPopover } from '@/components/search/GuestsPopover'
 import { TimeSelect } from '@/components/ui/time-select'
 import { getUIText, getCategoryName } from '@/lib/translations'
-import { pluralizeGuests } from '@/lib/i18n/pluralize'
 import { buildWhereOptions, filterWhereOptions, getOptionLabel } from '@/lib/locations/where-options'
 import { getStaticLocationsSeed } from '@/lib/locations/locations-seed'
 import { cn } from '@/lib/utils'
 import { isTransportIntervalWizardProfile } from '@/lib/config/category-wizard-profile-db'
 import { chipIconForCategory } from '@/components/search/category-chip-icon'
 import { orderedCategoriesForSearchUi, effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
-
-const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12]
 
 export function UnifiedSearchBar({
   variant = 'hero',
@@ -52,6 +50,8 @@ export function UnifiedSearchBar({
   // Who
   guests,
   setGuests,
+  guestsBreakdown = null,
+  setGuestsBreakdown,
   onSearch,
   /** `categories.wizard_profile` для текущего `category` (SSOT транспортный интервал и т.д.) */
   categoryWizardProfile = null,
@@ -78,12 +78,9 @@ export function UnifiedSearchBar({
   const [locationsLoading, setLocationsLoading] = useState(true)
   const [locationDrawerOpen, setLocationDrawerOpen] = useState(false)
   const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false)
-  const [guestsDrawerOpen, setGuestsDrawerOpen] = useState(false)
   const [mobileWhereInput, setMobileWhereInput] = useState('')
-  const [tempGuests, setTempGuests] = useState('2')
   /** Контролируемые Popover на desktop — закрываются после выбора */
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false)
-  const [guestsPopoverOpen, setGuestsPopoverOpen] = useState(false)
 
   useEffect(() => {
     fetch('/api/v2/categories')
@@ -124,11 +121,6 @@ export function UnifiedSearchBar({
       )
     }
   }, [locationDrawerOpen, where, whereOptionsFull])
-
-  const handleGuestsConfirm = () => {
-    setGuests(tempGuests)
-    setGuestsDrawerOpen(false)
-  }
 
   /** Кнопка «Найти» на hero: сначала commit семантики, затем переход/родитель */
   const handleHeroFindClick = () => {
@@ -296,18 +288,17 @@ export function UnifiedSearchBar({
           )}
         </div>
 
-        {/* Who */}
-        <Select value={guests} onValueChange={setGuests}>
-          <SelectTrigger className="h-9">
-            <Users className="h-4 w-4 mr-2 text-teal-600" />
-            <span>{guests} {pluralizeGuests(guests, language)}</span>
-          </SelectTrigger>
-          <SelectContent>
-            {GUEST_OPTIONS.map(n => (
-              <SelectItem key={n} value={n.toString()}>{n} {pluralizeGuests(n, language)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Who (SSOT Airbnb-style popover) */}
+        <GuestsPopover
+          language={language}
+          guests={guests}
+          setGuests={setGuests}
+          guestsBreakdown={guestsBreakdown}
+          setGuestsBreakdown={setGuestsBreakdown}
+          align="end"
+          triggerClassName="h-9 rounded-md px-3"
+          contentClassName="z-[70]"
+        />
         </div>
       </div>
     )
@@ -399,32 +390,17 @@ export function UnifiedSearchBar({
           />
         </div>
 
-        {/* Who */}
-        <Popover open={guestsPopoverOpen} onOpenChange={setGuestsPopoverOpen}>
-          <PopoverTrigger asChild>
-            <button className={`${triggerBase} ${triggerHero}`}>
-              <Users className="h-4 w-4 text-[#006666]" />
-              <span className="text-sm text-slate-700">{guests}</span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-48 p-2" align="start">
-            <div className="grid grid-cols-5 gap-1">
-              {GUEST_OPTIONS.map(n => (
-                <button
-                  type="button"
-                  key={n}
-                  onClick={() => {
-                    setGuests?.(String(n))
-                    setGuestsPopoverOpen(false)
-                  }}
-                  className={`p-2 rounded text-sm ${guests === String(n) ? 'bg-teal-600 text-white' : 'hover:bg-slate-100'}`}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+        {/* Who (SSOT Airbnb-style popover) */}
+        <GuestsPopover
+          language={language}
+          guests={guests}
+          setGuests={setGuests}
+          guestsBreakdown={guestsBreakdown}
+          setGuestsBreakdown={setGuestsBreakdown}
+          align="start"
+          triggerClassName={`${triggerBase} ${triggerHero}`}
+          contentClassName="z-[70]"
+        />
 
         <Button
           onClick={handleHeroFindClick}
@@ -484,19 +460,18 @@ export function UnifiedSearchBar({
             <MapPin className="h-4 w-4 shrink-0 text-[#006666]" />
             <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{whereLabel}</span>
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setTempGuests(guests || '2')
-              setGuestsDrawerOpen(true)
-            }}
-            className="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2.5 text-left hover:bg-slate-50"
-          >
-            <Users className="h-4 w-4 shrink-0 text-[#006666]" />
-            <span className="min-w-0 flex-1 truncate text-sm text-slate-800">
-              {guests} {pluralizeGuests(guests, language)}
-            </span>
-          </button>
+          <div className="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200 px-0 py-0 text-left hover:bg-slate-50">
+            <GuestsPopover
+              language={language}
+              guests={guests}
+              setGuests={setGuests}
+              guestsBreakdown={guestsBreakdown}
+              setGuestsBreakdown={setGuestsBreakdown}
+              align="start"
+              triggerClassName="min-h-[44px] w-full rounded-2xl border-0 px-4 py-2.5 text-sm"
+              contentClassName="z-[90]"
+            />
+          </div>
         </div>
         <Button
           onClick={handleHeroFindClick}
@@ -626,33 +601,6 @@ export function UnifiedSearchBar({
         </DrawerContent>
       </Drawer>
 
-      {/* Mobile Guests Drawer */}
-      <Drawer open={guestsDrawerOpen} onOpenChange={setGuestsDrawerOpen}>
-        <DrawerContent>
-          <DrawerHeader className="border-b pb-4">
-            <DrawerTitle>{getUIText('mobileSearchWhoTitle', language)}</DrawerTitle>
-            <DrawerClose asChild><Button variant="ghost" size="icon"><span className="sr-only">Close</span></Button></DrawerClose>
-          </DrawerHeader>
-          <div className="p-4">
-            <div className="grid grid-cols-5 gap-2">
-              {GUEST_OPTIONS.map(n => (
-                <button
-                  key={n}
-                  onClick={() => setTempGuests(String(n))}
-                  className={`p-3 rounded-lg border text-center font-medium ${tempGuests === String(n) ? 'border-teal-600 bg-teal-50 text-teal-700' : 'border-slate-200'}`}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
-          <DrawerFooter>
-            <Button onClick={handleGuestsConfirm} className="w-full bg-teal-600">
-              {getUIText('mobileSearchDone', language)}
-            </Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
     </div>
   )
 }

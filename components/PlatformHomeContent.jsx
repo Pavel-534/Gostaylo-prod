@@ -30,6 +30,7 @@ import { TopListingsGrid } from '@/components/home/TopListingsGrid'
 import {
   AUTO_HERO_TITLE_FALLBACK,
   AUTO_TOP_LISTINGS_TITLE_FALLBACK,
+  HOME_COPY_AUTO_TOKEN,
   getHomeHeroTitleRaw,
   getHomeTopListingsTitleRaw,
   resolveHomeCopy,
@@ -63,6 +64,8 @@ export function PlatformHomeContent() {
     checkOutTime,
     guests,
     setGuests,
+    guestsBreakdown,
+    setGuestsBreakdown,
     searchQuery,
     setSearchQuery,
     smartSearchOn,
@@ -321,21 +324,32 @@ export function PlatformHomeContent() {
   // `'AUTO'` → локализованная строка через `getUIText(key, language)` (меняется при переключении языка).
   const heroTitle = useMemo(() => {
     const raw = getHomeHeroTitleRaw()
-    return resolveHomeCopy(
+    const resolved = resolveHomeCopy(
       raw,
       (k) => getUIText(k, language),
       'heroTitle',
       AUTO_HERO_TITLE_FALLBACK,
     )
+    if (raw === HOME_COPY_AUTO_TOKEN) {
+      const t = typeof resolved === 'string' ? resolved.trim() : ''
+      return t.length > 0 ? resolved.trim() : AUTO_HERO_TITLE_FALLBACK
+    }
+    const finalTitle = typeof resolved === 'string' ? resolved.trim() : ''
+    return finalTitle.length > 0 ? finalTitle : 'Легкая и удобная аренда по всему миру'
   }, [language])
   const topListingsTitle = useMemo(() => {
     const raw = getHomeTopListingsTitleRaw()
-    return resolveHomeCopy(
+    const resolved = resolveHomeCopy(
       raw,
       (k) => getUIText(k, language),
       'topListingsTitle',
       AUTO_TOP_LISTINGS_TITLE_FALLBACK,
     )
+    if (raw === HOME_COPY_AUTO_TOKEN) {
+      const t = typeof resolved === 'string' ? resolved.trim() : ''
+      return t.length > 0 ? resolved.trim() : AUTO_TOP_LISTINGS_TITLE_FALLBACK
+    }
+    return resolved
   }, [language])
 
   return (
@@ -351,6 +365,8 @@ export function PlatformHomeContent() {
         setDateRange={handleDateChange}
         guests={guests}
         setGuests={setGuests}
+        guestsBreakdown={guestsBreakdown}
+        setGuestsBreakdown={setGuestsBreakdown}
         onSearch={handleSearch}
         textQuery={searchQuery}
         setTextQuery={setSearchQuery}
@@ -373,6 +389,8 @@ export function PlatformHomeContent() {
         setDateRange={handleDateChange}
         guests={guests}
         setGuests={setGuests}
+        guestsBreakdown={guestsBreakdown}
+        setGuestsBreakdown={setGuestsBreakdown}
         onSearch={handleSearch}
       />
 

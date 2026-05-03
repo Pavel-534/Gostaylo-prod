@@ -23,15 +23,13 @@ import { Search, MapPin, Users, Layers, Calendar, X } from 'lucide-react'
 import { format, isSameDay } from 'date-fns'
 import { ru as ruLocale } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SearchCalendar } from '@/components/search-calendar'
 import { WhereCombobox } from '@/components/search/WhereCombobox'
+import { GuestsPopover, formatGuestsSummaryText } from '@/components/search/GuestsPopover'
 import { buildWhereOptions } from '@/lib/locations/where-options'
 import { getStaticLocationsSeed } from '@/lib/locations/locations-seed'
 import { getUIText, getCategoryName } from '@/lib/translations'
 import { cn } from '@/lib/utils'
-
-const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8]
 const APPEAR_SCROLL_PX = 280
 
 /** Находим локализованный label для where-значения из плоского списка опций */
@@ -76,6 +74,8 @@ export function StickySearchBar({
   setDateRange,
   guests,
   setGuests,
+  guestsBreakdown = null,
+  setGuestsBreakdown,
   onSearch,
 }) {
   const [visible, setVisible] = useState(false)
@@ -119,12 +119,14 @@ export function StickySearchBar({
   const whereLabel = useMemo(() => resolveWhereLabel(where, whereOptions), [where, whereOptions])
   const datesLabel = useMemo(() => formatDateRangeShort(dateRange, language), [dateRange, language])
   const guestsLabel = useMemo(() => {
-    if (!guests || guests === '1') return null
-    const n = parseInt(guests, 10)
-    if (!Number.isFinite(n) || n < 2) return null
-    if (language === 'ru') return `${n} ${n === 1 ? 'гость' : n < 5 ? 'гостя' : 'гостей'}`
-    return `${n} guests`
-  }, [guests, language])
+    const b =
+      guestsBreakdown && typeof guestsBreakdown === 'object'
+        ? guestsBreakdown
+        : { adults: Math.max(1, parseInt(guests, 10) || 1), children: 0, infants: 0 }
+    const total = (b.adults || 0) + (b.children || 0) + (b.infants || 0)
+    if (!total || total <= 1) return null
+    return formatGuestsSummaryText(b, language)
+  }, [guests, guestsBreakdown, language])
 
   const hasAnyFilter = Boolean(whereLabel || datesLabel || guestsLabel)
 
@@ -141,7 +143,11 @@ export function StickySearchBar({
 
   const handleClearWhere = (e) => { e.stopPropagation(); setWhere?.('all') }
   const handleClearDates = (e) => { e.stopPropagation(); setDateRange?.({ from: undefined, to: undefined }) }
-  const handleClearGuests = (e) => { e.stopPropagation(); setGuests?.('1') }
+  const handleClearGuests = (e) => {
+    e.stopPropagation()
+    setGuests?.('1')
+    setGuestsBreakdown?.({ adults: 1, children: 0, infants: 0 })
+  }
 
   return (
     <div
@@ -185,34 +191,19 @@ export function StickySearchBar({
             />
           </div>
 
-          {/* Guests */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                ref={guestsTriggerRef}
-                type="button"
-                data-testid="sticky-search-guests"
-                className="flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 hover:border-teal-300 hover:bg-teal-50"
-              >
-                <Users className="h-4 w-4 text-[#006666]" />
-                {guests}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="z-[90] w-48 p-2" align="end">
-              <div className="grid grid-cols-4 gap-1">
-                {GUEST_OPTIONS.map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    onClick={() => setGuests?.(String(n))}
-                    className={`rounded-md p-2 text-sm transition-colors ${guests === String(n) ? 'bg-[#006666] text-white' : 'hover:bg-slate-100'}`}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
+          {/* Guests (SSOT popover) */}
+          <div ref={guestsTriggerRef}>
+            <GuestsPopover
+              language={language}
+              guests={guests}
+              setGuests={setGuests}
+              guestsBreakdown={guestsBreakdown}
+              setGuestsBreakdown={setGuestsBreakdown}
+              align="end"
+              triggerClassName="h-9 rounded-lg px-3 text-sm font-medium text-slate-700"
+              contentClassName="z-[90]"
+            />
+          </div>
 
           {/* Search */}
           <Button

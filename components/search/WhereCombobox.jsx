@@ -222,15 +222,24 @@ export function WhereCombobox({
           isHero
             ? 'px-4 py-3 border-r border-slate-200'
             : isFlat
-              ? 'h-full px-5 bg-transparent'
+              ? 'h-full min-h-0 self-stretch px-5 bg-transparent'
               : 'px-2 h-9 border rounded-md bg-white',
           loading && 'opacity-90'
         )}
       >
         {loading ? (
-          <Loader2 className="h-4 w-4 text-teal-600 flex-shrink-0 animate-spin" aria-hidden />
+          <Loader2
+            className={cn(
+              'text-teal-600 flex-shrink-0 animate-spin',
+              isFlat ? 'h-5 w-5' : 'h-4 w-4',
+            )}
+            aria-hidden
+          />
         ) : (
-          <MapPin className="h-4 w-4 text-teal-600 flex-shrink-0" aria-hidden />
+          <MapPin
+            className={cn('text-teal-600 flex-shrink-0', isFlat ? 'h-5 w-5' : 'h-4 w-4')}
+            aria-hidden
+          />
         )}
         <input
           ref={inputRef}
@@ -257,7 +266,7 @@ export function WhereCombobox({
             isHero
               ? 'text-sm placeholder:text-slate-500'
               : isFlat
-                ? 'text-base font-medium text-slate-900 placeholder:text-slate-500'
+                ? 'text-base font-medium leading-none text-slate-900 placeholder:text-slate-500'
                 : 'text-sm h-8 placeholder:text-slate-400'
           )}
         />
