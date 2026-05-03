@@ -34,7 +34,7 @@ const STEPS = [
 
 export function HowItWorks({ language = 'ru' }) {
   return (
-    <section className="bg-white py-16 sm:py-24">
+    <section className="bg-white py-12 sm:py-16">
       <div className="container mx-auto px-6">
 
         {/* Header */}

@@ -52,20 +52,25 @@ export function TopListingsGrid({
   mediaFallback,
   markMediaFailed,
   onViewAll,
+  customTitle = null,
 }) {
+  const cleanCustomTitle = typeof customTitle === 'string' ? customTitle.trim() : ''
+  const fallbackTitle =
+    dateRange.from && dateRange.to
+      ? language === 'ru'
+        ? 'Доступные объекты'
+        : 'Available Properties'
+      : language === 'ru'
+        ? 'Топ объекты'
+        : 'Top Properties'
+  const sectionTitle = cleanCustomTitle.length > 0 ? cleanCustomTitle : fallbackTitle
   return (
-    <section id="listings-section" className="py-14 sm:py-[5rem] bg-[#f7f9fb]">
+    <section id="listings-section" className="py-12 sm:py-16 bg-white">
       <div className="container mx-auto px-6">
         <div className="flex items-center justify-between mb-8 min-h-[3.5rem]">
           <div>
             <h2 className="text-[32px] leading-10 tracking-[-0.01em] font-semibold text-slate-900 mb-1">
-              {dateRange.from && dateRange.to
-                ? language === 'ru'
-                  ? 'Доступные объекты'
-                  : 'Available Properties'
-                : language === 'ru'
-                  ? 'Топ объекты'
-                  : 'Top Properties'}
+              {sectionTitle}
             </h2>
             <p className="text-slate-600 text-base min-h-[1.5rem]">
               {listings.length} {language === 'ru' ? 'объектов' : 'properties'}

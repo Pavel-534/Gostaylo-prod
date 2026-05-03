@@ -25,9 +25,13 @@ import { hasCategoryParent } from '@/lib/config/category-hierarchy'
 import { useHomeFilters } from '@/components/home/useHomeFilters'
 import { HomeHeroLuxe } from '@/components/home/HomeHeroLuxe'
 import { StickySearchBar } from '@/components/home/StickySearchBar'
-import { CategoryBar } from '@/components/home/CategoryBar'
 import { HowItWorks } from '@/components/home/HowItWorks'
 import { TopListingsGrid } from '@/components/home/TopListingsGrid'
+import {
+  getHomeHeroTitleRaw,
+  getHomeTopListingsTitleRaw,
+  resolveHomeCopy,
+} from '@/lib/config/home-page-copy'
 import { TrustBar } from '@/components/home/TrustBar'
 import { PartnerCTA } from '@/components/home/PartnerCTA'
 import { MobileSearchFAB, MobileSearchBottomSheet } from '@/components/search/MobileSearchBottomSheet'
@@ -291,49 +295,6 @@ export function PlatformHomeContent() {
     }
   }, [debouncedSearchQuery, dateRange, where, guests, selectedCategory, fetchLiveCount])
 
-  const goToListingsForCategory = useCallback(
-    (categorySlug) => {
-      setSelectedCategory(categorySlug)
-      const params = new URLSearchParams()
-      params.set('category', categorySlug)
-      if (where !== 'all') params.set('where', where)
-      if (dateRange.from) params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
-      if (dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
-        params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
-      }
-      const wpRow = categories.find((c) => String(c.slug) === String(categorySlug))
-      if (
-        isTransportIntervalWizardProfile(wpRow?.wizardProfile ?? wpRow?.wizard_profile, categorySlug) &&
-        dateRange.from &&
-        dateRange.to &&
-        !isSameDay(dateRange.from, dateRange.to)
-      ) {
-        params.set('checkInTime', checkInTime)
-        params.set('checkOutTime', checkOutTime)
-      }
-      if (guests !== '1') params.set('guests', guests)
-      const qt = searchQuery.trim()
-      if (qt.length >= 2) params.set('q', qt)
-      if (semanticSiteEnabled) params.set('semantic', smartSearchOn ? '1' : '0')
-      router.push(`/listings?${params.toString()}`)
-    },
-    [
-      categories,
-      setSelectedCategory,
-      where,
-      dateRange,
-      guests,
-      searchQuery,
-      semanticSiteEnabled,
-      smartSearchOn,
-      router,
-      checkInTime,
-      checkOutTime,
-    ],
-  )
-
-  const onCategorySelect = useCallback((cat) => goToListingsForCategory(cat.slug), [goToListingsForCategory])
-
   const nights = useMemo(
     () => (dateRange.from && dateRange.to ? differenceInDays(dateRange.to, dateRange.from) : 0),
     [dateRange],
@@ -354,8 +315,19 @@ export function PlatformHomeContent() {
     return categoryBarRoots.slice(0, 4)
   }, [categoryBarRoots])
 
+  // SSOT: white-label копии главной берутся из env (NEXT_PUBLIC_HOME_*) — `lib/config/home-page-copy.js`.
+  // `'AUTO'` → локализованная строка через `getUIText(key, language)` (меняется при переключении языка).
+  const heroTitle = useMemo(() => {
+    const raw = getHomeHeroTitleRaw()
+    return resolveHomeCopy(raw, (k) => getUIText(k, language), 'heroTitle')
+  }, [language])
+  const topListingsTitle = useMemo(() => {
+    const raw = getHomeTopListingsTitleRaw()
+    return resolveHomeCopy(raw, (k) => getUIText(k, language), 'topListingsTitle')
+  }, [language])
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white font-sans antialiased">
       <HomeHeroLuxe
         language={language}
         categoryTabs={heroTabs}
@@ -376,6 +348,7 @@ export function PlatformHomeContent() {
         onSearchSubmit={handleHomeSearchSubmit}
         liveCount={liveCount}
         countLoading={countLoading}
+        heroTitle={heroTitle}
       />
 
       {/* Sticky search — появляется при скролле, поверх контента */}
@@ -391,16 +364,7 @@ export function PlatformHomeContent() {
         onSearch={handleSearch}
       />
 
-      {/* Category filters — сразу под hero, для фильтрации grid'а */}
-      <CategoryBar
-        language={language}
-        categories={categoryBarRoots}
-        mediaFallback={mediaFallback}
-        onCategorySelect={onCategorySelect}
-        markMediaFailed={markMediaFailed}
-      />
-
-      {/* Listings Grid — конверсия first, юзер видит объявления сразу */}
+      {/* Listings Grid — конверсия first, юзер видит объявления сразу под hero */}
       <TopListingsGrid
         language={language}
         dateRange={dateRange}
@@ -417,6 +381,7 @@ export function PlatformHomeContent() {
         mediaFallback={mediaFallback}
         markMediaFailed={markMediaFailed}
         onViewAll={handleSearch}
+        customTitle={topListingsTitle}
       />
 
       {/* Partner CTA — после listings */}

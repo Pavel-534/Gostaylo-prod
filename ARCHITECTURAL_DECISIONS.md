@@ -49,6 +49,17 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 - SSOT: **`lib/auth/password-policy.js`** — **`AUTH_PASSWORD_MIN_LENGTH = 8`**, **`AUTH_PASSWORD_COMPLEXITY_RE`**: минимум одна буква (латиница **`A–Za–z`** или кириллица) и одна цифра.
 - **`POST /api/v2/auth/register`** и **`POST /api/v2/auth/reset-password`** используют эту политику; UI (**`AuthModal`**, **`/reset-password`**) синхронизирован с тем же правилом.
 
+### White-label копии главной (`/`)
+
+- SSOT: **`lib/config/home-page-copy.js`** — функции **`getHomeHeroTitleRaw`**, **`getHomeTopListingsTitleRaw`**, **`resolveHomeCopy`** + константа **`HOME_COPY_AUTO_TOKEN`** (`'AUTO'`). Env-переменные — **`NEXT_PUBLIC_HOME_HERO_TITLE`**, **`NEXT_PUBLIC_HOME_TOP_LISTINGS_TITLE`**.
+- Поддерживаемые значения env:
+  - **пусто/whitespace** → `null`, UI блок не рендерится;
+  - **`AUTO`** (case-insensitive) → клиент берёт перевод через **`getUIText(key, language)`**: `heroTitle` для hero и `topListingsTitle` для секции «Топ объекты»; меняется при переключении языка (RU/EN/ZH/TH);
+  - **любая иная строка** — используется как есть (фиксированная white-label-копия).
+- **`HomeHeroLuxe`** — Airy Premium: единая 60-px геометрия (Where / Dates / Guests / Search CTA — `h-[60px] rounded-2xl border-slate-200`, focus-ring Teal `#006666`), единый шрифт `text-base font-medium text-slate-900`, отдельные внутренние «лейблы» в полях убраны; категории показаны только как pill-фильтры внутри блока поиска. Дублирующая секция **`CategoryBar`** на главной удалена (компонент сохранён в `components/home/` для возможного переиспользования).
+- Вертикальный ритм main-секций: **`py-12 sm:py-16`** (Hero pb / TopListingsGrid / PartnerCTA / HowItWorks).
+- Скелетон **`ListingCardSkeleton`** 1:1 совпадает с реальной карточкой `TopListingsGrid` (`rounded-2xl`, `border-slate-200`, image `h-44 sm:h-48`, content `p-5`, gap-8) — нет CLS при появлении данных.
+
 ### Таблица `error_code` (основные)
 
 | `error_code` | Типичный HTTP |

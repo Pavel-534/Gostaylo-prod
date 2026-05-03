@@ -447,10 +447,10 @@ export function SearchCalendar({
   // Trigger button content
   const TriggerContent = (
     <>
-      <CalendarIcon className="h-4 w-4 text-teal-600 flex-shrink-0" />
+      <CalendarIcon className="h-5 w-5 text-teal-600 flex-shrink-0" />
       <span className={cn(
-        "text-sm truncate",
-        dateRange.from ? "text-slate-900" : "text-slate-500"
+        "text-base font-medium truncate",
+        dateRange.from ? "text-slate-900" : "text-slate-400"
       )}>
         {displayText}
       </span>

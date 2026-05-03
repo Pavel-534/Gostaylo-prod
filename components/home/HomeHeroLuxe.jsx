@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Search, MapPin, Users, Layers, Sparkles } from 'lucide-react'
+import { Search, Users, Sparkles, Home, Bike, Map as MapIcon, Anchor, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SearchCalendar } from '@/components/search-calendar'
@@ -10,14 +10,12 @@ import { getUIText, getCategoryName } from '@/lib/translations'
 import { buildWhereOptions } from '@/lib/locations/where-options'
 import { getStaticLocationsSeed } from '@/lib/locations/locations-seed'
 import { Input } from '@/components/ui/input'
-import { HERO_BACKGROUND_IMAGE } from './home-constants'
+import { cn } from '@/lib/utils'
+import { HOME_CATEGORY_ICONS } from './home-constants'
 
 const GUEST_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12]
 
-/**
- * SSOT: статичные fallback-вкладки показываются немедленно, до ответа API.
- * Это устраняет «пустой» Hero при медленном соединении.
- */
+/** SSOT fallback-вкладки до ответа API — устраняет «пустой» Hero. */
 const STATIC_FALLBACK_TABS = [
   { slug: 'property' },
   { slug: 'vehicles' },
@@ -25,6 +23,20 @@ const STATIC_FALLBACK_TABS = [
   { slug: 'tours' },
 ]
 
+/**
+ * Базовый стиль 60-px поля (Apple/Airbnb-уровень).
+ * Все 4 элемента ряда (Where / Dates / Guests / CTA) используют ту же высоту, тот же
+ * `rounded-2xl`, deлiкатный `slate-200` бордер и одинаковый focus-ring (Teal `#006666`).
+ */
+const FIELD_BASE_CLASS =
+  'flex h-[60px] w-full items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-0 text-left text-base font-medium text-slate-900 transition-all duration-200 hover:border-slate-300 hover:bg-white focus-within:border-[#006666] focus-within:shadow-[0_0_0_3px_rgba(0,102,102,0.12)] focus-visible:border-[#006666] focus-visible:shadow-[0_0_0_3px_rgba(0,102,102,0.12)] focus-visible:outline-none'
+
+/**
+ * Airy Premium hero: светлый фон, опциональный заголовок (`heroTitle`),
+ * крупные читаемые поля поиска и контрастные таб-«пилюли» с иконками.
+ *
+ * @param {string | null} heroTitle — уже разрезолвленный заголовок (env / AUTO → перевод). `null` → блок скрыт.
+ */
 export function HomeHeroLuxe({
   language,
   categoryTabs = [],
@@ -45,6 +57,7 @@ export function HomeHeroLuxe({
   onSearchSubmit,
   liveCount = null,
   countLoading = false,
+  heroTitle = null,
 }) {
   const [locations, setLocations] = useState(getStaticLocationsSeed)
   const [locationsLoading, setLocationsLoading] = useState(true)
@@ -61,7 +74,6 @@ export function HomeHeroLuxe({
 
   const whereOptionsFull = useMemo(() => buildWhereOptions(locations, language), [locations, language])
 
-  // SSOT fallback: show static tabs immediately, replace with real data when loaded
   const displayTabs = categoryTabs.length > 0 ? categoryTabs : STATIC_FALLBACK_TABS
   const tabsReady = categoryTabs.length > 0
 
@@ -70,42 +82,62 @@ export function HomeHeroLuxe({
     onSearch?.()
   }
 
+  const cleanTitle = typeof heroTitle === 'string' ? heroTitle.trim() : ''
+  const showTitle = cleanTitle.length > 0
+
+  const guestsLabel =
+    guests && guests !== '1'
+      ? `${guests} ${language === 'ru' ? 'гостей' : 'guests'}`
+      : language === 'ru'
+        ? 'Гости'
+        : 'Guests'
+
   return (
     <section
       data-hero-search
-      className="relative z-[40] min-h-[540px] pt-[72px] sm:min-h-[600px] sm:pt-20"
-      style={{ backgroundImage: `url(${HERO_BACKGROUND_IMAGE})`, backgroundSize: 'cover', backgroundPosition: 'center top' }}
+      className="relative z-[40] bg-gradient-to-b from-slate-50 via-white to-teal-50/40 pt-[calc(var(--app-header-height,64px)+8px)] pb-12 sm:pb-16"
     >
-      {/* Cinematic layered overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/30 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-transparent to-black/10" />
-
-      {/* Content layer — compact: search capsule вплотную к хедеру */}
-      <div className="relative z-10 mx-auto flex min-h-[440px] w-full max-w-[1280px] flex-col items-center justify-start px-4 pt-6 text-center sm:min-h-[520px] sm:px-6 sm:pt-10">
-
-        {/* Editorial headline — сжато, без subtitle-отступа */}
-        <div className="mb-5 space-y-1 sm:mb-6">
-          <h1 className="max-w-3xl font-serif text-[32px] font-semibold leading-[1.08] tracking-[-0.01em] text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)] sm:text-[52px] sm:leading-[1.06] lg:text-[58px]">
-            {getUIText('heroTitle', language)}{' '}
-            <span className="bg-gradient-to-r from-[#a2f0ef] to-[#5dd8d5] bg-clip-text font-bold italic text-transparent">
-              {getUIText('heroTitleHighlight', language)}
-            </span>
+      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center px-4 sm:px-6">
+        {showTitle ? (
+          <h1 className="mb-6 max-w-3xl text-center text-[28px] font-semibold leading-[1.1] tracking-[-0.015em] text-slate-900 sm:mb-8 sm:text-[40px] lg:text-[44px]">
+            {cleanTitle}
           </h1>
-          <p className="text-[13px] font-medium text-white/85 drop-shadow-sm sm:text-sm">
-            <MapPin className="mr-1 inline-block h-3.5 w-3.5 text-[#a2f0ef]" />
-            {getUIText('heroSubtitle', language)}
-          </p>
-        </div>
+        ) : null}
 
         {/* Search capsule */}
-        <div className="relative z-20 w-full max-w-4xl rounded-[28px] border border-white/70 bg-white/98 p-2 shadow-[0_44px_100px_rgba(0,24,24,0.38),0_18px_42px_rgba(0,102,102,0.22)] backdrop-blur-sm transition-all duration-300 focus-within:shadow-[0_44px_100px_rgba(0,24,24,0.45),0_0_0_3px_rgba(0,102,102,0.18)] focus-within:-translate-y-0.5">
+        <div className="relative z-20 w-full rounded-3xl border border-slate-200/80 bg-white p-3 shadow-[0_24px_70px_-20px_rgba(15,23,42,0.18),0_8px_24px_-12px_rgba(15,23,42,0.10)] transition-all duration-300 focus-within:shadow-[0_30px_80px_-20px_rgba(0,102,102,0.22)] sm:p-4">
+          {/* Category tabs — pill buttons */}
+          <div className="mb-3 flex flex-wrap items-center gap-2 sm:mb-4">
+            {displayTabs.map((tab) => {
+              const active = category === tab.slug
+              const Icon = HOME_CATEGORY_ICONS[tab.slug] || Home
+              return (
+                <button
+                  key={tab.slug}
+                  type="button"
+                  onClick={() => setCategory?.(tab.slug)}
+                  aria-pressed={active}
+                  className={cn(
+                    'inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-sm font-semibold tracking-tight transition-all duration-200',
+                    active
+                      ? 'border-[#006666] bg-[#006666] text-white shadow-[0_8px_22px_-6px_rgba(0,102,102,0.55)]'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-[#006666]/60 hover:text-[#006666]',
+                    !tabsReady && 'animate-pulse opacity-60',
+                  )}
+                >
+                  <Icon className={cn('h-4 w-4', active ? 'text-white' : 'text-[#006666]')} />
+                  {getCategoryName(tab.slug, language, tab.name)}
+                </button>
+              )
+            })}
+          </div>
 
-          {/* Keyword row */}
-          <div className="mb-2 flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/90 px-3 py-2">
+          {/* Keyword row — то же 60px, slate-900 текст */}
+          <div className="mb-3 flex h-[60px] items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50/70 pl-3 pr-2">
             <button
               type="button"
               onClick={handleSearchClick}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700"
               aria-label={getUIText('findButton', language)}
             >
               <Search className="h-4 w-4" />
@@ -121,7 +153,7 @@ export function HomeHeroLuxe({
                 }
               }}
               placeholder={getUIText('catalogTextSearchPlaceholder', language)}
-              className="h-9 min-w-0 flex-1 border-0 bg-transparent text-sm shadow-none focus-visible:ring-0"
+              className="h-full min-w-0 flex-1 border-0 bg-transparent text-base font-medium text-slate-900 placeholder:text-slate-400 shadow-none focus-visible:ring-0"
               aria-label={getUIText('catalogTextSearchPlaceholder', language)}
             />
             <button
@@ -138,125 +170,100 @@ export function HomeHeroLuxe({
                   /* ignore */
                 }
               }}
-              className={`flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-2.5 transition-colors ${
+              className={cn(
+                'flex h-10 shrink-0 items-center gap-1.5 rounded-xl border px-3 transition-colors',
                 !semanticSearchFeatureEnabled
                   ? 'cursor-not-allowed opacity-50'
                   : smartSearchOn
                     ? 'border-violet-300 bg-violet-50 text-violet-700'
-                    : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
-              }`}
+                    : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50',
+              )}
             >
               <Sparkles className="h-4 w-4 shrink-0" />
-              <span className="text-xs font-semibold tracking-tight">{language === 'ru' ? 'ИИ' : 'Smart'}</span>
+              <span className="text-xs font-semibold tracking-tight">
+                {language === 'ru' ? 'ИИ' : 'Smart'}
+              </span>
             </button>
           </div>
 
-          {/* Category tabs row */}
-          <div className="mb-3 flex flex-wrap items-center gap-0 border-b border-slate-100 px-2 pt-0">
-            {displayTabs.map((tab) => {
-              const active = category === tab.slug
-              return (
-                <button
-                  key={tab.slug}
-                  type="button"
-                  onClick={() => setCategory?.(tab.slug)}
-                  className={`relative px-5 py-2.5 text-sm font-semibold tracking-tight transition-all duration-200 ${
-                    active
-                      ? 'text-[#006666]'
-                      : 'text-slate-500 hover:text-[#006666]'
-                  } ${!tabsReady ? 'animate-pulse opacity-60' : ''}`}
-                >
-                  {getCategoryName(tab.slug, language, tab.name)}
-                  {active && (
-                    <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-[#006666]" />
-                  )}
+          {/* Strict 60-px row: Where / Dates / Guests / Search CTA */}
+          <div className="grid grid-cols-1 items-stretch gap-2 overflow-visible md:grid-cols-[1.5fr_1.4fr_auto_auto]">
+            {/* Where — outer = field-box без padding; flat-вариант сам кладёт px-5 на flex-row */}
+            <WhereCombobox
+              options={whereOptionsFull}
+              value={where || 'all'}
+              onChange={setWhere}
+              placeholder={getUIText('wherePlaceholder', language)}
+              loading={locationsLoading}
+              variant="flat"
+              language={language}
+              className={cn(FIELD_BASE_CLASS, 'px-0')}
+            />
+
+            {/* Dates — trigger SearchCalendar становится самим полем */}
+            <SearchCalendar
+              value={dateRange}
+              onChange={setDateRange}
+              locale={language}
+              placeholder={getUIText('dates', language)}
+              liveCount={liveCount}
+              countLoading={countLoading}
+              className={cn(FIELD_BASE_CLASS, 'cursor-pointer')}
+            />
+
+            {/* Guests */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <button type="button" className={cn(FIELD_BASE_CLASS, 'min-w-[148px] cursor-pointer')}>
+                  <Users className="h-5 w-5 shrink-0 text-[#006666]" aria-hidden />
+                  <span className="truncate">{guestsLabel}</span>
                 </button>
-              )
-            })}
+              </PopoverTrigger>
+              <PopoverContent className="w-56 p-2" align="start">
+                <div className="grid grid-cols-4 gap-1">
+                  {GUEST_OPTIONS.map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setGuests?.(String(n))}
+                      className={cn(
+                        'rounded-xl p-2 text-sm font-medium transition-colors',
+                        guests === String(n)
+                          ? 'bg-[#006666] text-white'
+                          : 'text-slate-700 hover:bg-slate-100',
+                      )}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Search CTA — тот же h-[60px], тот же rounded-2xl */}
+            <Button
+              onClick={handleSearchClick}
+              className="h-[60px] min-w-[148px] rounded-2xl bg-[#006666] px-6 text-base font-semibold text-white shadow-[0_14px_28px_-8px_rgba(0,102,102,0.42)] transition-all hover:bg-[#004c4c] hover:shadow-[0_18px_36px_-8px_rgba(0,102,102,0.50)] active:scale-[0.98]"
+            >
+              <Search className="mr-2 h-5 w-5" />
+              {getUIText('findButton', language)}
+            </Button>
           </div>
 
-          {/* Fields grid */}
-          <div className="grid grid-cols-1 gap-2 px-3 pb-3 md:grid-cols-[1.3fr_1.15fr_0.85fr_0.7fr] overflow-visible">
-            <div className="min-w-0 border-r border-slate-100 px-3 text-left overflow-visible">
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                {language === 'ru' ? 'Категория' : 'Category'}
-              </label>
-              <div className="flex items-center gap-2">
-                <Layers className="h-4 w-4 text-[#006666]" />
-                <span className="truncate text-[15px] font-medium text-slate-800">
-                  {category && category !== 'all'
-                    ? getCategoryName(category, language)
-                    : getUIText('mobileSearchWhatTitle', language)}
-                </span>
-              </div>
-            </div>
-
-            <div className="min-w-0 border-r border-slate-100 px-3 text-left overflow-visible">
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                {getUIText('locationLabel', language)}
-              </label>
-              <WhereCombobox
-                options={whereOptionsFull}
-                value={where || 'all'}
-                onChange={setWhere}
-                placeholder={getUIText('wherePlaceholder', language)}
-                loading={locationsLoading}
-                variant="hero"
-                language={language}
-                className="min-h-[40px] min-w-0 [&_button]:h-auto [&_button]:min-h-[40px] [&_button]:rounded-none [&_button]:border-0 [&_button]:px-0 [&_button]:shadow-none [&_button]:focus:ring-0"
-              />
-            </div>
-
-            <div className="min-w-0 border-r border-slate-100 px-3 text-left">
-              <label className="mb-1 block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                {getUIText('dates', language)}
-              </label>
-              <SearchCalendar
-                value={dateRange}
-                onChange={setDateRange}
-                locale={language}
-                placeholder={getUIText('dates', language)}
-                liveCount={liveCount}
-                countLoading={countLoading}
-                className="min-h-[40px] justify-start border-0 px-0 shadow-none"
-              />
-            </div>
-
-            <div className="flex items-end px-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="mr-2 flex h-12 min-w-[90px] items-center justify-start gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-700 transition-colors hover:border-teal-300 hover:bg-teal-50">
-                    <Users className="h-4 w-4 text-[#006666]" />
-                    {guests}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-48 p-2" align="start">
-                  <div className="grid grid-cols-4 gap-1">
-                    {GUEST_OPTIONS.map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => setGuests?.(String(n))}
-                        className={`rounded-md p-2 text-sm transition-colors ${guests === String(n) ? 'bg-[#006666] text-white' : 'hover:bg-slate-100'}`}
-                      >
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-              <Button
-                onClick={handleSearchClick}
-                className="h-12 flex-1 rounded-2xl bg-[#006666] text-[15px] font-semibold text-white shadow-[0_12px_24px_rgba(0,102,102,0.28)] transition-all hover:bg-[#004c4c] hover:shadow-[0_16px_32px_rgba(0,102,102,0.36)] active:scale-[0.98]"
-              >
-                <Search className="mr-2 h-4 w-4" />
-                {getUIText('findButton', language)}
-              </Button>
-            </div>
-          </div>
+          {/* Hint — деликатная подсказка под рядом, не ломает геометрию */}
+          {!dateRange?.from ? (
+            <p className="mt-3 hidden items-center gap-1.5 px-1 text-xs text-slate-400 md:flex">
+              <Calendar className="h-3.5 w-3.5 text-slate-400" aria-hidden />
+              {language === 'ru'
+                ? 'Выберите даты, чтобы увидеть точные цены и доступность'
+                : 'Pick dates to see live pricing and availability'}
+            </p>
+          ) : null}
         </div>
       </div>
     </section>
   )
 }
 
+/** Сохраняем re-export иконок, если кто-то импортировал их отсюда. */
+export { Home, Bike, MapIcon, Anchor }

@@ -176,6 +176,7 @@ export function WhereCombobox({
   }
 
   const isHero = variant === 'hero'
+  const isFlat = variant === 'flat'
   // Когда пользователь ничего не ввёл — показываем «Популярные направления»
   // (приоритет над list, чтобы был обзор по миру, а не свалка опций)
   const isEmptyInput = inputValue.trim() === ''
@@ -217,8 +218,12 @@ export function WhereCombobox({
     >
       <div
         className={cn(
-          'flex items-center gap-2 text-left w-full min-w-0',
-          isHero ? 'px-4 py-3 border-r border-slate-200' : 'px-2 h-9 border rounded-md bg-white',
+          'flex items-center gap-3 text-left w-full min-w-0',
+          isHero
+            ? 'px-4 py-3 border-r border-slate-200'
+            : isFlat
+              ? 'h-full px-5 bg-transparent'
+              : 'px-2 h-9 border rounded-md bg-white',
           loading && 'opacity-90'
         )}
       >
@@ -249,7 +254,11 @@ export function WhereCombobox({
           onKeyDown={onKeyDown}
           className={cn(
             'flex-1 min-w-0 bg-transparent outline-none text-slate-800 placeholder:text-slate-400 disabled:cursor-wait',
-            isHero ? 'text-sm' : 'text-sm h-8'
+            isHero
+              ? 'text-sm'
+              : isFlat
+                ? 'text-base font-medium text-slate-900'
+                : 'text-sm h-8'
           )}
         />
         {value && value !== 'all' && !loading && (

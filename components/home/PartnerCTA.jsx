@@ -20,7 +20,7 @@ const CATEGORY_PILLS = [
 export function PartnerCTA({ language = 'ru' }) {
   return (
     <section className="bg-slate-900">
-      <div className="container mx-auto px-6 py-14 sm:py-20">
+      <div className="container mx-auto px-6 py-12 sm:py-16">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-8 text-center sm:flex-row sm:items-center sm:gap-16 sm:text-left">
 
           {/* Left: Text content */}
