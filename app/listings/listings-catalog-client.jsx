@@ -92,8 +92,6 @@ function ListingsContent() {
     )
     const nextGuests = searchParams.get('guests') || '1'
     setGuests(nextGuests)
-    const totalGuests = Math.max(1, parseInt(nextGuests, 10) || 1)
-    setGuestsBreakdown({ adults: totalGuests, children: 0, infants: 0 })
     setDateRange({
       from: searchParams.get('checkIn') ? parseISO(searchParams.get('checkIn')) : null,
       to: searchParams.get('checkOut') ? parseISO(searchParams.get('checkOut')) : null,

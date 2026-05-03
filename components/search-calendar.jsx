@@ -77,7 +77,7 @@ function SearchDayCell({
       onClick={handleClick}
       disabled={!isClickable}
       className={cn(
-        "relative w-10 h-10 flex items-center justify-center text-sm transition-all rounded-full",
+        "relative w-10 h-10 flex items-center justify-center text-sm text-slate-900 transition-all rounded-full",
         isPast && "text-slate-300 cursor-not-allowed",
         !isPast && "hover:bg-teal-50",
         isToday && !isSelected && "font-bold",
@@ -126,9 +126,9 @@ function MonthGrid({
   }
   
   return (
-    <div className="p-2">
+    <div className="p-3">
       {showHeader && (
-        <h3 className="text-center font-semibold text-slate-800 mb-3 capitalize">
+        <h3 className="mb-3 text-center text-lg font-medium capitalize text-slate-900">
           {format(month, 'LLLL yyyy', { locale: loc })}
         </h3>
       )}
@@ -136,7 +136,7 @@ function MonthGrid({
       {/* Week day headers */}
       <div className="grid grid-cols-7 mb-1">
         {weekDays.map((day, i) => (
-          <div key={i} className="w-10 h-8 flex items-center justify-center text-xs text-slate-400 font-medium">
+          <div key={i} className="flex h-8 w-10 items-center justify-center text-xs font-medium text-slate-900">
             {day}
           </div>
         ))}
@@ -191,9 +191,9 @@ function DesktopCalendar({ dateRange, onSelect, onClear, locale }) {
   const canGoPrev = leftMonth > new Date()
   
   return (
-    <div className="p-2">
+    <div className="p-4 lg:p-6">
       {/* Navigation Header */}
-      <div className="flex items-center justify-between mb-2 px-2">
+      <div className="mb-3 flex items-center justify-between px-2">
         <Button
           variant="ghost"
           size="icon"
@@ -214,7 +214,7 @@ function DesktopCalendar({ dateRange, onSelect, onClear, locale }) {
       </div>
       
       {/* Two Months */}
-      <div className="flex gap-4">
+      <div className="flex gap-6">
         <MonthGrid
           month={leftMonth}
           dateRange={dateRange}
@@ -231,8 +231,8 @@ function DesktopCalendar({ dateRange, onSelect, onClear, locale }) {
       
       {/* Clear Button */}
       {dateRange.from && (
-        <div className="flex justify-end mt-2 px-2">
-          <Button variant="ghost" size="sm" onClick={onClear} className="text-slate-500 h-8">
+        <div className="mt-3 flex justify-end px-2">
+          <Button variant="ghost" size="sm" onClick={onClear} className="h-8 text-slate-900">
             <X className="h-3 w-3 mr-1" />
             {locale === 'ru' ? 'Сбросить' : 'Clear'}
           </Button>
@@ -508,7 +508,13 @@ export function SearchCalendar({
           {TriggerContent}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent
+        side="bottom"
+        align="center"
+        sideOffset={10}
+        collisionPadding={20}
+        className="z-[220] w-[min(96vw,900px)] max-h-[calc(100vh-var(--app-header-height,64px)-28px)] overflow-auto rounded-3xl border border-slate-200 bg-white opacity-100 p-0 shadow-2xl"
+      >
         <DesktopCalendar
           dateRange={dateRange}
           onSelect={handleSelect}

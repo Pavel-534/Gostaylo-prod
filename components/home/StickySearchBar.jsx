@@ -134,10 +134,10 @@ export function StickySearchBar({
   const focusField = (ref, opts = {}) => {
     const el = ref?.current
     if (!el) return
-    const btn = el.querySelector('button')
-    if (btn) {
-      btn.click()
-      if (opts.focus !== false) btn.focus({ preventScroll: true })
+    const focusable = el.querySelector('button, input')
+    if (focusable) {
+      if (focusable.tagName === 'BUTTON') focusable.click()
+      if (opts.focus !== false) focusable.focus({ preventScroll: true })
     }
   }
 
@@ -154,7 +154,7 @@ export function StickySearchBar({
       data-testid="sticky-search-bar"
       aria-hidden={!visible}
       className={cn(
-        'fixed left-0 right-0 top-16 z-[80] hidden border-b border-slate-200/80 bg-white/95 backdrop-blur-lg shadow-[0_8px_24px_rgba(0,24,24,0.08)] transition-all duration-300 md:block',
+        'fixed left-0 right-0 top-16 z-[120] hidden border-b border-slate-200/80 bg-white/95 backdrop-blur-lg shadow-[0_8px_24px_rgba(0,24,24,0.08)] transition-all duration-300 md:block',
         visible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none',
       )}
     >
@@ -167,7 +167,7 @@ export function StickySearchBar({
           </div>
 
           {/* Where */}
-          <div ref={whereRef} className="min-w-0 flex-1 border-r border-slate-100 px-2">
+          <div ref={whereRef} className="min-w-[240px] flex-1 border-r border-slate-100 px-2">
             <WhereCombobox
               options={whereOptions}
               value={where || 'all'}
@@ -181,7 +181,7 @@ export function StickySearchBar({
           </div>
 
           {/* Dates */}
-          <div ref={datesRef} className="min-w-0 flex-1 border-r border-slate-100 px-2">
+          <div ref={datesRef} className="min-w-[220px] flex-1 border-r border-slate-100 px-2">
             <SearchCalendar
               value={dateRange}
               onChange={setDateRange}
@@ -200,8 +200,7 @@ export function StickySearchBar({
               guestsBreakdown={guestsBreakdown}
               setGuestsBreakdown={setGuestsBreakdown}
               align="end"
-              triggerClassName="h-9 rounded-lg px-3 text-sm font-medium text-slate-700"
-              contentClassName="z-[90]"
+              triggerClassName="h-9 w-[220px] min-w-[220px] max-w-[220px] rounded-lg px-3 text-sm font-medium text-slate-700"
             />
           </div>
 
@@ -251,7 +250,7 @@ export function StickySearchBar({
               <Chip
                 icon={Users}
                 testid="sticky-chip-guests"
-                onClick={() => guestsTriggerRef.current?.click()}
+                onClick={() => guestsTriggerRef.current?.querySelector('button')?.click()}
                 onClear={handleClearGuests}
                 clearAriaLabel={language === 'ru' ? 'Сбросить гостей' : 'Clear guests'}
               >

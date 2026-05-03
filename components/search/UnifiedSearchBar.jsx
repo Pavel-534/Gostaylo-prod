@@ -296,8 +296,7 @@ export function UnifiedSearchBar({
           guestsBreakdown={guestsBreakdown}
           setGuestsBreakdown={setGuestsBreakdown}
           align="end"
-          triggerClassName="h-9 rounded-md px-3"
-          contentClassName="z-[70]"
+          triggerClassName="h-9 w-full rounded-md px-3"
         />
         </div>
       </div>
@@ -375,11 +374,11 @@ export function UnifiedSearchBar({
           loadingPlaceholder={getUIText('loading', language)}
           variant="hero"
           language={language}
-          className="flex-1 min-w-[140px]"
+          className="min-w-[220px] flex-[1.2]"
         />
 
         {/* When */}
-        <div className="border-r border-slate-200">
+        <div className="min-w-[220px] border-r border-slate-200">
           <SearchCalendar
             value={dateRange}
             onChange={setDateRange}
@@ -398,8 +397,7 @@ export function UnifiedSearchBar({
           guestsBreakdown={guestsBreakdown}
           setGuestsBreakdown={setGuestsBreakdown}
           align="start"
-          triggerClassName={`${triggerBase} ${triggerHero}`}
-          contentClassName="z-[70]"
+          triggerClassName={`${triggerBase} ${triggerHero} w-[220px] min-w-[220px] max-w-[220px]`}
         />
 
         <Button

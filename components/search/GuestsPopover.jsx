@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Minus, Plus, Users } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
 
@@ -58,6 +59,17 @@ function wordFor(kind, count, language, getter) {
   return tr(getter, `${kind}_other`, '')
 }
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+  return isMobile
+}
+
 export function formatGuestsSummaryText({ adults = 1, children = 0, infants = 0 }, language = 'ru') {
   const t = (k) => getUIText(k, language)
   const total = Math.max(1, toInt(adults, 1) + toInt(children, 0) + toInt(infants, 0))
@@ -84,6 +96,7 @@ export function GuestsPopover({
   const t = (key, fallback) => tr((k) => getUIText(k, language), key, fallback)
   const [open, setOpen] = useState(false)
   const [local, setLocal] = useState(() => normalizeBreakdown(guestsBreakdown, guests))
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     setLocal(normalizeBreakdown(guestsBreakdown, guests))
@@ -123,71 +136,103 @@ export function GuestsPopover({
     },
   ]
 
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          disabled={disabled}
-          className={cn(
-            'flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-left text-sm font-medium text-slate-800 transition-colors hover:border-teal-300 hover:bg-teal-50/50 disabled:cursor-not-allowed disabled:opacity-50',
-            triggerClassName,
-          )}
-          aria-label={t('mobileSearchWhoTitle', language === 'ru' ? 'Кто едет' : 'Who')}
-        >
-          <Users className="h-4 w-4 shrink-0 text-[#006666]" aria-hidden />
-          <span className="truncate">{summary || `${total}`}</span>
-        </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align={align}
-        className={cn('w-[min(100vw-2rem,420px)] rounded-2xl border border-slate-100 bg-white p-3 shadow-xl', contentClassName)}
-      >
-        <div className="space-y-1.5">
-          {rows.map((row, idx) => {
-            const value = local[row.key]
-            const canDec = value > row.min
-            return (
-              <div
-                key={row.key}
+  const rowsContent = (
+    <div className="space-y-1.5">
+      {rows.map((row, idx) => {
+        const value = local[row.key]
+        const canDec = value > row.min
+        return (
+          <div
+            key={row.key}
+            className={cn(
+              'flex items-center justify-between gap-3 py-2',
+              idx < rows.length - 1 && 'border-b border-slate-100',
+            )}
+          >
+            <div className="min-w-0">
+              <p className="text-base font-medium text-slate-900">{row.label}</p>
+              <p className="text-sm text-slate-500">{row.hint}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={!canDec}
+                onClick={() => canDec && update({ [row.key]: value - 1 })}
                 className={cn(
-                  'flex items-center justify-between gap-3 py-2',
-                  idx < rows.length - 1 && 'border-b border-slate-100',
+                  'inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition-colors',
+                  canDec ? 'hover:border-slate-300 hover:bg-slate-50' : 'cursor-not-allowed opacity-40',
                 )}
+                aria-label={language === 'ru' ? `Уменьшить: ${row.label}` : `Decrease ${row.label}`}
               >
-                <div className="min-w-0">
-                  <p className="text-base font-medium text-slate-900">{row.label}</p>
-                  <p className="text-sm text-slate-500">{row.hint}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={!canDec}
-                    onClick={() => canDec && update({ [row.key]: value - 1 })}
-                    className={cn(
-                      'inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition-colors',
-                      canDec ? 'hover:border-slate-300 hover:bg-slate-50' : 'cursor-not-allowed opacity-40',
-                    )}
-                    aria-label={language === 'ru' ? `Уменьшить: ${row.label}` : `Decrease ${row.label}`}
-                  >
-                    <Minus className="h-4 w-4" aria-hidden />
-                  </button>
-                  <span className="w-6 text-center text-sm font-semibold text-slate-900">{value}</span>
-                  <button
-                    type="button"
-                    onClick={() => update({ [row.key]: value + 1 })}
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50"
-                    aria-label={language === 'ru' ? `Увеличить: ${row.label}` : `Increase ${row.label}`}
-                  >
-                    <Plus className="h-4 w-4" aria-hidden />
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </PopoverContent>
-    </Popover>
+                <Minus className="h-4 w-4" aria-hidden />
+              </button>
+              <span className="w-6 text-center text-sm font-semibold text-slate-900">{value}</span>
+              <button
+                type="button"
+                onClick={() => update({ [row.key]: value + 1 })}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50"
+                aria-label={language === 'ru' ? `Увеличить: ${row.label}` : `Increase ${row.label}`}
+              >
+                <Plus className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+
+  return (
+    <>
+      {isMobile ? (
+        <>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setOpen(true)}
+            className={cn(
+              'flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-left text-sm font-medium text-slate-800 transition-colors hover:border-teal-300 hover:bg-teal-50/50 disabled:cursor-not-allowed disabled:opacity-50',
+              triggerClassName,
+            )}
+            aria-label={t('mobileSearchWhoTitle', language === 'ru' ? 'Кто едет' : 'Who')}
+          >
+            <Users className="h-4 w-4 shrink-0 text-[#006666]" aria-hidden />
+            <span className="min-w-0 flex-1 truncate">{summary || `${total}`}</span>
+          </button>
+          <Drawer open={open} onOpenChange={setOpen}>
+            <DrawerContent className="h-[78vh] max-h-[78vh] rounded-t-[28px]">
+              <DrawerHeader className="border-b pb-3">
+                <DrawerTitle>{t('mobileSearchWhoTitle', language === 'ru' ? 'Кто едет' : 'Who')}</DrawerTitle>
+              </DrawerHeader>
+              <div className="flex-1 overflow-y-auto p-4">{rowsContent}</div>
+            </DrawerContent>
+          </Drawer>
+        </>
+      ) : (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              disabled={disabled}
+              className={cn(
+                'flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-left text-sm font-medium text-slate-800 transition-colors hover:border-teal-300 hover:bg-teal-50/50 disabled:cursor-not-allowed disabled:opacity-50',
+                triggerClassName,
+              )}
+              aria-label={t('mobileSearchWhoTitle', language === 'ru' ? 'Кто едет' : 'Who')}
+            >
+              <Users className="h-4 w-4 shrink-0 text-[#006666]" aria-hidden />
+              <span className="min-w-0 flex-1 truncate">{summary || `${total}`}</span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align={align}
+            className={cn('w-[min(100vw-2rem,420px)] rounded-3xl border border-slate-100 bg-white p-4 shadow-xl', contentClassName)}
+          >
+            {rowsContent}
+          </PopoverContent>
+        </Popover>
+      )}
+    </>
   )
 }
 
