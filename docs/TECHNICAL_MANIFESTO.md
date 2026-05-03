@@ -2,7 +2,7 @@
 
 **Назначение:** сжатый снимок **текущей** реализации в репозитории. Продуктовые правила и золотые ограничения — в корневом **`ARCHITECTURAL_DECISIONS.md`** (SSOT). Секреты и полные перечни API здесь не дублируются.
 
-**Стек:** Next.js **14** (App Router), React, Supabase (Postgres + Storage), JWT в cookie `gostaylo_session` + опционально **Supabase Auth** для OAuth (Google/Apple) с мостом в `profiles` (**Stage 79.0**), **`prisma/schema.prisma`** только как описание схемы (рантайм — Supabase).
+**Стек:** Next.js **14** (App Router), React, Supabase (Postgres + Storage), JWT в cookie `gostaylo_session` + опционально **Supabase Auth** для OAuth (**Google** в UI; мост в `profiles`, **Stage 79.0**), **`prisma/schema.prisma`** только как описание схемы (рантайм — Supabase).
 
 **Financial model version:** **3.7.0** (+ **Stage 77.7**: polish pass, logo sync, micro-interactions and mobile nav styling.)
 
@@ -16,7 +16,9 @@
 
 **Stage 78.1 (2026-05):** публичный support email SSOT — **`NEXT_PUBLIC_SUPPORT_EMAIL`** + **`lib/config/public-support-email.js`** (`getPublicSupportEmail`). Реквизиты оператора без email — **`LEGAL_PUBLISHER_STATIC`** и **`getLegalPublisherDetails()`** в **`lib/config/legal-details.js`**. Юр. оболочка **`components/legal/legal-doc-shell.jsx`** — клиент, футер и «Вопросы по документам» через **`getUIText`** (ключ **`legalFooter_contactIntro`** + оферта/политика/возвраты/термины/помощь). Главная: **`PlatformHomeContent`**, календарь бронирования — **`platform-calendar.jsx`** (**`PlatformCalendar`**), карточка листинга — **`listing-card.jsx`** (**`ListingCard`**). Cloudflare worker: **`workers/platform-vercel-proxy.js`**.
 
-**Stage 79.0 (2026-05):** Social Auth (Google/Apple) через **Supabase Auth PKCE**. Креденшелы только из env: **`NEXT_PUBLIC_SUPABASE_URL`**, **`NEXT_PUBLIC_SUPABASE_ANON_KEY`** (клиент + PKCE **`app/auth/callback/`** через **`createServerClient` из `@supabase/auth-helpers-nextjs`**), **`SUPABASE_SERVICE_ROLE_KEY`** ( **`lib/services/auth/oauth-profile-sync.service.js`** — слияние с **`profiles`** по **`email`** с заполнением **`auth_user_id`**, см. **`migrations/stage79_0_profiles_oauth_bridge.sql`**). Основное приложательское SSO остаётся JWT cookie **`gostaylo_session`** (**`lib/auth/app-session-issue.js`**). Юр.: при регистрации через модалку cookie **`gostaylo_oauth_legal=1`** + оферта; при первом входе без этого флага — редирект на **`/auth/complete-legal/`** и **`POST /api/v2/auth/accept-legal/`**. **`POST /api/v2/`** платежи без изменений (**`ensureProfileLegalConsentForPayment`**). UI: **`contexts/auth-context.jsx`** (+ **`getOAuthBrowserSupabase`**). Админ: **`/admin/users/[id]`** показывает **`auth_user_id`**.
+**Stage 79.1 (2026-05):** политика пароля SSOT — **`lib/auth/password-policy.js`** (минимум **8** символов, буква + цифра; **`POST /api/v2/auth/register`**, **`POST /api/v2/auth/reset-password`**, модалка и **`/reset-password`**). **`POST /api/v2/promo-codes/validate`** и **`PricingService.validatePromoCode`** при **`valid: false`** отдают **`error_code`** (**`PROMO_*`**, опционально **`min_amount_thb`**); UI — **`lib/translations/slices/promo-errors.js`** + **`getAuthErrorMessage(..., extras)`**; 429 лимитера — **`PROMO_RATE_LIMITED`**.
+
+**Stage 79.0 (2026-05):** Social Auth (**Google** в продуктовой модалке) через **Supabase Auth PKCE**. Ошибки **`/api/v2/auth/*`** — только **`error_code`** + **`getAuthErrorMessage`** на клиенте (**`lib/auth/auth-error-codes.js`**, **`lib/translations/slices/auth-errors.js`**); **`POST /api/v2/referral/validate`** — **`error_code`** (в т.ч. **`REFERRAL_*`**). Креденшелы только из env: **`NEXT_PUBLIC_SUPABASE_URL`**, **`NEXT_PUBLIC_SUPABASE_ANON_KEY`** (клиент + PKCE **`app/auth/callback/`** через **`createServerClient` из `@supabase/auth-helpers-nextjs`**), **`SUPABASE_SERVICE_ROLE_KEY`** ( **`lib/services/auth/oauth-profile-sync.service.js`** — слияние с **`profiles`** по **`email`** с заполнением **`auth_user_id`**, см. **`migrations/stage79_0_profiles_oauth_bridge.sql`**). Основное приложательское SSO остаётся JWT cookie **`gostaylo_session`** (**`lib/auth/app-session-issue.js`**). Юр.: при регистрации через модалку cookie **`gostaylo_oauth_legal=1`** + оферта; при первом входе без этого флага — редирект на **`/auth/complete-legal/`** и **`POST /api/v2/auth/accept-legal/`**. **`POST /api/v2/`** платежи без изменений (**`ensureProfileLegalConsentForPayment`**). UI: **`contexts/auth-context.jsx`** — порядок полей → primary CTA → разделитель → Google; копии модалки через **`getUIText`** (`auth_modal_*`, …); **`getOAuthBrowserSupabase`**. Админ: **`/admin/users/[id]`** показывает **`auth_user_id`**.
 
 <!--
   Stage 79.0 — Vercel / Supabase checklist (не класть секреты в git):
@@ -27,7 +29,7 @@
   Supabase Dashboard → Authentication → URL configuration → Redirect URLs:
     https://<production-domain>/auth/callback/
     http://localhost:3000/auth/callback/   (локально при необходимости)
-  Провайдеры Google и Apple включить там же (Client ID / секрет Apple — только в Dashboard).
+  Провайдер **Google** включить там же (Client ID / Client secret в Dashboard). Другие провайдеры в Supabase не используются UI приложения.
 -->
 
 **Stage 70.2 (2026-04):** PDP **`/listings/[id]`** — компонентная сборка: **`hooks/useListingBookingFlow`**, **`hooks/useListingChat`**, **`components/listing/pdp/{ListingBookingSection,ListingMobileActions,ListingChatPreview}`**; **`page.js`** остаётся тонким композитором (контракты **`/api/v2/bookings`**, **`/availability`**, чат — без смены).

@@ -10,6 +10,11 @@ import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
+import {
+  AUTH_PASSWORD_MIN_LENGTH,
+  AUTH_PASSWORD_COMPLEXITY_RE,
+} from '@/lib/auth/password-policy';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +23,7 @@ export async function POST(request) {
   try {
     jwtSecret = getJwtSecret();
   } catch (e) {
-    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+    return authErrorJson(AuthErrorCode.AUTH_JWT_NOT_CONFIGURED, 500);
   }
 
   console.log('[RESET-PASSWORD] ====== START ======');
@@ -27,17 +32,21 @@ export async function POST(request) {
   try {
     body = await request.json();
   } catch (e) {
-    return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+    return authErrorJson(AuthErrorCode.AUTH_INVALID_JSON, 400);
   }
   
   const { token, password } = body;
   
   if (!token) {
-    return NextResponse.json({ success: false, error: 'Token is required' }, { status: 400 });
+    return authErrorJson(AuthErrorCode.AUTH_RESET_TOKEN_REQUIRED, 400);
   }
-  
-  if (!password || password.length < 6) {
-    return NextResponse.json({ success: false, error: 'Password must be at least 6 characters' }, { status: 400 });
+
+  if (!password || password.length < AUTH_PASSWORD_MIN_LENGTH) {
+    return authErrorJson(AuthErrorCode.AUTH_PASSWORD_TOO_SHORT_RESET, 400);
+  }
+
+  if (!AUTH_PASSWORD_COMPLEXITY_RE.test(password)) {
+    return authErrorJson(AuthErrorCode.AUTH_PASSWORD_REQUIREMENTS, 400);
   }
   
   // Verify token
@@ -46,11 +55,11 @@ export async function POST(request) {
     decoded = jwt.verify(token, jwtSecret);
   } catch (error) {
     console.error('[RESET-PASSWORD] Invalid token:', error.message);
-    return NextResponse.json({ success: false, error: 'Invalid or expired token' }, { status: 400 });
+    return authErrorJson(AuthErrorCode.AUTH_RESET_TOKEN_INVALID, 400);
   }
-  
+
   if (decoded.type !== 'password_reset') {
-    return NextResponse.json({ success: false, error: 'Invalid token type' }, { status: 400 });
+    return authErrorJson(AuthErrorCode.AUTH_RESET_TOKEN_WRONG_TYPE, 400);
   }
   
   const { userId, email } = decoded;
@@ -61,7 +70,7 @@ export async function POST(request) {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!url || !serviceKey) {
-    return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 });
+    return authErrorJson(AuthErrorCode.AUTH_DATABASE_NOT_CONFIGURED, 500);
   }
   
   const supabase = createClient(url, serviceKey, {
@@ -77,12 +86,12 @@ export async function POST(request) {
   
   if (fetchErr || !row) {
     console.error('[RESET-PASSWORD] Profile fetch:', fetchErr?.message || 'not found');
-    return NextResponse.json({ success: false, error: 'Invalid or expired token' }, { status: 400 });
+    return authErrorJson(AuthErrorCode.AUTH_RESET_TOKEN_INVALID, 400);
   }
-  
+
   if (String(row.email || '').toLowerCase().trim() !== tokenEmailNorm) {
     console.error('[RESET-PASSWORD] Email mismatch for user', userId);
-    return NextResponse.json({ success: false, error: 'Invalid or expired token' }, { status: 400 });
+    return authErrorJson(AuthErrorCode.AUTH_RESET_TOKEN_INVALID, 400);
   }
   
   const passwordHash = await bcrypt.hash(password, 10);
@@ -100,18 +109,12 @@ export async function POST(request) {
   
   if (error || !user) {
     console.error('[RESET-PASSWORD] DB update:', error?.message, error?.details, error?.hint);
-    return NextResponse.json(
-      { success: false, error: 'Не удалось сохранить пароль. Попробуйте позже.' },
-      { status: 500 }
-    );
+    return authErrorJson(AuthErrorCode.AUTH_PASSWORD_RESET_FAILED, 500);
   }
-  
+
   console.log('[RESET-PASSWORD] Password reset for:', user.email);
-  
-  return NextResponse.json({ 
-    success: true, 
-    message: 'Password has been reset successfully' 
-  });
+
+  return NextResponse.json({ success: true });
 }
 
 export async function GET() {

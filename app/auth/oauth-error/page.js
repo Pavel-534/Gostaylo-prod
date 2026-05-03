@@ -18,7 +18,7 @@ function Inner() {
               Детали: <span className='font-mono text-slate-800'>{reason}</span>
             </>
           ) : (
-            'Проверьте настройки Google / Apple и redirect URL в Supabase.'
+            'Проверьте настройки Google и redirect URL в Supabase.'
           )}
         </p>
         <Link href='/' className='text-teal-700 underline text-sm'>

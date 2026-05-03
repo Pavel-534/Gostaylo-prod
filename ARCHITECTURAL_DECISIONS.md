@@ -27,12 +27,67 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 |--------|--------|
 | **App** | Next.js (App Router), React |
 | **Database** | PostgreSQL via **Supabase** (REST + `supabase-js` / service role on server) |
-| **Auth** | Основное SSO приложения — custom JWT (**`gostaylo_session`**), bcrypt в **`profiles`**; дополнительно **OAuth (Google/Apple)** через Supabase Auth на клиенте, PKCE **`/auth/callback/`**, мост **`profiles.auth_user_id`** (**Stage 79.0**) — финальная сессия приложения те же JWT+`profiles`. |
+| **Auth** | Основное SSO приложения — custom JWT (**`gostaylo_session`**), bcrypt в **`profiles`**; дополнительно **OAuth (Google)** через Supabase Auth на клиенте, PKCE **`/auth/callback/`**, мост **`profiles.auth_user_id`** (**Stage 79.0**) — финальная сессия приложения те же JWT+`profiles`. |
 | **ORM / schema** | **Prisma `schema.prisma`** as **documentation and typing reference** for tables/enums — **not** the primary runtime data layer |
 | **Realtime / storage** | Supabase (where configured): Realtime, Storage |
 | **Email** | Resend (when `RESEND_API_KEY` is set) |
 | **FX / комиссия (канон)** | **`lib/services/currency.service.js`** (`getDisplayRateMap`, `resolveThbPerUsdt`, `resolveDefaultCommissionPercent`, `getEffectiveRate`, `resolveChatInvoiceRateMultiplier` для чат-счетов). Числовые фолбэки split-fee — **`lib/config/platform-split-fee-defaults.js`** (**`PLATFORM_SPLIT_FEE_DEFAULTS`**, реэкспорт из `currency.service`). **`lib/services/currency-last-resort.js`** — env / `general.fallbackThbPerUsdt`, **`CHAT_INVOICE_RATE_MULTIPLIER`**, платформенный дефолт множителя чата — без литералов курсов/комиссий в `currency.service`. Таблица **`exchange_rates`**, ExchangeRate-API v6. |
 | **Deploy** | Typical: Vercel + Supabase project |
+
+---
+
+## Auth API JSON errors (SSOT)
+
+- Эндпоинты **`/api/v2/auth/*`** при ошибке отдают **`{ success: false, error_code: "AUTH_…" }`** (и опциональные машиночитаемые поля вроде **`requiresVerification`**, **`retryAfter`**) — **без локализованного поля `error`** для отображения в UI.
+- Для онбординга **`POST /api/v2/referral/validate`** использует тот же контракт: **`error_code`** (в т.ч. префикс **`REFERRAL_*`** из **`ReferralGuardService`**).
+- **`POST /api/v2/promo-codes/validate`** при ошибке отдаёт **`{ success: false, valid: false, error_code: "PROMO_…" }`** (опционально **`min_amount_thb`**, **`retryAfter`**) — **без локализованного поля `error`**. Константы: **`lib/promo/promo-error-codes.js`** (`PromoErrorCode`, **`promoErrorJson`**). Тексты UI: **`lib/translations/slices/promo-errors.js`**, разрешение через **`getAuthErrorMessage(code, language, extras?)`** (плейсхолдер **`{minAmount}`** для **`PROMO_MIN_AMOUNT_NOT_MET`** при **`extras.minAmountThb`**).
+- Канон списка констант auth: **`lib/auth/auth-error-codes.js`** (`AuthErrorCode`, **`authErrorJson`**). Тексты для пользователя — **`lib/translations/slices/auth-errors.js`** + **`promo-errors.js`** (мердж в **`translation-state`**), разрешение через **`getAuthErrorMessage`** в **`lib/translations/index.js`**.
+- Лимитер: для **`rateLimitCheck(..., 'auth')`** тело 429 — **`error_code: AUTH_RATE_LIMITED`**. Для **`promo_validate`** ответ 429 на **`POST /api/v2/promo-codes/validate`** — **`error_code: PROMO_RATE_LIMITED`** (без legacy-поля **`error`**). Для прочих не-auth типов лимитера по-прежнему может присутствовать legacy-поле **`error`**.
+
+### Политика пароля (регистрация и сброс)
+
+- SSOT: **`lib/auth/password-policy.js`** — **`AUTH_PASSWORD_MIN_LENGTH = 8`**, **`AUTH_PASSWORD_COMPLEXITY_RE`**: минимум одна буква (латиница **`A–Za–z`** или кириллица) и одна цифра.
+- **`POST /api/v2/auth/register`** и **`POST /api/v2/auth/reset-password`** используют эту политику; UI (**`AuthModal`**, **`/reset-password`**) синхронизирован с тем же правилом.
+
+### Таблица `error_code` (основные)
+
+| `error_code` | Типичный HTTP |
+|--------------|---------------|
+| `AUTH_RATE_LIMITED` | 429 |
+| `AUTH_INVALID_JSON` | 400 |
+| `AUTH_JWT_NOT_CONFIGURED` | 500 |
+| `AUTH_DATABASE_NOT_CONFIGURED` | 500 |
+| `AUTH_MISSING_CREDENTIALS` | 400 |
+| `AUTH_INVALID_CREDENTIALS` | 401 |
+| `AUTH_ACCOUNT_SUSPENDED` | 403 |
+| `AUTH_EMAIL_NOT_VERIFIED` | 403 (+ `requiresVerification`) |
+| `AUTH_EMAIL_REQUIRED` | 400 |
+| `AUTH_LEGAL_TERMS_NOT_ACCEPTED` | 400 |
+| `AUTH_PASSWORD_TOO_SHORT` | 400 (регистрация, мин. 8 символов) |
+| `AUTH_PASSWORD_REQUIREMENTS` | 400 |
+| `AUTH_EMAIL_TAKEN` | 400 |
+| `AUTH_REFERRAL_VALIDATION_FAILED` | 400 |
+| `AUTH_DATABASE_ERROR` | 500 |
+| `AUTH_EMAIL_SEND_FAILED` | (письмо верификации; также **`email_error_code`** при `success: true`) |
+| `AUTH_NOT_AUTHENTICATED` | 401 |
+| `AUTH_PROFILE_NOT_FOUND` | 404 |
+| `AUTH_INTERNAL` | 500 |
+| `AUTH_EMAIL_SERVICE_NOT_CONFIGURED` | 500 |
+| `AUTH_RESET_TOKEN_REQUIRED` | 400 |
+| `AUTH_PASSWORD_TOO_SHORT_RESET` | 400 (сброс пароля, мин. 8 символов) |
+| `AUTH_OAUTH_UNAVAILABLE` | (клиент: OAuth не сконфигурирован; тост в модалке входа) |
+| `AUTH_RESET_TOKEN_INVALID` | 400 |
+| `AUTH_RESET_TOKEN_WRONG_TYPE` | 400 |
+| `AUTH_PASSWORD_RESET_FAILED` | 500 |
+| `AUTH_REALTIME_TOKEN_UNAVAILABLE` | 503 |
+| `AUTH_REALTIME_DECODE_FAILED` | 500 |
+| `REFERRAL_CODE_REQUIRED`, `REFERRAL_CODE_NOT_FOUND`, … | 4xx/429 из гейта рефералов |
+| `PROMO_CODE_REQUIRED`, `PROMO_NOT_FOUND`, `PROMO_EXPIRED`, `PROMO_USAGE_LIMIT_REACHED` | 400 |
+| `PROMO_LISTING_REQUIRED_FOR_ALLOWLIST`, `PROMO_LISTING_OWNER_REQUIRED`, `PROMO_NOT_VALID_FOR_LISTING` | 400 |
+| `PROMO_MIN_AMOUNT_NOT_MET` (+ **`min_amount_thb`**) | 400 |
+| `PROMO_INVALID` | 400 |
+| `PROMO_RATE_LIMITED` (+ **`retryAfter`**) | 429 |
+| `PROMO_INTERNAL` | 500 |
 
 ---
 

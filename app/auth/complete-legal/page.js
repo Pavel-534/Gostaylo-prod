@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
-import { getUIText } from '@/lib/translations'
+import { getUIText, getAuthErrorMessage } from '@/lib/translations'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow'
@@ -38,14 +38,23 @@ export default function CompleteLegalPage() {
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json.success) {
-        setLocalError(json.error || getUIText('auth_registerLegalRequired', language))
+        setLocalError(
+          json.error_code
+            ? getAuthErrorMessage(json.error_code, language)
+            : getUIText('auth_registerLegalRequired', language),
+        )
         return
       }
       await refreshUserFromServer()
+      try {
+        window.dispatchEvent(new CustomEvent('gostaylo-close-auth-modal'))
+      } catch {
+        /* ignore */
+      }
       router.push('/profile/')
       router.refresh()
     } catch {
-      setLocalError('Network error')
+      setLocalError(getAuthErrorMessage('AUTH_INTERNAL', language))
     } finally {
       setBusy(false)
     }

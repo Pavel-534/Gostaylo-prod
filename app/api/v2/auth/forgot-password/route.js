@@ -12,6 +12,7 @@ import { rateLimitCheck } from '@/lib/rate-limit';
 import { getTransactionalFromAddress } from '@/lib/email-env';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { getSiteDisplayName } from '@/lib/site-url';
+import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,7 @@ export async function POST(request) {
   try {
     jwtSecret = getJwtSecret();
   } catch (e) {
-    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+    return authErrorJson(AuthErrorCode.AUTH_JWT_NOT_CONFIGURED, 500);
   }
 
   console.log('[FORGOT-PASSWORD] ====== START ======');
@@ -36,13 +37,13 @@ export async function POST(request) {
   try {
     body = await request.json();
   } catch (e) {
-    return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+    return authErrorJson(AuthErrorCode.AUTH_INVALID_JSON, 400);
   }
   
   const { email } = body;
   
   if (!email) {
-    return NextResponse.json({ success: false, error: 'Email is required' }, { status: 400 });
+    return authErrorJson(AuthErrorCode.AUTH_EMAIL_REQUIRED, 400);
   }
   
   const normalizedEmail = email.toLowerCase().trim();
@@ -52,7 +53,7 @@ export async function POST(request) {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!url || !serviceKey) {
-    return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 });
+    return authErrorJson(AuthErrorCode.AUTH_DATABASE_NOT_CONFIGURED, 500);
   }
   
   const supabase = createClient(url, serviceKey, {
@@ -69,10 +70,7 @@ export async function POST(request) {
   // Always return success (security - don't reveal if email exists)
   if (!user) {
     console.log('[FORGOT-PASSWORD] User not found:', normalizedEmail);
-    return NextResponse.json({ 
-      success: true, 
-      message: 'If an account exists, a reset link has been sent' 
-    });
+    return NextResponse.json({ success: true });
   }
   
   // Токен: email в нижнем регистре — совпадение при сбросе без учёта регистра в БД
@@ -91,7 +89,7 @@ export async function POST(request) {
   
   if (!RESEND_API_KEY) {
     console.error('[FORGOT-PASSWORD] RESEND_API_KEY not configured');
-    return NextResponse.json({ success: false, error: 'Email service not configured' }, { status: 500 });
+    return authErrorJson(AuthErrorCode.AUTH_EMAIL_SERVICE_NOT_CONFIGURED, 500);
   }
   
   try {
@@ -159,10 +157,7 @@ export async function POST(request) {
     console.error('[FORGOT-PASSWORD] Email error:', error.message);
   }
   
-  return NextResponse.json({ 
-    success: true, 
-    message: 'If an account exists, a reset link has been sent' 
-  });
+  return NextResponse.json({ success: true });
 }
 
 export async function GET() {

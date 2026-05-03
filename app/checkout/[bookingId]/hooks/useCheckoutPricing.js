@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { formatPrice, priceRawForTest, languageToNumberLocale } from '@/lib/currency'
-import { getUIText } from '@/lib/translations'
+import { getUIText, getAuthErrorMessage } from '@/lib/translations'
 import { useCommission } from '@/hooks/use-commission'
 import { computeRoundedGuestTotalPot } from '@/lib/booking-price-integrity'
 import { buildGuestPriceBreakdownFromCheckoutTotals } from '@/lib/booking/guest-price-breakdown'
@@ -99,7 +99,10 @@ export function useCheckoutPricing({
           }),
         )
       } else {
-        toast.error(data.error || getUIText('checkout_toast_promoInvalid', language))
+        const msg = data.error_code
+          ? getAuthErrorMessage(data.error_code, language, { minAmountThb: data.min_amount_thb })
+          : getUIText('checkout_toast_promoInvalid', language)
+        toast.error(msg)
         setPromoDiscount(null)
       }
     } catch (error) {

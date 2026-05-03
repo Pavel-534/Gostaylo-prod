@@ -19,12 +19,15 @@ import ReferralGuardService, {
 } from '@/lib/services/marketing/referral-guard.service';
 import WalletService from '@/lib/services/finance/wallet.service';
 import { computeInviteTreeFields } from '@/lib/referral/referral-network.js';
+import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
+import {
+  AUTH_PASSWORD_MIN_LENGTH,
+  AUTH_PASSWORD_COMPLEXITY_RE,
+} from '@/lib/auth/password-policy';
 
 export const dynamic = 'force-dynamic';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
-const PASSWORD_MIN_LENGTH = 8;
-const PASSWORD_COMPLEXITY_RE = /^(?=.*[A-Za-z])(?=.*\d).+$/;
 
 function makeId(prefix) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -53,7 +56,7 @@ async function sendVerificationEmail(user, token) {
   
   if (!RESEND_API_KEY) {
     console.error('[EMAIL] RESEND_API_KEY not configured');
-    return { success: false, error: 'Email service not configured' };
+    return { success: false, error_code: AuthErrorCode.AUTH_EMAIL_SERVICE_NOT_CONFIGURED };
   }
   
   const verifyUrl = `${BASE_URL}/api/v2/auth/verify?token=${token}`;
@@ -123,11 +126,11 @@ async function sendVerificationEmail(user, token) {
       return { success: true };
     } else {
       console.error('[EMAIL] Resend error:', JSON.stringify(result));
-      return { success: false, error: result.message || 'Email send failed' };
+      return { success: false, error_code: AuthErrorCode.AUTH_EMAIL_SEND_FAILED };
     }
   } catch (error) {
     console.error('[EMAIL] Exception:', error.message);
-    return { success: false, error: error.message };
+    return { success: false, error_code: AuthErrorCode.AUTH_EMAIL_SEND_FAILED };
   }
 }
 
@@ -173,14 +176,14 @@ export async function POST(request) {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!url || !serviceKey) {
-    return NextResponse.json({ success: false, error: 'Database not configured' }, { status: 500 });
+    return authErrorJson(AuthErrorCode.AUTH_DATABASE_NOT_CONFIGURED, 500);
   }
 
   let jwtSecret;
   try {
     jwtSecret = getJwtSecret();
   } catch (e) {
-    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+    return authErrorJson(AuthErrorCode.AUTH_JWT_NOT_CONFIGURED, 500);
   }
   
   const supabase = createClient(url, serviceKey, {
@@ -191,7 +194,7 @@ export async function POST(request) {
   try {
     body = await request.json();
   } catch (e) {
-    return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+    return authErrorJson(AuthErrorCode.AUTH_INVALID_JSON, 400);
   }
   
   const { email, password, firstName, lastName, phone, referredBy, referralFingerprint, acceptedLegalTerms } =
@@ -213,32 +216,19 @@ export async function POST(request) {
   const mergedReferralInput = String(referredBy || cookieReferral || '').trim();
   
   if (!email) {
-    return NextResponse.json({ success: false, error: 'Email is required' }, { status: 400 });
+    return authErrorJson(AuthErrorCode.AUTH_EMAIL_REQUIRED, 400);
   }
-  
+
   if (!acceptedLegalTerms) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Подтвердите согласие с Публичной офертой и Политикой конфиденциальности',
-        code: 'LEGAL_TERMS_REQUIRED',
-      },
-      { status: 400 },
-    );
+    return authErrorJson(AuthErrorCode.AUTH_LEGAL_TERMS_NOT_ACCEPTED, 400);
   }
 
-  if (!password || password.length < PASSWORD_MIN_LENGTH) {
-    return NextResponse.json(
-      { success: false, error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters` },
-      { status: 400 },
-    );
+  if (!password || password.length < AUTH_PASSWORD_MIN_LENGTH) {
+    return authErrorJson(AuthErrorCode.AUTH_PASSWORD_TOO_SHORT, 400);
   }
 
-  if (!PASSWORD_COMPLEXITY_RE.test(password)) {
-    return NextResponse.json(
-      { success: false, error: 'Password must include at least one letter and one number' },
-      { status: 400 },
-    );
+  if (!AUTH_PASSWORD_COMPLEXITY_RE.test(password)) {
+    return authErrorJson(AuthErrorCode.AUTH_PASSWORD_REQUIREMENTS, 400);
   }
   
   const normalizedEmail = email.toLowerCase().trim();
@@ -251,7 +241,7 @@ export async function POST(request) {
     .maybeSingle();
   
   if (existing) {
-    return NextResponse.json({ success: false, error: 'Email already registered' }, { status: 400 });
+    return authErrorJson(AuthErrorCode.AUTH_EMAIL_TAKEN, 400);
   }
   
   // Optional referral pre-validation (for onboarding UX + anti-fraud gate).
@@ -267,7 +257,10 @@ export async function POST(request) {
     });
     if (!guard.success) {
       return NextResponse.json(
-        { success: false, error: guard.error || 'REFERRAL_VALIDATION_FAILED' },
+        {
+          success: false,
+          error_code: guard.error || AuthErrorCode.AUTH_REFERRAL_VALIDATION_FAILED,
+        },
         { status: guard.status || 400 },
       );
     }
@@ -307,7 +300,7 @@ export async function POST(request) {
   
   if (error) {
     console.error('[REGISTER] DB Error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return authErrorJson(AuthErrorCode.AUTH_DATABASE_ERROR, 500);
   }
   
   console.log('[REGISTER] User created:', user.id);
@@ -403,7 +396,7 @@ export async function POST(request) {
     success: true,
     requiresVerification: true,
     emailSent: emailResult.success,
-    emailError: emailResult.error || null,
+    email_error_code: emailResult.error_code || null,
     user: {
       id: user.id,
       email: user.email,

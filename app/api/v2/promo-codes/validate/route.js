@@ -1,6 +1,6 @@
 /**
  * GoStayLo - Promo Code Validation API (v2)
- * POST /api/v2/promo-codes/validate - Validate a promo code
+ * POST /api/v2/promo-codes/validate — ошибки: `error_code` (`PROMO_*`), без локализованного `error`.
  */
 
 import { NextResponse } from 'next/server';
@@ -8,24 +8,25 @@ export const dynamic = 'force-dynamic';
 import { PricingService } from '@/lib/services/pricing.service';
 import { supabaseAdmin } from '@/lib/supabase';
 import { rateLimitCheck } from '@/lib/rate-limit';
+import { PromoErrorCode, promoErrorJson } from '@/lib/promo/promo-error-codes';
 
 export async function POST(request) {
   try {
     const limited = rateLimitCheck(request, 'promo_validate');
     if (limited) {
-      return NextResponse.json(limited.body, { status: limited.status, headers: limited.headers });
+      return promoErrorJson(PromoErrorCode.PROMO_RATE_LIMITED, limited.status, {
+        retryAfter: limited.body.retryAfter,
+      });
     }
 
     const body = await request.json();
     const { code, amount, bookingAmount, listingId } = body;
-    
-    if (!code) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Promo code is required' 
-      }, { status: 400 });
+
+    const rawCode = code != null ? String(code).trim() : '';
+    if (!rawCode) {
+      return promoErrorJson(PromoErrorCode.PROMO_CODE_REQUIRED, 400);
     }
-    
+
     const rawAmount = amount ?? bookingAmount;
     const bookingAmountNum = parseFloat(rawAmount) || 0;
 
@@ -40,21 +41,19 @@ export async function POST(request) {
       listingOwnerId = listingRow?.owner_id ?? null;
     }
 
-    const result = await PricingService.validatePromoCode(code, bookingAmountNum, {
+    const result = await PricingService.validatePromoCode(rawCode, bookingAmountNum, {
       listingOwnerId,
       listingId: lid || null,
     });
-    
+
     if (!result.valid) {
-      return NextResponse.json({ 
-        success: false, 
-        valid: false,
-        error: result.error 
-      }, { status: 400 });
+      const extra = {};
+      if (result.min_amount_thb != null) extra.min_amount_thb = result.min_amount_thb;
+      return promoErrorJson(result.error_code || PromoErrorCode.PROMO_INVALID, 400, extra);
     }
-    
-    return NextResponse.json({ 
-      success: true, 
+
+    return NextResponse.json({
+      success: true,
       valid: true,
       data: {
         code: result.code,
@@ -68,11 +67,10 @@ export async function POST(request) {
           result.secondsRemaining != null && Number.isFinite(Number(result.secondsRemaining))
             ? Number(result.secondsRemaining)
             : null,
-      }
+      },
     });
-    
   } catch (error) {
     console.error('[PROMO VALIDATION ERROR]', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return promoErrorJson(PromoErrorCode.PROMO_INTERNAL, 500);
   }
 }

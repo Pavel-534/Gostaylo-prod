@@ -3,6 +3,7 @@
  * POST /api/v2/auth/login
  *
  * Security: bcrypt-only passwords, JWT in HttpOnly cookie (30 days).
+ * Errors: `error_code` only (no localized `error` string) — see ARCHITECTURAL_DECISIONS.md.
  */
 
 import { NextResponse } from 'next/server';
@@ -15,6 +16,7 @@ import {
   profileRowToAuthUser,
   signJwtForProfile,
 } from '@/lib/auth/app-session-issue';
+import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,14 +39,14 @@ export async function POST(request) {
     jwtSecret = getJwtSecret();
   } catch (e) {
     console.error('[AUTH LOGIN]', e.message);
-    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+    return authErrorJson(AuthErrorCode.AUTH_JWT_NOT_CONFIGURED, 500);
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceKey) {
-    return NextResponse.json({ success: false, error: 'Database not configured' }, { status: 500 });
+    return authErrorJson(AuthErrorCode.AUTH_DATABASE_NOT_CONFIGURED, 500);
   }
 
   const supabase = createClient(url, serviceKey, {
@@ -55,13 +57,13 @@ export async function POST(request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+    return authErrorJson(AuthErrorCode.AUTH_INVALID_JSON, 400);
   }
 
   const { email, password, redirectTo: requestedRedirect } = body;
 
   if (!email || !password) {
-    return NextResponse.json({ success: false, error: 'Email and password required' }, { status: 400 });
+    return authErrorJson(AuthErrorCode.AUTH_MISSING_CREDENTIALS, 400);
   }
 
   const normalizedEmail = email.toLowerCase().trim();
@@ -82,11 +84,11 @@ export async function POST(request) {
   }
 
   if (!user) {
-    return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 401 });
+    return authErrorJson(AuthErrorCode.AUTH_INVALID_CREDENTIALS, 401);
   }
 
   if (user.is_banned === true) {
-    return NextResponse.json({ success: false, error: 'Account suspended' }, { status: 403 });
+    return authErrorJson(AuthErrorCode.AUTH_ACCOUNT_SUSPENDED, 403);
   }
 
   let passwordValid = false;
@@ -96,7 +98,7 @@ export async function POST(request) {
   }
 
   if (!passwordValid) {
-    return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 401 });
+    return authErrorJson(AuthErrorCode.AUTH_INVALID_CREDENTIALS, 401);
   }
 
   const role = String(user.role || 'RENTER').toUpperCase();
@@ -106,11 +108,11 @@ export async function POST(request) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Please verify your email first',
+        error_code: AuthErrorCode.AUTH_EMAIL_NOT_VERIFIED,
         requiresVerification: true,
         email: user.email,
       },
-      { status: 403 }
+      { status: 403 },
     );
   }
 

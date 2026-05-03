@@ -8,13 +8,14 @@ import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { getSessionPayload } from '@/lib/services/session-service'
 import { createSupabaseRealtimeAccessToken } from '@/lib/auth/supabase-realtime-jwt'
+import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const session = await getSessionPayload()
   if (!session?.userId) {
-    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+    return authErrorJson(AuthErrorCode.AUTH_NOT_AUTHENTICATED, 401)
   }
 
   const access_token = createSupabaseRealtimeAccessToken({
@@ -25,15 +26,12 @@ export async function GET() {
   })
 
   if (!access_token) {
-    return NextResponse.json(
-      { ok: false, error: 'Realtime token unavailable (SUPABASE_JWT_SECRET / profile)' },
-      { status: 503 },
-    )
+    return authErrorJson(AuthErrorCode.AUTH_REALTIME_TOKEN_UNAVAILABLE, 503)
   }
 
   const decoded = jwt.decode(access_token)
   if (!decoded || typeof decoded !== 'object') {
-    return NextResponse.json({ ok: false, error: 'Decode failed' }, { status: 500 })
+    return authErrorJson(AuthErrorCode.AUTH_REALTIME_DECODE_FAILED, 500)
   }
 
   const appRole =

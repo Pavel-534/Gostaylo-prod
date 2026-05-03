@@ -14,14 +14,17 @@ export async function POST(request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+    return NextResponse.json({ success: false, valid: false, error_code: 'AUTH_INVALID_JSON' }, { status: 400 });
   }
 
   const code = String(body?.code || '').trim();
   const email = String(body?.email || '').trim();
   const fingerprint = String(body?.fingerprint || '').trim();
   if (!code) {
-    return NextResponse.json({ success: false, error: 'REFERRAL_CODE_REQUIRED' }, { status: 400 });
+    return NextResponse.json(
+      { success: false, valid: false, error_code: 'REFERRAL_CODE_REQUIRED' },
+      { status: 400 },
+    );
   }
 
   const guard = await ReferralGuardService.validateActivation({
@@ -32,7 +35,12 @@ export async function POST(request) {
   });
   if (!guard.success) {
     return NextResponse.json(
-      { success: false, valid: false, error: guard.error, data: guard.data || null },
+      {
+        success: false,
+        valid: false,
+        error_code: guard.error || 'AUTH_REFERRAL_VALIDATION_FAILED',
+        data: guard.data || null,
+      },
       { status: guard.status || 400 },
     );
   }

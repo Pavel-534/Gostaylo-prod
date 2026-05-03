@@ -15,11 +15,11 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Eye, EyeOff, Mail, CheckCircle } from 'lucide-react';
 import { signIn, signUp, getCurrentUser, signOut } from '@/lib/auth';
 import { toast } from 'sonner';
-import { getSiteDisplayName } from '@/lib/site-url';
 import { useI18n } from '@/contexts/i18n-context';
-import { getUIText } from '@/lib/translations';
+import { getUIText, getAuthErrorMessage } from '@/lib/translations';
+import { isAuthPasswordCompliant, AUTH_PASSWORD_MIN_LENGTH } from '@/lib/auth/password-policy';
 import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow';
-import { getOAuthBrowserSupabase } from '@/lib/supabase/oauth-browser-client';
+import { getOAuthBrowserSupabase, getOAuthRedirectOrigin } from '@/lib/supabase/oauth-browser-client';
 
 function GoogleBrandGlyph({ className = 'h-5 w-5' }) {
   return (
@@ -40,14 +40,6 @@ function GoogleBrandGlyph({ className = 'h-5 w-5' }) {
         fill="#EA4335"
         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
       />
-    </svg>
-  );
-}
-
-function AppleBrandGlyph({ className = 'h-5 w-5' }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.395-1.29-3.428-2.62-1.257-1.72-2.394-4.54-2.394-8.005 0-3.64 2.394-6.53 5.47-6.53 1.375 0 2.682.895 4.074.895 1.322 0 3.087-.957 5.068-.957.822 0 3.783.069 5.734 3.097-6.047 3.086-6.097 13.62.115 13.962z" />
     </svg>
   );
 }
@@ -130,7 +122,7 @@ function getStableReferralFingerprint() {
 export function AuthProvider({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { language: uiLanguage } = useI18n();
+  const { language } = useI18n();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -149,7 +141,7 @@ export function AuthProvider({ children }) {
   const [verificationEmail, setVerificationEmail] = useState('');
   const [forgotPasswordSent, setForgotPasswordSent] = useState(false);
   const [registerLegalConsent, setRegisterLegalConsent] = useState(false);
-  const [oauthProviderBusy, setOauthProviderBusy] = useState(null);
+  const [googleOAuthBusy, setGoogleOAuthBusy] = useState(false);
 
   const persistOAuthLegalCookie = useCallback((accept) => {
     if (typeof window === 'undefined') return;
@@ -161,53 +153,57 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const startOAuth = useCallback(
-    async (provider) => {
-      if (authMode === 'register' && !registerLegalConsent) {
-        setError(getUIText('auth_registerLegalRequired', uiLanguage));
-        return;
-      }
-      persistOAuthLegalCookie(authMode === 'register');
-      const sb = getOAuthBrowserSupabase();
-      if (!sb) {
-        toast.error(getUIText('auth_oauthUnavailable', uiLanguage));
-        return;
-      }
-      setOauthProviderBusy(provider);
-      setError('');
+  const startGoogleOAuth = useCallback(async () => {
+    if (authMode === 'register' && !registerLegalConsent) {
+      setError(getUIText('auth_registerLegalRequired', language));
+      return;
+    }
+    persistOAuthLegalCookie(authMode === 'register');
+    const sb = getOAuthBrowserSupabase();
+    if (!sb) {
+      toast.error(getAuthErrorMessage('AUTH_OAUTH_UNAVAILABLE', language));
+      return;
+    }
+    setGoogleOAuthBusy(true);
+    setError('');
+    try {
+      let nextPath = pathname || '/profile/';
       try {
-        let nextPath = pathname || '/profile/';
-        try {
-          const saved = sessionStorage.getItem('gostaylo_redirect_after_login');
-          if (saved?.startsWith('/')) nextPath = saved;
-        } catch {
-          /* ignore */
-        }
-        if (!nextPath.startsWith('/') || nextPath.startsWith('//')) nextPath = '/profile/';
-        const withSlash = nextPath.endsWith('/') ? nextPath : `${nextPath}/`;
-
-        const callback = new URL(`${window.location.origin}/auth/callback/`);
-        callback.searchParams.set('next', withSlash);
-
-        const options = { redirectTo: callback.toString() };
-        if (provider === 'google') {
-          options.queryParams = { access_type: 'offline', prompt: 'select_account' };
-        }
-        const { data, error } = await sb.auth.signInWithOAuth({ provider, options });
-        if (error) throw error;
-        if (data?.url) {
-          window.location.assign(data.url);
-        }
-      } catch (e) {
-        console.error('[oauth]', e);
-        toast.error(e?.message || 'OAuth failed');
-        persistOAuthLegalCookie(false);
-      } finally {
-        setOauthProviderBusy(null);
+        const saved = sessionStorage.getItem('gostaylo_redirect_after_login');
+        if (saved?.startsWith('/')) nextPath = saved;
+      } catch {
+        /* ignore */
       }
-    },
-    [authMode, pathname, persistOAuthLegalCookie, registerLegalConsent, uiLanguage],
-  );
+      if (!nextPath.startsWith('/') || nextPath.startsWith('//')) nextPath = '/profile/';
+      const withSlash = nextPath.endsWith('/') ? nextPath : `${nextPath}/`;
+
+      const origin = getOAuthRedirectOrigin();
+      if (!origin) {
+        toast.error(getAuthErrorMessage('AUTH_OAUTH_UNAVAILABLE', language));
+        return;
+      }
+      const callback = new URL(`${origin}/auth/callback/`);
+      callback.searchParams.set('next', withSlash);
+
+      const { data, error } = await sb.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: callback.toString(),
+          queryParams: { access_type: 'offline', prompt: 'select_account' },
+        },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.location.assign(data.url);
+      }
+    } catch (e) {
+      console.error('[oauth google]', e);
+      toast.error(getAuthErrorMessage('AUTH_OAUTH_FAILED', language));
+      persistOAuthLegalCookie(false);
+    } finally {
+      setGoogleOAuthBusy(false);
+    }
+  }, [authMode, pathname, persistOAuthLegalCookie, registerLegalConsent, language]);
 
   // Load user on mount (from cookie session)
   useEffect(() => {
@@ -274,20 +270,20 @@ export function AuthProvider({ children }) {
           const json = await res.json().catch(() => ({}));
           if (res.ok && json?.valid) {
             setPromoStatus('valid');
-            setPromoMessage('Реферальный код сохранён');
+            setPromoMessage(getUIText('auth_referral_landingSaved', language));
           } else {
             setPromoStatus('invalid');
-            setPromoMessage(json?.error || 'Реферальный код недействителен');
+            setPromoMessage(getAuthErrorMessage(json?.error_code, language));
           }
         })
         .catch(() => {
           setPromoStatus('invalid');
-          setPromoMessage('Не удалось проверить реферальный код');
+          setPromoMessage(getUIText('auth_referral_landingCheckFailed', language));
         });
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [language]);
 
   const refreshUserFromServer = useCallback(async () => {
     try {
@@ -318,6 +314,17 @@ export function AuthProvider({ children }) {
       window.removeEventListener('gostaylo-refresh-session', onSessionRefresh);
       window.removeEventListener('gostaylo-switch-role', onSessionRefresh);
     };
+  }, [refreshUserFromServer]);
+
+  /** После accept-legal на `/auth/complete-legal/` — закрыть модалку входа, если она была открыта. */
+  useEffect(() => {
+    const onCloseAuthModal = () => {
+      setLoginModalOpen(false);
+      setError('');
+      void refreshUserFromServer();
+    };
+    window.addEventListener('gostaylo-close-auth-modal', onCloseAuthModal);
+    return () => window.removeEventListener('gostaylo-close-auth-modal', onCloseAuthModal);
   }, [refreshUserFromServer]);
 
   const openLoginModal = useCallback((mode) => {
@@ -355,6 +362,23 @@ export function AuthProvider({ children }) {
     setAuthMode('login');
   }, []);
 
+  /** Автофокус первого поля при открытии модалки / смене вкладки (язык — только `useI18n().language`). */
+  useEffect(() => {
+    if (!loginModalOpen) return;
+    const id = window.requestAnimationFrame(() => {
+      if (authMode === 'verification_pending') {
+        document.getElementById('auth-verify-email-field')?.focus();
+      } else if (authMode === 'register') {
+        document.getElementById('auth-name')?.focus();
+      } else if (authMode === 'login') {
+        document.getElementById('auth-email')?.focus();
+      } else if (authMode === 'forgot_password') {
+        document.getElementById('forgot-email')?.focus();
+      }
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [loginModalOpen, authMode]);
+
   // Login handler
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -382,9 +406,9 @@ export function AuthProvider({ children }) {
         setSubmitting(false);
         return;
       }
-      
-      if (result.error) {
-        setError(result.error);
+
+      if (!result.success) {
+        setError(getAuthErrorMessage(result.error_code, language));
         setSubmitting(false);
         return;
       }
@@ -411,7 +435,7 @@ export function AuthProvider({ children }) {
       }
       
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setError(getAuthErrorMessage('AUTH_INTERNAL', language));
     } finally {
       setSubmitting(false);
     }
@@ -424,6 +448,16 @@ export function AuthProvider({ children }) {
     setError('');
 
     try {
+      if (!isAuthPasswordCompliant(password)) {
+        if (!password || password.length < AUTH_PASSWORD_MIN_LENGTH) {
+          setError(getAuthErrorMessage('AUTH_PASSWORD_TOO_SHORT', language));
+        } else {
+          setError(getAuthErrorMessage('AUTH_PASSWORD_REQUIREMENTS', language));
+        }
+        setSubmitting(false);
+        return;
+      }
+
       const typedRef = String(promoCode || '').trim().toUpperCase();
       let fallbackRef = '';
       try {
@@ -449,23 +483,23 @@ export function AuthProvider({ children }) {
           });
           const vjson = await vr.json().catch(() => ({}));
           if (!vr.ok || !vjson?.valid) {
-            setError(vjson?.error || 'Проверьте корректность реферального кода перед регистрацией');
+            setError(getAuthErrorMessage(vjson?.error_code, language));
             setSubmitting(false);
             return;
           }
           referredByPayload = effectiveRef;
           setPromoStatus('valid');
-          setPromoMessage('Промокод принят');
+          setPromoMessage(getUIText('auth_promoAccepted', language));
           setPromoCode(effectiveRef);
         } catch {
-          setError('Не удалось проверить реферальный код');
+          setError(getAuthErrorMessage('AUTH_INTERNAL', language));
           setSubmitting(false);
           return;
         }
       }
 
       if (!registerLegalConsent) {
-        setError(getUIText('auth_registerLegalRequired', uiLanguage));
+        setError(getUIText('auth_registerLegalRequired', language));
         setSubmitting(false);
         return;
       }
@@ -480,8 +514,8 @@ export function AuthProvider({ children }) {
         acceptedLegalTerms: true,
       });
       
-      if (result.error) {
-        setError(result.error);
+      if (!result.success) {
+        setError(getAuthErrorMessage(result.error_code, language));
         setSubmitting(false);
         return;
       }
@@ -497,16 +531,14 @@ export function AuthProvider({ children }) {
       setVerificationEmail(email);
       setAuthMode('verification_pending');
       
-      if (result.emailError) {
-        toast.error(`Ошибка отправки email: ${result.emailError}`);
+      if (result.email_error_code) {
+        toast.error(getAuthErrorMessage(result.email_error_code, language));
       } else if (result.requiresVerification && result.emailSent === false) {
-        toast.warning(
-          'Аккаунт создан, но письмо не отправлено. Проверьте настройки почты на сервере или нажмите «Отправить снова».',
-        );
+        toast.warning(getAuthErrorMessage('AUTH_VERIFICATION_EMAIL_PENDING', language));
       }
-      
+
     } catch (err) {
-      setError(err.message || 'Registration failed');
+      setError(getAuthErrorMessage('AUTH_INTERNAL', language));
     } finally {
       setSubmitting(false);
     }
@@ -535,18 +567,18 @@ export function AuthProvider({ children }) {
       if (res.ok && json?.valid) {
         setPromoCode(code);
         setPromoStatus('valid');
-        setPromoMessage('Промокод принят');
+        setPromoMessage(getUIText('auth_promoAccepted', language));
         return true;
       }
       setPromoStatus('invalid');
-      setPromoMessage(json?.error || 'Промокод недействителен');
+      setPromoMessage(getAuthErrorMessage(json?.error_code, language));
       return false;
     } catch {
       setPromoStatus('invalid');
-      setPromoMessage('Не удалось проверить промокод');
+      setPromoMessage(getAuthErrorMessage('AUTH_INTERNAL', language));
       return false;
     }
-  }, [promoCode, email]);
+  }, [promoCode, email, language]);
 
   // Forgot password handler
   const handleForgotPassword = async (e) => {
@@ -561,16 +593,16 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({ email: email.toLowerCase().trim() })
       });
       
-      const result = await response.json();
-      
+      const result = await response.json().catch(() => ({}));
+
       if (result.success) {
         setForgotPasswordSent(true);
-        toast.success('Письмо отправлено! Проверьте почту.');
+        toast.success(getUIText('auth_forgot_toastSent', language));
       } else {
-        setError(result.error || 'Не удалось отправить письмо');
+        setError(getAuthErrorMessage(result.error_code, language));
       }
     } catch (err) {
-      setError('Ошибка сервера');
+      setError(getAuthErrorMessage('AUTH_INTERNAL', language));
     } finally {
       setSubmitting(false);
     }
@@ -621,27 +653,38 @@ export function AuthProvider({ children }) {
               <DialogHeader>
                 <DialogTitle className='flex items-center gap-2'>
                   <Mail className='h-5 w-5 text-teal-600' />
-                  Подтвердите email
+                  {getUIText('auth_verify_emailTitle', language)}
                 </DialogTitle>
               </DialogHeader>
               <div className='py-6 text-center space-y-4'>
                 <div className='w-16 h-16 mx-auto bg-teal-100 rounded-full flex items-center justify-center'>
                   <Mail className='h-8 w-8 text-teal-600' />
                 </div>
-                <p className='text-slate-600'>
-                  Мы отправили письмо на<br />
-                  <strong className='text-slate-900'>{verificationEmail}</strong>
-                </p>
+                <p className='text-slate-600'>{getUIText('auth_verify_emailSent', language)}</p>
+                <div className='mx-auto max-w-sm space-y-1.5 px-1 text-left'>
+                  <Label htmlFor='auth-verify-email-field' className='text-sm'>
+                    {getUIText('email', language)}
+                  </Label>
+                  <Input
+                    id='auth-verify-email-field'
+                    readOnly
+                    value={verificationEmail}
+                    className='text-center font-medium text-slate-900'
+                    autoFocus
+                    onFocus={(e) => e.target.select()}
+                    inputMode='email'
+                    autoComplete='email'
+                  />
+                </div>
                 <p className='text-sm text-slate-500'>
-                  Перейдите по ссылке в письме для активации аккаунта.
-                  Проверьте папку "Спам" если письмо не пришло.
+                  {getUIText('auth_verify_emailInstructions', language)}
                 </p>
                 <Button
                   variant='outline'
                   onClick={() => setAuthMode('login')}
                   className='mt-4'
                 >
-                  Вернуться ко входу
+                  {getUIText('auth_backToLogin', language)}
                 </Button>
               </div>
             </>
@@ -649,10 +692,8 @@ export function AuthProvider({ children }) {
             // Forgot Password Screen
             <>
               <DialogHeader>
-                <DialogTitle>Восстановление пароля</DialogTitle>
-                <DialogDescription>
-                  Введите email для получения ссылки на сброс пароля
-                </DialogDescription>
+                <DialogTitle>{getUIText('auth_forgot_title', language)}</DialogTitle>
+                <DialogDescription>{getUIText('auth_forgot_description', language)}</DialogDescription>
               </DialogHeader>
               
               {forgotPasswordSent ? (
@@ -661,27 +702,28 @@ export function AuthProvider({ children }) {
                     <CheckCircle className='h-8 w-8 text-green-600' />
                   </div>
                   <p className='text-slate-600'>
-                    Письмо отправлено на<br />
+                    {getUIText('auth_forgot_sentLead', language)}
+                    <br />
                     <strong className='text-slate-900'>{email}</strong>
                   </p>
                   <p className='text-sm text-slate-500'>
-                    Проверьте почту и перейдите по ссылке для сброса пароля
+                    {getUIText('auth_forgot_sentInstructions', language)}
                   </p>
                   <Button
                     variant='outline'
                     onClick={() => { setAuthMode('login'); setForgotPasswordSent(false); }}
                   >
-                    Вернуться ко входу
+                    {getUIText('auth_backToLogin', language)}
                   </Button>
                 </div>
               ) : (
                 <form onSubmit={handleForgotPassword} className='space-y-4 pb-6 sm:pb-0'>
                   <div className='space-y-2'>
-                    <Label htmlFor='forgot-email'>Email</Label>
+                    <Label htmlFor='forgot-email'>{getUIText('email', language)}</Label>
                     <Input 
                       id='forgot-email' 
                       type='email' 
-                      placeholder='your@email.com'
+                      placeholder={getUIText('auth_email_placeholder', language)}
                       value={email}
                       onChange={(e) => setEmail(e.target.value.toLowerCase())}
                       onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
@@ -704,10 +746,10 @@ export function AuthProvider({ children }) {
                     {submitting ? (
                       <>
                         <Loader2 className='h-4 w-4 mr-2 animate-spin' />
-                        Отправка...
+                        {getUIText('auth_forgot_sending', language)}
                       </>
                     ) : (
-                      'Отправить ссылку'
+                      getUIText('auth_forgot_sendLink', language)
                     )}
                   </Button>
                   
@@ -716,7 +758,7 @@ export function AuthProvider({ children }) {
                     onClick={() => setAuthMode('login')}
                     className='w-full text-sm text-slate-500 hover:text-slate-700'
                   >
-                    Вернуться ко входу
+                    {getUIText('auth_backToLogin', language)}
                   </button>
                 </form>
               )}
@@ -726,32 +768,32 @@ export function AuthProvider({ children }) {
             <>
               <DialogHeader className='pb-2 flex-shrink-0'>
                 <DialogTitle className='text-lg'>
-                  {authMode === 'login' ? 'Вход в систему' : 'Регистрация'}
+                  {authMode === 'login'
+                    ? getUIText('loginTitle', language)
+                    : getUIText('register', language)}
                 </DialogTitle>
                 <DialogDescription className='text-sm'>
                   {authMode === 'login'
-                    ? `Войдите в свой аккаунт ${getSiteDisplayName()}`
-                    : 'Создайте новый аккаунт'}
+                    ? getUIText('auth_modal_subtitleLogin', language)
+                    : getUIText('auth_modal_subtitleRegister', language)}
                 </DialogDescription>
               </DialogHeader>
-              
-              <div className='flex border-b mb-3 flex-shrink-0'>
+
+              <div className='mb-3 flex flex-shrink-0 border-b'>
                 <button
                   type='button'
                   onClick={() => {
                     setAuthMode('login');
                     setRegisterLegalConsent(false);
                     setError('');
-                    // Focus email field after mode switch
-                    setTimeout(() => document.getElementById('auth-email')?.focus(), 100);
                   }}
-                  className={`flex-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                    authMode === 'login' 
-                      ? 'border-teal-600 text-teal-600 bg-teal-50/50' 
+                  className={`flex-1 py-2.5 text-sm font-medium transition-colors border-b-2 ${
+                    authMode === 'login'
+                      ? 'border-teal-600 bg-teal-50/50 text-teal-600'
                       : 'border-transparent text-slate-500 hover:text-slate-700'
                   }`}
                 >
-                  Вход
+                  {getUIText('auth_modal_tabLogin', language)}
                 </button>
                 <button
                   type='button'
@@ -759,88 +801,36 @@ export function AuthProvider({ children }) {
                     setAuthMode('register');
                     setRegisterLegalConsent(false);
                     setError('');
-                    // Focus name field after mode switch
-                    setTimeout(() => document.getElementById('auth-name')?.focus(), 100);
                   }}
-                  className={`flex-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                    authMode === 'register' 
-                      ? 'border-teal-600 text-teal-600 bg-teal-50/50' 
+                  className={`flex-1 py-2.5 text-sm font-medium transition-colors border-b-2 ${
+                    authMode === 'register'
+                      ? 'border-teal-600 bg-teal-50/50 text-teal-600'
                       : 'border-transparent text-slate-500 hover:text-slate-700'
                   }`}
                 >
-                  Регистрация
+                  {getUIText('register', language)}
                 </button>
               </div>
 
-              {authMode === 'register' ? (
-                <div className='flex-shrink-0 pb-3'>
-                  <LegalConsentCheckboxRow
-                    language={uiLanguage}
-                    checked={registerLegalConsent}
-                    onCheckedChange={setRegisterLegalConsent}
-                    id='auth-register-legal-consent-oauth'
-                    className='rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5'
-                  />
-                </div>
-              ) : null}
-
-              <div className='flex-shrink-0 space-y-2 pb-2'>
-                <div className='relative flex items-center justify-center py-2'>
-                  <span className='absolute inset-x-0 top-1/2 h-px bg-slate-100' aria-hidden />
-                  <span className='relative bg-white px-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400'>
-                    {getUIText('auth_oauthDivider', uiLanguage)}
-                  </span>
-                </div>
-                <div className='grid grid-cols-1 gap-2'>
-                  <button
-                    type='button'
-                    onClick={() => void startOAuth('google')}
-                    disabled={
-                      oauthProviderBusy !== null ||
-                      submitting ||
-                      (authMode === 'register' && !registerLegalConsent)
-                    }
-                    className='flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200/90 bg-white px-4 text-sm font-medium text-slate-800 shadow-sm transition hover:border-teal-400/60 hover:bg-slate-50/80 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-45'
-                  >
-                    {oauthProviderBusy === 'google' ? (
-                      <Loader2 className='h-4 w-4 animate-spin text-slate-600' />
-                    ) : (
-                      <GoogleBrandGlyph />
-                    )}
-                    {getUIText('auth_continueGoogle', uiLanguage)}
-                  </button>
-                  <button
-                    type='button'
-                    onClick={() => void startOAuth('apple')}
-                    disabled={
-                      oauthProviderBusy !== null ||
-                      submitting ||
-                      (authMode === 'register' && !registerLegalConsent)
-                    }
-                    className='flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200/90 bg-slate-950 px-4 text-sm font-medium text-white shadow-sm transition hover:bg-slate-900 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-45'
-                  >
-                    {oauthProviderBusy === 'apple' ? (
-                      <Loader2 className='h-4 w-4 animate-spin' />
-                    ) : (
-                      <AppleBrandGlyph />
-                    )}
-                    {getUIText('auth_continueApple', uiLanguage)}
-                  </button>
-                </div>
-              </div>
-
-              <form onSubmit={authMode === 'login' ? handleLogin : handleRegister} className='flex flex-col flex-1 min-h-0 overflow-hidden'>
-                <div className='space-y-3 flex-1 overflow-y-auto pb-2'>
+              <form
+                onSubmit={authMode === 'login' ? handleLogin : handleRegister}
+                className='flex min-h-0 flex-col overflow-hidden'
+              >
+                <div className='max-h-[min(52vh,400px)] space-y-3 overflow-y-auto pb-2'>
                   {authMode === 'register' && (
                     <div className='space-y-1.5'>
-                      <Label htmlFor='auth-name' className='text-sm'>Имя</Label>
-                      <Input 
-                        id='auth-name' 
-                        type='text' 
-                        placeholder='Ваше имя'
+                      <Label htmlFor='auth-name' className='text-sm'>
+                        {getUIText('auth_field_firstName', language)}
+                      </Label>
+                      <Input
+                        id='auth-name'
+                        type='text'
+                        placeholder={getUIText('auth_field_firstNamePlaceholder', language)}
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
+                        onFocus={(e) =>
+                          setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
+                        }
                         autoComplete='name'
                         className='h-11 text-base'
                         required
@@ -852,7 +842,7 @@ export function AuthProvider({ children }) {
                     <div className='space-y-1.5'>
                       <div className='flex items-center justify-between'>
                         <Label htmlFor='auth-referral-code' className='text-sm'>
-                          У меня есть промокод
+                          {getUIText('auth_referral_label', language)}
                         </Label>
                         <button
                           type='button'
@@ -860,13 +850,13 @@ export function AuthProvider({ children }) {
                           onClick={() => void validatePromoCode()}
                           disabled={!promoCode || promoStatus === 'checking'}
                         >
-                          Проверить
+                          {getUIText('auth_referral_check', language)}
                         </button>
                       </div>
                       <Input
                         id='auth-referral-code'
                         type='text'
-                        placeholder='AIR-ID123'
+                        placeholder={getUIText('auth_referral_placeholder', language)}
                         value={promoCode}
                         onChange={(e) => {
                           setPromoCode(String(e.target.value || '').toUpperCase());
@@ -892,16 +882,20 @@ export function AuthProvider({ children }) {
                       ) : null}
                     </div>
                   )}
-                  
+
                   <div className='space-y-1.5'>
-                    <Label htmlFor='auth-email' className='text-sm'>Email</Label>
-                    <Input 
-                      id='auth-email' 
-                      type='email' 
-                      placeholder='your@email.com'
+                    <Label htmlFor='auth-email' className='text-sm'>
+                      {getUIText('email', language)}
+                    </Label>
+                    <Input
+                      id='auth-email'
+                      type='email'
+                      placeholder={getUIText('auth_email_placeholder', language)}
                       value={email}
                       onChange={(e) => setEmail(e.target.value.toLowerCase())}
-                      onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
+                      onFocus={(e) =>
+                        setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
+                      }
                       autoFocus
                       inputMode='email'
                       autoComplete='username'
@@ -910,33 +904,41 @@ export function AuthProvider({ children }) {
                       required
                     />
                   </div>
-                  
+
                   <div className='space-y-1.5'>
-                    <div className='flex justify-between items-center'>
-                      <Label htmlFor='auth-password' className='text-sm'>Пароль</Label>
+                    <div className='flex items-center justify-between'>
+                      <Label htmlFor='auth-password' className='text-sm'>
+                        {getUIText('password', language)}
+                      </Label>
                       {authMode === 'login' && (
                         <button
                           type='button'
-                          onClick={() => { setAuthMode('forgot_password'); setError(''); setForgotPasswordSent(false); }}
+                          onClick={() => {
+                            setAuthMode('forgot_password');
+                            setError('');
+                            setForgotPasswordSent(false);
+                          }}
                           className='text-xs text-teal-600 hover:text-teal-700 hover:underline'
                         >
-                          Забыли пароль?
+                          {getUIText('auth_forgot_password', language)}
                         </button>
                       )}
                     </div>
                     <div className='relative'>
-                      <Input 
-                        id='auth-password' 
-                        type={showPassword ? 'text' : 'password'} 
+                      <Input
+                        id='auth-password'
+                        type={showPassword ? 'text' : 'password'}
                         placeholder='••••••••'
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        onFocus={(e) => setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)}
-                        className='pr-10 h-11 text-base'
+                        onFocus={(e) =>
+                          setTimeout(() => e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
+                        }
+                        className='h-11 pr-10 text-base'
                         autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
                         enterKeyHint='done'
                         required
-                        minLength={authMode === 'register' ? 6 : undefined}
+                        minLength={authMode === 'register' ? 8 : undefined}
                       />
                       <button
                         type='button'
@@ -947,35 +949,79 @@ export function AuthProvider({ children }) {
                       </button>
                     </div>
                     {authMode === 'register' && (
-                      <p className='text-xs text-slate-500'>Минимум 6 символов</p>
+                      <p className='text-xs text-slate-500'>{getUIText('auth_password_minHint', language)}</p>
                     )}
+                    {authMode === 'register' && password.length > 0 && !isAuthPasswordCompliant(password) ? (
+                      <p className='text-xs text-red-500'>
+                        {password.length < AUTH_PASSWORD_MIN_LENGTH
+                          ? getAuthErrorMessage('AUTH_PASSWORD_TOO_SHORT', language)
+                          : getAuthErrorMessage('AUTH_PASSWORD_REQUIREMENTS', language)}
+                      </p>
+                    ) : null}
                   </div>
-                  
-                  {error && (
-                    <p className='text-red-500 text-sm'>{error}</p>
-                  )}
 
+                  {authMode === 'register' ? (
+                    <div className='rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5'>
+                      <LegalConsentCheckboxRow
+                        language={language}
+                        checked={registerLegalConsent}
+                        onCheckedChange={setRegisterLegalConsent}
+                        id='auth-register-legal-consent-oauth'
+                        className='border-0 bg-transparent p-0'
+                      />
+                    </div>
+                  ) : null}
+
+                  {error ? <p className='text-sm text-red-500'>{error}</p> : null}
                 </div>
-                
-                {/* Fixed button at bottom - always visible */}
-                <div className='flex-shrink-0 pt-3 border-t border-slate-100 mt-2'>
-                  <Button 
-                    type='submit' 
-                    className='w-full bg-teal-600 hover:bg-teal-700 h-12 text-base font-medium'
+
+                <div className='mt-2 flex-shrink-0 border-t border-slate-100 pt-3'>
+                  <Button
+                    type='submit'
+                    className='h-12 w-full bg-teal-600 text-base font-medium hover:bg-teal-700'
                     disabled={
                       submitting ||
-                      (authMode === 'register' && !registerLegalConsent)
+                      (authMode === 'register' &&
+                        (!registerLegalConsent || !isAuthPasswordCompliant(password)))
                     }
                   >
                     {submitting ? (
                       <>
-                        <Loader2 className='h-4 w-4 mr-2 animate-spin' />
-                        Загрузка...
+                        <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                        {getUIText('loading', language)}
                       </>
+                    ) : authMode === 'login' ? (
+                      getUIText('loginButton', language)
                     ) : (
-                      authMode === 'login' ? 'Войти' : 'Создать аккаунт'
+                      getUIText('auth_modal_submitCreate', language)
                     )}
                   </Button>
+                </div>
+
+                <div className='mx-auto mt-4 w-full max-w-[280px] flex-shrink-0 pb-1'>
+                  <div className='relative flex w-full items-center justify-center py-2'>
+                    <span className='absolute inset-x-0 top-1/2 h-px bg-slate-100' aria-hidden />
+                    <span className='relative bg-white px-3 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400'>
+                      {getUIText('auth_oauthDivider', language)}
+                    </span>
+                  </div>
+                  <button
+                    type='button'
+                    onClick={() => void startGoogleOAuth()}
+                    disabled={
+                      googleOAuthBusy ||
+                      submitting ||
+                      (authMode === 'register' && !registerLegalConsent)
+                    }
+                    className='flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200/90 bg-white px-4 text-sm font-medium text-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.05)] ring-1 ring-slate-100/80 transition hover:border-teal-300/70 hover:bg-slate-50/90 hover:shadow-[0_4px_14px_rgba(15,118,110,0.08)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-45'
+                  >
+                    {googleOAuthBusy ? (
+                      <Loader2 className='h-4 w-4 shrink-0 animate-spin text-slate-600' />
+                    ) : (
+                      <GoogleBrandGlyph className='h-5 w-5 shrink-0' />
+                    )}
+                    {getUIText('auth_continueGoogle', language)}
+                  </button>
                 </div>
               </form>
             </>

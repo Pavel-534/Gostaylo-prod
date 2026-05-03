@@ -238,8 +238,9 @@ test.describe('accountant-bot anti-tamper', () => {
       data: { code: '__E2E_NO_SUCH_PROMO__', amount: 50_000 },
     })
     expect(r.status()).toBe(400)
-    const j = (await r.json()) as { valid?: boolean; success?: boolean }
+    const j = (await r.json()) as { valid?: boolean; success?: boolean; error_code?: string }
     expect(j.valid === false || j.success === false).toBeTruthy()
+    expect(j.error_code).toBe('PROMO_NOT_FOUND')
   })
 
   test('POST /api/v2/bookings: подмена clientQuotedSubtotalThb → 400 PRICE_MISMATCH', async ({

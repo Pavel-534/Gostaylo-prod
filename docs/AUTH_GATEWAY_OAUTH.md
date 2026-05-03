@@ -1,4 +1,4 @@
-# Auth gateway prep — OAuth (Google / Apple) + referrals
+# Auth gateway prep — OAuth (Google) + referrals
 
 ## Current session stack (audit)
 
@@ -21,7 +21,8 @@ For **OAuth**, before `signInWithOAuth`, copy the same pending referral code int
 In **Authentication → Providers**:
 
 - **Google**: enable; add **Client ID** and **Client secret** from Google Cloud Console (OAuth 2.0 Web client). Authorized redirect URIs must include Supabase callback, e.g. `https://<project-ref>.supabase.co/auth/v1/callback` and your app URL if using PKCE hosted flow.
-- **Apple**: enable; configure **Services ID**, **Team ID**, **Key ID**, **Private key** (.p8), and return URLs per Apple Developer portal.
+
+Продуктовый UI (**`contexts/auth-context.jsx`**) вызывает только **`signInWithOAuth({ provider: 'google' })`**; другие провайдеры в Dashboard не обязательны для текущего флоу.
 
 ## Environment variables (typical)
 
@@ -38,8 +39,6 @@ NEXT_PUBLIC_BASE_URL=https://www.gostaylo.com
 
 # Google OAuth (when using Supabase Auth in app)
 # NEXT_PUBLIC_GOOGLE_CLIENT_ID=   # if client-side PKCE flow
-
-# Apple (bundle / services id live in Apple Developer; secrets often in Supabase vault only)
 ```
 
 Keep secrets out of client bundles unless using public anon flows documented by Supabase.
