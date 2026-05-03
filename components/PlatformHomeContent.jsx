@@ -28,6 +28,8 @@ import { StickySearchBar } from '@/components/home/StickySearchBar'
 import { HowItWorks } from '@/components/home/HowItWorks'
 import { TopListingsGrid } from '@/components/home/TopListingsGrid'
 import {
+  AUTO_HERO_TITLE_FALLBACK,
+  AUTO_TOP_LISTINGS_TITLE_FALLBACK,
   getHomeHeroTitleRaw,
   getHomeTopListingsTitleRaw,
   resolveHomeCopy,
@@ -319,11 +321,21 @@ export function PlatformHomeContent() {
   // `'AUTO'` → локализованная строка через `getUIText(key, language)` (меняется при переключении языка).
   const heroTitle = useMemo(() => {
     const raw = getHomeHeroTitleRaw()
-    return resolveHomeCopy(raw, (k) => getUIText(k, language), 'heroTitle')
+    return resolveHomeCopy(
+      raw,
+      (k) => getUIText(k, language),
+      'heroTitle',
+      AUTO_HERO_TITLE_FALLBACK,
+    )
   }, [language])
   const topListingsTitle = useMemo(() => {
     const raw = getHomeTopListingsTitleRaw()
-    return resolveHomeCopy(raw, (k) => getUIText(k, language), 'topListingsTitle')
+    return resolveHomeCopy(
+      raw,
+      (k) => getUIText(k, language),
+      'topListingsTitle',
+      AUTO_TOP_LISTINGS_TITLE_FALLBACK,
+    )
   }, [language])
 
   return (

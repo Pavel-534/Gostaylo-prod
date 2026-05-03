@@ -450,7 +450,7 @@ export function SearchCalendar({
       <CalendarIcon className="h-5 w-5 text-teal-600 flex-shrink-0" />
       <span className={cn(
         "text-base font-medium truncate",
-        dateRange.from ? "text-slate-900" : "text-slate-400"
+        dateRange.from ? "text-slate-900" : "text-slate-500"
       )}>
         {displayText}
       </span>

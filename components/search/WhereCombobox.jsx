@@ -253,12 +253,12 @@ export function WhereCombobox({
           onFocus={onFocus}
           onKeyDown={onKeyDown}
           className={cn(
-            'flex-1 min-w-0 bg-transparent outline-none text-slate-800 placeholder:text-slate-400 disabled:cursor-wait',
+            'flex-1 min-w-0 bg-transparent outline-none text-slate-800 disabled:cursor-wait',
             isHero
-              ? 'text-sm'
+              ? 'text-sm placeholder:text-slate-500'
               : isFlat
-                ? 'text-base font-medium text-slate-900'
-                : 'text-sm h-8'
+                ? 'text-base font-medium text-slate-900 placeholder:text-slate-500'
+                : 'text-sm h-8 placeholder:text-slate-400'
           )}
         />
         {value && value !== 'all' && !loading && (

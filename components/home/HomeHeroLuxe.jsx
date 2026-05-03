@@ -95,7 +95,7 @@ export function HomeHeroLuxe({
   return (
     <section
       data-hero-search
-      className="relative z-[40] bg-gradient-to-b from-slate-50 via-white to-teal-50/40 pt-[calc(var(--app-header-height,64px)+8px)] pb-12 sm:pb-16"
+      className="relative z-[40] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-teal-50 via-white to-white pt-[calc(var(--app-header-height,64px)+8px)] pb-8 sm:pb-10"
     >
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center px-4 sm:px-6">
         {showTitle ? (
@@ -104,8 +104,8 @@ export function HomeHeroLuxe({
           </h1>
         ) : null}
 
-        {/* Search capsule */}
-        <div className="relative z-20 w-full rounded-3xl border border-slate-200/80 bg-white p-3 shadow-[0_24px_70px_-20px_rgba(15,23,42,0.18),0_8px_24px_-12px_rgba(15,23,42,0.10)] transition-all duration-300 focus-within:shadow-[0_30px_80px_-20px_rgba(0,102,102,0.22)] sm:p-4">
+        {/* Search capsule — glass + глубокая мягкая тень (Airy Luxe) */}
+        <div className="relative z-20 w-full rounded-3xl border border-slate-200/70 bg-white/72 p-3 shadow-[0_32px_64px_-15px_rgba(0,102,102,0.1),0_12px_40px_-18px_rgba(15,23,42,0.08)] backdrop-blur-xl backdrop-saturate-150 transition-all duration-300 focus-within:border-[#006666]/25 focus-within:shadow-[0_32px_64px_-15px_rgba(0,102,102,0.14),0_0_0_3px_rgba(0,102,102,0.1)] sm:p-4">
           {/* Category tabs — pill buttons */}
           <div className="mb-3 flex flex-wrap items-center gap-2 sm:mb-4">
             {displayTabs.map((tab) => {
@@ -153,7 +153,7 @@ export function HomeHeroLuxe({
                 }
               }}
               placeholder={getUIText('catalogTextSearchPlaceholder', language)}
-              className="h-full min-w-0 flex-1 border-0 bg-transparent text-base font-medium text-slate-900 placeholder:text-slate-400 shadow-none focus-visible:ring-0"
+              className="h-full min-w-0 flex-1 border-0 bg-transparent text-base font-medium text-slate-900 placeholder:text-slate-500 shadow-none focus-visible:ring-0"
               aria-label={getUIText('catalogTextSearchPlaceholder', language)}
             />
             <button
