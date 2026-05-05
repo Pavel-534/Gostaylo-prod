@@ -77,7 +77,7 @@ function SearchDayCell({
       onClick={handleClick}
       disabled={!isClickable}
       className={cn(
-        "relative w-10 h-10 flex items-center justify-center text-sm text-slate-900 transition-all rounded-full",
+        "relative w-10 h-10 flex items-center justify-center text-sm text-slate-900 transition-colors rounded-full",
         isPast && "text-slate-300 cursor-not-allowed",
         !isPast && "hover:bg-teal-50",
         isToday && !isSelected && "font-bold",

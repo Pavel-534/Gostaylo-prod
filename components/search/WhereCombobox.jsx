@@ -396,7 +396,7 @@ export function WhereCombobox({
           <PopoverContent
             align="start"
             className={cn(
-              'w-[min(var(--radix-popover-trigger-width),calc(100vw-2rem))] min-w-[18rem] max-h-[min(70vh,560px)] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-xl',
+              'w-[min(var(--radix-popover-trigger-width),calc(100vw-2rem))] min-w-[18rem] max-h-[min(70vh,560px)] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-2 shadow-2xl',
               (showList || showQuickChips) && 'z-[220]',
             )}
           >

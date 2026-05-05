@@ -374,11 +374,11 @@ export function UnifiedSearchBar({
           loadingPlaceholder={getUIText('loading', language)}
           variant="hero"
           language={language}
-          className="min-w-[220px] flex-[1.2]"
+          className="min-w-[180px] flex-[1.2] xl:min-w-[220px]"
         />
 
         {/* When */}
-        <div className="min-w-[220px] border-r border-slate-200">
+        <div className="min-w-[180px] border-r border-slate-200 xl:min-w-[220px]">
           <SearchCalendar
             value={dateRange}
             onChange={setDateRange}
@@ -397,7 +397,7 @@ export function UnifiedSearchBar({
           guestsBreakdown={guestsBreakdown}
           setGuestsBreakdown={setGuestsBreakdown}
           align="start"
-          triggerClassName={`${triggerBase} ${triggerHero} w-[220px] min-w-[220px] max-w-[220px]`}
+          triggerClassName={`${triggerBase} ${triggerHero} w-[clamp(170px,22vw,220px)] min-w-[170px] max-w-[220px]`}
         />
 
         <Button

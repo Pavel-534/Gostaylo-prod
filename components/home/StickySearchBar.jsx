@@ -167,7 +167,7 @@ export function StickySearchBar({
           </div>
 
           {/* Where */}
-          <div ref={whereRef} className="min-w-[240px] flex-1 border-r border-slate-100 px-2">
+          <div ref={whereRef} className="min-w-[180px] flex-1 border-r border-slate-100 px-2 xl:min-w-[240px]">
             <WhereCombobox
               options={whereOptions}
               value={where || 'all'}
@@ -181,7 +181,7 @@ export function StickySearchBar({
           </div>
 
           {/* Dates */}
-          <div ref={datesRef} className="min-w-[220px] flex-1 border-r border-slate-100 px-2">
+          <div ref={datesRef} className="min-w-[170px] flex-1 border-r border-slate-100 px-2 xl:min-w-[220px]">
             <SearchCalendar
               value={dateRange}
               onChange={setDateRange}
@@ -200,7 +200,7 @@ export function StickySearchBar({
               guestsBreakdown={guestsBreakdown}
               setGuestsBreakdown={setGuestsBreakdown}
               align="end"
-              triggerClassName="h-9 w-[220px] min-w-[220px] max-w-[220px] rounded-lg px-3 text-sm font-medium text-slate-700"
+              triggerClassName="h-9 w-[clamp(168px,20vw,220px)] min-w-[168px] max-w-[220px] rounded-lg px-3 text-sm font-medium text-slate-700"
             />
           </div>
 

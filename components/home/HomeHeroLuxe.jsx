@@ -205,7 +205,7 @@ export function HomeHeroLuxe({
           </div>
 
           {/* Strict 60-px row: Where / Dates / Guests / Search CTA */}
-          <div className="grid grid-cols-1 items-stretch gap-2 overflow-visible md:grid-cols-[minmax(240px,1.5fr)_minmax(220px,1.3fr)_220px_148px]">
+          <div className="grid grid-cols-1 items-stretch gap-2 overflow-visible md:grid-cols-[minmax(190px,1.4fr)_minmax(170px,1.2fr)_minmax(170px,0.95fr)_minmax(132px,0.72fr)] xl:grid-cols-[minmax(240px,1.5fr)_minmax(220px,1.3fr)_220px_148px]">
             {/* Where — outer = field-box без padding; flat-вариант сам кладёт px-5 на flex-row */}
             <WhereCombobox
               options={whereOptionsFull}
@@ -237,7 +237,7 @@ export function HomeHeroLuxe({
               guestsBreakdown={guestsBreakdown}
               setGuestsBreakdown={setGuestsBreakdown}
               align="start"
-              triggerClassName={cn(FIELD_BASE_CLASS, 'w-full min-w-[220px] max-w-[220px] cursor-pointer')}
+              triggerClassName={cn(FIELD_BASE_CLASS, 'w-full min-w-0 max-w-full xl:min-w-[220px] xl:max-w-[220px] cursor-pointer')}
             />
 
             {/* Search CTA — тот же h-[60px], тот же rounded-2xl */}

@@ -160,7 +160,7 @@ export function GuestsPopover({
                 onClick={() => canDec && update({ [row.key]: value - 1 })}
                 className={cn(
                   'inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition-colors',
-                  canDec ? 'hover:border-slate-300 hover:bg-slate-50' : 'cursor-not-allowed opacity-40',
+                  canDec ? 'hover:border-teal-300 hover:bg-teal-50' : 'cursor-not-allowed opacity-40',
                 )}
                 aria-label={language === 'ru' ? `Уменьшить: ${row.label}` : `Decrease ${row.label}`}
               >
@@ -170,7 +170,7 @@ export function GuestsPopover({
               <button
                 type="button"
                 onClick={() => update({ [row.key]: value + 1 })}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-700 transition-colors hover:border-teal-300 hover:bg-teal-50"
                 aria-label={language === 'ru' ? `Увеличить: ${row.label}` : `Increase ${row.label}`}
               >
                 <Plus className="h-4 w-4" aria-hidden />
@@ -226,7 +226,7 @@ export function GuestsPopover({
           </PopoverTrigger>
           <PopoverContent
             align={align}
-            className={cn('w-[min(100vw-2rem,420px)] rounded-3xl border border-slate-100 bg-white p-4 shadow-xl', contentClassName)}
+            className={cn('w-[min(100vw-2rem,420px)] rounded-3xl border border-slate-100 bg-white p-4 shadow-2xl', contentClassName)}
           >
             {rowsContent}
           </PopoverContent>

@@ -35,6 +35,7 @@
   Supabase Dashboard → Authentication → URL configuration → Redirect URLs:
     https://<production-domain>/auth/callback/
     http://localhost:3000/auth/callback/   (локально при необходимости)
+  Диагностика OAuth-колбэка (логи сервера): **`AUTH_CALLBACK_DEBUG=1`** (в prod), локально без env — см. **`app/auth/callback/route.js`**.
   Провайдер **Google** включить там же (Client ID / Client secret в Dashboard). Другие провайдеры в Supabase не используются UI приложения.
 -->
 
