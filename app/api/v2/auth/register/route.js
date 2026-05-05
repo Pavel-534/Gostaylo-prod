@@ -293,6 +293,8 @@ export async function POST(request) {
       preferred_currency: 'THB',
       preferred_payout_currency: 'THB',
       language: 'ru',
+      terms_accepted: true,
+      terms_accepted_at: legalAcceptedAt,
       legal_terms_accepted_at: legalAcceptedAt,
     })
     .select('id, email, role, first_name, last_name, referral_code')

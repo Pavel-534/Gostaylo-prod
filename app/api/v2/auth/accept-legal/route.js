@@ -31,7 +31,7 @@ export async function POST(request) {
 
   const { data: before, error: beforeErr } = await supabaseAdmin
     .from('profiles')
-    .select('legal_terms_accepted_at')
+    .select('legal_terms_accepted_at, terms_accepted, terms_accepted_at')
     .eq('id', session.userId)
     .maybeSingle();
 
@@ -41,10 +41,13 @@ export async function POST(request) {
   if (!before) {
     return authErrorJson(AuthErrorCode.AUTH_PROFILE_NOT_FOUND, 404);
   }
-  if (before.legal_terms_accepted_at) {
+  if (before.terms_accepted === true || before.terms_accepted_at || before.legal_terms_accepted_at) {
+    const acceptedAt = before.terms_accepted_at || before.legal_terms_accepted_at || null;
     return NextResponse.json({
       success: true,
-      legalTermsAcceptedAt: before.legal_terms_accepted_at,
+      termsAccepted: true,
+      termsAcceptedAt: acceptedAt,
+      legalTermsAcceptedAt: acceptedAt,
       updated: false,
     });
   }
@@ -52,7 +55,12 @@ export async function POST(request) {
   const iso = new Date().toISOString();
   const { error } = await supabaseAdmin
     .from('profiles')
-    .update({ legal_terms_accepted_at: iso, updated_at: iso })
+    .update({
+      terms_accepted: true,
+      terms_accepted_at: iso,
+      legal_terms_accepted_at: iso,
+      updated_at: iso,
+    })
     .eq('id', session.userId);
 
   if (error) {
@@ -61,6 +69,8 @@ export async function POST(request) {
 
   return NextResponse.json({
     success: true,
+    termsAccepted: true,
+    termsAcceptedAt: iso,
     legalTermsAcceptedAt: iso,
     updated: true,
   });

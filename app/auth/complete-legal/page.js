@@ -4,7 +4,7 @@
  * Финальный шаг OAuth: пользователь уже в JWT-сессии, но без legal_terms_accepted_at — подтверждает оферту.
  */
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
@@ -21,6 +21,16 @@ export default function CompleteLegalPage() {
   const [checked, setChecked] = useState(false)
   const [busy, setBusy] = useState(false)
   const [localError, setLocalError] = useState('')
+  const alreadyAccepted =
+    user?.termsAccepted === true ||
+    user?.terms_accepted === true ||
+    Boolean(user?.termsAcceptedAt || user?.terms_accepted_at || user?.legalTermsAcceptedAt || user?.legal_terms_accepted_at)
+
+  useEffect(() => {
+    if (!loading && user && alreadyAccepted) {
+      router.replace('/profile/')
+    }
+  }, [alreadyAccepted, loading, router, user])
 
   const submit = useCallback(async () => {
     setLocalError('')
@@ -70,6 +80,8 @@ export default function CompleteLegalPage() {
       </main>
     )
   }
+
+  if (!loading && user && alreadyAccepted) return null
 
   return (
     <main className='min-h-screen bg-slate-50 font-sans antialiased text-slate-900 py-16 px-6'>

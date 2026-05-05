@@ -56,6 +56,11 @@ function normalizeAuthUser(u) {
     u.email ||
     '';
   const legalTs = u.legalTermsAcceptedAt ?? u.legal_terms_accepted_at ?? null;
+  const termsAcceptedAt = u.termsAcceptedAt ?? u.terms_accepted_at ?? legalTs ?? null;
+  const termsAccepted =
+    u.termsAccepted === true ||
+    u.terms_accepted === true ||
+    Boolean(termsAcceptedAt);
   return {
     ...u,
     first_name,
@@ -63,6 +68,10 @@ function normalizeAuthUser(u) {
     firstName: u.firstName ?? first_name,
     lastName: u.lastName ?? last_name,
     name,
+    termsAccepted,
+    terms_accepted: termsAccepted,
+    termsAcceptedAt,
+    terms_accepted_at: termsAcceptedAt,
     legalTermsAcceptedAt: legalTs,
     legal_terms_accepted_at: legalTs,
   };
@@ -184,9 +193,6 @@ export function AuthProvider({ children }) {
       }
       const callback = new URL(`${origin}/auth/callback/`);
       callback.searchParams.set('next', withSlash);
-
-      // TEMP: удалить после отладки — реальный redirectTo см. ниже (`callback.toString()`, с `/auth/callback/` и `?next=`)
-      alert('Sending to Google with redirect: ' + window.location.origin + '/auth/callback/');
 
       const { data, error } = await sb.auth.signInWithOAuth({
         provider: 'google',
@@ -318,6 +324,18 @@ export function AuthProvider({ children }) {
       window.removeEventListener('gostaylo-switch-role', onSessionRefresh);
     };
   }, [refreshUserFromServer]);
+
+  // Если согласие уже зафиксировано, не держим пользователя на `/auth/complete-legal/`.
+  useEffect(() => {
+    if (!user || !pathname?.startsWith('/auth/complete-legal')) return;
+    const accepted =
+      user.termsAccepted === true ||
+      user.terms_accepted === true ||
+      Boolean(user.termsAcceptedAt || user.terms_accepted_at || user.legalTermsAcceptedAt || user.legal_terms_accepted_at);
+    if (accepted) {
+      router.replace('/profile/');
+    }
+  }, [pathname, router, user]);
 
   /** После accept-legal на `/auth/complete-legal/` — закрыть модалку входа, если она была открыта. */
   useEffect(() => {
