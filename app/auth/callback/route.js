@@ -154,7 +154,7 @@ export async function GET(request) {
 
   const destination =
     sync.needsLegalCompletion
-      ? `${origin}/auth/complete-legal/`
+      ? `${origin}/auth/complete-legal/?next=${encodeURIComponent(safeInternalPath(rawNext || '/profile/'))}`
       : `${origin}${safeInternalPath(rawNext || '/profile/')}`;
 
   response.headers.set('Location', destination);

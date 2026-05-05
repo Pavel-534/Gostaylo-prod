@@ -80,6 +80,7 @@ function normalizeAuthUser(u) {
 /** Persisted referral for landing `?ref=` + OAuth/email continuation (Stage 72.6). */
 const PENDING_REF_COOKIE = 'gostaylo_pending_ref';
 const PENDING_REF_LS = 'gostaylo_pending_ref_code';
+const OAUTH_RETURN_TO_LS = 'gostaylo_oauth_return_to';
 
 function readPendingRefFromCookie() {
   if (typeof document === 'undefined') return '';
@@ -180,6 +181,11 @@ export function AuthProvider({ children }) {
       try {
         const saved = sessionStorage.getItem('gostaylo_redirect_after_login');
         if (saved?.startsWith('/')) nextPath = saved;
+        const current = `${window.location.pathname || '/'}${window.location.search || ''}`;
+        if (current.startsWith('/') && !current.startsWith('//')) {
+          localStorage.setItem(OAUTH_RETURN_TO_LS, current);
+          if (!saved?.startsWith('/')) nextPath = current;
+        }
       } catch {
         /* ignore */
       }

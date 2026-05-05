@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText, getAuthErrorMessage } from '@/lib/translations'
@@ -14,8 +14,30 @@ import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow'
 
+const OAUTH_RETURN_TO_LS = 'gostaylo_oauth_return_to'
+
+function normalizeInternalPath(raw) {
+  const src = typeof raw === 'string' ? raw.trim() : ''
+  if (!src.startsWith('/') || src.startsWith('//')) return ''
+  return src
+}
+
+function resolvePostLegalPath(searchParams) {
+  const fromQuery = normalizeInternalPath(searchParams?.get('next') || '')
+  if (fromQuery) return fromQuery
+  if (typeof window === 'undefined') return '/profile/'
+  try {
+    const fromLs = normalizeInternalPath(localStorage.getItem(OAUTH_RETURN_TO_LS) || '')
+    if (fromLs) return fromLs
+  } catch {
+    /* ignore */
+  }
+  return '/profile/'
+}
+
 export default function CompleteLegalPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { loading, user, updateUser, refreshUserFromServer } = useAuth()
   const { language } = useI18n()
   const [checked, setChecked] = useState(false)
@@ -28,9 +50,9 @@ export default function CompleteLegalPage() {
 
   useEffect(() => {
     if (!loading && user && alreadyAccepted) {
-      router.replace('/profile/')
+      router.replace(resolvePostLegalPath(searchParams))
     }
-  }, [alreadyAccepted, loading, router, user])
+  }, [alreadyAccepted, loading, router, searchParams, user])
 
   const submit = useCallback(async () => {
     setLocalError('')
@@ -68,19 +90,25 @@ export default function CompleteLegalPage() {
         })
       }
       await refreshUserFromServer()
+      const nextPath = resolvePostLegalPath(searchParams)
+      try {
+        localStorage.removeItem(OAUTH_RETURN_TO_LS)
+      } catch {
+        /* ignore */
+      }
       try {
         window.dispatchEvent(new CustomEvent('gostaylo-close-auth-modal'))
       } catch {
         /* ignore */
       }
-      router.push('/profile/')
+      router.push(nextPath)
       router.refresh()
     } catch {
       setLocalError(getAuthErrorMessage('AUTH_INTERNAL', language))
     } finally {
       setBusy(false)
     }
-  }, [checked, language, refreshUserFromServer, router, updateUser, user])
+  }, [checked, language, refreshUserFromServer, router, searchParams, updateUser, user])
 
   if (loading) {
     return <main className='min-h-screen bg-slate-50' />
