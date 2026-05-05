@@ -132,6 +132,7 @@ export function AppHeader({
   const isPublic = variant === 'public'
   const isWorkspace = variant === 'workspace'
   const workspaceTitle = isWorkspace && !centerSlot ? getWorkspaceTitle(pathname, language) : null
+  const logoLabel = isWorkspace ? '' : getSiteDisplayName()
 
   return (
     <header
@@ -164,7 +165,7 @@ export function AppHeader({
                 onClick={onMenuClick}
                 aria-label="Menu"
                 data-testid="app-header-menu-btn"
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 transition-colors hover:bg-slate-100 lg:hidden"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-600 transition-colors hover:bg-slate-100 lg:hidden"
               >
                 <Menu className="h-5 w-5" />
               </button>
@@ -180,7 +181,7 @@ export function AppHeader({
               )}
             >
               <div className="flex items-center gap-3">
-                <AirentoLogo compact label={getSiteDisplayName()} scrolled={scrolled} />
+                <AirentoLogo compact label={logoLabel} scrolled={scrolled} />
                 {isPublic && (
                   <>
                     <span className="hidden sm:block h-8 w-px bg-slate-200" />
@@ -257,7 +258,7 @@ export function AppHeader({
           )}
 
           {/* RIGHT */}
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             {isWorkspace && (
               <Link
                 href="/"
@@ -269,10 +270,12 @@ export function AppHeader({
               </Link>
             )}
 
-            <LangSwitcher />
+            <div className={cn(isWorkspace && 'hidden sm:block')}>
+              <LangSwitcher />
+            </div>
             <CurrencySelector value={currency} onChange={setCurrency} />
 
-            {user ? <HeaderWalletCompact /> : null}
+            {user ? <div className={cn(isWorkspace && 'hidden sm:block')}><HeaderWalletCompact /></div> : null}
 
             <UserMenuDropdown />
           </div>
