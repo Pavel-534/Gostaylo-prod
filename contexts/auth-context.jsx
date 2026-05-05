@@ -185,6 +185,9 @@ export function AuthProvider({ children }) {
       const callback = new URL(`${origin}/auth/callback/`);
       callback.searchParams.set('next', withSlash);
 
+      // TEMP: удалить после отладки — реальный redirectTo см. ниже (`callback.toString()`, с `/auth/callback/` и `?next=`)
+      alert('Sending to Google with redirect: ' + window.location.origin + '/auth/callback/');
+
       const { data, error } = await sb.auth.signInWithOAuth({
         provider: 'google',
         options: {
