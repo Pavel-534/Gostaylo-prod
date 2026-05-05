@@ -17,8 +17,8 @@ const BATCH = 25
 const MAX_TOKENS = 800
 
 async function runHygiene() {
-  if (!supabaseAdmin) {
-    return { ok: false, error: 'supabaseAdmin unavailable', probed: 0, removed: 0 }
+  if (!supabaseAdmin || typeof supabaseAdmin.from !== 'function') {
+    return { ok: false, error: 'supabaseAdmin.from is unavailable', probed: 0, removed: 0 }
   }
   let beforeCount = 0
   try {

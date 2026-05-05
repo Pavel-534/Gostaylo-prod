@@ -39,6 +39,9 @@ import { TrustBar } from '@/components/home/TrustBar'
 import { PartnerCTA } from '@/components/home/PartnerCTA'
 import { MobileSearchFAB, MobileSearchBottomSheet } from '@/components/search/MobileSearchBottomSheet'
 import { FooterSwitchers } from '@/components/FooterSwitchers'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
 export function PlatformHomeContent() {
   const router = useRouter()
@@ -51,6 +54,10 @@ export function PlatformHomeContent() {
   const supportEmail = getPublicSupportEmail()
 
   const [categories, setCategories] = useState([])
+  const isAdminUser = String(authUser?.role || '').toUpperCase() === 'ADMIN'
+  const [comingSoonCategory, setComingSoonCategory] = useState(null)
+  const [waitingEmail, setWaitingEmail] = useState('')
+  const [waitingSubmitLoading, setWaitingSubmitLoading] = useState(false)
 
   const filters = useHomeFilters(categories)
   const {
@@ -80,6 +87,10 @@ export function PlatformHomeContent() {
     debouncedSearchQuery,
     transportSearchMode,
   } = filters
+  const selectedCategoryRow = useMemo(
+    () => categories.find((c) => String(c?.slug) === String(selectedCategory || '')),
+    [categories, selectedCategory],
+  )
 
   const [listings, setListings] = useState([])
   const [exchangeRates, setExchangeRates] = useState({})
@@ -140,6 +151,12 @@ export function PlatformHomeContent() {
 
   const fetchListingsData = useCallback(
     async (showLoading = true) => {
+      if (selectedCategoryRow?.isComingSoon === true) {
+        setListings([])
+        setLoading(false)
+        setListingsLoading(false)
+        return 0
+      }
       if (showLoading) setListingsLoading(true)
 
       try {
@@ -192,9 +209,14 @@ export function PlatformHomeContent() {
       checkInTime,
       checkOutTime,
       pendingHomeSemanticRef,
+      selectedCategoryRow?.isComingSoon,
     ],
   )
   const handleHomeSearchSubmit = useCallback(() => {
+    if (selectedCategoryRow?.isComingSoon === true) {
+      setComingSoonCategory(selectedCategoryRow)
+      return
+    }
     if (smartSearchOn && semanticSiteEnabled && searchQuery.trim().length >= 2) {
       setAiGridPending(true)
     }
@@ -207,6 +229,7 @@ export function PlatformHomeContent() {
     fetchListingsData,
     setAiGridPending,
     pendingHomeSemanticRef,
+    selectedCategoryRow,
   ])
 
 
@@ -252,6 +275,10 @@ export function PlatformHomeContent() {
   )
 
   const handleSearch = useCallback(() => {
+    if (selectedCategoryRow?.isComingSoon === true) {
+      setComingSoonCategory(selectedCategoryRow)
+      return
+    }
     const params = new URLSearchParams()
     if (selectedCategory && selectedCategory !== 'all') params.set('category', selectedCategory)
     if (where && where !== 'all') params.set('where', where)
@@ -278,7 +305,55 @@ export function PlatformHomeContent() {
     transportSearchMode,
     checkInTime,
     checkOutTime,
+    selectedCategoryRow,
   ])
+
+  const handleCategoryTabClick = useCallback(
+    (tab) => {
+      if (!tab?.slug) return
+      if (tab.isComingSoon === true) {
+        setComingSoonCategory(tab)
+        return
+      }
+      setSelectedCategory(tab.slug)
+    },
+    [setSelectedCategory],
+  )
+
+  const submitComingSoonLead = useCallback(async () => {
+    const email = String(waitingEmail || '').trim().toLowerCase()
+    const categorySlug = String(comingSoonCategory?.slug || '').trim().toLowerCase()
+    if (!email || !categorySlug) return
+    setWaitingSubmitLoading(true)
+    try {
+      const response = await fetch('/api/v2/leads/waiting-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          categorySlug,
+          language,
+          sourcePage: '/',
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok || !data?.success) {
+        toast.error(language === 'ru' ? 'Не удалось сохранить email' : 'Failed to save email')
+        return
+      }
+      toast.success(
+        language === 'ru'
+          ? 'Спасибо! Сообщим, когда категория откроется.'
+          : 'Thanks! We will notify you when this category launches.',
+      )
+      setComingSoonCategory(null)
+      setWaitingEmail('')
+    } catch {
+      toast.error(language === 'ru' ? 'Сетевая ошибка' : 'Network error')
+    } finally {
+      setWaitingSubmitLoading(false)
+    }
+  }, [waitingEmail, comingSoonCategory, language])
 
   useEffect(() => {
     if (!listingsLoading) setAiGridPending(false)
@@ -377,7 +452,68 @@ export function PlatformHomeContent() {
         liveCount={liveCount}
         countLoading={countLoading}
         heroTitle={heroTitle}
+        onCategoryTabClick={handleCategoryTabClick}
       />
+
+      <Dialog
+        open={Boolean(comingSoonCategory)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setComingSoonCategory(null)
+            setWaitingEmail('')
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'ru'
+                ? 'Эта категория скоро будет доступна!'
+                : 'This category is coming soon!'}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'ru'
+                ? 'Оставьте ваш email, чтобы узнать первым о запуске.'
+                : 'Leave your email and be the first to know when it launches.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {comingSoonCategory?.slug ? (
+              <p className="text-sm text-slate-600">
+                {language === 'ru' ? 'Категория:' : 'Category:'}{' '}
+                <span className="font-semibold">
+                  {getCategoryName(
+                    comingSoonCategory.slug,
+                    language,
+                    comingSoonCategory.name,
+                  )}
+                  {comingSoonCategory.isPreview && isAdminUser ? ' (preview)' : ''}
+                </span>
+              </p>
+            ) : null}
+            <Input
+              type="email"
+              value={waitingEmail}
+              onChange={(e) => setWaitingEmail(e.target.value)}
+              placeholder={language === 'ru' ? 'you@example.com' : 'you@example.com'}
+              autoFocus
+            />
+            <Button
+              onClick={submitComingSoonLead}
+              disabled={waitingSubmitLoading || !String(waitingEmail || '').trim()}
+              className="w-full"
+            >
+              {waitingSubmitLoading
+                ? language === 'ru'
+                  ? 'Отправка...'
+                  : 'Submitting...'
+                : language === 'ru'
+                  ? 'Сообщить мне о запуске'
+                  : 'Notify me on launch'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Sticky search — появляется при скролле, поверх контента */}
       <StickySearchBar
@@ -442,6 +578,7 @@ export function PlatformHomeContent() {
         categoryTabs={heroTabs}
         category={selectedCategory}
         setCategory={setSelectedCategory}
+        onCategoryTabClick={handleCategoryTabClick}
         where={where}
         setWhere={setWhere}
         dateRange={dateRange}

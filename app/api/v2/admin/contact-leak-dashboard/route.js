@@ -5,7 +5,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { resolveAdminSecurityProfile } from '@/lib/admin-security-access'
+import { requireAccess } from '@/lib/security/access-guard'
 import { getContactSafetyMode } from '@/lib/contact-safety-mode'
 import {
   resolveDefaultCommissionPercent,
@@ -128,10 +128,8 @@ export async function GET() {
     return NextResponse.json({ success: false, error: 'Server misconfigured' }, { status: 500 })
   }
 
-  const gate = await resolveAdminSecurityProfile()
-  if (gate.error) {
-    return NextResponse.json({ success: false, error: gate.error.message }, { status: gate.error.status })
-  }
+  const gate = await requireAccess({ roles: ['ADMIN'] })
+  if (gate.error) return gate.error
 
   const now = Date.now()
   const dayStart = new Date(now - 24 * 60 * 60 * 1000).toISOString()

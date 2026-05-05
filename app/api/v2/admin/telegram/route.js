@@ -6,6 +6,7 @@
 
 import { NextResponse } from 'next/server';
 import { getPublicSiteUrl, getTelegramWebhookUrl, getSiteDisplayName } from '@/lib/site-url.js';
+import { requireAccess } from '@/lib/security/access-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,6 +60,9 @@ async function ensureWebhookConfigured() {
 }
 
 export async function GET() {
+  const access = await requireAccess({ roles: ['ADMIN'] });
+  if (access.error) return access.error;
+
   if (!BOT_TOKEN) {
     return NextResponse.json({ 
       success: false, 
@@ -114,6 +118,9 @@ export async function GET() {
 }
 
 export async function POST(request) {
+  const access = await requireAccess({ roles: ['ADMIN'] });
+  if (access.error) return access.error;
+
   if (!BOT_TOKEN) {
     return NextResponse.json({ 
       success: false, 

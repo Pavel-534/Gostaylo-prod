@@ -81,6 +81,7 @@ export function MobileSearchBottomSheet({
   categoryTabs = [],
   category,
   setCategory,
+  onCategoryTabClick,
   where,
   setWhere,
   dateRange,
@@ -133,12 +134,7 @@ export function MobileSearchBottomSheet({
     setDateRange?.({ from: dateRange?.from ?? null, to })
   }
 
-  const displayTabs = categoryTabs.length > 0 ? categoryTabs : [
-    { slug: 'property' },
-    { slug: 'vehicles' },
-    { slug: 'yachts' },
-    { slug: 'tours' },
-  ]
+  const displayTabs = categoryTabs
 
   const sectionLabel = (ru, en) => language === 'ru' ? ru : en
 
@@ -201,20 +197,33 @@ export function MobileSearchBottomSheet({
             <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 scrollbar-none">
               {displayTabs.map((tab) => {
                 const active = category === tab.slug
+                const comingSoon = tab.isComingSoon === true
                 return (
                   <button
                     key={tab.slug}
                     type="button"
-                    onClick={() => setCategory?.(tab.slug)}
+                    onClick={() => {
+                      if (typeof onCategoryTabClick === 'function') {
+                        onCategoryTabClick(tab)
+                        return
+                      }
+                      setCategory?.(tab.slug)
+                    }}
                     data-testid={`mobile-search-category-${tab.slug}`}
                     className={cn(
                       'shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-150 active:scale-95',
                       active
                         ? 'border-[#006666] bg-[#006666] text-white shadow-[0_4px_12px_rgba(0,102,102,0.28)]'
                         : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-teal-300 hover:bg-white',
+                      tab.isPreview === true && 'opacity-50',
                     )}
                   >
                     {getCategoryName(tab.slug, language, tab.name)}
+                    {comingSoon ? (
+                      <span className={cn('ml-2 rounded-full px-1.5 py-0.5 text-[10px]', active ? 'bg-white/20' : 'bg-amber-100 text-amber-700')}>
+                        {language === 'ru' ? 'Скоро' : 'Soon'}
+                      </span>
+                    ) : null}
                   </button>
                 )
               })}

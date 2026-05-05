@@ -85,6 +85,8 @@ export default function CategoriesPage() {
     icon: '',
     parentId: '',
     wizardProfile: '_none',
+    isComingSoon: false,
+    isPreviewOnly: false,
   });
   const [editForm, setEditForm] = useState({
     id: '',
@@ -94,6 +96,8 @@ export default function CategoriesPage() {
     parentId: '',
     wizardProfile: '_none',
     order: 0,
+    isComingSoon: false,
+    isPreviewOnly: false,
   });
 
   const [localTranslations, setLocalTranslations] = useState(() => {
@@ -153,10 +157,13 @@ export default function CategoriesPage() {
           slug: c.slug,
           icon: c.icon || '📦',
           isActive: c.isActive !== false,
+          isComingSoon: c.isComingSoon === true,
+          isPreviewOnly: c.isPreviewOnly === true,
           order: c.order ?? 0,
           parentId: c.parentId ?? null,
           wizardProfile: c.wizardProfile ?? null,
           nameI18n: c.nameI18n ?? null,
+          waitlistLeads: Number(c.waitlistLeads || 0),
         })),
       );
     } catch (error) {
@@ -204,6 +211,8 @@ export default function CategoriesPage() {
           icon: newCategory.icon || '📦',
           parentId: newCategory.parentId || null,
           wizardProfile: wizardPayloadFromSelect(newCategory.wizardProfile),
+          isComingSoon: newCategory.isComingSoon === true,
+          isPreviewOnly: newCategory.isPreviewOnly === true,
           order: categories.length + 1,
         }),
       });
@@ -215,7 +224,7 @@ export default function CategoriesPage() {
       toast.success(`${newCategory.name} добавлена`);
       setShowAddModal(false);
       setNewCategory({
-        name: '', slug: '', icon: '', parentId: '', wizardProfile: '_none',
+        name: '', slug: '', icon: '', parentId: '', wizardProfile: '_none', isComingSoon: false, isPreviewOnly: false,
       });
       loadCategories();
     } catch {
@@ -232,6 +241,8 @@ export default function CategoriesPage() {
       parentId: category.parentId || '',
       wizardProfile: wizardSelectValue(category.wizardProfile),
       order: category.order ?? 0,
+      isComingSoon: category.isComingSoon === true,
+      isPreviewOnly: category.isPreviewOnly === true,
     });
     setShowEditModal(true);
   }, []);
@@ -254,6 +265,8 @@ export default function CategoriesPage() {
           parentId: editForm.parentId || null,
           wizardProfile: wizardPayloadFromSelect(editForm.wizardProfile),
           order: editForm.order,
+          isComingSoon: editForm.isComingSoon === true,
+          isPreviewOnly: editForm.isPreviewOnly === true,
         }),
       });
       const json = await res.json().catch(() => ({}));
@@ -457,6 +470,9 @@ export default function CategoriesPage() {
                       </h3>
                       <p className="font-mono text-xs text-gray-500">/{category.slug}</p>
                       <div className="mt-1 flex flex-wrap gap-1">
+                        <Badge variant="outline" className="text-[10px] text-teal-700 border-teal-300">
+                          Интересуются: {Number(category.waitlistLeads || 0)}
+                        </Badge>
                         {category.wizardProfile ? (
                           <Badge variant="secondary" className="text-[10px]">
                             {category.wizardProfile}
@@ -469,6 +485,12 @@ export default function CategoriesPage() {
                         ) : null}
                       </div>
                       <div className="mt-1 flex flex-wrap gap-1">
+                        {category.isComingSoon ? (
+                          <Badge variant="outline" className="text-[10px] text-amber-700 border-amber-300">coming soon</Badge>
+                        ) : null}
+                        {category.isPreviewOnly ? (
+                          <Badge variant="outline" className="text-[10px] text-purple-700 border-purple-300">preview only</Badge>
+                        ) : null}
                         {supportedLanguages.map((lang) => {
                           const trans = localTranslations[category.slug?.toLowerCase()];
                           const hasTranslation = trans?.[lang.code];
@@ -507,7 +529,7 @@ export default function CategoriesPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-3">
                       <Button
                         variant="outline"
                         size="sm"
@@ -526,10 +548,53 @@ export default function CategoriesPage() {
                       >
                         <Languages className="w-4 h-4" />
                       </Button>
-                      <Switch
-                        checked={category.isActive}
-                        onCheckedChange={() => handleToggle(category.id, category.isActive)}
-                      />
+                      <div className="flex items-center gap-2">
+                        <Label className="text-[10px] text-amber-700">Скоро</Label>
+                        <Switch
+                          checked={category.isComingSoon === true}
+                          onCheckedChange={async (next) => {
+                            const res = await fetch('/api/v2/admin/categories', {
+                              method: 'PATCH',
+                              credentials: 'include',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: category.id, isComingSoon: next }),
+                            });
+                            const json = await res.json().catch(() => ({}));
+                            if (!res.ok) {
+                              toast.error(json.error || 'Не удалось обновить coming soon');
+                              return;
+                            }
+                            loadCategories();
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-[10px] text-purple-700">Предпросмотр</Label>
+                        <Switch
+                          checked={category.isPreviewOnly === true}
+                          onCheckedChange={async (next) => {
+                            const res = await fetch('/api/v2/admin/categories', {
+                              method: 'PATCH',
+                              credentials: 'include',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: category.id, isPreviewOnly: next }),
+                            });
+                            const json = await res.json().catch(() => ({}));
+                            if (!res.ok) {
+                              toast.error(json.error || 'Не удалось обновить preview');
+                              return;
+                            }
+                            loadCategories();
+                          }}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-[10px] text-gray-700">Активна</Label>
+                        <Switch
+                          checked={category.isActive}
+                          onCheckedChange={() => handleToggle(category.id, category.isActive)}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -596,6 +661,26 @@ export default function CategoriesPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-amber-700">Скоро (coming soon)</Label>
+                <div className="mt-2">
+                  <Switch
+                    checked={newCategory.isComingSoon === true}
+                    onCheckedChange={(v) => setNewCategory({ ...newCategory, isComingSoon: v })}
+                  />
+                </div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-purple-700">Предпросмотр (admin)</Label>
+                <div className="mt-2">
+                  <Switch
+                    checked={newCategory.isPreviewOnly === true}
+                    onCheckedChange={(v) => setNewCategory({ ...newCategory, isPreviewOnly: v })}
+                  />
+                </div>
+              </div>
             </div>
             <div>
               <Label>Иконка (emoji)</Label>
@@ -679,6 +764,26 @@ export default function CategoriesPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-amber-700">Скоро (coming soon)</Label>
+                <div className="mt-2">
+                  <Switch
+                    checked={editForm.isComingSoon === true}
+                    onCheckedChange={(v) => setEditForm({ ...editForm, isComingSoon: v })}
+                  />
+                </div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <Label className="text-xs text-purple-700">Предпросмотр (admin)</Label>
+                <div className="mt-2">
+                  <Switch
+                    checked={editForm.isPreviewOnly === true}
+                    onCheckedChange={(v) => setEditForm({ ...editForm, isPreviewOnly: v })}
+                  />
+                </div>
+              </div>
             </div>
             <div>
               <Label>Иконка</Label>

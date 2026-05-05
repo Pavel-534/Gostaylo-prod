@@ -14,17 +14,13 @@
 
 import { NextResponse } from 'next/server'
 import { invalidateGeoSchemaCache, getGeoSchemaState } from '@/lib/api/geo-schema-probe'
+import { requireAccess } from '@/lib/security/access-guard'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request) {
-  const requiredToken = process.env.ADMIN_REFRESH_TOKEN
-  if (requiredToken) {
-    const provided = request.headers.get('x-admin-token')
-    if (provided !== requiredToken) {
-      return NextResponse.json({ success: false, error: 'unauthorized' }, { status: 401 })
-    }
-  }
+  const access = await requireAccess({ roles: ['ADMIN'] })
+  if (access.error) return access.error
 
   invalidateGeoSchemaCache()
   const fresh = await getGeoSchemaState()

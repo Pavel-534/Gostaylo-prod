@@ -14,14 +14,6 @@ import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { HOME_CATEGORY_ICONS } from './home-constants'
 
-/** SSOT fallback-вкладки до ответа API — устраняет «пустой» Hero. */
-const STATIC_FALLBACK_TABS = [
-  { slug: 'property' },
-  { slug: 'vehicles' },
-  { slug: 'yachts' },
-  { slug: 'tours' },
-]
-
 /**
  * Базовый стиль 60-px поля (Apple/Airbnb-уровень).
  * Все 4 элемента ряда (Where / Dates / Guests / CTA) используют ту же высоту, тот же
@@ -59,6 +51,7 @@ export function HomeHeroLuxe({
   liveCount = null,
   countLoading = false,
   heroTitle = null,
+  onCategoryTabClick,
 }) {
   const [locations, setLocations] = useState(getStaticLocationsSeed)
   const [locationsLoading, setLocationsLoading] = useState(true)
@@ -75,7 +68,7 @@ export function HomeHeroLuxe({
 
   const whereOptionsFull = useMemo(() => buildWhereOptions(locations, language), [locations, language])
 
-  const displayTabs = categoryTabs.length > 0 ? categoryTabs : STATIC_FALLBACK_TABS
+  const displayTabs = categoryTabs
   const tabsReady = categoryTabs.length > 0
 
   const handleSearchClick = () => {
@@ -129,25 +122,53 @@ export function HomeHeroLuxe({
             {displayTabs.map((tab) => {
               const active = category === tab.slug
               const Icon = HOME_CATEGORY_ICONS[tab.slug] || Home
+              const comingSoon = tab.isComingSoon === true
+              const previewOnly = tab.isPreview === true
               return (
                 <button
                   key={tab.slug}
                   type="button"
-                  onClick={() => setCategory?.(tab.slug)}
+                  onClick={() => {
+                    if (typeof onCategoryTabClick === 'function') {
+                      onCategoryTabClick(tab)
+                      return
+                    }
+                    setCategory?.(tab.slug)
+                  }}
                   aria-pressed={active}
                   className={cn(
                     'inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-sm font-semibold tracking-tight transition-all duration-200',
                     active
                       ? 'border-[#006666] bg-[#006666] text-white shadow-[0_8px_22px_-6px_rgba(0,102,102,0.55)]'
                       : 'border-slate-200/90 bg-white/95 text-slate-700 hover:border-[#006666]/60 hover:text-[#006666]',
+                    previewOnly && 'opacity-50',
                     !tabsReady && 'animate-pulse opacity-60',
                   )}
                 >
                   <Icon className={cn('h-4 w-4', active ? 'text-white' : 'text-[#006666]')} />
                   {getCategoryName(tab.slug, language, tab.name)}
+                  {comingSoon ? (
+                    <span
+                      className={cn(
+                        'rounded-full border px-1.5 py-0.5 text-[10px] leading-none',
+                        active ? 'border-white/70 text-white' : 'border-amber-300 bg-amber-50 text-amber-700',
+                      )}
+                    >
+                      {language === 'ru' ? 'Скоро' : 'Soon'}
+                    </span>
+                  ) : null}
                 </button>
               )
             })}
+            {!tabsReady ? (
+              Array.from({ length: 3 }).map((_, idx) => (
+                <div
+                  key={`hero-cat-skeleton-${idx}`}
+                  className="h-10 w-28 animate-pulse rounded-2xl border border-slate-200/90 bg-white/70"
+                  aria-hidden
+                />
+              ))
+            ) : null}
           </div>
 
           {/* Keyword row — то же 60px, slate-900 текст */}

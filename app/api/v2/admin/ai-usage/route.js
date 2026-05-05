@@ -4,41 +4,19 @@
  */
 
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import jwt from 'jsonwebtoken'
 import { sumGlobalAiCostUsdForMonth } from '@/lib/ai/usage-log'
-import { getJwtSecret } from '@/lib/auth/jwt-secret'
+import { requireAccess } from '@/lib/security/access-guard'
 
 export const dynamic = 'force-dynamic'
 
-function verifyAdminOnly() {
-  let secret
-  try {
-    secret = getJwtSecret()
-  } catch (e) {
-    return { error: NextResponse.json({ success: false, error: e.message }, { status: 500 }) }
-  }
-
-  const cookieStore = cookies()
-  const sessionCookie = cookieStore.get('gostaylo_session')
-  if (!sessionCookie?.value) {
-    return { error: NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 }) }
-  }
-  try {
-    const decoded = jwt.verify(sessionCookie.value, secret)
-    if (decoded.role !== 'ADMIN') {
-      return {
-        error: NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 }),
-      }
-    }
-    return { ok: true }
-  } catch {
-    return { error: NextResponse.json({ success: false, error: 'Invalid session' }, { status: 401 }) }
-  }
+async function verifyAdminOnly() {
+  const access = await requireAccess({ roles: ['ADMIN'] })
+  if (access.error) return { error: access.error }
+  return { ok: true }
 }
 
 export async function GET() {
-  const auth = verifyAdminOnly()
+  const auth = await verifyAdminOnly()
   if (auth.error) return auth.error
 
   const now = new Date()

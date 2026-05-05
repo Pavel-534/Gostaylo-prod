@@ -6,9 +6,13 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { supabaseAdmin } from '@/lib/supabase';
+import { requireAccess } from '@/lib/security/access-guard';
 
 export async function GET(request) {
   try {
+    const access = await requireAccess({ roles: ['ADMIN'] });
+    if (access.error) return access.error;
+
     // Get user counts by role
     const { data: profiles } = await supabaseAdmin
       .from('profiles')

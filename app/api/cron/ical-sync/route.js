@@ -19,6 +19,7 @@ import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
+const ICAL_SYNC_LISTING_STATUSES = ['PENDING', 'ACTIVE', 'BOOKED', 'INACTIVE', 'REJECTED']
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -59,7 +60,7 @@ async function runSync() {
     .from('listings')
     .select('id, sync_settings')
     .not('sync_settings', 'is', null)
-    .neq('status', 'DELETED')
+    .in('status', ICAL_SYNC_LISTING_STATUSES)
 
   if (error) {
     console.error('[ICAL-SYNC] Failed to fetch listings:', error)

@@ -4,19 +4,14 @@
 
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { resolveAdminSecurityProfile } from '@/lib/admin-security-access'
+import { requireAccess } from '@/lib/security/access-guard'
 import { attachPartnerTrustToBookings } from '@/lib/booking/attach-partner-trust-to-bookings'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(_request, { params }) {
-  const session = await resolveAdminSecurityProfile()
-  if (session.error) {
-    return NextResponse.json(
-      { success: false, error: session.error.message },
-      { status: session.error.status },
-    )
-  }
+  const access = await requireAccess({ roles: ['ADMIN'] })
+  if (access.error) return access.error
 
   const bookingId = String(params?.id || '').trim()
   if (!bookingId || !supabaseAdmin) {

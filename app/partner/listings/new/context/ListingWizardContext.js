@@ -224,10 +224,11 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
   useEffect(() => {
     async function loadInitialData() {
       try {
-        const catRes = await fetch('/api/v2/categories')
+        const catRes = await fetch('/api/v2/categories', { cache: 'no-store' })
         const catData = await catRes.json()
         if (catData.success) {
-          setCategories(catData.data || [])
+          const activeOnly = (catData.data || []).filter((c) => c && c.isActive !== false)
+          setCategories(activeOnly)
         }
         let userId = localStorage.getItem('gostaylo_user_id')
         if (!userId) {

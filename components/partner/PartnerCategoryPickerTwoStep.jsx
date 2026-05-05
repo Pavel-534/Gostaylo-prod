@@ -28,9 +28,11 @@ export function PartnerCategoryPickerTwoStep({
   const filtered = useMemo(() => {
     const st = listingServiceType
     if (!st) return []
-    return categories.filter((c) =>
-      categorySlugMatchesListingServiceType(String(c.slug), st, c.wizardProfile ?? c.wizard_profile),
-    )
+    return categories
+      .filter((c) => c && c.isActive !== false && c.is_active !== false)
+      .filter((c) =>
+        categorySlugMatchesListingServiceType(String(c.slug), st, c.wizardProfile ?? c.wizard_profile),
+      )
   }, [categories, listingServiceType])
 
   const roots = useMemo(

@@ -20,6 +20,7 @@ import { getUIText, getAuthErrorMessage } from '@/lib/translations';
 import { isAuthPasswordCompliant, AUTH_PASSWORD_MIN_LENGTH } from '@/lib/auth/password-policy';
 import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow';
 import { getOAuthBrowserSupabase, getOAuthRedirectOrigin } from '@/lib/supabase/oauth-browser-client';
+import { safeInternalPath } from '@/lib/security/safe-internal-path';
 
 function GoogleBrandGlyph({ className = 'h-5 w-5' }) {
   return (
@@ -423,7 +424,10 @@ export function AuthProvider({ children }) {
                                 currentPath.startsWith('/admin/') ||
                                 currentPath.startsWith('/renter/');
       
-      const customRedirect = savedRedirect || (stayOnCurrentPage ? currentPath : null);
+      const customRedirect =
+        savedRedirect || stayOnCurrentPage
+          ? safeInternalPath(savedRedirect || currentPath, '/')
+          : null;
       
       const result = await signIn(email.toLowerCase().trim(), password, customRedirect);
       
@@ -454,11 +458,11 @@ export function AuthProvider({ children }) {
       
       // Redirect priority: savedRedirect > stayOnCurrentPage > result.redirectTo
       if (savedRedirect) {
-        router.push(savedRedirect);
+        router.push(safeInternalPath(savedRedirect, '/'));
       } else if (stayOnCurrentPage) {
         router.refresh();
       } else if (result.redirectTo) {
-        router.push(result.redirectTo);
+        router.push(safeInternalPath(result.redirectTo, '/'));
       }
       
     } catch (err) {

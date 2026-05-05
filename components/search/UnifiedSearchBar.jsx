@@ -83,10 +83,13 @@ export function UnifiedSearchBar({
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false)
 
   useEffect(() => {
-    fetch('/api/v2/categories')
+    fetch('/api/v2/categories', { cache: 'no-store' })
       .then((r) => r.json())
       .then((catRes) => {
-        if (catRes.success && catRes.data) setCategories(catRes.data)
+        if (catRes.success && catRes.data) {
+          const activeOnly = (catRes.data || []).filter((c) => c && c.isActive !== false)
+          setCategories(activeOnly)
+        }
       })
       .catch(() => {})
   }, [])

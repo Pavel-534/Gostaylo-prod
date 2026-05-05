@@ -6,39 +6,18 @@
  */
 
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import jwt from 'jsonwebtoken'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getJwtSecret } from '@/lib/auth/jwt-secret'
 import { verifyTelegramBanLinkToken } from '@/lib/auth/telegram-ban-link'
+import { requireAccess } from '@/lib/security/access-guard'
 
 export const dynamic = 'force-dynamic'
 
 const BAN_DURATION = '876600h' // ~100 years
 
-function verifyAdminSession() {
-  let secret
-  try {
-    secret = getJwtSecret()
-  } catch (e) {
-    return { error: NextResponse.json({ success: false, error: e.message }, { status: 500 }) }
-  }
-  const cookieStore = cookies()
-  const sessionCookie = cookieStore.get('gostaylo_session')
-  if (!sessionCookie?.value) {
-    return { error: NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 }) }
-  }
-  try {
-    const decoded = jwt.verify(sessionCookie.value, secret)
-    if (decoded.role !== 'ADMIN') {
-      return {
-        error: NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 }),
-      }
-    }
-    return { adminId: decoded.userId }
-  } catch {
-    return { error: NextResponse.json({ success: false, error: 'Invalid session' }, { status: 401 }) }
-  }
+async function verifyAdminSession() {
+  const access = await requireAccess({ roles: ['ADMIN'] })
+  if (access.error) return { error: access.error }
+  return { adminId: access.profile?.id || null }
 }
 
 async function assertTargetBanOk(userId) {
@@ -123,7 +102,7 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'userId required' }, { status: 400 })
   }
 
-  const admin = verifyAdminSession()
+  const admin = await verifyAdminSession()
   const linkToken = body.banToken != null ? String(body.banToken).trim() : ''
   const parsedLink = linkToken ? verifyTelegramBanLinkToken(linkToken) : null
 

@@ -18,6 +18,7 @@ import {
 } from '@/lib/auth/app-session-issue';
 import { supabaseAdmin } from '@/lib/supabase';
 import { upsertOAuthProfile } from '@/lib/services/auth/oauth-profile-sync.service';
+import { safeInternalPath } from '@/lib/security/safe-internal-path';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,12 +36,6 @@ function logDebugStep(step, detail) {
   } else {
     console.log(`[AUTH CALLBACK] ${step}`);
   }
-}
-
-function safeInternalPath(raw) {
-  const s = typeof raw === 'string' ? raw.trim() : '';
-  if (!s.startsWith('/') || s.startsWith('//')) return '/profile/';
-  return s.endsWith('/') ? s : `${s}/`;
 }
 
 function redirectToOAuthError(origin, reason) {
@@ -140,16 +135,12 @@ export async function GET(request) {
   }
 
   if (!sync.ok || !sync.profile) {
-    const reason =
-      typeof sync.error === 'string' && sync.error.trim()
-        ? sync.error.trim().slice(0, 500)
-        : 'sync_failed';
     console.error('[AUTH CALLBACK SYNC ERROR]', {
       error: sync.error,
       ok: sync.ok,
       hasProfile: Boolean(sync.profile),
     });
-    return redirectToOAuthError(origin, reason);
+    return redirectToOAuthError(origin, 'sync');
   }
 
   const destination =

@@ -31,6 +31,7 @@ import {
   BadgeCheck,
   Gavel,
   Ticket,
+  Mail,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -119,6 +120,7 @@ export default function AdminLayout({ children }) {
     { href: '/admin/security', icon: ShieldAlert, label: 'Безопасность', moderatorAccess: false },
     { href: '/admin/audit-export', icon: FileDown, label: 'Выгрузки', moderatorAccess: false },
     { href: '/admin/categories', icon: Layers, label: 'Категории', moderatorAccess: true },
+    { href: '/admin/waitlist', icon: Mail, label: 'Waitlist', moderatorAccess: false },
     { href: '/admin/ai-usage', icon: Sparkles, label: 'Расходы AI', moderatorAccess: false },
     { href: '/admin/settings', icon: Settings, label: 'Настройки', moderatorAccess: false },
     { href: '/admin/test-db', icon: Database, label: 'Test DB', moderatorAccess: true },

@@ -5,24 +5,14 @@
 
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getSessionPayload } from '@/lib/services/session-service'
+import { requireAccess } from '@/lib/security/access-guard'
 
 export const dynamic = 'force-dynamic'
 
 async function requireAdmin() {
-  const session = await getSessionPayload()
-  if (!session?.userId) return { error: 'Unauthorized', status: 401 }
-
-  const { data, error } = await supabaseAdmin
-    .from('profiles')
-    .select('role')
-    .eq('id', session.userId)
-    .maybeSingle()
-  if (error) return { error: error.message, status: 500 }
-  if (String(data?.role || '').toUpperCase() !== 'ADMIN') {
-    return { error: 'Admin access required', status: 403 }
-  }
-  return { userId: session.userId }
+  const access = await requireAccess({ roles: ['ADMIN'] })
+  if (access.error) return { response: access.error }
+  return { userId: access.profile.id }
 }
 
 function mapRow(c) {
@@ -34,6 +24,8 @@ function mapRow(c) {
     icon: c.icon ?? null,
     order: c.order ?? 0,
     isActive: c.is_active !== false,
+    isComingSoon: c.is_coming_soon === true,
+    isPreviewOnly: c.is_preview_only === true,
     wizardProfile: c.wizard_profile ?? null,
     parentId: c.parent_id ?? null,
     nameI18n: c.name_i18n && typeof c.name_i18n === 'object' ? c.name_i18n : null,
@@ -55,8 +47,8 @@ const WIZARD_PROFILE_OPTIONS = [
 
 export async function GET() {
   const auth = await requireAdmin()
-  if (auth.error) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
+  if (auth.response) {
+    return auth.response
   }
 
   const { data, error } = await supabaseAdmin
@@ -68,22 +60,41 @@ export async function GET() {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 
+  const { data: waitlistRows, error: waitlistError } = await supabaseAdmin
+    .from('leads_waiting_list')
+    .select('category_slug')
+
+  if (waitlistError) {
+    return NextResponse.json({ success: false, error: waitlistError.message }, { status: 500 })
+  }
+
+  const waitlistCountBySlug = (waitlistRows || []).reduce((acc, row) => {
+    const slug = String(row?.category_slug || '').trim().toLowerCase()
+    if (!slug) return acc
+    acc[slug] = (acc[slug] || 0) + 1
+    return acc
+  }, {})
+
   return NextResponse.json({
     success: true,
-    data: (data || []).map(mapRow),
+    data: (data || []).map((row) => {
+      const mapped = mapRow(row)
+      mapped.waitlistLeads = Number(waitlistCountBySlug[String(mapped.slug || '').toLowerCase()] || 0)
+      return mapped
+    }),
     wizardProfileOptions: WIZARD_PROFILE_OPTIONS.filter(Boolean),
   })
 }
 
 export async function POST(request) {
   const auth = await requireAdmin()
-  if (auth.error) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
+  if (auth.response) {
+    return auth.response
   }
 
   try {
     const body = await request.json()
-    const { name, slug, icon, description, order, parentId, wizardProfile, nameI18n } = body
+    const { name, slug, icon, description, order, parentId, wizardProfile, nameI18n, isComingSoon, isPreviewOnly } = body
 
     if (!name || !slug) {
       return NextResponse.json(
@@ -115,6 +126,8 @@ export async function POST(request) {
       description: description ?? null,
       order: Number.isFinite(Number(order)) ? Number(order) : 0,
       is_active: true,
+      is_coming_soon: isComingSoon === true,
+      is_preview_only: isPreviewOnly === true,
       parent_id: pid,
       wizard_profile: wp,
       ...(ni && Object.keys(ni).length ? { name_i18n: ni } : {}),
@@ -139,13 +152,26 @@ export async function POST(request) {
 
 export async function PATCH(request) {
   const auth = await requireAdmin()
-  if (auth.error) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
+  if (auth.response) {
+    return auth.response
   }
 
   try {
     const body = await request.json()
-    const { id, name, slug, icon, description, order, parentId, wizardProfile, isActive, nameI18n } = body
+    const {
+      id,
+      name,
+      slug,
+      icon,
+      description,
+      order,
+      parentId,
+      wizardProfile,
+      isActive,
+      isComingSoon,
+      isPreviewOnly,
+      nameI18n,
+    } = body
 
     if (!id) {
       return NextResponse.json({ success: false, error: 'Missing id' }, { status: 400 })
@@ -159,6 +185,8 @@ export async function PATCH(request) {
     if (description !== undefined) patch.description = description
     if (order !== undefined && Number.isFinite(Number(order))) patch.order = Number(order)
     if (isActive !== undefined) patch.is_active = Boolean(isActive)
+    if (isComingSoon !== undefined) patch.is_coming_soon = Boolean(isComingSoon)
+    if (isPreviewOnly !== undefined) patch.is_preview_only = Boolean(isPreviewOnly)
 
     if (parentId !== undefined) {
       const pid = parentId && String(parentId).trim() ? String(parentId).trim() : null

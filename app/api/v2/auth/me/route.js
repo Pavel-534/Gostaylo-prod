@@ -11,6 +11,11 @@ import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { stripLegacyModeratorMarker } from '@/lib/auth/display-name';
 import { buildCommonProfileUpdates } from '@/lib/validation/profile-schema';
+import {
+  clearGostayloSessionCookie,
+  signJwtForProfile,
+  attachGostayloSessionCookie,
+} from '@/lib/auth/app-session-issue';
 export const dynamic = 'force-dynamic';
 
 function mapRowToClientUser(user, dbRole) {
@@ -133,7 +138,7 @@ export async function GET() {
       { success: false, user: null, error: 'Account suspended' },
       { status: 403 },
     );
-    res.cookies.delete('gostaylo_session');
+    clearGostayloSessionCookie(res);
     return res;
   }
 
@@ -149,25 +154,8 @@ export async function GET() {
   const res = NextResponse.json(payload);
 
   if (needsJwtRefresh) {
-    const token = jwt.sign(
-      {
-        userId: user.id,
-        email: user.email,
-        role: dbRole,
-        firstName: user.first_name,
-      },
-      jwtSecret,
-      { expiresIn: '30d' }
-    );
-    const secureCookie =
-      process.env.NODE_ENV === 'production' || process.env.FORCE_SECURE_COOKIES === 'true';
-    res.cookies.set('gostaylo_session', token, {
-      httpOnly: true,
-      secure: secureCookie,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30,
-      path: '/',
-    });
+    const token = signJwtForProfile(user, jwtSecret);
+    attachGostayloSessionCookie(res, token);
   }
 
   return res;

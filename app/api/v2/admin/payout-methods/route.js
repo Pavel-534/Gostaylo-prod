@@ -1,33 +1,22 @@
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getSessionPayload } from '@/lib/services/session-service'
 import { PayoutRailsService } from '@/lib/services/payout-rails.service'
+import { requireAccess } from '@/lib/security/access-guard'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 async function requireAdmin() {
-  const session = await getSessionPayload()
-  if (!session?.userId) return { error: 'Unauthorized', status: 401 }
-
-  const { data, error } = await supabaseAdmin
-    .from('profiles')
-    .select('role')
-    .eq('id', session.userId)
-    .maybeSingle()
-  if (error) return { error: error.message, status: 500 }
-
-  if (String(data?.role || '').toUpperCase() !== 'ADMIN') {
-    return { error: 'Admin access required', status: 403 }
-  }
-  return { userId: session.userId }
+  const access = await requireAccess({ roles: ['ADMIN'] })
+  if (access.error) return { error: access.error }
+  return { userId: access.profile?.id || null }
 }
 
 export async function GET() {
   const auth = await requireAdmin()
   if (auth.error) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
+    return auth.error
   }
 
   try {
@@ -44,7 +33,7 @@ export async function GET() {
 export async function POST(request) {
   const auth = await requireAdmin()
   if (auth.error) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
+    return auth.error
   }
 
   try {
@@ -78,7 +67,7 @@ export async function POST(request) {
 export async function PUT(request) {
   const auth = await requireAdmin()
   if (auth.error) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
+    return auth.error
   }
 
   try {
@@ -119,7 +108,7 @@ export async function PUT(request) {
 export async function DELETE(request) {
   const auth = await requireAdmin()
   if (auth.error) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status })
+    return auth.error
   }
 
   try {

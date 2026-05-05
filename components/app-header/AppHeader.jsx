@@ -181,7 +181,12 @@ export function AppHeader({
               )}
             >
               <div className="flex items-center gap-3">
-                <AirentoLogo compact label={logoLabel} scrolled={scrolled} />
+                <AirentoLogo
+                  compact
+                  label={logoLabel}
+                  scrolled={scrolled}
+                  hideLabelOnMobile={isPublic}
+                />
                 {isPublic && (
                   <>
                     <span className="hidden sm:block h-8 w-px bg-slate-200" />
@@ -258,7 +263,7 @@ export function AppHeader({
           )}
 
           {/* RIGHT */}
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {isWorkspace && (
               <Link
                 href="/"
@@ -270,10 +275,17 @@ export function AppHeader({
               </Link>
             )}
 
-            <div className={cn(isWorkspace && 'hidden sm:block')}>
-              <LangSwitcher />
+            <div className="shrink-0">
+              <LangSwitcher size={isWorkspace ? 'compact' : 'default'} />
             </div>
-            <CurrencySelector value={currency} onChange={setCurrency} />
+            <div className="shrink-0">
+              <CurrencySelector
+                value={currency}
+                onChange={setCurrency}
+                compact={isWorkspace}
+                className={isWorkspace ? 'px-1.5 sm:px-2' : ''}
+              />
+            </div>
 
             {user ? <div className={cn(isWorkspace && 'hidden sm:block')}><HeaderWalletCompact /></div> : null}
 

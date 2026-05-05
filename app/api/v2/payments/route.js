@@ -8,8 +8,17 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { PaymentsV3Service, PaymentStatus, PaymentMethod } from '@/lib/services/payments-v3.service';
+import { requireAccess } from '@/lib/security/access-guard';
+
+async function requireAdminAccess() {
+  const access = await requireAccess({ roles: ['ADMIN'] });
+  if (access.error) return access.error;
+  return null;
+}
 
 export async function GET(request) {
+  const denied = await requireAdminAccess();
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);
     
@@ -70,6 +79,8 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
+  const denied = await requireAdminAccess();
+  if (denied) return denied;
   try {
     const body = await request.json();
     const { action, paymentId, verificationData, reason } = body;

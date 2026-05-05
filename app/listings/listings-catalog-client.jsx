@@ -143,10 +143,13 @@ function ListingsContent() {
   const [semanticSiteEnabled, setSemanticSiteEnabled] = useState(true)
 
   useEffect(() => {
-    fetch('/api/v2/categories')
+    fetch('/api/v2/categories', { cache: 'no-store' })
       .then((r) => r.json())
       .then((j) => {
-        if (j.success && Array.isArray(j.data)) setCatalogCategories(j.data)
+        if (j.success && Array.isArray(j.data)) {
+          const activeOnly = j.data.filter((c) => c && c.isActive !== false)
+          setCatalogCategories(activeOnly)
+        }
       })
       .catch(() => {})
   }, [])

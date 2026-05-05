@@ -10,6 +10,10 @@ import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { getPublicSiteUrl } from '@/lib/site-url.js';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import {
+  attachGostayloSessionCookie,
+  signJwtForProfile,
+} from '@/lib/auth/app-session-issue';
 
 export const dynamic = 'force-dynamic';
 
@@ -86,30 +90,21 @@ export async function GET(request) {
   
   const role = String(user.role || 'RENTER').toUpperCase();
 
-  // Generate session JWT (30 days)
-  const sessionToken = jwt.sign(
+  // Generate app session JWT using central TTL/cookie policy.
+  const sessionToken = signJwtForProfile(
     {
-      userId: user.id,
+      id: user.id,
       email: user.email,
       role,
-      firstName: user.first_name
+      first_name: user.first_name,
     },
     jwtSecret,
-    { expiresIn: '30d' }
   );
   
   // Create redirect response with success message
   const response = NextResponse.redirect(`${siteBase}/?verified=success`);
 
-  const secureCookie =
-    process.env.NODE_ENV === 'production' || process.env.FORCE_SECURE_COOKIES === 'true'
-  response.cookies.set('gostaylo_session', sessionToken, {
-    httpOnly: true,
-    secure: secureCookie,
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 30,
-    path: '/',
-  });
+  attachGostayloSessionCookie(response, sessionToken);
   
   return response;
 }

@@ -6,20 +6,13 @@
  */
 
 import { NextResponse } from 'next/server';
+import { clearGostayloSessionCookie } from '@/lib/auth/app-session-issue';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST() {
   const response = NextResponse.json({ success: true });
-  
-  // Clear the session cookie
-  response.cookies.set('gostaylo_session', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 0,
-    path: '/'
-  });
+  clearGostayloSessionCookie(response);
   
   return response;
 }

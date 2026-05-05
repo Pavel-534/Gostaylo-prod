@@ -4,8 +4,6 @@
  */
 
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import jwt from 'jsonwebtoken'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getAiUsageDashboardData, TASK_EMBEDDING, TASK_LISTING_DESCRIPTION } from '@/lib/ai/usage-log'
 import { LISTING_STATUSES_ELIGIBLE_FOR_EMBEDDING } from '@/lib/ai/listing-embedding-policy'
@@ -13,36 +11,16 @@ import {
   getSemanticSearchSiteEnabled,
   setSemanticSearchSiteEnabled,
 } from '@/lib/ai/site-search-settings'
-import { getJwtSecret } from '@/lib/auth/jwt-secret'
+import { requireAccess } from '@/lib/security/access-guard'
 
 export const dynamic = 'force-dynamic'
 
 const PERIODS = new Set(['today', '7d', 'month', 'all'])
 
-function verifyAdminOnly() {
-  let secret
-  try {
-    secret = getJwtSecret()
-  } catch (e) {
-    return { error: NextResponse.json({ success: false, error: e.message }, { status: 500 }) }
-  }
-
-  const cookieStore = cookies()
-  const sessionCookie = cookieStore.get('gostaylo_session')
-  if (!sessionCookie?.value) {
-    return { error: NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 }) }
-  }
-  try {
-    const decoded = jwt.verify(sessionCookie.value, secret)
-    if (decoded.role !== 'ADMIN') {
-      return {
-        error: NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 }),
-      }
-    }
-    return { ok: true }
-  } catch {
-    return { error: NextResponse.json({ success: false, error: 'Invalid session' }, { status: 401 }) }
-  }
+async function verifyAdminOnly() {
+  const access = await requireAccess({ roles: ['ADMIN'] })
+  if (access.error) return { error: access.error }
+  return { ok: true }
 }
 
 async function getListingAiStats() {
@@ -77,7 +55,7 @@ async function getListingAiStats() {
 }
 
 export async function GET(request) {
-  const auth = verifyAdminOnly()
+  const auth = await verifyAdminOnly()
   if (auth.error) return auth.error
 
   const { searchParams } = new URL(request.url)
@@ -111,7 +89,7 @@ export async function GET(request) {
 }
 
 export async function PATCH(request) {
-  const auth = verifyAdminOnly()
+  const auth = await verifyAdminOnly()
   if (auth.error) return auth.error
 
   let body

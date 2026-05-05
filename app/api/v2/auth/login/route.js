@@ -2,7 +2,7 @@
  * GoStayLo - Auth Login API (v2)
  * POST /api/v2/auth/login
  *
- * Security: bcrypt-only passwords, JWT in HttpOnly cookie (30 days).
+ * Security: bcrypt-only passwords, JWT in HttpOnly cookie (7 days).
  * Errors: `error_code` only (no localized `error` string) — see ARCHITECTURAL_DECISIONS.md.
  */
 
@@ -17,6 +17,7 @@ import {
   signJwtForProfile,
 } from '@/lib/auth/app-session-issue';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
+import { safeInternalPath } from '@/lib/security/safe-internal-path';
 
 export const dynamic = 'force-dynamic';
 
@@ -120,7 +121,10 @@ export async function POST(request) {
 
   const token = signJwtForProfile(user, jwtSecret);
 
-  const redirectTo = requestedRedirect || ROLE_REDIRECTS[role] || '/';
+  const redirectTo = safeInternalPath(
+    requestedRedirect || ROLE_REDIRECTS[role] || '/',
+    ROLE_REDIRECTS[role] || '/',
+  );
 
   const response = NextResponse.json({
     success: true,

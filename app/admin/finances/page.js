@@ -14,9 +14,6 @@ import {
   ExternalLink, RefreshCw, Clock, DollarSign, AlertCircle, Eye
 } from 'lucide-react'
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
 // Payment method config
 const PAYMENT_METHODS = {
   CRYPTO: { label: 'Crypto (USDT)', icon: Wallet, color: 'amber' },
@@ -52,10 +49,15 @@ export default function FinancePage() {
   const [processing, setProcessing] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [showRejectModal, setShowRejectModal] = useState(false)
+  const [adaptersHealth, setAdaptersHealth] = useState(null)
 
   useEffect(() => {
     loadPayments()
   }, [activeFilter])
+
+  useEffect(() => {
+    loadAdaptersHealth()
+  }, [])
 
   async function loadPayments() {
     setLoading(true)
@@ -87,6 +89,20 @@ export default function FinancePage() {
       toast({ title: 'Ошибка', description: 'Не удалось загрузить платежи', variant: 'destructive' })
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function loadAdaptersHealth() {
+    try {
+      const res = await fetch('/api/v2/admin/payment-adapters/health', { cache: 'no-store' })
+      const data = await res.json()
+      if (res.ok && data?.success) {
+        setAdaptersHealth(data.data || null)
+      } else {
+        setAdaptersHealth(null)
+      }
+    } catch {
+      setAdaptersHealth(null)
     }
   }
 
@@ -216,6 +232,26 @@ export default function FinancePage() {
               Финансы
             </h1>
             <p className="text-slate-600 mt-1">Управление платежами и верификация</p>
+            {adaptersHealth && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                <Badge
+                  variant="outline"
+                  className={
+                    adaptersHealth.overallMode === 'LIVE_MODE'
+                      ? 'border-emerald-300 text-emerald-700'
+                      : 'border-amber-300 text-amber-700'
+                  }
+                >
+                  Режим: {adaptersHealth.overallMode === 'LIVE_MODE' ? 'Боевой' : 'Симуляция (MOCK_MODE)'}
+                </Badge>
+                <Badge variant="outline">
+                  CARD_INTL: {adaptersHealth?.adapters?.CARD_INTL?.runtimeMode || 'UNKNOWN'}
+                </Badge>
+                <Badge variant="outline">
+                  MIR_RU: {adaptersHealth?.adapters?.MIR_RU?.runtimeMode || 'UNKNOWN'}
+                </Badge>
+              </div>
+            )}
           </div>
           <Button onClick={loadPayments} variant="outline" size="sm">
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
