@@ -1,13 +1,12 @@
 /**
  * Supabase OAuth (PKCE) callback — merges auth.users ↔ profiles, выдаёт gostaylo_session JWT.
  *
- * Redirect URLs в Supabase Dashboard: `${SITE}/auth/callback` (см. TECHNICAL_MANIFESTO Stage 79.0).
+ * PKCE: `exchangeCodeForSession(code)` (supabase-js v2) бьётся в GoTrue `/token?grant_type=pkce` с
+ * `code_verifier` из кук сессии. Явного `redirect_uri` в API нет; критично, чтобы
+ * - в Dashboard был разрешён **тот же** URL, что `redirectTo` в `signInWithOAuth` (см. `contexts/auth-context.jsx` — `${origin}/auth/callback/`);
+ * - старт OAuth и этот callback были **одного host** (без путаницы www / apex).
  *
- * Диагностика: в development логируется этап (code / exchange / sync / cookie).
- * На production задайте `AUTH_CALLBACK_DEBUG=1`, чтобы включить те же console.log.
- *
- * Важно: Supabase записывает свои куки в объект `response` через `exchangeCodeForSession`;
- * `gostaylo_session` добавляется в тот же экземпляр до `return` — браузер получает один 302 со всеми Set-Cookie.
+ * `AUTH_CALLBACK_DEBUG=1` — детальные console.log (и на production).
  */
 
 import { NextResponse } from 'next/server';
@@ -22,14 +21,20 @@ import { upsertOAuthProfile } from '@/lib/services/auth/oauth-profile-sync.servi
 
 export const dynamic = 'force-dynamic';
 
+/** Должен совпадать с `new URL(\`${origin}/auth/callback/\`)` на клиенте. */
+const OAUTH_CALLBACK_PATH = '/auth/callback/';
+
 function authCallbackDebugEnabled() {
   return process.env.AUTH_CALLBACK_DEBUG === '1' || process.env.NODE_ENV !== 'production';
 }
 
-/** @param {unknown[]} args */
-function dbg(...args) {
+function logDebugStep(step, detail) {
   if (!authCallbackDebugEnabled()) return;
-  console.log('[AUTH CALLBACK]', ...args);
+  if (detail !== undefined) {
+    console.log(`[AUTH CALLBACK] ${step}`, detail);
+  } else {
+    console.log(`[AUTH CALLBACK] ${step}`);
+  }
 }
 
 function safeInternalPath(raw) {
@@ -38,39 +43,44 @@ function safeInternalPath(raw) {
   return s.endsWith('/') ? s : `${s}/`;
 }
 
+function redirectToOAuthError(origin, reason) {
+  return NextResponse.redirect(
+    `${origin}/auth/oauth-error/?reason=${encodeURIComponent(String(reason))}`,
+  );
+}
+
 export async function GET(request) {
   const urlObj = new URL(request.url);
   const origin = urlObj.origin;
   const code = urlObj.searchParams.get('code');
   const rawNext = urlObj.searchParams.get('next');
+  const canonicalCallbackUrl = new URL(OAUTH_CALLBACK_PATH, origin).href;
 
-  dbg('request', {
-    origin,
+  logDebugStep('[Received Code]', {
     hasCode: Boolean(code),
     codeLength: code?.length ?? 0,
     next: rawNext,
+    canonicalCallbackUrl,
+    host: request.headers.get('host') || '(missing)',
   });
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !anonKey) {
-    dbg('abort: missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY');
-    return NextResponse.redirect(`${origin}/auth/oauth-error/?reason=config`);
+    return redirectToOAuthError(origin, 'config');
   }
   if (!supabaseAdmin) {
-    dbg('abort: supabaseAdmin not configured');
-    return NextResponse.redirect(`${origin}/auth/oauth-error/?reason=config`);
+    return redirectToOAuthError(origin, 'config');
   }
 
   if (!code) {
-    dbg('abort: no ?code= from provider (check redirect URL / flow)');
-    return NextResponse.redirect(`${origin}/auth/oauth-error/?reason=no_code`);
+    return redirectToOAuthError(origin, 'no_code');
   }
 
   const oauthLegalAccepted = request.cookies.get('gostaylo_oauth_legal')?.value === '1';
 
   const defaultPath = `${origin}${safeInternalPath(rawNext || '/profile/')}`;
-  /** Один объект ответа на весь успешный путь: сюда же пишутся куки Supabase и `gostaylo_session`. */
+  /** Один ответ: сюда пишутся куки Supabase (PKCE) и `gostaylo_session`. */
   let response = NextResponse.redirect(defaultPath, 302);
 
   const supabase = createServerClient(supabaseUrl, anonKey, {
@@ -86,15 +96,18 @@ export async function GET(request) {
     },
   });
 
-  dbg('calling exchangeCodeForSession');
-  const { error: exchErr } = await supabase.auth.exchangeCodeForSession(code);
-  if (exchErr) {
-    console.error('[AUTH CALLBACK] exchangeCodeForSession failed:', exchErr.message);
-    dbg('abort: exchange failed (PKCE verifier missing/wrong host is a common cause)');
-    /** Новый ответ — намеренно без частичных кук от `response` выше. */
-    return NextResponse.redirect(`${origin}/auth/oauth-error/?reason=exchange`);
+  try {
+    const { error: exchErr } = await supabase.auth.exchangeCodeForSession(code);
+    if (exchErr) {
+      console.error('[AUTH CALLBACK] exchangeCodeForSession failed:', exchErr.message);
+      return redirectToOAuthError(origin, 'exchange');
+    }
+  } catch (e) {
+    console.error('[AUTH CALLBACK] exchangeCodeForSession exception:', e);
+    return redirectToOAuthError(origin, 'exchange');
   }
-  dbg('exchangeCodeForSession OK');
+
+  logDebugStep('[Exchange Success]');
 
   const {
     data: { session },
@@ -102,23 +115,19 @@ export async function GET(request) {
   const authUser = session?.user;
   if (!authUser) {
     console.error('[AUTH CALLBACK] getSession returned no user after exchange');
-    dbg('abort: no_session');
-    return NextResponse.redirect(`${origin}/auth/oauth-error/?reason=no_session`);
+    return redirectToOAuthError(origin, 'no_session');
   }
-  dbg('supabase session user', { id: authUser.id, hasEmail: Boolean(authUser?.email) });
 
   let jwtSecret;
   try {
     jwtSecret = getJwtSecret();
   } catch (e) {
     console.error('[AUTH CALLBACK] JWT_SECRET missing:', e?.message || e);
-    dbg('abort: jwt');
-    return NextResponse.redirect(`${origin}/auth/oauth-error/?reason=jwt`);
+    return redirectToOAuthError(origin, 'jwt');
   }
 
   let sync;
   try {
-    dbg('upsertOAuthProfile start');
     sync = await upsertOAuthProfile({
       supabaseAdmin,
       authUser,
@@ -126,22 +135,21 @@ export async function GET(request) {
       request,
     });
   } catch (e) {
-    console.error('[AUTH CALLBACK] upsertOAuthProfile threw:', e);
-    dbg('abort: sync exception');
-    return NextResponse.redirect(`${origin}/auth/oauth-error/?reason=sync_exception`);
+    console.error('[AUTH CALLBACK SYNC ERROR]', e);
+    return redirectToOAuthError(origin, 'sync_exception');
   }
 
-  dbg('upsertOAuthProfile result', {
-    ok: sync.ok,
-    error: sync.error || null,
-    needsLegalCompletion: Boolean(sync.needsLegalCompletion),
-    hasProfile: Boolean(sync.profile),
-  });
-
   if (!sync.ok || !sync.profile) {
-    return NextResponse.redirect(
-      `${origin}/auth/oauth-error/?reason=${encodeURIComponent(sync.error || 'sync_failed')}`,
-    );
+    const reason =
+      typeof sync.error === 'string' && sync.error.trim()
+        ? sync.error.trim().slice(0, 500)
+        : 'sync_failed';
+    console.error('[AUTH CALLBACK SYNC ERROR]', {
+      error: sync.error,
+      ok: sync.ok,
+      hasProfile: Boolean(sync.profile),
+    });
+    return redirectToOAuthError(origin, reason);
   }
 
   const destination =
@@ -152,16 +160,29 @@ export async function GET(request) {
   response.headers.set('Location', destination);
 
   const token = signJwtForProfile(sync.profile, jwtSecret);
+  logDebugStep('[JWT Generated]', { length: token?.length ?? 0 });
+
   attachGostayloSessionCookie(response, token);
+
+  const secureForLog =
+    process.env.NODE_ENV === 'production' ||
+    process.env.VERCEL === '1' ||
+    process.env.FORCE_SECURE_COOKIES === 'true';
+  logDebugStep('[Cookie Attached]', {
+    name: 'gostaylo_session',
+    path: '/',
+    httpOnly: true,
+    secure: secureForLog,
+    sameSite: 'lax',
+  });
 
   response.cookies.set('gostaylo_pending_ref', '', { path: '/', maxAge: 0, sameSite: 'lax' });
   response.cookies.set('gostaylo_oauth_legal', '', { path: '/', maxAge: 0, sameSite: 'lax' });
 
   const attached = response.cookies.get('gostaylo_session');
-  dbg('success redirect', {
+  logDebugStep('[Redirect]', {
     destination,
     gostayloSessionCookieSet: Boolean(attached?.value),
-    tokenLength: token?.length ?? 0,
   });
 
   return response;
