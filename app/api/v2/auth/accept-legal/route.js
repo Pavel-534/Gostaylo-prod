@@ -9,6 +9,11 @@ import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 
 export const dynamic = 'force-dynamic';
 
+function isMissingTermsColumnsError(err) {
+  const msg = String(err?.message || '').toLowerCase();
+  return err?.code === '42703' || msg.includes('terms_accepted');
+}
+
 export async function POST(request) {
   const session = await getSessionPayload();
   if (!session?.userId) {
@@ -29,11 +34,24 @@ export async function POST(request) {
     return authErrorJson(AuthErrorCode.AUTH_LEGAL_TERMS_NOT_ACCEPTED, 400);
   }
 
-  const { data: before, error: beforeErr } = await supabaseAdmin
+  let before = null;
+  let beforeErr = null;
+  let hasTermsColumns = true;
+
+  ({ data: before, error: beforeErr } = await supabaseAdmin
     .from('profiles')
     .select('legal_terms_accepted_at, terms_accepted, terms_accepted_at')
     .eq('id', session.userId)
-    .maybeSingle();
+    .maybeSingle());
+
+  if (beforeErr && isMissingTermsColumnsError(beforeErr)) {
+    hasTermsColumns = false;
+    ({ data: before, error: beforeErr } = await supabaseAdmin
+      .from('profiles')
+      .select('legal_terms_accepted_at')
+      .eq('id', session.userId)
+      .maybeSingle());
+  }
 
   if (beforeErr) {
     return authErrorJson(AuthErrorCode.AUTH_INTERNAL, 500);
@@ -53,17 +71,35 @@ export async function POST(request) {
   }
 
   const iso = new Date().toISOString();
-  const { error } = await supabaseAdmin
-    .from('profiles')
-    .update({
-      terms_accepted: true,
-      terms_accepted_at: iso,
-      legal_terms_accepted_at: iso,
-      updated_at: iso,
-    })
-    .eq('id', session.userId);
+  const updatePayload = hasTermsColumns
+    ? {
+        terms_accepted: true,
+        terms_accepted_at: iso,
+        legal_terms_accepted_at: iso,
+        updated_at: iso,
+      }
+    : {
+        legal_terms_accepted_at: iso,
+        updated_at: iso,
+      };
+  const { error } = await supabaseAdmin.from('profiles').update(updatePayload).eq('id', session.userId);
 
   if (error) {
+    // Idempotent fallback: параллельный запрос мог успеть записать согласие первым.
+    const { data: after, error: afterErr } = await supabaseAdmin
+      .from('profiles')
+      .select('legal_terms_accepted_at')
+      .eq('id', session.userId)
+      .maybeSingle();
+    if (!afterErr && after?.legal_terms_accepted_at) {
+      return NextResponse.json({
+        success: true,
+        termsAccepted: true,
+        termsAcceptedAt: after.legal_terms_accepted_at,
+        legalTermsAcceptedAt: after.legal_terms_accepted_at,
+        updated: false,
+      });
+    }
     return authErrorJson(AuthErrorCode.AUTH_INTERNAL, 500);
   }
 

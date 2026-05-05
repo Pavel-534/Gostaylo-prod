@@ -16,7 +16,7 @@ import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckbox
 
 export default function CompleteLegalPage() {
   const router = useRouter()
-  const { loading, user, refreshUserFromServer } = useAuth()
+  const { loading, user, updateUser, refreshUserFromServer } = useAuth()
   const { language } = useI18n()
   const [checked, setChecked] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -55,6 +55,18 @@ export default function CompleteLegalPage() {
         )
         return
       }
+      const acceptedAt = json?.termsAcceptedAt || json?.legalTermsAcceptedAt || new Date().toISOString()
+      if (user) {
+        updateUser({
+          ...user,
+          termsAccepted: true,
+          terms_accepted: true,
+          termsAcceptedAt: acceptedAt,
+          terms_accepted_at: acceptedAt,
+          legalTermsAcceptedAt: acceptedAt,
+          legal_terms_accepted_at: acceptedAt,
+        })
+      }
       await refreshUserFromServer()
       try {
         window.dispatchEvent(new CustomEvent('gostaylo-close-auth-modal'))
@@ -68,7 +80,11 @@ export default function CompleteLegalPage() {
     } finally {
       setBusy(false)
     }
-  }, [checked, language, refreshUserFromServer, router])
+  }, [checked, language, refreshUserFromServer, router, updateUser, user])
+
+  if (loading) {
+    return <main className='min-h-screen bg-slate-50' />
+  }
 
   if (!loading && !user) {
     return (
