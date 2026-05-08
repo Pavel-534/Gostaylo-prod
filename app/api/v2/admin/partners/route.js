@@ -7,12 +7,10 @@
  */
 
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
-import jwt from 'jsonwebtoken';
 import { getPublicSiteUrl, getSiteDisplayName } from '@/lib/site-url.js';
-import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
+import { requireAccess } from '@/lib/security/access-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,31 +18,10 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const APP_URL = getPublicSiteUrl();
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
-// Verify admin access
-function verifyAdmin(request) {
-  let secret;
-  try {
-    secret = getJwtSecret();
-  } catch (e) {
-    return { error: e.message, status: 500 };
-  }
-
-  const cookieStore = cookies();
-  const sessionCookie = cookieStore.get('gostaylo_session');
-
-  if (!sessionCookie?.value) {
-    return { error: 'Unauthorized', status: 401 };
-  }
-
-  try {
-    const decoded = jwt.verify(sessionCookie.value, secret);
-    if (decoded.role !== 'ADMIN') {
-      return { error: 'Admin access required', status: 403 };
-    }
-    return { userId: decoded.userId, role: decoded.role };
-  } catch (e) {
-    return { error: 'Invalid session', status: 401 };
-  }
+async function verifyAdmin() {
+  const access = await requireAccess({ roles: ['ADMIN'] });
+  if (access.error) return { error: access.error };
+  return { userId: String(access.profile?.id || '') };
 }
 
 // Send email via Resend
@@ -116,9 +93,9 @@ async function sendTelegramToUser(telegramId, message) {
  * GET - List pending partner applications from partner_applications table
  */
 export async function GET(request) {
-  const auth = verifyAdmin(request);
+  const auth = await verifyAdmin();
   if (auth.error) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+    return auth.error;
   }
   
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -185,9 +162,9 @@ export async function GET(request) {
  * Updates both partner_applications and profiles tables
  */
 export async function POST(request) {
-  const auth = verifyAdmin(request);
+  const auth = await verifyAdmin();
   if (auth.error) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+    return auth.error;
   }
   
   let body;

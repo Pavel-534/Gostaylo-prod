@@ -4,37 +4,17 @@
  */
 
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import jwt from 'jsonwebtoken';
 import * as XLSX from 'xlsx';
 import { supabaseAdmin } from '@/lib/supabase';
-import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { requireAccess } from '@/lib/security/access-guard';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-function verifyAdmin() {
-  let secret;
-  try {
-    secret = getJwtSecret();
-  } catch (e) {
-    return { error: e.message, status: 500 };
-  }
-
-  const cookieStore = cookies();
-  const sessionCookie = cookieStore.get('gostaylo_session');
-  if (!sessionCookie?.value) {
-    return { error: 'Unauthorized', status: 401 };
-  }
-  try {
-    const decoded = jwt.verify(sessionCookie.value, secret);
-    if (decoded.role !== 'ADMIN') {
-      return { error: 'Admin access required', status: 403 };
-    }
-    return { ok: true };
-  } catch {
-    return { error: 'Invalid session', status: 401 };
-  }
+async function verifyAdmin() {
+  const access = await requireAccess({ roles: ['ADMIN'] });
+  if (access.error) return { error: access.error };
+  return { ok: true };
 }
 
 function csvEscape(value) {
@@ -82,9 +62,9 @@ function dayBoundsUtc(isoDate) {
 }
 
 export async function GET(request) {
-  const auth = verifyAdmin();
+  const auth = await verifyAdmin();
   if (auth.error) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+    return auth.error;
   }
 
   if (!supabaseAdmin) {

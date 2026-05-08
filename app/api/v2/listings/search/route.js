@@ -8,6 +8,9 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { runListingsSearchGet } from '@/lib/api/run-listings-search-get';
+import { supabaseAdmin } from '@/lib/supabase';
+import { requireAccess } from '@/lib/security/access-guard';
+import { normalizeListingCategorySlugForSearch } from '@/lib/listing-category-slug';
 
 const DEFAULT_BROWSE_LIMIT = 12;
 
@@ -111,8 +114,35 @@ function emptyOkResponse() {
   });
 }
 
+async function shouldHideCategoryForPublic(url) {
+  const rawCategory = url.searchParams.get('category');
+  const normalized = String(normalizeListingCategorySlugForSearch(rawCategory || 'all') || 'all')
+    .toLowerCase()
+    .trim();
+  if (!normalized || normalized === 'all') return false;
+  if (!supabaseAdmin) return false;
+
+  const { data: category, error } = await supabaseAdmin
+    .from('categories')
+    .select('id,is_active,is_preview_only')
+    .eq('slug', normalized)
+    .maybeSingle();
+
+  if (error || !category) return false;
+
+  const hiddenForPublic = category.is_active === false || category.is_preview_only === true;
+  if (!hiddenForPublic) return false;
+
+  const access = await requireAccess({ roles: ['ADMIN'] });
+  return !!access.error;
+}
+
 export async function GET(request) {
   const url = mergeQueryForListingsRoute(new URL(request.url));
+  const hiddenForPublic = await shouldHideCategoryForPublic(url);
+  if (hiddenForPublic) {
+    return emptyOkResponse();
+  }
   const forward = new Request(url.toString(), { method: 'GET', headers: request.headers });
 
   try {

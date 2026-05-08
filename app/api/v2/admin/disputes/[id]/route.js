@@ -1,28 +1,15 @@
 import { NextResponse } from 'next/server'
-import { getSessionPayload } from '@/lib/services/session-service'
 import { supabaseAdmin } from '@/lib/supabase'
 import { toUnifiedOrder } from '@/lib/models/unified-order'
 import { normalizeEmbeddedListingBooking } from '@/lib/services/booking/query.service'
+import { requireAccess } from '@/lib/security/access-guard'
 
 export const dynamic = 'force-dynamic'
 
-async function verifyStaff(userId) {
-  const { data } = await supabaseAdmin.from('profiles').select('id, role').eq('id', userId).maybeSingle()
-  const role = String(data?.role || '').toUpperCase()
-  if (!data?.id || !['ADMIN', 'MODERATOR'].includes(role)) return null
-  return { id: String(data.id), role }
-}
-
 export async function GET(_request, { params }) {
   try {
-    const session = await getSessionPayload()
-    if (!session?.userId) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    }
-    const staff = await verifyStaff(session.userId)
-    if (!staff) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
-    }
+    const access = await requireAccess({ roles: ['ADMIN'] })
+    if (access.error) return access.error
 
     const disputeId = String(params?.id || '').trim()
     if (!disputeId) {

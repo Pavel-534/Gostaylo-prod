@@ -189,6 +189,10 @@ export async function POST(request, { params }) {
       })
       .eq('id', bookingId)
 
+    if (initiated.isTestMode === true) {
+      console.warn(`⚠️ ВНИМАНИЕ: Проведен тестовый платеж (MOCK_MODE) для брони ${bookingId}`)
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -204,6 +208,7 @@ export async function POST(request, { params }) {
         provider: initiated.provider,
         checkoutUrl: initiated.checkoutUrl,
         metadata: initiated.providerPayload || null,
+        isTestMode: initiated.isTestMode === true,
         walletUseAppliedThb,
       },
     })

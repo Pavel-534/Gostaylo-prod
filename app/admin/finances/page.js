@@ -37,6 +37,20 @@ const STATUS_CONFIG = {
   REFUNDED: { label: 'Возврат', color: 'bg-gray-100 text-gray-800', icon: RefreshCw }
 }
 
+function isTestPaymentRow(payment) {
+  if (!payment || typeof payment !== 'object') return false
+  if (payment.isTestMode === true || payment.is_test_mode === true) return true
+  const mode = String(
+    payment?.metadata?.provider_payload?.mode ||
+      payment?.provider_payload?.mode ||
+      payment?.providerPayload?.mode ||
+      '',
+  )
+    .toLowerCase()
+    .trim()
+  return mode.includes('mock')
+}
+
 export default function FinancePage() {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
@@ -383,11 +397,14 @@ export default function FinancePage() {
                   const statusConfig = STATUS_CONFIG[payment.status] || STATUS_CONFIG.PENDING
                   const StatusIcon = statusConfig.icon
                   const MethodIcon = methodConfig.icon
+                  const isTestPayment = isTestPaymentRow(payment)
 
                   return (
                     <Card 
                       key={payment.id} 
-                      className={`bg-white/90 backdrop-blur hover:shadow-lg transition-shadow cursor-pointer ${
+                      className={`backdrop-blur hover:shadow-lg transition-shadow cursor-pointer ${
+                        isTestPayment ? 'bg-slate-50/95 border-slate-300' : 'bg-white/90'
+                      } ${
                         payment.status === 'PENDING' ? 'border-l-4 border-l-yellow-500' : ''
                       }`}
                       onClick={() => setSelectedPayment(payment)}
@@ -406,6 +423,13 @@ export default function FinancePage() {
                               <p className="text-sm text-slate-600">
                                 {payment.booking?.guest_name || 'Гость'} • {methodConfig.label}
                               </p>
+                              {isTestPayment && (
+                                <div className="mt-1">
+                                  <Badge variant="outline" className="border-slate-400 text-slate-700">
+                                    ТЕСТ
+                                  </Badge>
+                                </div>
+                              )}
                               {payment.txid && (
                                 <p className="text-xs text-slate-500 font-mono truncate max-w-[200px]">
                                   TXID: {payment.txid.substring(0, 20)}...
@@ -476,9 +500,16 @@ export default function FinancePage() {
                   <Badge className={STATUS_CONFIG[selectedPayment.status]?.color || 'bg-gray-100'}>
                     {STATUS_CONFIG[selectedPayment.status]?.label || selectedPayment.status}
                   </Badge>
-                  <Badge variant="outline">
-                    {PAYMENT_METHODS[selectedPayment.payment_method]?.label || selectedPayment.payment_method}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    {isTestPaymentRow(selectedPayment) && (
+                      <Badge variant="outline" className="border-slate-400 text-slate-700">
+                        ТЕСТ
+                      </Badge>
+                    )}
+                    <Badge variant="outline">
+                      {PAYMENT_METHODS[selectedPayment.payment_method]?.label || selectedPayment.payment_method}
+                    </Badge>
+                  </div>
                 </div>
 
                 {/* Booking Info */}

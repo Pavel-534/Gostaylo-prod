@@ -227,7 +227,9 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
         const catRes = await fetch('/api/v2/categories', { cache: 'no-store' })
         const catData = await catRes.json()
         if (catData.success) {
-          const activeOnly = (catData.data || []).filter((c) => c && c.isActive !== false)
+          const activeOnly = (catData.data || []).filter(
+            (c) => c && (c.isActive === true || c.is_active === true),
+          )
           setCategories(activeOnly)
         }
         let userId = localStorage.getItem('gostaylo_user_id')

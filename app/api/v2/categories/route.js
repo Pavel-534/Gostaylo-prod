@@ -78,7 +78,7 @@ export async function GET(request) {
     let query = supabaseAdmin.from('categories').select('*').order('order', { ascending: true })
 
     if (!forceAllForAdmin && !isAdminRequest) {
-      query = query.or('is_active.eq.true,is_coming_soon.eq.true')
+      query = query.eq('is_active', true)
       query = query.eq('is_preview_only', false)
     }
 

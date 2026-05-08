@@ -29,7 +29,7 @@ export function PartnerCategoryPickerTwoStep({
     const st = listingServiceType
     if (!st) return []
     return categories
-      .filter((c) => c && c.isActive !== false && c.is_active !== false)
+      .filter((c) => c && (c.isActive === true || c.is_active === true))
       .filter((c) =>
         categorySlugMatchesListingServiceType(String(c.slug), st, c.wizardProfile ?? c.wizard_profile),
       )

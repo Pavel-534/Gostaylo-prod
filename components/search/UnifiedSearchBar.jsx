@@ -87,7 +87,9 @@ export function UnifiedSearchBar({
       .then((r) => r.json())
       .then((catRes) => {
         if (catRes.success && catRes.data) {
-          const activeOnly = (catRes.data || []).filter((c) => c && c.isActive !== false)
+          const activeOnly = (catRes.data || []).filter(
+            (c) => c && (c.isActive === true || c.is_active === true),
+          )
           setCategories(activeOnly)
         }
       })

@@ -1,19 +1,8 @@
 import { NextResponse } from 'next/server'
-import { getSessionPayload } from '@/lib/services/session-service'
 import { supabaseAdmin } from '@/lib/supabase'
+import { requireAccess } from '@/lib/security/access-guard'
 
 export const dynamic = 'force-dynamic'
-
-async function verifyStaff(userId) {
-  const { data } = await supabaseAdmin
-    .from('profiles')
-    .select('id, role')
-    .eq('id', userId)
-    .maybeSingle()
-  const role = String(data?.role || '').toUpperCase()
-  if (!data?.id || !['ADMIN', 'MODERATOR'].includes(role)) return null
-  return { id: String(data.id), role }
-}
 
 async function fetchDisputeSnapshot(disputeId) {
   const { data } = await supabaseAdmin
@@ -43,15 +32,9 @@ const TERMINAL_STATUSES = new Set(['RESOLVED', 'CLOSED', 'REJECTED'])
 
 export async function POST(request, { params }) {
   try {
-    const session = await getSessionPayload()
-    if (!session?.userId) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const staff = await verifyStaff(session.userId)
-    if (!staff) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
-    }
+    const access = await requireAccess({ roles: ['ADMIN'] })
+    if (access.error) return access.error
+    const staff = { id: String(access.profile?.id || '') }
 
     const disputeId = String(params?.id || '').trim()
     if (!disputeId) {

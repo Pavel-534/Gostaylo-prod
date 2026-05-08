@@ -1,29 +1,19 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
-import { getSessionPayload } from '@/lib/services/session-service';
 import ReferralPnlService from '@/lib/services/marketing/referral-pnl.service';
+import { requireAccess } from '@/lib/security/access-guard';
 
 export const dynamic = 'force-dynamic';
 
 async function requireAdmin() {
-  const session = await getSessionPayload();
-  if (!session?.userId) return { error: 'Unauthorized', status: 401 };
-  const { data, error } = await supabaseAdmin
-    .from('profiles')
-    .select('role')
-    .eq('id', session.userId)
-    .maybeSingle();
-  if (error) return { error: error.message, status: 500 };
-  if (String(data?.role || '').toUpperCase() !== 'ADMIN') {
-    return { error: 'Admin access required', status: 403 };
-  }
-  return { ok: true, session };
+  const access = await requireAccess({ roles: ['ADMIN'] });
+  if (access.error) return { error: access.error };
+  return { ok: true, profile: access.profile };
 }
 
 export async function GET() {
   const auth = await requireAdmin();
   if (auth.error) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+    return auth.error;
   }
   try {
     const stats = await ReferralPnlService.getMonitorStats();
@@ -39,7 +29,7 @@ export async function GET() {
 export async function POST(request) {
   const auth = await requireAdmin();
   if (auth.error) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+    return auth.error;
   }
 
   let body = {};
@@ -64,8 +54,8 @@ export async function POST(request) {
       metadata: {
         trigger: 'admin_manual_topup',
         note: String(body?.note || '').slice(0, 500),
-        admin_user_id: auth.session?.userId ? String(auth.session.userId) : null,
-        admin_email: auth.session?.email ? String(auth.session.email).slice(0, 320) : null,
+        admin_user_id: auth.profile?.id ? String(auth.profile.id) : null,
+        admin_email: auth.profile?.email ? String(auth.profile.email).slice(0, 320) : null,
       },
     });
     if (!result.applied) {

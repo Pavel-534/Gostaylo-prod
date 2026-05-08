@@ -109,11 +109,14 @@ export async function POST(request, { params }) {
     }
 
     let captureGuestTotalThb;
+    let isTestModePayment = false;
     if (effectiveIntentId) {
       const ir = await PaymentIntentService.getById(effectiveIntentId);
       if (ir.success && ir.intent && String(ir.intent.bookingId) === String(bookingId)) {
         const n = Number(ir.intent.amountThb);
         if (Number.isFinite(n) && n > 0) captureGuestTotalThb = n;
+        const mode = String(ir.intent?.metadata?.provider_payload?.mode || '').toLowerCase();
+        isTestModePayment = mode.includes('mock');
       }
     }
     if (captureGuestTotalThb == null) {
@@ -149,6 +152,9 @@ export async function POST(request, { params }) {
     console.log(
       `[PAYMENT CONFIRMED] Booking ${bookingId} | PAID_ESCROW | TX: ${txId || 'N/A'} | prev: ${previousStatus}`,
     );
+    if (isTestModePayment) {
+      console.warn(`⚠️ ВНИМАНИЕ: Проведен тестовый платеж (MOCK_MODE) для брони ${bookingId}`);
+    }
 
     let resolvedInvoiceId = invoiceId || null
     if (!resolvedInvoiceId && effectiveIntentId) {

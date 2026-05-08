@@ -68,7 +68,13 @@ export function HomeHeroLuxe({
 
   const whereOptionsFull = useMemo(() => buildWhereOptions(locations, language), [locations, language])
 
-  const displayTabs = categoryTabs
+  const displayTabs = useMemo(
+    () =>
+      (categoryTabs || []).filter(
+        (tab) => tab && (tab.isActive === true || tab.is_active === true),
+      ),
+    [categoryTabs],
+  )
   const tabsReady = categoryTabs.length > 0
 
   const handleSearchClick = () => {

@@ -5,15 +5,13 @@
  */
 
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { createClient } from '@supabase/supabase-js'
-import jwt from 'jsonwebtoken'
-import { getJwtSecret } from '@/lib/auth/jwt-secret'
 import { isIcalSyncSourceEnabled } from '@/lib/ical-sync-source-enabled'
 import {
   insertIcalSyncLog,
   syncIcalSourceToCalendarBlocks,
 } from '@/lib/services/ical-calendar-blocks-sync'
+import { requireAccess } from '@/lib/security/access-guard'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -27,37 +25,10 @@ function getSupabase() {
   return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
 }
 
-function verifyAdmin() {
-  let secret
-  try {
-    secret = getJwtSecret()
-  } catch (e) {
-    return {
-      err: NextResponse.json({ success: false, error: e.message }, { status: 500 }),
-    }
-  }
-
-  const cookieStore = cookies()
-  const session = cookieStore.get('gostaylo_session')
-  if (!session?.value) {
-    return {
-      err: NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 }),
-    }
-  }
-
-  try {
-    const decoded = jwt.verify(session.value, secret)
-    if (decoded.role !== 'ADMIN') {
-      return {
-        err: NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 }),
-      }
-    }
-    return { decoded }
-  } catch {
-    return {
-      err: NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 }),
-    }
-  }
+async function verifyAdmin() {
+  const access = await requireAccess({ roles: ['ADMIN'] })
+  if (access.error) return { err: access.error }
+  return { profile: access.profile }
 }
 
 async function sendTelegramAlert(message) {
@@ -107,7 +78,7 @@ async function syncSource(supabase, listingId, listingTitle, source) {
 }
 
 export async function GET(request) {
-  const v = verifyAdmin()
+  const v = await verifyAdmin()
   if (v.err) return v.err
 
   const { searchParams } = new URL(request.url)
@@ -158,7 +129,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const v = verifyAdmin()
+  const v = await verifyAdmin()
   if (v.err) return v.err
 
   let body

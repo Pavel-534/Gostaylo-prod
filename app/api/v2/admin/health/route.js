@@ -6,8 +6,8 @@
 
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { resolveAdminHealthProfile } from '@/lib/admin-health-access'
 import { formatEmergencyChecklistRu } from '@/lib/emergency-contact-admin-notify'
+import { requireAccess } from '@/lib/security/access-guard'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -95,13 +95,8 @@ function aggregateJob(rows, jobName) {
 }
 
 export async function GET() {
-  const session = await resolveAdminHealthProfile()
-  if (session.error) {
-    return NextResponse.json(
-      { success: false, error: session.error.message },
-      { status: session.error.status },
-    )
-  }
+  const access = await requireAccess({ roles: ['ADMIN'] })
+  if (access.error) return access.error
 
   if (!supabaseAdmin) {
     return NextResponse.json(

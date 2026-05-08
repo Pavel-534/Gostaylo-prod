@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { getSessionPayload } from '@/lib/services/session-service';
 import { PricingService } from '@/lib/services/pricing.service';
+import { requireAccess } from '@/lib/security/access-guard';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,17 +12,8 @@ function round2(value) {
 }
 
 async function requireAdmin() {
-  const session = await getSessionPayload();
-  if (!session?.userId) return { error: 'Unauthorized', status: 401 };
-  const { data, error } = await supabaseAdmin
-    .from('profiles')
-    .select('role')
-    .eq('id', session.userId)
-    .maybeSingle();
-  if (error) return { error: error.message, status: 500 };
-  if (String(data?.role || '').toUpperCase() !== 'ADMIN') {
-    return { error: 'Admin access required', status: 403 };
-  }
+  const access = await requireAccess({ roles: ['ADMIN'] });
+  if (access.error) return { error: access.error };
   return { ok: true };
 }
 
@@ -75,7 +66,7 @@ function toPayoutCandidateRow(wallet, profile, minPayoutThb) {
 export async function GET(request) {
   const auth = await requireAdmin();
   if (auth.error) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+    return auth.error;
   }
   const { searchParams } = new URL(request.url);
   const readyOnly = searchParams.get('readyOnly') === '1' || searchParams.get('readyOnly') === 'true';
@@ -151,7 +142,7 @@ export async function GET(request) {
 export async function PATCH(request) {
   const auth = await requireAdmin();
   if (auth.error) {
-    return NextResponse.json({ success: false, error: auth.error }, { status: auth.status });
+    return auth.error;
   }
   let body = {};
   try {
