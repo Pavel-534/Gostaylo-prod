@@ -159,6 +159,17 @@ export default defineConfig({
       },
     },
     {
+      name: 'checkout-mock-smoke',
+      dependencies: ['setup'],
+      testDir: './tests/e2e',
+      testMatch: '**/checkout-mock-smoke.spec.ts',
+      timeout: 120_000,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: AUTH.user,
+      },
+    },
+    {
       name: 'security-bot',
       testDir: './tests/e2e',
       testMatch: '**/security-bot.spec.ts',

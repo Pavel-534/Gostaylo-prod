@@ -18,6 +18,9 @@
 import { NextResponse } from 'next/server';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js';
+import { supabaseAdmin } from '@/lib/supabase';
+import { BookingService } from '@/lib/services/booking.service';
+import { NotificationEvents, NotificationService } from '@/lib/services/notification.service';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,6 +31,8 @@ const STORAGE_BUCKETS = ['listing-images', 'listings'];
 
 // Draft expiry in days
 const DRAFT_EXPIRY_DAYS = 30;
+const PARTNER_RESPONSE_SLA_HOURS = 24;
+const DEFAULT_INVOICE_EXPIRY_HOURS = 24;
 
 /**
  * Delete images from Supabase Storage for a listing (per-URL; DB trigger also clears prefix on DELETE).
@@ -68,6 +73,171 @@ async function deleteListingImages(listingId, images) {
   }
 
   return { deleted, errors };
+}
+
+function withHoursAgo(hours) {
+  return new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+}
+
+function withHoursAfter(dateIso, hours) {
+  const baseMs = Date.parse(String(dateIso || ''));
+  if (!Number.isFinite(baseMs)) return null;
+  return new Date(baseMs + hours * 60 * 60 * 1000).toISOString();
+}
+
+function resolveInvoiceExpiryIso(invoiceRow) {
+  const meta = invoiceRow?.metadata && typeof invoiceRow.metadata === 'object' ? invoiceRow.metadata : {};
+  const fromMeta = meta?.expires_at || meta?.invoice?.expires_at || null;
+  const fallback = withHoursAfter(invoiceRow?.created_at, DEFAULT_INVOICE_EXPIRY_HOURS);
+  return fromMeta || fallback || null;
+}
+
+async function notifyAutoExpiredBooking(booking) {
+  const listingTitle = booking?.listing?.title || 'Listing';
+  const partner = booking?.partner || {};
+  const guest = booking?.renter || {};
+  const partnerMessage = 'Заявка просрочена и отменена';
+  const guestMessage = 'К сожалению, партнер не ответил. Попробуйте другой вариант';
+
+  await NotificationService.dispatch(NotificationEvents.NEW_MESSAGE, {
+    message: { message: partnerMessage, sender_name: 'System' },
+    recipient: {
+      telegram_id: partner.telegram_id || null,
+      email: partner.email || null,
+      name: `${partner.first_name || ''} ${partner.last_name || ''}`.trim() || 'Partner',
+    },
+    sender: { name: 'System' },
+    listing: { title: listingTitle },
+    conversation: { listing_title: listingTitle },
+  });
+
+  await NotificationService.dispatch(NotificationEvents.NEW_MESSAGE, {
+    message: { message: guestMessage, sender_name: 'System' },
+    recipient: {
+      telegram_id: guest.telegram_id || null,
+      email: guest.email || booking?.guest_email || null,
+      name:
+        `${guest.first_name || ''} ${guest.last_name || ''}`.trim() ||
+        booking?.guest_name ||
+        'Guest',
+    },
+    sender: { name: 'System' },
+    listing: { title: listingTitle },
+    conversation: { listing_title: listingTitle },
+  });
+}
+
+async function processExpiredBookingRequests() {
+  const cutoffIso = withHoursAgo(PARTNER_RESPONSE_SLA_HOURS);
+  const { data: staleRows, error } = await supabaseAdmin
+    .from('bookings')
+    .select(
+      `
+      id,
+      status,
+      metadata,
+      created_at,
+      guest_email,
+      guest_name,
+      renter:renter_id(id,email,telegram_id,first_name,last_name),
+      partner:partner_id(id,email,telegram_id,first_name,last_name),
+      listing:listings(id,title)
+      `,
+    )
+    .in('status', ['PENDING', 'INQUIRY'])
+    .lt('created_at', cutoffIso)
+    .limit(500);
+
+  if (error) {
+    return { success: false, error: error.message, scanned: 0, cancelled: 0, notifyErrors: 0 };
+  }
+
+  let cancelled = 0;
+  let errors = 0;
+  let notifyErrors = 0;
+
+  for (const booking of staleRows || []) {
+    const reasonCode = 'auto_expired_by_partner_sla';
+    const statusResult = await BookingService.updateStatus(booking.id, 'CANCELLED', {
+      reason: reasonCode,
+    });
+    if (!statusResult?.success) {
+      errors++;
+      continue;
+    }
+
+    const prevMeta = booking?.metadata && typeof booking.metadata === 'object' ? booking.metadata : {};
+    const nextMeta = {
+      ...prevMeta,
+      cancel_reason: reasonCode,
+      auto_expired_by_partner_sla_at: new Date().toISOString(),
+    };
+    await supabaseAdmin.from('bookings').update({ metadata: nextMeta }).eq('id', booking.id);
+    cancelled++;
+
+    try {
+      await notifyAutoExpiredBooking(booking);
+    } catch (e) {
+      notifyErrors++;
+      console.warn('[CLEANUP] auto-expired notification failed', booking.id, e?.message);
+    }
+  }
+
+  return {
+    success: true,
+    scanned: (staleRows || []).length,
+    cancelled,
+    errors,
+    notifyErrors,
+    cutoffIso,
+  };
+}
+
+async function processExpiredPendingInvoices() {
+  const nowMs = Date.now();
+  const { data: pendingRows, error } = await supabaseAdmin
+    .from('invoices')
+    .select('id,status,metadata,created_at,updated_at')
+    .eq('status', 'pending')
+    .limit(1000);
+
+  if (error) {
+    return { success: false, error: error.message, scanned: 0, expired: 0 };
+  }
+
+  let expired = 0;
+  let skipped = 0;
+
+  for (const invoice of pendingRows || []) {
+    const expiryIso = resolveInvoiceExpiryIso(invoice);
+    const expiryMs = Date.parse(String(expiryIso || ''));
+    if (!Number.isFinite(expiryMs) || expiryMs > nowMs) {
+      skipped++;
+      continue;
+    }
+    const { error: upErr } = await supabaseAdmin
+      .from('invoices')
+      .update({
+        status: 'expired',
+        updated_at: new Date().toISOString(),
+        metadata: {
+          ...(invoice.metadata && typeof invoice.metadata === 'object' ? invoice.metadata : {}),
+          expired_at: new Date().toISOString(),
+          expired_reason: 'payment_window_elapsed',
+        },
+      })
+      .eq('id', invoice.id)
+      .eq('status', 'pending');
+
+    if (!upErr) expired++;
+  }
+
+  return {
+    success: true,
+    scanned: (pendingRows || []).length,
+    expired,
+    skipped,
+  };
 }
 
 /**
@@ -171,6 +341,9 @@ export async function POST(request) {
       }
     }
     
+    const bookingSla = await processExpiredBookingRequests();
+    const invoiceExpiry = await processExpiredPendingInvoices();
+
     const result = {
       success: true,
       message: `Cleaned up ${deletedCount} expired drafts`,
@@ -181,7 +354,9 @@ export async function POST(request) {
         imagesDeleted: imagesDeletedCount,
         errors: errorCount,
         cutoffDate: cutoffISO,
-        expiryDays: DRAFT_EXPIRY_DAYS
+        expiryDays: DRAFT_EXPIRY_DAYS,
+        bookingSla24h: bookingSla,
+        invoiceExpiry
       },
       deletedIds
     };
@@ -228,6 +403,23 @@ export async function GET(request) {
     
     const allInactive = await listingsRes.json();
     const expiredDrafts = (allInactive || []).filter(l => l.metadata?.is_draft === true);
+    const bookingSlaCutoffIso = withHoursAgo(PARTNER_RESPONSE_SLA_HOURS);
+    const { count: staleBookingCount } = await supabaseAdmin
+      .from('bookings')
+      .select('id', { count: 'exact', head: true })
+      .in('status', ['PENDING', 'INQUIRY'])
+      .lt('created_at', bookingSlaCutoffIso);
+    const { data: pendingInvoices } = await supabaseAdmin
+      .from('invoices')
+      .select('id,metadata,created_at,status')
+      .eq('status', 'pending')
+      .limit(1000);
+    const expiredInvoiceCount = (pendingInvoices || []).reduce((acc, row) => {
+      const expiryIso = resolveInvoiceExpiryIso(row);
+      const expiryMs = Date.parse(String(expiryIso || ''));
+      if (Number.isFinite(expiryMs) && expiryMs < Date.now()) return acc + 1;
+      return acc;
+    }, 0);
     
     // Calculate total storage that would be freed
     const totalImages = expiredDrafts.reduce((sum, d) => sum + (d.images?.length || 0), 0);
@@ -240,7 +432,9 @@ export async function GET(request) {
         expiredDrafts: expiredDrafts.length,
         totalImages: totalImages,
         cutoffDate: cutoffISO,
-        expiryDays: DRAFT_EXPIRY_DAYS
+        expiryDays: DRAFT_EXPIRY_DAYS,
+        staleBookingsByPartnerSla24h: Number(staleBookingCount || 0),
+        expiredPendingInvoices: expiredInvoiceCount,
       },
       drafts: expiredDrafts.map(d => ({
         id: d.id,

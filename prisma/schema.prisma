@@ -138,6 +138,7 @@ model Listing {
   
   // Availability
   available       Boolean       @default(true)
+  cancellationPolicy CancellationPolicy @default(moderate) @map("cancellation_policy")
   instantBooking  Boolean       @default(false) @map("instant_booking")
   minBookingDays  Int           @default(1)
   maxBookingDays  Int?
@@ -631,4 +632,10 @@ enum SeasonType {
   NORMAL    // Normal/base price
   HIGH      // High season
   PEAK      // Peak season (most expensive)
+}
+
+enum CancellationPolicy {
+  flexible
+  moderate
+  strict
 }

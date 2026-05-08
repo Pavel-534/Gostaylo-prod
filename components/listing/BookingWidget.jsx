@@ -7,46 +7,17 @@
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { TimeSelect } from '@/components/ui/time-select'
 import { Star, ArrowRight, MessageCircle, Loader2, Sparkles } from 'lucide-react'
 import { formatPrice, priceRawForTest } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
 import { parseDurationDiscountTiers } from '@/lib/listing/duration-discount-tiers.js'
-import { getListingRentalPeriodMode, isWholeVesselListing } from '@/lib/listing-booking-ui'
-import { isTransportListingCategory } from '@/lib/listing-category-slug'
-import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
+import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
 import { formatRentalSpanLabel } from '@/lib/rental-period-labels'
-import { PlatformCalendar } from '@/components/platform-calendar'
-import { GuestCountStepper } from '@/components/listing/GuestCountStepper'
 import { cn } from '@/lib/utils'
-
-function ChatPreviewBadge({ preview, hasUnread, language }) {
-  if (!preview) return null
-  const label = preview.length > 55 ? preview.slice(0, 55) + '…' : preview
-  return (
-    <div
-      className={`flex items-start gap-1.5 rounded-lg px-2.5 py-1.5 text-xs ${
-        hasUnread
-          ? 'bg-amber-50 border border-amber-200 text-amber-800'
-          : 'bg-slate-50 border border-slate-200 text-slate-500'
-      }`}
-    >
-      {hasUnread && <span className="mt-px h-2 w-2 shrink-0 rounded-full bg-amber-500" />}
-      <span className="leading-tight">
-        {hasUnread
-          ? language === 'ru'
-            ? 'Новый ответ: '
-            : 'New reply: '
-          : language === 'ru'
-            ? 'Последнее: '
-            : 'Last: '}
-        <span className="font-medium">{label}</span>
-      </span>
-    </div>
-  )
-}
+import { useBookingWidgetLogic } from '@/hooks/pricing/useBookingWidgetLogic'
+import { BookingPriceBreakdown } from '@/components/listing/booking/BookingPriceBreakdown'
+import { BookingDateGuestsPicker } from '@/components/listing/booking/BookingDateGuestsPicker'
+import { BookingActionButtons } from '@/components/listing/booking/BookingActionButtons'
 
 function formatSpecialOfferLine(tier, language, rentalPeriodMode) {
   const pct = Math.round(Number(tier.percent) || 0)
@@ -94,188 +65,7 @@ export function DurationDiscountOffersBlock({ discounts, language, rentalPeriodM
   )
 }
 
-function durationStayDiscountLabel(priceCalc, language, rentalPeriodMode) {
-  const min = priceCalc.durationDiscountMinNights
-  const pct = priceCalc.durationDiscountPercent
-  if (!min || !pct) {
-    return language === 'ru' ? 'Скидка за длительность' : 'Length-of-stay discount'
-  }
-  const unit =
-    rentalPeriodMode === 'day'
-      ? language === 'ru'
-        ? 'суток'
-        : language === 'zh'
-          ? '天'
-          : language === 'th'
-            ? 'วัน'
-            : 'days'
-      : language === 'ru'
-        ? 'ночей'
-        : language === 'zh'
-          ? '晚'
-          : language === 'th'
-            ? 'คืน'
-            : 'nights'
-  if (language === 'ru') {
-    return `Скидка за ${min}+ ${unit}`
-  }
-  if (language === 'zh') {
-    return `${min}+${unit}折扣`
-  }
-  if (language === 'th') {
-    return `ส่วนลด ${min}+ ${unit}`
-  }
-  return `Discount (${min}+ ${unit})`
-}
-
-export function PriceBreakdownBlock({ priceCalc, currency, exchangeRates, language, rentalPeriodMode = 'night' }) {
-  if (!priceCalc) return null
-  const baseRaw = priceCalc.baseRawSubtotal
-  const seasonalAdj = priceCalc.seasonalAdjustment
-  const dur = priceCalc.durationDiscountAmount
-  const hasSeasonal = seasonalAdj !== 0 && seasonalAdj != null
-  const hasDur = dur > 0
-  const seasonalIsDiscount = hasSeasonal && seasonalAdj < 0
-  const highlightTotalForDiscount = hasDur || seasonalIsDiscount
-  const baseLineLabel =
-    rentalPeriodMode === 'day'
-      ? getUIText('breakdownBaseTimesDays', language)
-      : language === 'ru'
-        ? 'База × ночей'
-        : 'Base rate × nights'
-
-  return (
-    <div className="space-y-2 pt-4 border-t text-sm">
-      {baseRaw != null && (
-        <div className="flex justify-between gap-2">
-          <span className="text-slate-600">
-            {baseLineLabel}
-          </span>
-          <span
-            className="font-medium tabular-nums"
-            data-test-base-subtotal-value={priceRawForTest(baseRaw, currency, exchangeRates)}
-          >
-            {formatPrice(baseRaw, currency, exchangeRates, language)}
-          </span>
-        </div>
-      )}
-      {hasSeasonal && (
-        <div className="flex justify-between gap-2">
-          <span
-            className={cn(
-              seasonalIsDiscount ? 'font-semibold !text-emerald-600' : 'text-slate-600',
-            )}
-          >
-            {seasonalIsDiscount
-              ? getUIText('breakdownSeasonalDiscount', language)
-              : getUIText('breakdownSeasonalExtra', language)}
-          </span>
-          <span
-            className={cn(
-              'font-semibold tabular-nums',
-              seasonalIsDiscount ? '!text-emerald-600' : 'text-amber-800',
-            )}
-          >
-            {seasonalAdj > 0 ? '+' : ''}
-            {formatPrice(seasonalAdj, currency, exchangeRates, language)}
-          </span>
-        </div>
-      )}
-      {hasDur && (
-        <div className="flex justify-between gap-2">
-          <span className="font-medium text-emerald-600">
-            {durationStayDiscountLabel(priceCalc, language, rentalPeriodMode)}
-          </span>
-          <span className="font-semibold tabular-nums text-emerald-600">
-            −{formatPrice(dur, currency, exchangeRates, language)}
-            {priceCalc.durationDiscountPercent > 0
-              ? ` (${priceCalc.durationDiscountPercent}%)`
-              : ''}
-          </span>
-        </div>
-      )}
-      <div className="flex justify-between gap-2 pt-1">
-        <span className="text-slate-600">{getUIText('subtotal', language)}</span>
-        <span
-          className="font-medium tabular-nums"
-          data-test-subtotal-value={priceRawForTest(
-            priceCalc.subtotalBeforeFee ?? priceCalc.totalPrice,
-            currency,
-            exchangeRates,
-          )}
-          data-test-subtotal-thb={String(
-            Math.round(Number(priceCalc.subtotalBeforeFee ?? priceCalc.totalPrice) || 0),
-          )}
-        >
-          {formatPrice(priceCalc.subtotalBeforeFee ?? priceCalc.totalPrice, currency, exchangeRates, language)}
-        </span>
-      </div>
-      {Number(priceCalc.taxAmountThb) > 0 ? (
-        <div className="flex justify-between gap-2 text-slate-600">
-          <span>
-            {getUIText('orderPrice_taxVatLine', language).replace(
-              /\{\{rate\}\}/g,
-              String(Number(priceCalc.taxRatePercent) || 0),
-            )}
-          </span>
-          <span className="font-medium tabular-nums">
-            {formatPrice(priceCalc.taxAmountThb, currency, exchangeRates, language)}
-          </span>
-        </div>
-      ) : null}
-      {priceCalc.serviceFee > 0 && (
-        <div className="flex justify-between gap-2">
-          <span className="text-slate-600">{getUIText('serviceFee', language)}</span>
-          <span
-            className="font-medium tabular-nums"
-            data-testid="booking-breakdown-service-fee"
-            data-test-fee-value={priceRawForTest(priceCalc.serviceFee, currency, exchangeRates)}
-            data-test-fee-thb={String(Math.round(Number(priceCalc.serviceFee) || 0))}
-          >
-            {formatPrice(priceCalc.serviceFee, currency, exchangeRates, language)}
-          </span>
-        </div>
-      )}
-      <Separator />
-      <div
-        className={cn(
-          'flex justify-between items-baseline gap-2 pt-0.5',
-          highlightTotalForDiscount &&
-            'rounded-lg border border-emerald-200 bg-emerald-50/95 px-2.5 py-2.5 -mx-0.5 shadow-sm',
-        )}
-      >
-        <span
-          className={cn(
-            'shrink-0',
-            highlightTotalForDiscount ? 'text-base font-bold text-emerald-900' : 'text-lg font-bold text-slate-900',
-          )}
-        >
-          {getUIText('total', language)}
-        </span>
-        <span
-          className={cn(
-            'tabular-nums font-bold tracking-tight',
-            highlightTotalForDiscount ? 'text-xl text-emerald-700 sm:text-2xl' : 'text-lg text-slate-900',
-          )}
-          data-testid="booking-price-total"
-          data-test-raw-value={priceRawForTest(priceCalc.finalTotal, currency, exchangeRates)}
-          data-test-total-thb={String(Math.round(Number(priceCalc.finalTotal) || 0))}
-        >
-          {formatPrice(priceCalc.finalTotal, currency, exchangeRates, language)}
-        </span>
-      </div>
-      {priceCalc.partnerPayoutThb != null && Number.isFinite(Number(priceCalc.partnerPayoutThb)) && (
-        <span
-          className="sr-only"
-          data-test-payout-value={priceRawForTest(priceCalc.partnerPayoutThb, currency, exchangeRates)}
-          data-test-payout-thb={String(Math.round(Number(priceCalc.partnerPayoutThb) || 0))}
-        >
-          {priceRawForTest(priceCalc.partnerPayoutThb, currency, exchangeRates)}
-        </span>
-      )}
-    </div>
-  )
-}
+export const PriceBreakdownBlock = BookingPriceBreakdown
 
 export function DesktopBookingWidget({
   listing,
@@ -310,15 +100,23 @@ export function DesktopBookingWidget({
   canInstantBook = true,
   exclusiveDatesUnavailable = false,
 }) {
-  const rentalPeriodMode = getListingRentalPeriodMode(listing?.categorySlug || listing?.category?.slug)
-  const maxGuests = Math.max(1, resolveListingGuestCapacity(listing))
-  const maxCap = listing?.maxCapacity ?? availabilitySnapshot?.max_capacity ?? 1
-  const remaining = availabilitySnapshot?.remaining_spots
-  const sharedMode = bookingUiMode === 'shared'
-  const wholeVessel = isWholeVesselListing(listing?.categorySlug, listing?.metadata)
-  const listingCategorySlug = listing?.categorySlug || listing?.category?.slug || ''
-  const uiListingCtx = listingCategorySlug ? { listingCategorySlug } : undefined
-  const tx = (k) => getUIText(k, language, uiListingCtx)
+  const {
+    rentalPeriodMode,
+    maxGuests,
+    maxCap,
+    remaining,
+    sharedMode,
+    wholeVessel,
+    tx,
+    askPartnerLabel,
+  } = useBookingWidgetLogic({
+    listing,
+    language,
+    bookingUiMode,
+    availabilitySnapshot,
+    hasExistingConversation,
+    askPartnerLoading,
+  })
 
   return (
     <div className="hidden lg:block sticky top-24">
@@ -418,61 +216,24 @@ export function DesktopBookingWidget({
             </div>
           )}
 
-          <div>
-            <Label className="text-sm font-medium mb-2 block">
-              {tx(rentalPeriodMode === 'day' ? 'travelDatesRental' : 'travelDates')}
-            </Label>
-            <PlatformCalendar
-              key={calendarKey}
-              listingId={listing.id}
-              value={dateRange}
-              onChange={setDateRange}
-              minStay={listing.minStay}
-              language={language}
-              guests={guests}
-              listingMaxCapacity={listing.maxCapacity}
-              rentalPeriodMode={rentalPeriodMode}
-            />
-          </div>
+          <BookingDateGuestsPicker
+            listing={listing}
+            language={language}
+            rentalPeriodMode={rentalPeriodMode}
+            tx={tx}
+            calendarKey={calendarKey}
+            dateRange={dateRange}
+            setDateRange={setDateRange}
+            guests={guests}
+            setGuests={setGuests}
+            maxGuests={maxGuests}
+            vehicleStartTime={vehicleStartTime}
+            vehicleEndTime={vehicleEndTime}
+            onVehicleStartTimeChange={onVehicleStartTimeChange}
+            onVehicleEndTimeChange={onVehicleEndTimeChange}
+          />
 
-          {isTransportListingCategory(listing?.categorySlug || listing?.category?.slug) && (
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">
-                  {language === 'ru' ? 'Время начала' : 'Start time'}
-                </Label>
-                <TimeSelect
-                  value={vehicleStartTime}
-                  onChange={onVehicleStartTimeChange}
-                  className="h-9"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-slate-600 mb-1.5 block">
-                  {language === 'ru' ? 'Время окончания' : 'End time'}
-                </Label>
-                <TimeSelect
-                  value={vehicleEndTime}
-                  onChange={onVehicleEndTimeChange}
-                  className="h-9"
-                />
-              </div>
-            </div>
-          )}
-
-          <div>
-            <Label className="text-sm font-medium mb-2 block">
-              {tx(rentalPeriodMode === 'day' ? 'numberOfSeats' : 'numberOfGuests')}
-            </Label>
-            <GuestCountStepper
-              value={guests}
-              onChange={setGuests}
-              min={1}
-              max={maxGuests}
-            />
-          </div>
-
-          <PriceBreakdownBlock
+          <BookingPriceBreakdown
             priceCalc={priceCalc}
             currency={currency}
             exchangeRates={exchangeRates}
@@ -480,95 +241,26 @@ export function DesktopBookingWidget({
             rentalPeriodMode={rentalPeriodMode}
           />
 
-          {showAskPartner && onAskPartner && !exclusiveDatesUnavailable && (
-            <div className="space-y-1.5">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onAskPartner}
-                disabled={askPartnerLoading}
-                data-testid="booking-contact-host"
-                className={`w-full h-12 text-base border-teal-200 text-teal-800 hover:bg-teal-50 ${
-                  hasUnreadFromHost ? 'border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900' : ''
-                }`}
-              >
-                <MessageCircle className="mr-2 h-4 w-4" />
-                {askPartnerLoading
-                  ? tx('loading')
-                  : hasExistingConversation
-                    ? language === 'ru'
-                      ? 'Продолжить диалог'
-                      : 'Continue chat'
-                    : tx('askListingQuestion')}
-              </Button>
-              <ChatPreviewBadge
-                preview={lastMessagePreview}
-                hasUnread={hasUnreadFromHost}
-                language={language}
-              />
-            </div>
-          )}
-
-          <Button
-            onClick={onBookingClick}
-            disabled={!dateRange?.from || !dateRange?.to || !canInstantBook || availabilityLoading}
-            data-testid="listing-book-now"
-            className="w-full h-12 text-base bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
-          >
-            {exclusiveDatesUnavailable
-              ? language === 'ru'
-                ? 'Даты недоступны'
-                : 'Dates unavailable'
-              : tx('bookNow')}
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-
-          {sharedMode && (onPrivateTripClick || onSpecialPriceClick) && (
-            <div className="grid gap-2">
-              {onPrivateTripClick && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="w-full h-11 border border-teal-200 bg-white text-teal-900 hover:bg-teal-50"
-                  onClick={onPrivateTripClick}
-                  disabled={!dateRange?.from || !dateRange?.to}
-                >
-                  {language === 'ru'
-                    ? 'Запросить приватный тур / индивидуальную цену'
-                    : 'Request private trip / individual price'}
-                </Button>
-              )}
-              {onSpecialPriceClick && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-11 border-dashed border-slate-300 text-slate-700"
-                  onClick={onSpecialPriceClick}
-                  disabled={!dateRange?.from || !dateRange?.to}
-                >
-                  {language === 'ru' ? 'Запросить особую цену' : 'Request special price'}
-                </Button>
-              )}
-            </div>
-          )}
-
-          {exclusiveDatesUnavailable && (onAskPartnerUnavailable || onAskPartner) && (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-12 border-teal-300 text-teal-900 hover:bg-teal-50"
-              onClick={onAskPartnerUnavailable || onAskPartner}
-              disabled={askPartnerLoading}
-              data-testid="booking-contact-host-unavailable"
-            >
-              <MessageCircle className="mr-2 h-4 w-4" />
-              {language === 'ru' ? 'Спросить у хозяина в чате' : 'Ask partner in chat'}
-            </Button>
-          )}
-
-          {(!dateRange?.from || !dateRange?.to) && (
-            <p className="text-xs text-center text-slate-500">{tx('selectDatesToBook')}</p>
-          )}
+          <BookingActionButtons
+            language={language}
+            tx={tx}
+            askPartnerLabel={askPartnerLabel}
+            dateRange={dateRange}
+            onBookingClick={onBookingClick}
+            showAskPartner={showAskPartner}
+            onAskPartner={onAskPartner}
+            onAskPartnerUnavailable={onAskPartnerUnavailable}
+            askPartnerLoading={askPartnerLoading}
+            hasExistingConversation={hasExistingConversation}
+            lastMessagePreview={lastMessagePreview}
+            hasUnreadFromHost={hasUnreadFromHost}
+            bookingUiMode={bookingUiMode}
+            availabilityLoading={availabilityLoading}
+            canInstantBook={canInstantBook}
+            exclusiveDatesUnavailable={exclusiveDatesUnavailable}
+            onPrivateTripClick={onPrivateTripClick}
+            onSpecialPriceClick={onSpecialPriceClick}
+          />
         </CardContent>
       </Card>
     </div>
@@ -598,18 +290,13 @@ export function MobileBookingBar({
   onSpecialPriceClick,
 }) {
   const rentalPeriodMode = getListingRentalPeriodMode(listing?.categorySlug || listing?.category?.slug)
-  const listingCategorySlug = listing?.categorySlug || listing?.category?.slug || ''
-  const uiListingCtx = listingCategorySlug ? { listingCategorySlug } : undefined
-  const tx = (k) => getUIText(k, language, uiListingCtx)
-  const askLabel = askPartnerLoading
-    ? tx('loading')
-    : hasExistingConversation
-      ? language === 'ru'
-        ? 'Продолжить диалог'
-        : 'Continue chat'
-      : tx('askListingQuestion')
-
-  const sharedMode = bookingUiMode === 'shared'
+  const { tx, askPartnerLabel, sharedMode } = useBookingWidgetLogic({
+    listing,
+    language,
+    bookingUiMode,
+    hasExistingConversation,
+    askPartnerLoading,
+  })
   const mobileOfferTiers = parseDurationDiscountTiers(listing?.metadata?.discounts)
 
   return (
@@ -714,8 +401,8 @@ export function MobileBookingBar({
                 className={`h-12 w-12 shrink-0 border-teal-200 text-teal-800 hover:bg-teal-50 ${
                   hasUnreadFromHost ? 'border-amber-300 bg-amber-50 text-amber-900' : ''
                 }`}
-                aria-label={askLabel}
-                title={lastMessagePreview ? `${askLabel}: ${lastMessagePreview}` : askLabel}
+                aria-label={askPartnerLabel}
+                title={lastMessagePreview ? `${askPartnerLabel}: ${lastMessagePreview}` : askPartnerLabel}
               >
                 <MessageCircle className="h-5 w-5" />
               </Button>
