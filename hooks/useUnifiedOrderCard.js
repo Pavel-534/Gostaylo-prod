@@ -34,6 +34,7 @@ export function useUnifiedOrderCard({
   const [helpStep, setHelpStep] = useState('main')
   const [mediationUnlockAt, setMediationUnlockAt] = useState(null)
   const [mediationTick, setMediationTick] = useState(0)
+  const [slaTick, setSlaTick] = useState(0)
   const [helpNudgeSending, setHelpNudgeSending] = useState(false)
   const [emergencySending, setEmergencySending] = useState(false)
   const [emergencyModalOpen, setEmergencyModalOpen] = useState(false)
@@ -56,7 +57,7 @@ export function useUnifiedOrderCard({
 
   const normalizedRole = normalizeRole(role)
   const normalizedOrder = normalizeUnifiedOrder(booking, unifiedOrder)
-  const listing = booking?.listing || booking?.listings || {}
+  const listing = useMemo(() => booking?.listing || booking?.listings || {}, [booking?.listing, booking?.listings])
   const partnerTrustPublic = booking?.partner_trust || null
   const listingCategorySlugForPickup = String(listing?.category_slug || listing?.category?.slug || '').toLowerCase()
   const pickupServiceKind = inferListingServiceTypeFromCategorySlug(listingCategorySlugForPickup)
@@ -143,9 +144,72 @@ export function useUnifiedOrderCard({
     return () => clearInterval(id)
   }, [mediationUnlockAt])
 
+  const activeDisputeDeadlineAt =
+    booking?.active_dispute_current_deadline_at ||
+    booking?.active_dispute?.current_deadline_at ||
+    null
+  const hasActiveDispute = Boolean(
+    booking?.active_dispute_id ||
+      booking?.active_dispute?.id ||
+      ['OPEN', 'IN_REVIEW'].includes(String(booking?.active_dispute_status || booking?.active_dispute?.status || '').toUpperCase()),
+  )
+
+  /** Живой SLA-таймер: тик раз в секунду, пока есть дедлайн активного спора. */
+  useEffect(() => {
+    if (!hasActiveDispute || !activeDisputeDeadlineAt) return undefined
+    const deadline = new Date(activeDisputeDeadlineAt)
+    if (Number.isNaN(deadline.getTime())) return undefined
+    const id = setInterval(() => setSlaTick((n) => n + 1), 1000)
+    return () => clearInterval(id)
+  }, [hasActiveDispute, activeDisputeDeadlineAt])
+
   const mediationLockActive =
     normalizedRole === 'renter' && mediationUnlockAt && Date.now() < new Date(mediationUnlockAt).getTime()
   void mediationTick
+  void slaTick
+
+  const MS_24H = 24 * 60 * 60 * 1000
+  const MS_2H = 2 * 60 * 60 * 1000
+
+  const disputeSlaCountdown = (() => {
+    if (!hasActiveDispute) return null
+    if (!activeDisputeDeadlineAt) {
+      return {
+        expired: true,
+        timeLabel: null,
+        tier: 'expired',
+        remainingMs: 0,
+      }
+    }
+    const deadline = new Date(activeDisputeDeadlineAt)
+    if (Number.isNaN(deadline.getTime())) {
+      return {
+        expired: true,
+        timeLabel: null,
+        tier: 'expired',
+        remainingMs: 0,
+      }
+    }
+    const now = Date.now()
+    const remainingMs = deadline.getTime() - now
+    if (remainingMs <= 0) {
+      return {
+        expired: true,
+        timeLabel: null,
+        tier: 'expired',
+        remainingMs: 0,
+      }
+    }
+    const totalSec = Math.floor(remainingMs / 1000)
+    const h = Math.floor(totalSec / 3600)
+    const m = Math.floor((totalSec % 3600) / 60)
+    const s = totalSec % 60
+    const timeLabel = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    let tier = 'calm'
+    if (remainingMs < MS_2H) tier = 'critical'
+    else if (remainingMs <= MS_24H) tier = 'warning'
+    return { expired: false, timeLabel, tier, remainingMs }
+  })()
 
   useEffect(() => {
     setEmergencyCtx(null)
@@ -296,9 +360,19 @@ export function useUnifiedOrderCard({
     try {
       const evidenceUrls = []
       for (const file of disputeEvidenceFiles) {
+        let uploadFile = file
+        const fType = typeof file?.type === 'string' ? file.type : ''
+        if (fType.startsWith('image/')) {
+          const { compressImageForBrowser } = await import('@/lib/services/media/media-upload.service')
+          uploadFile = await compressImageForBrowser(file, 'dispute_media')
+        }
         const fd = new FormData()
-        fd.append('file', file)
+        const uploadName = fType.startsWith('image/')
+          ? `evidence-${Date.now()}.webp`
+          : file?.name || 'evidence'
+        fd.append('file', uploadFile, uploadName)
         fd.append('bucket', 'dispute-evidence')
+        fd.append('profile', 'dispute_media')
         fd.append('folder', `booking-${bookingId.replace(/[^a-zA-Z0-9-_]/g, '')}`)
         const up = await fetch('/api/v2/upload', { method: 'POST', body: fd, credentials: 'include' })
         const uj = await up.json().catch(() => ({}))
@@ -382,6 +456,8 @@ export function useUnifiedOrderCard({
     listingId,
     reviewed,
     mediationLockActive,
+    hasActiveDispute,
+    disputeSlaCountdown,
     disputeEligibility,
     supportChatHref,
     showRenterCancel,

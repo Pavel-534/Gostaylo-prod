@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 
 import UnifiedOrderCard from '@/components/orders/UnifiedOrderCard'
 import AdminDisputeChatPeek from '@/components/admin/AdminDisputeChatPeek'
-import { ProxiedImage } from '@/components/proxied-image'
+import AdminDisputeTimeline from '@/components/admin/AdminDisputeTimeline'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -72,6 +72,10 @@ function mergeDetailDispute(detail, snap) {
       penaltyRequested: snap.penaltyRequested ?? detail.dispute.penaltyRequested,
       resolvedAt: snap.resolvedAt !== undefined ? snap.resolvedAt : detail.dispute.resolvedAt,
       closedBy: snap.closedBy !== undefined ? snap.closedBy : detail.dispute.closedBy,
+      resolutionReason:
+        snap.resolutionReason !== undefined ? snap.resolutionReason : detail.dispute.resolutionReason,
+      currentDeadlineAt:
+        snap.currentDeadlineAt !== undefined ? snap.currentDeadlineAt : detail.dispute.currentDeadlineAt,
       metadata: snap.metadata ?? detail.dispute.metadata,
     },
   }
@@ -206,6 +210,7 @@ export default function AdminDisputesPage() {
       toast.success('Сохранено')
       if (json.data?.dispute) applySnapshot(json.data.dispute)
       else void loadList()
+      if (selectedId) void loadDetail(selectedId)
       if (action === 'close_dispute' && json.data?.dispute) {
         setVerdict('')
       }
@@ -221,14 +226,33 @@ export default function AdminDisputesPage() {
     return ['RESOLVED', 'CLOSED', 'REJECTED'].includes(s)
   }, [detail?.dispute?.status])
 
+  const inReview = useMemo(() => {
+    return String(detail?.dispute?.status || '').toUpperCase() === 'IN_REVIEW'
+  }, [detail?.dispute?.status])
+
   const conversationId = detail?.dispute?.conversationId || detail?.booking?.conversationId || null
 
-  const disputeEvidenceUrls = (() => {
+  const disputeEvidenceItems = useMemo(() => {
+    const signed = detail?.evidenceSignedUrls
+    if (Array.isArray(signed) && signed.length > 0) {
+      const withUrl = signed.filter((x) => x?.signedUrl)
+      if (withUrl.length > 0) {
+        return withUrl.map((x) => ({
+          key: String(x.path || x.signedUrl),
+          href: x.signedUrl,
+          imgSrc: x.signedUrl,
+        }))
+      }
+    }
     const m = detail?.dispute?.metadata
     const raw = m && typeof m === 'object' ? m.evidence_urls : null
     if (!Array.isArray(raw)) return []
-    return raw.map((u) => String(u || '').trim()).filter(Boolean).slice(0, 6)
-  })()
+    return raw
+      .map((u) => String(u || '').trim())
+      .filter(Boolean)
+      .slice(0, 6)
+      .map((href) => ({ key: href, href, imgSrc: href }))
+  }, [detail?.evidenceSignedUrls, detail?.dispute?.metadata])
 
   if (!authChecked) {
     return (
@@ -367,38 +391,43 @@ export default function AdminDisputesPage() {
                 </div>
               ) : null}
 
-              <AdminDisputeChatPeek conversationId={conversationId} adminUserId={me?.id} />
+              <AdminDisputeTimeline
+                events={Array.isArray(detail.disputeEvents) ? detail.disputeEvents : []}
+                evidenceItems={disputeEvidenceItems}
+                disputeCreatedAt={detail.dispute?.createdAt}
+                conversationId={conversationId}
+              />
 
-              {disputeEvidenceUrls.length > 0 ? (
-                <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-2">
-                  <p className="text-sm font-semibold text-slate-900">Материалы от инициатора</p>
-                  <div className="flex flex-wrap gap-3">
-                    {disputeEvidenceUrls.map((src) => (
-                      <a
-                        key={src}
-                        href={src}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="relative block w-28 h-28 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shrink-0"
-                      >
-                        <ProxiedImage src={src} alt="" fill className="object-cover" sizes="112px" />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+              <AdminDisputeChatPeek conversationId={conversationId} adminUserId={me?.id} />
 
               <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 space-y-3">
                 <p className="text-sm font-semibold text-amber-950">Рычаги арбитража</p>
+                {detail?.dispute?.currentDeadlineAt ? (
+                  <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-800">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">SLA дедлайн</p>
+                    <p>{new Date(detail.dispute.currentDeadlineAt).toLocaleString('ru-RU')}</p>
+                  </div>
+                ) : null}
+                {terminal && detail?.dispute?.resolutionReason ? (
+                  <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-800">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                      Вердикт (resolution_reason)
+                    </p>
+                    <p className="whitespace-pre-wrap break-words">{detail.dispute.resolutionReason}</p>
+                  </div>
+                ) : null}
                 <div className="space-y-2">
-                  <Label htmlFor="verdict">Вердикт / комментарий</Label>
+                  <Label htmlFor="verdict">Вердикт при закрытии (resolution_reason)</Label>
+                  <p className="text-xs text-amber-900/80">
+                    Сохраняется в БД и отправляется гостю и партнёру (push + email) при «Закрыть дело».
+                  </p>
                   <Textarea
                     id="verdict"
                     value={verdict}
                     onChange={(e) => setVerdict(e.target.value)}
                     rows={4}
                     maxLength={2000}
-                    placeholder="Кратко зафиксируйте решение для аудита…"
+                    placeholder="Кратко зафиксируйте решение для сторон и аудита…"
                     disabled={terminal}
                   />
                 </div>
@@ -416,6 +445,15 @@ export default function AdminDisputesPage() {
                   </Select>
                 </div>
                 <div className="flex flex-wrap gap-2 pt-1">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="bg-white border-teal-300 text-teal-900"
+                    disabled={terminal || actionBusy || inReview}
+                    onClick={() => void postAction('take_in_review')}
+                  >
+                    Взять в работу (IN_REVIEW)
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"

@@ -82,15 +82,9 @@ export function KycUploader({
                 try {
                   let fileToUpload = file
                   if (file.type.startsWith('image/')) {
-                    const imageCompression = (await import('browser-image-compression')).default
-                    const options = {
-                      maxSizeMB: 1,
-                      maxWidthOrHeight: 1200,
-                      useWebWorker: true,
-                      initialQuality: 0.8,
-                    }
+                    const { compressImageForBrowser } = await import('@/lib/services/media/media-upload.service')
                     try {
-                      fileToUpload = await imageCompression(file, options)
+                      fileToUpload = await compressImageForBrowser(file, 'kyc_document')
                     } catch (compressErr) {
                       console.error('[KycUploader] Compression error:', compressErr)
                     }
@@ -101,6 +95,7 @@ export function KycUploader({
                   const formData = new FormData()
                   formData.append('file', fileToUpload)
                   formData.append('bucket', 'verification_documents')
+                  formData.append('profile', 'kyc_document')
                   const res = await fetch('/api/v2/upload', {
                     method: 'POST',
                     credentials: 'include',

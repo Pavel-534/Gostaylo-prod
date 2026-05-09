@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { toUnifiedOrder } from '@/lib/models/unified-order'
 import { normalizeEmbeddedListingBooking } from '@/lib/services/booking/query.service'
 import { requireAccess } from '@/lib/security/access-guard'
+import DisputeService from '@/lib/services/dispute.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,6 +39,8 @@ export async function GET(_request, { params }) {
         updated_at,
         resolved_at,
         closed_by,
+        resolution_reason,
+        current_deadline_at,
         bookings (
           id,
           status,
@@ -110,9 +113,35 @@ export async function GET(_request, { params }) {
 
     const unifiedOrder = bookingForCard ? toUnifiedOrder(bookingForCard) : null
 
+    const evidenceSigned = await DisputeService.getEvidenceSignedUrls(disputeId)
+
+    const { data: eventRows, error: evErr } = await supabaseAdmin
+      .from('dispute_events')
+      .select('id, event_type, from_status, to_status, actor_id, actor_role, reason, metadata, created_at')
+      .eq('dispute_id', disputeId)
+      .order('created_at', { ascending: true })
+
+    if (evErr) {
+      console.warn('[ADMIN DISPUTE GET] dispute_events:', evErr.message)
+    }
+
+    const disputeEvents = (eventRows || []).map((e) => ({
+      id: e.id,
+      eventType: e.event_type,
+      fromStatus: e.from_status ?? null,
+      toStatus: e.to_status ?? null,
+      actorId: e.actor_id ?? null,
+      actorRole: e.actor_role ?? null,
+      reason: e.reason ?? '',
+      metadata: e.metadata ?? {},
+      createdAt: e.created_at,
+    }))
+
     return NextResponse.json({
       success: true,
       data: {
+        evidenceSignedUrls: evidenceSigned.ok ? evidenceSigned.items : [],
+        disputeEvents,
         dispute: {
           id: row.id,
           bookingId: row.booking_id,
@@ -132,6 +161,8 @@ export async function GET(_request, { params }) {
           updatedAt: row.updated_at,
           resolvedAt: row.resolved_at,
           closedBy: row.closed_by,
+          resolutionReason: row.resolution_reason ?? null,
+          currentDeadlineAt: row.current_deadline_at ?? null,
         },
         opener: firstRel(row.opener),
         booking: bookingForCard,

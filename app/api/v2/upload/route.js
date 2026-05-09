@@ -10,6 +10,12 @@ import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import {
+  resolveMediaProfileId,
+  logMediaProfile,
+  isRasterImageMime,
+  processImageBufferToWebp,
+} from '@/lib/services/media/media-upload.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +29,12 @@ const ALLOWED_BUCKETS = [
   'dispute-evidence',
   'avatars',
 ]
+
+function replacePathExtensionToWebp(storagePath) {
+  const s = String(storagePath || '').replace(/^\/+/, '')
+  if (!s) return s
+  return s.replace(/\.[^./\\]+$/i, '') + '.webp'
+}
 
 function publicUrlToProxyPath(publicUrl, supabaseProjectUrl) {
   if (!publicUrl || !supabaseProjectUrl) return publicUrl
@@ -74,6 +86,9 @@ export async function POST(request) {
     const folder = formData.get('folder') || auth.userId;
     const objectPath = formData.get('objectPath');
     const upsert = formData.get('upsert') === 'true';
+    const mediaProfileHint = String(formData.get('profile') || formData.get('mediaProfile') || '').trim();
+    const profileId = resolveMediaProfileId(bucket, mediaProfileHint);
+    if (profileId) logMediaProfile(profileId);
 
     if (!ALLOWED_BUCKETS.includes(bucket)) {
       return NextResponse.json({ success: false, error: 'Bucket not allowed' }, { status: 400 });
@@ -92,12 +107,19 @@ export async function POST(request) {
     }
     
     const isChatBucket = bucket === 'chat-attachments'
-    const isReviewBucket = bucket === 'review-images' || bucket === 'dispute-evidence'
+    const isReviewBucket = bucket === 'review-images'
+    const isDisputeEvidenceBucket = bucket === 'dispute-evidence'
     const isAvatarBucket = bucket === 'avatars'
     const chatImageAndDocTypes = [
       'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf',
     ]
     const reviewImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+    const disputeEvidenceTypes = [
+      ...reviewImageTypes,
+      'video/mp4',
+      'video/quicktime',
+      'video/webm',
+    ]
     const type = (file.type || '').trim()
     const nameLower = String(file.name || '').toLowerCase()
     const looksLikeAudio =
@@ -105,7 +127,9 @@ export async function POST(request) {
     const allowed =
       isChatBucket
         ? (chatImageAndDocTypes.includes(type) || looksLikeAudio)
-        : isReviewBucket || isAvatarBucket
+        : isDisputeEvidenceBucket
+          ? disputeEvidenceTypes.includes(type)
+          : isReviewBucket || isAvatarBucket
           ? reviewImageTypes.includes(type)
           : ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(type)
     if (!allowed) {
@@ -114,7 +138,9 @@ export async function POST(request) {
           success: false,
           error: isChatBucket
             ? 'Для чата: изображения, PDF или голосовые (audio/*)'
-            : isReviewBucket || isAvatarBucket
+            : isDisputeEvidenceBucket
+              ? 'Для спора: JPG, PNG, WebP, GIF или видео MP4/MOV/WebM'
+              : isReviewBucket || isAvatarBucket
               ? isAvatarBucket
                 ? 'Для аватара: только JPG, PNG, WebP или GIF'
                 : 'Для отзыва: только изображения JPG, PNG, WebP или GIF'
@@ -126,11 +152,11 @@ export async function POST(request) {
     
     const ext = file.name.split('.').pop();
     const timestamp = Date.now();
-    const filename = objectPath && typeof objectPath === 'string'
+    let filename = objectPath && typeof objectPath === 'string'
       ? objectPath.replace(/^\/+/, '')
       : `${folder}/${timestamp}.${ext}`;
 
-    const contentType =
+    let contentType =
       type ||
       (looksLikeAudio ? 'audio/webm' : 'application/octet-stream');
     
@@ -138,8 +164,28 @@ export async function POST(request) {
     
     // Convert File to Buffer
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    
+    let buffer = Buffer.from(arrayBuffer);
+
+    const raster = isRasterImageMime(type);
+    if (raster) {
+      if (!profileId) {
+        return NextResponse.json(
+          { success: false, error: 'Не задан медиа-профиль для изображения' },
+          { status: 400 },
+        );
+      }
+      const processed = await processImageBufferToWebp(buffer, profileId);
+      if (!processed.ok) {
+        return NextResponse.json(
+          { success: false, error: processed.error || 'Не удалось обработать изображение' },
+          { status: 422 },
+        );
+      }
+      buffer = processed.buffer;
+      contentType = 'image/webp';
+      filename = replacePathExtensionToWebp(filename);
+    }
+
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
       .from(bucket)
@@ -158,7 +204,7 @@ export async function POST(request) {
       .from(bucket)
       .getPublicUrl(filename);
     
-    console.log(`[UPLOAD] File uploaded: ${filename}`);
+    console.log(`[UPLOAD] File uploaded: ${filename}${raster ? ' (image/webp sharp)' : ''}`);
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const proxyUrl = publicUrlToProxyPath(urlData.publicUrl, supabaseUrl)

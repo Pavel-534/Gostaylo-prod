@@ -239,6 +239,7 @@ model Booking {
   renter          Profile       @relation(fields: [renterId], references: [id])
   review          Review?
   payment         Payment?
+  disputes        Dispute[]
   
   @@index([listingId])
   @@index([renterId])
@@ -246,6 +247,78 @@ model Booking {
   @@index([checkIn])
   @@index([checkOut])
   @@map("bookings")
+}
+
+// Booking-linked disputes (Stage 14.0 + 20.0)
+model Dispute {
+  id                 String        @id @default(uuid())
+  bookingId          String        @map("booking_id")
+  conversationId     String?       @map("conversation_id")
+  openedBy           String        @map("opened_by")
+  againstUserId      String?       @map("against_user_id")
+  category           String        @default("general")
+  reasonCode         String        @default("official_dispute") @map("reason_code")
+  description        String        @default("")
+  status             DisputeStatus @default(OPEN)
+  freezePayment      Boolean       @default(true) @map("freeze_payment")
+  forceRefundRequested Boolean     @default(false) @map("force_refund_requested")
+  penaltyRequested   Boolean       @default(false) @map("penalty_requested")
+  adminActionFlags   Json          @default("{\"freeze_payment\": true, \"force_refund\": false, \"add_penalty\": false}") @map("admin_action_flags")
+  metadata           Json          @default("{}")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+  resolvedAt         DateTime?     @map("resolved_at")
+  closedBy           String?       @map("closed_by")
+  resolutionReason   String?       @map("resolution_reason") @db.Text
+  currentDeadlineAt  DateTime?     @map("current_deadline_at")
+
+  booking            Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  penalties          DisputePenalty[]
+  events             DisputeEvent[]
+
+  @@index([bookingId])
+  @@index([conversationId])
+  @@index([openedBy])
+  @@index([status])
+  @@map("disputes")
+}
+
+// Optional moderation penalties linked to dispute case
+model DisputePenalty {
+  id            String   @id @default(uuid())
+  disputeId     String   @map("dispute_id")
+  targetUserId  String   @map("target_user_id")
+  issuedBy      String   @map("issued_by")
+  penaltyType   String   @default("warning") @map("penalty_type")
+  points        Int      @default(1)
+  reason        String   @default("")
+  metadata      Json     @default("{}")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  dispute       Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+
+  @@index([disputeId])
+  @@index([targetUserId])
+  @@map("dispute_penalties")
+}
+
+// Event timeline for dispute FSM transitions (reserved for Stage 1+)
+model DisputeEvent {
+  id          String   @id @default(uuid())
+  disputeId   String   @map("dispute_id")
+  eventType   String   @map("event_type")
+  fromStatus  DisputeStatus? @map("from_status")
+  toStatus    DisputeStatus? @map("to_status")
+  actorId     String?  @map("actor_id")
+  actorRole   String?  @map("actor_role")
+  reason      String?  @default("")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  dispute     Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+
+  @@index([disputeId, createdAt])
+  @@map("dispute_events")
 }
 
 // Exchange Rates
@@ -638,4 +711,13 @@ enum CancellationPolicy {
   flexible
   moderate
   strict
+}
+
+enum DisputeStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  REJECTED
+  CLOSED
+  PENDING_MEDIATION
 }

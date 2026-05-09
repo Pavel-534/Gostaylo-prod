@@ -88,9 +88,15 @@ export default function RenterSettingsPage() {
     }
     setUploading(true)
     try {
+      let payload = file
+      if (file.type.startsWith('image/')) {
+        const { compressImageForBrowser } = await import('@/lib/services/media/media-upload.service')
+        payload = await compressImageForBrowser(file, 'listing_photo')
+      }
       const fd = new FormData()
-      fd.append('file', file)
+      fd.append('file', payload, file.type.startsWith('image/') ? `${Date.now()}.webp` : file.name)
       fd.append('bucket', 'listing-images')
+      fd.append('profile', 'listing_photo')
       fd.append('folder', `avatars/${userId}`)
       const res = await fetch('/api/v2/upload', { method: 'POST', body: fd, credentials: 'include' })
       const data = await res.json()

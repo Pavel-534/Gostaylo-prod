@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { requireAccess } from '@/lib/security/access-guard'
+import DisputeService from '@/lib/services/dispute.service'
+import { computeDisputeDeadlineIso } from '@/lib/config/dispute-sla'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,7 +10,7 @@ async function fetchDisputeSnapshot(disputeId) {
   const { data } = await supabaseAdmin
     .from('disputes')
     .select(
-      'id, booking_id, status, freeze_payment, force_refund_requested, penalty_requested, updated_at, resolved_at, closed_by, metadata, admin_action_flags',
+      'id, booking_id, status, freeze_payment, force_refund_requested, penalty_requested, updated_at, resolved_at, closed_by, metadata, admin_action_flags, resolution_reason, current_deadline_at',
     )
     .eq('id', disputeId)
     .maybeSingle()
@@ -25,6 +27,8 @@ async function fetchDisputeSnapshot(disputeId) {
     closedBy: data.closed_by,
     metadata: data.metadata,
     adminActionFlags: data.admin_action_flags,
+    resolutionReason: data.resolution_reason ?? null,
+    currentDeadlineAt: data.current_deadline_at ?? null,
   }
 }
 
@@ -49,7 +53,7 @@ export async function POST(request, { params }) {
     const { data: dispute, error: fetchErr } = await supabaseAdmin
       .from('disputes')
       .select(
-        'id, booking_id, against_user_id, admin_action_flags, freeze_payment, metadata, status, penalty_requested',
+        'id, booking_id, against_user_id, admin_action_flags, freeze_payment, metadata, status, penalty_requested, conversation_id, current_deadline_at',
       )
       .eq('id', disputeId)
       .maybeSingle()
@@ -68,11 +72,50 @@ export async function POST(request, { params }) {
         : {}),
     }
 
-    if (action === 'freeze_payment') {
-      flags.freeze_payment = true
+    if (action === 'take_in_review') {
+      const st = String(dispute.status || '').toUpperCase()
+      if (st === 'IN_REVIEW') {
+        const snap = await fetchDisputeSnapshot(disputeId)
+        return NextResponse.json({ success: true, data: { disputeId, action: 'take_in_review', noop: true, dispute: snap } })
+      }
+      if (!DisputeService.isTransitionAllowed(dispute.status, 'IN_REVIEW')) {
+        return NextResponse.json(
+          { success: false, error: `Недопустимый переход ${String(dispute.status)} → IN_REVIEW (кейс в медиации или закрыт)` },
+          { status: 400 },
+        )
+      }
+      const fromSt = String(dispute.status || '')
       const { error: upErr } = await supabaseAdmin
         .from('disputes')
         .update({
+          status: 'IN_REVIEW',
+          current_deadline_at: dispute.current_deadline_at || computeDisputeDeadlineIso(now),
+          updated_at: now,
+        })
+        .eq('id', disputeId)
+      if (upErr) return NextResponse.json({ success: false, error: upErr.message }, { status: 500 })
+      await DisputeService.appendDisputeEvent(disputeId, {
+        eventType: 'STATUS_CHANGE',
+        fromStatus: fromSt,
+        toStatus: 'IN_REVIEW',
+        actorId: staff.id,
+        actorRole: 'ADMIN',
+        reason: reason || '',
+        metadata: { action: 'take_in_review' },
+      })
+      const snap = await fetchDisputeSnapshot(disputeId)
+      return NextResponse.json({ success: true, data: { disputeId, action: 'take_in_review', dispute: snap } })
+    }
+
+    if (action === 'freeze_payment') {
+      flags.freeze_payment = true
+      const prevStatus = String(dispute.status || '')
+      const nextStatus = DisputeService.resolveAdminWorkingStatus(dispute.status)
+      const { error: upErr } = await supabaseAdmin
+        .from('disputes')
+        .update({
+          status: nextStatus,
+          current_deadline_at: dispute.current_deadline_at || computeDisputeDeadlineIso(now),
           freeze_payment: true,
           admin_action_flags: flags,
           metadata: {
@@ -85,15 +128,28 @@ export async function POST(request, { params }) {
         })
         .eq('id', disputeId)
       if (upErr) return NextResponse.json({ success: false, error: upErr.message }, { status: 500 })
-      const dispute = await fetchDisputeSnapshot(disputeId)
-      return NextResponse.json({ success: true, data: { disputeId, action: 'freeze_payment', dispute } })
+      await DisputeService.appendDisputeEvent(disputeId, {
+        eventType: 'ADMIN_FREEZE_PAYMENT',
+        fromStatus: prevStatus,
+        toStatus: nextStatus,
+        actorId: staff.id,
+        actorRole: 'ADMIN',
+        reason: reason || '',
+        metadata: { lever: 'freeze_payment' },
+      })
+      const snapFreeze = await fetchDisputeSnapshot(disputeId)
+      return NextResponse.json({ success: true, data: { disputeId, action: 'freeze_payment', dispute: snapFreeze } })
     }
 
     if (action === 'force_refund') {
       flags.force_refund = true
+      const prevStatusFr = String(dispute.status || '')
+      const nextStatus = DisputeService.resolveAdminWorkingStatus(dispute.status)
       const { error: upErr } = await supabaseAdmin
         .from('disputes')
         .update({
+          status: nextStatus,
+          current_deadline_at: dispute.current_deadline_at || computeDisputeDeadlineIso(now),
           force_refund_requested: true,
           admin_action_flags: flags,
           metadata: {
@@ -106,8 +162,17 @@ export async function POST(request, { params }) {
         })
         .eq('id', disputeId)
       if (upErr) return NextResponse.json({ success: false, error: upErr.message }, { status: 500 })
-      const dispute = await fetchDisputeSnapshot(disputeId)
-      return NextResponse.json({ success: true, data: { disputeId, action: 'force_refund', dispute } })
+      await DisputeService.appendDisputeEvent(disputeId, {
+        eventType: 'ADMIN_FORCE_REFUND',
+        fromStatus: prevStatusFr,
+        toStatus: nextStatus,
+        actorId: staff.id,
+        actorRole: 'ADMIN',
+        reason: reason || '',
+        metadata: { lever: 'force_refund' },
+      })
+      const snapFr = await fetchDisputeSnapshot(disputeId)
+      return NextResponse.json({ success: true, data: { disputeId, action: 'force_refund', dispute: snapFr } })
     }
 
     if (action === 'add_penalty') {
@@ -135,15 +200,28 @@ export async function POST(request, { params }) {
       }
 
       flags.add_penalty = true
+      const prevPenaltyStatus = String(dispute.status || '')
+      const nextPenaltyStatus = DisputeService.resolveAdminWorkingStatus(dispute.status)
       await supabaseAdmin
         .from('disputes')
         .update({
+          status: nextPenaltyStatus,
+          current_deadline_at: dispute.current_deadline_at || computeDisputeDeadlineIso(now),
           penalty_requested: true,
           admin_action_flags: flags,
           updated_at: now,
         })
         .eq('id', disputeId)
 
+      await DisputeService.appendDisputeEvent(disputeId, {
+        eventType: 'ADMIN_PENALTY',
+        fromStatus: prevPenaltyStatus,
+        toStatus: nextPenaltyStatus,
+        actorId: staff.id,
+        actorRole: 'ADMIN',
+        reason: reason || `penalty issued to ${targetUserId}`,
+        metadata: { penaltyId, targetUserId, points, penaltyType },
+      })
       const disputeSnap = await fetchDisputeSnapshot(disputeId)
       return NextResponse.json({
         success: true,
@@ -155,11 +233,18 @@ export async function POST(request, { params }) {
       if (TERMINAL_STATUSES.has(String(dispute.status || '').toUpperCase())) {
         return NextResponse.json({ success: false, error: 'Dispute is already closed' }, { status: 400 })
       }
+      if (!DisputeService.isTransitionAllowed(dispute.status, 'CLOSED')) {
+        return NextResponse.json(
+          { success: false, error: `Transition ${String(dispute.status)} -> CLOSED is forbidden by FSM` },
+          { status: 400 },
+        )
+      }
 
       const guiltyParty = String(payload?.guiltyParty || payload?.guilty_party || 'none')
         .trim()
         .toLowerCase()
-      const verdict = reason || String(payload?.verdict || '').trim().slice(0, 2000)
+      const verdictRaw = reason || String(payload?.verdict || '').trim().slice(0, 2000)
+      const verdict = verdictRaw.trim()
 
       const { data: booking, error: bErr } = await supabaseAdmin
         .from('bookings')
@@ -203,12 +288,15 @@ export async function POST(request, { params }) {
       if (targetUserId) flags.add_penalty = true
 
       const metaBase = dispute.metadata && typeof dispute.metadata === 'object' ? dispute.metadata : {}
+      const prevClose = String(dispute.status || '')
       const { error: upErr } = await supabaseAdmin
         .from('disputes')
         .update({
           status: 'CLOSED',
           resolved_at: now,
           closed_by: staff.id,
+          resolution_reason: verdict || null,
+          current_deadline_at: null,
           freeze_payment: false,
           penalty_requested: !!targetUserId || dispute.penalty_requested,
           admin_action_flags: flags,
@@ -223,6 +311,24 @@ export async function POST(request, { params }) {
         })
         .eq('id', disputeId)
       if (upErr) return NextResponse.json({ success: false, error: upErr.message }, { status: 500 })
+
+      await DisputeService.appendDisputeEvent(disputeId, {
+        eventType: 'DISPUTE_CLOSED',
+        fromStatus: prevClose,
+        toStatus: 'CLOSED',
+        actorId: staff.id,
+        actorRole: 'ADMIN',
+        reason: verdict,
+        metadata: { guilty_party: guiltyParty },
+      })
+
+      await DisputeService.notifyPartiesDisputeResolved({
+        bookingId: dispute.booking_id,
+        resolutionReason: verdict,
+        renterId: booking.renter_id,
+        partnerId: booking.partner_id,
+        conversationId: dispute.conversation_id || null,
+      })
 
       const disputeSnap = await fetchDisputeSnapshot(disputeId)
       return NextResponse.json({

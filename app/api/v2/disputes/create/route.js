@@ -31,7 +31,12 @@ export async function POST(request) {
     const evidenceUrls = Array.isArray(rawEvidence)
       ? rawEvidence
           .map((u) => String(u || '').trim().slice(0, 800))
-          .filter((u) => u.startsWith('/_storage/') || u.startsWith('http'))
+          .filter(
+            (u) =>
+              u.startsWith('/_storage/dispute-evidence/') ||
+              u.startsWith('/api/v2/disputes/evidence') ||
+              u.startsWith('http'),
+          )
           .slice(0, 3)
       : []
 

@@ -145,7 +145,7 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 ### 7. Display names and image uploads (privacy & consistency)
 
 - **All user-facing name formatting** that shows a person to another user (reviews, chat labels, invoice sender, typing indicator, etc.) must use **`lib/utils/name-formatter.js`** (`formatPrivacyDisplayName`, `formatPrivacyDisplayNameForParticipant`, `formatReviewerInitial`) so display stays **first name + last initial**, with **`stripLegacyModeratorMarker`** applied via that module — do not reimplement ad hoc.
-- **All browser image uploads** that end up in product Storage must go through **`lib/services/image-upload.service.js`** (compression to WebP, resize, then `POST /api/v2/upload`) so behavior stays consistent; new buckets must be allowlisted in **`app/api/v2/upload/route.js`**.
+- **All browser/server image ingestion** into product Storage must follow **`lib/services/media/media-upload.service.js`** (канонические профили **`listing_photo` / `dispute_media` / `chat_image` / `kyc_document`**, клиент **`compressImageForBrowser`**, сервер **`processImageBufferToWebp` через `sharp`**) и затем **`POST /api/v2/upload`**. Обёртки уровня листингов (`lib/services/image-upload.service.js`) только вызывают этот пайплайн и API загрузки. Новые buckets — только с allowlist в **`app/api/v2/upload/route.js`** и строкой профиля в **`BUCKET_DEFAULT_PROFILE`** того же сервиса медиа.
 
 ### 7a. Dynamic product brand in UI copy (SSOT)
 

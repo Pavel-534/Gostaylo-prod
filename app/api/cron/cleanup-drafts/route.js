@@ -21,6 +21,7 @@ import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js';
 import { supabaseAdmin } from '@/lib/supabase';
 import { BookingService } from '@/lib/services/booking.service';
 import { NotificationEvents, NotificationService } from '@/lib/services/notification.service';
+import DisputeService, { extractDisputeEvidenceObjectPaths } from '@/lib/services/dispute.service';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,6 +32,11 @@ const STORAGE_BUCKETS = ['listing-images', 'listings'];
 
 // Draft expiry in days
 const DRAFT_EXPIRY_DAYS = 30;
+
+/** Dispute evidence: delete storage objects after dispute is terminal and old (see `processDisputeEvidenceRetention`). */
+const DISPUTE_EVIDENCE_RETENTION_DAYS = 180;
+const DISPUTE_EVIDENCE_BUCKET = 'dispute-evidence';
+const TERMINAL_DISPUTE_STATUSES = ['RESOLVED', 'REJECTED', 'CLOSED'];
 const PARTNER_RESPONSE_SLA_HOURS = 24;
 const DEFAULT_INVOICE_EXPIRY_HOURS = 24;
 
@@ -193,6 +199,102 @@ async function processExpiredBookingRequests() {
   };
 }
 
+function disputeClosedReferenceMs(row) {
+  const rMs = row?.resolved_at ? Date.parse(String(row.resolved_at)) : NaN;
+  const uMs = row?.updated_at ? Date.parse(String(row.updated_at)) : NaN;
+  return Number.isFinite(rMs) ? rMs : uMs;
+}
+
+/**
+ * Remove dispute-evidence objects for disputes closed ≥ DISPUTE_EVIDENCE_RETENTION_DAYS.
+ * Idempotent marker: disputes.metadata.dispute_evidence_storage_purged_at
+ */
+async function processDisputeEvidenceRetention() {
+  const cutoffMs =
+    Date.now() - DISPUTE_EVIDENCE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  const { data: rows, error } = await supabaseAdmin
+    .from('disputes')
+    .select('id, status, resolved_at, updated_at, metadata')
+    .in('status', TERMINAL_DISPUTE_STATUSES)
+    .limit(500);
+
+  if (error) {
+    return {
+      success: false,
+      error: error.message,
+      scanned: 0,
+      disputesPurged: 0,
+      filesRemoved: 0,
+      removeErrors: 0,
+    };
+  }
+
+  let disputesPurged = 0;
+  let filesRemoved = 0;
+  let removeErrors = 0;
+
+  for (const row of rows || []) {
+    const meta = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+    if (meta.dispute_evidence_storage_purged_at) continue;
+
+    const refMs = disputeClosedReferenceMs(row);
+    if (!Number.isFinite(refMs) || refMs > cutoffMs) continue;
+
+    const urls = Array.isArray(meta.evidence_urls) ? meta.evidence_urls : [];
+    const paths = extractDisputeEvidenceObjectPaths(urls);
+    const nowIso = new Date().toISOString();
+
+    if (!paths.length) {
+      await supabaseAdmin
+        .from('disputes')
+        .update({
+          metadata: {
+            ...meta,
+            dispute_evidence_storage_purged_at: nowIso,
+          },
+          updated_at: nowIso,
+        })
+        .eq('id', row.id);
+      disputesPurged += 1;
+      continue;
+    }
+
+    const { error: rmErr } = await supabaseAdmin.storage
+      .from(DISPUTE_EVIDENCE_BUCKET)
+      .remove(paths);
+    if (rmErr) {
+      removeErrors += 1;
+      console.warn(
+        `[CLEANUP] Dispute Evidence Retention: remove failed ${row.id}:`,
+        rmErr.message,
+      );
+      continue;
+    }
+
+    filesRemoved += paths.length;
+    await supabaseAdmin
+      .from('disputes')
+      .update({
+        metadata: {
+          ...meta,
+          dispute_evidence_storage_purged_at: nowIso,
+        },
+        updated_at: nowIso,
+      })
+      .eq('id', row.id);
+    disputesPurged += 1;
+  }
+
+  return {
+    success: true,
+    scanned: (rows || []).length,
+    disputesPurged,
+    filesRemoved,
+    removeErrors,
+    retentionDays: DISPUTE_EVIDENCE_RETENTION_DAYS,
+  };
+}
+
 async function processExpiredPendingInvoices() {
   const nowMs = Date.now();
   const { data: pendingRows, error } = await supabaseAdmin
@@ -287,21 +389,8 @@ export async function POST(request) {
     });
     
     console.log(`[CLEANUP] Found ${expiredDrafts.length} expired drafts to clean up`);
-    
-    if (expiredDrafts.length === 0) {
-      return NextResponse.json({
-        success: true,
-        message: 'No expired drafts found',
-        stats: {
-          scanned: allInactive?.length || 0,
-          deleted: 0,
-          imagesDeleted: 0,
-          cutoffDate: cutoffISO
-        }
-      });
-    }
-    
-    // 2. Process each expired draft
+
+    // 2. Process each expired draft (may be zero)
     let deletedCount = 0;
     let imagesDeletedCount = 0;
     let errorCount = 0;
@@ -343,10 +432,15 @@ export async function POST(request) {
     
     const bookingSla = await processExpiredBookingRequests();
     const invoiceExpiry = await processExpiredPendingInvoices();
+    const disputeEvidenceRetention = await processDisputeEvidenceRetention();
+    const disputeSla72h = await DisputeService.processSlaBreaches({ limit: 300 });
 
     const result = {
       success: true,
-      message: `Cleaned up ${deletedCount} expired drafts`,
+      message:
+        expiredDrafts.length === 0
+          ? 'No expired drafts found'
+          : `Cleaned up ${deletedCount} expired drafts`,
       stats: {
         scanned: allInactive?.length || 0,
         draftsFound: expiredDrafts.length,
@@ -356,9 +450,11 @@ export async function POST(request) {
         cutoffDate: cutoffISO,
         expiryDays: DRAFT_EXPIRY_DAYS,
         bookingSla24h: bookingSla,
-        invoiceExpiry
+        invoiceExpiry,
+        disputeEvidenceRetention,
+        disputeSla72h,
       },
-      deletedIds
+      deletedIds,
     };
     
     console.log('[CLEANUP] Job completed:', result);
@@ -420,6 +516,20 @@ export async function GET(request) {
       if (Number.isFinite(expiryMs) && expiryMs < Date.now()) return acc + 1;
       return acc;
     }, 0);
+
+    const evidenceCutoffMs =
+      Date.now() - DISPUTE_EVIDENCE_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+    const { data: terminalDisputes } = await supabaseAdmin
+      .from('disputes')
+      .select('id, resolved_at, updated_at, metadata')
+      .in('status', TERMINAL_DISPUTE_STATUSES)
+      .limit(500);
+    const disputeEvidenceEligible = (terminalDisputes || []).filter((row) => {
+      const meta = row.metadata && typeof row.metadata === 'object' ? row.metadata : {};
+      if (meta.dispute_evidence_storage_purged_at) return false;
+      const refMs = disputeClosedReferenceMs(row);
+      return Number.isFinite(refMs) && refMs <= evidenceCutoffMs;
+    }).length;
     
     // Calculate total storage that would be freed
     const totalImages = expiredDrafts.reduce((sum, d) => sum + (d.images?.length || 0), 0);
@@ -435,6 +545,8 @@ export async function GET(request) {
         expiryDays: DRAFT_EXPIRY_DAYS,
         staleBookingsByPartnerSla24h: Number(staleBookingCount || 0),
         expiredPendingInvoices: expiredInvoiceCount,
+        disputeEvidenceRetentionEligible: disputeEvidenceEligible,
+        disputeEvidenceRetentionDays: DISPUTE_EVIDENCE_RETENTION_DAYS,
       },
       drafts: expiredDrafts.map(d => ({
         id: d.id,
