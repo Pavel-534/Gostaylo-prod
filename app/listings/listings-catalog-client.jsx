@@ -607,6 +607,7 @@ function ListingsContent() {
             showMap={showMap}
             currency={currency}
             exchangeRates={exchangeRates}
+            initialDates={cardDates}
             selectedListingId={mapSelectedListingId}
             onListingMarkerClick={handleListingMarkerClick}
             onSearchThisArea={handleSearchThisArea}

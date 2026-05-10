@@ -13,6 +13,8 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
+import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 import { getUIText } from '@/lib/translations'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { getListingLocationDisplayMode } from '@/lib/listing-location-privacy'
@@ -172,42 +174,58 @@ function InitialListingBoundsFit({
   return null
 }
 
-function ListingPopupCard({ listing, language = 'ru', isApproximateLocation }) {
+function ListingPopupCard({
+  listing,
+  language = 'ru',
+  isApproximateLocation,
+  initialDates = null,
+  currency = 'THB',
+  exchangeRates = { THB: 1 },
+}) {
   const raw = listing.images?.[0] || listing.coverImage || '/placeholder.svg'
   const image = raw ? toPublicImageUrl(raw) || raw : raw
-  const price = listing.basePriceThb || listing.base_price_thb || 0
-  const rating = listing.rating || 0
+  const rating = parseFloat(listing.rating || listing.avgRating || listing.average_rating || 0) || 0
+  const reviewsCt = listing.reviewsCount ?? listing.reviews_count ?? 0
   const locHint = getUIText(
     isApproximateLocation ? 'mapListing_approximatePopup' : 'mapListing_exactPopup',
-    language
+    language,
   )
+  const basePrice = parseFloat(listing.basePriceThb ?? listing.base_price_thb ?? 0) || 0
+  const categorySlug =
+    listing.categorySlug || listing.category?.slug || listing.metadata?.category_slug || ''
 
   return (
     <div className="w-64">
-      <img src={image} alt={listing.title} className="w-full h-32 object-cover rounded-t-lg" />
-      <div className="p-3 bg-white rounded-b-lg">
-        <h3 className="font-semibold text-sm text-slate-900 truncate mb-1">{listing.title}</h3>
-        <div className="flex items-center gap-1 mb-2">
+      <img src={image} alt={listing.title} className="h-32 w-full rounded-t-lg object-cover" />
+      <div className="rounded-b-lg bg-white p-3">
+        <h3 className="mb-1 truncate text-sm font-semibold text-slate-900">{listing.title}</h3>
+        <div className="mb-2 flex items-center gap-1">
           {rating > 0 ? (
             <>
-              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
               <span className="text-xs font-medium text-slate-700">{rating.toFixed(1)}</span>
-              {listing.reviewsCount > 0 && (
-                <span className="text-xs text-slate-500">({listing.reviewsCount})</span>
-              )}
+              {reviewsCt > 0 && <span className="text-xs text-slate-500">({reviewsCt})</span>}
             </>
           ) : (
             <span className="text-xs text-slate-400">{getUIText('newListing', language)}</span>
           )}
         </div>
-        <p className="text-[11px] text-slate-500 mb-2 leading-snug">{locHint}</p>
-        <div className="flex items-baseline gap-1">
-          <span className="text-lg font-bold text-teal-600">฿{price.toLocaleString()}</span>
-          <span className="text-xs text-slate-500">/ {getUIText('perNight', language)}</span>
+        <p className="mb-2 text-[11px] leading-snug text-slate-500">{locHint}</p>
+        <ListingCardSpecsRow listing={listing} language={language} compact className="mb-2" />
+        <div className="flex items-baseline justify-between gap-1 border-t border-slate-100 pt-2">
+          <CardPriceDisplay
+            basePrice={basePrice}
+            pricing={listing.pricing}
+            initialDates={initialDates || {}}
+            currency={currency}
+            exchangeRates={exchangeRates}
+            language={language}
+            categorySlug={categorySlug}
+          />
         </div>
         <a
           href={`/listings/${listing.id}`}
-          className="mt-2 block w-full bg-teal-600 hover:bg-teal-700 text-white text-xs font-medium py-1.5 px-3 rounded-lg text-center transition-colors"
+          className="mt-2 block w-full rounded-lg bg-teal-600 px-3 py-1.5 text-center text-xs font-medium text-white transition-colors hover:bg-teal-700"
         >
           {getUIText('viewDetails', language)}
         </a>
@@ -224,6 +242,9 @@ function ListingPriceMarker({
   selected,
   language,
   onSelect,
+  initialDates,
+  currency,
+  exchangeRates,
 }) {
   const map = useMap()
   const icon = useMemo(
@@ -247,6 +268,9 @@ function ListingPriceMarker({
           listing={listing}
           language={language}
           isApproximateLocation={approximate}
+          initialDates={initialDates}
+          currency={currency}
+          exchangeRates={exchangeRates}
         />
       </Popup>
     </Marker>
@@ -273,6 +297,8 @@ export default function InteractiveSearchMap({
   zoom = 12,
   currency = 'THB',
   exchangeRates = { THB: 1 },
+  /** Синхрон с карточками списка: даты для `CardPriceDisplay` во всплывающем окне маркера */
+  initialDates = null,
   selectedListingId = null,
   onListingMarkerClick,
   onSearchThisArea,
@@ -361,6 +387,9 @@ export default function InteractiveSearchMap({
             selected={selectedListingId === listing.id}
             language={language}
             onSelect={onListingMarkerClick}
+            initialDates={initialDates}
+            currency={currency}
+            exchangeRates={exchangeRates}
           />
         )
       })}

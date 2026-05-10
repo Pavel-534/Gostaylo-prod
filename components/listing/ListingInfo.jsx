@@ -24,6 +24,7 @@ import {
   Clock,
   Route,
   Car,
+  Cog,
   Info,
 } from 'lucide-react'
 import { toPublicImageUrl } from '@/lib/public-image-url'
@@ -43,6 +44,7 @@ import {
   getPublicListingMetadataSpecEntries,
   listingMetadataSpecUiKey,
 } from '@/lib/listing-public-metadata-specs'
+import { formatListingTransmissionLabel } from '@/lib/listing-card-spec-profile'
 
 function useGuestListingModel(listing) {
   return useMemo(() => {
@@ -86,6 +88,8 @@ export function GuestListingTitleBlock({ listing, language = 'en' }) {
     [listing?.metadata],
   )
   if (!m || !listing) return null
+
+  const transmissionLabel = formatListingTransmissionLabel(listing?.metadata, language)
 
   const {
     bedrooms,
@@ -203,6 +207,12 @@ export function GuestListingTitleBlock({ listing, language = 'en' }) {
             {getUIText('listingInfo_engineCcLabel', language).replace(/\{\{cc\}\}/g, String(engineCc))}
           </span>
         )}
+        {transportListing && !yachtLike && transmissionLabel ? (
+          <div className="flex min-w-0 max-w-[220px] items-center gap-2" title={transmissionLabel}>
+            <Cog className="h-5 w-5 shrink-0 text-slate-400" aria-hidden />
+            <span className="truncate text-sm">{transmissionLabel}</span>
+          </div>
+        ) : null}
         {transportListing && !yachtLike && vehicleYear != null && (
           <div className="flex items-center gap-2 text-slate-700">
             <span>

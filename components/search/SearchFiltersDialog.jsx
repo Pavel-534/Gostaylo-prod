@@ -32,8 +32,12 @@ import {
   LISTINGS_PRICE_SLIDER_MAX_THB,
   defaultExtraFilters,
 } from '@/lib/search/listings-page-url'
+import { getEffectiveSearchUnitPriceThb } from '@/lib/search/effective-unit-price-for-search'
 import { NANNY_LANG_OPTIONS as NANNY_LANGS } from '@/lib/search/nanny-search-langs'
 import { cn } from '@/lib/utils'
+import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
+import { isYachtLikeCategory } from '@/lib/listing-category-slug'
+import { normalizeCategoryWizardProfileColumn } from '@/lib/config/category-wizard-profile-db'
 
 /** Выше Dialog overlay/content (z-[120]), иначе выпадающие списки не видны и кажутся «мёртвыми». */
 const FILTER_DIALOG_SELECT_Z = 'z-[130]'
@@ -49,7 +53,7 @@ function PriceHistogram({ listings, binCount = 14 }) {
     const maxP = LISTINGS_PRICE_SLIDER_MAX_THB
     const counts = Array(binCount).fill(0)
     for (const l of listings || []) {
-      const p = parseFloat(l.basePriceThb ?? l.base_price_thb ?? 0) || 0
+      const p = getEffectiveSearchUnitPriceThb(l)
       if (p <= 0 || p > maxP) continue
       const i = Math.min(binCount - 1, Math.floor((p / maxP) * binCount))
       counts[i]++
@@ -88,6 +92,15 @@ export function SearchFiltersDialog({
 }) {
   const panel = getSearchFilterPanelKind(categorySlug, categoryWizardProfile)
   const t = (ru, en) => (language === 'ru' ? ru : en)
+
+  const pricePeriodLabel =
+    getListingRentalPeriodMode(categorySlug) === 'day'
+      ? t('Цена за сутки (฿)', 'Price per day (฿)')
+      : t('Цена за ночь (฿)', 'Price per night (฿)')
+
+  const showYachtCabinsFilter =
+    isYachtLikeCategory(categorySlug) ||
+    normalizeCategoryWizardProfileColumn(categoryWizardProfile) === 'yacht'
 
   const slideMin = extraFilters.minPriceThb ?? 0
   const slideMax = extraFilters.maxPriceThb ?? LISTINGS_PRICE_SLIDER_MAX_THB
@@ -133,7 +146,7 @@ export function SearchFiltersDialog({
           {/* Price — все категории */}
           <section className="space-y-3">
             <Label className="text-base font-semibold text-slate-900">
-              {t('Цена за ночь (฿)', 'Price per night (฿)')}
+              {pricePeriodLabel}
             </Label>
             <p className="text-xs text-slate-500">
               {t(
@@ -331,6 +344,31 @@ export function SearchFiltersDialog({
                   </span>
                 </div>
               </div>
+              {showYachtCabinsFilter && (
+                <div className="space-y-2">
+                  <Label className="text-xs text-slate-600">
+                    {t('Кают (мин.)', 'Cabins (min.)')}
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <Slider
+                      min={0}
+                      max={16}
+                      step={1}
+                      value={[extraFilters.cabinsMin ?? 0]}
+                      onValueChange={([v]) =>
+                        onExtraFiltersChange((p) => ({
+                          ...p,
+                          cabinsMin: v <= 0 ? null : v,
+                        }))
+                      }
+                      className="flex-1"
+                    />
+                    <span className="w-16 text-right text-sm text-slate-600">
+                      {(extraFilters.cabinsMin ?? 0) <= 0 ? '—' : `${extraFilters.cabinsMin}`}
+                    </span>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 

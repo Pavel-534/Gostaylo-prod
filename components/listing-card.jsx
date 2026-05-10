@@ -7,32 +7,13 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
-import {
-  Star,
-  MapPin,
-  BedDouble,
-  Users,
-  Bath,
-  Maximize,
-  Anchor,
-  Ship,
-  Clock,
-  Car,
-  Route,
-} from 'lucide-react'
+import { Star, MapPin } from 'lucide-react'
 import { CardImageCarousel } from '@/components/card/CardImageCarousel'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
 import { useShareListing } from '@/lib/hooks/useShareListing'
 import { cn } from '@/lib/utils'
-import { getUIText, getCategoryName } from '@/lib/translations'
+import { getUIText, getCategoryName, getListingText } from '@/lib/translations'
 import { buildListingCategoryLineLabel } from '@/lib/category-display-name'
-import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
-import {
-  isTransportListingCategory,
-  isTourListingCategory,
-  isYachtLikeCategory,
-  showsPropertyInteriorSpecs,
-} from '@/lib/listing-category-slug'
 import { getListingCardBlurDataURL } from '@/lib/listing-image-blur'
 import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
 import { PartnerRenterTrustBadges } from '@/components/trust/PartnerRenterTrustBadges'
@@ -40,6 +21,7 @@ import { Badge } from '@/components/ui/badge'
 import { UrgencyTimer } from '@/components/UrgencyTimer'
 import { ListingFlashHotStrip } from '@/components/listing/ListingFlashHotStrip'
 import { shouldShowFlashUrgencyTimerAboveStrip } from '@/lib/listing/flash-hot-strip'
+import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 
 export function ListingCard({
   listing,
@@ -102,23 +84,7 @@ export function ListingCard({
   const displayRating = parseFloat(displayRatingRaw) || 0
   const displayReviewsCount = reviews_count || reviewsCount || 0
   
-  // Extract metadata
-  const bedrooms = metadata?.bedrooms || 0
-  const bathrooms = metadata?.bathrooms || 0
   const categorySlugForCard = listingCategorySlug || category?.slug || ''
-  const propertyInteriorCard = showsPropertyInteriorSpecs(categorySlugForCard)
-  const yachtCard = isYachtLikeCategory(categorySlugForCard)
-  const tourCard = isTourListingCategory(categorySlugForCard)
-  const vehicleCard = isTransportListingCategory(categorySlugForCard)
-  const maxGuests = resolveListingGuestCapacity(listing)
-  const cabins =
-    parseInt(String(metadata?.cabins ?? metadata?.cabins_count ?? '').replace(/\D/g, ''), 10) || 0
-  const durationHours =
-    parseInt(String(metadata?.duration_hours ?? metadata?.tour_hours ?? '').replace(/\D/g, ''), 10) ||
-    0
-  const engineCc =
-    parseInt(String(metadata?.engine_cc ?? '').replace(/\D/g, ''), 10) || 0
-  const area = metadata?.area || 0
   const propertyType = metadata?.property_type || category?.slug || 'default'
   
   // Build image array
@@ -230,7 +196,7 @@ export function ListingCard({
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="font-semibold text-slate-900 line-clamp-1 text-base group-hover:text-teal-700 transition-colors">
-                  {title}
+                  {getListingText(listing, 'title', language) || title}
                 </h3>
                 {ownerVerified ? (
                   <Badge
@@ -272,71 +238,7 @@ export function ListingCard({
             )}
           </div>
 
-          {/* Specs Row — жильё: спальни/ванные; яхта/тур/транспорт: свои признаки */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 mb-3">
-            {propertyInteriorCard && bedrooms > 0 && (
-              <div className="flex items-center gap-1" title={getUIText('bedrooms', language)}>
-                <BedDouble className="h-4 w-4" />
-                <span>{bedrooms}</span>
-              </div>
-            )}
-            {propertyInteriorCard && bathrooms > 0 && (
-              <div className="flex items-center gap-1" title={getUIText('bathrooms', language)}>
-                <Bath className="h-4 w-4" />
-                <span>{bathrooms}</span>
-              </div>
-            )}
-            {yachtCard && (
-              <div className="flex items-center gap-1" title={getCategoryName('yachts', language)}>
-                <Anchor className="h-4 w-4" aria-hidden />
-              </div>
-            )}
-            {yachtCard && cabins > 0 && (
-              <div
-                className="flex items-center gap-1"
-                title={language === 'ru' ? 'Кают' : 'Cabins'}
-              >
-                <Ship className="h-4 w-4" aria-hidden />
-                <span>{cabins}</span>
-              </div>
-            )}
-            {tourCard && (
-              <div className="flex items-center gap-1" title={getCategoryName('tours', language)}>
-                <Route className="h-4 w-4" aria-hidden />
-              </div>
-            )}
-            {tourCard && durationHours > 0 && (
-              <div className="flex items-center gap-1" title={language === 'ru' ? 'Часы' : 'Hours'}>
-                <Clock className="h-4 w-4" aria-hidden />
-                <span>{durationHours}h</span>
-              </div>
-            )}
-            {vehicleCard && !yachtCard && (
-              <div className="flex items-center gap-1" title={getCategoryName('vehicles', language)}>
-                <Car className="h-4 w-4" aria-hidden />
-              </div>
-            )}
-            {vehicleCard && !yachtCard && engineCc > 0 && (
-              <span className="tabular-nums text-xs font-medium text-slate-600">{engineCc} cc</span>
-            )}
-            <div
-              className="flex items-center gap-1"
-              title={
-                vehicleCard && !yachtCard
-                  ? getUIText('numberOfSeats', language)
-                  : getUIText('guests', language)
-              }
-            >
-              <Users className="h-4 w-4" />
-              <span>{maxGuests}</span>
-            </div>
-            {propertyInteriorCard && area > 0 && (
-              <div className="flex items-center gap-1" title={getUIText('area', language)}>
-                <Maximize className="h-4 w-4" />
-                <span>{area}м²</span>
-              </div>
-            )}
-          </div>
+          <ListingCardSpecsRow listing={listing} language={language} />
 
           {/* Location */}
           {district && (

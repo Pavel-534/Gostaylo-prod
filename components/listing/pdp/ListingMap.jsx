@@ -37,6 +37,7 @@ export function ListingMap({ listing, language }) {
         })}
       </h2>
       <ListingMapCore
+        listing={listing}
         latitude={listing.latitude}
         longitude={listing.longitude}
         title={listing.title}

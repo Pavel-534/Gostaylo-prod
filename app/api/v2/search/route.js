@@ -10,5 +10,5 @@ export const dynamic = 'force-dynamic';
 import { runListingsSearchGet } from '@/lib/api/run-listings-search-get';
 
 export async function GET(request) {
-  return runListingsSearchGet(request);
+  return runListingsSearchGet(request, { isLite: true });
 }

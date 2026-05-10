@@ -15,6 +15,7 @@ import { PushClientInit } from '@/components/push-client-init'
 import { AppQueryProvider } from '@/components/providers/app-query-provider'
 import { getRequestSiteUrl } from '@/lib/server-site-url'
 import { getSiteDisplayName } from '@/lib/site-url'
+import GlobalSiteJsonLd from '@/components/seo/GlobalSiteJsonLd'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-sans' })
 
@@ -104,6 +105,7 @@ button{font:inherit}
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content={appleTitle} />
         <meta name="theme-color" content="#0d9488" />
+        <GlobalSiteJsonLd />
       </head>
       <body className={`${inter.variable} ${cormorant.variable} font-sans`}>
         <I18nProvider>

@@ -29,6 +29,8 @@ function SearchMapWrapperComponent({
   className,
   currency = 'THB',
   exchangeRates = { THB: 1 },
+  /** @type {{ checkIn?: string|null, checkOut?: string|null, checkInTime?: string|null, checkOutTime?: string|null } | null} */
+  initialDates = null,
   selectedListingId = null,
   onListingMarkerClick,
   onSearchThisArea,
@@ -55,6 +57,7 @@ function SearchMapWrapperComponent({
           zoom={12}
           currency={currency}
           exchangeRates={exchangeRates}
+          initialDates={initialDates}
           selectedListingId={selectedListingId}
           onListingMarkerClick={onListingMarkerClick}
           onSearchThisArea={onSearchThisArea}

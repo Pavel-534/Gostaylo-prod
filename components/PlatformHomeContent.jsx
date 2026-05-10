@@ -543,7 +543,6 @@ export function PlatformHomeContent() {
         aiGridPending={aiGridPending}
         exchangeRates={exchangeRates}
         currency={currency}
-        nights={nights}
         mediaFallback={mediaFallback}
         markMediaFailed={markMediaFailed}
         onViewAll={handleSearch}

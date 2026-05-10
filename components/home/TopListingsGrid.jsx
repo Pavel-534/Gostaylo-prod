@@ -2,39 +2,20 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import {
-  MapPin,
-  BedDouble,
-  Bath,
-  Users,
-  Ship,
-  Clock,
-  Route,
-  Car,
-  Anchor,
-  Loader2,
-  CalendarX,
-  Flame,
-} from 'lucide-react'
+import { MapPin, Loader2, CalendarX, Flame } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { formatPrice } from '@/lib/currency'
-import { getUIText, getListingText, getCategoryName } from '@/lib/translations'
+import { getUIText, getListingText } from '@/lib/translations'
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton'
 import { EmptyState } from '@/components/empty-state'
 import { toPublicImageUrl, isRemoteHttpImageSrc } from '@/lib/public-image-url'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
 import { format, isSameDay } from 'date-fns'
 import { formatDisplayDate } from '@/lib/date-display-format'
-import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
-import {
-  isTransportListingCategory,
-  isTourListingCategory,
-  isYachtLikeCategory,
-  showsPropertyInteriorSpecs,
-} from '@/lib/listing-category-slug'
-import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
+import { isTransportListingCategory } from '@/lib/listing-category-slug'
+import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
+import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
 
 export function TopListingsGrid({
   language,
@@ -48,7 +29,6 @@ export function TopListingsGrid({
   aiGridPending,
   exchangeRates,
   currency,
-  nights,
   mediaFallback,
   markMediaFailed,
   onViewAll,
@@ -64,6 +44,12 @@ export function TopListingsGrid({
         ? 'Топ объекты'
         : 'Top Properties'
   const sectionTitle = cleanCustomTitle.length > 0 ? cleanCustomTitle : fallbackTitle
+  const initialDates = {
+    checkIn: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : null,
+    checkOut: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
+    checkInTime,
+    checkOutTime,
+  }
   return (
     <section id="listings-section" className="bg-white py-12 sm:py-16">
       <div className="container mx-auto px-6">
@@ -147,7 +133,7 @@ export function TopListingsGrid({
                         className="object-cover group-hover:scale-110 transition-transform duration-500"
                         onError={() => markMediaFailed(`lst-${listing.id}`)}
                       />
-                      {listing.isFeatured && (
+                      {listing?.isFeatured && (
                         <Badge className="absolute top-2 left-2 bg-gradient-to-r from-purple-600 to-pink-600">
                           ⭐ TOP
                         </Badge>
@@ -172,7 +158,7 @@ export function TopListingsGrid({
                           {listing.catalog_flash_social_proof}
                         </span>
                       )}
-                      {listing.rating > 0 && (
+                      {Number(listing?.rating) > 0 && (
                         <Badge className="absolute top-2 right-2 bg-[#006666]">⭐ {listing.rating}</Badge>
                       )}
                     </div>
@@ -184,105 +170,21 @@ export function TopListingsGrid({
                         <MapPin className="h-3 w-3" />
                         <span>{listing.district}</span>
                       </div>
-                      {(() => {
-                        const slug =
-                          listing.categorySlug || listing.category?.slug || listing.metadata?.category_slug || ''
-                        const propertyInterior = showsPropertyInteriorSpecs(slug)
-                        const yachtCard = isYachtLikeCategory(slug)
-                        const tourCard = isTourListingCategory(slug)
-                        const vehicleCard = isTransportListingCategory(slug)
-                        const meta = listing.metadata || {}
-                        const cabins = parseInt(String(meta.cabins ?? meta.cabins_count ?? '').replace(/\D/g, ''), 10) || 0
-                        const durationHours =
-                          parseInt(String(meta.duration_hours ?? meta.tour_hours ?? '').replace(/\D/g, ''), 10) || 0
-                        const engineCc = parseInt(String(meta.engine_cc ?? '').replace(/\D/g, ''), 10) || 0
-                        const cap = resolveListingGuestCapacity(listing)
-                        const showSpecs =
-                          (propertyInterior && (listing.bedrooms > 0 || listing.bathrooms > 0)) ||
-                          yachtCard ||
-                          tourCard ||
-                          vehicleCard ||
-                          cap > 0
-                        if (!showSpecs) return null
-                        return (
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mb-3">
-                            {propertyInterior && listing.bedrooms > 0 && (
-                              <span className="flex items-center gap-0.5">
-                                <BedDouble className="h-3 w-3 shrink-0" aria-hidden />
-                                {listing.bedrooms}
-                              </span>
-                            )}
-                            {propertyInterior && listing.bathrooms > 0 && (
-                              <span className="flex items-center gap-0.5">
-                                <Bath className="h-3 w-3 shrink-0" aria-hidden />
-                                {listing.bathrooms}
-                              </span>
-                            )}
-                            {yachtCard && (
-                              <span
-                                className="flex items-center gap-0.5"
-                                title={getCategoryName('yachts', language)}
-                              >
-                                <Anchor className="h-3 w-3 shrink-0" aria-hidden />
-                              </span>
-                            )}
-                            {yachtCard && cabins > 0 && (
-                              <span className="flex items-center gap-0.5">
-                                <Ship className="h-3 w-3 shrink-0" aria-hidden />
-                                {cabins}
-                              </span>
-                            )}
-                            {tourCard && (
-                              <span
-                                className="flex items-center gap-0.5"
-                                title={getCategoryName('tours', language)}
-                              >
-                                <Route className="h-3 w-3 shrink-0" aria-hidden />
-                              </span>
-                            )}
-                            {tourCard && durationHours > 0 && (
-                              <span className="flex items-center gap-0.5">
-                                <Clock className="h-3 w-3 shrink-0" aria-hidden />
-                                {durationHours}h
-                              </span>
-                            )}
-                            {vehicleCard && !yachtCard && (
-                              <span
-                                className="flex items-center gap-0.5"
-                                title={getCategoryName('vehicles', language)}
-                              >
-                                <Car className="h-3 w-3 shrink-0" aria-hidden />
-                              </span>
-                            )}
-                            {vehicleCard && !yachtCard && engineCc > 0 && (
-                              <span className="tabular-nums font-medium text-slate-500">{engineCc}cc</span>
-                            )}
-                            <span className="flex items-center gap-0.5">
-                              <Users className="h-3 w-3 shrink-0" aria-hidden />
-                              {cap}
-                            </span>
-                          </div>
-                        )
-                      })()}
-                      <div className="mt-auto flex items-baseline justify-between">
-                        <span className="text-[24px] leading-8 font-bold tracking-[-0.01em] text-[#006666]">
-                          {formatPrice(
-                            listing.pricing?.totalPrice || listing.basePriceThb,
-                            currency,
-                            exchangeRates,
-                            language,
-                          )}
-                        </span>
-                        <span className="text-sm text-slate-500">
-                          /
-                          {listing.pricing
-                            ? `${nights}${language === 'ru' ? 'н.' : 'n'}`
-                            : getListingRentalPeriodMode(
-                                listing.categorySlug || listing.category?.slug || '',
-                              ) === 'day'
-                              ? getUIText('listingPriceUnitDay', language)
-                              : getUIText('night', language)}
-                        </span>
+                      <ListingCardSpecsRow listing={listing} language={language} compact />
+                      <div className="mt-auto flex items-baseline justify-between gap-2">
+                        <CardPriceDisplay
+                          basePrice={
+                            parseFloat(listing.basePriceThb ?? listing.base_price_thb ?? 0) || 0
+                          }
+                          pricing={listing.pricing}
+                          initialDates={initialDates}
+                          currency={currency}
+                          exchangeRates={exchangeRates}
+                          language={language}
+                          categorySlug={
+                            listing.categorySlug || listing.category?.slug || listing.metadata?.category_slug || ''
+                          }
+                        />
                       </div>
                     </div>
                   </Card>

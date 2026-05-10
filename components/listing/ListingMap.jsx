@@ -11,6 +11,7 @@ import dynamic from 'next/dynamic'
 import { MapPin, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
+import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 import { getListingLocationDisplayMode } from '@/lib/listing-location-privacy'
 
 const MapContainer = dynamic(
@@ -34,6 +35,8 @@ export function ListingMap({
   language = 'en',
   categoryId,
   categorySlug,
+  /** Полный объект листинга — спеки строкой как на карточках каталога (Stage 86.0) */
+  listing = null,
 }) {
   const t = (key) => getUIText(key, language)
   const hasCoordinates = latitude && longitude && !isNaN(latitude) && !isNaN(longitude)
@@ -72,8 +75,21 @@ export function ListingMap({
     )
   }
 
+  const listingForSpecs =
+    listing ||
+    {
+      latitude,
+      longitude,
+      district,
+      title,
+      categories: categorySlug ? { slug: categorySlug } : undefined,
+      categorySlug,
+      metadata: {},
+    }
+
   return (
     <div className="space-y-3">
+      <ListingCardSpecsRow listing={listingForSpecs} language={language} compact />
       <div className="h-[400px] rounded-xl overflow-hidden border border-slate-200">
         <MapContainer
           center={position}

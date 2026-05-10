@@ -46,6 +46,8 @@ function hasMeaningfulSearchParams(sp) {
     'fuelType',
     'engine_cc_min',
     'engineCcMin',
+    'cabins_min',
+    'cabinsMin',
     'nanny_langs',
     'nanny_experience_min',
     'nannyExperienceMin',
@@ -146,7 +148,7 @@ export async function GET(request) {
   const forward = new Request(url.toString(), { method: 'GET', headers: request.headers });
 
   try {
-    const res = await runListingsSearchGet(forward);
+    const res = await runListingsSearchGet(forward, { isLite: true });
     const ct = res.headers.get('content-type') || '';
     if (!ct.includes('application/json')) {
       return res;
