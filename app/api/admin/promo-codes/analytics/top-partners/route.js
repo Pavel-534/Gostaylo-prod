@@ -4,15 +4,13 @@
 
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { resolveAdminSecurityProfile } from '@/lib/admin-security-access'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const session = await resolveAdminSecurityProfile()
-  if (session.error) {
-    return NextResponse.json({ error: session.error.message }, { status: session.error.status })
-  }
+  const gate = await requireAdminStaff()
+  if (gate.error) return gate.error
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
   }

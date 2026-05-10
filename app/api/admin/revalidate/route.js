@@ -8,10 +8,14 @@
 
 import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request) {
+  const gate = await requireAdminStaff()
+  if (gate.error) return gate.error
+
   try {
     const body = await request.json()
     const { paths = [], secret } = body

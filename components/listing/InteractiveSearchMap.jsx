@@ -1,28 +1,28 @@
 /**
  * GoStayLo - Interactive Search Map (Airbnb-style)
  * Desktop: list ~60% / map ~40%; price pills; viewport bounds sync.
+ * Stage 89.0 — кластеризация (**`leaflet.markercluster`**): ниже масштаба **zoom 13** маркеры группируются; цвет кластера по доле Verified (**`options.gslVerified`**).
  *
  * Приватность: getListingLocationDisplayMode — «примерная» зона без круга, пилюля с пунктиром / ~.
  */
 
 'use client'
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import MarkerClusterGroup from '@changey/react-leaflet-markercluster'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Star } from 'lucide-react'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
+import { createSearchMapClusterDivIcon } from '@/lib/maps/search-map-cluster-icon'
 import { Button } from '@/components/ui/button'
-import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
-import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
-import { ListingTrustVerifiedMiniBadge } from '@/components/listing/ListingTrustVerifiedMiniBadge'
+import { ListingPriceMarker } from '@/components/listing/ListingPriceMarker'
 import { getUIText } from '@/lib/translations'
-import { toPublicImageUrl } from '@/lib/public-image-url'
 import { getListingLocationDisplayMode } from '@/lib/listing-location-privacy'
 import { formatPrice } from '@/lib/currency'
 import {
   extractListingLatLng,
-  createLeafletPricePillDivIcon,
   leafletBoundsAroundPointMeters,
 } from '@/lib/maps/map-provider-adapter'
 
@@ -175,115 +175,6 @@ function InitialListingBoundsFit({
   return null
 }
 
-function ListingPopupCard({
-  listing,
-  language = 'ru',
-  isApproximateLocation,
-  initialDates = null,
-  currency = 'THB',
-  exchangeRates = { THB: 1 },
-}) {
-  const raw = listing.images?.[0] || listing.coverImage || '/placeholder.svg'
-  const image = raw ? toPublicImageUrl(raw) || raw : raw
-  const rating = parseFloat(listing.rating || listing.avgRating || listing.average_rating || 0) || 0
-  const reviewsCt = listing.reviewsCount ?? listing.reviews_count ?? 0
-  const locHint = getUIText(
-    isApproximateLocation ? 'mapListing_approximatePopup' : 'mapListing_exactPopup',
-    language,
-  )
-  const basePrice = parseFloat(listing.basePriceThb ?? listing.base_price_thb ?? 0) || 0
-  const categorySlug =
-    listing.categorySlug || listing.category?.slug || listing.metadata?.category_slug || ''
-
-  return (
-    <div className="w-64">
-      <img src={image} alt={listing.title} className="h-32 w-full rounded-t-lg object-cover" />
-      <div className="rounded-b-lg bg-white p-3">
-        <h3 className="mb-1 truncate text-sm font-semibold text-slate-900">{listing.title}</h3>
-        <div className="mb-2 flex items-center gap-1">
-          {rating > 0 ? (
-            <>
-              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-              <span className="text-xs font-medium text-slate-700">{rating.toFixed(1)}</span>
-              {reviewsCt > 0 && <span className="text-xs text-slate-500">({reviewsCt})</span>}
-            </>
-          ) : (
-            <span className="text-xs text-slate-400">{getUIText('newListing', language)}</span>
-          )}
-        </div>
-        <p className="mb-2 text-[11px] leading-snug text-slate-500">{locHint}</p>
-        <ListingCardSpecsRow
-          listing={listing}
-          language={language}
-          compact
-          className="mb-2"
-          suppressTrustVerifiedMiniBadge
-        />
-        <div className="flex items-baseline justify-between gap-1 border-t border-slate-100 pt-2">
-          <CardPriceDisplay
-            basePrice={basePrice}
-            pricing={listing.pricing}
-            initialDates={initialDates || {}}
-            currency={currency}
-            exchangeRates={exchangeRates}
-            language={language}
-            categorySlug={categorySlug}
-          />
-        </div>
-        <a
-          href={`/listings/${listing.id}`}
-          className="mt-2 block w-full rounded-lg bg-teal-600 px-3 py-1.5 text-center text-xs font-medium text-white transition-colors hover:bg-teal-700"
-        >
-          {getUIText('viewDetails', language)}
-        </a>
-      </div>
-    </div>
-  )
-}
-
-function ListingPriceMarker({
-  listing,
-  position,
-  priceLabel,
-  approximate,
-  selected,
-  language,
-  onSelect,
-  initialDates,
-  currency,
-  exchangeRates,
-}) {
-  const map = useMap()
-  const icon = useMemo(
-    () => createLeafletPricePillDivIcon(L, priceLabel, { selected, approximate }),
-    [priceLabel, selected, approximate]
-  )
-
-  return (
-    <Marker
-      position={position}
-      icon={icon}
-      eventHandlers={{
-        click: () => {
-          onSelect?.(listing.id)
-          map.setView(position, Math.max(map.getZoom(), 14), { animate: true })
-        },
-      }}
-    >
-      <Popup autoPan={true} autoPanPadding={[80, 60]} className="map-listing-popup">
-        <ListingPopupCard
-          listing={listing}
-          language={language}
-          isApproximateLocation={approximate}
-          initialDates={initialDates}
-          currency={currency}
-          exchangeRates={exchangeRates}
-        />
-      </Popup>
-    </Marker>
-  )
-}
-
 function markerVisualFlags(listing, hasConfirmedBookingFn) {
   if (hasConfirmedBookingFn(listing.id)) {
     return { approximate: false }
@@ -372,34 +263,48 @@ export default function InteractiveSearchMap({
           onClearMapBounds={onClearMapBounds}
         />
         <InitialListingBoundsFit
-        listings={listings}
-        hasConfirmedBookingFn={hasConfirmedBooking}
-        suppressBoundsUntilRef={suppressBoundsUntilRef}
-        mapFitResetKey={mapFitResetKey}
-      />
+          listings={listings}
+          hasConfirmedBookingFn={hasConfirmedBooking}
+          suppressBoundsUntilRef={suppressBoundsUntilRef}
+          mapFitResetKey={mapFitResetKey}
+        />
 
-      {listings.map((listing) => {
-        const position = getListingPosition(listing)
-        if (!position) return null
-        const { approximate } = markerVisualFlags(listing, hasConfirmedBooking)
-        const priceText = (approximate ? '~' : '') + priceForMarker(listing)
+        <MarkerClusterGroup
+          chunkedLoading
+          chunkInterval={200}
+          chunkDelay={50}
+          maxClusterRadius={72}
+          spiderfyOnMaxZoom={true}
+          showCoverageOnHover={false}
+          zoomToBoundsOnClick={true}
+          removeOutsideVisibleBounds={true}
+          disableClusteringAtZoom={13}
+          animateAddingMarkers={false}
+          iconCreateFunction={(cluster) => createSearchMapClusterDivIcon(L, cluster)}
+        >
+          {listings.map((listing) => {
+            const position = getListingPosition(listing)
+            if (!position) return null
+            const { approximate } = markerVisualFlags(listing, hasConfirmedBooking)
+            const priceText = (approximate ? '~' : '') + priceForMarker(listing)
 
-        return (
-          <ListingPriceMarker
-            key={listing.id}
-            listing={listing}
-            position={position}
-            priceLabel={priceText}
-            approximate={approximate}
-            selected={selectedListingId === listing.id}
-            language={language}
-            onSelect={onListingMarkerClick}
-            initialDates={initialDates}
-            currency={currency}
-            exchangeRates={exchangeRates}
-          />
-        )
-      })}
+            return (
+              <ListingPriceMarker
+                key={listing.id}
+                listing={listing}
+                position={position}
+                priceLabel={priceText || '—'}
+                approximate={approximate}
+                selected={selectedListingId === listing.id}
+                language={language}
+                onSelect={onListingMarkerClick}
+                initialDates={initialDates}
+                currency={currency}
+                exchangeRates={exchangeRates}
+              />
+            )
+          })}
+        </MarkerClusterGroup>
       </MapContainer>
     </div>
   )

@@ -12,8 +12,8 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   ArrowLeft, User, Mail, Phone, Shield, Calendar, Building2, 
-  DollarSign, FileText, Image as ImageIcon, CheckCircle, XCircle, Clock,
-  LogIn, ExternalLink, AlertTriangle, Percent, Send, Medal
+  DollarSign, FileText, CheckCircle, XCircle, Clock,
+  LogIn, ExternalLink, Percent, Send, Medal
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProxiedImage } from '@/components/proxied-image';
@@ -91,8 +91,12 @@ export default function UserDetailPage() {
           name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email,
           role: profile.role,
           phone: profile.phone,
-          isVerified: profile.is_verified,
-          verificationStatus: profile.verification_status,
+          isVerified: profile.is_verified === true || String(profile.verification_status || '').toUpperCase() === 'VERIFIED',
+          verificationStatus: (() => {
+            const u = String(profile.verification_status || '').toUpperCase()
+            if (u === 'APPROVED') return 'VERIFIED'
+            return profile.verification_status
+          })(),
           customCommissionRate: profile.custom_commission_rate,
           availableBalance: profile.available_balance,
           telegramId: profile.telegram_id,
@@ -238,39 +242,39 @@ export default function UserDetailPage() {
     }
   };
 
-  const handleVerifyIdentity = async (newStatus) => {
+  /** SSOT: `profiles.verification_status` enum **PENDING | VERIFIED | REJECTED** (не путать с **partner_applications.status** APPROVED). */
+  const handleProfileVerificationDecision = async (decision) => {
     setVerifying(true);
     try {
+      const updates =
+        decision === 'VERIFIED'
+          ? { is_verified: true, verification_status: 'VERIFIED' }
+          : { is_verified: false, verification_status: 'REJECTED' }
       const res = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          userId,
-          updates: { 
-            is_verified: newStatus === 'APPROVED',
-            verification_status: newStatus
-          }
-        }),
-      });
+        credentials: 'include',
+        body: JSON.stringify({ userId, updates }),
+      })
 
-      const data = await res.json();
+      const data = await res.json()
 
       if (res.ok && data.success) {
-        toast.success(newStatus === 'APPROVED' ? 'Личность подтверждена!' : 'Статус обновлён');
-        setUser(prev => ({ 
-          ...prev, 
-          isVerified: newStatus === 'APPROVED',
-          verificationStatus: newStatus 
-        }));
+        toast.success(decision === 'VERIFIED' ? 'Верификация подтверждена (профиль VERIFIED)' : 'Статус обновлён')
+        setUser((prev) => ({
+          ...prev,
+          isVerified: decision === 'VERIFIED',
+          verificationStatus: decision,
+        }))
       } else {
-        throw new Error(data.error || 'Failed to update');
+        throw new Error(data.error || 'Failed to update')
       }
     } catch (error) {
-      toast.error('Не удалось обновить статус верификации');
+      toast.error('Не удалось обновить статус верификации')
     } finally {
-      setVerifying(false);
+      setVerifying(false)
     }
-  };
+  }
 
   // Helper to format Telegram link correctly
   const getTelegramLink = (username) => {
@@ -291,9 +295,10 @@ export default function UserDetailPage() {
   };
 
   const getVerificationBadge = (status) => {
-    switch (status) {
+    switch (String(status || '').toUpperCase()) {
+      case 'VERIFIED':
       case 'APPROVED':
-        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Верифицирован</Badge>;
+        return <Badge className="bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Verified</Badge>
       case 'PENDING':
         return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />На проверке</Badge>;
       case 'REJECTED':
@@ -506,133 +511,178 @@ export default function UserDetailPage() {
             </Card>
           ) : null}
 
-          {/* Identity Verification Card */}
-          <Card className={`border-2 ${
-            user.verificationStatus === 'APPROVED' ? 'border-green-200' : 
-            user.verificationStatus === 'PENDING' ? 'border-yellow-200' : 'border-gray-200'
-          }`}>
+          {/* Stage 90.0 — KYC / Verification: профиль (**VERIFIED**) + документы (заявка / профиль) */}
+          <Card
+            className={`border-2 ${
+              String(user.verificationStatus || '').toUpperCase() === 'VERIFIED'
+                ? 'border-green-200'
+                : String(user.verificationStatus || '').toUpperCase() === 'PENDING'
+                  ? 'border-yellow-200'
+                  : 'border-gray-200'
+            }`}
+          >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-blue-600" />
-                Верификация личности
+                <Shield className="w-5 h-5 text-teal-600" />
+                KYC / Verification
               </CardTitle>
               <CardDescription>
-                Проверка документов пользователя
+                Профиль: <code className="text-xs bg-slate-100 px-1 rounded">is_verified</code> +{' '}
+                <code className="text-xs bg-slate-100 px-1 rounded">verification_status</code> (enum{' '}
+                <strong>PENDING</strong>, <strong>VERIFIED</strong>, <strong>REJECTED</strong>). Бейдж в каталоге и на
+                карте: Stage 87.0–90.0 + <strong>owner.is_verified</strong> после подтверждения здесь.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Current Status */}
-              <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
-                <span className="text-sm font-medium">Текущий статус:</span>
-                {user.verificationStatus === 'APPROVED' ? (
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 p-3">
+                <span className="text-sm font-medium text-slate-700">Текущий статус профиля</span>
+                {String(user.verificationStatus || '').toUpperCase() === 'VERIFIED' ? (
                   <Badge className="bg-green-100 text-green-800">
                     <CheckCircle className="w-3 h-3 mr-1" />
-                    Верифицирован
+                    VERIFIED
                   </Badge>
-                ) : user.verificationStatus === 'PENDING' ? (
+                ) : String(user.verificationStatus || '').toUpperCase() === 'PENDING' ? (
                   <Badge className="bg-yellow-100 text-yellow-800">
                     <Clock className="w-3 h-3 mr-1" />
-                    На проверке
+                    PENDING
                   </Badge>
-                ) : user.verificationStatus === 'REJECTED' ? (
+                ) : String(user.verificationStatus || '').toUpperCase() === 'REJECTED' ? (
                   <Badge className="bg-red-100 text-red-800">
                     <XCircle className="w-3 h-3 mr-1" />
-                    Отклонён
+                    REJECTED
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="text-gray-600">
-                    <Clock className="w-3 h-3 mr-1" />
-                    Ожидает верификации
-                  </Badge>
+                  <Badge variant="outline">Не установлен</Badge>
                 )}
               </div>
 
-              {/* Verification Documents Preview */}
-              {(kycDocs.length > 0 || user.verificationDocUrl) && (
+              {kycDocs.length > 0 ? (
                 <div className="space-y-2">
-                  <Label className="text-xs text-gray-500">Загруженные документы</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {kycDocs[0]?.document_url && (
-                      <a 
-                        href={toAdminVerificationDocProxyUrl(kycDocs[0].document_url)} 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-                      >
-                        <ProxiedImage 
-                          src={toAdminVerificationDocProxyUrl(kycDocs[0].document_url)} 
-                          alt="Документ"
-                          width={96}
-                          height={64}
-                          className="object-cover"
-                        />
-                      </a>
-                    )}
-                    {kycDocs[0]?.selfie_url && (
-                      <a 
-                        href={toAdminVerificationDocProxyUrl(kycDocs[0].selfie_url)} 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-                      >
-                        <ProxiedImage 
-                          src={toAdminVerificationDocProxyUrl(kycDocs[0].selfie_url)} 
-                          alt="Селфи"
-                          width={96}
-                          height={64}
-                          className="object-cover"
-                        />
-                      </a>
-                    )}
-                    {user.verificationDocUrl && !kycDocs[0]?.document_url && (
-                      <a 
-                        href={toAdminVerificationDocProxyUrl(user.verificationDocUrl)} 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-                      >
-                        <ProxiedImage 
-                          src={toAdminVerificationDocProxyUrl(user.verificationDocUrl)} 
-                          alt="Документ"
-                          width={96}
-                          height={64}
-                          className="object-cover"
-                        />
-                      </a>
-                    )}
-                  </div>
+                  <Label className="text-xs uppercase tracking-wide text-slate-500">Заявки партнёра (материалы)</Label>
+                  {kycDocs.map((doc, index) => {
+                    const kycUrl = doc.verification_doc_url || doc.document_url
+                    return (
+                      <div key={doc.id || index} className="rounded-lg border bg-white p-3 text-sm">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <Badge
+                            variant={
+                              doc.status === 'APPROVED' ? 'default' : doc.status === 'PENDING' ? 'secondary' : 'destructive'
+                            }
+                          >
+                            Заявка: {doc.status}
+                          </Badge>
+                          {doc.created_at && (
+                            <span className="text-xs text-slate-500">
+                              {new Date(doc.created_at).toLocaleDateString('ru-RU')}
+                            </span>
+                          )}
+                        </div>
+                        {doc.company_name ? (
+                          <p className="text-xs text-slate-700">
+                            <span className="font-medium">Компания:</span> {doc.company_name}
+                          </p>
+                        ) : null}
+                        {doc.experience ? (
+                          <p className="text-xs text-slate-700 mt-1">
+                            <span className="font-medium">Опыт:</span> {doc.experience}
+                          </p>
+                        ) : null}
+                        {doc.rejection_reason ? (
+                          <p className="text-xs text-red-700 mb-2">Причина: {doc.rejection_reason}</p>
+                        ) : null}
+                        {(kycUrl || doc.selfie_url) && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {kycUrl ? (
+                              <a
+                                href={toAdminVerificationDocProxyUrl(kycUrl)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-teal-700 hover:underline text-xs font-medium"
+                              >
+                                Открыть KYC-документ
+                              </a>
+                            ) : null}
+                            {doc.selfie_url ? (
+                              <a
+                                href={toAdminVerificationDocProxyUrl(doc.selfie_url)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-teal-700 hover:underline text-xs font-medium"
+                              >
+                                Селфи
+                              </a>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
-              )}
+              ) : null}
 
-              {/* Action Buttons */}
-              {user.verificationStatus !== 'APPROVED' && (
-                <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                  <Button 
-                    onClick={() => handleVerifyIdentity('APPROVED')}
-                    disabled={verifying}
-                    className="bg-green-600 hover:bg-green-700 flex-1"
+              {user.verificationDocUrl ? (
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wide text-slate-500">Файл в профиле (legacy / дозагрузка)</Label>
+                  <a
+                    href={toAdminVerificationDocProxyUrl(user.verificationDocUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg border p-2 hover:bg-slate-50"
                   >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    {verifying ? 'Обработка...' : 'Подтвердить личность'}
+                    <ProxiedImage
+                      src={toAdminVerificationDocProxyUrl(user.verificationDocUrl)}
+                      alt="Verification"
+                      width={120}
+                      height={80}
+                      className="rounded object-cover"
+                    />
+                    <span className="text-xs text-teal-700 font-medium">Открыть документ профиля</span>
+                  </a>
+                  {user.verificationSubmittedAt ? (
+                    <p className="text-xs text-slate-500">
+                      Загружен: {new Date(user.verificationSubmittedAt).toLocaleString('ru-RU')}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {!kycDocs.length && !user.verificationDocUrl ? (
+                <p className="text-sm text-slate-600">Файлов KYC пока не привязано к заявке или профилю.</p>
+              ) : null}
+
+              {String(user.verificationStatus || '').toUpperCase() !== 'VERIFIED' && (
+                <div className="flex flex-col gap-2 pt-2 sm:flex-row">
+                  <Button
+                    type="button"
+                    onClick={() => void handleProfileVerificationDecision('VERIFIED')}
+                    disabled={verifying}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    {verifying ? 'Сохранение…' : 'Подтвердить верификацию'}
                   </Button>
-                  {user.verificationStatus !== 'REJECTED' && (
-                    <Button 
-                      onClick={() => handleVerifyIdentity('REJECTED')}
-                      disabled={verifying}
+                  {String(user.verificationStatus || '').toUpperCase() !== 'REJECTED' && (
+                    <Button
+                      type="button"
                       variant="outline"
-                      className="text-red-600 border-red-200 hover:bg-red-50 flex-1 sm:flex-none"
+                      className="border-red-200 text-red-700 hover:bg-red-50 sm:w-auto sm:flex-none"
+                      onClick={() => void handleProfileVerificationDecision('REJECTED')}
+                      disabled={verifying}
                     >
-                      <XCircle className="w-4 h-4 mr-2" />
-                      Отклонить
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Отклонить (профиль)
                     </Button>
                   )}
                 </div>
               )}
 
-              {user.verificationStatus === 'APPROVED' && (
-                <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="text-sm text-green-800">Личность пользователя подтверждена администратором</span>
+              {String(user.verificationStatus || '').toUpperCase() === 'VERIFIED' && (
+                <div className="flex flex-wrap gap-2 rounded-lg border border-green-200 bg-green-50 p-3">
+                  <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-700" aria-hidden />
+                  <p className="text-sm text-green-900">
+                    Профиль помечен <strong>VERIFIED</strong> — знак «Verified» в каталоге/на карте срабатывает при{' '}
+                    <code className="rounded bg-green-100/80 px-1 text-[11px]">owner.is_verified</code>.
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -700,130 +750,6 @@ export default function UserDetailPage() {
                 <p className="text-xs text-gray-500">
                   Партнёр получит {100 - effectiveCommission}% от стоимости бронирования
                 </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* KYC Documents */}
-          {kycDocs.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-orange-600" />
-                  KYC Документы ({kycDocs.length})
-                </CardTitle>
-                <CardDescription>
-                  Документы верификации партнёра
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {kycDocs.map((doc, index) => (
-                  <div key={doc.id || index} className="border rounded-lg p-4 bg-gray-50">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge variant={
-                            doc.status === 'APPROVED' ? 'default' :
-                            doc.status === 'PENDING' ? 'secondary' : 'destructive'
-                          }>
-                            {doc.status}
-                          </Badge>
-                          <span className="text-xs text-gray-500">
-                            {new Date(doc.created_at).toLocaleDateString('ru-RU')}
-                          </span>
-                        </div>
-                        
-                        {doc.company_name && (
-                          <p className="text-sm"><strong>Компания:</strong> {doc.company_name}</p>
-                        )}
-                        {doc.experience && (
-                          <p className="text-sm"><strong>Опыт:</strong> {doc.experience}</p>
-                        )}
-                        {doc.rejection_reason && (
-                          <div className="mt-2 p-2 bg-red-50 rounded border border-red-200">
-                            <p className="text-sm text-red-700">
-                              <AlertTriangle className="w-4 h-4 inline mr-1" />
-                              Причина отклонения: {doc.rejection_reason}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Document Images */}
-                    {(doc.document_url || doc.selfie_url) && (
-                      <div className="mt-4 flex flex-wrap gap-3">
-                        {doc.document_url && (
-                          <a 
-                            href={toAdminVerificationDocProxyUrl(doc.document_url)} 
-                            target="_blank"
-                            className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-                          >
-                            <ProxiedImage 
-                              src={toAdminVerificationDocProxyUrl(doc.document_url)} 
-                              alt="Документ"
-                              width={160}
-                              height={112}
-                              className="object-cover"
-                            />
-                            <p className="text-xs text-center py-1 bg-gray-100">Документ</p>
-                          </a>
-                        )}
-                        {doc.selfie_url && (
-                          <a 
-                            href={toAdminVerificationDocProxyUrl(doc.selfie_url)} 
-                            target="_blank"
-                            className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-                          >
-                            <ProxiedImage 
-                              src={toAdminVerificationDocProxyUrl(doc.selfie_url)} 
-                              alt="Селфи"
-                              width={160}
-                              height={112}
-                              className="object-cover"
-                            />
-                            <p className="text-xs text-center py-1 bg-gray-100">Селфи</p>
-                          </a>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Legacy Verification Document */}
-          {user.verificationDocUrl && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ImageIcon className="w-5 h-5 text-blue-600" />
-                  Документ верификации (Legacy)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <a 
-                  href={toAdminVerificationDocProxyUrl(user.verificationDocUrl)} 
-                  target="_blank"
-                  className="block border rounded-lg overflow-hidden hover:shadow-lg transition-shadow w-fit"
-                >
-                  <ProxiedImage 
-                    src={toAdminVerificationDocProxyUrl(user.verificationDocUrl)} 
-                    alt="Verification document"
-                    width={448}
-                    height={320}
-                    className="max-w-sm h-auto object-contain"
-                  />
-                </a>
-                {user.verificationDocType && (
-                  <p className="text-sm text-gray-500 mt-2">Тип: {user.verificationDocType}</p>
-                )}
-                {user.verificationSubmittedAt && (
-                  <p className="text-sm text-gray-500">
-                    Загружен: {new Date(user.verificationSubmittedAt).toLocaleDateString('ru-RU')}
-                  </p>
-                )}
               </CardContent>
             </Card>
           )}

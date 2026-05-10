@@ -10,7 +10,7 @@ import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-def
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { platformDefaultChatInvoiceRateMultiplier } from '@/lib/services/currency-last-resort'
 import ReferralPnlService from '@/lib/services/marketing/referral-pnl.service'
-import { resolveAdminSecurityProfile } from '@/lib/admin-security-access'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { buildGeneralSettingsPatch } from '@/lib/admin/settings-handlers/general-settings'
 import { buildFinanceSettingsPatch } from '@/lib/admin/settings-handlers/finance-settings'
 import { buildMarketingSettingsPatch } from '@/lib/admin/settings-handlers/marketing-settings'
@@ -93,10 +93,8 @@ async function loadTierPayoutAudit() {
 }
 
 export async function GET() {
-  const session = await resolveAdminSecurityProfile()
-  if (session.error) {
-    return NextResponse.json({ error: session.error.message }, { status: session.error.status })
-  }
+  const gate = await requireAdminStaff()
+  if (gate.error) return gate.error
 
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -249,10 +247,8 @@ export async function GET() {
 }
 
 export async function PUT(request) {
-  const session = await resolveAdminSecurityProfile()
-  if (session.error) {
-    return NextResponse.json({ error: session.error.message }, { status: session.error.status })
-  }
+  const gate = await requireAdminStaff()
+  if (gate.error) return gate.error
 
   try {
     const body = await request.json()

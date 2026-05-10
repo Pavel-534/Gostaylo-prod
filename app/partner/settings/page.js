@@ -1,20 +1,38 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react'
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
-import { Check, ExternalLink, Bell, Mail, MessageSquare, Loader2 } from 'lucide-react'
+import { Check, ExternalLink, Bell, Mail, MessageSquare, Loader2, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { toPublicImageUrl } from '@/lib/public-image-url'
+import { KycUploader } from '@/components/kyc-uploader'
 
-export default function PartnerSettings() {
+export default function PartnerSettingsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+        </div>
+      }
+    >
+      <PartnerSettingsContent />
+    </Suspense>
+  )
+}
+
+function PartnerSettingsContent() {
+  const searchParams = useSearchParams()
   const { language } = useI18n()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -36,6 +54,77 @@ export default function PartnerSettings() {
 
   const [telegramLinked, setTelegramLinked] = useState(false)
   const [telegramUsername, setTelegramUsername] = useState('')
+
+  const [partnerApp, setPartnerApp] = useState(null)
+  const [loadingPartnerApp, setLoadingPartnerApp] = useState(true)
+  const [kycDraftUrl, setKycDraftUrl] = useState(null)
+  const [savingKyc, setSavingKyc] = useState(false)
+
+  const loadPartnerApplicationStatus = useCallback(async () => {
+    setLoadingPartnerApp(true)
+    try {
+      const res = await fetch('/api/v2/partner/application-status', { credentials: 'include' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.success) {
+        setPartnerApp(null)
+        return
+      }
+      setPartnerApp({
+        hasApplication: !!data.hasApplication,
+        status: data.status ? String(data.status).toUpperCase() : null,
+        hasVerificationDoc: !!data.hasVerificationDoc,
+        rejectionReason: data.rejectionReason || '',
+      })
+      setKycDraftUrl(null)
+    } catch {
+      setPartnerApp(null)
+    } finally {
+      setLoadingPartnerApp(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void loadPartnerApplicationStatus()
+  }, [loadPartnerApplicationStatus])
+
+  useEffect(() => {
+    if (loading) return
+    const tab = (searchParams?.get('tab') || '').toLowerCase()
+    if (tab !== 'verification') return
+    const el = document.getElementById('partner-verification-panel')
+    if (!el) return
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [loading, searchParams])
+
+  async function handleAttachKycToApplication() {
+    const doc = String(kycDraftUrl || '').trim()
+    if (!doc) {
+      toast.error(getUIText('partnerPendingKycDocRequired', language))
+      return
+    }
+    setSavingKyc(true)
+    try {
+      const res = await fetch('/api/v2/partner/applications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ verificationDocUrl: doc }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || getUIText('partnerPendingKycSaveErr', language))
+      }
+      toast.success(getUIText('partnerPendingKycSaved', language))
+      setKycDraftUrl(null)
+      await loadPartnerApplicationStatus()
+    } catch (e) {
+      toast.error(e.message || getUIText('partnerPendingKycSaveErr', language))
+    } finally {
+      setSavingKyc(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -221,12 +310,74 @@ export default function PartnerSettings() {
   const initial =
     (settings.agencyName?.charAt(0) || user?.email?.charAt(0) || 'P').toUpperCase()
 
+  const isPending = partnerApp?.hasApplication && partnerApp?.status === 'PENDING'
+
   return (
     <div className="p-4 lg:p-8 space-y-8 max-w-4xl">
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Настройки</h1>
         <p className="text-slate-600 mt-1">Управление профилем и уведомлениями</p>
       </div>
+
+      <Card id="partner-verification-panel" className="border-teal-200/80 bg-teal-50/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Shield className="h-5 w-5 text-teal-600" aria-hidden />
+            {getUIText('partnerSettingsVerification_title', language)}
+          </CardTitle>
+          <CardDescription>{getUIText('partnerSettingsVerification_body', language)}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {loadingPartnerApp ? (
+            <div className="flex items-center gap-2 text-slate-600 text-sm py-2">
+              <Loader2 className="h-4 w-4 animate-spin text-teal-600" />
+              …
+            </div>
+          ) : !partnerApp?.hasApplication ? (
+            <div className="space-y-3 text-sm text-slate-700">
+              <p>{getUIText('partnerSettingsVerification_noApplication', language)}</p>
+              <Button asChild size="sm" className="bg-teal-600 text-white hover:bg-teal-700">
+                <Link href="/renter/profile">{getUIText('submitApplication', language)}</Link>
+              </Button>
+            </div>
+          ) : partnerApp.status === 'REJECTED' ? (
+            <p className="text-sm text-slate-700">{getUIText('partnerSettingsVerification_rejected', language)}</p>
+          ) : isPending ? (
+            <div className="space-y-3">
+              {partnerApp.hasVerificationDoc ? (
+                <p className="text-xs text-slate-600">{getUIText('partnerPendingKycAttachDesc', language)}</p>
+              ) : null}
+              <KycUploader
+                value={kycDraftUrl}
+                onChange={(url) => setKycDraftUrl(url)}
+                disabled={savingKyc}
+                onUploadError={(msg) => toast.error(msg)}
+                onUploadSuccess={() => toast.success(getUIText('partnerKycUploadSuccess', language))}
+              />
+              <Button
+                type="button"
+                className="bg-teal-600 text-white hover:bg-teal-700"
+                disabled={savingKyc || !String(kycDraftUrl || '').trim()}
+                onClick={() => void handleAttachKycToApplication()}
+              >
+                {savingKyc ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {getUIText('partnerPendingKycSaving', language)}
+                  </>
+                ) : (
+                  getUIText('partnerPendingKycSave', language)
+                )}
+              </Button>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-700">
+              {getUIText('partnerSettingsVerification_notPending', language)}{' '}
+              <span className="font-semibold">{partnerApp.status || '—'}</span>
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

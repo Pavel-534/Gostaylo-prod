@@ -169,52 +169,60 @@ code {
 .leaflet-div-icon.gostaylo-price-pill-icon-root {
   background: transparent !important;
   border: none !important;
+  overflow: visible !important;
 }
 
-.gostaylo-price-pill-anchor {
-  position: relative;
-  width: 0;
-  height: 0;
+/* Stage 88.0 — слот с известными размероми для Leaflet `iconAnchor` (низ — точка координаты листинга). */
+.leaflet-marker-icon.leaflet-div-icon.gostaylo-price-pill-icon-root {
+  overflow: visible !important;
+}
+
+.gostaylo-price-pill-marker-slot {
+  display: flex;
+  width: 140px;
+  height: 48px;
+  align-items: flex-end;
+  justify-content: center;
+  box-sizing: border-box;
   pointer-events: none;
 }
 
-.gostaylo-price-pill-anchor .gostaylo-price-pill {
+.gostaylo-price-pill-marker-slot .gostaylo-price-pill {
   pointer-events: auto;
 }
 
 .gostaylo-price-pill {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  transform: translate(-50%, calc(-100% - 6px));
-  padding: 7px 14px;
-  min-height: 30px;
+  position: relative;
+  margin-bottom: 2px;
+  padding: 6px 12px;
+  min-height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
   font-size: 12px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.25;
   color: #0f172a;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+  border: 1px solid #cbd5e1;
+  box-shadow: none;
   cursor: pointer;
   white-space: nowrap;
   font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
   transition:
     background-color 0.15s ease,
     color 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color 0.15s ease;
 }
 
 .gostaylo-price-pill:hover {
   background: #0f172a;
   color: #ffffff;
   border-color: #0f172a;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
 }
 
 .gostaylo-price-pill--approx {
@@ -225,12 +233,45 @@ code {
   background: #0f172a;
   color: #ffffff;
   border-color: #0f172a;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
 }
 
 .gostaylo-price-pill--selected:hover {
   background: #020617;
   border-color: #020617;
+}
+
+/* Stage 89.0 — search map clusters: density tiers from share of Verified markers (**`ListingPriceMarker`** → **`options.gslVerified`**). */
+.leaflet-marker-icon.gostaylo-map-cluster-wrap {
+  background: transparent !important;
+  border: none !important;
+}
+
+.gostaylo-map-cluster {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.2);
+}
+
+.gostaylo-map-cluster--low {
+  background: radial-gradient(circle at 30% 30%, #94a3b8 0%, #475569 100%);
+}
+
+.gostaylo-map-cluster--mid {
+  background: radial-gradient(circle at 30% 30%, #5eead4 0%, #0d9488 100%);
+}
+
+.gostaylo-map-cluster--high {
+  background: radial-gradient(circle at 30% 30%, #6ee7b7 0%, #059669 100%);
 }
 
 /* Scroll progress «glow pulse» — micro-moment when user reaches 100% scroll */

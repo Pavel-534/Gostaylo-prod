@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import { getPublicSiteUrl, getSiteDisplayName } from '@/lib/site-url.js';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 import { requireAccess } from '@/lib/security/access-guard';
+import { recordSystemAutoVerification } from '@/lib/services/audit/system-auto-verification';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,10 +19,11 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const APP_URL = getPublicSiteUrl();
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
-async function verifyAdmin() {
-  const access = await requireAccess({ roles: ['ADMIN'] });
+/** Stage 90.1 — staff может одобрять заявки (тот же контур, что **`/api/admin/**`**). */
+async function verifyPartnerAdmin() {
+  const access = await requireAccess({ roles: ['ADMIN', 'MODERATOR'] });
   if (access.error) return { error: access.error };
-  return { userId: String(access.profile?.id || '') };
+  return { userId: String(access.profile?.id || ''), profile: access.profile };
 }
 
 // Send email via Resend
@@ -93,7 +95,7 @@ async function sendTelegramToUser(telegramId, message) {
  * GET - List pending partner applications from partner_applications table
  */
 export async function GET(request) {
-  const auth = await verifyAdmin();
+  const auth = await verifyPartnerAdmin();
   if (auth.error) {
     return auth.error;
   }
@@ -162,7 +164,7 @@ export async function GET(request) {
  * Updates both partner_applications and profiles tables
  */
 export async function POST(request) {
-  const auth = await verifyAdmin();
+  const auth = await verifyPartnerAdmin();
   if (auth.error) {
     return auth.error;
   }
@@ -229,11 +231,12 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: appError.message }, { status: 500 });
     }
     
-    // Update profiles table - change role to PARTNER
+    // Update profiles table - change role to PARTNER + platform VERIFIED (Stage 90.1)
     const { error: profileError } = await supabase
       .from('profiles')
       .update({
         role: 'PARTNER',
+        is_verified: true,
         verification_status: 'VERIFIED',
         updated_at: now
       })
@@ -243,6 +246,14 @@ export async function POST(request) {
       console.error('[ADMIN-PARTNERS] Profile update error:', profileError);
       return NextResponse.json({ success: false, error: profileError.message }, { status: 500 });
     }
+
+    await recordSystemAutoVerification({
+      userId,
+      applicationId: application.id,
+      actorId: auth.userId,
+      source: 'partner_application_approved',
+      extra: { reviewedByRole: auth.profile?.role ?? null },
+    });
     
     // Send approval notifications
     const brand = getSiteDisplayName();

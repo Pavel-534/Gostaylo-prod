@@ -5,24 +5,30 @@
  * This fixes the 502 error caused by missing CHECKED_IN and PAID_ESCROW enum values
  */
 
-import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export async function POST(request) {
+  const staff = await requireAdminStaff()
+  if (staff.error) return staff.error
+
   try {
-    // Verify admin access
-    const body = await request.json().catch(() => ({}));
-    const adminSecret = body.secret || request.headers.get('x-admin-secret');
-    
+    const body = await request.json().catch(() => ({}))
+    const adminSecret = body.secret || request.headers.get('x-admin-secret')
+
     if (adminSecret !== 'gostaylo-fix-2026') {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Unauthorized. Provide secret in body or header.' 
-      }, { status: 401 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Unauthorized. Staff session plus secret in body or x-admin-secret header.',
+        },
+        { status: 401 },
+      )
     }
 
     // SQL to add missing enum values
@@ -93,7 +99,9 @@ ALTER TYPE booking_status ADD VALUE IF NOT EXISTS 'PAID_ESCROW';
 }
 
 export async function GET() {
-  // Check current enum values
+  const staff = await requireAdminStaff()
+  if (staff.error) return staff.error
+
   try {
     const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/execute_sql`, {
       method: 'POST',

@@ -10,6 +10,7 @@ import { getPublicSiteUrl } from '@/lib/site-url.js'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { normalizePartnerListingMetadata } from '@/lib/partner/listing-wizard-metadata'
 import { recordTeammateNewListingIfFirst } from '@/lib/referral/referral-feed-recorder'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,6 +49,9 @@ function categorySlugFromListing(listing) {
 }
 
 export async function GET() {
+  const gate = await requireAdminStaff()
+  if (gate.error) return gate.error
+
   try {
     const listingsRes = await fetch(
       `${SUPABASE_URL}/rest/v1/listings?status=eq.PENDING&select=${encodeURIComponent(LISTING_SELECT)}&order=created_at.desc`,
@@ -96,6 +100,9 @@ export async function GET() {
 }
 
 export async function PATCH(request) {
+  const gate = await requireAdminStaff()
+  if (gate.error) return gate.error
+
   try {
     const body = await request.json()
     const { listingId, action, rejectReason, isFeatured, title, description, metadata: metadataPatch } = body

@@ -1,0 +1,177 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { Loader2, Globe2, AlertCircle } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
+function pctColor(p) {
+  if (p == null || Number.isNaN(p)) return 'bg-slate-200'
+  if (p < 55) return 'bg-amber-500'
+  if (p < 75) return 'bg-teal-500'
+  return 'bg-emerald-600'
+}
+
+export default function MarketplaceHealthPage() {
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState(null)
+  const [payload, setPayload] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      setLoading(true)
+      setErr(null)
+      try {
+        const res = await fetch('/api/v2/admin/marketplace-health', { credentials: 'include' })
+        const data = await res.json().catch(() => ({}))
+        if (cancelled) return
+        if (!res.ok || !data.success) {
+          setErr(data.error || `HTTP ${res.status}`)
+          setPayload(null)
+          return
+        }
+        setPayload(data)
+      } catch (e) {
+        if (!cancelled) setErr(e?.message || 'Request failed')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const cities = payload?.cities || []
+  const windowDays = payload?.windowDays ?? 30
+  const pulseDays = payload?.pulseWindowDays ?? 7
+  const snap7 = payload?.snapshotRowsLast7Days
+  const auto7 = payload?.autoVerificationsLast7Days
+
+  return (
+    <div className="p-4 lg:p-8 max-w-5xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <Globe2 className="h-7 w-7 text-teal-600" aria-hidden />
+          Marketplace Health
+        </h1>
+        <p className="text-slate-600 mt-1 text-sm sm:text-base">
+          Средняя доля объявлений с бейджем Verified в выдаче по подсказке места (снимки при majority {'>'} 50%, Stage
+          87.1 / 89.0). Окно: последние {windowDays} дней.
+        </p>
+      </div>
+
+      <Card className="border-teal-200/80 bg-gradient-to-br from-teal-50/90 to-white">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg">Pulse — верификации за {pulseDays} дней</CardTitle>
+          <CardDescription>
+            Счётчик из таблицы <code className="text-xs bg-white/80 px-1 rounded border">catalog_verified_snapshots</code>{' '}
+            (046): сколько новых снимков выдачи записано; ниже — авто-верификации профилей по одобренным заявкам (
+            <code className="text-xs bg-white/80 px-1 rounded border">SYSTEM_AUTO_VERIFICATION</code>), если журнал доступен.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center gap-2 text-slate-500 py-2">
+              <Loader2 className="h-5 w-5 animate-spin shrink-0" />
+              Загрузка пульса…
+            </div>
+          ) : err ? null : (
+            <div className="flex flex-wrap gap-6 items-end">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Новых снимков каталога</p>
+                <p className="text-4xl font-bold tabular-nums text-teal-800 leading-tight">
+                  {snap7 != null ? snap7 : '—'}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Строк в снимках (телеметрия Verified-share)</p>
+              </div>
+              <div className="border-l border-teal-200 pl-6 min-w-[8rem]">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Авто VERIFIED (заявки)</p>
+                <p className="text-3xl font-semibold tabular-nums text-slate-800 leading-tight">
+                  {auto7 != null ? auto7 : '—'}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">События аудита за тот же период</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Верификация по «городам»</CardTitle>
+          <CardDescription>
+            Ниже — агрегаты из <code className="text-xs bg-slate-100 px-1 rounded">catalog_verified_snapshots</code>.
+            Низкий % помогает увидеть «белые пятна» на карте доверия.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center gap-2 text-slate-500 py-8 justify-center">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              Загрузка…
+            </div>
+          ) : err ? (
+            <div className="flex items-start gap-2 text-red-700 bg-red-50 border border-red-200 rounded-lg p-4 text-sm">
+              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+              <span>{err}</span>
+            </div>
+          ) : cities.length === 0 ? (
+            <p className="text-slate-600 text-sm py-4">
+              Пока нет записей в окне: либо миграция не применена, либо не было поисков с majority Verified.
+            </p>
+          ) : (
+            <div className="overflow-x-auto -mx-2 sm:mx-0">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-slate-500">
+                    <th className="py-2 pr-4 font-medium">Подсказка (where_hint)</th>
+                    <th className="py-2 pr-4 font-medium whitespace-nowrap">Ср. % Verified</th>
+                    <th className="py-2 pr-4 font-medium whitespace-nowrap">Снимков</th>
+                    <th className="py-2 font-medium whitespace-nowrap">Последняя запись (UTC)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cities.map((row) => {
+                    const p = Number(row.avgVerifiedPercent)
+                    return (
+                      <tr key={row.whereHint} className="border-b border-slate-100 hover:bg-slate-50/80">
+                        <td className="py-2.5 pr-4 align-middle max-w-[min(52vw,28rem)] truncate" title={row.whereHint}>
+                          {row.whereHint}
+                        </td>
+                        <td className="py-2.5 pr-4 align-middle">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-20 rounded-full bg-slate-200 overflow-hidden shrink-0">
+                              <div
+                                className={`h-full rounded-full ${pctColor(p)}`}
+                                style={{ width: `${Math.min(100, Math.max(0, p))}%` }}
+                              />
+                            </div>
+                            <span className="font-semibold tabular-nums text-slate-900">{p}%</span>
+                          </div>
+                        </td>
+                        <td className="py-2.5 pr-4 align-middle tabular-nums text-slate-700">
+                          {row.snapshotCount}
+                        </td>
+                        <td className="py-2.5 align-middle text-slate-600 whitespace-nowrap text-xs">
+                          {row.lastRecordedAt
+                            ? new Date(row.lastRecordedAt).toISOString().replace('T', ' ').slice(0, 19)
+                            : '—'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+              {payload?.truncated ? (
+                <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md p-2 mt-4">
+                  Достигнут лимит выборки ({payload.maxRows} строк); агрегаты могут быть неполными.
+                </p>
+              ) : null}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

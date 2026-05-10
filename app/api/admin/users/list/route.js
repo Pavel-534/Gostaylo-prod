@@ -4,10 +4,14 @@
  */
 
 import { NextResponse } from 'next/server'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request) {
+  const gate = await requireAdminStaff()
+  if (gate.error) return gate.error
+
   try {
     const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL
     const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY

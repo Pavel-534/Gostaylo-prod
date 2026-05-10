@@ -2,15 +2,20 @@
  * Admin Single User API
  * GET - Fetch specific user profile with all related data
  * Uses SERVICE_ROLE_KEY to bypass RLS
+ * Stage 90.0 — **ADMIN** only (`requireAccess`).
  */
 
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { buildReferralGamificationForUser } from '@/lib/referral/build-referral-gamification-for-user'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request, { params }) {
+  const gate = await requireAdminStaff()
+  if (gate.error) return gate.error
+
   try {
     const { id: userId } = await params
 

@@ -145,7 +145,7 @@ export function ListingCard({
       data-testid={`listing-card-${id}`}
       className={cn(
         // Base
-        'group scroll-mt-24 overflow-hidden rounded-2xl border bg-white',
+        'group flex min-h-0 flex-col scroll-mt-24 overflow-hidden rounded-2xl border bg-white',
         // Premium hover: lift + deepen shadow + teal border accent
         'transition-all duration-300 ease-out',
         'hover:-translate-y-1.5 hover:shadow-[0_16px_48px_rgba(0,102,102,0.14),0_4px_16px_rgba(0,0,0,0.06)]',
@@ -190,10 +190,10 @@ export function ListingCard({
       />
 
       {/* Текст и цена — отдельная ссылка; сердце не внутри anchor (валидный DOM) */}
-      <Link href={detailUrl} className="block p-4">
+      <Link href={detailUrl} className="flex flex-1 flex-col p-4">
           {/* Title Row */}
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <div className="flex-1 min-w-0">
+          <div className="mb-2 flex min-w-0 items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="font-semibold text-slate-900 line-clamp-1 text-base group-hover:text-teal-700 transition-colors">
                   {getListingText(listing, 'title', language) || title}
@@ -215,7 +215,7 @@ export function ListingCard({
                   <p className="text-sm text-slate-500">{district}</p>
                 ) : null}
               </div>
-              <div className="space-y-1">
+              <div className="min-w-0 space-y-1 overflow-hidden">
                 <PartnerTrustBadge
                   trust={partnerTrust}
                   language={language}
@@ -242,14 +242,14 @@ export function ListingCard({
 
           {/* Location */}
           {district && (
-            <div className="flex items-center gap-1 text-sm text-slate-500 mb-3">
-              <MapPin className="h-4 w-4" />
-              <span>{district}</span>
+            <div className="mb-3 flex items-center gap-1 text-sm text-slate-500">
+              <MapPin className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="min-w-0">{district}</span>
             </div>
           )}
 
-          {/* Price */}
-          <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+          {/* Price — отдельный слой над trust/specs-wrap (моб. &lt;768: не пересекается с бейджем Verified в ряду спеки). */}
+          <div className="relative z-10 mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-white pt-3">
             <CardPriceDisplay
               basePrice={basePrice}
               pricing={pricing}

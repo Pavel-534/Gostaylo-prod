@@ -48,6 +48,7 @@ import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
 import { PartnerReputationSection } from '@/components/partner/PartnerReputationSection'
+import { PartnerVerifiedBadgePromo } from '@/components/partner/PartnerVerifiedBadgePromo'
 import { PartnerDashboardWalletOverview } from '@/components/wallet/PartnerDashboardWalletOverview'
 
 // Welcome Partner Celebration Modal — shown once when renter becomes partner
@@ -447,6 +448,8 @@ export default function PartnerDashboard() {
           </Button>
         </div>
       </div>
+
+      <PartnerVerifiedBadgePromo language={language} />
 
       <PartnerReputationSection language={language} />
 

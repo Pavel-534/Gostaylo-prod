@@ -1,13 +1,18 @@
 /**
  * Admin User Update API
  * PATCH - Update user profile (commission, verification, role)
+ * Stage 90.0 — guard **ADMIN** только (карточка пользователя недоступна модератору по layout).
  */
 
 import { NextResponse } from 'next/server'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 
 export async function PATCH(request) {
+  const gate = await requireAdminStaff()
+  if (gate.error) return gate.error
+
   try {
     const body = await request.json()
     const { userId, updates } = body

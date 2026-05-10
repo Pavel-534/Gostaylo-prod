@@ -2,16 +2,14 @@
  * GET /api/admin/notification-outbox/stats — ADMIN session; counts by status (Stage 60.0).
  */
 import { NextResponse } from 'next/server'
-import { resolveAdminSecurityProfile } from '@/lib/admin-security-access'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { getNotificationOutboxStats } from '@/lib/services/notifications/notification-outbox-stats.js'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const session = await resolveAdminSecurityProfile()
-  if (session.error) {
-    return NextResponse.json({ success: false, error: session.error.message }, { status: session.error.status })
-  }
+  const gate = await requireAdminStaff()
+  if (gate.error) return gate.error
   const stats = await getNotificationOutboxStats()
   if (!stats.success) {
     return NextResponse.json(

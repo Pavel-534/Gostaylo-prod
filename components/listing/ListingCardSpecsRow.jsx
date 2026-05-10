@@ -68,7 +68,7 @@ export function ListingCardSpecsRow({
   return (
     <div
       className={cn(
-        'flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-500 mb-3',
+        'flex flex-wrap items-center gap-x-2 gap-y-2 sm:gap-x-4 text-slate-500 mb-3',
         textCls,
         className,
       )}
