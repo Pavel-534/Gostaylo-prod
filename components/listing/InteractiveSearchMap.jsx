@@ -15,6 +15,7 @@ import { Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
 import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
+import { ListingTrustVerifiedMiniBadge } from '@/components/listing/ListingTrustVerifiedMiniBadge'
 import { getUIText } from '@/lib/translations'
 import { toPublicImageUrl } from '@/lib/public-image-url'
 import { getListingLocationDisplayMode } from '@/lib/listing-location-privacy'
@@ -211,7 +212,13 @@ function ListingPopupCard({
           )}
         </div>
         <p className="mb-2 text-[11px] leading-snug text-slate-500">{locHint}</p>
-        <ListingCardSpecsRow listing={listing} language={language} compact className="mb-2" />
+        <ListingCardSpecsRow
+          listing={listing}
+          language={language}
+          compact
+          className="mb-2"
+          suppressTrustVerifiedMiniBadge
+        />
         <div className="flex items-baseline justify-between gap-1 border-t border-slate-100 pt-2">
           <CardPriceDisplay
             basePrice={basePrice}

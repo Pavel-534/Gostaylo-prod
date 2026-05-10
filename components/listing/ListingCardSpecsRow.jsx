@@ -28,13 +28,16 @@ import {
   formatListingTransmissionLabel,
   getListingCardDurationHours,
   getListingCardGuestCapacity,
+  listingQualifiesForTrustVerifiedMiniBadge,
 } from '@/lib/listing-card-spec-profile'
+import { ListingTrustVerifiedMiniBadge } from '@/components/listing/ListingTrustVerifiedMiniBadge'
 
 export function ListingCardSpecsRow({
   listing,
   language = 'en',
   compact = false,
   className,
+  suppressTrustVerifiedMiniBadge = false,
 }) {
   const vertical = resolveListingCardSpecVertical(listing)
   const meta = listing.metadata && typeof listing.metadata === 'object' ? listing.metadata : {}
@@ -51,6 +54,7 @@ export function ListingCardSpecsRow({
   const textCls = compact ? 'text-xs text-slate-500' : 'text-sm text-slate-500'
 
   const showTransportExtras = engineCc > 0 || Boolean(transmission)
+  const showVerifiedMini = listingQualifiesForTrustVerifiedMiniBadge(listing)
   const showRow =
     cap > 0 ||
     vertical === 'yacht' ||
@@ -59,7 +63,7 @@ export function ListingCardSpecsRow({
     (vertical === 'tour' && (durationHours > 0 || cap > 0)) ||
     (vertical === 'compact' && cap > 0)
 
-  if (!showRow) return null
+  if (!showRow && !showVerifiedMini) return null
 
   return (
     <div
@@ -69,6 +73,13 @@ export function ListingCardSpecsRow({
         className,
       )}
     >
+      {!suppressTrustVerifiedMiniBadge && showVerifiedMini ? (
+        <ListingTrustVerifiedMiniBadge
+          listing={listing}
+          language={language}
+          compact={compact}
+        />
+      ) : null}
       {vertical === 'housing' && bedrooms > 0 && (
         <div className="flex items-center gap-1" title={getUIText('bedrooms', language)}>
           <BedDouble className={iconCls} aria-hidden />
