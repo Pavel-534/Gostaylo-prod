@@ -118,6 +118,9 @@ export function DesktopBookingWidget({
     askPartnerLoading,
   })
 
+  const headlineRating =
+    Number(listing.rating ?? listing.avgRating ?? listing.average_rating ?? 0) || 0
+
   return (
     <div className="hidden lg:block sticky top-24">
       <Card className="border-slate-200 shadow-lg">
@@ -142,10 +145,10 @@ export function DesktopBookingWidget({
                 {tx(rentalPeriodMode === 'day' ? 'perBookingDay' : 'perNight')}
               </p>
             </div>
-            {(listing.rating > 0 || (listing.reviewsCount || listing.reviews_count || 0) > 0) && (
+            {headlineRating > 0 && (
               <div className="flex items-center gap-1 text-sm">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span className="font-semibold">{(Number(listing.rating) || 0).toFixed(1)}</span>
+                <span className="font-semibold">{headlineRating.toFixed(1)}</span>
                 {(listing.reviewsCount || listing.reviews_count || 0) > 0 && (
                   <span className="text-slate-500">({listing.reviewsCount || listing.reviews_count})</span>
                 )}

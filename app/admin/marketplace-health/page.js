@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Loader2, Globe2, AlertCircle } from 'lucide-react'
+import { Loader2, Globe2, AlertCircle, ClipboardList } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 function pctColor(p) {
@@ -47,6 +47,8 @@ export default function MarketplaceHealthPage() {
   const pulseDays = payload?.pulseWindowDays ?? 7
   const snap7 = payload?.snapshotRowsLast7Days
   const auto7 = payload?.autoVerificationsLast7Days
+  const staffFeed = payload?.staffAuditFeed || []
+  const auditOk = payload?.auditLogAvailable !== false
 
   return (
     <div className="p-4 lg:p-8 max-w-5xl space-y-6">
@@ -93,6 +95,60 @@ export default function MarketplaceHealthPage() {
                 <p className="text-xs text-slate-500 mt-1">События аудита за тот же период</p>
               </div>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ClipboardList className="h-5 w-5 text-teal-700" aria-hidden />
+            Последние действия персонала
+          </CardTitle>
+          <CardDescription>
+            Записи из critical_signal_events: одобрение заявок партнёров (SYSTEM_AUTO_VERIFICATION), модерация объявлений
+            и ручная верификация в карточке пользователя. Доступно ролям ADMIN и MODERATOR с правом на эту страницу.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center gap-2 text-slate-500 py-6 justify-center">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Загрузка журнала…
+            </div>
+          ) : err ? null : !auditOk && payload?.auditLogError ? (
+            <p className="text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-3">
+              Журнал недоступен: {payload.auditLogError}
+            </p>
+          ) : staffFeed.length === 0 ? (
+            <p className="text-slate-600 text-sm py-2">
+              Пока нет событий в выборке или таблица ещё не создана на проекте.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {staffFeed.map((row) => (
+                <li
+                  key={row.id}
+                  className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-4 text-sm border-b border-slate-100 pb-3 last:border-0 last:pb-0"
+                >
+                  <time
+                    className="text-xs text-slate-500 tabular-nums whitespace-nowrap shrink-0"
+                    dateTime={row.createdAt || undefined}
+                  >
+                    {row.createdAt
+                      ? new Date(row.createdAt).toLocaleString('ru-RU', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : '—'}
+                  </time>
+                  <p className="text-slate-800 leading-snug">{row.summaryRu}</p>
+                </li>
+              ))}
+            </ul>
           )}
         </CardContent>
       </Card>

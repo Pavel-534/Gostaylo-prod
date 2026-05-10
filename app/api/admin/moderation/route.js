@@ -11,6 +11,7 @@ import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service
 import { normalizePartnerListingMetadata } from '@/lib/partner/listing-wizard-metadata'
 import { recordTeammateNewListingIfFirst } from '@/lib/referral/referral-feed-recorder'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
+import { recordStaffListingModeration } from '@/lib/services/audit/staff-audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -139,6 +140,15 @@ export async function PATCH(request) {
         console.error('set_featured PATCH failed', updateRes.status, errText)
         return NextResponse.json({ success: false, error: 'Failed to update listing featured flag' }, { status: 500 })
       }
+      void recordStaffListingModeration({
+        actorId: gate.profile.id,
+        actorRole: gate.profile.role,
+        listingId,
+        action: 'set_featured',
+        listingTitle: listing.title,
+        ownerId: listing.owner?.id,
+        isFeatured,
+      })
       return NextResponse.json({ success: true, action: 'set_featured', listingId, isFeatured })
     }
 
@@ -211,6 +221,15 @@ export async function PATCH(request) {
     }
 
     const finalTitle = updateData.title ?? listing.title
+    void recordStaffListingModeration({
+      actorId: gate.profile.id,
+      actorRole: gate.profile.role,
+      listingId,
+      action: action === 'approve' ? 'approve' : 'reject',
+      listingTitle: finalTitle,
+      ownerId: listing.owner?.id,
+    })
+
     const finalDescription = updateData.description ?? listing.description
 
     if (listing.owner?.telegram_id && (action === 'approve' || action === 'reject')) {

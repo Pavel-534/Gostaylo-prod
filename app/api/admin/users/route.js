@@ -6,6 +6,7 @@
 
 import { NextResponse } from 'next/server'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
+import { recordStaffUserVerificationUpdate } from '@/lib/services/audit/staff-audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -69,6 +70,21 @@ export async function PATCH(request) {
     }
 
     const updated = await res.json()
+
+    if (
+      sanitizedUpdates.is_verified !== undefined ||
+      sanitizedUpdates.verification_status !== undefined
+    ) {
+      void recordStaffUserVerificationUpdate({
+        actorId: gate.profile.id,
+        actorRole: gate.profile.role,
+        targetUserId: userId,
+        updates: {
+          is_verified: sanitizedUpdates.is_verified,
+          verification_status: sanitizedUpdates.verification_status,
+        },
+      })
+    }
 
     return NextResponse.json({ 
       success: true, 
