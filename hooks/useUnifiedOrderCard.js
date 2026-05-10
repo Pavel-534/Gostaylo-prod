@@ -363,7 +363,7 @@ export function useUnifiedOrderCard({
         let uploadFile = file
         const fType = typeof file?.type === 'string' ? file.type : ''
         if (fType.startsWith('image/')) {
-          const { compressImageForBrowser } = await import('@/lib/services/media/media-upload.service')
+          const { compressImageForBrowser } = await import('@/lib/services/media/compress-image-browser')
           uploadFile = await compressImageForBrowser(file, 'dispute_media')
         }
         const fd = new FormData()

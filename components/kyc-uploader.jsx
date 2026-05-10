@@ -82,7 +82,7 @@ export function KycUploader({
                 try {
                   let fileToUpload = file
                   if (file.type.startsWith('image/')) {
-                    const { compressImageForBrowser } = await import('@/lib/services/media/media-upload.service')
+                    const { compressImageForBrowser } = await import('@/lib/services/media/compress-image-browser')
                     try {
                       fileToUpload = await compressImageForBrowser(file, 'kyc_document')
                     } catch (compressErr) {

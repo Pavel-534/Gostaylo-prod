@@ -107,7 +107,7 @@ export default function PartnerSettings() {
     try {
       let payload = file
       if (file.type.startsWith('image/')) {
-        const { compressImageForBrowser } = await import('@/lib/services/media/media-upload.service')
+        const { compressImageForBrowser } = await import('@/lib/services/media/compress-image-browser')
         payload = await compressImageForBrowser(file, 'listing_photo')
       }
       const fd = new FormData()
