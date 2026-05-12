@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
-import { Copy, Gift, Loader2, Share2, UserPlus, ArrowRight } from 'lucide-react'
+import { ArrowRight, Coins, Copy, Gift, Loader2, Plane } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +13,8 @@ import { getUIText } from '@/lib/translations'
 import { toast } from 'sonner'
 import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
 import { ReferralMarketingKit } from '@/components/referral/ReferralMarketingKit'
+import { ReferralActivitySection } from '@/components/referral/ReferralActivitySection'
+import { ReferralEarningsEstimator } from '@/components/referral/ReferralEarningsEstimator'
 
 function formatThb(value, locale = 'ru-RU') {
   const n = Number(value)
@@ -91,6 +93,12 @@ export default function ReferralInvitePage() {
   const walletTotal = Number(walletData?.wallet?.balance_thb || 0)
   const pending = Number(data?.stats?.expectedPendingThb || 0)
   const totalReferrals = Number(data?.stats?.friendsInvited || 0)
+  const welcomeBonusThbRaw = Math.round(Number(walletData?.policy?.welcomeBonusAmount ?? 0))
+  const welcomeBonusThb = Number.isFinite(welcomeBonusThbRaw) && welcomeBonusThbRaw > 0 ? welcomeBonusThbRaw : 500
+
+  const inviteShareBody = String(t('stage91_shareBodyInvitee'))
+    .replace(/\{welcomeThb\}/g, String(welcomeBonusThb))
+    .replace(/\{link\}/g, inviteLink)
 
   return (
     <div className="min-h-screen bg-[#f7f9fb]">
@@ -108,10 +116,52 @@ export default function ReferralInvitePage() {
         </div>
 
         <section className="space-y-3">
-          <h1 className="text-5xl font-bold tracking-tight text-slate-900">Пригласите друга и получите бонус</h1>
-          <p className="text-lg text-slate-600 max-w-3xl">
-            Мини-лендинг амбассадора: ссылка, QR, социальные кнопки и готовые тексты для продвижения.
+          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900">{t('stage91_inviteHeroTitle')}</h1>
+          <p className="text-lg text-slate-600 max-w-3xl">{t('stage91_inviteHeroSubtitle')}</p>
+          <p className="text-sm">
+            <button
+              type="button"
+              className="text-[#006666] font-medium underline underline-offset-2 hover:text-[#005757]"
+              onClick={() => router.push('/about/loyalty')}
+            >
+              {t('stage91_loyaltyHomeCta')}
+            </button>
           </p>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold text-slate-900">{t('stage91_whyShareTitle')}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="rounded-xl border border-teal-100 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
+              <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-2">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-600 text-white shrink-0">
+                  <Plane className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-lg leading-tight">{t('stage91_whyTravelersTitle')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-sm leading-relaxed text-slate-700">
+                  {t('stage91_whyTravelersBody')}
+                </CardDescription>
+              </CardContent>
+            </Card>
+            <Card className="rounded-xl border border-emerald-100 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
+              <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-2">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-600 text-white shrink-0">
+                  <Coins className="h-5 w-5" />
+                </div>
+                <CardTitle className="text-lg leading-tight">{t('stage91_whyPartnersTitle')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-sm leading-relaxed text-slate-700">{t('stage91_whyPartnersBody')}</CardDescription>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <ReferralActivitySection teamMembers={data?.teamMembers} t={t} />
+          <ReferralEarningsEstimator referralEstimator={data?.referralEstimator} t={t} locale={locale} />
         </section>
 
         <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -201,8 +251,8 @@ export default function ReferralInvitePage() {
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Card className="rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">За Рентора (L1)</CardTitle>
-              <CardDescription>Ваш доход в текущем месяце</CardDescription>
+              <CardTitle className="text-base">{t('stage91_statsDirectGuests')}</CardTitle>
+              <CardDescription>{t('stage91_statsDirectGuestsDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-semibold text-[#006666]">{formatThb(l1Monthly, locale)} THB</p>
@@ -210,8 +260,8 @@ export default function ReferralInvitePage() {
           </Card>
           <Card className="rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base">За Партнера / сеть</CardTitle>
-              <CardDescription>Командный доход за месяц</CardDescription>
+              <CardTitle className="text-base">{t('stage91_statsPartnerNetwork')}</CardTitle>
+              <CardDescription>{t('stage91_statsPartnerNetworkDesc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-semibold text-[#006666]">{formatThb(l2Monthly, locale)} THB</p>
@@ -223,7 +273,11 @@ export default function ReferralInvitePage() {
           referralLink={data?.referralLink || ''}
           landingShareUrl={data?.referralLandingUrl || ''}
           landingShortLabel={data?.referralLandingShortDisplay || ''}
-          shareBody={String(t('stage73_shareBodyDefault')).replace('{brand}', brand).replace('{link}', inviteLink)}
+          loyaltyExplainerHref="/about/loyalty"
+          loyaltyExplainerLabel={t('stage91_shareColdAudienceLoyaltyLink')}
+          shareNativeLabel={t('stage91_shareNative')}
+          welcomeBonusThb={welcomeBonusThb}
+          shareBody={inviteShareBody}
           shareMessage={data?.shareMessage || ''}
           code={welcomeCode}
           brandName={brand}

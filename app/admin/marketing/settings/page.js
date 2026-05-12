@@ -2,12 +2,35 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Save, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, CircleHelp, Save, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
+
+function FieldHint({ children }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex shrink-0 align-middle text-slate-400 hover:text-slate-700"
+          aria-label="Пояснение"
+        >
+          <CircleHelp className="h-4 w-4" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        side="top"
+        className="max-w-sm border-slate-800 bg-slate-900 text-xs font-normal leading-snug text-slate-50"
+      >
+        {children}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 function clamp(value, min, max) {
   const n = Number(value);
@@ -205,7 +228,7 @@ export default function MarketingSettingsPage() {
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || 'TOPUP_FAILED');
       }
-      toast.success('Promo tank пополнен');
+      toast.success('Marketing Budget (Pool) пополнен');
       setTopupAmount('');
       setTopupNote('');
       await refreshTankData();
@@ -256,7 +279,8 @@ export default function MarketingSettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <TooltipProvider delayDuration={200}>
+      <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div>
           <Button variant="ghost" size="sm" asChild className="-ml-2 mb-1">
@@ -267,7 +291,7 @@ export default function MarketingSettingsPage() {
           </Button>
           <h1 className="text-2xl font-bold text-slate-900">Marketing safety settings</h1>
           <p className="text-sm text-slate-600 mt-1">
-            Stage 72.3: partner activation bonus, MLM depth split, margin safety gate.
+            Stage 72.3 / 91.2: бонус активации партнёра, доли Direct / Sub-Referral, защита маржи.
           </p>
           <p className="text-xs text-emerald-700 mt-1">
             Ваши основные аккаунты (pavel_534 и др.) защищены от автоматической очистки.
@@ -281,7 +305,7 @@ export default function MarketingSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Marketing promo tank (виртуальный бюджет)</CardTitle>
+          <CardTitle>Marketing Budget (Pool) — виртуальный бюджет</CardTitle>
           <CardDescription>
             SSOT баланса: <code className="text-xs">system_settings.general.marketing_promo_pot</code> + журнал{' '}
             <code className="text-xs">marketing_promo_tank_ledger</code>.
@@ -289,7 +313,7 @@ export default function MarketingSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-slate-700">
           <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-2">
-            <p className="font-medium text-slate-900">Откуда берутся деньги в баке</p>
+            <p className="font-medium text-slate-900">Откуда берутся деньги в пуле</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>
                 <strong>Organic top-up</strong> — доля от чистой маржи завершённых <em>нереферальных</em> броней (
@@ -316,7 +340,7 @@ export default function MarketingSettingsPage() {
               <strong>{promoPotThb != null ? `${Number(promoPotThb).toLocaleString('ru-RU')} THB` : '—'}</strong>
             </span>
             <Button type="button" variant="outline" size="sm" onClick={() => void refreshTankData()}>
-              {tankLogLoading ? '…' : 'Обновить бак / лог'}
+              {tankLogLoading ? '…' : 'Обновить пул / лог'}
             </Button>
           </div>
           <form className="grid gap-3 sm:grid-cols-3 border-t border-slate-100 pt-4" onSubmit={handleManualTopup}>
@@ -343,7 +367,7 @@ export default function MarketingSettingsPage() {
             </div>
             <div className="sm:col-span-3">
               <Button type="submit" disabled={topupBusy}>
-                {topupBusy ? 'Пополнение…' : 'Пополнить promo tank'}
+                {topupBusy ? 'Пополнение…' : 'Пополнить Marketing Budget (Pool)'}
               </Button>
             </div>
           </form>
@@ -425,7 +449,14 @@ export default function MarketingSettingsPage() {
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="referralReinvestmentPercent">Referral reinvestment %</Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="referralReinvestmentPercent">Referral reinvestment %</Label>
+              <FieldHint>
+                Ограничивает долю чистой маржи заказа, которую можно направить в реферальный пул. Чем ниже процент,
+                тем меньше маркетинг «съедает» прибыль при тех же бронях — движок дополнительно режет выплаты
+                safety-lock&apos;ом к валовой марже платформы.
+              </FieldHint>
+            </div>
             <Input
               id="referralReinvestmentPercent"
               type="number"
@@ -458,7 +489,7 @@ export default function MarketingSettingsPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="mlmLevel1Percent">MLM level 1 %</Label>
+            <Label htmlFor="mlmLevel1Percent">Direct Referral Bonus %</Label>
             <Input
               id="mlmLevel1Percent"
               type="number"
@@ -475,7 +506,7 @@ export default function MarketingSettingsPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="mlmLevel2Percent">MLM level 2 %</Label>
+            <Label htmlFor="mlmLevel2Percent">Sub-Referral Bonus %</Label>
             <Input
               id="mlmLevel2Percent"
               type="number"
@@ -492,7 +523,13 @@ export default function MarketingSettingsPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="payoutToInternalRatio">Payout to internal ratio %</Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="payoutToInternalRatio">Payout to internal ratio %</Label>
+              <FieldHint>
+                Доля реферального начисления, которую можно вывести наружу (остальное уходит во внутренние кредиты для
+                оплат на платформе). Повышает удержание гостей и снижает cash-out давление на маржу после акций.
+              </FieldHint>
+            </div>
             <Input
               id="payoutToInternalRatio"
               type="number"
@@ -561,11 +598,14 @@ export default function MarketingSettingsPage() {
             Лимиты безопасности
           </CardTitle>
           <CardDescription>
-            Save is blocked if MLM split is above 100% or if payouts + costs exceed platform margin.
+            Сохранение заблокировано, если сумма Direct + Sub-Referral выше 100% или если выплаты и издержки
+            превышают доступную маржу платформы.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-slate-700 space-y-1">
-          <p>MLM levels total: <strong>{pct(mlmTotalPercent)}</strong></p>
+          <p>
+            Direct + Sub (итого): <strong>{pct(mlmTotalPercent)}</strong>
+          </p>
           {lastBudget ? (
             <>
               <p>Platform margin: <strong>{pct(lastBudget.platformMarginPercent)}</strong></p>
@@ -590,7 +630,7 @@ export default function MarketingSettingsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-slate-500">Promo tank balance</CardTitle>
+            <CardTitle className="text-xs text-slate-500">Marketing Budget (Pool)</CardTitle>
           </CardHeader>
           <CardContent className="text-xl font-semibold">
             {Number(payoutStats?.currentPromoTankBalanceThb || 0).toLocaleString('ru-RU')} THB
@@ -605,7 +645,8 @@ export default function MarketingSettingsPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
 

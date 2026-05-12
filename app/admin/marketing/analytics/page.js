@@ -143,6 +143,24 @@ export default function MarketingAnalyticsPage() {
         </Button>
       </div>
 
+      <Card className="border-sky-100 bg-sky-50/60">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Термины маркетинга (Stage 91.2)</CardTitle>
+          <CardDescription className="text-xs leading-relaxed">
+            <strong>Marketing Budget (Pool)</strong> — общий виртуальный бюджет для turbo-бустов и активаций (ранее «promo
+            tank»).{' '}
+            <strong>Direct Referral Bonus</strong> / <strong>Sub-Referral Bonus</strong> — доли бонуса активации партнёра
+            для пригласившего напрямую и для «верхней» линии сети (в настройках исторически mlm_level1 / mlm_level2).{' '}
+            <strong>Referral reinvestment %</strong> и <strong>Payout to internal ratio %</strong> — рычаги защиты маржи;
+            подсказки на странице{' '}
+            <a className="font-medium text-violet-700 underline" href="/admin/marketing/settings">
+              Marketing safety settings
+            </a>
+            .
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
       {loading ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-slate-500">Loading analytics...</CardContent>

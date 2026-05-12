@@ -444,7 +444,7 @@ export default function MarketingPage() {
             <Link href="/admin/marketing/analytics">ROI Analytics</Link>
           </Button>
           <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link href="/admin/marketing/audit">Tank Audit</Link>
+            <Link href="/admin/marketing/audit">Marketing Budget (Pool) audit</Link>
           </Button>
           <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link href="/admin/marketing/wallet-audit">Wallet Audit</Link>

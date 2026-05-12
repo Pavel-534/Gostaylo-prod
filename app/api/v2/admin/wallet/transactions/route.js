@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { requireAccess } from '@/lib/security/access-guard';
+import { buildWalletReferenceLabels } from '@/lib/admin/wallet-transaction-reference-label';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,10 +56,16 @@ export async function GET(request) {
     }
   }
 
-  const rows = (txs || []).map((t) => ({
-    ...t,
-    profile: profileMap[t.user_id] || null,
-  }));
+  const refLabels = await buildWalletReferenceLabels(supabaseAdmin, txs || []);
+
+  const rows = (txs || []).map((t) => {
+    const rid = String(t?.reference_id || '').trim();
+    return {
+      ...t,
+      profile: profileMap[t.user_id] || null,
+      reference_label: rid && refLabels[rid] ? refLabels[rid] : null,
+    };
+  });
 
   return NextResponse.json({ success: true, data: { transactions: rows, limit } });
 }

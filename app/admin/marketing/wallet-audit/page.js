@@ -99,6 +99,7 @@ export default function WalletAuditPage() {
       'operation_type',
       'amount_thb',
       'tx_type',
+      'reference_label',
       'reference_id',
       'expires_at',
       'balance_after_thb',
@@ -114,6 +115,7 @@ export default function WalletAuditPage() {
           escapeCsvCell(row.operation_type),
           escapeCsvCell(row.amount_thb),
           escapeCsvCell(row.tx_type),
+          escapeCsvCell(row.reference_label || ''),
           escapeCsvCell(row.reference_id),
           escapeCsvCell(row.expires_at),
           escapeCsvCell(row.balance_after_thb),
@@ -139,9 +141,10 @@ export default function WalletAuditPage() {
               Маркетинг
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold text-gray-900">Wallet audit trail</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Wallet Audit Trail</h1>
           <p className="text-sm text-gray-600 mt-1">
-            История операций по всем кошелькам: начисления welcome/referral и списания на чекауте.
+            История операций по всем кошелькам: начисления welcome/referral и списания на чекауте. Ссылки на реферальный
+            ledger показываются человекочитаемо (бонус за друга / кешбэк).
           </p>
         </div>
         <div className="flex gap-2">
@@ -225,7 +228,7 @@ export default function WalletAuditPage() {
                   <TableHead>Операция</TableHead>
                   <TableHead className="text-right">Сумма</TableHead>
                   <TableHead>Тип</TableHead>
-                  <TableHead>Reference</TableHead>
+                  <TableHead>Суть / reference</TableHead>
                   <TableHead className="text-right">Баланс после</TableHead>
                 </TableRow>
               </TableHeader>
@@ -250,8 +253,17 @@ export default function WalletAuditPage() {
                     <TableCell className="text-xs max-w-[180px] break-words">
                       {txTypeLabel(row.tx_type)}
                     </TableCell>
-                    <TableCell className="text-xs font-mono max-w-[180px] break-all">
-                      {row.reference_id || '—'}
+                    <TableCell className="text-xs max-w-[260px] break-words">
+                      {row.reference_label ? (
+                        <span className="text-slate-800">{row.reference_label}</span>
+                      ) : null}
+                      {row.reference_id ? (
+                        <div className={`font-mono text-[10px] text-slate-500 break-all ${row.reference_label ? 'mt-1' : ''}`}>
+                          {row.reference_id}
+                        </div>
+                      ) : (
+                        '—'
+                      )}
                     </TableCell>
                     <TableCell className="text-right tabular-nums text-xs">
                       {formatAmount(row.balance_after_thb)}

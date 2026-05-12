@@ -84,7 +84,7 @@ export default function MarketingTankAuditPage() {
         setPromoPotThb(Number(monJson?.data?.marketingPromoPotThb || 0));
       }
     } catch (error) {
-      toast.error(error?.message || 'Не удалось загрузить события бака');
+      toast.error(error?.message || 'Не удалось загрузить события пула');
     } finally {
       setLoading(false);
     }
@@ -133,7 +133,7 @@ export default function MarketingTankAuditPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `marketing-promo-tank-events-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `marketing-budget-pool-events-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -156,11 +156,11 @@ export default function MarketingTankAuditPage() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json?.success) throw new Error(json?.error || 'TOPUP_FAILED');
-      toast.success('Бак пополнен');
+      toast.success('Marketing Budget (Pool) пополнен');
       setTopupAmount('');
       await loadEvents(filters);
     } catch (error) {
-      toast.error(error?.message || 'Не удалось пополнить бак');
+      toast.error(error?.message || 'Не удалось пополнить пул');
     } finally {
       setTopupBusy(false);
     }
@@ -170,8 +170,10 @@ export default function MarketingTankAuditPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Promo Tank Audit Trail</h1>
-          <p className="text-sm text-slate-600">Журнал движения marketing promo tank для финансового контроля.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Marketing Budget (Pool) — Audit Trail</h1>
+          <p className="text-sm text-slate-600">
+            Журнал движения маркетингового пула (SSOT в настройках + ledger) для финансового контроля.
+          </p>
         </div>
         <Button asChild variant="outline">
           <Link href="/admin/marketing">
@@ -247,7 +249,7 @@ export default function MarketingTankAuditPage() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Сводка бака</CardTitle>
+          <CardTitle className="text-base">Сводка Marketing Budget (Pool)</CardTitle>
           <CardDescription>Текущий остаток и быстрое ручное пополнение.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

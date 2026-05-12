@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import QRCode from 'qrcode'
@@ -69,6 +70,13 @@ export function ReferralMarketingKit({
   /** SSOT: `stats.directPartnersInvited` — активированные партнёры (как tier); порог — `STORIES_TEAM_MIN_DIRECT_PARTNERS`. */
   directPartnersInvitedCount = 0,
   storiesTeamLockedHint = '',
+  /** Welcome bonus THB из `GET /api/v2/wallet/me` → `policy.welcomeBonusAmount` (fallback в шаблонах). */
+  welcomeBonusThb = 0,
+  /** Публичный лендинг лояльности — для аудитории без реф-ссылки (Stage 91.4). */
+  loyaltyExplainerHref = '',
+  loyaltyExplainerLabel = '',
+  /** Web Share API (мобильный нативный шаринг), Stage 91.5 */
+  shareNativeLabel = '',
 }) {
   const link = String(referralLink || '').trim()
   const landing = String(landingShareUrl || '').trim()
@@ -88,6 +96,7 @@ export function ReferralMarketingKit({
     return site ? `Travel and earn with ${site}` : 'Travel and earn'
   }, [storiesCardHeadline])
 
+  const [nativeShareOk, setNativeShareOk] = useState(false)
   const [downloading, setDownloading] = useState(false)
   const [pdfBusy, setPdfBusy] = useState(false)
   const [storiesBusy, setStoriesBusy] = useState(false)
@@ -95,6 +104,10 @@ export function ReferralMarketingKit({
   const [storyQrDataUrl, setStoryQrDataUrl] = useState('')
   const storiesCardRef = useRef(null)
   const storiesTeamCardRef = useRef(null)
+
+  useEffect(() => {
+    setNativeShareOk(typeof navigator !== 'undefined' && typeof navigator.share === 'function')
+  }, [])
 
   const safeDisplayName = useMemo(() => {
     const d = String(displayName || '').trim()
@@ -108,14 +121,19 @@ export function ReferralMarketingKit({
   const teamStoriesLocked = partnerActivations < STORIES_TEAM_MIN_DIRECT_PARTNERS
   const partnersNeededForTeamStories = Math.max(0, STORIES_TEAM_MIN_DIRECT_PARTNERS - partnerActivations)
 
+  const welcomeThbStr = useMemo(() => {
+    const n = Math.round(Number(welcomeBonusThb))
+    return String(Number.isFinite(n) && n > 0 ? n : 500)
+  }, [welcomeBonusThb])
+
   const defaultPitch = useMemo(() => {
     const fromI18n = String(shareBody || '').trim()
-    if (fromI18n) return fromI18n
+    if (fromI18n) return fromI18n.replace(/\{welcomeThb\}/g, welcomeThbStr)
     const legacy = String(shareMessage || '').trim()
     if (legacy) return legacy
     const b = String(brandName || '').trim() || getSiteDisplayName()
     return `Travel and earn with ${b}! Your bonus link: ${qrLink}`.trim()
-  }, [shareBody, shareMessage, brandName, qrLink])
+  }, [shareBody, shareMessage, brandName, qrLink, welcomeThbStr])
 
   useEffect(() => {
     let cancelled = false
@@ -240,22 +258,50 @@ export function ReferralMarketingKit({
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${u}`, '_blank', 'noopener,noreferrer')
   }
 
+  async function handleNativeShare() {
+    if (!qrLink || typeof navigator === 'undefined' || typeof navigator.share !== 'function') return
+    const title = String(brandChip || '').trim() || 'Invite'
+    const text = String(defaultPitch || '').trim()
+    const url = qrLink
+    const data = { title, text, url }
+    try {
+      if (typeof navigator.canShare === 'function' && !navigator.canShare(data)) {
+        openTg()
+        return
+      }
+      await navigator.share(data)
+    } catch (e) {
+      const errName = e && typeof e === 'object' && 'name' in e ? String(/** @type {{ name?: string }} */ (e).name) : ''
+      if (errName === 'AbortError') return
+      openTg()
+    }
+  }
+
   const readyTexts = useMemo(
     () => [
       {
         id: 'short',
         label: postTextShortLabel,
-        value: String(postTextShortTemplate || '').replace(/\{brand\}/g, brandChip).replace(/\{link\}/g, qrLink),
+        value: String(postTextShortTemplate || '')
+          .replace(/\{brand\}/g, brandChip)
+          .replace(/\{link\}/g, qrLink)
+          .replace(/\{welcomeThb\}/g, welcomeThbStr),
       },
       {
         id: 'medium',
         label: postTextMediumLabel,
-        value: String(postTextMediumTemplate || '').replace(/\{brand\}/g, brandChip).replace(/\{link\}/g, qrLink),
+        value: String(postTextMediumTemplate || '')
+          .replace(/\{brand\}/g, brandChip)
+          .replace(/\{link\}/g, qrLink)
+          .replace(/\{welcomeThb\}/g, welcomeThbStr),
       },
       {
         id: 'long',
         label: postTextLongLabel,
-        value: String(postTextLongTemplate || '').replace(/\{brand\}/g, brandChip).replace(/\{link\}/g, qrLink),
+        value: String(postTextLongTemplate || '')
+          .replace(/\{brand\}/g, brandChip)
+          .replace(/\{link\}/g, qrLink)
+          .replace(/\{welcomeThb\}/g, welcomeThbStr),
       },
     ],
     [
@@ -267,6 +313,7 @@ export function ReferralMarketingKit({
       postTextShortTemplate,
       brandChip,
       qrLink,
+      welcomeThbStr,
     ],
   )
 
@@ -359,6 +406,16 @@ export function ReferralMarketingKit({
             {marketingTitle}
           </CardTitle>
           <CardDescription className="text-xs">{marketingSubtitle}</CardDescription>
+          {String(loyaltyExplainerHref || '').trim() && String(loyaltyExplainerLabel || '').trim() ? (
+            <p className="text-[11px] leading-snug pt-1 text-center sm:text-left text-slate-600">
+              <Link
+                href={String(loyaltyExplainerHref).trim()}
+                className="text-teal-700 font-medium underline underline-offset-2 hover:text-teal-900"
+              >
+                {loyaltyExplainerLabel}
+              </Link>
+            </p>
+          ) : null}
         </CardHeader>
         <CardContent className="space-y-5 px-4 pb-6">
           <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start sm:justify-center sm:gap-8">
@@ -431,6 +488,17 @@ export function ReferralMarketingKit({
                 </p>
               ) : null}
               <div className="flex flex-wrap gap-2 justify-center sm:justify-start w-full pt-1">
+                {nativeShareOk && String(shareNativeLabel || '').trim() ? (
+                  <Button
+                    type="button"
+                    className="min-w-[132px] flex-1 justify-center sm:flex-initial transition-all duration-200 hover:scale-[1.03] hover:shadow-md bg-teal-600 hover:bg-teal-700 text-white border-teal-600"
+                    disabled={!qrLink}
+                    onClick={() => void handleNativeShare()}
+                  >
+                    <Share2 className="h-4 w-4 mr-1 shrink-0" />
+                    {shareNativeLabel}
+                  </Button>
+                ) : null}
                 <Button type="button" variant="outline" className="min-w-[132px] flex-1 justify-center sm:flex-initial transition-all duration-200 hover:scale-[1.03] hover:shadow-md" onClick={openWa}>
                   <Share2 className="h-4 w-4 mr-1 shrink-0" />
                   {shareWaLabel}

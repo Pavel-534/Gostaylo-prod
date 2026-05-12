@@ -455,6 +455,18 @@ export function PlatformHomeContent() {
         onCategoryTabClick={handleCategoryTabClick}
       />
 
+      <div className="border-b border-teal-100/80 bg-gradient-to-r from-teal-50/90 via-white to-teal-50/90">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-2 px-4 py-2.5 text-center text-sm text-slate-700">
+          <span>{getUIText('stage91_loyaltyHomeTeaser', language)}</span>
+          <Link
+            href="/about/loyalty"
+            className="font-semibold text-[#006666] underline decoration-teal-600/50 underline-offset-2 hover:text-[#005757]"
+          >
+            {getUIText('stage91_loyaltyHomeCta', language)}
+          </Link>
+        </div>
+      </div>
+
       <Dialog
         open={Boolean(comingSoonCategory)}
         onOpenChange={(open) => {

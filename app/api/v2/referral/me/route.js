@@ -333,6 +333,21 @@ export async function GET(request) {
     if (lastJoinEv?.id) referralLastTeammateJoinEventId = String(lastJoinEv.id);
   }
 
+  const welcomeBonusFromGeneral =
+    Math.round(
+      Math.min(
+        1_000_000,
+        Math.max(0, Number(general?.welcome_bonus_amount ?? general?.welcomeBonusAmount ?? 500)),
+      ) * 100,
+    ) / 100;
+  const referralReinvestmentPercentForEstimator = Math.min(
+    95,
+    Math.max(
+      0,
+      Number(general?.referral_reinvestment_percent ?? general?.referralReinvestmentPercent ?? 70),
+    ),
+  );
+
   return NextResponse.json({
     success: true,
     data: {
@@ -428,6 +443,12 @@ export async function GET(request) {
         : null,
       /** Stage 72.6 — прямые приглашённые (дерево уровнем 1); чат-поиск по таблице conversations */
       teamMembers,
+      /** Stage 91.3 — параметры для индикативного калькулятора (клиент: `estimateReferrerIllustrationThb`). */
+      referralEstimator: {
+        welcomeBonusThb: welcomeBonusFromGeneral,
+        referralReinvestmentPercent: referralReinvestmentPercentForEstimator,
+        referralSplitRatio,
+      },
     },
   });
 }

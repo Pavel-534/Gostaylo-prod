@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { requireAccess } from '@/lib/security/access-guard'
 import { supabaseAdmin } from '@/lib/supabase'
 import { loadStaffAuditFeed } from '@/lib/services/audit/staff-audit'
+import { loadMarketingReferralRoiStats } from '@/lib/admin/marketing-referral-roi'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -36,6 +37,7 @@ export async function GET() {
     snap7,
     auto7,
     staffAudit,
+    marketingRoi,
   ] = await Promise.all([
     supabaseAdmin
       .from('catalog_verified_snapshots')
@@ -53,6 +55,7 @@ export async function GET() {
       .eq('signal_key', AUTO_VERIFICATION_KEY)
       .gte('created_at', since7d.toISOString()),
     loadStaffAuditFeed(supabaseAdmin, { limit: 40 }),
+    loadMarketingReferralRoiStats(supabaseAdmin),
   ])
 
   if (error) {
@@ -133,6 +136,7 @@ export async function GET() {
     staffAuditFeed: staffAudit.feedItems || [],
     auditLogAvailable: staffAudit.auditLogAvailable !== false,
     auditLogError: staffAudit.auditLogError || null,
+    marketingRoi,
   })
 }
 

@@ -7,8 +7,31 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
-import { Megaphone, Percent, Users, Fuel, Rocket, Wallet2 } from 'lucide-react'
+import { CircleHelp, Megaphone, Percent, Users, Fuel, Rocket, Wallet2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+
+function FieldHint({ children }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex shrink-0 align-middle text-slate-400 hover:text-slate-700"
+          aria-label="Пояснение"
+        >
+          <CircleHelp className="h-4 w-4" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        side="top"
+        className="max-w-sm border-slate-800 bg-slate-900 text-xs font-normal leading-snug text-slate-50"
+      >
+        {children}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
 
 function clamp(value, min, max) {
   const n = Number(value)
@@ -217,7 +240,7 @@ export function SystemSettingsMarketing() {
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.success) throw new Error(json?.error || 'TOPUP_FAILED')
       setMonitor(json?.data?.monitor || monitor)
-      toast.success('Маркетинговый бак пополнен')
+      toast.success('Marketing Budget (Pool) пополнен')
     } catch (error) {
       toast.error(error?.message || 'Ошибка пополнения бака')
     } finally {
@@ -234,7 +257,8 @@ export function SystemSettingsMarketing() {
   }
 
   return (
-    <div className="space-y-4">
+    <TooltipProvider delayDuration={200}>
+      <div className="space-y-4">
       <Card className="border-2 border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 to-white">
         <CardHeader className="p-4 lg:p-6">
           <div className="flex items-center gap-3">
@@ -252,7 +276,13 @@ export function SystemSettingsMarketing() {
         <CardContent className="space-y-6 p-4 pt-0 lg:px-6 lg:pb-6">
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
-              <Label className="text-sm font-medium">Marketing Reinvestment %</Label>
+              <div className="flex items-center gap-1.5">
+                <Label className="text-sm font-medium">Marketing Reinvestment %</Label>
+                <FieldHint>
+                  Ограничивает долю чистой маржи заказа, идущую в реферальный пул. Ниже процент — меньше давление на маржу;
+                  движок дополнительно обрезает выплаты по safety-lock к валовой марже платформы.
+                </FieldHint>
+              </div>
               <span className="text-sm font-semibold text-fuchsia-700">{reinvestmentPercent.toFixed(1)}%</span>
             </div>
             <Slider
@@ -322,7 +352,7 @@ export function SystemSettingsMarketing() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="organicToPromoPotPercent" className="text-sm font-medium">
-                Organic -&gt; Promo Pot %
+                Organic -&gt; Marketing Budget (Pool) %
               </Label>
               <Input
                 id="organicToPromoPotPercent"
@@ -427,15 +457,15 @@ export function SystemSettingsMarketing() {
         <CardHeader className="p-4 lg:p-6">
           <div className="flex items-center gap-2">
             <Fuel className="h-5 w-5 text-sky-600" />
-            <CardTitle className="text-base lg:text-lg">Promo Tank Control</CardTitle>
+            <CardTitle className="text-base lg:text-lg">Marketing Budget (Pool)</CardTitle>
           </div>
           <CardDescription className="text-xs lg:text-sm">
-            Глобальный бак маркетинга для Turbo-доплат к реферальным выплатам.
+            Глобальный маркетинговый пул для Turbo-доплат к реферальным выплатам.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 p-4 pt-0 lg:px-6 lg:pb-6">
           <div className="rounded-md border p-3">
-            <p className="text-slate-500 text-sm">Текущий баланс бака</p>
+            <p className="text-slate-500 text-sm">Текущий баланс пула</p>
             <p className="text-2xl font-semibold text-sky-700">฿{formatThb(monitor?.marketingPromoPotThb)}</p>
             <p className="text-xs text-slate-500 mt-1">
               Topups: ฿{formatThb(monitor?.promoTankTopupsThb)} / Debits: ฿{formatThb(monitor?.promoTankDebitsThb)}
@@ -563,7 +593,7 @@ export function SystemSettingsMarketing() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="mlmLevel1Percent" className="text-sm font-medium">
-                MLM level 1 %
+                Direct Referral Bonus %
               </Label>
               <Input
                 id="mlmLevel1Percent"
@@ -577,7 +607,7 @@ export function SystemSettingsMarketing() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="mlmLevel2Percent" className="text-sm font-medium">
-                MLM level 2 %
+                Sub-Referral Bonus %
               </Label>
               <Input
                 id="mlmLevel2Percent"
@@ -589,13 +619,19 @@ export function SystemSettingsMarketing() {
                 onChange={(e) => setMlmLevel2Percent(clamp(e.target.value, 0, 100))}
               />
               <p className="text-xs text-slate-500">
-                Контроль суммы: L1 + L2 не больше 100%.
+                Контроль суммы: Direct + Sub не больше 100%.
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="payoutToInternalRatio" className="text-sm font-medium">
-                Payout to internal ratio %
-              </Label>
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="payoutToInternalRatio" className="text-sm font-medium">
+                  Payout to internal ratio %
+                </Label>
+                <FieldHint>
+                  Доля реферального начисления, доступная к выводу; остальное идёт во внутренние кредиты для оплат на
+                  платформе. Удерживает маржу: меньше мгновенного cash-out после промо.
+                </FieldHint>
+              </div>
               <Input
                 id="payoutToInternalRatio"
                 type="number"
@@ -659,7 +695,8 @@ export function SystemSettingsMarketing() {
           })}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </TooltipProvider>
   )
 }
 
