@@ -12,35 +12,11 @@ export const maxDuration = 120
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import jwt from 'jsonwebtoken'
-import { cookies } from 'next/headers'
-import { verifyPartnerAccess } from '@/lib/services/session-service'
+import { requirePartnerSession } from '@/lib/services/session-service'
 import { migrateListingExternalImages } from '@/lib/services/external-image-storage'
-import { getJwtSecret } from '@/lib/auth/jwt-secret'
 
 async function getPartnerFromSession() {
-  let secret
-  try {
-    secret = getJwtSecret()
-  } catch (e) {
-    return { error: NextResponse.json({ success: false, error: e.message }, { status: 500 }) }
-  }
-  const cookieStore = cookies()
-  const sessionCookie = cookieStore.get('gostaylo_session')
-  if (!sessionCookie?.value) {
-    return { error: NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 }) }
-  }
-  let decoded
-  try {
-    decoded = jwt.verify(sessionCookie.value, secret)
-  } catch {
-    return { error: NextResponse.json({ success: false, error: 'Invalid session' }, { status: 401 }) }
-  }
-  const partner = await verifyPartnerAccess(decoded.userId)
-  if (!partner) {
-    return { error: NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 }) }
-  }
-  return { userId: decoded.userId, userRole: partner.role }
+  return requirePartnerSession()
 }
 
 export async function POST(request, context) {

@@ -7,13 +7,10 @@
  */
 
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
-import jwt from 'jsonwebtoken';
 import { generateExportToken } from '@/lib/ical-export-token';
 import { getPublicSiteUrl } from '@/lib/site-url.js';
-import { verifyPartnerAccess } from '@/lib/services/session-service';
-import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { requirePartnerSession } from '@/lib/services/session-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,32 +25,11 @@ export async function GET(request, context) {
   const params = await Promise.resolve(context.params);
   const listingId = params.id;
 
-  let jwtSecret;
-  try {
-    jwtSecret = getJwtSecret();
-  } catch (e) {
-    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
-  }
+  const auth = await requirePartnerSession();
+  if (auth.error) return auth.error;
 
-  const cookieStore = cookies();
-  const sessionCookie = cookieStore.get('gostaylo_session');
-  if (!sessionCookie?.value) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-  }
-
-  let decoded;
-  try {
-    decoded = jwt.verify(sessionCookie.value, jwtSecret);
-  } catch {
-    return NextResponse.json({ success: false, error: 'Invalid session' }, { status: 401 });
-  }
-
-  const userId = decoded.userId;
-  const partner = await verifyPartnerAccess(userId);
-  if (!partner) {
-    return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
-  }
-  const userRole = partner.role;
+  const userId = auth.userId;
+  const userRole = auth.userRole;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

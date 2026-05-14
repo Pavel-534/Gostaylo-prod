@@ -7,14 +7,11 @@
  */
 
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
-import jwt from 'jsonwebtoken';
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url';
-import { verifyPartnerAccess } from '@/lib/services/session-service';
+import { requirePartnerSession } from '@/lib/services/session-service';
 import { revalidateListingPaths } from '@/lib/revalidation';
 import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings';
-import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
 import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes';
 import { normalizeCancellationPolicy } from '@/lib/cancellation-refund-rules';
@@ -22,28 +19,7 @@ import { normalizeCancellationPolicy } from '@/lib/cancellation-refund-rules';
 export const dynamic = 'force-dynamic';
 
 async function getPartnerFromSession() {
-  let secret;
-  try {
-    secret = getJwtSecret();
-  } catch (e) {
-    return { error: NextResponse.json({ success: false, error: e.message }, { status: 500 }) };
-  }
-  const cookieStore = cookies();
-  const sessionCookie = cookieStore.get('gostaylo_session');
-  if (!sessionCookie?.value) {
-    return { error: NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 }) };
-  }
-  let decoded;
-  try {
-    decoded = jwt.verify(sessionCookie.value, secret);
-  } catch {
-    return { error: NextResponse.json({ success: false, error: 'Invalid session' }, { status: 401 }) };
-  }
-  const partner = await verifyPartnerAccess(decoded.userId);
-  if (!partner) {
-    return { error: NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 }) };
-  }
-  return { userId: decoded.userId, userRole: partner.role };
+  return requirePartnerSession();
 }
 
 export async function GET(request, context) {

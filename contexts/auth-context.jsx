@@ -201,6 +201,7 @@ export function AuthProvider({ children }) {
     await signOut();
     setUser(null);
     window.dispatchEvent(new CustomEvent('auth-change', { detail: null }));
+    window.dispatchEvent(new CustomEvent('gostaylo-refresh-session'));
     router.push('/');
   }, [router]);
 

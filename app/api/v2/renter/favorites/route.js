@@ -13,36 +13,8 @@
  */
 
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import jwt from 'jsonwebtoken'
 export const dynamic = 'force-dynamic'
 import { supabaseAdmin } from '@/lib/supabase'
-import { getJwtSecret } from '@/lib/auth/jwt-secret'
-
-// Helper: Verify session and get user ID
-async function getUserFromSession() {
-  let secret
-  try {
-    secret = getJwtSecret()
-  } catch {
-    return null
-  }
-  const cookieStore = cookies()
-  const sessionCookie = cookieStore.get('gostaylo_session')
-
-  if (!sessionCookie?.value) {
-    return null
-  }
-
-  try {
-    const decoded = jwt.verify(sessionCookie.value, secret)
-    return decoded.userId
-  } catch (error) {
-    return null
-  }
-}
-
-// GET /api/v2/renter/favorites - List all favorites
 export async function GET(request) {
   try {
     // Get user ID from query params (passed by client)

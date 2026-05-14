@@ -17,6 +17,7 @@ import {
   normalizeStoriesLang,
 } from '@/lib/referral/referral-stories-copy';
 import { normalizeReferralDisplayCurrency } from '@/lib/finance/referral-display-currency';
+import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,7 +67,7 @@ async function getOrCreateReferralCode(userId, fallbackLegacyCode = null, ownerI
 export async function GET(request) {
   const session = await getSessionPayload();
   if (!session?.userId) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    return authErrorJson(AuthErrorCode.AUTH_NOT_AUTHENTICATED, 401);
   }
 
   let { data: profile, error: profileError } = await supabaseAdmin
@@ -99,10 +100,7 @@ export async function GET(request) {
     profileError = fb2.error;
   }
   if (profileError || !profile?.id) {
-    return NextResponse.json(
-      { success: false, error: profileError?.message || 'PROFILE_NOT_FOUND' },
-      { status: 404 },
-    );
+    return authErrorJson(AuthErrorCode.AUTH_PROFILE_NOT_FOUND, 404);
   }
 
   const forwarded = request.headers.get('x-forwarded-for');

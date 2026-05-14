@@ -7,8 +7,9 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
-import jwt from 'jsonwebtoken';
-import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { tryGetJwtSecret } from '@/lib/auth/jwt-secret';
+import { verifyAppSessionJwt } from '@/lib/auth/verify-app-session-jwt';
+import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 import { stripLegacyModeratorMarker } from '@/lib/auth/display-name';
 import { buildCommonProfileUpdates } from '@/lib/validation/profile-schema';
 import {
@@ -86,28 +87,24 @@ function normalizeQuietHour(rawValue, fallback) {
 }
 
 function verifySessionCookie() {
-  let jwtSecret;
-  try {
-    jwtSecret = getJwtSecret();
-  } catch (e) {
-    return { error: NextResponse.json({ success: false, error: e.message, user: null }, { status: 500 }) };
+  const jwtCheck = tryGetJwtSecret();
+  if (!jwtCheck.ok) {
+    return { error: authErrorJson(AuthErrorCode.AUTH_JWT_NOT_CONFIGURED, 500) };
   }
 
   const cookieStore = cookies();
   const sessionCookie = cookieStore.get('gostaylo_session');
 
   if (!sessionCookie?.value) {
-    return { error: NextResponse.json({ success: false, user: null }, { status: 401 }) };
+    return { error: authErrorJson(AuthErrorCode.AUTH_NOT_AUTHENTICATED, 401, { user: null }) };
   }
 
-  let decoded;
-  try {
-    decoded = jwt.verify(sessionCookie.value, jwtSecret);
-  } catch {
-    return { error: NextResponse.json({ success: false, user: null, error: 'Invalid session' }, { status: 401 }) };
+  const v = verifyAppSessionJwt(sessionCookie.value, jwtCheck.secret);
+  if (!v.ok) {
+    return { error: authErrorJson(AuthErrorCode.AUTH_NOT_AUTHENTICATED, 401, { user: null }) };
   }
 
-  return { jwtSecret, decoded };
+  return { jwtSecret: jwtCheck.secret, decoded: v.payload };
 }
 
 export async function GET() {
@@ -120,7 +117,7 @@ export async function GET() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceKey) {
-    return NextResponse.json({ success: false, error: 'Database not configured' }, { status: 500 });
+    return authErrorJson(AuthErrorCode.AUTH_DATABASE_NOT_CONFIGURED, 500);
   }
 
   const supabase = createClient(url, serviceKey, {
@@ -130,12 +127,12 @@ export async function GET() {
   const { data: user, error } = await supabase.from('profiles').select('*').eq('id', decoded.userId).single();
 
   if (error || !user) {
-    return NextResponse.json({ success: false, user: null }, { status: 401 });
+    return authErrorJson(AuthErrorCode.AUTH_PROFILE_NOT_FOUND, 401, { user: null });
   }
 
   if (user.is_banned === true) {
     const res = NextResponse.json(
-      { success: false, user: null, error: 'Account suspended' },
+      { success: false, user: null, error_code: AuthErrorCode.AUTH_ACCOUNT_SUSPENDED },
       { status: 403 },
     );
     clearGostayloSessionCookie(res);
@@ -170,14 +167,14 @@ export async function PATCH(request) {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceKey) {
-    return NextResponse.json({ success: false, error: 'Database not configured' }, { status: 500 });
+    return authErrorJson(AuthErrorCode.AUTH_DATABASE_NOT_CONFIGURED, 500);
   }
 
   let body;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+    return authErrorJson(AuthErrorCode.AUTH_INVALID_JSON, 400);
   }
 
   const supabase = createClient(url, serviceKey, {
@@ -191,12 +188,14 @@ export async function PATCH(request) {
     .single();
 
   if (loadErr || !current) {
-    return NextResponse.json({ success: false, error: 'Profile not found' }, { status: 404 });
+    return authErrorJson(AuthErrorCode.AUTH_PROFILE_NOT_FOUND, 404);
   }
 
   const { updates, error: commonProfileValidationError } = buildCommonProfileUpdates(body, current);
   if (commonProfileValidationError) {
-    return NextResponse.json({ success: false, error: commonProfileValidationError }, { status: 400 });
+    return authErrorJson(AuthErrorCode.AUTH_PROFILE_VALIDATION_FAILED, 400, {
+      detail: commonProfileValidationError,
+    });
   }
 
   if (body.quiet_mode_enabled !== undefined) {
@@ -225,10 +224,7 @@ export async function PATCH(request) {
 
   if (upErr || !updated) {
     console.error('[AUTH/ME PATCH]', upErr);
-    return NextResponse.json(
-      { success: false, error: upErr?.message || 'Update failed' },
-      { status: 400 }
-    );
+    return authErrorJson(AuthErrorCode.AUTH_DATABASE_ERROR, 400);
   }
 
   if (Object.prototype.hasOwnProperty.call(updates, 'instant_booking')) {

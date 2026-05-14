@@ -6,14 +6,15 @@
  */
 
 import { NextResponse } from 'next/server';
-import { clearGostayloSessionCookie } from '@/lib/auth/app-session-issue';
+import { clearGostayloSessionCookie, clearAuthSidecarCookies } from '@/lib/auth/app-session-issue';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST() {
   const response = NextResponse.json({ success: true });
   clearGostayloSessionCookie(response);
-  
+  clearAuthSidecarCookies(response);
+
   return response;
 }
 

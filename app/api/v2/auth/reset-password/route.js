@@ -7,9 +7,8 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { verifyAppSessionJwt } from '@/lib/auth/verify-app-session-jwt';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 import {
   AUTH_PASSWORD_MIN_LENGTH,
@@ -49,14 +48,12 @@ export async function POST(request) {
     return authErrorJson(AuthErrorCode.AUTH_PASSWORD_REQUIREMENTS, 400);
   }
   
-  // Verify token
-  let decoded;
-  try {
-    decoded = jwt.verify(token, jwtSecret);
-  } catch (error) {
-    console.error('[RESET-PASSWORD] Invalid token:', error.message);
+  const verified = verifyAppSessionJwt(token, jwtSecret);
+  if (!verified.ok) {
+    console.error('[RESET-PASSWORD] Invalid token');
     return authErrorJson(AuthErrorCode.AUTH_RESET_TOKEN_INVALID, 400);
   }
+  const decoded = verified.payload;
 
   if (decoded.type !== 'password_reset') {
     return authErrorJson(AuthErrorCode.AUTH_RESET_TOKEN_WRONG_TYPE, 400);

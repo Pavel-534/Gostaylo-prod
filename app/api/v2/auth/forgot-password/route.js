@@ -77,7 +77,7 @@ export async function POST(request) {
   const resetToken = jwt.sign(
     { userId: user.id, email: normalizedEmail, type: 'password_reset' },
     jwtSecret,
-    { expiresIn: '1h' }
+    { expiresIn: '1h', algorithm: 'HS256' },
   );
   
   const resetUrl = `${BASE_URL}/reset-password?token=${resetToken}`;

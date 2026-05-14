@@ -4,9 +4,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
-import jwt from 'jsonwebtoken'
-import { verifyPartnerAccess } from '@/lib/services/session-service'
+import { requirePartnerSession } from '@/lib/services/session-service'
 import { supabaseAdmin } from '@/lib/supabase'
 import { generatePartnerListingDescriptionQuad } from '@/lib/openai/partner-listing-description'
 import {
@@ -17,33 +15,13 @@ import {
   TASK_LISTING_DESCRIPTION,
 } from '@/lib/ai/usage-log'
 import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings'
-import { getJwtSecret } from '@/lib/auth/jwt-secret'
 
 export const dynamic = 'force-dynamic'
 
 async function getPartnerFromSession() {
-  let secret
-  try {
-    secret = getJwtSecret()
-  } catch (e) {
-    return { error: NextResponse.json({ success: false, error: e.message }, { status: 500 }) }
-  }
-  const cookieStore = cookies()
-  const sessionCookie = cookieStore.get('gostaylo_session')
-  if (!sessionCookie?.value) {
-    return { error: NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 }) }
-  }
-  let decoded
-  try {
-    decoded = jwt.verify(sessionCookie.value, secret)
-  } catch {
-    return { error: NextResponse.json({ success: false, error: 'Invalid session' }, { status: 401 }) }
-  }
-  const partner = await verifyPartnerAccess(decoded.userId)
-  if (!partner) {
-    return { error: NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 }) }
-  }
-  return { userId: decoded.userId, role: partner.role }
+  const r = await requirePartnerSession()
+  if (r.error) return r
+  return { userId: r.userId, role: r.userRole }
 }
 
 async function assertListingAccess(userId, role, listingId) {

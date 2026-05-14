@@ -3,13 +3,14 @@ import { getSessionPayload } from '@/lib/services/session-service';
 import WalletService from '@/lib/services/finance/wallet.service';
 import { supabaseAdmin } from '@/lib/supabase';
 import EscrowService from '@/lib/services/escrow.service';
+import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const session = await getSessionPayload();
   if (!session?.userId) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    return authErrorJson(AuthErrorCode.AUTH_NOT_AUTHENTICATED, 401);
   }
   const [wallet, policy] = await Promise.all([
     WalletService.getWalletSummary(session.userId),

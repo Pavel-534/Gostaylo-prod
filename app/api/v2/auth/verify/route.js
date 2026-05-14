@@ -7,9 +7,9 @@
 
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import jwt from 'jsonwebtoken';
 import { getPublicSiteUrl } from '@/lib/site-url.js';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { verifyAppSessionJwt } from '@/lib/auth/verify-app-session-jwt';
 import {
   attachGostayloSessionCookie,
   signJwtForProfile,
@@ -36,15 +36,14 @@ export async function GET(request) {
     return NextResponse.redirect(`${siteBase}/?auth_error=missing_token`);
   }
   
-  // Verify JWT token
-  let decoded;
-  try {
-    decoded = jwt.verify(token, jwtSecret);
-  } catch (error) {
-    console.error('[VERIFY] Invalid token:', error.message);
+  // Verify JWT token (HS256 — same secret as session tokens)
+  const verified = verifyAppSessionJwt(token, jwtSecret);
+  if (!verified.ok) {
+    console.error('[VERIFY] Invalid or expired token');
     return NextResponse.redirect(`${siteBase}/?auth_error=invalid_or_expired_token`);
   }
-  
+  const decoded = verified.payload;
+
   if (decoded.type !== 'email_verification') {
     console.error('[VERIFY] Wrong token type:', decoded.type);
     return NextResponse.redirect(`${siteBase}/?auth_error=invalid_token_type`);

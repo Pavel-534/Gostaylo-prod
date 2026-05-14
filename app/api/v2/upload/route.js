@@ -6,10 +6,10 @@
  */
 
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
-import jwt from 'jsonwebtoken';
-import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { tryGetJwtSecret } from '@/lib/auth/jwt-secret';
+import { getSessionPayload } from '@/lib/services/session-service';
+import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 import {
   resolveMediaProfileId,
   logMediaProfile,
@@ -52,33 +52,16 @@ function getSupabase() {
   return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
 }
 
-function verifyAuth() {
-  let secret;
-  try {
-    secret = getJwtSecret();
-  } catch {
-    return { misconfigured: true };
-  }
-  const cookieStore = cookies();
-  const session = cookieStore.get('gostaylo_session');
-  if (!session?.value) return null;
-
-  try {
-    return jwt.verify(session.value, secret);
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(request) {
-  const auth = verifyAuth();
-  if (auth?.misconfigured) {
-    return NextResponse.json({ success: false, error: 'Server misconfigured: JWT_SECRET is missing' }, { status: 500 });
+  const jwtCheck = tryGetJwtSecret();
+  if (!jwtCheck.ok) {
+    return authErrorJson(AuthErrorCode.AUTH_JWT_NOT_CONFIGURED, 500);
   }
-  if (!auth) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const session = await getSessionPayload();
+  if (!session?.userId) {
+    return authErrorJson(AuthErrorCode.AUTH_NOT_AUTHENTICATED, 401);
   }
-  
+  const auth = { userId: session.userId, role: session.role };
   try {
     const formData = await request.formData();
     const file = formData.get('file');
@@ -227,9 +210,13 @@ export async function POST(request) {
  * DELETE /api/v2/upload — удалить объект из Storage (service role на сервере)
  */
 export async function DELETE(request) {
-  const auth = verifyAuth();
-  if (!auth) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const jwtCheck = tryGetJwtSecret();
+  if (!jwtCheck.ok) {
+    return authErrorJson(AuthErrorCode.AUTH_JWT_NOT_CONFIGURED, 500);
+  }
+  const session = await getSessionPayload();
+  if (!session?.userId) {
+    return authErrorJson(AuthErrorCode.AUTH_NOT_AUTHENTICATED, 401);
   }
 
   try {

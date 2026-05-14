@@ -43,6 +43,14 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 - **`POST /api/v2/promo-codes/validate`** при ошибке отдаёт **`{ success: false, valid: false, error_code: "PROMO_…" }`** (опционально **`min_amount_thb`**, **`retryAfter`**) — **без локализованного поля `error`**. Константы: **`lib/promo/promo-error-codes.js`** (`PromoErrorCode`, **`promoErrorJson`**). Тексты UI: **`lib/translations/slices/promo-errors.js`**, разрешение через **`getAuthErrorMessage(code, language, extras?)`** (плейсхолдер **`{minAmount}`** для **`PROMO_MIN_AMOUNT_NOT_MET`** при **`extras.minAmountThb`**).
 - Канон списка констант auth: **`lib/auth/auth-error-codes.js`** (`AuthErrorCode`, **`authErrorJson`**). Тексты для пользователя — **`lib/translations/slices/auth-errors.js`** + **`promo-errors.js`** (мердж в **`translation-state`**), разрешение через **`getAuthErrorMessage`** в **`lib/translations/index.js`**.
 - Лимитер: для **`rateLimitCheck(..., 'auth')`** тело 429 — **`error_code: AUTH_RATE_LIMITED`**. Для **`promo_validate`** ответ 429 на **`POST /api/v2/promo-codes/validate`** — **`error_code: PROMO_RATE_LIMITED`** (без legacy-поля **`error`**). Для прочих не-auth типов лимитера по-прежнему может присутствовать legacy-поле **`error`**.
+- Серверные гейты (**`lib/security/access-guard.js`** — **`requireAccess`**, **`lib/api/api-guard.js`**, **`requirePartnerSession`** в **`lib/services/session-service.js`**) при отказе отдают **`authErrorJson`** с **`error_code`** из того же **`AuthErrorCode`** (без отдельного человекочитаемого поля **`error`** в JSON). Клиенты, которые парсят только строку **`error`**, нужно переводить на **`error_code`** + **`getAuthErrorMessage`**.
+
+### Проверка JWT приложения (`gostaylo_session` и односекретные токены)
+
+- SSOT верификации: **`lib/auth/verify-app-session-jwt.js`** — **`verifyAppSessionJwt(token, secret)`** с **`jsonwebtoken.verify(..., { algorithms: ['HS256'] })`** (совместимо с **`lib/auth/app-session-issue.js`**).
+- Читать сессию из cookie на Route Handlers: **`getSessionPayload()`** / **`requirePartnerSession()`** в **`lib/services/session-service.js`**; для админских health/security-хелперов — **`verifyAppSessionJwt`** + **`tryGetJwtSecret()`** из **`lib/auth/jwt-secret.js`**. Новые маршруты **не** должны вызывать «голый» **`jwt.verify`** для **`gostaylo_session`**.
+- Edge **`middleware.ts`** по-прежнему может использовать **`jose`** для тех же HS256-токенов — это отдельный рантайм; не смешивать с Node-SSOT без причины.
+- **Logout:** **`POST /api/v2/auth/logout`** сбрасывает **`gostaylo_session`** и sidecar-куки **`gostaylo_pending_ref`** / **`gostaylo_oauth_legal`** (**`clearAuthSidecarCookies`**). Клиентский **`signOut`** (`lib/auth.js`) после ответа сервера очищает связанный **`localStorage`** / **`sb-*-auth-token`** (**`lib/auth/browser-auth-cleanup.js`**) и вызывает Supabase **`auth.signOut({ scope: 'local' })`**.
 
 ### Политика пароля (регистрация и сброс)
 
@@ -81,6 +89,10 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 | `AUTH_DATABASE_ERROR` | 500 |
 | `AUTH_EMAIL_SEND_FAILED` | (письмо верификации; также **`email_error_code`** при `success: true`) |
 | `AUTH_NOT_AUTHENTICATED` | 401 |
+| `AUTH_ACCESS_FORBIDDEN` | 403 (роль/зона; партнёрский guard) |
+| `API_BOOKING_ID_REQUIRED` | 400 |
+| `API_BOOKING_NOT_FOUND` | 404 |
+| `AUTH_PROFILE_VALIDATION_FAILED` | 400 (опционально **`detail`**) |
 | `AUTH_PROFILE_NOT_FOUND` | 404 |
 | `AUTH_INTERNAL` | 500 |
 | `AUTH_EMAIL_SERVICE_NOT_CONFIGURED` | 500 |

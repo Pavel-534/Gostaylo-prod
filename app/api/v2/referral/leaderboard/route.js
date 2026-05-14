@@ -8,13 +8,14 @@ import {
   formatReferralDateDdMmYyyyInTimeZone,
 } from '@/lib/referral/format-referral-datetime'
 import { listingYmdAtStartOfDayIso } from '@/lib/listing-date'
+import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   const session = await getSessionPayload()
   if (!session?.userId) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    return authErrorJson(AuthErrorCode.AUTH_NOT_AUTHENTICATED, 401)
   }
 
   const { data: profile, error: profileError } = await supabaseAdmin
@@ -24,10 +25,7 @@ export async function GET() {
     .maybeSingle()
 
   if (profileError || !profile?.id) {
-    return NextResponse.json(
-      { success: false, error: profileError?.message || 'PROFILE_NOT_FOUND' },
-      { status: 404 },
-    )
+    return authErrorJson(AuthErrorCode.AUTH_PROFILE_NOT_FOUND, 404)
   }
 
   const statsTz = resolveReferralStatsTimeZone(profile)

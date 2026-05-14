@@ -4,10 +4,10 @@
  */
 
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
-import jwt from 'jsonwebtoken';
-import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { tryGetJwtSecret } from '@/lib/auth/jwt-secret';
+import { getSessionPayload } from '@/lib/services/session-service';
+import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 import { CalendarService } from '@/lib/services/calendar.service';
 
 export const dynamic = 'force-dynamic';
@@ -18,34 +18,21 @@ function getSupabase() {
   return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
 }
 
-function verifyAuth() {
-  let secret;
-  try {
-    secret = getJwtSecret();
-  } catch {
-    return { misconfigured: true };
-  }
-  const cookieStore = cookies();
-  const session = cookieStore.get('gostaylo_session');
-  if (!session?.value) return null;
-
-  try {
-    return jwt.verify(session.value, secret);
-  } catch {
-    return null;
-  }
+async function verifyAuth() {
+  const jwtCheck = tryGetJwtSecret();
+  if (!jwtCheck.ok) return { misconfigured: true };
+  const session = await getSessionPayload();
+  if (!session?.userId) return null;
+  return { userId: session.userId, role: session.role };
 }
 
 export async function GET(request, { params }) {
-  const auth = verifyAuth();
+  const auth = await verifyAuth();
   if (auth?.misconfigured) {
-    return NextResponse.json(
-      { success: false, error: 'Server misconfigured: JWT_SECRET is missing' },
-      { status: 500 }
-    );
+    return authErrorJson(AuthErrorCode.AUTH_JWT_NOT_CONFIGURED, 500);
   }
   if (!auth) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    return authErrorJson(AuthErrorCode.AUTH_NOT_AUTHENTICATED, 401);
   }
 
   const listingId = params.id;

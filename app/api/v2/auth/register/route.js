@@ -45,7 +45,7 @@ function generateVerificationToken(userId, email, jwtSecret) {
   return jwt.sign(
     { userId, email, type: 'email_verification' },
     jwtSecret,
-    { expiresIn: '24h' }
+    { expiresIn: '24h', algorithm: 'HS256' },
   );
 }
 

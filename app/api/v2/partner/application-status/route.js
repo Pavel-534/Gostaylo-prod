@@ -6,36 +6,25 @@
  */
 
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
-import jwt from 'jsonwebtoken';
-import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { tryGetJwtSecret } from '@/lib/auth/jwt-secret';
+import { getSessionPayload } from '@/lib/services/session-service';
+import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request) {
-  let jwtSecret;
-  try {
-    jwtSecret = getJwtSecret();
-  } catch (e) {
-    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+export async function GET(_request) {
+  const jwtCheck = tryGetJwtSecret();
+  if (!jwtCheck.ok) {
+    return authErrorJson(AuthErrorCode.AUTH_JWT_NOT_CONFIGURED, 500);
   }
 
-  const cookieStore = cookies();
-  const sessionCookie = cookieStore.get('gostaylo_session');
-
-  if (!sessionCookie?.value) {
-    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const session = await getSessionPayload();
+  if (!session?.userId) {
+    return authErrorJson(AuthErrorCode.AUTH_NOT_AUTHENTICATED, 401);
   }
 
-  let decoded;
-  try {
-    decoded = jwt.verify(sessionCookie.value, jwtSecret);
-  } catch (error) {
-    return NextResponse.json({ success: false, error: 'Invalid session' }, { status: 401 });
-  }
-  
-  const userId = decoded.userId;
+  const userId = session.userId;
   
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

@@ -11,7 +11,7 @@
 
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/auth-helpers-nextjs';
-import { getJwtSecret } from '@/lib/auth/jwt-secret';
+import { tryGetJwtSecret } from '@/lib/auth/jwt-secret';
 import {
   attachGostayloSessionCookie,
   signJwtForProfile,
@@ -114,12 +114,12 @@ export async function GET(request) {
   }
 
   let jwtSecret;
-  try {
-    jwtSecret = getJwtSecret();
-  } catch (e) {
-    console.error('[AUTH CALLBACK] JWT_SECRET missing:', e?.message || e);
+  const jwtCheck = tryGetJwtSecret();
+  if (!jwtCheck.ok) {
+    console.error('[AUTH CALLBACK] JWT_SECRET missing:', jwtCheck.error?.message || 'missing');
     return redirectToOAuthError(origin, 'jwt');
   }
+  jwtSecret = jwtCheck.secret;
 
   let sync;
   try {
@@ -140,7 +140,13 @@ export async function GET(request) {
       ok: sync.ok,
       hasProfile: Boolean(sync.profile),
     });
-    return redirectToOAuthError(origin, 'sync');
+    const reason =
+      sync.error === 'AUTH_PROFILE_AUTH_CONFLICT'
+        ? 'account_link'
+        : sync.error === 'ACCOUNT_SUSPENDED'
+          ? 'suspended'
+          : 'sync';
+    return redirectToOAuthError(origin, reason);
   }
 
   const destination =
