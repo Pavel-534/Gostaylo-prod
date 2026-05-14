@@ -7,11 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
 import { Loader2 } from 'lucide-react';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export default function DashboardRouter() {
   const router = useRouter();
@@ -23,30 +19,22 @@ export default function DashboardRouter() {
 
   async function checkRoleAndRedirect() {
     try {
-      if (!supabaseUrl || !supabaseKey) {
-        router.push('/');
-        return;
-      }
-      
-      const supabase = createClient(supabaseUrl, supabaseKey);
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
+      const res = await fetch('/api/v2/auth/me', {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      const payload = await res.json().catch(() => ({}));
+
+      if (res.status === 401 || !payload?.success || !payload?.user) {
         router.push('/login');
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+      const role = String(payload.user.role || 'RENTER').toUpperCase();
 
-      const role = profile?.role || 'RENTER';
-
-      // Redirect based on role
       switch (role) {
         case 'ADMIN':
+        case 'MODERATOR':
           router.push('/admin');
           break;
         case 'PARTNER':

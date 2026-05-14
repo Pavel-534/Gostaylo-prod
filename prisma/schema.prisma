@@ -10,6 +10,7 @@ datasource db {
 }
 
 // User Profiles — maps to Supabase `profiles` (snake_case columns in DB).
+// Stage 94.0: DB trigger `handle_new_user` on `auth.users` + RLS hardening — see `database/migrations/047_stage94_auth_profile_trigger_and_core_rls.sql`.
 // Role: PostgreSQL enum `user_role`. If MODERATOR is missing, run 013a then 013b in database/migrations/ (two separate Supabase runs).
 model Profile {
   id                String   @id @default(uuid())

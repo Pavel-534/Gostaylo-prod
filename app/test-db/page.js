@@ -1,6 +1,7 @@
 /**
- * GoStayLo - Database Test Page (Public)
- * /test-db - Verify Supabase connection (No Auth Required)
+ * GoStayLo - Database Test Page (public smoke)
+ * /test-db — только публичные API (без anon PostgREST к profiles/listings/bookings).
+ * Полная диагностика: /admin/test-db (staff).
  */
 
 'use client';
@@ -24,92 +25,45 @@ export default function TestDbPage() {
   async function checkDatabase() {
     setLoading(true);
     try {
-      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      
-      const headers = {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      };
-      
-      const [profilesRes, categoriesRes, listingsRes, bookingsRes, promoRes, ratesRes, settingsRes] = await Promise.all([
-        fetch(`/_db/profiles?select=id`, { headers }),
-        fetch(`/_db/categories?select=*&order=order.asc`, { headers }),
-        fetch(`/_db/listings?select=id`, { headers }),
-        fetch(`/_db/bookings?select=id`, { headers }),
-        fetch(`/_db/promo_codes?select=id`, { headers }),
-        fetch(`/_db/exchange_rates?select=id`, { headers }),
-        fetch(`/_db/system_settings?select=id`, { headers })
+      const [catRes, fxRes] = await Promise.all([
+        fetch('/api/v2/categories', { cache: 'no-store' }),
+        fetch('/api/v2/exchange-rates', { cache: 'no-store' }),
       ]);
-      
-      const profiles = await profilesRes.json();
-      const categories = await categoriesRes.json();
-      const listings = await listingsRes.json();
-      const bookings = await bookingsRes.json();
-      const promos = await promoRes.json();
-      const rates = await ratesRes.json();
-      const settings = await settingsRes.json();
-      
-      // Get admin user
-      const adminRes = await fetch(`/_db/profiles?id=eq.admin-777`, { headers });
-      const adminData = await adminRes.json();
-      const adminUser = adminData[0] ? {
-        id: adminData[0].id,
-        email: adminData[0].email,
-        role: adminData[0].role,
-        name: `${adminData[0].first_name || ''} ${adminData[0].last_name || ''}`.trim()
-      } : null;
+
+      const catJson = await catRes.json().catch(() => ({}));
+      const fxJson = await fxRes.json().catch(() => ({}));
+      const categories = catJson.success && Array.isArray(catJson.data) ? catJson.data : [];
+      const fxOk = fxJson.success === true;
 
       setDbStatus({
-        connected: true,
-        url: '/_db',
-        adminUser,
+        connected: catRes.ok && fxRes.ok,
+        url: '/api/v2/* (public)',
+        adminUser: null,
+        detailNote:
+          'Счётчики profiles / listings / bookings доступны только через /admin/test-db (вход staff).',
         tableCounts: {
-          profiles: profiles.length,
-          categories: categories.length,
-          listings: listings.length,
-          bookings: bookings.length,
-          promo_codes: promos.length,
-          exchange_rates: rates.length,
-          system_settings: settings.length
-        }
+          categories_rows: categories.length,
+          exchange_rates: fxOk ? 'ok' : 'error',
+        },
       });
 
-      // Calculate stats
-      const partnerCount = profiles.filter(p => p.role === 'PARTNER').length;
-      const adminCount = profiles.filter(p => p.role === 'ADMIN').length;
-      
       setStats({
-        users: {
-          total: profiles.length,
-          partners: partnerCount,
-          admins: adminCount,
-          renters: profiles.length - partnerCount - adminCount
-        },
-        listings: {
-          total: listings.length,
-          active: listings.length, // Simplified
-          pending: 0
-        },
-        bookings: {
-          total: bookings.length,
-          pending: 0,
-          confirmed: 0,
-          completed: 0
-        },
-        categories: categories.map(c => ({
+        users: { total: '—', partners: '—', admins: '—', renters: '—' },
+        listings: { total: '—', active: '—', pending: '—' },
+        bookings: { total: '—', pending: '—', confirmed: '—', completed: '—' },
+        categories: categories.map((c) => ({
           id: c.id,
           name: c.name,
           slug: c.slug,
           icon: c.icon,
-          isActive: c.is_active
-        }))
+          isActive: c.isActive ?? c.is_active,
+        })),
       });
-
     } catch (error) {
       console.error('Database check failed:', error);
       setDbStatus({
         connected: false,
-        error: error.message
+        error: error.message,
       });
     }
     setLoading(false);
@@ -190,10 +144,20 @@ export default function TestDbPage() {
                         <Badge className="mt-1 bg-purple-600">{dbStatus.adminUser.role}</Badge>
                       </div>
                     ) : (
-                      <p className="text-red-400">Admin not found</p>
+                      <p className="text-purple-200 text-sm">
+                        На публичной странице не запрашиваем <code className="text-xs">profiles</code>.{' '}
+                        <Link href="/admin/test-db" className="text-teal-300 underline">
+                          /admin/test-db
+                        </Link>
+                      </p>
                     )}
                   </div>
                 </div>
+                {dbStatus?.detailNote ? (
+                  <p className="text-purple-200 text-sm border border-purple-700/50 rounded-lg p-3">
+                    {dbStatus.detailNote}
+                  </p>
+                ) : null}
               </CardContent>
             </Card>
 
@@ -212,14 +176,14 @@ export default function TestDbPage() {
                       <div 
                         key={table} 
                         className={`bg-purple-900/50 rounded-lg p-3 text-center ${
-                          count === 'table_missing' ? 'border border-red-500/50' : ''
+                          count === 'table_missing' || count === 'error' ? 'border border-red-500/50' : ''
                         }`}
                       >
                         <p className="text-purple-400 text-xs mb-1 capitalize">{table}</p>
                         <p className={`text-xl font-bold ${
-                          count === 'table_missing' ? 'text-red-400 text-sm' : 'text-white'
+                          count === 'table_missing' || count === 'error' ? 'text-red-400 text-sm' : 'text-white'
                         }`}>
-                          {count === 'table_missing' ? 'Missing' : count}
+                          {count === 'table_missing' || count === 'error' ? 'Error' : count}
                         </p>
                       </div>
                     ))}

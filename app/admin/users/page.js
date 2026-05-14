@@ -31,6 +31,7 @@ export default function UsersPage() {
     try {
       // Use API endpoint that uses SERVICE_ROLE_KEY to bypass RLS
       const res = await fetch('/api/admin/users/list', {
+        credentials: 'include',
         headers: {
           'Cache-Control': 'no-cache'
         }
@@ -137,21 +138,19 @@ export default function UsersPage() {
 
   const handleRoleChange = async (userId, newRole) => {
     try {
-      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      
-      const res = await fetch(`/_db/profiles?id=eq.${userId}`, {
+      const res = await fetch('/api/admin/users', {
         method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ role: newRole }),
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, updates: { role: newRole } }),
       });
 
       if (res.ok) {
         toast.success(`Роль обновлена на ${newRole}`);
         loadUsers();
+      } else {
+        const j = await res.json().catch(() => ({}));
+        toast.error(j.error || 'Не удалось обновить роль');
       }
     } catch (error) {
       toast.error('Не удалось обновить роль');
@@ -160,23 +159,24 @@ export default function UsersPage() {
 
   const handleCommissionChange = async (partnerId, customRate) => {
     try {
-      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      
-      const res = await fetch(`/_db/profiles?id=eq.${partnerId}`, {
+      const res = await fetch('/api/admin/users', {
         method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          custom_commission_rate: customRate === '' ? null : parseFloat(customRate) 
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: partnerId,
+          updates: {
+            custom_commission_rate: customRate === '' ? null : parseFloat(customRate),
+          },
         }),
       });
 
       if (res.ok) {
         toast.success(customRate ? `Комиссия: ${customRate}%` : 'Используется глобальная ставка');
         loadUsers();
+      } else {
+        const j = await res.json().catch(() => ({}));
+        toast.error(j.error || 'Не удалось обновить комиссию');
       }
     } catch (error) {
       toast.error('Не удалось обновить комиссию');

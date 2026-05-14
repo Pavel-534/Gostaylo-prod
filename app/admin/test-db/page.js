@@ -12,12 +12,7 @@ import { Database, CheckCircle, XCircle, Users, Home, Calendar, Loader2, ArrowLe
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  fetchDatabaseStatus, 
-  fetchAdminUser, 
-  fetchAdminStats, 
-  fetchAllCategories 
-} from '@/lib/client-data';
+import { fetchAdminDiagnosticsBundle } from '@/lib/client-data';
 
 export default function AdminTestDbPage() {
   const [dbStatus, setDbStatus] = useState(null);
@@ -31,24 +26,18 @@ export default function AdminTestDbPage() {
   async function checkDatabase() {
     setLoading(true);
     try {
-      // Fetch all data directly from Supabase
-      const [statusData, adminUser, statsData, categories] = await Promise.all([
-        fetchDatabaseStatus(),
-        fetchAdminUser(),
-        fetchAdminStats(),
-        fetchAllCategories()
-      ]);
+      const { dbStatus, stats: statsData, categories } = await fetchAdminDiagnosticsBundle();
 
       setDbStatus({
-        connected: !!statusData.dataProxyBase && !Object.values(statusData.tableCounts).every(v => v === 'error'),
-        url: statusData.dataProxyBase,
-        adminUser: adminUser,
-        tableCounts: statusData.tableCounts
+        connected: dbStatus.connected,
+        url: dbStatus.url,
+        adminUser: dbStatus.adminUser,
+        tableCounts: dbStatus.tableCounts,
       });
 
       setStats({
         ...statsData,
-        categories: categories
+        categories: categories || [],
       });
 
     } catch (error) {
@@ -109,7 +98,7 @@ export default function AdminTestDbPage() {
                   <span>Database Connection: {dbStatus?.connected ? 'OK' : 'FAILED'}</span>
                 </CardTitle>
                 <CardDescription className="text-purple-300 text-sm">
-                  Supabase PostgreSQL (Direct Client)
+                  Staff API + service role (без anon PostgREST к core-таблицам)
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0 space-y-4">

@@ -27,7 +27,7 @@ export default function AdminDashboard() {
 
   async function loadStats() {
     try {
-      const res = await fetch('/api/v2/admin/stats');
+      const res = await fetch('/api/v2/admin/stats', { credentials: 'include', cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
         setStats(data);

@@ -7,6 +7,8 @@ import { DollarSign, Users, ShoppingBag, TrendingUp, AlertCircle, UserPlus, Cred
 import { Button } from '@/components/ui/button';
 import { getSiteDisplayName } from '@/lib/site-url';
 
+const ADMIN_CHART_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b'];
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [activity, setActivity] = useState([]);
@@ -69,75 +71,75 @@ export default function AdminDashboard() {
 
   const loadDashboardData = async () => {
     try {
-      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      
-      const headers = {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      };
-      
-      const [profilesRes, listingsRes, bookingsRes, activityRes, fxRes, commRes, fxHealthRes] = await Promise.all([
-        fetch(`/_db/profiles?select=id,role`, { headers }),
-        fetch(`/_db/listings?select=id,status,base_price_thb,category_id`, { headers }),
-        fetch(`/_db/bookings?select=id,status,price_thb,commission_thb`, { headers }),
-        fetch(`/_db/activity_log?select=*&order=created_at.desc&limit=8`, { headers }),
+      const [statsRes, activityRes, fxRes, commRes, fxHealthRes] = await Promise.all([
+        fetch('/api/v2/admin/stats', { credentials: 'include', cache: 'no-store' }),
+        fetch('/api/admin/activity/recent?limit=8', { credentials: 'include', cache: 'no-store' }),
         fetch(`/api/v2/exchange-rates`, { cache: 'no-store' }),
         fetch(`/api/v2/commission`, { cache: 'no-store' }),
         fetch(`/api/v2/admin/exchange-rates-health`, { credentials: 'include', cache: 'no-store' }),
       ]);
-      
-      const profiles = await profilesRes.json();
-      const listings = await listingsRes.json();
-      const bookings = await bookingsRes.json();
-      const activityData = await activityRes.json();
+
+      const statsJson = await statsRes.json().catch(() => ({}));
+      const activityJson = await activityRes.json().catch(() => ({}));
       const fxJson = await fxRes.json().catch(() => ({}));
       const commJson = await commRes.json().catch(() => ({}));
       const fxHealthJson = await fxHealthRes.json().catch(() => ({}));
+
       if (fxHealthJson.success && fxHealthJson.data) {
         setFxHealth(fxHealthJson.data);
       } else {
         setFxHealth(null);
       }
+
+      const d = statsJson.success ? statsJson.data : null;
+      const activityDataRaw =
+        activityJson.success && Array.isArray(activityJson.data) ? activityJson.data : [];
+      const activityData = activityDataRaw.map((row) => ({
+        type: row.activity_type || 'BOOKING',
+        description: row.description || '—',
+        user: row.user_name || row.user_id || '',
+        amount: null,
+        timestamp: row.created_at,
+      }));
+
       const thbPerUsdt =
         fxJson.success && fxJson.rateMap?.USDT ? Number(fxJson.rateMap.USDT) : null;
       const systemCommissionPct =
         commJson.success && commJson.data?.systemRate != null
           ? Number(commJson.data.systemRate)
           : null;
-      
-      // Calculate stats
-      const totalPartners = profiles.filter(p => p.role === 'PARTNER').length;
-      const totalRenters = profiles.filter(p => p.role === 'RENTER').length;
-      const totalUsers = profiles.length;
-      
-      const totalRevenue = bookings.reduce((sum, b) => sum + parseFloat(b.price_thb || 0), 0);
-      const totalCommission = bookings.reduce((sum, b) => sum + parseFloat(b.commission_thb || 0), 0);
-      const activeBookings = bookings.filter(b => ['PENDING', 'CONFIRMED', 'PAID'].includes(b.status)).length;
-      
-      // Mock monthly revenue for chart
-      const febUsdt =
-        thbPerUsdt && totalRevenue > 0
-          ? Math.round(totalRevenue / thbPerUsdt)
-          : thbPerUsdt && (totalRevenue || 15000)
-            ? Math.round((totalRevenue || 15000) / thbPerUsdt)
-            : null;
-      const monthlyRevenue = [
-        { month: 'Сен', thb: 125000, usdt: 3500 },
-        { month: 'Окт', thb: 185000, usdt: 5200 },
-        { month: 'Ноя', thb: 220000, usdt: 6200 },
-        { month: 'Дек', thb: 310000, usdt: 8700 },
-        { month: 'Янв', thb: 280000, usdt: 7900 },
-        { month: 'Фев', thb: totalRevenue || 15000, usdt: febUsdt ?? 0 },
-      ];
-      
-      // Category distribution
-      const categoryDistribution = [
-        { name: 'Property', value: listings.filter(l => l.category_id === '1').length || 1, color: '#6366f1' },
-        { name: 'Vehicles', value: listings.filter(l => l.category_id === '2').length || 0, color: '#8b5cf6' },
-        { name: 'Tours', value: listings.filter(l => l.category_id === '3').length || 0, color: '#ec4899' },
-        { name: 'Yachts', value: listings.filter(l => l.category_id === '4').length || 0, color: '#f59e0b' }
-      ];
-      
+
+      const totalPartners = d?.users?.partners ?? 0;
+      const totalRenters = d?.users?.renters ?? 0;
+      const totalUsers = d?.users?.total ?? 0;
+
+      const totalRevenue = d?.revenue?.total ?? 0;
+      const totalCommission = d?.revenue?.commission ?? 0;
+      const activeBookings = d?.bookings?.activePipeline ?? 0;
+      const totalBookings = d?.bookings?.total ?? 0;
+
+      const byCat = d?.listingCountByCategoryId || {};
+      const categoryDistribution = (d?.categoryRevenue || []).map((c, i) => ({
+        name: c.name,
+        value: byCat[String(c.id)] ?? 0,
+        color: ADMIN_CHART_COLORS[i % ADMIN_CHART_COLORS.length],
+      }));
+      if (categoryDistribution.length === 0 || categoryDistribution.every((x) => !x.value)) {
+        categoryDistribution.length = 0;
+        categoryDistribution.push({ name: '—', value: 1, color: ADMIN_CHART_COLORS[0] });
+      }
+
+      const monthlyRevenue = (d?.monthlyRevenue || []).map((m) => ({
+        month: m.month,
+        thb: m.revenue,
+        usdt:
+          thbPerUsdt && m.revenue
+            ? Math.round(m.revenue / thbPerUsdt)
+            : thbPerUsdt && (m.revenue || 0)
+              ? Math.round((m.revenue || 0) / thbPerUsdt)
+              : 0,
+      }));
+
       setStats({
         revenue: totalRevenue,
         revenueUsdt:
@@ -147,12 +149,12 @@ export default function AdminDashboard() {
         totalPartners,
         totalRenters,
         activeBookings,
-        totalBookings: bookings.length,
+        totalBookings,
         monthlyRevenue,
         categoryDistribution,
         systemCommissionPct,
       });
-      
+
       setActivity(activityData || []);
     } catch (error) {
       console.error('Failed to load dashboard:', error);
@@ -174,8 +176,6 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   };
-
-  const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b'];
 
   const getActivityIcon = (type) => {
     switch (type) {
@@ -361,7 +361,7 @@ export default function AdminDashboard() {
                       dataKey="value"
                     >
                       {(stats?.categoryDistribution || []).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                        <Cell key={`cell-${index}`} fill={entry.color || ADMIN_CHART_COLORS[index % ADMIN_CHART_COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip />

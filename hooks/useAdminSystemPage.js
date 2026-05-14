@@ -4,6 +4,25 @@ import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import { getAdminDiagnosticsUserAgent } from '@/lib/http-client-identity'
 
+async function fetchSystemSettingsByKeys(keys) {
+  const q = encodeURIComponent(keys.join(','))
+  const res = await fetch(`/api/admin/system-settings?keys=${q}`, {
+    credentials: 'include',
+    cache: 'no-store',
+  })
+  const j = await res.json().catch(() => ({}))
+  if (!res.ok || !j.success) {
+    throw new Error(j.error || 'system_settings')
+  }
+  return j.data?.byKey || {}
+}
+
+function parseMaintenanceValue(raw) {
+  if (raw === true || raw === 'true') return true
+  if (raw === false || raw === 'false') return false
+  return String(raw ?? '').toLowerCase() === 'true'
+}
+
 export function useAdminSystemPage() {
   const [maintenanceMode, setMaintenanceMode] = useState(false)
   const [webhookStatus, setWebhookStatus] = useState(null)
@@ -27,7 +46,10 @@ export function useAdminSystemPage() {
 
   const checkWebhookStatus = useCallback(async () => {
     try {
-      const res = await fetch('/api/v2/admin/telegram')
+      const res = await fetch('/api/v2/admin/telegram', {
+        credentials: 'include',
+        cache: 'no-store',
+      })
       const data = await res.json()
 
       if (data.success && data.webhook) {
@@ -60,23 +82,11 @@ export function useAdminSystemPage() {
 
   const loadIcalSyncStatus = useCallback(async () => {
     try {
-      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-      const statusRes = await fetch(`/_db/system_settings?key=eq.ical_sync_status`, {
-        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
-      })
-      const statusData = await statusRes.json()
-      if (statusData?.[0]?.value) {
-        setIcalSyncStatus(statusData[0].value)
-      }
-
-      const settingsRes = await fetch(`/_db/system_settings?key=eq.ical_sync_settings`, {
-        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
-      })
-      const settingsData = await settingsRes.json()
-      if (settingsData?.[0]?.value?.frequency) {
-        setIcalSyncFrequency(settingsData[0].value.frequency)
-      }
+      const byKey = await fetchSystemSettingsByKeys(['ical_sync_status', 'ical_sync_settings'])
+      const st = byKey.ical_sync_status?.value
+      if (st != null) setIcalSyncStatus(st)
+      const freq = byKey.ical_sync_settings?.value?.frequency
+      if (freq) setIcalSyncFrequency(freq)
     } catch (error) {
       console.error('Failed to load iCal sync status:', error)
     }
@@ -84,55 +94,57 @@ export function useAdminSystemPage() {
 
   const loadSystemStatus = useCallback(async () => {
     try {
-      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      const byKey = await fetchSystemSettingsByKeys([
+        'maintenance_mode',
+        'ical_sync_status',
+        'ical_sync_settings',
+      ])
+      const mm = byKey.maintenance_mode?.value
+      if (mm !== undefined) setMaintenanceMode(parseMaintenanceValue(mm))
 
-      const settingsRes = await fetch(`/_db/system_settings?key=eq.maintenance_mode`, {
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-        },
-      })
-      const settings = await settingsRes.json()
-      if (settings?.[0]) {
-        setMaintenanceMode(settings[0].value === 'true' || settings[0].value === true)
-      }
+      const st = byKey.ical_sync_status?.value
+      if (st != null) setIcalSyncStatus(st)
+      const freq = byKey.ical_sync_settings?.value?.frequency
+      if (freq) setIcalSyncFrequency(freq)
 
       await checkWebhookStatus()
 
-      const activityRes = await fetch(`/_db/activity_log?order=created_at.desc&limit=10`, {
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-        },
+      const activityRes = await fetch(`/api/admin/activity/recent?limit=10`, {
+        credentials: 'include',
+        cache: 'no-store',
       })
-      const activityData = await activityRes.json()
-      setRecentActivity(Array.isArray(activityData) ? activityData : [])
-
-      await loadIcalSyncStatus()
+      const activityJson = await activityRes.json().catch(() => ({}))
+      const activityRows = activityJson.success && Array.isArray(activityJson.data) ? activityJson.data : []
+      const activityData = activityRows.map((row) => ({
+        id: row.id,
+        action: row.activity_type,
+        details: row.description,
+        created_at: row.created_at,
+      }))
+      setRecentActivity(activityData)
     } catch (error) {
       console.error('Failed to load system status:', error)
     } finally {
       setLoading(false)
     }
-  }, [checkWebhookStatus, loadIcalSyncStatus])
+  }, [checkWebhookStatus])
 
   const logActivity = useCallback(
     async (action, details) => {
       try {
-        const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-        await fetch(`/_db/activity_log`, {
+        await fetch(`/api/admin/activity`, {
           method: 'POST',
+          credentials: 'include',
           headers: {
-            apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${SUPABASE_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            action,
-            details,
-            ip_address: 'admin-panel',
-            user_agent: getAdminDiagnosticsUserAgent(),
+            activity_type: String(action).slice(0, 50),
+            description: typeof details === 'string' ? details : JSON.stringify(details ?? {}),
+            metadata: {
+              ip_address: 'admin-panel',
+              user_agent: getAdminDiagnosticsUserAgent(),
+            },
           }),
         })
 
@@ -173,6 +185,7 @@ export function useAdminSystemPage() {
     try {
       const res = await fetch('/api/ical/sync', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'sync-all' }),
       })
@@ -195,27 +208,20 @@ export function useAdminSystemPage() {
   }
 
   const handleIcalFrequencyChange = async (frequency) => {
-    const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
     try {
-      await fetch(`/_db/system_settings?key=eq.ical_sync_settings`, {
-        method: 'DELETE',
-        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
-      })
-
-      await fetch(`/_db/system_settings`, {
-        method: 'POST',
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-        },
+      const res = await fetch('/api/admin/system-settings', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           key: 'ical_sync_settings',
           value: { frequency, enabled: true },
         }),
       })
-
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.success) {
+        throw new Error(j.error || 'save')
+      }
       setIcalSyncFrequency(frequency)
       toast.success(`Частота синхронизации: ${frequency}`)
     } catch {
@@ -225,30 +231,19 @@ export function useAdminSystemPage() {
 
   const handleMaintenanceToggle = async (enabled) => {
     try {
-      const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-      await fetch(`/_db/system_settings?key=eq.maintenance_mode`, {
-        method: 'DELETE',
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-        },
-      })
-
-      await fetch(`/_db/system_settings`, {
-        method: 'POST',
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-        },
+      const res = await fetch('/api/admin/system-settings', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           key: 'maintenance_mode',
-          value: String(enabled),
-          description: 'Global maintenance mode toggle',
+          value: enabled,
         }),
       })
-
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j.success) {
+        throw new Error(j.error || 'maintenance')
+      }
       setMaintenanceMode(enabled)
       toast.success(enabled ? '🔴 Режим обслуживания ВКЛЮЧЁН' : '🟢 Режим обслуживания ВЫКЛЮЧЕН')
       await logActivity(enabled ? 'MAINTENANCE_ON' : 'MAINTENANCE_OFF', 'Переключен режим обслуживания')
@@ -263,6 +258,7 @@ export function useAdminSystemPage() {
     try {
       const res = await fetch('/api/v2/admin/telegram', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'setWebhook' }),
       })
@@ -288,6 +284,7 @@ export function useAdminSystemPage() {
     try {
       const res = await fetch('/api/v2/admin/telegram', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'testMessage' }),
       })
@@ -311,6 +308,7 @@ export function useAdminSystemPage() {
     try {
       const res = await fetch('/api/v2/admin/telegram', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'testMessage' }),
       })
