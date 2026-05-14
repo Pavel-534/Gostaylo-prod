@@ -1,14 +1,13 @@
 /**
- * GoStayLo - Next.js Edge Middleware
- * Protects /admin, /partner, and /renter routes from unauthorized access
- * 
- * ✅ Edge Runtime Compatible (using jose instead of jsonwebtoken)
- * 
- * Security Features:
- * - JWT verification using Edge-compatible jose library
- * - Role-based access control
- * - Immediate redirect for unauthorized users
- * - Does NOT interfere with public routes
+ * GoStayLo — Next.js Edge Middleware
+ * Защищает приватные зоны: /admin, /partner, /renter (JWT `gostaylo_session`, jose на Edge).
+ *
+ * Принципы:
+ * - Fail-closed где возможно (конфиг, проверка бана, сбой Supabase).
+ * - Минимум запросов к БД на Edge (один REST-вызов на `is_banned` после валидного JWT).
+ * - Defense in depth: middleware — периметр UI; **API остаётся SSOT** через `requireAccess` / route guards.
+ *
+ * Не трогает публичные страницы вне matcher; `/api/*` — только `x-correlation-id` (Stage 56.0).
  */
 
 import { NextResponse } from 'next/server';
@@ -16,8 +15,9 @@ import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = process.env.JWT_SECRET;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Route protection configuration
 const PROTECTED_ROUTES = {
   '/admin': ['ADMIN', 'MODERATOR'],
   '/partner': ['PARTNER', 'ADMIN', 'MODERATOR'],
@@ -25,28 +25,40 @@ const PROTECTED_ROUTES = {
 } as const;
 
 /**
- * Verify JWT token using jose (Edge Runtime compatible)
+ * Бан и целостность профиля: fail-closed (ошибка сети, 4xx/5xx, пустой ответ → «как забанен»).
+ * Критичные операции всё равно перепроверяются на Node в API.
  */
-async function fetchProfileIsBanned(userId: string): Promise<boolean> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key || !userId) return false;
+async function isUserBanned(userId: string): Promise<boolean> {
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY || !userId) {
+    console.error('[Middleware] Ban check skipped: missing SUPABASE_URL, SERVICE_ROLE_KEY, or userId');
+    return true;
+  }
+
   try {
-    const res = await fetch(
-      `${url.replace(/\/$/, '')}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=is_banned`,
-      {
-        headers: {
-          apikey: key,
-          Authorization: `Bearer ${key}`,
-        },
-        cache: 'no-store',
-      }
-    );
-    if (!res.ok) return false;
+    const url = `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=is_banned`;
+    const res = await fetch(url, {
+      headers: {
+        apikey: SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      },
+      cache: 'no-store',
+    });
+
+    if (!res.ok) {
+      console.error(`[Middleware] Ban check HTTP ${res.status} for user ${userId}`);
+      return true;
+    }
+
     const rows = (await res.json()) as { is_banned?: boolean }[];
-    return rows?.[0]?.is_banned === true;
-  } catch {
-    return false;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      console.error(`[Middleware] Ban check: empty profile row for user ${userId}`);
+      return true;
+    }
+
+    return rows[0]?.is_banned === true;
+  } catch (e) {
+    console.error('[Middleware] Ban check error:', e);
+    return true;
   }
 }
 
@@ -55,13 +67,13 @@ async function verifyToken(token: string): Promise<{ userId: string; role: strin
     if (!JWT_SECRET) return null;
     const secret = new TextEncoder().encode(JWT_SECRET);
     const { payload } = await jwtVerify(token, secret, { algorithms: ['HS256'] });
-    
+
     return {
       userId: payload.userId as string,
       role: payload.role as string,
-      email: payload.email as string
+      email: payload.email as string,
     };
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -88,6 +100,14 @@ function legacyMessagesRedirect(request: NextRequest): NextResponse | null {
   return null;
 }
 
+/** Нет сессии / битая сессия / бан → единая точка входа (см. TECHNICAL_MANIFESTO). */
+function redirectToLogin(request: NextRequest, pathname: string): NextResponse {
+  const dest = pathname + request.nextUrl.search;
+  const url = new URL('/login', request.url);
+  url.searchParams.set('redirect', dest);
+  return NextResponse.redirect(url);
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -108,79 +128,65 @@ export async function middleware(request: NextRequest) {
   const legacy = legacyMessagesRedirect(request);
   if (legacy) return legacy;
 
-  // Check if route is protected
-  const matchedRoute = Object.keys(PROTECTED_ROUTES).find(route => 
-    pathname.startsWith(route)
-  );
-  
+  const matchedRoute = Object.keys(PROTECTED_ROUTES).find((route) => pathname.startsWith(route));
+
   if (!matchedRoute) {
-    // Public route - allow access
     return NextResponse.next();
   }
 
-  /** Нет сессии / битая сессия → единая точка входа (см. TECHNICAL_MANIFESTO). */
-  function redirectToLogin(): NextResponse {
-    const dest = pathname + request.nextUrl.search;
-    const url = new URL('/login', request.url);
-    url.searchParams.set('redirect', dest);
-    return NextResponse.redirect(url);
-  }
-
-  // Fail closed if server is misconfigured (браузерным маршрутам — на /login)
   if (!JWT_SECRET) {
-    return redirectToLogin();
+    return redirectToLogin(request, pathname);
   }
-  
-  // Protected route - verify authentication
+
   const token = request.cookies.get('gostaylo_session')?.value;
-  
+
   if (!token) {
-    return redirectToLogin();
+    return redirectToLogin(request, pathname);
   }
-  
-  // Verify token
+
   const decoded = await verifyToken(token);
-  
+
   if (!decoded) {
-    const response = redirectToLogin();
+    const response = redirectToLogin(request, pathname);
     response.cookies.delete('gostaylo_session');
     return response;
   }
 
-  const banned = await fetchProfileIsBanned(decoded.userId);
-  if (banned) {
-    const response = redirectToLogin();
+  if (await isUserBanned(decoded.userId)) {
+    const response = redirectToLogin(request, pathname);
     response.cookies.delete('gostaylo_session');
     return response;
   }
-  
-  // Check role authorization
+
   const allowedRoles = PROTECTED_ROUTES[matchedRoute as keyof typeof PROTECTED_ROUTES];
-  
-  if (!allowedRoles.includes(decoded.role as any)) {
+
+  if (!allowedRoles.includes(decoded.role as (typeof allowedRoles)[number])) {
     // Сессия есть, но роль не подходит для зоны — на главную (не путать с «нет сессии»)
     return NextResponse.redirect(new URL('/', request.url));
   }
-  
-  // MODERATOR restrictions
+
   if (decoded.role === 'MODERATOR') {
-    const restrictedPaths = ['/admin/finances', '/admin/users', '/admin/marketing', '/admin/security', '/admin/settings'];
-    if (restrictedPaths.some(path => pathname.startsWith(path))) {
+    const restrictedPaths = [
+      '/admin/finances',
+      '/admin/users',
+      '/admin/marketing',
+      '/admin/security',
+      '/admin/settings',
+    ];
+    if (restrictedPaths.some((path) => pathname.startsWith(path))) {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url));
     }
   }
-  
-  // Authorized - allow access
+
   return NextResponse.next();
 }
 
-// Configure which routes to run middleware on
 export const config = {
   matcher: [
     '/api/:path*',
     '/admin/:path*',
     '/partner/:path*',
     '/renter/:path*',
-    '/messages/:path*',
+    // /messages — не в matcher: здесь не ставим guard; редиректы только с /partner|/renter (см. legacyMessagesRedirect).
   ],
 };
