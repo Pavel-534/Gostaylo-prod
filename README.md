@@ -1,151 +1,113 @@
 # Gostaylo
 
-**Premium global marketplace for rentals and services** — one platform for accommodation, mobility, experiences, and adjacent categories. The product name shown in the UI is configurable via environment (see `lib/site-url.js`: `NEXT_PUBLIC_SITE_NAME`, `SITE_DISPLAY_NAME`).
+**A premium, globally minded marketplace** for short-term rentals and adjacent services — accommodation, mobility, experiences, and more. One codebase, multiple locales and currencies, built to expand beyond the launch corridor without forking the product.
+
+The name users see is configurable: **`NEXT_PUBLIC_SITE_NAME`** / **`SITE_DISPLAY_NAME`** → **`getSiteDisplayName()`** in `lib/site-url.js`.
 
 ---
 
-## At a glance 🌍
+## Vision
 
-| | |
-|---|---|
-| **What** | International aggregator with a hospitality-grade UX: discovery, booking, partner tools, admin, referrals, and a serious financial ledger. |
-| **Where we start** | **Thailand (Phuket)** as the anchor geography and **Russia** as a major demand corridor — designed to scale to additional countries without forked codebases. |
-| **How we build** | **SSOT first**: one canonical policy document, code-truth companions, and no competing “sources of truth” for money, auth errors, or category semantics. |
-| **Quality bar** | World-class product engineering: typed boundaries, service-layer orchestration, security guards on sensitive routes, and documentation that stays aligned with shipped behavior. |
+We anchor in **Thailand (Phuket)** and serve **Russia** and the wider international demand — with infrastructure and copy aimed at **world-class** discovery, trust, and settlement. Treasury reflects a **sanctions-aware** reality: multi-entity operations (including **Kyrgyzstan**), **USDT** where appropriate, and **banking / SWIFT** for verified partners. Product detail stays in **`ARCHITECTURAL_DECISIONS.md`** and internal runbooks — not duplicated here.
 
 ---
 
-## Why SSOT matters here 🎯
+## How we build: SSOT
 
-Gostaylo combines **multi-currency display**, **escrow-style booking flows**, **partner payouts**, and **regional compliance**. That only stays safe at scale if rules live in **one place**.
+At this complexity — escrow-style bookings, FX display, partner payouts, category verticals — **one canonical policy layer** is non-negotiable.
 
-**Canonical order (always resolve conflicts top → down):**
+| Priority | Document |
+|----------|----------|
+| **1** | **`ARCHITECTURAL_DECISIONS.md`** — rules, golden constraints, auth contracts, category map |
+| **2** | **`docs/TECHNICAL_MANIFESTO.md`** — what shipped code does today |
+| **3** | **`docs/ARCHITECTURAL_PASSPORT.md`** — routes, services, UX invariants |
 
-1. **`ARCHITECTURAL_DECISIONS.md`** — project manifesto: stack choices, golden rules, auth error contracts, category SSOT, financial policy pointers.
-2. **`docs/TECHNICAL_MANIFESTO.md`** — compact “what the code does today” (API ideas, chat, currency, pushes, E2E notes, Supabase `TEXT` vs UUID caveats).
-3. **`docs/ARCHITECTURAL_PASSPORT.md`** — routes, diagrams, service map, UX invariants.
+Contributor workflow: **`AGENTS.md`**, **`.cursorrules`**, **`.github/pull_request_template.md`**. Archives: **`docs/history/`** (see **`docs/history/README.md`**).
 
-Operational detail for contributors lives in **`AGENTS.md`**, **`.cursorrules`**, and **`.github/pull_request_template.md`**. Historical notes and one-off SQL live under **`docs/history/`** (indexed from **`docs/history/README.md`**).
-
----
-
-## Operating context (finance & geography) 💱
-
-The business operates in a **sanctions-sensitive** environment. Treasury and partner settlement use a **deliberate multi-entity structure** (including operations in **Kyrgyzstan**), **USDT** rails where appropriate, and **SWIFT / banking** paths for verified partner payouts where the product supports them.  
-
-Implementation details belong in internal finance runbooks and **`ARCHITECTURAL_DECISIONS.md`** / service code — not duplicated in this README.
+**Database schema, RLS, and table truth** live in **`migrations/`**, **`database/`**, **`prisma/schema.prisma`** (schema-as-documentation), and the docs above — **not** in this README.
 
 ---
 
-## Technology stack 🧱
+## Stack
 
 | Layer | Choice |
 |--------|--------|
-| **Application** | **Next.js 14** (App Router), React 18 |
-| **Data** | **Supabase** — PostgreSQL, Auth, Storage, Realtime (where enabled) |
-| **Schema reference** | **`prisma/schema.prisma`** — **documentation and typing alignment** with the live database; **production data access uses Supabase** (`@supabase/supabase-js`, service role on the server). |
-| **UI** | **Tailwind CSS**, **shadcn/ui** (Radix primitives), **Leaflet** for map surfaces |
-| **Hosting** | **Vercel** (typical deployment) |
-| **Push** | **Firebase Cloud Messaging** — **notifications only** (`lib/services/push.service.js`, client init, `public/firebase-messaging-sw.js`) |
-| **Email** | **Resend** when `RESEND_API_KEY` is configured |
+| App | **Next.js 14** (App Router), React 18 |
+| Data | **Supabase** — Postgres, Auth, Storage, Realtime (where used) |
+| Access | **Supabase client** on the server; **`prisma/schema.prisma`** aligns with the DB — runtime ORM queries are not the primary data path (see ADR) |
+| UI | **Tailwind CSS**, **shadcn/ui**, **Leaflet** (maps) |
+| Deploy | **Vercel** (typical) |
+| Push | **Firebase Cloud Messaging** only — `lib/services/push.service.js`, client init, `public/firebase-messaging-sw.js` |
+| Mail | **Resend** when `RESEND_API_KEY` is set |
 
 ---
 
-## Identity, sessions, and notifications 🔐
+## Identity & notifications
 
-- **No mock authentication in production paths.** Users sign in with **email/password** and **Google (OAuth via Supabase Auth, PKCE)**. Additional providers (e.g. Telegram, phone) are approached as **real Supabase-linked** flows when enabled — not placeholder stubs.
-- **Bridge model (Stage 79.x):** Supabase identities sync into **`profiles`** (including **`auth_user_id`**). The browser carries an application session cookie **`gostaylo_session`** (JWT issued by the app) for API access — see **`ARCHITECTURAL_DECISIONS.md`** and **`docs/TECHNICAL_MANIFESTO.md`** for the exact contract.
-- **Firebase is not used for login.** It is reserved for **web push** delivery and related client wiring.
-
----
-
-## Product surface (high level)
-
-- **Guest:** home and catalog search, listing PDP, booking/checkout, chat, profile, referrals, loyalty storytelling (`/about/loyalty`).
-- **Partner:** listing wizard, calendar and availability, finances and payouts, verification.
-- **Admin / staff:** moderation, users, marketplace health, marketing and system settings — guarded by unified access checks (`requireAccess`, `requireAdminStaff` per ADR stages).
-
-Vertical behavior (property vs transport vs yacht vs tour) is driven by **`categories.slug`** and **`categories.wizard_profile`** — not hard-coded “only villas” assumptions.
+- **Supabase Auth** — email/password and **Google** (OAuth, PKCE); identity is linked into **`profiles`** (e.g. **`auth_user_id`**).
+- **Application session** — HTTP-only **`gostaylo_session`** cookie (JWT issued by the app) for **`/api/v2/*`** and guarded routes. Full contract: **`ARCHITECTURAL_DECISIONS.md`** + **`docs/TECHNICAL_MANIFESTO.md`**.
+- **Firebase** — **web push only**; not used for sign-in.
 
 ---
 
-## Repository layout (orientation)
+## Repository layout
 
 ```
-app/                    # Next.js App Router — pages, layouts, route handlers
-  api/                  # HTTP API (prefer v2 contracts under app/api/v2/**)
-components/             # React UI (feature folders + ui/)
-lib/                    # Services, auth, currency, search, security, SEO, …
-migrations/             # SQL migrations and stage bundles (Supabase source of truth)
-prisma/                 # schema.prisma — schema documentation (see ADR Golden rule §1)
-public/                 # Static assets, FCM service worker
-docs/                   # Architecture passport, manifesto, runbooks, history
-scripts/                # Maintenance and verification scripts (see package.json)
+app/                 # Next.js App Router — pages, layouts, route handlers (API under app/api/**)
+components/          # UI (feature areas + components/ui — shadcn)
+contexts/            # React context providers
+hooks/               # Shared client hooks
+lib/                 # Services, auth, currency, search, security, SEO, translations, …
+public/              # Static assets, FCM service worker
+prisma/              # schema.prisma — schema documentation (align with Supabase)
+migrations/          # SQL stage bundles (apply in order to your Supabase project)
+database/            # Additional SQL migrations, RLS helpers, historical DDL
+supabase/            # Supabase project config (when used by the team)
+docs/                # Passport, manifesto, runbooks, history
+scripts/             # Tooling (lint helpers, verification — see package.json)
+tests/               # Unit / integration
+e2e/                 # Playwright specs (see also playwright/)
+workers/             # Edge / auxiliary workers (e.g. Cloudflare)
+emails/              # React Email templates
+legacy/              # Archived paths — not SSOT for new features
+backend/             # Auxiliary services / tests (non-Next primary path)
+frontend/            # Legacy adjunct toolkit — do not assume primary app root
+.github/             # CI and PR templates
 ```
 
-Legacy or archived experiments may live under **`legacy/`** — do not treat them as product SSOT.
+---
+
+## Setup
+
+1. **Node.js** — LTS compatible with Next.js 14.  
+2. **Install** — `npm install` (or `yarn`).  
+3. **Environment** — set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, **`JWT_SECRET`**, and the rest per **`ARCHITECTURAL_DECISIONS.md`** (Golden rule §6) and your team’s env template. **`JWT_SECRET`** is mandatory in every deployed environment.  
+4. **Database** — apply SQL from **`migrations/`** and **`database/migrations/`** to your Supabase Postgres in the order your team documents; validate alignment with **`prisma/schema.prisma`**.  
+5. **Run** — `npm run dev` (see `package.json` for `dev:turbo`, memory flags).
+
+**Quality scripts:** `npm run lint`, `npm run build`, `npm run verify:currency`, `npm run check:i18n`, `npx prisma validate`.
 
 ---
 
-## Local development 🛠️
+## API surface
 
-**Requirements:** Node.js compatible with Next.js 14, package manager (**npm** or **yarn**).
-
-```bash
-# Install dependencies
-npm install
-
-# Development server (see package.json for memory/turbo variants)
-npm run dev
-```
-
-**Useful scripts** (non-exhaustive):
-
-| Script | Purpose |
-|--------|---------|
-| `npm run build` | Production build |
-| `npm run lint` | ESLint |
-| `npm run verify:currency` | Price-format sanity check |
-| `npm run check:i18n` | Translation duplicate guard |
-| `npx prisma validate` | Validate `schema.prisma` against Prisma tooling |
-
-**Environment:** configure secrets and public keys per **`ARCHITECTURAL_DECISIONS.md`** (Golden rule §6) and team **`.env.example`** / internal onboarding. **`JWT_SECRET`** is mandatory in every deployed environment.
-
-**Database:** apply **`migrations/`** to your Supabase project in dependency order; never assume `prisma migrate` is the primary deployment path unless your team explicitly standardized on it.
+Integrations should target **`/api/v2/*`**. Cron and webhooks may use separate paths and secrets (e.g. **`CRON_SECRET`**). New UI must consume **`error_code`** from auth and promo endpoints — not free-form English `error` strings.
 
 ---
 
-## API and versioning
+## Roadmap & contribution
 
-Public and partner integrations should target **`/api/v2/*`** routes. Older or internal paths may exist for cron (`CRON_SECRET`), webhooks, or transitional clients — the **Technical Manifesto** and **Architectural Passport** list the critical surfaces.
-
-Auth-facing errors use **`error_code`** (machine-readable) — never rely on ad-hoc English `error` strings in new UI.
-
----
-
-## Roadmap & change log
-
-Engineering phases and completed cleanup milestones: **`ROADMAP.md`**.  
-
-Fine-grained “stage” history of shipped behavior is maintained in **`docs/TECHNICAL_MANIFESTO.md`** (dated entries).
+- Phases and completed cleanup: **`ROADMAP.md`**.  
+- Shipped “stage” notes: **`docs/TECHNICAL_MANIFESTO.md`**.  
+- Before substantive changes: read **`ARCHITECTURAL_DECISIONS.md`**; update manifesto + passport when you change HTTP contracts, DB behavior, or product UX (**`AGENTS.md`**).  
+- No new **magic numbers** for commission or FX — **`CurrencyService`**, **`exchange_rates`**, **`system_settings`**, **`lib/services/currency-last-resort.js`**.
 
 ---
 
-## Contributing
+## Partners & investors
 
-1. Read **`ARCHITECTURAL_DECISIONS.md`** before non-trivial work.  
-2. Keep **`docs/TECHNICAL_MANIFESTO.md`** and **`docs/ARCHITECTURAL_PASSPORT.md`** in sync when you change APIs, database behavior, RLS, or user-visible product flows (**`AGENTS.md`**).  
-3. Use the repository **pull request template** checklist.  
-4. **Do not** introduce new magic numbers for commissions or FX — use **`CurrencyService`**, **`exchange_rates`**, **`system_settings`**, and **`lib/services/currency-last-resort.js`** as documented.
+Gostaylo is engineered as a **durable platform**: multi-language UX, multi-currency display, verification and escrow-aware flows, and admin visibility into **marketplace health**. Documentation is first-class so **policy → code** stays traceable under diligence.
 
 ---
 
-## For partners and investors
-
-Gostaylo is built as a **long-horizon platform**: multi-language UX, multi-currency display, partner verification, escrow-aware booking flows, and admin telemetry aimed at **marketplace health**, not a single static catalog.  
-
-The codebase is intentionally **documentation-heavy** so diligence and technical onboarding can trace **policy → implementation** without tribal knowledge.
-
----
-
-**Gostaylo** — engineered for trust at scale.
+*Built with architectural discipline — premium by design.*
