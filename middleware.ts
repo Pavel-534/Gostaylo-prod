@@ -159,8 +159,10 @@ export async function middleware(request: NextRequest) {
   }
 
   const allowedRoles = PROTECTED_ROUTES[matchedRoute as keyof typeof PROTECTED_ROUTES];
+  // `as const` tuples union makes `.includes` expect only roles present in *every* zone; widen for runtime check.
+  const roleOk = (allowedRoles as readonly string[]).includes(decoded.role);
 
-  if (!allowedRoles.includes(decoded.role as (typeof allowedRoles)[number])) {
+  if (!roleOk) {
     // Сессия есть, но роль не подходит для зоны — на главную (не путать с «нет сессии»)
     return NextResponse.redirect(new URL('/', request.url));
   }
