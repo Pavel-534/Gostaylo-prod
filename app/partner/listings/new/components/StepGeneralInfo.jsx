@@ -48,8 +48,7 @@ function StepGeneralInfoInner() {
     hideAirbnbImportBlock,
     listingCategorySlug,
     listingCategoryWizardProfile,
-    isEditMode,
-    editId,
+    resolveListingIdForUpload,
     getCategoryName,
     getCategoryDisplayName,
     aiDescriptionLoading,
@@ -237,8 +236,8 @@ function StepGeneralInfoInner() {
                 const slice = picked.slice(0, room)
                 setCheckInPhotosUploading(true)
                 try {
-                  const folderId =
-                    isEditMode && editId ? `${editId}-checkin` : `wizard-checkin-${Date.now()}`
+                  const folderId = await resolveListingIdForUpload()
+                  if (!folderId) return
                   const { processAndUploadImages } = await import('@/lib/services/image-upload.service')
                   const uploaded = await processAndUploadImages(slice, folderId, () => {})
                   if (uploaded.length > 0) {

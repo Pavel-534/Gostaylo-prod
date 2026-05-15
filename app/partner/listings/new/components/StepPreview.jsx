@@ -8,7 +8,7 @@ import { useListingWizard } from '../context/ListingWizardContext'
 
 function StepPreviewInner() {
   const w = useListingWizard()
-  const { t, formData, language, listingCategorySlug, canProceed, getCategoryName } = w
+  const { t, formData, language, listingCategorySlug, canProceed, getCategoryName, pricingPreview } = w
   const name = getCategoryName(listingCategorySlug) || formData.categoryName
   return (
     <div className="space-y-6">
@@ -44,7 +44,7 @@ function StepPreviewInner() {
         <li className="flex items-start gap-2">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
           <span>
-            {t('pricing')}: ฿{Number(formData.basePriceThb) || 0}
+            {t('pricing')}: ฿{(pricingPreview?.sitePriceSameCurrency ?? Number(formData.basePriceThb)) || 0}
           </span>
         </li>
       </ul>
@@ -62,6 +62,7 @@ function StepPreviewInner() {
               category: { slug: listingCategorySlug },
               basePriceThb: parseFloat(String(formData.basePriceThb)) || 0,
               base_price_thb: parseFloat(String(formData.basePriceThb)) || 0,
+              guestDisplayPriceThb: pricingPreview?.sitePriceSameCurrency ?? 0,
               coverImage: formData.images[0] || 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image',
               cover_image: formData.images[0] || 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image',
               images:

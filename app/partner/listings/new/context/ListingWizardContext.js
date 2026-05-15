@@ -182,7 +182,7 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     const generalOk =
       Boolean(formData.listingServiceType) &&
       formData.categoryId &&
-      formData.title.length >= 10 &&
+      formData.title.length >= 1 &&
       formData.description.length >= 20
     const locOk = Boolean(formData.district) && coordsValid
     const photosOk = (formData.images || []).length >= 1
@@ -879,6 +879,7 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     handleMapSelect,
     coordsValid,
     pricingPreview,
+    resolveListingIdForUpload,
     handleImageUpload,
     removeImage,
     applyAirbnbPreview,

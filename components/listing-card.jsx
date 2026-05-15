@@ -74,6 +74,12 @@ export function ListingCard({
   } = listing
   
   const basePrice = basePriceThb || base_price_thb || 0
+  const guestDisplayPriceThb =
+    listing?.guestDisplayPriceThb ?? listing?.guest_display_price_thb ?? null
+  const cardDisplayBasePrice =
+    guestDisplayPriceThb != null && Number.isFinite(Number(guestDisplayPriceThb))
+      ? Number(guestDisplayPriceThb)
+      : basePrice
   const actualIsFeatured = isFeatured || is_featured
   const ownerVerified =
     listingOwnerVerified === true ||
@@ -244,7 +250,7 @@ export function ListingCard({
           {/* Price — отдельный слой над trust/specs-wrap (моб. &lt;768: не пересекается с бейджем Verified в ряду спеки). */}
           <div className="relative z-10 mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-white pt-3">
             <CardPriceDisplay
-              basePrice={basePrice}
+              basePrice={cardDisplayBasePrice}
               pricing={pricing}
               initialDates={initialDates}
               currency={currency}

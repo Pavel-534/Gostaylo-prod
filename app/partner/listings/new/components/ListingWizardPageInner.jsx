@@ -47,6 +47,7 @@ export function ListingWizardPageInner() {
     canProceed,
     goNext,
     goBack,
+    pricingPreview,
   } = w
 
   const isDraft = Boolean(serverListing?.metadata?.is_draft)
@@ -243,6 +244,7 @@ export function ListingWizardPageInner() {
                       category: { slug: listingCategorySlug },
                       basePriceThb: parseFloat(String(formData.basePriceThb)) || 0,
                       base_price_thb: parseFloat(String(formData.basePriceThb)) || 0,
+                      guestDisplayPriceThb: pricingPreview?.sitePriceSameCurrency ?? 0,
                       coverImage: formData.images[0] || 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image',
                       cover_image: formData.images[0] || 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image',
                       images:
