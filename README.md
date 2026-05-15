@@ -81,6 +81,14 @@ frontend/         # Legacy adjunct — not the app root
 
 **Scripts:** `npm run lint` · `npm run build` · `npm run verify:currency` · `npm run check:i18n`
 
+### E2E / Playwright
+
+**E2E must not create persistent data on production.** Nightly Playwright should target a **staging** deployment with a **dedicated Supabase project** (or mock/fixture mode). If `NEXT_PUBLIC_SUPABASE_URL` points at production, fixtures (e.g. `stage72-referral-cashflow`) can insert `ACTIVE` listings — use `npm run cleanup:test-data:execute` and CI job `e2e-db-cleanup` to purge tagged rows.
+
+- Cleanup: `npm run cleanup:test-data` (dry-run) · `npm run cleanup:test-data:execute`
+- Stage72 reuses listing id `lst-e2e-stage72-cashflow` (override: `E2E_STAGE72_LISTING_ID`)
+- Apply `database/migrations/052_listing_delete_storage_trigger_noop.sql` so hard `DELETE` on listings works
+
 ---
 
 ## API

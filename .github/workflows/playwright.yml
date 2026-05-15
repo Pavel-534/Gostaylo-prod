@@ -2,6 +2,7 @@
 # Требуются секреты репозитория:
 #   PLAYWRIGHT_BASE_URL — URL стенда с уже запущенным приложением (Next.js).
 #   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID — уведомление при любом падении job.
+#   NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY — обязательны для job e2e-db-cleanup.
 # Опционально: E2E_*, JWT_SECRET и др. — как при локальном npx playwright test.
 
 name: Playwright nightly
@@ -42,7 +43,6 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: npx playwright test
 
-      # Опционально: NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY — блок «Мониторинг» в Telegram.
       - name: Send E2E summary to Telegram
         if: always()
         env:
@@ -55,20 +55,6 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/send-e2e-report.mjs
-
-      - name: Clean E2E DB fingerprints (tagged bookings only)
-        if: always()
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/clean-e2e-garbage.mjs
-
-      - name: Clean orphaned E2E/smoke listings
-        if: always()
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/cleanup-test-data.mjs --execute
 
       - name: Upload HTML report
         if: always()
@@ -100,3 +86,32 @@ jobs:
             --data-urlencode "text=${MSG}" \
             -d "parse_mode=HTML" \
             -d "disable_web_page_preview=true"
+
+  # Stage 96.2 — cleanup всегда после test job (success/failure/cancel), даже если упал npm ci в test.
+  e2e-db-cleanup:
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Clean E2E DB fingerprints (bookings)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/clean-e2e-garbage.mjs
+
+      - name: Clean orphaned E2E/smoke listings + storage
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/cleanup-test-data.mjs --execute

@@ -80,8 +80,16 @@ export default async function globalTeardown() {
   if (bookingIds.length) await deleteInBatches(sb, 'bookings', 'id', bookingIds)
 
   console.log(
-    `[Playwright teardown] surgical E2E cleanup: bookings=${bookingIds.length}, conversations=${uniqueConversationIds.length} (listings/profiles не трогаем)`,
+    `[Playwright teardown] surgical E2E cleanup: bookings=${bookingIds.length}, conversations=${uniqueConversationIds.length}`,
   )
+
+  try {
+    const { runCleanupTestData } = await import('../lib/e2e/cleanup-test-data.service.js')
+    const listingReport = await runCleanupTestData(sb, { dryRun: false })
+    console.log('[Playwright teardown] test listings cleanup:', listingReport.deleted)
+  } catch (e) {
+    console.warn('[Playwright teardown] listing cleanup failed:', (e as Error)?.message || e)
+  }
 
   if (process.env.PLAYWRIGHT_E2E_DEEP_PROFILE_CLEANUP === '1') {
     try {
