@@ -8,13 +8,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel'
-import { toPublicImageUrl, isRemoteHttpImageSrc } from '@/lib/public-image-url'
+import { isRemoteHttpImageSrc } from '@/lib/public-image-url'
+import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
 import { getUIText } from '@/lib/translations'
 
 export function BentoGallery({ images, title, language = 'en', onImageClick }) {
   const displayUrls = useMemo(
-    () => (images || []).map((u) => toPublicImageUrl(u) || u).filter(Boolean),
+    () => (images || []).map((u) => resolveImageThumbDisplayUrl(u) || u).filter(Boolean),
     [images],
   )
   const [carouselApi, setCarouselApi] = useState(null)

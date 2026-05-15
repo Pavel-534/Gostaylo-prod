@@ -28,6 +28,7 @@ import {
   Info,
 } from 'lucide-react'
 import { toPublicImageUrl } from '@/lib/public-image-url'
+import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { getUIText, getListingText, getCategoryName } from '@/lib/translations'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import {
@@ -293,7 +294,7 @@ export function GuestListingBodyBlock({ listing, language = 'en' }) {
                   <Avatar className="h-16 w-16 border border-slate-200">
                     {listing.owner.avatar ? (
                       <AvatarImage
-                        src={toPublicImageUrl(listing.owner.avatar)}
+                        src={resolveAvatarDisplaySrc(listing.owner.avatar) || ''}
                         alt=""
                         className="object-cover"
                       />

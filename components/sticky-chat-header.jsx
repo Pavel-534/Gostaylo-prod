@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button'
 import { BookingChatTimeline } from '@/components/booking-chat-timeline'
 import { ChatHeaderActions } from '@/components/chat/ChatHeaderActions'
 import { getUIText } from '@/lib/translations'
+import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 
 function formatBookingStatusBadge(status, language) {
   const s = String(status || '').toUpperCase()
@@ -127,7 +128,8 @@ export function StickyChatHeader({
     return language === 'en' ? 'Offline' : 'Не в сети'
   }
 
-  const img = listing?.images?.[0]
+  const imgRaw = listing?.images?.[0]
+  const img = imgRaw ? resolveImageThumbDisplayUrl(imgRaw) || imgRaw : null
   const title = listing?.title || '—'
 
   const showUnifiedTop = Boolean(

@@ -10,7 +10,7 @@ import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
 import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 import { ListingTrustVerifiedMiniBadge } from '@/components/listing/ListingTrustVerifiedMiniBadge'
 import { getUIText } from '@/lib/translations'
-import { toPublicImageUrl } from '@/lib/public-image-url'
+import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 
 /** @param {object} props */
 export function ListingPopupCard({
@@ -21,8 +21,8 @@ export function ListingPopupCard({
   currency = 'THB',
   exchangeRates = { THB: 1 },
 }) {
-  const raw = listing.images?.[0] || listing.coverImage || '/placeholder.svg'
-  const image = raw ? toPublicImageUrl(raw) || raw : raw
+  const raw = listing.images?.[0] || listing.coverImage || listing.cover_image || '/placeholder.svg'
+  const image = raw === '/placeholder.svg' ? raw : resolveImageThumbDisplayUrl(raw) || raw
   const rating = parseFloat(listing.rating || listing.avgRating || listing.average_rating || 0) || 0
   const reviewsCt = listing.reviewsCount ?? listing.reviews_count ?? 0
   const locHint = getUIText(

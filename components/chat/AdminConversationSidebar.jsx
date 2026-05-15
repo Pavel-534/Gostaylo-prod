@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { toPublicImageUrl } from '@/lib/public-image-url'
+import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import { getUIText } from '@/lib/translations'
 
 export function AdminConversationSidebar({
@@ -75,7 +75,10 @@ export function AdminConversationSidebar({
                 <div className="flex gap-3">
                   {conv.listing?.images?.[0] ? (
                     <img
-                      src={toPublicImageUrl(conv.listing.images[0]) || conv.listing.images[0]}
+                      src={
+                        resolveImageThumbDisplayUrl(conv.listing.images[0]) ||
+                        conv.listing.images[0]
+                      }
                       alt=""
                       className="h-12 w-12 shrink-0 rounded-2xl object-cover"
                     />

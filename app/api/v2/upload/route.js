@@ -1,34 +1,34 @@
 /**
  * GoStayLo - File Upload API
- * POST /api/v2/upload - Upload file to Supabase Storage
- * 
- * Supports: verification documents, avatars, etc.
+ * POST /api/v2/upload — Supabase Storage via service_role + server-side authZ (Stage 95.0)
  */
 
-import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { tryGetJwtSecret } from '@/lib/auth/jwt-secret';
-import { getSessionPayload } from '@/lib/services/session-service';
-import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
+import { NextResponse } from 'next/server'
+import { tryGetJwtSecret } from '@/lib/auth/jwt-secret'
+import { getSessionPayload } from '@/lib/services/session-service'
+import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes'
 import {
   resolveMediaProfileId,
   logMediaProfile,
   isRasterImageMime,
   processImageBufferToWebp,
-} from '@/lib/services/media/media-upload.service';
+  processImageMainAndThumb,
+  shouldGenerateThumb,
+  buildThumbStoragePath,
+} from '@/lib/storage/image-processor.server'
+import { UPLOAD_API_BUCKETS } from '@/lib/storage/storage-buckets'
+import { validateStorageUpload } from '@/lib/storage/storage-validation'
+import {
+  resolveStorageObjectPath,
+  assertStorageUploadAllowed,
+  assertStorageDeleteAllowed,
+} from '@/lib/storage/storage-authorization'
+import {
+  uploadBufferToStorage,
+  removeStorageObject,
+} from '@/lib/storage/storage-upload.server'
 
-export const dynamic = 'force-dynamic';
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-
-const ALLOWED_BUCKETS = [
-  'verification_documents',
-  'listing-images',
-  'chat-attachments',
-  'review-images',
-  'dispute-evidence',
-  'avatars',
-]
+export const dynamic = 'force-dynamic'
 
 function replacePathExtensionToWebp(storagePath) {
   const s = String(storagePath || '').replace(/^\/+/, '')
@@ -36,205 +36,202 @@ function replacePathExtensionToWebp(storagePath) {
   return s.replace(/\.[^./\\]+$/i, '') + '.webp'
 }
 
-function publicUrlToProxyPath(publicUrl, supabaseProjectUrl) {
-  if (!publicUrl || !supabaseProjectUrl) return publicUrl
-  const base = supabaseProjectUrl.replace(/\/$/, '')
-  const prefix = `${base}/storage/v1/object/public/`
-  if (publicUrl.startsWith(prefix)) {
-    return `/_storage/${publicUrl.slice(prefix.length)}`
-  }
-  return publicUrl
-}
-
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
-}
-
 export async function POST(request) {
-  const jwtCheck = tryGetJwtSecret();
+  const jwtCheck = tryGetJwtSecret()
   if (!jwtCheck.ok) {
-    return authErrorJson(AuthErrorCode.AUTH_JWT_NOT_CONFIGURED, 500);
+    return authErrorJson(AuthErrorCode.AUTH_JWT_NOT_CONFIGURED, 500)
   }
-  const session = await getSessionPayload();
+  const session = await getSessionPayload()
   if (!session?.userId) {
-    return authErrorJson(AuthErrorCode.AUTH_NOT_AUTHENTICATED, 401);
+    return authErrorJson(AuthErrorCode.AUTH_NOT_AUTHENTICATED, 401)
   }
-  const auth = { userId: session.userId, role: session.role };
-  try {
-    const formData = await request.formData();
-    const file = formData.get('file');
-    const bucket = formData.get('bucket') || 'verification_documents';
-    const folder = formData.get('folder') || auth.userId;
-    const objectPath = formData.get('objectPath');
-    const upsert = formData.get('upsert') === 'true';
-    const mediaProfileHint = String(formData.get('profile') || formData.get('mediaProfile') || '').trim();
-    const profileId = resolveMediaProfileId(bucket, mediaProfileHint);
-    if (profileId) logMediaProfile(profileId);
+  const auth = { userId: session.userId, role: session.role }
 
-    if (!ALLOWED_BUCKETS.includes(bucket)) {
-      return NextResponse.json({ success: false, error: 'Bucket not allowed' }, { status: 400 });
+  try {
+    const formData = await request.formData()
+    const file = formData.get('file')
+    const bucket = String(formData.get('bucket') || 'verification_documents')
+    const folder = formData.get('folder') || auth.userId
+    const objectPathRaw = formData.get('objectPath')
+    const upsert = formData.get('upsert') === 'true'
+    const mediaProfileHint = String(formData.get('profile') || formData.get('mediaProfile') || '').trim()
+    const profileId = resolveMediaProfileId(bucket, mediaProfileHint)
+    if (profileId) logMediaProfile(profileId)
+
+    if (!UPLOAD_API_BUCKETS.includes(bucket)) {
+      return NextResponse.json({ success: false, error: 'Bucket not allowed' }, { status: 400 })
     }
-    
-    if (!file) {
-      return NextResponse.json({ success: false, error: 'No file provided' }, { status: 400 });
+
+    if (!file || typeof file.size !== 'number') {
+      return NextResponse.json({ success: false, error: 'No file provided' }, { status: 400 })
     }
-    
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Файл слишком большой (макс. 10MB)' 
-      }, { status: 400 });
+
+    const ext = file.name?.split('.').pop() || 'bin'
+    const timestamp = Date.now()
+    let filename = resolveStorageObjectPath({
+      objectPath: objectPathRaw && typeof objectPathRaw === 'string' ? objectPathRaw : null,
+      folder: typeof folder === 'string' ? folder : String(folder),
+      userId: auth.userId,
+    })
+    if (!filename) {
+      filename = `${auth.userId}/${timestamp}.${ext}`
+    } else if (!objectPathRaw) {
+      filename = `${filename}/${timestamp}.${ext}`.replace(/\/+/g, '/')
     }
-    
-    const isChatBucket = bucket === 'chat-attachments'
-    const isReviewBucket = bucket === 'review-images'
-    const isDisputeEvidenceBucket = bucket === 'dispute-evidence'
-    const isAvatarBucket = bucket === 'avatars'
-    const chatImageAndDocTypes = [
-      'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf',
-    ]
-    const reviewImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-    const disputeEvidenceTypes = [
-      ...reviewImageTypes,
-      'video/mp4',
-      'video/quicktime',
-      'video/webm',
-    ]
+
+    const authz = await assertStorageUploadAllowed({
+      bucket,
+      objectPath: filename,
+      userId: auth.userId,
+      role: auth.role,
+    })
+    if (!authz.ok) {
+      return NextResponse.json({ success: false, error: authz.error }, { status: authz.status || 403 })
+    }
+
+    const validation = await validateStorageUpload(bucket, {
+      size: file.size,
+      type: file.type,
+      name: file.name,
+    })
+    if (!validation.ok) {
+      return NextResponse.json({ success: false, error: validation.error }, { status: 400 })
+    }
+
     const type = (file.type || '').trim()
     const nameLower = String(file.name || '').toLowerCase()
     const looksLikeAudio =
       type.startsWith('audio/') || /\.(webm|ogg|oga|opus|mp3|m4a|wav|mp4|aac)$/i.test(nameLower)
-    const allowed =
-      isChatBucket
-        ? (chatImageAndDocTypes.includes(type) || looksLikeAudio)
-        : isDisputeEvidenceBucket
-          ? disputeEvidenceTypes.includes(type)
-          : isReviewBucket || isAvatarBucket
-          ? reviewImageTypes.includes(type)
-          : ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(type)
-    if (!allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: isChatBucket
-            ? 'Для чата: изображения, PDF или голосовые (audio/*)'
-            : isDisputeEvidenceBucket
-              ? 'Для спора: JPG, PNG, WebP, GIF или видео MP4/MOV/WebM'
-              : isReviewBucket || isAvatarBucket
-              ? isAvatarBucket
-                ? 'Для аватара: только JPG, PNG, WebP или GIF'
-                : 'Для отзыва: только изображения JPG, PNG, WebP или GIF'
-              : 'Неподдерживаемый формат файла. Используйте JPG, PNG, WebP или PDF',
-        },
-        { status: 400 }
-      )
-    }
-    
-    const ext = file.name.split('.').pop();
-    const timestamp = Date.now();
-    let filename = objectPath && typeof objectPath === 'string'
-      ? objectPath.replace(/^\/+/, '')
-      : `${folder}/${timestamp}.${ext}`;
 
-    let contentType =
-      type ||
-      (looksLikeAudio ? 'audio/webm' : 'application/octet-stream');
-    
-    const supabase = getSupabase();
-    
-    // Convert File to Buffer
-    const arrayBuffer = await file.arrayBuffer();
-    let buffer = Buffer.from(arrayBuffer);
+    let contentType = type || (looksLikeAudio ? 'audio/webm' : 'application/octet-stream')
+    const arrayBuffer = await file.arrayBuffer()
+    let buffer = Buffer.from(arrayBuffer)
 
-    const raster = isRasterImageMime(type);
+    const raster = isRasterImageMime(type)
+    /** @type {Buffer | null} */
+    let thumbBuffer = null
+    let thumbPath = null
+
     if (raster) {
       if (!profileId) {
         return NextResponse.json(
           { success: false, error: 'Не задан медиа-профиль для изображения' },
           { status: 400 },
-        );
+        )
       }
-      const processed = await processImageBufferToWebp(buffer, profileId);
-      if (!processed.ok) {
-        return NextResponse.json(
-          { success: false, error: processed.error || 'Не удалось обработать изображение' },
-          { status: 422 },
-        );
+      filename = replacePathExtensionToWebp(filename)
+
+      if (shouldGenerateThumb(profileId)) {
+        const dual = await processImageMainAndThumb(buffer, profileId)
+        if (!dual.ok) {
+          return NextResponse.json(
+            { success: false, error: dual.error || 'Не удалось обработать изображение' },
+            { status: 422 },
+          )
+        }
+        buffer = dual.main
+        thumbBuffer = dual.thumb
+        thumbPath = buildThumbStoragePath(filename)
+      } else {
+        const processed = await processImageBufferToWebp(buffer, profileId)
+        if (!processed.ok) {
+          return NextResponse.json(
+            { success: false, error: processed.error || 'Не удалось обработать изображение' },
+            { status: 422 },
+          )
+        }
+        buffer = processed.buffer
       }
-      buffer = processed.buffer;
-      contentType = 'image/webp';
-      filename = replacePathExtensionToWebp(filename);
+      contentType = 'image/webp'
     }
 
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .upload(filename, buffer, {
-        contentType,
-        upsert
-      });
-    
-    if (error) {
-      console.error('[UPLOAD] Error:', error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
-    }
-    
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(filename);
-    
-    console.log(`[UPLOAD] File uploaded: ${filename}${raster ? ' (image/webp sharp)' : ''}`);
+    const uploaded = await uploadBufferToStorage({
+      bucket,
+      path: filename,
+      buffer,
+      contentType,
+      upsert,
+    })
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const proxyUrl = publicUrlToProxyPath(urlData.publicUrl, supabaseUrl)
-    
+    if (!uploaded.success) {
+      console.error('[UPLOAD] Error:', uploaded.error)
+      return NextResponse.json({ success: false, error: uploaded.error }, { status: 500 })
+    }
+
+    let thumbUpload = null
+    if (thumbBuffer && thumbPath) {
+      thumbUpload = await uploadBufferToStorage({
+        bucket,
+        path: thumbPath,
+        buffer: thumbBuffer,
+        contentType: 'image/webp',
+        upsert,
+      })
+      if (!thumbUpload.success) {
+        console.warn('[UPLOAD] thumb upload failed (main kept):', thumbUpload.error)
+        thumbUpload = null
+      }
+    }
+
+    console.log(
+      `[UPLOAD] File uploaded: ${filename}${raster ? ' (webp)' : ''}${thumbUpload?.path ? ` + thumb ${thumbUpload.path}` : ''}`,
+    )
+
     return NextResponse.json({
       success: true,
-      path: data.path,
-      url: proxyUrl,
-      publicUrl: urlData.publicUrl,
-      filename: filename
-    });
-    
+      path: uploaded.path,
+      url: uploaded.url,
+      publicUrl: uploaded.publicUrl,
+      filename: uploaded.filename,
+      ...(thumbUpload
+        ? {
+            thumbPath: thumbUpload.path,
+            thumbUrl: thumbUpload.url,
+            thumbPublicUrl: thumbUpload.publicUrl,
+          }
+        : {}),
+    })
   } catch (error) {
-    console.error('[UPLOAD] Error:', error);
-    return NextResponse.json({ success: false, error: 'Upload failed' }, { status: 500 });
+    console.error('[UPLOAD] Error:', error)
+    return NextResponse.json({ success: false, error: 'Upload failed' }, { status: 500 })
   }
 }
 
-/**
- * DELETE /api/v2/upload — удалить объект из Storage (service role на сервере)
- */
 export async function DELETE(request) {
-  const jwtCheck = tryGetJwtSecret();
+  const jwtCheck = tryGetJwtSecret()
   if (!jwtCheck.ok) {
-    return authErrorJson(AuthErrorCode.AUTH_JWT_NOT_CONFIGURED, 500);
+    return authErrorJson(AuthErrorCode.AUTH_JWT_NOT_CONFIGURED, 500)
   }
-  const session = await getSessionPayload();
+  const session = await getSessionPayload()
   if (!session?.userId) {
-    return authErrorJson(AuthErrorCode.AUTH_NOT_AUTHENTICATED, 401);
+    return authErrorJson(AuthErrorCode.AUTH_NOT_AUTHENTICATED, 401)
   }
 
   try {
-    const body = await request.json();
-    const { bucket, path: objectPath } = body;
-    if (!bucket || !objectPath || !ALLOWED_BUCKETS.includes(bucket)) {
-      return NextResponse.json({ success: false, error: 'Invalid bucket or path' }, { status: 400 });
+    const body = await request.json()
+    const { bucket, path: objectPath } = body
+    if (!bucket || !objectPath || !UPLOAD_API_BUCKETS.includes(bucket)) {
+      return NextResponse.json({ success: false, error: 'Invalid bucket or path' }, { status: 400 })
     }
 
-    const supabase = getSupabase();
-    const { error } = await supabase.storage.from(bucket).remove([objectPath]);
-    if (error) {
-      console.error('[UPLOAD] Delete error:', error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    const authz = await assertStorageDeleteAllowed({
+      bucket,
+      objectPath,
+      userId: session.userId,
+      role: session.role,
+    })
+    if (!authz.ok) {
+      return NextResponse.json({ success: false, error: authz.error }, { status: authz.status || 403 })
     }
-    return NextResponse.json({ success: true });
+
+    const removed = await removeStorageObject(bucket, objectPath)
+    if (!removed.success) {
+      console.error('[UPLOAD] Delete error:', removed.error)
+      return NextResponse.json({ success: false, error: removed.error }, { status: 500 })
+    }
+    return NextResponse.json({ success: true })
   } catch (e) {
-    console.error('[UPLOAD] Delete:', e);
-    return NextResponse.json({ success: false, error: 'Delete failed' }, { status: 500 });
+    console.error('[UPLOAD] Delete:', e)
+    return NextResponse.json({ success: false, error: 'Delete failed' }, { status: 500 })
   }
 }

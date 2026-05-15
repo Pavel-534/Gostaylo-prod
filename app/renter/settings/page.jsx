@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { toPublicImageUrl } from '@/lib/public-image-url'
+import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 
 export default function RenterSettingsPage() {
   const { language } = useI18n()
@@ -91,19 +91,10 @@ export default function RenterSettingsPage() {
       let payload = file
       if (file.type.startsWith('image/')) {
         const { compressImageForBrowser } = await import('@/lib/services/media/compress-image-browser')
-        payload = await compressImageForBrowser(file, 'listing_photo')
+        payload = await compressImageForBrowser(file, 'avatar')
       }
-      const fd = new FormData()
-      fd.append('file', payload, file.type.startsWith('image/') ? `${Date.now()}.webp` : file.name)
-      fd.append('bucket', 'listing-images')
-      fd.append('profile', 'listing_photo')
-      fd.append('folder', `avatars/${userId}`)
-      const res = await fetch('/api/v2/upload', { method: 'POST', body: fd, credentials: 'include' })
-      const data = await res.json()
-      if (!data.success) {
-        toast.error(data.error || getUIText('renterSettingsUploadFailed', language))
-        return
-      }
+      const { uploadAvatar } = await import('@/lib/storage/storage-upload.client')
+      const data = await uploadAvatar(payload, userId, { onProgress: () => {} })
       const storeUrl = data.publicUrl && String(data.publicUrl).trim()
       if (!storeUrl) {
         toast.error(getUIText('renterSettingsUploadFailed', language))
@@ -205,7 +196,7 @@ export default function RenterSettingsPage() {
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <Avatar className="h-24 w-24 border border-slate-200">
               {avatarRaw ? (
-                <AvatarImage src={toPublicImageUrl(avatarRaw)} alt="" className="object-cover" />
+                <AvatarImage src={resolveAvatarDisplaySrc(avatarRaw) || ''} alt="" className="object-cover" />
               ) : null}
               <AvatarFallback className="bg-teal-100 text-teal-800 text-2xl font-semibold">{initial}</AvatarFallback>
             </Avatar>

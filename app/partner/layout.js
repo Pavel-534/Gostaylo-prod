@@ -46,7 +46,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { toPublicImageUrl } from '@/lib/public-image-url'
+import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { Badge } from '@/components/ui/badge'
 import { detectLanguage, getUIText, setLanguage as persistLanguage } from '@/lib/translations'
 import { getSiteDisplayName } from '@/lib/site-url'
@@ -267,7 +267,7 @@ export default function PartnerLayout({ children }) {
             <div className="flex items-center gap-3">
               <Avatar className="h-9 w-9 border border-slate-200">
                 {user?.avatar ? (
-                  <AvatarImage src={toPublicImageUrl(user.avatar)} alt="" className="object-cover" />
+                  <AvatarImage src={resolveAvatarDisplaySrc(user.avatar) || ''} alt="" className="object-cover" />
                 ) : null}
                 <AvatarFallback className="bg-teal-100 text-teal-700 text-sm font-semibold">
                   {user?.name?.[0]?.toUpperCase() || 'P'}

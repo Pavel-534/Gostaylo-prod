@@ -34,7 +34,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
-import { toPublicImageUrl } from '@/lib/public-image-url'
+import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import { formatDisplayDate } from '@/lib/date-display-format'
 import { ChatInboxRoleTabs } from '@/components/chat-inbox-role-tabs'
 import { isFavoriteConversationId } from '@/lib/chat-inbox-favorites'
@@ -183,7 +183,7 @@ function ConversationRow({
   const unread = conv.unreadCount || 0
   const isAdminChat = conv.type === 'ADMIN_FEEDBACK' || !!conv.adminId
   const coverImg = conv.listing?.images?.[0]
-    ? toPublicImageUrl(conv.listing.images[0]) || conv.listing.images[0]
+    ? resolveImageThumbDisplayUrl(conv.listing.images[0]) || conv.listing.images[0]
     : null
 
   const displayName = isAdminChat

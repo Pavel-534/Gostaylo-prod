@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { Bell } from 'lucide-react'
-import { toPublicImageUrl } from '@/lib/public-image-url'
+import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import { Button } from '@/components/ui/button'
 import {
   Popover,
@@ -74,7 +74,10 @@ export function NotificationBell({ userId = 'renter-1', userRole = 'RENTER' }) {
                     <div className="flex items-start gap-3">
                       <div className="relative w-12 h-12 flex-shrink-0 rounded overflow-hidden">
                         <Image
-                          src={toPublicImageUrl(conv.listing?.images?.[0]) || '/placeholder.svg'}
+                          src={
+                            resolveImageThumbDisplayUrl(conv.listing?.images?.[0]) ||
+                            '/placeholder.svg'
+                          }
                           alt={conv.listing?.title || ''}
                           width={48}
                           height={48}

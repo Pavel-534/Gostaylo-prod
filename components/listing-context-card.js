@@ -2,7 +2,8 @@ import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { MapPin, Calendar } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
-import { toPublicImageUrl, isRemoteHttpImageSrc } from '@/lib/public-image-url'
+import { isRemoteHttpImageSrc } from '@/lib/public-image-url'
+import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import { getListingCardBlurDataURL } from '@/lib/listing-image-blur'
 import { languageToNumberLocale } from '@/lib/currency'
 
@@ -14,8 +15,9 @@ export function ListingContextCard({ listing, checkIn, checkOut, className = '',
     : 1
 
   const thumb =
-    toPublicImageUrl(listing.coverImage || listing.cover_image || listing.images?.[0]) ||
-    '/placeholder.svg'
+    resolveImageThumbDisplayUrl(
+      listing.coverImage || listing.cover_image || listing.images?.[0],
+    ) || '/placeholder.svg'
 
   return (
     <Card className={`overflow-hidden ${className}`}>

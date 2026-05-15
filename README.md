@@ -87,6 +87,25 @@ frontend/         # Legacy adjunct — not the app root
 
 Prefer **`/api/v2/*`**. Cron / webhooks: own routes + secrets (e.g. **`CRON_SECRET`**). UI reads **`error_code`** from auth/promo responses — not ad-hoc `error` strings.
 
+### External cron (Vercel Hobby / Free)
+
+Scheduled jobs are **not** relied on for sub-daily work. Use [cron-job.org](https://cron-job.org) (or similar) with the same secret as production:
+
+| Job | URL | Schedule (example) | Notes |
+|-----|-----|-------------------|--------|
+| **Storage orphan cleanup** | `GET https://<your-domain>/api/cron/cleanup-storage?dryRun=false` | Daily 03:00 UTC | Default **`dryRun=true`**. Delete: **`dryRun=false`**. Limits: `minAgeDays=7`, `graceHours=48`, `budgetMs=9000` (Hobby) or `22000` (Pro). Response includes **`metrics`** (listed/deleted/skipped). |
+| **FX refresh** | `GET https://<your-domain>/api/cron/exchange-rates-refresh` | Every 3–6 h | See manifesto Stage 76.2. |
+| **Escrow thaw** | `GET https://<your-domain>/api/cron/escrow-thaw` | Hourly | Financial critical path. |
+
+**Headers** (either):
+
+- `Authorization: Bearer <CRON_SECRET>`
+- `x-cron-secret: <CRON_SECRET>`
+
+**Local dry-run** (no deletes): `npm run cleanup:storage` — report only. **Execute deletes:** `npm run cleanup:storage:execute` (requires env keys).
+
+Image uploads: **`POST /api/v2/upload`** → Sharp WebP + optional **`thumb_*.webp`** (same bucket) via **`lib/storage/image-processor.server.js`**. Client: **`uploadViaApi`** returns **`url`** + **`thumbUrl`** when generated. Storage cost: ~1 extra small file per listing/avatar/chat image (~15–40 KB thumb vs 200–800 KB main).
+
 ---
 
 ## Roadmap, contributing, diligence

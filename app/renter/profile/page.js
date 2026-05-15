@@ -36,7 +36,7 @@ import { useI18n } from '@/contexts/i18n-context'
 import { useAuth } from '@/contexts/auth-context'
 import { getUIText } from '@/lib/translations'
 import { telegramAccountLinkUrl } from '@/lib/telegram-bot-public'
-import { toPublicImageUrl } from '@/lib/public-image-url'
+import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { signOut } from '@/lib/auth'
 import { KycUploader } from '@/components/kyc-uploader'
 
@@ -454,7 +454,7 @@ export default function RenterProfilePage() {
             <Avatar className="w-24 h-24 border border-slate-200">
               {user.avatar ? (
                 <AvatarImage
-                  src={toPublicImageUrl(user.avatar)}
+                  src={resolveAvatarDisplaySrc(user.avatar) || ''}
                   alt=""
                   className="object-cover"
                 />

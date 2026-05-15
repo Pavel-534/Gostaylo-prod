@@ -96,15 +96,8 @@ export function KycUploader({
                   formData.append('file', fileToUpload)
                   formData.append('bucket', 'verification_documents')
                   formData.append('profile', 'kyc_document')
-                  const res = await fetch('/api/v2/upload', {
-                    method: 'POST',
-                    credentials: 'include',
-                    body: formData,
-                  })
-                  const result = await res.json().catch(() => ({}))
-                  if (!res.ok || !result.success) {
-                    throw new Error(result.error || strings.errorUploadFailed)
-                  }
+                  const { uploadViaApi } = await import('@/lib/storage/storage-upload.client')
+                  const result = await uploadViaApi(formData)
                   onChange(result.url)
                   onUploadSuccess?.()
                 } catch (err) {

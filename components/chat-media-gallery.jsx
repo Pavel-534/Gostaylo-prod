@@ -17,7 +17,7 @@ import { X, Image as ImageIcon, Mic, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ChatVoicePlayer } from '@/components/chat-voice-player'
 import { ChatLightbox } from '@/components/chat-image-collage'
-import { toPublicImageUrl } from '@/lib/public-image-url'
+import { resolveImageMainUrl, resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 
 const LABELS = {
   ru: {
@@ -169,7 +169,9 @@ export function ChatMediaGallery({ messages = [], open, onClose, language = 'ru'
               ) : (
                 <div className="grid grid-cols-3 gap-1.5">
                   {imageMessages.map((m, idx) => {
-                    const url = toPublicImageUrl(m.metadata?.image_url || m.metadata?.url || '') || ''
+                    const raw = m.metadata?.image_url || m.metadata?.url || ''
+                    const urlFull = resolveImageMainUrl(raw) || ''
+                    const urlThumb = resolveImageThumbDisplayUrl(raw) || urlFull
                     return (
                       <button
                         key={m.id}
@@ -178,13 +180,13 @@ export function ChatMediaGallery({ messages = [], open, onClose, language = 'ru'
                         onClick={() => setLightboxIdx(idx)}
                       >
                         <img
-                          src={url}
+                          src={urlThumb}
                           alt={m.message || ''}
                           className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
                           loading="lazy"
                         />
                         <a
-                          href={url}
+                          href={urlFull}
                           download
                           target="_blank"
                           rel="noreferrer"

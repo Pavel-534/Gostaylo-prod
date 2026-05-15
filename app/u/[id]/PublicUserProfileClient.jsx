@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { getUIText } from '@/lib/translations'
 import { persistPendingReferralFromLanding } from '@/lib/referral/persist-pending-ref-client'
 import { ReviewPhotosGallery } from '@/components/review-photos-gallery'
+import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
 import { toast } from 'sonner'
 
@@ -234,7 +235,11 @@ export default function PublicUserProfileClient({
             <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left">
               <Avatar className="h-28 w-28 shrink-0 border border-border">
                 {profile.avatar ? (
-                  <AvatarImage src={profile.avatar} alt="" className="object-cover" />
+                  <AvatarImage
+                    src={resolveAvatarDisplaySrc(profile.avatar) || profile.avatar}
+                    alt=""
+                    className="object-cover"
+                  />
                 ) : null}
                 <AvatarFallback className="bg-muted text-muted-foreground text-3xl font-semibold">
                   {initial}

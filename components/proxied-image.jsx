@@ -1,7 +1,8 @@
 'use client'
 
 import Image from 'next/image'
-import { toPublicImageUrl, isRemoteHttpImageSrc } from '@/lib/public-image-url'
+import { isRemoteHttpImageSrc } from '@/lib/public-image-url'
+import { resolveImageDisplaySrc } from '@/lib/image-display-url'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
 
 /**
@@ -10,6 +11,9 @@ import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
  */
 export function ProxiedImage({
   src,
+  /** Optional explicit thumb; if omitted and preferThumb, derives from main storage path */
+  thumbSrc = null,
+  preferThumb = true,
   alt = '',
   className,
   width,
@@ -20,7 +24,10 @@ export function ProxiedImage({
   unoptimized,
 }) {
   const raw = src || '/placeholder.svg'
-  const u = raw === '/placeholder.svg' ? raw : toPublicImageUrl(raw) || raw
+  const u =
+    raw === '/placeholder.svg'
+      ? raw
+      : resolveImageDisplaySrc(thumbSrc ? { url: raw, thumbUrl: thumbSrc } : raw, { preferThumb }) || raw
   const effectiveUnoptimized = unoptimized !== undefined ? unoptimized : isRemoteHttpImageSrc(u)
   if (fill) {
     return (

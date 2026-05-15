@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils'
 import { getUIText, getCategoryName, getListingText } from '@/lib/translations'
 import { buildListingCategoryLineLabel } from '@/lib/category-display-name'
 import { getListingCardBlurDataURL } from '@/lib/listing-image-blur'
+import { getListingCardImageUrls } from '@/lib/listing-display-images'
 import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
 import { PartnerRenterTrustBadges } from '@/components/trust/PartnerRenterTrustBadges'
 import { Badge } from '@/components/ui/badge'
@@ -73,7 +74,6 @@ export function ListingCard({
   } = listing
   
   const basePrice = basePriceThb || base_price_thb || 0
-  const actualCoverImage = coverImage || cover_image
   const actualIsFeatured = isFeatured || is_featured
   const ownerVerified =
     listingOwnerVerified === true ||
@@ -87,17 +87,10 @@ export function ListingCard({
   const categorySlugForCard = listingCategorySlug || category?.slug || ''
   const propertyType = metadata?.property_type || category?.slug || 'default'
   
-  // Build image array
-  const allImages = useMemo(() => {
-    const imgs = []
-    if (actualCoverImage) imgs.push(actualCoverImage)
-    if (images?.length) {
-      images.forEach(img => {
-        if (img !== actualCoverImage) imgs.push(img)
-      })
-    }
-    return imgs.length > 0 ? imgs : ['/placeholder.svg']
-  }, [actualCoverImage, images])
+  const allImages = useMemo(
+    () => getListingCardImageUrls({ coverImage, cover_image, images }),
+    [coverImage, cover_image, images],
+  )
 
   // Build detail page URL
   const detailUrl = useMemo(() => {

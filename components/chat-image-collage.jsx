@@ -11,6 +11,7 @@
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { X, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react'
+import { resolveImageMainUrl, resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 
 // ─── Сетка коллажа ────────────────────────────────────────────────────────────
 
@@ -68,7 +69,7 @@ export function ChatLightbox({ images, startIndex = 0, onClose }) {
 
       {/* Изображение */}
       <img
-        src={images[idx].url}
+        src={resolveImageMainUrl(images[idx]) || images[idx].url}
         alt={images[idx].alt || ''}
         className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg select-none"
         onClick={(e) => e.stopPropagation()}
@@ -107,7 +108,12 @@ export function ChatLightbox({ images, startIndex = 0, onClose }) {
                 i === idx ? 'border-white opacity-100' : 'border-transparent opacity-50 hover:opacity-75',
               )}
             >
-              <img src={img.url} alt="" className="w-10 h-10 object-cover" draggable={false} />
+              <img
+                src={resolveImageThumbDisplayUrl(img) || img.url}
+                alt=""
+                className="w-10 h-10 object-cover"
+                draggable={false}
+              />
             </button>
           ))}
         </div>
@@ -163,7 +169,7 @@ export function ChatImageCollage({ images, isOwn }) {
                 />
               )}
               <img
-                src={visible[0].url}
+                src={resolveImageThumbDisplayUrl(visible[0]) || visible[0].url}
                 alt={visible[0].alt || ''}
                 className={cn(
                   'h-full w-full object-cover transition-opacity duration-200',
@@ -191,7 +197,7 @@ export function ChatImageCollage({ images, isOwn }) {
                   aria-label={`Фото ${i + 1}`}
                 >
                   <img
-                    src={img.url}
+                    src={resolveImageThumbDisplayUrl(img) || img.url}
                     alt={img.alt || ''}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                     loading="lazy"

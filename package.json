@@ -18,6 +18,8 @@
     "check:i18n": "node scripts/check-i18n-duplicates.mjs",
     "clean:e2e": "node scripts/clean-e2e-garbage.mjs",
     "clean:e2e-deep": "node scripts/clean-e2e-garbage.mjs --deep-profiles",
+    "cleanup:storage": "node scripts/cleanup-storage.mjs",
+    "cleanup:storage:execute": "node scripts/cleanup-storage.mjs --execute",
     "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {

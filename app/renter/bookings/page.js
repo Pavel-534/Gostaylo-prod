@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ProxiedImage } from '@/components/proxied-image'
+import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import { 
   Calendar, MapPin, Loader2, ArrowLeft, 
   CreditCard, Clock, CheckCircle, XCircle,
@@ -213,7 +214,11 @@ function BookingCard({ booking, onReviewClick, onCancelClick, language }) {
     categorySlug,
     nightsFallback,
   )
-  const listingImage = listing.images?.[0] || listing.cover_image || '/placeholder.svg'
+  const listingImageRaw = listing.images?.[0] || listing.cover_image || '/placeholder.svg'
+  const listingImage =
+    listingImageRaw === '/placeholder.svg'
+      ? listingImageRaw
+      : resolveImageThumbDisplayUrl(listingImageRaw) || listingImageRaw
   
   const canLeaveReview = () => {
     if (booking.status === 'COMPLETED') return true

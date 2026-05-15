@@ -12,7 +12,7 @@ import { Building2, Calendar, CalendarRange, Banknote, ExternalLink } from 'luci
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { toPublicImageUrl } from '@/lib/public-image-url'
+import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 
 function fmtDate(iso, language) {
   if (!iso) return null
@@ -58,7 +58,7 @@ function statusLabel(status, language) {
 export function DealDetailsCard({ listing = null, booking = null, language = 'ru', className, onOpenCalendar }) {
   const isEn = language === 'en'
   const imgRaw = listing?.images?.[0]
-  const img = imgRaw ? toPublicImageUrl(imgRaw) || imgRaw : null
+  const img = imgRaw ? resolveImageThumbDisplayUrl(imgRaw) || imgRaw : null
   const title = listing?.title || (isEn ? 'Listing' : 'Объект')
 
   const checkIn = booking?.check_in || booking?.checkIn

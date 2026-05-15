@@ -8,6 +8,7 @@ import { shouldAllowCheckInToday, shouldAllowReviewByLifecycle } from '@/lib/ord
 import { canOpenOfficialDispute } from '@/lib/disputes/dispute-eligibility'
 import { resolveEmergencyServiceKindFromListing } from '@/lib/emergency-contact-protocol'
 import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-service-type'
+import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import {
   normalizeRole,
   normalizeUnifiedOrder,
@@ -128,7 +129,11 @@ export function useUnifiedOrderCard({
     'Гость'
   const guestPhone = booking?.guestPhone || booking?.renter?.phone || null
   const guestEmail = booking?.guestEmail || booking?.renter?.email || null
-  const listingImage = listing?.images?.[0] || listing?.coverImage || listing?.cover_image || null
+  const listingImageRaw =
+    listing?.images?.[0] || listing?.coverImage || listing?.cover_image || null
+  const listingImage = listingImageRaw
+    ? resolveImageThumbDisplayUrl(listingImageRaw) || listingImageRaw
+    : null
   const partnerEarnings = Number(booking?.partnerEarningsThb ?? booking?.partner_earnings_thb)
   const hasUnifiedTotal = Number.isFinite(normalizedOrder.total_price)
   const listingId = listing?.id || booking?.listing_id || null

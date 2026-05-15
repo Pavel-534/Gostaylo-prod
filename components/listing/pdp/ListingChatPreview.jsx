@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { User } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
+import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 
 /**
  * PDP: informational host-messaging hint + last preview (desktop). Primary chat CTA lives in **`BookingWidget`**.
@@ -21,7 +22,7 @@ export function ListingChatPreview({
   const tx = (k) => getUIText(k, language, slug ? { listingCategorySlug: slug } : undefined)
   const hint = tx('listingPdp_chatInfoHint')
   const owner = listing?.owner
-  const avatarUrl = owner?.avatar || null
+  const avatarUrl = owner?.avatar ? resolveAvatarDisplaySrc(owner.avatar) : null
   const initial =
     owner?.first_name && String(owner.first_name).trim()
       ? String(owner.first_name).trim().slice(0, 1).toUpperCase()

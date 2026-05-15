@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button'
 import { getUIText, getListingText } from '@/lib/translations'
 import { ListingGridSkeleton } from '@/components/listing-card-skeleton'
 import { EmptyState } from '@/components/empty-state'
-import { toPublicImageUrl, isRemoteHttpImageSrc } from '@/lib/public-image-url'
+import { isRemoteHttpImageSrc } from '@/lib/public-image-url'
+import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import { LISTING_CARD_BLUR_DATA_URL } from '@/lib/listing-image-blur'
 import { format, isSameDay } from 'date-fns'
 import { formatDisplayDate } from '@/lib/date-display-format'
@@ -113,7 +114,10 @@ export function TopListingsGrid({
                 ? `/listings/${listing.id}?${listingParams.toString()}`
                 : `/listings/${listing.id}`
               const thumbRaw = listing.coverImage || listing.images?.[0] || '/placeholder.svg'
-              const thumbSrc = thumbRaw === '/placeholder.svg' ? thumbRaw : toPublicImageUrl(thumbRaw) || thumbRaw
+              const thumbSrc =
+                thumbRaw === '/placeholder.svg'
+                  ? thumbRaw
+                  : resolveImageThumbDisplayUrl(thumbRaw) || thumbRaw
 
               return (
                 <Link key={listing.id} href={listingUrl}>

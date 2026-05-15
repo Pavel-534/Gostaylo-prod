@@ -13,6 +13,7 @@ import { toRelativeSiteUrl } from '@/lib/chat-same-origin-url'
 import { maskContactInfo } from '@/lib/mask-contacts'
 import { highlightText } from '@/lib/chat-highlight-text'
 import { getUIText } from '@/lib/translations'
+import { resolveImageMainUrl, resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
 import {
   Dialog,
   DialogContent,
@@ -207,9 +208,11 @@ export function MessageBubble({
 
   let body = null
   if (rawType === 'image' && imgUrl && typeof imgUrl === 'string') {
+    const imgFull = resolveImageMainUrl(imgUrl) || imgUrl
+    const imgPreview = resolveImageThumbDisplayUrl(imgUrl) || imgFull
     body = (
-      <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="block max-w-[min(100%,280px)]">
-        <img src={imgUrl} alt="" className="rounded-2xl max-h-64 w-full object-cover" />
+      <a href={imgFull} target="_blank" rel="noopener noreferrer" className="block max-w-[min(100%,280px)]">
+        <img src={imgPreview} alt="" className="rounded-2xl max-h-64 w-full object-cover" />
       </a>
     )
   } else if (rawType === 'file' && fileUrl) {

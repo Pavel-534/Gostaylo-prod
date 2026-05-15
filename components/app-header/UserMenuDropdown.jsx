@@ -23,7 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { toPublicImageUrl } from '@/lib/public-image-url'
+import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { useChatContext } from '@/lib/context/ChatContext'
@@ -63,7 +63,7 @@ export function UserMenuDropdown() {
           <span className="relative inline-flex shrink-0">
             <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
               {user.avatar ? (
-                <AvatarImage src={toPublicImageUrl(user.avatar)} alt="" className="object-cover" />
+                <AvatarImage src={resolveAvatarDisplaySrc(user.avatar) || ''} alt="" className="object-cover" />
               ) : null}
               <AvatarFallback
                 className={cn(

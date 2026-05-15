@@ -1,4 +1,6 @@
 -- Stage 94.0 — P0 database hardening:
+-- Bookings «guest» column: prefers `renter_id`, else `user_id`, else `guest_id` (detected at apply time).
+-- Reviews «reviewer» column: prefers `user_id`, else `renter_id`.
 -- Prerequisites (run before this file if missing): `database/migrations/022_realtime_profile_claim_rls.sql`,
 -- `026_financial_module_phase1_alignment.sql` (preferred_payout_currency_type), `stage79_0_profiles_oauth_bridge.sql`,
 -- `migrations/stage82_0_profiles_terms_acceptance_alias.sql` (terms_* columns).
@@ -310,60 +312,85 @@ CREATE POLICY listings_delete_owner_or_admin
   );
 
 -- =============================================================================
--- E) RLS — bookings (renter, optional partner_id, listing owner)
+-- E) RLS — bookings (party column: renter_id, else user_id, else guest_id; optional partner_id; listing owner)
 -- =============================================================================
 
-ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "bookings_select_own" ON public.bookings;
-DROP POLICY IF EXISTS "bookings_select_policy" ON public.bookings;
-DROP POLICY IF EXISTS bookings_select_party ON public.bookings;
-DROP POLICY IF EXISTS "bookings_insert_auth" ON public.bookings;
-DROP POLICY IF EXISTS "bookings_insert_policy" ON public.bookings;
-DROP POLICY IF EXISTS bookings_insert_as_renter ON public.bookings;
-DROP POLICY IF EXISTS "bookings_update_own" ON public.bookings;
-DROP POLICY IF EXISTS "bookings_update_policy" ON public.bookings;
-DROP POLICY IF EXISTS bookings_update_party ON public.bookings;
-
 DO $$
+DECLARE
+  v_renter_col text;
+  v_has_partner boolean;
 BEGIN
-  IF EXISTS (
+  SELECT c.column_name INTO v_renter_col
+  FROM information_schema.columns c
+  WHERE c.table_schema = 'public'
+    AND c.table_name = 'bookings'
+    AND c.column_name IN ('renter_id', 'user_id', 'guest_id')
+  ORDER BY
+    CASE c.column_name
+      WHEN 'renter_id' THEN 1
+      WHEN 'user_id' THEN 2
+      WHEN 'guest_id' THEN 3
+    END
+  LIMIT 1;
+
+  IF v_renter_col IS NULL THEN
+    RAISE EXCEPTION
+      'Stage 047: public.bookings has no party column (need one of: renter_id, user_id, guest_id)';
+  END IF;
+
+  SELECT EXISTS (
     SELECT 1
     FROM information_schema.columns
     WHERE table_schema = 'public'
       AND table_name = 'bookings'
       AND column_name = 'partner_id'
-  ) THEN
-    EXECUTE $pol$
+  ) INTO v_has_partner;
+
+  ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
+
+  DROP POLICY IF EXISTS "bookings_select_own" ON public.bookings;
+  DROP POLICY IF EXISTS "bookings_select_policy" ON public.bookings;
+  DROP POLICY IF EXISTS bookings_select_party ON public.bookings;
+  DROP POLICY IF EXISTS "bookings_insert_auth" ON public.bookings;
+  DROP POLICY IF EXISTS "bookings_insert_policy" ON public.bookings;
+  DROP POLICY IF EXISTS bookings_insert_as_renter ON public.bookings;
+  DROP POLICY IF EXISTS "bookings_update_own" ON public.bookings;
+  DROP POLICY IF EXISTS "bookings_update_policy" ON public.bookings;
+  DROP POLICY IF EXISTS bookings_update_party ON public.bookings;
+
+  IF v_has_partner THEN
+    EXECUTE format($sql$
       CREATE POLICY bookings_select_party ON public.bookings
       FOR SELECT TO public
       USING (
         auth.role() = 'service_role'
         OR public.is_admin()
-        OR renter_id = public.current_profile_id()
+        OR %I = public.current_profile_id()
         OR partner_id = public.current_profile_id()
         OR EXISTS (
           SELECT 1 FROM public.listings l
           WHERE l.id = listing_id AND l.owner_id = public.current_profile_id()
         )
       )
-    $pol$;
-    EXECUTE $pol$
+    $sql$, v_renter_col);
+
+    EXECUTE format($sql$
       CREATE POLICY bookings_insert_as_renter ON public.bookings
       FOR INSERT TO public
       WITH CHECK (
         auth.role() = 'service_role'
         OR public.is_admin()
-        OR renter_id = public.current_profile_id()
+        OR %I = public.current_profile_id()
       )
-    $pol$;
-    EXECUTE $pol$
+    $sql$, v_renter_col);
+
+    EXECUTE format($sql$
       CREATE POLICY bookings_update_party ON public.bookings
       FOR UPDATE TO public
       USING (
         auth.role() = 'service_role'
         OR public.is_admin()
-        OR renter_id = public.current_profile_id()
+        OR %I = public.current_profile_id()
         OR partner_id = public.current_profile_id()
         OR EXISTS (
           SELECT 1 FROM public.listings l
@@ -373,44 +400,46 @@ BEGIN
       WITH CHECK (
         auth.role() = 'service_role'
         OR public.is_admin()
-        OR renter_id = public.current_profile_id()
+        OR %I = public.current_profile_id()
         OR partner_id = public.current_profile_id()
         OR EXISTS (
           SELECT 1 FROM public.listings l
           WHERE l.id = listing_id AND l.owner_id = public.current_profile_id()
         )
       )
-    $pol$;
+    $sql$, v_renter_col, v_renter_col);
   ELSE
-    EXECUTE $pol$
+    EXECUTE format($sql$
       CREATE POLICY bookings_select_party ON public.bookings
       FOR SELECT TO public
       USING (
         auth.role() = 'service_role'
         OR public.is_admin()
-        OR renter_id = public.current_profile_id()
+        OR %I = public.current_profile_id()
         OR EXISTS (
           SELECT 1 FROM public.listings l
           WHERE l.id = listing_id AND l.owner_id = public.current_profile_id()
         )
       )
-    $pol$;
-    EXECUTE $pol$
+    $sql$, v_renter_col);
+
+    EXECUTE format($sql$
       CREATE POLICY bookings_insert_as_renter ON public.bookings
       FOR INSERT TO public
       WITH CHECK (
         auth.role() = 'service_role'
         OR public.is_admin()
-        OR renter_id = public.current_profile_id()
+        OR %I = public.current_profile_id()
       )
-    $pol$;
-    EXECUTE $pol$
+    $sql$, v_renter_col);
+
+    EXECUTE format($sql$
       CREATE POLICY bookings_update_party ON public.bookings
       FOR UPDATE TO public
       USING (
         auth.role() = 'service_role'
         OR public.is_admin()
-        OR renter_id = public.current_profile_id()
+        OR %I = public.current_profile_id()
         OR EXISTS (
           SELECT 1 FROM public.listings l
           WHERE l.id = listing_id AND l.owner_id = public.current_profile_id()
@@ -419,13 +448,13 @@ BEGIN
       WITH CHECK (
         auth.role() = 'service_role'
         OR public.is_admin()
-        OR renter_id = public.current_profile_id()
+        OR %I = public.current_profile_id()
         OR EXISTS (
           SELECT 1 FROM public.listings l
           WHERE l.id = listing_id AND l.owner_id = public.current_profile_id()
         )
       )
-    $pol$;
+    $sql$, v_renter_col, v_renter_col);
   END IF;
 END $$;
 
@@ -531,11 +560,40 @@ END $$;
 -- =============================================================================
 
 DO $$
+DECLARE
+  v_renter_col text;
 BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'payments') THEN
-    ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
-    DROP POLICY IF EXISTS "payments_select_own" ON public.payments;
-    DROP POLICY IF EXISTS payments_select_scope ON public.payments;
+  IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'payments') THEN
+    RETURN;
+  END IF;
+
+  SELECT c.column_name INTO v_renter_col
+  FROM information_schema.columns c
+  WHERE c.table_schema = 'public'
+    AND c.table_name = 'bookings'
+    AND c.column_name IN ('renter_id', 'user_id', 'guest_id')
+  ORDER BY
+    CASE c.column_name
+      WHEN 'renter_id' THEN 1
+      WHEN 'user_id' THEN 2
+      WHEN 'guest_id' THEN 3
+    END
+  LIMIT 1;
+
+  IF v_renter_col IS NULL THEN
+    RAISE EXCEPTION
+      'Stage 047 (payments): public.bookings has no party column (renter_id / user_id / guest_id)';
+  END IF;
+
+  ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS "payments_select_own" ON public.payments;
+  DROP POLICY IF EXISTS payments_select_scope ON public.payments;
+  DROP POLICY IF EXISTS "payments_insert_auth" ON public.payments;
+  DROP POLICY IF EXISTS payments_insert_scope ON public.payments;
+  DROP POLICY IF EXISTS "payments_update_admin" ON public.payments;
+  DROP POLICY IF EXISTS payments_update_scope ON public.payments;
+
+  EXECUTE format($sql$
     CREATE POLICY payments_select_scope
       ON public.payments
       FOR SELECT
@@ -547,16 +605,17 @@ BEGIN
             SELECT 1 FROM public.bookings b
             WHERE b.id = booking_id
               AND (
-                b.renter_id = public.current_profile_id()
+                b.%I = public.current_profile_id()
                 OR EXISTS (
                   SELECT 1 FROM public.listings l
                   WHERE l.id = b.listing_id AND l.owner_id = public.current_profile_id()
                 )
               )
           )
-      );
-    DROP POLICY IF EXISTS "payments_insert_auth" ON public.payments;
-    DROP POLICY IF EXISTS payments_insert_scope ON public.payments;
+      )
+  $sql$, v_renter_col);
+
+  EXECUTE format($sql$
     CREATE POLICY payments_insert_scope
       ON public.payments
       FOR INSERT
@@ -567,18 +626,17 @@ BEGIN
         OR EXISTS (
             SELECT 1 FROM public.bookings b
             WHERE b.id = booking_id
-              AND b.renter_id = public.current_profile_id()
+              AND b.%I = public.current_profile_id()
           )
-      );
-    DROP POLICY IF EXISTS "payments_update_admin" ON public.payments;
-    DROP POLICY IF EXISTS payments_update_scope ON public.payments;
-    CREATE POLICY payments_update_scope
-      ON public.payments
-      FOR UPDATE
-      TO public
-      USING (auth.role() = 'service_role' OR public.is_admin())
-      WITH CHECK (auth.role() = 'service_role' OR public.is_admin());
-  END IF;
+      )
+  $sql$, v_renter_col);
+
+  CREATE POLICY payments_update_scope
+    ON public.payments
+    FOR UPDATE
+    TO public
+    USING (auth.role() = 'service_role' OR public.is_admin())
+    WITH CHECK (auth.role() = 'service_role' OR public.is_admin());
 END $$;
 
 -- =============================================================================
@@ -586,10 +644,34 @@ END $$;
 -- =============================================================================
 
 DO $$
+DECLARE
+  v_renter_col text;
 BEGIN
-  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'disputes') THEN
-    ALTER TABLE public.disputes ENABLE ROW LEVEL SECURITY;
-    DROP POLICY IF EXISTS disputes_select_scope ON public.disputes;
+  IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'disputes') THEN
+    RETURN;
+  END IF;
+
+  SELECT c.column_name INTO v_renter_col
+  FROM information_schema.columns c
+  WHERE c.table_schema = 'public'
+    AND c.table_name = 'bookings'
+    AND c.column_name IN ('renter_id', 'user_id', 'guest_id')
+  ORDER BY
+    CASE c.column_name
+      WHEN 'renter_id' THEN 1
+      WHEN 'user_id' THEN 2
+      WHEN 'guest_id' THEN 3
+    END
+  LIMIT 1;
+
+  IF v_renter_col IS NULL THEN
+    RAISE EXCEPTION
+      'Stage 047 (disputes): public.bookings has no party column (renter_id / user_id / guest_id)';
+  END IF;
+
+  ALTER TABLE public.disputes ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS disputes_select_scope ON public.disputes;
+  EXECUTE format($sql$
     CREATE POLICY disputes_select_scope
       ON public.disputes
       FOR SELECT
@@ -602,42 +684,43 @@ BEGIN
         OR EXISTS (
             SELECT 1
             FROM public.bookings b
-            WHERE b.id = public.disputes.booking_id
+            WHERE b.id = booking_id
               AND (
-                b.renter_id = public.current_profile_id()
+                b.%I = public.current_profile_id()
                 OR EXISTS (
                   SELECT 1 FROM public.listings l
                   WHERE l.id = b.listing_id AND l.owner_id = public.current_profile_id()
                 )
               )
           )
-      );
-    DROP POLICY IF EXISTS disputes_insert_party ON public.disputes;
-    CREATE POLICY disputes_insert_party
-      ON public.disputes
-      FOR INSERT
-      TO public
-      WITH CHECK (
-        auth.role() = 'service_role'
-        OR public.is_admin()
-        OR opened_by = public.current_profile_id()
-      );
-    DROP POLICY IF EXISTS disputes_update_scope ON public.disputes;
-    CREATE POLICY disputes_update_scope
-      ON public.disputes
-      FOR UPDATE
-      TO public
-      USING (
-        auth.role() = 'service_role'
-        OR public.is_admin()
-        OR opened_by = public.current_profile_id()
       )
-      WITH CHECK (
-        auth.role() = 'service_role'
-        OR public.is_admin()
-        OR opened_by = public.current_profile_id()
-      );
-  END IF;
+  $sql$, v_renter_col);
+
+  DROP POLICY IF EXISTS disputes_insert_party ON public.disputes;
+  CREATE POLICY disputes_insert_party
+    ON public.disputes
+    FOR INSERT
+    TO public
+    WITH CHECK (
+      auth.role() = 'service_role'
+      OR public.is_admin()
+      OR opened_by = public.current_profile_id()
+    );
+  DROP POLICY IF EXISTS disputes_update_scope ON public.disputes;
+  CREATE POLICY disputes_update_scope
+    ON public.disputes
+    FOR UPDATE
+    TO public
+    USING (
+      auth.role() = 'service_role'
+      OR public.is_admin()
+      OR opened_by = public.current_profile_id()
+    )
+    WITH CHECK (
+      auth.role() = 'service_role'
+      OR public.is_admin()
+      OR opened_by = public.current_profile_id()
+    );
 END $$;
 
 DO $$
@@ -683,74 +766,103 @@ BEGIN
   END IF;
 END $$;
 
--- reviews (guest → listing): tighten from public read-all if present
-ALTER TABLE IF EXISTS public.reviews ENABLE ROW LEVEL SECURITY;
+-- reviews (guest → listing): reviewer column prefers user_id, else renter_id (align with app API)
+DO $$
+DECLARE
+  v_rev_col text;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'reviews') THEN
+    RETURN;
+  END IF;
 
-DROP POLICY IF EXISTS "reviews_select_all" ON public.reviews;
-DROP POLICY IF EXISTS reviews_select_scope ON public.reviews;
+  SELECT c.column_name INTO v_rev_col
+  FROM information_schema.columns c
+  WHERE c.table_schema = 'public'
+    AND c.table_name = 'reviews'
+    AND c.column_name IN ('user_id', 'renter_id')
+  ORDER BY
+    CASE c.column_name
+      WHEN 'user_id' THEN 1
+      WHEN 'renter_id' THEN 2
+    END
+  LIMIT 1;
 
-CREATE POLICY reviews_select_scope
-  ON public.reviews
-  FOR SELECT
-  TO public
-  USING (
-    auth.role() = 'service_role'
-    OR public.is_admin()
-    OR renter_id = public.current_profile_id()
-    OR EXISTS (
-        SELECT 1
-        FROM public.listings l
-        WHERE l.id = public.reviews.listing_id
-          AND l.owner_id = public.current_profile_id()
+  IF v_rev_col IS NULL THEN
+    RAISE EXCEPTION
+      'Stage 047: public.reviews has no reviewer column (need one of: user_id, renter_id)';
+  END IF;
+
+  ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+
+  DROP POLICY IF EXISTS "reviews_select_all" ON public.reviews;
+  DROP POLICY IF EXISTS reviews_select_scope ON public.reviews;
+  DROP POLICY IF EXISTS "reviews_insert_own" ON public.reviews;
+  DROP POLICY IF EXISTS reviews_insert_renter ON public.reviews;
+  DROP POLICY IF EXISTS "reviews_update_reply" ON public.reviews;
+  DROP POLICY IF EXISTS reviews_update_owner_reply ON public.reviews;
+
+  EXECUTE format($sql$
+    CREATE POLICY reviews_select_scope
+      ON public.reviews
+      FOR SELECT
+      TO public
+      USING (
+        auth.role() = 'service_role'
+        OR public.is_admin()
+        OR %I = public.current_profile_id()
+        OR EXISTS (
+            SELECT 1
+            FROM public.listings l
+            WHERE l.id = listing_id
+              AND l.owner_id = public.current_profile_id()
+          )
+        OR EXISTS (
+            SELECT 1
+            FROM public.listings l
+            WHERE l.id = listing_id
+              AND l.status = 'ACTIVE'::public.listing_status
+          )
       )
-    -- public read of reviews for ACTIVE listings (catalog trust)
-    OR EXISTS (
-        SELECT 1
-        FROM public.listings l
-        WHERE l.id = public.reviews.listing_id
-          AND l.status = 'ACTIVE'::public.listing_status
+  $sql$, v_rev_col);
+
+  EXECUTE format($sql$
+    CREATE POLICY reviews_insert_renter
+      ON public.reviews
+      FOR INSERT
+      TO public
+      WITH CHECK (
+        auth.role() = 'service_role'
+        OR public.is_admin()
+        OR %I = public.current_profile_id()
       )
-  );
+  $sql$, v_rev_col);
 
-DROP POLICY IF EXISTS "reviews_insert_own" ON public.reviews;
-DROP POLICY IF EXISTS reviews_insert_renter ON public.reviews;
-
-CREATE POLICY reviews_insert_renter
-  ON public.reviews
-  FOR INSERT
-  TO public
-  WITH CHECK (
-    auth.role() = 'service_role'
-    OR public.is_admin()
-    OR renter_id = public.current_profile_id()
-  );
-
-DROP POLICY IF EXISTS "reviews_update_reply" ON public.reviews;
-DROP POLICY IF EXISTS reviews_update_owner_reply ON public.reviews;
-
-CREATE POLICY reviews_update_owner_reply
-  ON public.reviews
-  FOR UPDATE
-  TO public
-  USING (
-    auth.role() = 'service_role'
-    OR public.is_admin()
-    OR renter_id = public.current_profile_id()
-    OR EXISTS (
-        SELECT 1
-        FROM public.listings l
-        WHERE l.id = public.reviews.listing_id
-          AND l.owner_id = public.current_profile_id()
+  EXECUTE format($sql$
+    CREATE POLICY reviews_update_owner_reply
+      ON public.reviews
+      FOR UPDATE
+      TO public
+      USING (
+        auth.role() = 'service_role'
+        OR public.is_admin()
+        OR %I = public.current_profile_id()
+        OR EXISTS (
+            SELECT 1
+            FROM public.listings l
+            WHERE l.id = listing_id
+              AND l.owner_id = public.current_profile_id()
+          )
       )
-  )
-  WITH CHECK (
-    auth.role() = 'service_role'
-    OR public.is_admin()
-    OR renter_id = public.current_profile_id()
-    OR EXISTS (
-        SELECT 1
-        FROM public.listings l
-        WHERE l.id = public.reviews.listing_id
-          AND l.owner_id = public.current_profile_id()
+      WITH CHECK (
+        auth.role() = 'service_role'
+        OR public.is_admin()
+        OR %I = public.current_profile_id()
+        OR EXISTS (
+            SELECT 1
+            FROM public.listings l
+            WHERE l.id = listing_id
+              AND l.owner_id = public.current_profile_id()
+          )
       )
-  );
+  $sql$, v_rev_col, v_rev_col);
+END $$;

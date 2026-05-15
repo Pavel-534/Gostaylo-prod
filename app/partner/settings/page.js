@@ -14,7 +14,7 @@ import { toast } from 'sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
-import { toPublicImageUrl } from '@/lib/public-image-url'
+import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { KycUploader } from '@/components/kyc-uploader'
 
 export default function PartnerSettingsPage() {
@@ -194,18 +194,13 @@ function PartnerSettingsContent() {
     }
     setUploadingAvatar(true)
     try {
-      let payload = file
-      if (file.type.startsWith('image/')) {
-        const { compressImageForBrowser } = await import('@/lib/services/media/compress-image-browser')
-        payload = await compressImageForBrowser(file, 'listing_photo')
-      }
-      const fd = new FormData()
-      fd.append('file', payload, file.type.startsWith('image/') ? `${Date.now()}.webp` : file.name)
-      fd.append('bucket', 'listing-images')
-      fd.append('profile', 'listing_photo')
-      fd.append('folder', `avatars/${user.id}`)
-      const res = await fetch('/api/v2/upload', { method: 'POST', body: fd, credentials: 'include' })
-      const data = await res.json()
+      const { compressImageForBrowser } = await import('@/lib/services/media/compress-image-browser')
+      const compressed =
+        file.type.startsWith('image/') ? await compressImageForBrowser(file, 'avatar') : file
+      const { uploadAvatar } = await import('@/lib/storage/storage-upload.client')
+      const data = await uploadAvatar(compressed, user.id, {
+        onProgress: () => setUploadingAvatar(true),
+      })
       if (!data.success) {
         toast.error(data.error || getUIText('renterSettingsUploadFailed', language))
         return
@@ -388,7 +383,7 @@ function PartnerSettingsContent() {
           <div className="flex flex-col sm:flex-row items-center gap-6">
             <Avatar className="h-24 w-24 border border-slate-200">
               {avatarRaw ? (
-                <AvatarImage src={toPublicImageUrl(avatarRaw)} alt="" className="object-cover" />
+                <AvatarImage src={resolveAvatarDisplaySrc(avatarRaw) || ''} alt="" className="object-cover" />
               ) : null}
               <AvatarFallback className="bg-teal-100 text-teal-800 text-2xl font-semibold">{initial}</AvatarFallback>
             </Avatar>
