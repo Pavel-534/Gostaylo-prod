@@ -20,6 +20,8 @@
     "clean:e2e-deep": "node scripts/clean-e2e-garbage.mjs --deep-profiles",
     "cleanup:storage": "node scripts/cleanup-storage.mjs",
     "cleanup:storage:execute": "node scripts/cleanup-storage.mjs --execute",
+    "cleanup:test-data": "node scripts/cleanup-test-data.mjs",
+    "cleanup:test-data:execute": "node scripts/cleanup-test-data.mjs --execute",
     "analyze": "cross-env ANALYZE=true next build"
   },
   "dependencies": {

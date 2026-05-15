@@ -70,8 +70,7 @@ const bodySchema = z.object({
    */
   categoryId: z.string().min(1),
   basePriceThbFallback: z.number().nonnegative().optional(),
-  /** listingId остаётся UUID — это реальный UUID из таблицы listings */
-  listingId: z.string().uuid().optional(),
+  listingId: z.string().min(1).max(200).optional(),
   migrateImagesToStorage: z.boolean().optional(),
 })
 
