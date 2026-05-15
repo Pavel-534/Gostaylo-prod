@@ -54,8 +54,13 @@ export async function GET(request) {
 
     const defaultListingCommission = await resolveDefaultCommissionPercent();
 
-    // Transform for frontend
-    const transformed = listings.map(l => ({
+    // Transform for frontend (hide soft-deleted rows)
+    const visible = (listings || []).filter((l) => {
+      const meta = l?.metadata
+      return !(meta && typeof meta === 'object' && meta.is_deleted === true)
+    })
+
+    const transformed = visible.map(l => ({
       id: l.id,
       title: l.title,
       status: l.status,

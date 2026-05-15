@@ -86,7 +86,25 @@ export async function POST(request) {
       role: auth.role,
     })
     if (!authz.ok) {
-      return NextResponse.json({ success: false, error: authz.error }, { status: authz.status || 403 })
+      const listingPrefix = filename.split('/')[0]
+      console.warn('[upload] storage authz denied', {
+        bucket,
+        objectPath: filename,
+        listingPrefix,
+        userId: auth.userId,
+        role: auth.role,
+        status: authz.status,
+        error: authz.error,
+      })
+      return NextResponse.json(
+        {
+          success: false,
+          error: authz.error,
+          code: authz.status === 404 ? 'LISTING_NOT_FOUND' : 'STORAGE_FORBIDDEN',
+          listingId: listingPrefix || null,
+        },
+        { status: authz.status || 403 },
+      )
     }
 
     const validation = await validateStorageUpload(bucket, {

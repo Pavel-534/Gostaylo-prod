@@ -43,6 +43,7 @@ import { applyDurationDiscountField } from '@/lib/partner/duration-discount-help
 import { guessIanaTimezoneFromLatLon } from '@/lib/geo/listing-timezone-guess'
 import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js'
 import { WIZARD_DISTRICTS, getDefaultWizardFormData } from '../wizard-constants'
+import { ensureWizardDraftListing } from '@/lib/partner/ensure-wizard-draft-listing'
 import { ru, enUS, zhCN, th as thDateLocale } from 'date-fns/locale'
 
 const ListingWizardContext = createContext(null)
@@ -111,7 +112,8 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
   const [formData, setFormData] = useState(getDefaultWizardFormData)
 
   const fileInputRef = useRef(null)
-  const uploadFolderRef = useRef(null)
+  const draftListingIdRef = useRef(null)
+  const ensuringDraftRef = useRef(false)
 
   const SEASON_TYPES = useMemo(
     () => [
@@ -627,13 +629,57 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     }
   }, [aiDescQuota.exhausted, categories, formData, isEditMode, editId, language, t])
 
+  const resolveListingIdForUpload = useCallback(async () => {
+    if (editId) return editId
+    if (draftListingIdRef.current) return draftListingIdRef.current
+    if (!formData.categoryId) {
+      toast.error(t('partnerWizard_selectCategoryBeforePhotos') || 'Сначала выберите категорию на шаге «Основное»')
+      return null
+    }
+    if (ensuringDraftRef.current) return null
+    ensuringDraftRef.current = true
+    try {
+      const meRes = await fetch('/api/v2/auth/me', { credentials: 'include' })
+      const meData = await meRes.json()
+      const partnerId = meData?.user?.id
+      if (!partnerId) {
+        toast.error(t('pleaseLogIn'))
+        return null
+      }
+      const listingId = await ensureWizardDraftListing({
+        partnerId,
+        formData,
+        draftTitleFallback: t('draftDefaultTitle'),
+      })
+      draftListingIdRef.current = listingId
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href)
+        if (!url.searchParams.get('edit')) {
+          url.searchParams.set('edit', listingId)
+          window.history.replaceState(null, '', url.toString())
+        }
+      }
+      return listingId
+    } catch (e) {
+      console.error('[wizard] ensure draft listing for upload:', e)
+      toast.error(e?.message === 'CATEGORY_REQUIRED' ? t('partnerWizard_selectCategoryBeforePhotos') : t('uploadFailedToast'))
+      return null
+    } finally {
+      ensuringDraftRef.current = false
+    }
+  }, [editId, formData, t])
+
   const handleImageUpload = useCallback(
     async (files) => {
       const fileList = Array.from(files || []).filter((f) => f.type?.startsWith('image/'))
       if (fileList.length === 0) return
       setUploading(true)
       setUploadProgress(0)
-      const folderId = editId || (uploadFolderRef.current ||= `wizard-${Date.now()}`)
+      const folderId = await resolveListingIdForUpload()
+      if (!folderId) {
+        setUploading(false)
+        return
+      }
       try {
         const { processAndUploadImages } = await import('@/lib/services/image-upload.service')
         const uploadedUrls = await processAndUploadImages(fileList, folderId, (p) => setUploadProgress(p))
@@ -653,7 +699,7 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
         if (fileInputRef.current) fileInputRef.current.value = ''
       }
     },
-    [editId, t],
+    [resolveListingIdForUpload, t],
   )
 
   const removeImage = useCallback(
@@ -788,7 +834,6 @@ export function ListingWizardProvider({ children, initialListingId = null, mode:
     uploading,
     uploadProgress,
     fileInputRef,
-    uploadFolderRef,
     formData,
     setFormData,
     categories,

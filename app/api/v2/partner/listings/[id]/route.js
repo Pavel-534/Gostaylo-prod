@@ -328,7 +328,7 @@ export async function DELETE(request, context) {
   // First get listing to check ownership
   const { data: listing } = await supabase
     .from('listings')
-    .select('owner_id, images, status')
+    .select('owner_id, images, status, metadata')
     .eq('id', listingId)
     .single();
   
@@ -340,18 +340,24 @@ export async function DELETE(request, context) {
     return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
   }
   
-  // SOFT DELETE: Update status to 'DELETED' instead of physical deletion
+  // Soft delete: enum `DELETED` may be absent — use INACTIVE + metadata flag (see listing-embedding-policy.js)
+  const prevMeta =
+    listing.metadata && typeof listing.metadata === 'object' && !Array.isArray(listing.metadata)
+      ? listing.metadata
+      : {}
   const { error } = await supabase
     .from('listings')
     .update({
-      status: 'DELETED',
+      status: 'INACTIVE',
       available: false,
       metadata: {
+        ...prevMeta,
+        is_deleted: true,
         deleted_at: new Date().toISOString(),
         deleted_by: userId,
-        previous_status: listing.status
+        previous_status: listing.status,
       },
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('id', listingId);
   
