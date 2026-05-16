@@ -4,7 +4,8 @@ import { toast } from 'sonner'
 import { formatPrice, priceRawForTest, languageToNumberLocale } from '@/lib/currency'
 import { getUIText, getAuthErrorMessage } from '@/lib/translations'
 import { useCommission } from '@/hooks/use-commission'
-import { computeRoundedGuestTotalPot } from '@/lib/booking-price-integrity'
+import { computeRoundedGuestTotal } from '@/lib/booking-price-integrity'
+import { usePricingEngineConfig } from '@/hooks/use-pricing-engine-config'
 import { buildGuestPriceBreakdownFromCheckoutTotals } from '@/lib/booking/guest-price-breakdown'
 import { getGuestPayableRoundedThb } from '@/lib/booking-guest-total'
 import { interpolateTemplate } from './interpolate.js'
@@ -30,6 +31,7 @@ export function useCheckoutPricing({
 }) {
   const searchParams = useSearchParams()
   const commissionFromApi = useCommission()
+  const { roundingMode } = usePricingEngineConfig()
   const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
   const [thbPerUsdt, setThbPerUsdt] = useState(null)
   const [promoCode, setPromoCode] = useState('')
@@ -158,9 +160,11 @@ export function useCheckoutPricing({
     )
     const serviceFeeAfterWallet = Math.max(0, serviceFeeBeforeWallet - walletAppliedThb)
     const guestTotalBeforeRounding = priceAfterDiscount + taxAmountCheckout + serviceFeeAfterWallet
-    const promoRounded = promoDiscount ? computeRoundedGuestTotalPot(guestTotalBeforeRounding) : null
+    const promoRounded = promoDiscount
+      ? computeRoundedGuestTotal(guestTotalBeforeRounding, roundingMode)
+      : null
     const roundingDiffPot = promoDiscount
-      ? promoRounded?.roundingDiffPotThb || 0
+      ? promoRounded?.roundingPotThb ?? promoRounded?.roundingDiffPotThb ?? 0
       : Math.max(0, Math.round(Number(booking?.roundingDiffPot) || 0))
     const totalWithFee = promoDiscount
       ? promoRounded?.roundedGuestTotalThb || Math.round(guestTotalBeforeRounding)

@@ -6,6 +6,12 @@
 
 **Financial model version:** **3.7.0** (+ **Stage 77.7**: polish pass, logo sync, micro-interactions and mobile nav styling.)
 
+**Stage 100 (2026-05):** Attestation lock — `lib/booking-price-integrity.js` (`computeAttestationGuestTotalThb`, v2 `final_breakdown` + 1 THB; legacy pot10 only); `lib/booking/booking-status-display.js` + i18n `booking-status.js`; legal `docs/legal/IT_SERVICE_KG_CONTRACT_SUMMARY.md` (ADR-097 link); README external cron for financial jobs; investor one-pager USDT buffer.
+
+**Stage 99 (2026-05):** Soft launch prep — dispute payout freeze SSOT (`partner-payout-eligibility` + `disputes.freeze_payment` → UI «Заблокировано спором»); ledger `DISPUTE_PARTNER_FUNDS_HELD` / `RELEASED`; smoke **`docs/FINANCIAL_SMOKE_E2E.md`**; plan **`docs/SOFT_LAUNCH_PLAN.md`**; cron **`financial-health-monitor`** (PENDING_FISCAL + ledger drift alerts).
+
+**Stage 98 (2026-05):** Pre-launch financial hardening — **`docs/PRE_LAUNCH_CHECKLIST.md`**, **`docs/INVESTOR_ONE_PAGER_FINANCIAL_V2.md`** (IT-услуги KG, ADR-097). **24h withdraw hold:** SSOT **`lib/partner/partner-payout-eligibility.js`**; **`EscrowService.getPartnerBalance`** → **`thawHoldBalanceThb`** / **`availableBalanceThb`**; статус **`READY_FOR_PAYOUT`** после hold; cron **`POST /api/cron/promote-ready-for-payout`** (hourly в **`vercel.json`**); пулы **`POST /api/cron/payout-batch-pools`** (ПН/ЧТ). Партнёр UI **`/partner/finances`**: карточка «Разморозка (24 ч)»; **`GET /api/v2/partner/balance-breakdown`** отдаёт **`thawHoldBalanceThb`**. Admin **`/admin/settings/finances`**: пул на сегодня, compliance JSON/CSV (**`?format=csv`**), fiscal prod hint. Pricing v2: **`PRICING_ENGINE_V2`**, **`GET /api/v2/pricing/engine-config`**.
+
 **Stage 96.2 (2026-05):** E2E hygiene — **`isAggressiveE2eListingCandidate`** + wider PostgREST OR (`stage72`, `test-`, description/metadata tag); Storage cleanup via **`listListingStoragePathsWithThumbs`**. **stage72** reuses **`lst-e2e-stage72-cashflow`** (`upsert`, purge old bookings). CI: отдельный job **`e2e-db-cleanup`** (`needs: test`, `if: always()`). **Политика:** E2E не пишут в production Supabase — только staging/mock (см. README § E2E).
 
 **Stage 96.1 (2026-05):** E2E listing cleanup — **`052_listing_delete_storage_trigger_noop.sql`** (старый триггер `DELETE FROM storage.objects` ломал `DELETE` listings). **`cleanup-test-data`**: Storage API → bookings → listings; fallback **soft-purge** (`INACTIVE` + `metadata.is_deleted`). **`global-teardown`**: вызывает **`runCleanupTestData`** после броней.

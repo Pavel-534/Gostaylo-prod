@@ -103,7 +103,14 @@ Scheduled jobs are **not** relied on for sub-daily work. Use [cron-job.org](http
 |-----|-----|-------------------|--------|
 | **Storage orphan cleanup** | `GET https://<your-domain>/api/cron/cleanup-storage?dryRun=false` | Daily 03:00 UTC | Default **`dryRun=true`**. Delete: **`dryRun=false`**. Limits: `minAgeDays=7`, `graceHours=48`, `budgetMs=9000` (Hobby) or `22000` (Pro). Response includes **`metrics`** (listed/deleted/skipped). |
 | **FX refresh** | `GET https://<your-domain>/api/cron/exchange-rates-refresh` | Every 3–6 h | See manifesto Stage 76.2. |
-| **Escrow thaw** | `GET https://<your-domain>/api/cron/escrow-thaw` | Hourly | Financial critical path. |
+| **Escrow thaw** | `POST https://<your-domain>/api/cron/escrow-thaw` | Hourly | `PAID_ESCROW` → `THAWED`. |
+| **Promote ready for payout** | `POST https://<your-domain>/api/cron/promote-ready-for-payout` | Hourly | After 24h hold → `READY_FOR_PAYOUT`. |
+| **Payout batch pools** | `POST https://<your-domain>/api/cron/payout-batch-pools` | Mon & Thu 07:00 UTC | Body optional: `{"force":true}` off-schedule. |
+| **Financial health** | `POST https://<your-domain>/api/cron/financial-health-monitor` | Daily 06:30 UTC | `PENDING_FISCAL` + ledger drift alerts. |
+
+All financial cron routes require **`assertCronAuthorized`** (`CRON_SECRET`). Unauthenticated requests receive **401**; missing env → **503**.
+
+**Upstash / cron-job.org (Vercel Hobby):** Vercel cron is limited (often once per day per route). For **hourly** financial jobs, register the same URLs on [cron-job.org](https://cron-job.org) or [Upstash QStash](https://upstash.com/docs/qstash) with the headers below. Keep Vercel entries as a fallback.
 
 **Headers** (either):
 

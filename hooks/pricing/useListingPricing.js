@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { format, differenceInDays } from 'date-fns'
 import { calculatePrice } from '@/lib/listing/listing-price-sync.js'
-import { computeRoundedGuestTotalPot } from '@/lib/booking-price-integrity'
+import { computeRoundedGuestTotal } from '@/lib/booking-price-integrity'
+import { usePricingEngineConfig } from '@/hooks/use-pricing-engine-config'
 
 /**
  * PDP / booking widget: guest price breakdown (subtotal, service fee, guest total) from dates + guests + commission.
@@ -22,6 +23,7 @@ export function useListingPricing({
   syncPricing = null,
 } = {}) {
   const [priceCalc, setPriceCalc] = useState(null)
+  const { roundingMode } = usePricingEngineConfig()
 
   useEffect(() => {
     if (!listing || !dateRange?.from || !dateRange?.to) {
@@ -79,7 +81,7 @@ export function useListingPricing({
     const commissionThbHost = Math.round(calc.totalPrice * hostCommissionRate)
     const partnerPayoutThb = calc.totalPrice - commissionThbHost
     const guestPayable = calc.totalPrice + taxAmt + serviceFee
-    const roundedGuestTotal = computeRoundedGuestTotalPot(guestPayable)
+    const roundedGuestTotal = computeRoundedGuestTotal(guestPayable, roundingMode)
     if (!roundedGuestTotal) {
       setPriceCalc(null)
       return
@@ -102,7 +104,7 @@ export function useListingPricing({
       commissionThbHost,
       partnerPayoutThb,
       platformCutThb: serviceFee + commissionThbHost,
-      roundingDiffPot: roundedGuestTotal.roundingDiffPotThb,
+      roundingDiffPot: roundedGuestTotal.roundingPotThb ?? roundedGuestTotal.roundingDiffPotThb,
       finalTotalRaw: guestPayable,
       finalTotal: roundedGuestTotal.roundedGuestTotalThb,
     })
@@ -116,6 +118,7 @@ export function useListingPricing({
     guestServiceFeePercent,
     taxRatePercent,
     syncPricing,
+    roundingMode,
   ])
 
   return priceCalc

@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Settings as SettingsIcon, DollarSign, Power, Home, Type, Phone, Shield } from 'lucide-react';
+import { AlertTriangle, Settings as SettingsIcon, DollarSign, Power, Home, Type, Phone, Shield, Landmark } from 'lucide-react';
+import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 
 const FEE_SPLIT_PRESETS = {
@@ -177,6 +178,13 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Глобальные настройки</h1>
         <p className="text-sm sm:text-base text-gray-600 mt-1">Управление параметрами платформы</p>
+        <Link
+          href="/admin/settings/finances"
+          className="inline-flex items-center gap-2 mt-3 text-sm font-medium text-indigo-700 hover:underline"
+        >
+          <Landmark className="w-4 h-4" />
+          FinTech: pricing profiles, payout batches, compliance (Stage 97)
+        </Link>
       </div>
 
       {/* Homepage Hero Content - Mobile Responsive */}

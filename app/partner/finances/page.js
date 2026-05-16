@@ -8,7 +8,7 @@
 import { Suspense } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Calendar, Shield, Wallet, Banknote, Clock, Loader2 } from 'lucide-react'
+import { Calendar, Shield, Wallet, Banknote, Clock, Loader2, AlertTriangle } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFinancialSnapshotDialog'
 import { usePartnerFinances } from '@/hooks/usePartnerFinances'
@@ -109,7 +109,14 @@ function PartnerFinancesV2Content() {
         <p className="text-xs text-slate-500">{t('partnerFinances_reconciliationOk')}</p>
       ) : null}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {(financesSummary?.disputeHoldThb ?? 0) > 0 ? (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900 flex gap-2 items-start">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-rose-600 mt-0.5" />
+          <span>{t('partnerFinances_disputeBanner')}</span>
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
         <PartnerFinancesStatCard
           icon={Calendar}
           title={t('partnerFinances_bucketPendingTitle')}
@@ -122,6 +129,20 @@ function PartnerFinancesV2Content() {
           title={t('partnerFinances_bucketEscrowTitle')}
           value={formatPrice(financesSummary?.escrowThb ?? 0, currency, exchangeRates)}
           subtitle={t('partnerFinances_bucketEscrowDesc')}
+          loading={summaryLoadingCombined}
+        />
+        <PartnerFinancesStatCard
+          icon={Clock}
+          title={t('partnerFinances_bucketThawHoldTitle')}
+          value={formatPrice(financesSummary?.thawHoldThb ?? 0, currency, exchangeRates)}
+          subtitle={t('partnerFinances_bucketThawHoldDesc')}
+          loading={summaryLoadingCombined}
+        />
+        <PartnerFinancesStatCard
+          icon={AlertTriangle}
+          title={t('partnerFinances_bucketDisputeTitle')}
+          value={formatPrice(financesSummary?.disputeHoldThb ?? 0, currency, exchangeRates)}
+          subtitle={t('partnerFinances_bucketDisputeDesc')}
           loading={summaryLoadingCombined}
         />
         <PartnerFinancesStatCard

@@ -216,6 +216,14 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 - **Операционный слой (alpha):** при создании partner Flash Sale логируется событие в `MarketingNotificationsService`; крон `GET/POST /api/cron/flash-sale-reminder` готовит уведомление партнёру за 1 час до конца с KPI `N` созданных броней (`promo_code_used`).
 - **Delivery + anti-spam (Stage 37.0):** reminder доставляется партнёру через Telegram adapter (`sendTelegramMessagePayload`) с inline CTA на quick-action продление; дедуп регулируется в `promo_codes.metadata.last_reminder_sent_at` (окно блокировки 45 минут). Любые новые каналы/триггеры обязаны уважать это окно или расширять policy в этом ADR.
 
+### Financial Model v2.0 (Stage 97.0 — ADR-097)
+
+- **ADR:** **`docs/ADR/097-financial-model-v2.md`** — Pricing Profiles, RU/KG internal split, Netto/Brutto, batch payouts.
+- **Миграция (схема):** **`database/migrations/053_financial_model_v2.sql`** — таблицы **`pricing_profiles`**, **`pricing_profile_assignments`**, **`payout_batches`**, **`payout_batch_items`**; колонки RUB на **`ledger_entries`**; FK **`pricing_profile_id`** на **`profiles`** / **`listings`**.
+- **Движок (код, Stage 97.0.2):** **`lib/pricing-engine/`** — **`PricingEngine.computeFinalBreakdown`**, snapshot **`pricing_snapshot.v = 2`**. Проценты **только** из строк **`pricing_profiles`** + **`system_settings.general.default_pricing_profile_id`**; в БД **`ru_agent_share_pct + kr_service_share_pct = guest_fee_pct`** (по умолчанию 7+8=15).
+- **Конфиденциальность:** поля **`ru_fee_thb`**, **`kr_fee_thb`**, **`fx_markup_thb`**, **`platform_margin_pool_thb`** — **только админка и compliance**; партнёр/гость видят **Netto** и итог Brutto через **`toPartnerVisibleBreakdown`**.
+- **Живой сайт:** до Stage **97.0.3** по-прежнему **`PricingService` / `calculateFeeSplitWithPolicy`**; модуль v2 **не подключён** к `createBooking` (feature flag позже).
+
 ### Currency System
 
 - **Канон:** один серверный модуль **`lib/services/currency.service.js`** (курсы, USDT, дефолтная комиссия, **`getEffectiveRate`** с **`resolveChatInvoiceRateMultiplier`** для счетов в чате). Устаревший реэкспорт **`currency-helper.js`** удалён — импорты только из **`currency.service.js`**.

@@ -13,7 +13,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { differenceInDays, parseISO } from 'date-fns'
 import { CalendarService } from '@/lib/services/calendar.service'
 import { PricingService } from '@/lib/services/pricing.service'
-import { computeRoundedGuestTotalPot } from '@/lib/booking-price-integrity'
+import { computeRoundedGuestTotal } from '@/lib/booking-price-integrity'
+import { getServerGuestRoundingMode } from '@/lib/booking-guest-rounding'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 import { normalizeBookingInstantForDb } from '@/lib/listing-date'
 import { resolveListingCategorySlug } from '@/lib/services/booking.service'
@@ -172,14 +173,16 @@ export async function POST(request) {
     const subtotalThb = Math.max(0, Math.round(rawSub))
 
     const feeSplit = await PricingService.calculateFeeSplit(subtotalThb, listing.owner_id)
-    const roundedPot = computeRoundedGuestTotalPot(feeSplit.guestPayableThb)
+    const roundingMode = await getServerGuestRoundingMode()
+    const roundedPot = computeRoundedGuestTotal(feeSplit.guestPayableThb, roundingMode)
     if (!roundedPot) {
       return NextResponse.json(
         { status: 'error', error: 'Could not compute guest payable total' },
         { status: 500 },
       )
     }
-    const { roundedGuestTotalThb, roundingDiffPotThb } = roundedPot
+    const roundedGuestTotalThb = roundedPot.roundedGuestTotalThb
+    const roundingDiffPotThb = roundedPot.roundingPotThb ?? roundedPot.roundingDiffPotThb ?? 0
     const taxableMarginAmount = Math.max(0, roundedGuestTotalThb - feeSplit.partnerEarningsThb)
     const nowIso = new Date().toISOString()
     const pricingSnapshot = {

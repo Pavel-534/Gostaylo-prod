@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/currency'
-import { snapshotMoney, STATUS_COLORS } from '@/components/partner/finances/partner-finances-shared'
+import { snapshotMoney, resolveBookingStatusBadge } from '@/components/partner/finances/partner-finances-shared'
 import { PartnerBookingIncomeKindBadge } from '@/components/partner/finances/PartnerBookingIncomeKindBadge'
 
 export function PartnerFinancesTransactionHistory({
@@ -91,9 +91,14 @@ export function PartnerFinancesTransactionHistory({
                         categorySlug={booking.financial_snapshot?.category_slug}
                         t={t}
                       />
-                      <Badge className={`text-xs ${STATUS_COLORS[booking.status] || 'bg-slate-100'}`}>
-                        {booking.status}
-                      </Badge>
+                      {(() => {
+                        const st = resolveBookingStatusBadge(booking, { t })
+                        return (
+                          <Badge className={`text-xs ${st.badgeClass}`} title={st.dbStatus}>
+                            {st.label}
+                          </Badge>
+                        )
+                      })()}
                     </div>
                     <p className="text-sm text-slate-600">
                       {t('guest')}: {booking.guestName || booking.guest_name || 'N/A'}

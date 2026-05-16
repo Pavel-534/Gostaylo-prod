@@ -1,6 +1,6 @@
 /**
  * GET /api/v2/partner/balance-breakdown
- * Frozen (PAID_ESCROW) vs available (THAWED) in THB, totals + per listing category slug.
+ * Frozen (PAID_ESCROW) vs thaw hold (THAWED <24h) vs available (THAWED≥24h / READY_FOR_PAYOUT).
  */
 
 import { NextResponse } from 'next/server';
@@ -78,7 +78,10 @@ export async function GET() {
       data: {
         partnerId: userId,
         frozenBalanceThb: bal.balance.frozenBalanceThb ?? bal.balance.escrowBalance,
+        thawHoldBalanceThb: bal.balance.thawHoldBalanceThb ?? 0,
+        disputeHoldBalanceThb: bal.balance.disputeHoldBalanceThb ?? 0,
         availableBalanceThb: bal.balance.availableBalanceThb ?? bal.balance.availableBalance,
+        withdrawalHoldHours: bal.balance.withdrawalHoldHours ?? 24,
         totalCommissionThb: bal.balance.totalCommission,
         totalEarningsThb: bal.balance.totalEarnings,
         pendingPayoutsThb: bal.balance.pendingPayouts,

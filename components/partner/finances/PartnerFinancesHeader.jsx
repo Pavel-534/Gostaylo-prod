@@ -1,6 +1,6 @@
 'use client'
 
-import { Download, Wallet } from 'lucide-react'
+import { Download, Wallet, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { formatPrice } from '@/lib/currency'
@@ -31,6 +31,22 @@ export function PartnerFinancesHeader({
               <span className="text-slate-600">{t('partnerFinances_escrowFrozenLabel')}</span>
               <span className="font-semibold">{formatPrice(balanceBreakdown.frozenBalanceThb ?? 0, 'THB')}</span>
             </div>
+            {(balanceBreakdown.thawHoldBalanceThb ?? 0) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-600">{t('partnerFinances_bucketThawHoldTitle')}</span>
+                <span className="font-semibold text-cyan-800">
+                  {formatPrice(balanceBreakdown.thawHoldBalanceThb ?? 0, 'THB')}
+                </span>
+              </div>
+            )}
+            {(balanceBreakdown.disputeHoldBalanceThb ?? 0) > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-600">{t('partnerFinances_bucketDisputeTitle')}</span>
+                <span className="font-semibold text-rose-800">
+                  {formatPrice(balanceBreakdown.disputeHoldBalanceThb ?? 0, 'THB')}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-slate-600">{t('partnerFinances_escrowAvailableLabel')}</span>
               <span className="font-semibold text-teal-800">

@@ -330,6 +330,12 @@ export async function POST(request, { params }) {
         conversationId: dispute.conversation_id || null,
       })
 
+      await DisputeService.finalizeDisputePaymentUnfreeze({
+        bookingId: dispute.booking_id,
+        disputeId,
+        resolutionReason: verdict,
+      })
+
       const disputeSnap = await fetchDisputeSnapshot(disputeId)
       return NextResponse.json({
         success: true,
