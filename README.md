@@ -95,27 +95,47 @@ frontend/         # Legacy adjunct — not the app root
 
 Prefer **`/api/v2/*`**. Cron / webhooks: own routes + secrets (e.g. **`CRON_SECRET`**). UI reads **`error_code`** from auth/promo responses — not ad-hoc `error` strings.
 
-### External cron (Vercel Hobby / Free)
+### Cron on Vercel Hobby (important)
 
-Scheduled jobs are **not** relied on for sub-daily work. Use [cron-job.org](https://cron-job.org) (or similar) with the same secret as production:
+[Vercel Hobby](https://vercel.com/docs/cron-jobs/usage-and-pricing) allows cron jobs **at most once per day**.  
+If `vercel.json` contains `0 * * * *` (hourly) or similar, **deployment fails** with:
 
-| Job | URL | Schedule (example) | Notes |
-|-----|-----|-------------------|--------|
-| **Storage orphan cleanup** | `GET https://<your-domain>/api/cron/cleanup-storage?dryRun=false` | Daily 03:00 UTC | Default **`dryRun=true`**. Delete: **`dryRun=false`**. Limits: `minAgeDays=7`, `graceHours=48`, `budgetMs=9000` (Hobby) or `22000` (Pro). Response includes **`metrics`** (listed/deleted/skipped). |
-| **FX refresh** | `GET https://<your-domain>/api/cron/exchange-rates-refresh` | Every 3–6 h | See manifesto Stage 76.2. |
-| **Escrow thaw** | `POST https://<your-domain>/api/cron/escrow-thaw` | Hourly | `PAID_ESCROW` → `THAWED`. |
-| **Promote ready for payout** | `POST https://<your-domain>/api/cron/promote-ready-for-payout` | Hourly | After 24h hold → `READY_FOR_PAYOUT`. |
-| **Payout batch pools** | `POST https://<your-domain>/api/cron/payout-batch-pools` | Mon & Thu 07:00 UTC | Body optional: `{"force":true}` off-schedule. |
-| **Financial health** | `POST https://<your-domain>/api/cron/financial-health-monitor` | Daily 06:30 UTC | `PENDING_FISCAL` + ledger drift alerts. |
+> *Hobby accounts are limited to daily cron jobs. This cron expression would run more than once per day.*
 
-All financial cron routes require **`assertCronAuthorized`** (`CRON_SECRET`). Unauthenticated requests receive **401**; missing env → **503**.
+**Financial jobs that must run hourly** (`promote-ready-for-payout`, and ideally `escrow-thaw`) are **not** in `vercel.json` — trigger them only via **[cron-job.org](https://cron-job.org)** (or Upstash QStash). Full table: **`docs/CRON_EXTERNAL_FINANCIAL.md`**.
 
-**Upstash / cron-job.org (Vercel Hobby):** Vercel cron is limited (often once per day per route). For **hourly** financial jobs, register the same URLs on [cron-job.org](https://cron-job.org) or [Upstash QStash](https://upstash.com/docs/qstash) with the headers below. Keep Vercel entries as a fallback.
+`vercel.json` keeps **daily** fallbacks only (`escrow-thaw` 00:00 UTC, `financial-health-monitor` 06:30 UTC).
 
-**Headers** (either):
+### cron-job.org — financial pipeline (recommended)
 
-- `Authorization: Bearer <CRON_SECRET>`
-- `x-cron-secret: <CRON_SECRET>`
+1. Vercel → **Environment Variables** → set **`CRON_SECRET`** (Production).
+2. [cron-job.org](https://cron-job.org) → Create cronjob → **POST** URL (not GET for financial routes below).
+3. Header: `Authorization: Bearer <CRON_SECRET>` (or `x-cron-secret: <CRON_SECRET>`).
+4. Create **four jobs**:
+
+| Title | URL | Schedule (cron-job.org) | Body (JSON) |
+|-------|-----|-------------------------|-------------|
+| escrow-thaw | `https://<domain>/api/cron/escrow-thaw` | `0 * * * *` (hourly) | — |
+| promote-ready-for-payout | `https://<domain>/api/cron/promote-ready-for-payout` | `0 * * * *` (hourly) | — |
+| payout-batch-pools | `https://<domain>/api/cron/payout-batch-pools` | `0 7 * * 1,4` | `{"force":false}` |
+| financial-health-monitor | `https://<domain>/api/cron/financial-health-monitor` | `30 6 * * *` | — |
+
+5. After deploy, smoke test:
+
+```bash
+CRON_SECRET=xxx BASE_URL=https://<domain> EXPECT_PRICING_V2=true node scripts/financial-prelaunch-smoke.mjs
+```
+
+Prod env checklist: **`docs/PRODUCTION_ENV.md`**.
+
+### Other external cron (Hobby)
+
+| Job | URL | Schedule | Notes |
+|-----|-----|----------|--------|
+| **Storage cleanup** | `GET …/api/cron/cleanup-storage?dryRun=false` | Daily 03:00 UTC | See Stage 95.1 |
+| **FX refresh** | `GET …/api/cron/exchange-rates-refresh` | Every 3–6 h | Not in `vercel.json` if more than daily |
+
+All `/api/cron/*` financial routes use **`assertCronAuthorized`**: no secret → **401**, missing `CRON_SECRET` env → **503**.
 
 **Local dry-run** (no deletes): `npm run cleanup:storage` — report only. **Execute deletes:** `npm run cleanup:storage:execute` (requires env keys).
 

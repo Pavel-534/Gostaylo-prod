@@ -22,7 +22,8 @@
     "cleanup:storage:execute": "node scripts/cleanup-storage.mjs --execute",
     "cleanup:test-data": "node scripts/cleanup-test-data.mjs",
     "cleanup:test-data:execute": "node scripts/cleanup-test-data.mjs --execute",
-    "analyze": "cross-env ANALYZE=true next build"
+    "analyze": "cross-env ANALYZE=true next build",
+    "smoke:financial": "node scripts/financial-prelaunch-smoke.mjs"
   },
   "dependencies": {
     "@changey/react-leaflet-markercluster": "^4.0.0-rc1",

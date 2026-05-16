@@ -15,7 +15,10 @@
 | 1.3 | `FISCAL_SANDBOX=false` перед live-чеками | Admin → FinTech → карточка Fiscal prod | FinTech |
 | 1.4 | `FISCAL_PROVIDER_URL` — prod OFD/касса | Smoke чек на тестовой оплате 1 ₽ / минимум | Бухгалтерия + Dev |
 | 1.5 | `FISCAL_KG_SUPPLIER_NAME`, `FISCAL_RU_AGENT_INN` | Compliance export по booking → supplier tag | Бухгалтерия |
-| 1.6 | Cron в `vercel.json` + **внешний hourly** (README) | `escrow-thaw`, `promote-ready-for-payout`, `payout-batch-pools`, `financial-health-monitor` — все с `CRON_SECRET` | DevOps |
+| 1.6 | **Vercel Hobby:** в `vercel.json` **нет** hourly (`0 * * * *`) — иначе deploy fail | Только daily: `escrow-thaw`, `financial-health-monitor` | DevOps |
+| 1.6b | **cron-job.org** (обязательно для hourly) | `promote-ready-for-payout`, `escrow-thaw` hourly; `payout-batch-pools` ПН/ЧТ — см. `docs/CRON_EXTERNAL_FINANCIAL.md` | DevOps |
+| 1.6c | Smoke cron | `node scripts/financial-prelaunch-smoke.mjs` → PASS | DevOps |
+| 1.6d | Prod env | `docs/PRODUCTION_ENV.md` — `PRICING_ENGINE_V2=true`, `FISCAL_SANDBOX=false` | DevOps |
 | 1.7 | Legal KG IT contract wording | `docs/legal/IT_SERVICE_KG_CONTRACT_SUMMARY.md` согласован с бухгалтерией | Legal |
 
 ---
@@ -140,6 +143,13 @@
 - Support macro: «24 ч после разморозки — доступно к выводу»
 
 ---
+
+## 10b. Vercel deploy (Hobby)
+
+- [ ] `vercel.json` — **no** `0 * * * *` or `*/N` patterns (only ≤1×/day per job)
+- [ ] Deploy succeeds on Vercel
+- [ ] cron-job.org jobs created per `docs/CRON_EXTERNAL_FINANCIAL.md`
+- [ ] `financial-prelaunch-smoke.mjs` PASS on production URL
 
 ## 11. Sign-off
 
