@@ -10,7 +10,7 @@
 
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { isTestListingRow } from '@/lib/e2e/test-listing-cleanup'
+import { isExcludedFromPublicCatalog } from '@/lib/e2e/test-listing-cleanup'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,7 +35,7 @@ export async function GET() {
   }
 
   try {
-    // ── 1. Active listings count (exclude E2E / smoke rows — same as catalog search) ──
+    // ── 1. Active listings count (same filter as catalog search: tagged E2E only) ──
     const { data: activeRows, error: listingsErr } = await supabaseAdmin
       .from('listings')
       .select('id, title, description, metadata')
@@ -45,7 +45,7 @@ export async function GET() {
       console.error('[PUBLIC STATS] listings query error:', listingsErr.message)
     }
 
-    const listingsCount = (activeRows || []).filter((row) => !isTestListingRow(row)).length
+    const listingsCount = (activeRows || []).filter((row) => !isExcludedFromPublicCatalog(row)).length
 
     // ── 2. Average rating (graceful fallback if reviews table missing) ────────
     let avgRating = null
