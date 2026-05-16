@@ -13,6 +13,30 @@ export async function PATCH(request, { params }) {
 
   const id = params.id
   const body = await request.json().catch(() => ({}))
+  if (
+    body.guest_fee_pct !== undefined ||
+    body.ru_agent_share_pct !== undefined ||
+    body.kr_service_share_pct !== undefined
+  ) {
+    const { data: current } = await supabaseAdmin
+      .from('pricing_profiles')
+      .select('guest_fee_pct,ru_agent_share_pct,kr_service_share_pct')
+      .eq('id', id)
+      .single()
+    const guest = Number(body.guest_fee_pct ?? current?.guest_fee_pct)
+    const ru = Number(body.ru_agent_share_pct ?? current?.ru_agent_share_pct)
+    const kr = Number(body.kr_service_share_pct ?? current?.kr_service_share_pct)
+    if (Math.abs(ru + kr - guest) >= 0.01) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'INVALID_FEE_SPLIT',
+          message: 'ru + kr must equal guest_fee_pct',
+        },
+        { status: 400 },
+      )
+    }
+  }
   const patch = {}
   for (const key of [
     'name',

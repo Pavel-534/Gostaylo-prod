@@ -24,6 +24,24 @@ export async function POST(request) {
   if (gate.error) return gate.error
 
   const body = await request.json().catch(() => ({}))
+  const guest = Number(body.guest_fee_pct)
+  const ru = Number(body.ru_agent_share_pct)
+  const kr = Number(body.kr_service_share_pct)
+  if (
+    !Number.isFinite(guest) ||
+    !Number.isFinite(ru) ||
+    !Number.isFinite(kr) ||
+    Math.abs(ru + kr - guest) >= 0.01
+  ) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'INVALID_FEE_SPLIT',
+        message: 'ru_agent_share_pct + kr_service_share_pct must equal guest_fee_pct',
+      },
+      { status: 400 },
+    )
+  }
   const id = String(body.id || `pp-${Date.now()}`).trim()
   const row = {
     id,

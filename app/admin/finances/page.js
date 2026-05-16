@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { 
   Wallet, CreditCard, QrCode, CheckCircle, XCircle, Loader2, 
-  ExternalLink, RefreshCw, Clock, DollarSign, AlertCircle, Eye
+  ExternalLink, RefreshCw, Clock, DollarSign, AlertCircle, Eye, Landmark, ChevronRight
 } from 'lucide-react'
 
 // Payment method config
@@ -243,9 +244,9 @@ export default function FinancePage() {
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 flex items-center gap-2">
               <DollarSign className="h-8 w-8 text-teal-600" />
-              Финансы
+              Платежи
             </h1>
-            <p className="text-slate-600 mt-1">Управление платежами и верификация</p>
+            <p className="text-slate-600 mt-1">Верификация входящих платежей (crypto / card / МИР)</p>
             {adaptersHealth && (
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                 <Badge
@@ -272,6 +273,24 @@ export default function FinancePage() {
             Обновить
           </Button>
         </div>
+
+        <Link
+          href="/admin/settings/finances"
+          className="mb-6 flex items-center justify-between gap-4 rounded-xl border-2 border-teal-200 bg-gradient-to-r from-teal-50 to-slate-50 px-4 py-4 hover:border-teal-400 transition-colors"
+        >
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-teal-600 text-white shrink-0">
+              <Landmark className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="font-semibold text-slate-900">FinTech-пульт (Pricing V2, касса, пулы, ledger)</p>
+              <p className="text-sm text-slate-600 mt-0.5">
+                Комиссии, 54-ФЗ, батчинг READY_FOR_PAYOUT и compliance CSV
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="h-5 w-5 text-teal-700 shrink-0" />
+        </Link>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-6">

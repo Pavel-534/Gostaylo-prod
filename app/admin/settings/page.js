@@ -180,10 +180,10 @@ export default function SettingsPage() {
         <p className="text-sm sm:text-base text-gray-600 mt-1">Управление параметрами платформы</p>
         <Link
           href="/admin/settings/finances"
-          className="inline-flex items-center gap-2 mt-3 text-sm font-medium text-indigo-700 hover:underline"
+          className="inline-flex items-center gap-2 mt-4 rounded-lg border-2 border-teal-300 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-900 hover:bg-teal-100"
         >
-          <Landmark className="w-4 h-4" />
-          FinTech: pricing profiles, payout batches, compliance (Stage 97)
+          <Landmark className="w-5 h-5 text-teal-700" />
+          Открыть FinTech-пульт (V2, касса, пулы, ledger)
         </Link>
       </div>
 
