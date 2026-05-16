@@ -11,6 +11,7 @@ import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 import { ListingTrustVerifiedMiniBadge } from '@/components/listing/ListingTrustVerifiedMiniBadge'
 import { getUIText } from '@/lib/translations'
 import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
+import { resolveListingGuestDisplayPriceThb } from '@/lib/pricing/catalog-guest-display-price'
 
 /** @param {object} props */
 export function ListingPopupCard({
@@ -29,7 +30,7 @@ export function ListingPopupCard({
     isApproximateLocation ? 'mapListing_approximatePopup' : 'mapListing_exactPopup',
     language,
   )
-  const basePrice = parseFloat(listing.basePriceThb ?? listing.base_price_thb ?? 0) || 0
+  const basePrice = resolveListingGuestDisplayPriceThb(listing)
   const categorySlug =
     listing.categorySlug || listing.category?.slug || listing.metadata?.category_slug || ''
 

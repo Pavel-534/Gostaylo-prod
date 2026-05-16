@@ -21,6 +21,7 @@ import { ListingPriceMarker } from '@/components/listing/ListingPriceMarker'
 import { getUIText } from '@/lib/translations'
 import { getListingLocationDisplayMode } from '@/lib/listing-location-privacy'
 import { formatPrice } from '@/lib/currency'
+import { resolveListingGuestDisplayPriceThb } from '@/lib/pricing/catalog-guest-display-price'
 import {
   extractListingLatLng,
   leafletBoundsAroundPointMeters,
@@ -226,7 +227,7 @@ export default function InteractiveSearchMap({
 
   const priceForMarker = useCallback(
     (listing) => {
-      const thb = parseFloat(listing.basePriceThb ?? listing.base_price_thb ?? 0) || 0
+      const thb = resolveListingGuestDisplayPriceThb(listing)
       return formatPrice(thb, currency, exchangeRates, language)
     },
     [currency, exchangeRates, language]

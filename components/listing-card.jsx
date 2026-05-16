@@ -23,6 +23,7 @@ import { UrgencyTimer } from '@/components/UrgencyTimer'
 import { ListingFlashHotStrip } from '@/components/listing/ListingFlashHotStrip'
 import { shouldShowFlashUrgencyTimerAboveStrip } from '@/lib/listing/flash-hot-strip'
 import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
+import { resolveListingGuestDisplayPriceThb } from '@/lib/pricing/catalog-guest-display-price'
 
 export function ListingCard({
   listing,
@@ -74,12 +75,7 @@ export function ListingCard({
   } = listing
   
   const basePrice = basePriceThb || base_price_thb || 0
-  const guestDisplayPriceThb =
-    listing?.guestDisplayPriceThb ?? listing?.guest_display_price_thb ?? null
-  const cardDisplayBasePrice =
-    guestDisplayPriceThb != null && Number.isFinite(Number(guestDisplayPriceThb))
-      ? Number(guestDisplayPriceThb)
-      : basePrice
+  const cardDisplayBasePrice = resolveListingGuestDisplayPriceThb(listing) || basePrice
   const actualIsFeatured = isFeatured || is_featured
   const ownerVerified =
     listingOwnerVerified === true ||
