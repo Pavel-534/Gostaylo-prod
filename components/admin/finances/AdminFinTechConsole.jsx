@@ -18,6 +18,7 @@ import {
   Receipt,
   RefreshCw,
   Shield,
+  Trash2,
   XCircle,
   Zap,
 } from 'lucide-react'
@@ -54,6 +55,7 @@ import {
   POOL_MESSAGES_RU,
 } from '@/lib/admin/fintech-ui-labels'
 import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState'
+import { FiscalSandboxReceiptDialog } from '@/components/admin/finances/FiscalSandboxReceiptDialog'
 
 const MINT = '#0D9488'
 const NAVY = '#0F172A'
@@ -125,7 +127,7 @@ export function AdminFinTechConsole() {
   const [complianceBooking, setComplianceBooking] = useState('')
   const [fiscalTestLoading, setFiscalTestLoading] = useState(false)
   const [fiscalTestOpen, setFiscalTestOpen] = useState(false)
-  const [fiscalTestPayload, setFiscalTestPayload] = useState(null)
+  const [fiscalTestDisplay, setFiscalTestDisplay] = useState(null)
   const [reconLoading, setReconLoading] = useState(false)
   const [lastRecon, setLastRecon] = useState(null)
 
@@ -158,7 +160,9 @@ export function AdminFinTechConsole() {
   }, [load])
 
   const simProfile = profiles.find((p) => p.id === simProfileId) || profiles[0]
-  const draftValid = feeSplitValid(draft)
+  const activeProfiles = profiles.filter((p) => p.is_active !== false)
+  const archivedProfiles = profiles.filter((p) => p.is_active === false)
+  const draftValid = feeSplitValid(draft) && String(draft.name || '').trim().length > 0
   const driftThb = Math.abs(Number(dash?.reconciliation?.deltaThb) || 0)
   const driftBad = driftThb > 0.01
 
@@ -246,13 +250,30 @@ export function AdminFinTechConsole() {
     load()
   }
 
+  const archiveProfile = async (id, name) => {
+    if (!confirm(`Архивировать тариф «${name}»? Он не будет использоваться для новых броней.`)) return
+    const res = await fetch(`/api/admin/finances/pricing-profiles/${id}`, { method: 'DELETE' })
+    const json = await res.json()
+    if (!json.success) {
+      toast({ title: 'Не удалось архивировать', description: json.error, variant: 'destructive' })
+      return
+    }
+    toast({ title: 'Тариф архивирован' })
+    if (editingId === id) {
+      setEditingId(null)
+      setDraft(emptyProfile)
+    }
+    load()
+  }
+
   const createPool = async (force = false) => {
     const ready = dash?.payout?.readyForPayoutCount ?? 0
-    if (ready === 0) {
+    const readyThb = Number(dash?.payout?.readyForPayoutThb) || 0
+    if (ready === 0 || readyThb <= 0) {
       toast({
-        title: 'Нет бронирований, готовых к выплате',
+        title: POOL_MESSAGES_RU.no_ready_bookings,
         description:
-          'Дождитесь статуса «Готово к выплате» после 24 ч удержания или проверьте cron promote-ready-for-payout.',
+          'Брони появятся после оплаты, 24-часового удержания и перевода в статус «Готово к выплате».',
       })
       return
     }
@@ -271,7 +292,7 @@ export function AdminFinTechConsole() {
       toast({
         title:
           json.code === 'NO_READY_BOOKINGS' || json.message === 'no_ready_bookings'
-            ? 'Нет бронирований, готовых к выплате'
+            ? POOL_MESSAGES_RU.no_ready_bookings
             : 'Пул не создан',
         description: msg || 'Попробуйте позже',
         variant: 'destructive',
@@ -315,13 +336,9 @@ export function AdminFinTechConsole() {
     try {
       const res = await fetch('/api/admin/finances/fiscal-test', { method: 'POST' })
       const json = await res.json()
-      if (json.success && (json.sandbox || fiscalSandbox) && json.payload) {
-        setFiscalTestPayload(json.payload)
+      if (json.success && (json.sandbox || fiscalSandbox)) {
+        setFiscalTestDisplay(json.display || null)
         setFiscalTestOpen(true)
-        toast({
-          title: 'Тестовый чек (песочница)',
-          description: 'Ниже структура JSON для 54-ФЗ — в бой не уходит',
-        })
         return
       }
       if (json.success) {
@@ -609,7 +626,7 @@ export function AdminFinTechConsole() {
                   value={simProfileId}
                   onChange={(e) => setSimProfileId(e.target.value)}
                 >
-                  {profiles.map((p) => (
+                  {activeProfiles.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
                     </option>
@@ -627,13 +644,21 @@ export function AdminFinTechConsole() {
               <h4 className="font-medium mb-2" style={{ color: NAVY }}>
                 {editingId ? 'Редактировать тариф' : 'Новый тариф'}
               </h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {PROFILE_FORM_KEYS.map((key) => (
+              <div className="mb-3">
+                <Label>{PROFILE_FIELD_LABELS.name}</Label>
+                <Input
+                  value={draft.name ?? ''}
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                  placeholder="Базовый Таиланд"
+                  className="max-w-md"
+                />
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {PROFILE_FORM_KEYS.filter((k) => k !== 'name').map((key) => (
                   <div key={key}>
                     <Label className="text-xs">{PROFILE_FIELD_LABELS[key] || key}</Label>
                     <Input
                       value={draft[key] ?? ''}
-                      disabled={editingId && key === 'id'}
                       onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
                     />
                   </div>
@@ -663,7 +688,7 @@ export function AdminFinTechConsole() {
               </div>
             </div>
 
-            {profiles.length === 0 ? (
+            {activeProfiles.length === 0 && archivedProfiles.length === 0 ? (
               <FinTechEmptyState
                 icon={Inbox}
                 title="Тарифов пока нет"
@@ -671,7 +696,7 @@ export function AdminFinTechConsole() {
               />
             ) : (
               <div className="space-y-2">
-                {profiles.map((p) => (
+                {activeProfiles.map((p) => (
                   <div
                     key={p.id}
                     className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm hover:border-teal-200"
@@ -684,7 +709,6 @@ export function AdminFinTechConsole() {
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      {!p.is_active && <Badge variant="secondary">выкл</Badge>}
                       <Button
                         size="sm"
                         variant="outline"
@@ -695,9 +719,32 @@ export function AdminFinTechConsole() {
                       >
                         Изменить
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => archiveProfile(p.id, p.name)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                        Архивировать
+                      </Button>
                     </div>
                   </div>
                 ))}
+                {archivedProfiles.length > 0 && (
+                  <div className="pt-3">
+                    <p className="text-xs font-medium text-slate-500 mb-2">Архив (не используются)</p>
+                    {archivedProfiles.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-dashed p-3 text-sm opacity-70 mb-2"
+                      >
+                        <span>{p.name}</span>
+                        <Badge variant="secondary">архив</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -838,7 +885,9 @@ export function AdminFinTechConsole() {
               <Download className="h-5 w-5 text-teal-600" />
               Реестр для банка и бухгалтерии
             </CardTitle>
-            <CardDescription>CSV по одной брони или за период (до 500 строк).</CardDescription>
+            <CardDescription>
+              Реестр для валютного контроля: UUID, дата оплаты, ваучер, суммы в ฿ и ₽, статус 54-ФЗ.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-2 items-end">
@@ -865,25 +914,18 @@ export function AdminFinTechConsole() {
               </Button>
             </div>
             <p className="text-xs text-slate-500">
-              Если за период нет оплаченных броней, файл всё равно скачается с заголовками (пустая строка).
+              Колонки: номер брони, дата оплаты, ваучер (жильё/транспорт), оплата гостя, доходы РФ/КР/спред в
+              ₽, выплата хосту, статус кассы. Пустой период — шаблон с заголовками.
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <Dialog open={fiscalTestOpen} onOpenChange={setFiscalTestOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Пример тестового чека (54-ФЗ)</DialogTitle>
-            <DialogDescription>
-              Песочница — реальный OFD не вызывается. Так выглядит payload для провайдера кассы.
-            </DialogDescription>
-          </DialogHeader>
-          <pre className="text-xs bg-slate-900 text-teal-100 p-4 rounded-lg overflow-auto max-h-[60vh]">
-            {JSON.stringify(fiscalTestPayload, null, 2)}
-          </pre>
-        </DialogContent>
-      </Dialog>
+      <FiscalSandboxReceiptDialog
+        open={fiscalTestOpen}
+        onOpenChange={setFiscalTestOpen}
+        display={fiscalTestDisplay}
+      />
 
       <AlertDialog open={v2DialogOpen} onOpenChange={setV2DialogOpen}>
         <AlertDialogContent>

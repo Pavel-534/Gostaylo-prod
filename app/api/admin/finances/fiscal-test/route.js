@@ -3,6 +3,7 @@ import { requireAccess } from '@/lib/security/access-guard'
 import { computeFinalBreakdown } from '@/lib/pricing-engine/compute-breakdown.js'
 import { toFiscalKassaPayload } from '@/lib/pricing-engine/snapshot-adapter.js'
 import { isFiscalSandboxEnabled } from '@/lib/pricing-engine/fiscal-config.js'
+import { buildFiscalReceiptDisplay } from '@/lib/admin/fiscal-receipt-display.js'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
@@ -39,12 +40,14 @@ export async function POST() {
 
   if (sandbox) {
     const receiptId = `admin-test-${Date.now()}`
+    const display = buildFiscalReceiptDisplay(payload, breakdown)
     return NextResponse.json({
       success: true,
       sandbox: true,
       mode: 'SANDBOX',
       receiptId,
       payload,
+      display,
       message: 'Sandbox mock — no OFD call',
     })
   }

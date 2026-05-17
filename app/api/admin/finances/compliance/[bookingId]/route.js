@@ -3,7 +3,7 @@ import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { supabaseAdmin } from '@/lib/supabase'
 import { toFiscalKassaPayload } from '@/lib/pricing-engine/snapshot-adapter.js'
 import { computeBookingPaymentLedgerLegs } from '@/lib/services/ledger.service.js'
-import { complianceToCsv } from '@/lib/admin/compliance-export-csv.js'
+import { buildComplianceRegistryCsv } from '@/lib/admin/compliance-registry-csv.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +29,13 @@ export async function GET(request, { params }) {
 
   const { data: booking, error } = await supabaseAdmin
     .from('bookings')
-    .select('*')
+    .select(
+      `*,
+      listings (
+        category_slug,
+        categories ( slug, wizard_profile )
+      )`,
+    )
     .eq('id', params.bookingId)
     .maybeSingle()
   if (error || !booking) {
@@ -41,7 +47,7 @@ export async function GET(request, { params }) {
 
   const format = new URL(request.url).searchParams.get('format')
   if (format === 'csv') {
-    const csv = complianceToCsv(data)
+    const csv = buildComplianceRegistryCsv([booking])
     return new NextResponse(csv, {
       status: 200,
       headers: {

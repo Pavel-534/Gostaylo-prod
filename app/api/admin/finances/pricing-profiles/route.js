@@ -42,10 +42,22 @@ export async function POST(request) {
       { status: 400 },
     )
   }
-  const id = String(body.id || `pp-${Date.now()}`).trim()
+  const name = String(body.name || '').trim()
+  if (!name) {
+    return NextResponse.json(
+      { success: false, error: 'NAME_REQUIRED', message: 'Укажите название тарифа' },
+      { status: 400 },
+    )
+  }
+  const slugBase = name
+    .toLowerCase()
+    .replace(/[^a-z0-9а-яё]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 36)
+  const id = String(body.id || '').trim() || `pp-${slugBase || 'tariff'}-${Date.now().toString(36).slice(-5)}`
   const row = {
     id,
-    name: String(body.name || id),
+    name,
     is_default: Boolean(body.is_default),
     is_active: body.is_active !== false,
     guest_fee_pct: Number(body.guest_fee_pct),
