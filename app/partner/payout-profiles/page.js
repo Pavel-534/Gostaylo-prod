@@ -63,6 +63,10 @@ function PayoutCredentialFields({ channel, formData, setFormData }) {
   }
   if (channel === 'BANK') {
     return (
+      <div className='space-y-3'>
+      <p className='text-xs text-slate-500'>
+        Перевод в рублях на расчётный счёт в РФ: ФИО получателя как в банке, ИНН, БИК и номер счёта без ошибок.
+      </p>
       <div className='grid md:grid-cols-2 lg:grid-cols-4 gap-3'>
         <Input
           className='lg:col-span-2'
@@ -87,20 +91,27 @@ function PayoutCredentialFields({ channel, formData, setFormData }) {
           onChange={(e) => setFormData((prev) => ({ ...prev, accountNumber: e.target.value }))}
         />
       </div>
+      </div>
     )
   }
   return (
-    <div className='grid md:grid-cols-2 gap-3'>
+    <div className='space-y-3'>
+      <p className='text-xs text-slate-500'>
+        USDT: укажите сеть (обычно TRC20) и адрес кошелька без пробелов. Проверьте сеть — ошибка приведёт к потере
+        средств.
+      </p>
+      <div className='grid md:grid-cols-2 gap-3'>
       <Input
-        placeholder='Адрес кошелька'
+        placeholder='Адрес кошелька USDT'
         value={formData.address || ''}
         onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
       />
       <Input
-        placeholder='Сеть (например TRC20)'
+        placeholder='Сеть (TRC20)'
         value={formData.network || ''}
         onChange={(e) => setFormData((prev) => ({ ...prev, network: e.target.value }))}
       />
+      </div>
     </div>
   )
 }
@@ -277,8 +288,9 @@ export default function PartnerPayoutProfilesPage() {
     <div className='space-y-6'>
       <div>
         <h1 className='text-3xl font-bold text-slate-900'>Реквизиты для выплат</h1>
-        <p className='text-slate-600 mt-1'>
-          Настройте способ выплаты, чтобы видеть комиссию и сумму к зачислению до отправки выплаты.
+        <p className='text-slate-600 mt-1 max-w-2xl'>
+          Укажите реквизиты для ручных выплат: банковский счёт в рублях (РФ) или USDT (сеть TRC20 и адрес
+          кошелька). После проверки модератором они используются в заявках на вывод.
         </p>
       </div>
 
@@ -380,7 +392,10 @@ export default function PartnerPayoutProfilesPage() {
       <Card>
         <CardHeader>
           <CardTitle>Новый профиль выплаты</CardTitle>
-          <CardDescription>Поддерживаются карта, банковский перевод и криптовалюта.</CardDescription>
+          <CardDescription>
+            Рекомендуем: <strong>банк (RUB)</strong> — ФИО, ИНН, БИК, расчётный счёт; или <strong>USDT</strong> — сеть
+            (TRC20) и адрес кошелька. Карта — по необходимости.
+          </CardDescription>
         </CardHeader>
         <CardContent className='space-y-4'>
           {loading ? (

@@ -8,7 +8,7 @@
 import { Suspense } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Calendar, Shield, Wallet, Banknote, Clock, Loader2, AlertTriangle } from 'lucide-react'
+import { Calendar, Clock, Loader2, AlertTriangle } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFinancialSnapshotDialog'
 import { usePartnerFinances } from '@/hooks/usePartnerFinances'
@@ -20,6 +20,7 @@ import { PartnerFinancesLedger } from '@/components/partner/finances/PartnerFina
 import { PartnerFinancesPayoutMathCard } from '@/components/partner/finances/PartnerFinancesPayoutMathCard'
 import { PartnerFinancesTransactionHistory } from '@/components/partner/finances/PartnerFinancesTransactionHistory'
 import { PartnerFinancesWithdrawDialog } from '@/components/partner/finances/PartnerFinancesWithdrawDialog'
+import { PartnerFinancesBalanceStrip } from '@/components/partner/finances/PartnerFinancesBalanceStrip'
 
 function PartnerFinancesV2Content() {
   const fin = usePartnerFinances()
@@ -77,6 +78,12 @@ function PartnerFinancesV2Content() {
         onExportCsv={handleExportCSV}
       />
 
+      <PartnerFinancesBalanceStrip
+        t={t}
+        summary={financesSummary}
+        loading={summaryLoadingCombined}
+      />
+
       <PartnerFinancesPdfCard
         t={t}
         pdfDateFrom={pdfDateFrom}
@@ -116,7 +123,7 @@ function PartnerFinancesV2Content() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <PartnerFinancesStatCard
           icon={Calendar}
           title={t('partnerFinances_bucketPendingTitle')}
@@ -125,38 +132,10 @@ function PartnerFinancesV2Content() {
           loading={summaryLoadingCombined}
         />
         <PartnerFinancesStatCard
-          icon={Shield}
-          title={t('partnerFinances_bucketEscrowTitle')}
-          value={formatPrice(financesSummary?.escrowThb ?? 0, currency, exchangeRates)}
-          subtitle={t('partnerFinances_bucketEscrowDesc')}
-          loading={summaryLoadingCombined}
-        />
-        <PartnerFinancesStatCard
-          icon={Clock}
-          title={t('partnerFinances_bucketThawHoldTitle')}
-          value={formatPrice(financesSummary?.thawHoldThb ?? 0, currency, exchangeRates)}
-          subtitle={t('partnerFinances_bucketThawHoldDesc')}
-          loading={summaryLoadingCombined}
-        />
-        <PartnerFinancesStatCard
           icon={AlertTriangle}
           title={t('partnerFinances_bucketDisputeTitle')}
           value={formatPrice(financesSummary?.disputeHoldThb ?? 0, currency, exchangeRates)}
           subtitle={t('partnerFinances_bucketDisputeDesc')}
-          loading={summaryLoadingCombined}
-        />
-        <PartnerFinancesStatCard
-          icon={Wallet}
-          title={t('partnerFinances_bucketAvailableTitle')}
-          value={formatPrice(financesSummary?.availableThb ?? 0, currency, exchangeRates)}
-          subtitle={t('partnerFinances_bucketAvailableDesc')}
-          loading={summaryLoadingCombined}
-        />
-        <PartnerFinancesStatCard
-          icon={Banknote}
-          title={t('partnerFinances_bucketTotalPaidTitle')}
-          value={formatPrice(financesSummary?.totalPaidThb ?? 0, currency, exchangeRates)}
-          subtitle={t('partnerFinances_bucketTotalPaidDesc')}
           loading={summaryLoadingCombined}
         />
       </div>

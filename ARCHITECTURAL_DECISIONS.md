@@ -219,10 +219,26 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 ### Financial Model v2.0 (Stage 97.0 — ADR-097)
 
 - **ADR:** **`docs/ADR/097-financial-model-v2.md`** — Pricing Profiles, RU/KG internal split, Netto/Brutto, batch payouts.
-- **Миграция (схема):** **`database/migrations/053_financial_model_v2.sql`** — таблицы **`pricing_profiles`**, **`pricing_profile_assignments`**, **`payout_batches`**, **`payout_batch_items`**; колонки RUB на **`ledger_entries`**; FK **`pricing_profile_id`** на **`profiles`** / **`listings`**.
-- **Движок (код, Stage 97.0.2):** **`lib/pricing-engine/`** — **`PricingEngine.computeFinalBreakdown`**, snapshot **`pricing_snapshot.v = 2`**. Проценты **только** из строк **`pricing_profiles`** + **`system_settings.general.default_pricing_profile_id`**; в БД **`ru_agent_share_pct + kr_service_share_pct = guest_fee_pct`** (по умолчанию 7+8=15).
+- **Миграция (схема):** **`database/migrations/053_financial_model_v2.sql`** — таблицы **`pricing_profiles`**, **`pricing_profile_assignments`**, **`payout_batches`**, **`payout_batch_items`**; колонки RUB на **`ledger_entries`**; FK **`pricing_profile_id`** на **`profiles`** / **`listings`**. **`database/migrations/054_add_ready_for_payout_status.sql`** — enum **`booking_status`**: **`READY_FOR_PAYOUT`** (после 24h hold, до пула).
+- **Движок (код, Stage 97.0.2+):** **`lib/pricing-engine/`** — **`PricingEngine.computeFinalBreakdown`**, snapshot **`pricing_snapshot.v = 2`**. Проценты **только** из строк **`pricing_profiles`** + **`system_settings.general.default_pricing_profile_id`**; в БД **`ru_agent_share_pct + kr_service_share_pct = guest_fee_pct`** (по умолчанию 7+8=15). Production: **`PRICING_ENGINE_V2=true`** (см. **`docs/PRODUCTION_ENV.md`**).
 - **Конфиденциальность:** поля **`ru_fee_thb`**, **`kr_fee_thb`**, **`fx_markup_thb`**, **`platform_margin_pool_thb`** — **только админка и compliance**; партнёр/гость видят **Netto** и итог Brutto через **`toPartnerVisibleBreakdown`**.
-- **Живой сайт:** до Stage **97.0.3** по-прежнему **`PricingService` / `calculateFeeSplitWithPolicy`**; модуль v2 **не подключён** к `createBooking` (feature flag позже).
+- **RUB acquiring:** гость платит в RUB; учёт в THB. SSOT суммы для PSP — **`lib/services/payment-adapters/acquirer-charge-amount.js`**; флаги **`PAYMENT_ACQUIRER_RUB_ENABLED`**, **`PAYMENT_ACQUIRER_RUB_SHADOW`**. Курсовой **спред** — **`fx_markup_thb`** в snapshot (двусторонний: markup в профиле + customer rate в **`PricingEngine.applyFxQuote`**).
+
+### Concierge Launch — ручной treasury на soft launch (Stage 100.3–100.5)
+
+**Контекст:** первый production-трафик; автоматических исходящих банковских API нет.
+
+**Решение:**
+
+1. **Входящие платежи** — штатные webhooks + ledger (`move_to_escrow_and_post_ledger_v1`); RUB в эквайринге, THB в книге.
+2. **Исходящие выплаты партнёрам** — только после явных шагов оператора в **`/admin/settings/finances`**: сверка → пул (DRAFT) → Lock → CSV для банка → физический перевод → **`PATCH` `action: settled`** (**`PayoutBatchService.markBatchSettled`**: ledger **`PARTNER_PAYOUT_OBLIGATION_SETTLED`**, брони **`COMPLETED`**, sync балансов).
+3. **Cron `payout-batch-pools`** на Concierge **выключен**; **`promote-ready-for-payout`** и **`escrow-thaw`** — по runbook (внешний hourly cron на Hobby).
+4. **Партнёр** видит балансы и может подать **`POST /api/v2/partner/payouts`**; исполнение — staff вручную (не stub **`/payouts/request`**).
+5. **Compliance / бухгалтерия** — реестр **`GET /api/admin/finances/compliance-export`** (SSOT **`lib/admin/compliance-registry-csv.js`**); период по **дате оплаты**.
+
+**Операционные доки (не SSOT политики):** **`docs/CONCIERGE_LAUNCH_TREASURY_RUNBOOK.md`**, **`docs/PRE_LAUNCH_CHECKLIST.md`**, **`docs/SOFT_LAUNCH_PLAN.md`**, **`docs/CRON_EXTERNAL_FINANCIAL.md`**.
+
+**Откат:** отключить **`PRICING_ENGINE_V2`**; не вызывать **`settled`** без фактического банковского перевода; при ошибочном пуле — не Lock, править DRAFT по runbook.
 
 ### Currency System
 

@@ -44,7 +44,7 @@ export async function GET(request, { params }) {
 
   const format = new URL(request.url).searchParams.get('format')
   if (format === 'csv') {
-    const csv = buildComplianceRegistryCsv([booking])
+    const { csv } = buildComplianceRegistryCsv([booking])
     return new NextResponse(csv, {
       status: 200,
       headers: {

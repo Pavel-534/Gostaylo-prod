@@ -4,13 +4,19 @@
 
 **Стек:** Next.js **14** (App Router), React, Supabase (Postgres + Storage), JWT в cookie `gostaylo_session` + опционально **Supabase Auth** для OAuth (**Google** в UI; мост в `profiles`, **Stage 79.0**), **`prisma/schema.prisma`** только как описание схемы (рантайм — Supabase).
 
-**Financial model version:** **3.7.0** (+ **Stage 77.7**: polish pass, logo sync, micro-interactions and mobile nav styling.)
+**Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
 **Stage 100 (2026-05):** Attestation lock — `lib/booking-price-integrity.js` (`computeAttestationGuestTotalThb`, v2 `final_breakdown` + 1 THB; legacy pot10 only); `lib/booking/booking-status-display.js` + i18n `booking-status.js`; legal `docs/legal/IT_SERVICE_KG_CONTRACT_SUMMARY.md` (ADR-097 link); README external cron for financial jobs; investor one-pager USDT buffer.
 
 **Stage 99 (2026-05):** Soft launch prep — dispute payout freeze SSOT (`partner-payout-eligibility` + `disputes.freeze_payment` → UI «Заблокировано спором»); ledger `DISPUTE_PARTNER_FUNDS_HELD` / `RELEASED`; smoke **`docs/FINANCIAL_SMOKE_E2E.md`**; plan **`docs/SOFT_LAUNCH_PLAN.md`**; cron **`financial-health-monitor`** (PENDING_FISCAL + ledger drift alerts).
 
+**Stage 100.5 (2026-05):** SSOT doc sync — этот манифест, **`docs/ARCHITECTURAL_PASSPORT.md`** (§ Treasury & Payouts v2), **`ARCHITECTURAL_DECISIONS.md`** (Concierge Launch ADR); операционные runbook/checklist без дублирования политики.
+
+**Stage 100.4 (2026-05):** FinTech + partner polish — compliance registry SSOT **`lib/admin/compliance-registry-csv.js`** (русские колонки, `;` для Excel, фильтр по **дате оплаты**, `listings.categories.slug`); **`GET /api/admin/finances/compliance-export`**; пульт **`/admin/settings/finances`** (`AdminFinTechConsole`, тосты, «Отметить как оплаченный»); заглушка Stage 101 **`FinTechTreasuryConversionsStub`**; партнёр **`/partner/finances`** + **`PartnerFinancesWithdrawDialog`** (ручная выплата), реквизиты RUB/USDT на **`/partner/payout-profiles`**.
+
 **Stage 100.3 (2026-05):** Concierge pre-launch — RU acquirer charge SSOT **`lib/services/payment-adapters/acquirer-charge-amount.js`** (`PAYMENT_ACQUIRER_RUB_ENABLED`, `PAYMENT_ACQUIRER_RUB_SHADOW`); **`mir-ru.adapter.js`** → YooKassa `currency: RUB`; webhook amount verify RUB vs snapshot, ledger THB unchanged; FinTech **«Отметить как оплаченный»** → **`PayoutBatchService.markBatchSettled`** (ledger + `COMPLETED` + balance sync); partner withdraw **`POST /api/v2/partner/payouts`** (client + alias **`/payouts/request`**). Runbook: **`docs/CONCIERGE_LAUNCH_TREASURY_RUNBOOK.md`**.
+
+**Stage 100.2 (2026-05):** Admin FinTech pulpit — **`/admin/settings/finances`** (не **`/admin/finances`** — верификация платежей); APIs **`/api/admin/finances/*`** (dashboard, pricing-v2, payout-batches, compliance-export, fiscal-test); sidebar **FinTech-пульт**.
 
 **Stage 98 (2026-05):** Pre-launch financial hardening — **`docs/PRE_LAUNCH_CHECKLIST.md`**, **`docs/INVESTOR_ONE_PAGER_FINANCIAL_V2.md`** (IT-услуги KG, ADR-097). **24h withdraw hold:** SSOT **`lib/partner/partner-payout-eligibility.js`**; **`EscrowService.getPartnerBalance`** → **`thawHoldBalanceThb`** / **`availableBalanceThb`**; статус **`READY_FOR_PAYOUT`** после hold; cron **`POST /api/cron/promote-ready-for-payout`** (hourly via **cron-job.org** on Vercel Hobby — not in `vercel.json`); пулы **`POST /api/cron/payout-batch-pools`** (ПН/ЧТ). Партнёр UI **`/partner/finances`**: карточка «Разморозка (24 ч)»; **`GET /api/v2/partner/balance-breakdown`** отдаёт **`thawHoldBalanceThb`**. Admin **`/admin/settings/finances`**: пул на сегодня, compliance JSON/CSV (**`?format=csv`**), fiscal prod hint. Pricing v2: **`PRICING_ENGINE_V2`**, **`GET /api/v2/pricing/engine-config`**.
 

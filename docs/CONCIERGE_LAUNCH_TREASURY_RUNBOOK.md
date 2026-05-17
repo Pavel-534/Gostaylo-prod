@@ -125,15 +125,26 @@ curl -X POST "https://<DOMAIN>/api/cron/promote-ready-for-payout" \
 
 ### Фаза E — ваш перевод денег (treasury)
 
-**Порядок кнопок в пульте** (`/admin/settings/finances`):
+**Порядок блоков и кнопок в пульте** (`/admin/settings/finances`, Stage 100.5):
+
+Сверху вниз на экране:
+
+| # | Блок в UI | Действие |
+|---|-----------|----------|
+| 1 | **Сверка денежной книги** | «Запустить сверку сейчас» → расхождение ≈ 0 |
+| 2 | **Пулы выплат партнёрам** | Чипы 1–6 в шапке блока = тот же порядок, что в таблице ниже |
+| 3 | **Конвертации и потери** | Заглушка Stage 101 — пока внешняя таблица; кнопка «Сохранить» покажет тост |
+| 4 | **Реестр для банка и бухгалтерии** | CSV по **дате оплаты**, разделитель `;` |
+
+**Внутри пула (Пн/Чт — treasury day):**
 
 ```
-1. «Запустить сверку сейчас»     → deltaThb ≈ 0
-2. «Сформировать пул на сегодня» → DRAFT (вне Пн/Чт → «Вне расписания (форс)»)
-3. «Зафиксировать» на пуле       → LOCKED
-4. «CSV для банка»               → скачать, проверить суммы и реквизиты
-5. Банк / T-Bank                 → физический перевод (вне приложения)
-6. «Отметить как оплаченный»     → SETTLED, брони COMPLETED, ledger + sync балансов партнёров
+1. «Сформировать пул на сегодня» → DRAFT (вне Пн/Чт → «Вне расписания (форс)»)
+2. «Зафиксировать перед выгрузкой» → LOCKED
+3. «Скачать CSV для банка»        → проверить суммы и реквизиты
+4. Банк / T-Bank                  → физический перевод (вне приложения)
+5. «Отметить как оплаченный»      → зелёная кнопка в строке пула (LOCKED/EXPORTED)
+   → SETTLED, брони COMPLETED, ledger + sync балансов партнёров
 ```
 
 | # | API (если нужно из curl) |
@@ -160,7 +171,7 @@ curl -X POST "https://<DOMAIN>/api/cron/promote-ready-for-payout" \
 
 | # | Действие | Ожидание |
 |---|----------|----------|
-| F1 | Реестр CSV (период или UUID) | `/admin/settings/finances` → **Скачать CSV**; при ошибке — toast в пульте, не вкладка с JSON |
+| F1 | Реестр CSV (период или UUID) | `/admin/settings/finances` → **Скачать CSV**; фильтр по **дате оплаты**; разделитель `;` для Excel; колонки на русском; пустой период — строка-пояснение в файле |
 | F2 | Партнёр: история выплат | `GET /api/v2/partner/payouts` |
 | F3 | Сохранить CSV + checksum пула | `payout_batches.export_checksum` после export |
 
@@ -219,7 +230,9 @@ curl -X POST "https://<DOMAIN>/api/cron/promote-ready-for-payout" \
 | Споры | `/admin/disputes` |
 | Referral payout verify | `/admin/marketing/payouts` |
 
-Партнёр (контроль ожиданий, не treasury): `/partner/finances`, `/partner/bookings`.
+| Партнёр: балансы и вывод | `/partner/finances` — полоска «В эскроу / Разморозка 24 ч / Доступно / Выплачено» |
+| Партнёр: реквизиты RUB / USDT | `/partner/payout-profiles` — карта или счёт, USDT TRC20 |
+| Партнёр: брони в эскроу | `/partner/bookings` |
 
 ---
 
@@ -268,4 +281,4 @@ Webhook сверяет RUB с snapshot; escrow/ledger — **THB** (`intent.amoun
 
 ---
 
-*Версия runbook: 2026-05-17 · Stage 100.3 (RUB acquirer + settled button) · при изменении cron/API обновить `docs/CRON_EXTERNAL_FINANCIAL.md` и `docs/PRE_LAUNCH_CHECKLIST.md`.*
+*Версия runbook: 2026-05-16 · Stage 100.5 (финтех-пульт: русский UI, пулы + «Отметить как оплаченный», заглушка конвертаций; партнёрские балансы и реквизиты) · при изменении cron/API обновить `docs/CRON_EXTERNAL_FINANCIAL.md` и `docs/PRE_LAUNCH_CHECKLIST.md`.*

@@ -38,7 +38,10 @@ export function PartnerFinancesPayoutHistory({
             </Button>
           </div>
         ) : payouts.length === 0 ? (
-          <p className="text-sm text-slate-500 py-4">{t('partnerFinances_payoutNoRows')}</p>
+          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-sm text-slate-600">
+            <p className="font-medium text-slate-800">{t('partnerFinances_payoutNoRowsTitle')}</p>
+            <p className="mt-1 text-slate-500">{t('partnerFinances_payoutNoRows')}</p>
+          </div>
         ) : (
           <>
             <div className="md:hidden space-y-3 min-w-0">

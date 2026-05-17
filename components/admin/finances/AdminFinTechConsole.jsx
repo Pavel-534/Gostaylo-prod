@@ -53,9 +53,13 @@ import {
   PROFILE_FORM_KEYS,
   BATCH_STATUS_RU,
   POOL_MESSAGES_RU,
+  FISCAL_QUEUE_STATUS_RU,
+  TREASURY_DAILY_STEPS,
 } from '@/lib/admin/fintech-ui-labels'
 import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState'
 import { FiscalSandboxReceiptDialog } from '@/components/admin/finances/FiscalSandboxReceiptDialog'
+import { FinTechTreasuryConversionsStub } from '@/components/admin/finances/FinTechTreasuryConversionsStub'
+import { PayoutBatchRow } from '@/components/admin/finances/PayoutBatchRow'
 
 const MINT = '#0D9488'
 const NAVY = '#0F172A'
@@ -309,21 +313,38 @@ export function AdminFinTechConsole() {
   }
 
   const lockBatch = async (id) => {
-    await fetch(`/api/admin/finances/payout-batches/${id}`, {
+    const res = await fetch(`/api/admin/finances/payout-batches/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'lock' }),
     })
-    toast({ title: 'Пул зафиксирован', description: 'Можно выгрузить CSV для банка' })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok || json.success === false) {
+      toast({
+        title: 'Не удалось зафиксировать пул',
+        description: json.error || json.message || 'Проверьте статус (нужен черновик)',
+        variant: 'destructive',
+      })
+      return
+    }
+    toast({ title: 'Пул зафиксирован', description: 'Можно скачать CSV и отправить в банк' })
     load()
   }
 
-  const exportBatch = (id, format) => {
-    window.open(`/api/admin/finances/payout-batches/${id}/export?format=${format}`, '_blank')
+  const exportBatch = (id) => {
+    window.open(`/api/admin/finances/payout-batches/${id}/export?format=csv`, '_blank')
+    toast({
+      title: 'Выгрузка CSV',
+      description: 'Если файл не открылся — разрешите всплывающие окна для сайта',
+    })
   }
 
   const markBatchPaid = async (id) => {
-    if (!confirm('Подтвердите: перевод по банку выполнен. Пул будет закрыт, брони — COMPLETED, обязательства в ledger списаны.')) {
+    if (
+      !confirm(
+        'Подтвердите: перевод в банк уже выполнен.\n\nПул будет закрыт, брони перейдут в «Завершено», обязательства в учётной книге спишутся. Отменить это действие нельзя.',
+      )
+    ) {
       return
     }
     setSettlingBatchId(id)
@@ -337,7 +358,7 @@ export function AdminFinTechConsole() {
       if (!res.ok || json.success === false) {
         toast({
           title: 'Не удалось закрыть пул',
-          description: json.message || json.error || 'Проверьте статус (нужен LOCKED или EXPORTED)',
+          description: json.message || json.error || 'Доступно только для пула «Зафиксирован» или «Выгружен»',
           variant: 'destructive',
         })
         return
@@ -455,21 +476,32 @@ export function AdminFinTechConsole() {
         })
         return
       }
+      const rowCount = Number(res.headers.get('x-export-row-count') || 0)
+      const isEmpty = res.headers.get('x-export-empty') === '1'
       const blob = await res.blob()
       const disposition = res.headers.get('content-disposition') || ''
       const match = disposition.match(/filename="?([^";]+)"?/i)
-      const filename = match?.[1] || 'compliance-registry.csv'
+      const filename = match?.[1] || 'reestr-bank.csv'
       const objectUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = objectUrl
       a.download = filename
       a.click()
       URL.revokeObjectURL(objectUrl)
+      if (isEmpty || rowCount === 0) {
+        toast({
+          title: 'Реестр пустой',
+          description:
+            'За период нет оплаченных броней (фильтр по дате оплаты). Откройте файл — в первой строке пояснение. Укажите UUID брони, если нужна одна операция.',
+          variant: 'destructive',
+        })
+        return
+      }
       toast({
         title: 'Реестр скачан',
         description: complianceBooking.trim()
-          ? 'Файл по выбранной брони сохранён на диск'
-          : `Период ${complianceFrom} — ${complianceTo}`,
+          ? 'Одна бронь сохранена в CSV (разделитель «;» для Excel)'
+          : `Период ${complianceFrom} — ${complianceTo}: ${rowCount} строк`,
       })
     } catch (e) {
       toast({
@@ -649,7 +681,7 @@ export function AdminFinTechConsole() {
                     <div>
                       <span className="font-mono text-xs">{b.id.slice(0, 8)}…</span>
                       <Badge variant="outline" className="ml-2 text-xs">
-                        {b.status}
+                        {FISCAL_QUEUE_STATUS_RU[b.status] || b.status}
                       </Badge>
                       {b.last_error && (
                         <p className="text-xs text-red-600 mt-0.5 truncate max-w-md">{b.last_error}</p>
@@ -818,84 +850,13 @@ export function AdminFinTechConsole() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg" style={{ color: NAVY }}>
-              Пулы выплат партнёрам
-            </CardTitle>
-            <CardDescription>
-              Обычно понедельник и четверг, 07:00 UTC. Сначала брони переходят в «Готово к выплате».
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <Button
-                size="lg"
-                className="text-base h-12 px-8"
-                style={{ backgroundColor: MINT }}
-                onClick={() => createPool(false)}
-              >
-                Сформировать пул на сегодня
-              </Button>
-              <Button variant="outline" onClick={() => createPool(true)}>
-                Вне расписания (форс)
-              </Button>
-            </div>
-            <p className="text-sm text-slate-600">
-              Сейчас готово к включению в пул:{' '}
-              <strong>{dash?.payout?.readyForPayoutCount ?? 0}</strong> броней на{' '}
-              <strong>{fmtThb(dash?.payout?.readyForPayoutThb)}</strong>
-            </p>
-            {batches.length === 0 ? (
-              <FinTechEmptyState
-                icon={FileStack}
-                title="Пулов выплат ещё нет"
-                description="Когда появятся брони «Готово к выплате», нажмите кнопку выше — здесь появится черновик для банка."
-              />
-            ) : (
-              <div className="space-y-2">
-                {batches.map((b) => (
-                  <div key={b.id} className="flex flex-wrap items-center gap-2 border rounded-lg p-3 text-sm">
-                    <span className="text-slate-500 text-xs">{new Date(b.scheduled_for || b.created_at).toLocaleDateString('ru-RU')}</span>
-                    <Badge>{BATCH_STATUS_RU[b.status] || b.status}</Badge>
-                    <span>
-                      {b.item_count} броней · {fmtThb(b.totals_thb)}
-                    </span>
-                    {b.status === 'DRAFT' && (
-                      <Button size="sm" variant="secondary" onClick={() => lockBatch(b.id)}>
-                        <Lock className="h-3 w-3 mr-1" />
-                        Зафиксировать
-                      </Button>
-                    )}
-                    <Button size="sm" variant="outline" onClick={() => exportBatch(b.id, 'csv')}>
-                      <Download className="h-3 w-3 mr-1" />
-                      CSV для банка
-                    </Button>
-                    {(b.status === 'LOCKED' || b.status === 'EXPORTED') && (
-                      <Button
-                        size="sm"
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        disabled={settlingBatchId === b.id}
-                        onClick={() => markBatchPaid(b.id)}
-                      >
-                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                        {settlingBatchId === b.id ? 'Закрываем…' : 'Отметить как оплаченный'}
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
         <Card className={cn('border-slate-200 shadow-sm', driftBad && 'border-red-300 bg-red-50/30')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg" style={{ color: NAVY }}>
               <Gauge className="h-5 w-5" />
               Сверка денежной книги
             </CardTitle>
-            <CardDescription>Сравнение поступлений от гостей и распределения по счетам.</CardDescription>
+            <CardDescription>Начните день с этой проверки: поступления гостей и распределение по счетам.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {dash?.reconciliation?.error ? (
@@ -952,11 +913,76 @@ export function AdminFinTechConsole() {
                 </div>
               </div>
             )}
-            <Button variant="outline" onClick={runReconcile} disabled={reconLoading}>
+            <Button
+              variant="outline"
+              onClick={runReconcile}
+              disabled={reconLoading}
+              style={{ borderColor: MINT, color: NAVY }}
+            >
               {reconLoading ? 'Считаем…' : 'Запустить сверку сейчас'}
             </Button>
           </CardContent>
         </Card>
+
+        <Card className="border-teal-100 shadow-md overflow-hidden">
+          <CardHeader className="pb-2" style={{ borderLeft: `4px solid ${MINT}` }}>
+            <CardTitle className="text-lg" style={{ color: NAVY }}>
+              Пулы выплат партнёрам
+            </CardTitle>
+            <CardDescription>
+              Ручной режим Concierge: вы формируете пул (обычно понедельник и четверг). Брони — «Готово к выплате».
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ol className="flex flex-wrap gap-2 text-xs text-slate-600 list-none p-0 m-0">
+              {TREASURY_DAILY_STEPS.map((step, i) => (
+                <li key={step} className="rounded-full bg-slate-100 px-2.5 py-1">
+                  {i + 1}. {step}
+                </li>
+              ))}
+            </ol>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="lg"
+                className="text-base h-12 px-8"
+                style={{ backgroundColor: MINT }}
+                onClick={() => createPool(false)}
+              >
+                Сформировать пул на сегодня
+              </Button>
+              <Button variant="outline" onClick={() => createPool(true)}>
+                Вне расписания (форс)
+              </Button>
+            </div>
+            <p className="text-sm text-slate-600">
+              Сейчас готово к включению в пул:{' '}
+              <strong>{dash?.payout?.readyForPayoutCount ?? 0}</strong> броней на{' '}
+              <strong>{fmtThb(dash?.payout?.readyForPayoutThb)}</strong>
+            </p>
+            {batches.length === 0 ? (
+              <FinTechEmptyState
+                icon={FileStack}
+                title="Пулов выплат ещё нет"
+                description="Когда появятся брони «Готово к выплате», нажмите кнопку выше — здесь появится черновик для банка."
+              />
+            ) : (
+              <div className="space-y-3">
+                {batches.map((b) => (
+                  <PayoutBatchRow
+                    key={b.id}
+                    batch={b}
+                    settling={settlingBatchId === b.id}
+                    onLock={lockBatch}
+                    onExport={exportBatch}
+                    onSettle={markBatchPaid}
+                  />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <FinTechTreasuryConversionsStub />
 
         <Card className="border-slate-200 shadow-sm">
           <CardHeader>
@@ -965,7 +991,8 @@ export function AdminFinTechConsole() {
               Реестр для банка и бухгалтерии
             </CardTitle>
             <CardDescription>
-              Реестр для валютного контроля: UUID, дата оплаты, ваучер, суммы в ฿ и ₽, статус 54-ФЗ.
+              Выгрузка для бухгалтерии и валютного контроля. Период — по <strong>дате оплаты</strong> гостя, не
+              по дате создания брони. Файл с разделителем «;» — открывается в Excel без настроек.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -996,9 +1023,10 @@ export function AdminFinTechConsole() {
                 {complianceDownloading ? 'Формируем…' : 'Скачать CSV'}
               </Button>
             </div>
-            <p className="text-xs text-slate-500">
-              Колонки: номер брони, дата оплаты, ваучер (жильё/транспорт), оплата гостя, доходы РФ/КР/спред в
-              ₽, выплата хосту, статус кассы. Пустой период — шаблон с заголовками.
+            <p className="text-xs text-slate-500 leading-relaxed">
+              В файле: номер брони, дата оплаты, объявление, тип услуги, статус, суммы в батах и рублях, курс,
+              статус онлайн-кассы. Если строк нет — в файле будет пояснение; проверьте другой период или вставьте
+              UUID оплаченной брони.
             </p>
           </CardContent>
         </Card>

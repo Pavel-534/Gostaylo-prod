@@ -4,9 +4,12 @@ import { supabaseAdmin } from '@/lib/supabase'
 import {
   buildComplianceRegistryCsv,
   COMPLIANCE_BOOKING_SELECT,
+  filterBookingsByPaymentDate,
 } from '@/lib/admin/compliance-registry-csv.js'
 
 export const dynamic = 'force-dynamic'
+
+const PAID_STATUSES = ['PAID_ESCROW', 'THAWED', 'READY_FOR_PAYOUT', 'COMPLETED', 'CONFIRMED']
 
 export async function GET(request) {
   const gate = await requireAccess({ roles: ['ADMIN'] })
@@ -28,45 +31,52 @@ export async function GET(request) {
       .eq('id', bookingId)
       .maybeSingle()
     if (error || !booking) {
-      return NextResponse.json({ success: false, error: 'not_found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: 'Бронь не найдена' }, { status: 404 })
     }
-    const csv = buildComplianceRegistryCsv([booking])
+    const { csv, rowCount, isEmpty } = buildComplianceRegistryCsv([booking])
     return new NextResponse(csv, {
       headers: {
         ...csvHeaders,
-        'Content-Disposition': `attachment; filename="compliance-registry-${bookingId}.csv"`,
+        'Content-Disposition': `attachment; filename="reestr-bank-${bookingId.slice(0, 8)}.csv"`,
+        'X-Export-Row-Count': String(rowCount),
+        'X-Export-Empty': isEmpty ? '1' : '0',
       },
     })
   }
 
   if (!from || !to) {
     return NextResponse.json(
-      { success: false, error: 'bookingId or from+to (YYYY-MM-DD) required' },
+      { success: false, error: 'Укажите период (from+to) или bookingId' },
       { status: 400 },
     )
   }
 
-  const fromIso = `${from}T00:00:00.000Z`
+  const bufferFrom = new Date(`${from}T00:00:00.000Z`)
+  bufferFrom.setUTCDate(bufferFrom.getUTCDate() - 120)
   const toIso = `${to}T23:59:59.999Z`
 
   const { data: bookings, error } = await supabaseAdmin
     .from('bookings')
     .select(COMPLIANCE_BOOKING_SELECT)
-    .gte('created_at', fromIso)
+    .in('status', PAID_STATUSES)
+    .gte('created_at', bufferFrom.toISOString())
     .lte('created_at', toIso)
-    .in('status', ['PAID_ESCROW', 'THAWED', 'READY_FOR_PAYOUT', 'COMPLETED'])
     .order('created_at', { ascending: false })
-    .limit(500)
+    .limit(2000)
 
   if (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 
-  const csv = buildComplianceRegistryCsv(bookings || [])
+  const filtered = filterBookingsByPaymentDate(bookings || [], from, to)
+  const { csv, rowCount, isEmpty } = buildComplianceRegistryCsv(filtered, { from, to })
+
   return new NextResponse(csv, {
     headers: {
       ...csvHeaders,
-      'Content-Disposition': `attachment; filename="compliance-registry-${from}_${to}.csv"`,
+      'Content-Disposition': `attachment; filename="reestr-bank-${from}_${to}.csv"`,
+      'X-Export-Row-Count': String(rowCount),
+      'X-Export-Empty': isEmpty ? '1' : '0',
     },
   })
 }
