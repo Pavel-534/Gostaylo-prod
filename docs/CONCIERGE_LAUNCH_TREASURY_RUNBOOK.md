@@ -160,7 +160,7 @@ curl -X POST "https://<DOMAIN>/api/cron/promote-ready-for-payout" \
 
 | # | Действие | Ожидание |
 |---|----------|----------|
-| F1 | Compliance export по брони | CSV для валютного контроля / акта |
+| F1 | Реестр CSV (период или UUID) | `/admin/settings/finances` → **Скачать CSV**; при ошибке — toast в пульте, не вкладка с JSON |
 | F2 | Партнёр: история выплат | `GET /api/v2/partner/payouts` |
 | F3 | Сохранить CSV + checksum пула | `payout_batches.export_checksum` после export |
 

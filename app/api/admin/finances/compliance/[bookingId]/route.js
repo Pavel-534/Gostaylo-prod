@@ -3,7 +3,10 @@ import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { supabaseAdmin } from '@/lib/supabase'
 import { toFiscalKassaPayload } from '@/lib/pricing-engine/snapshot-adapter.js'
 import { computeBookingPaymentLedgerLegs } from '@/lib/services/ledger.service.js'
-import { buildComplianceRegistryCsv } from '@/lib/admin/compliance-registry-csv.js'
+import {
+  buildComplianceRegistryCsv,
+  COMPLIANCE_BOOKING_SELECT,
+} from '@/lib/admin/compliance-registry-csv.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,13 +32,7 @@ export async function GET(request, { params }) {
 
   const { data: booking, error } = await supabaseAdmin
     .from('bookings')
-    .select(
-      `*,
-      listings (
-        category_slug,
-        categories ( slug, wizard_profile )
-      )`,
-    )
+    .select(COMPLIANCE_BOOKING_SELECT)
     .eq('id', params.bookingId)
     .maybeSingle()
   if (error || !booking) {

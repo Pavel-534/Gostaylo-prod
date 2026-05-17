@@ -125,6 +125,7 @@ export function AdminFinTechConsole() {
   const [complianceFrom, setComplianceFrom] = useState('')
   const [complianceTo, setComplianceTo] = useState('')
   const [complianceBooking, setComplianceBooking] = useState('')
+  const [complianceDownloading, setComplianceDownloading] = useState(false)
   const [fiscalTestLoading, setFiscalTestLoading] = useState(false)
   const [fiscalTestOpen, setFiscalTestOpen] = useState(false)
   const [fiscalTestDisplay, setFiscalTestDisplay] = useState(null)
@@ -425,26 +426,60 @@ export function AdminFinTechConsole() {
     }
   }
 
-  const downloadCompliance = () => {
+  const downloadCompliance = async () => {
+    let url = ''
     if (complianceBooking.trim()) {
-      window.open(
-        `/api/admin/finances/compliance-export?bookingId=${encodeURIComponent(complianceBooking.trim())}`,
-        '_blank',
-      )
-      return
+      url = `/api/admin/finances/compliance-export?bookingId=${encodeURIComponent(complianceBooking.trim())}`
+    } else {
+      if (!complianceFrom || !complianceTo) {
+        toast({
+          title: 'Укажите период',
+          description: 'Даты «с» и «по» или номер брони',
+          variant: 'destructive',
+        })
+        return
+      }
+      url = `/api/admin/finances/compliance-export?from=${complianceFrom}&to=${complianceTo}`
     }
-    if (!complianceFrom || !complianceTo) {
+
+    setComplianceDownloading(true)
+    try {
+      const res = await fetch(url, { credentials: 'include' })
+      const contentType = res.headers.get('content-type') || ''
+      if (!res.ok || contentType.includes('application/json')) {
+        const json = await res.json().catch(() => ({}))
+        toast({
+          title: 'Не удалось скачать реестр',
+          description: json.error || `Ошибка ${res.status}`,
+          variant: 'destructive',
+        })
+        return
+      }
+      const blob = await res.blob()
+      const disposition = res.headers.get('content-disposition') || ''
+      const match = disposition.match(/filename="?([^";]+)"?/i)
+      const filename = match?.[1] || 'compliance-registry.csv'
+      const objectUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = objectUrl
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(objectUrl)
       toast({
-        title: 'Укажите период',
-        description: 'Даты «с» и «по» или номер брони',
+        title: 'Реестр скачан',
+        description: complianceBooking.trim()
+          ? 'Файл по выбранной брони сохранён на диск'
+          : `Период ${complianceFrom} — ${complianceTo}`,
+      })
+    } catch (e) {
+      toast({
+        title: 'Ошибка сети',
+        description: e.message,
         variant: 'destructive',
       })
-      return
+    } finally {
+      setComplianceDownloading(false)
     }
-    window.open(
-      `/api/admin/finances/compliance-export?from=${complianceFrom}&to=${complianceTo}`,
-      '_blank',
-    )
   }
 
   const statCards = useMemo(
@@ -952,9 +987,13 @@ export function AdminFinTechConsole() {
                 <Label className="text-xs">по</Label>
                 <Input type="date" value={complianceTo} onChange={(e) => setComplianceTo(e.target.value)} />
               </div>
-              <Button onClick={downloadCompliance} style={{ backgroundColor: NAVY }}>
+              <Button
+                onClick={downloadCompliance}
+                disabled={complianceDownloading}
+                style={{ backgroundColor: NAVY }}
+              >
                 <Download className="h-4 w-4 mr-1" />
-                Скачать CSV
+                {complianceDownloading ? 'Формируем…' : 'Скачать CSV'}
               </Button>
             </div>
             <p className="text-xs text-slate-500">

@@ -109,7 +109,7 @@
 | 7.1 | FinTech dashboard | `/admin/settings/finances` |
 | 7.1b | Concierge treasury runbook | `docs/CONCIERGE_LAUNCH_TREASURY_RUNBOOK.md` (cron, первая бронь, пул → CSV → банк) |
 | 7.2 | Сформировать пул на сегодня | Кнопка + Force (не ПН/ЧТ) |
-| 7.3 | Compliance по booking | JSON + **Скачать CSV** |
+| 7.3 | Реестр для банка (CSV) | Пульт → «Реестр для банка» → период **с/по** или UUID одной брони → **Скачать CSV** (ошибки — toast, не JSON в браузере) |
 | 7.4 | Pricing profiles CRUD | Без изменения % без ADR |
 | 7.5 | Simulator | Только staff — не в guest/partner API |
 

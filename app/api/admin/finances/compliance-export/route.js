@@ -1,20 +1,12 @@
 import { NextResponse } from 'next/server'
 import { requireAccess } from '@/lib/security/access-guard'
 import { supabaseAdmin } from '@/lib/supabase'
-import { buildComplianceRegistryCsv } from '@/lib/admin/compliance-registry-csv.js'
+import {
+  buildComplianceRegistryCsv,
+  COMPLIANCE_BOOKING_SELECT,
+} from '@/lib/admin/compliance-registry-csv.js'
 
 export const dynamic = 'force-dynamic'
-
-const BOOKING_SELECT = `
-  *,
-  listings (
-    category_slug,
-    categories (
-      slug,
-      wizard_profile
-    )
-  )
-`
 
 export async function GET(request) {
   const gate = await requireAccess({ roles: ['ADMIN'] })
@@ -32,7 +24,7 @@ export async function GET(request) {
   if (bookingId) {
     const { data: booking, error } = await supabaseAdmin
       .from('bookings')
-      .select(BOOKING_SELECT)
+      .select(COMPLIANCE_BOOKING_SELECT)
       .eq('id', bookingId)
       .maybeSingle()
     if (error || !booking) {
@@ -59,7 +51,7 @@ export async function GET(request) {
 
   const { data: bookings, error } = await supabaseAdmin
     .from('bookings')
-    .select(BOOKING_SELECT)
+    .select(COMPLIANCE_BOOKING_SELECT)
     .gte('created_at', fromIso)
     .lte('created_at', toIso)
     .in('status', ['PAID_ESCROW', 'THAWED', 'READY_FOR_PAYOUT', 'COMPLETED'])
