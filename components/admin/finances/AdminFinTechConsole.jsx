@@ -130,6 +130,7 @@ export function AdminFinTechConsole() {
   const [fiscalTestDisplay, setFiscalTestDisplay] = useState(null)
   const [reconLoading, setReconLoading] = useState(false)
   const [lastRecon, setLastRecon] = useState(null)
+  const [settlingBatchId, setSettlingBatchId] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -318,6 +319,38 @@ export function AdminFinTechConsole() {
 
   const exportBatch = (id, format) => {
     window.open(`/api/admin/finances/payout-batches/${id}/export?format=${format}`, '_blank')
+  }
+
+  const markBatchPaid = async (id) => {
+    if (!confirm('Подтвердите: перевод по банку выполнен. Пул будет закрыт, брони — COMPLETED, обязательства в ledger списаны.')) {
+      return
+    }
+    setSettlingBatchId(id)
+    try {
+      const res = await fetch(`/api/admin/finances/payout-batches/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'settled' }),
+      })
+      const json = await res.json()
+      if (!res.ok || json.success === false) {
+        toast({
+          title: 'Не удалось закрыть пул',
+          description: json.message || json.error || 'Проверьте статус (нужен LOCKED или EXPORTED)',
+          variant: 'destructive',
+        })
+        return
+      }
+      toast({
+        title: 'Пул отмечен как оплаченный',
+        description: `Броней завершено: ${json.bookingsCompleted ?? 0}, проводок: ${json.ledgerPosted ?? 0}`,
+      })
+      load()
+    } catch (e) {
+      toast({ title: 'Ошибка сети', description: e.message, variant: 'destructive' })
+    } finally {
+      setSettlingBatchId(null)
+    }
   }
 
   const retryFiscal = async (bookingId) => {
@@ -803,6 +836,17 @@ export function AdminFinTechConsole() {
                       <Download className="h-3 w-3 mr-1" />
                       CSV для банка
                     </Button>
+                    {(b.status === 'LOCKED' || b.status === 'EXPORTED') && (
+                      <Button
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        disabled={settlingBatchId === b.id}
+                        onClick={() => markBatchPaid(b.id)}
+                      >
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        {settlingBatchId === b.id ? 'Закрываем…' : 'Отметить как оплаченный'}
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>

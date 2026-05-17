@@ -6,7 +6,7 @@
  */
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
@@ -25,6 +25,7 @@ import {
 } from '@/lib/api/partner-finances-client'
 
 export function usePartnerFinances() {
+  const queryClient = useQueryClient()
   const { language } = useI18n()
   const t = (key) => getUIText(key, language)
   const searchParams = useSearchParams()
@@ -206,20 +207,16 @@ export function usePartnerFinances() {
     }
     setWithdrawSubmitting(true)
     try {
+      const withdrawAmount = Number(pendingPayoutPreview?.final ?? financesSummary?.availableThb ?? 0)
+      if (!Number.isFinite(withdrawAmount) || withdrawAmount <= 0) {
+        toast.error(t('partnerFinances_withdrawErrorToast'))
+        return
+      }
       const { res, json } = await requestPartnerPayout({
         partnerId,
-        availableThb: financesSummary?.availableThb ?? 0,
-        payoutPreviewFinal: pendingPayoutPreview.final,
-        payoutFee: pendingPayoutPreview.fee,
+        amount: withdrawAmount,
+        method: 'MANUAL',
         payoutProfileId: defaultPayoutProfile?.id ?? null,
-        payoutMethodId: defaultPayoutProfile?.method_id ?? defaultPayoutProfile?.method?.id ?? null,
-        profileSnapshot: defaultPayoutProfile
-          ? {
-              methodName: defaultPayoutProfile.method?.name,
-              channel: defaultPayoutProfile.method?.channel,
-              data: defaultPayoutProfile.data,
-            }
-          : null,
       })
       if (!res.ok || json?.success === false) {
         if (
@@ -233,6 +230,9 @@ export function usePartnerFinances() {
       }
       toast.success(t('partnerFinances_withdrawSuccessToast'))
       setWithdrawOpen(false)
+      void queryClient.invalidateQueries({ queryKey: ['partner-finances-summary', partnerId] })
+      void queryClient.invalidateQueries({ queryKey: ['partner-payouts-history'] })
+      void queryClient.invalidateQueries({ queryKey: ['partner-balance-breakdown', partnerId] })
     } catch {
       toast.error(t('partnerFinances_withdrawErrorToast'))
     } finally {

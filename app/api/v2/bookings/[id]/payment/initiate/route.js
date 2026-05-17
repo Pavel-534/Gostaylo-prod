@@ -163,11 +163,20 @@ export async function POST(request, { params }) {
       return NextResponse.json({ success: false, error: intentRes.error || 'intent_create_failed' }, { status: 500 })
     }
 
-    const initiated = await PaymentIntentService.initiate(intentRes.intent.id, method, { bookingId })
+    const initiated = await PaymentIntentService.initiate(intentRes.intent.id, method, {
+      bookingId,
+      booking: bookingForIntent,
+    })
     if (!initiated.success) {
-      const code = initiated.error === 'method_not_allowed' ? 400 : 500
+      const rubMissing = initiated.code === 'ACQUIRER_RUB_AMOUNT_UNAVAILABLE' || initiated.error === 'ACQUIRER_RUB_AMOUNT_UNAVAILABLE'
+      const code = initiated.error === 'method_not_allowed' ? 400 : rubMissing ? 422 : 500
       return NextResponse.json(
-        { success: false, error: initiated.error, allowed_methods: initiated.allowed_methods || null },
+        {
+          success: false,
+          error: initiated.error,
+          code: initiated.code || initiated.error,
+          allowed_methods: initiated.allowed_methods || null,
+        },
         { status: code },
       )
     }

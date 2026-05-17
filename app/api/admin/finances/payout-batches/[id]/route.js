@@ -25,8 +25,14 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ success: !r.error, ...r })
   }
   if (action === 'settled') {
-    const r = await PayoutBatchService.markBatchSettled(params.id)
-    return NextResponse.json({ success: true, ...r })
+    const r = await PayoutBatchService.markBatchSettled(params.id, gate.profile?.id || null)
+    if (r.error === 'not_found') {
+      return NextResponse.json({ success: false, error: 'not_found' }, { status: 404 })
+    }
+    if (r.error === 'invalid_status') {
+      return NextResponse.json({ success: false, ...r }, { status: 400 })
+    }
+    return NextResponse.json({ success: r.success !== false, ...r })
   }
   return NextResponse.json({ success: false, error: 'unknown_action' }, { status: 400 })
 }

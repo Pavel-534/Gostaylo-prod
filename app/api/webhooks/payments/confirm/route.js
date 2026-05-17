@@ -23,6 +23,7 @@ import {
   isIntentPaidStatus,
   normalizeProviderStatus,
 } from '@/lib/services/payment-adapters/status-normalizer';
+import { verifyWebhookPaidAmount } from '@/lib/services/payment-adapters/acquirer-charge-amount.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -222,21 +223,26 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: intentResolveError }, { status: 400 });
   }
 
-  const expectedThb = intentForAmount
-    ? Number(intentForAmount.amountThb)
-    : await resolveExpectedGuestTotalThbFromBooking(booking);
-
-  if (Number.isFinite(amount) && amount > 0 && String(currency || 'THB').toUpperCase() === 'THB') {
-    const tol = 1.0;
-    if (Math.abs(amount - expectedThb) > tol) {
-      void notifySystemAlert(
-        `💳 <b>Webhook payments/confirm</b> — расхождение суммы\nbooking: <code>${escapeSystemAlertHtml(bookingId)}</code>\nexpected THB: <b>${expectedThb}</b> (${intentForAmount ? 'payment_intent' : 'booking'})\ngot: <b>${escapeSystemAlertHtml(String(amount))}</b>`,
-      );
-      return NextResponse.json(
-        { success: false, error: 'AMOUNT_MISMATCH', expectedThb, received: amount },
-        { status: 400 },
-      );
-    }
+  const amountCheck = verifyWebhookPaidAmount({
+    receivedAmount: amount,
+    receivedCurrency: currency,
+    booking,
+    intent: intentForAmount,
+    adapterKey,
+  });
+  if (!amountCheck.ok) {
+    void notifySystemAlert(
+      `💳 <b>Webhook payments/confirm</b> — ${escapeSystemAlertHtml(amountCheck.error || 'amount_check')}\nbooking: <code>${escapeSystemAlertHtml(bookingId)}</code>\nexpected: <b>${escapeSystemAlertHtml(JSON.stringify(amountCheck.expected))}</b>\ngot: <b>${escapeSystemAlertHtml(JSON.stringify(amountCheck.received))}</b>`,
+    );
+    return NextResponse.json(
+      {
+        success: false,
+        error: amountCheck.error,
+        expected: amountCheck.expected,
+        received: amountCheck.received,
+      },
+      { status: 400 },
+    );
   }
 
   let intent = intentForAmount;

@@ -36,6 +36,7 @@
 
 - Telegram: `PENDING_FISCAL_BACKLOG`, `LEDGER_DRIFT` (через `recordCriticalSignal`).
 - Admin: `/admin/settings/finances` — compliance CSV, fiscal retry.
+- **Concierge treasury (ручные выплаты):** пошаговый runbook — `docs/CONCIERGE_LAUNCH_TREASURY_RUNBOOK.md`.
 - Admin disputes: `/admin/disputes` — freeze / close → ledger release.
 
 ---
