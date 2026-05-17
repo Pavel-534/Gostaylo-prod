@@ -7,14 +7,18 @@ import {
   ArrowLeft,
   Banknote,
   Calculator,
+  CheckCircle2,
   Download,
+  FileStack,
   Gauge,
+  Inbox,
   Landmark,
   Lock,
   Play,
   Receipt,
   RefreshCw,
   Shield,
+  XCircle,
   Zap,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -33,8 +37,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import {
+  BREAKDOWN_ROWS,
+  PROFILE_FIELD_LABELS,
+  PROFILE_FORM_KEYS,
+  BATCH_STATUS_RU,
+  POOL_MESSAGES_RU,
+} from '@/lib/admin/fintech-ui-labels'
+import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState'
 
 const MINT = '#0D9488'
 const NAVY = '#0F172A'
@@ -66,24 +85,22 @@ function feeSplitValid(p) {
 }
 
 function BreakdownGrid({ b }) {
-  if (!b) return null
-  const rows = [
-    ['Subtotal (Netto base)', fmtThb(b.subtotal_thb)],
-    ['Guest fee (Brutto add-on)', fmtThb(b.guest_service_fee_thb)],
-    ['RU agent (7% leg)', fmtThb(b.ru_fee_thb)],
-    ['KG service (8% leg)', fmtThb(b.kr_fee_thb)],
-    ['FX markup (3% pot)', fmtThb(b.fx_markup_thb)],
-    ['Partner Netto', fmtThb(b.total_partner_netto_thb)],
-    ['Guest total (exact)', fmtThb(b.total_guest_payable_thb)],
-    ['Guest total (rounded)', fmtThb(b.total_guest_payable_rounded_thb)],
-    ['Rounding pot', fmtThb(b.rounding_pot_thb)],
-  ]
+  if (!b) {
+    return (
+      <FinTechEmptyState
+        icon={Calculator}
+        title="Запустите симулятор"
+        description="Укажите сумму брони в батах и нажмите «Рассчитать» — увидите разбивку для владельца бизнеса."
+        className="mt-2"
+      />
+    )
+  }
   return (
     <div className="grid sm:grid-cols-2 gap-2 text-sm">
-      {rows.map(([k, v]) => (
-        <div key={k} className="flex justify-between rounded-lg bg-white/80 border border-slate-100 px-3 py-2">
-          <span className="text-slate-600">{k}</span>
-          <span className="font-semibold text-slate-900 tabular-nums">{v}</span>
+      {BREAKDOWN_ROWS.map(({ key, label }) => (
+        <div key={key} className="flex justify-between rounded-lg bg-white/80 border border-slate-100 px-3 py-2">
+          <span className="text-slate-600">{label}</span>
+          <span className="font-semibold text-slate-900 tabular-nums">{fmtThb(b[key])}</span>
         </div>
       ))}
     </div>
@@ -107,7 +124,10 @@ export function AdminFinTechConsole() {
   const [complianceTo, setComplianceTo] = useState('')
   const [complianceBooking, setComplianceBooking] = useState('')
   const [fiscalTestLoading, setFiscalTestLoading] = useState(false)
+  const [fiscalTestOpen, setFiscalTestOpen] = useState(false)
+  const [fiscalTestPayload, setFiscalTestPayload] = useState(null)
   const [reconLoading, setReconLoading] = useState(false)
+  const [lastRecon, setLastRecon] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -127,7 +147,7 @@ export function AdminFinTechConsole() {
       }
       if (bJson.success) setBatches(bJson.data || [])
     } catch (e) {
-      toast({ title: 'Ошибка загрузки', description: e.message, variant: 'destructive' })
+      toast({ title: 'Не удалось загрузить данные', description: e.message, variant: 'destructive' })
     } finally {
       setLoading(false)
     }
@@ -144,6 +164,7 @@ export function AdminFinTechConsole() {
 
   const v2Effective = dash?.pricingEngineV2?.effective
   const v2EnvLock = dash?.pricingEngineV2?.envOverride
+  const fiscalSandbox = dash?.fiscal?.sandbox
 
   const applyV2Toggle = async () => {
     if (v2Pending == null) return
@@ -156,21 +177,26 @@ export function AdminFinTechConsole() {
     setV2DialogOpen(false)
     if (!json.success) {
       toast({
-        title: 'Pricing Engine V2',
+        title: 'Новый движок цен',
         description: json.message || json.error,
         variant: 'destructive',
       })
       return
     }
     toast({
-      title: v2Pending ? 'V2 включён' : 'V2 выключен',
-      description: 'Новые брони используют обновлённый движок и округление 1 THB',
+      title: v2Pending ? 'Новый движок включён' : 'Новый движок выключен',
+      description: v2Pending
+        ? 'Новые брони: округление до 1 ฿ и полная финансовая схема v2'
+        : 'Новые брони снова по старой схеме округления',
     })
     load()
   }
 
   const runSimulate = async () => {
-    if (!simProfile) return
+    if (!simProfile) {
+      toast({ title: 'Нет тарифного профиля', variant: 'destructive' })
+      return
+    }
     const res = await fetch('/api/admin/finances/pricing-profiles/simulate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -178,7 +204,7 @@ export function AdminFinTechConsole() {
     })
     const json = await res.json()
     if (!json.success) {
-      toast({ title: 'Симуляция', description: json.error, variant: 'destructive' })
+      toast({ title: 'Ошибка расчёта', description: json.error, variant: 'destructive' })
       return
     }
     setSimResult(json.data?.breakdown || json.data)
@@ -187,8 +213,8 @@ export function AdminFinTechConsole() {
   const saveProfile = async () => {
     if (!draftValid) {
       toast({
-        title: 'Невалидный профиль',
-        description: 'RU% + KG% должны равняться guest_fee%',
+        title: 'Проверьте доли',
+        description: 'Доля РФ + доля КР должны равняться комиссии с гостя',
         variant: 'destructive',
       })
       return
@@ -214,13 +240,22 @@ export function AdminFinTechConsole() {
       toast({ title: 'Профиль', description: json.message || json.error, variant: 'destructive' })
       return
     }
-    toast({ title: editingId ? 'Профиль обновлён' : 'Профиль создан' })
+    toast({ title: editingId ? 'Тариф обновлён' : 'Тариф создан' })
     setDraft(emptyProfile)
     setEditingId(null)
     load()
   }
 
   const createPool = async (force = false) => {
+    const ready = dash?.payout?.readyForPayoutCount ?? 0
+    if (ready === 0) {
+      toast({
+        title: 'Нет бронирований, готовых к выплате',
+        description:
+          'Дождитесь статуса «Готово к выплате» после 24 ч удержания или проверьте cron promote-ready-for-payout.',
+      })
+      return
+    }
     const res = await fetch('/api/admin/finances/payout-batches', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -228,10 +263,25 @@ export function AdminFinTechConsole() {
     })
     const json = await res.json()
     if (!json.success) {
-      toast({ title: 'Пул', description: json.message || json.error, variant: 'destructive' })
+      const msg =
+        json.message ||
+        POOL_MESSAGES_RU[json.code?.toLowerCase?.()] ||
+        POOL_MESSAGES_RU[json.message] ||
+        json.error
+      toast({
+        title:
+          json.code === 'NO_READY_BOOKINGS' || json.message === 'no_ready_bookings'
+            ? 'Нет бронирований, готовых к выплате'
+            : 'Пул не создан',
+        description: msg || 'Попробуйте позже',
+        variant: 'destructive',
+      })
       return
     }
-    toast({ title: 'Пул создан', description: `${json.batchId || 'ok'} · ${json.itemCount ?? 0} поз.` })
+    toast({
+      title: 'Пул сформирован',
+      description: `${json.itemCount ?? 0} броней на сумму ${fmtThb(json.totalsThb)}`,
+    })
     load()
   }
 
@@ -241,6 +291,7 @@ export function AdminFinTechConsole() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'lock' }),
     })
+    toast({ title: 'Пул зафиксирован', description: 'Можно выгрузить CSV для банка' })
     load()
   }
 
@@ -252,7 +303,7 @@ export function AdminFinTechConsole() {
     const res = await fetch(`/api/admin/finances/fiscal-retry/${bookingId}`, { method: 'POST' })
     const json = await res.json()
     toast({
-      title: json.success ? 'Fiscal retry' : 'Ошибка',
+      title: json.success ? 'Чек отправлен повторно' : 'Не удалось пробить чек',
       description: json.receiptId || json.error || json.status,
       variant: json.success ? 'default' : 'destructive',
     })
@@ -264,10 +315,26 @@ export function AdminFinTechConsole() {
     try {
       const res = await fetch('/api/admin/finances/fiscal-test', { method: 'POST' })
       const json = await res.json()
+      if (json.success && (json.sandbox || fiscalSandbox) && json.payload) {
+        setFiscalTestPayload(json.payload)
+        setFiscalTestOpen(true)
+        toast({
+          title: 'Тестовый чек (песочница)',
+          description: 'Ниже структура JSON для 54-ФЗ — в бой не уходит',
+        })
+        return
+      }
+      if (json.success) {
+        toast({
+          title: 'Тестовый чек отправлен',
+          description: json.receiptId || 'Провайдер принял запрос',
+        })
+        return
+      }
       toast({
-        title: json.success ? 'Тестовый чек' : 'Ошибка кассы',
-        description: json.receiptId || json.message || json.error,
-        variant: json.success ? 'default' : 'destructive',
+        title: 'Ошибка кассы',
+        description: json.error || json.message,
+        variant: 'destructive',
       })
     } finally {
       setFiscalTestLoading(false)
@@ -278,13 +345,31 @@ export function AdminFinTechConsole() {
     setReconLoading(true)
     try {
       const res = await fetch('/api/v2/admin/ledger-reconciliation', { credentials: 'include' })
-      const json = await res.json()
-      if (!json.success) {
-        toast({ title: 'Reconcile', description: json.error, variant: 'destructive' })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json.success) {
+        setLastRecon({ ok: false, error: json.error || `HTTP ${res.status}`, at: Date.now() })
+        toast({
+          title: 'Сверка не выполнена',
+          description: json.error || 'Проверьте доступ администратора',
+          variant: 'destructive',
+        })
         return
       }
-      setDash((prev) => ({ ...prev, reconciliation: json.data }))
-      toast({ title: 'Сверка выполнена', description: `Δ ${fmtThb(json.data?.deltaThb)}` })
+      const d = json.data
+      const delta = Math.abs(Number(d?.deltaThb) || 0)
+      const bad = delta > 0.01 || d?.marginLeakage
+      setDash((prev) => ({ ...prev, reconciliation: d }))
+      setLastRecon({ ok: true, data: d, at: Date.now() })
+      toast({
+        title: bad ? 'Сверка: есть расхождение' : 'Сверка успешна',
+        description: bad
+          ? `Расхождение ${fmtThb(d?.deltaThb)} — проверьте проводки`
+          : `Расхождение в норме (${fmtThb(d?.deltaThb)})`,
+        variant: bad ? 'destructive' : 'default',
+      })
+    } catch (e) {
+      setLastRecon({ ok: false, error: e.message, at: Date.now() })
+      toast({ title: 'Ошибка сети', description: e.message, variant: 'destructive' })
     } finally {
       setReconLoading(false)
     }
@@ -299,7 +384,11 @@ export function AdminFinTechConsole() {
       return
     }
     if (!complianceFrom || !complianceTo) {
-      toast({ title: 'Укажите период', description: 'from / to или booking UUID', variant: 'destructive' })
+      toast({
+        title: 'Укажите период',
+        description: 'Даты «с» и «по» или номер брони',
+        variant: 'destructive',
+      })
       return
     }
     window.open(
@@ -311,28 +400,28 @@ export function AdminFinTechConsole() {
   const statCards = useMemo(
     () => [
       {
-        label: 'READY_FOR_PAYOUT',
+        label: 'Готово к выплате',
         value: dash?.payout?.readyForPayoutCount ?? '—',
         sub: fmtThb(dash?.payout?.readyForPayoutThb),
         icon: Banknote,
       },
       {
-        label: 'PENDING_FISCAL',
+        label: 'Чеки в очереди',
         value: dash?.pendingFiscal?.length ?? 0,
-        sub: 'чеков в очереди',
+        sub: 'ожидают пробития',
         icon: Receipt,
       },
       {
-        label: 'Ledger drift',
-        value: driftBad ? fmtThb(driftThb) : 'OK',
-        sub: driftBad ? 'требует внимания' : '< 0.01 THB',
+        label: 'Баланс книги',
+        value: driftBad ? fmtThb(driftThb) : 'В норме',
+        sub: driftBad ? 'нужна проверка' : 'расхождение < 0.01 ฿',
         icon: Gauge,
         danger: driftBad,
       },
       {
-        label: 'Pricing V2',
-        value: v2Effective ? 'ON' : 'OFF',
-        sub: v2EnvLock ? 'env lock' : 'settings',
+        label: 'Новый движок цен',
+        value: v2Effective ? 'Вкл' : 'Выкл',
+        sub: v2EnvLock ? 'задано на сервере' : 'в настройках',
         icon: Zap,
       },
     ],
@@ -357,11 +446,11 @@ export function AdminFinTechConsole() {
               </Link>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
                 <Landmark className="h-8 w-8 text-teal-300" />
-                FinTech-пульт
+                Финансовый пульт
               </h1>
               <p className="text-teal-100/80 text-sm mt-1 max-w-xl">
-                Pricing V2, касса 54-ФЗ, пулы выплат, ledger — только для администратора. Внутренние % не
-                показываются гостям и партнёрам.
+                Цены, онлайн-касса, выплаты партнёрам и выгрузки для банка. Только для владельца и
+                администратора.
               </p>
             </div>
             <Button
@@ -394,16 +483,14 @@ export function AdminFinTechConsole() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-        {/* 1. Pricing V2 */}
         <Card className="border-teal-100 shadow-sm overflow-hidden">
           <CardHeader className="pb-2" style={{ borderLeft: `4px solid ${MINT}` }}>
             <CardTitle className="flex items-center gap-2 text-lg" style={{ color: NAVY }}>
               <Zap className="h-5 w-5" style={{ color: MINT }} />
-              Главный рубильник — Pricing Engine V2
+              Новый движок расчёта цен
             </CardTitle>
             <CardDescription>
-              Округление гостя до 1 THB, snapshot v2, fiscal legs. Env{' '}
-              <code className="text-xs">PRICING_ENGINE_V2</code> имеет приоритет.
+              Округление для гостя до целого бата, детальная схема комиссий и чеки 54-ФЗ для новых броней.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap items-center justify-between gap-4">
@@ -418,52 +505,52 @@ export function AdminFinTechConsole() {
               />
               <div>
                 <p className="font-medium" style={{ color: NAVY }}>
-                  {v2Effective ? 'Включён' : 'Выключен'}
+                  {v2Effective ? 'Включён для новых броней' : 'Выключен'}
                 </p>
                 {v2EnvLock && (
                   <p className="text-xs text-amber-600 flex items-center gap-1 mt-0.5">
                     <AlertTriangle className="h-3 w-3" />
-                    Заблокировано env PRICING_ENGINE_V2
+                    Переключатель на сервере (переменная PRICING_ENGINE_V2) — меняется в Vercel
                   </p>
                 )}
               </div>
             </div>
             <Badge variant={v2Effective ? 'default' : 'secondary'} className="bg-teal-600">
-              effective: {v2Effective ? 'true' : 'false'}
+              {v2Effective ? 'Активен' : 'Неактивен'}
             </Badge>
           </CardContent>
         </Card>
 
-        {/* 2. Fiscal */}
         <Card className="border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg" style={{ color: NAVY }}>
               <Receipt className="h-5 w-5 text-teal-600" />
-              Кассовый аппарат (54-ФЗ)
+              Онлайн-касса (54-ФЗ)
             </CardTitle>
+            <CardDescription>Пробитие чеков для гостей из РФ при оплате через агента.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-2">
               <Badge
                 className={
-                  dash?.fiscal?.sandbox
+                  fiscalSandbox
                     ? 'bg-amber-100 text-amber-900 hover:bg-amber-100'
                     : 'bg-emerald-100 text-emerald-900 hover:bg-emerald-100'
                 }
               >
-                {dash?.fiscal?.mode || '—'}
+                {fiscalSandbox ? 'Песочница (тест)' : 'Боевой режим'}
               </Badge>
-              {!dash?.fiscal?.providerConfigured && !dash?.fiscal?.sandbox && (
-                <Badge variant="destructive">FISCAL_PROVIDER_URL не задан</Badge>
+              {!dash?.fiscal?.providerConfigured && !fiscalSandbox && (
+                <Badge variant="destructive">Не настроен адрес кассы (OFD)</Badge>
               )}
             </div>
             <div className="grid sm:grid-cols-2 gap-3 text-sm">
               <div className="rounded-lg border bg-slate-50 p-3">
-                <span className="text-slate-500 block text-xs">FISCAL_RU_AGENT_INN</span>
+                <span className="text-slate-500 block text-xs">ИНН агента (РФ)</span>
                 <span className="font-mono font-medium">{dash?.fiscal?.ruAgentInn}</span>
               </div>
               <div className="rounded-lg border bg-slate-50 p-3">
-                <span className="text-slate-500 block text-xs">FISCAL_KG_SUPPLIER_NAME</span>
+                <span className="text-slate-500 block text-xs">Поставщик (Кыргызстан, ОсОО)</span>
                 <span className="font-medium">{dash?.fiscal?.kgSupplierName}</span>
               </div>
             </div>
@@ -490,30 +577,35 @@ export function AdminFinTechConsole() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-500">Нет PENDING_FISCAL в очереди</p>
+              <FinTechEmptyState
+                icon={CheckCircle2}
+                title="Очередь чеков пуста"
+                description="Все оплаченные брони пробиты или ещё не требуют фискализации."
+              />
             )}
           </CardContent>
         </Card>
 
-        {/* 3. Pricing profiles */}
         <Card className="border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg" style={{ color: NAVY }}>
               <Calculator className="h-5 w-5 text-teal-600" />
-              Управление комиссиями (pricing_profiles)
+              Тарифы и комиссии
             </CardTitle>
-            <CardDescription>SSOT процентов. RU + KG = guest_fee — обязательно.</CardDescription>
+            <CardDescription>
+              Единый источник процентов. Доля РФ + доля КР = комиссия с гостя.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex flex-wrap gap-3 items-end">
               <div>
-                <Label>Субтотал THB</Label>
-                <Input value={simSubtotal} onChange={(e) => setSimSubtotal(e.target.value)} className="w-32" />
+                <Label>Сумма брони (฿), без сборов</Label>
+                <Input value={simSubtotal} onChange={(e) => setSimSubtotal(e.target.value)} className="w-36" />
               </div>
               <div>
-                <Label>Профиль</Label>
+                <Label>Тариф</Label>
                 <select
-                  className="border rounded-md h-10 px-2 min-w-[180px]"
+                  className="border rounded-md h-10 px-2 min-w-[200px]"
                   value={simProfileId}
                   onChange={(e) => setSimProfileId(e.target.value)}
                 >
@@ -526,27 +618,19 @@ export function AdminFinTechConsole() {
               </div>
               <Button onClick={runSimulate} style={{ backgroundColor: MINT }}>
                 <Play className="h-4 w-4 mr-1" />
-                Симулятор
+                Рассчитать
               </Button>
             </div>
             <BreakdownGrid b={simResult} />
 
             <div className="border-t pt-4">
               <h4 className="font-medium mb-2" style={{ color: NAVY }}>
-                {editingId ? 'Редактировать' : 'Новый'} профиль
+                {editingId ? 'Редактировать тариф' : 'Новый тариф'}
               </h4>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {[
-                  'id',
-                  'name',
-                  'guest_fee_pct',
-                  'ru_agent_share_pct',
-                  'kr_service_share_pct',
-                  'fx_markup_pct',
-                  'host_fee_pct',
-                ].map((key) => (
+                {PROFILE_FORM_KEYS.map((key) => (
                   <div key={key}>
-                    <Label className="text-xs">{key}</Label>
+                    <Label className="text-xs">{PROFILE_FIELD_LABELS[key] || key}</Label>
                     <Input
                       value={draft[key] ?? ''}
                       disabled={editingId && key === 'id'}
@@ -558,12 +642,12 @@ export function AdminFinTechConsole() {
               {!draftValid && (
                 <p className="text-sm text-red-600 mt-2 flex items-center gap-1">
                   <Shield className="h-4 w-4" />
-                  RU% + KG% ≠ guest_fee% — сохранение заблокировано
+                  Доля РФ + доля КР должны равняться комиссии с гостя
                 </p>
               )}
               <div className="flex gap-2 mt-3">
                 <Button onClick={saveProfile} disabled={!draftValid} style={{ backgroundColor: MINT }}>
-                  {editingId ? 'Сохранить' : 'Создать'}
+                  {editingId ? 'Сохранить' : 'Создать тариф'}
                 </Button>
                 {editingId && (
                   <Button
@@ -579,91 +663,113 @@ export function AdminFinTechConsole() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              {profiles.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm hover:border-teal-200"
-                >
-                  <div>
-                    <strong>{p.name}</strong>{' '}
-                    <span className="text-slate-500 font-mono text-xs">({p.id})</span>
-                    <p className="text-slate-600 mt-0.5">
-                      guest {p.guest_fee_pct}% = RU {p.ru_agent_share_pct}% + KG {p.kr_service_share_pct}%
-                      {p.fx_markup_pct ? ` · FX ${p.fx_markup_pct}%` : ''}
-                    </p>
+            {profiles.length === 0 ? (
+              <FinTechEmptyState
+                icon={Inbox}
+                title="Тарифов пока нет"
+                description="Создайте первый тариф — от него считаются все новые брони с движком v2."
+              />
+            ) : (
+              <div className="space-y-2">
+                {profiles.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm hover:border-teal-200"
+                  >
+                    <div>
+                      <strong>{p.name}</strong>
+                      <p className="text-slate-600 mt-0.5">
+                        С гостя {p.guest_fee_pct}% = РФ {p.ru_agent_share_pct}% + КР {p.kr_service_share_pct}%
+                        {p.fx_markup_pct ? ` · курс +${p.fx_markup_pct}%` : ''}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      {!p.is_active && <Badge variant="secondary">выкл</Badge>}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setEditingId(p.id)
+                          setDraft({ ...p })
+                        }}
+                      >
+                        Изменить
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    {!p.is_active && <Badge variant="secondary">off</Badge>}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setEditingId(p.id)
-                        setDraft({ ...p })
-                      }}
-                    >
-                      Изменить
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* 4. Batches */}
         <Card className="border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg" style={{ color: NAVY }}>
-              Батчинг выплат
+              Пулы выплат партнёрам
             </CardTitle>
-            <CardDescription>ПН/ЧТ 07:00 UTC · DRAFT → LOCKED → EXPORTED</CardDescription>
+            <CardDescription>
+              Обычно понедельник и четверг, 07:00 UTC. Сначала брони переходят в «Готово к выплате».
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button
-              size="lg"
-              className="w-full sm:w-auto text-base h-12 px-8"
-              style={{ backgroundColor: MINT }}
-              onClick={() => createPool(false)}
-            >
-              Сформировать пул на сегодня
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => createPool(true)}>
-              Force (вне ПН/ЧТ)
-            </Button>
-            <div className="space-y-2">
-              {batches.map((b) => (
-                <div key={b.id} className="flex flex-wrap items-center gap-2 border rounded-lg p-3 text-sm">
-                  <span className="font-mono text-xs">{b.id}</span>
-                  <Badge>{b.status}</Badge>
-                  <span>
-                    {b.item_count} шт. · {fmtThb(b.totals_thb)}
-                  </span>
-                  {b.status === 'DRAFT' && (
-                    <Button size="sm" variant="secondary" onClick={() => lockBatch(b.id)}>
-                      <Lock className="h-3 w-3 mr-1" />
-                      Lock
-                    </Button>
-                  )}
-                  <Button size="sm" variant="outline" onClick={() => exportBatch(b.id, 'csv')}>
-                    <Download className="h-3 w-3 mr-1" />
-                    CSV
-                  </Button>
-                </div>
-              ))}
-              {!batches.length && <p className="text-slate-500 text-sm">Пулов пока нет</p>}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="lg"
+                className="text-base h-12 px-8"
+                style={{ backgroundColor: MINT }}
+                onClick={() => createPool(false)}
+              >
+                Сформировать пул на сегодня
+              </Button>
+              <Button variant="outline" onClick={() => createPool(true)}>
+                Вне расписания (форс)
+              </Button>
             </div>
+            <p className="text-sm text-slate-600">
+              Сейчас готово к включению в пул:{' '}
+              <strong>{dash?.payout?.readyForPayoutCount ?? 0}</strong> броней на{' '}
+              <strong>{fmtThb(dash?.payout?.readyForPayoutThb)}</strong>
+            </p>
+            {batches.length === 0 ? (
+              <FinTechEmptyState
+                icon={FileStack}
+                title="Пулов выплат ещё нет"
+                description="Когда появятся брони «Готово к выплате», нажмите кнопку выше — здесь появится черновик для банка."
+              />
+            ) : (
+              <div className="space-y-2">
+                {batches.map((b) => (
+                  <div key={b.id} className="flex flex-wrap items-center gap-2 border rounded-lg p-3 text-sm">
+                    <span className="text-slate-500 text-xs">{new Date(b.scheduled_for || b.created_at).toLocaleDateString('ru-RU')}</span>
+                    <Badge>{BATCH_STATUS_RU[b.status] || b.status}</Badge>
+                    <span>
+                      {b.item_count} броней · {fmtThb(b.totals_thb)}
+                    </span>
+                    {b.status === 'DRAFT' && (
+                      <Button size="sm" variant="secondary" onClick={() => lockBatch(b.id)}>
+                        <Lock className="h-3 w-3 mr-1" />
+                        Зафиксировать
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" onClick={() => exportBatch(b.id, 'csv')}>
+                      <Download className="h-3 w-3 mr-1" />
+                      CSV для банка
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* 5. Ledger */}
         <Card className={cn('border-slate-200 shadow-sm', driftBad && 'border-red-300 bg-red-50/30')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg" style={{ color: NAVY }}>
               <Gauge className="h-5 w-5" />
-              Здоровье леджера
+              Сверка денежной книги
             </CardTitle>
+            <CardDescription>Сравнение поступлений от гостей и распределения по счетам.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {dash?.reconciliation?.error ? (
@@ -671,13 +777,13 @@ export function AdminFinTechConsole() {
             ) : (
               <div className="grid sm:grid-cols-3 gap-3 text-sm">
                 <div className="rounded-lg border p-3 bg-white">
-                  <span className="text-slate-500 text-xs">Clearing DEBIT</span>
+                  <span className="text-slate-500 text-xs">Поступило от гостей</span>
                   <p className="font-semibold tabular-nums">
                     {fmtThb(dash?.reconciliation?.guestClearingDebitsThb)}
                   </p>
                 </div>
                 <div className="rounded-lg border p-3 bg-white">
-                  <span className="text-slate-500 text-xs">Distribution CREDIT</span>
+                  <span className="text-slate-500 text-xs">Распределено по счетам</span>
                   <p className="font-semibold tabular-nums">
                     {fmtThb(dash?.reconciliation?.distributionCreditsThb)}
                   </p>
@@ -685,45 +791,72 @@ export function AdminFinTechConsole() {
                 <div
                   className={cn('rounded-lg border p-3', driftBad ? 'bg-red-100 border-red-200' : 'bg-white')}
                 >
-                  <span className="text-slate-500 text-xs">Drift Δ</span>
+                  <span className="text-slate-500 text-xs">Расхождение</span>
                   <p className={cn('font-semibold tabular-nums', driftBad && 'text-red-700')}>
                     {fmtThb(dash?.reconciliation?.deltaThb)}
                   </p>
                 </div>
               </div>
             )}
+            {lastRecon && (
+              <div
+                className={cn(
+                  'flex items-start gap-2 rounded-lg border px-3 py-2 text-sm',
+                  lastRecon.ok && !driftBad ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200',
+                )}
+              >
+                {lastRecon.ok && !driftBad ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                ) : (
+                  <XCircle className="h-4 w-4 text-amber-700 shrink-0 mt-0.5" />
+                )}
+                <div>
+                  <p className="font-medium">
+                    {lastRecon.ok
+                      ? lastRecon.data?.marginLeakage
+                        ? 'Сверка завершена — есть предупреждение'
+                        : 'Последняя сверка успешна'
+                      : 'Последняя сверка с ошибкой'}
+                  </p>
+                  <p className="text-slate-600 text-xs mt-0.5">
+                    {lastRecon.ok
+                      ? `Расхождение ${fmtThb(lastRecon.data?.deltaThb)} · ${new Date(lastRecon.at).toLocaleString('ru-RU')}`
+                      : `${lastRecon.error} · ${new Date(lastRecon.at).toLocaleString('ru-RU')}`}
+                  </p>
+                </div>
+              </div>
+            )}
             <Button variant="outline" onClick={runReconcile} disabled={reconLoading}>
-              {reconLoading ? 'Сверка…' : 'Запустить reconcile сейчас'}
+              {reconLoading ? 'Считаем…' : 'Запустить сверку сейчас'}
             </Button>
           </CardContent>
         </Card>
 
-        {/* 6. Compliance */}
         <Card className="border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg" style={{ color: NAVY }}>
               <Download className="h-5 w-5 text-teal-600" />
-              Compliance Export
+              Реестр для банка и бухгалтерии
             </CardTitle>
-            <CardDescription>CSV-реестр для банка / бухгалтерии</CardDescription>
+            <CardDescription>CSV по одной брони или за период (до 500 строк).</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-2 items-end">
               <div>
-                <Label className="text-xs">Booking UUID</Label>
+                <Label className="text-xs">Номер брони (UUID)</Label>
                 <Input
-                  placeholder="uuid…"
+                  placeholder="если нужна одна бронь"
                   value={complianceBooking}
                   onChange={(e) => setComplianceBooking(e.target.value)}
                   className="w-64"
                 />
               </div>
               <div>
-                <Label className="text-xs">С</Label>
+                <Label className="text-xs">Период: с</Label>
                 <Input type="date" value={complianceFrom} onChange={(e) => setComplianceFrom(e.target.value)} />
               </div>
               <div>
-                <Label className="text-xs">По</Label>
+                <Label className="text-xs">по</Label>
                 <Input type="date" value={complianceTo} onChange={(e) => setComplianceTo(e.target.value)} />
               </div>
               <Button onClick={downloadCompliance} style={{ backgroundColor: NAVY }}>
@@ -731,20 +864,37 @@ export function AdminFinTechConsole() {
                 Скачать CSV
               </Button>
             </div>
+            <p className="text-xs text-slate-500">
+              Если за период нет оплаченных броней, файл всё равно скачается с заголовками (пустая строка).
+            </p>
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={fiscalTestOpen} onOpenChange={setFiscalTestOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Пример тестового чека (54-ФЗ)</DialogTitle>
+            <DialogDescription>
+              Песочница — реальный OFD не вызывается. Так выглядит payload для провайдера кассы.
+            </DialogDescription>
+          </DialogHeader>
+          <pre className="text-xs bg-slate-900 text-teal-100 p-4 rounded-lg overflow-auto max-h-[60vh]">
+            {JSON.stringify(fiscalTestPayload, null, 2)}
+          </pre>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={v2DialogOpen} onOpenChange={setV2DialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {v2Pending ? 'Включить Pricing Engine V2?' : 'Выключить Pricing Engine V2?'}
+              {v2Pending ? 'Включить новый движок цен?' : 'Выключить новый движок цен?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {v2Pending
-                ? 'Новые брони получат snapshot v2, округление 1 THB и fiscal legs. Проверьте FISCAL_SANDBOX и профили.'
-                : 'Новые брони вернутся к legacy-округлению. Активные v2-брони не меняются.'}
+                ? 'Новые брони: округление до 1 ฿, полная схема комиссий и чеки. Убедитесь, что касса в нужном режиме (тест/бой).'
+                : 'Новые брони вернутся к прежней схеме. Уже созданные брони не изменятся.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -26,5 +26,21 @@ export async function POST(request) {
   if (result.error) {
     return NextResponse.json({ success: false, ...result }, { status: 400 })
   }
+  if (result.message === 'no_ready_bookings' || (result.itemCount === 0 && !result.batchId)) {
+    return NextResponse.json({
+      success: false,
+      code: 'NO_READY_BOOKINGS',
+      message: 'Нет бронирований, готовых к выплате',
+      itemCount: 0,
+    })
+  }
+  if (result.message === 'all_already_batched') {
+    return NextResponse.json({
+      success: false,
+      code: 'ALL_ALREADY_BATCHED',
+      message: 'Все готовые брони уже в предыдущих пулах',
+      itemCount: 0,
+    })
+  }
   return NextResponse.json({ success: true, ...result })
 }

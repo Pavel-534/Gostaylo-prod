@@ -30,18 +30,24 @@ function esc(v) {
   return s
 }
 
+const REGISTRY_HEADER = [
+  'booking_id',
+  'status',
+  'created_at',
+  'guest_total_thb',
+  'subtotal_thb',
+  'partner_net_thb',
+  'fiscal_status',
+  'fiscal_receipt_id',
+]
+
 function multiBookingCsv(rows) {
-  const header = [
-    'booking_id',
-    'status',
-    'created_at',
-    'guest_total_thb',
-    'subtotal_thb',
-    'partner_net_thb',
-    'fiscal_status',
-    'fiscal_receipt_id',
-  ]
+  const header = REGISTRY_HEADER
   const lines = [header.join(',')]
+  if (!rows.length) {
+    lines.push(header.map(() => '').join(','))
+    return lines.join('\n')
+  }
   for (const data of rows) {
     const fb = data.final_breakdown || {}
     const meta = data.fiscal_metadata || {}
