@@ -12,14 +12,17 @@ import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { useI18n } from '@/contexts/i18n-context'
 import { snapshotMoney } from '@/components/partner/finances/partner-finances-shared'
+import { payoutPreviewAmountKey } from '@/lib/partner/partner-payout-preview-api'
 import {
   fetchPartnerPayouts,
   fetchPartnerBalanceBreakdown,
   fetchPartnerBookingsForFinances,
   fetchPartnerFinancesSummary,
   fetchDefaultPartnerPayoutProfile,
+  fetchPartnerPayoutProfiles,
   fetchAuthMe,
-  fetchExchangeRatesRetail,
+  fetchPartnerPayoutPreview,
+  fetchPartnerPayoutPreviewBatch,
   requestPartnerPayout,
   fetchFinancesStatementPdf,
 } from '@/lib/api/partner-finances-client'
@@ -33,9 +36,8 @@ export function usePartnerFinances() {
   const transactionSectionRef = useRef(null)
 
   const [partnerId, setPartnerId] = useState(null)
-  const [currency, setCurrency] = useState('THB')
-  const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
   const [defaultPayoutProfile, setDefaultPayoutProfile] = useState(null)
+  const [payoutProfiles, setPayoutProfiles] = useState([])
   const [pdfDateFrom, setPdfDateFrom] = useState(() => format(startOfMonth(new Date()), 'yyyy-MM-dd'))
   const [pdfDateTo, setPdfDateTo] = useState(() => format(new Date(), 'yyyy-MM-dd'))
   const [pdfLoading, setPdfLoading] = useState(false)
@@ -50,17 +52,6 @@ export function usePartnerFinances() {
       try {
         const user = JSON.parse(storedUser)
         setPartnerId(user.id)
-        const pref =
-          String(
-            user.preferredPayoutCurrency ||
-              user.preferred_payout_currency ||
-              user.preferredCurrency ||
-              user.preferred_currency ||
-              'THB',
-          )
-            .toUpperCase()
-            .trim() || 'THB'
-        setCurrency(pref)
       } catch (e) {
         console.error('[FINANCES] Failed to parse user', e)
       }
@@ -72,10 +63,19 @@ export function usePartnerFinances() {
     let cancelled = false
     ;(async () => {
       try {
-        const profile = await fetchDefaultPartnerPayoutProfile()
-        if (!cancelled) setDefaultPayoutProfile(profile)
+        const [profile, profiles] = await Promise.all([
+          fetchDefaultPartnerPayoutProfile(),
+          fetchPartnerPayoutProfiles(),
+        ])
+        if (!cancelled) {
+          setDefaultPayoutProfile(profile)
+          setPayoutProfiles(profiles || [])
+        }
       } catch {
-        if (!cancelled) setDefaultPayoutProfile(null)
+        if (!cancelled) {
+          setDefaultPayoutProfile(null)
+          setPayoutProfiles([])
+        }
       }
     })()
     return () => {
@@ -83,53 +83,19 @@ export function usePartnerFinances() {
     }
   }, [partnerId])
 
-  const calcPayoutMath = (baseAmount) => {
-    const base = Math.max(0, Number(baseAmount) || 0)
-    const method = defaultPayoutProfile?.method
-    if (!method) return { fee: 0, final: base }
-    const feeType = String(method.fee_type || 'fixed').toLowerCase()
-    const feeValue = Math.max(0, Number(method.value) || 0)
-    const minPayout = Math.max(0, Number(method.min_payout) || 0)
-    if (base < minPayout) return { fee: 0, final: base, minPayoutError: true, minPayout }
-    const fee =
-      feeType === 'percentage'
-        ? Math.round(base * (feeValue / 100) * 100) / 100
-        : Math.round(feeValue * 100) / 100
-    const final = Math.max(0, Math.round((base - fee) * 100) / 100)
-    return { fee, final, feeType, feeValue }
-  }
-
   useEffect(() => {
     let isMounted = true
     ;(async () => {
       try {
-        const [me, ratesMap] = await Promise.all([fetchAuthMe(), fetchExchangeRatesRetail()])
-
+        const me = await fetchAuthMe()
         if (me.ok && me.user) {
           const verified = me.user?.is_verified === true || me.user?.isVerified === true
-          if (isMounted) {
-            setPartnerProfileVerified(verified)
-          }
-          const pref =
-            String(
-              me.user?.preferredPayoutCurrency ||
-                me.user?.preferred_payout_currency ||
-                me.user?.preferredCurrency ||
-                me.user?.preferred_currency ||
-                'THB',
-            )
-              .toUpperCase()
-              .trim() || 'THB'
-          if (isMounted) setCurrency(pref)
+          if (isMounted) setPartnerProfileVerified(verified)
         } else if (isMounted) {
           setPartnerProfileVerified(false)
         }
-
-        if (ratesMap && isMounted) {
-          setExchangeRates(ratesMap)
-        }
       } catch (e) {
-        console.warn('[FINANCES] failed to load payout preferences/rates', e)
+        console.warn('[FINANCES] failed to load profile', e)
       }
     })()
 
@@ -197,17 +163,70 @@ export function usePartnerFinances() {
     staleTime: 30 * 1000,
   })
 
-  const pendingPayoutPreview = calcPayoutMath(financesSummary?.availableThb ?? 0)
+  const {
+    data: payoutPreview,
+    isLoading: payoutPreviewLoading,
+    refetch: refetchPayoutPreview,
+  } = useQuery({
+    queryKey: ['partner-payout-preview', partnerId, defaultPayoutProfile?.id],
+    queryFn: () =>
+      fetchPartnerPayoutPreview({
+        payoutProfileId: defaultPayoutProfile?.id,
+      }),
+    enabled: !!partnerId && !!defaultPayoutProfile?.id,
+    staleTime: 30 * 1000,
+  })
+
+  const previewBatchAmounts = useMemo(() => {
+    const amounts = new Set()
+    for (const b of displayedBookings) {
+      const { net } = snapshotMoney(b)
+      if (net > 0) amounts.add(Math.round(net * 100) / 100)
+    }
+    const portfolioNet = Number(financesSummary?.portfolio?.netThb)
+    if (Number.isFinite(portfolioNet) && portfolioNet > 0) {
+      amounts.add(Math.round(portfolioNet * 100) / 100)
+    }
+    return [...amounts]
+  }, [displayedBookings, financesSummary?.portfolio?.netThb])
+
+  const previewBatchAmountsKey = previewBatchAmounts.join(',')
+
+  const { data: payoutPreviewBatch, isLoading: payoutPreviewBatchLoading } = useQuery({
+    queryKey: [
+      'partner-payout-preview-batch',
+      partnerId,
+      defaultPayoutProfile?.id,
+      previewBatchAmountsKey,
+    ],
+    queryFn: () =>
+      fetchPartnerPayoutPreviewBatch({
+        amountsThb: previewBatchAmounts,
+        payoutProfileId: defaultPayoutProfile?.id,
+      }),
+    enabled: !!partnerId && !!defaultPayoutProfile?.id && previewBatchAmounts.length > 0,
+    staleTime: 30 * 1000,
+  })
+
+  const payoutPreviewByAmountKey = payoutPreviewBatch?.byAmountKey || {}
+
+  const getBookingPayoutPreview = (booking) => {
+    const { net } = snapshotMoney(booking)
+    return payoutPreviewByAmountKey[payoutPreviewAmountKey(net)] || null
+  }
+
   const summaryLoadingCombined = isLoading || summaryLoading
 
-  const handleWithdrawSubmit = async () => {
+  const handleWithdrawSubmit = async ({ payoutProfileId, amountThb } = {}) => {
     if (!partnerId) {
       toast.error(t('partnerFinances_withdrawErrorToast'))
       return
     }
     setWithdrawSubmitting(true)
     try {
-      const withdrawAmount = Number(pendingPayoutPreview?.final ?? financesSummary?.availableThb ?? 0)
+      const withdrawAmount = Number(
+        amountThb ?? payoutPreview?.baseAmountThb ?? payoutPreview?.availableThb ?? 0,
+      )
       if (!Number.isFinite(withdrawAmount) || withdrawAmount <= 0) {
         toast.error(t('partnerFinances_withdrawErrorToast'))
         return
@@ -216,7 +235,7 @@ export function usePartnerFinances() {
         partnerId,
         amount: withdrawAmount,
         method: 'MANUAL',
-        payoutProfileId: defaultPayoutProfile?.id ?? null,
+        payoutProfileId: payoutProfileId ?? defaultPayoutProfile?.id ?? null,
       })
       if (!res.ok || json?.success === false) {
         if (
@@ -233,6 +252,8 @@ export function usePartnerFinances() {
       void queryClient.invalidateQueries({ queryKey: ['partner-finances-summary', partnerId] })
       void queryClient.invalidateQueries({ queryKey: ['partner-payouts-history'] })
       void queryClient.invalidateQueries({ queryKey: ['partner-balance-breakdown', partnerId] })
+      void queryClient.invalidateQueries({ queryKey: ['partner-payout-preview', partnerId] })
+      void queryClient.invalidateQueries({ queryKey: ['partner-payout-preview-batch', partnerId] })
     } catch {
       toast.error(t('partnerFinances_withdrawErrorToast'))
     } finally {
@@ -321,9 +342,8 @@ export function usePartnerFinances() {
     escrowBookingFilter,
     transactionSectionRef,
     partnerId,
-    currency,
-    exchangeRates,
     defaultPayoutProfile,
+    payoutProfiles,
     pdfDateFrom,
     setPdfDateFrom,
     pdfDateTo,
@@ -352,12 +372,16 @@ export function usePartnerFinances() {
     payoutsErr,
     refetchPayouts,
     balanceBreakdown,
-    pendingPayoutPreview,
+    payoutPreview,
+    payoutPreviewLoading,
+    refetchPayoutPreview,
+    payoutPreviewByAmountKey,
+    payoutPreviewBatchLoading,
+    getBookingPayoutPreview,
     summaryLoadingCombined,
     handleWithdrawSubmit,
     handleExportCSV,
     handleExportPdf,
     applyPdfMonthPreset,
-    calcPayoutMath,
   }
 }

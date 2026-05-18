@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/currency'
 import { PAYOUT_STATUS_LABEL, PAYOUT_STATUS_COLORS } from '@/components/partner/finances/partner-finances-shared'
+import { formatServerPayoutAmount } from '@/components/partner/finances/partner-payout-preview-display'
 
 export function PartnerFinancesPayoutHistory({
   t,
@@ -16,8 +17,13 @@ export function PartnerFinancesPayoutHistory({
   payoutsError,
   payoutsErr,
   onRefetchPayouts,
-  exchangeRates,
 }) {
+  const fmtThb = (amt) => formatPrice(Number(amt) || 0, 'THB', { THB: 1 }, language)
+  const fmtPayout = (amt, currencyCode) => {
+    const cur = String(currencyCode || 'THB').toUpperCase()
+    if (cur === 'THB') return fmtThb(amt)
+    return formatServerPayoutAmount(amt, cur, language)
+  }
   return (
     <Card>
       <CardHeader>
@@ -46,16 +52,11 @@ export function PartnerFinancesPayoutHistory({
           <>
             <div className="md:hidden space-y-3 min-w-0">
               {payouts.map((p) => {
-                const cur = p.currency || 'THB'
-                const rates = { THB: 1, ...exchangeRates }
+                const cur = p.payoutCurrency || p.currency || 'THB'
                 const methodName = p.payoutMethod?.name || p.method || '—'
                 const st = String(p.status || '').toUpperCase()
-                const fmtMoney = (amt) => {
-                  const n = Number(amt) || 0
-                  if (cur === 'THB') return formatPrice(n, 'THB', rates, language)
-                  const loc = language === 'ru' ? 'ru-RU' : 'en-US'
-                  return `${n.toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`
-                }
+                const payoutCurAmount =
+                  p.amountInPayoutCurrency != null ? p.amountInPayoutCurrency : null
                 return (
                   <div
                     key={p.id}
@@ -73,18 +74,21 @@ export function PartnerFinancesPayoutHistory({
                     <div className="grid grid-cols-1 gap-1 text-xs sm:text-sm">
                       <div className="flex justify-between gap-2 min-w-0">
                         <span className="text-slate-500 shrink-0">{t('partnerFinances_colMobileGross')}</span>
-                        <span className="tabular-nums text-right break-all">{fmtMoney(p.grossAmount)}</span>
+                        <span className="tabular-nums text-right break-all">{fmtThb(p.grossAmount)}</span>
                       </div>
                       <div className="flex justify-between gap-2 min-w-0">
                         <span className="text-slate-500 shrink-0">{t('partnerFinances_colMobileBankFee')}</span>
                         <span className="tabular-nums text-amber-800 text-right break-all">
-                          −{fmtMoney(p.payoutFeeAmount)}
+                          −{fmtThb(p.payoutFeeAmount)}
                         </span>
                       </div>
                       <div className="flex justify-between gap-2 pt-1 border-t border-slate-200 font-semibold min-w-0">
                         <span className="text-slate-700 shrink-0">{t('partnerFinances_colMobileFinal')}</span>
                         <span className="tabular-nums text-emerald-800 text-right break-all">
-                          {fmtMoney(p.finalAmount)}
+                          {fmtThb(p.finalAmount)}
+                          {cur !== 'THB' && payoutCurAmount != null
+                            ? ` · ${fmtPayout(payoutCurAmount, cur)}`
+                            : ''}
                         </span>
                       </div>
                     </div>
@@ -106,28 +110,26 @@ export function PartnerFinancesPayoutHistory({
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {payouts.map((p) => {
-                    const cur = p.currency || 'THB'
-                    const rates = { THB: 1, ...exchangeRates }
+                    const cur = p.payoutCurrency || p.currency || 'THB'
                     const methodName = p.payoutMethod?.name || p.method || '—'
                     const st = String(p.status || '').toUpperCase()
-                    const fmtMoney = (amt) => {
-                      const n = Number(amt) || 0
-                      if (cur === 'THB') return formatPrice(n, 'THB', rates, language)
-                      const loc = language === 'ru' ? 'ru-RU' : 'en-US'
-                      return `${n.toLocaleString(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`
-                    }
+                    const payoutCurAmount =
+                      p.amountInPayoutCurrency != null ? p.amountInPayoutCurrency : null
                     return (
                       <tr key={p.id} className="hover:bg-slate-50/80">
                         <td className="px-3 py-2 whitespace-nowrap text-slate-700">
                           {p.createdAt ? format(new Date(p.createdAt), 'dd.MM.yyyy HH:mm') : '—'}
                         </td>
                         <td className="px-3 py-2 text-slate-800">{methodName}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">{fmtMoney(p.grossAmount)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{fmtThb(p.grossAmount)}</td>
                         <td className="px-3 py-2 text-right tabular-nums text-amber-800">
-                          −{fmtMoney(p.payoutFeeAmount)}
+                          −{fmtThb(p.payoutFeeAmount)}
                         </td>
                         <td className="px-3 py-2 text-right font-semibold tabular-nums text-emerald-800">
-                          {fmtMoney(p.finalAmount)}
+                          {fmtThb(p.finalAmount)}
+                          {cur !== 'THB' && payoutCurAmount != null
+                            ? ` · ${fmtPayout(payoutCurAmount, cur)}`
+                            : ''}
                         </td>
                         <td className="px-3 py-2">
                           <Badge className={`text-xs ${PAYOUT_STATUS_COLORS[st] || 'bg-slate-100'}`}>

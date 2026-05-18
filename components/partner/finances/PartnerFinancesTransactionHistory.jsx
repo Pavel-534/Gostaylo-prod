@@ -9,11 +9,11 @@ import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/currency'
 import { snapshotMoney, resolveBookingStatusBadge } from '@/components/partner/finances/partner-finances-shared'
 import { PartnerBookingIncomeKindBadge } from '@/components/partner/finances/PartnerBookingIncomeKindBadge'
+import { PartnerBookingPayoutPreviewLine } from '@/components/partner/finances/PartnerBookingPayoutPreviewLine'
 
 export function PartnerFinancesTransactionHistory({
   t,
-  currency,
-  exchangeRates,
+  language,
   transactionSectionRef,
   escrowBookingFilter,
   isLoading,
@@ -22,7 +22,9 @@ export function PartnerFinancesTransactionHistory({
   onRefetch,
   bookings,
   displayedBookings,
-  calcPayoutMath,
+  getBookingPayoutPreview,
+  payoutPreviewBatchLoading,
+  hasPayoutProfile,
   onOpenSnapshot,
 }) {
   return (
@@ -30,6 +32,9 @@ export function PartnerFinancesTransactionHistory({
       <CardHeader>
         <CardTitle>{t('transactionHistory')}</CardTitle>
         <CardDescription>{t('transactionHistoryDesc')}</CardDescription>
+        {hasPayoutProfile ? (
+          <p className="text-xs text-slate-500 mt-2">{t('partnerFinances_rubIndicativeDisclaimer')}</p>
+        ) : null}
         {escrowBookingFilter ? (
           <div className="mt-3 flex flex-col gap-2 rounded-lg border border-teal-200 bg-teal-50/80 px-3 py-2 text-sm text-teal-950 sm:flex-row sm:items-center sm:justify-between">
             <span>{t('partnerFinances_escrowFilterBanner')}</span>
@@ -48,7 +53,7 @@ export function PartnerFinancesTransactionHistory({
             {[...Array(5)].map((_, i) => (
               <div key={i} className="h-20 bg-slate-100 animate-pulse rounded-lg" />
             ))}
-          </div>
+          </motion.div>
         ) : isError ? (
           <div className="text-center py-8">
             <p className="mb-2 text-slate-700 font-medium">{t('failedToLoad')}</p>
@@ -75,7 +80,7 @@ export function PartnerFinancesTransactionHistory({
           <div className="space-y-4">
             {displayedBookings.map((booking) => {
               const { gross, fee, net } = snapshotMoney(booking)
-              const payoutMath = calcPayoutMath(net)
+              const payoutPreview = getBookingPayoutPreview?.(booking)
               const checkIn = booking.checkIn || booking.check_in
               const checkOut = booking.checkOut || booking.check_out
 
@@ -114,25 +119,28 @@ export function PartnerFinancesTransactionHistory({
                       <div>
                         <span className="text-slate-500">{t('gross')}:</span>
                         <span className="font-medium text-slate-900 ml-2">
-                          {formatPrice(gross, currency, exchangeRates)}
+                          {formatPrice(gross, 'THB', { THB: 1 }, language)}
                         </span>
                       </div>
                       <div>
                         <span className="text-slate-500">{t('fee')}:</span>
                         <span className="font-medium text-red-600 ml-2">
-                          -{formatPrice(fee, currency, exchangeRates)}
+                          −{formatPrice(fee, 'THB', { THB: 1 }, language)}
                         </span>
                       </div>
                     </div>
                     <div className="text-lg font-bold text-green-600">
-                      {formatPrice(net, currency, exchangeRates)}
+                      {formatPrice(net, 'THB', { THB: 1 }, language)}
                     </div>
                     <p className="text-xs text-slate-500">{t('yourNetEarnings')}</p>
-                    <p className="text-xs text-indigo-700">
-                      {t('partnerFinances_payoutLine')}: {formatPrice(net, currency, exchangeRates)} −{' '}
-                      {formatPrice(payoutMath.fee, currency, exchangeRates)} ={' '}
-                      {formatPrice(payoutMath.final, currency, exchangeRates)}
-                    </p>
+                    {hasPayoutProfile ? (
+                      <PartnerBookingPayoutPreviewLine
+                        t={t}
+                        language={language}
+                        preview={payoutPreview}
+                        loading={payoutPreviewBatchLoading}
+                      />
+                    ) : null}
                     {booking.financial_snapshot ? (
                       <Button
                         type="button"

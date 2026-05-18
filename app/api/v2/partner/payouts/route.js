@@ -44,7 +44,11 @@ export async function GET(request) {
       grossAmount: parseFloat(p.gross_amount) || parseFloat(p.amount) || 0,
       payoutFeeAmount: parseFloat(p.payout_fee_amount) || 0,
       finalAmount: parseFloat(p.final_amount) || parseFloat(p.amount) || 0,
-      currency: p.currency,
+      currency: p.payout_currency || p.currency,
+      payoutCurrency: p.payout_currency || p.currency,
+      amountInPayoutCurrency: p.amount_in_payout_currency != null
+        ? parseFloat(p.amount_in_payout_currency)
+        : null,
       method: p.method,
       payoutMethod: p.payout_method || null,
       payoutProfile: p.payout_profile || null,

@@ -6,7 +6,7 @@
  */
 
 import { Suspense } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Calendar, Clock, Loader2, AlertTriangle } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
@@ -15,6 +15,7 @@ import { usePartnerFinances } from '@/hooks/usePartnerFinances'
 import { PartnerFinancesHeader } from '@/components/partner/finances/PartnerFinancesHeader'
 import { PartnerFinancesPdfCard } from '@/components/partner/finances/PartnerFinancesPdfCard'
 import { PartnerFinancesStatCard } from '@/components/partner/finances/PartnerFinancesStatCard'
+import { PartnerFinancesPortfolioCards } from '@/components/partner/finances/PartnerFinancesPortfolioCards'
 import { PartnerFinancesPayoutHistory } from '@/components/partner/finances/PartnerFinancesPayoutHistory'
 import { PartnerFinancesLedger } from '@/components/partner/finances/PartnerFinancesLedger'
 import { PartnerFinancesPayoutMathCard } from '@/components/partner/finances/PartnerFinancesPayoutMathCard'
@@ -30,9 +31,8 @@ function PartnerFinancesV2Content() {
     transactionSectionRef,
     escrowBookingFilter,
     partnerId,
-    currency,
-    exchangeRates,
     defaultPayoutProfile,
+    payoutProfiles,
     pdfDateFrom,
     setPdfDateFrom,
     pdfDateTo,
@@ -60,13 +60,16 @@ function PartnerFinancesV2Content() {
     payoutsErr,
     refetchPayouts,
     balanceBreakdown,
-    pendingPayoutPreview,
+    payoutPreview,
+    payoutPreviewLoading,
     summaryLoadingCombined,
     handleWithdrawSubmit,
     handleExportCSV,
     handleExportPdf,
     applyPdfMonthPreset,
-    calcPayoutMath,
+    payoutPreviewByAmountKey,
+    payoutPreviewBatchLoading,
+    getBookingPayoutPreview,
   } = fin
 
   return (
@@ -127,66 +130,26 @@ function PartnerFinancesV2Content() {
         <PartnerFinancesStatCard
           icon={Calendar}
           title={t('partnerFinances_bucketPendingTitle')}
-          value={formatPrice(financesSummary?.pendingThb ?? 0, currency, exchangeRates)}
+          value={formatPrice(financesSummary?.pendingThb ?? 0, 'THB')}
           subtitle={t('partnerFinances_bucketPendingDesc')}
           loading={summaryLoadingCombined}
         />
         <PartnerFinancesStatCard
           icon={AlertTriangle}
           title={t('partnerFinances_bucketDisputeTitle')}
-          value={formatPrice(financesSummary?.disputeHoldThb ?? 0, currency, exchangeRates)}
+          value={formatPrice(financesSummary?.disputeHoldThb ?? 0, 'THB')}
           subtitle={t('partnerFinances_bucketDisputeDesc')}
           loading={summaryLoadingCombined}
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">
-              {t('partnerFinances_portfolioGrossTitle')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-900">
-              {summaryLoadingCombined
-                ? '—'
-                : formatPrice(financesSummary?.portfolio?.grossThb ?? 0, currency, exchangeRates)}
-            </div>
-            <p className="text-xs text-slate-500 mt-1">
-              {financesSummary?.portfolio?.bookingCount ?? 0} {t('partnerFinances_portfolioBookingsLabel')}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">
-              {t('partnerFinances_portfolioFeeTitle')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-700">
-              {summaryLoadingCombined
-                ? '—'
-                : formatPrice(financesSummary?.portfolio?.feeThb ?? 0, currency, exchangeRates)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-slate-600">
-              {t('partnerFinances_portfolioNetTitle')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-700">
-              {summaryLoadingCombined
-                ? '—'
-                : formatPrice(financesSummary?.portfolio?.netThb ?? 0, currency, exchangeRates)}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <PartnerFinancesPortfolioCards
+        t={t}
+        language={language}
+        financesSummary={financesSummary}
+        loading={summaryLoadingCombined || payoutPreviewBatchLoading}
+        previewByAmountKey={payoutPreviewByAmountKey}
+      />
 
       <PartnerFinancesPayoutHistory
         t={t}
@@ -196,28 +159,26 @@ function PartnerFinancesV2Content() {
         payoutsError={payoutsError}
         payoutsErr={payoutsErr}
         onRefetchPayouts={refetchPayouts}
-        exchangeRates={exchangeRates}
       />
 
       <PartnerFinancesLedger t={t} balanceBreakdown={balanceBreakdown} />
 
       <PartnerFinancesPayoutMathCard
         t={t}
-        currency={currency}
-        exchangeRates={exchangeRates}
+        language={language}
         financesSummary={financesSummary}
         summaryLoading={summaryLoadingCombined}
         partnerId={partnerId}
         partnerProfileVerified={partnerProfileVerified}
         defaultPayoutProfile={defaultPayoutProfile}
-        pendingPayoutPreview={pendingPayoutPreview}
+        payoutPreview={payoutPreview}
+        payoutPreviewLoading={payoutPreviewLoading}
         onOpenWithdraw={setWithdrawOpen}
       />
 
       <PartnerFinancesTransactionHistory
         t={t}
-        currency={currency}
-        exchangeRates={exchangeRates}
+        language={language}
         transactionSectionRef={transactionSectionRef}
         escrowBookingFilter={escrowBookingFilter}
         isLoading={isLoading}
@@ -226,7 +187,9 @@ function PartnerFinancesV2Content() {
         onRefetch={refetch}
         bookings={bookings}
         displayedBookings={displayedBookings}
-        calcPayoutMath={calcPayoutMath}
+        getBookingPayoutPreview={getBookingPayoutPreview}
+        payoutPreviewBatchLoading={payoutPreviewBatchLoading}
+        hasPayoutProfile={!!defaultPayoutProfile?.id}
         onOpenSnapshot={setFinanceFocusBooking}
       />
 
@@ -244,14 +207,12 @@ function PartnerFinancesV2Content() {
 
       <PartnerFinancesWithdrawDialog
         t={t}
+        language={language}
         open={withdrawOpen}
         onOpenChange={setWithdrawOpen}
         partnerProfileVerified={partnerProfileVerified}
         financesSummary={financesSummary}
-        currency={currency}
-        exchangeRates={exchangeRates}
-        pendingPayoutPreview={pendingPayoutPreview}
-        defaultPayoutProfile={defaultPayoutProfile}
+        payoutProfiles={payoutProfiles}
         partnerId={partnerId}
         withdrawSubmitting={withdrawSubmitting}
         onConfirmWithdraw={handleWithdrawSubmit}

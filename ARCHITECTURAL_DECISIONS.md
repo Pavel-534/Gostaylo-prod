@@ -235,6 +235,7 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 3. **Cron `payout-batch-pools`** на Concierge **выключен**; **`promote-ready-for-payout`** и **`escrow-thaw`** — по runbook (внешний hourly cron на Hobby).
 4. **Партнёр** видит балансы и может подать **`POST /api/v2/partner/payouts`**; исполнение — staff вручную (не stub **`/payouts/request`**).
 5. **Compliance / бухгалтерия** — реестр **`GET /api/admin/finances/compliance-export`** (SSOT **`lib/admin/compliance-registry-csv.js`**); период по **дате оплаты**.
+6. **Исходящий FX партнёра (Stage 100.6):** THB в ledger неизменен; сумма перевода — **`amount_in_payout_currency`** + **`payout_currency`**. SSOT конвертации — **`lib/partner/partner-payout-fx.js`**; RUB — mid **`exchange_rates`** минус выплатной спред (**`PARTNER_PAYOUT_FX_RUB_SPREAD_PCT`**, default 1.75); USDT — mid без спреда. Резерв available = сумма PENDING/PROCESSING **`payouts`** (gross THB), без UPDATE **`profiles.available_balance_thb`**.
 
 **Операционные доки (не SSOT политики):** **`docs/CONCIERGE_LAUNCH_TREASURY_RUNBOOK.md`**, **`docs/PRE_LAUNCH_CHECKLIST.md`**, **`docs/SOFT_LAUNCH_PLAN.md`**, **`docs/CRON_EXTERNAL_FINANCIAL.md`**.
 

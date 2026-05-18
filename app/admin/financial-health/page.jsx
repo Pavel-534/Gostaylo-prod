@@ -15,19 +15,14 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Loader2, RefreshCw, Landmark, PiggyBank, Wallet, Building2, FileSpreadsheet, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { fmtAdminPayoutAmount, fmtThbAdmin } from '@/lib/admin/format-payout-display';
 
 function fmtThb(n) {
-  const x = Number(n);
-  if (!Number.isFinite(x)) return '—';
-  return `฿${x.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return fmtThbAdmin(n);
 }
 
 function fmtPayoutAmount(p) {
-  const x = Number(p?.finalAmount ?? p?.amount);
-  if (!Number.isFinite(x)) return '—';
-  const c = String(p?.currency || 'THB').toUpperCase();
-  if (c === 'THB') return fmtThb(x);
-  return `${x.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${c}`;
+  return fmtAdminPayoutAmount(p);
 }
 
 export default function AdminFinancialHealthPage() {
@@ -260,7 +255,7 @@ export default function AdminFinancialHealthPage() {
                   <tr>
                     <th className="px-3 py-2 font-medium">ID</th>
                     <th className="px-3 py-2 font-medium">Партнёр</th>
-                    <th className="px-3 py-2 font-medium text-right">Сумма</th>
+                    <th className="px-3 py-2 font-medium text-right">Сумма (THB / payout)</th>
                     <th className="px-3 py-2 font-medium">Метод</th>
                     <th className="px-3 py-2 font-medium">Действия</th>
                   </tr>
@@ -270,7 +265,12 @@ export default function AdminFinancialHealthPage() {
                     <tr key={p.id}>
                       <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{p.id}</td>
                       <td className="px-3 py-2 text-slate-700">{p.partnerId}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{fmtPayoutAmount(p)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        <div>{fmtThbAdmin(p.grossAmount ?? p.finalAmount ?? p.amount)}</div>
+                        {p.amountInPayoutCurrency != null && String(p.payoutCurrency || '').toUpperCase() !== 'THB' ? (
+                          <div className="text-xs text-slate-500">{fmtPayoutAmount(p)}</div>
+                        ) : null}
+                      </td>
                       <td className="px-3 py-2 text-slate-600">{p.payoutMethod?.name || '—'}</td>
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-2">

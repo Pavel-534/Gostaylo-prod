@@ -4,20 +4,22 @@ import Link from 'next/link'
 import { ArrowDownToLine } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { formatPrice } from '@/lib/currency'
+import { PartnerPayoutPreviewFields } from '@/components/partner/finances/PartnerPayoutPreviewFields'
 
 export function PartnerFinancesPayoutMathCard({
   t,
-  currency,
-  exchangeRates,
+  language,
   financesSummary,
   summaryLoading,
   partnerId,
   partnerProfileVerified,
   defaultPayoutProfile,
-  pendingPayoutPreview,
+  payoutPreview,
+  payoutPreviewLoading,
   onOpenWithdraw,
 }) {
+  const hasProfile = !!defaultPayoutProfile?.id
+
   return (
     <Card className="border-indigo-200 bg-indigo-50/50 min-w-0 overflow-hidden">
       <CardHeader>
@@ -29,24 +31,18 @@ export function PartnerFinancesPayoutMathCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 text-sm min-w-0 overflow-x-auto">
-        <div className="flex justify-between gap-3 min-w-0">
-          <span className="text-slate-600 shrink-0">{t('partnerFinances_payoutMathBaseAvailable')}</span>
-          <span className="font-medium tabular-nums text-right break-all min-w-0">
-            {formatPrice(financesSummary?.availableThb ?? 0, currency, exchangeRates)}
-          </span>
-        </div>
-        <div className="flex justify-between gap-3 min-w-0">
-          <span className="text-slate-600 shrink-0">{t('partnerFinances_payoutMathFee')}</span>
-          <span className="font-medium tabular-nums text-right break-all min-w-0">
-            -{formatPrice(pendingPayoutPreview.fee, currency, exchangeRates)}
-          </span>
-        </div>
-        <div className="flex justify-between gap-3 pt-2 border-t border-indigo-200 text-base font-semibold min-w-0">
-          <span className="shrink-0">{t('partnerFinances_payoutMathFinal')}</span>
-          <span className="text-indigo-700 tabular-nums text-right break-all min-w-0">
-            {formatPrice(pendingPayoutPreview.final, currency, exchangeRates)}
-          </span>
-        </div>
+        {hasProfile ? (
+          <PartnerPayoutPreviewFields
+            t={t}
+            language={language}
+            preview={payoutPreview}
+            loading={payoutPreviewLoading || summaryLoading}
+            financesSummary={financesSummary}
+            variant="card"
+          />
+        ) : (
+          <p className="text-slate-600 text-sm">{t('partnerFinances_payoutMathDescNoProfile')}</p>
+        )}
         {partnerProfileVerified === false ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-sm text-amber-950">
             <p>{t('partnerFinances_payoutKycBlockedHint')}</p>
@@ -60,7 +56,14 @@ export function PartnerFinancesPayoutMathCard({
             type="button"
             className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700 sm:w-auto"
             onClick={() => onOpenWithdraw(true)}
-            disabled={summaryLoading || !partnerId || partnerProfileVerified !== true}
+            disabled={
+              summaryLoading ||
+              payoutPreviewLoading ||
+              !partnerId ||
+              partnerProfileVerified !== true ||
+              !hasProfile ||
+              !payoutPreview?.finalAmountThb
+            }
           >
             <ArrowDownToLine className="h-4 w-4 shrink-0" aria-hidden />
             {t('partnerFinances_withdrawCta')}

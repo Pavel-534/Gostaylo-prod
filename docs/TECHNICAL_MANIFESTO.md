@@ -10,6 +10,12 @@
 
 **Stage 99 (2026-05):** Soft launch prep — dispute payout freeze SSOT (`partner-payout-eligibility` + `disputes.freeze_payment` → UI «Заблокировано спором»); ledger `DISPUTE_PARTNER_FUNDS_HELD` / `RELEASED`; smoke **`docs/FINANCIAL_SMOKE_E2E.md`**; plan **`docs/SOFT_LAUNCH_PLAN.md`**; cron **`financial-health-monitor`** (PENDING_FISCAL + ledger drift alerts).
 
+**Stage 100.8 (2026-05):** Partner finances — весь payout FX UI через **`GET /api/v2/partner/payouts/preview`** + **`POST …/preview-batch`** (портфель, история броней); удалён клиентский `calcPayoutMath` и live `exchange-rates` для выплат; дисклеймер ориентира ₽; админ показывает `amount_in_payout_currency`.
+
+**Stage 100.7 (2026-05):** Partner FX preview unified — **`PartnerPayoutPreviewFields`** + TanStack query на **`GET /api/v2/partner/payouts/preview`** (карточка + модалка; без клиентского `calcPayoutMath` / `formatPrice` для выплаты). **`settlement_v3`**: `preferred_amount` через **`buildSnapshotLockedRawRateMap`** / `fx_raw_rate_to_thb` из snapshot брони (без выплатного спреда). Доки: 4 слоя FX в паспорте § Treasury; runbook §1.1.
+
+**Stage 100.6 (2026-05):** Partner payout FX SSOT — **`lib/partner/partner-payout-fx.js`** (`convertThbToPayoutCurrency`, RUB payout spread `PARTNER_PAYOUT_FX_RUB_SPREAD_PCT`, USDT mid); колонки **`payouts.amount_in_payout_currency`**, **`payout_currency`** (migration **055**); резерв available на лету (PENDING/PROCESSING), без правки ledger; пул исключает партнёров с открытой заявкой; T-Bank CSV из `amount_in_payout_currency`; preview **`GET /api/v2/partner/payouts/preview`**; UI выбор рельса RUB/USDT.
+
 **Stage 100.5 (2026-05):** SSOT doc sync — этот манифест, **`docs/ARCHITECTURAL_PASSPORT.md`** (§ Treasury & Payouts v2), **`ARCHITECTURAL_DECISIONS.md`** (Concierge Launch ADR); операционные runbook/checklist без дублирования политики.
 
 **Stage 100.4 (2026-05):** FinTech + partner polish — compliance registry SSOT **`lib/admin/compliance-registry-csv.js`** (русские колонки, `;` для Excel, фильтр по **дате оплаты**, `listings.categories.slug`); **`GET /api/admin/finances/compliance-export`**; пульт **`/admin/settings/finances`** (`AdminFinTechConsole`, тосты, «Отметить как оплаченный»); заглушка Stage 101 **`FinTechTreasuryConversionsStub`**; партнёр **`/partner/finances`** + **`PartnerFinancesWithdrawDialog`** (ручная выплата), реквизиты RUB/USDT на **`/partner/payout-profiles`**.
