@@ -53,7 +53,7 @@ export function PartnerFinancesTransactionHistory({
             {[...Array(5)].map((_, i) => (
               <div key={i} className="h-20 bg-slate-100 animate-pulse rounded-lg" />
             ))}
-          </motion.div>
+          </div>
         ) : isError ? (
           <div className="text-center py-8">
             <p className="mb-2 text-slate-700 font-medium">{t('failedToLoad')}</p>

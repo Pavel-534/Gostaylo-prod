@@ -58,7 +58,7 @@ import {
 } from '@/lib/admin/fintech-ui-labels'
 import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState'
 import { FiscalSandboxReceiptDialog } from '@/components/admin/finances/FiscalSandboxReceiptDialog'
-import { FinTechTreasuryConversionsStub } from '@/components/admin/finances/FinTechTreasuryConversionsStub'
+import { FinTechTreasuryConversionsPanel } from '@/components/admin/finances/FinTechTreasuryConversionsPanel'
 import { PayoutBatchRow } from '@/components/admin/finances/PayoutBatchRow'
 
 const MINT = '#0D9488'
@@ -982,7 +982,7 @@ export function AdminFinTechConsole() {
           </CardContent>
         </Card>
 
-        <FinTechTreasuryConversionsStub />
+        <FinTechTreasuryConversionsPanel />
 
         <Card className="border-slate-200 shadow-sm">
           <CardHeader>

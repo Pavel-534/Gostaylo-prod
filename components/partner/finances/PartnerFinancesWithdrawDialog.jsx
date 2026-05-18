@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { formatPayoutProfileLines } from '@/lib/partner/format-payout-profile-display'
-import { resolvePayoutCurrency } from '@/lib/partner/partner-payout-fx'
+import { resolvePayoutCurrency } from '@/lib/partner/payout-currency'
 import { fetchPartnerPayoutPreview } from '@/lib/api/partner-finances-client'
 import { PartnerPayoutPreviewFields } from '@/components/partner/finances/PartnerPayoutPreviewFields'
 

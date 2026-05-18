@@ -10,6 +10,12 @@
 
 **Stage 99 (2026-05):** Soft launch prep — dispute payout freeze SSOT (`partner-payout-eligibility` + `disputes.freeze_payment` → UI «Заблокировано спором»); ledger `DISPUTE_PARTNER_FUNDS_HELD` / `RELEASED`; smoke **`docs/FINANCIAL_SMOKE_E2E.md`**; plan **`docs/SOFT_LAUNCH_PLAN.md`**; cron **`financial-health-monitor`** (PENDING_FISCAL + ledger drift alerts).
 
+**Stage 101.2 (2026-05):** Treasury conversions panel polish — filters (period presets, operation type, currency), margin dashboard with **netMarginPct**, reconcile button **`GET /api/admin/finances/conversions/reconcile`** (ledger vs CSV SSOT in **`lib/admin/treasury-conversions-csv.js`**), UI **`FinTechTreasuryConversionsPanel.jsx`**.
+
+**Stage 101.1 (2026-05):** Treasury conversion tool polished — CSV export **`GET /api/admin/finances/conversions/export`** (`;` delimiter for RU Excel), period dashboard includes accepted guest RUB reference + THB-based real margin; manual conversion form in FinTech console writes to ledger and is immediately visible in UI list/export.
+
+**Stage 101.0 (2026-05):** Treasury conversion tracking (step 1) — migration **`056_track_conversions.sql`** adds `ledger_entries.conversion_*` + `external_tx_reference`; admin API **`GET/POST /api/admin/finances/conversions`** records manual conversion loss journals (`TREASURY_CONVERSION_RECORDED`) and returns real-margin summary: accepted guest THB − paid payouts THB − conversion losses THB.
+
 **Stage 100.8 (2026-05):** Partner finances — весь payout FX UI через **`GET /api/v2/partner/payouts/preview`** + **`POST …/preview-batch`** (портфель, история броней); удалён клиентский `calcPayoutMath` и live `exchange-rates` для выплат; дисклеймер ориентира ₽; админ показывает `amount_in_payout_currency`.
 
 **Stage 100.7 (2026-05):** Partner FX preview unified — **`PartnerPayoutPreviewFields`** + TanStack query на **`GET /api/v2/partner/payouts/preview`** (карточка + модалка; без клиентского `calcPayoutMath` / `formatPrice` для выплаты). **`settlement_v3`**: `preferred_amount` через **`buildSnapshotLockedRawRateMap`** / `fx_raw_rate_to_thb` из snapshot брони (без выплатного спреда). Доки: 4 слоя FX в паспорте § Treasury; runbook §1.1.
