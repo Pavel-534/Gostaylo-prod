@@ -10,6 +10,8 @@
 
 **Stage 99 (2026-05):** Soft launch prep — dispute payout freeze SSOT (`partner-payout-eligibility` + `disputes.freeze_payment` → UI «Заблокировано спором»); ledger `DISPUTE_PARTNER_FUNDS_HELD` / `RELEASED`; smoke **`docs/FINANCIAL_SMOKE_E2E.md`**; plan **`docs/SOFT_LAUNCH_PLAN.md`**; cron **`financial-health-monitor`** (PENDING_FISCAL + ledger drift alerts).
 
+**Stage 101.3 (2026-05):** FinTech console at scale — tabbed `/admin/settings/finances` (overview/pools/conversions/journal/exports), header alerts (`dashboard.alerts`), unified **`GET /api/admin/finances/movements`**, margin bar, monthly CSV bundle, prominent batch **settled** flow.
+
 **Stage 101.2 (2026-05):** Treasury conversions panel polish — filters (period presets, operation type, currency), margin dashboard with **netMarginPct**, reconcile button **`GET /api/admin/finances/conversions/reconcile`** (ledger vs CSV SSOT in **`lib/admin/treasury-conversions-csv.js`**), UI **`FinTechTreasuryConversionsPanel.jsx`**.
 
 **Stage 101.1 (2026-05):** Treasury conversion tool polished — CSV export **`GET /api/admin/finances/conversions/export`** (`;` delimiter for RU Excel), period dashboard includes accepted guest RUB reference + THB-based real margin; manual conversion form in FinTech console writes to ledger and is immediately visible in UI list/export.

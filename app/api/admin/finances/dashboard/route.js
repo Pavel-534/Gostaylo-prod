@@ -91,6 +91,17 @@ export async function GET() {
     .eq('key', 'general')
     .maybeSingle()
 
+  const readyAlertThb = (() => {
+    const fromSettings = Number(generalRow?.value?.fintech_ready_payout_alert_thb)
+    if (Number.isFinite(fromSettings) && fromSettings > 0) return fromSettings
+    const fromEnv = Number(process.env.FINTECH_READY_PAYOUT_ALERT_THB)
+    if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv
+    return 100_000
+  })()
+
+  const ledgerDriftThb = Math.abs(Number(reconciliation?.deltaThb) || 0)
+  const pendingFiscalCount = pendingFiscal.length
+
   return NextResponse.json({
     success: true,
     data: {
@@ -116,6 +127,15 @@ export async function GET() {
       },
       pendingFiscal,
       reconciliation,
+      alerts: {
+        pendingFiscalCount,
+        ledgerDriftThb: Math.round(ledgerDriftThb * 100) / 100,
+        readyForPayoutThb: Math.round(readyThb * 100) / 100,
+        readyForPayoutAlertThb: readyAlertThb,
+        fiscalAlert: pendingFiscalCount > 0,
+        driftAlert: ledgerDriftThb > 0.01,
+        payoutAlert: readyThb > readyAlertThb,
+      },
       settingsUpdatedAt: generalRow?.updated_at || null,
     },
   })

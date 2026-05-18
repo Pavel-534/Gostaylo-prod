@@ -582,6 +582,8 @@
 
 **Stage 101.1:** CSV-экспорт для бухгалтерии — **`GET /api/admin/finances/conversions/export?from=YYYY-MM-DD&to=YYYY-MM-DD`** (`;`, UTF-8 BOM), поля операции + `journal_id`; в дашборде добавлен референс **«Принято от гостей (RUB)»** при сохранении SSOT-маржи в THB.
 
+**Stage 101.3:** FinTech console tabs + **`GET /api/admin/finances/movements`**, header alerts on dashboard API, **`FinTechMovementJournal`**, monthly export bundle, **`FinTechMarginBar`**.
+
 **Stage 101.2:** **`FinTechTreasuryConversionsPanel`** — фильтры (период/тип/валюта), маржа с **%**, **`GET /api/admin/finances/conversions/reconcile`**, SSOT CSV в **`lib/admin/treasury-conversions-csv.js`**.
 
 **Рельсы выплат (outbound):**

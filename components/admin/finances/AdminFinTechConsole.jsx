@@ -21,6 +21,8 @@ import {
   Trash2,
   XCircle,
   Zap,
+  BookOpen,
+  LayoutDashboard,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -28,6 +30,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,6 +63,9 @@ import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState
 import { FiscalSandboxReceiptDialog } from '@/components/admin/finances/FiscalSandboxReceiptDialog'
 import { FinTechTreasuryConversionsPanel } from '@/components/admin/finances/FinTechTreasuryConversionsPanel'
 import { PayoutBatchRow } from '@/components/admin/finances/PayoutBatchRow'
+import { FinTechMovementJournal } from '@/components/admin/finances/FinTechMovementJournal'
+import { FinTechMarginBar } from '@/components/admin/finances/FinTechMarginBar'
+import { FinTechConsoleHeaderAlerts } from '@/components/admin/finances/FinTechConsoleHeaderAlerts'
 
 const MINT = '#0D9488'
 const NAVY = '#0F172A'
@@ -81,6 +87,16 @@ function fmtThb(n) {
   const x = Number(n)
   if (!Number.isFinite(x)) return '—'
   return `฿${x.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+}
+
+function currentMonthRange() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = d.getMonth()
+  const from = `${y}-${String(m + 1).padStart(2, '0')}-01`
+  const last = new Date(y, m + 1, 0).getDate()
+  const to = `${y}-${String(m + 1).padStart(2, '0')}-${String(last).padStart(2, '0')}`
+  return { from, to }
 }
 
 function feeSplitValid(p) {
@@ -136,19 +152,25 @@ export function AdminFinTechConsole() {
   const [reconLoading, setReconLoading] = useState(false)
   const [lastRecon, setLastRecon] = useState(null)
   const [settlingBatchId, setSettlingBatchId] = useState(null)
+  const [monthMargin, setMonthMargin] = useState(null)
+  const [monthlyExporting, setMonthlyExporting] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [dRes, pRes, bRes] = await Promise.all([
+      const { from, to } = currentMonthRange()
+      const [dRes, pRes, bRes, mRes] = await Promise.all([
         fetch('/api/admin/finances/dashboard'),
         fetch('/api/admin/finances/pricing-profiles'),
         fetch('/api/admin/finances/payout-batches'),
+        fetch(`/api/admin/finances/conversions?from=${from}&to=${to}`, { credentials: 'include' }),
       ])
       const dJson = await dRes.json()
       const pJson = await pRes.json()
       const bJson = await bRes.json()
+      const mJson = await mRes.json()
       if (dJson.success) setDash(dJson.data)
+      if (mJson.success) setMonthMargin(mJson.data?.margin || null)
       if (pJson.success) {
         setProfiles(pJson.data || [])
         setSimProfileId((prev) => prev || pJson.data?.[0]?.id || '')
@@ -364,8 +386,8 @@ export function AdminFinTechConsole() {
         return
       }
       toast({
-        title: 'Пул отмечен как оплаченный',
-        description: `Броней завершено: ${json.bookingsCompleted ?? 0}, проводок: ${json.ledgerPosted ?? 0}`,
+        title: 'Пул закрыт, балансы обновлены',
+        description: `Броней завершено: ${json.bookingsCompleted ?? 0}, проводок в книге: ${json.ledgerPosted ?? 0}`,
       })
       load()
     } catch (e) {
@@ -444,6 +466,47 @@ export function AdminFinTechConsole() {
       toast({ title: 'Ошибка сети', description: e.message, variant: 'destructive' })
     } finally {
       setReconLoading(false)
+    }
+  }
+
+  const downloadBlob = async (url, fallbackName) => {
+    const res = await fetch(url, { credentials: 'include' })
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}))
+      throw new Error(json.error || `HTTP ${res.status}`)
+    }
+    const blob = await res.blob()
+    const disposition = res.headers.get('content-disposition') || ''
+    const match = disposition.match(/filename="?([^";]+)"?/i)
+    const filename = match?.[1] || fallbackName
+    const objectUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = objectUrl
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(objectUrl)
+  }
+
+  const exportMonthBundle = async () => {
+    const { from, to } = currentMonthRange()
+    setMonthlyExporting(true)
+    try {
+      await downloadBlob(
+        `/api/admin/finances/compliance-export?from=${from}&to=${to}`,
+        `reestr-${from}-${to}.csv`,
+      )
+      await downloadBlob(
+        `/api/admin/finances/conversions/export?from=${from}&to=${to}`,
+        `conversions-${from}-${to}.csv`,
+      )
+      toast({
+        title: 'Пакет за месяц выгружен',
+        description: 'Два файла: реестр броней и журнал конвертаций (разделитель «;»).',
+      })
+    } catch (e) {
+      toast({ title: 'Не удалось выгрузить пакет', description: e.message, variant: 'destructive' })
+    } finally {
+      setMonthlyExporting(false)
     }
   }
 
@@ -569,6 +632,9 @@ export function AdminFinTechConsole() {
                 Цены, онлайн-касса, выплаты партнёрам и выгрузки для банка. Только для владельца и
                 администратора.
               </p>
+              <div className="mt-3">
+                <FinTechConsoleHeaderAlerts alerts={dash?.alerts} />
+              </div>
             </div>
             <Button
               variant="secondary"
@@ -599,7 +665,32 @@ export function AdminFinTechConsole() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="flex flex-wrap h-auto gap-1 bg-slate-100 p-1">
+            <TabsTrigger value="overview" className="gap-1.5">
+              <LayoutDashboard className="h-4 w-4" />
+              Обзор
+            </TabsTrigger>
+            <TabsTrigger value="pools" className="gap-1.5">
+              <FileStack className="h-4 w-4" />
+              Пулы
+            </TabsTrigger>
+            <TabsTrigger value="conversions" className="gap-1.5">
+              <Banknote className="h-4 w-4" />
+              Конвертации
+            </TabsTrigger>
+            <TabsTrigger value="journal" className="gap-1.5">
+              <BookOpen className="h-4 w-4" />
+              Журнал
+            </TabsTrigger>
+            <TabsTrigger value="exports" className="gap-1.5">
+              <Download className="h-4 w-4" />
+              Выгрузки
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-8 mt-0">
         <Card className="border-teal-100 shadow-sm overflow-hidden">
           <CardHeader className="pb-2" style={{ borderLeft: `4px solid ${MINT}` }}>
             <CardTitle className="flex items-center gap-2 text-lg" style={{ color: NAVY }}>
@@ -850,6 +941,23 @@ export function AdminFinTechConsole() {
           </CardContent>
         </Card>
 
+        <Card className="border-teal-100/80 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg" style={{ color: NAVY }}>
+              Маржа за текущий месяц
+            </CardTitle>
+            <CardDescription>Визуально: из поступлений гостей → выплаты и FX-потери → чистая маржа.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FinTechMarginBar
+              acceptedThb={monthMargin?.acceptedGuestThb}
+              paidOutThb={monthMargin?.paidOutThb}
+              lossesThb={monthMargin?.conversionLossesThb}
+              netMarginThb={monthMargin?.netMarginThb}
+            />
+          </CardContent>
+        </Card>
+
         <Card className={cn('border-slate-200 shadow-sm', driftBad && 'border-red-300 bg-red-50/30')}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg" style={{ color: NAVY }}>
@@ -924,6 +1032,9 @@ export function AdminFinTechConsole() {
           </CardContent>
         </Card>
 
+          </TabsContent>
+
+          <TabsContent value="pools" className="space-y-8 mt-0">
         <Card className="border-teal-100 shadow-md overflow-hidden">
           <CardHeader className="pb-2" style={{ borderLeft: `4px solid ${MINT}` }}>
             <CardTitle className="text-lg" style={{ color: NAVY }}>
@@ -981,8 +1092,37 @@ export function AdminFinTechConsole() {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
 
-        <FinTechTreasuryConversionsPanel />
+          <TabsContent value="conversions" className="mt-0">
+            <FinTechTreasuryConversionsPanel />
+          </TabsContent>
+
+          <TabsContent value="journal" className="mt-0">
+            <FinTechMovementJournal />
+          </TabsContent>
+
+          <TabsContent value="exports" className="space-y-8 mt-0">
+        <Card className="border-slate-200 shadow-sm border-teal-100">
+          <CardHeader>
+            <CardTitle className="text-lg" style={{ color: NAVY }}>
+              Экспорт всего за месяц
+            </CardTitle>
+            <CardDescription>
+              Одним кликом: реестр оплаченных броней + журнал конвертаций (два CSV для бухгалтера).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={exportMonthBundle} disabled={monthlyExporting} style={{ backgroundColor: MINT }}>
+              {monthlyExporting ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 mr-2" />
+              )}
+              {monthlyExporting ? 'Формируем…' : 'Скачать пакет за текущий месяц'}
+            </Button>
+          </CardContent>
+        </Card>
 
         <Card className="border-slate-200 shadow-sm">
           <CardHeader>
@@ -1030,6 +1170,8 @@ export function AdminFinTechConsole() {
             </p>
           </CardContent>
         </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
       <FiscalSandboxReceiptDialog
