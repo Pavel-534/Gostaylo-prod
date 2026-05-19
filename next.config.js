@@ -32,7 +32,24 @@ const SITE_IMAGE_HOSTS = [
   'gostaylo.ru',
 ]
 
+const PDF_TRACE_INCLUDES = [
+  './lib/assets/fonts/partner-pdf/**/*',
+  './node_modules/pdfkit/js/data/**/*',
+]
+
 const nextConfig = {
+  experimental: {
+    /** Vercel: pdfkit + Noto fonts for smoke / payout PDF / legal export */
+    outputFileTracingIncludes: {
+      '/api/admin/settings/legal/test-full-package': PDF_TRACE_INCLUDES,
+      '/api/admin/settings/legal/export-zip': PDF_TRACE_INCLUDES,
+      '/api/admin/settings/legal/pdf': PDF_TRACE_INCLUDES,
+      '/api/admin/finances/prepare-pause': PDF_TRACE_INCLUDES,
+      '/api/admin/smoke/financial-run': PDF_TRACE_INCLUDES,
+      '/api/v2/partner/finances-statement-pdf': PDF_TRACE_INCLUDES,
+    },
+  },
+
   /**
    * CDN: префикс для /_next. Оставьте пустым за прокси Cloudflare→Vercel (иначе статика уйдёт на другой origin и обойдёт Worker).
    * Не задавайте NEXT_PUBLIC_ASSET_PREFIX на URL *.vercel.app для продакшена .ru
