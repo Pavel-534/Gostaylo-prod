@@ -22,6 +22,8 @@ import { PartnerFinancesPayoutMathCard } from '@/components/partner/finances/Par
 import { PartnerFinancesTransactionHistory } from '@/components/partner/finances/PartnerFinancesTransactionHistory'
 import { PartnerFinancesWithdrawDialog } from '@/components/partner/finances/PartnerFinancesWithdrawDialog'
 import { PartnerFinancesBalanceStrip } from '@/components/partner/finances/PartnerFinancesBalanceStrip'
+import { PartnerFinancesDocuments } from '@/components/partner/finances/PartnerFinancesDocuments'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 function PartnerFinancesV2Content() {
   const fin = usePartnerFinances()
@@ -81,6 +83,17 @@ function PartnerFinancesV2Content() {
         onExportCsv={handleExportCSV}
       />
 
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList>
+          <TabsTrigger value="overview">{t('partnerFinances_tabOverview')}</TabsTrigger>
+          <TabsTrigger value="documents">{t('partnerFinances_tabDocuments')}</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="documents" className="mt-6">
+          <PartnerFinancesDocuments t={t} language={language} />
+        </TabsContent>
+
+        <TabsContent value="overview" className="space-y-8 mt-6">
       <PartnerFinancesBalanceStrip
         t={t}
         summary={financesSummary}
@@ -229,6 +242,8 @@ function PartnerFinancesV2Content() {
         status={financeFocusBooking?.status}
         language={language}
       />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

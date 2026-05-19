@@ -178,13 +178,22 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Глобальные настройки</h1>
         <p className="text-sm sm:text-base text-gray-600 mt-1">Управление параметрами платформы</p>
-        <Link
-          href="/admin/settings/finances"
-          className="inline-flex items-center gap-2 mt-4 rounded-lg border-2 border-teal-300 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-900 hover:bg-teal-100"
-        >
-          <Landmark className="w-5 h-5 text-teal-700" />
-          Открыть FinTech-пульт (V2, касса, пулы, ledger)
-        </Link>
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 mt-4">
+          <Link
+            href="/admin/settings/finances"
+            className="inline-flex items-center gap-2 rounded-lg border-2 border-teal-300 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-900 hover:bg-teal-100"
+          >
+            <Landmark className="w-5 h-5 text-teal-700" />
+            FinTech-пульт (касса, пулы, ledger)
+          </Link>
+          <Link
+            href="/admin/settings/legal"
+            className="inline-flex items-center gap-2 rounded-lg border-2 border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-900 hover:bg-indigo-100"
+          >
+            <Shield className="w-5 h-5 text-indigo-700" />
+            Юридические документы
+          </Link>
+        </div>
       </div>
 
       {/* Homepage Hero Content - Mobile Responsive */}

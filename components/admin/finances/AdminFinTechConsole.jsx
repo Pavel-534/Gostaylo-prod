@@ -23,6 +23,7 @@ import {
   Zap,
   BookOpen,
   LayoutDashboard,
+  Scale,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -358,6 +359,15 @@ export function AdminFinTechConsole() {
     toast({
       title: 'Выгрузка CSV',
       description: 'Если файл не открылся — разрешите всплывающие окна для сайта',
+    })
+  }
+
+  const downloadBankPackage = (id) => {
+    window.open(`/api/admin/finances/payout-batches/${id}/bank-package`, '_blank')
+    toast({
+      title: 'Пакет для банка',
+      description:
+        'ZIP: реестр CSV, справка по оферте и PDF-акты (после закрытия пула). Если файл не скачался — разрешите всплывающие окна.',
     })
   }
 
@@ -700,6 +710,26 @@ export function AdminFinTechConsole() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-8 mt-0">
+        <Card className="border-indigo-100 shadow-sm overflow-hidden">
+          <CardHeader className="pb-2" style={{ borderLeft: '4px solid #6366f1' }}>
+            <CardTitle className="flex items-center gap-2 text-lg" style={{ color: NAVY }}>
+              <Scale className="h-5 w-5 text-indigo-600" />
+              Юридические документы
+            </CardTitle>
+            <CardDescription>
+              Версии оферты, журнал согласий и PDF-акты при выплатах партнёрам.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center justify-between gap-4">
+            <p className="text-sm text-muted-foreground max-w-md">
+              Управление публичной офертой, условиями для хостов и выгрузкой справки для архива.
+            </p>
+            <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
+              <Link href="/admin/settings/legal">Открыть раздел</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card className="border-teal-100 shadow-sm overflow-hidden">
           <CardHeader className="pb-2" style={{ borderLeft: `4px solid ${MINT}` }}>
             <CardTitle className="flex items-center gap-2 text-lg" style={{ color: NAVY }}>
@@ -1094,6 +1124,7 @@ export function AdminFinTechConsole() {
                     settling={settlingBatchId === b.id}
                     onLock={lockBatch}
                     onExport={exportBatch}
+                    onBankPackage={downloadBankPackage}
                     onSettle={markBatchPaid}
                   />
                 ))}

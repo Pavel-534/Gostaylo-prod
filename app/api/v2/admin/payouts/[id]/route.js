@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import LedgerService from '@/lib/services/ledger.service';
+import { generatePayoutRequestDocuments } from '@/lib/services/payout-document.service.js';
 import { requireAccess } from '@/lib/security/access-guard';
 
 export const dynamic = 'force-dynamic';
@@ -103,9 +104,16 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ success: false, error: upErr.message }, { status: 500 });
     }
 
+    let documents = null;
+    try {
+      documents = await generatePayoutRequestDocuments(updated || row);
+    } catch (docErr) {
+      console.error('[admin/payouts PAID] PDF', id, docErr);
+    }
+
     return NextResponse.json({
       success: true,
-      data: { payout: updated, ledger },
+      data: { payout: updated, ledger, documents },
     });
   }
 

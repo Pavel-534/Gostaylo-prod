@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, CheckCircle2, Download, Lock } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Download, FileArchive, Lock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { BATCH_STATUS_RU } from '@/lib/admin/fintech-ui-labels'
@@ -19,8 +19,9 @@ function fmtThb(n) {
  * @param {(id: string) => void} onLock
  * @param {(id: string) => void} onExport
  * @param {(id: string) => void} onSettle
+ * @param {(id: string) => void} [onBankPackage]
  */
-export function PayoutBatchRow({ batch, settling, onLock, onExport, onSettle }) {
+export function PayoutBatchRow({ batch, settling, onLock, onExport, onSettle, onBankPackage }) {
   const status = String(batch.status || '').toUpperCase()
   const canSettleStatus = status === 'LOCKED' || status === 'EXPORTED'
   const settleBlocked = canSettleStatus && batch.canSettle === false
@@ -86,6 +87,12 @@ export function PayoutBatchRow({ batch, settling, onLock, onExport, onSettle }) 
           <Download className="h-3.5 w-3.5 mr-1" />
           Скачать CSV для банка
         </Button>
+        {onBankPackage && ['LOCKED', 'EXPORTED', 'SETTLED'].includes(status) ? (
+          <Button size="sm" variant="outline" onClick={() => onBankPackage(batch.id)}>
+            <FileArchive className="h-3.5 w-3.5 mr-1" />
+            Пакет для банка (ZIP)
+          </Button>
+        ) : null}
       </div>
       {settleBlocked && blockers.length > 0 && (
         <div className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 space-y-1.5">

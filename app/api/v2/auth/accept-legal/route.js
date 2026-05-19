@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
 import { getSessionPayload } from '@/lib/services/session-service';
 import { supabaseAdmin } from '@/lib/supabase';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
-import { CURRENT_LEGAL_TERMS_VERSION } from '@/lib/config/legal-terms-version';
+import { LegalVersionsService } from '@/lib/services/legal-versions.service.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,12 +72,13 @@ export async function POST(request) {
   }
 
   const iso = new Date().toISOString();
+  const guestTermsVersion = await LegalVersionsService.getGuestTermsVersion();
   const updatePayload = hasTermsColumns
     ? {
         terms_accepted: true,
         terms_accepted_at: iso,
         legal_terms_accepted_at: iso,
-        terms_version: CURRENT_LEGAL_TERMS_VERSION,
+        terms_version: guestTermsVersion,
         updated_at: iso,
       }
     : {

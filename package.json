@@ -81,6 +81,7 @@
     "jose": "^6.2.1",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",
+    "jszip": "^3.10.1",
     "leaflet": "1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^0.575.0",

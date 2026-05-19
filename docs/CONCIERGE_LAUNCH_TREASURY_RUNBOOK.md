@@ -221,6 +221,7 @@ curl -X POST "https://<DOMAIN>/api/cron/promote-ready-for-payout" \
 | Создать пул | `POST /api/admin/finances/payout-batches` body `{"rail":"TBANK_RU","force":true}` |
 | Lock | `PATCH /api/admin/finances/payout-batches/<batchId>` body `{"action":"lock"}` |
 | CSV | `GET /api/admin/finances/payout-batches/<batchId>/export?format=csv` |
+| Пакет для банка (ZIP) | `GET /api/admin/finances/payout-batches/<batchId>/bank-package` — реестр CSV, `legal-versions.pdf`, PDF-акты партнёров (после SETTLED) |
 | Settled | `PATCH ...` body `{"action":"settled"}` |
 
 #### 3.1. Закрытие пула (Stage 100.3)
@@ -244,6 +245,8 @@ curl -X POST "https://<DOMAIN>/api/cron/promote-ready-for-payout" \
 | F1 | Реестр CSV (период или UUID) | `/admin/settings/finances` → **Скачать CSV**; фильтр по **дате оплаты**; разделитель `;` для Excel; колонки на русском; пустой период — строка-пояснение в файле |
 | F2 | Партнёр: история выплат | `GET /api/v2/partner/payouts` |
 | F3 | Сохранить CSV + checksum пула | `payout_batches.export_checksum` после export |
+| F4 | Юр. версии / черновик оферты | `/admin/settings/legal` — черновик → текст на сайте → **Опубликовать** |
+| F5 | Партнёр: акты PDF | `/partner/finances` → вкладка **Документы**; `GET /api/v2/partner/settlement-documents` |
 
 ---
 
