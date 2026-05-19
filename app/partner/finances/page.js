@@ -5,10 +5,10 @@
  * Data: `hooks/usePartnerFinances.js`. UI: `components/partner/finances/*`.
  */
 
-import { Suspense } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Calendar, Clock, Loader2, AlertTriangle } from 'lucide-react'
+import { Calendar, Clock, Loader2, AlertTriangle, FileText } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFinancialSnapshotDialog'
 import { usePartnerFinances } from '@/hooks/usePartnerFinances'
@@ -24,6 +24,8 @@ import { PartnerFinancesWithdrawDialog } from '@/components/partner/finances/Par
 import { PartnerFinancesBalanceStrip } from '@/components/partner/finances/PartnerFinancesBalanceStrip'
 import { PartnerFinancesDocuments } from '@/components/partner/finances/PartnerFinancesDocuments'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 function PartnerFinancesV2Content() {
   const fin = usePartnerFinances()
@@ -74,6 +76,23 @@ function PartnerFinancesV2Content() {
     getBookingPayoutPreview,
   } = fin
 
+  const [documentsCount, setDocumentsCount] = useState(null)
+  const loadDocumentsCount = useCallback(async () => {
+    try {
+      const res = await fetch('/api/v2/partner/settlement-documents', { cache: 'no-store' })
+      const json = await res.json()
+      if (res.ok && json.success) {
+        setDocumentsCount((json.data?.documents || []).length)
+      }
+    } catch {
+      setDocumentsCount(null)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadDocumentsCount()
+  }, [loadDocumentsCount])
+
   return (
     <div className="space-y-8 min-w-0 max-w-full">
       <PartnerFinancesHeader
@@ -84,10 +103,30 @@ function PartnerFinancesV2Content() {
       />
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList>
+        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/60 p-1">
+          <TabsTrigger
+            value="documents"
+            className={cn(
+              'gap-1.5 order-first font-semibold ring-2 ring-teal-400/40 data-[state=active]:bg-teal-600 data-[state=active]:text-white',
+              documentsCount > 0 && 'data-[state=inactive]:bg-teal-50 animate-pulse',
+            )}
+          >
+            <FileText className="h-4 w-4" />
+            {t('partnerFinances_tabDocuments')}
+            {documentsCount != null && documentsCount > 0 ? (
+              <Badge variant="secondary" className="ml-1 bg-teal-100 text-teal-900">
+                {documentsCount}
+              </Badge>
+            ) : null}
+          </TabsTrigger>
           <TabsTrigger value="overview">{t('partnerFinances_tabOverview')}</TabsTrigger>
-          <TabsTrigger value="documents">{t('partnerFinances_tabDocuments')}</TabsTrigger>
         </TabsList>
+
+        {documentsCount === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground rounded-lg border border-dashed border-teal-200 bg-teal-50/50 px-3 py-2">
+            {t('partnerFinances_docsTabHint')}
+          </p>
+        ) : null}
 
         <TabsContent value="documents" className="mt-6">
           <PartnerFinancesDocuments t={t} language={language} />

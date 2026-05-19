@@ -22,7 +22,10 @@ export async function PATCH(request, { params }) {
 
   if (action === 'lock') {
     const r = await PayoutBatchService.lockBatch(params.id, gate.profile?.id)
-    return NextResponse.json({ success: !r.error, ...r })
+    if (r.success === false || r.error) {
+      return NextResponse.json({ success: false, ...r }, { status: 400 })
+    }
+    return NextResponse.json({ success: true, ...r })
   }
   if (action === 'settled') {
     const r = await PayoutBatchService.markBatchSettled(params.id, gate.profile?.id || null)

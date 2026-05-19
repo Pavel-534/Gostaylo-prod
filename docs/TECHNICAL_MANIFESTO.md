@@ -60,6 +60,12 @@
 
 **Синхронизация с кодом:** при изменении API, БД, поведения или значимого UX этот файл и **`docs/ARCHITECTURAL_PASSPORT.md`** обновляются в том же PR. Порядок чтения и правила для Cursor — **`AGENTS.md`**, **`.cursorrules`**, **`.cursor/rules/gostaylo-docs-constitution.mdc`**. SSOT политики — **`ARCHITECTURAL_DECISIONS.md`**.
 
+**Product flow map (2026-05):** сквозной путь гостя/хоста, SSOT по доменам, реестр дублей и очередь PR P0/P1 — **`docs/PRODUCT_FLOW_MAP.md`**.
+
+**Stage 104 (2026-05):** Два рельса выплат — SSOT **`lib/treasury/payout-rails.js`** (`TBANK_RU` RUB Direct, `KG_CRYPTO` International). Smoke: **`--rail=rub|intl|all`**, скрипты **`smoke:full-financial:*`**. Пулы/ZIP: фильтр по рельсу, реестры **`registry-rub-direct.csv`** / **`registry-kg-usdt.csv`**. FinTech **`/admin/settings/finances`**: блок «Состояние системы» (ready по рельсам, 24h hold, drift), кнопки симуляции, селектор рельса пула. Dashboard API: **`rails`**, **`awaitingConversion`** (`loadTreasuryRailsSummary`). Доки: runbook §12, **`docs/PRE_REAL_PAYMENTS_CHECKLIST.md`**.
+
+**Stage 103 (2026-05):** Soft launch polish — E2E smoke **`lib/smoke/financial-smoke-run.js`** (тайминг шагов), CLI **`npm run smoke:full-financial`**, API **`POST /api/admin/smoke/financial-run`** и **`POST …/legal/test-full-package`**. FinTech: **`FinTechTreasuryHeroDashboard`** (крупные карточки, баннер drift/fiscal). Legal: кнопка «полный пакет». Partner: вкладка **Документы** (бейдж, первая). Миграция **`stage103_escrow_rpc_status_fix.sql`**. Чеклисты **`docs/PRE_LAUNCH_CHECKLIST.md` §12**, runbook §13.
+
 **Stage 102.4 (2026-05):** Партнёрские акты — вкладка **Документы** на **`/partner/finances`**, API **`GET /api/v2/partner/settlement-documents`**. Админ legal: черновик/публикация (**`POST …/legal/draft`**, **`POST …/legal/publish`**), история версий. ZIP для банка: **`GET /api/admin/finances/payout-batches/[id]/bank-package`** (`jszip`).
 
 **Stage 102.3 (2026-05):** Админка юр. документов — **`/admin/settings/legal`**; runtime версий — **`LegalVersionsService`** (`system_settings.general.legal_versions`, bump через **`POST /api/admin/settings/legal/bump`**). Журнал акцептов — **`GET …/legal/consents`**; PDF-справка — **`GET …/legal/pdf`**. Авто-акты выплат: **`lib/services/payout-document.service.js`** + **`partner-payout-act-pdf.service.js`** при **`markBatchSettled`** и ручном **`PAID`** выплаты; Storage **`payout-documents`**, колонка **`payouts.documents`** (migration **102.3**).

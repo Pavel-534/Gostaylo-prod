@@ -32,6 +32,7 @@
 
 ## Быстрые ссылки
 
+- Сквозной продуктовый поток + backlog PR — **`docs/PRODUCT_FLOW_MAP.md`**
 - Каталог: query-параметры поиска → файлы — **`docs/SEARCH_FILTERS_QUERY_MAP.md`**
 - Пуши: `lib/services/push.service.js`, `components/push-client-init.jsx`, `public/firebase-messaging-sw.js`
 - Критичная телеметрия: `lib/critical-telemetry.js`

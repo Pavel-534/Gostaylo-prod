@@ -1,5 +1,5 @@
--- Stage 84.0
--- Atomic contract: payment confirmed -> PAID_ESCROW -> ledger journal/entries in one DB transaction.
+-- Stage 103: escrow RPC status guard — remove AWAITING_PAYMENT (not in booking_status enum on prod).
+-- Re-deploys move_to_escrow_and_post_ledger_v1 from stage84 with one-line fix.
 
 CREATE OR REPLACE FUNCTION public.move_to_escrow_and_post_ledger_v1(
   p_booking_id text,

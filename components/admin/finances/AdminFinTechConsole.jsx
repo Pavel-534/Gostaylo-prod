@@ -59,6 +59,7 @@ import {
   POOL_MESSAGES_RU,
   FISCAL_QUEUE_STATUS_RU,
   TREASURY_DAILY_STEPS,
+  PAYOUT_RAIL_LABELS,
 } from '@/lib/admin/fintech-ui-labels'
 import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState'
 import { FiscalSandboxReceiptDialog } from '@/components/admin/finances/FiscalSandboxReceiptDialog'
@@ -67,6 +68,7 @@ import { PayoutBatchRow } from '@/components/admin/finances/PayoutBatchRow'
 import { FinTechMovementJournal } from '@/components/admin/finances/FinTechMovementJournal'
 import { FinTechMarginBar } from '@/components/admin/finances/FinTechMarginBar'
 import { FinTechConsoleHeaderAlerts } from '@/components/admin/finances/FinTechConsoleHeaderAlerts'
+import { FinTechTreasuryHeroDashboard } from '@/components/admin/finances/FinTechTreasuryHeroDashboard'
 
 const MINT = '#0D9488'
 const NAVY = '#0F172A'
@@ -153,6 +155,8 @@ export function AdminFinTechConsole() {
   const [reconLoading, setReconLoading] = useState(false)
   const [lastRecon, setLastRecon] = useState(null)
   const [settlingBatchId, setSettlingBatchId] = useState(null)
+  const [poolRail, setPoolRail] = useState('TBANK_RU')
+  const [batchRailFilter, setBatchRailFilter] = useState('ALL')
   const [monthMargin, setMonthMargin] = useState(null)
   const [monthlyExporting, setMonthlyExporting] = useState(false)
 
@@ -295,10 +299,40 @@ export function AdminFinTechConsole() {
     load()
   }
 
+  const simulateFinancialRail = async (rail) => {
+    const res = await fetch('/api/admin/smoke/financial-run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rail, priceThb: 5000, guestPayCurrency: rail === 'TBANK_RU' ? 'RUB' : 'USDT' }),
+    })
+    const json = await res.json().catch(() => ({}))
+    const data = json.data || json
+    if (!res.ok || !data?.ok) {
+      const failed = (data?.steps || []).find((s) => !s.ok)
+      toast({
+        title: `Симуляция ${PAYOUT_RAIL_LABELS[rail] || rail} не пройдена`,
+        description: failed?.detail || json.error || 'См. шаги в Legal',
+        variant: 'destructive',
+      })
+      return
+    }
+    toast({
+      title: `Симуляция ${PAYOUT_RAIL_LABELS[rail] || rail} пройдена`,
+      description: `Пул ${data.context?.batchId || '—'} · ${data.context?.payoutRailLabel || ''}`,
+    })
+    load()
+  }
+
   const createPool = async (force = false) => {
-    const ready = dash?.payout?.readyForPayoutCount ?? 0
-    const readyThb = Number(dash?.payout?.readyForPayoutThb) || 0
-    if (ready === 0 || readyThb <= 0) {
+    const railReady =
+      poolRail === 'TBANK_RU'
+        ? dash?.rails?.TBANK_RU?.readyCount ?? 0
+        : dash?.rails?.KG_CRYPTO?.readyCount ?? 0
+    const railReadyThb =
+      poolRail === 'TBANK_RU'
+        ? Number(dash?.rails?.TBANK_RU?.readyThb) || 0
+        : Number(dash?.rails?.KG_CRYPTO?.readyThb) || 0
+    if (railReady === 0 || railReadyThb <= 0) {
       toast({
         title: POOL_MESSAGES_RU.no_ready_bookings,
         description:
@@ -309,7 +343,7 @@ export function AdminFinTechConsole() {
     const res = await fetch('/api/admin/finances/payout-batches', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rail: 'TBANK_RU', force }),
+      body: JSON.stringify({ rail: poolRail, force }),
     })
     const json = await res.json()
     if (!json.success) {
@@ -329,8 +363,8 @@ export function AdminFinTechConsole() {
       return
     }
     toast({
-      title: 'Пул сформирован',
-      description: `${json.itemCount ?? 0} броней на сумму ${fmtThb(json.totalsThb)}`,
+      title: `Пул ${PAYOUT_RAIL_LABELS[poolRail] || poolRail} сформирован`,
+      description: `${json.itemCount ?? 0} броней · ${fmtThb(json.totalsThb)}`,
     })
     load()
   }
@@ -599,12 +633,6 @@ export function AdminFinTechConsole() {
   const statCards = useMemo(
     () => [
       {
-        label: 'Готово к выплате',
-        value: dash?.payout?.readyForPayoutCount ?? '—',
-        sub: fmtThb(dash?.payout?.readyForPayoutThb),
-        icon: Banknote,
-      },
-      {
         label: 'Чеки в очереди',
         value: dash?.pendingFiscal?.length ?? 0,
         sub: 'ожидают пробития',
@@ -618,7 +646,7 @@ export function AdminFinTechConsole() {
         danger: driftBad,
       },
       {
-        label: 'Новый движок цен',
+        label: 'Движок цен v2',
         value: v2Effective ? 'Вкл' : 'Выкл',
         sub: v2EnvLock ? 'задано на сервере' : 'в настройках',
         icon: Zap,
@@ -666,7 +694,7 @@ export function AdminFinTechConsole() {
               Обновить
             </Button>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 mt-6">
             {statCards.map(({ label, value, sub, icon: Icon, danger }) => (
               <div
                 key={label}
@@ -684,7 +712,32 @@ export function AdminFinTechConsole() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        <FinTechTreasuryHeroDashboard
+          dash={dash}
+          statCards={statCards}
+          onSimulateRail={simulateFinancialRail}
+        />
+        <Card className="border-amber-200 bg-amber-50/90 shadow-sm">
+          <CardContent className="py-4 flex flex-wrap items-start gap-3 text-sm text-amber-950">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+            <div>
+              <p className="font-semibold">Режим Concierge Launch (ручной)</p>
+              <p className="mt-1 text-amber-900/90">
+                Это ручной режим Concierge Launch: автоматизация банковских выплат будет позже. Вы
+                сами формируете пул, скачиваете CSV/ZIP для банка, переводите деньги и отмечаете пул
+                оплаченным. PDF-акты партнёрам создаются при закрытии пула.
+              </p>
+              <Link
+                href="/admin/settings/legal"
+                className="inline-block mt-2 text-teal-800 font-medium underline"
+              >
+                Юридические документы и версии оферты
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="flex flex-wrap h-auto gap-1 bg-slate-100 p-1">
             <TabsTrigger value="overview" className="gap-1.5">
@@ -1079,8 +1132,14 @@ export function AdminFinTechConsole() {
             <CardTitle className="text-lg" style={{ color: NAVY }}>
               Пулы выплат партнёрам
             </CardTitle>
-            <CardDescription>
-              Ручной режим Concierge: вы формируете пул (обычно понедельник и четверг). Брони — «Готово к выплате».
+            <CardDescription className="space-y-2">
+              <span className="block font-medium text-amber-900">
+                Concierge Launch: банк не подключён автоматически — каждый перевод делаете вы.
+              </span>
+              <span className="block">
+                Обычно пул в понедельник и четверг: «Сформировать пул» → Lock → CSV/ZIP в банк → перевод →
+                «Закрыть пул». Брони берутся со статусом «Готово к выплате».
+              </span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -1091,6 +1150,17 @@ export function AdminFinTechConsole() {
                 </li>
               ))}
             </ol>
+            <div className="flex flex-wrap items-center gap-2">
+              <Label className="text-sm text-slate-600">Рельс выплат</Label>
+              <select
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm"
+                value={poolRail}
+                onChange={(e) => setPoolRail(e.target.value)}
+              >
+                <option value="TBANK_RU">RUB Direct (T-Bank)</option>
+                <option value="KG_CRYPTO">KG / USDT (International)</option>
+              </select>
+            </div>
             <div className="flex flex-wrap gap-2">
               <Button
                 size="lg"
@@ -1098,18 +1168,34 @@ export function AdminFinTechConsole() {
                 style={{ backgroundColor: MINT }}
                 onClick={() => createPool(false)}
               >
-                Сформировать пул на сегодня
+                Сформировать пул ({PAYOUT_RAIL_LABELS[poolRail] || poolRail})
               </Button>
               <Button variant="outline" onClick={() => createPool(true)}>
                 Вне расписания (форс)
               </Button>
             </div>
             <p className="text-sm text-slate-600">
-              Сейчас готово к включению в пул:{' '}
-              <strong>{dash?.payout?.readyForPayoutCount ?? 0}</strong> броней на{' '}
-              <strong>{fmtThb(dash?.payout?.readyForPayoutThb)}</strong>
+              Готово по рельсу:{' '}
+              <strong>{poolRail === 'TBANK_RU' ? dash?.rails?.TBANK_RU?.readyCount : dash?.rails?.KG_CRYPTO?.readyCount}</strong>{' '}
+              броней · <strong>{fmtThb(poolRail === 'TBANK_RU' ? dash?.rails?.TBANK_RU?.readyThb : dash?.rails?.KG_CRYPTO?.readyThb)}</strong>
+              {' · '}
+              всего {dash?.payout?.readyForPayoutCount ?? 0} / {fmtThb(dash?.payout?.readyForPayoutThb)}
             </p>
-            {batches.length === 0 ? (
+            <div className="flex flex-wrap gap-2 text-sm">
+              <span className="text-slate-500">Показать пулы:</span>
+              {['ALL', 'TBANK_RU', 'KG_CRYPTO'].map((key) => (
+                <Button
+                  key={key}
+                  size="sm"
+                  variant={batchRailFilter === key ? 'default' : 'outline'}
+                  onClick={() => setBatchRailFilter(key)}
+                >
+                  {key === 'ALL' ? 'Все' : PAYOUT_RAIL_LABELS[key]}
+                </Button>
+              ))}
+            </div>
+            {(batchRailFilter === 'ALL' ? batches : batches.filter((b) => b.rail === batchRailFilter))
+              .length === 0 ? (
               <FinTechEmptyState
                 icon={FileStack}
                 title="Пулов выплат ещё нет"
@@ -1117,7 +1203,10 @@ export function AdminFinTechConsole() {
               />
             ) : (
               <div className="space-y-3">
-                {batches.map((b) => (
+                {(batchRailFilter === 'ALL'
+                  ? batches
+                  : batches.filter((b) => b.rail === batchRailFilter)
+                ).map((b) => (
                   <PayoutBatchRow
                     key={b.id}
                     batch={b}

@@ -1,5 +1,5 @@
--- Stage 84.0
--- Atomic contract: payment confirmed -> PAID_ESCROW -> ledger journal/entries in one DB transaction.
+-- Stage 103.1: fix move_to_escrow_and_post_ledger_v1 — ambiguous journal_id
+-- (RETURNS TABLE column name vs ledger_entries.journal_id)
 
 CREATE OR REPLACE FUNCTION public.move_to_escrow_and_post_ledger_v1(
   p_booking_id text,

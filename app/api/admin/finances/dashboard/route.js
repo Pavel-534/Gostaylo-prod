@@ -10,6 +10,7 @@ import {
   isFiscalSandboxEnabled,
 } from '@/lib/pricing-engine/fiscal-config.js'
 import LedgerService from '@/lib/services/ledger.service.js'
+import { loadTreasuryRailsSummary } from '@/lib/treasury/treasury-rails-summary.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -102,6 +103,37 @@ export async function GET() {
   const ledgerDriftThb = Math.abs(Number(reconciliation?.deltaThb) || 0)
   const pendingFiscalCount = pendingFiscal.length
 
+  const { data: openBatches } = await supabaseAdmin
+    .from('payout_batches')
+    .select('id, status, exported_at, scheduled_for, metadata')
+    .in('status', ['LOCKED', 'EXPORTED'])
+    .order('updated_at', { ascending: false })
+    .limit(5)
+
+  const openBatchIds = (openBatches || []).map((b) => b.id)
+  let awaitingActsCount = 0
+  if (openBatchIds.length) {
+    const { count } = await supabaseAdmin
+      .from('payout_batch_items')
+      .select('id', { count: 'exact', head: true })
+      .in('batch_id', openBatchIds)
+    awaitingActsCount = count ?? 0
+  }
+
+  const { data: lastSettled } = await supabaseAdmin
+    .from('payout_batches')
+    .select('id, status, settled_at, metadata')
+    .eq('status', 'SETTLED')
+    .order('settled_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const lastSettledActs = lastSettled?.metadata?.partner_settlement_documents
+    ? Object.keys(lastSettled.metadata.partner_settlement_documents).length
+    : 0
+
+  const railsSummary = await loadTreasuryRailsSummary()
+
   return NextResponse.json({
     success: true,
     data: {
@@ -124,6 +156,19 @@ export async function GET() {
       payout: {
         readyForPayoutCount: readyCount,
         readyForPayoutThb: Math.round(readyThb * 100) / 100,
+      },
+      rails: railsSummary.rails,
+      awaitingConversion: railsSummary.awaitingConversion,
+      treasury: {
+        openBatchesCount: (openBatches || []).length,
+        awaitingActsLines: awaitingActsCount,
+        lastSettledBatch: lastSettled
+          ? {
+              id: lastSettled.id,
+              settledAt: lastSettled.settled_at,
+              partnerActsCount: lastSettledActs,
+            }
+          : null,
       },
       pendingFiscal,
       reconciliation,

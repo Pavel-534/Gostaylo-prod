@@ -38,6 +38,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { AdminLegalVersionCard } from '@/components/admin/legal/AdminLegalVersionCard'
+import { AdminLegalFullPackageCard } from '@/components/admin/legal/AdminLegalFullPackageCard'
 
 const NAVY = '#0F172A'
 
@@ -64,6 +65,8 @@ export default function AdminLegalSettingsPage() {
   const [filterVersion, setFilterVersion] = useState('')
   const [busyDoc, setBusyDoc] = useState(null)
   const [publishConfirm, setPublishConfirm] = useState(null)
+  const [testActBusy, setTestActBusy] = useState(false)
+  const [testActUrl, setTestActUrl] = useState('')
 
   const loadOverview = useCallback(async () => {
     setLoading(true)
@@ -80,6 +83,29 @@ export default function AdminLegalSettingsPage() {
       toast({ title: 'Не удалось загрузить', description: e.message, variant: 'destructive' })
     } finally {
       setLoading(false)
+    }
+  }, [toast])
+
+  const generateTestAct = useCallback(async () => {
+    setTestActBusy(true)
+    setTestActUrl('')
+    try {
+      const res = await fetch('/api/admin/settings/legal/test-act', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) throw new Error(json.message || json.error || 'Ошибка')
+      setTestActUrl(json.data?.signedUrl || '')
+      toast({
+        title: 'Тестовый акт готов',
+        description: json.data?.message || 'PDF сформирован для smoke-проверки.',
+      })
+    } catch (e) {
+      toast({ title: 'Не удалось сформировать акт', description: e.message, variant: 'destructive' })
+    } finally {
+      setTestActBusy(false)
     }
   }, [toast])
 
@@ -247,6 +273,30 @@ export default function AdminLegalSettingsPage() {
             onPublish={(doc) => setPublishConfirm(doc)}
           />
         </div>
+
+        <AdminLegalFullPackageCard />
+
+        <Card className="border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-base">Быстрый тест: один PDF-акт</CardTitle>
+            <CardDescription>
+              Только акт на 1 000 ฿ без полной цепочки. Для полной проверки используйте кнопку выше.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-3 items-center">
+            <Button variant="outline" onClick={generateTestAct} disabled={testActBusy}>
+              {testActBusy ? 'Генерируем…' : 'Сгенерировать тестовый акт'}
+            </Button>
+            {testActUrl ? (
+              <Button variant="outline" size="sm" asChild>
+                <a href={testActUrl} target="_blank" rel="noopener noreferrer">
+                  <Download className="h-4 w-4 mr-1" />
+                  Открыть PDF (1 ч)
+                </a>
+              </Button>
+            ) : null}
+          </CardContent>
+        </Card>
 
         {publisher && (
           <Card>

@@ -23,7 +23,11 @@
     "cleanup:test-data": "node scripts/cleanup-test-data.mjs",
     "cleanup:test-data:execute": "node scripts/cleanup-test-data.mjs --execute",
     "analyze": "cross-env ANALYZE=true next build",
-    "smoke:financial": "node scripts/financial-prelaunch-smoke.mjs"
+    "smoke:financial": "node scripts/financial-prelaunch-smoke.mjs",
+    "smoke:full-financial": "node scripts/smoke-full-financial.mjs",
+    "smoke:full-financial:rub": "node scripts/smoke-full-financial.mjs --rail=rub",
+    "smoke:full-financial:intl": "node scripts/smoke-full-financial.mjs --rail=intl",
+    "smoke:full-financial:all": "node scripts/smoke-full-financial.mjs --rail=all"
   },
   "dependencies": {
     "@changey/react-leaflet-markercluster": "^4.0.0-rc1",

@@ -3,7 +3,7 @@
 import { AlertTriangle, CheckCircle2, Download, FileArchive, Lock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { BATCH_STATUS_RU } from '@/lib/admin/fintech-ui-labels'
+import { BATCH_STATUS_RU, PAYOUT_RAIL_LABELS } from '@/lib/admin/fintech-ui-labels'
 import { cn } from '@/lib/utils'
 
 function fmtThb(n) {
@@ -54,6 +54,18 @@ export function PayoutBatchRow({ batch, settling, onLock, onExport, onSettle, on
             >
               {BATCH_STATUS_RU[batch.status] || batch.status}
             </Badge>
+            {batch.rail ? (
+              <Badge
+                variant="outline"
+                className={
+                  batch.rail === 'KG_CRYPTO'
+                    ? 'border-violet-300 text-violet-900'
+                    : 'border-blue-300 text-blue-900'
+                }
+              >
+                {PAYOUT_RAIL_LABELS[batch.rail] || batch.rail}
+              </Badge>
+            ) : null}
             <span className="text-sm font-medium text-slate-800">
               {batch.item_count ?? 0} броней · {fmtThb(batch.totals_thb)}
             </span>

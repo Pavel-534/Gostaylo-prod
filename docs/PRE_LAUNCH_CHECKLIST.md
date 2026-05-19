@@ -1,6 +1,8 @@
-# GoStayLo — Pre-Launch Checklist (Stage 100)
+# GoStayLo — Pre-Launch Checklist (Stage 103)
 
-**Цель:** безопасный soft launch (первые ~20 партнёров / инвесторский демо) с Financial Model v2.0, фискализацией и treasury.
+**Цель:** безопасный soft launch (первые 50–100 броней) с Financial Model v2.0, фискализацией, treasury и ручными выплатами (Concierge Launch).
+
+**Краткий smoke для владельца:** `npm run smoke:full-financial` или кнопка в `/admin/settings/legal`. Подробный чеклист: `docs/STAGE_103_PRE_LAUNCH_CHECKLIST.md`.
 
 **SSOT:** `ARCHITECTURAL_DECISIONS.md` → `docs/ADR/097-financial-model-v2.md` → `docs/TECHNICAL_MANIFESTO.md` → `docs/ARCHITECTURAL_PASSPORT.md`.
 
@@ -17,7 +19,8 @@
 | 1.5 | `FISCAL_KG_SUPPLIER_NAME`, `FISCAL_RU_AGENT_INN` | Compliance export по booking → supplier tag | Бухгалтерия |
 | 1.6 | **Vercel Hobby:** в `vercel.json` **нет** hourly (`0 * * * *`) — иначе deploy fail | Только daily: `escrow-thaw`, `financial-health-monitor` | DevOps |
 | 1.6b | **cron-job.org** (обязательно для hourly) | `promote-ready-for-payout`, `escrow-thaw` hourly; `payout-batch-pools` ПН/ЧТ — см. `docs/CRON_EXTERNAL_FINANCIAL.md` | DevOps |
-| 1.6c | Smoke cron | `node scripts/financial-prelaunch-smoke.mjs` → PASS | DevOps |
+| 1.6c | Smoke cron | `npm run smoke:financial` → PASS | DevOps |
+| 1.6e | Smoke E2E financial (Stage 103) | `npm run smoke:full-financial` → все ✅; см. `docs/STAGE_103_PRE_LAUNCH_CHECKLIST.md` | FinTech |
 | 1.6d | Prod env | `docs/PRODUCTION_ENV.md` — `PRICING_ENGINE_V2=true`, `FISCAL_SANDBOX=false` | DevOps |
 | 1.7 | Legal KG IT contract wording | `docs/legal/IT_SERVICE_KG_CONTRACT_SUMMARY.md` согласован с бухгалтерией | Legal |
 
@@ -152,6 +155,25 @@
 - [ ] Deploy succeeds on Vercel
 - [ ] cron-job.org jobs created per `docs/CRON_EXTERNAL_FINANCIAL.md`
 - [ ] `financial-prelaunch-smoke.mjs` PASS on production URL
+
+## 12. Перед первой реальной выплатой партнёру (владелец, без кода)
+
+Отметьте галочкой в день перевода денег.
+
+- [ ] `npm run smoke:full-financial` — все шаги ✅ (или кнопка «Сгенерировать тестовый полный пакет» в `/admin/settings/legal`)
+- [ ] `/admin/settings/finances` — нет красного баннера (чеки, drift, крупная сумма)
+- [ ] Карточка **«Готово к выплате»** — сумма и число броней ожидаемы
+- [ ] Пул сформирован → **Lock** → скачаны **CSV** и **ZIP** для банка
+- [ ] Реквизиты в CSV совпадают с `/partner/payout-profiles` у каждого партнёра
+- [ ] Нет открытых споров по броням из пула
+- [ ] Деньги **уже переведены** в банке → только потом **«Закрыть пул»**
+- [ ] Партнёр видит акт: `/partner/finances` → вкладка **Документы**
+- [ ] ZIP + выписка банка сохранены для бухгалтерии
+- [ ] При обмене валют — запись в «Конвертации и потери»
+
+**Runbook:** `docs/CONCIERGE_LAUNCH_TREASURY_RUNBOOK.md` — раздел «День первой выплаты».
+
+---
 
 ## 11. Sign-off
 

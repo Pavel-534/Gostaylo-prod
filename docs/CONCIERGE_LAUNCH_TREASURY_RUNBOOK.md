@@ -312,11 +312,71 @@ curl -X POST "https://<DOMAIN>/api/cron/promote-ready-for-payout" \
 ## 8. Smoke перед первым live-гостем
 
 ```bash
+# Cron + engine-config (быстро)
 CRON_SECRET=xxx BASE_URL=https://<DOMAIN> EXPECT_PRICING_V2=true \
-  node scripts/financial-prelaunch-smoke.mjs
+  npm run smoke:financial
+
+# Полная цепочка Stage 103 (БД: гость → escrow → пул → акты → ZIP)
+npm run smoke:full-financial
 ```
 
-Staging: полный сценарий `docs/FINANCIAL_SMOKE_E2E.md` (A: happy path, B: dispute).
+Staging: полный сценарий `docs/FINANCIAL_SMOKE_E2E.md` (A: happy path, B: dispute).  
+Чеклист для владельца: **`docs/STAGE_103_PRE_LAUNCH_CHECKLIST.md`**.
+
+---
+
+## 12. Перед первой **реальной** выплатой партнёру
+
+Выполните **все** пункты (галочки в `docs/STAGE_103_PRE_LAUNCH_CHECKLIST.md` §A и §C).
+
+### 12.1. Техника (5 минут)
+
+1. `npm run smoke:full-financial` — в отчёте только ✅ (или разберите ❌ с разработчиком).
+2. `/admin/settings/legal` → **«Сгенерировать тестовый акт»** — PDF открывается.
+3. На **staging**: один полный цикл с тестовой оплатой → thaw → пул → ZIP → вкладка партнёра **Документы**.
+
+### 12.2. Деньги (перед переводом)
+
+1. Откройте **`/admin/settings/finances`** — карточка **«Готово к выплате»** совпадает с ожиданием.
+2. Сформируйте пул → **Lock** → скачайте **CSV** и **Пакет для банка (ZIP)** — сверьте ФИО/счёт/USDT с карточкой партнёра (`/partner/payout-profiles`).
+3. Убедитесь, что нет открытых споров и заявок PENDING по партнёрам из пула (блокировка при закрытии).
+4. Прочитайте жёлтый баннер **Concierge Launch**: автоматического списания с вашего счёта **нет**.
+
+### 12.3. После перевода в банке
+
+1. Нажмите **«Закрыть пул»** (SETTLED) — создаются акты, в Telegram FINANCE придёт ссылка на финпульт.
+2. Партнёр: **`/partner/finances` → Документы** — акт доступен для скачивания.
+3. Сохраните ZIP + выписку банка для бухгалтерии.
+4. При обмене валют — **«Зафиксировать конвертацию»** (§1.2).
+
+### 12.4. Не делать
+
+- Не закрывать пул до фактического перевода (статус SETTLED = «мы заплатили»).
+- Не публиковать новую версию оферты в день массовых выплат без согласования с legal.
+- Не удалять DRAFT-пул с живыми бронями без runbook §9 / `PRE_LAUNCH_CHECKLIST`.
+
+---
+
+## 13. День первой выплаты (пошагово для владельца)
+
+Утро (5 мин):
+
+1. Откройте **`/admin/settings/finances`** — нет красного/жёлтого баннера сверху.
+2. При необходимости: **`/admin/settings/legal`** → **«Сгенерировать тестовый полный пакет»** (все ✅).
+
+Перед переводом (15–30 мин):
+
+3. Вкладка **«Пулы»** → **«Сформировать пул на сегодня»** → **Lock**.
+4. В строке пула: **CSV для банка** + **Пакет для банка (ZIP)** — сверьте ФИО и счета.
+5. Сделайте переводы в банке / USDT по суммам из файла.
+
+После перевода (5 мин):
+
+6. **«Закрыть пул»** — создаются PDF-акты, придёт Telegram FINANCE.
+7. Попросите партнёра открыть **`/partner/finances` → Документы** и скачать акт.
+8. Сохраните ZIP + выписку банка в папку бухгалтерии.
+
+Если что-то красное на пульте — **не переводите** до разбора с разработчиком.
 
 ---
 
@@ -354,4 +414,45 @@ Webhook сверяет RUB с snapshot; escrow/ledger — **THB** (`intent.amoun
 
 ---
 
-*Версия runbook: 2026-05-16 · Stage 100.5 (финтех-пульт: русский UI, пулы + «Отметить как оплаченный», заглушка конвертаций; партнёрские балансы и реквизиты) · при изменении cron/API обновить `docs/CRON_EXTERNAL_FINANCIAL.md` и `docs/PRE_LAUNCH_CHECKLIST.md`.*
+## 12. Симуляция двух рельсов (Stage 104)
+
+Пока нет live ЮKassa, ОсОО и биржи — проверяйте **полную цепочку денег** в БД и админке.
+
+| Рельс | ID в коде | Партнёр | Банковский пакет |
+|-------|-----------|---------|------------------|
+| **RUB Direct** | `TBANK_RU` | `preferred_payout_currency = RUB` | `registry-rub-direct.csv` в ZIP |
+| **KG / USDT** | `KG_CRYPTO` | USDT / USD / THB | `registry-kg-usdt.csv` в ZIP |
+
+**SSOT рельсов:** `lib/treasury/payout-rails.js`.
+
+### 12.1. CLI (рекомендуется перед демо)
+
+```bash
+npm run smoke:full-financial              # рельс по умолчанию (RUB Direct)
+npm run smoke:full-financial:rub          # только RUB Direct
+npm run smoke:full-financial:intl         # только KG / USDT
+npm run smoke:full-financial:all          # оба рельса подряд
+npm run smoke:full-financial -- --rail=intl --amount=12000 --guest-currency=USDT
+```
+
+Отчёт в консоли показывает **рельс**, суммы и шаги 1–15 (бронь → mock-оплата → escrow → thaw → READY → пул → lock → export → ZIP → settle → акт).
+
+### 12.2. Админка (без терминала)
+
+1. **`/admin/settings/finances`** — блок **«Состояние системы»**:
+   - готово к выплате по **RUB Direct** и **KG / USDT**;
+   - **Ожидает 24ч** (THAWED, hold не истёк);
+   - **Drift ledger**.
+2. Кнопки **«Симулировать RUB Direct»** / **«Симулировать KG / USDT»** — тот же сценарий, что CLI (API `POST /api/admin/smoke/financial-run`).
+3. Вкладка **Пулы** — выберите **рельс выплат** перед «Сформировать пул»; фильтр списка пулов по рельсу.
+4. **`/admin/settings/legal`** — «Полный тестовый пакет» (опционально с `rail` в body).
+
+### 12.3. Правила для оператора
+
+- **Не смешивайте** RUB Direct и International в одном банковском платеже — один пул = один рельс.
+- ZIP уже содержит реестр с именем по рельсу; README в архиве напоминает о разделении.
+- Перед первой **реальной** выплатой пройдите **`docs/PRE_REAL_PAYMENTS_CHECKLIST.md`**.
+
+---
+
+*Версия runbook: 2026-05-19 · Stage 104 (два рельса, smoke по рельсу, FinTech «Состояние системы») · Stage 103 (smoke `smoke:full-financial`, тестовый акт в legal) · при изменении cron/API обновить `docs/CRON_EXTERNAL_FINANCIAL.md` и `docs/PRE_LAUNCH_CHECKLIST.md`.*
