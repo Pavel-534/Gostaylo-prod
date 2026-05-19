@@ -135,6 +135,21 @@
 - **Lite payload:** whitelist **`listing-search-payload.js`** включает **`transmission`**, **`gearbox`** для каталога.
 - **PDP синхронизация:** **`lib/listing-public-metadata-specs.js`** — ключи **`transmission`**, **`gearbox`** в **`METADATA_KEYS_RENDERED_IN_TITLE`**, чтобы не дублировать их в нижнем ряду **`extraMetadataSpecs`**; явная строка коробки в шапке — **`GuestListingTitleBlock`** (**`ListingInfo.jsx`**) через **`formatListingTransmissionLabel`** (тот же SSOT, что и **`ListingCardSpecsRow`**).
 
+### Stage 102.2 — Partner legal document + booking terms stamp (2026-05)
+
+- **`/legal/partner-terms/`** — отдельный документ для хостов (выплаты, KYC, модерация, ответственность); ссылки в футере, сайдбаре партнёра (`/partner/*`), `/partner/settings`.
+- **Версии:** `CURRENT_PARTNER_TERMS_VERSION` = `2026-05-19-v1` (гостевая оферта остаётся `2026-05-18-v1`).
+- **Оплата → бронь:** `stampBookingTermsOnSuccessfulPayment` в `lib/legal-consent.js`, вызывается из `EscrowService.moveToEscrow` после `PAID_ESCROW` (все платёжные пути).
+- **Checkout:** чекбокс `variant="checkout"` — оферта + ссылка на политику возвратов.
+
+### Stage 102.1 — Legal block neutral copy (2026-05)
+
+- **Публичная оферта** `/legal/public-offer/` — нейтральный агентский текст, приоритет документов; реквизиты без скобок (`lib/config/legal-details.js`).
+- **`/terms/`** — краткий summary со ссылкой на оферту (без «escrow-счёт платформы»).
+- **Версия оферты SSOT:** `lib/config/legal-terms-version.js` → `CURRENT_LEGAL_TERMS_VERSION` (`2026-05-18-v1`); миграция `migrations/stage102_1_legal_terms_version.sql` (`profiles.terms_version`, `partner_terms_*`, `bookings.terms_*`).
+- **Checkout:** обязательный чекбокс оферты на каждой оплате → `recordGuestLegalConsent` в `lib/legal-consent.js` (profile + booking).
+- **Партнёрская заявка:** чекбокс `variant="partner"` + `acceptedPartnerTerms` в `POST /api/v2/partner/applications`.
+
 ### Stage 78 — Legal consent & white-label copy (2026-05)
 
 - **DB:** `migrations/stage78_0_profiles_legal_terms_accepted.sql` → `profiles.legal_terms_accepted_at` (nullable timestamptz).
@@ -582,7 +597,7 @@
 
 **Stage 101.1:** CSV-экспорт для бухгалтерии — **`GET /api/admin/finances/conversions/export?from=YYYY-MM-DD&to=YYYY-MM-DD`** (`;`, UTF-8 BOM), поля операции + `journal_id`; в дашборде добавлен референс **«Принято от гостей (RUB)»** при сохранении SSOT-маржи в THB.
 
-**Stage 101.3:** FinTech console tabs + **`GET /api/admin/finances/movements`**, header alerts on dashboard API, **`FinTechMovementJournal`**, monthly export bundle, **`FinTechMarginBar`**.
+**Stage 101.3:** FinTech console tabs + **`GET /api/admin/finances/movements`**, header alerts on dashboard API, **`FinTechMovementJournal`**, monthly export bundle (incl. **`GET /api/admin/finances/payout-batches/export-period`**), **`FinTechMarginBar`**, batch settle guard (`canSettle`, `settleBlockers`, `409` on open partner payouts).
 
 **Stage 101.2:** **`FinTechTreasuryConversionsPanel`** — фильтры (период/тип/валюта), маржа с **%**, **`GET /api/admin/finances/conversions/reconcile`**, SSOT CSV в **`lib/admin/treasury-conversions-csv.js`**.
 

@@ -353,6 +353,15 @@ export default function PartnerLayout({ children }) {
 
           {/* Bottom Section */}
           <div className="p-3 border-t border-slate-100 space-y-2">
+            <Link
+              href="/legal/partner-terms/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all text-sm"
+            >
+              <Shield className="w-4 h-4" />
+              <span>{getUIText('footerPartnerTerms', language)}</span>
+            </Link>
             <Link 
               href="/" 
               className="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-all text-sm"

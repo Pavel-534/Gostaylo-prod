@@ -576,6 +576,42 @@ function PartnerSettingsContent() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">{getUIText('partnerSettingsLegalTitle', language)}</CardTitle>
+          <CardDescription>{getUIText('partnerSettingsLegalDesc', language)}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3 text-sm">
+          <Link
+            href="/legal/partner-terms/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-teal-700 hover:underline font-medium"
+          >
+            {getUIText('footerPartnerTerms', language)}
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+          <Link
+            href="/legal/public-offer/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-slate-600 hover:text-teal-700 hover:underline"
+          >
+            {getUIText('footerPublicOffer', language)}
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+          <Link
+            href="/legal/refund/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-slate-600 hover:text-teal-700 hover:underline"
+          >
+            {getUIText('footerRefundPolicy', language)}
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+        </CardContent>
+      </Card>
+
       <div className="flex justify-end">
         <Button onClick={handleSaveSettings} disabled={saving} className="bg-teal-600 hover:bg-teal-700">
           {saving ? (

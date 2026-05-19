@@ -17,21 +17,22 @@ const STR = {
   ru: {
     eyebrow: 'Legal',
     h1: 'Условия использования',
-    sub: 'Краткая редакция в стиле «Premium Air». Полная версия Пользовательского Соглашения доступна по запросу в поддержку.',
-    effectiveFrom: 'Действует с 1 февраля 2026',
+    sub: 'Краткое описание сервиса. Юридически обязательные условия — в Публичной оферте (ссылка ниже).',
+    effectiveFrom: 'Действует с 18 мая 2026',
+    fullOfferCta: 'Полная версия — Публичная оферта',
     sections: [
       { n: '01', title: 'Платформа и роли', body: [
-        `${getSiteDisplayName()} — технологическая платформа, объединяющая владельцев объектов аренды и гостей. Мы выступаем посредником и не являемся стороной договора аренды между ними.`,
-        'Платформа доступна арендаторам (Гостям) и арендодателям (Партнёрам). Каждой роли соответствует свой набор прав и обязанностей, описанных в полной версии Соглашения.',
+        `${getSiteDisplayName()} — технологическая платформа, объединяющая владельцев объектов аренды и гостей. Мы выступаем посредником (агентом) и не являемся стороной договора аренды между Гостем и Партнёром.`,
+        'Платформа доступна арендаторам (Гостям) и арендодателям (Партнёрам). Подробные права и обязанности — в Публичной оферте.',
       ] },
       { n: '02', title: 'Бронирование и оплата', body: [
-        'Все цены отображаются с учётом сервисного сбора платформы. Скрытых комиссий нет.',
-        'Оплата резервируется на escrow-счёте платформы и переводится Партнёру только после успешного заселения Гостя.',
+        'Все цены отображаются с учётом сервисного сбора платформы до оплаты; скрытых удержаний со стороны платформы нет.',
+        'Оплата проходит через платёжного провайдера. До подтверждения заселения сумма учитывается как обеспечение исполнения бронирования; расчёты с Партнёром — после наступления условий в оферте и правилах объявления.',
         'Курс конвертации валют (THB / USD / EUR / RUB / CNY) фиксируется в момент оплаты по данным внешнего поставщика котировок.',
       ] },
-      { n: '03', title: 'Escrow-защита', body: [
-        'Средства Гостя удерживаются на счёте платформы до подтверждения заселения. Это страхует обе стороны от мошенничества.',
-        'При подтверждённых нарушениях со стороны Партнёра (несоответствие объекта, отсутствие доступа) Гостю возвращается полная стоимость аренды в течение 14 рабочих дней.',
+      { n: '03', title: 'Защита бронирования', body: [
+        'Модель направлена на снижение рисков для Гостя и Партнёра при недопоставке услуги. Порядок возвратов — в политике возвратов и оферте.',
+        'При подтверждённых нарушениях со стороны Партнёра (несоответствие объекта, отсутствие доступа) применяются правила возврата, указанные для бронирования.',
       ] },
       { n: '04', title: 'Отмена бронирования', body: [
         'Условия отмены указываются в карточке каждого объекта. Стандартная политика — бесплатная отмена за 7 дней до заезда.',
@@ -50,28 +51,29 @@ const STR = {
         'Продолжая пользоваться сервисом после вступления изменений в силу, вы соглашаетесь с новой редакцией.',
       ] },
     ],
-    contactH2: 'Нужна полная версия?',
-    contactSub: 'Запросите развёрнутый PDF или задайте вопрос по любому пункту — мы отвечаем на 4 языках.',
+    contactH2: 'Публичная оферта',
+    contactSub: 'Полный юридический текст, приоритет документов и условия оплаты — в Публичной оферте.',
     helpLink: 'Центр помощи',
   },
   en: {
     eyebrow: 'Legal',
     h1: 'Terms of Service',
-    sub: 'Concise “Premium Air” edition. The full User Agreement is available on request from support.',
-    effectiveFrom: 'Effective from February 1, 2026',
+    sub: 'A short overview of the service. The binding terms are in the Public Offer (link below).',
+    effectiveFrom: 'Effective from May 18, 2026',
+    fullOfferCta: 'Full version — Public Offer',
     sections: [
       { n: '01', title: 'Platform & roles', body: [
-        `${getSiteDisplayName()} is a technology platform connecting rental owners with guests. We act as an intermediary and are not a party to the rental contract between them.`,
-        'The platform is available to renters (Guests) and lessors (Partners). Each role has its own rights and obligations described in the full Agreement.',
+        `${getSiteDisplayName()} is a technology platform connecting rental owners with guests. We act as an intermediary (agent) and are not a party to the rental contract between Guest and Partner.`,
+        'The platform is available to Guests and Partners. Detailed rights and obligations are in the Public Offer.',
       ] },
       { n: '02', title: 'Booking & payment', body: [
-        'All prices include the platform service fee. There are no hidden fees.',
-        'Funds are held on the platform’s escrow account and transferred to the Partner only after a successful check-in.',
-        'Currency conversion (THB / USD / EUR / RUB / CNY) is fixed at the moment of payment using an external rates provider.',
+        'All prices include the platform service fee before payment; there are no hidden platform charges.',
+        'Payment is processed via a payment provider. Until check-in conditions are met, the amount secures the booking; settlement with the Partner follows the Public Offer and listing rules.',
+        'Currency conversion (THB / USD / EUR / RUB / CNY) is fixed at payment using an external rates provider.',
       ] },
-      { n: '03', title: 'Escrow protection', body: [
-        'Guest funds are held on the platform until check-in is confirmed, protecting both sides from fraud.',
-        'On confirmed Partner-side violations (mismatch, no access), the Guest is fully refunded within 14 business days.',
+      { n: '03', title: 'Booking protection', body: [
+        'The model is designed to reduce risk for Guests and Partners when service is not delivered. Refunds follow the refund policy and Public Offer.',
+        'On confirmed Partner-side violations (mismatch, no access), the refund rules stated for the booking apply.',
       ] },
       { n: '04', title: 'Cancellation', body: [
         'Cancellation terms are specified in each listing. The standard policy is a free cancellation 7 days before check-in.',
@@ -90,28 +92,29 @@ const STR = {
         'By continuing to use the service after changes take effect, you accept the new revision.',
       ] },
     ],
-    contactH2: 'Need the full version?',
-    contactSub: 'Request the detailed PDF or ask any question — we respond in 4 languages.',
+    contactH2: 'Public Offer',
+    contactSub: 'The full legal text, document priority, and payment terms are in the Public Offer.',
     helpLink: 'Help Center',
   },
   zh: {
     eyebrow: '法律',
     h1: '服务条款',
-    sub: '"Premium Air" 风格的简明版本。完整《用户协议》可向支持申请。',
-    effectiveFrom: '自 2026 年 2 月 1 日起生效',
+    sub: '服务简要说明。具有法律约束力的条款见公开要约（下方链接）。',
+    effectiveFrom: '自 2026 年 5 月 18 日起生效',
+    fullOfferCta: '完整版本 — 公开要约',
     sections: [
       { n: '01', title: '平台与角色', body: [
-        `${getSiteDisplayName()} 是一个连接出租方与房客的技术平台。我们作为中介，不是双方租赁合同的当事方。`,
-        '平台对承租人（房客）和出租人（合作伙伴）开放。每种角色都有完整协议中描述的权利与义务。',
+        `${getSiteDisplayName()} 是连接出租方与房客的技术平台。我们作为中介（代理），不是房客与合作伙伴之间租赁合同的当事方。`,
+        '平台对房客和合作伙伴开放。详细权利义务见公开要约。',
       ] },
       { n: '02', title: '预订与支付', body: [
-        '所有价格均包含平台服务费，无隐藏费用。',
-        '资金保留在平台的托管账户上，仅在房客成功入住后才转交给合作伙伴。',
-        '货币兑换（THB / USD / EUR / RUB / CNY）在支付时使用外部汇率提供商锁定。',
+        '所有价格在支付前已包含平台服务费；平台无隐藏扣款。',
+        '付款通过支付服务商处理。在入住条件满足前，金额作为预订履约保障；与合作伙伴的结算按公开要约及房源规则进行。',
+        '货币兑换（THB / USD / EUR / RUB / CNY）在支付时按外部汇率锁定。',
       ] },
-      { n: '03', title: '托管保护', body: [
-        '在确认入住前，房客资金保留在平台，保护双方免遭欺诈。',
-        '在确认的合作伙伴违规（不符、无法入住）情况下，房客可在 14 个工作日内全额退款。',
+      { n: '03', title: '预订保障', body: [
+        '该模式旨在降低房客与合作伙伴在未能提供服务时的风险。退款见退款政策与公开要约。',
+        '在确认的合作伙伴违规情况下，适用该预订所载的退款规则。',
       ] },
       { n: '04', title: '取消', body: [
         '每个房源都标明取消条款。标准政策为入住前 7 天免费取消。',
@@ -130,28 +133,29 @@ const STR = {
         '在变更生效后继续使用本服务，即表示您接受新版本。',
       ] },
     ],
-    contactH2: '需要完整版本？',
-    contactSub: '索取详细 PDF 或就任意条款提问 — 我们以 4 种语言回复。',
+    contactH2: '公开要约',
+    contactSub: '完整法律文本、文件优先级及付款条件见公开要约。',
     helpLink: '帮助中心',
   },
   th: {
     eyebrow: 'กฎหมาย',
     h1: 'เงื่อนไขการใช้บริการ',
-    sub: 'ฉบับย่อสไตล์ "Premium Air" ฉบับเต็มของข้อตกลงผู้ใช้สามารถขอได้จากฝ่ายสนับสนุน',
-    effectiveFrom: 'มีผลตั้งแต่ 1 กุมภาพันธ์ 2026',
+    sub: 'ภาพรวมสั้นของบริการ ข้อกำหนดที่ผูกพันทางกฎหมายอยู่ในข้อเสนอสาธารณะ (ลิงก์ด้านล่าง)',
+    effectiveFrom: 'มีผลตั้งแต่ 18 พฤษภาคม 2026',
+    fullOfferCta: 'ฉบับเต็ม — ข้อเสนอสาธารณะ',
     sections: [
       { n: '01', title: 'แพลตฟอร์มและบทบาท', body: [
-        `${getSiteDisplayName()} เป็นแพลตฟอร์มเทคโนโลยีที่เชื่อมโยงเจ้าของที่พักกับแขก เราเป็นตัวกลางและไม่ใช่คู่สัญญาในข้อตกลงเช่าระหว่างทั้งสองฝ่าย`,
-        'แพลตฟอร์มเปิดให้ผู้เช่า (แขก) และผู้ให้เช่า (พาร์ทเนอร์) แต่ละบทบาทมีสิทธิและหน้าที่ตามที่ระบุในข้อตกลงฉบับเต็ม',
+        `${getSiteDisplayName()} เป็นแพลตฟอร์มเทคโนโลยีที่เชื่อมเจ้าของที่พักกับแขก เราเป็นตัวกลาง (ตัวแทน) และไม่ใช่คู่สัญญาเช่าระหว่างแขกกับพาร์ทเนอร์`,
+        'แพลตฟอร์มเปิดให้แขกและพาร์ทเนอร์ รายละเอียดสิทธิและหน้าที่อยู่ในข้อเสนอสาธารณะ',
       ] },
       { n: '02', title: 'การจองและการชำระเงิน', body: [
-        'ราคาแสดงรวมค่าธรรมเนียมบริการของแพลตฟอร์ม ไม่มีค่าธรรมเนียมแฝง',
-        'เงินจะถูกถือไว้ในบัญชีเอสโครว์ของแพลตฟอร์มและจะโอนให้พาร์ทเนอร์เมื่อแขกเช็คอินเรียบร้อย',
-        'อัตราแลกเปลี่ยน (THB / USD / EUR / RUB / CNY) ถูกตรึง ณ เวลาที่ชำระเงินตามผู้ให้บริการอัตราภายนอก',
+        'ราคาแสดงรวมค่าธรรมเนียมแพลตฟอร์มก่อนชำระ ไม่มีการหักแอบแฝงจากแพลตฟอร์ม',
+        'ชำระผ่านผู้ให้บริการชำระเงิน จนกว่าจะถึงเงื่อนไขเช็คอิน จำนวนเงินเป็นหลักประกันการจอง การชำระกับพาร์ทเนอร์ตามข้อเสนอสาธารณะและกฎประกาศ',
+        'อัตราแลกเปลี่ยน (THB / USD / EUR / RUB / CNY) ถูกตรึง ณ เวลาชำระตามผู้ให้บริการอัตราภายนอก',
       ] },
-      { n: '03', title: 'การคุ้มครองด้วยเอสโครว์', body: [
-        'เงินของแขกจะถูกถือไว้จนกว่าจะยืนยันการเช็คอิน เพื่อปกป้องทั้งสองฝ่ายจากการฉ้อโกง',
-        'ในกรณีที่ยืนยันได้ว่ามีการละเมิดจากพาร์ทเนอร์ (ไม่ตรง, เข้าไม่ได้) แขกจะได้รับเงินคืนเต็มจำนวนภายใน 14 วันทำการ',
+      { n: '03', title: 'การคุ้มครองการจอง', body: [
+        'โมเดลนี้ช่วยลดความเสี่ยงเมื่อบริการไม่ถูกส่งมอบ การคืนเงินตามนโยบายคืนเงินและข้อเสนอสาธารณะ',
+        'เมื่อยืนยันการละเมิดจากพาร์ทเนอร์ ใช้กฎคืนเงินที่ระบุสำหรับการจองนั้น',
       ] },
       { n: '04', title: 'การยกเลิก', body: [
         'เงื่อนไขการยกเลิกระบุไว้ในแต่ละที่พัก นโยบายมาตรฐานคือยกเลิกฟรี 7 วันก่อนเช็คอิน',
@@ -170,8 +174,8 @@ const STR = {
         'การใช้งานต่อหลังจากการเปลี่ยนแปลงมีผลถือเป็นการยอมรับฉบับใหม่',
       ] },
     ],
-    contactH2: 'ต้องการฉบับเต็ม?',
-    contactSub: 'ขอ PDF ฉบับละเอียดหรือสอบถามข้อใด ๆ — เราตอบใน 4 ภาษา',
+    contactH2: 'ข้อเสนอสาธารณะ',
+    contactSub: 'ข้อความทางกฎหมายฉบับเต็ม ลำดับเอกสาร และเงื่อนไขการชำระเงินอยู่ในข้อเสนอสาธารณะ',
     helpLink: 'ศูนย์ช่วยเหลือ',
   },
 }
@@ -195,6 +199,12 @@ export default function TermsContent() {
           </h1>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl">{s.sub}</p>
           <p className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-400">{s.effectiveFrom}</p>
+          <Link
+            href="/legal/public-offer/"
+            className="mt-6 inline-flex items-center justify-center rounded-2xl border border-teal-200 bg-white px-6 py-3 text-sm font-semibold text-teal-800 shadow-sm transition-colors hover:border-teal-400 hover:bg-teal-50"
+          >
+            {s.fullOfferCta}
+          </Link>
         </div>
       </section>
 
@@ -236,18 +246,24 @@ export default function TermsContent() {
           </h2>
           <p className="text-slate-600 mb-7 max-w-xl mx-auto">{s.contactSub}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a
-              href={`mailto:${supportEmail}`}
+            <Link
+              href="/legal/public-offer/"
               className="inline-flex items-center justify-center rounded-2xl bg-[#006666] px-7 py-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)] transition-all hover:bg-[#005555] active:scale-[0.98]"
             >
-              {supportEmail}
-            </a>
+              {s.fullOfferCta}
+            </Link>
             <Link
               href="/help/"
               className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-7 py-4 text-sm font-semibold text-slate-700 transition-colors hover:border-teal-400 hover:text-teal-700"
             >
               {s.helpLink}
             </Link>
+            <a
+              href={`mailto:${supportEmail}`}
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-7 py-4 text-sm font-semibold text-slate-700 transition-colors hover:border-teal-400 hover:text-teal-700"
+            >
+              {supportEmail}
+            </a>
           </div>
         </div>
       </section>

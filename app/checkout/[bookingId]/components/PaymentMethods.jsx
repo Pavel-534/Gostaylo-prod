@@ -121,6 +121,7 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
 
       {p.checkoutNeedsLegalConsent ? (
         <LegalConsentCheckboxRow
+          variant="checkout"
           language={c.language}
           checked={Boolean(p.checkoutLegalConsent)}
           onCheckedChange={p.setCheckoutLegalConsent}

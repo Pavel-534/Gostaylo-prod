@@ -1,6 +1,6 @@
 'use client'
 
-import { CheckCircle2, Download, Lock } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Download, Lock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { BATCH_STATUS_RU } from '@/lib/admin/fintech-ui-labels'
@@ -21,14 +21,19 @@ function fmtThb(n) {
  * @param {(id: string) => void} onSettle
  */
 export function PayoutBatchRow({ batch, settling, onLock, onExport, onSettle }) {
-  const canSettle = batch.status === 'LOCKED' || batch.status === 'EXPORTED'
-  const isDraft = batch.status === 'DRAFT'
+  const status = String(batch.status || '').toUpperCase()
+  const canSettleStatus = status === 'LOCKED' || status === 'EXPORTED'
+  const settleBlocked = canSettleStatus && batch.canSettle === false
+  const canSettleAction = canSettleStatus && batch.canSettle !== false
+  const isDraft = status === 'DRAFT'
+  const blockers = batch.settleBlockers || []
 
   return (
     <div
       className={cn(
         'rounded-xl border bg-white p-4 shadow-sm space-y-3',
-        canSettle && 'border-emerald-200 ring-1 ring-emerald-100',
+        canSettleAction && 'border-emerald-200 ring-1 ring-emerald-100',
+        settleBlocked && 'border-amber-200 ring-1 ring-amber-100',
         isDraft && 'border-amber-100',
       )}
     >
@@ -42,7 +47,10 @@ export function PayoutBatchRow({ batch, settling, onLock, onExport, onSettle }) 
             })}
           </p>
           <div className="flex flex-wrap items-center gap-2 mt-1">
-            <Badge variant={canSettle ? 'default' : 'secondary'} className={canSettle ? 'bg-emerald-600' : ''}>
+            <Badge
+              variant={canSettleAction ? 'default' : 'secondary'}
+              className={canSettleAction ? 'bg-emerald-600' : settleBlocked ? 'bg-amber-500' : ''}
+            >
               {BATCH_STATUS_RU[batch.status] || batch.status}
             </Badge>
             <span className="text-sm font-medium text-slate-800">
@@ -50,12 +58,17 @@ export function PayoutBatchRow({ batch, settling, onLock, onExport, onSettle }) 
             </span>
           </div>
         </div>
-        {canSettle && (
+        {canSettleStatus && (
           <Button
             size="default"
-            className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 h-10 px-4"
-            disabled={settling}
-            onClick={() => onSettle(batch.id)}
+            className={cn(
+              'shrink-0 h-10 px-4',
+              canSettleAction
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                : 'bg-slate-200 text-slate-500 cursor-not-allowed hover:bg-slate-200',
+            )}
+            disabled={settling || settleBlocked}
+            onClick={() => canSettleAction && onSettle(batch.id)}
           >
             <CheckCircle2 className="h-4 w-4 mr-1.5" />
             {settling ? 'Закрываем…' : 'Отметить как оплаченный'}
@@ -74,7 +87,26 @@ export function PayoutBatchRow({ batch, settling, onLock, onExport, onSettle }) 
           Скачать CSV для банка
         </Button>
       </div>
-      {canSettle && (
+      {settleBlocked && blockers.length > 0 && (
+        <div className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 space-y-1.5">
+          <p className="font-medium flex items-center gap-1.5">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            Нельзя закрыть пул: у партнёров есть открытые заявки на вывод
+          </p>
+          <ul className="list-disc pl-5 space-y-0.5 text-amber-800">
+            {blockers.map((b) => (
+              <li key={b.partnerId}>
+                Партнёр {b.partnerId.slice(0, 8)}… —{' '}
+                {(b.openRequests || [])
+                  .map((r) => `${r.status} ${fmtThb(r.grossAmountThb)}`)
+                  .join(', ')}
+              </li>
+            ))}
+          </ul>
+          <p className="text-amber-700">Обработайте или отмените заявки в разделе выплат, затем повторите.</p>
+        </div>
+      )}
+      {canSettleAction && (
         <p className="text-xs text-emerald-800 bg-emerald-50 rounded-md px-2 py-1.5">
           После фактического перевода в банке нажмите зелёную кнопку — брони закроются, учёт синхронизируется.
         </p>

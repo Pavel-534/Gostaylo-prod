@@ -83,9 +83,9 @@ CSV-формат:
 
 1. **Шапка** — красные/жёлтые бейджи: очередь чеков, расхождение книги, крупная сумма «готово к выплате» (порог по умолчанию ฿100 000, настраивается в `system_settings.general.fintech_ready_payout_alert_thb` или `FINTECH_READY_PAYOUT_ALERT_THB`).
 2. **Вкладка «Обзор»** — маржа за месяц (полоска), сверка книги, касса, тарифы.
-3. **Вкладка «Пулы»** — после перевода в банке нажмите зелёную **«Отметить как оплаченный»** (статусы LOCKED / EXPORTED).
+3. **Вкладка «Пулы»** — после перевода в банке нажмите зелёную **«Отметить как оплаченный»** (LOCKED / EXPORTED). Кнопка **заблокирована**, если у партнёра из пула есть заявки на вывод `PENDING` / `PROCESSING` (обработайте в `/admin/financial-health` или отмените).
 4. **Вкладка «Журнал»** — все движения (конвертации, пулы, ledger, fiscal) с фильтрами.
-5. **Вкладка «Выгрузки»** — **«Скачать пакет за текущий месяц»** (реестр броней + конвертации).
+5. **Вкладка «Выгрузки»** — **«Скачать пакет за текущий месяц»** (реестр броней + конвертации + сводка пулов).
 
 ---
 
@@ -226,7 +226,8 @@ curl -X POST "https://<DOMAIN>/api/cron/promote-ready-for-payout" \
 #### 3.1. Закрытие пула (Stage 100.3)
 
 В `/admin/settings/finances` у пула в статусе **LOCKED** или **EXPORTED** — зелёная кнопка **«Отметить как оплаченный»** (`PATCH action: settled`).  
-Сервер: `PayoutBatchService.markBatchSettled` — проводки `PARTNER_PAYOUT_OBLIGATION_SETTLED` по каждой брони, `bookings` → `COMPLETED`, `syncPartnerBalanceColumns`.
+Сервер: `PayoutBatchService.markBatchSettled` — **сначала** проверка открытых `payouts` (PENDING/PROCESSING) у партнёров пула → `409 open_partner_payout_requests`; иначе проводки `PARTNER_PAYOUT_OBLIGATION_SETTLED`, `bookings` → `COMPLETED`, `syncPartnerBalanceColumns`.  
+Список пулов: `GET /api/admin/finances/payout-batches` возвращает `canSettle` и `settleBlockers` для UI.
 
 **Альтернатива — поштучные заявки партнёра:**
 

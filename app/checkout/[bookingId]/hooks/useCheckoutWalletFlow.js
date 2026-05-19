@@ -9,12 +9,12 @@ export function useCheckoutWalletFlow({ user, booking, queryClient }) {
   const [walletUseThb, setWalletUseThb] = useState(0)
   const [checkoutLegalConsent, setCheckoutLegalConsent] = useState(false)
 
-  const userHasLegalConsent = Boolean(user?.legalTermsAcceptedAt || user?.legal_terms_accepted_at)
-  const checkoutNeedsLegalConsent = Boolean(user?.id && !userHasLegalConsent)
+  /** Stage 102.1: чекбокс оферты обязателен на каждой оплате (акцепт пишется в booking + profile). */
+  const checkoutNeedsLegalConsent = Boolean(user?.id)
 
   useEffect(() => {
-    setCheckoutLegalConsent(userHasLegalConsent)
-  }, [user?.id, userHasLegalConsent])
+    if (!user?.id) setCheckoutLegalConsent(false)
+  }, [user?.id])
 
   const loadWalletState = useCallback(async () => {
     setWalletLoading(true)
@@ -69,7 +69,7 @@ export function useCheckoutWalletFlow({ user, booking, queryClient }) {
     setWalletUseThb(useWalletBonuses ? cap : 0)
   }, [booking, walletBalanceThb, walletMaxDiscountPercent, useWalletBonuses])
 
-  const acceptedLegalTermsForPayment = checkoutNeedsLegalConsent ? checkoutLegalConsent : true
+  const acceptedLegalTermsForPayment = checkoutLegalConsent
 
   return {
     walletLoading,

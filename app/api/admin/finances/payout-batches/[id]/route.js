@@ -32,6 +32,9 @@ export async function PATCH(request, { params }) {
     if (r.error === 'invalid_status') {
       return NextResponse.json({ success: false, ...r }, { status: 400 })
     }
+    if (r.error === 'open_partner_payout_requests') {
+      return NextResponse.json({ success: false, ...r }, { status: 409 })
+    }
     return NextResponse.json({ success: r.success !== false, ...r })
   }
   return NextResponse.json({ success: false, error: 'unknown_action' }, { status: 400 })

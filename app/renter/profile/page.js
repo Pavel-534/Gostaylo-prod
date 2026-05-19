@@ -39,6 +39,7 @@ import { telegramAccountLinkUrl } from '@/lib/telegram-bot-public'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { signOut } from '@/lib/auth'
 import { KycUploader } from '@/components/kyc-uploader'
+import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow'
 
 /** Profile completion: only real fields (25% each) */
 function calculateProfileCompletion(user) {
@@ -98,6 +99,7 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
     portfolio: '',
     verificationDocUrl: null,
   })
+  const [partnerLegalConsent, setPartnerLegalConsent] = useState(false)
 
   const kycStrings = {
     label: getUIText('partnerKycLabel', language),
@@ -117,6 +119,10 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
     const doc = String(formData.verificationDocUrl || '').trim()
     if (!doc) {
       toast.error(getUIText('partnerKycDocRequiredError', language))
+      return
+    }
+    if (!partnerLegalConsent) {
+      toast.error(getUIText('partnerTermsConsentRequired', language))
       return
     }
     onSubmit({ ...formData, verificationDocUrl: doc })
@@ -209,6 +215,14 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
               onUploadSuccess={() => toast.success(getUIText('partnerKycUploadSuccess', language))}
             />
 
+            <LegalConsentCheckboxRow
+              variant="partner"
+              language={language}
+              checked={partnerLegalConsent}
+              onCheckedChange={setPartnerLegalConsent}
+              id="renter-partner-legal-consent"
+            />
+
             <div className="flex gap-3 pt-4">
               <Button
                 type="button"
@@ -222,7 +236,9 @@ function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
               <Button
                 type="submit"
                 className="flex-1 bg-teal-600 hover:bg-teal-700"
-                disabled={isSubmitting || !String(formData.verificationDocUrl || '').trim()}
+                disabled={
+                  isSubmitting || !String(formData.verificationDocUrl || '').trim() || !partnerLegalConsent
+                }
               >
                 {isSubmitting ? (
                   <>
@@ -360,6 +376,7 @@ export default function RenterProfilePage() {
           socialLink: formData.socialLink,
           portfolio: formData.portfolio,
           verificationDocUrl: formData.verificationDocUrl,
+          acceptedPartnerTerms: true,
         }),
       })
       

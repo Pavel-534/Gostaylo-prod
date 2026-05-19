@@ -14,6 +14,7 @@ import { getTransactionalFromAddress } from '@/lib/email-env';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { getSiteDisplayName } from '@/lib/site-url';
 import { PricingService } from '@/lib/services/pricing.service';
+import { CURRENT_LEGAL_TERMS_VERSION } from '@/lib/config/legal-terms-version'
 import ReferralGuardService, {
   resolveClientIpFromRequest,
 } from '@/lib/services/marketing/referral-guard.service';
@@ -296,6 +297,7 @@ export async function POST(request) {
       terms_accepted: true,
       terms_accepted_at: legalAcceptedAt,
       legal_terms_accepted_at: legalAcceptedAt,
+      terms_version: CURRENT_LEGAL_TERMS_VERSION,
     })
     .select('id, email, role, first_name, last_name, referral_code')
     .single();

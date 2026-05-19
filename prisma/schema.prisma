@@ -47,6 +47,9 @@ model Profile {
   
   // Legal / compliance (Supabase migrations — source of truth for column sync)
   legalTermsAcceptedAt DateTime? @map("legal_terms_accepted_at")
+  termsVersion           String?   @map("terms_version")
+  partnerTermsAcceptedAt DateTime? @map("partner_terms_accepted_at")
+  partnerTermsVersion    String?   @map("partner_terms_version")
   /** Supabase Auth user id (`auth.users.id`) when linked via OAuth; Stage 79.0 */
   authUserId          String?  @unique @map("auth_user_id")
 
@@ -227,6 +230,10 @@ model Booking {
   specialRequests String?
   /// Party size / seats (inventory); default 1
   guestsCount     Int       @default(1) @map("guests_count")
+
+  /// Guest public-offer acceptance at payment (Stage 102.1+)
+  termsAcceptedAt DateTime? @map("terms_accepted_at")
+  termsVersion    String?   @map("terms_version")
   
   // Timestamps
   createdAt       DateTime      @default(now())

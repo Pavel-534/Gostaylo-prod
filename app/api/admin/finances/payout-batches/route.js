@@ -9,7 +9,7 @@ export async function GET(request) {
   if (gate.error) return gate.error
 
   const status = new URL(request.url).searchParams.get('status')
-  const data = await PayoutBatchService.listBatches({ status: status || null })
+  const data = await PayoutBatchService.listBatchesForAdmin({ status: status || null })
   return NextResponse.json({ success: true, data })
 }
 

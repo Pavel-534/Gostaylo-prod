@@ -52,7 +52,11 @@ export async function POST(request, { params }) {
         return NextResponse.json({ success: false, error: 'Access denied. This is not your booking.' }, { status: 403 })
       }
 
-      const consent = await ensureProfileLegalConsentForPayment(sessionUserId, body?.acceptedLegalTerms)
+      const consent = await ensureProfileLegalConsentForPayment(
+        sessionUserId,
+        body?.acceptedLegalTerms,
+        bookingId,
+      )
       if (!consent.ok) {
         return NextResponse.json(
           {

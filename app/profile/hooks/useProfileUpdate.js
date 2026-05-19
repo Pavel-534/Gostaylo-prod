@@ -10,7 +10,15 @@ export function useProfileUpdate({ toast, router, onAfterPartnerSuccess }) {
   const [savingPendingKyc, setSavingPendingKyc] = useState(false)
 
   const submitPartnerApplication = useCallback(
-    async (partnerForm, verificationDocUrl, user) => {
+    async (partnerForm, verificationDocUrl, user, acceptedPartnerTerms = false) => {
+      if (!acceptedPartnerTerms) {
+        toast({
+          title: 'Примите условия для партнёров',
+          description: 'Отметьте согласие с условиями размещения объектов',
+          variant: 'destructive',
+        })
+        return
+      }
       if (!partnerForm.phone || !partnerForm.experience) {
         toast({
           title: 'Заполните обязательные поля',
@@ -40,6 +48,7 @@ export function useProfileUpdate({ toast, router, onAfterPartnerSuccess }) {
             experience: partnerForm.experience,
             portfolio: partnerForm.portfolio || '',
             verificationDocUrl: verificationDocUrl || '',
+            acceptedPartnerTerms: true,
           }),
         })
 

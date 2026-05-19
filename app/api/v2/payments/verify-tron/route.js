@@ -120,6 +120,7 @@ export async function POST(request) {
         const consent = await ensureProfileLegalConsentForPayment(
           session?.userId ? String(session.userId) : null,
           body?.acceptedLegalTerms ?? body?.accepted_legal_terms,
+          String(bookingId),
         );
         if (!consent.ok) {
           return NextResponse.json(

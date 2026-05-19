@@ -16,6 +16,8 @@ import { ProfileInfo } from '@/app/profile/components/ProfileInfo'
 import { ProfileSecurity } from '@/app/profile/components/ProfileSecurity'
 import { ProfilePreferences } from '@/app/profile/components/ProfilePreferences'
 import { getSiteDisplayName } from '@/lib/site-url'
+import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow'
+import { useI18n } from '@/contexts/i18n-context'
 
 const KYC_LABELS = {
   label: 'Документ (паспорт/ID)',
@@ -59,6 +61,8 @@ function ProfileContent() {
     portfolio: '',
   })
   const [verificationDocUrl, setVerificationDocUrl] = useState(null)
+  const [partnerLegalConsent, setPartnerLegalConsent] = useState(false)
+  const { language } = useI18n()
   const [isPendingPartner, setIsPendingPartner] = useState(false)
   const [pendingNeedsKyc, setPendingNeedsKyc] = useState(false)
   const [pendingInlineKycUrl, setPendingInlineKycUrl] = useState(null)
@@ -174,7 +178,7 @@ function ProfileContent() {
 
   function onSubmitPartnerForm(e) {
     e.preventDefault()
-    void submitPartnerApplication(partnerForm, verificationDocUrl, user)
+    void submitPartnerApplication(partnerForm, verificationDocUrl, user, partnerLegalConsent)
   }
 
   if (loading) {
@@ -289,6 +293,13 @@ function ProfileContent() {
               onUploadError={(msg) => toast({ title: 'Ошибка загрузки', description: msg, variant: 'destructive' })}
               onUploadSuccess={() => toast({ title: 'Документ загружен', description: 'Файл успешно сохранён' })}
             />
+            <LegalConsentCheckboxRow
+              variant="partner"
+              language={language}
+              checked={partnerLegalConsent}
+              onCheckedChange={setPartnerLegalConsent}
+              id="partner-legal-consent"
+            />
             <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t mt-4 -mx-6 px-6">
               <div className="flex gap-3">
                 <Button
@@ -300,7 +311,11 @@ function ProfileContent() {
                 >
                   Отмена
                 </Button>
-                <Button type="submit" className="flex-1 bg-teal-600 hover:bg-teal-700" disabled={applyingPartner}>
+                <Button
+                  type="submit"
+                  className="flex-1 bg-teal-600 hover:bg-teal-700"
+                  disabled={applyingPartner || !partnerLegalConsent}
+                >
                   {applyingPartner ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />

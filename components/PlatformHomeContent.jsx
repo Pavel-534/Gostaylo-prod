@@ -662,6 +662,11 @@ export function PlatformHomeContent() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/legal/partner-terms/" className="hover:text-teal-400 transition-colors">
+                    {getUIText('footerPartnerTerms', language)}
+                  </Link>
+                </li>
+                <li>
                   <Link href="/legal/privacy/" className="hover:text-teal-400 transition-colors">
                     {getUIText('privacyPolicy', language)}
                   </Link>

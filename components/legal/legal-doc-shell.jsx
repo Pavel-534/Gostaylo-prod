@@ -49,6 +49,9 @@ export function LegalDocShell({ eyebrow = 'Legal', title, lead, publisher, child
             <Link href="/legal/public-offer/" className="text-teal-800 hover:underline">
               {t('footerPublicOffer')}
             </Link>
+            <Link href="/legal/partner-terms/" className="text-teal-800 hover:underline">
+              {t('footerPartnerTerms')}
+            </Link>
             <Link href="/legal/privacy/" className="text-teal-800 hover:underline">
               {t('privacyPolicy')}
             </Link>

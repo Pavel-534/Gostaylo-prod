@@ -53,7 +53,11 @@ export async function POST(request, { params }) {
         );
       }
 
-      const consent = await ensureProfileLegalConsentForPayment(sessionUserId, body?.acceptedLegalTerms);
+      const consent = await ensureProfileLegalConsentForPayment(
+        sessionUserId,
+        body?.acceptedLegalTerms,
+        bookingId,
+      );
       if (!consent.ok) {
         return NextResponse.json(
           {

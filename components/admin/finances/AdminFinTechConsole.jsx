@@ -378,9 +378,14 @@ export function AdminFinTechConsole() {
       })
       const json = await res.json()
       if (!res.ok || json.success === false) {
+        const blocked = json.error === 'open_partner_payout_requests'
         toast({
-          title: 'Не удалось закрыть пул',
-          description: json.message || json.error || 'Доступно только для пула «Зафиксирован» или «Выгружен»',
+          title: blocked ? 'Открытые заявки на вывод' : 'Не удалось закрыть пул',
+          description:
+            json.message ||
+            (blocked
+              ? 'У партнёров из пула есть заявки PENDING/PROCESSING — обработайте их в разделе выплат.'
+              : json.error || 'Доступно только для пула «Зафиксирован» или «Выгружен»'),
           variant: 'destructive',
         })
         return
@@ -499,9 +504,13 @@ export function AdminFinTechConsole() {
         `/api/admin/finances/conversions/export?from=${from}&to=${to}`,
         `conversions-${from}-${to}.csv`,
       )
+      await downloadBlob(
+        `/api/admin/finances/payout-batches/export-period?from=${from}&to=${to}`,
+        `payout-pools-${from}-${to}.csv`,
+      )
       toast({
         title: 'Пакет за месяц выгружен',
-        description: 'Два файла: реестр броней и журнал конвертаций (разделитель «;»).',
+        description: 'Три файла: реестр броней, конвертации и пулы выплат (разделитель «;»).',
       })
     } catch (e) {
       toast({ title: 'Не удалось выгрузить пакет', description: e.message, variant: 'destructive' })
