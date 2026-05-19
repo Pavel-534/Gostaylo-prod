@@ -38,8 +38,11 @@ const PDF_TRACE_INCLUDES = [
 ]
 
 const nextConfig = {
+  /** pdfkit не должен попадать в webpack-chunk (иначе ENOENT Helvetica.afm на Vercel) */
+  serverExternalPackages: ['pdfkit'],
+
   experimental: {
-    /** Vercel: pdfkit + Noto fonts for smoke / payout PDF / legal export */
+    /** Vercel: Noto + pdfkit/data (AFM) в serverless bundle */
     outputFileTracingIncludes: {
       '/api/admin/settings/legal/test-full-package': PDF_TRACE_INCLUDES,
       '/api/admin/settings/legal/export-zip': PDF_TRACE_INCLUDES,
@@ -47,7 +50,28 @@ const nextConfig = {
       '/api/admin/finances/prepare-pause': PDF_TRACE_INCLUDES,
       '/api/admin/smoke/financial-run': PDF_TRACE_INCLUDES,
       '/api/v2/partner/finances-statement-pdf': PDF_TRACE_INCLUDES,
+      '/api/admin/finances/payout-batches/[id]/bank-package': PDF_TRACE_INCLUDES,
     },
+  },
+
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      const ext = config.externals
+      const pdfkitExt = ({ request }, callback) => {
+        if (request === 'pdfkit' || (typeof request === 'string' && request.startsWith('pdfkit/'))) {
+          return callback(null, `commonjs ${request}`)
+        }
+        callback()
+      }
+      if (Array.isArray(ext)) {
+        config.externals = [...ext, pdfkitExt]
+      } else if (typeof ext === 'function') {
+        config.externals = [ext, pdfkitExt]
+      } else {
+        config.externals = [pdfkitExt]
+      }
+    }
+    return config
   },
 
   /**
