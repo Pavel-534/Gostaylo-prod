@@ -62,7 +62,10 @@ function shiftDate(days) {
   return d.toISOString().slice(0, 10)
 }
 
-export function FinTechTreasuryConversionsPanel() {
+/**
+ * @param {{ excludeTest?: boolean }} [props]
+ */
+export function FinTechTreasuryConversionsPanel({ excludeTest = false }) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -94,6 +97,7 @@ export function FinTechTreasuryConversionsPanel() {
       const qs = new URLSearchParams({ from, to, limit: '500' })
       if (filterOperationType) qs.set('operationType', filterOperationType)
       if (filterCurrency) qs.set('currency', filterCurrency)
+      if (excludeTest) qs.set('excludeTest', '1')
       const res = await fetch(`/api/admin/finances/conversions?${qs.toString()}`, {
         credentials: 'include',
       })
@@ -106,7 +110,7 @@ export function FinTechTreasuryConversionsPanel() {
     } finally {
       setLoading(false)
     }
-  }, [from, to, filterOperationType, filterCurrency, toast])
+  }, [from, to, filterOperationType, filterCurrency, excludeTest, toast])
 
   useEffect(() => {
     load()

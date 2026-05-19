@@ -11,6 +11,7 @@ import {
 } from '@/lib/pricing-engine/fiscal-config.js'
 import LedgerService from '@/lib/services/ledger.service.js'
 import { loadTreasuryRailsSummary } from '@/lib/treasury/treasury-rails-summary.js'
+import { isFintechTestBookingRow } from '@/lib/admin/fintech-test-data-markers.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,13 +19,15 @@ async function requireAdminOnly() {
   return requireAccess({ roles: ['ADMIN'] })
 }
 
-export async function GET() {
+export async function GET(request) {
   const gate = await requireAdminOnly()
   if (gate.error) return gate.error
 
   if (!supabaseAdmin) {
     return NextResponse.json({ success: false, error: 'no_db' }, { status: 503 })
   }
+
+  const excludeTest = new URL(request.url).searchParams.get('excludeTest') === '1'
 
   const envV2 = isPricingEngineV2EnabledFromEnv()
   const settingsV2 = await isPricingEngineV2Enabled()
@@ -37,10 +40,11 @@ export async function GET() {
   let readyThb = 0
   const { data: readyRows } = await supabaseAdmin
     .from('bookings')
-    .select('id, partner_earnings_thb')
+    .select('id, partner_earnings_thb, listing_id, guest_name, special_requests, renter_id, partner_id')
     .eq('status', 'READY_FOR_PAYOUT')
     .limit(5000)
   for (const r of readyRows || []) {
+    if (excludeTest && isFintechTestBookingRow(r)) continue
     readyCount += 1
     readyThb += Number(r.partner_earnings_thb) || 0
   }
@@ -132,7 +136,7 @@ export async function GET() {
     ? Object.keys(lastSettled.metadata.partner_settlement_documents).length
     : 0
 
-  const railsSummary = await loadTreasuryRailsSummary()
+  const railsSummary = await loadTreasuryRailsSummary({ excludeTest })
 
   return NextResponse.json({
     success: true,

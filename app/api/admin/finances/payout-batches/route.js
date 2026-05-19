@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
+import { supabaseAdmin } from '@/lib/supabase'
 import PayoutBatchService from '@/lib/services/payout-batch.service.js'
+import { filterPayoutBatchesExcludeTest } from '@/lib/admin/fintech-test-data-cleanup.service.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,8 +10,13 @@ export async function GET(request) {
   const gate = await requireAdminStaff()
   if (gate.error) return gate.error
 
-  const status = new URL(request.url).searchParams.get('status')
-  const data = await PayoutBatchService.listBatchesForAdmin({ status: status || null })
+  const { searchParams } = new URL(request.url)
+  const status = searchParams.get('status')
+  const excludeTest = searchParams.get('excludeTest') === '1'
+  let data = await PayoutBatchService.listBatchesForAdmin({ status: status || null })
+  if (excludeTest && supabaseAdmin) {
+    data = await filterPayoutBatchesExcludeTest(supabaseAdmin, data)
+  }
   return NextResponse.json({ success: true, data })
 }
 

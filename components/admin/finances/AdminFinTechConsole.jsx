@@ -73,6 +73,12 @@ import { FinTechTreasuryHeroDashboard } from '@/components/admin/finances/FinTec
 import { FinTechEmergencyPauseCard } from '@/components/admin/finances/FinTechEmergencyPauseCard'
 import { FinTechTreasuryMonitoringPanel } from '@/components/admin/finances/FinTechTreasuryMonitoringPanel'
 import { FinTechLaunchStatusDashboard } from '@/components/admin/finances/FinTechLaunchStatusDashboard'
+import {
+  FinTechTestDataToolbar,
+  persistFintechRealDataOnlyPreference,
+  readFintechRealDataOnlyPreference,
+} from '@/components/admin/finances/FinTechTestDataToolbar'
+import { isFintechTestPayoutBatchRow } from '@/lib/admin/fintech-test-data-markers'
 
 const MINT = '#0D9488'
 const NAVY = '#0F172A'
@@ -165,16 +171,22 @@ export function AdminFinTechConsole() {
   const [productionReadiness, setProductionReadiness] = useState(null)
   const [monthMargin, setMonthMargin] = useState(null)
   const [monthlyExporting, setMonthlyExporting] = useState(false)
+  const [realDataOnly, setRealDataOnly] = useState(true)
+
+  useEffect(() => {
+    setRealDataOnly(readFintechRealDataOnlyPreference(true))
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const { from, to } = currentMonthRange()
+      const ex = realDataOnly ? '&excludeTest=1' : ''
       const [dRes, pRes, bRes, mRes, opsRes] = await Promise.all([
-        fetch('/api/admin/finances/dashboard'),
+        fetch(`/api/admin/finances/dashboard?${ex ? ex.slice(1) : ''}`),
         fetch('/api/admin/finances/pricing-profiles'),
-        fetch('/api/admin/finances/payout-batches'),
-        fetch(`/api/admin/finances/conversions?from=${from}&to=${to}`, { credentials: 'include' }),
+        fetch(`/api/admin/finances/payout-batches${ex ? `?${ex.slice(1)}` : ''}`),
+        fetch(`/api/admin/finances/conversions?from=${from}&to=${to}${ex}`, { credentials: 'include' }),
         fetch('/api/admin/finances/treasury-ops'),
       ])
       const dJson = await dRes.json()
@@ -198,11 +210,18 @@ export function AdminFinTechConsole() {
     } finally {
       setLoading(false)
     }
-  }, [toast])
+  }, [toast, realDataOnly])
 
   useEffect(() => {
     load()
   }, [load])
+
+  const visibleBatches = useMemo(() => {
+    let list = batches
+    if (batchRailFilter !== 'ALL') list = list.filter((b) => b.rail === batchRailFilter)
+    if (realDataOnly) list = list.filter((b) => !isFintechTestPayoutBatchRow(b))
+    return list
+  }, [batches, batchRailFilter, realDataOnly])
 
   const simProfile = profiles.find((p) => p.id === simProfileId) || profiles[0]
   const activeProfiles = profiles.filter((p) => p.is_active !== false)
@@ -725,6 +744,14 @@ export function AdminFinTechConsole() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        <FinTechTestDataToolbar
+          realDataOnly={realDataOnly}
+          onRealDataOnlyChange={(v) => {
+            setRealDataOnly(v)
+            persistFintechRealDataOnlyPreference(v)
+          }}
+          onCleaned={load}
+        />
         <FinTechLaunchStatusDashboard readiness={productionReadiness} onRefresh={load} />
         <FinTechTreasuryHeroDashboard
           dash={dash}
@@ -1212,8 +1239,7 @@ export function AdminFinTechConsole() {
                 </Button>
               ))}
             </div>
-            {(batchRailFilter === 'ALL' ? batches : batches.filter((b) => b.rail === batchRailFilter))
-              .length === 0 ? (
+            {visibleBatches.length === 0 ? (
               <FinTechEmptyState
                 icon={FileStack}
                 title="Пулов выплат ещё нет"
@@ -1221,10 +1247,7 @@ export function AdminFinTechConsole() {
               />
             ) : (
               <div className="space-y-3">
-                {(batchRailFilter === 'ALL'
-                  ? batches
-                  : batches.filter((b) => b.rail === batchRailFilter)
-                ).map((b) => (
+                {visibleBatches.map((b) => (
                   <PayoutBatchRow
                     key={b.id}
                     batch={b}
@@ -1242,7 +1265,7 @@ export function AdminFinTechConsole() {
           </TabsContent>
 
           <TabsContent value="conversions" className="mt-0">
-            <FinTechTreasuryConversionsPanel />
+            <FinTechTreasuryConversionsPanel excludeTest={realDataOnly} />
           </TabsContent>
 
           <TabsContent value="monitoring" className="mt-0">
@@ -1250,7 +1273,7 @@ export function AdminFinTechConsole() {
           </TabsContent>
 
           <TabsContent value="journal" className="mt-0">
-            <FinTechMovementJournal />
+            <FinTechMovementJournal excludeTest={realDataOnly} />
           </TabsContent>
 
           <TabsContent value="exports" className="space-y-8 mt-0">

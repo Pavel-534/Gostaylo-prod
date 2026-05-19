@@ -66,6 +66,8 @@
 
 **Stage 106.3b (2026-05):** PDF на Vercel — `pdfkit` через `serverExternalPackages` + runtime `createRequire` в **`lib/services/partner-pdf-fonts.js`** (`createPartnerPdfDocument`, Noto из Buffer); иначе smoke падает на шаге 13 (ZIP) с `ENOENT …/Helvetica.afm`.
 
+**Stage 106.4 (2026-05):** FinTech-пульт — **`POST /api/admin/clean-test-data`** (только ADMIN, `lib/admin/fintech-test-data-cleanup.service.js`), панель **`FinTechTestDataToolbar`**: красная кнопка очистки smoke/E2E и переключатель «только реальные данные» (`excludeTest=1` на dashboard/payout-batches/conversions/movements).
+
 **Stage 106.2 (2026-05):** Финальная стабилизация — `production-env.js`, `assertGuestPaymentOperationsAllowed` (fiscal URL, treasury manual, mock env, emergency pause) на initiate/confirm/verify-tron; fiscal sandbox принудительно off на prod; **`FinTechLaunchStatusDashboard`** (цвета green/yellow/red, ledger drift, smoke-кнопка); **`GET /api/admin/settings/legal/export-zip`**; runbook §14 «пауза 1–2 недели»; чеклист PRE_REAL_PAYMENTS §A/B.
 
 **Stage 106.1 (2026-05):** P0 перед реальными платежами — `lib/payment/payment-production-guard.js` (prod: CARD/MIR **`payment/confirm`** только при intent **PAID** от webhook; CRYPTO — webhook или on-chain verify), адаптеры MIR/CARD без mock fallback на prod (`adapter-incident-log.js`), webhook IP allowlist ЮKassa (`webhook-ip-allowlist.js`) + идемпотентность **`POST /api/webhooks/payments/confirm`**, админка **`FinTechProductionReadinessCard`** на **`/admin/settings/finances`** (данные в **`GET /api/admin/finances/treasury-ops`** → `productionReadiness`).

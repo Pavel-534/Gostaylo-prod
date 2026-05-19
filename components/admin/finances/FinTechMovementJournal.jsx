@@ -42,7 +42,10 @@ function monthRange() {
   return { from, to }
 }
 
-export function FinTechMovementJournal() {
+/**
+ * @param {{ excludeTest?: boolean }} [props]
+ */
+export function FinTechMovementJournal({ excludeTest = false }) {
   const initial = monthRange()
   const [from, setFrom] = useState(initial.from)
   const [to, setTo] = useState(initial.to)
@@ -59,6 +62,7 @@ export function FinTechMovementJournal() {
       if (kind) qs.set('kind', kind)
       if (currency) qs.set('currency', currency)
       if (partnerId.trim()) qs.set('partnerId', partnerId.trim())
+      if (excludeTest) qs.set('excludeTest', '1')
       const res = await fetch(`/api/admin/finances/movements?${qs.toString()}`, {
         credentials: 'include',
       })
@@ -70,7 +74,7 @@ export function FinTechMovementJournal() {
     } finally {
       setLoading(false)
     }
-  }, [from, to, kind, currency, partnerId])
+  }, [from, to, kind, currency, partnerId, excludeTest])
 
   useEffect(() => {
     load()

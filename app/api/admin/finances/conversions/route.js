@@ -3,6 +3,7 @@ import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getRawRateMap } from '@/lib/services/pricing/pricing-fx-helpers.js'
 import { mapLedgerRowToConversionDto } from '@/lib/admin/treasury-conversions-csv'
+import { isFintechTestConversionRow } from '@/lib/admin/fintech-test-data-markers.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,6 +48,7 @@ export async function GET(request) {
   const currency = normalizeCurrency(searchParams.get('currency'))
   const limitRaw = Number(searchParams.get('limit'))
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 5000) : 200
+  const excludeTest = searchParams.get('excludeTest') === '1'
 
   let periodFrom = null
   let periodTo = null
@@ -76,10 +78,13 @@ export async function GET(request) {
     )
   }
 
-  const { data: conversions, error: convError } = await convQuery
+  const { data: conversionsRaw, error: convError } = await convQuery
   if (convError) {
     return NextResponse.json({ success: false, error: convError.message }, { status: 500 })
   }
+  const conversions = excludeTest
+    ? (conversionsRaw || []).filter((r) => !isFintechTestConversionRow(r))
+    : conversionsRaw || []
 
   let payoutsQuery = supabaseAdmin
     .from('payouts')

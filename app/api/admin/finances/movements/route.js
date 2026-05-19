@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { supabaseAdmin } from '@/lib/supabase'
 import { loadFintechMovements, MOVEMENT_KINDS } from '@/lib/admin/fintech-movements-feed'
+import { isFintechTestMovementRow } from '@/lib/admin/fintech-test-data-markers.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,6 +23,7 @@ export async function GET(request) {
     .toUpperCase()
   const partnerId = String(searchParams.get('partnerId') || '').trim() || null
   const limit = Number(searchParams.get('limit')) || 300
+  const excludeTest = searchParams.get('excludeTest') === '1'
 
   if (kind && !Object.values(MOVEMENT_KINDS).includes(kind)) {
     return NextResponse.json({ success: false, error: 'invalid kind' }, { status: 400 })
@@ -38,6 +40,9 @@ export async function GET(request) {
     })
 
     let filtered = movements
+    if (excludeTest) {
+      filtered = filtered.filter((m) => !isFintechTestMovementRow(m))
+    }
     if (currency) {
       filtered = movements.filter(
         (m) =>
