@@ -1,7 +1,7 @@
 /**
  * POST /api/v2/bookings/[id]/payment/confirm
  * Confirm payment → PAID_ESCROW via EscrowService.moveToEscrow (ledger + payouts).
- * SECURITY: renter_id must match session when set.
+ * Stage 106.1: in production CARD/MIR confirm only after gateway webhook (intent PAID).
  */
 
 import { NextResponse } from 'next/server';
@@ -12,6 +12,7 @@ import EscrowService from '@/lib/services/escrow.service';
 import { applyInvoicePostPaymentEffects } from '@/lib/services/invoice-extension.service';
 import PaymentIntentService from '@/lib/services/payment-intent.service';
 import { ensureProfileLegalConsentForPayment } from '@/lib/legal-consent';
+import { assertClientPaymentConfirmAllowed } from '@/lib/payment/payment-production-guard.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,23 @@ const PAYMENT_CONFIRM_ALLOWED = new Set([
   'CONFIRMED',
   'PAID',
 ]);
+
+async function resolveIntentForConfirm({ effectiveIntentId, bookingId, invoiceId }) {
+  if (effectiveIntentId) {
+    const ir = await PaymentIntentService.getById(effectiveIntentId);
+    if (ir.success && ir.intent && String(ir.intent.bookingId) === String(bookingId)) {
+      return ir.intent;
+    }
+  }
+  const active = await PaymentIntentService.findActiveByBookingOrInvoice({
+    bookingId,
+    invoiceId: invoiceId || null,
+  });
+  if (active.success && active.intent && String(active.intent.bookingId) === String(bookingId)) {
+    return active.intent;
+  }
+  return null;
+}
 
 export async function POST(request, { params }) {
   const bookingId = params.id;
@@ -74,16 +92,33 @@ export async function POST(request, { params }) {
       return NextResponse.json({ success: false, error: 'Booking is cancelled' }, { status: 400 });
     }
 
-    const effectiveIntentId = intentId || booking?.metadata?.paymentIntentId || null
+    const effectiveIntentId = intentId || booking?.metadata?.paymentIntentId || null;
+    const resolvedIntent = await resolveIntentForConfirm({
+      effectiveIntentId,
+      bookingId,
+      invoiceId,
+    });
+
+    const gate = await assertClientPaymentConfirmAllowed({
+      intent: resolvedIntent,
+      paymentMethod: resolvedIntent?.metadata?.selected_method,
+      txId,
+      booking,
+      bookingId,
+    });
+
+    if (!gate.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: gate.message || 'Payment not confirmed by gateway',
+          code: gate.code || 'PAYMENT_NOT_CONFIRMED_BY_GATEWAY',
+        },
+        { status: 403 },
+      );
+    }
 
     if (booking.status === 'PAID_ESCROW') {
-      if (effectiveIntentId) {
-        await PaymentIntentService.markPaid(effectiveIntentId, {
-          txId: txId || null,
-          gatewayRef: gatewayRef || null,
-          source: 'payment_confirm_idempotent',
-        }).catch(() => {})
-      }
       return NextResponse.json({
         success: true,
         data: {
@@ -114,30 +149,35 @@ export async function POST(request, { params }) {
 
     let captureGuestTotalThb;
     let isTestModePayment = false;
-    if (effectiveIntentId) {
-      const ir = await PaymentIntentService.getById(effectiveIntentId);
-      if (ir.success && ir.intent && String(ir.intent.bookingId) === String(bookingId)) {
-        const n = Number(ir.intent.amountThb);
-        if (Number.isFinite(n) && n > 0) captureGuestTotalThb = n;
-        const mode = String(ir.intent?.metadata?.provider_payload?.mode || '').toLowerCase();
-        isTestModePayment = mode.includes('mock');
-      }
+    if (resolvedIntent) {
+      const n = Number(resolvedIntent.amountThb);
+      if (Number.isFinite(n) && n > 0) captureGuestTotalThb = n;
+      const mode = String(resolvedIntent?.metadata?.provider_payload?.mode || '').toLowerCase();
+      isTestModePayment = mode.includes('mock');
     }
-    if (captureGuestTotalThb == null) {
-      const active = await PaymentIntentService.findActiveByBookingOrInvoice({
-        bookingId,
-        invoiceId: invoiceId || null,
+
+    const intentIdForMark = effectiveIntentId || resolvedIntent?.id || null;
+
+    if (!gate.skipClientMarkPaid && intentIdForMark) {
+      const paidSource = gate.mode === 'crypto_tx_verified' ? 'verify_tron_api' : 'payment_confirm';
+      const marked = await PaymentIntentService.markPaid(intentIdForMark, {
+        txId: txId || null,
+        gatewayRef: gatewayRef || null,
+        source: paidSource,
+        raw: gate.tron || null,
       });
-      if (active.success && active.intent && String(active.intent.bookingId) === String(bookingId)) {
-        const n = Number(active.intent.amountThb);
-        if (Number.isFinite(n) && n > 0) captureGuestTotalThb = n;
+      if (!marked.success) {
+        return NextResponse.json(
+          { success: false, error: marked.error || 'Failed to mark intent paid' },
+          { status: 502 },
+        );
       }
     }
 
     const escrow = await EscrowService.moveToEscrow(bookingId, {
       txId: txId || null,
       gatewayRef: gatewayRef || null,
-      source: 'payment_confirm',
+      source: gate.skipClientMarkPaid ? 'payment_confirm_gateway_sync' : 'payment_confirm',
       captureGuestTotalThb,
     });
 
@@ -154,26 +194,15 @@ export async function POST(request, { params }) {
     }
 
     console.log(
-      `[PAYMENT CONFIRMED] Booking ${bookingId} | PAID_ESCROW | TX: ${txId || 'N/A'} | prev: ${previousStatus}`,
+      `[PAYMENT CONFIRMED] Booking ${bookingId} | PAID_ESCROW | TX: ${txId || 'N/A'} | prev: ${previousStatus} | mode: ${gate.mode}`,
     );
     if (isTestModePayment) {
       console.warn(`⚠️ ВНИМАНИЕ: Проведен тестовый платеж (MOCK_MODE) для брони ${bookingId}`);
     }
 
-    let resolvedInvoiceId = invoiceId || null
-    if (!resolvedInvoiceId && effectiveIntentId) {
-      const intentRes = await PaymentIntentService.getById(effectiveIntentId)
-      if (intentRes.success && intentRes.intent && String(intentRes.intent.bookingId) === String(bookingId)) {
-        resolvedInvoiceId = intentRes.intent.invoiceId || null
-      }
-    }
-
-    if (effectiveIntentId) {
-      await PaymentIntentService.markPaid(effectiveIntentId, {
-        txId: txId || null,
-        gatewayRef: gatewayRef || null,
-        source: 'payment_confirm',
-      })
+    let resolvedInvoiceId = invoiceId || null;
+    if (!resolvedInvoiceId && resolvedIntent) {
+      resolvedInvoiceId = resolvedIntent.invoiceId || null;
     }
 
     const invoiceEffect = await applyInvoicePostPaymentEffects({
@@ -181,7 +210,7 @@ export async function POST(request, { params }) {
       invoiceId: resolvedInvoiceId || null,
       txId: txId || null,
       gatewayRef: gatewayRef || null,
-      source: 'payment_confirm',
+      source: gate.skipClientMarkPaid ? 'payment_confirm_gateway_sync' : 'payment_confirm',
     });
 
     return NextResponse.json({
@@ -194,6 +223,7 @@ export async function POST(request, { params }) {
         escrow: escrow.escrow || null,
         alreadyEscrowed: !!escrow.alreadyEscrowed,
         invoiceEffect,
+        confirmMode: gate.mode,
       },
     });
   } catch (error) {

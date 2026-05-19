@@ -232,6 +232,17 @@ export default function AdminLegalSettingsPage() {
               className="bg-white/10 text-white border-white/20 hover:bg-white/20"
               asChild
             >
+              <a href="/api/admin/settings/legal/export-zip" download>
+                <Download className="h-4 w-4 mr-1" />
+                Экспорт всех документов (ZIP)
+              </a>
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+              asChild
+            >
               <Link href="/admin/settings/finances">
                 <FileText className="h-4 w-4 mr-1" />
                 Финансовый пульт

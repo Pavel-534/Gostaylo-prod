@@ -23,6 +23,7 @@ import { PartnerFinancesTransactionHistory } from '@/components/partner/finances
 import { PartnerFinancesWithdrawDialog } from '@/components/partner/finances/PartnerFinancesWithdrawDialog'
 import { PartnerFinancesBalanceStrip } from '@/components/partner/finances/PartnerFinancesBalanceStrip'
 import { PartnerFinancesDocuments } from '@/components/partner/finances/PartnerFinancesDocuments'
+import { PartnerConciergePayoutBanner } from '@/components/partner/finances/PartnerConciergePayoutBanner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -101,6 +102,8 @@ function PartnerFinancesV2Content() {
         bookingsLength={bookings.length}
         onExportCsv={handleExportCSV}
       />
+
+      <PartnerConciergePayoutBanner t={t} />
 
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/60 p-1">

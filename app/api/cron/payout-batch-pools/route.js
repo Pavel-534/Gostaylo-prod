@@ -15,7 +15,10 @@ export async function POST(request) {
 
   const run = await startOpsJobRun('payout-batch-pools')
   try {
-    const result = await PayoutBatchService.createDraftPoolForToday({ rail: 'TBANK_RU' })
+    const result = await PayoutBatchService.createDraftPoolForToday({
+      rail: 'TBANK_RU',
+      fromCron: true,
+    })
     await finishOpsJobRun(run, { status: 'success', stats: result })
     return NextResponse.json({ success: true, ...result })
   } catch (e) {

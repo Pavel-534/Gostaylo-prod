@@ -455,4 +455,63 @@ npm run smoke:full-financial -- --rail=intl --amount=12000 --guest-currency=USDT
 
 ---
 
-*Версия runbook: 2026-05-19 · Stage 104 (два рельса, smoke по рельсу, FinTech «Состояние системы») · Stage 103 (smoke `smoke:full-financial`, тестовый акт в legal) · при изменении cron/API обновить `docs/CRON_EXTERNAL_FINANCIAL.md` и `docs/PRE_LAUNCH_CHECKLIST.md`.*
+## 13. Мониторинг и Emergency Pause (Stage 105)
+
+- **Пороги алертов (env):** `TREASURY_ALERT_PAYMENT_THB_MIN`, `TREASURY_ALERT_READY_POOL_THB_MIN`, `TREASURY_ALERT_LEDGER_DRIFT_THB_MIN` (default 0.5 ฿).
+- **Telegram:** топик **FINANCE** (как обычные платежи) + запись в `system_settings.general.treasury_ops_alerts`.
+- **Админка:** `/admin/settings/finances` → вкладка **Мониторинг**; карточка **Emergency Pause** блокирует новые брони и выплаты.
+- **Ручной режим:** `TREASURY_MANUAL_MODE=1` (default) — cron `payout-batch-pools` не создаёт пулы без явного снятия флага.
+
+---
+
+## 14. Если отойти на 1–2 недели (организация: ЮKassa, ОсОО, договоры)
+
+**Цель:** платформа остаётся в безопасном «спящем» режиме; вы занимаетесь бумагами и банком.
+
+### Перед уходом (≈10 минут) — Stage 106.3
+
+1. **`/admin/settings/finances`** → вверху карточка **«Статус готовности к реальным платежам»**.
+2. Нажмите **«Подготовить систему к паузе»** → подтвердите.  
+   Одним действием: проверка цепочки (smoke), ZIP (документы + памятка PDF), **пауза включена**.
+3. Сохраните скачанный архив `gostaylo-pause-package-*.zip`.
+4. Убедитесь, что в карточке статуса **«Пауза платформы»** стал зелёным с текстом «Включена».
+
+### Пока вас нет
+
+- **Не** снимайте Emergency Pause на production без готовности ЮKassa + кассы.
+- **Не** включайте `FISCAL_SANDBOX`, `PAYMENT_ALLOW_MOCK_ACQUIRING`, `NEXT_PUBLIC_CHECKOUT_MOCK_ACQUIRING` на prod.
+- Раз в 2–3 дня: загляните в **Мониторинг** финпульта (drift ledger, pending fiscal) — 2 минуты.
+- Cron `escrow-thaw` / `promote-ready-for-payout` могут работать — **деньги партнёрам** всё равно только **вручную** через пулы.
+
+### Когда вернулись
+
+1. Закрыли договоры → прописали env (ЮKassa, `FISCAL_PROVIDER_URL`).
+2. **`/admin/settings/finances`** — все пункты **«Статус готовности»** зелёные.
+3. Полный smoke **PASS** → тестовый MIR на минимальную сумму → webhook → escrow.
+4. **Emergency Pause** → выключить.
+5. Чеклист: `docs/PRE_REAL_PAYMENTS_CHECKLIST.md`.
+
+---
+
+## 15. Памятка при возвращении (для владельца)
+
+После перерыва на договоры и ЮKassa — **без спешки**, по шагам:
+
+| Шаг | Что сделать | Где |
+|-----|-------------|-----|
+| 1 | Открыть сохранённый ZIP «перед паузой» — прочитать **pamyatka-pri-vozvraschenii.pdf** | Ваш компьютер |
+| 2 | Подписать договор ЮKassa, получить ключи, настроить webhook на prod | Личный кабинет ЮKassa + хостинг (env) |
+| 3 | Подключить **боевую** онлайн-кассу (`FISCAL_PROVIDER_URL`, без тестового режима) | Провайдер кассы |
+| 4 | Финпульт → **«Статус готовности к реальным платежам»** — все ключевые пункты **зелёные** | `/admin/settings/finances` |
+| 5 | **«Запустить полный smoke»** — все шаги зелёные | Там же |
+| 6 | Одна **тестовая** оплата MIR на минимальную сумму → в пульте бронь **PAID_ESCROW** | Сайт + финпульт |
+| 7 | **Снять паузу** (Emergency Pause → выключить) | Карточка паузы ниже на той же странице |
+| 8 | Первая выплата партнёру — вручную, один рельс, по чеклисту §12 | FinTech → пулы |
+
+**Не снимайте паузу**, пока пункты 2–5 не закрыты — иначе гости смогут платить без готовой кассы/банка.
+
+Полный чеклист: `docs/PRE_REAL_PAYMENTS_CHECKLIST.md`.
+
+---
+
+*Версия runbook: 2026-05-19 · Stage 106.3 (кнопка «Подготовить к паузе», §15 возвращение) · Stage 106.2 (launch dashboard, legal ZIP) · Stage 106.1 (P0 payment hardening) · Stage 106.1 (P0 payment hardening) · Stage 105 (мониторинг, emergency pause) · при изменении cron/API обновить `docs/CRON_EXTERNAL_FINANCIAL.md` и `docs/PRE_REAL_PAYMENTS_CHECKLIST.md`.*

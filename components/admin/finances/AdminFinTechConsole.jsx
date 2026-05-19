@@ -24,6 +24,7 @@ import {
   BookOpen,
   LayoutDashboard,
   Scale,
+  Bell,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -69,6 +70,9 @@ import { FinTechMovementJournal } from '@/components/admin/finances/FinTechMovem
 import { FinTechMarginBar } from '@/components/admin/finances/FinTechMarginBar'
 import { FinTechConsoleHeaderAlerts } from '@/components/admin/finances/FinTechConsoleHeaderAlerts'
 import { FinTechTreasuryHeroDashboard } from '@/components/admin/finances/FinTechTreasuryHeroDashboard'
+import { FinTechEmergencyPauseCard } from '@/components/admin/finances/FinTechEmergencyPauseCard'
+import { FinTechTreasuryMonitoringPanel } from '@/components/admin/finances/FinTechTreasuryMonitoringPanel'
+import { FinTechLaunchStatusDashboard } from '@/components/admin/finances/FinTechLaunchStatusDashboard'
 
 const MINT = '#0D9488'
 const NAVY = '#0F172A'
@@ -157,6 +161,8 @@ export function AdminFinTechConsole() {
   const [settlingBatchId, setSettlingBatchId] = useState(null)
   const [poolRail, setPoolRail] = useState('TBANK_RU')
   const [batchRailFilter, setBatchRailFilter] = useState('ALL')
+  const [treasuryOps, setTreasuryOps] = useState(null)
+  const [productionReadiness, setProductionReadiness] = useState(null)
   const [monthMargin, setMonthMargin] = useState(null)
   const [monthlyExporting, setMonthlyExporting] = useState(false)
 
@@ -164,17 +170,23 @@ export function AdminFinTechConsole() {
     setLoading(true)
     try {
       const { from, to } = currentMonthRange()
-      const [dRes, pRes, bRes, mRes] = await Promise.all([
+      const [dRes, pRes, bRes, mRes, opsRes] = await Promise.all([
         fetch('/api/admin/finances/dashboard'),
         fetch('/api/admin/finances/pricing-profiles'),
         fetch('/api/admin/finances/payout-batches'),
         fetch(`/api/admin/finances/conversions?from=${from}&to=${to}`, { credentials: 'include' }),
+        fetch('/api/admin/finances/treasury-ops'),
       ])
       const dJson = await dRes.json()
       const pJson = await pRes.json()
       const bJson = await bRes.json()
       const mJson = await mRes.json()
+      const opsJson = await opsRes.json()
       if (dJson.success) setDash(dJson.data)
+      if (opsJson.success) {
+        setTreasuryOps(opsJson.data?.ops || null)
+        setProductionReadiness(opsJson.data?.productionReadiness || null)
+      }
       if (mJson.success) setMonthMargin(mJson.data?.margin || null)
       if (pJson.success) {
         setProfiles(pJson.data || [])
@@ -713,11 +725,13 @@ export function AdminFinTechConsole() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+        <FinTechLaunchStatusDashboard readiness={productionReadiness} onRefresh={load} />
         <FinTechTreasuryHeroDashboard
           dash={dash}
           statCards={statCards}
           onSimulateRail={simulateFinancialRail}
         />
+        <FinTechEmergencyPauseCard ops={treasuryOps} onUpdated={load} toast={toast} />
         <Card className="border-amber-200 bg-amber-50/90 shadow-sm">
           <CardContent className="py-4 flex flex-wrap items-start gap-3 text-sm text-amber-950">
             <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
@@ -751,6 +765,10 @@ export function AdminFinTechConsole() {
             <TabsTrigger value="conversions" className="gap-1.5">
               <Banknote className="h-4 w-4" />
               Конвертации
+            </TabsTrigger>
+            <TabsTrigger value="monitoring" className="gap-1.5">
+              <Bell className="h-4 w-4" />
+              Мониторинг
             </TabsTrigger>
             <TabsTrigger value="journal" className="gap-1.5">
               <BookOpen className="h-4 w-4" />
@@ -1225,6 +1243,10 @@ export function AdminFinTechConsole() {
 
           <TabsContent value="conversions" className="mt-0">
             <FinTechTreasuryConversionsPanel />
+          </TabsContent>
+
+          <TabsContent value="monitoring" className="mt-0">
+            <FinTechTreasuryMonitoringPanel />
           </TabsContent>
 
           <TabsContent value="journal" className="mt-0">

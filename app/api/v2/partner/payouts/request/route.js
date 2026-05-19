@@ -8,11 +8,24 @@ import { NextResponse } from 'next/server'
 import { getUserIdFromSession } from '@/lib/services/session-service'
 import { isPartnerProfileAdminVerified } from '@/lib/partner/partner-payout-kyc'
 import { PaymentsV3Service } from '@/lib/services/payments-v3.service'
+import { assertTreasuryOpsAllowed } from '@/lib/treasury/treasury-ops-config.js'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request) {
   try {
+    const pauseGate = await assertTreasuryOpsAllowed('payout')
+    if (!pauseGate.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: pauseGate.code,
+          message: pauseGate.message,
+        },
+        { status: 503 },
+      )
+    }
+
     const sessionUserId = await getUserIdFromSession()
     if (!sessionUserId) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })

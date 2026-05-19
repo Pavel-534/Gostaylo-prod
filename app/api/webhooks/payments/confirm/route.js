@@ -15,10 +15,12 @@ import PaymentIntentService from '@/lib/services/payment-intent.service';
 import EscrowService from '@/lib/services/escrow.service';
 import { applyInvoicePostPaymentEffects } from '@/lib/services/invoice-extension.service';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
+import { recordTreasuryWebhookError } from '@/lib/treasury/treasury-monitoring-alerts.js';
 import {
   resolveAdapterFromWebhook,
   verifyWebhookSignatureByAdapter,
 } from '@/lib/services/payment-adapters/webhook-signature';
+import { verifyPaymentWebhookIp } from '@/lib/payment/webhook-ip-allowlist.js';
 import {
   isIntentPaidStatus,
   normalizeProviderStatus,
@@ -127,6 +129,18 @@ export async function POST(request) {
     );
   }
 
+  const ipCheck = verifyPaymentWebhookIp({ adapterKey, request });
+  if (!ipCheck.ok) {
+    void recordTreasuryWebhookError({
+      error: ipCheck.error || 'ip_rejected',
+      context: `adapter=${adapterKey} ip=${ipCheck.ip || 'unknown'}`,
+    });
+    return NextResponse.json(
+      { success: false, error: 'Forbidden', code: ipCheck.error },
+      { status: 403 },
+    );
+  }
+
   const metaCheck = assertGatewayObjectMetadata(json);
   if (!metaCheck.ok) {
     return NextResponse.json({ success: false, error: metaCheck.error }, { status: 400 });
@@ -155,6 +169,15 @@ export async function POST(request) {
     .maybeSingle();
   if (bErr || !booking) {
     return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
+  }
+
+  if (booking.status === 'PAID_ESCROW') {
+    return NextResponse.json({
+      success: true,
+      bookingId,
+      alreadyEscrowed: true,
+      idempotent: true,
+    });
   }
 
   let payId = paymentId;
@@ -199,6 +222,11 @@ export async function POST(request) {
       void notifySystemAlert(
         `💳 <b>Webhook payments/confirm</b> — confirmPayment failed\n<code>${escapeSystemAlertHtml(String(confirm?.error || ''))}</code>`,
       );
+      void recordTreasuryWebhookError({
+        error: confirm?.error || 'confirmPayment failed',
+        bookingId,
+        context: 'legacy confirmPayment',
+      });
       return NextResponse.json(
         { success: false, error: confirm?.error || 'confirmPayment failed' },
         { status: 500 },
@@ -234,6 +262,11 @@ export async function POST(request) {
     void notifySystemAlert(
       `💳 <b>Webhook payments/confirm</b> — ${escapeSystemAlertHtml(amountCheck.error || 'amount_check')}\nbooking: <code>${escapeSystemAlertHtml(bookingId)}</code>\nexpected: <b>${escapeSystemAlertHtml(JSON.stringify(amountCheck.expected))}</b>\ngot: <b>${escapeSystemAlertHtml(JSON.stringify(amountCheck.received))}</b>`,
     );
+    void recordTreasuryWebhookError({
+      error: amountCheck.error || 'amount_check',
+      bookingId,
+      context: `expected ${JSON.stringify(amountCheck.expected)} got ${JSON.stringify(amountCheck.received)}`,
+    });
     return NextResponse.json(
       {
         success: false,
@@ -263,6 +296,16 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'INTENT_BOOKING_MISMATCH' }, { status: 400 });
   }
 
+  if (String(intent.status || '').toUpperCase() === 'PAID' && booking.status === 'PAID_ESCROW') {
+    return NextResponse.json({
+      success: true,
+      intentId: intent.id,
+      bookingId,
+      alreadyProcessed: true,
+      idempotent: true,
+    });
+  }
+
   const marked = await PaymentIntentService.markPaid(intent.id, {
     source: 'payment_acquiring_webhook',
     gatewayRef,
@@ -273,7 +316,22 @@ export async function POST(request) {
     },
   });
   if (!marked.success) {
+    void recordTreasuryWebhookError({
+      error: marked.error || 'intent_mark_failed',
+      bookingId,
+      context: 'PaymentIntentService.markPaid',
+    });
     return NextResponse.json({ success: false, error: marked.error || 'intent_mark_failed' }, { status: 500 });
+  }
+
+  if (marked.alreadyPaid && booking.status === 'PAID_ESCROW') {
+    return NextResponse.json({
+      success: true,
+      intentId: intent.id,
+      bookingId,
+      alreadyProcessed: true,
+      idempotent: true,
+    });
   }
 
   const captureGuestTotalThb = Number(intent.amountThb);
@@ -284,6 +342,11 @@ export async function POST(request) {
     captureGuestTotalThb: Number.isFinite(captureGuestTotalThb) && captureGuestTotalThb > 0 ? captureGuestTotalThb : undefined,
   });
   if (!escrow?.success) {
+    void recordTreasuryWebhookError({
+      error: escrow?.error || 'escrow_failed',
+      bookingId,
+      context: 'EscrowService.moveToEscrow',
+    });
     return NextResponse.json({ success: false, error: escrow?.error || 'escrow_failed' }, { status: 502 });
   }
   await applyInvoicePostPaymentEffects({

@@ -10,6 +10,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import PaymentIntentService from '@/lib/services/payment-intent.service'
 import WalletService from '@/lib/services/finance/wallet.service'
 import { ensureProfileLegalConsentForPayment } from '@/lib/legal-consent'
+import { assertGuestPaymentOperationsAllowed } from '@/lib/payment/payment-production-guard.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -70,6 +71,18 @@ export async function POST(request, { params }) {
     }
     if (booking.status === 'CANCELLED') {
       return NextResponse.json({ success: false, error: 'Booking is cancelled' }, { status: 400 })
+    }
+
+    const paymentGate = await assertGuestPaymentOperationsAllowed()
+    if (!paymentGate.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: paymentGate.message,
+          code: paymentGate.code,
+        },
+        { status: 403 },
+      )
     }
 
     let invoice = null

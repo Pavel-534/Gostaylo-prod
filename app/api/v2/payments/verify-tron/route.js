@@ -15,6 +15,7 @@ import { getSessionPayload } from '@/lib/services/session-service';
 import { ensureProfileLegalConsentForPayment } from '@/lib/legal-consent';
 import { getGuestPayableRoundedThb } from '@/lib/booking-guest-total';
 import { withCorrelationFromRequest } from '@/lib/request-correlation.js';
+import { assertGuestPaymentOperationsAllowed } from '@/lib/payment/payment-production-guard.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,6 +78,19 @@ export async function POST(request) {
       return NextResponse.json(
         { success: false, error: 'TXID is required', status: 'INVALID' },
         { status: 400 }
+      );
+    }
+
+    const paymentGate = await assertGuestPaymentOperationsAllowed();
+    if (!paymentGate.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: paymentGate.message,
+          code: paymentGate.code,
+          status: 'BLOCKED',
+        },
+        { status: 403 },
       );
     }
 
