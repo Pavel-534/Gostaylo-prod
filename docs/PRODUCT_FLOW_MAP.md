@@ -1,7 +1,7 @@
 # Product Flow Map — GoStayLo
 
-**Version:** 1.4.0  
-**Last updated:** 2026-05-20 | **Stage 108.4:** schema verify script, status SSOT patch, CHECKED_IN UI/hints, BOOKING_STATUS parity. | **Stage 108.3:** FinTech cron health panel, chat thread Realtime dedup (inbox SSOT), owner pool labels. | **Stage 108.2:** dead code removed, chat POST SSOT, pricing map, owner FinTech labels. | **Stage 108.1:** legacy payout guard, booking status SSOT, FinTech owner mode default.  
+**Version:** 1.5.0  
+**Last updated:** 2026-05-20 | **Stage 108.5 (FIN):** pricing aliases, chat badge dedup, FX cache v3, owner FinTech polish. | **Stage 108.4:** schema verify, status SSOT, CHECKED_IN UI. | **Stage 108.3:** cron health, thread Realtime dedup. | **Stage 108.1–108.2:** payout guard, dead UI, chat POST SSOT.  
 **Audience:** product, engineering, AI agents  
 **Status:** code-truth snapshot; normative policy remains **`ARCHITECTURAL_DECISIONS.md`** and **`docs/ADR/097-financial-model-v2.md`**
 
@@ -295,9 +295,9 @@ CONFIRMED → (pay) → PAID_ESCROW → (cron thaw) → THAWED
 |----|-----|----------|-------|----------|
 | D-01 | Legacy payout | Второй контур выплат в обход пула | `escrow/payout.service.js` | **Done 108.1** — `legacy-payout-guard.js`, TG FINANCE alert |
 | D-02 | Status FSM | 4+ определения переходов | partner route, `booking.service.js` | **Done 108.1** — `status-transitions.js` |
-| D-03 | Pricing name | Два `pricing.service.js` | `lib/services/pricing.service.js` vs `booking/pricing.service.js` | **Done 108.2** — `lib/pricing/PRICING_SERVICES.md` + шапки файлов |
+| D-03 | Pricing name | Два `pricing.service.js` | `lib/services/pricing.service.js` vs `booking/pricing.service.js` | **Done 108.5** — `PricingCatalogService` / `BookingSettlementPricing` + `PRICING_SERVICES.md` |
 | D-04 | Search URL | Два endpoint | `/api/v2/search`, `/api/v2/listings/search` | OK (thin wrapper) |
-| D-05 | Chat Realtime | Два inbox loader | `ChatContext.jsx`, `useConversationInbox` | **Частично 108.3** — на треде один канал messages (inbox); глобальный badge — `ChatContext` |
+| D-05 | Chat Realtime | Два inbox loader | `ChatContext.jsx`, `useConversationInbox` | **Done 108.5** — на `/messages*` Realtime списка только inbox; badge через `chat-unread-bridge` |
 | D-06 | Chat send | Дубли `fetch` к messages | `lib/chat/post-chat-message.js` | **Частично 108.2** — SSOT POST; текст/voice/media через хук |
 | D-07 | Dead UI | confirm/reject API не существует | ~~`booking-actions.jsx`~~ | **Done 108.2** — удалён; партнёр: `PUT partner/bookings` + чат |
 | D-08 | Dead UI | Нет импортов | ~~chat-booking-announcement, chat-typing-bar~~ | **Done 108.2** — удалены |
@@ -349,7 +349,7 @@ CONFIRMED → (pay) → PAID_ESCROW → (cron thaw) → THAWED
 | **P1-2** | Unify chat send pipeline | ✅ **108.2** (частично) | `lib/chat/post-chat-message.js` | Один POST SSOT; invoice — отдельный endpoint |
 | **P1-6** | CHECKED_IN vs THAWED product doc | ✅ **108.4** | `status-transitions.js` table, `BOOKING_STATUS_OWNER_HINTS_RU`, partner finances tooltip | «Гость заехал» ≠ «Разморожено» в UI |
 | **P1-7** | Client `BOOKING_STATUS` parity | ✅ **108.4** | `BOOKING_STATUS_CODES`, `BOOKING_ESCROW_PIPELINE_STATUSES`, `escrow/constants.js` | All pipeline statuses in client SSOT |
-| **P1-8** | Pricing service rename clarity | Re-export aliases `PricingCatalogService` / `BookingSettlementPricing` (no behavior change) | `pricing.service.js` files, imports optional | New code cannot confuse two modules by name |
+| **P1-8** | Pricing service rename clarity | ✅ **108.5** | `PricingCatalogService`, `BookingSettlementPricing` | Алиасы в коде + карта в `PRICING_SERVICES.md` |
 
 **Suggested branch names:** `refactor/p1-chat-send-ssot`, `refactor/p1-chat-inbox-dedup`, `chore/p1-dead-components`, `docs/p1-checkedin-thaw`, `fix/p1-booking-status-constants`
 
@@ -382,4 +382,6 @@ P0-3 (schema) → P0-4 (cron visibility) → P0-1 (legacy guard) → P0-2 (statu
 
 | Version | Date | Change |
 |---------|------|--------|
+| 1.5.0 | 2026-05-20 | **Stage 108 закрыт:** P1-8 pricing aliases, D-05 chat badge bridge, FX cache v3, owner FinTech |
+| 1.4.0 | 2026-05-20 | Schema verify, status SSOT, CHECKED_IN hints |
 | 1.0.0 | 2026-05-19 | Initial map + P0/P1 PR backlog (post Stage 103 smoke) |

@@ -8,6 +8,7 @@
  *  - При INSERT в таблице `messages` → обновляем lastMessage + unreadCount + sort to top.
  *  - При новом сообщении в архивной беседе → автоматически разархивируем.
  *  - refresh() вызывается ТОЛЬКО при начальной загрузке и при INSERT новой беседы.
+ *  - На /messages* Realtime списка — только useConversationInbox (D-05, chat-unread-bridge).
  */
 
 import {
@@ -23,6 +24,15 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { subscribeRealtimeWithBackoff } from '@/lib/chat/realtime-subscribe-with-backoff'
+import {
+  isMessagesInboxRoute,
+  subscribeChatInboxUnreadTotal,
+  clearChatInboxUnreadBridge,
+} from '@/lib/chat/chat-unread-bridge'
+import {
+  mergeMessageInsertIntoConversation,
+  mergeRawConvUpdate,
+} from '@/lib/chat/inbox-realtime-merge'
 import { retainTypingGlobalChannel } from '@/lib/chat/typing-global-channel'
 import { playNotificationSound } from '@/hooks/use-realtime-chat'
 
@@ -38,40 +48,6 @@ const SAFE_DEFAULTS = {
   markConversationRead: () => {},
   getConversationForListing: () => null,
   typingByConversation: {},
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Мёрджит поля сырой DB-строки (snake_case) в уже закешированную mapped-беседу.
- * Сохраняет обогащённые поля: listing, booking, lastMessage, unreadCount.
- */
-function mergeRawConvUpdate(mapped, raw) {
-  return {
-    ...mapped,
-    statusLabel: raw.status_label ?? raw.status ?? mapped.statusLabel,
-    lastMessageAt: raw.last_message_at ?? mapped.lastMessageAt,
-    updatedAt: raw.updated_at ?? mapped.updatedAt,
-    isPriority: raw.is_priority === true,
-    renterArchivedAt: raw.renter_archived_at ?? null,
-    partnerArchivedAt: raw.partner_archived_at ?? null,
-    partnerName: raw.partner_name ?? mapped.partnerName,
-    renterName: raw.renter_name ?? mapped.renterName,
-  }
-}
-
-/**
- * Строит новый lastMessage из raw DB строки сообщения.
- */
-function rawMsgToLastMessage(raw) {
-  return {
-    id: raw.id,
-    content: raw.content ?? raw.message,
-    message: raw.message ?? raw.content,
-    type: raw.type,
-    createdAt: raw.created_at,
-    created_at: raw.created_at,
-  }
 }
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
@@ -91,6 +67,10 @@ export function ChatProvider({ children }) {
   const [typingByConversation, setTypingByConversation] = useState({})
   const [loaded, setLoaded] = useState(false)
   const [loading, setLoading] = useState(false)
+  /** На /messages* — сумма unread с useConversationInbox (без дубля Realtime). */
+  const [inboxBridgeUnread, setInboxBridgeUnread] = useState(null)
+
+  const deferListRealtime = isMessagesInboxRoute(pathname)
 
   useEffect(() => {
     conversationIdsRef.current = new Set(
@@ -151,6 +131,15 @@ export function ChatProvider({ children }) {
     refresh()
   }, [refresh, userId]) // перезагружаем при смене пользователя
 
+  useEffect(() => {
+    if (!deferListRealtime) {
+      setInboxBridgeUnread(null)
+      clearChatInboxUnreadBridge()
+      return undefined
+    }
+    return subscribeChatInboxUnreadTotal(setInboxBridgeUnread)
+  }, [deferListRealtime])
+
   // ─── Загрузка одной беседы (для INSERT новой беседы) ──────────────────────
   const fetchOneConversation = useCallback(async (convId) => {
     try {
@@ -187,7 +176,7 @@ export function ChatProvider({ children }) {
 
   // ─── Smart Realtime (с backoff при обрыве) ───────────────────────────────
   useEffect(() => {
-    if (!supabase || !userId) return
+    if (!supabase || !userId || deferListRealtime) return
 
     const onConvPayload = (payload) => {
       if (payload.eventType === 'UPDATE') {
@@ -220,21 +209,11 @@ export function ChatProvider({ children }) {
         }
 
         const conv = prev[idx]
-        const isFromMe = String(msg.sender_id) === String(uid)
-        const iAmRenter = String(conv.renterId) === String(uid)
-        const iAmPartner = String(conv.partnerId) === String(uid)
-        const wasArchivedByMe =
-          (!isFromMe && iAmRenter && conv.renterArchivedAt) ||
-          (!isFromMe && iAmPartner && conv.partnerArchivedAt)
-
-        const updated = {
-          ...conv,
-          lastMessage: rawMsgToLastMessage(msg),
-          lastMessageAt: msg.created_at,
-          unreadCount: isFromMe ? conv.unreadCount || 0 : (conv.unreadCount || 0) + 1,
-          renterArchivedAt: !isFromMe && iAmRenter ? null : conv.renterArchivedAt,
-          partnerArchivedAt: !isFromMe && iAmPartner ? null : conv.partnerArchivedAt,
-        }
+        const { updated, wasArchivedByMe, isFromMe } = mergeMessageInsertIntoConversation(
+          conv,
+          msg,
+          uid,
+        )
 
         if (wasArchivedByMe) {
           unarchiveConversation(convId)
@@ -286,7 +265,14 @@ export function ChatProvider({ children }) {
       stopConv()
       stopMsg()
     }
-  }, [userId, fetchOneConversation, unarchiveConversation, refresh, shouldPlayIncomingSound])
+  }, [
+    userId,
+    deferListRealtime,
+    fetchOneConversation,
+    unarchiveConversation,
+    refresh,
+    shouldPlayIncomingSound,
+  ])
 
   // Typing: один общий канал `typing:global:v1` (см. lib/chat/typing-global-channel.js + use-chat-typing).
   useEffect(() => {
@@ -432,11 +418,13 @@ export function ChatProvider({ children }) {
     })
   }, [conversations, userId])
 
-  /** Сумма всех unread включая архив. */
-  const totalUnread = useMemo(
-    () => conversations.reduce((sum, c) => sum + (Number(c.unreadCount) || 0), 0),
-    [conversations],
-  )
+  /** Сумма всех unread включая архив. На /messages* — из inbox-хука (без дубля Realtime). */
+  const totalUnread = useMemo(() => {
+    if (deferListRealtime && inboxBridgeUnread != null) {
+      return inboxBridgeUnread
+    }
+    return conversations.reduce((sum, c) => sum + (Number(c.unreadCount) || 0), 0)
+  }, [conversations, deferListRealtime, inboxBridgeUnread])
 
   // ─── document.title ───────────────────────────────────────────────────────
   useEffect(() => {

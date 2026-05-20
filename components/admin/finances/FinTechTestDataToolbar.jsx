@@ -137,7 +137,7 @@ export function FinTechTestDataToolbar({
                     </Label>
                   </div>
                   <p className="text-xs text-muted-foreground pl-10">
-                    Понятные подписи: «Оплата гостя», «Пул выплат» вместо LEDGER / PAYOUT_BATCH.
+                    Скрыты технические коды: выплаты, пулы, журнал — только понятные названия для владельца.
                   </p>
                 </div>
               </div>

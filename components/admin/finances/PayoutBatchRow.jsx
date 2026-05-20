@@ -3,7 +3,7 @@
 import { AlertTriangle, CheckCircle2, Download, FileArchive, Lock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { BATCH_STATUS_RU, resolvePayoutRailLabel } from '@/lib/admin/fintech-ui-labels'
+import { resolveBatchStatusLabel, resolvePayoutRailLabel } from '@/lib/admin/fintech-ui-labels'
 import { cn } from '@/lib/utils'
 
 function fmtThb(n) {
@@ -60,7 +60,7 @@ export function PayoutBatchRow({
               variant={canSettleAction ? 'default' : 'secondary'}
               className={canSettleAction ? 'bg-emerald-600' : settleBlocked ? 'bg-amber-500' : ''}
             >
-              {BATCH_STATUS_RU[batch.status] || batch.status}
+              {resolveBatchStatusLabel(batch.status, ownerMode)}
             </Badge>
             {batch.rail ? (
               <Badge

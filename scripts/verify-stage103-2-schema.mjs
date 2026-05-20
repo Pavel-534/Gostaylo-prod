@@ -2,15 +2,19 @@
  * Stage 108.4 / P0-3 — проверка колонок миграции stage103_2 на Supabase.
  * Не меняет данные. Exit 0 = все колонки доступны.
  *
- *   $env:NEXT_PUBLIC_SUPABASE_URL="https://xxxx.supabase.co"
- *   $env:SUPABASE_SERVICE_ROLE_KEY="eyJ..."
  *   npm run verify:schema-103-2
  *
+ * Подхватывает `.env.local` через @next/env (как smoke:full-financial).
  * Применение: migrations/stage103_2_payout_batches_lifecycle_columns.sql
- * (или по частям: migrations/stage103_2_payout_batches_lifecycle_columns_SPLIT.md)
  */
 
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import nextEnv from '@next/env'
 import { createClient } from '@supabase/supabase-js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+nextEnv.loadEnvConfig(path.resolve(__dirname, '..'))
 
 const CHECKS = [
   { table: 'payout_batches', column: 'locked_at', label: 'payout_batches.locked_at' },

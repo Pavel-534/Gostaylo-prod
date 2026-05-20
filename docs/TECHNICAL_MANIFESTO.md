@@ -68,6 +68,8 @@
 
 **Stage 107.1 (2026-05):** Единая гостевая цена на витрине — SSOT **`lib/pricing/guest-display-price.js`** (`getGuestDisplayPerNight`, `getGuestDisplayForStay`, `getPdpHeroGuestPriceThb`); **`GET /api/v2/listings/[id]`** → `guestDisplayPriceThb` + `guestServiceFeePercent`; каталог/карта/PDP hero (`BookingWidget`, `CardPriceDisplay`, `ListingCard`) — base + guest fee %; breakdown бронирования без изменений.
 
+**Stage 108.5 (2026-05):** Блок 108 закрыт — `PricingCatalogService` / `BookingSettlementPricing`; `chat-unread-bridge` (D-05); FX localStorage v3 + TTL 2h; owner batch labels.
+
 **Stage 108.4 (2026-05):** `npm run verify:schema-103-2`; `validatePartnerBookingStatusTransition` (staff/partner PATCH); CHECKED_IN UI + owner hints; `BOOKING_STATUS_CODES` parity.
 
 **Stage 108.3 (2026-05):** FinTech `FinTechCronHealthPanel` + `financial-cron-health.js` (ops_job_runs, TG при stale > 3h); чат — один Realtime-канал на треде (`deferThreadRealtime`); owner labels в селекте пула.

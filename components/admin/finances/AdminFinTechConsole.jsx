@@ -1275,7 +1275,7 @@ export function AdminFinTechConsole() {
                 Сформировать пул ({resolvePayoutRailLabel(poolRail, ownerMode)})
               </Button>
               <Button variant="outline" onClick={() => createPool(true)}>
-                Вне расписания (форс)
+                {ownerMode ? 'Сформировать вне расписания' : 'Вне расписания (форс)'}
               </Button>
             </div>
             <p className="text-sm text-slate-600">

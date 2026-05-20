@@ -23,18 +23,8 @@ import {
 } from '@/lib/chat-inbox-favorites'
 import { supabase } from '@/lib/supabase'
 import { subscribeRealtimeWithBackoff } from '@/lib/chat/realtime-subscribe-with-backoff'
-
-/** lastMessage для превью в списке (как в ChatContext). */
-function rawMsgToLastMessage(raw) {
-  return {
-    id: raw.id,
-    content: raw.content ?? raw.message,
-    message: raw.message ?? raw.content,
-    type: raw.type,
-    createdAt: raw.created_at,
-    created_at: raw.created_at,
-  }
-}
+import { publishChatInboxUnreadTotal } from '@/lib/chat/chat-unread-bridge'
+import { mergeMessageInsertIntoConversation } from '@/lib/chat/inbox-realtime-merge'
 
 function debounce(fn, ms) {
   let timer = null
@@ -461,23 +451,11 @@ export function useConversationInbox({
                 }
 
                 const conv = prev[idx]
-                const isFromMe = String(msg.sender_id) === String(uid)
-                const iAmRenter = String(conv.renterId) === String(uid)
-                const iAmPartner = String(conv.partnerId) === String(uid)
-                const wasArchivedByMe =
-                  (!isFromMe && iAmRenter && conv.renterArchivedAt) ||
-                  (!isFromMe && iAmPartner && conv.partnerArchivedAt)
-
-                const updated = {
-                  ...conv,
-                  lastMessage: rawMsgToLastMessage(msg),
-                  lastMessageAt: msg.created_at,
-                  unreadCount: isFromMe
-                    ? Number(conv.unreadCount) || 0
-                    : (Number(conv.unreadCount) || 0) + 1,
-                  renterArchivedAt: !isFromMe && iAmRenter ? null : conv.renterArchivedAt,
-                  partnerArchivedAt: !isFromMe && iAmPartner ? null : conv.partnerArchivedAt,
-                }
+                const { updated, wasArchivedByMe } = mergeMessageInsertIntoConversation(
+                  conv,
+                  msg,
+                  uid,
+                )
 
                 if (wasArchivedByMe) {
                   void unarchiveConversation(convKey)
@@ -563,6 +541,16 @@ export function useConversationInbox({
     () => hostingUnread + travelingUnread,
     [hostingUnread, travelingUnread]
   )
+
+  const globalUnreadForBadge = useMemo(
+    () => conversations.reduce((sum, c) => sum + (Number(c.unreadCount) || 0), 0),
+    [conversations],
+  )
+
+  useEffect(() => {
+    if (!enabled || !userId) return
+    publishChatInboxUnreadTotal(globalUnreadForBadge)
+  }, [enabled, userId, globalUnreadForBadge])
 
   return {
     conversations,

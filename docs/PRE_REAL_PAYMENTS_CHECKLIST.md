@@ -4,6 +4,8 @@
 **Когда:** после успешной симуляции Stage 104 (`npm run smoke:full-financial:all`) и настройки мониторинга Stage 105.  
 **SSOT:** `ARCHITECTURAL_DECISIONS.md`, ADR-097, `lib/treasury/payout-rails.js`, `lib/treasury/treasury-ops-config.js`.
 
+> **Stage 108 (2026-05) — техническая уборка завершена.** P0/P1 из `docs/PRODUCT_FLOW_MAP.md` закрыты в коде: legacy payout guard, status SSOT, schema 103.2 verify (`npm run verify:schema-103-2`), cron health на FinTech-пульте, чат/inbox dedup, pricing aliases, режим владельца на `/admin/settings/finances`. Дальше — внешние шаги: ЮKassa, ОсОО, договоры (§B–D ниже).
+
 ---
 
 ## A. Техническая готовность 100% (код и среда)
@@ -32,6 +34,13 @@
 ---
 
 ## A. Техническая готовность (код и среда) — детальный чеклист
+
+### A0. Stage 108 (код-уборка) — выполнено в репозитории
+
+- [x] P0: legacy payout guard, booking status SSOT, schema 103.2 tooling, cron health UI
+- [x] P1: chat POST SSOT, inbox Realtime dedup, CHECKED_IN ≠ THAWED, `BOOKING_STATUS` parity, pricing aliases
+- [x] `npm run verify:schema-103-2` — **6/6** на среде из `.env.local`
+- [ ] Деплой на production + повтор verify/smoke на prod
 
 ### A1. Симуляция и мониторинг
 

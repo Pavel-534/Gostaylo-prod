@@ -149,6 +149,20 @@ export function PlatformHomeContent() {
       .catch(console.error)
   }, [])
 
+  // Свежие курсы при возврате на вкладку (Ctrl+F5 не чистит localStorage — отсюда расхождение с телефоном).
+  useEffect(() => {
+    const refreshRates = () => {
+      fetchExchangeRates({ force: true })
+        .then(setExchangeRates)
+        .catch(console.error)
+    }
+    const onVis = () => {
+      if (document.visibilityState === 'visible') refreshRates()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [])
+
   const fetchListingsData = useCallback(
     async (showLoading = true) => {
       if (selectedCategoryRow?.isComingSoon === true) {
