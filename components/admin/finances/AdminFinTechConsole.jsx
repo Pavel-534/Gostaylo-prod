@@ -25,6 +25,7 @@ import {
   LayoutDashboard,
   Scale,
   Bell,
+  Info,
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -75,7 +76,9 @@ import { FinTechTreasuryMonitoringPanel } from '@/components/admin/finances/FinT
 import { FinTechLaunchStatusDashboard } from '@/components/admin/finances/FinTechLaunchStatusDashboard'
 import {
   FinTechTestDataToolbar,
+  persistFintechOwnerModePreference,
   persistFintechRealDataOnlyPreference,
+  readFintechOwnerModePreference,
   readFintechRealDataOnlyPreference,
 } from '@/components/admin/finances/FinTechTestDataToolbar'
 import { isFintechTestPayoutBatchRow } from '@/lib/admin/fintech-test-data-markers'
@@ -172,9 +175,12 @@ export function AdminFinTechConsole() {
   const [monthMargin, setMonthMargin] = useState(null)
   const [monthlyExporting, setMonthlyExporting] = useState(false)
   const [realDataOnly, setRealDataOnly] = useState(true)
+  const [ownerMode, setOwnerMode] = useState(true)
+  const [dataRefreshKey, setDataRefreshKey] = useState(0)
 
   useEffect(() => {
     setRealDataOnly(readFintechRealDataOnlyPreference(true))
+    setOwnerMode(readFintechOwnerModePreference(true))
   }, [])
 
   const load = useCallback(async () => {
@@ -211,6 +217,11 @@ export function AdminFinTechConsole() {
       setLoading(false)
     }
   }, [toast, realDataOnly])
+
+  const handleTestDataCleaned = useCallback(() => {
+    setDataRefreshKey((k) => k + 1)
+    load()
+  }, [load])
 
   useEffect(() => {
     load()
@@ -661,30 +672,46 @@ export function AdminFinTechConsole() {
     }
   }
 
-  const statCards = useMemo(
-    () => [
+  const statCards = useMemo(() => {
+    const cards = [
+      {
+        label: 'Готово к выплате',
+        value: fmtThb(dash?.payout?.readyForPayoutThb),
+        sub: `${dash?.payout?.readyForPayoutCount ?? 0} броней`,
+        icon: Banknote,
+      },
       {
         label: 'Чеки в очереди',
         value: dash?.pendingFiscal?.length ?? 0,
         sub: 'ожидают пробития',
         icon: Receipt,
       },
-      {
+    ]
+    if (!ownerMode) {
+      cards.push({
         label: 'Баланс книги',
         value: driftBad ? fmtThb(driftThb) : 'В норме',
         sub: driftBad ? 'нужна проверка' : 'расхождение < 0.01 ฿',
         icon: Gauge,
         danger: driftBad,
-      },
-      {
+      })
+      cards.push({
         label: 'Движок цен v2',
         value: v2Effective ? 'Вкл' : 'Выкл',
         sub: v2EnvLock ? 'задано на сервере' : 'в настройках',
         icon: Zap,
-      },
-    ],
-    [dash, driftBad, driftThb, v2Effective, v2EnvLock],
-  )
+      })
+    } else if (driftBad) {
+      cards.push({
+        label: 'Сверка',
+        value: 'Проверить',
+        sub: 'есть расхождение в учёте',
+        icon: Gauge,
+        danger: true,
+      })
+    }
+    return cards
+  }, [dash, driftBad, driftThb, v2Effective, v2EnvLock, ownerMode])
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
@@ -750,8 +777,25 @@ export function AdminFinTechConsole() {
             setRealDataOnly(v)
             persistFintechRealDataOnlyPreference(v)
           }}
-          onCleaned={load}
+          ownerMode={ownerMode}
+          onOwnerModeChange={(v) => {
+            setOwnerMode(v)
+            persistFintechOwnerModePreference(v)
+          }}
+          onCleaned={handleTestDataCleaned}
         />
+        <Card
+          className="border-teal-200 bg-teal-50/90 shadow-sm"
+          title="Все суммы на пульте — для гостя (включая сервисный сбор)"
+        >
+          <CardContent className="py-3 flex items-start gap-2 text-sm text-teal-950">
+            <Info className="h-4 w-4 shrink-0 text-teal-700 mt-0.5" aria-hidden />
+            <p>
+              <span className="font-semibold">Подсказка:</span> суммы на этом пульте показаны так, как
+              их видит гость — с учётом сервисного сбора, если не указано иное.
+            </p>
+          </CardContent>
+        </Card>
         <FinTechLaunchStatusDashboard readiness={productionReadiness} onRefresh={load} />
         <FinTechTreasuryHeroDashboard
           dash={dash}
@@ -793,21 +837,26 @@ export function AdminFinTechConsole() {
               <Banknote className="h-4 w-4" />
               Конвертации
             </TabsTrigger>
-            <TabsTrigger value="monitoring" className="gap-1.5">
-              <Bell className="h-4 w-4" />
-              Мониторинг
-            </TabsTrigger>
+            {!ownerMode && (
+              <TabsTrigger value="monitoring" className="gap-1.5">
+                <Bell className="h-4 w-4" />
+                Мониторинг
+              </TabsTrigger>
+            )}
             <TabsTrigger value="journal" className="gap-1.5">
               <BookOpen className="h-4 w-4" />
-              Журнал
+              {ownerMode ? 'История' : 'Журнал'}
             </TabsTrigger>
-            <TabsTrigger value="exports" className="gap-1.5">
-              <Download className="h-4 w-4" />
-              Выгрузки
-            </TabsTrigger>
+            {!ownerMode && (
+              <TabsTrigger value="exports" className="gap-1.5">
+                <Download className="h-4 w-4" />
+                Выгрузки
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="overview" className="space-y-8 mt-0">
+        {!ownerMode && (
         <Card className="border-indigo-100 shadow-sm overflow-hidden">
           <CardHeader className="pb-2" style={{ borderLeft: '4px solid #6366f1' }}>
             <CardTitle className="flex items-center gap-2 text-lg" style={{ color: NAVY }}>
@@ -827,7 +876,9 @@ export function AdminFinTechConsole() {
             </Button>
           </CardContent>
         </Card>
+        )}
 
+        {!ownerMode && (
         <Card className="border-teal-100 shadow-sm overflow-hidden">
           <CardHeader className="pb-2" style={{ borderLeft: `4px solid ${MINT}` }}>
             <CardTitle className="flex items-center gap-2 text-lg" style={{ color: NAVY }}>
@@ -865,6 +916,7 @@ export function AdminFinTechConsole() {
             </Badge>
           </CardContent>
         </Card>
+        )}
 
         <Card className="border-slate-200 shadow-sm">
           <CardHeader>
@@ -1265,7 +1317,7 @@ export function AdminFinTechConsole() {
           </TabsContent>
 
           <TabsContent value="conversions" className="mt-0">
-            <FinTechTreasuryConversionsPanel excludeTest={realDataOnly} />
+            <FinTechTreasuryConversionsPanel excludeTest={realDataOnly} refreshKey={dataRefreshKey} />
           </TabsContent>
 
           <TabsContent value="monitoring" className="mt-0">
@@ -1273,7 +1325,11 @@ export function AdminFinTechConsole() {
           </TabsContent>
 
           <TabsContent value="journal" className="mt-0">
-            <FinTechMovementJournal excludeTest={realDataOnly} />
+            <FinTechMovementJournal
+              excludeTest={realDataOnly}
+              ownerSimple={ownerMode}
+              refreshKey={dataRefreshKey}
+            />
           </TabsContent>
 
           <TabsContent value="exports" className="space-y-8 mt-0">

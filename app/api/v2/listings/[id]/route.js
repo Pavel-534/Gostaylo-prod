@@ -24,6 +24,8 @@ import {
   computeCatalogFlashSocialProofForListing,
   fetchBookingsCreatedTodayCountsByPromoCodes,
 } from '@/lib/promo/catalog-promo-badges'
+import { getCommissionRate } from '@/lib/commission/get-commission-rate-server.js'
+import { computeGuestDisplayFromBaseThb } from '@/lib/pricing/guest-display-price.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -124,22 +126,40 @@ export async function GET(request, context) {
       }
     })()
 
-    const commissionRatePromise = (async () => {
+    const commissionSnapshotPromise = (async () => {
       try {
         const dummyPrice = 1000
         const commissionCalc = await PricingService.calculateCommission(dummyPrice, listing.owner_id)
-        return commissionCalc?.commissionRate ?? (await resolveDefaultCommissionPercent())
+        const hostRate =
+          commissionCalc?.commissionRate ?? (await resolveDefaultCommissionPercent())
+        const feeSnapshot = await getCommissionRate(listing.owner_id)
+        return {
+          commissionRate: hostRate,
+          guestServiceFeePercent: feeSnapshot.guestServiceFeePercent,
+        }
       } catch (e) {
         console.warn('[LISTING] commission error:', e?.message)
-        return await resolveDefaultCommissionPercent()
+        const feeSnapshot = await getCommissionRate(listing.owner_id).catch(() => null)
+        return {
+          commissionRate: await resolveDefaultCommissionPercent(),
+          guestServiceFeePercent: feeSnapshot?.guestServiceFeePercent,
+        }
       }
     })()
 
-    const [seasonalPrices, reviewsCount, dynamicCommissionRate] = await Promise.all([
+    const [seasonalPrices, reviewsCount, commissionSnapshot] = await Promise.all([
       seasonalPricesPromise,
       reviewsCountPromise,
-      commissionRatePromise
+      commissionSnapshotPromise,
     ])
+
+    const dynamicCommissionRate = commissionSnapshot.commissionRate
+    const guestServiceFeePercent = commissionSnapshot.guestServiceFeePercent
+    const basePriceThbParsed = parseFloat(listing.base_price_thb)
+    const guestDisplayPriceThb = computeGuestDisplayFromBaseThb(
+      basePriceThbParsed,
+      guestServiceFeePercent,
+    )
 
     let partnerTrust = null
     if (listing.owner_id) {
@@ -191,9 +211,11 @@ export async function GET(request, context) {
       latitude: listing.latitude,
       longitude: listing.longitude,
       address: listing.address,
-      basePriceThb: parseFloat(listing.base_price_thb),
+      basePriceThb: basePriceThbParsed,
+      guestDisplayPriceThb,
+      guestServiceFeePercent,
       baseCurrency: listing.base_currency || 'THB',
-      commissionRate: dynamicCommissionRate,  // Use calculated rate from PricingService
+      commissionRate: dynamicCommissionRate,
       images: mapPublicImageUrls(listing.images || []),
       coverImage: listing.cover_image ? toPublicImageUrl(listing.cover_image) : null,
       metadata: listing.metadata || {},

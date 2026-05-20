@@ -1,6 +1,6 @@
 /**
  * CardPriceDisplay Component
- * Price calculation and display for listing cards
+ * Stage 107.1–107.2 — гостевая цена через SSOT guest-display-price.
  */
 
 'use client'
@@ -8,12 +8,16 @@
 import { useMemo } from 'react'
 import { differenceInDays } from 'date-fns'
 import { formatPrice, priceRawForTest } from '@/lib/currency'
-import { getUIText } from '@/lib/translations'
 import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
-import { formatRentalSpanLabel } from '@/lib/rental-period-labels'
 import { AnimatedPrice } from '@/components/card/AnimatedPrice'
+import {
+  formatCardPricePeriodSuffix,
+  getGuestDisplayForStay,
+  getGuestDisplayPerNight,
+} from '@/lib/pricing/guest-display-price'
 
 export function CardPriceDisplay({
+  listing = null,
   basePrice,
   pricing,
   initialDates,
@@ -23,7 +27,7 @@ export function CardPriceDisplay({
   categorySlug = '',
 }) {
   const rates = exchangeRates && typeof exchangeRates === 'object' ? exchangeRates : { THB: 1 }
-  // Calculate nights
+
   const nights = useMemo(() => {
     if (initialDates?.checkIn && initialDates?.checkOut) {
       try {
@@ -36,23 +40,40 @@ export function CardPriceDisplay({
     }
     return 0
   }, [initialDates])
-  
-  // Get display price
-  const displayPrice = useMemo(() => {
-    if (pricing?.totalPrice && nights > 0) {
-      return pricing.totalPrice
-    }
-    return basePrice
-  }, [pricing, nights, basePrice])
 
-  // Formatted price string — меняется при смене валюты → AnimatedPrice делает flip
+  const listingForPrice = useMemo(() => {
+    if (listing && typeof listing === 'object') {
+      if (pricing && !listing.pricing) {
+        return { ...listing, pricing }
+      }
+      return listing
+    }
+    if (pricing) {
+      return { basePriceThb: basePrice, pricing }
+    }
+    return { basePriceThb: basePrice, guestDisplayPriceThb: basePrice }
+  }, [listing, basePrice, pricing])
+
+  const displayPrice = useMemo(() => {
+    if (nights > 0) {
+      return getGuestDisplayForStay(listingForPrice, nights)
+    }
+    return getGuestDisplayPerNight(listingForPrice)
+  }, [listingForPrice, nights])
+
+  const spanMode = getListingRentalPeriodMode(
+    categorySlug || listing?.categorySlug || listing?.category?.slug || '',
+  )
+
+  const periodSuffix = useMemo(
+    () => formatCardPricePeriodSuffix({ nights, spanMode, language }),
+    [nights, spanMode, language],
+  )
+
   const formattedPrice = formatPrice(displayPrice, currency, rates, language)
-  
-  const spanMode = getListingRentalPeriodMode(categorySlug)
-  const dayUnit = spanMode === 'day'
 
   return (
-    <div className="flex items-baseline gap-1">
+    <div className="flex items-baseline gap-1.5 flex-wrap">
       <span
         className="text-lg font-semibold text-slate-900"
         data-test-raw-value={priceRawForTest(displayPrice, currency, rates)}
@@ -60,11 +81,7 @@ export function CardPriceDisplay({
       >
         <AnimatedPrice value={formattedPrice} />
       </span>
-      <span className="text-sm text-slate-500">
-        {nights > 0
-          ? `/ ${formatRentalSpanLabel(nights, spanMode, language)}`
-          : `/ ${getUIText(dayUnit ? 'listingPriceUnitDay' : 'night', language)}`}
-      </span>
+      <span className="text-sm text-slate-500">{periodSuffix}</span>
       {pricing?.isPromoApplied ? (
         <span className="ml-1 rounded-full bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-600">
           SALE

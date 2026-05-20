@@ -169,11 +169,12 @@ export function FinTechLaunchStatusDashboard({ readiness, onRefresh }) {
             <div>
               <CardTitle className="text-2xl sm:text-3xl flex items-center gap-2 text-slate-900">
                 <Shield className="h-8 w-8 text-teal-700 shrink-0" />
-                Статус готовности к реальным платежам
+                Можно ли уже принимать деньги от гостей?
               </CardTitle>
               <CardDescription className="mt-2 max-w-2xl text-base text-slate-700 leading-relaxed">
-                Простая сводка перед подключением ЮKassa и приёмом настоящих денег. Зелёный — хорошо;
-                жёлтый — обратите внимание; красный — сначала исправьте или спросите разработчика.
+                Короткая сводка без технических терминов: что уже готово, что стоит доделать перед
+                настоящими оплатами. Зелёный — можно готовиться; жёлтый — есть вопросы; красный —
+                сначала устраните блокеры или обратитесь к разработчику.
               </CardDescription>
             </div>
             <div className="flex flex-col items-end gap-2">
@@ -188,9 +189,9 @@ export function FinTechLaunchStatusDashboard({ readiness, onRefresh }) {
                 )}
               >
                 {pauseActive
-                  ? 'Платформа на паузе'
+                  ? 'Приём оплат на паузе'
                   : allOk
-                    ? 'Можно готовиться к ЮKassa'
+                    ? 'Можно готовиться к запуску'
                     : 'Есть что доделать'}
               </Badge>
               <p className="text-xs text-slate-500 text-right">

@@ -14,6 +14,8 @@ import { parseDurationDiscountTiers } from '@/lib/listing/duration-discount-tier
 import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
 import { formatRentalSpanLabel } from '@/lib/rental-period-labels'
 import { cn } from '@/lib/utils'
+import { useMemo } from 'react'
+import { getPdpHeroGuestPriceThb, scrollToBookingPriceBreakdown } from '@/lib/pricing/guest-display-price'
 import { useBookingWidgetLogic } from '@/hooks/pricing/useBookingWidgetLogic'
 import { BookingPriceBreakdown } from '@/components/listing/booking/BookingPriceBreakdown'
 import { BookingDateGuestsPicker } from '@/components/listing/booking/BookingDateGuestsPicker'
@@ -66,6 +68,50 @@ export function DurationDiscountOffersBlock({ discounts, language, rentalPeriodM
 }
 
 export const PriceBreakdownBlock = BookingPriceBreakdown
+
+function useHeroGuestPrice(listing, priceCalc) {
+  return useMemo(() => getPdpHeroGuestPriceThb({ listing, priceCalc }), [listing, priceCalc])
+}
+
+function HeroPriceHeadline({
+  listing,
+  priceCalc,
+  currency,
+  exchangeRates,
+  language,
+  rentalPeriodMode,
+  tx,
+  sizeClass = 'text-3xl',
+}) {
+  const hero = useHeroGuestPrice(listing, priceCalc)
+  const spanMode = rentalPeriodMode === 'day' ? 'day' : 'night'
+  const periodLine =
+    hero.mode === 'stay' && hero.nights > 0
+      ? formatRentalSpanLabel(hero.nights, spanMode, language)
+      : tx(rentalPeriodMode === 'day' ? 'perBookingDay' : 'perNight')
+
+  return (
+    <div>
+      <div
+        className={cn('font-bold text-slate-900 tabular-nums leading-tight', sizeClass)}
+        data-testid="listing-hero-price"
+        data-test-raw-value={priceRawForTest(hero.amountThb, currency, exchangeRates)}
+      >
+        {formatPrice(hero.amountThb, currency, exchangeRates, language)}
+      </div>
+      <p className="text-sm text-slate-500" data-testid="booking-per-period-label">
+        {periodLine}
+      </p>
+      <button
+        type="button"
+        className="mt-1 max-w-full text-left text-xs leading-snug text-slate-500 underline decoration-slate-300 underline-offset-2 hover:text-slate-700 hover:decoration-slate-400 sm:text-[13px] py-0.5 -ml-0.5 pl-0.5 pr-1 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300/80"
+        onClick={scrollToBookingPriceBreakdown}
+      >
+        {getUIText('listingHero_priceFeesNote', language)}
+      </button>
+    </div>
+  )
+}
 
 export function DesktopBookingWidget({
   listing,
@@ -126,25 +172,15 @@ export function DesktopBookingWidget({
       <Card className="border-slate-200 shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between mb-2">
-            <div>
-              <div
-                className="text-3xl font-bold text-slate-900"
-                data-testid="listing-hero-price"
-                data-test-raw-value={priceRawForTest(
-                  priceCalc?.avgPricePerNight || listing.basePriceThb,
-                  currency,
-                  exchangeRates,
-                )}
-              >
-                {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates, language)}
-              </div>
-              <p
-                className="text-sm text-slate-500"
-                data-testid="booking-per-period-label"
-              >
-                {tx(rentalPeriodMode === 'day' ? 'perBookingDay' : 'perNight')}
-              </p>
-            </div>
+            <HeroPriceHeadline
+              listing={listing}
+              priceCalc={priceCalc}
+              currency={currency}
+              exchangeRates={exchangeRates}
+              language={language}
+              rentalPeriodMode={rentalPeriodMode}
+              tx={tx}
+            />
             {headlineRating > 0 && (
               <div className="flex items-center gap-1 text-sm">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -354,27 +390,16 @@ export function MobileBookingBar({
 
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">
-          <div
-            className="text-xl sm:text-2xl font-bold text-slate-900 tabular-nums leading-tight"
-            data-testid="listing-hero-price"
-            data-test-raw-value={priceRawForTest(
-              priceCalc?.avgPricePerNight || listing.basePriceThb,
-              currency,
-              exchangeRates,
-            )}
-          >
-            {formatPrice(priceCalc?.avgPricePerNight || listing.basePriceThb, currency, exchangeRates, language)}
-          </div>
-          <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
-            {tx(rentalPeriodMode === 'day' ? 'perBookingDay' : 'perNight')}
-            {priceCalc
-              ? ` • ${formatRentalSpanLabel(
-                  priceCalc.nights,
-                  rentalPeriodMode === 'day' ? 'day' : 'night',
-                  language,
-                )}`
-              : ''}
-          </p>
+          <HeroPriceHeadline
+            listing={listing}
+            priceCalc={priceCalc}
+            currency={currency}
+            exchangeRates={exchangeRates}
+            language={language}
+            rentalPeriodMode={rentalPeriodMode}
+            tx={tx}
+            sizeClass="text-xl sm:text-2xl"
+          />
         </div>
 
         <div className="flex items-center gap-2 shrink-0">

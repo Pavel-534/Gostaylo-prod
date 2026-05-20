@@ -17,7 +17,6 @@ import { formatDisplayDate } from '@/lib/date-display-format'
 import { isTransportListingCategory } from '@/lib/listing-category-slug'
 import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 import { CardPriceDisplay } from '@/components/card/CardPriceDisplay'
-import { resolveListingGuestDisplayPriceThb } from '@/lib/pricing/catalog-guest-display-price'
 
 export function TopListingsGrid({
   language,
@@ -178,7 +177,7 @@ export function TopListingsGrid({
                       <ListingCardSpecsRow listing={listing} language={language} compact />
                       <div className="mt-auto flex items-baseline justify-between gap-2">
                         <CardPriceDisplay
-                          basePrice={resolveListingGuestDisplayPriceThb(listing)}
+                          listing={listing}
                           pricing={listing.pricing}
                           initialDates={initialDates}
                           currency={currency}

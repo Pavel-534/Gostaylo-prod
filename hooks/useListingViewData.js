@@ -62,6 +62,9 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
           latitude: l.latitude,
           longitude: l.longitude,
           basePriceThb: parseFloat(l.basePriceThb),
+          guestDisplayPriceThb: parseFloat(l.guestDisplayPriceThb) || 0,
+          guestServiceFeePercent:
+            l.guestServiceFeePercent != null ? Number(l.guestServiceFeePercent) : undefined,
           commissionRate: parseFloat(l.commissionRate),
           images: l.images || [],
           coverImage: l.coverImage,
@@ -149,6 +152,7 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
         district: listing.district,
         coverImage: listing.coverImage,
         basePriceThb: listing.basePriceThb,
+        guestDisplayPriceThb: listing.guestDisplayPriceThb,
         rating: listing.rating,
         reviewsCount: listing.reviewsCount,
       })

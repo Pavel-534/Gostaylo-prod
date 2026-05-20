@@ -63,9 +63,9 @@ function shiftDate(days) {
 }
 
 /**
- * @param {{ excludeTest?: boolean }} [props]
+ * @param {{ excludeTest?: boolean, refreshKey?: number }} [props]
  */
-export function FinTechTreasuryConversionsPanel({ excludeTest = false }) {
+export function FinTechTreasuryConversionsPanel({ excludeTest = false, refreshKey = 0 }) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -114,7 +114,7 @@ export function FinTechTreasuryConversionsPanel({ excludeTest = false }) {
 
   useEffect(() => {
     load()
-  }, [load])
+  }, [load, refreshKey])
 
   const margin = data?.margin || {}
   const conversions = data?.conversions || []

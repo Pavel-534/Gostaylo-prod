@@ -23,7 +23,6 @@ import { UrgencyTimer } from '@/components/UrgencyTimer'
 import { ListingFlashHotStrip } from '@/components/listing/ListingFlashHotStrip'
 import { shouldShowFlashUrgencyTimerAboveStrip } from '@/lib/listing/flash-hot-strip'
 import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
-import { resolveListingGuestDisplayPriceThb } from '@/lib/pricing/catalog-guest-display-price'
 
 export function ListingCard({
   listing,
@@ -74,8 +73,6 @@ export function ListingCard({
     catalog_flash_social_proof = null,
   } = listing
   
-  const basePrice = basePriceThb || base_price_thb || 0
-  const cardDisplayBasePrice = resolveListingGuestDisplayPriceThb(listing) || basePrice
   const actualIsFeatured = isFeatured || is_featured
   const ownerVerified =
     listingOwnerVerified === true ||
@@ -246,7 +243,7 @@ export function ListingCard({
           {/* Price — отдельный слой над trust/specs-wrap (моб. &lt;768: не пересекается с бейджем Verified в ряду спеки). */}
           <div className="relative z-10 mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-white pt-3">
             <CardPriceDisplay
-              basePrice={cardDisplayBasePrice}
+              listing={listing}
               pricing={pricing}
               initialDates={initialDates}
               currency={currency}

@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import { AlertTriangle, Filter, Loader2, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { AlertTriangle, Crown, Eye, Loader2, Trash2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,16 +20,67 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 
-const STORAGE_KEY = 'fintech-real-data-only'
+const STORAGE_KEY_REAL = 'fintech-real-data-only'
+const STORAGE_KEY_OWNER = 'fintech-owner-mode'
+
+const COUNT_LABELS = {
+  bookings: 'брони',
+  payoutBatches: 'пулы выплат',
+  profiles: 'профили smoke',
+  payouts: 'выплаты',
+  ledgerJournals: 'журналы ledger',
+  ledgerEntries: 'проводки ledger',
+  conversations: 'чаты',
+  listings: 'листинги',
+  treasuryAlerts: 'алерты казначейства',
+  criticalSignals: 'сигналы',
+}
 
 /**
- * Stage 106.4 — фильтр «только реальные» + очистка тестового мусора.
- * @param {{ realDataOnly: boolean, onRealDataOnlyChange: (v: boolean) => void, onCleaned?: () => void }} props
+ * Stage 106.5 — фильтры, режим владельца, агрессивная очистка с точным счётчиком.
  */
-export function FinTechTestDataToolbar({ realDataOnly, onRealDataOnlyChange, onCleaned }) {
+export function FinTechTestDataToolbar({
+  realDataOnly,
+  onRealDataOnlyChange,
+  ownerMode,
+  onOwnerModeChange,
+  onCleaned,
+}) {
   const { toast } = useToast()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [cleaning, setCleaning] = useState(false)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewTotal, setPreviewTotal] = useState(null)
+  const [previewCounts, setPreviewCounts] = useState(null)
+
+  const loadPreview = useCallback(async () => {
+    setPreviewLoading(true)
+    try {
+      const res = await fetch('/api/admin/clean-test-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ dryRun: true }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`)
+      setPreviewTotal(json.data?.total ?? 0)
+      setPreviewCounts(json.data?.counts || json.data?.breakdown || null)
+    } catch {
+      setPreviewTotal(null)
+      setPreviewCounts(null)
+    } finally {
+      setPreviewLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadPreview()
+  }, [loadPreview])
+
+  useEffect(() => {
+    if (confirmOpen) loadPreview()
+  }, [confirmOpen, loadPreview])
 
   const runCleanup = async () => {
     setCleaning(true)
@@ -43,13 +95,15 @@ export function FinTechTestDataToolbar({ realDataOnly, onRealDataOnlyChange, onC
       if (!res.ok || !json.success) {
         throw new Error(json.message || json.error || `HTTP ${res.status}`)
       }
-      const total = json.data?.total ?? 0
+      const total = json.data?.totalDeleted ?? json.data?.total ?? 0
       toast({
         title: `Тестовые данные удалены (${total} записей)`,
-        description:
-          'Пулы smoke, брони E2E, ledger и тестовые профили smoke убраны. Обновите пульт.',
+        description: 'Пулы, журнал, ledger и алерты обновлены.',
       })
       setConfirmOpen(false)
+      setPreviewTotal(0)
+      setPreviewCounts(null)
+      await loadPreview()
       onCleaned?.()
     } catch (e) {
       toast({
@@ -64,81 +118,148 @@ export function FinTechTestDataToolbar({ realDataOnly, onRealDataOnlyChange, onC
 
   return (
     <>
-      <Card className="border-red-200/80 bg-gradient-to-r from-red-50/90 to-white shadow-sm overflow-hidden">
-        <CardContent className="py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
-              <Filter className="h-5 w-5 text-teal-700 shrink-0" />
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="fintech-real-only"
-                    checked={realDataOnly}
-                    onCheckedChange={onRealDataOnlyChange}
-                  />
-                  <Label htmlFor="fintech-real-only" className="font-medium cursor-pointer text-sm">
-                    Показывать только реальные данные
-                  </Label>
+      <Card
+        className={cn(
+          'border-2 shadow-md overflow-hidden',
+          realDataOnly ? 'border-teal-400 bg-gradient-to-br from-teal-50 via-white to-emerald-50/50' : 'border-red-300 bg-gradient-to-br from-red-50 via-white to-amber-50/40',
+        )}
+      >
+        <CardContent className="py-5 space-y-4">
+          <div className="flex flex-col xl:flex-row xl:items-stretch gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 flex-1">
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm flex-1">
+                <Crown className={cn('h-5 w-5 shrink-0', ownerMode ? 'text-amber-600' : 'text-slate-400')} />
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <Switch id="fintech-owner-mode" checked={ownerMode} onCheckedChange={onOwnerModeChange} />
+                    <Label htmlFor="fintech-owner-mode" className="font-medium cursor-pointer text-sm">
+                      Режим владельца
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-10">
+                    Понятные подписи: «Оплата гостя», «Пул выплат» вместо LEDGER / PAYOUT_BATCH.
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground pl-10">
-                  Скрывает smoke/E2E в пулах, конвертациях и сводках (по умолчанию включено).
-                </p>
+              </div>
+
+              <div
+                className={cn(
+                  'flex items-center gap-3 rounded-xl px-3 py-2.5 shadow-sm flex-1 ring-2',
+                  realDataOnly ? 'border-teal-300 bg-teal-50/80 ring-teal-400/60' : 'border-amber-200 bg-amber-50/60 ring-amber-300/50',
+                )}
+              >
+                <Eye className={cn('h-5 w-5 shrink-0', realDataOnly ? 'text-teal-700' : 'text-amber-700')} />
+                <div className="space-y-0.5 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Switch
+                      id="fintech-real-only"
+                      checked={realDataOnly}
+                      onCheckedChange={onRealDataOnlyChange}
+                    />
+                    <Label htmlFor="fintech-real-only" className="font-semibold cursor-pointer text-sm text-teal-900">
+                      Только реальные данные
+                    </Label>
+                    {realDataOnly ? (
+                      <Badge className="bg-teal-600 hover:bg-teal-600">вкл.</Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-amber-500 text-amber-800">
+                        показан весь мусор
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-10">
+                    Скрывает smoke/E2E в пулах, журнале и конвертациях. Сохраняется в браузере.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <Button
-            type="button"
-            size="lg"
-            disabled={cleaning}
-            onClick={() => setConfirmOpen(true)}
-            className={cn(
-              'w-full lg:w-auto h-12 px-6 text-base font-semibold',
-              'bg-red-600 hover:bg-red-700 text-white shadow-md',
-            )}
-          >
-            {cleaning ? (
-              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-            ) : (
-              <Trash2 className="h-5 w-5 mr-2" />
-            )}
-            🗑️ Очистить ВЕСЬ тестовый мусор
-          </Button>
+            <Button
+              type="button"
+              size="lg"
+              disabled={cleaning}
+              onClick={() => setConfirmOpen(true)}
+              className={cn(
+                'w-full xl:w-auto xl:min-w-[300px] h-auto min-h-14 px-6 py-3 flex flex-col items-center gap-0.5',
+                'bg-red-600 hover:bg-red-700 text-white shadow-lg ring-2 ring-red-400/50',
+              )}
+            >
+              <span className="flex items-center text-lg font-bold">
+                {cleaning ? (
+                  <Loader2 className="h-6 w-6 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="h-6 w-6 mr-2" />
+                )}
+                🗑️ Очистить ВЕСЬ тестовый мусор
+              </span>
+              {previewLoading ? (
+                <span className="text-xs font-normal opacity-90">считаем записи…</span>
+              ) : previewTotal != null ? (
+                <span className="text-xs font-normal opacity-95">
+                  будет удалено: <strong>{previewTotal}</strong> записей
+                </span>
+              ) : null}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-lg">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-red-700">
-              <AlertTriangle className="h-5 w-5" />
-              Удалить все тестовые данные?
+            <AlertDialogTitle className="flex items-center gap-2 text-red-700 text-xl">
+              <AlertTriangle className="h-6 w-6" />
+              Удалить весь тестовый мусор?
             </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p>
-                  Будут удалены записи smoke-тестов и E2E: брони с меткой{' '}
-                  <strong>[E2E_TEST_DATA]</strong>, пулы <strong>pb-stage*</strong>, профили{' '}
-                  <strong>user-smoke-*</strong>, листинги <strong>lst-stage*</strong>, связанные
-                  выплаты и проводки ledger.
-                </p>
-                <p className="font-medium text-red-800">
-                  Боевые брони и реальные партнёры не затрагиваются. Действие необратимо.
-                </p>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                {previewLoading ? (
+                  <p className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Считаем тестовые записи…
+                  </p>
+                ) : previewTotal != null ? (
+                  <p className="text-base text-slate-900">
+                    Будет удалено ровно{' '}
+                    <Badge variant="destructive" className="text-base px-2 py-0.5">
+                      {previewTotal}
+                    </Badge>{' '}
+                    записей (брони, пулы, ledger, журнал, алерты).
+                  </p>
+                ) : (
+                  <p>Будут удалены все записи smoke/E2E и связанный ledger.</p>
+                )}
+                {previewCounts && typeof previewCounts === 'object' ? (
+                  <ul className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-700">
+                    {Object.entries(previewCounts)
+                      .filter(([, n]) => Number(n) > 0)
+                      .map(([key, n]) => (
+                        <li key={key}>
+                          {COUNT_LABELS[key] || key}: <strong>{n}</strong>
+                        </li>
+                      ))}
+                  </ul>
+                ) : null}
+                <ul className="list-disc pl-5 space-y-1 text-xs">
+                  <li>Маркеры: stage, smoke, E2E, lst-stage, pb-stage, lj-payout-settled</li>
+                  <li>ledger_journals, ledger_entries, treasury_ops_alerts</li>
+                  <li>Пустые и полностью тестовые пулы выплат</li>
+                </ul>
+                <p className="font-semibold text-red-800">Боевые брони и lj-cap реальных гостей не трогаем. Необратимо.</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={cleaning}>Отмена</AlertDialogCancel>
             <AlertDialogAction
-              disabled={cleaning}
-              className="bg-red-600 hover:bg-red-700"
+              disabled={cleaning || previewLoading}
+              className="bg-red-600 hover:bg-red-700 text-base h-11"
               onClick={(e) => {
                 e.preventDefault()
                 runCleanup()
               }}
             >
-              {cleaning ? 'Удаляем…' : 'Да, удалить тестовые данные'}
+              {cleaning ? 'Удаляем…' : `Да, удалить ${previewTotal ?? 'всё'}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -147,11 +268,10 @@ export function FinTechTestDataToolbar({ realDataOnly, onRealDataOnlyChange, onC
   )
 }
 
-/** @param {boolean} [fallback] */
 export function readFintechRealDataOnlyPreference(fallback = true) {
   if (typeof window === 'undefined') return fallback
   try {
-    const v = window.localStorage.getItem(STORAGE_KEY)
+    const v = window.localStorage.getItem(STORAGE_KEY_REAL)
     if (v === '0') return false
     if (v === '1') return true
   } catch {
@@ -160,11 +280,31 @@ export function readFintechRealDataOnlyPreference(fallback = true) {
   return fallback
 }
 
-/** @param {boolean} value */
 export function persistFintechRealDataOnlyPreference(value) {
   if (typeof window === 'undefined') return
   try {
-    window.localStorage.setItem(STORAGE_KEY, value ? '1' : '0')
+    window.localStorage.setItem(STORAGE_KEY_REAL, value ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
+
+export function readFintechOwnerModePreference(fallback = true) {
+  if (typeof window === 'undefined') return fallback
+  try {
+    const v = window.localStorage.getItem(STORAGE_KEY_OWNER)
+    if (v === '0') return false
+    if (v === '1') return true
+  } catch {
+    /* ignore */
+  }
+  return fallback
+}
+
+export function persistFintechOwnerModePreference(value) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(STORAGE_KEY_OWNER, value ? '1' : '0')
   } catch {
     /* ignore */
   }

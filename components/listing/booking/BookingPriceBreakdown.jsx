@@ -4,6 +4,7 @@ import { Separator } from '@/components/ui/separator'
 import { formatPrice, priceRawForTest } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
 import { cn } from '@/lib/utils'
+import { BOOKING_PRICE_BREAKDOWN_ID } from '@/lib/pricing/guest-display-price'
 
 function durationStayDiscountLabel(priceCalc, language, rentalPeriodMode) {
   const min = priceCalc.durationDiscountMinNights
@@ -57,7 +58,7 @@ export function BookingPriceBreakdown({
         : 'Base rate × nights'
 
   return (
-    <div className="space-y-2 pt-4 border-t text-sm">
+    <div id={BOOKING_PRICE_BREAKDOWN_ID} className="space-y-2 pt-4 border-t text-sm scroll-mt-24">
       {baseRaw != null && (
         <div className="flex justify-between gap-2">
           <span className="text-slate-600">{baseLineLabel}</span>

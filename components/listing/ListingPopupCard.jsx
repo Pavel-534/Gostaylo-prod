@@ -11,7 +11,6 @@ import { ListingCardSpecsRow } from '@/components/listing/ListingCardSpecsRow'
 import { ListingTrustVerifiedMiniBadge } from '@/components/listing/ListingTrustVerifiedMiniBadge'
 import { getUIText } from '@/lib/translations'
 import { resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
-import { resolveListingGuestDisplayPriceThb } from '@/lib/pricing/catalog-guest-display-price'
 
 /** @param {object} props */
 export function ListingPopupCard({
@@ -30,7 +29,6 @@ export function ListingPopupCard({
     isApproximateLocation ? 'mapListing_approximatePopup' : 'mapListing_exactPopup',
     language,
   )
-  const basePrice = resolveListingGuestDisplayPriceThb(listing)
   const categorySlug =
     listing.categorySlug || listing.category?.slug || listing.metadata?.category_slug || ''
 
@@ -67,7 +65,7 @@ export function ListingPopupCard({
         />
         <div className="flex items-baseline justify-between gap-1 border-t border-slate-100 pt-2">
           <CardPriceDisplay
-            basePrice={basePrice}
+            listing={listing}
             pricing={listing.pricing}
             initialDates={initialDates || {}}
             currency={currency}

@@ -29,6 +29,16 @@ export async function POST(request) {
     body = {}
   }
 
+  const dryRun = body.dryRun === true
+
+  if (dryRun) {
+    const { previewFintechTestDataCleanup } = await import(
+      '@/lib/admin/fintech-test-data-cleanup.service.js'
+    )
+    const preview = await previewFintechTestDataCleanup(supabaseAdmin)
+    return NextResponse.json({ success: true, data: preview })
+  }
+
   if (body.confirm !== true && body.confirmPhrase !== 'УДАЛИТЬ ТЕСТ') {
     return NextResponse.json(
       {
@@ -39,8 +49,6 @@ export async function POST(request) {
       { status: 400 },
     )
   }
-
-  const dryRun = body.dryRun === true
   const startedAt = new Date().toISOString()
 
   try {

@@ -11,6 +11,7 @@ import { getCachedActiveListingForLayout } from '@/lib/seo/listing-layout-data';
 import ListingSchema from '@/components/seo/ListingSchema';
 import { formatPrice, CURRENCIES } from '@/lib/currency';
 import { getDisplayRateMap } from '@/lib/services/currency.service';
+import { computeGuestDisplayFromBaseThb } from '@/lib/pricing/guest-display-price';
 
 function interpolate(template, vars) {
   return template.replace(/\{(\w+)\}/g, (_, k) => vars[k] || '');
@@ -44,7 +45,8 @@ export async function generateMetadata({ params }) {
       : 'THB';
 
   const baseThb = parseFloat(listing.base_price_thb);
-  const hasPrice = Number.isFinite(baseThb) && baseThb > 0;
+  const guestDisplayThb = computeGuestDisplayFromBaseThb(baseThb);
+  const hasPrice = Number.isFinite(guestDisplayThb) && guestDisplayThb > 0;
   let rateMap = { THB: 1 };
   if (hasPrice) {
     try {
@@ -53,7 +55,7 @@ export async function generateMetadata({ params }) {
       rateMap = { THB: 1 };
     }
   }
-  const priceFormatted = hasPrice ? formatPrice(baseThb, currency, rateMap, lang) : '';
+  const priceFormatted = hasPrice ? formatPrice(guestDisplayThb, currency, rateMap, lang) : '';
   const perNightSuffix = getUIText('listingMetaNightSuffix', lang);
 
   const titleTemplate = getUIText('listingPageTitle', lang);
