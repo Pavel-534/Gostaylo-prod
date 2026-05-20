@@ -61,7 +61,7 @@ import {
   POOL_MESSAGES_RU,
   FISCAL_QUEUE_STATUS_RU,
   TREASURY_DAILY_STEPS,
-  PAYOUT_RAIL_LABELS,
+  resolvePayoutRailLabel,
 } from '@/lib/admin/fintech-ui-labels'
 import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState'
 import { FiscalSandboxReceiptDialog } from '@/components/admin/finances/FiscalSandboxReceiptDialog'
@@ -81,6 +81,7 @@ import {
   readFintechOwnerModePreference,
   readFintechRealDataOnlyPreference,
 } from '@/components/admin/finances/FinTechTestDataToolbar'
+import { FinTechCronHealthPanel } from '@/components/admin/finances/FinTechCronHealthPanel'
 import { isFintechTestPayoutBatchRow } from '@/lib/admin/fintech-test-data-markers'
 
 const MINT = '#0D9488'
@@ -171,6 +172,7 @@ export function AdminFinTechConsole() {
   const [poolRail, setPoolRail] = useState('TBANK_RU')
   const [batchRailFilter, setBatchRailFilter] = useState('ALL')
   const [treasuryOps, setTreasuryOps] = useState(null)
+  const [cronHealth, setCronHealth] = useState(null)
   const [productionReadiness, setProductionReadiness] = useState(null)
   const [monthMargin, setMonthMargin] = useState(null)
   const [monthlyExporting, setMonthlyExporting] = useState(false)
@@ -203,6 +205,7 @@ export function AdminFinTechConsole() {
       if (dJson.success) setDash(dJson.data)
       if (opsJson.success) {
         setTreasuryOps(opsJson.data?.ops || null)
+        setCronHealth(opsJson.data?.cronHealth || null)
         setProductionReadiness(opsJson.data?.productionReadiness || null)
       }
       if (mJson.success) setMonthMargin(mJson.data?.margin || null)
@@ -352,14 +355,14 @@ export function AdminFinTechConsole() {
     if (!res.ok || !data?.ok) {
       const failed = (data?.steps || []).find((s) => !s.ok)
       toast({
-        title: `Симуляция ${PAYOUT_RAIL_LABELS[rail] || rail} не пройдена`,
+        title: `Симуляция ${resolvePayoutRailLabel(rail, ownerMode)} не пройдена`,
         description: failed?.detail || json.error || 'См. шаги в Legal',
         variant: 'destructive',
       })
       return
     }
     toast({
-      title: `Симуляция ${PAYOUT_RAIL_LABELS[rail] || rail} пройдена`,
+      title: `Симуляция ${resolvePayoutRailLabel(rail, ownerMode)} пройдена`,
       description: `Пул ${data.context?.batchId || '—'} · ${data.context?.payoutRailLabel || ''}`,
     })
     load()
@@ -405,7 +408,7 @@ export function AdminFinTechConsole() {
       return
     }
     toast({
-      title: `Пул ${PAYOUT_RAIL_LABELS[poolRail] || poolRail} сформирован`,
+      title: `Пул ${resolvePayoutRailLabel(poolRail, ownerMode)} сформирован`,
       description: `${json.itemCount ?? 0} броней · ${fmtThb(json.totalsThb)}`,
     })
     load()
@@ -797,10 +800,12 @@ export function AdminFinTechConsole() {
           </CardContent>
         </Card>
         <FinTechLaunchStatusDashboard readiness={productionReadiness} onRefresh={load} />
+        <FinTechCronHealthPanel cronHealth={cronHealth} ownerMode={ownerMode} loading={loading} />
         <FinTechTreasuryHeroDashboard
           dash={dash}
           statCards={statCards}
-          onSimulateRail={simulateFinancialRail}
+          onSimulateRail={ownerMode ? undefined : simulateFinancialRail}
+          ownerMode={ownerMode}
         />
         <FinTechEmergencyPauseCard ops={treasuryOps} onUpdated={load} toast={toast} />
         <Card className="border-amber-200 bg-amber-50/90 shadow-sm">
@@ -1248,14 +1253,16 @@ export function AdminFinTechConsole() {
               ))}
             </ol>
             <div className="flex flex-wrap items-center gap-2">
-              <Label className="text-sm text-slate-600">Рельс выплат</Label>
+              <Label className="text-sm text-slate-600">
+                {ownerMode ? 'Куда выплачиваем' : 'Рельс выплат'}
+              </Label>
               <select
                 className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm"
                 value={poolRail}
                 onChange={(e) => setPoolRail(e.target.value)}
               >
-                <option value="TBANK_RU">RUB Direct (T-Bank)</option>
-                <option value="KG_CRYPTO">KG / USDT (International)</option>
+                <option value="TBANK_RU">{resolvePayoutRailLabel('TBANK_RU', ownerMode)}</option>
+                <option value="KG_CRYPTO">{resolvePayoutRailLabel('KG_CRYPTO', ownerMode)}</option>
               </select>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -1265,7 +1272,7 @@ export function AdminFinTechConsole() {
                 style={{ backgroundColor: MINT }}
                 onClick={() => createPool(false)}
               >
-                Сформировать пул ({PAYOUT_RAIL_LABELS[poolRail] || poolRail})
+                Сформировать пул ({resolvePayoutRailLabel(poolRail, ownerMode)})
               </Button>
               <Button variant="outline" onClick={() => createPool(true)}>
                 Вне расписания (форс)
@@ -1287,7 +1294,7 @@ export function AdminFinTechConsole() {
                   variant={batchRailFilter === key ? 'default' : 'outline'}
                   onClick={() => setBatchRailFilter(key)}
                 >
-                  {key === 'ALL' ? 'Все' : PAYOUT_RAIL_LABELS[key]}
+                  {key === 'ALL' ? 'Все' : resolvePayoutRailLabel(key, ownerMode)}
                 </Button>
               ))}
             </div>
@@ -1303,6 +1310,7 @@ export function AdminFinTechConsole() {
                   <PayoutBatchRow
                     key={b.id}
                     batch={b}
+                    ownerMode={ownerMode}
                     settling={settlingBatchId === b.id}
                     onLock={lockBatch}
                     onExport={exportBatch}

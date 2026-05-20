@@ -15,6 +15,7 @@
 
 import { useCallback } from 'react'
 import { toast } from 'sonner'
+import { postChatMessage } from '@/lib/chat/post-chat-message'
 
 let _tempCounter = 0
 function tempId() {
@@ -59,21 +60,14 @@ export function useOptimisticSend({ conversationId, userId, setMessages }) {
       setMessages((prev) => [...prev, optimistic])
 
       try {
-        const res = await fetch('/api/v2/chat/messages', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId,
-            content: content.trim(),
-            type: 'text',
-            ...extraBody,
-          }),
+        const { ok, data: real, error } = await postChatMessage({
+          conversationId,
+          content: content.trim(),
+          type: 'text',
+          ...extraBody,
         })
-        const json = await res.json()
 
-        if (res.ok && json.success && json.data) {
-          const real = json.data
+        if (ok && real) {
           const realId = real.id ?? real.messageId ?? null
           // 2. Заменяем оптимистичное реальным
           setMessages((prev) => {
@@ -115,11 +109,11 @@ export function useOptimisticSend({ conversationId, userId, setMessages }) {
                 : m,
             )
           })
-          return json.data
+          return real
         } else {
           // 3. Ошибка — удаляем и показываем toast
           setMessages((prev) => prev.filter((m) => m.id !== tid))
-          toast.error(json.error || 'Ошибка отправки')
+          toast.error(error || 'Ошибка отправки')
           return null
         }
       } catch (err) {

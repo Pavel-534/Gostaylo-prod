@@ -68,6 +68,14 @@
 
 **Stage 107.1 (2026-05):** Единая гостевая цена на витрине — SSOT **`lib/pricing/guest-display-price.js`** (`getGuestDisplayPerNight`, `getGuestDisplayForStay`, `getPdpHeroGuestPriceThb`); **`GET /api/v2/listings/[id]`** → `guestDisplayPriceThb` + `guestServiceFeePercent`; каталог/карта/PDP hero (`BookingWidget`, `CardPriceDisplay`, `ListingCard`) — base + guest fee %; breakdown бронирования без изменений.
 
+**Stage 108.4 (2026-05):** `npm run verify:schema-103-2`; `validatePartnerBookingStatusTransition` (staff/partner PATCH); CHECKED_IN UI + owner hints; `BOOKING_STATUS_CODES` parity.
+
+**Stage 108.3 (2026-05):** FinTech `FinTechCronHealthPanel` + `financial-cron-health.js` (ops_job_runs, TG при stale > 3h); чат — один Realtime-канал на треде (`deferThreadRealtime`); owner labels в селекте пула.
+
+**Stage 108.2 (2026-05):** Техуборка — `post-chat-message.js`, удаление dead chat/booking UI, `PRICING_SERVICES.md`, `BOOKING_STATUS` sync, owner rail labels в FinTech.
+
+**Stage 108.1 (2026-05):** P0 перед реальными платежами — `legacy-payout-guard.js` (блок `processPayout` на prod/manual treasury + TG FINANCE); SSOT `lib/booking/status-transitions.js` (partner/staff/occupancy/display); FinTech «Режим владельца» по умолчанию.
+
 **Stage 107.2 (2026-05):** Полировка цен и FinTech-пульта — PDP hero: ссылка «+ сервисный сбор и налоги» → scroll к **`#booking-price-breakdown`**; **`CardPriceDisplay`** — «/ ночь» vs «за N ночей»; SEO meta + Schema.org + favorites/recently viewed — гостевая цена; пульт: понятные подписи журнала, карточка готовности, подсказка про суммы для гостя; паспорт § SSOT Цен.
 
 **Stage 106.4–106.5 (2026-05):** FinTech-пульт — **`POST /api/admin/clean-test-data`** (dry-run + confirm, только ADMIN): агрессивная очистка smoke/E2E по маркерам (`stage`, `smoke`, `E2E_TEST_DATA`, `lst-stage`, `user-smoke`, `pb-stage`, `lj-payout-settled`, `lj-batch-settled`); ledger только для **тестовых** броней (`lj-cap-{testBookingId}`), пустые/полностью тестовые пулы, конвертации; `treasury_ops_alerts`, `critical_signal_events`; dry-run возвращает **точный** `total` + `counts` (включая `ledgerEntries`). **`FinTechTestDataToolbar`**: счётчик на кнопке, breakdown в модалке, заметный переключатель «Только реальные данные» (localStorage), режим владельца → **`fintech-movement-labels`** («Оплата гостя», «Пул выплат»). После очистки — `dataRefreshKey` обновляет пулы, журнал, конвертации.

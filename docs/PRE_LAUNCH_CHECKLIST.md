@@ -21,6 +21,7 @@
 | 1.6b | **cron-job.org** (обязательно для hourly) | `promote-ready-for-payout`, `escrow-thaw` hourly; `payout-batch-pools` ПН/ЧТ — см. `docs/CRON_EXTERNAL_FINANCIAL.md` | DevOps |
 | 1.6c | Smoke cron | `npm run smoke:financial` → PASS | DevOps |
 | 1.6e | Smoke E2E financial (Stage 103) | `npm run smoke:full-financial` → все ✅; см. `docs/STAGE_103_PRE_LAUNCH_CHECKLIST.md` | FinTech |
+| 1.6f | Schema 103.2 (payout lifecycle) | `npm run verify:schema-103-2` → 6/6 ✅; иначе `migrations/stage103_2_payout_batches_lifecycle_columns.sql` | DevOps |
 | 1.6d | Prod env | `docs/PRODUCTION_ENV.md` — `PRICING_ENGINE_V2=true`, `FISCAL_SANDBOX=false` | DevOps |
 | 1.7 | Legal KG IT contract wording | `docs/legal/IT_SERVICE_KG_CONTRACT_SUMMARY.md` согласован с бухгалтерией | Legal |
 

@@ -190,7 +190,7 @@ export function FinTechTestDataToolbar({
                 ) : (
                   <Trash2 className="h-6 w-6 mr-2" />
                 )}
-                🗑️ Очистить ВЕСЬ тестовый мусор
+                Запустить полную очистку тестовых данных
               </span>
               {previewLoading ? (
                 <span className="text-xs font-normal opacity-90">считаем записи…</span>

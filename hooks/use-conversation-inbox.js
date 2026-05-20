@@ -55,6 +55,10 @@ export function useConversationInbox({
   enabled = true,
   /** true = только скрытые у пользователя диалоги (GET …&archived=only) */
   archivedOnly = false,
+  /** Stage 108.3 — единый Realtime на треде: INSERT/UPDATE активного треда пробрасываются сюда */
+  activeConversationId = null,
+  onActiveMessageInsert = null,
+  onActiveMessageUpdate = null,
 }) {
   const [conversations, setConversations] = useState([])
   const [isLoading, setIsLoading] = useState(false)
@@ -85,6 +89,20 @@ export function useConversationInbox({
   }, [userId])
 
   const msgUnknownConvFetchRef = useRef(new Set())
+  const [isMessagesRealtimeConnected, setIsMessagesRealtimeConnected] = useState(false)
+
+  const activeConvRef = useRef(activeConversationId)
+  const onActiveInsertRef = useRef(onActiveMessageInsert)
+  const onActiveUpdateRef = useRef(onActiveMessageUpdate)
+  useEffect(() => {
+    activeConvRef.current = activeConversationId
+  }, [activeConversationId])
+  useEffect(() => {
+    onActiveInsertRef.current = onActiveMessageInsert
+  }, [onActiveMessageInsert])
+  useEffect(() => {
+    onActiveUpdateRef.current = onActiveMessageUpdate
+  }, [onActiveMessageUpdate])
 
   useEffect(() => {
     archivedOnlyRef.current = archivedOnly
@@ -413,6 +431,9 @@ export function useConversationInbox({
     const stop = subscribeRealtimeWithBackoff({
       supabase,
       channelLabel: `inbox:messages:${userId}`,
+      onChannelStatus: (status) => {
+        setIsMessagesRealtimeConnected(status === 'SUBSCRIBED')
+      },
       createChannel: (attempt) =>
         supabase
           .channel(`inbox-messages:${userId}:${attempt}`)
@@ -425,6 +446,11 @@ export function useConversationInbox({
               const uid = userIdRef.current
               if (!convId || !uid) return
               const convKey = String(convId)
+
+              const activeId = activeConvRef.current
+              if (activeId && convKey === String(activeId)) {
+                onActiveInsertRef.current?.(msg)
+              }
 
               let missingInList = false
               setConversations((prev) => {
@@ -468,10 +494,26 @@ export function useConversationInbox({
                 })
               }
             },
+          )
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'messages' },
+            (payload) => {
+              const msg = payload.new
+              const convId = msg?.conversation_id
+              if (!convId) return
+              const activeId = activeConvRef.current
+              if (activeId && String(convId) === String(activeId)) {
+                onActiveUpdateRef.current?.(msg)
+              }
+            },
           ),
     })
 
-    return () => stop()
+    return () => {
+      setIsMessagesRealtimeConnected(false)
+      stop()
+    }
   }, [userId, enabled, unarchiveConversation, fetchOneConversationForInbox])
 
   const loadMore = useCallback(() => {
@@ -545,5 +587,7 @@ export function useConversationInbox({
     toggleFavorite,
     setFavoriteOnlyFetch,
     refreshFavoriteIdsFromServer,
+
+    isMessagesRealtimeConnected,
   }
 }

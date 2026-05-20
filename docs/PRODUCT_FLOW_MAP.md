@@ -1,7 +1,7 @@
 # Product Flow Map — GoStayLo
 
-**Version:** 1.0.0  
-**Last updated:** 2026-05-19  
+**Version:** 1.4.0  
+**Last updated:** 2026-05-20 | **Stage 108.4:** schema verify script, status SSOT patch, CHECKED_IN UI/hints, BOOKING_STATUS parity. | **Stage 108.3:** FinTech cron health panel, chat thread Realtime dedup (inbox SSOT), owner pool labels. | **Stage 108.2:** dead code removed, chat POST SSOT, pricing map, owner FinTech labels. | **Stage 108.1:** legacy payout guard, booking status SSOT, FinTech owner mode default.  
 **Audience:** product, engineering, AI agents  
 **Status:** code-truth snapshot; normative policy remains **`ARCHITECTURAL_DECISIONS.md`** and **`docs/ADR/097-financial-model-v2.md`**
 
@@ -42,12 +42,12 @@
 | Цена на create | `pricing_snapshot` + `lib/services/booking/pricing-engine-integration.js` | Клиентский total без attestation |
 | Settlement на оплате | `lib/services/booking/pricing.service.js` (`settlement_v3`) | Пересчёт комиссии на confirm |
 | Комиссия / FX | `lib/services/currency.service.js`, `exchange_rates`, snapshot | Литералы 10%/35.5 в коде |
-| Переходы статусов (хост) | `STATUS_TRANSITIONS` в `app/api/v2/partner/bookings/[id]/route.js` | `BookingService.updateStatus` (урезан) |
+| Переходы статусов (хост) | `lib/booking/status-transitions.js` | Локальные копии `STATUS_TRANSITIONS` |
 | UI-лейблы статусов | `lib/booking/booking-status-display.js` | Только `lib/config/app-constants.js` |
 | Оплата → эскроу | `EscrowService.moveToEscrow` + RPC `move_to_escrow_and_post_ledger_v1` | Прямой `status = PAID_ESCROW` |
 | Разморозка | Cron `POST /api/cron/escrow-thaw` | Ручной `CHECKED_IN` как замена thaw |
 | Доступно к выплате | Cron `promote-ready-for-payout` + `lib/partner/partner-payout-eligibility.js` | — |
-| Выплата prod (Concierge) | `PayoutBatchService` + ручной банк | `EscrowService.processPayout` |
+| Выплата prod (Concierge) | `PayoutBatchService` + ручной банк | `EscrowService.processPayout` (**заблокирован** Stage 108.1) |
 | Чат | `/messages/[id]`, `/api/v2/chat/*` | `/chat/[id]` (только redirect) |
 | Отзыв гостя | `POST /api/v2/reviews`, `lib/orders/order-timeline.js` | — |
 | Рейтинг на карточке | `listings.avg_rating` (триггер DB) | Клиентский средний без БД |
@@ -249,7 +249,7 @@ flowchart TB
 
 ### 5.1 Операционный граф (партнёр API) — **канон для хоста**
 
-Источник: `app/api/v2/partner/bookings/[id]/route.js`
+Источник: **`lib/booking/status-transitions.js`** (`PARTNER_BOOKING_STATUS_TRANSITIONS`). Импорт: partner route, `BookingService.updateStatus`, occupancy.
 
 ```
 PENDING / INQUIRY → CONFIRMED | CANCELLED
@@ -260,6 +260,8 @@ CHECKED_IN / THAWED → COMPLETED | REFUNDED
 ```
 
 `READY_FOR_PAYOUT` выставляется **cron**, не партнёрским PUT.
+
+**CHECKED_IN ≠ THAWED:** check-in — сигнал «заехал»; thaw — разморозка эскроу cron.
 
 ### 5.2 Финансовый подграф (ADR-097)
 
@@ -280,12 +282,10 @@ CONFIRMED → (pay) → PAID_ESCROW → (cron thaw) → THAWED
 
 | Место | Проблема |
 |-------|----------|
-| `BookingService.updateStatus` | Нет `PAID_ESCROW`, `THAWED`, `READY_FOR_PAYOUT`, `CHECKED_IN` |
 | `lib/config/app-constants.js` `BOOKING_STATUS` | Нет `THAWED`, `READY_FOR_PAYOUT`, `CHECKED_IN`, `AWAITING_PAYMENT` |
-| `lib/services/escrow/constants.js` | Подмножество для escrow-only |
-| `lib/booking-occupancy-statuses.js` | Блокирует ночи до `THAWED` (+ `CHECKED_IN`), не `READY_FOR_PAYOUT` |
+| `lib/services/escrow/constants.js` | Подмножество для escrow-only (не граф переходов) |
 
-**Целевой SSOT (PR P1-1):** `lib/booking/status-transitions.js` — один экспорт для partner, occupancy, display, docs.
+**Закрыто (108.1):** `lib/booking/status-transitions.js` — partner, `BookingService.updateStatus`, occupancy re-export, display hint.
 
 ---
 
@@ -293,16 +293,16 @@ CONFIRMED → (pay) → PAID_ESCROW → (cron thaw) → THAWED
 
 | ID | Тип | Описание | Файлы | Действие |
 |----|-----|----------|-------|----------|
-| D-01 | Legacy payout | Второй контур выплат в обход пула | `escrow/payout.service.js` | Guard + deprecate (P0-1) |
-| D-02 | Status FSM | 4+ определения переходов | partner route, `booking.service.js`, constants | SSOT module (P0-2 / P1-1) |
-| D-03 | Pricing name | Два `pricing.service.js` | `lib/services/pricing.service.js` vs `booking/pricing.service.js` | Док + alias в импортах (P1-8 doc-only) |
+| D-01 | Legacy payout | Второй контур выплат в обход пула | `escrow/payout.service.js` | **Done 108.1** — `legacy-payout-guard.js`, TG FINANCE alert |
+| D-02 | Status FSM | 4+ определения переходов | partner route, `booking.service.js` | **Done 108.1** — `status-transitions.js` |
+| D-03 | Pricing name | Два `pricing.service.js` | `lib/services/pricing.service.js` vs `booking/pricing.service.js` | **Done 108.2** — `lib/pricing/PRICING_SERVICES.md` + шапки файлов |
 | D-04 | Search URL | Два endpoint | `/api/v2/search`, `/api/v2/listings/search` | OK (thin wrapper) |
-| D-05 | Chat Realtime | Два inbox loader | `ChatContext.jsx`, `useConversationInbox` | Dedup (P1-3) |
-| D-06 | Chat send | Два send path | `useChatThreadMessages`, `UnifiedMessagesClient` fetch | Unify (P1-2) |
-| D-07 | Dead UI | confirm/reject API не существует | `components/booking-actions.jsx` | Delete or fix (P1-4) |
-| D-08 | Dead UI | Нет импортов | `chat-booking-announcement.jsx`, `chat-typing-bar.jsx` | Remove (P1-5) |
-| D-09 | CHECKED_IN vs THAWED | Два смысла «после оплаты» | check-in route vs escrow-thaw | Doc + product rule (P1-6) |
-| D-10 | Schema drift | Колонки 053 не на всех БД | `migrations/stage103_2_*` | Apply all envs (P0-3) |
+| D-05 | Chat Realtime | Два inbox loader | `ChatContext.jsx`, `useConversationInbox` | **Частично 108.3** — на треде один канал messages (inbox); глобальный badge — `ChatContext` |
+| D-06 | Chat send | Дубли `fetch` к messages | `lib/chat/post-chat-message.js` | **Частично 108.2** — SSOT POST; текст/voice/media через хук |
+| D-07 | Dead UI | confirm/reject API не существует | ~~`booking-actions.jsx`~~ | **Done 108.2** — удалён; партнёр: `PUT partner/bookings` + чат |
+| D-08 | Dead UI | Нет импортов | ~~chat-booking-announcement, chat-typing-bar~~ | **Done 108.2** — удалены |
+| D-09 | CHECKED_IN vs THAWED | Два смысла «после оплаты» | check-in route vs escrow-thaw | **Done 108.4** — SSOT table + UI hints (P1-6) |
+| D-10 | Schema drift | Колонки 053 не на всех БД | `migrations/stage103_2_*` | **Done 108.4** — `npm run verify:schema-103-2`; apply SQL if fail |
 
 ---
 
@@ -328,10 +328,10 @@ CONFIRMED → (pay) → PAID_ESCROW → (cron thaw) → THAWED
 
 | PR | Название | Scope | Ключевые файлы | Acceptance criteria |
 |----|----------|-------|----------------|---------------------|
-| **P0-1** | Guard legacy auto-payout | Запретить `processPayout` / `processAllPayoutsForToday` на prod без явного `ALLOW_LEGACY_PAYOUT=1` | `lib/services/escrow/payout.service.js`, `escrow.service.js`, runbook | Ни один cron/admin путь не вызывает legacy на prod; unit/log при попытке |
-| **P0-2** | Booking status SSOT module | Вынести `STATUS_TRANSITIONS` + occupancy + display hints в `lib/booking/status-transitions.js`; partner route импортирует | `lib/booking/status-transitions.js`, `partner/bookings/[id]/route.js`, `booking-occupancy-statuses.js` | Один файл — источник allowed transitions; partner behavior unchanged |
-| **P0-3** | Schema 103.2 all environments | Док + скрипт проверки колонок; merge `stage103_2` в runbook deploy | `migrations/stage103_2_*`, `migrations/stage103_2_*_SPLIT.md`, `PRE_LAUNCH_CHECKLIST` | SQL check returns 3 rows; `npm run smoke:full-financial` PASS on staging/prod |
-| **P0-4** | External financial cron verification | Health: last run timestamps в `ops_job_runs` или admin widget; alert if stale > 2h | `app/api/cron/*`, `docs/CRON_EXTERNAL_FINANCIAL.md`, optional admin route | Документированный способ увидеть «thaw не бегал 3 часа» |
+| **P0-1** | Guard legacy auto-payout | ✅ **108.1** | `legacy-payout-guard.js`, `payout.service.js` | Blocked prod + manual mode; `ALLOW_LEGACY_PAYOUT=1` override; TG alert |
+| **P0-2** | Booking status SSOT module | ✅ **108.1** | `lib/booking/status-transitions.js` | Partner + staff + occupancy; CHECKED_IN ≠ THAWED documented |
+| **P0-3** | Schema 103.2 all environments | ✅ **108.4** (tooling) | `scripts/verify-stage103-2-schema.mjs`, `npm run verify:schema-103-2` | 6/6 columns on each env; apply migration if missing |
+| **P0-4** | External financial cron verification | ✅ **108.3** | `lib/admin/financial-cron-health.js`, `FinTechCronHealthPanel`, `GET treasury-ops` | Панель на `/admin/settings/finances`; stale > 3h → жёлтый/красный + TG FINANCE |
 
 **Suggested branch names:** `fix/p0-legacy-payout-guard`, `refactor/p0-booking-status-ssot`, `chore/p0-schema-103-2`, `feat/p0-cron-health-surface`
 
@@ -341,13 +341,14 @@ CONFIRMED → (pay) → PAID_ESCROW → (cron thaw) → THAWED
 
 | PR | Название | Scope | Ключевые файлы | Acceptance criteria |
 |----|----------|-------|----------------|---------------------|
-| **P1-1** | Extend `BookingService.updateStatus` or deprecate | Либо делегировать в SSOT module, либо `@deprecated` + redirect staff to partner/admin tools | `booking.service.js`, `app/api/v2/bookings/[id]/route.js` | Staff transitions ⊆ partner graph for overlapping statuses |
+| **P1-1** | Extend `BookingService.updateStatus` or deprecate | ✅ **108.4** | `validatePartnerBookingStatusTransition`, `@deprecated` on `updateStatus` | PATCH fields + graph from `status-transitions.js` |
 | **P1-2** | Unify chat send pipeline | Voice/invoice/passport через `useChatThreadMessages` | `UnifiedMessagesClient.jsx`, `use-chat-thread-messages.js` | Один optimistic/retry path; no duplicate fetch blocks |
-| **P1-3** | Dedup chat inbox Realtime | Thread page: только `useConversationInbox` **или** только `ChatProvider` list | `ChatContext.jsx`, `messages/[id]/page.js` | Одна postgres_changes подписка на inbox на thread |
-| **P1-4** | Remove dead `booking-actions` | Удалить или заменить на `PUT partner/bookings` | `components/booking-actions.jsx` | Нет импортов в репо; CI green |
-| **P1-5** | Remove unused chat components | Delete `chat-booking-announcement`, `chat-typing-bar` | `components/chat-*` | Build passes; milestone card remains |
-| **P1-6** | CHECKED_IN vs THAWED product doc | ADR snippet + UI copy: check-in ≠ payout release | `docs/ADR/097-*` or this doc §4.6, check-in route comment | Support/runbook answers one paragraph |
-| **P1-7** | Client `BOOKING_STATUS` parity | Добавить `THAWED`, `READY_FOR_PAYOUT`, `CHECKED_IN`, `AWAITING_PAYMENT` или codegen from server | `lib/config/app-constants.js`, filters in renter/partner UI | No undefined status in booking lists after thaw |
+| **P1-3** | Dedup chat inbox Realtime | ✅ **108.3** (тред) | `use-conversation-inbox.js`, `use-chat-thread-messages.js`, `UnifiedMessagesClient.jsx` | На треде: один канал `inbox-messages`; `deferThreadRealtime` |
+| **P1-4** | Remove dead `booking-actions` | ✅ **108.2** | — | Удалён |
+| **P1-5** | Remove unused chat components | ✅ **108.2** | — | Удалены |
+| **P1-2** | Unify chat send pipeline | ✅ **108.2** (частично) | `lib/chat/post-chat-message.js` | Один POST SSOT; invoice — отдельный endpoint |
+| **P1-6** | CHECKED_IN vs THAWED product doc | ✅ **108.4** | `status-transitions.js` table, `BOOKING_STATUS_OWNER_HINTS_RU`, partner finances tooltip | «Гость заехал» ≠ «Разморожено» в UI |
+| **P1-7** | Client `BOOKING_STATUS` parity | ✅ **108.4** | `BOOKING_STATUS_CODES`, `BOOKING_ESCROW_PIPELINE_STATUSES`, `escrow/constants.js` | All pipeline statuses in client SSOT |
 | **P1-8** | Pricing service rename clarity | Re-export aliases `PricingCatalogService` / `BookingSettlementPricing` (no behavior change) | `pricing.service.js` files, imports optional | New code cannot confuse two modules by name |
 
 **Suggested branch names:** `refactor/p1-chat-send-ssot`, `refactor/p1-chat-inbox-dedup`, `chore/p1-dead-components`, `docs/p1-checkedin-thaw`, `fix/p1-booking-status-constants`

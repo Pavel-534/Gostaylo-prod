@@ -1,7 +1,7 @@
 /**
  * GoStayLo - Single Booking API (v2)
  * GET /api/v2/bookings/[id] - Get booking details
- * PUT /api/v2/bookings/[id] - Update booking status
+ * PUT /api/v2/bookings/[id] - Update booking status (staff only; @deprecated for product — use partner API)
  */
 
 import { NextResponse } from 'next/server';

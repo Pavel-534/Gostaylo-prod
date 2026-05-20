@@ -99,9 +99,19 @@ export function PartnerFinancesTransactionHistory({
                       {(() => {
                         const st = resolveBookingStatusBadge(booking, { t })
                         return (
-                          <Badge className={`text-xs ${st.badgeClass}`} title={st.dbStatus}>
-                            {st.label}
-                          </Badge>
+                          <>
+                            <Badge
+                              className={`text-xs ${st.badgeClass}`}
+                              title={st.ownerHintRu || st.dbStatus}
+                            >
+                              {st.label}
+                            </Badge>
+                            {st.ownerHintRu ? (
+                              <p className="w-full text-xs text-sky-800/90 mt-1 leading-snug">
+                                {st.ownerHintRu}
+                              </p>
+                            ) : null}
+                          </>
                         )
                       })()}
                     </div>

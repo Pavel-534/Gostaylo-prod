@@ -32,6 +32,7 @@ import { isMessageHiddenFromViewer } from '@/lib/chat-message-visibility'
 import { isRealtimeDebugEnabled } from '@/lib/chat/realtime-debug-log'
 import { useChatRealtime } from '@/hooks/use-chat-realtime'
 import { useOptimisticSend } from '@/hooks/use-optimistic-send'
+import { postChatMessage } from '@/lib/chat/post-chat-message'
 import { uploadChatFile, uploadChatVoice } from '@/lib/chat-upload'
 
 // ─── Утилита ─────────────────────────────────────────────────────────────────
@@ -80,6 +81,8 @@ function buildMapperOpts(conv, userId, viewerRole, bookingState = null) {
  * @param {Function}    [opts.onMarkRead]    — callback вызывается после загрузки треда
  *                                             (например, для сброса badge в ChatContext)
  * @param {Function}    [opts.onNewMessage]  — callback при новом Realtime-сообщении от собеседника
+ * @param {boolean}     [opts.deferThreadRealtime] — не подписываться на тред (SSOT: useConversationInbox)
+ * @param {boolean}     [opts.externalIsConnected] — статус канала inbox при deferThreadRealtime
  *
  * @returns {{
  *   messages:      Array<import('@/lib/chat/map-api-message').ChatMessage>,
@@ -100,6 +103,8 @@ export function useChatThreadMessages({
   viewerRole = null,
   onMarkRead = null,
   onNewMessage = null,
+  deferThreadRealtime = false,
+  externalIsConnected = false,
 }) {
   // ── Стейт ───────────────────────────────────────────────────────────────────
   const [messages, setMessages] = useState([])
@@ -365,23 +370,17 @@ export function useChatThreadMessages({
         const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') ? 'm4a' : mime.includes('mpeg') ? 'mp3' : 'webm'
         const file = new File([blob], `voice_${Date.now()}.${ext}`, { type: mime })
         const { url: voiceUrl } = await uploadChatVoice(file, userId)
-        const res = await fetch('/api/v2/chat/messages', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId,
-            content: '🎤',
-            type: 'voice',
-            metadata: { voice_url: voiceUrl, duration_sec: durationSec },
-          }),
+        const { ok, data, error } = await postChatMessage({
+          conversationId,
+          content: '🎤',
+          type: 'voice',
+          metadata: { voice_url: voiceUrl, duration_sec: durationSec },
         })
-        const json = await res.json()
-        if (!res.ok || !json.success) {
-          toast.error(json.error || 'Ошибка отправки голосового')
+        if (!ok) {
+          toast.error(error || 'Ошибка отправки голосового')
           return null
         }
-        return json.data
+        return data
       } catch {
         toast.error('Ошибка сети')
         return null
@@ -402,23 +401,17 @@ export function useChatThreadMessages({
       if (!file || !conversationId || !userId) return null
       try {
         const { url } = await uploadChatFile(file, userId, type === 'image' ? 'images' : 'files')
-        const res = await fetch('/api/v2/chat/messages', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId,
-            content: file.name,
-            type,
-            metadata: type === 'image' ? { image_url: url } : { file_url: url, file_name: file.name },
-          }),
+        const { ok, data, error } = await postChatMessage({
+          conversationId,
+          content: file.name,
+          type,
+          metadata: type === 'image' ? { image_url: url } : { file_url: url, file_name: file.name },
         })
-        const json = await res.json()
-        if (!res.ok || !json.success) {
-          toast.error(json.error || 'Ошибка загрузки файла')
+        if (!ok) {
+          toast.error(error || 'Ошибка загрузки файла')
           return null
         }
-        return json.data
+        return data
       } catch {
         toast.error('Ошибка сети')
         return null
@@ -458,5 +451,8 @@ export function useChatThreadMessages({
     setBooking,    // обновление статуса брони из handleConfirmBooking / handleDecline
     setSelectedConv,
     mapperOpts,
+
+    handleRealtimeInsert,
+    handleRealtimeUpdate,
   }
 }

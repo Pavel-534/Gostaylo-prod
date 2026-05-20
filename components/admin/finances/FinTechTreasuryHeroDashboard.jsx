@@ -51,7 +51,7 @@ function StatusTile({ title, count, thb, icon: Icon, accent, sub }) {
   )
 }
 
-export function FinTechTreasuryHeroDashboard({ dash, statCards, onSimulateRail }) {
+export function FinTechTreasuryHeroDashboard({ dash, statCards, onSimulateRail, ownerMode = true }) {
   const [simBusy, setSimBusy] = useState(null)
 
   const rub = dash?.rails?.TBANK_RU
@@ -76,7 +76,7 @@ export function FinTechTreasuryHeroDashboard({ dash, statCards, onSimulateRail }
       label: 'Готово к выплате (всего)',
       value: dash?.payout?.readyForPayoutCount ?? 0,
       sub: fmtThb(dash?.payout?.readyForPayoutThb),
-      hint: 'броней READY_FOR_PAYOUT',
+      hint: ownerMode ? 'готово к переводу в банк' : 'броней READY_FOR_PAYOUT',
       icon: Banknote,
       accent: 'teal',
     },
@@ -124,21 +124,27 @@ export function FinTechTreasuryHeroDashboard({ dash, statCards, onSimulateRail }
               Казначейство перед первой выплатой
             </h2>
             <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
-              Два рельса: RUB Direct (партнёры RUB) и KG / USDT (международные). Пулы и ZIP — отдельно
-              по рельсу.
+              {ownerMode
+                ? 'Два направления выплат: в рублях по России и международные (USDT). Пакеты для банка формируются отдельно.'
+                : 'Два рельса: RUB Direct (партнёры RUB) и KG / USDT (международные). Пулы и ZIP — отдельно по рельсу.'}
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div
+            className={cn(
+              'grid sm:grid-cols-2 gap-3',
+              ownerMode && !driftBad ? 'lg:grid-cols-3' : 'lg:grid-cols-4',
+            )}
+          >
             <StatusTile
-              title="RUB Direct"
+              title={ownerMode ? 'Выплаты в ₽' : 'RUB Direct'}
               count={rub?.readyCount ?? 0}
               thb={rub?.readyThb}
               icon={Banknote}
               accent="blue"
             />
             <StatusTile
-              title="KG / USDT"
+              title={ownerMode ? 'Международные' : 'KG / USDT'}
               count={intl?.readyCount ?? 0}
               thb={intl?.readyThb}
               icon={Globe}
@@ -152,14 +158,25 @@ export function FinTechTreasuryHeroDashboard({ dash, statCards, onSimulateRail }
               accent="amber"
               sub="hold после разморозки"
             />
-            <StatusTile
-              title="Drift ledger"
-              count={driftBad ? '!' : 'OK'}
-              thb={driftThb}
-              icon={Scale}
-              accent={driftBad ? 'red' : 'emerald'}
-              sub={driftBad ? 'сверьте книгу' : 'в норме'}
-            />
+            {!ownerMode ? (
+              <StatusTile
+                title="Drift ledger"
+                count={driftBad ? '!' : 'OK'}
+                thb={driftThb}
+                icon={Scale}
+                accent={driftBad ? 'red' : 'emerald'}
+                sub={driftBad ? 'сверьте книгу' : 'в норме'}
+              />
+            ) : driftBad ? (
+              <StatusTile
+                title="Сверка учёта"
+                count="!"
+                thb={driftThb}
+                icon={Scale}
+                accent="red"
+                sub="нужна проверка"
+              />
+            ) : null}
           </div>
 
           {onSimulateRail ? (

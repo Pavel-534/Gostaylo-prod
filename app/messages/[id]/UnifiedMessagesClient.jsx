@@ -14,7 +14,6 @@ import { toast } from 'sonner'
 import { Archive, Loader2, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { detectUnsafePatterns, SafetyBanner } from '@/components/chat-safety'
-import { uploadChatVoice } from '@/lib/chat-upload'
 import { cn } from '@/lib/utils'
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 import { useVoiceRecorder } from '@/hooks/use-voice-recorder'
@@ -29,6 +28,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { useChatContext } from '@/lib/context/ChatContext'
 import { getUIText } from '@/lib/translations'
 import { useChatThreadMessages } from '@/hooks/use-chat-thread-messages'
+import { postChatMessage } from '@/lib/chat/post-chat-message'
 import { useConversationInbox } from '@/hooks/use-conversation-inbox'
 import { usePresenceContext } from '@/lib/context/PresenceContext'
 import { useMarkConversationRead } from '@/hooks/use-mark-conversation-read'
@@ -107,10 +107,15 @@ export default function UnifiedMessagesClient({ params }) {
     [isPartnerAccount],
   )
 
+  const threadRealtimeBridgeRef = useRef({ onInsert: null, onUpdate: null })
+
   const inbox = useConversationInbox({
     userId: user?.id,
     defaultTab: isPartnerAccount ? INBOX_TAB_HOSTING : INBOX_TAB_TRAVELING,
     enabled: !!user?.id,
+    activeConversationId: conversationId,
+    onActiveMessageInsert: (raw) => threadRealtimeBridgeRef.current.onInsert?.(raw),
+    onActiveMessageUpdate: (raw) => threadRealtimeBridgeRef.current.onUpdate?.(raw),
   })
 
   useEffect(() => {
@@ -139,15 +144,20 @@ export default function UnifiedMessagesClient({ params }) {
     listing,
     booking,
     sendMessage: sendMessageText,
+    sendVoice: sendVoiceMessage,
     sendMedia,
     reload: reloadThread,
     setMessages,
     setBooking,
     setSelectedConv,
+    handleRealtimeInsert,
+    handleRealtimeUpdate,
   } = useChatThreadMessages({
     conversationId,
     userId: user?.id,
     viewerRole: viewerRoleForHook,
+    deferThreadRealtime: Boolean(conversationId),
+    externalIsConnected: inbox.isMessagesRealtimeConnected,
     onMarkRead: () => {
       if (conversationId) {
         markGlobalRead(conversationId)
@@ -159,6 +169,13 @@ export default function UnifiedMessagesClient({ params }) {
       markNow()
     },
   })
+
+  useEffect(() => {
+    threadRealtimeBridgeRef.current = {
+      onInsert: handleRealtimeInsert,
+      onUpdate: handleRealtimeUpdate,
+    }
+  }, [handleRealtimeInsert, handleRealtimeUpdate])
 
   useEffect(() => {
     if (conversationId) {
@@ -433,35 +450,37 @@ export default function UnifiedMessagesClient({ params }) {
     [newMessage, selectedConv, user, sendMessageText, inbox, broadcastTypingStop],
   )
 
+  const appendServerChatMessage = useCallback(
+    (row) => {
+      if (!row || !user) return
+      const mapped = mapApiMessageToRow(row, {
+        viewerUserId: user.id,
+        viewerRole: viewerRoleForHook,
+        bookingStatus: booking?.status ?? null,
+        listingCategory: selectedConv?.listingCategory ?? null,
+        conversation: conversationForMapper,
+      })
+      if (mapped) setMessages((prev) => [...prev, mapped])
+    },
+    [user, booking?.status, selectedConv?.listingCategory, conversationForMapper, setMessages, viewerRoleForHook],
+  )
+
   const handleSendVoice = useCallback(
     async ({ url, duration }) => {
       if (!selectedConv || !user) return
       setSending(true)
       try {
-        const res = await fetch('/api/v2/chat/messages', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            conversationId: selectedConv.id,
-            type: 'voice',
-            content: '',
-            metadata: { voice_url: url, duration_sec: duration },
-          }),
+        const { ok, data, error } = await postChatMessage({
+          conversationId: selectedConv.id,
+          type: 'voice',
+          content: '',
+          metadata: { voice_url: url, duration_sec: duration },
         })
-        const json = await res.json()
-        if (res.ok && json.success && json.data) {
-          const mapped = mapApiMessageToRow(json.data, {
-            viewerUserId: user.id,
-            viewerRole: viewerRoleForHook,
-            bookingStatus: booking?.status ?? null,
-            listingCategory: selectedConv?.listingCategory ?? null,
-            conversation: conversationForMapper,
-          })
-          if (mapped) setMessages((prev) => [...prev, mapped])
+        if (ok && data) {
+          appendServerChatMessage(data)
           inbox.refresh()
         } else {
-          toast.error(json.error || getUIText('listingDetail_networkError', language))
+          toast.error(error || getUIText('listingDetail_networkError', language))
         }
       } catch {
         toast.error(getUIText('listingDetail_networkError', language))
@@ -469,7 +488,7 @@ export default function UnifiedMessagesClient({ params }) {
         setSending(false)
       }
     },
-    [selectedConv, user, booking?.status, setMessages, inbox, viewerRoleForHook, conversationForMapper, language],
+    [selectedConv, user, appendServerChatMessage, inbox, language],
   )
 
   const handleSendInvoice = useCallback(
@@ -507,28 +526,22 @@ export default function UnifiedMessagesClient({ params }) {
   const handleSendPassportRequest = useCallback(async () => {
     if (!selectedConv || !user) return
     try {
-      const res = await fetch('/api/v2/chat/messages', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: selectedConv.id,
-          type: 'system',
-          content: '',
-          metadata: { system_key: 'passport_request' },
-        }),
+      const { ok, data, error } = await postChatMessage({
+        conversationId: selectedConv.id,
+        type: 'system',
+        content: '',
+        metadata: { system_key: 'passport_request' },
       })
-      const json = await res.json()
-      if (!res.ok || !json.success) {
-        toast.error(json.error || getUIText('listingDetail_networkError', language))
+      if (!ok) {
+        toast.error(error || getUIText('listingDetail_networkError', language))
         return
       }
-      if (json.data) setMessages((prev) => [...prev, json.data])
+      if (data) appendServerChatMessage(data)
       inbox.refresh()
     } catch {
       toast.error(getUIText('listingDetail_networkError', language))
     }
-  }, [selectedConv, user, setMessages, inbox, language])
+  }, [selectedConv, user, appendServerChatMessage, inbox, language])
 
   const handleAttachFile = useCallback(
     async (file) => {
@@ -547,48 +560,28 @@ export default function UnifiedMessagesClient({ params }) {
     if (!voiceBlob || !user?.id || !selectedConv) return
     setVoiceSending(true)
     try {
-      const mime = voiceBlob.type || 'audio/webm'
-      const ext = mime.includes('ogg')
-        ? 'ogg'
-        : mime.includes('mp4')
-          ? 'm4a'
-          : mime.includes('mpeg')
-            ? 'mp3'
-            : 'webm'
-      const file = new File([voiceBlob], `voice_${Date.now()}.${ext}`, { type: mime })
-      const { url: voiceUrl } = await uploadChatVoice(file, user.id)
-      const res = await fetch('/api/v2/chat/messages', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: selectedConv.id,
-          type: 'voice',
-          content: '',
-          metadata: { voice_url: voiceUrl, duration_sec: voiceDuration },
-        }),
-      })
-      const json = await res.json()
-      if (res.ok && json.success && json.data) {
-        const mapped = mapApiMessageToRow(json.data, {
-          viewerUserId: user.id,
-          viewerRole: viewerRoleForHook,
-          bookingStatus: booking?.status ?? null,
-          listingCategory: selectedConv?.listingCategory ?? null,
-          conversation: conversationForMapper,
-        })
-        if (mapped) setMessages((prev) => [...prev, mapped])
+      const data = await sendVoiceMessage(voiceBlob, voiceDuration)
+      if (data) {
+        appendServerChatMessage(data)
         discardVoice()
         inbox.refresh()
-      } else {
-        toast.error(json.error || getUIText('listingDetail_networkError', language))
       }
     } catch {
       toast.error(getUIText('listingDetail_networkError', language))
     } finally {
       setVoiceSending(false)
     }
-  }, [voiceBlob, user, selectedConv, voiceDuration, booking?.status, setMessages, discardVoice, inbox, viewerRoleForHook, conversationForMapper, language])
+  }, [
+    voiceBlob,
+    user,
+    selectedConv,
+    voiceDuration,
+    sendVoiceMessage,
+    appendServerChatMessage,
+    discardVoice,
+    inbox,
+    language,
+  ])
 
   const handleInboxTabChange = useCallback(
     (next) => {

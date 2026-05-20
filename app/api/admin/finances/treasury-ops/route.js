@@ -15,6 +15,10 @@ import {
   TREASURY_ALERT_TYPES,
 } from '@/lib/treasury/treasury-monitoring-alerts.js'
 import { loadProductionPaymentReadiness } from '@/lib/payment/production-readiness.js'
+import {
+  loadFinancialCronHealth,
+  maybeAlertStaleFinancialCrons,
+} from '@/lib/admin/financial-cron-health.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,12 +32,15 @@ export async function GET() {
 
   const scan = await runTreasuryMonitoringScan()
   const productionReadiness = await loadProductionPaymentReadiness()
+  const cronHealth = await loadFinancialCronHealth(false)
+  await maybeAlertStaleFinancialCrons(cronHealth.jobs)
 
   return NextResponse.json({
     success: true,
     data: {
       ops: scan.ops,
       productionReadiness,
+      cronHealth,
       thresholds: scan.thresholds,
       driftThb: scan.driftThb,
       pendingFiscalCount: scan.pendingFiscalCount,

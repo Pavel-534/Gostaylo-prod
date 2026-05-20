@@ -1,6 +1,7 @@
 /**
  * POST /api/bookings/[id]/check-in/confirm
- * Confirm check-in and release funds to partner (escrow release)
+ * Guest check-in marker only — CHECKED_IN ≠ THAWED (see `lib/booking/status-transitions.js`).
+ * Does NOT release escrow; thaw remains `POST /api/cron/escrow-thaw`.
  */
 
 import { NextResponse } from 'next/server';

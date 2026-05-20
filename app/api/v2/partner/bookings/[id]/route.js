@@ -15,6 +15,7 @@ import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service
 import { buildBookingFinancialSnapshotFromRow } from '@/lib/services/booking-financial-read-model.service'
 import { transformPartnerBookingToClient } from '@/lib/partner/partner-booking-transform'
 import ReferralPnlService from '@/lib/services/marketing/referral-pnl.service'
+import { validatePartnerBookingStatusTransition } from '@/lib/booking/status-transitions.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,21 +43,6 @@ const PARTNER_BOOKING_DETAIL_SELECT = `
     email
   )
 `
-
-const STATUS_TRANSITIONS = {
-  PENDING: ['CONFIRMED', 'CANCELLED'],
-  INQUIRY: ['CONFIRMED', 'CANCELLED'],
-  CONFIRMED: ['CANCELLED'],
-  AWAITING_PAYMENT: ['CANCELLED'],
-  PAID: ['COMPLETED', 'REFUNDED'],
-  /** Funds in escrow until category thaw cron sets THAWED; partner completes stay from THAWED */
-  PAID_ESCROW: ['REFUNDED', 'CANCELLED'],
-  CHECKED_IN: ['COMPLETED', 'REFUNDED'],
-  THAWED: ['COMPLETED', 'REFUNDED'],
-  COMPLETED: [],
-  CANCELLED: [],
-  REFUNDED: [],
-}
 
 export async function GET(request, { params }) {
   try {
@@ -168,13 +154,12 @@ export async function PUT(request, { params }) {
     
     const currentBooking = bookings[0]
     
-    // 2. Validate transition
-    const allowedTransitions = STATUS_TRANSITIONS[currentBooking.status] || []
-    if (!allowedTransitions.includes(newStatus)) {
-      return NextResponse.json({
-        status: 'error',
-        error: `Cannot transition from ${currentBooking.status} to ${newStatus}`
-      }, { status: 400 })
+    const transition = validatePartnerBookingStatusTransition(
+      currentBooking.status,
+      newStatus,
+    )
+    if (!transition.ok) {
+      return NextResponse.json({ status: 'error', error: transition.error }, { status: 400 })
     }
 
     if (newStatus === 'CONFIRMED') {
@@ -195,20 +180,8 @@ export async function PUT(request, { params }) {
       }
     }
     
-    // 3. Build update
-    const updateData = {
-      status: newStatus,
-      updated_at: new Date().toISOString()
-    }
-    
-    if (newStatus === 'CONFIRMED') {
-      updateData.confirmed_at = new Date().toISOString()
-    } else if (newStatus === 'CANCELLED') {
-      updateData.cancelled_at = new Date().toISOString()
-    } else if (newStatus === 'COMPLETED') {
-      updateData.completed_at = new Date().toISOString()
-    }
-    
+    const updateData = transition.patch
+
     // 4. Update in Supabase
     const updateRes = await fetch(
       `${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}`,
