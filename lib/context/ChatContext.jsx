@@ -8,7 +8,8 @@
  *  - При INSERT в таблице `messages` → обновляем lastMessage + unreadCount + sort to top.
  *  - При новом сообщении в архивной беседе → автоматически разархивируем.
  *  - refresh() вызывается ТОЛЬКО при начальной загрузке и при INSERT новой беседы.
- *  - На /messages* Realtime списка — только useConversationInbox (D-05, chat-unread-bridge).
+ *  - На /messages* Realtime списка/сообщений — только useConversationInbox (D-05);
+ *    ChatContext: typing + chat-unread-bridge, без ctx-convs / ctx-messages.
  */
 
 import {
@@ -100,7 +101,7 @@ export function ChatProvider({ children }) {
     }
     setLoading(true)
     try {
-      const { ok, data: rows } = await fetchChatProviderConversations()
+      const { ok, data: rows } = await fetchChatProviderConversations({ bustCache: true })
       if (!ok) return
       if (Array.isArray(rows)) {
         // Синхронно с ответом API — иначе postgres_changes может прийти до useEffect и быть отброшен.

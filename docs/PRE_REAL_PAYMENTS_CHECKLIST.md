@@ -4,7 +4,7 @@
 **Когда:** после успешной симуляции Stage 104 (`npm run smoke:full-financial:all`) и настройки мониторинга Stage 105.  
 **SSOT:** `ARCHITECTURAL_DECISIONS.md`, ADR-097, `lib/treasury/payout-rails.js`, `lib/treasury/treasury-ops-config.js`.
 
-> **Stage 108–112.3 (2026-05) — техническая уборка и pre-launch hardening завершены.** P0/P1 из `docs/PRODUCT_FLOW_MAP.md` закрыты в коде: legacy payout guard, status SSOT, schema 103.2 verify (`npm run verify:schema-103-2`), cron health на FinTech-пульте, чат/inbox dedup, pricing aliases, FinTech/home/chat UI → API clients (без прямого `fetch` в ключевых экранах), **Stage 112.x** — `chat-ui-api-client`, thread/read SSOT в hooks, Go/No-Go: **`docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`**. Дальше — внешние шаги: ЮKassa, ОсОО, договоры (§B–D ниже).
+> **Stage 108–112.3 final (2026-05-21) — pre-launch hardening завершён.** Код: perimeter prod 404, booking guard, FinTech/home/chat/partner API clients, `components/` без fetch (кроме deprecated bell). Go/No-Go **9/10** — **`docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`**. Осталось внешнее: ЮKassa, ОсОО, договоры (§B–D), деплой prod + verify/smoke на prod.
 
 **Быстрый Go/No-Go (15 мин):** [`docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`](GO_NO_GO_FIRST_REAL_PAYMENT.md)
 
@@ -37,13 +37,19 @@
 
 ## A. Техническая готовность (код и среда) — детальный чеклист
 
-### A0. Stage 108–112 (код-уборка + hardening) — выполнено в репозитории
+### A0. Stage 108–112.3 final (код-уборка + hardening) — выполнено в репозитории
 
 - [x] P0: legacy payout guard, booking status SSOT, schema 103.2 tooling, cron health UI
 - [x] P1: chat POST SSOT, inbox Realtime dedup, CHECKED_IN ≠ THAWED, `BOOKING_STATUS` parity, pricing aliases
-- [x] Stage 111–112.3: FinTech/home/chat/calendar/finances → API clients; iCal sync, seasonal prices, referral, push, geocode; realtime JWT SSOT; backlog UI `fetch`: admin marketing settings, notification-bell, listing import
-- [x] Go/No-Go checklist — `docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`
-- [x] `npm run verify:schema-103-2` — **6/6** на среде из `.env.local`
+- [x] **111.1b:** `POST /api/v2/bookings` — `resolveBookingCreateSession` (IDOR fix), `booking-price-gate`, `booking-atomic-insert`
+- [x] **111.1b/c perimeter:** prod 404 на `/api/v2/test/notifications`, `/api/db/migrate`, `/api/db/seed`; без Supabase URL в ошибках
+- [x] Stage 111–112.3: FinTech/home/chat/calendar/finances → API clients; iCal, seasonal, referral, push, geocode; realtime JWT SSOT
+- [x] **112.0 final:** inbox archive/unarchive → `conversation-api-client`
+- [x] **112.3 final:** `admin-settings-api-client`; partner Airbnb import + reputation → `partner-listing-client`; `components/` 0 fetch (launch)
+- [x] **113.0:** `client-request-dedup` + `client-fetch-policy` на hot-path clients
+- [x] **113.1:** удалён `notification-bell`; dedup на `admin-settings` / `marketing-api` / `partner-bookings`; pre-deploy build + smoke
+- [x] Go/No-Go + readiness **9/10** — `docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`
+- [x] `npm run verify:schema-103-2` — **6/6** на среде из `.env.local` (повторить на prod после деплоя)
 - [ ] Деплой на production + повтор verify/smoke на prod
 
 ### A1. Симуляция и мониторинг
@@ -173,4 +179,4 @@
 - `docs/PRE_LAUNCH_CHECKLIST.md` — soft launch  
 - `docs/CRON_EXTERNAL_FINANCIAL.md` — cron  
 
-*Stage 105 · 2026-05-19*
+*Stage 105 · 2026-05-19 · обновлено 112.0 (2026-05-21)*

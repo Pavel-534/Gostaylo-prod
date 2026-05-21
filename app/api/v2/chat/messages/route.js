@@ -1,8 +1,9 @@
 /**
- * POST /api/v2/chat/messages — отправка (SSOT: lib/chat/post-chat-message.server.js).
- * GET /api/v2/chat/messages?conversationId= — история.
+ * Stage 110.4 — thin route; SSOT: lib/chat/post-chat-message.server.js
  *
+ * POST — отправка · GET ?conversationId= — история
  * Клиент: lib/chat/post-chat-message.js
+ * Импорт server handlers: `@/lib/chat/post-chat-message.server.js` (не из route).
  */
 
 import { NextResponse } from 'next/server'

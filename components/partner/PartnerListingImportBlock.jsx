@@ -14,6 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Download, Info, Loader2, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { useI18n } from '@/contexts/i18n-context'
+import { postAirbnbImportPreview } from '@/lib/api/partner-listing-client'
 
 // ─── Client-side URL helpers ────────────────────────────────────────────────
 
@@ -190,16 +191,9 @@ export function PartnerListingImportBlock({
           : {}),
       }
 
-      const res = await fetch('/api/v2/partner/listings/import/airbnb-preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(body),
-      })
+      const { ok, json: data, status } = await postAirbnbImportPreview(body)
 
-      const data = await res.json().catch(() => ({}))
-
-      if (!res.ok) {
+      if (!ok) {
         // canFillManually = true → Airbnb заблокировал, предлагаем ручное заполнение
         if (data.canFillManually) {
           toast.error(t('errAirbnbBlocked'), { duration: 12000 })
@@ -207,14 +201,14 @@ export function PartnerListingImportBlock({
         }
         // Используем локализованное сообщение от сервера или fallback
         const serverMsg = ru ? data.error : (data.error_en || data.error)
-        if (res.status === 503) {
+        if (status === 503) {
           toast.error(t('errNotConfigured'), { duration: 8000 })
         } else if (data.field === 'url') {
           toast.error(serverMsg || t('errNotAirbnb'), { duration: 7000 })
         } else if (data.field === 'categoryId') {
           toast.error(serverMsg || t('errSelectCategory'), { duration: 7000 })
         } else {
-          toast.error(serverMsg || `HTTP ${res.status}`, { duration: 7000 })
+          toast.error(serverMsg || `HTTP ${status}`, { duration: 7000 })
         }
         return
       }

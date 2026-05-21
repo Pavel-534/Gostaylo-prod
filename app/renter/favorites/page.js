@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Heart, ArrowLeft, RefreshCw } from 'lucide-react';
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
-import { computeGuestDisplayFromBaseThb } from '@/lib/pricing/guest-display-price'
+import { getGuestDisplayPerNight } from '@/lib/pricing/guest-display-price'
 
 export default function FavoritesPage() {
   const { user } = useAuth();
@@ -57,7 +57,16 @@ export default function FavoritesPage() {
             id: fav.listings.id,
             title: fav.listings.title,
             basePriceThb: fav.listings.base_price_thb,
-            guestDisplayPriceThb: computeGuestDisplayFromBaseThb(fav.listings.base_price_thb),
+            guestServiceFeePercent:
+              fav.listings.guest_service_fee_percent ?? data.guestServiceFeePercent,
+            guestDisplayPriceThb: getGuestDisplayPerNight({
+              base_price_thb: fav.listings.base_price_thb,
+              basePriceThb: parseFloat(fav.listings.base_price_thb) || 0,
+              guest_display_price_thb: fav.listings.guest_display_price_thb,
+              guestDisplayPriceThb: fav.listings.guest_display_price_thb,
+              guestServiceFeePercent:
+                fav.listings.guest_service_fee_percent ?? data.guestServiceFeePercent,
+            }),
             images: fav.listings.images || [],
             coverImage: fav.listings.cover_image,
             district: fav.listings.district,

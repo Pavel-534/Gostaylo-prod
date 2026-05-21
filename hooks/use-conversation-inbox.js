@@ -130,14 +130,8 @@ export function useConversationInbox({
           params.set('archived', 'only')
         }
 
-        const res = await fetch(`/api/v2/chat/conversations?${params}`, {
-          credentials: 'include',
-        })
-        const json = await res.json()
-
-        if (!res.ok || !json.success) return
-
-        const rows = Array.isArray(json.data) ? json.data : []
+        const { ok, data: rows, meta } = await fetchConversationsList(params)
+        if (!ok) return
 
         if (append) {
           setConversations((prev) => {

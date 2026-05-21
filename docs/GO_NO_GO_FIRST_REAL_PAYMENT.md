@@ -2,7 +2,19 @@
 
 **Для кого:** владелец / финоператор + ответственный за деплой.  
 **Время:** ~15 минут (UI) + ~10 минут (терминал, опционально).  
+**Обновлено:** 2026-05-21 (Stage 113.1 pre-deploy)  
 **Полный чеклист:** `docs/PRE_REAL_PAYMENTS_CHECKLIST.md` · **Операции выплат:** `docs/CONCIERGE_LAUNCH_TREASURY_RUNBOOK.md`
+
+---
+
+## Оценка готовности (из 10)
+
+| Балл | Смысл |
+|------|--------|
+| **9 / 10** | Код, симуляция и периметр prod готовы к первому live-платежу (Concierge). |
+| −1 | Внешние блокеры: ЮKassa, ОсОО, договоры, `verify:schema-103-2` + smoke на **production**, cron на prod. |
+
+**Go по коду** — после зелёного smoke и карточки готовности на prod. **No-Go по бизнесу** — пока §B–E в `PRE_REAL_PAYMENTS_CHECKLIST.md` не закрыты.
 
 ---
 
@@ -20,6 +32,8 @@
 | 8 | **TG FINANCE** | `TELEGRAM_BOT_TOKEN` + `TELEGRAM_ADMIN_GROUP_ID` на prod |
 | 9 | **Emergency Pause** | Протестирован: вкл → новая оплата блокируется → выкл |
 | 10 | **Юридическое** | ОсОО, оферта, партнёрские договоры — §B–D в `PRE_REAL_PAYMENTS_CHECKLIST.md` |
+| 11 | **Booking IDOR** | `POST /api/v2/bookings` только с сессией (`booking-create-guard`) |
+| 12 | **Prod perimeter** | На prod **404**: `/api/v2/test/notifications*`, `/api/db/migrate`, `/api/db/seed` |
 
 **Решение:** можно принимать **первый реальный платёж** гостя (MIR/CARD) при включённом Concierge и ручном контроле исходящих.
 
@@ -33,25 +47,48 @@
 | Schema verify < 6/6 | Применить миграции, повторить verify |
 | Красные пункты готовности | Исправить env/конфиг по подсказке карточки |
 | Нет fiscal URL | Оплаты блокируются — сначала касса |
-| Legacy payout без guard | Только `PayoutBatchService` + `legacy-payout-guard` (Stage 108) |
+| Legacy payout без guard | Только `PayoutBatchService` + `legacy-payout-guard` |
 | Нет договоров / ОсОО | Юридический No-Go даже при зелёном коде |
+| Test/migrate API на prod ≠ 404 | Не деплоить — см. `prod-perimeter-guard.js` |
 
 **Решение:** включить **Emergency Pause** (или «Подготовить систему к паузе»), не снимать `TREASURY_MANUAL_MODE` без плана.
 
 ---
 
-## Код-уборка 109–112.x (кратко)
+## Что почистили в 109–113.x (итоговая сводка)
 
 | Стадия | Суть |
 |--------|------|
-| **109** | FinTech console split, i18n/referral modules, UnifiedMessages + wizard hooks |
-| **110** | SSOT цены, статусы, ledger, FX retail; chat server POST + inbox bridge |
-| **111** | P1 pages → hooks; FinTech/home/catalog API clients; без двойного search на главной |
-| **112.0–112.1** | Chat UI/hooks SSOT; FinTech один bundle-load; Go/No-Go doc |
-| **112.2** | `partner-calendar-client`, `partner-bookings-client`, settlement docs; calendar + chat booking UI без `fetch` |
-| **112.3** | iCal/seasonal/referral/push/geocode clients; realtime auth SSOT; calendar-sync + seasonal UI без `fetch` |
+| **109** | FinTech console split; i18n/referral/dispute/payout modules; UnifiedMessages + wizard hooks |
+| **110** | SSOT цены, статусы, ledger, FX retail; chat server POST + inbox Realtime dedup |
+| **111.0** | P1 pages → hooks; admin payments API client |
+| **111.1** | Home + FinTech + catalog-public + auth API clients |
+| **111.1b** | `POST /api/v2/bookings` session guard; `booking-price-gate`; atomic RPC SSOT |
+| **111.1b/c** | Prod **404** на test notifications + db migrate/seed; sanitize Supabase URL в ошибках |
+| **111.2** | FinTech panels 0 fetch; home без двойного listings на mount |
+| **112.0** | `chat-ui-api-client`; inbox archive; admin messages single enrich |
+| **112.1** | Thread/read + FinTech bundle init; home live-count dedup |
+| **112.2** | Partner calendar/bookings/finances clients; chat booking actions |
+| **112.3** | iCal/seasonal/referral/push/geocode; realtime JWT SSOT |
+| **112.3 final** | `admin-settings-api-client`; partner import → `partner-listing-client` |
+| **113.0** | `client-request-dedup` + TTL policy на API clients |
+| **113.1** | Удалён dead `notification-bell`; dedup на admin/marketing/partner-booking clients; `components/` **0 fetch** |
 
-**Прямой `fetch` в UI (backlog, не блокирует launch):** `SystemSettingsMarketing`, legacy `notification-bell`, `PartnerListingImportBlock`, checkout/wizard hooks.
+### Ключевые UI без прямого `fetch` (launch path)
+
+| Зона | SSOT |
+|------|------|
+| Главная | `usePlatformHomePage` + `platform-home-api-client` + `catalog-public-client` |
+| FinTech пульт | `useAdminFinTechConsole` + `admin-fintech-api-client` |
+| FinTech панели | `components/admin/finances/*` |
+| Чат | `conversation-api-client`, `chat-ui-api-client`, server POST |
+| Checkout | `useCheckout*` hooks |
+| Partner import / reputation | `partner-listing-client`, `usePartnerReputationHealthQuery` |
+| Admin marketing cockpit | `admin-settings-api-client` + `marketing-api-client` |
+
+### Backlog (не блокирует launch)
+
+Legacy admin/partner **pages** с прямым `fetch` в `app/**` (не в guest/checkout/financial hot path) — вынос в API clients на Stage 114+.
 
 ---
 

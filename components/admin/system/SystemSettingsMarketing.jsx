@@ -10,6 +10,12 @@ import { Switch } from '@/components/ui/switch'
 import { CircleHelp, Megaphone, Percent, Users, Fuel, Rocket, Wallet2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  fetchAdminSettings,
+  fetchReferralPnlMonitor,
+  postReferralPnlMonitorTopup,
+  saveAdminSettings,
+} from '@/lib/admin/admin-settings-api-client'
 
 function FieldHint({ children }) {
   return (
@@ -74,16 +80,14 @@ export function SystemSettingsMarketing() {
 
     async function load() {
       try {
-        const [settingsRes, monitorRes] = await Promise.all([
-          fetch('/api/admin/settings', { cache: 'no-store' }),
-          fetch('/api/v2/admin/referral/pnl-monitor', { credentials: 'include', cache: 'no-store' }),
+        const [settingsResult, monitorResult] = await Promise.all([
+          fetchAdminSettings(),
+          fetchReferralPnlMonitor(),
         ])
-        const settingsJson = await settingsRes.json().catch(() => ({}))
-        const monitorJson = await monitorRes.json().catch(() => ({}))
         if (cancelled) return
 
-        if (settingsRes.ok && settingsJson?.data) {
-          const s = settingsJson.data
+        if (settingsResult.ok && settingsResult.data) {
+          const s = settingsResult.data
           setSettingsSnapshot(s)
           const rp = clamp(s.referralReinvestmentPercent ?? s.referral_reinvestment_percent ?? 70, 0, 95)
           const splitRatio = clamp(s.referralSplitRatio ?? s.referral_split_ratio ?? 0.5, 0, 1)
@@ -125,10 +129,10 @@ export function SystemSettingsMarketing() {
           toast.error('Не удалось загрузить настройки маркетинга')
         }
 
-        if (monitorRes.ok && monitorJson?.success) {
-          setMonitor(monitorJson.data || null)
-        } else if (monitorRes.status !== 403 && monitorRes.status !== 401) {
-          toast.error(monitorJson?.error || 'Не удалось загрузить Referral P&L Monitor')
+        if (monitorResult.ok) {
+          setMonitor(monitorResult.data || null)
+        } else if (monitorResult.status !== 403 && monitorResult.status !== 401) {
+          toast.error(monitorResult.error || 'Не удалось загрузить Referral P&L Monitor')
         }
       } catch {
         if (!cancelled) toast.error('Ошибка загрузки маркетинговых настроек')
@@ -200,17 +204,12 @@ export function SystemSettingsMarketing() {
         referral_monthly_goal_thb: clamp(referralMonthlyGoalThb, 1, 999999999),
         marketing_promo_pot: clamp(monitor?.marketingPromoPotThb ?? settingsSnapshot?.marketingPromoPot ?? 0, 0, 1000000000),
       }
-      const res = await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok || !json?.success) {
-        const details = Array.isArray(json?.details) ? json.details.join(' ') : ''
-        throw new Error(details || json?.error || 'SAVE_FAILED')
+      const { ok, data, details, error } = await saveAdminSettings(payload)
+      if (!ok) {
+        const detailText = Array.isArray(details) ? details.join(' ') : ''
+        throw new Error(detailText || error || 'SAVE_FAILED')
       }
-      setSettingsSnapshot(json.data || payload)
+      setSettingsSnapshot(data || payload)
       toast.success('Маркетинговые настройки сохранены')
     } catch (error) {
       toast.error(error?.message || 'Ошибка сохранения настроек')
@@ -227,19 +226,12 @@ export function SystemSettingsMarketing() {
     }
     setToppingUp(true)
     try {
-      const res = await fetch('/api/v2/admin/referral/pnl-monitor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'topup',
-          amountThb: amount,
-          note: 'Manual topup from admin cockpit',
-        }),
+      const { ok, data, error } = await postReferralPnlMonitorTopup({
+        amountThb: amount,
+        note: 'Manual topup from admin cockpit',
       })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok || !json?.success) throw new Error(json?.error || 'TOPUP_FAILED')
-      setMonitor(json?.data?.monitor || monitor)
+      if (!ok) throw new Error(error || 'TOPUP_FAILED')
+      setMonitor(data?.monitor || monitor)
       toast.success('Marketing Budget (Pool) пополнен')
     } catch (error) {
       toast.error(error?.message || 'Ошибка пополнения бака')

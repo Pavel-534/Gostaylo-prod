@@ -21,6 +21,7 @@ import {
   INBOX_TAB_TRAVELING,
 } from '@/lib/chat-inbox-tabs'
 import { getSiteDisplayName } from '@/lib/site-url'
+import { setConversationArchivedClient } from '@/lib/chat/conversation-api-client'
 
 const HOSTING_ROLES = new Set(['PARTNER', 'ADMIN', 'MODERATOR'])
 
@@ -29,15 +30,9 @@ function useArchive({ language, router, inbox, archivedListHref }) {
     async (convId) => {
       if (!convId) return
       try {
-        const res = await fetch('/api/v2/chat/conversations/archive', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conversationId: convId, archived: true }),
-        })
-        const json = await res.json()
-        if (!res.ok || !json.success) {
-          toast.error(json.error || (language === 'ru' ? 'Не удалось скрыть' : 'Could not archive'))
+        const { ok, error } = await setConversationArchivedClient(convId, true)
+        if (!ok) {
+          toast.error(error || (language === 'ru' ? 'Не удалось скрыть' : 'Could not archive'))
           return
         }
         toast.success(language === 'ru' ? 'Диалог скрыт' : 'Archived', {

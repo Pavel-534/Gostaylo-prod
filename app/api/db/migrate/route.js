@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server';
+import {
+  prodPerimeterBlockedResponse,
+  sanitizeExternalErrorMessage,
+} from '@/lib/api/prod-perimeter-guard';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -485,6 +489,8 @@ async function executeSql(sql) {
 }
 
 export async function POST(request) {
+  const blocked = prodPerimeterBlockedResponse();
+  if (blocked) return blocked;
   const results = [];
   
   for (let i = 0; i < migrations.length; i++) {
@@ -502,7 +508,11 @@ export async function POST(request) {
       
       results.push({ step: i + 1, status: 'pending', note: 'SQL must be run in Supabase Dashboard' });
     } catch (error) {
-      results.push({ step: i + 1, status: 'error', error: error.message });
+      results.push({
+        step: i + 1,
+        status: 'error',
+        error: sanitizeExternalErrorMessage(error.message),
+      });
     }
   }
   
@@ -510,15 +520,17 @@ export async function POST(request) {
     success: false,
     message: 'SQL migrations must be executed directly in Supabase SQL Editor',
     instructions: [
-      '1. Go to https://supabase.com/dashboard/project/vtzzcdsjwudkaloxhvnw/sql',
-      '2. Copy the SQL from /app/prisma/migrations/002_supabase_schema.sql',
+      '1. Open Supabase SQL Editor for your project',
+      '2. Copy SQL from repo migrations (see migrations/ or prisma legacy paths)',
       '3. Paste and run in the SQL Editor',
-      '4. Then call /api/db/seed to seed the data'
-    ]
+      '4. Then call /api/db/seed (dev only) with x-seed-secret to seed data',
+    ],
   });
 }
 
 export async function GET() {
+  const blocked = prodPerimeterBlockedResponse();
+  if (blocked) return blocked;
   // Test connection and check tables
   const tables = ['profiles', 'categories', 'listings', 'bookings', 'promo_codes'];
   const results = {};
@@ -537,9 +549,8 @@ export async function GET() {
     }
   }
   
-  return NextResponse.json({ 
-    connected: true,
-    supabaseUrl: SUPABASE_URL,
-    tables: results
+  return NextResponse.json({
+    connected: Boolean(SUPABASE_URL && SUPABASE_SERVICE_KEY),
+    tables: results,
   });
 }

@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { timingSafeEqual } from 'crypto';
 import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js';
+import {
+  prodPerimeterBlockedResponse,
+  sanitizeExternalErrorMessage,
+} from '@/lib/api/prod-perimeter-guard';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -66,11 +70,13 @@ async function insertIfNotExists(table, data, uniqueField = 'id') {
     return { action: 'created', data: result[0] || result };
   } else {
     const error = await insertResponse.text();
-    return { action: 'error', error };
+    return { action: 'error', error: sanitizeExternalErrorMessage(error) };
   }
 }
 
 export async function POST(request) {
+  const blocked = prodPerimeterBlockedResponse();
+  if (blocked) return blocked;
   const access = assertSeedAccess(request);
   if (!access.ok) {
     return NextResponse.json({ success: false, error: access.error }, { status: access.status });
@@ -195,6 +201,8 @@ export async function POST(request) {
 }
 
 export async function GET(request) {
+  const blocked = prodPerimeterBlockedResponse();
+  if (blocked) return blocked;
   const access = assertSeedAccess(request);
   if (!access.ok) {
     return NextResponse.json({ success: false, error: access.error }, { status: access.status });
@@ -254,8 +262,8 @@ export async function GET(request) {
   } catch {}
   
   return NextResponse.json({
-    supabaseUrl: SUPABASE_URL,
+    connected: Boolean(SUPABASE_URL && SUPABASE_SERVICE_KEY),
     tableCounts: counts,
-    adminUser
+    adminUser,
   });
 }

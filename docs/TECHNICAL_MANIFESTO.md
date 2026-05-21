@@ -12,9 +12,19 @@
 
 **Stage 112.1 (2026-05):** Final pre-launch — `postChatMarkRead` + thread hook на `chat-ui-api-client` / `conversation-api-client`; FinTech console prefs lazy init (один bundle load); home `fetchLiveCount` без дубля при выборе дат; `docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`.
 
-**Stage 112.0 (2026-05):** Pre-Launch Hardening — `lib/chat/chat-ui-api-client.js` (translate, messages, templates, support join, escalate); `catalog-public-client` + `fetchPublicMarketingUiStrings` / `fetchSearchAvailableCount`; админ `/admin/messages` — один enrich-load на mount; `PartnerVerifiedBadgePromo` → `auth-client`; legal full-package → `admin-fintech-api-client`. Build + smoke 15/15.
+**Stage 113.1 (2026-05-21):** Pre-deploy micro cleanup — удалён неиспользуемый `components/notification-bell.js`; dedup на `admin-settings-api-client`, `marketing-api-client`, `partner-bookings-client`, `catalog-public` (geo/ui-strings); `components/` без прямого `fetch`. Build + smoke 15/15.
+
+**Stage 113.0 (2026-05-21):** API client performance — `client-request-dedup` + `client-fetch-policy` (in-flight dedup, короткие TTL); охват: `fetchAuthMe`, chat inbox/favorites/provider list, catalog public, home search/count, FinTech bundle, partner calendar/reputation, categories; logout → `invalidateAllClientRequests`. Без новых тяжёлых deps.
+
+**Stage 112.3 final (2026-05-21):** Last pre-launch pass — `admin-settings-api-client` (marketing cockpit); partner Airbnb import + reputation → `partner-listing-client`; Go/No-Go **9/10**, сводка 109–113.x. Ранее: 112.0 archive clients; 111.1b/c prod perimeter; 112.1–112.3 API clients. Build + smoke 15/15.
+
+**Stage 112.0 final (2026-05-21):** Pre-Launch closure — inbox/thread archive → `setConversationArchivedClient`; Go/No-Go docs. `chat-ui-api-client`, `catalog-public-client`, admin messages single enrich.
 
 **Stage 111.2 (2026-05):** FinTech panels → расширенный `admin-fintech-api-client` (conversions, movements, treasury, clean-test, legal smoke); `fmtThb` из `fintech-console-shared`; `hooks/use-debounce`; home listings — один запрос на mount.
+
+**Stage 111.1b–111.1c (2026-05-21):** P0 perimeter — `POST /api/v2/bookings` session guard (`booking-create-guard`); на **production** 404: `/api/v2/test/notifications` (+ `/integrity`), `/api/db/migrate`, `/api/db/seed` (`lib/api/prod-perimeter-guard.js`, SSOT `isProductionPaymentEnvironment`); ошибки migrate/seed без URL Supabase (`sanitizeExternalErrorMessage`).
+
+**Stage 111.1b (2026-05):** P0 `POST /api/v2/bookings` — `resolveBookingCreateSession` (renterId из сессии, IDOR fix); `booking-price-gate.js`, `booking-atomic-insert.js`; статусы `BOOKING_STATUS`.
 
 **Stage 111.1 (2026-05):** Final cleanup — `usePlatformHomePage` + `platform-home-api-client`; `admin-fintech-api-client` (FinTech hook); `catalog-public-client`, `auth-client`; home TrustBar/Hero/Sticky/UnifiedSearch без прямого `fetch`; `useDebounce` SSOT в `useHomeFilters`.
 
@@ -27,6 +37,8 @@
 **Stage 110.7 (2026-05):** Chat final — **`conversation-api-client.js`** (unarchive/fetch/merge inbox); **`handleInboxMessageUpdate`**; outbound только thread API (`sendInvoice`, `appendMessage`). UI: **`partner-dashboard-widgets`**, **`PartnerApplicationModal`**, **`lib/renter/profile-completion`**, **`marketing-promo-helpers`**.
 
 **Stage 110.6 (2026-05):** Chat polish — `useUnifiedMessagesOutbound` без дублирующих `fetch`/`postChatMessage`; **`post-chat-invoice.js`**; **`handleInboxMessageInsert`**; thread: `sendVoiceFromUrl`, `sendPassportRequest`.
+
+**Stage 110.4-chat (2026-05):** P1 финальная унификация чата — **`post-chat-invoice.server.js`** (тонкий invoice route); inbox → **`fetchConversationsList`** (meta/hasMore); re-export handlers с messages route; комментарии Realtime D-05.
 
 **Stage 110.5 (2026-05):** Chat SSOT — серверный POST/GET в **`lib/chat/post-chat-message.server.js`** (route тонкий); **`POST /api/v2/chat/invoice`** → **`executePostChatMessageForUser`**; на `/messages/[id]` **`deferThreadRealtime`** + **`thread-inbox-bridge.js`** (один Realtime); бейдж — **`chat-unread-bridge.js`**.
 
@@ -96,9 +108,15 @@
 
 **Stage 110.3 (2026-05):** P0 Financial Core — `ledger.service.js` тонкий facade; модули `ledger/{shared,accounts,payment-capture,settlement,refund,balance,reconciliation,dispute}`; `ledger-capture-legs.js` без изменений; escrow/payout-batch комментарии prod path.
 
+**Stage 110.3b (2026-05):** Документация и комментарии потока денег: захват ledger в RPC `move_to_escrow_and_post_ledger_v1` (не `schedulePostPaymentLedgerCapture`); `ledger-payment-capture.js` — JS SSOT для replay; prod payout — только `PayoutBatchService` + `legacy-payout-guard`.
+
 **Stage 110.2 (2026-05):** P0 SSOT наборов статусов брони — **`lib/booking/status-sets.js`** (OCCUPYING, ICAL, ROI, escrow, NO_PAY, transport confirm, cancel, FinTech, dispute/emergency); `status-transitions` / `app-constants` реэкспортируют; поведение без изменений.
 
+**Stage 110.2b (2026-05):** Дожим реестра — mask/compliance/order/admin-stats/calendar → импорт из `status-sets.js`; наборы `CONTACT_REVEALED_*`, `COMPLIANCE_PAID_*`, `ORDER_*`, `ADMIN_STATS_*`.
+
 **Stage 110.1 (2026-05):** P0 SSOT витрины — **`getGuestDisplayForSearchFilters`** (поиск min/max + гистограмма = гостевая за ночь, не base); search API отдаёт `guestDisplayPriceThb` с учётом `_pricing` + **`guestServiceFeePercent`**; wizard: `storefrontGuestDisplayThb` vs `chatInvoiceReferenceThb`. Breakdown/`pricing_snapshot` не тронуты.
+
+**Stage 110.1b (2026-05):** SSOT polish — **`GET /api/v2/favorites`** + **`app/listings/[id]/layout.js`** (meta/Schema) используют **`getGuestDisplayPerNight`** с **`guestServiceFeePercent`** из **`getCommissionRate`**; **`CardPriceDisplay`** не подставляет base как guest price.
 
 **Stage 109.3 (2026-05):** Refactoring Round 3 (финал 109.x) — **`UnifiedMessagesClient.jsx`** → хуки `useUnifiedMessages{Thread,Peer,BookingActions,Outbound,Navigation}`; **`ListingWizardContext`** → `useListingWizard{State,Derived,Actions}` + `listing-wizard-{load-existing,step-validation}.js`. `referral-pnl.service.js` уже тонкий facade (109.1). Импорты без изменений. Далее — Stage 110 SSOT-аудит.
 
@@ -360,7 +378,7 @@
 
 **Stage 2.2 (Notification service modular, 2026-04):** логика каналов вынесена в **`lib/services/notifications/`**: **`telegram.service.js`** (Bot API, топики, deep link **`/partner/bookings?booking=…`**, кнопки), **`email.service.js`** (Resend + text→HTML для фолбэков; брендированные письма — **`lib/services/email.service.js`**), **`push.service.js`** (реэкспорт **`PushService`**), **`formatting.js`**. **`notification.service.js`** — компактный хаб: **`NotificationService.dispatch`**, обёртки **`sendEmail` / `sendTelegram*`** и **`safeNotifyChannel`**, чтобы сбой одного канала не гасил остальные (например, при новой заявке на бронь).
 
-**Stage 2.3 (Email + Escrow cleanup, 2026-04):** канон гостевых ссылок на список броней с подсветкой — **`lib/email/booking-routes.js`** → **`/renter/bookings?booking=…`** (используется в premium-шаблонах **`lib/services/email.service.js`**; партнёр — **`/partner/bookings?booking=…`**). Удалён неиспользуемый шаблон статуса брони. Эскроу: **`lib/services/escrow/thaw.service.js`**, **`payout.service.js`**, вспомогательные модули в **`lib/services/escrow/`**; оркестратор — **`escrow.service.js`**. Проводка **Booking Capture** в **ledger** после `moveToEscrow` — **`schedulePostPaymentLedgerCapture`** (фон, ошибки ledger не откатывают PAID_ESCROW). **`POST /api/v2/payments/verify-tron`** с `bookingId` согласован с **`PaymentsV3Service.confirmPayment`** (эскроу + тот же путь, что и confirm payment).
+**Stage 2.3 (Email + Escrow cleanup, 2026-04):** канон гостевых ссылок на список броней с подсветкой — **`lib/email/booking-routes.js`** → **`/renter/bookings?booking=…`** (используется в premium-шаблонах **`lib/services/email.service.js`**; партнёр — **`/partner/bookings?booking=…`**). Удалён неиспользуемый шаблон статуса брони. Эскроу: **`lib/services/escrow/thaw.service.js`**, **`payout.service.js`**, вспомогательные модули в **`lib/services/escrow/`**; оркестратор — **`escrow.service.js`**. *(Исторически: async ledger capture; сейчас — atomic RPC, см. Stage 110.3.)* **`POST /api/v2/payments/verify-tron`** с `bookingId` согласован с **`PaymentsV3Service.confirmPayment`** (эскроу + тот же путь, что и confirm payment).
 
 **Stage 2.4 (Checkout modularization, 2026-04):** страница **`app/checkout/[bookingId]/page.js`** — тонкий shell; логика в **`hooks/useCheckoutPayment.js`** (стейт оплаты, initiate/confirm, Tron: **`POST /api/v2/payments/verify-tron`** с **`txid` + `bookingId`**, UI по **`paymentSettled`**) и **`hooks/useCheckoutPricing.js`** (FX, комиссия, промо, валюта, отображаемые суммы). **`getBookingById`** возвращает **`conversation_id`** ( **`attachConversationIdsToBookings`** ) для **«в чат»** без лишнего round-trip, если тред уже есть.
 

@@ -37,13 +37,15 @@
 | Политика | `ARCHITECTURAL_DECISIONS.md` | Старые комментарии в UI |
 | Вертикаль листинга | `categories.slug` + `categories.wizard_profile` | Только `category_id` без slug |
 | Поиск каталога | `lib/api/run-listings-search-get.js` | Прямой PostgREST с клиента |
-| Создание брони | `POST /api/v2/bookings` → `lib/services/booking/creation.js` / `inquiry.service.js` | Прямой INSERT в `bookings` |
+| Создание брони | `POST /api/v2/bookings` → `booking-create-guard.js` → `creation.js` / `inquiry.service.js` | **111.1b:** session-bound `renterId`; стандарт — RPC `create_booking_atomic_v1`; inquiry — INSERT `INQUIRY` |
 | Атомарность create | RPC `create_booking_atomic_v1` | Двухшаговый create без RPC |
 | Цена на create | `pricing_snapshot` + `lib/services/booking/pricing-engine-integration.js` | Клиентский total без attestation |
 | Settlement на оплате | `lib/services/booking/pricing.service.js` (`settlement_v3`) | Пересчёт комиссии на confirm |
 | Комиссия / FX | `lib/services/currency.service.js`, `exchange_rates`, snapshot | Литералы 10%/35.5 в коде |
+| Коды статусов | `lib/config/app-constants.js` → `BOOKING_STATUS` | — |
+| Наборы статусов (фильтры) | `lib/booking/status-sets.js` | Литералы `[PAID_ESCROW, …]` в сервисах |
 | Переходы статусов (хост) | `lib/booking/status-transitions.js` | Локальные копии `STATUS_TRANSITIONS` |
-| UI-лейблы статусов | `lib/booking/booking-status-display.js` | Только `lib/config/app-constants.js` |
+| UI-лейблы статусов | `lib/booking/booking-status-display.js` | — |
 | Оплата → эскроу | `EscrowService.moveToEscrow` + RPC `move_to_escrow_and_post_ledger_v1` | Прямой `status = PAID_ESCROW` |
 | Разморозка | Cron `POST /api/cron/escrow-thaw` | Ручной `CHECKED_IN` как замена thaw |
 | Доступно к выплате | Cron `promote-ready-for-payout` + `lib/partner/partner-payout-eligibility.js` | — |
@@ -130,7 +132,7 @@ flowchart TB
 | Каталог | `app/listings/*`, `useListingsSearch` | `GET /api/v2/search`, `GET /api/v2/listings/search` → **`runListingsSearchGet`** |
 | Фильтры | `SearchFiltersDialog`, `docs/SEARCH_FILTERS_QUERY_MAP.md` | `query-builder`, `listing-metadata-filter` |
 | PDP | `app/listings/[id]/page.js` | `GET /api/v2/listings/[id]` |
-| Цена на карточке / фильтр | `ListingCard`, `CardPriceDisplay`, **`guest-display-price.js`**, **`fx-display.js`** | **110.1:** guest THB = base + `guestServiceFeePercent`; search → `guestDisplayPriceThb`. **110.4:** FX в UI = **`formatDisplayPriceInCurrency`** + retail `rateMap` (`fetchExchangeRates({ retail: true })`, API `?retail=1`). PDP hero — тот же контракт. Breakdown брони / snapshot — mid FX, без retail. |
+| Цена на карточке / фильтр | `ListingCard`, `CardPriceDisplay`, **`guest-display-price.js`**, **`fx-display.js`** | **110.1:** guest THB = base + `guestServiceFeePercent`; search → `guestDisplayPriceThb`; фильтр/гистограмма → **`getGuestDisplayForSearchFilters`**. **110.1b:** favorites API + SEO layout — fee % из **`getCommissionRate`**, не дефолт платформы. **110.4:** retail FX в UI. Breakdown брони — mid FX. |
 | Trust | `ListingTrustVerifiedMiniBadge` | `listingQualifiesForTrustVerifiedMiniBadge` + `owner.is_verified` |
 
 **Инвариант:** категории с `is_preview_only` / неактивные скрыты для не-админа (Stage 85).
@@ -155,7 +157,7 @@ flowchart TB
 | Price integrity | `lib/booking-price-integrity.js` |
 | Чат после create | `ensureBookingConversation()` |
 | **Наборы статусов (110.2)** | **`lib/booking/status-sets.js`** — занятость календаря, iCal, ROI, escrow pipe, чат Pay now, transport confirm, cancel/refund, FinTech; FSM — **`status-transitions.js`** |
-| **Ledger / выплаты (110.3)** | Оплата → **`LedgerService.postPaymentCaptureFromBooking`**; batch settle → **`postPartnerBatchBookingPayoutSettled`**; модули **`lib/services/ledger/*`**; prod payout только **`PayoutBatchService`** |
+| **Ledger / выплаты (110.3)** | Оплата → RPC **`move_to_escrow_and_post_ledger_v1`** (ledger + PAID_ESCROW); replay → **`postPaymentCaptureFromBooking`**; batch settle → **`postPartnerBatchBookingPayoutSettled`**; facade **`ledger.service.js`** + **`lib/services/ledger/*`**; prod payout только **`PayoutBatchService`** (legacy **`processPayout`** — guard) |
 
 **INQUIRY** не в `OCCUPYING_BOOKING_STATUSES` — запрос в чате не резервирует даты до CONFIRMED (см. комментарии в `status-sets.js`).
 
@@ -179,7 +181,7 @@ flowchart TB
 | Счёт в чате | `POST /api/v2/chat/invoice` → checkout `?invoiceId=` |
 | Sync статуса брони | `lib/booking-status-chat-sync.js` |
 
-**Realtime (110.5):** на треде один канал `inbox-messages` + `thread-inbox-bridge`; `deferThreadRealtime` отключает per-thread подписку. POST: `post-chat-message.server.js`; invoice делегирует туда же.
+**Realtime (110.5):** на треде один канал `inbox-messages` + `thread-inbox-bridge`; `deferThreadRealtime` отключает per-thread подписку. **110.4-chat:** POST `post-chat-message.server.js`; invoice `post-chat-invoice.server.js` → message SSOT; inbox list через `fetchConversationsList`.
 
 ---
 
@@ -282,14 +284,18 @@ CONFIRMED → (pay) → PAID_ESCROW → (cron thaw) → THAWED
 | `DISPUTED` | display + dispute metadata |
 | `DECLINED` / `REJECTED` | i18n / chat (не всегда enum DB) |
 
-### 5.4 Расхождения (техдолг)
+### 5.4 SSOT наборов (Stage 110.2)
 
-| Место | Проблема |
-|-------|----------|
-| `lib/config/app-constants.js` `BOOKING_STATUS` | Нет `THAWED`, `READY_FOR_PAYOUT`, `CHECKED_IN`, `AWAITING_PAYMENT` |
-| `lib/services/escrow/constants.js` | Подмножество для escrow-only (не граф переходов) |
+| Набор | Назначение | Почему INQUIRY / AWAITING_PAYMENT вне списка |
+|-------|------------|---------------------------------------------|
+| `OCCUPYING_BOOKING_STATUSES` | Календарь, availability | **INQUIRY** — мягкий запрос в чате, даты не hold; **AWAITING_PAYMENT** — hold через CONFIRMED / оплату |
+| `ICAL_EXPORT_BOOKING_STATUSES` | iCal BUSY | INQUIRY не экспортируется как занятость OTA |
+| `ESCROW_PIPELINE_STATUSES` | FinTech / thaw / payout pool | Отдельно от terminal `COMPLETED` |
+| `REFERRAL_GUEST_MARGIN_BOOKING_STATUSES` | Marketing ROI | Маржа по оплаченному контуру |
+| `TRANSPORT_CONFIRM_STATUSES` | Transport calendar confirm | Без PENDING/INQUIRY |
+| `NO_PAY_TRAVEL_STATUSES` | Чат: скрыть «Оплатить» | Уже оплачено / эскроу / терминал |
 
-**Закрыто (108.1):** `lib/booking/status-transitions.js` — partner, `BookingService.updateStatus`, occupancy re-export, display hint.
+**Закрыто (108.1 + 110.2):** `status-transitions.js` (FSM), `status-sets.js` (все фильтры), `booking-occupancy-statuses.js` — re-export.
 
 ---
 
@@ -299,6 +305,7 @@ CONFIRMED → (pay) → PAID_ESCROW → (cron thaw) → THAWED
 |----|-----|----------|-------|----------|
 | D-01 | Legacy payout | Второй контур выплат в обход пула | `escrow/payout.service.js` | **Done 108.1** — `legacy-payout-guard.js`, TG FINANCE alert |
 | D-02 | Status FSM | 4+ определения переходов | partner route, `booking.service.js` | **Done 108.1** — `status-transitions.js` |
+| D-02b | Status sets | Литералы в mask/compliance/order | разрозненные файлы | **Done 110.2** — `status-sets.js` |
 | D-03 | Pricing name | Два `pricing.service.js` | `lib/services/pricing.service.js` vs `booking/pricing.service.js` | **Done 108.5** — `PricingCatalogService` / `BookingSettlementPricing` + `PRICING_SERVICES.md` |
 | D-04 | Search URL | Два endpoint | `/api/v2/search`, `/api/v2/listings/search` | OK (thin wrapper) |
 | D-05 | Chat Realtime | Два inbox loader | `ChatContext.jsx`, `useConversationInbox` | **Done 108.5** — на `/messages*` Realtime списка только inbox; badge через `chat-unread-bridge` |

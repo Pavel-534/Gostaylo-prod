@@ -54,7 +54,7 @@ export function CardPriceDisplay({
     if (pricing) {
       return { basePriceThb: basePrice, pricing }
     }
-    return { basePriceThb: basePrice, guestDisplayPriceThb: basePrice }
+    return { basePriceThb: basePrice }
   }, [listing, basePrice, pricing])
 
   const displayPrice = useMemo(() => {

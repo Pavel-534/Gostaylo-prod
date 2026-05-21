@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { updatePartnerBookingStatus } from '@/lib/api/partner-bookings-client'
 import { getUIText } from '@/lib/translations'
 
 /**
@@ -30,14 +31,8 @@ export function useUnifiedMessagesBookingActions({
     const prevBooking = booking
     setBooking((b) => (b ? { ...b, status: 'CONFIRMED' } : b))
     try {
-      const res = await fetch(`/api/v2/partner/bookings/${encodeURIComponent(bid)}`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'CONFIRMED' }),
-      })
-      const json = await res.json()
-      if (json.status !== 'success') {
+      const { ok, json } = await updatePartnerBookingStatus(bid, { status: 'CONFIRMED' })
+      if (!ok) {
         setBooking(prevBooking)
         toast.error(json.error || getUIText('chatPartner_toastBookingConfirmError', language))
         return
@@ -73,18 +68,12 @@ export function useUnifiedMessagesBookingActions({
     setBooking((b) => (b ? { ...b, status: 'CANCELLED' } : b))
     setDeclineOpen(false)
     try {
-      const res = await fetch(`/api/v2/partner/bookings/${encodeURIComponent(bid)}`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'CANCELLED',
-          declineReasonKey: declinePreset,
-          declineReasonDetail: declinePreset === 'other' ? declineOtherDetail.trim() : '',
-        }),
+      const { ok, json } = await updatePartnerBookingStatus(bid, {
+        status: 'CANCELLED',
+        declineReasonKey: declinePreset,
+        declineReasonDetail: declinePreset === 'other' ? declineOtherDetail.trim() : '',
       })
-      const json = await res.json()
-      if (json.status !== 'success') {
+      if (!ok) {
         setBooking(prevBooking)
         setDeclineOpen(true)
         toast.error(json.error || getUIText('chatPartner_toastBookingDeclineError', language))

@@ -8,6 +8,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifySessionFromCookies } from '@/lib/auth/session-from-cookie';
+import { getCommissionRate } from '@/lib/commission/get-commission-rate-server.js';
+import {
+  getGuestDisplayPerNight,
+  normalizeGuestServiceFeePercent,
+} from '@/lib/pricing/guest-display-price.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,10 +72,33 @@ export async function GET() {
       console.error('[FAVORITES API] Error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    
+
+    const { guestServiceFeePercent: catalogGuestFeePercent } = await getCommissionRate();
+    const guestFeePct = normalizeGuestServiceFeePercent(catalogGuestFeePercent);
+
+    const enriched = (favorites || []).map((row) => {
+      const raw = row?.listings;
+      if (!raw || typeof raw !== 'object') return row;
+      const basePriceThb = parseFloat(raw.base_price_thb);
+      const guestDisplayPriceThb = getGuestDisplayPerNight({
+        base_price_thb: raw.base_price_thb,
+        basePriceThb: Number.isFinite(basePriceThb) ? basePriceThb : 0,
+        guestServiceFeePercent: guestFeePct,
+      });
+      return {
+        ...row,
+        listings: {
+          ...raw,
+          guest_service_fee_percent: guestFeePct,
+          guest_display_price_thb: guestDisplayPriceThb,
+        },
+      };
+    });
+
     return NextResponse.json({
       success: true,
-      favorites: favorites || []
+      favorites: enriched,
+      guestServiceFeePercent: guestFeePct,
     });
     
   } catch (error) {

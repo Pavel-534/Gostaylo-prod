@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/currency'
+import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
 import { PartnerReputationSection } from '@/components/partner/PartnerReputationSection'
 import { PartnerVerifiedBadgePromo } from '@/components/partner/PartnerVerifiedBadgePromo'

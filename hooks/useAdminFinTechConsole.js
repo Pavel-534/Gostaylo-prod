@@ -28,6 +28,7 @@ import {
   postFintechFiscalTest,
   fetchFintechLedgerReconciliation,
   fetchFintechDownloadBlob,
+  invalidateFintechConsoleBundleCache,
 } from '@/lib/admin/admin-fintech-api-client'
 
 /**
@@ -69,6 +70,7 @@ export function useAdminFinTechConsole() {
 
   const load = useCallback(async () => {
     setLoading(true)
+    invalidateFintechConsoleBundleCache()
     try {
       const { from, to } = currentMonthRange()
       const bundle = await fetchFintechConsoleBundle({ from, to, excludeTest: realDataOnly })

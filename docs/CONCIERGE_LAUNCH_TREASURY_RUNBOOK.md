@@ -5,7 +5,7 @@
 **SSOT по статусам и 24h:** `lib/partner/partner-payout-eligibility.js`  
 **Связанные доки:** `docs/PRE_REAL_PAYMENTS_CHECKLIST.md`, `docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`, `docs/PRE_LAUNCH_CHECKLIST.md`, `docs/CRON_EXTERNAL_FINANCIAL.md`, `docs/SOFT_LAUNCH_PLAN.md`, аудит Stage 100.2 (чат / ADR-097).
 
-> **Stage 112.1:** FinTech-пульт и конвертации — только через `lib/admin/admin-fintech-api-client.js`; чат (read/thread) — `lib/chat/chat-ui-api-client.js` + `conversation-api-client.js`. Перед первым live-платежом — Go/No-Go в `docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`.
+> **Stage 112.3 final:** FinTech — `admin-fintech-api-client`; чат — API clients; booking guard + prod perimeter (**111.1b/c**). Go/No-Go **9/10:** `docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`. Сводка 109–113.x — там же. Перед live: prod env + §B–E в `PRE_REAL_PAYMENTS_CHECKLIST.md`.
 
 ---
 

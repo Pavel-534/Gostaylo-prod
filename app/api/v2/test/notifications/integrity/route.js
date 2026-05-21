@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { prodPerimeterBlockedResponse } from '@/lib/api/prod-perimeter-guard'
 import { supabaseAdmin } from '@/lib/supabase'
 import { createPendingChatBookingFixture } from '@/lib/e2e/create-pending-chat-booking-fixture'
 import { EmailService } from '@/lib/services/email.service'
@@ -20,6 +21,8 @@ function extractTokenFromUrl(url) {
 }
 
 export async function POST(request) {
+  const blocked = prodPerimeterBlockedResponse()
+  if (blocked) return blocked
   const expected = fixtureSecret()
   if (!expected) {
     return NextResponse.json({ success: false, error: 'Integrity test API disabled' }, { status: 404 })

@@ -3,7 +3,7 @@
  * GET /api/v2/bookings - List bookings
  * POST /api/v2/bookings - Create booking
  * 
- * SECURITY: Server-side double-booking prevention using CalendarService
+ * SECURITY: Session-bound renterId (111.1b); double-booking via CalendarService + atomic RPC.
  */
 
 export const dynamic = 'force-dynamic';
@@ -17,6 +17,7 @@ import { rateLimitCheck } from '@/lib/rate-limit';
 import { createBookingSchema } from '@/lib/validations/booking';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 import { resolveBookingListScope } from '@/lib/api/api-guard';
+import { resolveBookingCreateSession } from '@/lib/api/booking-create-guard';
 import { toUnifiedOrder } from '@/lib/models/unified-order';
 import { withCorrelationFromRequest } from '@/lib/request-correlation.js';
 
@@ -65,10 +66,16 @@ export async function POST(request) {
       const message = firstError?.message || 'Invalid request data';
       return NextResponse.json({ success: false, error: message }, { status: 400 });
     }
+
+    const createScope = await resolveBookingCreateSession(parseResult.data);
+    if (!createScope.ok) {
+      return createScope.response;
+    }
+    const sessionRenterId = createScope.renterId;
     
     const {
       listingId,
-      renterId,
+      renterId: _bodyRenterIgnored, // ignored — session SSOT via resolveBookingCreateSession
       checkIn,
       checkOut,
       guestName,
@@ -193,7 +200,7 @@ export async function POST(request) {
     if (needsInquiry) {
       const result = await BookingService.createInquiryBooking({
         listingId,
-        renterId,
+        renterId: sessionRenterId,
         checkIn,
         checkOut,
         guestName,
@@ -280,7 +287,7 @@ export async function POST(request) {
 
     const result = await BookingService.createBooking({
       listingId,
-      renterId,
+      renterId: sessionRenterId,
       checkIn,
       checkOut,
       guestName,

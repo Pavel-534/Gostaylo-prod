@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { fetchPartnerReputationHealth } from '@/lib/api/partner-listing-client'
 
 export const PARTNER_REPUTATION_HEALTH_QUERY_KEY = ['partner', 'reputation-health']
 
@@ -12,12 +13,9 @@ export function usePartnerReputationHealthQuery(enabled = true) {
   return useQuery({
     queryKey: PARTNER_REPUTATION_HEALTH_QUERY_KEY,
     queryFn: async () => {
-      const res = await fetch('/api/v2/partner/reputation-health', { credentials: 'include' })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || 'load_failed')
-      }
-      return json.data
+      const { ok, data, error } = await fetchPartnerReputationHealth()
+      if (!ok) throw new Error(error || 'load_failed')
+      return data
     },
     enabled: Boolean(enabled),
     staleTime: 5 * 60 * 1000,

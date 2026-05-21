@@ -20,6 +20,7 @@ import {
   INBOX_TAB_TRAVELING,
 } from '@/lib/chat-inbox-tabs'
 import { getSiteDisplayName } from '@/lib/site-url'
+import { setConversationArchivedClient } from '@/lib/chat/conversation-api-client'
 
 const HOSTING_ROLES = new Set(['PARTNER', 'ADMIN', 'MODERATOR'])
 
@@ -28,15 +29,9 @@ function useUnarchive({ language, inbox }) {
     async (convId) => {
       if (!convId) return
       try {
-        const res = await fetch('/api/v2/chat/conversations/archive', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conversationId: convId, archived: false }),
-        })
-        const json = await res.json()
-        if (!res.ok || !json.success) {
-          toast.error(json.error || (language === 'ru' ? 'Не удалось вернуть' : 'Could not restore'))
+        const { ok, error } = await setConversationArchivedClient(convId, false)
+        if (!ok) {
+          toast.error(error || (language === 'ru' ? 'Не удалось вернуть' : 'Could not restore'))
           return
         }
         toast.success(language === 'ru' ? 'Диалог снова в списке' : 'Restored to inbox')

@@ -11,7 +11,8 @@ import { getCachedActiveListingForLayout } from '@/lib/seo/listing-layout-data';
 import ListingSchema from '@/components/seo/ListingSchema';
 import { formatPrice, CURRENCIES } from '@/lib/currency';
 import { getStorefrontDisplayRateMap } from '@/lib/pricing/fx-display';
-import { computeGuestDisplayFromBaseThb } from '@/lib/pricing/guest-display-price';
+import { getGuestDisplayPerNight } from '@/lib/pricing/guest-display-price';
+import { getCommissionRate } from '@/lib/commission/get-commission-rate-server.js';
 
 function interpolate(template, vars) {
   return template.replace(/\{(\w+)\}/g, (_, k) => vars[k] || '');
@@ -45,7 +46,12 @@ export async function generateMetadata({ params }) {
       : 'THB';
 
   const baseThb = parseFloat(listing.base_price_thb);
-  const guestDisplayThb = computeGuestDisplayFromBaseThb(baseThb);
+  const { guestServiceFeePercent } = await getCommissionRate();
+  const guestDisplayThb = getGuestDisplayPerNight({
+    base_price_thb: listing.base_price_thb,
+    basePriceThb: baseThb,
+    guestServiceFeePercent,
+  });
   const hasPrice = Number.isFinite(guestDisplayThb) && guestDisplayThb > 0;
   let rateMap = { THB: 1 };
   if (hasPrice) {
@@ -125,10 +131,18 @@ export async function generateMetadata({ params }) {
 
 export default async function ListingLayout({ children, params }) {
   const listing = await getCachedActiveListingForLayout(params.id);
+  let listingForSchema = listing;
+  if (listing) {
+    const { guestServiceFeePercent } = await getCommissionRate();
+    listingForSchema = {
+      ...listing,
+      guest_service_fee_percent: guestServiceFeePercent,
+    };
+  }
 
   return (
     <>
-      {listing ? <ListingSchema listing={listing} /> : null}
+      {listingForSchema ? <ListingSchema listing={listingForSchema} /> : null}
       {children}
     </>
   );

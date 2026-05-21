@@ -4,9 +4,12 @@
  */
 
 import { NextResponse } from 'next/server'
+import { prodPerimeterBlockedResponse } from '@/lib/api/prod-perimeter-guard'
 import { NotificationService, NotificationEvents } from '@/lib/services/notification.service'
 
 export async function POST(request) {
+  const blocked = prodPerimeterBlockedResponse()
+  if (blocked) return blocked
   try {
     const { event, testData } = await request.json()
     
@@ -80,6 +83,8 @@ export async function POST(request) {
 }
 
 export async function GET() {
+  const blocked = prodPerimeterBlockedResponse()
+  if (blocked) return blocked
   return NextResponse.json({
     success: true,
     available_events: Object.keys(NotificationEvents),

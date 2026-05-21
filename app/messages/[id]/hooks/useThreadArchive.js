@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react'
 import { toast } from 'sonner'
+import { setConversationArchivedClient } from '@/lib/chat/conversation-api-client'
 import { getUIText } from '@/lib/translations'
 
 /**
@@ -19,15 +20,9 @@ export function useThreadArchive({
     async (convId) => {
       if (!convId) return
       try {
-        const res = await fetch('/api/v2/chat/conversations/archive', {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ conversationId: convId, archived: true }),
-        })
-        const json = await res.json()
-        if (!res.ok || !json.success) {
-          toast.error(json.error || getUIText('messengerThread_toastCouldNotArchive', language))
+        const { ok, error } = await setConversationArchivedClient(convId, true)
+        if (!ok) {
+          toast.error(error || getUIText('messengerThread_toastCouldNotArchive', language))
           return
         }
         toast.success(getUIText('messengerThread_toastChatHidden', language), {
