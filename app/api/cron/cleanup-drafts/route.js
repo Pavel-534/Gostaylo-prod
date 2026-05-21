@@ -22,6 +22,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { BookingService } from '@/lib/services/booking.service';
 import { NotificationEvents, NotificationService } from '@/lib/services/notification.service';
 import DisputeService, { extractDisputeEvidenceObjectPaths } from '@/lib/services/dispute.service';
+import { DRAFT_CLEANUP_STALE_BOOKING_STATUSES } from '@/lib/booking/status-sets.js';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -150,7 +151,7 @@ async function processExpiredBookingRequests() {
       listing:listings(id,title)
       `,
     )
-    .in('status', ['PENDING', 'INQUIRY'])
+    .in('status', DRAFT_CLEANUP_STALE_BOOKING_STATUSES)
     .lt('created_at', cutoffIso)
     .limit(500);
 
@@ -503,7 +504,7 @@ export async function GET(request) {
     const { count: staleBookingCount } = await supabaseAdmin
       .from('bookings')
       .select('id', { count: 'exact', head: true })
-      .in('status', ['PENDING', 'INQUIRY'])
+      .in('status', DRAFT_CLEANUP_STALE_BOOKING_STATUSES)
       .lt('created_at', bookingSlaCutoffIso);
     const { data: pendingInvoices } = await supabaseAdmin
       .from('invoices')

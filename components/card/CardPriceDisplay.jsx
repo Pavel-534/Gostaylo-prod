@@ -7,7 +7,10 @@
 
 import { useMemo } from 'react'
 import { differenceInDays } from 'date-fns'
-import { formatPrice, priceRawForTest } from '@/lib/currency'
+import {
+  formatDisplayPriceInCurrency,
+  displayPriceRawForTest,
+} from '@/lib/pricing/fx-display-client'
 import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
 import { AnimatedPrice } from '@/components/card/AnimatedPrice'
 import {
@@ -70,13 +73,13 @@ export function CardPriceDisplay({
     [nights, spanMode, language],
   )
 
-  const formattedPrice = formatPrice(displayPrice, currency, rates, language)
+  const formattedPrice = formatDisplayPriceInCurrency(displayPrice, currency, rates, language)
 
   return (
     <div className="flex items-baseline gap-1.5 flex-wrap">
       <span
         className="text-lg font-semibold text-slate-900"
-        data-test-raw-value={priceRawForTest(displayPrice, currency, rates)}
+        data-test-raw-value={displayPriceRawForTest(displayPrice, currency, rates)}
         data-test-fee-value="0"
       >
         <AnimatedPrice value={formattedPrice} />

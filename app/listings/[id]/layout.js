@@ -10,7 +10,7 @@ import { getRequestSiteUrl } from '@/lib/server-site-url';
 import { getCachedActiveListingForLayout } from '@/lib/seo/listing-layout-data';
 import ListingSchema from '@/components/seo/ListingSchema';
 import { formatPrice, CURRENCIES } from '@/lib/currency';
-import { getDisplayRateMap } from '@/lib/services/currency.service';
+import { getStorefrontDisplayRateMap } from '@/lib/pricing/fx-display';
 import { computeGuestDisplayFromBaseThb } from '@/lib/pricing/guest-display-price';
 
 function interpolate(template, vars) {
@@ -50,7 +50,7 @@ export async function generateMetadata({ params }) {
   let rateMap = { THB: 1 };
   if (hasPrice) {
     try {
-      rateMap = await getDisplayRateMap();
+      rateMap = await getStorefrontDisplayRateMap();
     } catch {
       rateMap = { THB: 1 };
     }

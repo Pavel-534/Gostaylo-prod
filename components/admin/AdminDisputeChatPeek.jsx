@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Loader2, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { fetchChatMessages } from '@/lib/chat/chat-ui-api-client'
 
 function formatTime(iso) {
   if (!iso) return ''
@@ -25,16 +26,13 @@ export default function AdminDisputeChatPeek({ conversationId, adminUserId }) {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(`/api/v2/chat/messages?conversationId=${encodeURIComponent(conversationId)}`, {
-        credentials: 'include',
-      })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok || !json.success) {
-        setError(json.error || 'Не удалось загрузить сообщения')
+      const { ok, data, error } = await fetchChatMessages(conversationId)
+      if (!ok) {
+        setError(error || 'Не удалось загрузить сообщения')
         setMessages([])
         return
       }
-      setMessages(Array.isArray(json.data) ? json.data : [])
+      setMessages(data)
     } catch {
       setError('Ошибка сети')
       setMessages([])

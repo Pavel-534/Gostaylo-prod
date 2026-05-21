@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { postLegalTestFullPackage } from '@/lib/admin/admin-fintech-api-client'
 
 function fmtMs(ms) {
   const n = Number(ms)
@@ -32,21 +33,17 @@ export function AdminLegalFullPackageCard() {
     setBusy(true)
     setResult(null)
     try {
-      const res = await fetch('/api/admin/settings/legal/test-full-package', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      })
-      const json = await res.json()
-      if (!res.ok || !json.success) {
-        setResult(json.data || { ok: false, steps: json.data?.steps || [] })
+      const { ok, data, json } = await postLegalTestFullPackage({ rail: 'all' })
+      if (!ok) {
+        setResult(data || { ok: false, steps: data?.steps || [] })
         setOpen(true)
-        throw new Error(json.data?.message || json.error || 'Тест не пройден')
+        throw new Error(data?.message || json.error || 'Тест не пройден')
       }
-      setResult(json.data)
+      setResult(data)
       setOpen(true)
       toast({
         title: 'Тестовый пакет готов',
-        description: json.data?.message || 'Все шаги пройдены.',
+        description: data?.message || 'Все шаги пройдены.',
       })
     } catch (e) {
       if (!open) setOpen(true)

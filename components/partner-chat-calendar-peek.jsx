@@ -19,6 +19,8 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
 import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFinancialSnapshotDialog'
+import { fetchPartnerCalendar } from '@/lib/api/partner-calendar-client'
+import { fetchPartnerBookingById } from '@/lib/api/partner-bookings-client'
 
 /** Кнопка «Финансы брони» только при наличии read-model в треде (нет снапшота — старые тестовые брони). */
 function hasUsableFinancialSnapshot(snap) {
@@ -82,20 +84,8 @@ export function PartnerChatCalendarPeek({
     setLoading(true)
     setError(null)
     try {
-      const params = new URLSearchParams({
-        listingId,
-        startDate,
-        endDate,
-      })
-      const res = await fetch(`/api/v2/partner/calendar?${params}`, {
-        credentials: 'include',
-        cache: 'no-store',
-      })
-      const json = await res.json()
-      if (!res.ok || json.status === 'error') {
-        throw new Error(json.error || 'Calendar error')
-      }
-      setCalendarPayload(json.data || null)
+      const { data } = await fetchPartnerCalendar({ listingId, startDate, endDate })
+      setCalendarPayload(data || null)
     } catch (e) {
       setError(e.message || 'Failed to load')
       setCalendarPayload(null)
@@ -144,15 +134,10 @@ export function PartnerChatCalendarPeek({
     setFinanceLoading(true)
     setFinanceSnapshot(null)
     try {
-      const res = await fetch(`/api/v2/partner/bookings/${encodeURIComponent(String(bookingId))}`, {
-        credentials: 'include',
-        cache: 'no-store',
-      })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok || json?.status === 'error') {
+      const { ok, financialSnapshot: snap, json } = await fetchPartnerBookingById(bookingId)
+      if (!ok) {
         throw new Error(json?.error || json?.message || 'HTTP')
       }
-      const snap = json?.data?.financial_snapshot
       if (!snap) throw new Error('no_snapshot')
       setFinanceSnapshot(snap)
     } catch {

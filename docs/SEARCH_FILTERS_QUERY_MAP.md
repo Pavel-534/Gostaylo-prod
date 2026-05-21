@@ -162,7 +162,7 @@
 | Клиент → URL | `appendExtraFiltersToParams` → snake_case |
 | Сервер: парсинг | `firstFloatParam` в `run-listings-search-get.js` |
 | SQL | Если задан валидный **`checkIn`/`checkOut`** — SQL **не** режет по цене (**`base_price_thb`** пропускается в **`query-builder`**). Иначе **`gte`/`lte`** по **`base_price_thb`**. |
-| JS пост | При датах — после **`filterListingsByAvailability`**: **`listingMatchesSearchPriceRange`** по календарной средней (**`pricing.averagePerNight`** / **`totalPrice`/`nights`**) из **`lib/search/effective-unit-price-for-search.js`** (как на карточке). Гистограмма в **`meta.priceHistogram`** и **`SearchFiltersDialog`** использует ту же единицу. |
+| JS пост | При датах — после **`filterListingsByAvailability`**: **`listingMatchesSearchPriceRange`** через **`getGuestDisplayForSearchFilters`** (**`lib/pricing/guest-display-price.js`**, делегат **`lib/search/effective-unit-price-for-search.js`**) — календарная средняя + guest fee % (как **`CardPriceDisplay`**). Гистограмма в **`meta.priceHistogram`** и **`SearchFiltersDialog`** — та же единица. |
 
 ### `nanny_experience_min` / `nannyExperienceMin`, `nanny_langs`, `nanny_specialization` / `nannySpecialization`
 

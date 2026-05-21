@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { fetchReferralActivity } from '@/lib/api/referral-public-client'
 import { isUuidLike } from '@/lib/referral/uuid-like'
 import { formatReferralDateTimeDdMmYyyyHm } from '@/lib/referral/format-referral-datetime'
 
@@ -69,17 +70,13 @@ export function ReferralActivityFeed() {
     async (cursor) => {
       const qs = new URLSearchParams({ limit: String(PAGE_LIMIT) })
       if (cursor) qs.set('cursor', cursor)
-      const res = await fetch(`/api/v2/referral/activity?${qs.toString()}`, {
-        credentials: 'include',
-        cache: 'no-store',
-      })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok || !json?.success) return { ok: false, items: [], nextCursor: null, total: 0 }
+      const { ok, data, json } = await fetchReferralActivity(qs)
+      if (!ok) return { ok: false, items: [], nextCursor: null, total: 0 }
       return {
         ok: true,
-        items: Array.isArray(json?.data?.items) ? json.data.items : [],
-        nextCursor: json?.data?.nextCursor ?? null,
-        total: Number(json?.data?.total) || 0,
+        items: Array.isArray(data?.items) ? data.items : [],
+        nextCursor: data?.nextCursor ?? null,
+        total: Number(data?.total) || 0,
       }
     },
     [],

@@ -8,6 +8,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { useMapEvents, useMap } from 'react-leaflet'
+import { fetchReverseGeocode } from '@/lib/api/geocode-client'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Button } from '@/components/ui/button'
@@ -116,9 +117,8 @@ export default function MapPicker({
       let geo = null
       if (fetchAddressOnClick) {
         try {
-          const res = await fetch(`/api/v2/geocode/reverse?lat=${lat}&lon=${lng}`)
-          const data = await res.json()
-          if (data.success && data.data) geo = normalizeGeocodeForForm(data.data, privacyMode)
+          const { ok, data } = await fetchReverseGeocode(lat, lng)
+          if (ok && data) geo = normalizeGeocodeForForm(data, privacyMode)
         } catch (e) {
           console.warn('[MapPicker] Reverse geocode failed:', e)
         }

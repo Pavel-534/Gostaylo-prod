@@ -6,6 +6,32 @@
 
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
+**Stage 112.3 (2026-05):** Финальный слой API clients — listing/iCal/seasonal/referral/push/geocode/renter-cancel; `auth-client` (realtime token/claims); UI calendar-sync + seasonal + referral + push без прямого `fetch`; `realtime-session-jwt` → shared token fetch.
+
+**Stage 112.2 (2026-05):** `partner-calendar-client`, `partner-bookings-client`, settlement docs в `partner-finances-client`; UI calendar/chat/finances без прямого `fetch`; `use-partner-calendar` → shared client.
+
+**Stage 112.1 (2026-05):** Final pre-launch — `postChatMarkRead` + thread hook на `chat-ui-api-client` / `conversation-api-client`; FinTech console prefs lazy init (один bundle load); home `fetchLiveCount` без дубля при выборе дат; `docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`.
+
+**Stage 112.0 (2026-05):** Pre-Launch Hardening — `lib/chat/chat-ui-api-client.js` (translate, messages, templates, support join, escalate); `catalog-public-client` + `fetchPublicMarketingUiStrings` / `fetchSearchAvailableCount`; админ `/admin/messages` — один enrich-load на mount; `PartnerVerifiedBadgePromo` → `auth-client`; legal full-package → `admin-fintech-api-client`. Build + smoke 15/15.
+
+**Stage 111.2 (2026-05):** FinTech panels → расширенный `admin-fintech-api-client` (conversions, movements, treasury, clean-test, legal smoke); `fmtThb` из `fintech-console-shared`; `hooks/use-debounce`; home listings — один запрос на mount.
+
+**Stage 111.1 (2026-05):** Final cleanup — `usePlatformHomePage` + `platform-home-api-client`; `admin-fintech-api-client` (FinTech hook); `catalog-public-client`, `auth-client`; home TrustBar/Hero/Sticky/UnifiedSearch без прямого `fetch`; `useDebounce` SSOT в `useHomeFilters`.
+
+**Stage 111.0 (2026-05):** Pre-Launch Cleanup — P1 pages split: `useAdminMarketingPage`, `useAdminPaymentsPage` + `lib/admin/admin-payments-api-client.js`, `useRenterProfilePage`, `usePartnerDashboardPage`; UI в `components/**/ *PageContent.jsx`; `app/**/page.js` — тонкие оболочки. Build + smoke 15/15.
+
+**Stage 110.8 (2026-05):** Final polish — `conversation-api-client` (список/избранное), `marketing-api-client`, `renter-profile-api-client`, `inbox-sound-policy`, `usePartnerDashboardBookingActions`; debounce SSOT `lib/chat/debounce.js`.
+
+**Stage 110.6b (2026-05):** Инвойс = витрина — **`settleInvoiceDisplayAmount`** (retail FX, RUB/USD/RUB); префилл **`resolveInvoicePrefillFromStorefront`**; гость **`getInvoiceGuestAmountPresentation`** (чат + checkout).
+
+**Stage 110.7 (2026-05):** Chat final — **`conversation-api-client.js`** (unarchive/fetch/merge inbox); **`handleInboxMessageUpdate`**; outbound только thread API (`sendInvoice`, `appendMessage`). UI: **`partner-dashboard-widgets`**, **`PartnerApplicationModal`**, **`lib/renter/profile-completion`**, **`marketing-promo-helpers`**.
+
+**Stage 110.6 (2026-05):** Chat polish — `useUnifiedMessagesOutbound` без дублирующих `fetch`/`postChatMessage`; **`post-chat-invoice.js`**; **`handleInboxMessageInsert`**; thread: `sendVoiceFromUrl`, `sendPassportRequest`.
+
+**Stage 110.5 (2026-05):** Chat SSOT — серверный POST/GET в **`lib/chat/post-chat-message.server.js`** (route тонкий); **`POST /api/v2/chat/invoice`** → **`executePostChatMessageForUser`**; на `/messages/[id]` **`deferThreadRealtime`** + **`thread-inbox-bridge.js`** (один Realtime); бейдж — **`chat-unread-bridge.js`**.
+
+**Stage 110.4 (2026-05):** SSOT FX на витрине — **`lib/pricing/fx-display.js`** (`getDisplayPriceInCurrency`, retail vs mid `rateMap`); guest fee остаётся в **`guest-display-price.js`**; **`GET /api/v2/exchange-rates?retail=1`** (default) / **`retail=0`**; **`fetchExchangeRates({ retail })`** — раздельный кеш; wizard preview конвертирует в `baseCurrency` через retail map; **`pricing_snapshot`** / **`getRawRateMap`** — без retail.
+
 **Stage 100 (2026-05):** Attestation lock — `lib/booking-price-integrity.js` (`computeAttestationGuestTotalThb`, v2 `final_breakdown` + 1 THB; legacy pot10 only); `lib/booking/booking-status-display.js` + i18n `booking-status.js`; legal `docs/legal/IT_SERVICE_KG_CONTRACT_SUMMARY.md` (ADR-097 link); README external cron for financial jobs; investor one-pager USDT buffer.
 
 **Stage 99 (2026-05):** Soft launch prep — dispute payout freeze SSOT (`partner-payout-eligibility` + `disputes.freeze_payment` → UI «Заблокировано спором»); ledger `DISPUTE_PARTNER_FUNDS_HELD` / `RELEASED`; smoke **`docs/FINANCIAL_SMOKE_E2E.md`**; plan **`docs/SOFT_LAUNCH_PLAN.md`**; cron **`financial-health-monitor`** (PENDING_FISCAL + ledger drift alerts).
@@ -67,6 +93,20 @@
 **Stage 106.3b (2026-05):** PDF на Vercel — `pdfkit` через `serverExternalPackages` + runtime `createRequire` в **`lib/services/partner-pdf-fonts.js`** (`createPartnerPdfDocument`, Noto из Buffer); иначе smoke падает на шаге 13 (ZIP) с `ENOENT …/Helvetica.afm`.
 
 **Stage 107.1 (2026-05):** Единая гостевая цена на витрине — SSOT **`lib/pricing/guest-display-price.js`** (`getGuestDisplayPerNight`, `getGuestDisplayForStay`, `getPdpHeroGuestPriceThb`); **`GET /api/v2/listings/[id]`** → `guestDisplayPriceThb` + `guestServiceFeePercent`; каталог/карта/PDP hero (`BookingWidget`, `CardPriceDisplay`, `ListingCard`) — base + guest fee %; breakdown бронирования без изменений.
+
+**Stage 110.3 (2026-05):** P0 Financial Core — `ledger.service.js` тонкий facade; модули `ledger/{shared,accounts,payment-capture,settlement,refund,balance,reconciliation,dispute}`; `ledger-capture-legs.js` без изменений; escrow/payout-batch комментарии prod path.
+
+**Stage 110.2 (2026-05):** P0 SSOT наборов статусов брони — **`lib/booking/status-sets.js`** (OCCUPYING, ICAL, ROI, escrow, NO_PAY, transport confirm, cancel, FinTech, dispute/emergency); `status-transitions` / `app-constants` реэкспортируют; поведение без изменений.
+
+**Stage 110.1 (2026-05):** P0 SSOT витрины — **`getGuestDisplayForSearchFilters`** (поиск min/max + гистограмма = гостевая за ночь, не base); search API отдаёт `guestDisplayPriceThb` с учётом `_pricing` + **`guestServiceFeePercent`**; wizard: `storefrontGuestDisplayThb` vs `chatInvoiceReferenceThb`. Breakdown/`pricing_snapshot` не тронуты.
+
+**Stage 109.3 (2026-05):** Refactoring Round 3 (финал 109.x) — **`UnifiedMessagesClient.jsx`** → хуки `useUnifiedMessages{Thread,Peer,BookingActions,Outbound,Navigation}`; **`ListingWizardContext`** → `useListingWizard{State,Derived,Actions}` + `listing-wizard-{load-existing,step-validation}.js`. `referral-pnl.service.js` уже тонкий facade (109.1). Импорты без изменений. Далее — Stage 110 SSOT-аудит.
+
+**Stage 109.2 (2026-05):** Refactoring Round 2 (продолжение) — **dispute:** `dispute-create.service.js`, `dispute-update.js`, `dispute-resolution.js` + facade `dispute.service.js` (удалён `dispute.service.impl.js`). **Payout batches:** `payout-batch-{shared,creation,export,settlement}.js` + facade `payout-batch.service.js`. Импорты потребителей без изменений.
+
+**Stage 109.1 (2026-05):** Refactoring Round 2 — переводы: `listings-partner-{core,wizard,finances,calendar}.js`, `profile-app-{core,partner,renter,referral}.js` + merge в `listings-partner.js` / `slices/profile-app.js`; re-export в `lib/translations/index.js`. Сервисы: `referral-calculation.js`, `referral-stats.service.js`, `referral-payout.service.js` + facade `referral-pnl.service.js`; dispute: `dispute/dispute-shared.js`, `dispute-notifications.js` + facade `dispute.service.js`.
+
+**Stage 109.0 (2026-05):** Refactoring Round 1 — `AdminFinTechConsole` (~250 строк) = композиция; логика в `hooks/useAdminFinTechConsole.js`; панели `FinTechOverviewDashboard`, `PayoutBatchesPanel`, `FinTechExportsPanel`, алиасы `LaunchReadinessCard` / `TestDataToolbar` / `ConversionsPanel` / `MovementsJournal`. Поведение и режим владельца без изменений.
 
 **Stage 108.5 (2026-05):** Блок 108 закрыт — `PricingCatalogService` / `BookingSettlementPricing`; `chat-unread-bridge` (D-05); FX localStorage v3 + TTL 2h; owner batch labels.
 
@@ -412,7 +452,7 @@
 | Суммы в БД и расчётах | **THB** | `base_price_thb`, брони, `bookings.pricing_snapshot` |
 | Курсы для витрины (карточки, каталог, карта) | Таблица **`exchange_rates`** (`rate_to_thb` = THB за **1** единицу валюты), затем **розничный множитель** `general.chatInvoiceRateMultiplier` (деление `rate_to_thb` на множитель) | **`lib/services/currency.service.js`** → **`getDisplayRateMap`**, TTL **6 ч** (`EXCHANGE_RATES_DB_TTL_MS`), при необходимости ExchangeRate-API v6 + upsert в БД |
 | Курсы при создании брони (`price_paid` / `exchange_rate`) | Тот же канон, что витрина | **`PricingService.getExchangeRates()`** → **`CurrencyService.getDisplayRateMap`** (не «сырой» обходной SELECT без TTL/API) |
-| Публичный API курсов | — | **`GET /api/v2/exchange-rates`** → `rateMap`; **`?retail=0`** возвращает прямые курсы без витринной наценки |
+| Публичный API курсов | — | **`GET /api/v2/exchange-rates`** → `rateMap`, `retailMode`, `retailMarkupMultiplier`; default **`retail=1`** (витрина); **`retail=0`** — mid; SSOT парсинг — **`lib/pricing/fx-display.js`** |
 | Клиентский кеш | localStorage, согласованный с TTL сервера | **`lib/client-data.js`** — **`fetchExchangeRates`** |
 | USDT (платежи, уведомления) | `exchange_rates` → API → env / settings | **`resolveThbPerUsdt()`**, аварии — **`lib/services/currency-last-resort.js`** |
 | Комиссия платформы | `system_settings` / env | **`resolveDefaultCommissionPercent()`** |
@@ -429,7 +469,7 @@
 
 - **`formatPrice(amountThb, currency, exchangeRates, language)`** в **`lib/currency.js`** — для валюты ≠ THB **делит** сумму в THB на **`exchangeRates[currency]`**, **только если** в переданной карте есть конечный положительный курс. Иначе отображается число в THB с символом выбранной валюты (без выдуманного кросса). Четвёртый аргумент — язык UI для **`toLocaleString`** (группировка разрядов). **Таблицы курсов в `lib/currency.js` нет** (удалены неиспользуемые конвертеры с литералами).
 - E2E: **`priceRawForTest(amountThb, currency, exchangeRates)`** — «голое» число для **`data-test-*`** (USD — **2** знака; прочие витринные валюты кроме JPY — целые после конвертации).
-- Витрина подгружает курсы через **`fetchExchangeRates()`** или **`hooks/use-currency.js`** (оба — **`/api/v2/exchange-rates`**).
+- Витрина: **`fetchExchangeRates({ retail: true })`** или **`hooks/use-currency.js`** (`/api/v2/exchange-rates?retail=1`); формат цены — **`lib/pricing/fx-display.js`**.
 - Партнёрский финкабинет использует **`/api/v2/exchange-rates?retail=0`** (конвертация без наценки, только прямой курс из `exchange_rates`/FX API).
 - Значение по умолчанию **`{ THB: 1 }`** у пропа `exchangeRates` — это **нейтральный множитель для THB**, не курс «доллара».
 - Гео-подсказка валюты: **`GET /api/v2/geo`** использует **`getDisplayRateMap`** (тот же канон, без отдельного Forex-модуля).

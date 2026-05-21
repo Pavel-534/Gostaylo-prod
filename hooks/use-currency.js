@@ -49,7 +49,7 @@ export function CurrencyProvider({ children }) {
           }
         }
 
-        const ratesRes = await fetch('/api/v2/exchange-rates', { cache: 'no-store' })
+        const ratesRes = await fetch('/api/v2/exchange-rates?retail=1', { cache: 'no-store' })
         const ratesJson = await ratesRes.json()
 
         if (ratesJson.success && ratesJson.rateMap && typeof ratesJson.rateMap === 'object') {

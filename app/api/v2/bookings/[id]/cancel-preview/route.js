@@ -8,17 +8,12 @@ import { getSessionPayload } from '@/lib/services/session-service';
 import { isStaffRole } from '@/lib/services/chat/access';
 import { BookingService } from '@/lib/services/booking.service';
 import { computeRefundEstimateForBooking } from '@/lib/services/booking-refund-calculator.service';
+import {
+  BOOKING_LEDGER_REFUND_STATUSES,
+  BOOKING_SIMPLE_CANCEL_STATUSES,
+} from '@/lib/booking/status-sets.js';
 
 export const dynamic = 'force-dynamic';
-
-const LEDGER_REFUND_STATUSES = new Set(['PAID_ESCROW', 'CHECKED_IN', 'THAWED']);
-const SIMPLE_CANCEL_STATUSES = new Set([
-  'PENDING',
-  'INQUIRY',
-  'CONFIRMED',
-  'AWAITING_PAYMENT',
-  'PAID',
-]);
 
 export async function GET(request, context) {
   const params = await Promise.resolve(context.params);
@@ -73,8 +68,8 @@ export async function GET(request, context) {
       );
     }
 
-    const willUseLedger = LEDGER_REFUND_STATUSES.has(booking.status);
-    const simpleCancel = SIMPLE_CANCEL_STATUSES.has(booking.status);
+    const willUseLedger = BOOKING_LEDGER_REFUND_STATUSES.has(booking.status);
+    const simpleCancel = BOOKING_SIMPLE_CANCEL_STATUSES.has(booking.status);
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,6 +13,10 @@ import {
 import { CreditCard, Wallet, Receipt, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useCurrency } from '@/contexts/currency-context'
+import { fetchExchangeRates } from '@/lib/client-data'
+import { getInvoiceGuestAmountPresentation } from '@/lib/pricing/fx-display-client'
+import { cancelChatInvoice } from '@/lib/chat/post-chat-invoice'
 
 const STATUS_LABEL = {
   PENDING: { en: 'Pending', ru: 'Ожидает оплаты' },
@@ -37,18 +41,37 @@ export function InvoiceBubble({
   language = 'ru',
 }) {
   const router = useRouter()
+  const { currency: guestUiCurrency } = useCurrency()
   const [methodOpen, setMethodOpen] = useState(false)
   const [navigating, setNavigating] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [rateMap, setRateMap] = useState({ THB: 1 })
   const isEn = language === 'en'
+
+  useEffect(() => {
+    fetchExchangeRates({ retail: true }).then((m) => {
+      if (m && typeof m === 'object') setRateMap(m)
+    })
+  }, [])
+
+  const presentation = useMemo(
+    () =>
+      invoice
+        ? getInvoiceGuestAmountPresentation({
+            invoice,
+            guestUiCurrency,
+            rateMap,
+            language,
+          })
+        : null,
+    [invoice, guestUiCurrency, rateMap, language],
+  )
 
   if (!invoice) return null
 
   const rawStatus = String(invoice.status || 'PENDING').toUpperCase()
   const statusInfo = STATUS_LABEL[rawStatus] || STATUS_LABEL.PENDING
   const isPaid = rawStatus === 'PAID'
-  const currency = String(invoice.currency || 'THB').toUpperCase()
-  const sym = currency === 'THB' ? '฿' : currency === 'RUB' ? '₽' : '$'
 
   function goCheckout(pm) {
     const bid = invoice.booking_id
@@ -66,15 +89,9 @@ export function InvoiceBubble({
     if (!messageId) return
     setCancelling(true)
     try {
-      const res = await fetch('/api/v2/chat/invoice/cancel', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messageId }),
-      })
-      const json = await res.json()
-      if (!res.ok || !json.success) {
-        toast.error(json.error || (isEn ? 'Could not cancel invoice' : 'Не удалось отменить счёт'))
+      const { ok, error } = await cancelChatInvoice(messageId)
+      if (!ok) {
+        toast.error(error || (isEn ? 'Could not cancel invoice' : 'Не удалось отменить счёт'))
         return
       }
       toast.success(isEn ? 'Invoice cancelled' : 'Счёт отменён')
@@ -127,10 +144,13 @@ export function InvoiceBubble({
             {isEn ? 'Amount' : 'Сумма'}
           </p>
           <p className="text-2xl font-bold tabular-nums text-slate-900">
-            {sym}
-            {Number(invoice.amount ?? 0).toLocaleString()}{' '}
-            <span className="text-base font-semibold text-slate-600">{currency}</span>
+            {presentation?.primary?.label ?? `${Number(invoice.amount ?? 0).toLocaleString()}`}
           </p>
+          {presentation?.secondary && (
+            <p className="mt-1 text-sm font-medium tabular-nums text-slate-600">
+              {presentation.secondary.label}
+            </p>
+          )}
         </div>
 
         {invoice.description && (

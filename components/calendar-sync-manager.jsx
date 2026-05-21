@@ -28,6 +28,13 @@ import {
 } from '@/components/ui/select'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
+import { fetchListingCalendarBlocks } from '@/lib/api/partner-calendar-client'
+import {
+  fetchIcalExportLink,
+  fetchPartnerListing,
+  patchPartnerListing,
+} from '@/lib/api/partner-listing-client'
+import { postIcalSync } from '@/lib/api/ical-sync-client'
 
 const PLATFORMS = [
   { value: 'Airbnb', label: 'Airbnb', color: 'bg-red-100 text-red-700 border-red-200' },
@@ -87,13 +94,8 @@ export default function CalendarSyncManager({ listingId, onSync }) {
     setExportLoading(true)
     setExportUrl('')
     try {
-      const res = await fetch(`/api/v2/partner/listings/${listingId}/ical-export-link`, {
-        credentials: 'include',
-      })
-      const json = await res.json()
-      if (json.success && json.data?.exportUrl) {
-        setExportUrl(json.data.exportUrl)
-      }
+      const { ok, exportUrl: url } = await fetchIcalExportLink(listingId)
+      if (ok && url) setExportUrl(url)
     } catch (e) {
       console.error('Failed to load iCal export link:', e)
     } finally {
@@ -115,11 +117,9 @@ export default function CalendarSyncManager({ listingId, onSync }) {
 
   async function loadSyncSettings() {
     try {
-      const res = await fetch(`/api/v2/partner/listings/${listingId}`, { credentials: 'include' })
-      const json = await res.json()
-      const listing = json?.success ? (json.data || json.listing) : null
+      const { ok, listing } = await fetchPartnerListing(listingId)
 
-      if (listing) {
+      if (ok && listing) {
         let settings = listing.sync_settings || {}
         if ((!settings.sources || settings.sources.length === 0) && listing.metadata?.sync_settings) {
           settings = {
@@ -145,13 +145,12 @@ export default function CalendarSyncManager({ listingId, onSync }) {
 
   async function loadBlockedDates() {
     try {
-      const res = await fetch(`/api/v2/partner/listings/${listingId}/calendar`, { credentials: 'include' })
-      const json = await res.json()
-      if (!json.success || !json.blocks) {
+      const { ok, blocks } = await fetchListingCalendarBlocks(listingId)
+      if (!ok || !blocks?.length) {
         setBlockedDates([])
         return
       }
-      const icalBlocks = (json.blocks || []).filter(b => b.source && b.source !== 'manual')
+      const icalBlocks = blocks.filter(b => b.source && b.source !== 'manual')
       setBlockedDates(
         icalBlocks.map(b => ({
           id: b.id,
@@ -169,14 +168,9 @@ export default function CalendarSyncManager({ listingId, onSync }) {
   async function saveSyncSettings(newSettings, { silent = false } = {}) {
     setSaving(true)
     try {
-      const res = await fetch(`/api/v2/partner/listings/${listingId}`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sync_settings: newSettings }),
-      })
+      const { ok } = await patchPartnerListing(listingId, { sync_settings: newSettings })
 
-      if (res.ok) {
+      if (ok) {
         setSyncSettings(newSettings)
         if (!silent) toast.success(language === 'ru' ? 'Сохранено' : 'Saved')
       } else {
@@ -206,14 +200,9 @@ export default function CalendarSyncManager({ listingId, onSync }) {
 
     setAddingSource(true)
     try {
-      const testRes = await fetch('/api/ical/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'parse', url: newUrl }),
-      })
-      const testData = await testRes.json()
+      const { ok: parseOk, json: testData } = await postIcalSync({ action: 'parse', url: newUrl })
 
-      if (!testData.success) {
+      if (!parseOk) {
         toast.error(testData.error || (language === 'ru' ? 'Не удалось загрузить календарь' : 'Could not load calendar'))
         setAddingSource(false)
         return
@@ -268,18 +257,13 @@ export default function CalendarSyncManager({ listingId, onSync }) {
   async function handleSyncSource(source) {
     setSyncingSourceId(source.id)
     try {
-      const res = await fetch('/api/ical/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'sync',
-          listingId,
-          sources: [source],
-        }),
+      const { ok: syncOk, json: data } = await postIcalSync({
+        action: 'sync',
+        listingId,
+        sources: [source],
       })
-      const data = await res.json()
 
-      if (data.success) {
+      if (syncOk) {
         const newSettings = {
           ...syncSettings,
           sources: syncSettings.sources.map(s =>
@@ -320,18 +304,13 @@ export default function CalendarSyncManager({ listingId, onSync }) {
     }
     setSyncing(true)
     try {
-      const res = await fetch('/api/ical/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'sync',
-          listingId,
-          sources: syncSettings.sources.filter(s => s.enabled),
-        }),
+      const { ok: syncOk, json: data } = await postIcalSync({
+        action: 'sync',
+        listingId,
+        sources: syncSettings.sources.filter(s => s.enabled),
       })
-      const data = await res.json()
 
-      if (data.success) {
+      if (syncOk) {
         await saveSyncSettings({ ...syncSettings, last_sync: new Date().toISOString() }, { silent: true })
         loadBlockedDates()
         toast.success(

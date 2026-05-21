@@ -30,6 +30,8 @@ import { cn } from '@/lib/utils'
 import { isTransportIntervalWizardProfile } from '@/lib/config/category-wizard-profile-db'
 import { chipIconForCategory } from '@/components/search/category-chip-icon'
 import { orderedCategoriesForSearchUi, effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
+import { fetchCategories } from '@/lib/client-data'
+import { fetchSearchLocations } from '@/lib/api/catalog-public-client'
 
 export function UnifiedSearchBar({
   variant = 'hero',
@@ -83,24 +85,15 @@ export function UnifiedSearchBar({
   const [categoryPopoverOpen, setCategoryPopoverOpen] = useState(false)
 
   useEffect(() => {
-    fetch('/api/v2/categories', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((catRes) => {
-        if (catRes.success && catRes.data) {
-          const activeOnly = (catRes.data || []).filter(
-            (c) => c && (c.isActive === true || c.is_active === true),
-          )
-          setCategories(activeOnly)
-        }
-      })
+    fetchCategories()
+      .then((cats) => setCategories(cats || []))
       .catch(() => {})
   }, [])
 
   useEffect(() => {
-    fetch('/api/v2/search/locations')
-      .then((r) => r.json())
-      .then((locRes) => {
-        if (locRes.success && locRes.data) setLocations(locRes.data)
+    fetchSearchLocations()
+      .then(({ ok, locations }) => {
+        if (ok) setLocations(locations)
       })
       .catch(() => {})
       .finally(() => setLocationsLoading(false))

@@ -7,6 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatPrice } from '@/lib/currency'
 import { useToast } from '@/hooks/use-toast'
+import {
+  fetchPartnerSettlementDocumentDownloadUrl,
+  fetchPartnerSettlementDocuments,
+} from '@/lib/api/partner-finances-client'
 
 function fmtWhen(iso) {
   if (!iso) return '—'
@@ -29,10 +33,8 @@ export function PartnerFinancesDocuments({ t, language }) {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/v2/partner/settlement-documents', { cache: 'no-store' })
-      const json = await res.json()
-      if (!res.ok || !json.success) throw new Error(json.error || 'load_failed')
-      setRows(json.data?.documents || [])
+      const documents = await fetchPartnerSettlementDocuments()
+      setRows(documents)
     } catch (e) {
       toast({
         title: t('partnerFinances_docsError'),
@@ -51,11 +53,12 @@ export function PartnerFinancesDocuments({ t, language }) {
   const handleDownload = async (row) => {
     setDownloadingId(row.id)
     try {
-      const q = new URLSearchParams({ source: row.source, refId: row.refId })
-      const res = await fetch(`/api/v2/partner/settlement-documents/download?${q}`)
-      const json = await res.json()
-      if (!res.ok || !json.success) throw new Error(json.error || 'download_failed')
-      window.open(json.data.signedUrl, '_blank', 'noopener,noreferrer')
+      const signedUrl = await fetchPartnerSettlementDocumentDownloadUrl({
+        source: row.source,
+        refId: row.refId,
+      })
+      if (!signedUrl) throw new Error('download_failed')
+      window.open(signedUrl, '_blank', 'noopener,noreferrer')
     } catch (e) {
       toast({
         title: t('partnerFinances_docsDownloadError'),

@@ -3,7 +3,9 @@
 **Для кого:** владелец продукта / финансовый оператор на soft launch.  
 **Режим:** каждый исходящий перевод партнёру — **осознанное действие**; автоматических банковских API-выплат в коде **нет**.  
 **SSOT по статусам и 24h:** `lib/partner/partner-payout-eligibility.js`  
-**Связанные доки:** `docs/PRE_LAUNCH_CHECKLIST.md`, `docs/CRON_EXTERNAL_FINANCIAL.md`, `docs/SOFT_LAUNCH_PLAN.md`, аудит Stage 100.2 (чат / ADR-097).
+**Связанные доки:** `docs/PRE_REAL_PAYMENTS_CHECKLIST.md`, `docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`, `docs/PRE_LAUNCH_CHECKLIST.md`, `docs/CRON_EXTERNAL_FINANCIAL.md`, `docs/SOFT_LAUNCH_PLAN.md`, аудит Stage 100.2 (чат / ADR-097).
+
+> **Stage 112.1:** FinTech-пульт и конвертации — только через `lib/admin/admin-fintech-api-client.js`; чат (read/thread) — `lib/chat/chat-ui-api-client.js` + `conversation-api-client.js`. Перед первым live-платежом — Go/No-Go в `docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`.
 
 ---
 
@@ -33,7 +35,7 @@
 
 Когда вы физически делаете обмен (например, RUB → KGS → USDT), это нужно занести в финтех-пульт:
 
-1. Откройте **`/admin/settings/finances`** → блок **«Конвертации и потери»**.
+1. Откройте **`/admin/settings/finances`** → блок **«Конвертации и потери»** (UI: `FinTechConversionsPanel` → **`lib/admin/admin-fintech-api-client.js`**, без прямого `fetch` в компонентах).
 2. Выберите тип операции и валюты (`from` / `to`).
 3. Введите:
    - сумму «из» и сумму «в» (факт сделки),

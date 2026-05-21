@@ -33,7 +33,10 @@ import { isRealtimeDebugEnabled } from '@/lib/chat/realtime-debug-log'
 import { useChatRealtime } from '@/hooks/use-chat-realtime'
 import { useOptimisticSend } from '@/hooks/use-optimistic-send'
 import { postChatMessage } from '@/lib/chat/post-chat-message'
+import { postChatInvoice } from '@/lib/chat/post-chat-invoice'
 import { uploadChatFile, uploadChatVoice } from '@/lib/chat-upload'
+import { fetchEnrichedConversation } from '@/lib/chat/conversation-api-client'
+import { fetchChatMessages, postChatMarkRead } from '@/lib/chat/chat-ui-api-client'
 
 // ─── Утилита ─────────────────────────────────────────────────────────────────
 
@@ -213,14 +216,10 @@ export function useChatThreadMessages({
   const resyncMissedMessages = useCallback(async () => {
     if (!conversationId || !userId) return
     try {
-      const msgRes = await fetch(
-        `/api/v2/chat/messages?conversationId=${encodeURIComponent(conversationId)}`,
-        { credentials: 'include', cache: 'no-store' },
-      )
-      const msgJson = await msgRes.json()
-      if (!msgJson.success || !Array.isArray(msgJson.data)) return
+      const { ok, data } = await fetchChatMessages(conversationId)
+      if (!ok || !Array.isArray(data)) return
       const opts = mapperOptsRef.current
-      const incoming = msgJson.data
+      const incoming = data
         .map((m) => mapApiMessageToRow(m, opts))
         .filter(Boolean)
       setMessages((prev) => {
@@ -242,16 +241,41 @@ export function useChatThreadMessages({
   }, [conversationId, userId])
 
   const realtimeMessagesOpts = useMemo(
-    () => ({ onResync: resyncMissedMessages }),
-    [resyncMissedMessages],
+    () => ({ onResync: deferThreadRealtime ? undefined : resyncMissedMessages }),
+    [deferThreadRealtime, resyncMissedMessages],
   )
 
-  const { isConnected } = useChatRealtime(
-    conversationId ?? null,
+  const realtimeConvId = deferThreadRealtime ? null : (conversationId ?? null)
+
+  const { isConnected: threadRealtimeConnected } = useChatRealtime(
+    realtimeConvId,
     handleRealtimeInsert,
     handleRealtimeUpdate,
     realtimeMessagesOpts,
   )
+
+  const isConnected = deferThreadRealtime ? externalIsConnected : threadRealtimeConnected
+
+  const prevInboxConnectedRef = useRef(false)
+  useEffect(() => {
+    if (!deferThreadRealtime || !conversationId) return
+    const was = prevInboxConnectedRef.current
+    prevInboxConnectedRef.current = externalIsConnected
+    if (externalIsConnected && !was) {
+      void resyncMissedMessages()
+    }
+  }, [deferThreadRealtime, externalIsConnected, conversationId, resyncMissedMessages])
+
+  useEffect(() => {
+    if (!deferThreadRealtime || !conversationId) return
+    const onVis = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        void resyncMissedMessages()
+      }
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [deferThreadRealtime, conversationId, resyncMissedMessages])
 
   // ── Оптимистичная отправка текста ────────────────────────────────────────────
 
@@ -275,21 +299,9 @@ export function useChatThreadMessages({
 
     try {
       // 1. Загружаем обогащённую беседу (включает listing + booking)
-      const convRes = await fetch(
-        `/api/v2/chat/conversations?id=${encodeURIComponent(convId)}&enrich=1`,
-        { credentials: 'include' }
-      )
-      const convJson = await convRes.json()
+      const conv = await fetchEnrichedConversation(convId)
 
       if (seq !== loadSeqRef.current) return
-      if (!convRes.ok || !convJson.success) {
-        if (convJson?.error === 'Forbidden') {
-          toast.error('Нет доступа к этому диалогу')
-        }
-        return
-      }
-
-      const conv = convJson.data?.[0]
       if (!conv) return
 
       setSelectedConv(conv)
@@ -300,17 +312,13 @@ export function useChatThreadMessages({
       mapperOptsRef.current = buildMapperOpts(conv, userId, viewerRole, conv.booking ?? null)
 
       // 2. Загружаем историю сообщений
-      const msgRes = await fetch(
-        `/api/v2/chat/messages?conversationId=${encodeURIComponent(convId)}`,
-        { credentials: 'include' }
-      )
-      const msgJson = await msgRes.json()
+      const { ok: msgOk, data: msgRows } = await fetchChatMessages(convId)
 
       if (seq !== loadSeqRef.current) return
-      if (msgJson.success && Array.isArray(msgJson.data)) {
+      if (msgOk && Array.isArray(msgRows)) {
         const opts = mapperOptsRef.current
         setMessages(
-          msgJson.data
+          msgRows
             .map((m) => mapApiMessageToRow(m, opts))
             .filter(Boolean)
         )
@@ -320,12 +328,7 @@ export function useChatThreadMessages({
 
       // 3. Авто-пометка прочитанными
       onMarkReadRef.current?.()
-      fetch('/api/v2/chat/read', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId: convId }),
-      }).catch(() => {})
+      void postChatMarkRead(convId).catch(() => {})
     } catch {
       /* сеть / парсинг — тосты выше по цепочке */
     } finally {
@@ -362,14 +365,10 @@ export function useChatThreadMessages({
    * @param {number} [durationSec]
    * @returns {Promise<Object|null>}
    */
-  const sendVoice = useCallback(
-    async (blob, durationSec = 0) => {
-      if (!blob || !conversationId || !userId) return null
+  const sendVoiceFromUrl = useCallback(
+    async (voiceUrl, durationSec = 0) => {
+      if (!voiceUrl || !conversationId || !userId) return null
       try {
-        const mime = blob.type || 'audio/webm'
-        const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') ? 'm4a' : mime.includes('mpeg') ? 'mp3' : 'webm'
-        const file = new File([blob], `voice_${Date.now()}.${ext}`, { type: mime })
-        const { url: voiceUrl } = await uploadChatVoice(file, userId)
         const { ok, data, error } = await postChatMessage({
           conversationId,
           content: '🎤',
@@ -386,8 +385,76 @@ export function useChatThreadMessages({
         return null
       }
     },
-    [conversationId, userId]
+    [conversationId, userId],
   )
+
+  const sendVoice = useCallback(
+    async (blob, durationSec = 0) => {
+      if (!blob || !conversationId || !userId) return null
+      try {
+        const mime = blob.type || 'audio/webm'
+        const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') ? 'm4a' : mime.includes('mpeg') ? 'mp3' : 'webm'
+        const file = new File([blob], `voice_${Date.now()}.${ext}`, { type: mime })
+        const { url: voiceUrl } = await uploadChatVoice(file, userId)
+        return sendVoiceFromUrl(voiceUrl, durationSec)
+      } catch {
+        toast.error('Ошибка сети')
+        return null
+      }
+    },
+    [conversationId, userId, sendVoiceFromUrl],
+  )
+
+  const sendPassportRequest = useCallback(async () => {
+    if (!conversationId || !userId) return null
+    try {
+      const { ok, data, error } = await postChatMessage({
+        conversationId,
+        type: 'system',
+        content: '',
+        metadata: { system_key: 'passport_request' },
+      })
+      if (!ok) {
+        toast.error(error || 'Ошибка отправки')
+        return null
+      }
+      return data
+    } catch {
+      toast.error('Ошибка сети')
+      return null
+    }
+  }, [conversationId, userId])
+
+  const sendInvoice = useCallback(
+    async (invoiceData) => {
+      if (!conversationId || !userId) return { ok: false, data: null, error: 'No conversation' }
+      try {
+        return await postChatInvoice({
+          conversationId,
+          ...invoiceData,
+          bookingId: invoiceData?.bookingId ?? booking?.id,
+          listingId: invoiceData?.listingId ?? listing?.id,
+          listingTitle: invoiceData?.listingTitle ?? listing?.title,
+          checkIn: invoiceData?.checkIn ?? booking?.check_in,
+          checkOut: invoiceData?.checkOut ?? booking?.check_out,
+        })
+      } catch {
+        return { ok: false, data: null, error: 'Network error' }
+      }
+    },
+    [conversationId, userId, booking, listing],
+  )
+
+  const appendMessage = useCallback((row) => {
+    if (!row) return
+    const mapped = mapApiMessageToRow(row, mapperOptsRef.current)
+    if (mapped) {
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === mapped.id)) return prev
+        return [...prev, mapped]
+      })
+    }
+  }, [])
 
   /**
    * Загрузить и отправить файл/изображение.
@@ -443,7 +510,11 @@ export function useChatThreadMessages({
     // Методы
     sendMessage,
     sendVoice,
+    sendVoiceFromUrl,
+    sendPassportRequest,
+    sendInvoice,
     sendMedia,
+    appendMessage,
     reload: () => conversationId && loadThread(conversationId),
 
     // Вспомогательное

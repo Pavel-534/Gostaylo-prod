@@ -29,10 +29,13 @@ import {
   subscribeChatInboxUnreadTotal,
   clearChatInboxUnreadBridge,
 } from '@/lib/chat/chat-unread-bridge'
+import { handleInboxMessageInsert, mergeRawConvUpdate } from '@/lib/chat/inbox-realtime-merge'
 import {
-  mergeMessageInsertIntoConversation,
-  mergeRawConvUpdate,
-} from '@/lib/chat/inbox-realtime-merge'
+  fetchChatProviderConversations,
+  fetchEnrichedConversation,
+  unarchiveConversationClient,
+} from '@/lib/chat/conversation-api-client'
+import { shouldPlayIncomingSoundForPath } from '@/lib/chat/inbox-sound-policy'
 import { retainTypingGlobalChannel } from '@/lib/chat/typing-global-channel'
 import { playNotificationSound } from '@/hooks/use-realtime-chat'
 
@@ -79,15 +82,7 @@ export function ChatProvider({ children }) {
   }, [conversations])
 
   const shouldPlayIncomingSound = useCallback(
-    (conversationId) => {
-      if (typeof document === 'undefined' || document.visibilityState !== 'visible') return false
-      const normalized = (pathname || '').replace(/\/+$/, '') || '/'
-      const m = normalized.match(/^\/messages\/([^/?#]+)/)
-      if (!m) return true
-      const openConversationId = m?.[1] ? decodeURIComponent(m[1]) : null
-      if (!openConversationId) return true
-      return String(openConversationId) !== String(conversationId || '')
-    },
+    (conversationId) => shouldPlayIncomingSoundForPath(pathname, conversationId),
     [pathname],
   )
 
@@ -105,14 +100,9 @@ export function ChatProvider({ children }) {
     }
     setLoading(true)
     try {
-      const res = await fetch('/api/v2/chat/conversations?archived=all&enrich=1&limit=100', {
-        credentials: 'include',
-        cache: 'no-store',
-      })
-      if (!res.ok) return
-      const data = await res.json()
-      if (data?.success && Array.isArray(data.data)) {
-        const rows = data.data
+      const { ok, data: rows } = await fetchChatProviderConversations()
+      if (!ok) return
+      if (Array.isArray(rows)) {
         // Синхронно с ответом API — иначе postgres_changes может прийти до useEffect и быть отброшен.
         conversationIdsRef.current = new Set(
           rows.map((c) => String(c?.id || '')).filter(Boolean),
@@ -142,36 +132,16 @@ export function ChatProvider({ children }) {
 
   // ─── Загрузка одной беседы (для INSERT новой беседы) ──────────────────────
   const fetchOneConversation = useCallback(async (convId) => {
-    try {
-      const res = await fetch(
-        `/api/v2/chat/conversations?id=${encodeURIComponent(convId)}&enrich=1`,
-        { credentials: 'include', cache: 'no-store' },
-      )
-      if (!res.ok) return
-      const data = await res.json()
-      const conv = data?.data?.[0]
-      if (!conv) return
-      setConversations((prev) => {
-        if (prev.some((c) => c.id === conv.id)) return prev
-        return [conv, ...prev]
-      })
-    } catch {
-      // silent
-    }
+    const conv = await fetchEnrichedConversation(convId)
+    if (!conv) return
+    setConversations((prev) => {
+      if (prev.some((c) => c.id === conv.id)) return prev
+      return [conv, ...prev]
+    })
   }, [])
 
-  // ─── Разархивирование (fire-and-forget) ───────────────────────────────────
-  const unarchiveConversation = useCallback(async (convId) => {
-    try {
-      await fetch(`/api/v2/chat/conversations`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId: convId, archived: false }),
-      })
-    } catch {
-      // silent — UI already updated optimistically
-    }
+  const unarchiveConversation = useCallback((convId) => {
+    void unarchiveConversationClient(convId)
   }, [])
 
   // ─── Smart Realtime (с backoff при обрыве) ───────────────────────────────
@@ -193,46 +163,17 @@ export function ChatProvider({ children }) {
     }
 
     const onMsgPayload = (payload) => {
-      const msg = payload.new
-      const convId = msg.conversation_id
-      const convKey = String(convId || '')
       const uid = userIdRef.current
-      if (!convKey || !uid) return
-      // RLS уже отдаёт только сообщения из «наших» бесед; не режем по ref — он отстаёт от state до конца refresh().
-
-      let missingInList = false
-      setConversations((prev) => {
-        const idx = prev.findIndex((c) => String(c.id) === String(convId))
-        if (idx === -1) {
-          missingInList = true
-          return prev
-        }
-
-        const conv = prev[idx]
-        const { updated, wasArchivedByMe, isFromMe } = mergeMessageInsertIntoConversation(
-          conv,
-          msg,
-          uid,
-        )
-
-        if (wasArchivedByMe) {
-          unarchiveConversation(convId)
-        }
-
-        if (!isFromMe && shouldPlayIncomingSound(convId)) {
-          playNotificationSound()
-        }
-
-        const next = prev.filter((c) => String(c.id) !== String(convId))
-        return [updated, ...next]
+      if (!uid) return
+      handleInboxMessageInsert(payload.new, {
+        userId: uid,
+        setConversations,
+        unarchiveConversation,
+        fetchOneConversation,
+        msgUnknownConvFetchRef,
+        shouldPlayIncomingSound,
+        playSound: playNotificationSound,
       })
-
-      if (missingInList && !msgUnknownConvFetchRef.current.has(convKey)) {
-        msgUnknownConvFetchRef.current.add(convKey)
-        void fetchOneConversation(convId).finally(() => {
-          msgUnknownConvFetchRef.current.delete(convKey)
-        })
-      }
     }
 
     const stopConv = subscribeRealtimeWithBackoff({
@@ -368,13 +309,13 @@ export function ChatProvider({ children }) {
   }, [userId, refresh])
 
   useEffect(() => {
-    if (!userId) return
+    if (!userId || deferListRealtime) return
     const id = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
       void refresh()
     }, 30000)
     return () => clearInterval(id)
-  }, [userId, refresh])
+  }, [userId, refresh, deferListRealtime])
 
   const pushRefreshTimerRef = useRef(null)
 

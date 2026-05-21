@@ -9,6 +9,7 @@ import { usePricingEngineConfig } from '@/hooks/use-pricing-engine-config'
 import { buildGuestPriceBreakdownFromCheckoutTotals } from '@/lib/booking/guest-price-breakdown'
 import { getGuestPayableRoundedThb } from '@/lib/booking-guest-total'
 import { interpolateTemplate } from './interpolate.js'
+import { getInvoiceGuestAmountPresentation } from '@/lib/pricing/fx-display-client'
 
 /**
  * Курсы, комиссия, промокод и производные суммы для чекаута.
@@ -28,6 +29,7 @@ export function useCheckoutPricing({
   allowedMethods,
   language,
   walletUseThb = 0,
+  guestUiCurrency = 'THB',
 }) {
   const searchParams = useSearchParams()
   const commissionFromApi = useCommission()
@@ -130,6 +132,7 @@ export function useCheckoutPricing({
     invoiceCurrency,
     hasInvoiceCheckout,
     payableText,
+    payableSecondaryText,
     guestCheckoutBreakdown,
     walletAppliedThb,
     serviceFeeBeforeWallet,
@@ -174,9 +177,22 @@ export function useCheckoutPricing({
     const invoiceAmount = Number(invoice?.amount || 0)
     const invoiceCurrency = String(invoice?.currency || 'THB').toUpperCase()
     const hasInvoiceCheckout = Boolean(invoice?.id && Number.isFinite(invoiceAmount) && invoiceAmount > 0)
-    const payableText = hasInvoiceCheckout
-      ? `${invoiceCurrency === 'THB' ? '฿' : invoiceCurrency === 'RUB' ? '₽' : '$'}${invoiceAmount.toLocaleString()} ${invoiceCurrency}`
-      : formatPrice(totalWithFee, booking?.currency || 'THB', exchangeRates, language)
+    let payableText = formatPrice(totalWithFee, booking?.currency || 'THB', exchangeRates, language)
+    let payableSecondaryText = null
+    if (hasInvoiceCheckout && invoice) {
+      const pres = getInvoiceGuestAmountPresentation({
+        invoice: {
+          amount: invoiceAmount,
+          currency: invoiceCurrency,
+          amount_thb: invoice.amount_thb ?? invoice.metadata?.amount_thb,
+        },
+        guestUiCurrency,
+        rateMap: exchangeRates,
+        language,
+      })
+      payableText = pres.primary.label
+      payableSecondaryText = pres.secondary?.label ?? null
+    }
 
     const insuranceThb = Number(fs.insurance_reserve_thb)
     const insuranceOk = Number.isFinite(insuranceThb) ? insuranceThb : 0
@@ -207,12 +223,13 @@ export function useCheckoutPricing({
       invoiceCurrency,
       hasInvoiceCheckout,
       payableText,
+      payableSecondaryText,
       guestCheckoutBreakdown,
       walletAppliedThb,
       serviceFeeBeforeWallet,
       serviceFeeAfterWallet,
     }
-  }, [booking, promoDiscount, guestServiceFeePercent, exchangeRates, language, invoice, walletUseThb])
+  }, [booking, promoDiscount, guestServiceFeePercent, exchangeRates, language, invoice, walletUseThb, guestUiCurrency])
 
   const formatDisplayPrice = useCallback(
     (n, c) => formatPrice(n, c, exchangeRates, language),
@@ -242,6 +259,7 @@ export function useCheckoutPricing({
     invoiceCurrency,
     hasInvoiceCheckout,
     payableText,
+    payableSecondaryText,
     guestCheckoutBreakdown,
     walletAppliedThb,
     serviceFeeBeforeWallet,

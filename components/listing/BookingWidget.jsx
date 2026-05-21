@@ -8,7 +8,10 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Star, ArrowRight, MessageCircle, Loader2, Sparkles } from 'lucide-react'
-import { formatPrice, priceRawForTest } from '@/lib/currency'
+import {
+  formatDisplayPriceInCurrency,
+  displayPriceRawForTest,
+} from '@/lib/pricing/fx-display-client'
 import { getUIText } from '@/lib/translations'
 import { parseDurationDiscountTiers } from '@/lib/listing/duration-discount-tiers.js'
 import { getListingRentalPeriodMode } from '@/lib/listing-booking-ui'
@@ -95,9 +98,9 @@ function HeroPriceHeadline({
       <div
         className={cn('font-bold text-slate-900 tabular-nums leading-tight', sizeClass)}
         data-testid="listing-hero-price"
-        data-test-raw-value={priceRawForTest(hero.amountThb, currency, exchangeRates)}
+        data-test-raw-value={displayPriceRawForTest(hero.amountThb, currency, exchangeRates)}
       >
-        {formatPrice(hero.amountThb, currency, exchangeRates, language)}
+        {formatDisplayPriceInCurrency(hero.amountThb, currency, exchangeRates, language)}
       </div>
       <p className="text-sm text-slate-500" data-testid="booking-per-period-label">
         {periodLine}

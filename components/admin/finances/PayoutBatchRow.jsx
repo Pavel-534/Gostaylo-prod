@@ -5,12 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { resolveBatchStatusLabel, resolvePayoutRailLabel } from '@/lib/admin/fintech-ui-labels'
 import { cn } from '@/lib/utils'
-
-function fmtThb(n) {
-  const x = Number(n)
-  if (!Number.isFinite(x)) return '—'
-  return `฿${x.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
-}
+import { fmtThb } from '@/lib/admin/fintech-console-shared'
 
 /**
  * @param {object} props

@@ -28,6 +28,7 @@ import { WhereCombobox } from '@/components/search/WhereCombobox'
 import { GuestsPopover, formatGuestsSummaryText } from '@/components/search/GuestsPopover'
 import { buildWhereOptions } from '@/lib/locations/where-options'
 import { getStaticLocationsSeed } from '@/lib/locations/locations-seed'
+import { fetchSearchLocations } from '@/lib/api/catalog-public-client'
 import { getUIText, getCategoryName } from '@/lib/translations'
 import { cn } from '@/lib/utils'
 const APPEAR_SCROLL_PX = 280
@@ -88,9 +89,10 @@ export function StickySearchBar({
   const guestsTriggerRef = useRef(null)
 
   useEffect(() => {
-    fetch('/api/v2/search/locations')
-      .then((r) => r.json())
-      .then((locRes) => { if (locRes.success && locRes.data) setLocations(locRes.data) })
+    fetchSearchLocations()
+      .then(({ ok, locations }) => {
+        if (ok) setLocations(locations)
+      })
       .catch(() => {})
       .finally(() => setLocationsLoading(false))
   }, [])

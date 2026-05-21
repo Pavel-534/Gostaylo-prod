@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
+import { patchFintechTreasuryOps } from '@/lib/admin/admin-fintech-api-client'
 
 export function FinTechEmergencyPauseCard({ ops, onUpdated, toast }) {
   const [reason, setReason] = useState('')
@@ -16,16 +17,11 @@ export function FinTechEmergencyPauseCard({ ops, onUpdated, toast }) {
   const toggle = async (pause) => {
     setBusy(true)
     try {
-      const res = await fetch('/api/admin/finances/treasury-ops', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          emergencyPause: pause,
-          reason: pause ? reason || 'Ручная пауза владельца' : undefined,
-        }),
+      const { ok, json } = await patchFintechTreasuryOps({
+        emergencyPause: pause,
+        reason: pause ? reason || 'Ручная пауза владельца' : undefined,
       })
-      const json = await res.json()
-      if (!json.success) {
+      if (!ok) {
         toast?.({
           title: 'Не удалось изменить паузу',
           description: json.error || 'Ошибка',

@@ -16,10 +16,10 @@ import {
   effectiveRoleFromProfile,
   userParticipatesInConversation,
 } from '@/lib/services/chat/access'
-import { getEffectiveRate } from '@/lib/services/currency.service'
-import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter'
 import { PricingService } from '@/lib/services/pricing.service'
+import { settleInvoiceDisplayAmount } from '@/lib/pricing/fx-display.js'
 import { CalendarService } from '@/lib/services/calendar.service'
+import { executePostChatMessageForUser } from '@/lib/chat/post-chat-message.server.js'
 
 async function fetchProfile(userId) {
   const { data } = await supabaseAdmin
@@ -102,14 +102,6 @@ export async function POST(request) {
       )
     }
 
-    // ── Build invoice ─────────────────────────────────────────────────────
-    const senderName = formatPrivacyDisplayNameForParticipant(
-      profile?.first_name,
-      profile?.last_name,
-      profile?.email,
-      'Partner'
-    )
-
     const invoiceId = `inv-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
     const parsedAmount = parseFloat(amount)
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
@@ -128,17 +120,12 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Unsupported payment method' }, { status: 400 })
     }
     const allowedMethods = payMethod === 'CRYPTO' ? ['CRYPTO', 'CARD', 'MIR'] : [payMethod, 'CARD', 'MIR', 'CRYPTO']
-    let usdtAmount
-    let amountThb
-    if (cur === 'THB') {
-      const mult = await getEffectiveRate('THB', 'USDT')
-      usdtAmount = Math.round(parsedAmount * mult * 100) / 100
-      amountThb = Math.round(parsedAmount)
-    } else {
-      const multToThb = await getEffectiveRate(cur, 'THB')
-      amountThb = Math.round(parsedAmount * multToThb)
-      const multThbToUsdt = await getEffectiveRate('THB', 'USDT')
-      usdtAmount = Math.round(amountThb * multThbToUsdt * 100) / 100
+    const { amountThb, amountUsdt: usdtAmount } = await settleInvoiceDisplayAmount(parsedAmount, cur)
+    if (!amountThb || amountThb <= 0) {
+      return NextResponse.json(
+        { success: false, error: 'Could not convert amount to THB (missing FX rate)' },
+        { status: 400 },
+      )
     }
 
     const partnerIdForFee = conversation.partner_id || conversation.owner_id
@@ -312,43 +299,22 @@ export async function POST(request) {
       console.warn('[invoice] invoices table insert warn:', invTableError.message)
     }
 
-    // ── Persist message ───────────────────────────────────────────────────
-    const messageId = `msg-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
-    const now = new Date().toISOString()
+    const postResult = await executePostChatMessageForUser(userId, {
+      conversationId,
+      type: 'invoice',
+      content: line,
+      metadata: { invoice, invoice_id: invoiceId },
+    })
 
-    const { data: message, error: messageError } = await supabaseAdmin
-      .from('messages')
-      .insert({
-        id: messageId,
-        conversation_id: conversationId,
-        sender_id: userId,
-        sender_role: accessRole,
-        sender_name: senderName,
-        message: line,
-        content: line,
-        type: 'invoice',
-        metadata: { invoice, invoice_id: invoiceId },
-        is_read: false,
-        created_at: now,
-      })
-      .select()
-      .single()
-
-    if (messageError) {
-      console.error('[invoice] message insert error:', messageError)
-      return NextResponse.json(
-        { success: false, error: messageError.message },
-        { status: 400 }
-      )
+    if (!postResult.body?.success) {
+      return NextResponse.json(postResult.body, { status: postResult.status })
     }
 
-    // Update conversation timestamp
-    await supabaseAdmin
-      .from('conversations')
-      .update({ updated_at: now, last_message_at: now })
-      .eq('id', conversationId)
-
-    return NextResponse.json({ success: true, message, invoice })
+    return NextResponse.json({
+      success: true,
+      message: postResult.body.data,
+      invoice,
+    })
   } catch (error) {
     console.error('[invoice] unexpected error:', error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })

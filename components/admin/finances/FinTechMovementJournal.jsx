@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { movementKindLabel } from '@/lib/admin/fintech-movement-labels'
+import { fmtThb } from '@/lib/admin/fintech-console-shared'
+import { fetchFintechMovements } from '@/lib/admin/admin-fintech-api-client'
 
 const NAVY = '#0F172A'
 const MINT = '#0D9488'
@@ -26,12 +28,6 @@ const KIND_BADGE = {
   PAYOUT_BATCH: 'bg-slate-200 text-slate-800',
   LEDGER: 'bg-indigo-100 text-indigo-900',
   FISCAL: 'bg-amber-100 text-amber-900',
-}
-
-function fmtThb(n) {
-  const x = Number(n)
-  if (!Number.isFinite(x)) return '—'
-  return `฿${x.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
 }
 
 function monthRange() {
@@ -70,12 +66,9 @@ export function FinTechMovementJournal({ excludeTest = true, ownerSimple = false
       if (currency) qs.set('currency', currency)
       if (partnerId.trim()) qs.set('partnerId', partnerId.trim())
       if (onlyReal || excludeTest) qs.set('excludeTest', '1')
-      const res = await fetch(`/api/admin/finances/movements?${qs.toString()}`, {
-        credentials: 'include',
-      })
-      const json = await res.json()
-      if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`)
-      setRows(json.data?.movements || [])
+      const { ok, movements } = await fetchFintechMovements(qs)
+      if (!ok) throw new Error('movements load failed')
+      setRows(movements)
     } catch {
       setRows([])
     } finally {

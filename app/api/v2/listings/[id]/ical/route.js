@@ -13,6 +13,7 @@ import crypto from 'crypto';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { listingDateToday, toListingDate } from '@/lib/listing-date';
 import { getSiteDisplayName } from '@/lib/site-url';
+import { ICAL_EXPORT_BOOKING_STATUSES } from '@/lib/booking/status-sets.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,15 +102,6 @@ export async function GET(request, { params }) {
   const statusUp = String(listing.status || '').toUpperCase();
   const publiclyBookable = statusUp === 'ACTIVE' && listing.available !== false;
   
-  // Occupying / in-progress stays: OTAs must see BUSY as soon as a request exists on the platform
-  // (PENDING, PAID_ESCROW) plus paid/confirmed/completed. Excludes CANCELLED/REFUNDED/DECLINED etc.
-  const ICAL_EXPORT_BOOKING_STATUSES = [
-    'PENDING',
-    'PAID_ESCROW',
-    'CONFIRMED',
-    'PAID',
-    'COMPLETED',
-  ];
   const { data: bookings } = await supabase
     .from('bookings')
     .select('id, check_in, check_out, guest_name, status')

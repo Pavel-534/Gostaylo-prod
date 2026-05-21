@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { postAdminCleanTestData } from '@/lib/admin/admin-fintech-api-client'
 
 const STORAGE_KEY_REAL = 'fintech-real-data-only'
 const STORAGE_KEY_OWNER = 'fintech-owner-mode'
@@ -56,16 +57,10 @@ export function FinTechTestDataToolbar({
   const loadPreview = useCallback(async () => {
     setPreviewLoading(true)
     try {
-      const res = await fetch('/api/admin/clean-test-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ dryRun: true }),
-      })
-      const json = await res.json()
-      if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`)
-      setPreviewTotal(json.data?.total ?? 0)
-      setPreviewCounts(json.data?.counts || json.data?.breakdown || null)
+      const { ok, data, json } = await postAdminCleanTestData({ dryRun: true })
+      if (!ok) throw new Error(json.error || `HTTP ${json.status}`)
+      setPreviewTotal(data?.total ?? 0)
+      setPreviewCounts(data?.counts || data?.breakdown || null)
     } catch {
       setPreviewTotal(null)
       setPreviewCounts(null)
@@ -75,27 +70,22 @@ export function FinTechTestDataToolbar({
   }, [])
 
   useEffect(() => {
-    loadPreview()
+    void loadPreview()
   }, [loadPreview])
 
   useEffect(() => {
-    if (confirmOpen) loadPreview()
+    if (!confirmOpen) return
+    void loadPreview()
   }, [confirmOpen, loadPreview])
 
   const runCleanup = async () => {
     setCleaning(true)
     try {
-      const res = await fetch('/api/admin/clean-test-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ confirm: true }),
-      })
-      const json = await res.json()
-      if (!res.ok || !json.success) {
-        throw new Error(json.message || json.error || `HTTP ${res.status}`)
+      const { ok, data, json } = await postAdminCleanTestData({ confirm: true })
+      if (!ok) {
+        throw new Error(json.message || json.error || `HTTP ${json.status}`)
       }
-      const total = json.data?.totalDeleted ?? json.data?.total ?? 0
+      const total = data?.totalDeleted ?? data?.total ?? 0
       toast({
         title: `Тестовые данные удалены (${total} записей)`,
         description: 'Пулы, журнал, ledger и алерты обновлены.',

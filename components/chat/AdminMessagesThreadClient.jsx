@@ -17,6 +17,10 @@ import { useMarkConversationRead } from '@/hooks/use-mark-conversation-read'
 import { usePresenceContext } from '@/lib/context/PresenceContext'
 import { getUIText } from '@/lib/translations'
 import { isBookingPaid } from '@/lib/mask-contacts'
+import {
+  fetchAdminEnrichedConversations,
+  postChatSupportJoin,
+} from '@/lib/chat/chat-ui-api-client'
 
 export function AdminMessagesThreadClient({ conversationId, me, language = 'ru' }) {
   const router = useRouter()
@@ -35,13 +39,8 @@ export function AdminMessagesThreadClient({ conversationId, me, language = 'ru' 
     async ({ silent = false } = {}) => {
       if (!silent) setConvLoading(true)
       try {
-        const res = await fetch('/api/v2/chat/conversations?enrich=1', { credentials: 'include' })
-        const json = await res.json()
-        if (json.success && Array.isArray(json.data)) {
-          setConversations(json.data)
-        } else {
-          setConversations([])
-        }
+        const { ok, data } = await fetchAdminEnrichedConversations()
+        setConversations(ok ? data : [])
       } catch {
         if (!silent) setConversations([])
       } finally {
@@ -51,12 +50,11 @@ export function AdminMessagesThreadClient({ conversationId, me, language = 'ru' 
     []
   )
 
+  const prevConversationIdRef = useRef(conversationId)
   useEffect(() => {
-    void loadConversations()
-  }, [loadConversations])
-
-  useEffect(() => {
-    void loadConversations({ silent: true })
+    const idChanged = prevConversationIdRef.current !== conversationId
+    prevConversationIdRef.current = conversationId
+    void loadConversations({ silent: idChanged })
   }, [conversationId, loadConversations])
 
   const refreshSidebar = useCallback(() => void loadConversations({ silent: true }), [loadConversations])
@@ -132,17 +130,11 @@ export function AdminMessagesThreadClient({ conversationId, me, language = 'ru' 
     if (!selectedConv?.id || !me || joinSupportLoading) return
     setJoinSupportLoading(true)
     try {
-      const res = await fetch('/api/v2/chat/support/join', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: selectedConv.id,
-          lang: language === 'ru' ? 'ru' : 'en',
-        }),
+      const { ok, json } = await postChatSupportJoin({
+        conversationId: selectedConv.id,
+        lang: language === 'ru' ? 'ru' : 'en',
       })
-      const json = await res.json()
-      if (!res.ok || !json.success) {
+      if (!ok) {
         toast.error(json.error || (language === 'ru' ? 'Не удалось вступить в диалог' : 'Could not join'))
         return
       }

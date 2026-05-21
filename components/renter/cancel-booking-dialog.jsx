@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Loader2, AlertCircle } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
+import { fetchBookingCancelPreview, postBookingCancel } from '@/lib/api/renter-bookings-client'
 
 export function CancelBookingDialog({ open, onOpenChange, bookingId, language, onCancelled }) {
   const [step, setStep] = useState('idle')
@@ -28,16 +29,12 @@ export function CancelBookingDialog({ open, onOpenChange, bookingId, language, o
     setError(null)
     setPreview(null)
     try {
-      const res = await fetch(`/api/v2/bookings/${encodeURIComponent(bookingId)}/cancel-preview`, {
-        credentials: 'include',
-        cache: 'no-store',
-      })
-      const json = await res.json()
-      if (!res.ok || !json.success) {
+      const { ok, data, json } = await fetchBookingCancelPreview(bookingId)
+      if (!ok) {
         throw new Error(json.error || 'Preview failed')
       }
-      setPreview(json.data)
-      if (!json.data?.cancellable) {
+      setPreview(data)
+      if (!data?.cancellable) {
         setStep('blocked')
       } else {
         setStep('confirm')
@@ -63,14 +60,8 @@ export function CancelBookingDialog({ open, onOpenChange, bookingId, language, o
     setSubmitting(true)
     setError(null)
     try {
-      const res = await fetch(`/api/v2/bookings/${encodeURIComponent(bookingId)}/cancel`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      })
-      const json = await res.json()
-      if (!res.ok || !json.success) {
+      const { ok, json } = await postBookingCancel(bookingId, {})
+      if (!ok) {
         throw new Error(json.error || 'Cancel failed')
       }
       onCancelled?.(json.data)

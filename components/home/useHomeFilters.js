@@ -4,15 +4,8 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { isTransportIntervalWizardProfile } from '@/lib/config/category-wizard-profile-db'
 import { effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
-
-function useDebounce(value, delay) {
-  const [debouncedValue, setDebouncedValue] = useState(value)
-  useEffect(() => {
-    const handler = setTimeout(() => setDebouncedValue(value), delay)
-    return () => clearTimeout(handler)
-  }, [value, delay])
-  return debouncedValue
-}
+import { useDebounce } from '@/hooks/use-debounce'
+import { fetchSiteFeatures } from '@/lib/api/catalog-public-client'
 
 /**
  * Home search filters: What / Where / When / Who, URL seed, smart search toggles.
@@ -86,11 +79,10 @@ export function useHomeFilters(categoriesFromApi = []) {
   }, [])
 
   useEffect(() => {
-    fetch('/api/v2/site-features')
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.success && j.data && typeof j.data.semanticSearchOnSite === 'boolean') {
-          setSemanticSiteEnabled(j.data.semanticSearchOnSite)
+    fetchSiteFeatures()
+      .then(({ ok, semanticSearchOnSite }) => {
+        if (ok && typeof semanticSearchOnSite === 'boolean') {
+          setSemanticSiteEnabled(semanticSearchOnSite)
         }
       })
       .catch(() => {})

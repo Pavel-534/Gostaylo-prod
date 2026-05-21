@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { postChatConversationFromProfile } from '@/lib/chat/conversation-api-client'
 
 export function ReferralTeamSection({ members = [], t, language = 'ru' }) {
   const router = useRouter()
@@ -23,24 +24,20 @@ export function ReferralTeamSection({ members = [], t, language = 'ru' }) {
     }
     setBusyId(member.refereeId)
     try {
-      const res = await fetch('/api/v2/chat/conversations/from-profile', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetUserId: member.refereeId, language }),
+      const { ok, conversationId, errorKey, error } = await postChatConversationFromProfile({
+        targetUserId: member.refereeId,
+        language,
       })
-      const json = await res.json().catch(() => ({}))
-      if (res.ok && json?.data?.id) {
-        router.push(`/messages/${encodeURIComponent(json.data.id)}`)
+      if (ok && conversationId) {
+        router.push(`/messages/${encodeURIComponent(conversationId)}`)
         return
       }
-      const errKey = json?.errorKey
       const msg =
-        errKey === 'publicProfileChatNoListing'
+        errorKey === 'publicProfileChatNoListing'
           ? t('referralStage726_chatNoListing')
-          : errKey === 'publicProfileChatUnavailable'
+          : errorKey === 'publicProfileChatUnavailable'
             ? t('referralStage726_chatUnavailable')
-            : json?.error || t('referralStage726_writeError')
+            : error || t('referralStage726_writeError')
       toast.error(msg)
     } catch {
       toast.error(t('referralStage726_writeError'))

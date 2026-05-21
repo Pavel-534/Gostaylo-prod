@@ -18,6 +18,12 @@ import { getSeasonColor } from '@/lib/price-calculator'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { sanitizeThbDigits } from '@/lib/listing-wizard-numeric'
+import {
+  createSeasonalPrice,
+  deleteSeasonalPrice,
+  fetchSeasonalPricesByListing,
+  replaceSeasonalPrice,
+} from '@/lib/api/partner-seasonal-prices-client'
 import 'react-day-picker/dist/style.css'
 
 const SEASON_TYPE_KEYS = [
@@ -83,11 +89,10 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
 
   async function loadSeasonalPrices() {
     try {
-      const res = await fetch(`/api/v2/partner/seasonal-prices?listingId=${listingId}`, { credentials: 'include' })
-      const data = await res.json()
-      
-      if (data.status === 'success' || data.success) {
-        const raw = data.data || []
+      const { ok, data: rawRows } = await fetchSeasonalPricesByListing(listingId)
+
+      if (ok) {
+        const raw = rawRows || []
         setSeasonalPrices(raw.map(sp => ({
           id: sp.id,
           startDate: sp.start_date || sp.startDate,
@@ -169,34 +174,16 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
         description: formData.description,
       }
       
-      const res = editingPrice
-        ? await (async () => {
-            await fetch(`/api/v2/partner/seasonal-prices?id=${editingPrice.id}`, {
-              method: 'DELETE',
-              credentials: 'include',
-            })
-            return fetch('/api/v2/partner/seasonal-prices', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({ ...payload, listingId }),
-            })
-          })()
-        : await fetch('/api/v2/partner/seasonal-prices', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ ...payload, listingId }),
-          })
-      
-      const data = await res.json()
-      
-      if (data.status === 'success' || data.success) {
+      const { ok } = editingPrice
+        ? await replaceSeasonalPrice(editingPrice.id, { ...payload, listingId })
+        : await createSeasonalPrice({ ...payload, listingId })
+
+      if (ok) {
         toast.success(editingPrice ? t('seasonalMgr_updated') : t('seasonalMgr_created'))
         setModalOpen(false)
         loadSeasonalPrices()
       } else {
-        toast.error(data.error || t('seasonalMgr_saveErr'))
+        toast.error(t('seasonalMgr_saveErr'))
       }
     } catch (error) {
       console.error('Failed to save seasonal price:', error)
@@ -210,18 +197,13 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
     if (!confirm(t('seasonalMgr_confirmDelete'))) return
 
     try {
-      const res = await fetch(`/api/v2/partner/seasonal-prices?id=${priceId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
+      const { ok } = await deleteSeasonalPrice(priceId)
 
-      const data = await res.json()
-
-      if (data.status === 'success' || data.success) {
+      if (ok) {
         toast.success(t('seasonalMgr_deleted'))
         loadSeasonalPrices()
       } else {
-        toast.error(data.error || t('seasonalMgr_deleteErr'))
+        toast.error(t('seasonalMgr_deleteErr'))
       }
     } catch (error) {
       console.error('Failed to delete seasonal price:', error)

@@ -1,11 +1,11 @@
 /**
  * GoStayLo - In-Chat Invoice Component
- * Rich card for sending/receiving payment requests in chat
+ * Stage 110.6 — префилл = гостевая витрина + retail FX; гость видит сумму партнёра.
  */
 
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,47 +14,79 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { 
-  Receipt, CreditCard, Wallet, Calendar, Home, 
-  CheckCircle, Clock, XCircle, Loader2,
-  DollarSign, Bitcoin
+import {
+  Receipt,
+  CreditCard,
+  Wallet,
+  Calendar,
+  Home,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Loader2,
+  DollarSign,
+  Bitcoin,
 } from 'lucide-react'
+import { useCommission } from '@/hooks/use-commission'
+import { fetchExchangeRates } from '@/lib/client-data'
+import {
+  resolveInvoicePrefillFromStorefront,
+  convertDisplayAmountToThb,
+  computeUsdtFromThbRetail,
+  getInvoiceGuestAmountPresentation,
+} from '@/lib/pricing/fx-display-client'
+import { useCurrency } from '@/contexts/currency-context'
 
-// Currency configurations
 const CURRENCY_CONFIG = {
   THB: { symbol: '฿', icon: DollarSign, color: 'text-green-600', bgColor: 'bg-green-50' },
   USDT: { symbol: '$', icon: Bitcoin, color: 'text-amber-600', bgColor: 'bg-amber-50' },
   RUB: { symbol: '₽', icon: DollarSign, color: 'text-blue-600', bgColor: 'bg-blue-50' },
-  USD: { symbol: '$', icon: DollarSign, color: 'text-emerald-600', bgColor: 'bg-emerald-50' }
+  USD: { symbol: '$', icon: DollarSign, color: 'text-emerald-600', bgColor: 'bg-emerald-50' },
 }
 
-// Payment method to currency mapping
 const METHOD_CURRENCY = {
   CRYPTO: 'USDT',
   USDT_TRC20: 'USDT',
   CARD: 'THB',
   CARD_INTL: 'USD',
   MIR: 'RUB',
-  THAI_QR: 'THB'
+  THAI_QR: 'THB',
 }
 
-// Invoice status configurations
 const STATUS_CONFIG = {
   PENDING: { label: 'Ожидает оплаты', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   PAID: { label: 'Оплачен', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   EXPIRED: { label: 'Истёк', color: 'bg-gray-100 text-gray-800', icon: XCircle },
-  CANCELLED: { label: 'Отменён', color: 'bg-red-100 text-red-800', icon: XCircle }
+  CANCELLED: { label: 'Отменён', color: 'bg-red-100 text-red-800', icon: XCircle },
 }
 
-/**
- * Invoice Card displayed in chat
- */
-export function InvoiceCard({ 
-  invoice, 
-  isOwn = false, 
+export function InvoiceCard({
+  invoice,
+  isOwn = false,
   onPay = null,
-  paymentMethod = 'CRYPTO'
+  paymentMethod = 'CRYPTO',
+  language = 'ru',
 }) {
+  const { currency: guestUiCurrency } = useCurrency()
+  const [rateMap, setRateMap] = useState({ THB: 1 })
+
+  useEffect(() => {
+    fetchExchangeRates({ retail: true }).then((m) => {
+      if (m && typeof m === 'object') setRateMap(m)
+    })
+  }, [])
+
+  const presentation = useMemo(
+    () =>
+      getInvoiceGuestAmountPresentation({
+        invoice,
+        guestUiCurrency,
+        rateMap,
+        language,
+      }),
+    [invoice, guestUiCurrency, rateMap, language],
+  )
+
   const currency = METHOD_CURRENCY[paymentMethod] || 'THB'
   const currencyConfig = CURRENCY_CONFIG[currency] || CURRENCY_CONFIG.THB
   const statusConfig = STATUS_CONFIG[invoice?.status] || STATUS_CONFIG.PENDING
@@ -64,7 +96,6 @@ export function InvoiceCard({
   return (
     <Card className={`w-full max-w-sm ${isOwn ? 'ml-auto' : ''} border-2 border-teal-200 shadow-lg`}>
       <CardContent className="p-4">
-        {/* Header */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${currencyConfig.bgColor}`}>
@@ -81,7 +112,6 @@ export function InvoiceCard({
           </Badge>
         </div>
 
-        {/* Listing Info */}
         {invoice?.listing && (
           <div className="flex items-center gap-2 mb-3 p-2 bg-slate-50 rounded-lg">
             <Home className="h-4 w-4 text-slate-500" />
@@ -91,38 +121,29 @@ export function InvoiceCard({
           </div>
         )}
 
-        {/* Dates */}
         {invoice?.check_in && invoice?.check_out && (
           <div className="flex items-center gap-2 mb-3 text-sm text-slate-600">
             <Calendar className="h-4 w-4" />
-            <span>{invoice.check_in} — {invoice.check_out}</span>
+            <span>
+              {invoice.check_in} — {invoice.check_out}
+            </span>
           </div>
         )}
 
-        {/* Amount */}
         <div className={`rounded-lg p-4 mb-3 ${currencyConfig.bgColor}`}>
           <p className="text-xs text-slate-600 mb-1">Сумма к оплате</p>
-          <p className={`text-2xl font-bold ${currencyConfig.color}`}>
-            {currencyConfig.symbol}{invoice?.amount?.toLocaleString() || 0}
-            <span className="text-sm font-normal ml-1">{currency}</span>
-          </p>
-          {invoice?.amount_thb && currency !== 'THB' && (
-            <p className="text-xs text-slate-500 mt-1">
-              ≈ ฿{invoice.amount_thb.toLocaleString()} THB
-            </p>
+          <p className={`text-2xl font-bold ${currencyConfig.color}`}>{presentation.primary.label}</p>
+          {presentation.secondary && (
+            <p className="text-xs text-slate-500 mt-1">{presentation.secondary.label}</p>
           )}
         </div>
 
-        {/* Description */}
         {invoice?.description && (
-          <p className="text-sm text-slate-600 mb-3 italic">
-            "{invoice.description}"
-          </p>
+          <p className="text-sm text-slate-600 mb-3 italic">&quot;{invoice.description}&quot;</p>
         )}
 
-        {/* Pay Button */}
         {invoice?.status === 'PENDING' && onPay && !isOwn && (
-          <Button 
+          <Button
             onClick={() => onPay(invoice)}
             className="w-full bg-teal-600 hover:bg-teal-700"
             data-testid="invoice-pay-btn"
@@ -132,39 +153,32 @@ export function InvoiceCard({
           </Button>
         )}
 
-        {/* View Details for own invoices */}
         {isOwn && invoice?.status === 'PENDING' && (
-          <p className="text-xs text-center text-slate-500">
-            Ожидаем оплату от гостя
-          </p>
+          <p className="text-xs text-center text-slate-500">Ожидаем оплату от гостя</p>
         )}
       </CardContent>
     </Card>
   )
 }
 
-/**
- * Send Invoice Dialog for Partners
- */
-export function SendInvoiceDialog({ 
-  booking = null, 
+export function SendInvoiceDialog({
+  booking = null,
   listing = null,
   onSend,
   trigger,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
 }) {
-  const bookingAmountPrefill = Number(
-    booking?.price_thb ?? booking?.priceThb ?? booking?.price ?? booking?.amount_thb ?? 0
-  )
+  const commission = useCommission()
   const amountInputRef = useRef(null)
+  const userEditedAmountRef = useRef(false)
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
   const open = controlledOpen !== undefined ? controlledOpen : uncontrolledOpen
   const setOpen = controlledOnOpenChange || setUncontrolledOpen
   const [sending, setSending] = useState(false)
-  const [thbPerUsdt, setThbPerUsdt] = useState(null)
+  const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
   const [invoiceData, setInvoiceData] = useState({
-    amount: bookingAmountPrefill > 0 ? String(Math.round(bookingAmountPrefill)) : '',
+    amount: '',
     currency: 'THB',
     description: '',
     paymentMethod: 'CARD',
@@ -172,29 +186,47 @@ export function SendInvoiceDialog({
     newCheckOut: '',
   })
 
-  useEffect(() => {
-    fetch('/api/v2/exchange-rates', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.success && j.rateMap?.USDT) setThbPerUsdt(j.rateMap.USDT)
-      })
-      .catch(() => {})
-  }, [])
+  const guestFeePercent =
+    !commission.loading && Number.isFinite(commission.guestServiceFeePercent)
+      ? Number(commission.guestServiceFeePercent)
+      : undefined
 
   useEffect(() => {
-    if (!open) return
+    fetchExchangeRates({ retail: true }).then((m) => {
+      if (m && typeof m === 'object') setExchangeRates(m)
+    })
+  }, [])
+
+  const storefrontPrefill = useMemo(
+    () =>
+      resolveInvoicePrefillFromStorefront({
+        booking,
+        listing,
+        currency: invoiceData.currency,
+        rateMap: exchangeRates,
+        guestServiceFeePercent: guestFeePercent,
+      }),
+    [booking, listing, invoiceData.currency, exchangeRates, guestFeePercent],
+  )
+
+  useEffect(() => {
+    if (!open) {
+      userEditedAmountRef.current = false
+      return
+    }
     const t = setTimeout(() => amountInputRef.current?.focus(), 10)
     return () => clearTimeout(t)
   }, [open])
 
   useEffect(() => {
-    if (!open) return
-    if (bookingAmountPrefill <= 0) return
-    setInvoiceData((prev) => {
-      if (String(prev.amount || '').trim()) return prev
-      return { ...prev, amount: String(Math.round(bookingAmountPrefill)) }
-    })
-  }, [open, bookingAmountPrefill])
+    if (!open || userEditedAmountRef.current) return
+    if (!storefrontPrefill.amount) return
+    setInvoiceData((prev) => ({
+      ...prev,
+      amount: storefrontPrefill.amount,
+      currency: storefrontPrefill.currency,
+    }))
+  }, [open, storefrontPrefill.amount, storefrontPrefill.currency])
 
   const handleSend = async () => {
     if (!invoiceData.amount) return
@@ -221,10 +253,9 @@ export function SendInvoiceDialog({
           : invoiceData.newCheckOut
       }
 
-      await onSend({
-        ...payload,
-      })
+      await onSend({ ...payload })
       setOpen(false)
+      userEditedAmountRef.current = false
       setInvoiceData({
         amount: '',
         currency: 'THB',
@@ -240,12 +271,13 @@ export function SendInvoiceDialog({
     }
   }
 
+  const parsedAmount = parseFloat(invoiceData.amount) || 0
+  const amountThbPreview =
+    parsedAmount > 0
+      ? convertDisplayAmountToThb(parsedAmount, invoiceData.currency, exchangeRates)
+      : 0
   const usdtAmount =
-    invoiceData.currency === 'THB' && thbPerUsdt
-      ? Math.round(((parseFloat(invoiceData.amount) || 0) / thbPerUsdt) * 100) / 100
-      : invoiceData.currency === 'THB'
-        ? null
-        : invoiceData.amount
+    amountThbPreview > 0 ? computeUsdtFromThbRetail(amountThbPreview, exchangeRates) : null
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -268,7 +300,6 @@ export function SendInvoiceDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Listing Info */}
           {listing && (
             <div className="p-3 bg-slate-50 rounded-lg">
               <p className="text-sm font-medium text-slate-900">{listing.title}</p>
@@ -280,7 +311,6 @@ export function SendInvoiceDialog({
             </div>
           )}
 
-          {/* Amount */}
           <div>
             <Label>Сумма</Label>
             <div className="flex gap-2">
@@ -288,14 +318,35 @@ export function SendInvoiceDialog({
                 ref={amountInputRef}
                 type="number"
                 value={invoiceData.amount}
-                onChange={(e) => setInvoiceData(prev => ({ ...prev, amount: e.target.value }))}
+                onChange={(e) => {
+                  userEditedAmountRef.current = true
+                  setInvoiceData((prev) => ({ ...prev, amount: e.target.value }))
+                }}
                 placeholder="0"
                 inputMode="decimal"
                 className="flex-1"
               />
-              <Select 
+              <Select
                 value={invoiceData.currency}
-                onValueChange={(v) => setInvoiceData(prev => ({ ...prev, currency: v }))}
+                onValueChange={(v) => {
+                  setInvoiceData((prev) => {
+                    if (userEditedAmountRef.current) {
+                      return { ...prev, currency: v }
+                    }
+                    const next = resolveInvoicePrefillFromStorefront({
+                      booking,
+                      listing,
+                      currency: v,
+                      rateMap: exchangeRates,
+                      guestServiceFeePercent: guestFeePercent,
+                    })
+                    return {
+                      ...prev,
+                      currency: v,
+                      amount: next.amount || prev.amount,
+                    }
+                  })
+                }}
               >
                 <SelectTrigger className="w-24">
                   <SelectValue />
@@ -307,19 +358,21 @@ export function SendInvoiceDialog({
                 </SelectContent>
               </Select>
             </div>
-            {invoiceData.currency === 'THB' && invoiceData.amount && (
+            {storefrontPrefill.guestThb > 0 && !userEditedAmountRef.current && (
               <p className="text-xs text-slate-500 mt-1">
-                ≈ {usdtAmount != null ? usdtAmount : '…'} USDT
+                Ориентир с витрины: ฿{storefrontPrefill.guestThb.toLocaleString()} THB
               </p>
+            )}
+            {parsedAmount > 0 && usdtAmount != null && (
+              <p className="text-xs text-slate-500 mt-1">≈ {usdtAmount} USDT</p>
             )}
           </div>
 
-          {/* Payment Method */}
           <div>
             <Label>Способ оплаты</Label>
-            <Select 
+            <Select
               value={invoiceData.paymentMethod}
-              onValueChange={(v) => setInvoiceData(prev => ({ ...prev, paymentMethod: v }))}
+              onValueChange={(v) => setInvoiceData((prev) => ({ ...prev, paymentMethod: v }))}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -344,17 +397,15 @@ export function SendInvoiceDialog({
             </Select>
           </div>
 
-          {/* Description */}
           <div>
             <Label>Комментарий (опционально)</Label>
             <Input
               value={invoiceData.description}
-              onChange={(e) => setInvoiceData(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(e) => setInvoiceData((prev) => ({ ...prev, description: e.target.value }))}
               placeholder="Оплата за проживание..."
             />
           </div>
 
-          {/* Extension (optional) */}
           <div className="space-y-2 rounded-lg border border-slate-200 p-3">
             <div className="flex items-center gap-2">
               <Checkbox
@@ -386,10 +437,13 @@ export function SendInvoiceDialog({
             )}
           </div>
 
-          {/* Send Button */}
-          <Button 
+          <Button
             onClick={handleSend}
-            disabled={!invoiceData.amount || (invoiceData.extensionIntent && !invoiceData.newCheckOut) || sending}
+            disabled={
+              !invoiceData.amount ||
+              (invoiceData.extensionIntent && !invoiceData.newCheckOut) ||
+              sending
+            }
             className="w-full bg-teal-600 hover:bg-teal-700"
           >
             {sending ? (

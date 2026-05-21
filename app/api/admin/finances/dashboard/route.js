@@ -12,6 +12,10 @@ import {
 import LedgerService from '@/lib/services/ledger.service.js'
 import { loadTreasuryRailsSummary } from '@/lib/treasury/treasury-rails-summary.js'
 import { isFintechTestBookingRow } from '@/lib/admin/fintech-test-data-markers.js'
+import {
+  BOOKING_FINANCE_DASHBOARD_STATUSES,
+  BOOKING_FINANCE_PIPE_ACTIVE_STATUSES,
+} from '@/lib/booking/status-sets.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,7 +57,7 @@ export async function GET(request) {
   const { data: fiscalPending } = await supabaseAdmin
     .from('bookings')
     .select('id, status, updated_at, metadata')
-    .in('status', ['PAID_ESCROW', 'THAWED', 'READY_FOR_PAYOUT', 'COMPLETED'])
+    .in('status', BOOKING_FINANCE_DASHBOARD_STATUSES)
     .filter('metadata->fiscal->>status', 'eq', 'PENDING_FISCAL')
     .order('updated_at', { ascending: true })
     .limit(40)
@@ -69,7 +73,7 @@ export async function GET(request) {
     const { data: fallback } = await supabaseAdmin
       .from('bookings')
       .select('id, status, updated_at, metadata')
-      .in('status', ['PAID_ESCROW', 'THAWED', 'READY_FOR_PAYOUT'])
+      .in('status', BOOKING_FINANCE_PIPE_ACTIVE_STATUSES)
       .order('updated_at', { ascending: true })
       .limit(200)
     pendingFiscal = (fallback || [])

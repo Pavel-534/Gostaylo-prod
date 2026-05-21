@@ -11,6 +11,7 @@ import { ShieldCheck } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { getUIText } from '@/lib/translations'
+import { fetchAuthMe } from '@/lib/api/auth-client'
 
 /**
  * @param {{ language?: string }} props
@@ -23,14 +24,12 @@ export function PartnerVerifiedBadgePromo({ language = 'ru' }) {
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch('/api/v2/auth/me', { credentials: 'include' })
-        const data = await res.json()
+        const { ok, user: u } = await fetchAuthMe()
         if (cancelled) return
-        if (!res.ok || !data.success || !data.user) {
+        if (!ok || !u) {
           setShow(false)
           return
         }
-        const u = data.user
         const verified =
           u.is_verified === true ||
           u.isVerified === true ||

@@ -3,12 +3,7 @@
 import { AlertTriangle, Banknote, Receipt } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-
-function fmtThb(n) {
-  const x = Number(n)
-  if (!Number.isFinite(x)) return '—'
-  return `฿${x.toLocaleString('ru-RU', { maximumFractionDigits: 0 })}`
-}
+import { fmtThb } from '@/lib/admin/fintech-console-shared'
 
 /**
  * Header alert badges for treasury console (Stage 101.3).

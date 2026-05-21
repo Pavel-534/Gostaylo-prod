@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { fetchFintechTreasuryOps } from '@/lib/admin/admin-fintech-api-client'
 
 const TYPE_LABELS = {
   TREASURY_PAYMENT_LARGE: 'Крупная оплата',
@@ -29,9 +30,8 @@ export function FinTechTreasuryMonitoringPanel() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/finances/treasury-ops')
-      const json = await res.json()
-      if (json.success) setData(json.data)
+      const { ok, data } = await fetchFintechTreasuryOps()
+      if (ok) setData(data)
     } finally {
       setLoading(false)
     }

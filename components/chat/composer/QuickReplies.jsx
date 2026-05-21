@@ -12,6 +12,11 @@ import { Bookmark, BookmarkPlus, Loader2, Quote, X, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
+import {
+  deleteChatTemplate,
+  fetchChatTemplates,
+  saveChatTemplate,
+} from '@/lib/chat/chat-ui-api-client'
 
 const QUICK_REPLIES = [
   {
@@ -69,9 +74,8 @@ export function QuickRepliesScrollablePanel({
   const loadTemplates = useCallback(async () => {
     if (tplLoaded) return
     try {
-      const res = await fetch('/api/v2/chat/templates', { credentials: 'include' })
-      const json = await res.json()
-      if (json.success) setSavedTemplates(json.data || [])
+      const { ok, templates } = await fetchChatTemplates()
+      if (ok) setSavedTemplates(templates)
     } catch {
       /* ignore */
     } finally {
@@ -88,14 +92,11 @@ export function QuickRepliesScrollablePanel({
     if (!text) return
     setSavingTemplate(true)
     try {
-      const res = await fetch('/api/v2/chat/templates', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, label: newTplLabel.trim() || text.slice(0, 40) }),
+      const { ok, json } = await saveChatTemplate({
+        text,
+        label: newTplLabel.trim() || text.slice(0, 40),
       })
-      const json = await res.json()
-      if (json.success) {
+      if (ok) {
         setSavedTemplates(json.data || [])
         toast.success(isRu ? 'Шаблон сохранён!' : 'Template saved!')
         setShowSaveInput(false)
@@ -112,12 +113,8 @@ export function QuickRepliesScrollablePanel({
 
   async function deleteTemplate(id) {
     try {
-      const res = await fetch(`/api/v2/chat/templates?id=${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
-      const json = await res.json()
-      if (json.success) setSavedTemplates(json.data || [])
+      const { ok, json } = await deleteChatTemplate(id)
+      if (ok) setSavedTemplates(json.data || [])
     } catch {
       /* ignore */
     }

@@ -87,7 +87,9 @@ function StepPricingInner() {
       </div>
       <div className="rounded-xl border border-sky-200 bg-sky-50/70 px-4 py-3">
         <p className="text-sm font-semibold text-sky-900">{t('wizardSitePriceTitle')}</p>
-        <p className="mt-1 text-xl font-bold text-sky-800">฿{num(pricingPreview.sitePriceSameCurrency)}</p>
+        <p className="mt-1 text-xl font-bold text-sky-800">
+          ฿{num(pricingPreview.storefrontGuestDisplayThb ?? pricingPreview.sitePriceSameCurrency)}
+        </p>
         <p className="mt-2 text-xs text-sky-900">
           {tr('wizardSitePriceLineBase', {
             base: num(pricingPreview.base),
@@ -95,12 +97,19 @@ function StepPricingInner() {
             guestFeeThb: num(pricingPreview.guestFeeThb),
           })}
         </p>
-        <p className="mt-1 text-xs text-sky-900">
-          {tr('wizardSitePriceLineCross', {
-            markupPercent: pricingPreview.markupPercent.toFixed(2),
-            sitePriceCross: num(pricingPreview.sitePriceCrossCurrency),
-          })}
-        </p>
+        <div className="mt-3 rounded-lg border border-slate-200/80 bg-white/60 px-3 py-2">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+            {t('wizardChatInvoiceReferenceTitle')}
+          </p>
+          <p className="mt-1 text-xs text-slate-700">
+            {tr('wizardSitePriceLineCross', {
+              markupPercent: pricingPreview.markupPercent.toFixed(2),
+              sitePriceCross: num(
+                pricingPreview.chatInvoiceReferenceThb ?? pricingPreview.sitePriceCrossCurrency,
+              ),
+            })}
+          </p>
+        </div>
       </div>
       <div className="space-y-2">
         <Label className="text-base font-medium text-slate-800">{t('partnerEdit_cancellationPolicy')}</Label>

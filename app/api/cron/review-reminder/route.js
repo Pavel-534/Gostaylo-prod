@@ -19,7 +19,7 @@ import { listingDateToday, addListingDays, toListingDate } from '@/lib/listing-d
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js';
 
-const ELIGIBLE_STATUSES = ['PAID_ESCROW', 'CHECKED_IN', 'THAWED', 'COMPLETED'];
+import { BOOKING_REVIEW_REMINDER_ELIGIBLE_STATUSES } from '@/lib/booking/status-sets.js';
 
 async function runReviewReminderJob() {
   const yesterday = addListingDays(listingDateToday(), -1);
@@ -37,7 +37,7 @@ async function runReviewReminderJob() {
         listing:listings(id, title, category_id)
       `,
     )
-    .in('status', ELIGIBLE_STATUSES)
+    .in('status', BOOKING_REVIEW_REMINDER_ELIGIBLE_STATUSES)
     .not('renter_id', 'is', null);
 
   if (error) {

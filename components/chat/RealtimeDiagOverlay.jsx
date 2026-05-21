@@ -14,6 +14,8 @@ import { useEffect, useState, useRef } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { supabase } from '@/lib/supabase'
 import { subscribeRealtimeWithBackoff } from '@/lib/chat/realtime-subscribe-with-backoff'
+import { fetchRealtimeToken } from '@/lib/api/auth-client'
+import { fetchRealtimeDiag } from '@/lib/api/realtime-diag-client'
 
 export function RealtimeDiagOverlay({ conversationId }) {
   const { user } = useAuth()
@@ -33,10 +35,9 @@ export function RealtimeDiagOverlay({ conversationId }) {
   const runServerDiag = async () => {
     addLog('→ Запрашиваю /api/v2/realtime-diag …')
     try {
-      const res = await fetch('/api/v2/realtime-diag', { credentials: 'include' })
-      const data = await res.json()
+      const { json: data } = await fetchRealtimeDiag()
       setDiagJson(data)
-      addLog(`Server diag: ${data.summary}`, data.summary.startsWith('✅') ? 'ok' : 'error')
+      addLog(`Server diag: ${data?.summary ?? '—'}`, data?.summary?.startsWith('✅') ? 'ok' : 'error')
     } catch (e) {
       addLog(`Server diag error: ${e.message}`, 'error')
     }
@@ -46,19 +47,18 @@ export function RealtimeDiagOverlay({ conversationId }) {
   const checkToken = async () => {
     addLog('→ Запрашиваю /api/v2/auth/realtime-token …')
     try {
-      const res = await fetch('/api/v2/auth/realtime-token', { credentials: 'include' })
-      const data = await res.json()
-      if (data?.access_token) {
-        const parts = data.access_token.split('.')
+      const { ok, accessToken, json } = await fetchRealtimeToken()
+      if (ok && accessToken) {
+        const parts = accessToken.split('.')
         const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
         setTokenInfo(payload)
         addLog(`JWT OK: sub=${payload.sub} role=${payload.role}`, 'ok')
         if (supabase) {
-          supabase.realtime.setAuth(data.access_token)
+          supabase.realtime.setAuth(accessToken)
           addLog('supabase.realtime.setAuth() → done', 'ok')
         }
       } else {
-        addLog(`JWT FAIL: ${JSON.stringify(data)}`, 'error')
+        addLog(`JWT FAIL: ${JSON.stringify(json)}`, 'error')
       }
     } catch (e) {
       addLog(`Token error: ${e.message}`, 'error')

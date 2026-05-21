@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 import { supabaseAdmin } from '@/lib/supabase';
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service';
-import { BookingStatus } from '@/lib/services/escrow.service';
+import { PARTNER_GUEST_REVIEW_INVITE_STATUSES } from '@/lib/booking/status-sets.js';
 
 export async function GET() {
   try {
@@ -38,7 +38,7 @@ export async function GET() {
       `,
       )
       .eq('partner_id', userId)
-      .in('status', [BookingStatus.THAWED, BookingStatus.COMPLETED])
+      .in('status', PARTNER_GUEST_REVIEW_INVITE_STATUSES)
       .order('check_out', { ascending: false });
 
     if (bErr) {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useCallback } from 'react'
+import { postChatMarkRead } from '@/lib/chat/chat-ui-api-client'
 
 /**
  * Периодически помечает входящие сообщения прочитанными, пока открыт чат.
@@ -11,12 +12,7 @@ export function useMarkConversationRead(conversationId, enabled, peerOnline) {
   const mark = useCallback(async () => {
     if (!conversationId || !enabled) return
     try {
-      await fetch('/api/v2/chat/read', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId }),
-      })
+      await postChatMarkRead(conversationId)
     } catch {
       /* ignore */
     }

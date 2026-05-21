@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, Trophy } from 'lucide-react'
+import { fetchReferralLeaderboard } from '@/lib/api/referral-public-client'
 
 /**
  * @param {{
@@ -21,14 +22,13 @@ export function ReferralMonthlyLeaderboard({ t, formatThb, formatAmountLine, loc
     setLoading(true)
     setErr(false)
     try {
-      const res = await fetch('/api/v2/referral/leaderboard', { credentials: 'include', cache: 'no-store' })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok || !json?.success) {
+      const { ok, data } = await fetchReferralLeaderboard()
+      if (!ok) {
         setErr(true)
         setPayload(null)
         return
       }
-      setPayload(json.data || null)
+      setPayload(data || null)
     } catch {
       setErr(true)
       setPayload(null)

@@ -8,6 +8,7 @@
 import { useEffect, useRef } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { getFirebaseAppSafe, getFirebaseVapidKey } from '@/lib/firebase-web'
+import { postPushAction } from '@/lib/api/push-client'
 
 const PUSH_UID_KEY = 'gostaylo_push_registered_uid'
 
@@ -50,25 +51,13 @@ export function PushClientInit() {
     }
 
     const syncTokenToServer = async (token, userId, update, attempt = 0) => {
-      const res = await fetch('/api/v2/push', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'register',
-          token,
-          deviceInfo,
-          ...(update ? { update: true } : {}),
-        }),
+      const { ok, json, status } = await postPushAction({
+        action: 'register',
+        token,
+        deviceInfo,
+        ...(update ? { update: true } : {}),
       })
-      let json = {}
-      try {
-        json = await res.json()
-      } catch {
-        json = {}
-      }
       if (!aliveRef.current) return
-      const ok = res.ok && json.success !== false
       if (ok) {
         try {
           localStorage.setItem('gostaylo_fcm_token', token)
@@ -79,7 +68,7 @@ export function PushClientInit() {
         console.info('Push Debug: Token synchronized with database')
         return
       }
-      console.warn('Push Debug: register failed', res.status, json?.error || json)
+      console.warn('Push Debug: register failed', status, json?.error || json)
       if (attempt < 1) {
         await new Promise((r) => setTimeout(r, 5000))
         if (!aliveRef.current) return
@@ -160,12 +149,7 @@ export function PushClientInit() {
 
         const pingMs = 30_000
         pingInterval = setInterval(() => {
-          void fetch('/api/v2/push', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'ping', token }),
-          }).catch(() => {})
+          void postPushAction({ action: 'ping', token }).catch(() => {})
         }, pingMs)
 
         unsubscribeOnMessage = onMessage(messaging, (payload) => {

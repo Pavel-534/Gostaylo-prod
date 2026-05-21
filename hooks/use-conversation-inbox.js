@@ -24,17 +24,18 @@ import {
 import { supabase } from '@/lib/supabase'
 import { subscribeRealtimeWithBackoff } from '@/lib/chat/realtime-subscribe-with-backoff'
 import { publishChatInboxUnreadTotal } from '@/lib/chat/chat-unread-bridge'
-import { mergeMessageInsertIntoConversation } from '@/lib/chat/inbox-realtime-merge'
-
-function debounce(fn, ms) {
-  let timer = null
-  const debounced = (...args) => {
-    clearTimeout(timer)
-    timer = setTimeout(() => fn(...args), ms)
-  }
-  debounced.cancel = () => clearTimeout(timer)
-  return debounced
-}
+import { handleInboxMessageInsert } from '@/lib/chat/inbox-realtime-merge'
+import {
+  fetchConversationsList,
+  fetchChatFavoriteIds,
+  bulkMigrateChatFavorites,
+  toggleChatFavorite,
+  fetchEnrichedConversation,
+  mergeFetchedConversationIntoList,
+  unarchiveConversationClient,
+} from '@/lib/chat/conversation-api-client'
+import { handleInboxMessageUpdate } from '@/lib/chat/thread-inbox-bridge'
+import { debounce } from '@/lib/chat/debounce'
 
 const PAGE_SIZE = 20
 const TOGGLE_DEBOUNCE_MS = 320
@@ -150,7 +151,7 @@ export function useConversationInbox({
           setOffset(0)
         }
 
-        setHasMore(!!json.meta?.hasMore)
+        setHasMore(!!meta?.hasMore)
       } catch (err) {
         console.error('[useConversationInbox] fetchConversations error:', err)
       } finally {
@@ -178,10 +179,8 @@ export function useConversationInbox({
   const refreshFavoriteIdsFromServer = useCallback(async () => {
     if (!userId) return
     try {
-      const res = await fetch('/api/v2/chat/favorites', { credentials: 'include' })
-      const json = await res.json()
-      if (!res.ok || !json.success || !Array.isArray(json.data)) return
-      setFavoriteIds(json.data.map(String))
+      const { ok, ids } = await fetchChatFavoriteIds()
+      if (ok) setFavoriteIds(ids)
     } catch (e) {
       console.error('[useConversationInbox] refreshFavoriteIds', e)
     }
@@ -196,14 +195,8 @@ export function useConversationInbox({
       return
     }
     try {
-      const res = await fetch('/api/v2/chat/favorites/bulk', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationIds: legacy }),
-      })
-      const json = await res.json()
-      if (!res.ok || !json.success) {
+      const { ok, json } = await bulkMigrateChatFavorites(legacy)
+      if (!ok) {
         console.warn('[useConversationInbox] bulk migrate favorites', json)
         return
       }
@@ -222,20 +215,16 @@ export function useConversationInbox({
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch('/api/v2/chat/favorites', { credentials: 'include' })
-        const json = await res.json()
+        const first = await fetchChatFavoriteIds()
         if (cancelled) return
-        if (!res.ok || !json.success || !Array.isArray(json.data)) return
-        let ids = json.data.map(String)
+        if (!first.ok) return
+        let ids = first.ids
         if (ids.length === 0) {
           await runLegacyMigrationIfNeeded()
           if (cancelled) return
-          const res2 = await fetch('/api/v2/chat/favorites', { credentials: 'include' })
-          const j2 = await res2.json()
+          const second = await fetchChatFavoriteIds()
           if (cancelled) return
-          if (res2.ok && j2.success && Array.isArray(j2.data)) {
-            ids = j2.data.map(String)
-          }
+          if (second.ok) ids = second.ids
         } else if (!isFavoritesMigrated()) {
           setFavoritesMigrated()
         }
@@ -292,15 +281,9 @@ export function useConversationInbox({
         const shouldBeFavorite = new Set(favoriteIdsRef.current.map(String)).has(id)
 
         try {
-          const res = await fetch('/api/v2/chat/favorites/toggle', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ conversationId: id, isFavorite: shouldBeFavorite }),
-          })
-          const json = await res.json()
+          const { ok, json } = await toggleChatFavorite(id, shouldBeFavorite)
 
-          if (!res.ok || !json.success) {
+          if (!ok) {
             await refreshFavoriteIdsFromServer()
             dispatchInboxFavoritesChanged()
             toast.error(json?.error || 'Не удалось обновить избранное')
@@ -327,49 +310,13 @@ export function useConversationInbox({
     [userId, refreshFavoriteIdsFromServer]
   )
 
-  const unarchiveConversation = useCallback(async (convId) => {
-    try {
-      await fetch('/api/v2/chat/conversations', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversationId: convId, archived: false }),
-      })
-    } catch {
-      /* ignore */
-    }
+  const unarchiveConversation = useCallback((convId) => {
+    void unarchiveConversationClient(convId)
   }, [])
 
   const fetchOneConversationForInbox = useCallback(async (convId) => {
-    if (!convId) return
-    try {
-      const res = await fetch(
-        `/api/v2/chat/conversations?id=${encodeURIComponent(convId)}&enrich=1`,
-        { credentials: 'include', cache: 'no-store' },
-      )
-      if (!res.ok) return
-      const data = await res.json()
-      const conv = data?.data?.[0]
-      if (!conv) return
-      setConversations((prev) => {
-        if (prev.some((c) => String(c.id) === String(conv.id))) {
-          const idx = prev.findIndex((c) => String(c.id) === String(conv.id))
-          if (idx === -1) return prev
-          const next = [...prev]
-          next[idx] = { ...next[idx], ...conv }
-          const row = next[idx]
-          const ts = (c) =>
-            new Date(
-              c.lastMessageAt || c.last_message_at || c.updatedAt || c.updated_at || c.createdAt || 0,
-            ).getTime()
-          next.splice(idx, 1)
-          return [row, ...next].sort((a, b) => ts(b) - ts(a))
-        }
-        return [conv, ...prev]
-      })
-    } catch {
-      /* ignore */
-    }
+    const conv = await fetchEnrichedConversation(convId)
+    if (conv) mergeFetchedConversationIntoList(setConversations, conv)
   }, [])
 
   const handleRealtimeConvUpdate = useCallback(
@@ -431,59 +378,28 @@ export function useConversationInbox({
             'postgres_changes',
             { event: 'INSERT', schema: 'public', table: 'messages' },
             (payload) => {
-              const msg = payload.new
-              const convId = msg?.conversation_id
               const uid = userIdRef.current
-              if (!convId || !uid) return
-              const convKey = String(convId)
-
-              const activeId = activeConvRef.current
-              if (activeId && convKey === String(activeId)) {
-                onActiveInsertRef.current?.(msg)
-              }
-
-              let missingInList = false
-              setConversations((prev) => {
-                const idx = prev.findIndex((c) => String(c.id) === convKey)
-                if (idx === -1) {
-                  missingInList = true
-                  return prev
-                }
-
-                const conv = prev[idx]
-                const { updated, wasArchivedByMe } = mergeMessageInsertIntoConversation(
-                  conv,
-                  msg,
-                  uid,
-                )
-
-                if (wasArchivedByMe) {
-                  void unarchiveConversation(convKey)
-                }
-
-                const next = prev.filter((c) => String(c.id) !== convKey)
-                return [updated, ...next]
+              if (!uid) return
+              handleInboxMessageInsert(payload.new, {
+                userId: uid,
+                setConversations,
+                unarchiveConversation,
+                fetchOneConversation: fetchOneConversationForInbox,
+                msgUnknownConvFetchRef,
+                activeConversationId: activeConvRef.current,
+                onActiveMessageInsert: onActiveInsertRef.current,
               })
-
-              if (missingInList && !msgUnknownConvFetchRef.current.has(convKey)) {
-                msgUnknownConvFetchRef.current.add(convKey)
-                void fetchOneConversationForInbox(convKey).finally(() => {
-                  msgUnknownConvFetchRef.current.delete(convKey)
-                })
-              }
             },
           )
           .on(
             'postgres_changes',
             { event: 'UPDATE', schema: 'public', table: 'messages' },
             (payload) => {
-              const msg = payload.new
-              const convId = msg?.conversation_id
-              if (!convId) return
-              const activeId = activeConvRef.current
-              if (activeId && String(convId) === String(activeId)) {
-                onActiveUpdateRef.current?.(msg)
-              }
+              handleInboxMessageUpdate(
+                payload.new,
+                activeConvRef.current,
+                onActiveUpdateRef.current,
+              )
             },
           ),
     })

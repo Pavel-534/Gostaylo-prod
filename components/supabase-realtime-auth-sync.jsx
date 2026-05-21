@@ -12,6 +12,7 @@ import {
   applyRealtimeAccessTokenToClient,
   resetRealtimeSessionJwtCache,
 } from '@/lib/chat/realtime-session-jwt'
+import { fetchRealtimeClaims, fetchRealtimeToken } from '@/lib/api/auth-client'
 
 const REFRESH_MS = 50 * 60 * 1000
 
@@ -36,20 +37,17 @@ export function SupabaseRealtimeAuthSync() {
 
     const sync = async () => {
       try {
-        const res = await fetch('/api/v2/auth/realtime-token', { credentials: 'include' })
-        if (cancelled || !res.ok) return
-        const data = await res.json().catch(() => ({}))
-        if (cancelled || !data?.access_token) return
-        applyRealtimeAccessTokenToClient(supabase, data.access_token)
+        const { ok, accessToken } = await fetchRealtimeToken()
+        if (cancelled || !ok || !accessToken) return
+        applyRealtimeAccessTokenToClient(supabase, accessToken)
 
         // Один раз за сессию вкладки: проверка claims (см. GET /api/v2/auth/realtime-claims).
         try {
           if (typeof window === 'undefined') return
           const flag = 'gostaylo_rt_claims_logged_v1'
           if (sessionStorage.getItem(flag)) return
-          const cr = await fetch('/api/v2/auth/realtime-claims', { credentials: 'include' })
-          if (!cr.ok) return
-          const claims = await cr.json().catch(() => ({}))
+          const { ok: claimsOk, json: claims } = await fetchRealtimeClaims()
+          if (!claimsOk) return
           if (claims?.ok) {
             sessionStorage.setItem(flag, '1')
             // eslint-disable-next-line no-console -- намеренно один раз: диагностика Realtime JWT

@@ -8,6 +8,7 @@ import { getUIText } from '@/lib/translations'
 import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-service-type'
 import { getPartnerSlaResponseContextLine } from '@/lib/config/partner-category-sla-hints'
 import { ListingCategoryIcon } from '@/components/booking/ListingCategoryIcon'
+import { fetchPartnerReputationHealth } from '@/lib/api/partner-listing-client'
 
 function factorLabel(key, language) {
   const k = `partnerHealth_factor_${key}`
@@ -29,14 +30,13 @@ export function PartnerHealthWidget({ language = 'ru', remote = null }) {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/v2/partner/reputation-health', { credentials: 'include' })
-      const json = await res.json().catch(() => ({}))
-      if (!res.ok || !json.success) {
-        setError(json.error || 'load_failed')
+      const { ok, data: payload, error: errKey } = await fetchPartnerReputationHealth()
+      if (!ok) {
+        setError(errKey || 'load_failed')
         setData(null)
         return
       }
-      setData(json.data)
+      setData(payload)
     } catch {
       setError('network')
       setData(null)

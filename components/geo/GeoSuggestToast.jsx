@@ -24,6 +24,7 @@ import { useUserGeo } from '@/lib/hooks/useUserGeo'
 import { useI18n } from '@/contexts/i18n-context'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { cn } from '@/lib/utils'
+import { fetchSearchAvailableCount } from '@/lib/api/catalog-public-client'
 
 const DISMISS_KEY = 'gostaylo_geo_suggest_dismissed_v1'
 
@@ -99,12 +100,10 @@ export default function GeoSuggestToast() {
 
     // Pre-fetch live count — «We found 247 listings in X»
     let cancelled = false
-    fetch(`/api/v2/search?where=${encodeURIComponent(geo.where)}&limit=1`)
-      .then((r) => r.json())
-      .then((data) => {
+    fetchSearchAvailableCount({ where: geo.where, limit: '1', softAvailability: '0' })
+      .then(({ ok, available }) => {
         if (cancelled) return
-        const n = data?.data?.meta?.available
-        if (typeof n === 'number' && n > 0) setListingsCount(n)
+        if (ok && available > 0) setListingsCount(available)
       })
       .catch(() => {})
 

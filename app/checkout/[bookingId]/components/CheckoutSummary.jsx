@@ -93,7 +93,12 @@ export function CheckoutSummary({ p, c, onOpenCancel }) {
                     Math.round(Number(p.invoice?.amount_thb || c.totalWithFee) || 0),
                   )}
                 >
-                  {c.payableText}
+                  <span className="block">{c.payableText}</span>
+                  {c.payableSecondaryText ? (
+                    <span className="block text-sm font-medium text-slate-600">
+                      {c.payableSecondaryText}
+                    </span>
+                  ) : null}
                 </span>
               </div>
             ) : null}

@@ -12,6 +12,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { toast } from 'sonner'
 import { format, addDays, differenceInDays, eachDayOfInterval, isWithinInterval, parseISO } from 'date-fns'
 import { ru } from 'date-fns/locale'
+import {
+  deleteListingCalendarBlock,
+  fetchListingCalendarBlocks,
+  postListingCalendarBlock,
+} from '@/lib/api/partner-calendar-client'
 
 export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
   const [loading, setLoading] = useState(true)
@@ -35,14 +40,10 @@ export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
 
   async function loadBlocks() {
     try {
-      const res = await fetch(`/api/v2/partner/listings/${listingId}/calendar`, {
-        credentials: 'include'
-      })
-      const result = await res.json()
-      
-      if (result.success) {
-        setBlocks(result.blocks || [])
-        setBlockedDates(result.blockedDates || [])
+      const { ok, blocks: rows, blockedDates: dates } = await fetchListingCalendarBlocks(listingId)
+      if (ok) {
+        setBlocks(rows)
+        setBlockedDates(dates)
       }
     } catch (error) {
       console.error('Failed to load blocks:', error)
@@ -59,25 +60,18 @@ export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
 
     setAdding(true)
     try {
-      const res = await fetch(`/api/v2/partner/listings/${listingId}/calendar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          startDate: format(newBlock.startDate, 'yyyy-MM-dd'),
-          endDate: format(newBlock.endDate, 'yyyy-MM-dd'),
-          reason: newBlock.reason || 'Ручная блокировка'
-        })
+      const { ok, error } = await postListingCalendarBlock(listingId, {
+        startDate: format(newBlock.startDate, 'yyyy-MM-dd'),
+        endDate: format(newBlock.endDate, 'yyyy-MM-dd'),
+        reason: newBlock.reason || 'Ручная блокировка',
       })
-      
-      const result = await res.json()
-      
-      if (result.success) {
+
+      if (ok) {
         toast.success('Даты заблокированы')
         setNewBlock({ startDate: null, endDate: null, reason: '' })
         loadBlocks()
       } else {
-        throw new Error(result.error)
+        throw new Error(error || 'Ошибка')
       }
     } catch (error) {
       toast.error(error.message || 'Ошибка при блокировке дат')
@@ -89,18 +83,13 @@ export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
   async function removeBlock(blockId) {
     setDeleting(blockId)
     try {
-      const res = await fetch(`/api/v2/partner/listings/${listingId}/calendar?blockId=${blockId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      })
-      
-      const result = await res.json()
-      
-      if (result.success) {
+      const { ok, error } = await deleteListingCalendarBlock(listingId, blockId)
+
+      if (ok) {
         toast.success('Блокировка удалена')
         loadBlocks()
       } else {
-        throw new Error(result.error)
+        throw new Error(error || 'Ошибка')
       }
     } catch (error) {
       toast.error(error.message || 'Ошибка при удалении')

@@ -16,20 +16,12 @@ import { BookingService } from '@/lib/services/booking.service';
 import { revertPromoUsageAfterFullRefundCancel } from '@/lib/promo/revert-promo-usage-on-cancel.js';
 import { restoreWalletSpendOnBookingCancel } from '@/lib/services/booking/cancel-wallet-restore.service.js';
 import ReferralPnlService from '@/lib/services/marketing/referral-pnl.service.js';
+import {
+  BOOKING_LEDGER_REFUND_STATUSES,
+  BOOKING_SIMPLE_CANCEL_STATUSES,
+} from '@/lib/booking/status-sets.js';
 
 export const dynamic = 'force-dynamic';
-
-/** Had payment capture + escrow ledger */
-const LEDGER_REFUND_STATUSES = new Set(['PAID_ESCROW', 'CHECKED_IN', 'THAWED']);
-
-/** Cancel without ledger movement */
-const SIMPLE_CANCEL_STATUSES = new Set([
-  'PENDING',
-  'INQUIRY',
-  'CONFIRMED',
-  'AWAITING_PAYMENT',
-  'PAID',
-]);
 
 export async function POST(request, context) {
   const params = await Promise.resolve(context.params);
@@ -84,7 +76,7 @@ export async function POST(request, context) {
     let estimate = { ok: false };
     let ledgerResult = null;
 
-    if (LEDGER_REFUND_STATUSES.has(bookingBefore.status)) {
+    if (BOOKING_LEDGER_REFUND_STATUSES.has(bookingBefore.status)) {
       estimate = await computeRefundEstimateForBooking(bookingId, new Date());
       if (!estimate.ok) {
         return NextResponse.json({ success: false, error: estimate.error || 'refund_estimate_failed' }, { status: 500 });
@@ -113,7 +105,7 @@ export async function POST(request, context) {
       } catch (e) {
         console.warn('[cancel] syncPartnerBalanceColumns', e?.message);
       }
-    } else if (!SIMPLE_CANCEL_STATUSES.has(bookingBefore.status)) {
+    } else if (!BOOKING_SIMPLE_CANCEL_STATUSES.has(bookingBefore.status)) {
       return NextResponse.json(
         {
           success: false,
@@ -136,7 +128,7 @@ export async function POST(request, context) {
           cancelled_by_user_id: userId,
           cancelled_at: cancelledAt,
           ...(reason ? { cancel_reason: reason } : {}),
-          ...(estimate.ok && LEDGER_REFUND_STATUSES.has(bookingBefore.status)
+          ...(estimate.ok && BOOKING_LEDGER_REFUND_STATUSES.has(bookingBefore.status)
             ? {
                 cancel_refund_guest_thb: estimate.refundGuestThb,
                 cancel_refund_percent: estimate.percent,
@@ -167,7 +159,7 @@ export async function POST(request, context) {
       walletRestore = { restored: false, error: e?.message };
     }
 
-    if (LEDGER_REFUND_STATUSES.has(bookingBefore.status) && estimate.ok) {
+    if (BOOKING_LEDGER_REFUND_STATUSES.has(bookingBefore.status) && estimate.ok) {
       try {
         await revertPromoUsageAfterFullRefundCancel({
           bookingId,
@@ -207,11 +199,11 @@ export async function POST(request, context) {
       success: true,
       data: {
         booking: updated,
-        refundGuestThb: estimate.ok && LEDGER_REFUND_STATUSES.has(bookingBefore.status) ? estimate.refundGuestThb : 0,
-        refundPercent: estimate.ok && LEDGER_REFUND_STATUSES.has(bookingBefore.status) ? estimate.percent : null,
+        refundGuestThb: estimate.ok && BOOKING_LEDGER_REFUND_STATUSES.has(bookingBefore.status) ? estimate.refundGuestThb : 0,
+        refundPercent: estimate.ok && BOOKING_LEDGER_REFUND_STATUSES.has(bookingBefore.status) ? estimate.percent : null,
         cancellationPolicy:
-          estimate.ok && LEDGER_REFUND_STATUSES.has(bookingBefore.status) ? estimate.policy : null,
-        guestTotalThb: estimate.ok && LEDGER_REFUND_STATUSES.has(bookingBefore.status) ? estimate.guestTotalThb : null,
+          estimate.ok && BOOKING_LEDGER_REFUND_STATUSES.has(bookingBefore.status) ? estimate.policy : null,
+        guestTotalThb: estimate.ok && BOOKING_LEDGER_REFUND_STATUSES.has(bookingBefore.status) ? estimate.guestTotalThb : null,
         ledger: ledgerResult
           ? { success: ledgerResult.success, skipped: ledgerResult.skipped, journalId: ledgerResult.journalId }
           : null,

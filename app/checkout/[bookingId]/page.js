@@ -4,6 +4,7 @@ import { Suspense, use, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
+import { useCurrency } from '@/contexts/currency-context'
 import { CheckCircle2, CreditCard, Wallet, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
@@ -26,6 +27,7 @@ function CheckoutPageInner({ params: paramsProp }) {
   const searchParams = useSearchParams()
   const invoiceIdParam = searchParams.get('invoiceId')
   const { user, loading: authLoading } = useAuth()
+  const { currency: guestUiCurrency } = useCurrency()
   const [cancelOpen, setCancelOpen] = useState(false)
 
   const p = useCheckoutPayment({
@@ -43,6 +45,7 @@ function CheckoutPageInner({ params: paramsProp }) {
     allowedMethods: p.allowedMethods,
     language: p.language,
     walletUseThb: p.walletUseThb,
+    guestUiCurrency,
   })
 
   const paymentMethodOptions = [

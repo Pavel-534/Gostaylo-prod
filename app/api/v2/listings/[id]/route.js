@@ -25,7 +25,10 @@ import {
   fetchBookingsCreatedTodayCountsByPromoCodes,
 } from '@/lib/promo/catalog-promo-badges'
 import { getCommissionRate } from '@/lib/commission/get-commission-rate-server.js'
-import { computeGuestDisplayFromBaseThb } from '@/lib/pricing/guest-display-price.js'
+import {
+  getGuestDisplayPerNight,
+  normalizeGuestServiceFeePercent,
+} from '@/lib/pricing/guest-display-price.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -154,12 +157,15 @@ export async function GET(request, context) {
     ])
 
     const dynamicCommissionRate = commissionSnapshot.commissionRate
-    const guestServiceFeePercent = commissionSnapshot.guestServiceFeePercent
-    const basePriceThbParsed = parseFloat(listing.base_price_thb)
-    const guestDisplayPriceThb = computeGuestDisplayFromBaseThb(
-      basePriceThbParsed,
-      guestServiceFeePercent,
+    const guestServiceFeePercent = normalizeGuestServiceFeePercent(
+      commissionSnapshot.guestServiceFeePercent,
     )
+    const basePriceThbParsed = parseFloat(listing.base_price_thb)
+    const guestDisplayPriceThb = getGuestDisplayPerNight({
+      base_price_thb: basePriceThbParsed,
+      basePriceThb: basePriceThbParsed,
+      guestServiceFeePercent,
+    })
 
     let partnerTrust = null
     if (listing.owner_id) {

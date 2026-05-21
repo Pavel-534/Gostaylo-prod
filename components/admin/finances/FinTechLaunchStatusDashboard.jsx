@@ -34,6 +34,10 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import {
+  postLegalTestFullPackage,
+  postFintechPreparePause,
+} from '@/lib/admin/admin-fintech-api-client'
 
 const STATUS_STYLES = {
   green: {
@@ -81,16 +85,11 @@ export function FinTechLaunchStatusDashboard({ readiness, onRefresh }) {
     setSmokeBusy(true)
     setSmokeResult(null)
     try {
-      const res = await fetch('/api/admin/settings/legal/test-full-package', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rail: 'all' }),
-      })
-      const json = await res.json()
-      setSmokeResult(json.data || { ok: false, steps: [] })
+      const { ok, data, json } = await postLegalTestFullPackage({ rail: 'all' })
+      setSmokeResult(data || { ok: false, steps: [] })
       setSmokeOpen(true)
-      if (!res.ok || !json.success) {
-        throw new Error(json.data?.message || json.error || 'Проверка не пройдена')
+      if (!ok) {
+        throw new Error(data?.message || json.error || 'Проверка не пройдена')
       }
       toast({
         title: 'Проверка пройдена',
@@ -110,33 +109,19 @@ export function FinTechLaunchStatusDashboard({ readiness, onRefresh }) {
     setPauseBusy(true)
     setPauseConfirmOpen(false)
     try {
-      const res = await fetch('/api/admin/finances/prepare-pause', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          confirm: true,
-          reason: 'Пауза на 1–2 недели: ЮKassa, договоры, ОсОО',
-        }),
+      const { ok, blob, smokeOk, json } = await postFintechPreparePause({
+        confirm: true,
+        reason: 'Пауза на 1–2 недели: ЮKassa, договоры, ОсОО',
       })
-      if (!res.ok) {
-        let msg = 'Не удалось подготовить систему'
-        try {
-          const j = await res.json()
-          msg = j.error || msg
-        } catch {
-          /* zip error body */
-        }
-        throw new Error(msg)
+      if (!ok) {
+        throw new Error(json?.error || 'Не удалось подготовить систему')
       }
-      const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
       a.download = `gostaylo-pause-package-${new Date().toISOString().slice(0, 10)}.zip`
       a.click()
       URL.revokeObjectURL(url)
-
-      const smokeOk = res.headers.get('X-Smoke-Ok') === '1'
       toast({
         title: 'Система подготовлена к паузе',
         description: smokeOk

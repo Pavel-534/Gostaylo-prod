@@ -1,7 +1,7 @@
 # Product Flow Map — GoStayLo
 
-**Version:** 1.5.0  
-**Last updated:** 2026-05-20 | **Stage 108.5 (FIN):** pricing aliases, chat badge dedup, FX cache v3, owner FinTech polish. | **Stage 108.4:** schema verify, status SSOT, CHECKED_IN UI. | **Stage 108.3:** cron health, thread Realtime dedup. | **Stage 108.1–108.2:** payout guard, dead UI, chat POST SSOT.  
+**Version:** 2.0.0  
+**Last updated:** 2026-05-20 | **Stage 112.3:** iCal/seasonal/referral/push API clients; realtime auth SSOT; 109–112.x closed. | **Stage 112.2:** calendar/bookings/finances clients. | **Stage 112.1:** Go/No-Go; chat hooks → API clients. | **Stage 112.0:** pre-launch hardening — chat-ui + catalog-public; admin messages single enrich fetch. | **Stage 111.2:** all FinTech admin panels via API client. | **Stage 111.1:** home + FinTech API clients, catalog-public SSOT. | **Stage 111.0:** pre-launch page split — admin marketing/payments, partner dashboard, renter profile → hooks + PageContent; payments API client. | **Stage 110.8:** final polish — chat API client SSOT, page unload via api-clients/hooks. | **Stage 110.6b:** invoice = storefront (retail FX SSOT, partner guest prefill, dual-currency guest display). | **Stage 110.7:** chat final (`conversation-api-client`, inbox UPDATE merge, outbound thread-only); P2 UI extract — partner dashboard widgets, renter profile modal/completion, marketing promo helpers. | **Stage 110.6:** outbound/inbox polish, `post-chat-invoice.js`, P1-2 send pipeline closed on `/messages`. | **Stage 110.5:** Chat SSOT — `post-chat-message.server.js`, invoice → тот же POST; inbox/thread Realtime без дубля. | **Stage 110.4:** SSOT FX — `lib/pricing/fx-display.js`; витрина `retail=1`, settlement `retail=0`; wizard preview = retail rateMap в `baseCurrency`. | **Stage 109.0:** Admin FinTech console refactor (panels + hook, owner mode preserved). | **Stage 108.5 (FIN):** pricing aliases, chat badge dedup, FX cache v3, owner FinTech polish. | **Stage 108.4:** schema verify, status SSOT, CHECKED_IN UI. | **Stage 108.3:** cron health, thread Realtime dedup. | **Stage 108.1–108.2:** payout guard, dead UI, chat POST SSOT.  
 **Audience:** product, engineering, AI agents  
 **Status:** code-truth snapshot; normative policy remains **`ARCHITECTURAL_DECISIONS.md`** and **`docs/ADR/097-financial-model-v2.md`**
 
@@ -130,7 +130,7 @@ flowchart TB
 | Каталог | `app/listings/*`, `useListingsSearch` | `GET /api/v2/search`, `GET /api/v2/listings/search` → **`runListingsSearchGet`** |
 | Фильтры | `SearchFiltersDialog`, `docs/SEARCH_FILTERS_QUERY_MAP.md` | `query-builder`, `listing-metadata-filter` |
 | PDP | `app/listings/[id]/page.js` | `GET /api/v2/listings/[id]` |
-| Цена на карточке | `ListingCard`, `catalog-guest-display-price.js` | guest display = base + guest service fee |
+| Цена на карточке / фильтр | `ListingCard`, `CardPriceDisplay`, **`guest-display-price.js`**, **`fx-display.js`** | **110.1:** guest THB = base + `guestServiceFeePercent`; search → `guestDisplayPriceThb`. **110.4:** FX в UI = **`formatDisplayPriceInCurrency`** + retail `rateMap` (`fetchExchangeRates({ retail: true })`, API `?retail=1`). PDP hero — тот же контракт. Breakdown брони / snapshot — mid FX, без retail. |
 | Trust | `ListingTrustVerifiedMiniBadge` | `listingQualifiesForTrustVerifiedMiniBadge` + `owner.is_verified` |
 
 **Инвариант:** категории с `is_preview_only` / неактивные скрыты для не-админа (Stage 85).
@@ -154,6 +154,10 @@ flowchart TB
 | DB lock | RPC `create_booking_atomic_v1` |
 | Price integrity | `lib/booking-price-integrity.js` |
 | Чат после create | `ensureBookingConversation()` |
+| **Наборы статусов (110.2)** | **`lib/booking/status-sets.js`** — занятость календаря, iCal, ROI, escrow pipe, чат Pay now, transport confirm, cancel/refund, FinTech; FSM — **`status-transitions.js`** |
+| **Ledger / выплаты (110.3)** | Оплата → **`LedgerService.postPaymentCaptureFromBooking`**; batch settle → **`postPartnerBatchBookingPayoutSettled`**; модули **`lib/services/ledger/*`**; prod payout только **`PayoutBatchService`** |
+
+**INQUIRY** не в `OCCUPYING_BOOKING_STATUSES` — запрос в чате не резервирует даты до CONFIRMED (см. комментарии в `status-sets.js`).
 
 **Партнёр подтверждает:** `PUT /api/v2/partner/bookings/[id]` (`STATUS_TRANSITIONS`), Telegram callbacks, кнопки в `UnifiedMessagesClient` (тот же PUT).
 
@@ -175,7 +179,7 @@ flowchart TB
 | Счёт в чате | `POST /api/v2/chat/invoice` → checkout `?invoiceId=` |
 | Sync статуса брони | `lib/booking-status-chat-sync.js` |
 
-**Известное наложение:** глобальный `ChatProvider` + `useConversationInbox` на странице треда; часть send-path в `UnifiedMessagesClient` минует `useChatThreadMessages`.
+**Realtime (110.5):** на треде один канал `inbox-messages` + `thread-inbox-bridge`; `deferThreadRealtime` отключает per-thread подписку. POST: `post-chat-message.server.js`; invoice делегирует туда же.
 
 ---
 
@@ -342,11 +346,10 @@ CONFIRMED → (pay) → PAID_ESCROW → (cron thaw) → THAWED
 | PR | Название | Scope | Ключевые файлы | Acceptance criteria |
 |----|----------|-------|----------------|---------------------|
 | **P1-1** | Extend `BookingService.updateStatus` or deprecate | ✅ **108.4** | `validatePartnerBookingStatusTransition`, `@deprecated` on `updateStatus` | PATCH fields + graph from `status-transitions.js` |
-| **P1-2** | Unify chat send pipeline | Voice/invoice/passport через `useChatThreadMessages` | `UnifiedMessagesClient.jsx`, `use-chat-thread-messages.js` | Один optimistic/retry path; no duplicate fetch blocks |
-| **P1-3** | Dedup chat inbox Realtime | ✅ **108.3** (тред) | `use-conversation-inbox.js`, `use-chat-thread-messages.js`, `UnifiedMessagesClient.jsx` | На треде: один канал `inbox-messages`; `deferThreadRealtime` |
+| **P1-2** | Unify chat send pipeline | ✅ **110.6** | `useUnifiedMessagesOutbound.js`, `use-chat-thread-messages.js`, `post-chat-invoice.js` | Текст/voice/media/passport/invoice → thread SSOT + `appendServerChatMessage` |
+| **P1-3** | Dedup chat inbox Realtime | ✅ **110.5** | `thread-inbox-bridge.js`, `use-conversation-inbox.js`, `use-chat-thread-messages.js` | `deferThreadRealtime` реально отключает thread channel; bridge + resync |
 | **P1-4** | Remove dead `booking-actions` | ✅ **108.2** | — | Удалён |
 | **P1-5** | Remove unused chat components | ✅ **108.2** | — | Удалены |
-| **P1-2** | Unify chat send pipeline | ✅ **108.2** (частично) | `lib/chat/post-chat-message.js` | Один POST SSOT; invoice — отдельный endpoint |
 | **P1-6** | CHECKED_IN vs THAWED product doc | ✅ **108.4** | `status-transitions.js` table, `BOOKING_STATUS_OWNER_HINTS_RU`, partner finances tooltip | «Гость заехал» ≠ «Разморожено» в UI |
 | **P1-7** | Client `BOOKING_STATUS` parity | ✅ **108.4** | `BOOKING_STATUS_CODES`, `BOOKING_ESCROW_PIPELINE_STATUSES`, `escrow/constants.js` | All pipeline statuses in client SSOT |
 | **P1-8** | Pricing service rename clarity | ✅ **108.5** | `PricingCatalogService`, `BookingSettlementPricing` | Алиасы в коде + карта в `PRICING_SERVICES.md` |
@@ -382,6 +385,7 @@ P0-3 (schema) → P0-4 (cron visibility) → P0-1 (legacy guard) → P0-2 (statu
 
 | Version | Date | Change |
 |---------|------|--------|
+| 1.6.0 | 2026-05-20 | **Stage 109.0:** Admin FinTech console split (`useAdminFinTechConsole`, panel modules, owner mode preserved) |
 | 1.5.0 | 2026-05-20 | **Stage 108 закрыт:** P1-8 pricing aliases, D-05 chat badge bridge, FX cache v3, owner FinTech |
 | 1.4.0 | 2026-05-20 | Schema verify, status SSOT, CHECKED_IN hints |
 | 1.0.0 | 2026-05-19 | Initial map + P0/P1 PR backlog (post Stage 103 smoke) |

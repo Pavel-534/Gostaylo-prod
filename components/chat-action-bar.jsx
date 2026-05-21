@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, XCircle, Receipt, CreditCard } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
-import { NO_PAY_TRAVEL_STATUSES } from '@/lib/config/app-constants'
+import { NO_PAY_TRAVEL_STATUSES } from '@/lib/booking/status-sets.js'
 import { cn } from '@/lib/utils'
 
 const T = {

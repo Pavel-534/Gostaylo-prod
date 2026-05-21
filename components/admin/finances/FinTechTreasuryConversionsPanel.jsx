@@ -18,6 +18,14 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
+import { fmtThb } from '@/lib/admin/fintech-console-shared'
+import {
+  fetchFintechConversions,
+  postFintechConversion,
+  fetchFintechConversionsReconcile,
+  fetchFintechDownloadBlob,
+  triggerFintechBlobDownload,
+} from '@/lib/admin/admin-fintech-api-client'
 
 const MINT = '#0D9488'
 const NAVY = '#0F172A'
@@ -33,12 +41,6 @@ const OPERATION_TYPES = [
 const FORM_OPERATION_TYPES = OPERATION_TYPES.filter((o) => o.value)
 
 const CURRENCY_FILTERS = ['', 'RUB', 'KGS', 'USDT', 'THB']
-
-function fmtThb(n) {
-  const x = Number(n)
-  if (!Number.isFinite(x)) return '—'
-  return `฿${x.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
 
 function fmtCur(n, cur = '') {
   const x = Number(n)
@@ -98,12 +100,9 @@ export function FinTechTreasuryConversionsPanel({ excludeTest = false, refreshKe
       if (filterOperationType) qs.set('operationType', filterOperationType)
       if (filterCurrency) qs.set('currency', filterCurrency)
       if (excludeTest) qs.set('excludeTest', '1')
-      const res = await fetch(`/api/admin/finances/conversions?${qs.toString()}`, {
-        credentials: 'include',
-      })
-      const json = await res.json()
-      if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`)
-      setData(json.data)
+      const { ok, data, json } = await fetchFintechConversions(qs)
+      if (!ok) throw new Error(json.error || `HTTP ${json.status || 'error'}`)
+      setData(data)
       setReconcileResult(null)
     } catch (e) {
       toast({ title: 'Не удалось загрузить конвертации', description: e.message, variant: 'destructive' })
@@ -161,29 +160,23 @@ export function FinTechTreasuryConversionsPanel({ excludeTest = false, refreshKe
 
     setSaving(true)
     try {
-      const res = await fetch('/api/admin/finances/conversions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          operationType: form.operationType,
-          fromCurrency: form.fromCurrency,
-          toCurrency: form.toCurrency,
-          amountFrom,
-          amountTo,
-          rateUsed,
-          conversionFeeThb: Number(form.conversionFeeThb) || 0,
-          conversionFeeRub: Number(form.conversionFeeRub) || 0,
-          conversionLossThb: Number(form.conversionLossThb) || 0,
-          externalTxReference: form.externalTxReference || null,
-          note: form.note || null,
-        }),
+      const { ok, data, json } = await postFintechConversion({
+        operationType: form.operationType,
+        fromCurrency: form.fromCurrency,
+        toCurrency: form.toCurrency,
+        amountFrom,
+        amountTo,
+        rateUsed,
+        conversionFeeThb: Number(form.conversionFeeThb) || 0,
+        conversionFeeRub: Number(form.conversionFeeRub) || 0,
+        conversionLossThb: Number(form.conversionLossThb) || 0,
+        externalTxReference: form.externalTxReference || null,
+        note: form.note || null,
       })
-      const json = await res.json()
-      if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`)
+      if (!ok) throw new Error(json.error || `HTTP ${json.status || 'error'}`)
       toast({
         title: 'Конвертация зафиксирована',
-        description: `Журнал: ${json.data.journalId}, влияние: ${fmtThb(json.data.totalImpactThb)}`,
+        description: `Журнал: ${data.journalId}, влияние: ${fmtThb(data.totalImpactThb)}`,
       })
       setForm((prev) => ({
         ...prev,
@@ -208,23 +201,10 @@ export function FinTechTreasuryConversionsPanel({ excludeTest = false, refreshKe
     setExporting(true)
     try {
       const qs = new URLSearchParams({ from, to })
-      const res = await fetch(`/api/admin/finances/conversions/export?${qs.toString()}`, {
-        credentials: 'include',
-      })
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}))
-        throw new Error(json.error || `HTTP ${res.status}`)
-      }
-      const blob = await res.blob()
-      const disposition = res.headers.get('content-disposition') || ''
-      const m = disposition.match(/filename="?([^";]+)"?/i)
-      const filename = m?.[1] || `conversions-${from}-${to}.csv`
-      const objectUrl = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = objectUrl
-      a.download = filename
-      a.click()
-      URL.revokeObjectURL(objectUrl)
+      const { blob, filename } = await fetchFintechDownloadBlob(
+        `/api/admin/finances/conversions/export?${qs.toString()}`,
+      )
+      triggerFintechBlobDownload(blob, filename || `conversions-${from}-${to}.csv`)
       toast({ title: 'CSV выгружен', description: 'Файл готов для Excel (разделитель «;»).' })
     } catch (e) {
       toast({ title: 'Не удалось выгрузить CSV', description: e.message, variant: 'destructive' })
@@ -237,22 +217,18 @@ export function FinTechTreasuryConversionsPanel({ excludeTest = false, refreshKe
     setReconciling(true)
     setReconcileResult(null)
     try {
-      const qs = new URLSearchParams({ from, to })
-      const res = await fetch(`/api/admin/finances/conversions/reconcile?${qs.toString()}`, {
-        credentials: 'include',
-      })
-      const json = await res.json()
-      if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`)
-      setReconcileResult(json.data)
-      if (json.data.matched) {
+      const { ok, data, json } = await fetchFintechConversionsReconcile(from, to)
+      if (!ok) throw new Error(json.error || `HTTP ${json.status || 'error'}`)
+      setReconcileResult(data)
+      if (data.matched) {
         toast({
           title: 'Сверка пройдена',
-          description: `${json.data.ledgerCount} записей в журнале = ${json.data.csvCount} строк в CSV.`,
+          description: `${data.ledgerCount} записей в журнале = ${data.csvCount} строк в CSV.`,
         })
       } else {
         toast({
           title: 'Есть расхождения',
-          description: `Найдено ${json.data.mismatches?.length || 0} несоответствий. См. блок сверки ниже.`,
+          description: `Найдено ${data.mismatches?.length || 0} несоответствий. См. блок сверки ниже.`,
           variant: 'destructive',
         })
       }

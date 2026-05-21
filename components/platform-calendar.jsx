@@ -11,6 +11,7 @@ import { getUIText } from "@/lib/translations"
 import { formatRentalSpanLabel } from "@/lib/rental-period-labels"
 import { toListingDate } from "@/lib/listing-date"
 import { formatDisplayDate } from "@/lib/date-display-format"
+import { fetchPublicListingCalendar } from "@/lib/api/partner-calendar-client"
 import {
   Drawer,
   DrawerContent,
@@ -331,24 +332,22 @@ export function PlatformCalendar({
       setError(null)
 
       try {
-        const res = await fetch(
-          `/api/v2/listings/${listingId}/calendar?days=180&guests=${guestsQueryParam}`,
-          { signal: ac.signal, cache: 'default' }
-        )
-        if (cancelled) return
-        const data = await res.json()
-
+        const { ok, calendar, error: calErr } = await fetchPublicListingCalendar(listingId, {
+          days: 180,
+          guests: guestsQueryParam,
+          signal: ac.signal,
+        })
         if (cancelled) return
 
-        if (data.success && Array.isArray(data.data?.calendar)) {
+        if (ok) {
           const dataMap = new Map()
-          for (const day of data.data.calendar) {
+          for (const day of calendar) {
             if (day?.date) dataMap.set(day.date, day)
           }
           setCalendarData(dataMap)
           calendarHydratedRef.current = true
         } else {
-          setError(data.error || 'Failed to load calendar')
+          setError(calErr || 'Failed to load calendar')
         }
       } catch (err) {
         if (cancelled || isAbortError(err)) return

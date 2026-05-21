@@ -9,6 +9,7 @@ import { useCommission } from '@/hooks/use-commission'
 import { resolveChatBookingBreakdown } from '@/lib/chat-booking-totals'
 import { getUIText } from '@/lib/translations'
 import { languageToNumberLocale } from '@/lib/currency'
+import { updatePartnerBookingStatus } from '@/lib/api/partner-bookings-client'
 
 function statusLabelKey(status) {
   const s = String(status || 'PENDING').toUpperCase()
@@ -58,15 +59,10 @@ export function BookingRequestCard({
   async function handleAccept() {
     setUpdating(true)
     try {
-      const res = await fetch(`/api/v2/partner/bookings/${message.bookingId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status: 'CONFIRMED' }),
+      const { ok, json: data } = await updatePartnerBookingStatus(message.bookingId, {
+        status: 'CONFIRMED',
       })
-
-      const data = await res.json()
-      if (data.status === 'success') {
+      if (ok) {
         toast.success(getUIText('chatPartner_toastBookingConfirmed', language))
         onStatusUpdate?.('CONFIRMED')
       } else {
@@ -83,15 +79,10 @@ export function BookingRequestCard({
   async function handleDecline() {
     setUpdating(true)
     try {
-      const res = await fetch(`/api/v2/partner/bookings/${message.bookingId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ status: 'CANCELLED' }),
+      const { ok, json: data } = await updatePartnerBookingStatus(message.bookingId, {
+        status: 'CANCELLED',
       })
-
-      const data = await res.json()
-      if (data.status === 'success') {
+      if (ok) {
         toast.info(getUIText('chatPartner_toastBookingDeclined', language))
         onStatusUpdate?.('CANCELLED')
       } else {

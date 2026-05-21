@@ -17,14 +17,9 @@ import {
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { fmtThb, FINTECH_NAVY } from '@/lib/admin/fintech-console-shared'
 
-const NAVY = '#0F172A'
-
-function fmtThb(n) {
-  const x = Number(n)
-  if (!Number.isFinite(x)) return '—'
-  return `฿${x.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
-}
+const NAVY = FINTECH_NAVY
 
 function StatusTile({ title, count, thb, icon: Icon, accent, sub }) {
   const border =

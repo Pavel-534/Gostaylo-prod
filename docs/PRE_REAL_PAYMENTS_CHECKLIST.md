@@ -4,7 +4,9 @@
 **Когда:** после успешной симуляции Stage 104 (`npm run smoke:full-financial:all`) и настройки мониторинга Stage 105.  
 **SSOT:** `ARCHITECTURAL_DECISIONS.md`, ADR-097, `lib/treasury/payout-rails.js`, `lib/treasury/treasury-ops-config.js`.
 
-> **Stage 108 (2026-05) — техническая уборка завершена.** P0/P1 из `docs/PRODUCT_FLOW_MAP.md` закрыты в коде: legacy payout guard, status SSOT, schema 103.2 verify (`npm run verify:schema-103-2`), cron health на FinTech-пульте, чат/inbox dedup, pricing aliases, режим владельца на `/admin/settings/finances`. Дальше — внешние шаги: ЮKassa, ОсОО, договоры (§B–D ниже).
+> **Stage 108–112.3 (2026-05) — техническая уборка и pre-launch hardening завершены.** P0/P1 из `docs/PRODUCT_FLOW_MAP.md` закрыты в коде: legacy payout guard, status SSOT, schema 103.2 verify (`npm run verify:schema-103-2`), cron health на FinTech-пульте, чат/inbox dedup, pricing aliases, FinTech/home/chat UI → API clients (без прямого `fetch` в ключевых экранах), **Stage 112.x** — `chat-ui-api-client`, thread/read SSOT в hooks, Go/No-Go: **`docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`**. Дальше — внешние шаги: ЮKassa, ОсОО, договоры (§B–D ниже).
+
+**Быстрый Go/No-Go (15 мин):** [`docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`](GO_NO_GO_FIRST_REAL_PAYMENT.md)
 
 ---
 
@@ -35,10 +37,12 @@
 
 ## A. Техническая готовность (код и среда) — детальный чеклист
 
-### A0. Stage 108 (код-уборка) — выполнено в репозитории
+### A0. Stage 108–112 (код-уборка + hardening) — выполнено в репозитории
 
 - [x] P0: legacy payout guard, booking status SSOT, schema 103.2 tooling, cron health UI
 - [x] P1: chat POST SSOT, inbox Realtime dedup, CHECKED_IN ≠ THAWED, `BOOKING_STATUS` parity, pricing aliases
+- [x] Stage 111–112.3: FinTech/home/chat/calendar/finances → API clients; iCal sync, seasonal prices, referral, push, geocode; realtime JWT SSOT; backlog UI `fetch`: admin marketing settings, notification-bell, listing import
+- [x] Go/No-Go checklist — `docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`
 - [x] `npm run verify:schema-103-2` — **6/6** на среде из `.env.local`
 - [ ] Деплой на production + повтор verify/smoke на prod
 

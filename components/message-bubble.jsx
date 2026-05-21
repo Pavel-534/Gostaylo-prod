@@ -14,6 +14,7 @@ import { maskContactInfo } from '@/lib/mask-contacts'
 import { highlightText } from '@/lib/chat-highlight-text'
 import { getUIText } from '@/lib/translations'
 import { resolveImageMainUrl, resolveImageThumbDisplayUrl } from '@/lib/image-display-url'
+import { translateChatMessage } from '@/lib/chat/chat-ui-api-client'
 import {
   Dialog,
   DialogContent,
@@ -140,18 +141,15 @@ export function MessageBubble({
     if (!translateTargetLang || !text.trim()) return
     setTranslating(true)
     try {
-      const res = await fetch('/api/v2/translate', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, target: translateTargetLang }),
+      const { ok, translatedText, error } = await translateChatMessage({
+        text,
+        target: translateTargetLang,
       })
-      const json = await res.json()
-      if (!res.ok || !json.success || !json.data?.translatedText) {
-        toast.error(json.error || 'Перевод недоступен')
+      if (!ok || !translatedText) {
+        toast.error(error || 'Перевод недоступен')
         return
       }
-      setTranslated(json.data.translatedText)
+      setTranslated(translatedText)
       setShowTranslated(true)
     } catch {
       toast.error('Ошибка сети')

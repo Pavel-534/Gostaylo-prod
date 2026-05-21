@@ -11,6 +11,7 @@ import { getUIText } from '@/lib/translations'
 import { resolveWhereTarget } from '@/lib/locations/resolve-where-target'
 import { COUNTRY_PRESETS } from '@/lib/geo/country-presets'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { fetchPublicStats } from '@/lib/api/catalog-public-client'
 
 /** Resolve human-readable location name (localized) for trust label */
 function getLocationDisplayName(locationContext, language) {
@@ -132,10 +133,9 @@ export function TrustBar({ language = 'ru', locationContext = 'all' }) {
   // Fetch live stats from public API
   useEffect(() => {
     let cancelled = false
-    fetch('/api/v2/public/stats')
-      .then((r) => r.json())
-      .then((json) => {
-        if (!cancelled && json.success) setStats(json.data)
+    fetchPublicStats()
+      .then(({ ok, data }) => {
+        if (!cancelled && ok) setStats(data)
       })
       .catch(() => { /* use fallback */ })
       .finally(() => { if (!cancelled) setLoadingStats(false) })

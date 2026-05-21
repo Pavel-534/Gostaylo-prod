@@ -13,6 +13,7 @@ import { getStaticLocationsSeed } from '@/lib/locations/locations-seed'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { HOME_CATEGORY_ICONS } from './home-constants'
+import { fetchSearchLocations } from '@/lib/api/catalog-public-client'
 
 /**
  * Базовый стиль 60-px поля (Apple/Airbnb-уровень).
@@ -57,10 +58,9 @@ export function HomeHeroLuxe({
   const [locationsLoading, setLocationsLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/v2/search/locations')
-      .then((r) => r.json())
-      .then((locRes) => {
-        if (locRes.success && locRes.data) setLocations(locRes.data)
+    fetchSearchLocations()
+      .then(({ ok, locations }) => {
+        if (ok) setLocations(locations)
       })
       .catch(() => {})
       .finally(() => setLocationsLoading(false))

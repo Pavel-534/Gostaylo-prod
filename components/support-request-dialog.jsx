@@ -22,6 +22,7 @@ import {
 import { Loader2, LifeBuoy } from 'lucide-react'
 import { toast } from 'sonner'
 import { SUPPORT_REASONS, SUPPORT_DISPUTE_KINDS } from '@/lib/support-request-options'
+import { postChatEscalate } from '@/lib/chat/chat-ui-api-client'
 
 /**
  * Форма обращения в поддержку (не мгновенная «тревога»): тема + суть + текст.
@@ -58,20 +59,14 @@ export function SupportRequestDialog({
     }
     setSubmitting(true)
     try {
-      const res = await fetch('/api/v2/chat/escalate', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId,
-          category,
-          disputeType,
-          details: details.trim().slice(0, 2000),
-          lang: isRu ? 'ru' : 'en',
-        }),
+      const { ok, json } = await postChatEscalate({
+        conversationId,
+        category,
+        disputeType,
+        details: details.trim().slice(0, 2000),
+        lang: isRu ? 'ru' : 'en',
       })
-      const json = await res.json()
-      if (!res.ok || !json.success) {
+      if (!ok) {
         toast.error(json.error || (isRu ? 'Не удалось отправить' : 'Failed to send'))
         return
       }

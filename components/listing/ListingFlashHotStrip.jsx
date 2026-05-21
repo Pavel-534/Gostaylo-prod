@@ -8,6 +8,7 @@ import {
   resolveFlashHotStripState,
   formatFlashRemainingHoursMinutes,
 } from '@/lib/listing/flash-hot-strip'
+import { fetchPublicMarketingUiStrings } from '@/lib/api/catalog-public-client'
 
 /**
  * Pastel “hot” strip: >6h left + bookings today → fire + count; ≤6h → expiry HH:MM (Stage 39.0).
@@ -34,11 +35,10 @@ export function ListingFlashHotStrip({
 
   useEffect(() => {
     let cancelled = false
-    fetch(`/api/v2/marketing/ui-strings?lang=${encodeURIComponent(apiLang)}`, { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((j) => {
-        if (cancelled || !j?.success || !j?.data || typeof j.data !== 'object') return
-        setRemoteStrings(j.data)
+    fetchPublicMarketingUiStrings(apiLang)
+      .then(({ ok, data }) => {
+        if (cancelled || !ok || !data || typeof data !== 'object') return
+        setRemoteStrings(data)
       })
       .catch(() => {})
     return () => {
