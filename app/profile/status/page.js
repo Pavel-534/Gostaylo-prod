@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useReferralMeQuery } from '@/lib/hooks/use-referral-me'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -32,9 +33,12 @@ export default function ProfileStatusPage() {
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
   const locale = language === 'en' ? 'en-US' : language === 'th' ? 'th-TH' : language === 'zh' ? 'zh-CN' : 'ru-RU'
   const { isAuthenticated, loading: authLoading } = useAuth()
-  const [loading, setLoading] = useState(true)
-  const [data, setData] = useState(null)
   const [profileSaving, setProfileSaving] = useState(false)
+  const {
+    data,
+    isLoading: referralLoading,
+    isError: referralError,
+  } = useReferralMeQuery({ enabled: !authLoading && isAuthenticated })
   const [monthlyGoal, setMonthlyGoal] = useState('10000')
   const [reportTimezone, setReportTimezone] = useState('Asia/Bangkok')
 
@@ -51,29 +55,18 @@ export default function ProfileStatusPage() {
       router.replace('/profile?login=true')
       return
     }
-    let cancelled = false
-    ;(async () => {
-      try {
-        const refRes = await fetch('/api/v2/referral/me', { credentials: 'include', cache: 'no-store' })
-        const json = await refRes.json().catch(() => ({}))
-        if (!cancelled) {
-          if (refRes.ok && json?.success) {
-            setData(json.data || null)
-            const reportPrefs = json?.data?.referralReport || {}
-            setMonthlyGoal(String(Number(reportPrefs?.monthlyGoalThb ?? 10000)))
-            setReportTimezone(String(reportPrefs?.timezone || 'Asia/Bangkok'))
-          } else toast.error(json?.error || t('referralStage726_loadErr'))
-        }
-      } catch {
-        if (!cancelled) toast.error(t('referralStage726_pageErr'))
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [authLoading, isAuthenticated, router, t])
+  }, [authLoading, isAuthenticated, router])
+
+  useEffect(() => {
+    if (!data) return
+    const reportPrefs = data?.referralReport || {}
+    setMonthlyGoal(String(Number(reportPrefs?.monthlyGoalThb ?? 10000)))
+    setReportTimezone(String(reportPrefs?.timezone || 'Asia/Bangkok'))
+  }, [data])
+
+  useEffect(() => {
+    if (referralError) toast.error(t('referralStage726_loadErr'))
+  }, [referralError, t])
 
   async function saveAdvancedSettings() {
     const goalNum = Number(monthlyGoal || 0)
@@ -102,7 +95,7 @@ export default function ProfileStatusPage() {
     }
   }
 
-  if (authLoading || loading) {
+  if (authLoading || referralLoading) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-10">
         <Card><CardContent className="py-12 flex justify-center text-slate-600"><Loader2 className="h-5 w-5 mr-2 animate-spin" />{t('referralStage726_load')}</CardContent></Card>

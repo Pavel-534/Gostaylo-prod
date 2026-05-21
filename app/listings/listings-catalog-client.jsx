@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { ListingsCatalogSkeleton } from '@/components/listings-catalog-skeleton'
 import { format, parseISO, differenceInDays } from 'date-fns'
-import { fetchExchangeRates } from '@/lib/client-data'
+import { fetchExchangeRates, FX_RATES_UPDATED_EVENT } from '@/lib/client-data'
 import { FilterBar } from '@/components/search/FilterBar'
 import { ListingSidebar } from '@/components/search/ListingSidebar'
 import { SearchMapWrapper } from '@/components/search/SearchMapWrapper'
@@ -352,6 +352,14 @@ function ListingsContent() {
         .catch(console.error)
     }
   }, [user?.id])
+
+  useEffect(() => {
+    const onFxUpdated = (e) => {
+      if (e?.detail && typeof e.detail === 'object') setExchangeRates(e.detail)
+    }
+    window.addEventListener(FX_RATES_UPDATED_EVENT, onFxUpdated)
+    return () => window.removeEventListener(FX_RATES_UPDATED_EVENT, onFxUpdated)
+  }, [])
 
   useEffect(() => {
     const handler = (e) => setCurrency(e.detail)

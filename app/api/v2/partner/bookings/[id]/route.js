@@ -14,7 +14,7 @@ import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { buildBookingFinancialSnapshotFromRow } from '@/lib/services/booking-financial-read-model.service'
 import { transformPartnerBookingToClient } from '@/lib/partner/partner-booking-transform'
-import ReferralPnlService from '@/lib/services/marketing/referral-pnl.service'
+import { runReferralPayoutOnBookingCompleted } from '@/lib/services/marketing/referral-completion-trigger.js'
 import { validatePartnerBookingStatusTransition } from '@/lib/booking/status-transitions.js'
 
 export const dynamic = 'force-dynamic'
@@ -241,25 +241,9 @@ export async function PUT(request, { params }) {
 
     if (newStatus === 'COMPLETED') {
       try {
-        const referralResult = await ReferralPnlService.distribute(id, {
-          trigger: 'partner_status_completed',
-        })
-        if (referralResult?.success !== true && referralResult?.error) {
-          console.warn('[BOOKING UPDATE] referral distribute failed:', referralResult.error)
-        }
+        await runReferralPayoutOnBookingCompleted(id, { trigger: 'partner_status_completed' })
       } catch (e) {
-        console.error('[BOOKING UPDATE] referral distribute', e)
-      }
-      try {
-        const hostActivationResult = await ReferralPnlService.distributeHostPartnerActivation(id)
-        if (hostActivationResult?.success !== true && hostActivationResult?.error) {
-          console.warn(
-            '[BOOKING UPDATE] host activation distribute failed:',
-            hostActivationResult.error,
-          )
-        }
-      } catch (e) {
-        console.error('[BOOKING UPDATE] host activation distribute', e)
+        console.error('[BOOKING UPDATE] referral completion trigger', e)
       }
     }
 

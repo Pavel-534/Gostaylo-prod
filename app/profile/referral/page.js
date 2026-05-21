@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
 import { ArrowRight, Coins, Copy, Gift, Loader2, Plane } from 'lucide-react'
@@ -12,6 +12,7 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { toast } from 'sonner'
 import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
+import { useReferralMeQuery } from '@/lib/hooks/use-referral-me'
 import { ReferralMarketingKit } from '@/components/referral/ReferralMarketingKit'
 import { ReferralActivitySection } from '@/components/referral/ReferralActivitySection'
 import { ReferralEarningsEstimator } from '@/components/referral/ReferralEarningsEstimator'
@@ -29,35 +30,20 @@ export default function ReferralInvitePage() {
   const locale = language === 'en' ? 'en-US' : language === 'th' ? 'th-TH' : language === 'zh' ? 'zh-CN' : 'ru-RU'
   const { isAuthenticated, loading: authLoading } = useAuth()
   const { data: walletData } = useWalletMeQuery({ enabled: !authLoading && isAuthenticated })
-
-  const [loading, setLoading] = useState(true)
-  const [data, setData] = useState(null)
+  const {
+    data,
+    isLoading: referralLoading,
+    isError: referralError,
+  } = useReferralMeQuery({ enabled: !authLoading && isAuthenticated })
 
   useEffect(() => {
     if (authLoading) return
-    if (!isAuthenticated) {
-      router.replace('/profile?login=true')
-      return
-    }
-    let cancelled = false
-    ;(async () => {
-      try {
-        const refRes = await fetch('/api/v2/referral/me', { credentials: 'include', cache: 'no-store' })
-        const json = await refRes.json().catch(() => ({}))
-        if (!cancelled) {
-          if (refRes.ok && json?.success) setData(json.data || null)
-          else toast.error(json?.error || t('referralStage726_loadErr'))
-        }
-      } catch {
-        if (!cancelled) toast.error(t('referralStage726_pageErr'))
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [authLoading, isAuthenticated, router, t])
+    if (!isAuthenticated) router.replace('/profile?login=true')
+  }, [authLoading, isAuthenticated, router])
+
+  useEffect(() => {
+    if (referralError) toast.error(t('referralStage726_loadErr'))
+  }, [referralError, t])
 
   async function copyText(value) {
     const v = String(value || '').trim()
@@ -70,7 +56,7 @@ export default function ReferralInvitePage() {
     }
   }
 
-  if (authLoading || loading) {
+  if (authLoading || referralLoading) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-10">
         <Card className="rounded-xl">

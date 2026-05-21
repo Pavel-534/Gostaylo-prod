@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle, Settings as SettingsIcon, DollarSign, Power, Home, Type, Phone, Shield, Landmark } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { saveAdminSettings } from '@/lib/admin/admin-settings-api-client';
 
 const FEE_SPLIT_PRESETS = {
   russia_fast: {
@@ -106,16 +107,19 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/admin/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
-      });
+      const out = await saveAdminSettings(settings);
 
-      if (res.ok) {
+      if (out.ok) {
         toast({
           title: '✅ Настройки сохранены',
-          description: 'Все изменения применены',
+          description:
+            'Изменения применены. Цены в ₽/$ на витрине обновятся при следующем заходе на сайт или переключении вкладки.',
+        });
+      } else {
+        toast({
+          title: 'Ошибка',
+          description: out.error || 'Не удалось сохранить настройки',
+          variant: 'destructive',
         });
       }
     } catch {

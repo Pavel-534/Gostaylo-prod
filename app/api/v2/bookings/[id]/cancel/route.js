@@ -66,7 +66,14 @@ export async function POST(request, context) {
       return NextResponse.json({ success: false, error: 'Access denied' }, { status: 403 });
     }
 
-    if (['COMPLETED', 'REFUNDED'].includes(bookingBefore.status)) {
+    const wasCompleted = bookingBefore.status === 'COMPLETED';
+    if (bookingBefore.status === 'REFUNDED') {
+      return NextResponse.json(
+        { success: false, error: `Cannot cancel booking in status ${bookingBefore.status}` },
+        { status: 409 },
+      );
+    }
+    if (wasCompleted && !isStaff) {
       return NextResponse.json(
         { success: false, error: `Cannot cancel booking in status ${bookingBefore.status}` },
         { status: 409 },
@@ -146,9 +153,14 @@ export async function POST(request, context) {
     }
 
     try {
-      await ReferralPnlService.cancelPendingLedgerForBooking(bookingId);
+      const referralRevert = await ReferralPnlService.revertReferralLedgerForBooking(bookingId, {
+        trigger: wasCompleted ? 'staff_cancel_completed' : 'booking_cancel',
+      });
+      if (referralRevert?.clawback?.failureCount > 0) {
+        console.warn('[cancel] referral clawback partial failures', referralRevert.clawback.failures);
+      }
     } catch (e) {
-      console.warn('[cancel] referral ledger cancel pending', e?.message);
+      console.warn('[cancel] referral ledger revert', e?.message);
     }
 
     let walletRestore = null;

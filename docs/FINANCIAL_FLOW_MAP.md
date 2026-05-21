@@ -4,7 +4,7 @@
 
 **Related code:** `lib/services/pricing.service.js`, `lib/services/finance/wallet.service.js`, `lib/services/marketing/referral-pnl.service.js`, `lib/services/escrow/payout.service.js`, `app/api/v2/bookings/[id]/payment/initiate/route.js`, `lib/services/payment-intent.service.js`, `lib/services/booking/cancel-wallet-restore.service.js`, `app/api/v2/bookings/[id]/cancel/route.js`.
 
-**Version:** Stage 72.5 | **Last updated:** 2026-04-27
+**Version:** Stage 114.1 | **Last updated:** 2026-05-21
 
 ---
 
@@ -193,13 +193,32 @@ Registry: `WALLET_WELCOME_EXPIRING` in `lib/services/notifications/notification-
 
 **Правило продукта:** при отмене до финального захвата платежа бонусы, списанные на чекауте, возвращаются на кошелёк гостя; строки **`referral_ledger`** в статусе **`pending`** по этой брони аннулируются (**`canceled`**).
 
-**Реализация (Stage 71.7):**
+**Реализация (Stage 71.7 + 114.1):**
 
 - **`restoreWalletSpendOnBookingCancel`** (`lib/services/booking/cancel-wallet-restore.service.js`) — идемпотентный кредит `booking_cancel_wallet_restore` с `reference_id = booking:{id}:wallet_cancel_refund`; затем **`restoreWelcomeSliceAfterCancelRefund`** для трекинга welcome-среза.
-- **`POST /api/v2/bookings/[id]/cancel`** вызывает **`ReferralPnlService.cancelPendingLedgerForBooking`** после перевода брони в **CANCELLED**.
-- **Важно:** строки referral для брони создаются в **`distribute`** только при **COMPLETED**; до завершения брони pending-строк часто **нет**. Аннулирование — защитный слой (в т.ч. если `distribute` прервался между `createPendingRows` и `markPendingAsEarned`).
+- **`POST /api/v2/bookings/[id]/cancel`** вызывает **`ReferralPnlService.revertReferralLedgerForBooking`** (pending → `canceled` + earned clawback).
+- **Важно:** строки referral для брони создаются в **`distribute`** только при **COMPLETED**; до завершения брони pending-строк часто **нет**. Аннулирование pending — защитный слой (в т.ч. если `distribute` прервался между `createPendingRows` и `markPendingAsEarned`).
+
+### 8.1 Clawback earned referral (Stage 114.1)
+
+Когда бронь уже **COMPLETED** и referral начислен (**`referral_ledger.status = earned`** + кошелёк **`referral_ledger:{id}`**):
+
+1. **`ReferralLedgerService.clawbackEarnedLedgerForBooking`** — для каждой earned-строки без `metadata.clawback_at`.
+2. **`WalletService.clawbackReferralLedgerCredit`** — debit идемпотентно по **`reference_id = referral_clawback:{ledgerId}`**; bucket split восстанавливается из metadata исходного credit.
+3. Строка ledger → **`canceled`** + `metadata.clawback_at`.
+4. При **`INSUFFICIENT_FUNDS`** — ledger **не** отменяется, **`recordCriticalSignal('REFERRAL_CLAWBACK_INSUFFICIENT')`** (ручной разбор).
+
+**Staff-only:** `POST /api/v2/bookings/[id]/cancel` разрешает отмену из **COMPLETED** только для staff; гостям/партнёрам по-прежнему **409**.
 
 **Эскроу-отмены** (`PAID_ESCROW` / …): возврат гостю идёт через **`LedgerService.postPartialRefundForBooking`**; отдельный возврат wallet из metadata для этих статусов **не дублируется** в том же виде — см. политику возврата в ADR при необходимости расширения.
+
+### 8.2 Referral completion SSOT (Stage 114.1)
+
+**`runReferralPayoutOnBookingCompleted`** (`lib/services/marketing/referral-completion-trigger.js`) — единственная обёртка над `distribute` + `distributeHostPartnerActivation`. Вызывается при переводе брони в **COMPLETED** из:
+
+- `app/api/v2/partner/bookings/[id]` (partner PUT),
+- `lib/services/payout-batch/payout-batch-settlement.js` (batch settle),
+- `lib/services/escrow/payout.service.js` (legacy `processPayout` only, guarded on prod).
 
 ---
 
@@ -212,6 +231,7 @@ Registry: `WALLET_WELCOME_EXPIRING` in `lib/services/notifications/notification-
 | Which column is reduced for charging the guest less? | **`commission_thb`** (guest fee line) in payment intent path. |
 | Is \(W \le F\)? | **Yes**, enforced in `payment/initiate`. |
 | Cancel before capture + `wallet_discount_thb` in metadata? | **Wallet restored** + **pending referral rows canceled** (Stage 71.7). |
+| Cancel COMPLETED (staff) with earned referral? | **`revertReferralLedgerForBooking`** — clawback wallet + cancel ledger rows (Stage 114.1). |
 
 ---
 

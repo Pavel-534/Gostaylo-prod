@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { useCurrency } from '@/contexts/currency-context'
-import { fetchCategories, fetchExchangeRates } from '@/lib/client-data'
+import { fetchCategories, fetchExchangeRates, FX_RATES_UPDATED_EVENT } from '@/lib/client-data'
 import { fetchAuthMe } from '@/lib/api/auth-client'
 import {
   fetchHomeFeaturedSearch,
@@ -133,7 +133,15 @@ export function usePlatformHomePage() {
       .catch(console.error)
   }, [])
 
-  // Свежие курсы при возврате на вкладку (Ctrl+F5 не чистит localStorage — отсюда расхождение с телефоном).
+  useEffect(() => {
+    const onFxUpdated = (e) => {
+      if (e?.detail && typeof e.detail === 'object') setExchangeRates(e.detail)
+    }
+    window.addEventListener(FX_RATES_UPDATED_EVENT, onFxUpdated)
+    return () => window.removeEventListener(FX_RATES_UPDATED_EVENT, onFxUpdated)
+  }, [])
+
+  // Свежие курсы при возврате на вкладку (Ctrl+F5 не чистит localStorage — фоновая revalidate + force).
   useEffect(() => {
     const refreshRates = () => {
       fetchExchangeRates({ force: true })
