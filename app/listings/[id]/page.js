@@ -25,6 +25,7 @@ import { ListingMap } from '@/components/listing/pdp/ListingMap'
 import { ListingBookingSection } from '@/components/listing/pdp/ListingBookingSection'
 import { ListingMobileActions } from '@/components/listing/pdp/ListingMobileActions'
 import { ListingChatPreview } from '@/components/listing/pdp/ListingChatPreview'
+import { GuestBookingFlowHint } from '@/components/product/GuestBookingFlowHint'
 
 function PremiumListingContent({ params }) {
   const router = useRouter()
@@ -124,7 +125,7 @@ function PremiumListingContent({ params }) {
 
   return (
     <>
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white text-slate-900">
         <ListingPageNav
           language={language}
           onBack={() => router.back()}
@@ -134,6 +135,7 @@ function PremiumListingContent({ params }) {
         />
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-40 lg:pb-8">
+          <GuestBookingFlowHint t={(key) => getUIText(key, language)} className="mb-4 max-w-2xl" />
           <ListingHeroGallery
             listing={listing}
             language={language}

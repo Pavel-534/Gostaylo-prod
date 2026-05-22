@@ -25,6 +25,12 @@ module.exports = {
       },
       colors: {
         // GoStayLo brand colors - modern travel
+        brand: {
+          DEFAULT: '#006666',
+          hover: '#005757',
+          surface: '#f7f9fb',
+          muted: '#e6f4f3',
+        },
         teal: {
           50: '#f0fdfa',
           100: '#ccfbf1',

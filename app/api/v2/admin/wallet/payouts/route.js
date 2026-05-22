@@ -39,6 +39,9 @@ function toPayoutCandidateRow(wallet, profile, minPayoutThb) {
   if (!(withdrawableBalanceThb >= minPayoutThb)) blockers.push('BELOW_MIN_PAYOUT');
   if (!profileVerified) blockers.push('PROFILE_NOT_VERIFIED');
   if (!verifiedForPayout) blockers.push('WALLET_NOT_CLEARED_FOR_PAYOUT');
+  const referralWithdrawalStatus = wallet?.referral_withdrawal_status || null;
+  const referralWithdrawalRequestedAt = wallet?.referral_withdrawal_requested_at || null;
+  const referralWithdrawalAmountThb = round2(wallet?.referral_withdrawal_amount_thb ?? 0) || null;
   return {
     walletId: wallet?.id,
     userId: wallet?.user_id,
@@ -48,6 +51,9 @@ function toPayoutCandidateRow(wallet, profile, minPayoutThb) {
     verifiedForPayout,
     profileVerified,
     readyForPayout,
+    referralWithdrawalStatus,
+    referralWithdrawalRequestedAt,
+    referralWithdrawalAmountThb,
     blockers,
     profile: profile
       ? {
@@ -70,19 +76,26 @@ export async function GET(request) {
   }
   const { searchParams } = new URL(request.url);
   const readyOnly = searchParams.get('readyOnly') === '1' || searchParams.get('readyOnly') === 'true';
+  const referralOnly =
+    searchParams.get('referralOnly') === '1' || searchParams.get('referralOnly') === 'true';
   const limitRaw = Number(searchParams.get('limit'));
   const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(500, Math.floor(limitRaw))) : 200;
   const query = String(searchParams.get('query') || '').trim().toLowerCase();
 
   const minPayoutThb = await getMinPayoutThb();
-  const { data: wallets, error: walletsErr } = await supabaseAdmin
+  let walletQuery = supabaseAdmin
     .from('user_wallets')
     .select(
-      'id,user_id,balance_thb,internal_credits_thb,withdrawable_balance_thb,verified_for_payout,updated_at,created_at',
+      'id,user_id,balance_thb,internal_credits_thb,withdrawable_balance_thb,verified_for_payout,referral_withdrawal_status,referral_withdrawal_requested_at,referral_withdrawal_amount_thb,updated_at,created_at',
     )
-    .gt('balance_thb', 0)
     .order('balance_thb', { ascending: false })
     .limit(limit);
+  if (referralOnly) {
+    walletQuery = walletQuery.eq('referral_withdrawal_status', 'withdrawable_referral');
+  } else {
+    walletQuery = walletQuery.gt('balance_thb', 0);
+  }
+  const { data: wallets, error: walletsErr } = await walletQuery;
   if (walletsErr) {
     return NextResponse.json(
       { success: false, error: walletsErr.message || 'WALLET_PAYOUT_LIST_FAILED' },
@@ -108,6 +121,7 @@ export async function GET(request) {
   const rows = (wallets || [])
     .map((wallet) => toPayoutCandidateRow(wallet, profileMap[String(wallet.user_id)] || null, minPayoutThb))
     .filter((row) => {
+      if (referralOnly && row.referralWithdrawalStatus !== 'withdrawable_referral') return false;
       if (readyOnly && !row.readyForPayout) return false;
       if (!query) return true;
       const haystack = [
@@ -153,6 +167,42 @@ export async function PATCH(request) {
   const userId = String(body?.userId || body?.user_id || '').trim();
   if (!userId) {
     return NextResponse.json({ success: false, error: 'userId is required' }, { status: 400 });
+  }
+  const clearReferralWithdrawal =
+    body?.clearReferralWithdrawal === true || body?.clear_referral_withdrawal === true;
+  if (clearReferralWithdrawal) {
+    const { data: cleared, error: clearErr } = await supabaseAdmin
+      .from('user_wallets')
+      .update({
+        referral_withdrawal_status: null,
+        referral_withdrawal_requested_at: null,
+        referral_withdrawal_amount_thb: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .select(
+        'id,user_id,balance_thb,internal_credits_thb,withdrawable_balance_thb,verified_for_payout,referral_withdrawal_status,referral_withdrawal_requested_at,referral_withdrawal_amount_thb,updated_at,created_at',
+      )
+      .maybeSingle();
+    if (clearErr) {
+      return NextResponse.json(
+        { success: false, error: clearErr.message || 'REFERRAL_WITHDRAWAL_CLEAR_FAILED' },
+        { status: 500 },
+      );
+    }
+    if (!cleared) {
+      return NextResponse.json({ success: false, error: 'WALLET_NOT_FOUND' }, { status: 404 });
+    }
+    const { data: profile } = await supabaseAdmin
+      .from('profiles')
+      .select('id,email,first_name,last_name,is_verified,role')
+      .eq('id', userId)
+      .maybeSingle();
+    const minPayoutThb = await getMinPayoutThb();
+    return NextResponse.json({
+      success: true,
+      data: toPayoutCandidateRow(cleared, profile || null, minPayoutThb),
+    });
   }
   let targetFlag = body?.verifiedForPayout;
   if (targetFlag == null) targetFlag = body?.verified_for_payout;

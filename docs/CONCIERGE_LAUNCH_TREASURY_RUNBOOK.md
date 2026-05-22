@@ -516,4 +516,28 @@ npm run smoke:full-financial -- --rail=intl --amount=12000 --guest-currency=USDT
 
 ---
 
-*Версия runbook: 2026-05-19 · Stage 106.3 (кнопка «Подготовить к паузе», §15 возвращение) · Stage 106.2 (launch dashboard, legal ZIP) · Stage 106.1 (P0 payment hardening) · Stage 106.1 (P0 payment hardening) · Stage 105 (мониторинг, emergency pause) · при изменении cron/API обновить `docs/CRON_EXTERNAL_FINANCIAL.md` и `docs/PRE_REAL_PAYMENTS_CHECKLIST.md`.*
+## 16. Реферальная программа — запуск и ежедневный контроль (Stage 114.7)
+
+**SSOT учёта:** `docs/REFERRAL_ACCOUNTING.md` · **поток денег:** `docs/REFERRAL_FINANCIAL_FLOW.md` · **Go/No-Go:** `docs/GO_NO_GO_FIRST_REAL_PAYMENT.md` (R1–R7).
+
+| ✓ | Пункт | Где |
+|---|--------|-----|
+| ☐ | Месячный spend (earned UTC): полоса **жёлтая** ≥ warn% (default 80%), **красная** ≥ hard limit | `/admin/settings/finances` → Referral Liability → `ReferralMonthlySpendBar` |
+| ☐ | Очередь `withdrawable_referral`: поиск по email, сортировка, approve/reject **только после сверки** | Тот же пульт → `ReferralPayoutWorkflowPanel` |
+| ☐ | Подозрительные `pending`: hold / reject; bulk hold/release по фильтру | Ledger actions в Referral Liability |
+| ☐ | Promo tank ≥ прогноз 10 host activations | Карточка Promo Tank |
+| ☐ | TG FINANCE: нет необработанных `REFERRAL_ADMIN_ALERT` / monthly approaching | Топик FINANCE |
+
+**Перед первым реальным referral payout:**
+
+1. `npm run smoke:full-financial` — 15/15 PASS.
+2. FinTech: `currentLiability` vs `walletExposure`, gap ledger↔wallet.
+3. Одна заявка: approve вручную → проверка debit в `wallet_transactions` (не автобанк).
+
+**Ежедневно (5 мин, вместе с §4):** monthly bar → очередь payouts (0 или обработать) → топ амбассадоров при approaching/hard alert.
+
+**Запреты:** автовывод referral на банк; массовый approve без суммы; снятие hold без заметки в ledger metadata.
+
+---
+
+*Версия runbook: 2026-05-21 · Stage 114.7 (referral §16) · Stage 106.3 (кнопка «Подготовить к паузе», §15 возвращение) · Stage 106.2 (launch dashboard, legal ZIP) · Stage 106.1 (P0 payment hardening) · Stage 106.1 (P0 payment hardening) · Stage 105 (мониторинг, emergency pause) · при изменении cron/API обновить `docs/CRON_EXTERNAL_FINANCIAL.md` и `docs/PRE_REAL_PAYMENTS_CHECKLIST.md`.*

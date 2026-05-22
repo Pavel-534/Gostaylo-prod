@@ -14,7 +14,7 @@ export function WelcomePartnerModal({ isOpen, onClose, userName, language = 'ru'
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div
-        className="bg-gradient-to-br from-teal-500 via-teal-600 to-emerald-600 rounded-2xl max-w-md w-full p-8 text-white text-center relative overflow-hidden"
+        className="bg-gradient-to-br from-brand/90 via-brand to-emerald-700 rounded-2xl max-w-md w-full p-8 text-white text-center relative overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="absolute inset-0 opacity-20">
@@ -41,7 +41,7 @@ export function WelcomePartnerModal({ isOpen, onClose, userName, language = 'ru'
             <CalendarDays className="h-8 w-8 mx-auto mb-2" />
             <p className="text-sm">{t('welcomePartnerBody')}</p>
           </div>
-          <Button onClick={onClose} className="w-full bg-white text-teal-600 hover:bg-white/90">
+          <Button onClick={onClose} className="w-full bg-white text-brand hover:bg-white/90">
             {t('welcomePartnerButton')}
           </Button>
         </div>
@@ -61,7 +61,7 @@ export function DashboardSkeleton({ className }) {
   )
 }
 
-export function RevenueSparkline({ data, color = '#0d9488', height = 40 }) {
+export function RevenueSparkline({ data, color = '#006666', height = 40 }) {
   if (!data || data.length === 0) return null
   const max = Math.max(...data.map((d) => d.revenue), 1)
   const width = 120
@@ -198,7 +198,7 @@ export function PendingBookingCard({ booking, onApprove, onDecline, isLoading, l
 
 export function PartnerDashboardLoadingSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 gsl-shimmer" aria-busy>
       <div className="flex justify-between items-center">
         <DashboardSkeleton className="h-8 w-48" />
         <DashboardSkeleton className="h-10 w-32" />

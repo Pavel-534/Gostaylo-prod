@@ -1,16 +1,21 @@
 /**
  * GET /api/v2/referral/landing-meta/[userId]
- * Публичные данные для визитки /u/[id]: реферальный код, tier (публичное имя).
+ * Публичные данные для визитки /u/[id] (Stage 114.3 — расширенный payload).
  */
 
 import { NextResponse } from 'next/server'
+import { unstable_cache } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase'
-import { formatPrivacyDisplayName } from '@/lib/utils/name-formatter'
-import { buildAmbassadorLandingUrl, ambassadorLandingShortLabel } from '@/lib/referral/public-landing-url'
-import { getSiteDisplayName } from '@/lib/site-url'
-import ReferralPnlService from '@/lib/services/marketing/referral-pnl.service'
+import { buildPublicLandingPayload } from '@/lib/referral/build-public-landing-payload.js'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 60
+
+const loadLandingCached = unstable_cache(
+  async (userId) => buildPublicLandingPayload(supabaseAdmin, userId),
+  ['referral-landing-meta-v1'],
+  { revalidate: 60 },
+)
 
 export async function GET(request, context) {
   try {
@@ -23,53 +28,12 @@ export async function GET(request, context) {
       return NextResponse.json({ success: false, error: 'MISSING_ADMIN' }, { status: 500 })
     }
 
-    const { data: rc } = await supabaseAdmin
-      .from('referral_codes')
-      .select('code, is_active')
-      .eq('user_id', userId)
-      .maybeSingle()
-
-    const code =
-      rc?.is_active !== false && rc?.code ? String(rc.code).trim().toUpperCase() : null
-
-    const { data: p } = await supabaseAdmin
-      .from('profiles')
-      .select('id, first_name, last_name, referral_tier_name')
-      .eq('id', userId)
-      .maybeSingle()
-
-    if (!p?.id) {
+    const data = await loadLandingCached(userId)
+    if (!data) {
       return NextResponse.json({ success: false, error: 'NOT_FOUND' }, { status: 404 })
     }
 
-    const tierLabel = String(p.referral_tier_name || '').trim()
-
-    const { count: invitedCount } = await supabaseAdmin
-      .from('referral_relations')
-      .select('id', { head: true, count: 'exact' })
-      .eq('referrer_id', userId)
-
-    const friendsInvited = Number(invitedCount || 0)
-    const directPartnersInvited = Number((await ReferralPnlService.countDirectPartnersInvited(userId)) || 0)
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        userId,
-        referralCode: code,
-        displayName: formatPrivacyDisplayName(p.first_name, p.last_name),
-        tierLabel,
-        badgeLabel: tierLabel || 'Ambassador',
-        landingUrl: buildAmbassadorLandingUrl(userId),
-        landingShortLabel: ambassadorLandingShortLabel(userId),
-        /** Регистрации по реф-ссылке (широкий охват). */
-        friendsInvited,
-        /** Активации партнёров — SSOT с tier и Stories unlock (`Stage 75.3`). */
-        directPartnersInvited,
-        /** SSOT отображаемого бренда (дублирует env для публичного клиента без лишнего запроса). */
-        siteDisplayName: getSiteDisplayName(),
-      },
-    })
+    return NextResponse.json({ success: true, data })
   } catch (e) {
     return NextResponse.json({ success: false, error: e?.message || 'FAILED' }, { status: 500 })
   }

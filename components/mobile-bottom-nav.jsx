@@ -110,8 +110,8 @@ export function MobileBottomNav() {
               href={href}
               onClick={(e) => handleNavClick(item, e)}
               className={`flex flex-col items-center justify-center flex-1 h-full rounded-xl transition-all duration-200 ${
-                active 
-                  ? 'text-[#006666] bg-[#006666]/10' 
+                active
+                  ? 'text-brand bg-brand/10 shadow-[inset_0_0_0_1px_rgba(0,102,102,0.12)]'
                   : 'text-slate-400 hover:text-slate-600'
               }`}
             >

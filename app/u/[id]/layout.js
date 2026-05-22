@@ -11,6 +11,7 @@ export async function generateMetadata({ params }) {
 
   let displayName = ''
   let notFound = false
+  let description = getUIText('stage74_4_uMetaDescription', lang)
   if (uid) {
     try {
       const base = getPublicSiteUrl()
@@ -20,7 +21,16 @@ export async function generateMetadata({ params }) {
       if (res.status === 404) notFound = true
       else if (res.ok) {
         const j = await res.json().catch(() => ({}))
-        if (j?.success && j?.data?.displayName) displayName = String(j.data.displayName).trim()
+        if (j?.success && j?.data) {
+          if (j.data.displayName) displayName = String(j.data.displayName).trim()
+          const earned = Number(j.data.totalEarnedThb)
+          if (Number.isFinite(earned) && earned > 0) {
+            const earnedLabel = earned.toLocaleString('ru-RU', { maximumFractionDigits: 0 })
+            description = getUIText('stage1143_uMetaDescriptionEarned', lang)
+              .replace('{name}', displayName || getUIText('stage74_4_uMetaNameFallback', lang))
+              .replace('{earned}', earnedLabel)
+          }
+        }
       }
     } catch {
       /* ignore */
@@ -30,7 +40,6 @@ export async function generateMetadata({ params }) {
   const nameForTitle = displayName || getUIText('stage74_4_uMetaNameFallback', lang)
   const titleRaw = getUIText('stage74_4_uMetaTitle', lang)
   const title = titleRaw.replace('{name}', nameForTitle)
-  const description = getUIText('stage74_4_uMetaDescription', lang)
 
   const metadataBase = new URL(getPublicSiteUrl())
   const ogImage = `/u/${encodeURIComponent(uid)}/opengraph-image`

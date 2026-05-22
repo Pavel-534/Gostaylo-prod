@@ -221,7 +221,7 @@ export default function PartnerLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-brand-surface flex flex-col">
       {/* Mobile Overlay */}
       {sidebarOpen && (
         <div 
@@ -289,7 +289,8 @@ export default function PartnerLayout({ children }) {
           <div className="px-4 py-3">
             <Button 
               asChild 
-              className="w-full bg-teal-600 hover:bg-teal-700 shadow-sm"
+              className="w-full shadow-sm"
+              variant="brand"
               data-testid="create-listing-btn"
             >
               <Link href="/partner/listings/new">
@@ -322,9 +323,7 @@ export default function PartnerLayout({ children }) {
                     }
                   }}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group ${
-                    isActive
-                      ? 'bg-teal-50 text-teal-700'
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    isActive ? 'gsl-nav-item-active' : 'gsl-nav-item-idle'
                   }`}
                 >
                   <span className="relative shrink-0">

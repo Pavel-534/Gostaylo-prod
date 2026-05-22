@@ -2,6 +2,7 @@
 
 import { UserPlus, Clock, BadgeCheck } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ReferralEmptyState } from '@/components/referral/ReferralEmptyState'
 
 const STAGE_META = {
   registered: {
@@ -42,7 +43,11 @@ export function ReferralActivitySection({ teamMembers = [], t }) {
       </CardHeader>
       <CardContent className="space-y-0">
         {rows.length === 0 ? (
-          <p className="text-sm text-slate-500 py-6 text-center">{t('stage91_activityEmpty')}</p>
+          <ReferralEmptyState
+            icon={UserPlus}
+            title={t('stage1147_activityEmptyTitle')}
+            description={t('stage1147_activityEmptyDesc')}
+          />
         ) : (
           <ul className="divide-y divide-slate-100">
             {rows.map((m) => {

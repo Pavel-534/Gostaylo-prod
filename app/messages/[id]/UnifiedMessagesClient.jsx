@@ -44,6 +44,8 @@ import { MessageInput } from './components/MessageInput'
 import { BookingInfoSidebar } from './components/BookingInfoSidebar'
 import { ThreadDealDetailsSheet } from './components/ThreadDealDetailsSheet'
 import { DeclineBookingDialog } from './components/DeclineBookingDialog'
+import { MessagesAuthGate } from '@/components/product/MessagesAuthGate'
+import { GuestBookingFlowHint } from '@/components/product/GuestBookingFlowHint'
 
 const PartnerChatCalendarPeek = nextDynamic(
   () => import('@/components/partner-chat-calendar-peek').then((m) => m.PartnerChatCalendarPeek),
@@ -245,23 +247,15 @@ export default function UnifiedMessagesClient({ params }) {
     ],
   )
 
-  if (authLoading) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
-      </div>
-    )
-  }
-  if (!user) {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-8">
-        <p className="text-slate-600">{getUIText('messengerThread_signInRequired', language)}</p>
-        <Button className="bg-teal-600 hover:bg-teal-700" onClick={() => openLoginModal?.('login')}>
-          {getUIText('messengerThread_signIn', language)}
-        </Button>
-      </div>
-    )
-  }
+  const authGate = (
+    <MessagesAuthGate
+      authLoading={authLoading}
+      user={user}
+      language={language}
+      openLoginModal={openLoginModal}
+    />
+  )
+  if (authLoading || !user) return authGate
 
   const listingIdForCalendar = listing?.id ?? selectedConv?.listingId ?? selectedConv?.listing_id ?? null
   const mobileHeaderIconClass =
@@ -400,16 +394,23 @@ export default function UnifiedMessagesClient({ params }) {
         <ChatThreadChrome
           hasThread={!!conversationId}
           sidebarSlot={
-            <ConversationSidebar
-              inbox={inbox}
-              onInboxTabChange={handleInboxTabChange}
-              conversationId={conversationId}
-              onSelectConversation={handleConversationSelect}
-              onArchive={(id) => void archiveConversation(id)}
-              archivedHallHref={archivedHallHref}
-              language={language}
-              isPartnerAccount={isPartnerAccount}
-            />
+            <div className="flex h-full min-h-0 flex-col">
+              {!isPartnerAccount ? (
+                <div className="shrink-0 border-b border-slate-100 px-3 py-2 hidden lg:block">
+                  <GuestBookingFlowHint t={(key) => getUIText(key, language)} />
+                </div>
+              ) : null}
+              <ConversationSidebar
+                inbox={inbox}
+                onInboxTabChange={handleInboxTabChange}
+                conversationId={conversationId}
+                onSelectConversation={handleConversationSelect}
+                onArchive={(id) => void archiveConversation(id)}
+                archivedHallHref={archivedHallHref}
+                language={language}
+                isPartnerAccount={isPartnerAccount}
+              />
+            </div>
           }
           headerSlot={headerSlot}
           actionBarSlot={actionBarSlot}

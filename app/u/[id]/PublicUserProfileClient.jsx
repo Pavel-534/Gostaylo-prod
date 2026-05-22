@@ -18,6 +18,9 @@ import { persistPendingReferralFromLanding } from '@/lib/referral/persist-pendin
 import { ReviewPhotosGallery } from '@/components/review-photos-gallery'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
+import { AmbassadorPublicLanding } from '@/components/referral/AmbassadorPublicLanding'
+import { AmbassadorLandingSkeleton } from '@/components/referral/AmbassadorLandingSkeleton'
+import { fetchReferralLandingMeta } from '@/lib/api/referral-landing-meta-client'
 import { toast } from 'sonner'
 
 const DATE_LOCALES = { ru, en: enUS, zh: zhCN, th: thLocale }
@@ -66,14 +69,10 @@ export default function PublicUserProfileClient({
     try {
       const [pr, metaRes] = await Promise.all([
         fetch(`/api/v2/profiles/${encodeURIComponent(id)}/public`),
-        fetch(`/api/v2/referral/landing-meta/${encodeURIComponent(id)}`).catch(() => null),
+        fetchReferralLandingMeta(id).catch(() => ({ ok: false, data: null })),
       ])
       const pj = await pr.json()
-      let metaPayload = null
-      if (metaRes && metaRes.ok) {
-        const mj = await metaRes.json().catch(() => ({}))
-        if (mj?.success && mj?.data) metaPayload = mj.data
-      }
+      const metaPayload = metaRes?.ok && metaRes?.data ? metaRes.data : null
 
       if (!pr.ok || !pj.success || !pj.profile) {
         setNotFound(true)
@@ -183,11 +182,7 @@ export default function PublicUserProfileClient({
       : null
 
   if (loading) {
-    return (
-      <div className="min-h-[50vh] flex items-center justify-center bg-background">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden />
-      </div>
-    )
+    return <AmbassadorLandingSkeleton />
   }
 
   if (notFound || !profile) {
@@ -215,6 +210,61 @@ export default function PublicUserProfileClient({
 
   const showMessageCta =
     currentUser?.id && String(currentUser.id) !== id ? true : !currentUser?.id
+
+  const isAmbassadorLanding = Boolean(landingMeta?.isAmbassador && landingMeta?.referralCode)
+
+  if (isAmbassadorLanding) {
+    return (
+      <div className="min-h-screen bg-[#f7f9fb]">
+        <AmbassadorPublicLanding
+          landing={landingMeta}
+          profile={profile}
+          visitorCountry={visitorCountry}
+          landingEarningPreview={landingEarningPreview}
+        />
+        {reviews.length > 0 || reviewsBusy ? (
+          <div className="mx-auto max-w-4xl px-4 pb-16 -mt-6">
+            <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h3 className="text-xl font-semibold text-slate-900">{reviewsTitle}</h3>
+              {reviewsBusy ? (
+                <p className="text-sm text-slate-500 flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t('stage74_3_reviewsLoading')}
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <Card key={review.id} className="border-slate-200">
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                            <User className="h-5 w-5 text-[#006666]" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <h4 className="font-medium truncate text-sm">
+                                {review.reviewerName || review.reviewer_name || '—'}
+                              </h4>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                                <span className="text-sm">{review.rating}</span>
+                              </div>
+                            </div>
+                            <p className="text-slate-600 text-sm">{review.comment}</p>
+                            <ReviewPhotosGallery photos={review.photos} className="mt-2" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        ) : null}
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-16">

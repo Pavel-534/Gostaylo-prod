@@ -71,7 +71,7 @@ export function PlatformHomeContent() {
   } = usePlatformHomePage()
 
   return (
-    <div className="min-h-screen bg-white font-sans antialiased">
+    <div className="min-h-screen bg-white font-sans antialiased text-slate-900">
       <HomeHeroLuxe
         language={language}
         categoryTabs={heroTabs}
@@ -98,12 +98,12 @@ export function PlatformHomeContent() {
         onCategoryTabClick={handleCategoryTabClick}
       />
 
-      <div className="border-b border-teal-100/80 bg-gradient-to-r from-teal-50/90 via-white to-teal-50/90">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-2 px-4 py-2.5 text-center text-sm text-slate-700">
+      <div className="border-b border-brand/15 bg-gradient-to-r from-brand-muted/80 via-white to-brand-muted/80">
+        <div className="gsl-page-container max-w-6xl py-2.5 flex flex-wrap items-center justify-center gap-2 text-center text-sm text-slate-700">
           <span>{getUIText('stage91_loyaltyHomeTeaser', language)}</span>
           <Link
             href="/about/loyalty"
-            className="font-semibold text-[#006666] underline decoration-teal-600/50 underline-offset-2 hover:text-[#005757]"
+            className="font-semibold text-brand underline decoration-brand/40 underline-offset-2 hover:text-brand-hover"
           >
             {getUIText('stage91_loyaltyHomeCta', language)}
           </Link>

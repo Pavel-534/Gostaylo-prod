@@ -6,7 +6,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Users, MessageCircle, Loader2 } from 'lucide-react'
+import { Users, MessageCircle, Loader2, UserPlus } from 'lucide-react'
+import { ReferralEmptyState } from '@/components/referral/ReferralEmptyState'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -68,7 +69,11 @@ export function ReferralTeamSection({ members = [], t, language = 'ru' }) {
       </CardHeader>
       <CardContent>
         {!members.length ? (
-          <p className="text-sm text-slate-600 py-2">{t('referralStage726_teamEmpty')}</p>
+          <ReferralEmptyState
+            icon={UserPlus}
+            title={t('stage1147_teamEmptyTitle')}
+            description={t('stage1147_teamEmptyDesc')}
+          />
         ) : (
           <ul className="divide-y divide-slate-100 rounded-xl border border-slate-100 overflow-hidden">
             {members.map((m) => (

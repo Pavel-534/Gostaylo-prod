@@ -199,6 +199,8 @@ Registry: `WALLET_WELCOME_EXPIRING` in `lib/services/notifications/notification-
 - **`POST /api/v2/bookings/[id]/cancel`** вызывает **`ReferralPnlService.revertReferralLedgerForBooking`** (pending → `canceled` + earned clawback).
 - **Важно:** строки referral для брони создаются в **`distribute`** только при **COMPLETED**; до завершения брони pending-строк часто **нет**. Аннулирование pending — защитный слой (в т.ч. если `distribute` прервался между `createPendingRows` и `markPendingAsEarned`).
 
+#**Подробная схема referral (ledger ↔ tank ↔ wallet ↔ вывод):** `docs/REFERRAL_FINANCIAL_FLOW.md` (Stage 114.4).
+
 ### 8.1 Clawback earned referral (Stage 114.1)
 
 Когда бронь уже **COMPLETED** и referral начислен (**`referral_ledger.status = earned`** + кошелёк **`referral_ledger:{id}`**):

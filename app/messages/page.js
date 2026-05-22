@@ -8,7 +8,9 @@
 import { useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Loader2, Home, Search } from 'lucide-react'
+import { Home, Search } from 'lucide-react'
+import { MessagesAuthGate } from '@/components/product/MessagesAuthGate'
+import { GuestBookingFlowHint } from '@/components/product/GuestBookingFlowHint'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -97,45 +99,18 @@ export default function UnifiedMessagesHallPage() {
     [inbox.inboxTab]
   )
 
-  if (authLoading) {
-    return (
-      <div className="flex min-h-0 flex-1 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
-      </div>
-    )
-  }
+  const flowT = (key) => getUIText(key, language)
 
-  if (!user) {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-slate-50">
-        <header className="shrink-0 border-b bg-white">
-          <div className="mx-auto flex max-w-4xl items-center px-3 py-2">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-teal-500 to-teal-600">
-                <span className="text-sm font-bold text-white">GS</span>
-              </div>
-              <span className="font-bold text-slate-900">{getSiteDisplayName()}</span>
-            </Link>
-          </div>
-        </header>
-        <div className="mx-auto flex max-w-md flex-1 flex-col justify-center px-4 py-8 text-center">
-          <p className="mb-4 text-slate-600">
-            {language === 'en' ? 'Sign in to see your messages' : 'Войдите, чтобы видеть диалоги'}
-          </p>
-          <Button className="bg-teal-600 hover:bg-teal-700" onClick={() => openLoginModal?.('login')}>
-            {language === 'en' ? 'Sign in' : 'Войти'}
-          </Button>
-        </div>
-      </div>
-    )
+  if (authLoading || !user) {
+    return <MessagesAuthGate authLoading={authLoading} user={user} language={language} openLoginModal={openLoginModal} />
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50">
-      <header className="shrink-0 border-b border-slate-200 bg-white">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-brand-surface">
+      <header className="shrink-0 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-2 px-3 py-2">
           <Link href="/" className="flex min-w-0 items-center gap-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-teal-500 to-teal-600">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand/80 to-brand">
               <span className="text-sm font-bold text-white">GS</span>
             </div>
             <span className="truncate font-bold text-slate-900">{getSiteDisplayName()}</span>
@@ -157,8 +132,11 @@ export default function UnifiedMessagesHallPage() {
         </div>
       </header>
 
-      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-hidden md:px-4 md:py-2">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white md:rounded-xl md:border md:border-slate-200 md:shadow-sm">
+      <div className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-hidden md:px-4 md:py-2 gap-2">
+        {!showHostingTabs ? (
+          <GuestBookingFlowHint t={flowT} className="shrink-0" />
+        ) : null}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden gsl-card md:shadow-sm">
           <ConversationList
             inbox={{ ...inbox, setInboxTab: handleInboxTabChange }}
             selectedId={null}

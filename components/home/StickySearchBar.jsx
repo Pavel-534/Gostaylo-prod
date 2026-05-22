@@ -164,7 +164,7 @@ export function StickySearchBar({
         <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-2 py-1.5 shadow-sm">
           {/* Category (display-only) */}
           <div className="hidden min-w-0 shrink-0 items-center gap-1.5 border-r border-slate-100 px-3 md:flex">
-            <Layers className="h-4 w-4 shrink-0 text-[#006666]" />
+            <Layers className="h-4 w-4 shrink-0 text-brand" />
             <span className="max-w-[140px] truncate text-sm font-medium text-slate-700">{catLabel}</span>
           </div>
 
@@ -210,7 +210,7 @@ export function StickySearchBar({
           <Button
             onClick={onSearch}
             data-testid="sticky-search-submit"
-            className="h-9 rounded-xl bg-[#006666] px-4 text-sm font-semibold text-white shadow-[0_6px_14px_rgba(0,102,102,0.28)] hover:bg-[#004c4c]"
+            className="h-9 rounded-xl bg-brand px-4 text-sm font-semibold text-white shadow-[0_6px_14px_rgba(0,102,102,0.28)] hover:bg-brand-hover"
           >
             <Search className="mr-1.5 h-4 w-4" />
             <span className="hidden sm:inline">{getUIText('findButton', language)}</span>

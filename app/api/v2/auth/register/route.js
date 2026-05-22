@@ -20,6 +20,7 @@ import ReferralGuardService, {
 } from '@/lib/services/marketing/referral-guard.service';
 import WalletService from '@/lib/services/finance/wallet.service';
 import { computeInviteTreeFields } from '@/lib/referral/referral-network.js';
+import { notifyTeammateJoined } from '@/lib/services/marketing/referral-notification.service.js';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 import {
   AUTH_PASSWORD_MIN_LENGTH,
@@ -361,6 +362,10 @@ export async function POST(request) {
         { onConflict: 'referee_id', ignoreDuplicates: false },
       );
       /** teammate_joined → см. триггер `trg_referral_relations_team_joined` (stage73_5). */
+      void notifyTeammateJoined({
+        referrerId: prevalidatedReferral.referrerId,
+        refereeId: user.id,
+      });
     } catch (e) {
       console.warn('[REGISTER] referral relation warning:', e?.message || e);
     }

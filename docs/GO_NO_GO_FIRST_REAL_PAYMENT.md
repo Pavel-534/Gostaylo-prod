@@ -2,7 +2,7 @@
 
 **Для кого:** владелец / финоператор + ответственный за деплой.  
 **Время:** ~15 минут (UI) + ~10 минут (терминал, опционально).  
-**Обновлено:** 2026-05-21 (Stage 113.1 pre-deploy)  
+**Обновлено:** 2026-05-21 (Stage 114.7 referral launch readiness)  
 **Полный чеклист:** `docs/PRE_REAL_PAYMENTS_CHECKLIST.md` · **Операции выплат:** `docs/CONCIERGE_LAUNCH_TREASURY_RUNBOOK.md`
 
 ---
@@ -34,6 +34,7 @@
 | 10 | **Юридическое** | ОсОО, оферта, партнёрские договоры — §B–D в `PRE_REAL_PAYMENTS_CHECKLIST.md` |
 | 11 | **Booking IDOR** | `POST /api/v2/bookings` только с сессией (`booking-create-guard`) |
 | 12 | **Prod perimeter** | На prod **404**: `/api/v2/test/notifications*`, `/api/db/migrate`, `/api/db/seed` |
+| 13 | **Referral program** | FinTech: accounting KPI зелёные; очередь `withdrawable_referral` обрабатывается **вручную** (без автобанка) |
 
 **Решение:** можно принимать **первый реальный платёж** гостя (MIR/CARD) при включённом Concierge и ручном контроле исходящих.
 
@@ -85,6 +86,26 @@
 | Checkout | `useCheckout*` hooks |
 | Partner import / reputation | `partner-listing-client`, `usePartnerReputationHealthQuery` |
 | Admin marketing cockpit | `admin-settings-api-client` + `marketing-api-client` |
+
+## Referral program — Go / No-Go (Stage 114.7)
+
+**SSOT:** `docs/REFERRAL_ACCOUNTING.md` · **FinTech:** `/admin/settings/finances` → Referral Liability · **Runbook:** `docs/CONCIERGE_LAUNCH_TREASURY_RUNBOOK.md` §16.
+
+| # | Проверка | Go |
+|---|----------|-----|
+| R1 | Smoke 15/15 включает referral wallet path | `npm run smoke:full-financial` |
+| R2 | FinTech accounting + **monthly spend bar** (warn 80% / hard 100%) | Жёлтая полоса до лимита, красная при превышении |
+| R3 | Очередь withdrawal: поиск, сортировка, approve/reject (в т.ч. filtered) | `ReferralPayoutWorkflowPanel` |
+| R4 | TG FINANCE: `REFERRAL_ADMIN_ALERT` (large / burst / monthly / approaching) | Опционально на staging |
+| R5 | UX: `/profile/referral`, `/u/[id]` — skeleton, empty states, tooltips уровней/медалей | Ручной smoke mobile |
+| R6 | **Нет автовывода** referral на банк | Только `withdrawable_referral` → админ |
+| R7 | Ежедневный контроль по runbook §16 | FinTech + payouts 5–10 мин |
+
+**No-Go referral:** monthly spend **hard** alert без ревью; **Reject filtered** без проверки email; массовый approve без сверки суммы; promo tank &lt; прогноза host activation без topup.
+
+**Лимиты:** `referral_admin_monthly_spend_alert_thb` (150k), `referral_admin_monthly_spend_warn_percent` (80), large earn 10k, hourly burst 25k — §6.1 `REFERRAL_ACCOUNTING.md`.
+
+---
 
 ### Backlog (не блокирует launch)
 

@@ -197,7 +197,7 @@ export function TrustBar({ language = 'ru', locationContext = 'all' }) {
                 className="flex flex-1 items-center justify-center gap-3 px-6 py-4 sm:gap-4 sm:px-10 sm:py-5"
               >
                 <div className="hidden shrink-0 items-center justify-center rounded-xl bg-teal-100/80 p-2 sm:flex">
-                  <Icon className="h-4 w-4 text-teal-600" aria-hidden />
+                  <Icon className="h-4 w-4 text-brand" aria-hidden />
                 </div>
                 <div className="text-center sm:text-left">
                   <div className="flex items-baseline gap-0.5">
@@ -221,7 +221,7 @@ export function TrustBar({ language = 'ru', locationContext = 'all' }) {
                   <p className="mt-0.5 text-xs font-medium text-slate-500 sm:text-sm">
                     {item.label}
                     {item.sublabel && (
-                      <span className="ml-1 text-teal-600 opacity-70">· {item.sublabel}</span>
+                      <span className="ml-1 text-brand opacity-70">· {item.sublabel}</span>
                     )}
                   </p>
                 </div>

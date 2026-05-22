@@ -39,7 +39,7 @@ export function HowItWorks({ language = 'ru' }) {
 
         {/* Header */}
         <div className="mb-14 text-center">
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-teal-600">
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-brand">
             {getUIText('howItWorksEyebrow', language)}
           </p>
           <h2 className="font-serif text-[34px] font-semibold leading-tight tracking-[-0.01em] text-slate-900 sm:text-[44px]">
@@ -65,9 +65,9 @@ export function HowItWorks({ language = 'ru' }) {
               >
                 {/* Circle with icon */}
                 <div className="relative mb-6 flex h-14 w-14 items-center justify-center rounded-full border-2 border-teal-200 bg-white shadow-sm transition-all duration-300 group-hover:border-teal-400 group-hover:shadow-[0_8px_24px_rgba(0,102,102,0.16)]">
-                  <Icon className="h-6 w-6 text-teal-600 transition-colors group-hover:text-teal-700" />
+                  <Icon className="h-6 w-6 text-brand transition-colors group-hover:text-brand-hover" />
                   {/* Step number — editorial accent */}
-                  <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-teal-600 text-[10px] font-black leading-none text-white">
+                  <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand text-[10px] font-black leading-none text-white">
                     {idx + 1}
                   </span>
                 </div>

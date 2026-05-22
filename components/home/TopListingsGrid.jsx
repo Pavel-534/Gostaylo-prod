@@ -62,13 +62,13 @@ export function TopListingsGrid({
             <p className="text-slate-600 text-base min-h-[1.5rem]">
               {listings.length} {language === 'ru' ? 'объектов' : 'properties'}
               {dateRange.from && dateRange.to && (
-                <span className="text-[#006666] ml-2">
+                <span className="text-brand ml-2">
                   • {formatDisplayDate(dateRange.from)} — {formatDisplayDate(dateRange.to)}
                 </span>
               )}
             </p>
           </div>
-          {listingsLoading && <Loader2 className="h-5 w-5 animate-spin text-[#006666] shrink-0" aria-hidden />}
+          {listingsLoading && <Loader2 className="h-5 w-5 animate-spin text-brand shrink-0" aria-hidden />}
         </div>
 
         {aiGridPending && listingsLoading ? (
@@ -121,7 +121,7 @@ export function TopListingsGrid({
 
               return (
                 <Link key={listing.id} href={listingUrl}>
-                  <Card className="group h-full flex flex-col overflow-hidden rounded-2xl transition-all duration-300 border border-slate-200 hover:border-[#006666] hover:-translate-y-1 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.05),0_2px_6px_rgba(0,102,102,0.06)] hover:shadow-[0_30px_64px_rgba(0,102,102,0.16),0_12px_28px_rgba(15,23,42,0.12)]">
+                  <Card className="group h-full flex flex-col overflow-hidden rounded-2xl transition-all duration-300 border border-slate-200 hover:border-brand hover:-translate-y-1 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.05),0_2px_6px_rgba(0,102,102,0.06)] hover:shadow-[0_30px_64px_rgba(0,102,102,0.16),0_12px_28px_rgba(15,23,42,0.12)]">
                     <div className="relative h-44 sm:h-48 overflow-hidden flex-shrink-0">
                       <Image
                         src={mediaFallback[`lst-${listing.id}`] ? '/placeholder.svg' : thumbSrc}
@@ -163,7 +163,7 @@ export function TopListingsGrid({
                         </span>
                       )}
                       {Number(listing?.rating) > 0 && (
-                        <Badge className="absolute top-2 right-2 bg-[#006666]">⭐ {listing.rating}</Badge>
+                        <Badge className="absolute top-2 right-2 bg-brand">⭐ {listing.rating}</Badge>
                       )}
                     </div>
                     <div className="flex flex-col flex-grow p-5">
@@ -202,7 +202,7 @@ export function TopListingsGrid({
               type="button"
               variant="outline"
               onClick={onViewAll}
-              className="rounded-2xl border-[#006666] text-[#006666] hover:bg-[#006666]/10"
+              className="rounded-2xl border-brand text-brand hover:bg-brand/10"
             >
               {language === 'ru' ? 'Смотреть все' : 'View all'} →
             </Button>

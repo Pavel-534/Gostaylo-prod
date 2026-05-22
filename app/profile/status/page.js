@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useReferralMeQuery } from '@/lib/hooks/use-referral-me'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, Loader2 } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import { ProfileHubNav } from '@/components/product/ProfileHubNav'
+import { ProductPageShell } from '@/components/product/ProductPageShell'
+import { LoadingPageShell } from '@/components/product/LoadingPageShell'
+import { PageSectionHeader } from '@/components/product/PageSectionHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,6 +22,8 @@ import { ReferralYourStatusCard } from '@/components/referral/ReferralYourStatus
 import { ReferralActivityFeed } from '@/components/referral/ReferralActivityFeed'
 import { ReferralMonthlyLeaderboard } from '@/components/referral/ReferralMonthlyLeaderboard'
 import { ReferralTeamSection } from '@/components/referral/ReferralTeamSection'
+import { ReferralWithdrawableStrip } from '@/components/referral/ReferralWithdrawableStrip'
+import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
 
 function formatThb(value, locale = 'ru-RU') {
   const n = Number(value)
@@ -38,7 +44,14 @@ export default function ProfileStatusPage() {
     data,
     isLoading: referralLoading,
     isError: referralError,
-  } = useReferralMeQuery({ enabled: !authLoading && isAuthenticated })
+  } = useReferralMeQuery({
+    enabled: !authLoading && isAuthenticated,
+    includeTeam: true,
+    teamLimit: 40,
+  })
+  const { data: walletData, isLoading: walletLoading } = useWalletMeQuery({
+    enabled: !authLoading && isAuthenticated,
+  })
   const [monthlyGoal, setMonthlyGoal] = useState('10000')
   const [reportTimezone, setReportTimezone] = useState('Asia/Bangkok')
 
@@ -96,11 +109,7 @@ export default function ProfileStatusPage() {
   }
 
   if (authLoading || referralLoading) {
-    return (
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <Card><CardContent className="py-12 flex justify-center text-slate-600"><Loader2 className="h-5 w-5 mr-2 animate-spin" />{t('referralStage726_load')}</CardContent></Card>
-      </div>
-    )
+    return <LoadingPageShell label={t('referralStage726_load')} />
   }
 
   const brand = String(data?.brandName || '').trim() || 'Platform'
@@ -108,13 +117,11 @@ export default function ProfileStatusPage() {
   const turboMultiplier = Number(data?.turbo?.multiplier || data?.ambassador?.turboMultiplier || 1)
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb]">
-      <div className="mx-auto max-w-6xl px-4 py-10 space-y-10">
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white/80 p-2 backdrop-blur-sm shadow-sm">
-          <Button type="button" variant="ghost" onClick={() => router.push('/profile/referral')}>Пригласить</Button>
-          <Button type="button" variant="ghost" onClick={() => router.push('/profile/wallet')}>Кошелек</Button>
-          <Button type="button" className="bg-[#006666] hover:bg-[#005757]" onClick={() => router.push('/profile/status')}>Мой статус</Button>
-        </div>
+    <ProductPageShell containerClassName="space-y-8 sm:space-y-10">
+      <ProfileHubNav t={t} />
+      <PageSectionHeader title={t('stage1143_tabNavStatus')} subtitle={t('stage1143_settingsSubtitle')} />
+
+      <ReferralWithdrawableStrip walletData={walletData} t={t} locale={locale} loading={walletLoading} />
 
         <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
           <div className="md:col-span-8">
@@ -185,13 +192,12 @@ export default function ProfileStatusPage() {
                   </Select>
                 </div>
               </div>
-              <Button type="button" className="bg-[#006666] hover:bg-[#005757]" onClick={() => void saveAdvancedSettings()} disabled={profileSaving}>
+              <Button type="button" variant="brand" onClick={() => void saveAdvancedSettings()} disabled={profileSaving}>
                 {profileSaving ? 'Сохраняем…' : 'Сохранить настройки'}
               </Button>
             </AccordionContent>
           </AccordionItem>
         </Accordion>
-      </div>
-    </div>
+    </ProductPageShell>
   )
 }

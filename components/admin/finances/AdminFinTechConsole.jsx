@@ -42,6 +42,7 @@ import { FinTechTreasuryMonitoringPanel } from '@/components/admin/finances/FinT
 import { MovementsJournal } from '@/components/admin/finances/MovementsJournal'
 import { FinTechExportsPanel } from '@/components/admin/finances/FinTechExportsPanel'
 import { FiscalSandboxReceiptDialog } from '@/components/admin/finances/FiscalSandboxReceiptDialog'
+import { ReferralLiabilityPanel } from '@/components/admin/finances/ReferralLiabilityPanel'
 
 /**
  * Stage 109.0 — FinTech-пульт: композиция панелей (логика в useAdminFinTechConsole).
@@ -50,7 +51,7 @@ export function AdminFinTechConsole() {
   const c = useAdminFinTechConsole()
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-brand-surface to-white">
       <FinTechConsoleHeader
         dash={c.dash}
         statCards={c.statCards}
@@ -87,6 +88,7 @@ export function AdminFinTechConsole() {
         </Card>
 
         <LaunchReadinessCard readiness={c.productionReadiness} onRefresh={c.load} />
+        <ReferralLiabilityPanel toast={c.toast} />
         <FinTechCronHealthPanel cronHealth={c.cronHealth} ownerMode={c.ownerMode} loading={c.loading} />
         <FinTechTreasuryHeroDashboard
           dash={c.dash}

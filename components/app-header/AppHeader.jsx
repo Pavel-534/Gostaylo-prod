@@ -140,7 +140,7 @@ export function AppHeader({
       data-testid={`app-header-${variant}`}
       className={cn(
         'fixed top-0 left-0 right-0 z-[100] transition-all duration-300',
-        isPublic && 'border-b border-slate-200/80 backdrop-blur-md shadow-sm shadow-[#006666]/10',
+        isPublic && 'border-b border-slate-200/80 backdrop-blur-md shadow-sm shadow-brand/10',
         isWorkspace && 'border-b border-slate-200 bg-white',
       )}
       style={
@@ -176,7 +176,7 @@ export function AppHeader({
               data-testid="app-header-logo"
               className={cn(
                 'group flex-shrink-0 rounded-2xl px-2.5 py-1.5 transition-all',
-                isPublic && 'border border-white/70 bg-white/75 shadow-[0_10px_26px_rgba(0,102,102,0.1)] backdrop-blur-md hover:border-[#006666]/35 hover:shadow-[0_14px_30px_rgba(0,102,102,0.16)]',
+                isPublic && 'border border-white/70 bg-white/75 shadow-[0_10px_26px_rgba(0,102,102,0.1)] backdrop-blur-md hover:border-brand/35 hover:shadow-[0_14px_30px_rgba(0,102,102,0.16)]',
                 isWorkspace && 'hover:bg-slate-50',
               )}
             >
@@ -200,7 +200,7 @@ export function AppHeader({
                     className={cn(
                       'hidden sm:inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em]',
                       pathname?.startsWith('/admin') && 'bg-indigo-50 text-indigo-700',
-                      pathname?.startsWith('/partner') && 'bg-teal-50 text-teal-700',
+                      pathname?.startsWith('/partner') && 'bg-brand/10 text-brand',
                       (!pathname?.startsWith('/admin') && !pathname?.startsWith('/partner')) && 'bg-slate-100 text-slate-600',
                     )}
                   >
@@ -239,7 +239,7 @@ export function AppHeader({
                     data-testid={`app-header-nav-${item.key}`}
                     className={cn(
                       'text-sm font-medium transition-colors pb-1',
-                      active ? 'text-[#006666] border-b-2 border-[#006666]' : 'text-slate-600 hover:text-[#006666]',
+                      active ? 'text-brand border-b-2 border-brand' : 'text-slate-600 hover:text-brand',
                     )}
                   >
                     {getUIText(item.key, language)}
@@ -269,7 +269,7 @@ export function AppHeader({
                 href="/"
                 aria-label={getUIText('partnerLayout_backToSiteAria', language) || 'Home'}
                 data-testid="app-header-home-link"
-                className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-[#006666]"
+                className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-brand"
               >
                 <HomeIcon className="h-4 w-4" />
               </Link>

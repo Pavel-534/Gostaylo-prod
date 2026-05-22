@@ -1,8 +1,14 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { Loader2, Wallet, TrendingUp, Clock3 } from 'lucide-react'
+import { Wallet, TrendingUp, Clock3 } from 'lucide-react'
+import { ProfileHubNav } from '@/components/product/ProfileHubNav'
+import { ProductPageShell } from '@/components/product/ProductPageShell'
+import { LoadingPageShell } from '@/components/product/LoadingPageShell'
+import { PageSectionHeader } from '@/components/product/PageSectionHeader'
+import { GSL_CARD } from '@/lib/theme/product-ui'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -12,8 +18,10 @@ import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { toast } from 'sonner'
-import { useWalletMeQuery } from '@/lib/hooks/use-wallet-me'
-import { REFERRAL_DISPLAY_CURRENCY_CODES, normalizeReferralDisplayCurrency } from '@/lib/finance/referral-display-currency'
+import { useWalletMeQuery, invalidateWalletMeQuery } from '@/lib/hooks/use-wallet-me'
+import { useReferralMeQuery } from '@/lib/hooks/use-referral-me'
+import { normalizeReferralDisplayCurrency } from '@/lib/finance/referral-display-currency'
+import { REFERRAL_DISPLAY_CURRENCY_CODES } from '@/lib/finance/referral-display-currency'
 
 function formatThb(value, locale = 'ru-RU') {
   const n = Number(value)
@@ -27,9 +35,15 @@ export default function ProfileWalletPage() {
   const t = useMemo(() => (key, ctx) => getUIText(key, language, ctx), [language])
   const locale = language === 'en' ? 'en-US' : language === 'th' ? 'th-TH' : language === 'zh' ? 'zh-CN' : 'ru-RU'
   const { isAuthenticated, loading: authLoading } = useAuth()
-  const { data: walletData } = useWalletMeQuery({ enabled: !authLoading && isAuthenticated })
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
+  const { data: walletData, isLoading: walletLoading, refetch: refetchWallet } = useWalletMeQuery({
+    enabled: !authLoading && isAuthenticated,
+  })
+  const { data: referralData, isLoading: referralLoading } = useReferralMeQuery({
+    enabled: !authLoading && isAuthenticated,
+  })
   const [displayCurrency, setDisplayCurrency] = useState('THB')
+  const [withdrawRequesting, setWithdrawRequesting] = useState(false)
 
   useEffect(() => {
     if (authLoading) return
@@ -37,23 +51,9 @@ export default function ProfileWalletPage() {
       router.replace('/profile?login=true')
       return
     }
-    let cancelled = false
-    ;(async () => {
-      try {
-        const refRes = await fetch('/api/v2/referral/me', { credentials: 'include', cache: 'no-store' })
-        const json = await refRes.json().catch(() => ({}))
-        if (!cancelled && refRes.ok && json?.success) {
-          const reportPrefs = json?.data?.referralReport || {}
-          setDisplayCurrency(normalizeReferralDisplayCurrency(reportPrefs?.displayCurrency || 'THB'))
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [authLoading, isAuthenticated, router])
+    const reportPrefs = referralData?.referralReport || {}
+    setDisplayCurrency(normalizeReferralDisplayCurrency(reportPrefs?.displayCurrency || 'THB'))
+  }, [authLoading, isAuthenticated, referralData, router])
 
   async function patchProfile(payload) {
     const res = await fetch('/api/v2/profile/me', {
@@ -85,12 +85,30 @@ export default function ProfileWalletPage() {
     return 'Операция'
   }
 
-  if (authLoading || loading) {
-    return (
-      <div className="mx-auto max-w-6xl px-4 py-10">
-        <Card><CardContent className="py-12 flex justify-center text-slate-600"><Loader2 className="h-5 w-5 mr-2 animate-spin" />{t('referralStage726_load')}</CardContent></Card>
-      </div>
-    )
+  async function requestReferralWithdrawal() {
+    setWithdrawRequesting(true)
+    try {
+      const res = await fetch('/api/v2/wallet/referral-withdrawal-request', {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.success) {
+        const blockers = Array.isArray(json?.blockers) ? json.blockers.join(', ') : ''
+        throw new Error(json?.error || blockers || 'REFERRAL_WITHDRAWAL_REQUEST_FAILED')
+      }
+      toast.success(t('stage1143_oneClickSuccess'))
+      await invalidateWalletMeQuery(queryClient)
+      await refetchWallet()
+    } catch (e) {
+      toast.error(e?.message || 'Не удалось отправить заявку')
+    } finally {
+      setWithdrawRequesting(false)
+    }
+  }
+
+  if (authLoading || walletLoading || referralLoading) {
+    return <LoadingPageShell label={t('referralStage726_load')} />
   }
 
   const payout = walletData?.payout || null
@@ -107,20 +125,19 @@ export default function ProfileWalletPage() {
           : 'Готов к выводу'
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb]">
-      <div className="mx-auto max-w-6xl px-4 py-10 space-y-10">
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white/80 p-2 backdrop-blur-sm shadow-sm">
-          <Button type="button" variant="ghost" onClick={() => router.push('/profile/referral')}>Пригласить</Button>
-          <Button type="button" className="bg-[#006666] hover:bg-[#005757]" onClick={() => router.push('/profile/wallet')}>Кошелек</Button>
-          <Button type="button" variant="ghost" onClick={() => router.push('/profile/status')}>Мой статус</Button>
-        </div>
+    <ProductPageShell containerClassName="space-y-8 sm:space-y-10">
+      <ProfileHubNav t={t} />
+      <PageSectionHeader
+        title={t('stage1143_tabNavWallet')}
+        subtitle={t('referralStage726_unifiedBalanceSubtitle')}
+      />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
+          <Card className={`lg:col-span-2 ${GSL_CARD} gsl-card-hover`}>
             <CardHeader className="pb-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <CardTitle className="flex items-center gap-2"><Wallet className="h-5 w-5 text-[#006666]" />Ваш баланс</CardTitle>
+                  <CardTitle className="flex items-center gap-2"><Wallet className="h-5 w-5 text-brand" />Ваш баланс</CardTitle>
                   <CardDescription>Кошелек и контроль выплат в одном экране.</CardDescription>
                 </div>
                 <div className="w-full sm:w-[220px] space-y-1">
@@ -138,15 +155,35 @@ export default function ProfileWalletPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-xl border border-slate-200 p-4 bg-slate-50"><p className="text-xs text-slate-500 uppercase">Всего</p><p className="text-3xl font-black text-[#006666]">{formatThb(balance.balance_thb, locale)} THB</p></div>
-                <div className="rounded-xl border border-slate-200 p-4 bg-slate-50"><p className="text-xs text-slate-500 uppercase">Доступно к выводу</p><p className="text-3xl font-black text-[#006666]">{formatThb(balance.withdrawable_balance_thb, locale)} THB</p></div>
+                <div className="rounded-xl border border-slate-200 p-4 bg-slate-50"><p className="text-xs text-slate-500 uppercase">Всего</p><p className="text-3xl font-black text-brand">{formatThb(balance.balance_thb, locale)} THB</p></div>
+                <div className="rounded-xl border border-slate-200 p-4 bg-slate-50"><p className="text-xs text-slate-500 uppercase">Доступно к выводу</p><p className="text-3xl font-black text-brand">{formatThb(balance.withdrawable_balance_thb, locale)} THB</p></div>
                 <div className="rounded-xl border border-slate-200 p-4 bg-slate-50"><p className="text-xs text-slate-500 uppercase">Статус выплат</p><p className={`text-sm font-medium ${payout?.payoutEligible ? 'text-emerald-700' : 'text-slate-700'}`}>{payout?.payoutEligible ? 'Доступен вывод' : payoutReason}</p></div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-xl border border-slate-200 p-4"><div className="flex gap-2 items-center"><TrendingUp className="h-4 w-4 text-[#006666]" /><p className="font-medium text-sm">Финансовая аналитика</p></div><p className="text-xs text-slate-500 mt-2">Вывод из доступного баланса после всех проверок.</p></div>
-                <div className="rounded-xl border border-slate-200 p-4"><div className="flex gap-2 items-center"><Clock3 className="h-4 w-4 text-[#006666]" /><p className="font-medium text-sm">Порог вывода</p></div><p className="text-xs text-slate-500 mt-2">{formatThb(payout?.minPayoutThb ?? walletData?.policy?.walletMinPayoutThb ?? 1000, locale)} THB</p></div>
+                <div className="rounded-xl border border-slate-200 p-4"><div className="flex gap-2 items-center"><TrendingUp className="h-4 w-4 text-brand" /><p className="font-medium text-sm">Финансовая аналитика</p></div><p className="text-xs text-slate-500 mt-2">Вывод из доступного баланса после всех проверок.</p></div>
+                <div className="rounded-xl border border-slate-200 p-4"><div className="flex gap-2 items-center"><Clock3 className="h-4 w-4 text-brand" /><p className="font-medium text-sm">Порог вывода</p></div><p className="text-xs text-slate-500 mt-2">{formatThb(payout?.minPayoutThb ?? walletData?.policy?.walletMinPayoutThb ?? 1000, locale)} THB</p></div>
               </div>
-              <Button className="bg-[#006666] hover:bg-[#005757]" onClick={() => router.push('/partner/finances')}>Перейти к выводу средств</Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="brand"
+                  disabled={!payout?.payoutEligible || withdrawRequesting || referralWithdrawRequested}
+                  onClick={() => void requestReferralWithdrawal()}
+                >
+                  {referralWithdrawRequested
+                    ? 'Заявка на вывод реферальных отправлена'
+                    : withdrawRequesting
+                      ? 'Отправка…'
+                      : t('stage1143_oneClickWithdraw')}
+                </Button>
+                <Button variant="outline" onClick={() => router.push('/partner/finances')}>
+                  Партнёрский вывод
+                </Button>
+              </div>
+              {referralWithdrawRequested ? (
+                <p className="text-xs text-emerald-700">
+                  Статус: withdrawable_referral — оператор обработает выплату в админ-пульте.
+                </p>
+              ) : null}
               <Accordion type="single" collapsible className="w-full border rounded-xl px-3 bg-white">
                 <AccordionItem value="rules" className="border-b-0">
                   <AccordionTrigger>Подробнее о начислениях</AccordionTrigger>
@@ -160,7 +197,7 @@ export default function ProfileWalletPage() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
+          <Card className={`${GSL_CARD} gsl-card-hover`}>
             <CardHeader><CardTitle className="text-base">Сводка</CardTitle></CardHeader>
             <CardContent className="text-sm text-slate-600 space-y-2">
               <p>Визуал и метрики оформлены в wallet-first стиле из макета 2code.</p>
@@ -169,7 +206,7 @@ export default function ProfileWalletPage() {
           </Card>
         </div>
 
-        <Card className="rounded-xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:shadow-md">
+        <Card className={`${GSL_CARD} gsl-card-hover`}>
           <CardHeader><CardTitle className="text-base">Последние операции</CardTitle></CardHeader>
           <CardContent>
             {!recentTransactions.length ? (
@@ -188,7 +225,7 @@ export default function ProfileWalletPage() {
                     {recentTransactions.slice(0, 12).map((tx) => (
                       <tr key={tx.id} className="border-b last:border-0">
                         <td className="py-2 pr-3">{txTypeLabel(tx.tx_type)}</td>
-                        <td className="py-2 pr-3 tabular-nums font-medium text-[#006666]">
+                        <td className="py-2 pr-3 tabular-nums font-medium text-brand">
                           {Number(tx.amount_thb || 0) >= 0 ? '+' : ''}
                           {formatThb(tx.amount_thb, locale)} THB
                         </td>
@@ -201,7 +238,6 @@ export default function ProfileWalletPage() {
             )}
           </CardContent>
         </Card>
-      </div>
-    </div>
+    </ProductPageShell>
   )
 }

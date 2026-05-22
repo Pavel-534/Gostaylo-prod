@@ -206,7 +206,7 @@ function ConversationRow({
       className={cn(
         'p-3 border-b border-slate-100 cursor-pointer transition-colors select-none',
         isActive
-          ? 'bg-teal-50 border-l-4 border-l-teal-600'
+          ? 'bg-brand/10 border-l-4 border-l-brand'
           : 'hover:bg-slate-50 border-l-4 border-l-transparent',
       )}
     >
@@ -270,7 +270,7 @@ function ConversationRow({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-slate-400 hover:text-teal-600"
+                  className="h-7 w-7 text-slate-400 hover:text-brand"
                   title={unarchiveLabel || (lang === 'ru' ? 'Вернуть в инбокс' : 'Restore to inbox')}
                   onClick={(e) => {
                     e.stopPropagation()
@@ -301,11 +301,11 @@ function ConversationRow({
           <DealPreviewLine conv={conv} lang={lang} />
 
           {showListingName && conv.listing?.title && (
-            <p className="text-xs text-teal-600 truncate mb-0.5 font-medium">{conv.listing.title}</p>
+            <p className="text-xs text-brand truncate mb-0.5 font-medium">{conv.listing.title}</p>
           )}
 
           {typingName ? (
-            <p className="text-xs text-teal-600 truncate animate-pulse">
+            <p className="text-xs text-brand truncate animate-pulse">
               {lang === 'ru' ? `${typingName} печатает…` : `${typingName} is typing…`}
             </p>
           ) : (
@@ -449,15 +449,15 @@ export function ConversationListPanel({
     <div className={cn('flex min-h-0 h-full flex-col', className)}>
       <div className="flex shrink-0 flex-col border-b border-slate-200 bg-white">
         {catalogHref ? (
-          <div className="flex items-center gap-2 border-b border-slate-100 bg-teal-50/60 px-4 py-1.5">
+          <div className="flex items-center gap-2 border-b border-slate-100 bg-brand/10 px-4 py-1.5">
             <Link
               href={catalogHref}
               className="inline-flex min-w-0 flex-1 items-center gap-2 rounded-lg py-0.5 text-sm font-semibold text-teal-800 hover:text-teal-900"
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-600 text-xs font-bold text-white">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand text-xs font-bold text-white">
                 G
               </span>
-              <House className="h-4 w-4 shrink-0 text-teal-700" aria-hidden />
+              <House className="h-4 w-4 shrink-0 text-brand-hover" aria-hidden />
               <span className="truncate">{isRu ? 'Каталог и поиск' : 'Browse & search'}</span>
             </Link>
           </div>
@@ -475,7 +475,7 @@ export function ConversationListPanel({
           {headerActionHref ? (
             <Link
               href={headerActionHref}
-              className="shrink-0 text-sm font-medium text-teal-700 hover:text-teal-800"
+              className="shrink-0 text-sm font-medium text-brand-hover hover:text-brand-hover"
             >
               {headerActionLabel || (isRu ? 'Архив' : 'Archive')}
             </Link>

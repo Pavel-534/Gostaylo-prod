@@ -2,9 +2,11 @@
 
 import { Skeleton } from '@/components/ui/skeleton'
 
+import { GSL_SHIMMER } from '@/lib/theme/product-ui'
+
 export function ListingPageSkeleton() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className={`min-h-screen bg-white ${GSL_SHIMMER}`} aria-busy aria-label="Loading">
       <div className="border-b border-slate-200 px-4 py-4 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <Skeleton className="h-10 w-24" />

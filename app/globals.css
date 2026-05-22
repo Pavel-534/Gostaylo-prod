@@ -158,6 +158,54 @@ code {
   }
 }
 
+/* Stage 115.0 — Product UI cohesion (SSOT: lib/theme/product-ui.js) */
+@layer components {
+  .gsl-page {
+    @apply min-h-screen bg-[#f7f9fb] text-slate-900;
+  }
+  .gsl-page-container {
+    @apply mx-auto max-w-6xl px-3 sm:px-4 py-6 sm:py-10;
+  }
+  .gsl-card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+  }
+  .gsl-card-hover {
+    @apply transition-shadow duration-200 hover:shadow-md;
+  }
+  .gsl-hub-nav {
+    @apply flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white/80 p-2 backdrop-blur-sm shadow-sm;
+  }
+  .gsl-hub-nav-active {
+    @apply bg-[#006666] text-white hover:bg-[#005757] shadow-[0_4px_12px_rgba(0,102,102,0.2)];
+  }
+  .gsl-hub-nav-idle {
+    @apply text-slate-700 hover:bg-slate-50;
+  }
+  .gsl-nav-item-active {
+    @apply bg-teal-50 text-[#006666] font-semibold;
+  }
+  .gsl-nav-item-idle {
+    @apply text-slate-600 hover:bg-slate-50 hover:text-slate-900;
+  }
+  .gsl-btn-brand {
+    @apply bg-[#006666] text-white hover:bg-[#005757] shadow-[0_6px_18px_rgba(0,102,102,0.22)];
+  }
+  .gsl-shimmer {
+    @apply relative overflow-hidden;
+  }
+  .gsl-shimmer::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.55),
+      transparent
+    );
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+}
+
 /* Premium Shimmer Effect for Skeletons */
 @keyframes shimmer {
   100% {

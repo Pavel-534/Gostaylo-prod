@@ -54,7 +54,7 @@ export function MobileSearchFAB({ onClick, language = 'ru', hasActiveFilters = f
       data-testid="mobile-search-fab"
       className={cn(
         'fixed bottom-[80px] left-1/2 z-30 -translate-x-1/2',
-        'flex items-center gap-2 rounded-full bg-[#006666] px-5 py-3',
+        'flex items-center gap-2 rounded-full bg-brand px-5 py-3',
         'text-sm font-semibold text-white',
         'shadow-[0_10px_30px_rgba(0,102,102,0.45)]',
         'transition-all duration-300 ease-out will-change-transform',
@@ -213,7 +213,7 @@ export function MobileSearchBottomSheet({
                     className={cn(
                       'shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-150 active:scale-95',
                       active
-                        ? 'border-[#006666] bg-[#006666] text-white shadow-[0_4px_12px_rgba(0,102,102,0.28)]'
+                        ? 'border-brand bg-brand text-white shadow-[0_4px_12px_rgba(0,102,102,0.28)]'
                         : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-teal-300 hover:bg-white',
                       tab.isPreview === true && 'opacity-50',
                     )}
@@ -369,7 +369,7 @@ export function MobileSearchBottomSheet({
             type="button"
             onClick={handleSearch}
             data-testid="mobile-search-submit"
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#006666] py-4 text-base font-bold text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)] transition-all hover:bg-[#005555] active:scale-[0.98]"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand py-4 text-base font-bold text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)] transition-all hover:bg-brand-hover active:scale-[0.98]"
           >
             <Search className="h-5 w-5" />
             {getUIText('findButton', language)}

@@ -88,7 +88,7 @@ export function EmptyState({
         <div className="absolute h-36 w-36 rounded-full bg-teal-50/80" />
         <div className="absolute h-28 w-28 rounded-full bg-teal-100/60" />
         <div className="absolute h-20 w-20 rounded-full bg-white shadow-[0_10px_28px_rgba(0,102,102,0.18)]" />
-        <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-[#006666] shadow-[0_8px_20px_rgba(0,102,102,0.38)]">
+        <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-brand shadow-[0_8px_20px_rgba(0,102,102,0.38)]">
           <Search className="h-6 w-6 text-white" strokeWidth={2.5} />
         </div>
         {/* Декоративные "плавающие" маркеры */}
@@ -111,7 +111,8 @@ export function EmptyState({
         <Button
           onClick={onCtaClick}
           data-testid="empty-state-cta"
-          className="rounded-2xl bg-[#006666] text-white hover:bg-[#005555] shadow-[0_8px_24px_rgba(0,102,102,0.28)] px-6 py-5 text-sm font-semibold"
+          className="rounded-2xl px-6 py-5 text-sm font-semibold"
+          variant="brand"
         >
           {buttonLabel} →
         </Button>
@@ -119,7 +120,8 @@ export function EmptyState({
         <Button
           asChild
           data-testid="empty-state-cta"
-          className="rounded-2xl bg-[#006666] text-white hover:bg-[#005555] shadow-[0_8px_24px_rgba(0,102,102,0.28)] px-6 py-5 text-sm font-semibold"
+          className="rounded-2xl px-6 py-5 text-sm font-semibold"
+          variant="brand"
         >
           <Link href={ctaHref}>{buttonLabel} →</Link>
         </Button>

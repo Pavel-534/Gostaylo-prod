@@ -18,10 +18,10 @@ import { fetchSearchLocations } from '@/lib/api/catalog-public-client'
 /**
  * Базовый стиль 60-px поля (Apple/Airbnb-уровень).
  * Все 4 элемента ряда (Where / Dates / Guests / CTA) используют ту же высоту, тот же
- * `rounded-2xl`, deлiкатный `slate-200` бордер и одинаковый focus-ring (Teal `#006666`).
+ * `rounded-2xl`, deлiкатный `slate-200` бордер и одинаковый focus-ring (Teal `brand`).
  */
 const FIELD_BASE_CLASS =
-  'flex h-[60px] w-full min-h-[60px] max-h-[60px] items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-0 text-left text-base font-medium leading-none text-slate-900 transition-all duration-200 hover:border-slate-300 hover:bg-white focus-within:border-[#006666] focus-within:shadow-[0_0_0_3px_rgba(0,102,102,0.12)] focus-visible:border-[#006666] focus-visible:shadow-[0_0_0_3px_rgba(0,102,102,0.12)] focus-visible:outline-none'
+  'flex h-[60px] w-full min-h-[60px] max-h-[60px] items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-0 text-left text-base font-medium leading-none text-slate-900 transition-all duration-200 hover:border-slate-300 hover:bg-white focus-within:border-brand focus-within:shadow-[0_0_0_3px_rgba(0,102,102,0.12)] focus-visible:border-brand focus-visible:shadow-[0_0_0_3px_rgba(0,102,102,0.12)] focus-visible:outline-none'
 
 /**
  * Airy Premium hero: светлый фон, опциональный заголовок (`heroTitle`),
@@ -122,7 +122,7 @@ export function HomeHeroLuxe({
         ) : null}
 
         {/* Search capsule — glass на фото (rounded-3xl SSOT внешней капсулы) */}
-        <div className="relative z-20 w-full rounded-3xl border border-white/35 bg-white/78 p-3 shadow-[0_32px_64px_-15px_rgba(0,102,102,0.14),0_12px_40px_-18px_rgba(0,0,0,0.2)] backdrop-blur-xl backdrop-saturate-150 transition-all duration-300 focus-within:border-[#006666]/35 focus-within:shadow-[0_32px_64px_-15px_rgba(0,102,102,0.18),0_0_0_3px_rgba(0,102,102,0.12)] sm:p-4">
+        <div className="relative z-20 w-full rounded-3xl border border-white/35 bg-white/78 p-3 shadow-[0_32px_64px_-15px_rgba(0,102,102,0.14),0_12px_40px_-18px_rgba(0,0,0,0.2)] backdrop-blur-xl backdrop-saturate-150 transition-all duration-300 focus-within:border-brand/35 focus-within:shadow-[0_32px_64px_-15px_rgba(0,102,102,0.18),0_0_0_3px_rgba(0,102,102,0.12)] sm:p-4">
           {/* Category tabs — pill buttons */}
           <div className="mb-3 flex flex-wrap items-center gap-2 sm:mb-4">
             {displayTabs.map((tab) => {
@@ -145,13 +145,13 @@ export function HomeHeroLuxe({
                   className={cn(
                     'inline-flex h-10 items-center gap-2 rounded-2xl border px-4 text-sm font-semibold tracking-tight transition-all duration-200',
                     active
-                      ? 'border-[#006666] bg-[#006666] text-white shadow-[0_8px_22px_-6px_rgba(0,102,102,0.55)]'
-                      : 'border-slate-200/90 bg-white/95 text-slate-700 hover:border-[#006666]/60 hover:text-[#006666]',
+                      ? 'border-brand bg-brand text-white shadow-[0_8px_22px_-6px_rgba(0,102,102,0.55)]'
+                      : 'border-slate-200/90 bg-white/95 text-slate-700 hover:border-brand/60 hover:text-brand',
                     previewOnly && 'opacity-50',
                     !tabsReady && 'animate-pulse opacity-60',
                   )}
                 >
-                  <Icon className={cn('h-4 w-4', active ? 'text-white' : 'text-[#006666]')} />
+                  <Icon className={cn('h-4 w-4', active ? 'text-white' : 'text-brand')} />
                   {getCategoryName(tab.slug, language, tab.name)}
                   {comingSoon ? (
                     <span
@@ -270,7 +270,7 @@ export function HomeHeroLuxe({
             {/* Search CTA — тот же h-[60px], тот же rounded-2xl */}
             <Button
               onClick={handleSearchClick}
-              className="!h-[60px] min-h-[60px] max-h-[60px] min-w-[148px] shrink-0 rounded-2xl bg-[#006666] px-6 text-base font-semibold leading-none text-white shadow-[0_14px_28px_-8px_rgba(0,102,102,0.42)] transition-all hover:bg-[#004c4c] hover:shadow-[0_18px_36px_-8px_rgba(0,102,102,0.50)] active:scale-[0.98]"
+              className="!h-[60px] min-h-[60px] max-h-[60px] min-w-[148px] shrink-0 rounded-2xl bg-brand px-6 text-base font-semibold leading-none text-white shadow-[0_14px_28px_-8px_rgba(0,102,102,0.42)] transition-all hover:bg-brand-hover hover:shadow-[0_18px_36px_-8px_rgba(0,102,102,0.50)] active:scale-[0.98]"
             >
               <Search className="mr-2 h-5 w-5" />
               {getUIText('findButton', language)}

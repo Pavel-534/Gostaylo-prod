@@ -13,6 +13,7 @@ import { useCheckoutPayment } from './hooks/useCheckoutPayment'
 import { useCheckoutPricing } from './hooks/useCheckoutPricing'
 import { CheckoutSummary } from './components/CheckoutSummary'
 import { PaymentMethods } from './components/PaymentMethods'
+import { GuestBookingFlowHint } from '@/components/product/GuestBookingFlowHint'
 import {
   CheckoutFullPageSpinner,
   CheckoutCommissionSpinner,
@@ -92,15 +93,18 @@ function CheckoutPageInner({ params: paramsProp }) {
     return <CheckoutCommissionSpinner />
   }
 
+  const flowT = (key) => getUIText(key, c.language)
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <Link href="/" className="inline-flex items-center text-teal-600 hover:text-teal-700 mb-6">
+    <div className="gsl-page">
+      <div className="mx-auto max-w-4xl px-3 sm:px-4 py-6 sm:py-8 space-y-5">
+        <GuestBookingFlowHint t={flowT} />
+        <Link href="/" className="inline-flex items-center text-brand hover:text-brand-hover text-sm font-medium">
           <ArrowLeft className="h-4 w-4 mr-2" />
           {getUIText('checkout_back', c.language)}
         </Link>
 
-        <h1 className="text-3xl font-bold text-slate-900 mb-8">{getUIText('checkout_title', c.language)}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">{getUIText('checkout_title', c.language)}</h1>
 
         {p.booking?.status === 'CONFIRMED' && (
           <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 flex items-start gap-3">

@@ -33,6 +33,8 @@ import {
   partnerListAmountThb,
 } from '@/components/partner/dashboard/partner-dashboard-widgets'
 import { usePartnerDashboardPage } from '@/hooks/partner/use-partner-dashboard-page'
+import { PageSectionHeader } from '@/components/product/PageSectionHeader'
+import { GSL_CARD } from '@/lib/theme/product-ui'
 
 export default function PartnerDashboardPageContent() {
   const {
@@ -57,10 +59,13 @@ export default function PartnerDashboardPageContent() {
   // Error state
   if (isError) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <AlertCircle className="h-12 w-12 text-red-400 mb-4" />
-        <h2 className="text-xl font-semibold mb-2">Ошибка загрузки</h2>
-        <Button onClick={() => refetch()} variant="outline">Повторить</Button>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-center px-4">
+        <AlertCircle className="h-12 w-12 text-red-400" />
+        <h2 className="text-xl font-semibold text-slate-900">Ошибка загрузки</h2>
+        <p className="text-sm text-slate-600 max-w-sm">Проверьте сеть и повторите запрос.</p>
+        <Button onClick={() => refetch()} variant="brand">
+          Повторить
+        </Button>
       </div>
     )
   }
@@ -69,24 +74,13 @@ export default function PartnerDashboardPageContent() {
     <div className="space-y-6">
       <PartnerDashboardWalletOverview />
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-teal-600" />
-            Обзор бизнеса
-          </h1>
-          <p className="text-slate-600 mt-1">
-            {format(new Date(), 'EEEE, d MMMM yyyy', { locale: ru })}
-          </p>
-        </div>
-        
-        {/* Quick Actions */}
-        <div className="flex gap-2 flex-wrap">
-          <Button 
-            asChild 
-            className="bg-teal-600 hover:bg-teal-700"
-          >
+      <PageSectionHeader
+        title="Обзор бизнеса"
+        subtitle={format(new Date(), 'EEEE, d MMMM yyyy', { locale: ru })}
+        titleClassName="flex items-center gap-2"
+        action={
+          <div className="flex gap-2 flex-wrap">
+          <Button asChild variant="brand">
             <Link href="/partner/listings/new">
               <Plus className="h-4 w-4 mr-2" />
               Новый объект
@@ -116,7 +110,8 @@ export default function PartnerDashboardPageContent() {
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
-      </div>
+        }
+      />
 
       <PartnerVerifiedBadgePromo language={language} />
 
@@ -124,7 +119,7 @@ export default function PartnerDashboardPageContent() {
 
       {/* Today's Summary Banner */}
       {(stats?.today?.checkIns > 0 || stats?.today?.checkOuts > 0) && (
-        <Card className="bg-gradient-to-r from-teal-500 to-teal-600 border-0 text-white">
+        <Card className="bg-gradient-to-r from-brand/90 to-brand border-0 text-white">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">
@@ -159,7 +154,7 @@ export default function PartnerDashboardPageContent() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-slate-500">Доход (ваш)</span>
-              <DollarSign className="h-4 w-4 text-teal-600" />
+              <DollarSign className="h-4 w-4 text-brand" />
             </div>
             <div className="flex items-end justify-between">
               <div>
@@ -184,7 +179,7 @@ export default function PartnerDashboardPageContent() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-slate-500">Загрузка (месяц)</span>
-              <Calendar className="h-4 w-4 text-teal-600" />
+              <Calendar className="h-4 w-4 text-brand" />
             </div>
             <div className="flex items-center justify-between">
               <div>
@@ -237,13 +232,13 @@ export default function PartnerDashboardPageContent() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-slate-500">Бронирования</span>
-              <Users className="h-4 w-4 text-teal-600" />
+              <Users className="h-4 w-4 text-brand" />
             </div>
             <p className="text-2xl font-bold text-slate-900">
               {stats?.bookings?.total || 0}
             </p>
             <div className="flex gap-3 mt-2 text-xs">
-              <span className="text-teal-600">✓ {stats?.bookings?.confirmed || 0}</span>
+              <span className="text-brand">✓ {stats?.bookings?.confirmed || 0}</span>
               <span className="text-amber-600">◔ {stats?.bookings?.pending || 0}</span>
               <span className="text-slate-400">✓✓ {stats?.bookings?.completed || 0}</span>
             </div>
@@ -256,7 +251,7 @@ export default function PartnerDashboardPageContent() {
         <Card className="border-0 shadow-sm lg:col-span-2">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-teal-600" />
+              <BarChart3 className="h-5 w-5 text-brand" />
               Доход по месяцам
             </CardTitle>
             <CardDescription>
@@ -300,14 +295,14 @@ export default function PartnerDashboardPageContent() {
 
         <Link
           href="/partner/finances?status=PAID_ESCROW"
-          className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+          className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
         >
-          <Card className="shadow-sm border border-slate-100 border-l-4 border-l-teal-500 h-full transition-shadow hover:shadow-md cursor-pointer">
+          <Card className="shadow-sm border border-slate-100 border-l-4 border-l-brand h-full transition-shadow hover:shadow-md cursor-pointer">
             <CardContent className="p-5 flex flex-col h-full justify-between gap-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-slate-500">Будущий доход (в обработке)</span>
-                  <Banknote className="h-5 w-5 text-teal-600" />
+                  <Banknote className="h-5 w-5 text-brand" />
                 </div>
                 <p className="text-3xl font-bold text-slate-900 tabular-nums">
                   {formatPrice(stats?.financialV2?.moneyInTransitThb ?? 0, 'THB')}
@@ -317,7 +312,7 @@ export default function PartnerDashboardPageContent() {
                 Сумма вашего дохода по бронированиям со статусом «Оплачено, удержано» (деньги ещё не отправлены
                 выплатой на ваши реквизиты). После проверки и выплаты сумма появится в истории выплат.
               </p>
-              <p className="text-xs font-medium text-teal-700 flex items-center gap-1">
+              <p className="text-xs font-medium text-brand-hover flex items-center gap-1">
                 Подробнее по броням
                 <ChevronRight className="h-3.5 w-3.5" />
               </p>
@@ -382,7 +377,7 @@ export default function PartnerDashboardPageContent() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <CalendarDays className="h-5 w-5 text-teal-600" />
+                  <CalendarDays className="h-5 w-5 text-brand" />
                   Ближайшие заезды
                 </CardTitle>
                 <CardDescription>Следующие 7 дней</CardDescription>
@@ -406,11 +401,11 @@ export default function PartnerDashboardPageContent() {
                     key={arrival.id}
                     className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
                   >
-                    <div className="flex-shrink-0 w-10 h-10 bg-teal-100 rounded-lg flex flex-col items-center justify-center">
-                      <span className="text-xs font-bold text-teal-700">
+                    <div className="flex-shrink-0 w-10 h-10 bg-brand/15 rounded-lg flex flex-col items-center justify-center">
+                      <span className="text-xs font-bold text-brand-hover">
                         {arrival.checkIn && format(parseISO(arrival.checkIn), 'd')}
                       </span>
-                      <span className="text-[10px] text-teal-600 uppercase">
+                      <span className="text-[10px] text-brand uppercase">
                         {arrival.checkIn && format(parseISO(arrival.checkIn), 'MMM', { locale: arrLocale })}
                       </span>
                     </div>
@@ -429,7 +424,7 @@ export default function PartnerDashboardPageContent() {
                     </div>
                     <div className="text-right">
                       <p
-                        className="text-sm font-medium text-teal-600"
+                        className="text-sm font-medium text-brand"
                         title={getUIText('partnerDashboard_amountNetTooltip', language)}
                       >
                         {formatPrice(arrivalNetThb, 'THB')}

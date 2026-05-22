@@ -26,7 +26,7 @@ export function CategoryBar({ language, categories, mediaFallback, onCategorySel
                 className="block"
               >
                 <Card
-                  className="group cursor-pointer overflow-hidden rounded-2xl transition-all border border-slate-200 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.05),0_2px_6px_rgba(0,102,102,0.07)] hover:shadow-[0_24px_50px_rgba(0,102,102,0.16),0_10px_24px_rgba(15,23,42,0.1)] hover:border-[#006666] hover:-translate-y-1"
+                  className="group cursor-pointer overflow-hidden rounded-2xl transition-all border border-slate-200 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.05),0_2px_6px_rgba(0,102,102,0.07)] hover:shadow-[0_24px_50px_rgba(0,102,102,0.16),0_10px_24px_rgba(15,23,42,0.1)] hover:border-brand hover:-translate-y-1"
                 >
                   <div className="relative h-32 sm:h-44 overflow-hidden">
                     <Image

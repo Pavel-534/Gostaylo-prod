@@ -110,6 +110,11 @@ export async function GET(request) {
     .trim();
   const code = await getOrCreateReferralCode(profile.id, profile.referral_code, ownerIp);
 
+  const { searchParams } = new URL(request.url)
+  const includeTeam = searchParams.get('includeTeam') !== '0'
+  const teamLimit = Math.min(200, Math.max(1, Number(searchParams.get('teamLimit')) || 80))
+  const teamOffset = Math.max(0, Number(searchParams.get('teamOffset')) || 0)
+
   const [
     { data: ledger },
     { count: invitedCount },
@@ -133,7 +138,9 @@ export async function GET(request) {
       .maybeSingle(),
     ReferralPnlService.getReferralTiers(),
     ReferralPnlService.countDirectPartnersInvited(profile.id),
-    buildReferralTeamMembers(supabaseAdmin, profile.id),
+    includeTeam
+      ? buildReferralTeamMembers(supabaseAdmin, profile.id, { limit: teamLimit, offset: teamOffset })
+      : Promise.resolve([]),
   ]);
   const general = await PricingService.getGeneralPricingSettings();
 
@@ -439,8 +446,11 @@ export async function GET(request) {
               : 0,
           }
         : null,
-      /** Stage 72.6 — прямые приглашённые (дерево уровнем 1); чат-поиск по таблице conversations */
+      /** Stage 72.6 / 114.5 — прямые приглашённые (пагинация: teamLimit, teamOffset, includeTeam=0) */
       teamMembers,
+      teamPaging: includeTeam
+        ? { limit: teamLimit, offset: teamOffset, hasMore: (teamMembers || []).length >= teamLimit }
+        : { limit: 0, offset: 0, hasMore: false },
       /** Stage 91.3 — параметры для индикативного калькулятора (клиент: `estimateReferrerIllustrationThb`). */
       referralEstimator: {
         welcomeBonusThb: welcomeBonusFromGeneral,

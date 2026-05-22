@@ -156,7 +156,7 @@ export default function RenterLayout({ children }) {
   }
 
   return (
-      <div className="min-h-screen bg-slate-50 flex flex-col">
+      <div className="min-h-screen bg-brand-surface flex flex-col">
         <AppHeader
           variant="workspace"
           onMenuClick={() => setSidebarOpen((v) => !v)}
@@ -175,7 +175,7 @@ export default function RenterLayout({ children }) {
                     href={item.href}
                     className={cn(
                       'flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors relative text-sm',
-                      isActive ? 'bg-teal-50 text-teal-700 font-medium' : 'text-slate-600 hover:bg-slate-50',
+                      isActive ? 'gsl-nav-item-active font-medium' : 'gsl-nav-item-idle',
                     )}
                   >
                     <span className="relative">
@@ -195,7 +195,7 @@ export default function RenterLayout({ children }) {
         {/* Mobile Sidebar Overlay */}
         {sidebarOpen && (
           <div 
-            className="fixed inset-0 bg-black/50 z-30 md:hidden"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-30 md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
