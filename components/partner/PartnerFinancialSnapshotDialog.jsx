@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import {
   Dialog,
@@ -60,8 +60,8 @@ export function PartnerFinancialSnapshotDialog({
             </span>
           </DialogDescription>
         </DialogHeader>
-        <div className="rounded-xl border border-teal-200 bg-gradient-to-b from-teal-50/80 to-white px-4 py-3 space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-teal-900">
+        <div className="rounded-xl border border-brand/25 bg-gradient-to-b from-brand/10 to-white px-4 py-3 space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-brand">
             {t('partnerFinancial_chainTitle')}
           </p>
           {guestPay > 0 ? moneyRow(t('partnerFinancial_chainGuestPays'), guestPay) : null}
@@ -84,8 +84,8 @@ export function PartnerFinancialSnapshotDialog({
           {roundPot !== 0 ? moneyRow(t('partnerFinancial_roundingPot'), roundPot, { muted: true }) : null}
           {moneyRow(t('partnerFinancial_netPayout'), net, { strong: true })}
         </div>
-        <div className="rounded-xl border border-teal-100 bg-teal-50/60 px-4 py-3 space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-teal-900">
+        <div className="rounded-xl border border-brand/20 bg-brand/10 px-4 py-3 space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-brand">
             {t('partnerFinancial_sectionGuest')}
           </p>
           {guestPay > 0 ? moneyRow(t('partnerFinancial_guestPayable'), guestPay) : null}

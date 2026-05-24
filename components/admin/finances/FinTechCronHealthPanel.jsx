@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { AlertTriangle, CheckCircle2, Clock, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -48,7 +48,7 @@ export function FinTechCronHealthPanel({ cronHealth, ownerMode = true, loading =
     >
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2 text-slate-900">
-          <Clock className="h-5 w-5 text-teal-700" />
+          <Clock className="h-5 w-5 text-brand-hover" />
           Состояние автоматических задач
         </CardTitle>
         <CardDescription className="text-sm">

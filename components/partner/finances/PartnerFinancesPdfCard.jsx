@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { FileDown, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -62,7 +62,7 @@ export function PartnerFinancesPdfCard({
           <Button
             type="button"
             variant="secondary"
-            className="gap-2 shrink-0 border-teal-200 bg-white hover:bg-teal-50"
+            className="gap-2 shrink-0 border-brand/25 bg-white hover:bg-brand/10"
             disabled={pdfLoading}
             onClick={() => void onExportPdf()}
           >

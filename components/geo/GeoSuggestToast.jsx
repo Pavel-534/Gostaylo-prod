@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * GeoSuggestToast — элегантное уведомление при первом визите: «Мы нашли объекты в X».
@@ -175,7 +175,7 @@ export default function GeoSuggestToast() {
         )}
       >
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-[#006666] text-white shadow-[0_6px_18px_rgba(0,102,102,0.3)]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-brand-hover text-white shadow-[0_6px_18px_rgba(0,102,102,0.3)]">
             <Sparkles className="h-5 w-5" aria-hidden />
           </div>
           <div className="flex-1 min-w-0">
@@ -194,7 +194,7 @@ export default function GeoSuggestToast() {
               </button>
             </div>
             <p className="mt-0.5 text-sm text-slate-600 leading-relaxed">
-              <span className="inline-flex items-center gap-1 text-teal-700">
+              <span className="inline-flex items-center gap-1 text-brand-hover">
                 <MapPin className="h-3.5 w-3.5" aria-hidden />
                 <span className="font-semibold">{placeLabel}</span>
               </span>{' '}
@@ -205,7 +205,7 @@ export default function GeoSuggestToast() {
                 type="button"
                 onClick={handleAccept}
                 data-testid="geo-suggest-accept"
-                className="rounded-full bg-[#006666] px-4 py-2 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(0,102,102,0.28)] transition-all hover:bg-[#005555] active:scale-95"
+                className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(0,102,102,0.28)] transition-all hover:bg-[#005555] active:scale-95"
               >
                 {s.primary} →
               </button>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * Stage 72.6 — единый снимок «бонусы маркетинга» vs «эскроу партнёра» (разные потоки в БД).
@@ -25,10 +25,10 @@ export function UnifiedBalanceSummary({ walletPayload, t }) {
   const escrow = walletPayload?.partnerEscrow
 
   return (
-    <Card className="border-teal-200 bg-gradient-to-br from-teal-50/90 to-white">
+    <Card className="border-brand/25 bg-gradient-to-br from-brand/10 to-white">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
-          <Wallet className="h-5 w-5 text-teal-700" />
+          <Wallet className="h-5 w-5 text-brand-hover" />
           {t('referralStage726_unifiedBalanceTitle')}
         </CardTitle>
         <CardDescription>{t('referralStage726_unifiedBalanceSubtitle')}</CardDescription>

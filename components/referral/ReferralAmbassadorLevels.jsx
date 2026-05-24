@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
@@ -40,7 +40,7 @@ export function ReferralAmbassadorLevels({ levels = [], directPartnersInvited = 
               key={row.level ?? row.id ?? row.name}
               className={cn(
                 'rounded-xl border p-3 transition-colors',
-                row.isCurrent ? 'border-[#006666]/40 bg-teal-50/80' : 'border-slate-200 bg-white',
+                row.isCurrent ? 'border-brand/40 bg-brand/10' : 'border-slate-200 bg-white',
               )}
             >
               <div className="flex items-center justify-between gap-2 text-sm flex-wrap">
@@ -52,7 +52,7 @@ export function ReferralAmbassadorLevels({ levels = [], directPartnersInvited = 
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        className="shrink-0 rounded-full p-0.5 text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+                        className="shrink-0 rounded-full p-0.5 text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                         aria-label={t('stage1147_levelTooltipAria')}
                       >
                         <HelpCircle className="h-3.5 w-3.5" />
@@ -65,7 +65,7 @@ export function ReferralAmbassadorLevels({ levels = [], directPartnersInvited = 
                 </span>
                 <div className="flex items-center gap-2">
                   {row.isCurrent ? (
-                    <Badge variant="outline" className="border-[#006666]/50 text-[#006666] text-[10px]">
+                    <Badge variant="outline" className="border-brand/50 text-brand text-[10px]">
                       {t('stage1143_levelCurrent')}
                     </Badge>
                   ) : row.unlocked ? (

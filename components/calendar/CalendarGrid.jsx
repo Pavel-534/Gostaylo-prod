@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CalendarGrid Component
  * Main calendar grid with sticky columns and booking cells
  */
@@ -37,7 +37,7 @@ const TYPE_ICONS = {
 
 // Status colors
 const STATUS_COLORS = {
-  CONFIRMED: 'bg-teal-500 text-white',
+  CONFIRMED: 'bg-brand/100 text-white',
   PENDING: 'bg-amber-400 text-amber-900',
   PAID: 'bg-emerald-500 text-white',
   BLOCKED: 'bg-slate-300 text-slate-600',
@@ -134,7 +134,7 @@ export function CalendarGrid({
                       ref={isCurrentDay && todayRef ? todayRef : undefined}
                       className={cn(
                         'flex h-16 flex-col items-center justify-center border-r border-slate-100',
-                        isCurrentDay && "bg-teal-50",
+                        isCurrentDay && "bg-brand/10",
                         isWeekend && "bg-slate-100/50"
                       )}
                       style={{ width: dayWidth, minWidth: dayWidth }}
@@ -142,7 +142,7 @@ export function CalendarGrid({
                       <span
                         className={cn(
                           'text-[11px] font-semibold uppercase tracking-wide',
-                          isCurrentDay ? 'font-bold text-teal-700' : 'text-slate-500',
+                          isCurrentDay ? 'font-bold text-brand-hover' : 'text-slate-500',
                         )}
                       >
                         {format(dateObj, 'EEE', { locale: dfLocale })}
@@ -151,7 +151,7 @@ export function CalendarGrid({
                         className={cn(
                           'text-base font-bold',
                           isCurrentDay
-                            ? 'flex h-8 w-8 items-center justify-center rounded-full bg-teal-600 text-sm text-white'
+                            ? 'flex h-8 w-8 items-center justify-center rounded-full bg-brand text-sm text-white'
                             : 'text-slate-800',
                         )}
                       >
@@ -205,7 +205,7 @@ export function CalendarGrid({
                       
                       // Price styling based on season
                       const priceColor = isHighSeason 
-                        ? 'text-teal-600 font-bold' 
+                        ? 'text-brand font-bold' 
                         : isLowSeason 
                         ? 'text-slate-400' 
                         : 'text-slate-500'
@@ -260,9 +260,9 @@ export function CalendarGrid({
                           flashSaleDay &&
                             !isCurrentDay &&
                             'shadow-[inset_0_0_0_1px_rgba(249,115,22,0.5)]',
-                          isCurrentDay && "ring-2 ring-inset ring-teal-400",
+                          isCurrentDay && "ring-2 ring-inset ring-brand/40",
                           isWeekend && cellData.status === 'AVAILABLE' && "bg-slate-50",
-                          cellData.isTransition && "border-l-2 border-l-dashed border-l-teal-400",
+                          cellData.isTransition && "border-l-2 border-l-dashed border-l-brand/40",
                           cellData.isCheckIn && "rounded-l",
                           cellData.isCheckOut && "rounded-r"
                         )}

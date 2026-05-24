@@ -10,6 +10,7 @@ import { buildGuestPriceBreakdownFromCheckoutTotals } from '@/lib/booking/guest-
 import { getGuestPayableRoundedThb } from '@/lib/booking-guest-total'
 import { interpolateTemplate } from './interpolate.js'
 import { getInvoiceGuestAmountPresentation } from '@/lib/pricing/fx-display-client'
+import { fetchExchangeRates, FX_RATES_UPDATED_EVENT } from '@/lib/client-data'
 
 /**
  * Курсы, комиссия, промокод и производные суммы для чекаута.
@@ -41,15 +42,23 @@ export function useCheckoutPricing({
   const [promoLoading, setPromoLoading] = useState(false)
 
   useEffect(() => {
-    fetch('/api/v2/exchange-rates', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.success && j.rateMap && typeof j.rateMap === 'object') {
-          setExchangeRates({ THB: 1, ...j.rateMap })
-          if (j.rateMap.USDT != null) setThbPerUsdt(j.rateMap.USDT)
-        }
+    fetchExchangeRates({ retail: true })
+      .then((rateMap) => {
+        setExchangeRates(rateMap)
+        if (rateMap.USDT != null) setThbPerUsdt(rateMap.USDT)
       })
       .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const onFx = (e) => {
+      const rateMap = e?.detail
+      if (!rateMap || typeof rateMap !== 'object') return
+      setExchangeRates(rateMap)
+      if (rateMap.USDT != null) setThbPerUsdt(rateMap.USDT)
+    }
+    window.addEventListener(FX_RATES_UPDATED_EVENT, onFx)
+    return () => window.removeEventListener(FX_RATES_UPDATED_EVENT, onFx)
   }, [])
 
   useEffect(() => {

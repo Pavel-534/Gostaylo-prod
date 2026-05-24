@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GoStayLo - Currency Selector Component
  * Dropdown to manually change currency (overrides auto-detection)
  */
@@ -93,7 +93,7 @@ export function CurrencySelector({
               <span className="text-slate-600">{curr.code}</span>
             </div>
             {currency === curr.code && (
-              <Check className="h-4 w-4 text-teal-600" />
+              <Check className="h-4 w-4 text-brand" />
             )}
           </DropdownMenuItem>
         ))}

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
@@ -12,7 +12,7 @@ export function SystemSettingsGeneral({ maintenanceMode, webhookStatus }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <Palmtree className="w-6 h-6 lg:w-8 lg:h-8 text-teal-600 flex-shrink-0" />
+            <Palmtree className="w-6 h-6 lg:w-8 lg:h-8 text-brand flex-shrink-0" />
             <h1 className="text-xl lg:text-2xl font-bold text-slate-900 truncate">Центр управления</h1>
           </div>
           <p className="text-sm text-slate-600">Управление платформой и интеграциями</p>
@@ -50,16 +50,16 @@ export function SystemSettingsGeneral({ maintenanceMode, webhookStatus }) {
       </Link>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Card className="bg-gradient-to-br from-teal-50 to-cyan-50 border-teal-200">
+        <Card className="bg-gradient-to-br from-brand/10 to-cyan-50 border-brand/25">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-teal-600 font-medium">Статус системы</p>
-                <p className="text-lg font-bold text-teal-900">
+                <p className="text-xs text-brand font-medium">Статус системы</p>
+                <p className="text-lg font-bold text-brand">
                   {maintenanceMode ? 'Обслуживание' : 'Работает'}
                 </p>
               </div>
-              <Shield className={`w-8 h-8 ${maintenanceMode ? 'text-amber-500' : 'text-teal-500'}`} />
+              <Shield className={`w-8 h-8 ${maintenanceMode ? 'text-amber-500' : 'text-brand/70'}`} />
             </div>
           </CardContent>
         </Card>

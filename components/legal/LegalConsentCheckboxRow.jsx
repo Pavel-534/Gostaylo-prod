@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -32,7 +32,7 @@ export function LegalConsentCheckboxRow({
             href="/legal/public-offer/"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-teal-700 underline underline-offset-2 hover:text-teal-800"
+            className="font-medium text-brand-hover underline underline-offset-2 hover:text-brand-hover"
             onClick={(e) => e.stopPropagation()}
           >
             {getUIText('footerPublicOffer', language)}
@@ -42,7 +42,7 @@ export function LegalConsentCheckboxRow({
             href="/legal/refund/"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-teal-700 underline underline-offset-2 hover:text-teal-800"
+            className="font-medium text-brand-hover underline underline-offset-2 hover:text-brand-hover"
             onClick={(e) => e.stopPropagation()}
           >
             {getUIText('footerRefundPolicy', language)}
@@ -68,7 +68,7 @@ export function LegalConsentCheckboxRow({
             href="/legal/partner-terms/"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-teal-700 underline underline-offset-2 hover:text-teal-800"
+            className="font-medium text-brand-hover underline underline-offset-2 hover:text-brand-hover"
             onClick={(e) => e.stopPropagation()}
           >
             {getUIText('footerPartnerTerms', language)}
@@ -94,7 +94,7 @@ export function LegalConsentCheckboxRow({
           href="/legal/public-offer/"
           target="_blank"
           rel="noopener noreferrer"
-          className="font-medium text-teal-700 underline underline-offset-2 hover:text-teal-800"
+          className="font-medium text-brand-hover underline underline-offset-2 hover:text-brand-hover"
           onClick={(e) => e.stopPropagation()}
         >
           {getUIText('footerPublicOffer', language)}
@@ -104,7 +104,7 @@ export function LegalConsentCheckboxRow({
           href="/legal/privacy/"
           target="_blank"
           rel="noopener noreferrer"
-          className="font-medium text-teal-700 underline underline-offset-2 hover:text-teal-800"
+          className="font-medium text-brand-hover underline underline-offset-2 hover:text-brand-hover"
           onClick={(e) => e.stopPropagation()}
         >
           {getUIText('privacyPolicy', language)}

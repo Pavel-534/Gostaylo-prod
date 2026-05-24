@@ -1,10 +1,10 @@
-'use client'
+﻿'use client'
 
 /**
  * EmptyState — premium "ничего не найдено" блок в стиле Premium Air.
  *
  * Визуал:
- * - Мягкая teal-ring иллюстрация с иконкой в центре
+ * - Мягкая brand-ring иллюстрация с иконкой в центре
  * - Serif-заголовок (Cormorant Garamond)
  * - Подсказка + CTA "Показать все" (или кастомный)
  *
@@ -18,6 +18,8 @@
 import Link from 'next/link'
 import { Search, MapPin, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { GSL_BRAND_SHADOW_ICON, GSL_BRAND_SHADOW_RING } from '@/lib/theme/product-ui'
 
 function defaultTitle(language) {
   return language === 'ru'
@@ -85,15 +87,15 @@ export function EmptyState({
     >
       {/* Иллюстрация: концентрические круги + иконка */}
       <div className="relative mb-6 flex items-center justify-center" aria-hidden>
-        <div className="absolute h-36 w-36 rounded-full bg-teal-50/80" />
-        <div className="absolute h-28 w-28 rounded-full bg-teal-100/60" />
-        <div className="absolute h-20 w-20 rounded-full bg-white shadow-[0_10px_28px_rgba(0,102,102,0.18)]" />
-        <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-brand shadow-[0_8px_20px_rgba(0,102,102,0.38)]">
+        <div className="absolute h-36 w-36 rounded-full bg-brand/10" />
+        <div className="absolute h-28 w-28 rounded-full bg-brand/15" />
+        <div className={cn('absolute h-20 w-20 rounded-full bg-white', GSL_BRAND_SHADOW_RING)} />
+        <div className={cn('relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-brand to-brand-hover', GSL_BRAND_SHADOW_ICON)}>
           <Search className="h-6 w-6 text-white" strokeWidth={2.5} />
         </div>
         {/* Декоративные "плавающие" маркеры */}
-        <div className="absolute -right-2 -top-1 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-teal-100">
-          <MapPin className="h-3.5 w-3.5 text-teal-600" />
+        <div className="absolute -right-2 -top-1 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-brand/20">
+          <MapPin className="h-3.5 w-3.5 text-brand" />
         </div>
         <div className="absolute -bottom-1 -left-3 flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-amber-100">
           <Calendar className="h-3 w-3 text-amber-600" />

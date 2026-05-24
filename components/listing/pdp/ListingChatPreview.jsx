@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -29,16 +29,16 @@ export function ListingChatPreview({
       : '?'
 
   return (
-    <Card className="hidden lg:block border-teal-100 bg-gradient-to-br from-teal-50/80 to-white shadow-sm">
+    <Card className="hidden lg:block border-brand/20 bg-gradient-to-br from-brand/10 to-white shadow-sm">
       <CardContent className="p-4 sm:p-5">
         <div className="flex gap-3 sm:gap-4 items-start">
-          <Avatar className="h-11 w-11 sm:h-12 sm:w-12 shrink-0 border border-teal-100">
+          <Avatar className="h-11 w-11 sm:h-12 sm:w-12 shrink-0 border border-brand/20">
             {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
-            <AvatarFallback className="bg-teal-100 text-teal-800 text-sm font-semibold">
+            <AvatarFallback className="bg-brand/15 text-brand-hover text-sm font-semibold">
               {initial !== '?' ? (
                 initial
               ) : (
-                <User className="h-5 w-5 text-teal-700" aria-hidden />
+                <User className="h-5 w-5 text-brand-hover" aria-hidden />
               )}
             </AvatarFallback>
           </Avatar>

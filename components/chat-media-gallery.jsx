@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * ChatMediaGallery — модальная галерея всех медиафайлов диалога.
@@ -126,14 +126,14 @@ export function ChatMediaGallery({ messages = [], open, onClose, language = 'ru'
             className={cn(
               'flex flex-1 items-center justify-center gap-2 py-3 text-sm font-medium transition-colors',
               tab === 'images'
-                ? 'border-b-2 border-teal-600 text-teal-700'
+                ? 'border-b-2 border-brand text-brand-hover'
                 : 'text-slate-500 hover:text-slate-800',
             )}
           >
             <ImageIcon className="h-4 w-4" />
             {getLabel(language, 'images')}
             {hasImages && (
-              <span className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] text-teal-700">
+              <span className="rounded-full bg-brand/15 px-1.5 py-0.5 text-[10px] text-brand-hover">
                 {imageMessages.length}
               </span>
             )}
@@ -144,14 +144,14 @@ export function ChatMediaGallery({ messages = [], open, onClose, language = 'ru'
             className={cn(
               'flex flex-1 items-center justify-center gap-2 py-3 text-sm font-medium transition-colors',
               tab === 'voice'
-                ? 'border-b-2 border-teal-600 text-teal-700'
+                ? 'border-b-2 border-brand text-brand-hover'
                 : 'text-slate-500 hover:text-slate-800',
             )}
           >
             <Mic className="h-4 w-4" />
             {getLabel(language, 'voice')}
             {hasVoice && (
-              <span className="rounded-full bg-teal-100 px-1.5 py-0.5 text-[10px] text-teal-700">
+              <span className="rounded-full bg-brand/15 px-1.5 py-0.5 text-[10px] text-brand-hover">
                 {voiceMessages.length}
               </span>
             )}

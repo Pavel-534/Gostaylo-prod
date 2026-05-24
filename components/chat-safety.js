@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { AlertTriangle, Shield, X } from 'lucide-react'
 import { useState } from 'react'
@@ -50,7 +50,7 @@ export function SafetyBanner({ patterns = [], onDismiss, lang = 'ru' }) {
   return (
     <div className='mx-4 mb-3 animate-in slide-in-from-top-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:mx-5'>
       <div className='flex items-start gap-3'>
-        <Shield className='mt-0.5 h-5 w-5 flex-shrink-0 text-teal-600' />
+        <Shield className='mt-0.5 h-5 w-5 flex-shrink-0 text-brand' />
         <div className='flex-1'>
           <h4 className='text-sm font-medium text-slate-900'>{t.title}</h4>
           <p className='mt-1 text-xs text-slate-600'>{t.body}</p>

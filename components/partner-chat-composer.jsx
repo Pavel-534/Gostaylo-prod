@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * Композер партнёра: «+» (вложения, счёт, паспорт), отдельно ⚡ быстрые ответы (Popover у капсулы),
@@ -141,7 +141,7 @@ export function PartnerChatComposer({
             {passportLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <IdCard className="h-4 w-4 text-teal-600" />
+              <IdCard className="h-4 w-4 text-brand" />
             )}
             {isRu ? 'Запросить фото паспорта' : 'Request passport photo'}
           </DropdownMenuItem>
@@ -188,7 +188,7 @@ export function PartnerChatComposer({
               <div
                 className={cn(
                   'flex min-w-0 flex-1 items-end gap-1 rounded-2xl border border-slate-200 bg-slate-50 px-1 py-0.5 shadow-sm sm:items-center sm:gap-2 sm:px-1.5 sm:py-1',
-                  voiceActive && 'border-teal-200/80 bg-teal-50/40',
+                  voiceActive && 'border-brand/25 bg-brand/10',
                 )}
               >
                 {plusMenu}
@@ -255,7 +255,7 @@ export function PartnerChatComposer({
           <div
             className={cn(
               'flex min-w-0 flex-1 items-end gap-1 rounded-2xl border border-slate-200 bg-slate-50 px-1 py-0.5 shadow-sm sm:items-center sm:gap-2 sm:px-1.5 sm:py-1',
-              voiceActive && 'border-teal-200/80 bg-teal-50/40',
+              voiceActive && 'border-brand/25 bg-brand/10',
             )}
           >
             {plusMenu}
@@ -289,7 +289,7 @@ export function PartnerChatComposer({
           <Button
             type="submit"
             disabled={!newMessage.trim() || sending || disabled}
-            className="h-10 w-10 min-h-0 min-w-0 shrink-0 self-end rounded-2xl bg-teal-600 hover:bg-teal-700 sm:h-11 sm:w-auto sm:self-center sm:px-4"
+            className="h-10 w-10 min-h-0 min-w-0 shrink-0 self-end rounded-2xl bg-brand hover:bg-brand-hover sm:h-11 sm:w-auto sm:self-center sm:px-4"
           >
             {sending ? <Loader2 className="h-4 w-4 animate-spin sm:h-4 sm:w-4" /> : <Send className="h-4 w-4 sm:h-4 sm:w-4" />}
           </Button>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useI18n } from '@/contexts/i18n-context'
@@ -19,7 +19,7 @@ export function LegalDocShell({ eyebrow = 'Legal', title, lead, publisher, child
   const t = (key) => getUIText(key, language)
 
   return (
-    <main className="min-h-screen bg-slate-50 font-sans antialiased text-slate-900">
+    <main className="min-h-screen bg-brand-surface font-sans antialiased text-slate-900">
       <article className="mx-auto max-w-3xl px-6 py-16 sm:px-8 sm:py-24">
         <p className="mb-6 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
           {eyebrow}
@@ -41,21 +41,21 @@ export function LegalDocShell({ eyebrow = 'Legal', title, lead, publisher, child
           <p>{t('legalFooter_contactIntro')} </p>
           <a
             href={`mailto:${supportEmail}`}
-            className="mt-2 inline-block font-medium text-teal-800 hover:text-teal-900 underline-offset-4 hover:underline"
+            className="mt-2 inline-block font-medium text-brand-hover hover:text-brand underline-offset-4 hover:underline"
           >
             {supportEmail}
           </a>
           <p className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
-            <Link href="/legal/public-offer/" className="text-teal-800 hover:underline">
+            <Link href="/legal/public-offer/" className="text-brand-hover hover:underline">
               {t('footerPublicOffer')}
             </Link>
-            <Link href="/legal/partner-terms/" className="text-teal-800 hover:underline">
+            <Link href="/legal/partner-terms/" className="text-brand-hover hover:underline">
               {t('footerPartnerTerms')}
             </Link>
-            <Link href="/legal/privacy/" className="text-teal-800 hover:underline">
+            <Link href="/legal/privacy/" className="text-brand-hover hover:underline">
               {t('privacyPolicy')}
             </Link>
-            <Link href="/legal/refund/" className="text-teal-800 hover:underline">
+            <Link href="/legal/refund/" className="text-brand-hover hover:underline">
               {t('footerRefundPolicy')}
             </Link>
             <Link href="/terms/" className="text-slate-600 hover:text-slate-900">
@@ -95,7 +95,7 @@ function PublisherCard({ publisher }) {
         <div className="grid gap-1 sm:grid-cols-[8rem_1fr] sm:gap-x-3">
           <dt className="text-slate-500">E-mail</dt>
           <dd>
-            <a href={`mailto:${publisher.email}`} className="text-teal-800 hover:underline">
+            <a href={`mailto:${publisher.email}`} className="text-brand-hover hover:underline">
               {publisher.email}
             </a>
           </dd>

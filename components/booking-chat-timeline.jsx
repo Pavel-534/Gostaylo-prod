@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -72,9 +72,9 @@ export function BookingChatTimeline({ booking, language = 'ru', variant = 'defau
                       ? 'h-3 w-3 text-[5px] sm:h-3.5 sm:w-3.5 sm:text-[6px]'
                       : 'h-4 w-4 text-[7px] sm:h-5 sm:w-5 sm:text-[8px] md:h-6 md:w-6 md:text-[10px]',
                     done
-                      ? 'border-teal-600 bg-teal-600 text-white'
+                      ? 'border-brand bg-brand text-white'
                       : current
-                        ? 'border-teal-500 bg-white text-teal-700 ring-1 ring-teal-200/80'
+                        ? 'border-brand bg-white text-brand-hover ring-1 ring-brand/20'
                         : 'border-slate-200 bg-white text-slate-400'
                   )}
                 >
@@ -106,7 +106,7 @@ export function BookingChatTimeline({ booking, language = 'ru', variant = 'defau
                   className={cn(
                     'h-px min-w-[2px] flex-1 shrink self-start rounded-full',
                     slim ? 'mt-1.5' : 'mt-2 sm:mt-2.5 md:mt-3',
-                    lineGreen ? 'bg-teal-500' : 'bg-slate-200'
+                    lineGreen ? 'bg-brand' : 'bg-slate-200'
                   )}
                   aria-hidden
                 />

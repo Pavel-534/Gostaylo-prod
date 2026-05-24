@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { FileStack } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,7 +28,7 @@ export function PayoutBatchesPanel({
   markBatchPaid,
 }) {
   return (
-    <Card className="border-teal-100 shadow-md overflow-hidden">
+    <Card className="border-brand/20 shadow-md overflow-hidden">
       <CardHeader className="pb-2" style={{ borderLeft: `4px solid ${FINTECH_MINT}` }}>
         <CardTitle className="text-lg" style={{ color: FINTECH_NAVY }}>
           Пулы выплат партнёрам

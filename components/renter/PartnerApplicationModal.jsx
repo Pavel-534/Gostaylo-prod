@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { Send, XCircle, Loader2 } from 'lucide-react'
@@ -79,7 +79,7 @@ export function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmittin
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 placeholder="+66 XXX XXX XXX"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand"
               />
             </div>
 
@@ -93,7 +93,7 @@ export function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmittin
                 onChange={(e) => setFormData({ ...formData, experience: e.target.value })}
                 placeholder={getUIText('partnerAppExperiencePlaceholder', language)}
                 rows={3}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand"
               />
             </div>
 
@@ -106,7 +106,7 @@ export function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmittin
                 value={formData.socialLink}
                 onChange={(e) => setFormData({ ...formData, socialLink: e.target.value })}
                 placeholder={getUIText('renterProfileTelegramPlaceholder', language)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand"
               />
             </div>
 
@@ -119,7 +119,7 @@ export function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmittin
                 value={formData.portfolio}
                 onChange={(e) => setFormData({ ...formData, portfolio: e.target.value })}
                 placeholder="https://…"
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-brand"
               />
             </div>
 
@@ -146,7 +146,8 @@ export function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmittin
               </Button>
               <Button
                 type="submit"
-                className="flex-1 bg-teal-600 hover:bg-teal-700"
+                variant="brand"
+                className="flex-1"
                 disabled={
                   isSubmitting || !String(formData.verificationDocUrl || '').trim() || !partnerLegalConsent
                 }

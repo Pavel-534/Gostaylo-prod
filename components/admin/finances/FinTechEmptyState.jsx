@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { cn } from '@/lib/utils'
 
@@ -13,7 +13,7 @@ export function FinTechEmptyState({ icon: Icon, title, description, className })
         className,
       )}
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-50 text-teal-700 mb-3">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand/10 text-brand-hover mb-3">
         <Icon className="h-6 w-6" />
       </div>
       <p className="font-medium text-slate-800">{title}</p>

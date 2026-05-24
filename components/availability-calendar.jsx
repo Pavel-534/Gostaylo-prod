@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -110,7 +110,7 @@ export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
       <Card>
         <CardContent className="py-8">
           <div className="flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-teal-600" />
+            <Loader2 className="h-6 w-6 animate-spin text-brand" />
           </div>
         </CardContent>
       </Card>
@@ -230,7 +230,7 @@ export default function AvailabilityCalendar({ listingId, syncErrors = [] }) {
                 <Button 
                   onClick={addBlock}
                   disabled={adding}
-                  className="bg-teal-600 hover:bg-teal-700"
+                  className="bg-brand hover:bg-brand-hover"
                 >
                   {adding ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

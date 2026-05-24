@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * Stage 87.0–87.1 — единый мини-бейдж «Verified» (каталог, карта, спека-ряд).
@@ -26,8 +26,8 @@ export function ListingTrustVerifiedMiniBadge({
 }) {
   if (!listingQualifiesForTrustVerifiedMiniBadge(listing)) return null
 
-  const iconCls = compact ? 'h-3 w-3 shrink-0 text-teal-600' : 'h-4 w-4 shrink-0 text-teal-600'
-  const textCls = compact ? 'text-[10px] font-medium text-teal-800' : 'text-xs font-medium text-teal-800'
+  const iconCls = compact ? 'h-3 w-3 shrink-0 text-brand' : 'h-4 w-4 shrink-0 text-brand'
+  const textCls = compact ? 'text-[10px] font-medium text-brand-hover' : 'text-xs font-medium text-brand-hover'
   const label = getUIText('partnerTrust_verified', language)
   const tooltip = getUIText('listingCard_verifiedPartner', language)
 
@@ -45,7 +45,7 @@ export function ListingTrustVerifiedMiniBadge({
     <TooltipProvider delayDuration={200}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <span className="inline-flex cursor-help rounded outline-none focus-visible:ring-2 focus-visible:ring-teal-500">
+          <span className="inline-flex cursor-help rounded outline-none focus-visible:ring-2 focus-visible:ring-brand">
             {inner}
           </span>
         </TooltipTrigger>

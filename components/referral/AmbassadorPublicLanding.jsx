@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo } from 'react'
 import Link from 'next/link'
@@ -105,7 +105,7 @@ export function AmbassadorPublicLanding({
     String(currentUser.id).toLowerCase() === String(landing.userId).toLowerCase()
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb] text-slate-900 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-16">
+    <div className="min-h-screen bg-brand-surface text-slate-900 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:pb-16">
       <div className="border-b border-slate-200/80 bg-white/90 backdrop-blur-md sticky top-0 z-10">
         <div className="mx-auto max-w-4xl px-4 py-3 flex items-center gap-3">
           <Button variant="ghost" size="icon" asChild className="shrink-0">
@@ -124,7 +124,7 @@ export function AmbassadorPublicLanding({
       </div>
 
       <div className="mx-auto max-w-4xl px-3 sm:px-4 py-6 sm:py-8 space-y-6 sm:space-y-8">
-        <section className="relative overflow-hidden rounded-2xl border border-[#006666]/20 bg-gradient-to-br from-[#006666] via-teal-700 to-teal-900 text-white shadow-lg">
+        <section className="relative overflow-hidden rounded-2xl border border-brand/20 bg-gradient-to-br from-brand via-brand-hover to-teal-900 text-white shadow-lg">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.12),transparent_45%)]" />
           <div className="relative p-6 sm:p-8 flex flex-col lg:flex-row gap-8 items-center">
             <Avatar className="h-28 w-28 border-4 border-white/20 shadow-xl shrink-0">
@@ -139,12 +139,12 @@ export function AmbassadorPublicLanding({
             </Avatar>
             <div className="flex-1 text-center lg:text-left space-y-4 min-w-0">
               <div>
-                <p className="text-teal-100 text-sm font-medium flex items-center justify-center lg:justify-start gap-2">
+                <p className="text-white/80 text-sm font-medium flex items-center justify-center lg:justify-start gap-2">
                   <Gift className="h-4 w-4" />
                   {t('stage1143_publicHeroKicker')}
                 </p>
                 <h2 className="text-2xl sm:text-4xl font-black tracking-tight mt-1 break-words">{displayName}</h2>
-                <p className="text-teal-50/90 mt-2 text-sm sm:text-base max-w-xl">{t('stage1143_publicHeroSubtitle')}</p>
+                <p className="text-white/85 mt-2 text-sm sm:text-base max-w-xl">{t('stage1143_publicHeroSubtitle')}</p>
               </div>
               <TooltipProvider delayDuration={200}>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -181,7 +181,7 @@ export function AmbassadorPublicLanding({
                         <div
                           className={`rounded-xl bg-white/10 backdrop-blur px-3 py-2.5 border border-white/15 cursor-help ${stat.className}`}
                         >
-                          <p className="text-[10px] uppercase tracking-wide text-teal-100">{stat.label}</p>
+                          <p className="text-[10px] uppercase tracking-wide text-white/75">{stat.label}</p>
                           <p className="text-xl font-bold tabular-nums">{stat.value}</p>
                         </div>
                       </TooltipTrigger>
@@ -193,7 +193,7 @@ export function AmbassadorPublicLanding({
                 </div>
               </TooltipProvider>
               {geoHintLine ? (
-                <p className="text-sm text-teal-50/95 bg-white/10 rounded-lg px-3 py-2 border border-white/10">{geoHintLine}</p>
+                <p className="text-sm text-white/90 bg-white/10 rounded-lg px-3 py-2 border border-white/10">{geoHintLine}</p>
               ) : null}
             </div>
             <div className="shrink-0 rounded-2xl bg-white p-4 shadow-xl">
@@ -208,9 +208,9 @@ export function AmbassadorPublicLanding({
         </section>
 
         {!isSelf ? (
-          <Card className="rounded-2xl border-2 border-[#006666]/25 shadow-md hidden sm:block">
+          <Card className="rounded-2xl border-2 border-brand/25 shadow-md hidden sm:block">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-[#006666]">
+              <CardTitle className="flex items-center gap-2 text-brand">
                 <UserPlus className="h-5 w-5" />
                 {t('stage1143_joinCtaTitle')}
               </CardTitle>
@@ -218,7 +218,8 @@ export function AmbassadorPublicLanding({
             </CardHeader>
             <CardContent className="flex flex-col sm:flex-row flex-wrap gap-2">
               <Button
-                className="bg-[#006666] hover:bg-[#005757] flex-1 sm:flex-none min-h-11"
+                variant="brand"
+                className="flex-1 sm:flex-none min-h-11"
                 onClick={() => (currentUser?.id ? router.push(joinUrl || '/') : openLoginModal('register'))}
               >
                 {t('stage1143_joinCtaButton')}
@@ -236,8 +237,8 @@ export function AmbassadorPublicLanding({
             </CardContent>
           </Card>
         ) : (
-          <Card className="rounded-xl border border-teal-200 bg-teal-50/50">
-            <CardContent className="py-4 text-sm text-teal-900">{t('stage1143_publicSelfHint')}</CardContent>
+          <Card className="rounded-xl border border-brand/25 bg-brand/10">
+            <CardContent className="py-4 text-sm text-brand">{t('stage1143_publicSelfHint')}</CardContent>
           </Card>
         )}
 
@@ -245,7 +246,7 @@ export function AmbassadorPublicLanding({
           <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-[#006666]" />
+                <TrendingUp className="h-4 w-4 text-brand" />
                 {t('stage1143_publicLevelsCardTitle')}
               </CardTitle>
             </CardHeader>
@@ -287,7 +288,8 @@ export function AmbassadorPublicLanding({
         <div className="fixed bottom-0 inset-x-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur-md p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:hidden">
           <div className="mx-auto max-w-4xl flex gap-2">
             <Button
-              className="flex-1 bg-[#006666] hover:bg-[#005757] min-h-11"
+              variant="brand"
+              className="flex-1 min-h-11"
               onClick={() => (currentUser?.id ? router.push(joinUrl || '/') : openLoginModal('register'))}
             >
               {t('stage1143_joinCtaButton')}

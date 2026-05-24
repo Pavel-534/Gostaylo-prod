@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -50,12 +50,12 @@ export function SystemSettingsMaintenance({
 }) {
   return (
     <div className="space-y-4">
-      <Card className={`border-2 ${maintenanceMode ? 'border-red-400 bg-red-50' : 'border-teal-400 bg-teal-50'}`}>
+      <Card className={`border-2 ${maintenanceMode ? 'border-red-400 bg-red-50' : 'border-brand/40 bg-brand/10'}`}>
         <CardContent className="p-4 lg:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-start sm:items-center gap-3 min-w-0">
               <div
-                className={`w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${maintenanceMode ? 'bg-red-500' : 'bg-teal-500'}`}
+                className={`w-10 h-10 lg:w-12 lg:h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${maintenanceMode ? 'bg-red-500' : 'bg-brand'}`}
               >
                 <Power className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
               </div>
@@ -65,14 +65,14 @@ export function SystemSettingsMaintenance({
               </div>
             </div>
             <div className="flex items-center gap-3 self-end sm:self-auto flex-shrink-0">
-              <Label className={`text-sm font-bold ${maintenanceMode ? 'text-red-700' : 'text-teal-700'}`}>
+              <Label className={`text-sm font-bold ${maintenanceMode ? 'text-red-700' : 'text-brand-hover'}`}>
                 {maintenanceMode ? 'ВКЛ' : 'ВЫКЛ'}
               </Label>
               <Switch checked={maintenanceMode} onCheckedChange={onMaintenanceToggle} className="scale-110" />
             </div>
           </div>
           <div
-            className={`mt-4 p-3 rounded-lg text-sm ${maintenanceMode ? 'bg-red-100 text-red-700' : 'bg-teal-100 text-teal-700'}`}
+            className={`mt-4 p-3 rounded-lg text-sm ${maintenanceMode ? 'bg-red-100 text-red-700' : 'bg-brand/15 text-brand-hover'}`}
           >
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />

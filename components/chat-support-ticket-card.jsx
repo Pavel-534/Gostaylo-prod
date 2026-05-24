@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { LifeBuoy } from 'lucide-react'
 import { SUPPORT_REASONS, SUPPORT_DISPUTE_KINDS } from '@/lib/support-request-options'
@@ -15,7 +15,7 @@ export function ChatSupportTicketCard({ ticket, senderName, language = 'ru' }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
       <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
-        <LifeBuoy className="h-4 w-4 shrink-0 text-teal-600" />
+        <LifeBuoy className="h-4 w-4 shrink-0 text-brand" />
         {isRu ? 'Обращение в поддержку' : 'Support request'}
       </div>
       <dl className="space-y-1.5 text-sm text-slate-800">

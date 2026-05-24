@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Crown, Eye, Loader2, Trash2 } from 'lucide-react'
@@ -111,7 +111,7 @@ export function FinTechTestDataToolbar({
       <Card
         className={cn(
           'border-2 shadow-md overflow-hidden',
-          realDataOnly ? 'border-teal-400 bg-gradient-to-br from-teal-50 via-white to-emerald-50/50' : 'border-red-300 bg-gradient-to-br from-red-50 via-white to-amber-50/40',
+          realDataOnly ? 'border-brand/40 bg-gradient-to-br from-brand/10 via-white to-emerald-50/50' : 'border-red-300 bg-gradient-to-br from-red-50 via-white to-amber-50/40',
         )}
       >
         <CardContent className="py-5 space-y-4">
@@ -135,10 +135,10 @@ export function FinTechTestDataToolbar({
               <div
                 className={cn(
                   'flex items-center gap-3 rounded-xl px-3 py-2.5 shadow-sm flex-1 ring-2',
-                  realDataOnly ? 'border-teal-300 bg-teal-50/80 ring-teal-400/60' : 'border-amber-200 bg-amber-50/60 ring-amber-300/50',
+                  realDataOnly ? 'border-brand/30 bg-brand/10 ring-brand/40' : 'border-amber-200 bg-amber-50/60 ring-amber-300/50',
                 )}
               >
-                <Eye className={cn('h-5 w-5 shrink-0', realDataOnly ? 'text-teal-700' : 'text-amber-700')} />
+                <Eye className={cn('h-5 w-5 shrink-0', realDataOnly ? 'text-brand-hover' : 'text-amber-700')} />
                 <div className="space-y-0.5 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Switch
@@ -146,11 +146,11 @@ export function FinTechTestDataToolbar({
                       checked={realDataOnly}
                       onCheckedChange={onRealDataOnlyChange}
                     />
-                    <Label htmlFor="fintech-real-only" className="font-semibold cursor-pointer text-sm text-teal-900">
+                    <Label htmlFor="fintech-real-only" className="font-semibold cursor-pointer text-sm text-brand">
                       Только реальные данные
                     </Label>
                     {realDataOnly ? (
-                      <Badge className="bg-teal-600 hover:bg-teal-600">вкл.</Badge>
+                      <Badge className="bg-brand hover:bg-brand">вкл.</Badge>
                     ) : (
                       <Badge variant="outline" className="border-amber-500 text-amber-800">
                         показан весь мусор

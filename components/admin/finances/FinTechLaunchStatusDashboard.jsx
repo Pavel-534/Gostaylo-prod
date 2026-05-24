@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import {
@@ -153,7 +153,7 @@ export function FinTechLaunchStatusDashboard({ readiness, onRefresh }) {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <CardTitle className="text-2xl sm:text-3xl flex items-center gap-2 text-slate-900">
-                <Shield className="h-8 w-8 text-teal-700 shrink-0" />
+                <Shield className="h-8 w-8 text-brand-hover shrink-0" />
                 Можно ли уже принимать деньги от гостей?
               </CardTitle>
               <CardDescription className="mt-2 max-w-2xl text-base text-slate-700 leading-relaxed">
@@ -210,9 +210,9 @@ export function FinTechLaunchStatusDashboard({ readiness, onRefresh }) {
             })}
           </div>
 
-          <div className="rounded-xl border-2 border-dashed border-teal-300 bg-teal-50/50 p-4 sm:p-5 space-y-4">
-            <p className="font-semibold text-teal-950 text-base">Уходите на 1–2 недели по договорам?</p>
-            <p className="text-sm text-teal-900/90 leading-relaxed">
+          <div className="rounded-xl border-2 border-dashed border-brand/30 bg-brand/10 p-4 sm:p-5 space-y-4">
+            <p className="font-semibold text-brand text-base">Уходите на 1–2 недели по договорам?</p>
+            <p className="text-sm text-brand/90 leading-relaxed">
               Одна кнопка: проверит цепочку денег, соберёт архив документов, даст PDF-памятку «что делать
               после возвращения» и включит паузу — новые оплаты не пойдут, пока вы не вернётесь.
             </p>
@@ -221,7 +221,7 @@ export function FinTechLaunchStatusDashboard({ readiness, onRefresh }) {
                 type="button"
                 size="lg"
                 variant="outline"
-                className="border-teal-600 text-teal-900 hover:bg-teal-100"
+                className="border-brand text-brand hover:bg-brand/15"
                 disabled={smokeBusy || pauseBusy}
                 onClick={runSmoke}
               >

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useMemo, useState } from 'react'
 import { Sparkles } from 'lucide-react'
@@ -43,18 +43,18 @@ export function ReferralEarningsEstimator({ referralEstimator, t, locale = 'ru-R
   )
 
   return (
-    <Card className="rounded-xl border border-teal-100 bg-gradient-to-br from-white to-teal-50/40 shadow-sm">
+    <Card className="rounded-xl border border-brand/20 bg-gradient-to-br from-white to-brand/10 shadow-sm">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-teal-600" aria-hidden />
+          <Sparkles className="h-5 w-5 text-brand" aria-hidden />
           <CardTitle className="text-xl">{t('stage91_estimatorTitle')}</CardTitle>
         </div>
         <CardDescription>{t('stage91_estimatorSubtitle')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="rounded-xl border border-teal-200/80 bg-white/90 p-4 shadow-inner">
-          <p className="text-xs font-medium uppercase tracking-wide text-teal-800/90">{t('stage91_estimatorOwnTripLabel')}</p>
-          <p className="mt-1 text-3xl font-bold tabular-nums text-[#006666]">
+        <div className="rounded-xl border border-brand/25 bg-white/90 p-4 shadow-inner">
+          <p className="text-xs font-medium uppercase tracking-wide text-brand-hover/90">{t('stage91_estimatorOwnTripLabel')}</p>
+          <p className="mt-1 text-3xl font-bold tabular-nums text-brand">
             ฿{formatThb(welcome, locale)}
           </p>
           <p className="mt-2 text-xs text-slate-600 leading-snug">{t('stage91_estimatorOwnTripHint')}</p>

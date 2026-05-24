@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Guest listing: title/specs (header) + description / policy / host (body).
  * @see `app/listings/[id]/components/ListingHeader.jsx` · `ListingDescription.jsx`
  */
@@ -122,7 +122,7 @@ export function GuestListingTitleBlock({ listing, language = 'en' }) {
             <div className="mb-2">
               <Badge
                 variant="secondary"
-                className="gap-1 bg-teal-50 text-teal-800 border-teal-200 font-normal"
+                className="gap-1 bg-brand/10 text-brand-hover border-brand/25 font-normal"
               >
                 <ShieldCheck className="h-3.5 w-3.5" />
                 {getUIText('listingCard_verifiedPartner', language)}
@@ -137,13 +137,13 @@ export function GuestListingTitleBlock({ listing, language = 'en' }) {
             {Number(listing.rating || listing.average_rating || listing.avgRating || 0) > 0 && (
               <a
                 href="#reviews"
-                className="flex items-center gap-1 hover:text-teal-600 transition-colors cursor-pointer group"
+                className="flex items-center gap-1 hover:text-brand transition-colors cursor-pointer group"
               >
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
                 <span className="font-medium">
                   {(Number(listing.rating || listing.average_rating || listing.avgRating) || 0).toFixed(1)}
                 </span>
-                <span className="text-slate-400 group-hover:text-teal-500">
+                <span className="text-slate-400 group-hover:text-brand/70">
                   ({(listing.reviewsCount || 0)} {getUIText('reviews', language)})
                 </span>
               </a>
@@ -286,7 +286,7 @@ export function GuestListingBodyBlock({ listing, language = 'en' }) {
               <CardContent className="p-6">
                 <Link
                   href={listing.owner?.id ? `/u/${listing.owner.id}` : '#'}
-                  className={`group flex items-center gap-4 rounded-xl -m-2 p-2 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
+                  className={`group flex items-center gap-4 rounded-xl -m-2 p-2 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand ${
                     listing.owner?.id ? 'hover:bg-slate-50' : 'pointer-events-none opacity-80'
                   }`}
                   aria-label={getUIText('publicProfileOpenHostHint', language)}
@@ -299,12 +299,12 @@ export function GuestListingBodyBlock({ listing, language = 'en' }) {
                         className="object-cover"
                       />
                     ) : null}
-                    <AvatarFallback className="bg-teal-100 text-teal-700 text-lg font-semibold">
+                    <AvatarFallback className="bg-brand/15 text-brand-hover text-lg font-semibold">
                       {(listing.owner.first_name?.charAt(0) || listing.owner.last_name?.charAt(0) || '?').toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="space-y-1">
-                    <h3 className="font-medium text-lg text-slate-900 group-hover:text-teal-800">
+                    <h3 className="font-medium text-lg text-slate-900 group-hover:text-brand-hover">
                       {[listing.owner.first_name, listing.owner.last_name].filter(Boolean).join(' ').trim() ||
                         getUIText('hostNamePlaceholder', language)}
                     </h3>

@@ -1,11 +1,12 @@
-'use client'
+﻿'use client'
 
 import { Skeleton } from '@/components/ui/skeleton'
+import { GSL_SHIMMER } from '@/lib/theme/product-ui'
 
 /** Stage 114.6 — skeleton для `/u/[id]` ambassador landing. */
 export function AmbassadorLandingSkeleton() {
   return (
-    <div className="min-h-screen bg-[#f7f9fb] pb-16 animate-pulse" aria-busy aria-label="Loading">
+    <div className={`min-h-screen bg-brand-surface pb-16 ${GSL_SHIMMER}`} aria-busy aria-label="Loading">
       <Skeleton className="h-14 w-full rounded-none" />
       <div className="mx-auto max-w-4xl px-4 py-8 space-y-8">
         <Skeleton className="h-64 sm:h-72 w-full rounded-2xl" />

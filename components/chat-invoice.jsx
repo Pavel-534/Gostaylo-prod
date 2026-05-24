@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GoStayLo - In-Chat Invoice Component
  * Stage 110.6 — префилл = гостевая витрина + retail FX; гость видит сумму партнёра.
  */
@@ -94,7 +94,7 @@ export function InvoiceCard({
   const CurrencyIcon = currencyConfig.icon
 
   return (
-    <Card className={`w-full max-w-sm ${isOwn ? 'ml-auto' : ''} border-2 border-teal-200 shadow-lg`}>
+    <Card className={`w-full max-w-sm ${isOwn ? 'ml-auto' : ''} border-2 border-brand/25 shadow-lg`}>
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -145,7 +145,7 @@ export function InvoiceCard({
         {invoice?.status === 'PENDING' && onPay && !isOwn && (
           <Button
             onClick={() => onPay(invoice)}
-            className="w-full bg-teal-600 hover:bg-teal-700"
+            className="w-full bg-brand hover:bg-brand-hover"
             data-testid="invoice-pay-btn"
           >
             <CreditCard className="h-4 w-4 mr-2" />
@@ -294,7 +294,7 @@ export function SendInvoiceDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Receipt className="h-5 w-5 text-teal-600" />
+            <Receipt className="h-5 w-5 text-brand" />
             Создать счёт на оплату
           </DialogTitle>
         </DialogHeader>
@@ -444,7 +444,7 @@ export function SendInvoiceDialog({
               (invoiceData.extensionIntent && !invoiceData.newCheckOut) ||
               sending
             }
-            className="w-full bg-teal-600 hover:bg-teal-700"
+            className="w-full bg-brand hover:bg-brand-hover"
           >
             {sending ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

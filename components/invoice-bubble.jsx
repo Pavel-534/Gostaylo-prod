@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
@@ -109,7 +109,7 @@ export function InvoiceBubble({
         className={cn(
           'w-full max-w-full rounded-2xl border border-slate-200/90 p-4 shadow-[0_4px_20px_-6px_rgba(15,23,42,0.12),0_2px_8px_-3px_rgba(15,23,42,0.06)] sm:max-w-[320px]',
           isOwn
-            ? 'ml-auto bg-white ring-1 ring-teal-200/60'
+            ? 'ml-auto bg-white ring-1 ring-brand/20'
             : 'mr-auto bg-white',
           className
         )}
@@ -117,7 +117,7 @@ export function InvoiceBubble({
         <div className="mb-3 flex items-start justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2.5">
             <div className="rounded-xl bg-slate-50 p-2">
-              <Receipt className="h-5 w-5 text-teal-600" />
+              <Receipt className="h-5 w-5 text-brand" />
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
@@ -162,7 +162,7 @@ export function InvoiceBubble({
         {showPay && !isOwn && rawStatus === 'PENDING' && (
           <Button
             type="button"
-            className="h-12 min-h-[48px] w-full rounded-xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700"
+            className="h-12 min-h-[48px] w-full rounded-xl bg-brand text-base font-bold text-white shadow-sm hover:bg-brand-hover"
             data-testid="invoice-bubble-pay"
             onClick={() => {
               if (!invoice.booking_id) {
@@ -234,7 +234,7 @@ export function InvoiceBubble({
                 goCheckout('CARD')
               }}
             >
-              <CreditCard className="h-5 w-5 text-teal-600" />
+              <CreditCard className="h-5 w-5 text-brand" />
               <span className="text-left">
                 <span className="block font-medium">Банковская карта</span>
                 <span className="text-xs text-slate-500">Visa, Mastercard, МИР</span>

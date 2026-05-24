@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Activity, Loader2, UserPlus, Coins, KeyRound, Home } from 'lucide-react'
@@ -18,7 +18,7 @@ function formatWhen(iso) {
 }
 
 function EventIcon({ type }) {
-  const wrap = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-50 border border-teal-100 text-teal-700'
+  const wrap = 'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand/10 border border-brand/20 text-brand-hover'
   if (type === 'teammate_joined') {
     return (
       <span className={wrap} aria-hidden>
@@ -182,7 +182,7 @@ export function ReferralActivityFeed() {
     <Card className="border border-slate-200 bg-white">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
-          <Activity className="h-5 w-5 text-teal-700" />
+          <Activity className="h-5 w-5 text-brand-hover" />
           {t('referralFeed_title')}
         </CardTitle>
         <CardDescription>{t('referralFeed_subtitle')}</CardDescription>
@@ -207,7 +207,7 @@ export function ReferralActivityFeed() {
                   <div className="min-w-0 flex-1">
                     <p className="text-slate-800">{row.text}</p>
                     {row.partnerStatus ? (
-                      <span className="inline-flex mt-1 rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-800">
+                      <span className="inline-flex mt-1 rounded-full border border-brand/25 bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand-hover">
                         {row.partnerStatus}
                       </span>
                     ) : null}

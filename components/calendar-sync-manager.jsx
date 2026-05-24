@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -332,20 +332,20 @@ export default function CalendarSyncManager({ listingId, onSync }) {
 
   if (loading) {
     return (
-      <Card className="border-2 border-teal-100 shadow-sm">
+      <Card className="border-2 border-brand/20 shadow-sm">
         <CardContent className="p-10 flex items-center justify-center">
-          <Loader2 className="h-7 w-7 animate-spin text-teal-600" />
+          <Loader2 className="h-7 w-7 animate-spin text-brand" />
         </CardContent>
       </Card>
     )
   }
 
   return (
-    <Card id="partner-calendar-sync" className="border-2 border-teal-100 shadow-md scroll-mt-24 overflow-hidden">
-      <CardHeader className="pb-2 bg-gradient-to-r from-teal-50/80 to-white border-b border-teal-100">
+    <Card id="partner-calendar-sync" className="border-2 border-brand/20 shadow-md scroll-mt-24 overflow-hidden">
+      <CardHeader className="pb-2 bg-gradient-to-r from-brand/10 to-white border-b border-brand/20">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-xl bg-teal-600 flex items-center justify-center shrink-0 shadow-sm">
+            <div className="w-11 h-11 rounded-xl bg-brand flex items-center justify-center shrink-0 shadow-sm">
               <Calendar className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -378,9 +378,9 @@ export default function CalendarSyncManager({ listingId, onSync }) {
           </div>
 
           <TabsContent value="export" className="mt-0 px-4 pb-4 sm:px-6 sm:pb-6 pt-4 space-y-4">
-            <div className="rounded-xl border border-teal-200 bg-teal-50/50 p-4 space-y-3">
+            <div className="rounded-xl border border-brand/25 bg-brand/10 p-4 space-y-3">
               <div className="flex items-start gap-2">
-                <Share2 className="h-5 w-5 text-teal-700 shrink-0 mt-0.5" />
+                <Share2 className="h-5 w-5 text-brand-hover shrink-0 mt-0.5" />
                 <div>
                   <p className="font-medium text-slate-900">{tr('partnerCal_exportTitle')}</p>
                   <p className="text-sm text-slate-600 mt-1 leading-relaxed">{tr('partnerCal_exportLead')}</p>
@@ -403,7 +403,7 @@ export default function CalendarSyncManager({ listingId, onSync }) {
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-teal-400 text-teal-900 hover:bg-teal-100 shrink-0"
+                    className="border-brand/40 text-brand hover:bg-brand/15 shrink-0"
                     onClick={copyExportUrl}
                   >
                     {copied ? <CheckCircle2 className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
@@ -416,9 +416,9 @@ export default function CalendarSyncManager({ listingId, onSync }) {
                 </p>
               )}
 
-              <Accordion type="single" collapsible className="border border-teal-100 rounded-lg bg-white/80 px-3">
+              <Accordion type="single" collapsible className="border border-brand/20 rounded-lg bg-white/80 px-3">
                 <AccordionItem value="help" className="border-0">
-                  <AccordionTrigger className="text-sm font-medium text-teal-900 hover:no-underline py-3">
+                  <AccordionTrigger className="text-sm font-medium text-brand hover:no-underline py-3">
                     <span className="flex items-center gap-2">
                       <BookOpen className="h-4 w-4" />
                       {tr('partnerCal_accordionTitle')}

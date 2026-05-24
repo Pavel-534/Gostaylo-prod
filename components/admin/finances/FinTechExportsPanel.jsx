@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Download, RefreshCw } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,7 +24,7 @@ export function FinTechExportsPanel({
 }) {
   return (
     <div className="space-y-8">
-      <Card className="border-slate-200 shadow-sm border-teal-100">
+      <Card className="border-slate-200 shadow-sm border-brand/20">
         <CardHeader>
           <CardTitle className="text-lg" style={{ color: FINTECH_NAVY }}>
             Экспорт всего за месяц
@@ -48,7 +48,7 @@ export function FinTechExportsPanel({
       <Card className="border-slate-200 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg" style={{ color: FINTECH_NAVY }}>
-            <Download className="h-5 w-5 text-teal-600" />
+            <Download className="h-5 w-5 text-brand" />
             Реестр для банка и бухгалтерии
           </CardTitle>
           <CardDescription>

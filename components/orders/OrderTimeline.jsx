@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -35,9 +35,9 @@ export default function OrderTimeline({
                   className={cn(
                     'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-[9px] font-bold',
                     step.done
-                      ? 'border-teal-600 bg-teal-600 text-white'
+                      ? 'border-brand bg-brand text-white'
                       : step.current
-                        ? 'border-teal-500 bg-white text-teal-700 ring-1 ring-teal-200/80'
+                        ? 'border-brand bg-white text-brand-hover ring-1 ring-brand/20'
                         : 'border-slate-200 bg-white text-slate-400',
                     step.disabled ? 'opacity-50' : '',
                   )}
@@ -58,7 +58,7 @@ export default function OrderTimeline({
                 <div
                   className={cn(
                     'mt-2 h-px min-w-[4px] flex-1 rounded-full',
-                    steps[idx].done ? 'bg-teal-500' : 'bg-slate-200',
+                    steps[idx].done ? 'bg-brand' : 'bg-slate-200',
                   )}
                   aria-hidden
                 />

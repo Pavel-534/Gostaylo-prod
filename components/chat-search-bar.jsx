@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * ChatSearchBar — инлайн-поиск по сообщениям диалога.
@@ -54,7 +54,7 @@ export function ChatSearchBar({ value, onChange, resultCount, onClose, language 
         <span
           className={cn(
             'text-xs tabular-nums shrink-0',
-            hasResults ? 'text-teal-600' : 'text-red-500',
+            hasResults ? 'text-brand' : 'text-red-500',
           )}
         >
           {resultCount === 0

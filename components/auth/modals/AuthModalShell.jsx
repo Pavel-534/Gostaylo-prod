@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -59,13 +59,13 @@ export function AuthModalShell(props) {
           <>
             <DialogHeader>
               <DialogTitle className='flex items-center gap-2'>
-                <Mail className='h-5 w-5 text-teal-600' />
+                <Mail className='h-5 w-5 text-brand' />
                 {getUIText('auth_verify_emailTitle', language)}
               </DialogTitle>
             </DialogHeader>
             <div className='py-6 text-center space-y-4'>
-              <div className='w-16 h-16 mx-auto bg-teal-100 rounded-full flex items-center justify-center'>
-                <Mail className='h-8 w-8 text-teal-600' />
+              <div className='w-16 h-16 mx-auto bg-brand/15 rounded-full flex items-center justify-center'>
+                <Mail className='h-8 w-8 text-brand' />
               </div>
               <p className='text-slate-600'>{getUIText('auth_verify_emailSent', language)}</p>
               <div className='mx-auto max-w-sm space-y-1.5 px-1 text-left'>
@@ -126,7 +126,7 @@ export function AuthModalShell(props) {
                 }}
                 className={`flex-1 py-2.5 text-sm font-medium transition-colors border-b-2 ${
                   authMode === 'login'
-                    ? 'border-teal-600 bg-teal-50/50 text-teal-600'
+                    ? 'border-brand bg-brand/10 text-brand'
                     : 'border-transparent text-slate-500 hover:text-slate-700'
                 }`}
               >
@@ -141,7 +141,7 @@ export function AuthModalShell(props) {
                 }}
                 className={`flex-1 py-2.5 text-sm font-medium transition-colors border-b-2 ${
                   authMode === 'register'
-                    ? 'border-teal-600 bg-teal-50/50 text-teal-600'
+                    ? 'border-brand bg-brand/10 text-brand'
                     : 'border-transparent text-slate-500 hover:text-slate-700'
                 }`}
               >
@@ -166,7 +166,7 @@ export function AuthModalShell(props) {
                 type='button'
                 onClick={() => void startGoogleOAuth()}
                 disabled={googleOAuthBusy || submitting || (authMode === 'register' && !registerLegalConsent)}
-                className='flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200/90 bg-white px-4 text-sm font-medium text-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.05)] ring-1 ring-slate-100/80 transition hover:border-teal-300/70 hover:bg-slate-50/90 hover:shadow-[0_4px_14px_rgba(15,118,110,0.08)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-45'
+                className='flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200/90 bg-white px-4 text-sm font-medium text-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.05)] ring-1 ring-slate-100/80 transition hover:border-brand/30 hover:bg-slate-50/90 hover:shadow-[0_4px_14px_rgba(0,102,102,0.08)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-45'
               >
                 {googleOAuthBusy ? (
                   <Loader2 className='h-4 w-4 shrink-0 animate-spin text-slate-600' />

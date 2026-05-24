@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { AlertTriangle, Sparkles, Shield, TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -59,12 +59,12 @@ export function SuccessGuide({ language = 'ru', snapshot = null, dominantCategor
                 tone === 'slate'
                   ? 'border-slate-200 bg-slate-50/80'
                   : tone === 'teal'
-                    ? 'border-teal-200 bg-teal-50/50'
+                    ? 'border-brand/25 bg-brand/10'
                     : 'border-emerald-200 bg-emerald-50/50'
               }`}
             >
               <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <Icon className={`h-4 w-4 shrink-0 ${tone === 'emerald' ? 'text-emerald-600' : tone === 'teal' ? 'text-teal-600' : 'text-slate-600'}`} />
+                <Icon className={`h-4 w-4 shrink-0 ${tone === 'emerald' ? 'text-emerald-600' : tone === 'teal' ? 'text-brand' : 'text-slate-600'}`} />
                 {t(key)}
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">{t(body)}</p>

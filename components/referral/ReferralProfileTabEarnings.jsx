@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
@@ -89,7 +89,7 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
         <Card className="md:col-span-2 rounded-xl border border-slate-200 bg-white shadow-sm">
           <CardContent className="p-6">
             <p className="text-xs uppercase tracking-wider text-slate-500">{t('stage1143_earningsTotal')}</p>
-            <p className="text-4xl font-black text-[#006666] mt-2">{formatThb(walletTotal, locale)} THB</p>
+            <p className="text-4xl font-black text-brand mt-2">{formatThb(walletTotal, locale)} THB</p>
             <div className="mt-6 flex gap-8 flex-wrap">
               <div>
                 <p className="text-xs text-slate-400">{t('stage1143_invitesTotal')}</p>
@@ -101,7 +101,7 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
               </div>
               <div>
                 <p className="text-xs text-slate-400">{t('stage1143_earnedLifetime')}</p>
-                <p className="text-2xl font-semibold text-[#006666]">{formatThb(data?.stats?.earnedThb, locale)} THB</p>
+                <p className="text-2xl font-semibold text-brand">{formatThb(data?.stats?.earnedThb, locale)} THB</p>
               </div>
             </div>
             {Array.isArray(data?.stats?.sparklineEarningsThb) && data.stats.sparklineEarningsThb.length > 1 ? (
@@ -111,7 +111,7 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
             ) : null}
           </CardContent>
         </Card>
-        <Card className="rounded-xl border border-[#006666]/20 bg-[#006666] text-white shadow-sm">
+        <Card className="rounded-xl border border-brand/20 bg-brand text-white shadow-sm">
           <CardContent className="p-6 space-y-4">
             <Gift className="h-8 w-8" />
             <p className="text-xl font-bold">{data?.ambassador?.currentTier?.name || 'Ambassador'}</p>
@@ -119,7 +119,7 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
             <Button
               type="button"
               variant="secondary"
-              className="w-full bg-white text-[#006666]"
+              className="w-full bg-white text-brand"
               onClick={() => router.push('/profile/wallet')}
             >
               {payoutEligible
@@ -137,7 +137,7 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
             <CardDescription>{t('stage91_statsDirectGuestsDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold text-[#006666]">{formatThb(l1Monthly, locale)} THB</p>
+            <p className="text-2xl font-semibold text-brand">{formatThb(l1Monthly, locale)} THB</p>
           </CardContent>
         </Card>
         <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -146,7 +146,7 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
             <CardDescription>{t('stage91_statsPartnerNetworkDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-semibold text-[#006666]">{formatThb(l2Monthly, locale)} THB</p>
+            <p className="text-2xl font-semibold text-brand">{formatThb(l2Monthly, locale)} THB</p>
           </CardContent>
         </Card>
       </div>

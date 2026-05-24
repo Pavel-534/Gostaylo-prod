@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GoStayLo - Renter Profile Page (Phase 2)
  * 
  * Features:
@@ -35,6 +35,7 @@ import { KycUploader } from '@/components/kyc-uploader'
 import { PartnerApplicationModal } from '@/components/renter/PartnerApplicationModal'
 import { useRenterProfilePage } from '@/hooks/renter/use-renter-profile-page'
 import { roleUiKey } from '@/lib/renter/profile-completion'
+import { LoadingPageShell } from '@/components/product/LoadingPageShell'
 
 export default function RenterProfilePageContent() {
   const {
@@ -59,18 +60,14 @@ export default function RenterProfilePageContent() {
   } = useRenterProfilePage()
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-12 w-12 animate-spin text-teal-600" />
-      </div>
-    )
+    return <LoadingPageShell variant="inline" label={getUIText('loading', language)} />
   }
   
   if (!user) {
     return (
       <div className="text-center py-12">
         <p className="text-slate-600 mb-4">{getUIText('renterProfileLoginPrompt', language)}</p>
-        <Button asChild className="bg-teal-600 hover:bg-teal-700">
+        <Button asChild variant="brand">
           <Link href="/profile?login=true">{getUIText('renterProfileLogIn', language)}</Link>
         </Button>
       </div>
@@ -99,7 +96,7 @@ export default function RenterProfilePageContent() {
                   className="object-cover"
                 />
               ) : null}
-              <AvatarFallback className="bg-gradient-to-br from-teal-500 to-teal-600 text-white text-3xl font-bold">
+              <AvatarFallback className="bg-gradient-to-br from-brand to-brand-hover text-white text-3xl font-bold">
                 {initialLetter}
               </AvatarFallback>
             </Avatar>
@@ -112,7 +109,7 @@ export default function RenterProfilePageContent() {
                 </h1>
                 <Badge className={
                   user.role === 'PARTNER' 
-                    ? 'bg-teal-100 text-teal-800 border-teal-300'
+                    ? 'bg-brand/15 text-brand-hover border-brand/30'
                     : 'bg-slate-100 text-slate-800 border-slate-300'
                 }>
                   {getUIText(roleUiKey(user.role), language)}
@@ -148,7 +145,7 @@ export default function RenterProfilePageContent() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-slate-700">{getUIText('profileCompletion', language)}</span>
-              <span className="text-sm font-semibold text-teal-600">{profileCompletion}%</span>
+              <span className="text-sm font-semibold text-brand">{profileCompletion}%</span>
             </div>
             <Progress value={profileCompletion} className="h-2" />
             <p className="text-xs text-slate-500 mt-2">
@@ -165,7 +162,7 @@ export default function RenterProfilePageContent() {
                   {profileItems.map((item) => (
                     <li key={item.id} className="flex items-start gap-2 text-sm">
                       {item.done ? (
-                        <CheckCircle className="h-4 w-4 shrink-0 text-teal-600 mt-0.5" aria-hidden />
+                        <CheckCircle className="h-4 w-4 shrink-0 text-brand mt-0.5" aria-hidden />
                       ) : (
                         <Circle className="h-4 w-4 shrink-0 text-slate-300 mt-0.5" aria-hidden />
                       )}
@@ -177,7 +174,7 @@ export default function RenterProfilePageContent() {
                           <div className="mt-0.5">
                             <Link
                               href={item.settingsHref}
-                              className="text-xs font-medium text-teal-600 hover:text-teal-700 underline-offset-2 hover:underline"
+                              className="text-xs font-medium text-brand hover:text-brand-hover underline-offset-2 hover:underline"
                             >
                               {getUIText('profileItemAddInSettings', language)}
                             </Link>
@@ -195,22 +192,22 @@ export default function RenterProfilePageContent() {
       
       {/* Become a Partner Card (Only for non-partners) */}
       {user.role !== 'PARTNER' && (
-        <Card className="border-2 border-teal-200 bg-gradient-to-br from-teal-50 to-white">
+        <Card className="border-2 border-brand/25 bg-gradient-to-br from-brand/10 to-white">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-teal-900">
+            <CardTitle className="flex items-center gap-2 text-brand">
               <Sparkles className="h-6 w-6" />
               {getUIText('startEarning', language)}
             </CardTitle>
-            <CardDescription className="text-teal-700">
+            <CardDescription className="text-brand-hover">
               {getUIText('listYourProperty', language)}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Benefits */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-teal-100">
-                <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <TrendingUp className="h-5 w-5 text-teal-600" />
+              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-brand/20">
+                <div className="w-10 h-10 bg-brand/15 rounded-full flex items-center justify-center flex-shrink-0">
+                  <TrendingUp className="h-5 w-5 text-brand" />
                 </div>
                 <div>
                   <p className="font-semibold text-slate-900 text-sm">{getUIText('commissionZero', language)}</p>
@@ -218,9 +215,9 @@ export default function RenterProfilePageContent() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-teal-100">
-                <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Shield className="h-5 w-5 text-teal-600" />
+              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-brand/20">
+                <div className="w-10 h-10 bg-brand/15 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Shield className="h-5 w-5 text-brand" />
                 </div>
                 <div>
                   <p className="font-semibold text-slate-900 text-sm">{getUIText('support247', language)}</p>
@@ -228,9 +225,9 @@ export default function RenterProfilePageContent() {
                 </div>
               </div>
               
-              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-teal-100">
-                <div className="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Zap className="h-5 w-5 text-teal-600" />
+              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-brand/20">
+                <div className="w-10 h-10 bg-brand/15 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Zap className="h-5 w-5 text-brand" />
                 </div>
                 <div>
                   <p className="font-semibold text-slate-900 text-sm">{getUIText('fastPayouts', language)}</p>
@@ -244,7 +241,7 @@ export default function RenterProfilePageContent() {
               <Button
                 type="button"
                 disabled
-                className="w-full bg-teal-600/80 text-lg py-6 cursor-wait opacity-90"
+                className="bg-brand/80 text-lg py-6 cursor-wait opacity-90"
               >
                 <Loader2 className="h-5 w-5 mr-2 animate-spin shrink-0" />
                 {getUIText('partnerAppStatusLoading', language)}
@@ -352,7 +349,8 @@ export default function RenterProfilePageContent() {
             ) : (
               <Button 
                 onClick={() => setShowApplicationModal(true)}
-                className="w-full bg-teal-600 hover:bg-teal-700 text-lg py-6"
+                variant="brand"
+                className="w-full text-lg py-6"
               >
                 <Send className="h-5 w-5 mr-2" />
                 {getUIText('applyBecomePartner', language)}

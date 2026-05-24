@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -30,11 +30,7 @@ export function OrderCardGuestActions({
         <>
           {showPayNow ? (
             <>
-              <Button
-                asChild
-                size="lg"
-                className="bg-teal-600 hover:bg-teal-700 text-white shadow-md font-semibold min-w-[9.5rem]"
-              >
+              <Button asChild variant="brand" size="lg" className="shadow-md font-semibold min-w-[9.5rem]">
                 <Link href={`/checkout/${encodeURIComponent(bookingId)}`}>
                   {getUIText('orderAction_payNow', language)}
                 </Link>
@@ -66,13 +62,13 @@ export function OrderCardGuestActions({
       ) : null}
 
       {showCheckIn ? (
-        <Button type="button" onClick={() => onCheckIn?.(booking)} disabled={isBusy} className="bg-teal-600 hover:bg-teal-700">
+        <Button type="button" variant="brand" onClick={() => onCheckIn?.(booking)} disabled={isBusy}>
           {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : getUIText('orderAction_checkIn', language)}
         </Button>
       ) : null}
 
       {showReview ? (
-        <Button type="button" onClick={() => onReview?.(booking)} disabled={isBusy} className="bg-teal-600 hover:bg-teal-700">
+        <Button type="button" variant="brand" onClick={() => onReview?.(booking)} disabled={isBusy}>
           <Star className="h-4 w-4 mr-2" />
           {getUIText('orderAction_review', language)}
         </Button>

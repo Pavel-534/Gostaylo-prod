@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * @file components/chat/ChatThreadChrome.jsx
@@ -162,8 +162,8 @@ export function ChatThreadChrome({
 function DefaultEmptyState({ language = 'ru' }) {
   return (
     <div className="flex flex-col items-center gap-4 text-center px-8 max-w-sm">
-      <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center">
-        <MessageSquare className="h-8 w-8 text-teal-400" />
+      <div className="w-16 h-16 rounded-2xl bg-brand/10 flex items-center justify-center">
+        <MessageSquare className="h-8 w-8 text-brand/70" />
       </div>
       <div>
         <p className="text-base font-semibold text-slate-700">

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * SearchCalendar - Simplified Calendar for Search Bar
@@ -79,12 +79,12 @@ function SearchDayCell({
       className={cn(
         "relative w-10 h-10 flex items-center justify-center text-sm text-slate-900 transition-colors rounded-full",
         isPast && "text-slate-300 cursor-not-allowed",
-        !isPast && "hover:bg-teal-50",
+        !isPast && "hover:bg-brand/10",
         isToday && !isSelected && "font-bold",
-        isRangeStart && "bg-teal-600 text-white rounded-r-none",
-        isRangeEnd && "bg-teal-600 text-white rounded-l-none",
-        isInRange && !isRangeStart && !isRangeEnd && "bg-teal-100 text-teal-900 rounded-none",
-        isSelected && !isRangeStart && !isRangeEnd && "bg-teal-600 text-white"
+        isRangeStart && "bg-brand text-white rounded-r-none",
+        isRangeEnd && "bg-brand text-white rounded-l-none",
+        isInRange && !isRangeStart && !isRangeEnd && "bg-brand/15 text-brand rounded-none",
+        isSelected && !isRangeStart && !isRangeEnd && "bg-brand text-white"
       )}
     >
       {date.getDate()}
@@ -325,10 +325,10 @@ function MobileCalendarDrawer({
           {/* Selection Summary */}
           {tempRange.from && tempRange.to && nights > 0 && (
             <div className="flex items-center gap-2 mt-2">
-              <Badge variant="secondary" className="bg-teal-100 text-teal-700">
+              <Badge variant="secondary" className="bg-brand/15 text-brand-hover">
                 {formatDisplayDate(tempRange.from)} — {formatDisplayDate(tempRange.to)}
               </Badge>
-              <Badge variant="outline" className="border-teal-300 text-teal-600">
+              <Badge variant="outline" className="border-brand/30 text-brand">
                 {nights} {locale === 'ru' ? (nights === 1 ? 'ночь' : nights < 5 ? 'ночи' : 'ночей') : `night${nights > 1 ? 's' : ''}`}
               </Badge>
             </div>
@@ -366,7 +366,7 @@ function MobileCalendarDrawer({
               {locale === 'ru' ? 'Сбросить' : 'Clear'}
             </Button>
             <Button 
-              className="flex-1 h-11 bg-teal-600 hover:bg-teal-700 text-white font-medium"
+              className="flex-1 h-11 bg-brand hover:bg-brand-hover text-white font-medium"
               onClick={handleConfirm}
               disabled={!canConfirm}
               data-testid="search-calendar-confirm"
@@ -447,7 +447,7 @@ export function SearchCalendar({
   // Trigger button content
   const TriggerContent = (
     <>
-      <CalendarIcon className="h-5 w-5 text-teal-600 flex-shrink-0" />
+      <CalendarIcon className="h-5 w-5 text-brand flex-shrink-0" />
       <span className={cn(
         "text-base font-medium leading-none truncate",
         dateRange.from ? "text-slate-900" : "text-slate-500"
@@ -455,7 +455,7 @@ export function SearchCalendar({
         {displayText}
       </span>
       {nights > 0 && (
-        <Badge variant="secondary" className="ml-auto bg-teal-100 text-teal-700 text-xs">
+        <Badge variant="secondary" className="ml-auto bg-brand/15 text-brand-hover text-xs">
           {nights}{locale === 'ru' ? 'н.' : 'n.'}
         </Badge>
       )}

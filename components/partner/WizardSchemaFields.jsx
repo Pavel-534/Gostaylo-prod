@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -51,7 +51,7 @@ function renderField(field, metadata, updateMetadata, t, language = 'ru') {
                 key={row.id}
                 className={cn(
                   'flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm',
-                  checked ? 'border-teal-500 bg-teal-50' : 'border-slate-200',
+                  checked ? 'border-brand bg-brand/10' : 'border-slate-200',
                 )}
               >
                 <Checkbox checked={checked} onCheckedChange={() => toggle(row.id)} />

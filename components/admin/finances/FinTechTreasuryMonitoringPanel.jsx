@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import { Bell, RefreshCw, ShieldAlert } from 'lucide-react'
@@ -48,7 +48,7 @@ export function FinTechTreasuryMonitoringPanel() {
     <Card className="border-slate-200 shadow-sm">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
-          <Bell className="h-5 w-5 text-teal-600" />
+          <Bell className="h-5 w-5 text-brand" />
           Мониторинг
         </CardTitle>
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
@@ -97,7 +97,7 @@ export function FinTechTreasuryMonitoringPanel() {
                     {TYPE_LABELS[a.type] || a.type}
                   </Badge>
                   {a.telegramSent ? (
-                    <span className="text-[10px] text-teal-700 font-medium">TG ✓</span>
+                    <span className="text-[10px] text-brand-hover font-medium">TG ✓</span>
                   ) : null}
                   <span className="text-xs text-muted-foreground ml-auto">
                     {a.at ? new Date(a.at).toLocaleString('ru-RU') : ''}

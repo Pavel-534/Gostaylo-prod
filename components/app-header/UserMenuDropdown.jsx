@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * UserMenuDropdown — avatar + выпадающее меню пользователя.
@@ -43,7 +43,7 @@ export function UserMenuDropdown() {
       <Button
         size="sm"
         data-testid="app-header-login"
-        className="h-9 rounded-full bg-teal-600 px-4 font-medium hover:bg-teal-700"
+        className="h-9 rounded-full bg-brand px-4 font-medium hover:bg-brand-hover"
         onClick={openLoginModal}
       >
         {getUIText('login', language)}
@@ -68,7 +68,7 @@ export function UserMenuDropdown() {
               <AvatarFallback
                 className={cn(
                   'text-xs font-semibold text-white',
-                  isAdmin ? 'bg-indigo-600' : isPartner ? 'bg-teal-600' : 'bg-slate-500',
+                  isAdmin ? 'bg-indigo-600' : isPartner ? 'bg-brand' : 'bg-slate-500',
                 )}
               >
                 {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
@@ -125,8 +125,8 @@ export function UserMenuDropdown() {
             <DropdownMenuSeparator />
             <div className="py-1">
               <DropdownMenuItem className="cursor-pointer py-2.5" onSelect={() => navigate('/partner/dashboard')}>
-                <Briefcase className="mr-3 h-4 w-4 text-teal-600" />
-                <span className="font-medium text-teal-700">
+                <Briefcase className="mr-3 h-4 w-4 text-brand" />
+                <span className="font-medium text-brand-hover">
                   {language === 'ru' ? 'Панель партнёра' : 'Partner Dashboard'}
                 </span>
               </DropdownMenuItem>

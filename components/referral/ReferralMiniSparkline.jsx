@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
  */
 export function ReferralMiniSparkline({
   values = [],
-  strokeClassName = 'text-teal-600',
+  strokeClassName = 'text-brand',
   height = 36,
   tooltip = '',
 }) {

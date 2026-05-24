@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { formatPrice } from '@/lib/currency'
 import { getUIText } from '@/lib/translations'
@@ -116,12 +116,12 @@ export function OrderPriceBreakdown({ booking, breakdown = null, language = 'ru'
             ? getUIText('orderPrice_totalGuestPaid', language)
             : getUIText('orderPrice_totalYouPay', language)}
         </span>
-        <span className="text-teal-800 tabular-nums">{formatPrice(b.totalThb, currency)}</span>
+        <span className="text-brand-hover tabular-nums">{formatPrice(b.totalThb, currency)}</span>
       </div>
       {role === 'partner' && partnerShare > 0 ? (
         <div className="flex justify-between gap-3 text-xs text-slate-600 pt-1 border-t border-dashed border-slate-200">
           <span>{getUIText('orderPrice_partnerShare', language)}</span>
-          <span className="font-medium text-teal-700 tabular-nums">{formatPrice(partnerShare, currency)}</span>
+          <span className="font-medium text-brand-hover tabular-nums">{formatPrice(partnerShare, currency)}</span>
         </div>
       ) : null}
     </div>

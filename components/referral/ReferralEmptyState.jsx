@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { cn } from '@/lib/utils'
 
@@ -14,7 +14,7 @@ export function ReferralEmptyState({ icon: Icon, title, description, action, cla
         className,
       )}
     >
-      {Icon ? <Icon className="h-10 w-10 text-teal-600/40 mb-3" aria-hidden /> : null}
+      {Icon ? <Icon className="h-10 w-10 text-brand/40 mb-3" aria-hidden /> : null}
       <p className="font-semibold text-slate-900">{title}</p>
       {description ? <p className="text-sm text-slate-600 mt-2 max-w-md leading-relaxed">{description}</p> : null}
       {action ? <div className="mt-4">{action}</div> : null}

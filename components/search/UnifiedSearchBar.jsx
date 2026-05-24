@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * UnifiedSearchBar - Airbnb/Booking style: What | Where | When | Who
@@ -161,7 +161,7 @@ export function UnifiedSearchBar({
         <button
           type="button"
           onClick={() => onSearchSubmit?.()}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand/40 hover:bg-brand/10 hover:text-brand-hover"
           aria-label={getUIText('findButton', language)}
         >
           <Search className="h-4 w-4" aria-hidden />
@@ -232,7 +232,7 @@ export function UnifiedSearchBar({
         {/* What - Category */}
         <Select value={category || 'all'} onValueChange={(v) => setCategory?.(v)}>
           <SelectTrigger className="h-9">
-            <Layers className="h-4 w-4 mr-2 text-teal-600" />
+            <Layers className="h-4 w-4 mr-2 text-brand" />
             <span className="truncate">
               {category && category !== 'all' ? (getCategoryName(category, language) || category) : getUIText('whatPlaceholder', language)}
             </span>
@@ -328,7 +328,7 @@ export function UnifiedSearchBar({
                 !textSearchRow && 'rounded-l-[26px]',
               )}
             >
-              <Layers className="h-4 w-4 text-[#006666] flex-shrink-0" />
+              <Layers className="h-4 w-4 text-brand flex-shrink-0" />
               <span className="text-[15px] font-medium text-slate-800 truncate">{categoryLabel}</span>
             </button>
           </PopoverTrigger>
@@ -340,7 +340,7 @@ export function UnifiedSearchBar({
                   setCategory?.('all')
                   setCategoryPopoverOpen(false)
                 }}
-                className={`w-full text-left px-3 py-2 rounded-md text-sm ${(!category || category === 'all') ? 'bg-teal-50 text-teal-700' : 'hover:bg-slate-100'}`}
+                className={`w-full text-left px-3 py-2 rounded-md text-sm ${(!category || category === 'all') ? 'bg-brand/10 text-brand-hover' : 'hover:bg-slate-100'}`}
               >
                 {getUIText('allLabel', language)}
               </button>
@@ -352,7 +352,7 @@ export function UnifiedSearchBar({
                     setCategory?.(c.slug)
                     setCategoryPopoverOpen(false)
                   }}
-                  className={`w-full rounded-md py-2 text-left text-sm ${depth ? 'pl-6 pr-3' : 'px-3'} ${category === c.slug ? 'bg-teal-50 text-teal-700' : 'hover:bg-slate-100'}`}
+                  className={`w-full rounded-md py-2 text-left text-sm ${depth ? 'pl-6 pr-3' : 'px-3'} ${category === c.slug ? 'bg-brand/10 text-brand-hover' : 'hover:bg-slate-100'}`}
                 >
                   {depth ? '· ' : ''}
                   {getCategoryName(c.slug, language) || c.name}
@@ -401,7 +401,7 @@ export function UnifiedSearchBar({
         <Button
           onClick={handleHeroFindClick}
           className={cn(
-            'h-[54px] px-8 m-1.5 bg-[#006666] hover:bg-[#004c4c] text-[15px] font-semibold shadow-[0_12px_24px_rgba(0,102,102,0.28)]',
+            'h-[54px] px-8 m-1.5 bg-brand hover:bg-brand-hover text-[15px] font-semibold shadow-[0_12px_24px_rgba(0,102,102,0.28)]',
             textSearchRow ? 'rounded-br-[22px] rounded-tr-[22px]' : 'rounded-[20px]',
           )}
           data-testid="unified-search-button"
@@ -418,7 +418,7 @@ export function UnifiedSearchBar({
           className="flex w-full items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3.5 text-left hover:bg-slate-50"
           data-testid="mobile-category-trigger"
         >
-          <Layers className="h-4 w-4 shrink-0 text-[#006666]" />
+          <Layers className="h-4 w-4 shrink-0 text-brand" />
           <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{categoryLabel}</span>
         </button>
         <div className="rounded-2xl border border-slate-200 overflow-hidden">
@@ -453,7 +453,7 @@ export function UnifiedSearchBar({
           className="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2.5 text-left hover:bg-slate-50"
             data-testid="mobile-where-trigger"
           >
-            <MapPin className="h-4 w-4 shrink-0 text-[#006666]" />
+            <MapPin className="h-4 w-4 shrink-0 text-brand" />
             <span className="min-w-0 flex-1 truncate text-sm text-slate-800">{whereLabel}</span>
           </button>
           <div className="flex min-h-[44px] w-full min-w-0 items-center gap-2 rounded-2xl border border-slate-200 px-0 py-0 text-left hover:bg-slate-50">
@@ -471,7 +471,7 @@ export function UnifiedSearchBar({
         </div>
         <Button
           onClick={handleHeroFindClick}
-          className="h-12 w-full rounded-2xl bg-[#006666] hover:bg-[#004c4c] text-[15px] font-semibold shadow-[0_10px_22px_rgba(0,102,102,0.25)]"
+          className="h-12 w-full rounded-2xl bg-brand hover:bg-brand-hover text-[15px] font-semibold shadow-[0_10px_22px_rgba(0,102,102,0.25)]"
           data-testid="unified-search-button"
         >
           <Search className="mr-2 h-4 w-4" />
@@ -499,11 +499,11 @@ export function UnifiedSearchBar({
                   className={cn(
                     'flex snap-start shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium transition-colors',
                     active
-                      ? 'border-teal-600 bg-teal-50 text-teal-900'
+                      ? 'border-brand bg-brand/10 text-brand'
                       : 'border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50'
                   )}
                 >
-                  <Icon className="h-4 w-4 shrink-0 text-teal-600" aria-hidden />
+                  <Icon className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                   {chip.label}
                 </button>
               )
@@ -532,7 +532,7 @@ export function UnifiedSearchBar({
               }}
               className={`w-full rounded-lg border px-3 py-3 text-left text-sm ${
                 !category || category === 'all'
-                  ? 'border-teal-600 bg-teal-50 text-teal-900'
+                  ? 'border-brand bg-brand/10 text-brand'
                   : 'border-slate-200 hover:bg-slate-50'
               }`}
             >
@@ -550,7 +550,7 @@ export function UnifiedSearchBar({
                   depth ? 'border-slate-200 pl-6 pr-3' : 'border-slate-200 px-3'
                 } ${
                   category === c.slug
-                    ? 'border-teal-600 bg-teal-50 text-teal-900'
+                    ? 'border-brand bg-brand/10 text-brand'
                     : 'border-slate-200 hover:bg-slate-50'
                 }`}
               >
@@ -586,7 +586,7 @@ export function UnifiedSearchBar({
                     setLocationDrawerOpen(false)
                   }}
                   className={`w-full text-left px-3 py-2.5 rounded-lg text-sm border ${
-                    where === opt.value ? 'border-teal-600 bg-teal-50 text-teal-900' : 'border-slate-200 hover:bg-slate-50'
+                    where === opt.value ? 'border-brand bg-brand/10 text-brand' : 'border-slate-200 hover:bg-slate-50'
                   }`}
                 >
                   {opt.label}

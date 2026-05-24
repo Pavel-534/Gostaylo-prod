@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * TrustBar — узкая полоса «social proof» под Hero-секцией.
@@ -80,14 +80,14 @@ function AnimatedCounter({ target, duration = 1400, suffix = '', decimals = 0 })
 // ---------- Skeleton bar ----------
 function TrustBarSkeleton() {
   return (
-    <div className="relative border-y border-teal-100/80 bg-gradient-to-r from-teal-50/60 via-white to-teal-50/60">
+    <div className="relative border-y border-brand/20 bg-gradient-to-r from-brand/10 via-white to-brand/10">
       <div className="container mx-auto px-4">
-        <div className="flex items-stretch justify-center divide-x divide-teal-100">
+        <div className="flex items-stretch justify-center divide-x divide-brand/15">
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex flex-1 items-center justify-center gap-3 px-6 py-4 sm:gap-4 sm:px-10 sm:py-5">
-              <div className="hidden h-10 w-10 animate-pulse rounded-xl bg-teal-100/60 sm:block" />
+              <div className="hidden h-10 w-10 animate-pulse rounded-xl bg-brand/15 sm:block" />
               <div className="space-y-2">
-                <div className="h-7 w-20 animate-pulse rounded-md bg-teal-100/70" />
+                <div className="h-7 w-20 animate-pulse rounded-md bg-brand/15" />
                 <div className="h-3.5 w-28 animate-pulse rounded bg-slate-100" />
               </div>
             </div>
@@ -185,10 +185,10 @@ export function TrustBar({ language = 'ru', locationContext = 'all' }) {
       role="region"
       aria-label="Platform trust signals"
       data-testid="trust-bar"
-      className="relative border-y border-teal-100/80 bg-gradient-to-r from-teal-50/60 via-white to-teal-50/60"
+      className="relative border-y border-brand/20 bg-gradient-to-r from-brand/10 via-white to-brand/10"
     >
       <div className="container mx-auto px-4">
-        <div className="flex items-stretch justify-center divide-x divide-teal-100">
+        <div className="flex items-stretch justify-center divide-x divide-brand/15">
           {ITEMS.map((item, idx) => {
             const Icon = item.icon
             return (
@@ -196,12 +196,12 @@ export function TrustBar({ language = 'ru', locationContext = 'all' }) {
                 key={idx}
                 className="flex flex-1 items-center justify-center gap-3 px-6 py-4 sm:gap-4 sm:px-10 sm:py-5"
               >
-                <div className="hidden shrink-0 items-center justify-center rounded-xl bg-teal-100/80 p-2 sm:flex">
+                <div className="hidden shrink-0 items-center justify-center rounded-xl bg-brand/15 p-2 sm:flex">
                   <Icon className="h-4 w-4 text-brand" aria-hidden />
                 </div>
                 <div className="text-center sm:text-left">
                   <div className="flex items-baseline gap-0.5">
-                    <span className="text-2xl font-black leading-none tracking-tight text-teal-700 sm:text-3xl">
+                    <span className="text-2xl font-black leading-none tracking-tight text-brand-hover sm:text-3xl">
                       {visible ? (
                         <AnimatedCounter
                           target={item.value}
@@ -212,7 +212,7 @@ export function TrustBar({ language = 'ru', locationContext = 'all' }) {
                       ) : (
                         // Pre-visible placeholder: keeps height + showcases skeleton bar (no jumpy layout on mobile)
                         <span
-                          className="inline-block h-6 w-16 animate-pulse rounded bg-teal-100/70 align-middle sm:h-7 sm:w-20"
+                          className="inline-block h-6 w-16 animate-pulse rounded bg-brand/15 align-middle sm:h-7 sm:w-20"
                           aria-hidden
                         />
                       )}

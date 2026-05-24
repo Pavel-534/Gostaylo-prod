@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -81,7 +81,7 @@ export function ListingMobileActions({
               </div>
             )}
             {wholeVesselListing && dateRange?.from && dateRange?.to && (
-              <div className="text-sm text-teal-900 bg-teal-50/80 border border-teal-100 rounded-lg px-3 py-2">
+              <div className="text-sm text-brand bg-brand/10 border border-brand/20 rounded-lg px-3 py-2">
                 {availabilityLoading ? (
                   <span>{tx('listingDetail_checkingAvailability')}</span>
                 ) : availabilitySnapshot != null ? (
@@ -94,7 +94,7 @@ export function ListingMobileActions({
               </div>
             )}
             {bookingUiMode === 'shared' && !wholeVesselListing && dateRange?.from && dateRange?.to && (
-              <div className="text-sm text-teal-900 bg-teal-50/80 border border-teal-100 rounded-lg px-3 py-2">
+              <div className="text-sm text-brand bg-brand/10 border border-brand/20 rounded-lg px-3 py-2">
                 {availabilityLoading ? (
                   <span>{tx('listingDetail_checkingSpots')}</span>
                 ) : availabilitySnapshot?.remaining_spots != null ? (
@@ -112,7 +112,7 @@ export function ListingMobileActions({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="w-full mt-2 border-teal-300"
+                  className="w-full mt-2 border-brand/30"
                   onClick={onAskPartnerUnavailable}
                 >
                   {tx('listingDetail_askPartnerChat')}
@@ -124,7 +124,7 @@ export function ListingMobileActions({
                 <Button
                   type="button"
                   variant="secondary"
-                  className="w-full border border-teal-200"
+                  className="w-full border border-brand/25"
                   onClick={() => (user ? openBookModal('private') : openLoginModal())}
                 >
                   {tx('listingDetail_privateTrip')}

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Button } from '@/components/ui/button'
 import { Receipt } from 'lucide-react'
@@ -34,7 +34,7 @@ export function OrderCardFinancials({
             type="button"
             variant="outline"
             size="sm"
-            className="w-full sm:w-auto gap-2 border-teal-200 text-teal-900 hover:bg-teal-50"
+            className="w-full sm:w-auto gap-2 border-brand/25 text-brand hover:bg-brand/10"
             onClick={() => setPartnerFinanceOpen(true)}
           >
             <Receipt className="h-4 w-4 shrink-0" aria-hidden />
@@ -76,7 +76,7 @@ export function OrderCardFinancialTotals({
       {normalizedRole === 'partner' && Number.isFinite(partnerEarnings) ? (
         <div className="text-right">
           <p className="text-sm text-slate-500 mb-1">{getUIText('yourShare', language)}</p>
-          <p className="text-lg font-semibold text-teal-700">{formatPrice(partnerEarnings, 'THB')}</p>
+          <p className="text-lg font-semibold text-brand-hover">{formatPrice(partnerEarnings, 'THB')}</p>
         </div>
       ) : null}
     </div>

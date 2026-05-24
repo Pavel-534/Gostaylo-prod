@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -126,7 +126,7 @@ export function SystemSettingsServices({
               )}
               Тест связи
             </Button>
-            <Button onClick={onSendAloha} size="sm" variant="outline" className="border-teal-500 text-teal-700 hover:bg-teal-50 text-xs">
+            <Button onClick={onSendAloha} size="sm" variant="outline" className="border-brand text-brand-hover hover:bg-brand/10 text-xs">
               <Palmtree className="w-3 h-3 mr-1" />
               Отправить &quot;Aloha&quot;
             </Button>

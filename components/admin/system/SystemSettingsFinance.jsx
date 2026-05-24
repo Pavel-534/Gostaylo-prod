@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,7 +11,7 @@ export function SystemSettingsFinance() {
     <Card className="border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white">
       <CardHeader className="p-4 lg:p-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-emerald-600 to-brand-hover rounded-xl flex items-center justify-center flex-shrink-0">
             <Globe className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
           </div>
           <div>

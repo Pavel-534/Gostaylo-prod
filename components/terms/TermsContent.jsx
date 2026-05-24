@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * TermsContent — клиентский компонент i18n /terms.
@@ -188,9 +188,9 @@ export default function TermsContent() {
   return (
     <main className="min-h-screen bg-white">
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-teal-50/60 via-white to-amber-50/40 border-b border-slate-100">
+      <section className="relative overflow-hidden bg-gradient-to-br from-brand/10 via-white to-amber-50/40 border-b border-slate-100">
         <div className="container mx-auto px-4 pt-24 sm:pt-28 pb-14 sm:pb-16 max-w-4xl">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white/70 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-700">
+          <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand/25 bg-white/70 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-hover">
             <ScrollText className="h-3 w-3" />
             {s.eyebrow} · {getSiteDisplayName()}
           </p>
@@ -201,7 +201,7 @@ export default function TermsContent() {
           <p className="mt-3 text-xs uppercase tracking-[0.18em] text-slate-400">{s.effectiveFrom}</p>
           <Link
             href="/legal/public-offer/"
-            className="mt-6 inline-flex items-center justify-center rounded-2xl border border-teal-200 bg-white px-6 py-3 text-sm font-semibold text-teal-800 shadow-sm transition-colors hover:border-teal-400 hover:bg-teal-50"
+            className="mt-6 inline-flex items-center justify-center rounded-2xl border border-brand/25 bg-white px-6 py-3 text-sm font-semibold text-brand-hover shadow-sm transition-colors hover:border-brand/40 hover:bg-brand/10"
           >
             {s.fullOfferCta}
           </Link>
@@ -218,7 +218,7 @@ export default function TermsContent() {
               className="grid grid-cols-1 sm:grid-cols-[80px_1fr] gap-3 sm:gap-8"
             >
               <div>
-                <span className="font-serif text-3xl sm:text-4xl font-semibold text-teal-600/80 tracking-tight">
+                <span className="font-serif text-3xl sm:text-4xl font-semibold text-brand/80 tracking-tight">
                   {sec.n}
                 </span>
               </div>
@@ -238,7 +238,7 @@ export default function TermsContent() {
       {/* Contact */}
       <section className="bg-slate-50 border-y border-slate-100">
         <div className="container mx-auto px-4 py-14 sm:py-16 max-w-3xl text-center">
-          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-[#006666] text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)]">
+          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand to-brand-hover text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)]">
             <Mail className="h-5 w-5" />
           </div>
           <h2 className="font-serif text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 mb-3">
@@ -248,19 +248,19 @@ export default function TermsContent() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href="/legal/public-offer/"
-              className="inline-flex items-center justify-center rounded-2xl bg-[#006666] px-7 py-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)] transition-all hover:bg-[#005555] active:scale-[0.98]"
+              className="inline-flex items-center justify-center rounded-2xl bg-brand px-7 py-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)] transition-all hover:bg-[#005555] active:scale-[0.98]"
             >
               {s.fullOfferCta}
             </Link>
             <Link
               href="/help/"
-              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-7 py-4 text-sm font-semibold text-slate-700 transition-colors hover:border-teal-400 hover:text-teal-700"
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-7 py-4 text-sm font-semibold text-slate-700 transition-colors hover:border-brand/40 hover:text-brand-hover"
             >
               {s.helpLink}
             </Link>
             <a
               href={`mailto:${supportEmail}`}
-              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-7 py-4 text-sm font-semibold text-slate-700 transition-colors hover:border-teal-400 hover:text-teal-700"
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-7 py-4 text-sm font-semibold text-slate-700 transition-colors hover:border-brand/40 hover:text-brand-hover"
             >
               {supportEmail}
             </a>

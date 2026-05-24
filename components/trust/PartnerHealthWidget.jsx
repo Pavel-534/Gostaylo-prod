@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState, useCallback } from 'react'
 import { Loader2, AlertTriangle, TrendingUp, Shield, ImageIcon } from 'lucide-react'
@@ -56,8 +56,8 @@ export function PartnerHealthWidget({ language = 'ru', remote = null }) {
 
   if (effLoading) {
     return (
-      <Card className="border-teal-100 shadow-sm">
-        <CardContent className="py-10 flex justify-center text-teal-700">
+      <Card className="border-brand/20 shadow-sm">
+        <CardContent className="py-10 flex justify-center text-brand-hover">
           <Loader2 className="h-8 w-8 animate-spin" />
         </CardContent>
       </Card>
@@ -69,7 +69,7 @@ export function PartnerHealthWidget({ language = 'ru', remote = null }) {
       <Card className="border-slate-200 shadow-sm">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Shield className="h-5 w-5 text-teal-600" />
+            <Shield className="h-5 w-5 text-brand" />
             {getUIText('partnerHealth_title', language)}
           </CardTitle>
           <CardDescription>{getUIText('partnerHealth_loadError', language)}</CardDescription>
@@ -92,10 +92,10 @@ export function PartnerHealthWidget({ language = 'ru', remote = null }) {
     Number(instr.listingsBelow3) > 0
 
   return (
-    <Card className="border-teal-100 shadow-sm bg-gradient-to-br from-white to-teal-50/40">
+    <Card className="border-brand/20 shadow-sm bg-gradient-to-br from-white to-brand/10">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
-          <Shield className="h-5 w-5 text-teal-600" />
+          <Shield className="h-5 w-5 text-brand" />
           {getUIText('partnerHealth_title', language)}
         </CardTitle>
         <CardDescription>{getUIText('partnerHealth_subtitle', language)}</CardDescription>
@@ -110,7 +110,7 @@ export function PartnerHealthWidget({ language = 'ru', remote = null }) {
               {pct != null && Number.isFinite(pct) ? `${pct}%` : '—'}
             </p>
           </div>
-          <Badge variant="secondary" className="mb-1 bg-teal-100 text-teal-900 border-teal-200">
+          <Badge variant="secondary" className="mb-1 bg-brand/15 text-brand border-brand/25">
             {tier}
           </Badge>
         </div>
@@ -142,12 +142,12 @@ export function PartnerHealthWidget({ language = 'ru', remote = null }) {
             className={`mt-2 flex gap-2.5 rounded-lg border px-3 py-2.5 ${
               dominantKind === 'service'
                 ? 'border-amber-300 bg-gradient-to-br from-amber-50 via-white to-orange-50 shadow-sm'
-                : 'border-teal-200 bg-teal-50/80'
+                : 'border-brand/25 bg-brand/10'
             }`}
           >
             <ListingCategoryIcon
               categorySlug={effData.dominantCategorySlug}
-              className={`h-5 w-5 shrink-0 mt-0.5 ${dominantKind === 'service' ? 'text-amber-800' : 'text-teal-800'}`}
+              className={`h-5 w-5 shrink-0 mt-0.5 ${dominantKind === 'service' ? 'text-amber-800' : 'text-brand-hover'}`}
             />
             <div className="min-w-0 flex-1 space-y-1.5">
               <p className="text-xs font-medium text-slate-900 leading-relaxed">{slaCategoryLine}</p>
@@ -206,7 +206,7 @@ export function PartnerHealthWidget({ language = 'ru', remote = null }) {
         {!path.atTop ? (
           <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 space-y-1.5">
             <p className="text-xs font-semibold text-slate-800 flex items-center gap-1.5">
-              <TrendingUp className="h-3.5 w-3.5 text-teal-600" />
+              <TrendingUp className="h-3.5 w-3.5 text-brand" />
               {getUIText('partnerHealth_pathToTop', language)}
             </p>
             <ul className="text-xs text-slate-600 space-y-1 pl-4 list-disc">

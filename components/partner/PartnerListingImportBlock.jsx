@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * Быстрый импорт превью с Airbnb (API airbnb-preview). Booking — в планах.
@@ -237,10 +237,10 @@ export function PartnerListingImportBlock({
   }, [rawUrl, categoryId, listingId, migrateImportedImagesToStorage, onSuccess, onApplyPreview, language, ru])
 
   return (
-    <Card className="border-teal-200/80 bg-gradient-to-br from-teal-50/80 via-white to-slate-50/90 shadow-sm">
+    <Card className="border-brand/25 bg-gradient-to-br from-brand/10 via-white to-slate-50/90 shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white shadow-md">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand text-white shadow-md">
             <Sparkles className="h-5 w-5" aria-hidden />
           </div>
           <div className="min-w-0 flex-1 space-y-1">
@@ -301,7 +301,7 @@ export function PartnerListingImportBlock({
               type="button"
               onClick={loadPreview}
               disabled={loading || !categoryId}
-              className="h-11 shrink-0 bg-teal-600 hover:bg-teal-700 sm:min-w-[160px]"
+              className="h-11 shrink-0 bg-brand hover:bg-brand-hover sm:min-w-[160px]"
             >
               {loading ? (
                 <>
@@ -324,7 +324,7 @@ export function PartnerListingImportBlock({
         {loading && (
           <div className="space-y-3 rounded-lg border border-slate-200 bg-white/80 p-4">
             <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
-              <Loader2 className="h-4 w-4 animate-spin text-teal-600" />
+              <Loader2 className="h-4 w-4 animate-spin text-brand" />
               {t('fetching')}
             </div>
             <Skeleton className="h-9 w-full bg-slate-200/80" />

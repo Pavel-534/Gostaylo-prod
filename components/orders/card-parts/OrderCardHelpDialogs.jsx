@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -73,12 +73,12 @@ export function OrderCardHelpDialogs({
           </DialogHeader>
 
           {helpStep === 'pre' && normalizedRole === 'renter' ? (
-            <div className="space-y-3 rounded-xl border border-teal-200 bg-teal-50/80 p-4">
-              <p className="text-sm font-semibold text-teal-950">{getUIText('orderHelp_preContactTitle', language)}</p>
-              <p className="text-sm text-teal-900/90">{getUIText('orderHelp_preContactDesc', language)}</p>
+            <div className="space-y-3 rounded-xl border border-brand/25 bg-brand/10 p-4">
+              <p className="text-sm font-semibold text-brand">{getUIText('orderHelp_preContactTitle', language)}</p>
+              <p className="text-sm text-brand/90">{getUIText('orderHelp_preContactDesc', language)}</p>
               <div className="flex flex-wrap gap-2 pt-1">
                 {supportChatHref ? (
-                  <Button asChild variant="default" className="bg-teal-600 hover:bg-teal-700">
+                  <Button asChild variant="brand">
                     <Link href={supportChatHref}>
                       <MessageSquare className="h-4 w-4 mr-2" />
                       {getUIText('orderHelp_openChat', language)}
@@ -88,7 +88,7 @@ export function OrderCardHelpDialogs({
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-teal-400"
+                  className="border-brand/40"
                   disabled={helpNudgeSending}
                   onClick={() => void onNotifyPartnerHelp()}
                 >
@@ -155,7 +155,7 @@ export function OrderCardHelpDialogs({
                               <>
                                 <p className="text-xs text-slate-600">{getUIText('orderHelp_emergencyDaytimeHint', language)}</p>
                                 {supportChatHref ? (
-                                  <Button asChild variant="default" className="bg-teal-600 hover:bg-teal-700">
+                                  <Button asChild variant="brand">
                                     <Link href={supportChatHref}>
                                       <MessageSquare className="h-4 w-4 mr-2" />
                                       {getUIText('orderHelp_writeToPartnerChat', language)}
@@ -308,8 +308,8 @@ export function OrderCardHelpDialogs({
             <div className="space-y-3 py-1">
               <Button
                 type="button"
-                variant="default"
-                className="w-full bg-teal-700 hover:bg-teal-800"
+                variant="brand"
+                className="w-full"
                 disabled={supportEscalating}
                 onClick={() => void onEmergencySupportAfterLimit()}
               >

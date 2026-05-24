@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -60,7 +60,7 @@ export function RegisterForm({
             </Label>
             <button
               type='button'
-              className='text-xs text-teal-600 hover:text-teal-700 hover:underline'
+              className='text-xs text-brand hover:text-brand-hover hover:underline'
               onClick={() => void validatePromoCode()}
               disabled={!promoCode || promoStatus === 'checking'}
             >
@@ -171,7 +171,8 @@ export function RegisterForm({
       <div className='mt-2 flex-shrink-0 border-t border-slate-100 pt-3'>
         <Button
           type='submit'
-          className='h-12 w-full bg-teal-600 text-base font-medium hover:bg-teal-700'
+          variant='brand'
+          className='h-12 w-full text-base font-medium'
           disabled={submitting || !registerLegalConsent || !isAuthPasswordCompliant(password)}
         >
           {submitting ? (

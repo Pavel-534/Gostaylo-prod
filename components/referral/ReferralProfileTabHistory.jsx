@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { ReferralMonthlyLeaderboard } from '@/components/referral/ReferralMonthlyLeaderboard'
@@ -35,7 +35,7 @@ export function ReferralProfileTabHistory({ data, walletData, t, locale }) {
           </CardHeader>
           <CardContent>
             <ReferralMiniSparkline values={data.stats.sparkMonthlyYtdThb} height={56} />
-            <p className="text-2xl font-semibold text-[#006666] mt-4 tabular-nums">
+            <p className="text-2xl font-semibold text-brand mt-4 tabular-nums">
               {formatThb(data?.stats?.yearlyEarnedThb, locale)} THB
             </p>
           </CardContent>
@@ -64,7 +64,7 @@ export function ReferralProfileTabHistory({ data, walletData, t, locale }) {
                   {recentTransactions.slice(0, 20).map((tx) => (
                     <tr key={tx.id} className="border-b last:border-0">
                       <td className="py-2 pr-3">{txTypeLabel(tx.tx_type)}</td>
-                      <td className="py-2 pr-3 tabular-nums font-medium text-[#006666]">
+                      <td className="py-2 pr-3 tabular-nums font-medium text-brand">
                         {Number(tx.amount_thb || 0) >= 0 ? '+' : ''}
                         {formatThb(tx.amount_thb, locale)}
                       </td>

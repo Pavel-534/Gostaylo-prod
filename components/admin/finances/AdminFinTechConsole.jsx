@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import {
@@ -75,11 +75,11 @@ export function AdminFinTechConsole() {
         />
 
         <Card
-          className="border-teal-200 bg-teal-50/90 shadow-sm"
+          className="border-brand/25 bg-brand/10 shadow-sm"
           title="Все суммы на пульте — для гостя (включая сервисный сбор)"
         >
-          <CardContent className="py-3 flex items-start gap-2 text-sm text-teal-950">
-            <Info className="h-4 w-4 shrink-0 text-teal-700 mt-0.5" aria-hidden />
+          <CardContent className="py-3 flex items-start gap-2 text-sm text-brand">
+            <Info className="h-4 w-4 shrink-0 text-brand-hover mt-0.5" aria-hidden />
             <p>
               <span className="font-semibold">Подсказка:</span> суммы на этом пульте показаны так, как
               их видит гость — с учётом сервисного сбора, если не указано иное.
@@ -110,7 +110,7 @@ export function AdminFinTechConsole() {
               </p>
               <Link
                 href="/admin/settings/legal"
-                className="inline-block mt-2 text-teal-800 font-medium underline"
+                className="inline-block mt-2 text-brand-hover font-medium underline"
               >
                 Юридические документы и версии оферты
               </Link>

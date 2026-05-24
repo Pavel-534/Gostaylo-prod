@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import {
@@ -116,7 +116,7 @@ export function FinTechOverviewDashboard({
       )}
 
       {!ownerMode && (
-        <Card className="border-teal-100 shadow-sm overflow-hidden">
+        <Card className="border-brand/20 shadow-sm overflow-hidden">
           <CardHeader className="pb-2" style={{ borderLeft: `4px solid ${FINTECH_MINT}` }}>
             <CardTitle className="flex items-center gap-2 text-lg" style={{ color: FINTECH_NAVY }}>
               <Zap className="h-5 w-5" style={{ color: FINTECH_MINT }} />
@@ -148,7 +148,7 @@ export function FinTechOverviewDashboard({
                 )}
               </div>
             </div>
-            <Badge variant={v2Effective ? 'default' : 'secondary'} className="bg-teal-600">
+            <Badge variant={v2Effective ? 'default' : 'secondary'} className="bg-brand">
               {v2Effective ? 'Активен' : 'Неактивен'}
             </Badge>
           </CardContent>
@@ -158,7 +158,7 @@ export function FinTechOverviewDashboard({
       <Card className="border-slate-200 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg" style={{ color: FINTECH_NAVY }}>
-            <Receipt className="h-5 w-5 text-teal-600" />
+            <Receipt className="h-5 w-5 text-brand" />
             Онлайн-касса (54-ФЗ)
           </CardTitle>
           <CardDescription>Пробитие чеков для гостей из РФ при оплате через агента.</CardDescription>
@@ -223,7 +223,7 @@ export function FinTechOverviewDashboard({
       <Card className="border-slate-200 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg" style={{ color: FINTECH_NAVY }}>
-            <Calculator className="h-5 w-5 text-teal-600" />
+            <Calculator className="h-5 w-5 text-brand" />
             Тарифы и комиссии
           </CardTitle>
           <CardDescription>
@@ -316,7 +316,7 @@ export function FinTechOverviewDashboard({
               {activeProfiles.map((p) => (
                 <div
                   key={p.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm hover:border-teal-200"
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm hover:border-brand/25"
                 >
                   <div>
                     <strong>{p.name}</strong>
@@ -367,7 +367,7 @@ export function FinTechOverviewDashboard({
         </CardContent>
       </Card>
 
-      <Card className="border-teal-100/80 shadow-sm">
+      <Card className="border-brand/20 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg" style={{ color: FINTECH_NAVY }}>
             Маржа за текущий месяц

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * AmenitiesGrid - Display listing amenities with icons
@@ -62,7 +62,7 @@ export function AmenitiesGrid({ amenities, language = 'en' }) {
               key={idx} 
               className="flex items-center gap-3 text-slate-700 py-2 border-b border-slate-50 last:border-0"
             >
-              <Icon className="h-5 w-5 text-teal-600 flex-shrink-0" />
+              <Icon className="h-5 w-5 text-brand flex-shrink-0" />
               <span>{getAmenityName(amenity, language) || amenity}</span>
             </div>
           )

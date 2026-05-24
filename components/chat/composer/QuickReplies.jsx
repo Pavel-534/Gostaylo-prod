@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * @file components/chat/composer/QuickReplies.jsx
@@ -137,7 +137,7 @@ export function QuickRepliesScrollablePanel({
               key={i}
               type="button"
               disabled={disabled}
-              className="flex w-full cursor-pointer flex-col items-start gap-1 rounded-2xl px-2 py-2.5 text-left outline-none hover:bg-slate-100 focus-visible:bg-slate-100 focus-visible:ring-2 focus-visible:ring-teal-500/30 disabled:pointer-events-none disabled:opacity-50"
+              className="flex w-full cursor-pointer flex-col items-start gap-1 rounded-2xl px-2 py-2.5 text-left outline-none hover:bg-slate-100 focus-visible:bg-slate-100 focus-visible:ring-2 focus-visible:ring-brand/30 disabled:pointer-events-none disabled:opacity-50"
               onClick={() => pick(isRu ? q.textRu : q.textEn)}
             >
               <span className="flex w-full items-center gap-2">
@@ -154,7 +154,7 @@ export function QuickRepliesScrollablePanel({
         {savedTemplates.length > 0 && (
           <>
             <div className="my-2 h-px bg-slate-100" />
-            <SectionTitle icon={Bookmark} iconClass="text-teal-500">
+            <SectionTitle icon={Bookmark} iconClass="text-brand/70">
               {isRu ? 'Мои шаблоны' : 'My templates'}
             </SectionTitle>
             <div className="flex flex-col gap-0.5 pt-1">
@@ -166,10 +166,10 @@ export function QuickRepliesScrollablePanel({
                   <button
                     type="button"
                     disabled={disabled}
-                    className="flex min-w-0 flex-1 cursor-pointer items-start gap-1 rounded-2xl px-1 py-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-teal-500/30 disabled:pointer-events-none disabled:opacity-50"
+                    className="flex min-w-0 flex-1 cursor-pointer items-start gap-1 rounded-2xl px-1 py-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-brand/30 disabled:pointer-events-none disabled:opacity-50"
                     onClick={() => pick(tpl.text)}
                   >
-                    <Quote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-teal-500" />
+                    <Quote className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand/70" />
                     <span className="line-clamp-2 flex-1 text-sm text-slate-800">{tpl.label || tpl.text}</span>
                   </button>
                   <button
@@ -199,7 +199,7 @@ export function QuickRepliesScrollablePanel({
                   value={newTplLabel}
                   onChange={(e) => setNewTplLabel(e.target.value)}
                   placeholder={isRu ? 'Название шаблона…' : 'Template name…'}
-                  className="mb-2 w-full rounded border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-teal-400"
+                  className="mb-2 w-full rounded border border-slate-200 px-2 py-1.5 text-xs outline-none focus:border-brand/40"
                   autoFocus
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') void saveCurrentAsTemplate()
@@ -208,8 +208,9 @@ export function QuickRepliesScrollablePanel({
                 <div className="flex gap-1.5">
                   <Button
                     type="button"
+                    variant="brand"
                     size="sm"
-                    className="h-7 flex-1 bg-teal-600 text-xs hover:bg-teal-700"
+                    className="h-7 flex-1 text-xs"
                     disabled={savingTemplate}
                     onClick={() => void saveCurrentAsTemplate()}
                   >
@@ -223,7 +224,7 @@ export function QuickRepliesScrollablePanel({
             ) : (
               <button
                 type="button"
-                className="flex w-full cursor-pointer items-center gap-2 rounded-2xl px-2 py-2 text-left text-teal-700 outline-none hover:bg-teal-50 focus-visible:ring-2 focus-visible:ring-teal-500/30"
+                className="flex w-full cursor-pointer items-center gap-2 rounded-2xl px-2 py-2 text-left text-brand-hover outline-none hover:bg-brand/10 focus-visible:ring-2 focus-visible:ring-brand/30"
                 onClick={() => setShowSaveInput(true)}
               >
                 <BookmarkPlus className="h-3.5 w-3.5 shrink-0" />

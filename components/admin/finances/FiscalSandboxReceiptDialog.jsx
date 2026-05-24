@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import {
   Dialog,
@@ -31,7 +31,7 @@ export function FiscalSandboxReceiptDialog({ open, onOpenChange, display }) {
         </DialogHeader>
 
         <div className="space-y-4 text-sm">
-          <div className="rounded-lg border border-teal-100 bg-teal-50/50 p-4 space-y-2">
+          <div className="rounded-lg border border-brand/20 bg-brand/10 p-4 space-y-2">
             <p>
               <span className="text-slate-500">ИНН агента (РФ ИП):</span>{' '}
               <span className="font-mono font-semibold">{display.ruAgentInn}</span>
@@ -101,8 +101,8 @@ export function FiscalSandboxReceiptDialog({ open, onOpenChange, display }) {
           )}
 
           <details className="text-xs">
-            <summary className="cursor-pointer text-teal-700 font-medium">Технический JSON (для разработки)</summary>
-            <pre className="mt-2 bg-slate-900 text-teal-100 p-3 rounded-lg overflow-auto max-h-48">
+            <summary className="cursor-pointer text-brand-hover font-medium">Технический JSON (для разработки)</summary>
+            <pre className="mt-2 bg-slate-900 text-white/80 p-3 rounded-lg overflow-auto max-h-48">
               {JSON.stringify(display.rawPayload, null, 2)}
             </pre>
           </details>

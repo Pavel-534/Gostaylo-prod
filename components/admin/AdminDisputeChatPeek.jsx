@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Loader2, MessageSquare } from 'lucide-react'
@@ -61,12 +61,12 @@ export default function AdminDisputeChatPeek({ conversationId, adminUserId }) {
     <div className="flex flex-col rounded-xl border border-slate-200 bg-white overflow-hidden">
       <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-2 bg-slate-50">
         <div className="flex items-center gap-2 text-sm font-medium text-slate-800">
-          <MessageSquare className="h-4 w-4 text-teal-700" />
+          <MessageSquare className="h-4 w-4 text-brand-hover" />
           История чата
         </div>
         <button
           type="button"
-          className="text-xs text-teal-700 hover:underline"
+          className="text-xs text-brand-hover hover:underline"
           onClick={() => void load()}
           disabled={loading}
         >

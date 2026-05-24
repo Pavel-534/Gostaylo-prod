@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * GoStayLo Partner Finances — composition shell (Stage 54.0).
@@ -8,7 +8,7 @@
 import { Suspense, useCallback, useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Calendar, Clock, Loader2, AlertTriangle, FileText } from 'lucide-react'
+import { Calendar, Clock, AlertTriangle, FileText } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
 import { PartnerFinancialSnapshotDialog } from '@/components/partner/PartnerFinancialSnapshotDialog'
 import { usePartnerFinances } from '@/hooks/usePartnerFinances'
@@ -27,6 +27,7 @@ import { PartnerConciergePayoutBanner } from '@/components/partner/finances/Part
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { LoadingPageShell } from '@/components/product/LoadingPageShell'
 
 function PartnerFinancesV2Content() {
   const fin = usePartnerFinances()
@@ -110,14 +111,14 @@ function PartnerFinancesV2Content() {
           <TabsTrigger
             value="documents"
             className={cn(
-              'gap-1.5 order-first font-semibold ring-2 ring-teal-400/40 data-[state=active]:bg-teal-600 data-[state=active]:text-white',
-              documentsCount > 0 && 'data-[state=inactive]:bg-teal-50 animate-pulse',
+              'gap-1.5 order-first font-semibold ring-2 ring-brand/40 data-[state=active]:bg-brand data-[state=active]:text-white',
+              documentsCount > 0 && 'data-[state=inactive]:bg-brand/10 animate-pulse',
             )}
           >
             <FileText className="h-4 w-4" />
             {t('partnerFinances_tabDocuments')}
             {documentsCount != null && documentsCount > 0 ? (
-              <Badge variant="secondary" className="ml-1 bg-teal-100 text-teal-900">
+              <Badge variant="secondary" className="ml-1 bg-brand/15 text-brand">
                 {documentsCount}
               </Badge>
             ) : null}
@@ -126,7 +127,7 @@ function PartnerFinancesV2Content() {
         </TabsList>
 
         {documentsCount === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground rounded-lg border border-dashed border-teal-200 bg-teal-50/50 px-3 py-2">
+          <p className="mt-3 text-sm text-muted-foreground rounded-lg border border-dashed border-brand/25 bg-brand/10 px-3 py-2">
             {t('partnerFinances_docsTabHint')}
           </p>
         ) : null}
@@ -292,13 +293,7 @@ function PartnerFinancesV2Content() {
 
 export default function PartnerFinancesV2() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-[40vh] items-center justify-center">
-          <Loader2 className="h-10 w-10 animate-spin text-teal-600" aria-label="Загрузка" />
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPageShell variant="inline" label="Loading…" />}>
       <PartnerFinancesV2Content />
     </Suspense>
   )

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import { Download, FileText, Loader2, RefreshCw } from 'lucide-react'
@@ -78,7 +78,7 @@ export function PartnerFinancesDocuments({ t, language }) {
       <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
         <div>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <FileText className="h-5 w-5 text-teal-700" />
+            <FileText className="h-5 w-5 text-brand-hover" />
             {t('partnerFinances_docsTitle')}
           </CardTitle>
           <CardDescription>{t('partnerFinances_docsDesc')}</CardDescription>

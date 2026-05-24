@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo } from 'react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
@@ -38,7 +38,7 @@ export function ReviewPhotosGallery({ photos = [], className = '' }) {
               setIndex(i)
               setOpen(true)
             }}
-            className="relative h-16 w-16 overflow-hidden rounded-md border border-slate-200 bg-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-1"
+            className="relative h-16 w-16 overflow-hidden rounded-md border border-slate-200 bg-slate-100 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
           >
             <img src={src} alt="" className="h-full w-full object-cover" />
           </button>

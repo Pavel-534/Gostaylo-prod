@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { CheckCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -62,7 +62,7 @@ export function PasswordResetForm({
 
       {error && <p className='text-red-500 text-sm'>{error}</p>}
 
-      <Button type='submit' className='w-full bg-teal-600 hover:bg-teal-700' disabled={submitting}>
+      <Button type='submit' variant='brand' className='w-full' disabled={submitting}>
         {submitting ? (
           <>
             <Loader2 className='h-4 w-4 mr-2 animate-spin' />

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * Модалка «Все фильтры» — секции зависят от категории; цена + гистограмма по выборке.
@@ -67,7 +67,7 @@ function PriceHistogram({ listings, binCount = 14 }) {
       {counts.map((c, i) => (
         <div
           key={i}
-          className="min-w-0 flex-1 rounded-sm bg-teal-400/70 transition-[height]"
+          className="min-w-0 flex-1 rounded-sm bg-brand/40 transition-[height]"
           style={{ height: `${Math.max(8, (c / max) * 100)}%` }}
           title={String(c)}
         />
@@ -240,14 +240,14 @@ export function SearchFiltersDialog({
                         key={slug}
                         className={cn(
                           'flex cursor-pointer items-center gap-2 rounded-lg border px-2 py-2 text-sm',
-                          checked ? 'border-teal-500 bg-teal-50' : 'border-slate-200'
+                          checked ? 'border-brand bg-brand/10' : 'border-slate-200'
                         )}
                       >
                         <Checkbox
                           checked={checked}
                           onCheckedChange={() => toggleAmenity(slug)}
                         />
-                        <AmenityLucideIcon slug={slug} className="h-4 w-4 shrink-0 text-teal-600" />
+                        <AmenityLucideIcon slug={slug} className="h-4 w-4 shrink-0 text-brand" />
                         <span className="truncate">{amenityLabel(slug, language)}</span>
                       </label>
                     )
@@ -387,7 +387,7 @@ export function SearchFiltersDialog({
                         key={row.id}
                         className={cn(
                           'flex cursor-pointer items-center gap-2 rounded-full border px-3 py-1.5 text-sm',
-                          checked ? 'border-teal-500 bg-teal-50' : 'border-slate-200'
+                          checked ? 'border-brand bg-brand/10' : 'border-slate-200'
                         )}
                       >
                         <Checkbox

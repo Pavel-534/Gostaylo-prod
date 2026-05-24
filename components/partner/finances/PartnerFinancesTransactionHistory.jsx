@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -36,11 +36,11 @@ export function PartnerFinancesTransactionHistory({
           <p className="text-xs text-slate-500 mt-2">{t('partnerFinances_rubIndicativeDisclaimer')}</p>
         ) : null}
         {escrowBookingFilter ? (
-          <div className="mt-3 flex flex-col gap-2 rounded-lg border border-teal-200 bg-teal-50/80 px-3 py-2 text-sm text-teal-950 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-3 flex flex-col gap-2 rounded-lg border border-brand/25 bg-brand/10 px-3 py-2 text-sm text-brand sm:flex-row sm:items-center sm:justify-between">
             <span>{t('partnerFinances_escrowFilterBanner')}</span>
             <Link
               href="/partner/finances"
-              className="shrink-0 font-semibold text-teal-800 underline underline-offset-2 hover:text-teal-900"
+              className="shrink-0 font-semibold text-brand-hover underline underline-offset-2 hover:text-brand"
             >
               {t('partnerFinances_escrowFilterShowAll')}
             </Link>
@@ -156,7 +156,7 @@ export function PartnerFinancesTransactionHistory({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="mt-2 gap-1.5 border-teal-200 text-teal-900 hover:bg-teal-50"
+                        className="mt-2 gap-1.5 border-brand/25 text-brand hover:bg-brand/10"
                         onClick={() => onOpenSnapshot(booking)}
                       >
                         <Receipt className="h-4 w-4 shrink-0" aria-hidden />

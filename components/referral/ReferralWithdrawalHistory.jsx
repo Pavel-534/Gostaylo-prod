@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { ArrowDownLeft, Clock, History } from 'lucide-react'
@@ -72,7 +72,7 @@ export function ReferralWithdrawalHistory({ walletData, t, locale }) {
     <Card className="rounded-xl border border-slate-200 bg-white shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
-          <History className="h-4 w-4 text-[#006666]" />
+          <History className="h-4 w-4 text-brand" />
           {t('stage1145_withdrawHistoryTitle') || 'История выводов'}
         </CardTitle>
         <CardDescription>
@@ -95,7 +95,7 @@ export function ReferralWithdrawalHistory({ walletData, t, locale }) {
                 st.tone === 'amber'
                   ? 'border-amber-200 bg-amber-50/80'
                   : st.tone === 'teal'
-                    ? 'border-teal-200 bg-teal-50/80'
+                    ? 'border-brand/25 bg-brand/10'
                     : 'border-slate-100 bg-slate-50/80'
               return (
                 <li

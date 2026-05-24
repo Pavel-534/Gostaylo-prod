@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * ChatMilestoneCard — стильная карточка-веха для системных сообщений в ленте чата.
@@ -37,7 +37,7 @@ const MILESTONE_CFG = {
     icon: CheckCircle2,
     bg: 'bg-white',
     border: 'border-slate-200',
-    iconColor: 'text-teal-600',
+    iconColor: 'text-brand',
     textColor: 'text-slate-700',
     label: { ru: 'Бронирование подтверждено', en: 'Booking confirmed' },
   },
@@ -69,7 +69,7 @@ const MILESTONE_CFG = {
     icon: CreditCard,
     bg: 'bg-white',
     border: 'border-slate-200',
-    iconColor: 'text-teal-600',
+    iconColor: 'text-brand',
     textColor: 'text-slate-700',
     label: { ru: 'Оплата получена', en: 'Payment received' },
   },
@@ -77,7 +77,7 @@ const MILESTONE_CFG = {
     icon: CreditCard,
     bg: 'bg-white',
     border: 'border-slate-200',
-    iconColor: 'text-teal-600',
+    iconColor: 'text-brand',
     textColor: 'text-slate-700',
     label: { ru: 'Оплата получена', en: 'Payment received' },
   },
@@ -85,7 +85,7 @@ const MILESTONE_CFG = {
     icon: Key,
     bg: 'bg-white',
     border: 'border-slate-200',
-    iconColor: 'text-teal-600',
+    iconColor: 'text-brand',
     textColor: 'text-slate-700',
     label: { ru: 'Заезд', en: 'Check-in' },
   },
@@ -93,7 +93,7 @@ const MILESTONE_CFG = {
     icon: Key,
     bg: 'bg-white',
     border: 'border-slate-200',
-    iconColor: 'text-teal-600',
+    iconColor: 'text-brand',
     textColor: 'text-slate-700',
     label: { ru: 'Заезд сегодня', en: 'Check-in today' },
   },
@@ -117,7 +117,7 @@ const MILESTONE_CFG = {
     icon: Star,
     bg: 'bg-white',
     border: 'border-slate-200',
-    iconColor: 'text-teal-600',
+    iconColor: 'text-brand',
     textColor: 'text-slate-700',
     label: { ru: 'Поездка завершена', en: 'Trip completed' },
   },
@@ -133,7 +133,7 @@ const MILESTONE_CFG = {
     icon: FileText,
     bg: 'bg-white',
     border: 'border-slate-200',
-    iconColor: 'text-teal-600',
+    iconColor: 'text-brand',
     textColor: 'text-slate-700',
     label: { ru: 'Запрос документов', en: 'Document request' },
   },
@@ -141,7 +141,7 @@ const MILESTONE_CFG = {
     icon: CalendarCheck,
     bg: 'bg-white',
     border: 'border-slate-200',
-    iconColor: 'text-teal-600',
+    iconColor: 'text-brand',
     textColor: 'text-slate-700',
     label: { ru: 'Новое бронирование', en: 'New booking' },
   },
@@ -165,7 +165,7 @@ const MILESTONE_CFG = {
     icon: Bell,
     bg: 'bg-white',
     border: 'border-slate-200',
-    iconColor: 'text-teal-600',
+    iconColor: 'text-brand',
     textColor: 'text-slate-700',
     label: { ru: 'Запрос цены и вместимости', en: 'Price & capacity inquiry' },
   },
@@ -173,7 +173,7 @@ const MILESTONE_CFG = {
     icon: Bell,
     bg: 'bg-white',
     border: 'border-slate-200',
-    iconColor: 'text-teal-600',
+    iconColor: 'text-brand',
     textColor: 'text-slate-700',
     label: { ru: 'Индивидуальное предложение', en: 'Private / special deal request' },
   },
@@ -332,7 +332,7 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole, partnerI
               type="button"
               size="sm"
               disabled={partnerInquiryActions.loading}
-              className="h-9 min-h-0 flex-1 rounded-xl bg-teal-600 text-xs font-semibold text-white hover:bg-teal-700"
+              className="h-9 min-h-0 flex-1 rounded-xl bg-brand text-xs font-semibold text-white hover:bg-brand-hover"
               onClick={partnerInquiryActions.onConfirm}
             >
               {getUIText('chatHeader_confirmBooking', language)}
@@ -347,7 +347,7 @@ export function ChatMilestoneCard({ message, language = 'ru', userRole, partnerI
             </p>
             <Link
               href={reviewHref}
-              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-teal-600 px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-teal-700"
+              className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-brand px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-brand-hover"
             >
               <Star className="h-4 w-4 shrink-0 fill-white" />
               {getUIText('chatRateStay', language)}

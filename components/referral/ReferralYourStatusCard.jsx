@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
@@ -14,7 +14,7 @@ import { getSiteDisplayName } from '@/lib/site-url'
 
 const MEDAL_ROW_CN = {
   fast_start: 'border-amber-300 bg-amber-50 text-amber-950',
-  network_builder: 'border-teal-300 bg-teal-50 text-teal-950',
+  network_builder: 'border-brand/30 bg-brand/10 text-brand',
   top10_monthly: 'border-violet-300 bg-violet-50 text-violet-950',
 }
 
@@ -76,14 +76,14 @@ export function ReferralYourStatusCard({
     <>
       <div
         ref={shareCardRef}
-        className="fixed left-[-9999px] top-0 z-0 flex h-[640px] w-[360px] flex-col overflow-hidden rounded-none bg-gradient-to-b from-teal-50 via-white to-amber-50/90 text-slate-900 shadow-none"
+        className="fixed left-[-9999px] top-0 z-0 flex h-[640px] w-[360px] flex-col overflow-hidden rounded-none bg-gradient-to-b from-brand/10 via-white to-amber-50/90 text-slate-900 shadow-none"
         aria-hidden
       >
         <div className="pointer-events-none flex flex-1 flex-col px-6 pt-12 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-600 text-lg font-bold text-white shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-brand text-lg font-bold text-white shadow-sm">
             A
           </div>
-          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">{brandChip}</p>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-brand-hover">{brandChip}</p>
           <p className="mt-6 px-1 text-[17px] font-bold leading-snug text-slate-900">{heroName}</p>
           <p className="mt-2 text-[13px] font-medium text-slate-700">
             {amb.currentTier?.name || t('stage73_tierFallbackBeginner')}
@@ -106,12 +106,12 @@ export function ReferralYourStatusCard({
         </div>
       </div>
 
-      <Card className="border-2 border-teal-200 bg-gradient-to-br from-teal-50 to-white">
+      <Card className="border-2 border-brand/25 bg-gradient-to-br from-brand/10 to-white">
         <CardHeader className="pb-2">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 space-y-1">
               <CardTitle className="flex items-center gap-2 text-base">
-                <Medal className="h-5 w-5 shrink-0 text-teal-600" aria-hidden />
+                <Medal className="h-5 w-5 shrink-0 text-brand" aria-hidden />
                 {t('stage752_yourStatusTitle')}
               </CardTitle>
               {statusSubtitle ? <CardDescription>{statusSubtitle}</CardDescription> : null}
@@ -123,7 +123,7 @@ export function ReferralYourStatusCard({
               type="button"
               variant="outline"
               size="sm"
-              className="shrink-0 border-teal-300 bg-white/90 text-teal-900 hover:bg-teal-50"
+              className="shrink-0 border-brand/30 bg-white/90 text-brand hover:bg-brand/10"
               disabled={shareBusy}
               onClick={() => void handleShareSuccess()}
             >
@@ -161,7 +161,7 @@ export function ReferralYourStatusCard({
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        className="rounded-full border border-teal-300 bg-teal-50 px-2 py-0.5 text-xs font-semibold text-teal-800 shadow-sm transition hover:bg-teal-100 animate-[pulse_2.8s_ease-in-out_infinite]"
+                        className="rounded-full border border-brand/30 bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand-hover shadow-sm transition hover:bg-brand/15 animate-[pulse_2.8s_ease-in-out_infinite]"
                         aria-label={`Turbo x${turboX.toFixed(2).replace(/\.00$/, '')}`}
                       >
                         Ваш ускоритель бонусов: Turbo x{turboX.toFixed(2).replace(/\.00$/, '')}
@@ -184,7 +184,7 @@ export function ReferralYourStatusCard({
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      className="text-xs underline underline-offset-2 text-teal-700"
+                      className="text-xs underline underline-offset-2 text-brand-hover"
                       aria-label={t('referralStage726_payoutHow')}
                     >
                       {t('referralStage726_payoutHow')}
@@ -201,7 +201,7 @@ export function ReferralYourStatusCard({
             </div>
           </div>
 
-          <div className="space-y-2 border-t border-teal-100 pt-3">
+          <div className="space-y-2 border-t border-brand/20 pt-3">
             <p className="text-xs font-medium text-slate-700">{t('stage752_medalsCaption')}</p>
             {orderedMedals.length ? (
               <div className="flex flex-wrap gap-2">

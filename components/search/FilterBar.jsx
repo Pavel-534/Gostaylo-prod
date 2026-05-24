@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FilterBar - What | Where | When | Who + «Фильтры» (модалка)
  */
 
@@ -101,7 +101,7 @@ export function FilterBar({
 
   return (
     <>
-      <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white py-6">
+      <div className="bg-gradient-to-r from-brand to-brand-hover text-white py-6">
         <div className="container mx-auto px-4">
           <div className="mb-3">
             <h1 className="text-2xl font-bold leading-tight">
@@ -118,29 +118,29 @@ export function FilterBar({
           {(dateRange.from && dateRange.to) || (selectedCategory && selectedCategory !== 'all') || (where && where !== 'all') || guests !== '1' ? (
             <div className="flex flex-wrap items-center gap-2">
               {selectedCategory && selectedCategory !== 'all' && (
-                <Badge className="bg-white text-teal-700">
+                <Badge className="bg-white text-brand-hover">
                   <CategoryBadgeIcon className="h-4 w-4 mr-1" />
                   {getCategoryName(selectedCategory, language) || selectedCategory}
                 </Badge>
               )}
               {(dateRange.from && dateRange.to) && (
-                <Badge className="bg-white text-teal-700 hover:bg-white/90 flex items-center gap-2 px-3 py-1">
+                <Badge className="bg-white text-brand-hover hover:bg-white/90 flex items-center gap-2 px-3 py-1">
                   <CalendarIcon className="h-4 w-4" />
                   {formatDisplayDate(dateRange.from)} — {formatDisplayDate(dateRange.to)}
-                  <span className="text-teal-500">({nights} {getUIText('nightShort', language)})</span>
+                  <span className="text-brand/70">({nights} {getUIText('nightShort', language)})</span>
                   <button type="button" onClick={clearDates} className="ml-1 hover:text-red-600">
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
               )}
               {guests !== '1' && (
-                <Badge className="bg-white text-teal-700">
+                <Badge className="bg-white text-brand-hover">
                   <Users className="h-4 w-4 mr-1" />
                   {guests} {pluralizeGuests(guests, language)}
                 </Badge>
               )}
               {where && where !== 'all' && (
-                <Badge className="bg-white text-teal-700">
+                <Badge className="bg-white text-brand-hover">
                   <MapPin className="h-4 w-4 mr-1" />
                   {where}
                 </Badge>
@@ -187,7 +187,7 @@ export function FilterBar({
               onClick={() => setFiltersOpen(true)}
               data-testid="search-filters-button"
             >
-              <SlidersHorizontal className="mr-2 h-4 w-4 text-teal-600" />
+              <SlidersHorizontal className="mr-2 h-4 w-4 text-brand" />
               {getUIText('filtersBtn', language)}
             </Button>
           </div>
@@ -198,7 +198,7 @@ export function FilterBar({
                   <button
                     type="button"
                     onClick={() => setSelectedCategory?.(parentCategoryObj.slug)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:border-teal-400 hover:text-teal-800"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:border-brand/40 hover:text-brand-hover"
                   >
                     <span className="text-slate-500">←</span>
                     <span>
@@ -221,11 +221,11 @@ export function FilterBar({
                       className={cn(
                         'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
                         active
-                          ? 'border-teal-600 bg-teal-50 text-teal-900'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-teal-300',
+                          ? 'border-brand bg-brand/10 text-brand'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-brand/30',
                       )}
                     >
-                      <Icon className="h-3.5 w-3.5 shrink-0 text-teal-600" aria-hidden />
+                      <Icon className="h-3.5 w-3.5 shrink-0 text-brand" aria-hidden />
                       {getCategoryName(child.slug, language) || child.name}
                     </button>
                   );

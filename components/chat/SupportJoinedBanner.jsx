@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Headphones } from 'lucide-react'
 
@@ -18,7 +18,7 @@ export function SupportJoinedBanner({ message, language = 'ru' }) {
       role="status"
     >
       <div className="mx-auto flex max-w-md flex-col items-center gap-2 sm:flex-row sm:justify-center sm:gap-2.5">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-teal-700 ring-1 ring-slate-200">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-brand-hover ring-1 ring-slate-200">
           <Headphones className="h-4 w-4" aria-hidden />
         </span>
         <p className="text-sm font-medium leading-snug tracking-tight text-slate-700">

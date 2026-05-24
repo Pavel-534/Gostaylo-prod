@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { format } from 'date-fns'
@@ -47,7 +47,7 @@ export function PartnerFinancesLedger({ t, balanceBreakdown }) {
                       {row.bookingId ? (
                         <Link
                           href={`/partner/bookings?booking=${encodeURIComponent(String(row.bookingId))}`}
-                          className="text-teal-700 hover:underline"
+                          className="text-brand-hover hover:underline"
                           title={row.bookingId}
                         >
                           {String(row.bookingId).slice(0, 8)}…

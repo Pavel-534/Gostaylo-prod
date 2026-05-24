@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { formatPrice } from '@/lib/currency'
 import {
@@ -23,7 +23,7 @@ export function PartnerPayoutPreviewFields({
   const isDialog = variant === 'dialog'
 
   return (
-    <div className={isDialog ? 'rounded-md border border-teal-100 bg-teal-50/80 p-3 space-y-2' : 'space-y-2'}>
+    <div className={isDialog ? 'rounded-md border border-brand/20 bg-brand/10 p-3 space-y-2' : 'space-y-2'}>
       <div className="flex justify-between gap-3 min-w-0">
         <span className="text-slate-600 shrink-0">{t('partnerFinances_payoutMathBaseAvailable')}</span>
         <span className="font-medium tabular-nums text-right break-all min-w-0">
@@ -53,14 +53,14 @@ export function PartnerPayoutPreviewFields({
           </span>
           <span
             className={`tabular-nums text-right break-all min-w-0 font-semibold ${
-              isDialog ? 'text-teal-800' : 'text-indigo-700'
+              isDialog ? 'text-brand-hover' : 'text-indigo-700'
             }`}
           >
             {loading ? '…' : formatPrice(preview?.finalAmountThb ?? 0, 'THB')}
           </span>
         </div>
         {rateLine ? (
-          <p className={`text-sm font-medium ${isDialog ? 'text-teal-900' : 'text-indigo-800'}`}>
+          <p className={`text-sm font-medium ${isDialog ? 'text-brand' : 'text-indigo-800'}`}>
             {rateLine}
           </p>
         ) : null}

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useRouter } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
@@ -36,9 +36,9 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
       <section className="space-y-4">
         <h2 className="text-xl font-semibold text-slate-900">{t('stage91_whyShareTitle')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="rounded-xl border border-teal-100 bg-white shadow-sm">
+          <Card className="rounded-xl border border-brand/20 bg-white shadow-sm">
             <CardHeader className="flex flex-row items-center gap-3 space-y-0 pb-2">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-teal-600 text-white shrink-0">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand text-white shrink-0">
                 <Plane className="h-5 w-5" />
               </div>
               <CardTitle className="text-lg">{t('stage91_whyTravelersTitle')}</CardTitle>
@@ -80,7 +80,7 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
               <p className="text-xs text-slate-500">{t('stage1143_yourLink')}</p>
               <div className="flex gap-2">
                 <Input value={inviteLink} readOnly />
-                <Button type="button" className="bg-[#006666] hover:bg-[#005757]" onClick={() => void copyText(inviteLink)}>
+                <Button type="button" variant="brand" onClick={() => void copyText(inviteLink)}>
                   <Copy className="h-4 w-4 mr-1" />
                   {t('stage1143_copyLink')}
                 </Button>
@@ -136,10 +136,10 @@ export function ReferralProfileTabLink({ data, walletData, t, locale, welcomeBon
 
       <Card className="rounded-xl border border-slate-200 bg-white">
         <CardContent className="p-4 text-sm text-slate-600 flex items-center gap-2">
-          <ArrowRight className="h-4 w-4 text-[#006666]" />
+          <ArrowRight className="h-4 w-4 text-brand" />
           <span>
             {t('stage1143_walletHint')}{' '}
-            <button type="button" className="font-medium text-[#006666] underline" onClick={() => router.push('/profile/wallet')}>
+            <button type="button" className="font-medium text-brand underline" onClick={() => router.push('/profile/wallet')}>
               {t('stage1143_tabNavWallet')}
             </button>
           </span>

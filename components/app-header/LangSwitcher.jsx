@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * LangSwitcher — единый компонент переключения языка (RU/EN/ZH/TH).
@@ -53,7 +53,7 @@ export function LangSwitcher({ size = 'default', testid = 'language-selector-tri
             data-testid={`language-option-${lang.code}`}
             className={cn(
               'cursor-pointer',
-              language === lang.code && 'bg-teal-50 text-teal-700',
+              language === lang.code && 'bg-brand/10 text-brand-hover',
             )}
           >
             <span className="mr-2">{renderFlag(lang.code)}</span>

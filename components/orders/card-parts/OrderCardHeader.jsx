@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { ProxiedImage } from '@/components/proxied-image'
@@ -57,8 +57,8 @@ export function OrderCardHeader({
         <div className="min-w-0 flex-1 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <OrderTypeIcon type={normalizedType} className="text-teal-700 shrink-0" />
-              <span className="text-xs font-semibold uppercase tracking-wide text-teal-700 truncate">
+              <OrderTypeIcon type={normalizedType} className="text-brand-hover shrink-0" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-brand-hover truncate">
                 {orderTypeLabel}
               </span>
             </div>

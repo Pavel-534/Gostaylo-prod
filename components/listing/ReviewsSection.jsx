@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ReviewsSection Component
  * Displays ratings and review cards
  */
@@ -45,8 +45,8 @@ export function ReviewsSection({ listing, reviews, language = 'en' }) {
                 <Card key={review.id} className="border-slate-200">
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
-                        <User className="h-6 w-6 text-teal-600" />
+                      <div className="w-12 h-12 rounded-full bg-brand/15 flex items-center justify-center flex-shrink-0">
+                        <User className="h-6 w-6 text-brand" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-2">
@@ -74,7 +74,7 @@ export function ReviewsSection({ listing, reviews, language = 'en' }) {
                   <Button
                     variant="outline"
                     onClick={() => setShowAll(v => !v)}
-                    className="border-teal-200 text-teal-700 hover:bg-teal-50"
+                    className="border-brand/25 text-brand-hover hover:bg-brand/10"
                   >
                     {showAll
                       ? getUIText('hide', language)

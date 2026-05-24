@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GoStayLo - Admin/Partner Navigation Bar
  * Shows a persistent bar at the top for logged-in ADMIN or PARTNER users
  */
@@ -43,7 +43,7 @@ export default function RoleBar() {
   const isAdmin = user.role === 'ADMIN';
   const dashboardPath = isAdmin ? '/admin/dashboard' : '/partner/dashboard';
   const dashboardLabel = isAdmin ? 'Admin Panel' : 'Partner Dashboard';
-  const bgColor = isAdmin ? 'bg-gradient-to-r from-indigo-600 to-purple-600' : 'bg-gradient-to-r from-teal-600 to-emerald-600';
+  const bgColor = isAdmin ? 'bg-gradient-to-r from-indigo-600 to-purple-600' : 'bg-gradient-to-r from-brand to-emerald-600';
   const Icon = isAdmin ? Shield : Store;
 
   const handleLogout = () => {

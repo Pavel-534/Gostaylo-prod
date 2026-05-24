@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * Мобильный мастер-календарь партнёра (< lg): фильтры по категориям из БД, поиск, аккордеон,
@@ -32,7 +32,7 @@ const TYPE_ICONS = {
 }
 
 const STATUS_BADGE = {
-  CONFIRMED: 'bg-teal-600 text-white',
+  CONFIRMED: 'bg-brand text-white',
   PENDING: 'bg-amber-400 text-amber-950',
   PAID: 'bg-emerald-600 text-white',
   BLOCKED: 'bg-slate-400 text-white',
@@ -169,7 +169,7 @@ export function CalendarMobileAgenda({
             className={cn(
               'shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors',
               categoryFilter === key
-                ? 'border-teal-600 bg-teal-600 text-white'
+                ? 'border-brand bg-brand text-white'
                 : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100',
             )}
           >
@@ -213,7 +213,7 @@ export function CalendarMobileAgenda({
               ? 'text-slate-600'
               : summary.tone === 'muted'
                 ? 'text-slate-400'
-                : 'text-teal-700'
+                : 'text-brand-hover'
 
         const headerAsTodayAnchor =
           !!todayAnchorRef &&
@@ -277,7 +277,7 @@ export function CalendarMobileAgenda({
                         e.stopPropagation()
                         toggleFullMonth(id)
                       }}
-                      className="text-xs font-semibold text-teal-700 underline-offset-2 hover:underline"
+                      className="text-xs font-semibold text-brand-hover underline-offset-2 hover:underline"
                     >
                       {showFull
                         ? trTpl(t('partnerCal_collapseToTen'), { n: SHORT_WINDOW })
@@ -362,7 +362,7 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
         <span
           className={cn(
             'text-sm font-bold tabular-nums tracking-tight',
-            high && 'text-teal-700',
+            high && 'text-brand-hover',
             low && 'text-slate-500',
             !high && !low && 'text-slate-900',
           )}
@@ -403,14 +403,14 @@ function AgendaRow({ date, item, onCellClick, listItemRef, todayScrollMarginClas
         className={cn(
           'flex w-full min-h-[44px] items-center gap-2 border-b border-slate-100 px-2.5 py-1.5 text-left transition-colors',
           'touch-manipulation active:bg-slate-100',
-          today && 'bg-teal-50/80 ring-1 ring-inset ring-teal-400/50',
+          today && 'bg-brand/10 ring-1 ring-inset ring-brand/40',
           weekend && cellData.status === 'AVAILABLE' && !today && 'bg-slate-50/40',
         )}
       >
         <div
           className={cn(
             'flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg border font-bold',
-            today ? 'border-teal-600 bg-white text-teal-800' : 'border-slate-200 bg-white text-slate-800',
+            today ? 'border-brand bg-white text-brand-hover' : 'border-slate-200 bg-white text-slate-800',
           )}
         >
           <span className="text-[9px] font-semibold uppercase leading-none text-slate-500">

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { CheckCircle2, Shield, XCircle, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,7 +25,7 @@ export function FinTechProductionReadinessCard({ readiness }) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CardTitle className="text-xl flex items-center gap-2 text-slate-900">
-              <Shield className="h-6 w-6 text-teal-700" />
+              <Shield className="h-6 w-6 text-brand-hover" />
               Готовность к продакшену
             </CardTitle>
             <CardDescription className="mt-1 max-w-2xl">

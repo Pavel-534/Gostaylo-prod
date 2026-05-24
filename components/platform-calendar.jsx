@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import * as React from "react"
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, isSameDay, isSameMonth, isBefore, differenceInDays } from "date-fns"
@@ -114,14 +114,14 @@ function DayCell({
       disabled={!isClickable}
       className={cn(
         "relative aspect-square w-full flex flex-col items-center justify-center text-sm transition-all",
-        "focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-1 rounded-lg",
+        "focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1 rounded-lg",
         // Today - just bold
         isToday && !isRangeStart && !isRangeEnd && "font-bold",
         // Selection states - Teal colors
-        isRangeStart && "bg-teal-600 text-white rounded-l-lg rounded-r-none z-10",
-        isRangeEnd && "bg-teal-600 text-white rounded-r-lg rounded-l-none z-10",
+        isRangeStart && "bg-brand text-white rounded-l-lg rounded-r-none z-10",
+        isRangeEnd && "bg-brand text-white rounded-r-lg rounded-l-none z-10",
         isRangeStart && isRangeEnd && "rounded-lg", // Single day selection
-        isInRange && !isRangeStart && !isRangeEnd && "bg-teal-50 text-teal-900 rounded-none",
+        isInRange && !isRangeStart && !isRangeEnd && "bg-brand/10 text-brand rounded-none",
         // Blocked - very faded, no clicks (only when NOT selecting checkout)
         visuallyBlocked && "opacity-20 pointer-events-none cursor-not-allowed text-slate-400",
         // Available hover
@@ -496,7 +496,7 @@ export function PlatformCalendar({
   
   // Selection hint
   const SelectionHint = isSelectingCheckout ? (
-    <div className="mb-4 text-center text-sm text-teal-600 bg-teal-50 rounded-lg py-2 px-3">
+    <div className="mb-4 text-center text-sm text-brand bg-brand/10 rounded-lg py-2 px-3">
       {getUIText('checkInSelectedHint', language)}
     </div>
   ) : null

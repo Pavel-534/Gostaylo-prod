@@ -139,10 +139,10 @@ export function ScrollProgressBar() {
     >
       <div
         className={
-          'h-full origin-left bg-gradient-to-r from-[#006666] via-[#14a8a8] to-[#5dd8d5] transition-[width,opacity] duration-300 ease-out ' +
+          'h-full origin-left bg-gradient-to-r from-brand via-brand/70 to-cyan-400 transition-[width,opacity] duration-300 ease-out ' +
           (activeComplete
-            ? 'shadow-[0_0_14px_rgba(0,168,168,0.9)] animate-scroll-glow-pulse'
-            : 'shadow-[0_0_6px_rgba(0,168,168,0.45)]') +
+            ? 'shadow-[0_0_14px_rgba(0,102,102,0.45)] animate-scroll-glow-pulse'
+            : 'shadow-[0_0_6px_rgba(0,102,102,0.25)]') +
           (routeLoading ? ' opacity-100' : ' opacity-95')
         }
         style={{ width: `${activeProgress}%` }}

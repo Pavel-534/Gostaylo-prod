@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * AboutContent — клиентский компонент с i18n.
@@ -121,15 +121,15 @@ export default function AboutContent() {
   return (
     <main className="min-h-screen bg-white">
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-teal-50/60 via-white to-amber-50/40 border-b border-slate-100">
+      <section className="relative overflow-hidden bg-gradient-to-br from-brand/10 via-white to-amber-50/40 border-b border-slate-100">
         <div className="container mx-auto px-4 pt-24 sm:pt-28 pb-16 sm:pb-20 max-w-4xl">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-teal-200 bg-white/70 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-teal-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-teal-600" />
+          <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-brand/25 bg-white/70 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand-hover">
+            <span className="h-1.5 w-1.5 rounded-full bg-brand" />
             {getSiteDisplayName()} · {s.eyebrow}
           </p>
           <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-slate-900 leading-[1.05] mb-6">
             {s.h1Line1}<br />
-            <span className="text-[#006666]">{s.h1Line2}</span>
+            <span className="text-brand">{s.h1Line2}</span>
           </h1>
           <p className="text-lg sm:text-xl text-slate-600 leading-relaxed max-w-2xl">{s.sub}</p>
         </div>
@@ -146,9 +146,9 @@ export default function AboutContent() {
             return (
               <div
                 key={p.title}
-                className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 transition-all duration-300 hover:border-teal-300 hover:shadow-[0_20px_48px_rgba(15,23,42,0.08)]"
+                className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 transition-all duration-300 hover:border-brand/30 hover:shadow-[0_20px_48px_rgba(15,23,42,0.08)]"
               >
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-[#006666]">
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-brand/10 text-brand">
                   <Icon className="h-5 w-5" />
                 </div>
                 <h3 className="font-serif text-xl font-semibold text-slate-900 mb-2">{p.title}</h3>
@@ -180,13 +180,13 @@ export default function AboutContent() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
             href="/listings"
-            className="inline-flex items-center justify-center rounded-2xl bg-[#006666] px-7 py-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)] transition-all hover:bg-[#005555] active:scale-[0.98]"
+            className="inline-flex items-center justify-center rounded-2xl bg-brand px-7 py-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)] transition-all hover:bg-[#005555] active:scale-[0.98]"
           >
             {s.ctaPrimary}
           </Link>
           <Link
             href="/help"
-            className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-7 py-4 text-sm font-semibold text-slate-700 transition-colors hover:border-teal-400 hover:text-teal-700"
+            className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-7 py-4 text-sm font-semibold text-slate-700 transition-colors hover:border-brand/40 hover:text-brand-hover"
           >
             {s.ctaSecondary}
           </Link>

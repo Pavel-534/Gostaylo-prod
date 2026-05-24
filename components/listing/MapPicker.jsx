@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * MapPicker — точка на карте для объявления (партнёр).
@@ -157,7 +157,7 @@ export default function MapPicker({
             type="button"
             variant={unlocked ? 'default' : 'outline'}
             size="sm"
-            className={unlocked ? 'bg-teal-600 hover:bg-teal-700' : 'border-slate-300'}
+            className={unlocked ? 'bg-brand hover:bg-brand-hover' : 'border-slate-300'}
             onClick={() => setUnlocked((u) => !u)}
           >
             {unlocked ? (
@@ -167,7 +167,7 @@ export default function MapPicker({
               </>
             ) : (
               <>
-                <Lock className="mr-1.5 h-4 w-4 text-teal-700" aria-hidden />
+                <Lock className="mr-1.5 h-4 w-4 text-brand-hover" aria-hidden />
                 {t('mapPicker_editLocation')}
               </>
             )}

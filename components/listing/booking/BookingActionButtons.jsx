@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Button } from '@/components/ui/button'
 import { ArrowRight, MessageCircle } from 'lucide-react'
@@ -55,7 +55,7 @@ export function BookingActionButtons({
             onClick={onAskPartner}
             disabled={askPartnerLoading}
             data-testid="booking-contact-host"
-            className={`w-full h-12 text-base border-teal-200 text-teal-800 hover:bg-teal-50 ${
+            className={`w-full h-12 text-base border-brand/25 text-brand-hover hover:bg-brand/10 ${
               hasUnreadFromHost ? 'border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900' : ''
             }`}
           >
@@ -73,8 +73,9 @@ export function BookingActionButtons({
       <Button
         onClick={onBookingClick}
         disabled={!canBook}
+        variant="brand"
         data-testid="listing-book-now"
-        className="w-full h-12 text-base bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
+        className="w-full h-12 text-base"
       >
         {exclusiveDatesUnavailable
           ? language === 'ru'
@@ -90,7 +91,7 @@ export function BookingActionButtons({
             <Button
               type="button"
               variant="secondary"
-              className="w-full h-11 border border-teal-200 bg-white text-teal-900 hover:bg-teal-50"
+              className="w-full h-11 border border-brand/25 bg-white text-brand hover:bg-brand/10"
               onClick={onPrivateTripClick}
               disabled={!dateRange?.from || !dateRange?.to}
             >
@@ -117,7 +118,7 @@ export function BookingActionButtons({
         <Button
           type="button"
           variant="outline"
-          className="w-full h-12 border-teal-300 text-teal-900 hover:bg-teal-50"
+          className="w-full h-12 border-brand/30 text-brand hover:bg-brand/10"
           onClick={onAskPartnerUnavailable || onAskPartner}
           disabled={askPartnerLoading}
           data-testid="booking-contact-host-unavailable"

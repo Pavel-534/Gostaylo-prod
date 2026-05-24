@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Shield, Headphones, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -88,7 +88,7 @@ export function AdminChatPinnedSlot({
             {joinSupportLoading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
-              <Headphones className="h-3.5 w-3.5 text-teal-600" />
+              <Headphones className="h-3.5 w-3.5 text-brand" />
             )}
             {t('adminJoinAsSupport')}
           </Button>

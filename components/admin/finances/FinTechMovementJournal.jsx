@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import { BookOpen, Filter, Loader2 } from 'lucide-react'
@@ -24,7 +24,7 @@ const KIND_OPTIONS = [
 ]
 
 const KIND_BADGE = {
-  CONVERSION: 'bg-teal-100 text-teal-900',
+  CONVERSION: 'bg-brand/15 text-brand',
   PAYOUT_BATCH: 'bg-slate-200 text-slate-800',
   LEDGER: 'bg-indigo-100 text-indigo-900',
   FISCAL: 'bg-amber-100 text-amber-900',
@@ -84,7 +84,7 @@ export function FinTechMovementJournal({ excludeTest = true, ownerSimple = false
     <Card className="border-slate-200 shadow-sm">
       <CardHeader className="pb-2" style={{ borderLeft: `4px solid ${MINT}` }}>
         <CardTitle className="flex items-center gap-2 text-lg" style={{ color: NAVY }}>
-          <BookOpen className="h-5 w-5 text-teal-600" />
+          <BookOpen className="h-5 w-5 text-brand" />
           {ownerSimple ? 'История движений денег' : 'Журнал всех движений'}
         </CardTitle>
         <CardDescription>
@@ -94,9 +94,9 @@ export function FinTechMovementJournal({ excludeTest = true, ownerSimple = false
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border-2 border-teal-300 bg-teal-50 px-3 py-2.5 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border-2 border-brand/30 bg-brand/10 px-3 py-2.5 shadow-sm">
           <Switch id="journal-real-only" checked={onlyReal} onCheckedChange={setOnlyReal} />
-          <Label htmlFor="journal-real-only" className="text-sm font-semibold cursor-pointer text-teal-900">
+          <Label htmlFor="journal-real-only" className="text-sm font-semibold cursor-pointer text-brand">
             {ownerSimple ? 'Только реальные операции' : 'Только реальные данные (без smoke/E2E)'}
           </Label>
         </div>

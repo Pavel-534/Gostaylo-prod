@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -23,7 +23,7 @@ function StatTile({ label, value, hint, tone = 'slate' }) {
     tone === 'violet'
       ? 'border-violet-200 bg-violet-50/80 text-violet-950'
       : tone === 'teal'
-        ? 'border-teal-200 bg-teal-50/80 text-teal-950'
+        ? 'border-brand/25 bg-brand/10 text-brand'
         : tone === 'amber'
           ? 'border-amber-200 bg-amber-50/80 text-amber-950'
           : tone === 'rose'
@@ -54,7 +54,7 @@ function AccrualsChart({ series }) {
           Начисления (earned)
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-teal-500" />
+          <span className="inline-block h-2.5 w-2.5 rounded-sm bg-brand/100" />
           Заявки на вывод (не банк)
         </span>
       </div>
@@ -71,7 +71,7 @@ function AccrualsChart({ series }) {
                   title={`earned ${row.earnedThb}`}
                 />
                 <div
-                  className="w-[42%] rounded-t bg-teal-500/90"
+                  className="w-[42%] rounded-t bg-brand/90"
                   style={{ height: payoutH }}
                   title={`requests ${row.payoutRequestsThb}`}
                 />
@@ -433,10 +433,10 @@ export function ReferralLiabilityPanel({ toast }) {
           </div>
         ) : null}
 
-        <div className="rounded-xl border border-teal-200 bg-teal-50/50 p-4 space-y-3">
+        <div className="rounded-xl border border-brand/25 bg-brand/10 p-4 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-              <PiggyBank className="h-4 w-4 text-teal-600" />
+              <PiggyBank className="h-4 w-4 text-brand" />
               Очередь вывода реферальных
             </p>
             <p className="text-sm text-slate-700 tabular-nums">

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GoStayLo - App Sidebar Navigation
  * Based on ARCHITECTURAL_PASSPORT.md requirements:
  * - System Settings (TG Bot, Webhooks, Maintenance, Commission)
@@ -241,7 +241,7 @@ export function AppSidebar() {
       <SheetContent side='left' className='w-full sm:w-[320px] p-0 border-r-0 sm:border-r'>
         <SheetHeader className='p-4 border-b bg-gradient-to-r from-slate-50 to-white'>
           <div className='flex items-center gap-3'>
-            <div className='w-10 h-10 bg-gradient-to-br from-teal-500 to-emerald-600 rounded-lg flex items-center justify-center'>
+            <div className='w-10 h-10 bg-gradient-to-br from-brand to-emerald-600 rounded-lg flex items-center justify-center'>
               <Home className='h-5 w-5 text-white' />
             </div>
             <div>
@@ -257,7 +257,7 @@ export function AppSidebar() {
             <div className='px-4 py-3 bg-slate-50 mx-2 rounded-lg mb-2'>
               <div className='flex items-center gap-3'>
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
-                  isAdmin ? 'bg-indigo-600' : isPartner ? 'bg-teal-600' : 'bg-slate-600'
+                  isAdmin ? 'bg-indigo-600' : isPartner ? 'bg-brand' : 'bg-slate-600'
                 }`}>
                   {user.name?.[0]?.toUpperCase() || 'U'}
                 </div>
@@ -266,7 +266,7 @@ export function AppSidebar() {
                   <p className='text-xs text-slate-500 truncate'>{user.email}</p>
                   <Badge variant='outline' className={`mt-1 text-xs ${
                     isAdmin ? 'border-indigo-300 text-indigo-700' : 
-                    isPartner ? 'border-teal-300 text-teal-700' : 
+                    isPartner ? 'border-brand/30 text-brand-hover' : 
                     'border-slate-300'
                   }`}>
                     {user.role || 'RENTER'}
@@ -295,7 +295,7 @@ export function AppSidebar() {
                   <Button 
                     variant={isOnPartnerPage ? 'default' : 'outline'} 
                     size='sm' 
-                    className={`w-full ${isOnPartnerPage ? 'bg-teal-600' : ''}`}
+                    className={`w-full ${isOnPartnerPage ? 'bg-brand' : ''}`}
                   >
                     <Store className='h-3 w-3 mr-1' />
                     Partner
@@ -330,11 +330,11 @@ export function AppSidebar() {
                 >
                   <div className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                     isActive 
-                      ? 'bg-teal-50 text-teal-700 border border-teal-200' 
+                      ? 'bg-brand/10 text-brand-hover border border-brand/25' 
                       : 'hover:bg-slate-50 text-slate-700'
                   }`}>
                     <span className='relative flex-shrink-0'>
-                      <Icon className={`h-5 w-5 ${isActive ? 'text-teal-600' : 'text-slate-500'}`} />
+                      <Icon className={`h-5 w-5 ${isActive ? 'text-brand' : 'text-slate-500'}`} />
                       {showUnreadBadge && (
                         <span className='absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white' />
                       )}
@@ -362,7 +362,7 @@ export function AppSidebar() {
                       </div>
                       <p className='text-xs text-slate-500 truncate'>{item.description}</p>
                     </div>
-                    {isActive && <ChevronRight className='h-4 w-4 text-teal-500 flex-shrink-0' />}
+                    {isActive && <ChevronRight className='h-4 w-4 text-brand/70 flex-shrink-0' />}
                   </div>
                 </Link>
               );
@@ -374,7 +374,7 @@ export function AppSidebar() {
             <div className='px-4 py-6 text-center'>
               <p className='text-slate-600 mb-3'>Sign in to access your dashboard</p>
               <Button 
-                className='bg-teal-600 hover:bg-teal-700'
+                className='bg-brand hover:bg-brand-hover'
                 onClick={handleLoginClick}
               >
                 Login / Register

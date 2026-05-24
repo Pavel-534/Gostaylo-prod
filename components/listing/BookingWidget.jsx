@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * BookingWidget - Sticky Desktop + Fixed Mobile Booking Interface
@@ -198,7 +198,7 @@ export function DesktopBookingWidget({
 
         <CardContent className="space-y-4">
           {wholeVessel && dateRange?.from && dateRange?.to && (
-            <div className="rounded-lg border border-teal-100 bg-teal-50/80 px-3 py-2 text-sm text-teal-900">
+            <div className="rounded-lg border border-brand/20 bg-brand/10 px-3 py-2 text-sm text-brand">
               {availabilityLoading ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -219,7 +219,7 @@ export function DesktopBookingWidget({
           )}
 
           {sharedMode && !wholeVessel && dateRange?.from && dateRange?.to && (
-            <div className="rounded-lg border border-teal-100 bg-teal-50/80 px-3 py-2 text-sm text-teal-900">
+            <div className="rounded-lg border border-brand/20 bg-brand/10 px-3 py-2 text-sm text-brand">
               {availabilityLoading ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -373,7 +373,7 @@ export function MobileBookingBar({
           {!availabilityLoading && onPrivateTripClick && (
             <button
               type="button"
-              className="text-teal-700 font-medium underline-offset-2 hover:underline"
+              className="text-brand-hover font-medium underline-offset-2 hover:underline"
               onClick={onPrivateTripClick}
             >
               {language === 'ru' ? 'Приват / цена' : 'Private / quote'}
@@ -413,7 +413,7 @@ export function MobileBookingBar({
               size="sm"
               onClick={onAskPartnerUnavailable || onAskPartner}
               disabled={askPartnerLoading}
-              className="h-12 px-3 border-teal-300 text-teal-900"
+              className="h-12 px-3 border-brand/30 text-brand"
             >
               <MessageCircle className="h-5 w-5 sm:mr-1" />
               <span className="hidden sm:inline">
@@ -429,7 +429,7 @@ export function MobileBookingBar({
                 size="icon"
                 onClick={onAskPartner}
                 disabled={askPartnerLoading}
-                className={`h-12 w-12 shrink-0 border-teal-200 text-teal-800 hover:bg-teal-50 ${
+                className={`h-12 w-12 shrink-0 border-brand/25 text-brand-hover hover:bg-brand/10 ${
                   hasUnreadFromHost ? 'border-amber-300 bg-amber-50 text-amber-900' : ''
                 }`}
                 aria-label={askPartnerLabel}
@@ -445,8 +445,9 @@ export function MobileBookingBar({
           <Button
             onClick={onBookingClick}
             disabled={!dateRange?.from || !dateRange?.to || !canInstantBook || availabilityLoading}
+            variant="brand"
             data-testid="listing-book-now"
-            className="h-12 min-w-[7.5rem] px-4 text-sm sm:text-base bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700"
+            className="h-12 min-w-[7.5rem] px-4 text-sm sm:text-base"
           >
             {exclusiveDatesUnavailable
               ? language === 'ru'

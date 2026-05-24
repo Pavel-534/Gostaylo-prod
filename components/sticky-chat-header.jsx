@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * @file components/sticky-chat-header.jsx
@@ -189,14 +189,14 @@ export function StickyChatHeader({
         <div className="hidden md:flex items-center justify-between gap-2 border-b border-slate-100 bg-white px-4 py-1">
           <Link
             href={catalogHref}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-teal-700 hover:text-teal-900 hover:underline truncate min-w-0"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-brand-hover hover:text-brand hover:underline truncate min-w-0"
           >
             <ArrowLeft className="h-3.5 w-3.5 shrink-0" aria-hidden />
             {language === 'en' ? 'Back to search' : 'Назад к поиску'}
           </Link>
           <Link
             href="/"
-            className="shrink-0 text-xs font-bold tracking-tight text-teal-800 hover:text-teal-950"
+            className="shrink-0 text-xs font-bold tracking-tight text-brand-hover hover:text-brand"
           >
             {getSiteDisplayName()}
           </Link>
@@ -248,7 +248,7 @@ export function StickyChatHeader({
             {listing?.id ? (
               <Link
                 href={`/listings/${listing.id}`}
-                className="block truncate font-semibold text-slate-900 hover:text-teal-700 text-sm"
+                className="block truncate font-semibold text-slate-900 hover:text-brand-hover text-sm"
               >
                 {title}
               </Link>
@@ -321,7 +321,7 @@ export function StickyChatHeader({
             <Link
               href={`/listings/${listing.id}`}
               className={cn(
-                'font-semibold text-slate-900 truncate block hover:text-teal-700',
+                'font-semibold text-slate-900 truncate block hover:text-brand-hover',
                 compact && 'text-sm sm:text-base',
                 showUnifiedTop && 'hidden xl:block'
               )}
@@ -389,7 +389,7 @@ export function StickyChatHeader({
 
           {/* Индикатор «печатает…» */}
           {typingIndicator && (!typingGateWithPresence || presenceOnline !== false) ? (
-            <p className="text-xs text-teal-600 mt-1 truncate animate-pulse" aria-live="polite">
+            <p className="text-xs text-brand mt-1 truncate animate-pulse" aria-live="polite">
               {typingIndicator}
             </p>
           ) : null}

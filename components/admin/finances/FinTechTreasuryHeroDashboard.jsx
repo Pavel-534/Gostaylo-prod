@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useState } from 'react'
@@ -40,7 +40,7 @@ function StatusTile({ title, count, thb, icon: Icon, accent, sub }) {
         {title}
       </div>
       <p className="text-2xl font-bold mt-2 text-slate-900">{count}</p>
-      <p className="text-sm font-medium text-teal-800">{fmtThb(thb)}</p>
+      <p className="text-sm font-medium text-brand-hover">{fmtThb(thb)}</p>
       {sub ? <p className="text-[11px] text-muted-foreground mt-1">{sub}</p> : null}
     </div>
   )
@@ -112,7 +112,7 @@ export function FinTechTreasuryHeroDashboard({ dash, statCards, onSimulateRail, 
       <Card className="border-2 border-slate-200 shadow-lg bg-gradient-to-br from-slate-50 to-white">
         <CardContent className="pt-6 pb-5 space-y-5">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-hover">
               Состояние системы
             </p>
             <h2 className="text-2xl font-bold mt-1" style={{ color: NAVY }}>
@@ -245,20 +245,20 @@ export function FinTechTreasuryHeroDashboard({ dash, statCards, onSimulateRail, 
             key={key}
             className={cn(
               'shadow-lg border-2',
-              accent === 'teal' && 'border-teal-200',
+              accent === 'teal' && 'border-brand/25',
               accent === 'amber' && 'border-amber-200',
               accent === 'slate' && 'border-slate-200',
             )}
           >
             <CardContent className="pt-6 pb-5">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Icon className="h-5 w-5 text-teal-600" />
+                <Icon className="h-5 w-5 text-brand" />
                 {label}
               </div>
               <p className="text-4xl font-bold mt-2 tracking-tight" style={{ color: NAVY }}>
                 {value}
               </p>
-              <p className="text-lg font-medium text-teal-800 mt-1">{sub}</p>
+              <p className="text-lg font-medium text-brand-hover mt-1">{sub}</p>
               <p className="text-xs text-muted-foreground mt-2">{hint}</p>
               {batchId ? (
                 <Button variant="outline" size="sm" className="mt-3" asChild>

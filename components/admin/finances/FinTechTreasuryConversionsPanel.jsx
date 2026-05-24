@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
@@ -250,7 +250,7 @@ export function FinTechTreasuryConversionsPanel({ excludeTest = false, refreshKe
             <ArrowRightLeft className="h-5 w-5" style={{ color: MINT }} />
             Конвертации и потери
           </CardTitle>
-          <Badge className="bg-teal-100 text-teal-900 hover:bg-teal-100">Stage 101.2</Badge>
+          <Badge className="bg-brand/15 text-brand hover:bg-brand/15">Stage 101.2</Badge>
         </div>
         <CardDescription className="text-slate-700">
           Ежедневный контроль: фиксируйте обмены, смотрите реальную маржу, выгружайте CSV для бухгалтера и
@@ -259,7 +259,7 @@ export function FinTechTreasuryConversionsPanel({ excludeTest = false, refreshKe
       </CardHeader>
 
       <CardContent className="space-y-5">
-        <section className="rounded-xl border border-teal-200/80 bg-white/90 p-4 space-y-3">
+        <section className="rounded-xl border border-brand/25 bg-white/90 p-4 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold text-slate-900">Реальная маржа за период</h3>
             <span className="text-xs text-slate-500">
@@ -269,7 +269,7 @@ export function FinTechTreasuryConversionsPanel({ excludeTest = false, refreshKe
           </div>
 
           <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
-            <div className="rounded-xl border bg-gradient-to-br from-white to-teal-50 p-4 shadow-sm">
+            <div className="rounded-xl border bg-gradient-to-br from-white to-brand/10 p-4 shadow-sm">
               <div className="text-xs text-slate-500 flex items-center gap-1">
                 <Wallet className="h-3.5 w-3.5" /> Принято от гостей (RUB)
               </div>
@@ -309,7 +309,7 @@ export function FinTechTreasuryConversionsPanel({ excludeTest = false, refreshKe
 
         <section className="rounded-lg border bg-white p-3 space-y-3">
           <div className="flex items-center gap-2 text-sm font-medium text-slate-800">
-            <Filter className="h-4 w-4 text-teal-700" />
+            <Filter className="h-4 w-4 text-brand-hover" />
             Фильтры и выгрузка
           </div>
 

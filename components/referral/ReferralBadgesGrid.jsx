@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { BADGE_PROGRESSION_ORDER } from '@/lib/referral/referral-badges'
 import { cn } from '@/lib/utils'
@@ -40,7 +40,7 @@ export function ReferralBadgesGrid({ badgesEarned = [], t, compact = false }) {
                     <TooltipTrigger asChild>
                       <button
                         type="button"
-                        className="shrink-0 rounded-full p-0.5 text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+                        className="shrink-0 rounded-full p-0.5 text-slate-400 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                         aria-label={t('stage1147_badgeTooltipAria').replace('{badge}', t(`stage1143_badge_${id}`))}
                       >
                         <HelpCircle className="h-3.5 w-3.5" />

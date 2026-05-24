@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -58,7 +58,7 @@ export function ReferralMonthlyLeaderboard({ t, formatThb, formatAmountLine, loc
     <Card className="rounded-2xl border border-slate-200 bg-white shadow-[0_4px_12px_rgba(0,102,102,0.04)]">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
-          <Trophy className="h-4 w-4 text-teal-700 shrink-0" />
+          <Trophy className="h-4 w-4 text-brand-hover shrink-0" />
           {t('stage74_leaderboardTitle')}
         </CardTitle>
         <CardDescription className="text-xs space-y-1">
@@ -90,7 +90,7 @@ export function ReferralMonthlyLeaderboard({ t, formatThb, formatAmountLine, loc
                   {t('stage74_leaderboardRank').replace('{n}', String(row.rank))}
                 </span>
                 <span className="font-medium text-slate-900 truncate min-w-0 flex-1">{row.displayName}</span>
-                <span className="tabular-nums font-semibold text-teal-800 shrink-0 text-right max-w-[11rem] leading-tight">
+                <span className="tabular-nums font-semibold text-brand-hover shrink-0 text-right max-w-[11rem] leading-tight">
                   {fmtLine(Number(row.amountThb) || 0)}
                 </span>
               </li>

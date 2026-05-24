@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * Компактный баланс для шапки: иконка + сумма; раскладка в выпадающем меню (GET /api/v2/wallet/me, кэш wallet-me).
@@ -55,7 +55,7 @@ export function HeaderWalletCompact({ className = '', variant = 'default' }) {
     variant === 'inverted'
       ? 'border-white/25 text-white hover:bg-white/10 hover:text-white'
       : 'border-slate-200 hover:bg-slate-50'
-  const iconTone = variant === 'inverted' ? 'text-teal-300' : 'text-teal-600'
+  const iconTone = variant === 'inverted' ? 'text-brand/70' : 'text-brand'
   const amountTone = variant === 'inverted' ? 'text-white' : 'text-slate-900'
 
   return (

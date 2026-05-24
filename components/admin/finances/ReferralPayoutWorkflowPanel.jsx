@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
@@ -130,7 +130,7 @@ export function ReferralPayoutWorkflowPanel({ payoutQueue = [], toast, onRefresh
     return (
       <p className="text-sm text-slate-500 rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-4 py-6 text-center">
         Нет заявок <code className="text-xs">withdrawable_referral</code>.{' '}
-        <Link href="/admin/marketing/payouts?referralOnly=1" className="text-[#006666] underline">
+        <Link href="/admin/marketing/payouts?referralOnly=1" className="text-brand underline">
           Полный список кошельков
         </Link>
       </p>
@@ -182,7 +182,7 @@ export function ReferralPayoutWorkflowPanel({ payoutQueue = [], toast, onRefresh
         <Button
           type="button"
           size="sm"
-          className="bg-teal-700 hover:bg-teal-800"
+          className="bg-brand hover:bg-brand-hover"
           disabled={busy || !selectedCount}
           onClick={() => void runBulk('approve')}
         >

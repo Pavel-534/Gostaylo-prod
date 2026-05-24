@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * @file components/chat/composer/VoiceRecorder.jsx
@@ -92,7 +92,7 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
   // ── Состояние «предпросмотр» ─────────────────────────────────────────────
   if (audioBlob) {
     return (
-      <div className="flex w-full min-w-0 min-h-10 flex-1 items-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 px-2 py-1.5 sm:px-3 sm:py-2">
+      <div className="flex w-full min-w-0 min-h-10 flex-1 items-center gap-2 rounded-2xl border border-brand/25 bg-brand/10 px-2 py-1.5 sm:px-3 sm:py-2">
         <div className="min-w-0 flex-1 overflow-hidden">
           <audio
             key={audioUrl || 'preview'}
@@ -103,7 +103,7 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
             className="block h-9 w-full max-w-full"
           />
         </div>
-        <span className="text-xs text-teal-700 font-medium tabular-nums shrink-0">{durationLabel}</span>
+        <span className="text-xs text-brand-hover font-medium tabular-nums shrink-0">{durationLabel}</span>
         <Button
           type="button"
           variant="ghost"
@@ -116,8 +116,9 @@ export function VoiceRecorder({ showMicTrigger, userId, language = 'ru', onSend,
         </Button>
         <Button
           type="button"
+          variant="brand"
           disabled={voiceSending}
-          className="h-11 min-h-[44px] shrink-0 rounded-2xl bg-teal-600 px-4 hover:bg-teal-700"
+          className="h-11 min-h-[44px] shrink-0 rounded-2xl px-4"
           onClick={handleSend}
         >
           {voiceSending

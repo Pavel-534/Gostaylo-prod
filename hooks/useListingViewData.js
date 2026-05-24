@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import { detectLanguage, getUIText } from '@/lib/translations'
-import { fetchExchangeRates } from '@/lib/client-data'
+import { fetchExchangeRates, FX_RATES_UPDATED_EVENT } from '@/lib/client-data'
 
 /**
  * PDP primary view data: listing + reviews load, locale/currency, favorites, recently viewed.
@@ -113,6 +113,14 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
     loadReviews()
     fetchExchangeRates().then(setExchangeRates).catch(() => {})
   }, [listingId, loadListing, loadReviews])
+
+  useEffect(() => {
+    const onFx = (e) => {
+      if (e?.detail && typeof e.detail === 'object') setExchangeRates(e.detail)
+    }
+    window.addEventListener(FX_RATES_UPDATED_EVENT, onFx)
+    return () => window.removeEventListener(FX_RATES_UPDATED_EVENT, onFx)
+  }, [])
 
   useEffect(() => {
     const handler = (e) => {

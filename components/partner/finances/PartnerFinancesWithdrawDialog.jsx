@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
@@ -128,7 +128,7 @@ export function PartnerFinancesWithdrawDialog({
           </div>
         ) : null}
 
-        <div className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-900">
+        <div className="rounded-lg border border-brand/25 bg-brand/10 px-3 py-2 text-sm text-brand">
           {t('partnerFinances_withdrawSubmittedNotice')}
         </div>
 
@@ -215,7 +215,8 @@ export function PartnerFinancesWithdrawDialog({
           </Button>
           <Button
             type="button"
-            className="gap-2 bg-teal-600 hover:bg-teal-700"
+            variant="brand"
+            className="gap-2"
             onClick={() =>
               void onConfirmWithdraw({
                 payoutProfileId: selectedProfile?.id,

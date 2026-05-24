@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -62,13 +62,13 @@ export function AdminLegalFullPackageCard() {
 
   return (
     <>
-      <Card className="border-2 border-teal-300 bg-gradient-to-br from-teal-50 to-white shadow-md">
+      <Card className="border-2 border-brand/30 bg-gradient-to-br from-brand/10 to-white shadow-md">
         <CardHeader>
-          <CardTitle className="text-xl flex items-center gap-2 text-teal-950">
-            <Package className="h-6 w-6 text-teal-600" />
+          <CardTitle className="text-xl flex items-center gap-2 text-brand">
+            <Package className="h-6 w-6 text-brand" />
             Тест перед первой выплатой
           </CardTitle>
-          <CardDescription className="text-base text-teal-900/80">
+          <CardDescription className="text-base text-brand/80">
             Одна кнопка проверяет всю цепочку: гость и партнёр → объявление → оплата → пул → PDF-акты →
             ZIP для банка → акты в кабинете партнёра. Данные помечены как тестовые.
           </CardDescription>
@@ -76,7 +76,7 @@ export function AdminLegalFullPackageCard() {
         <CardContent className="space-y-4">
           <Button
             size="lg"
-            className="w-full sm:w-auto h-14 text-base px-8 bg-teal-600 hover:bg-teal-700"
+            className="w-full sm:w-auto h-14 text-base px-8 bg-brand hover:bg-brand-hover"
             onClick={runFullPackage}
             disabled={busy}
           >

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Progress } from '@/components/ui/progress'
 import { fmtThb } from '@/lib/admin/fintech-console-shared'
@@ -23,7 +23,7 @@ export function ReferralMonthlySpendBar({ accounting: acc }) {
       ? '[&>div]:bg-rose-600'
       : tone === 'warn'
         ? '[&>div]:bg-amber-500'
-        : '[&>div]:bg-teal-600'
+        : '[&>div]:bg-brand'
 
   const boxClass =
     tone === 'exceeded'

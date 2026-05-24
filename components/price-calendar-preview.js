@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -67,7 +67,7 @@ export default function PriceCalendarPreview({ seasonalPrices = [], basePriceThb
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-teal-600" />
+          <Calendar className="h-5 w-5 text-brand" />
           Календарь цен ({currentYear})
         </CardTitle>
         <CardDescription>

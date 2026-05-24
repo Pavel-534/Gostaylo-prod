@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * @file components/chat/ChatHeaderActions.jsx
@@ -167,7 +167,7 @@ export function ChatHeaderActions({
                   {supportLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin shrink-0" />
                   ) : (
-                    <LifeBuoy className="h-4 w-4 shrink-0 text-teal-600" />
+                    <LifeBuoy className="h-4 w-4 shrink-0 text-brand" />
                   )}
                   <div className="flex min-w-0 flex-col">
                     <span className="font-medium">
@@ -194,7 +194,7 @@ export function ChatHeaderActions({
                   <Search className="h-4 w-4 shrink-0 text-slate-600" />
                   {isRu ? 'Поиск по сообщениям' : 'Search messages'}
                   {searchActive ? (
-                    <span className="ml-auto text-[10px] text-teal-600">{isRu ? 'вкл.' : 'on'}</span>
+                    <span className="ml-auto text-[10px] text-brand">{isRu ? 'вкл.' : 'on'}</span>
                   ) : null}
                 </DropdownMenuItem>
               ) : null}
@@ -222,7 +222,7 @@ export function ChatHeaderActions({
           {supportLoading ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
           ) : (
-            <LifeBuoy className="h-3.5 w-3.5 shrink-0 text-teal-600" />
+            <LifeBuoy className="h-3.5 w-3.5 shrink-0 text-brand" />
           )}
           <span
             className={cn(
@@ -247,7 +247,7 @@ export function ChatHeaderActions({
           variant="ghost"
           size="icon"
           className={cn(
-            'hidden lg:inline-flex text-slate-500 hover:bg-slate-100 hover:text-teal-700',
+            'hidden lg:inline-flex text-slate-500 hover:bg-slate-100 hover:text-brand-hover',
             compact ? 'h-8 w-8' : 'h-9 w-9'
           )}
           onClick={onMediaGallery}
@@ -267,7 +267,7 @@ export function ChatHeaderActions({
           className={cn(
             'hidden lg:inline-flex hover:bg-slate-100',
             compact ? 'h-8 w-8' : 'h-9 w-9',
-            searchActive ? 'text-teal-600 bg-teal-50 hover:bg-teal-100' : 'text-slate-500 hover:text-teal-700'
+            searchActive ? 'text-brand bg-brand/10 hover:bg-brand/15' : 'text-slate-500 hover:text-brand-hover'
           )}
           onClick={onSearchToggle}
           title={language === 'en' ? 'Search messages' : 'Поиск по сообщениям'}

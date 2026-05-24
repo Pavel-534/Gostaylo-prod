@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button'
+﻿import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Check, X, Loader2, CreditCard } from 'lucide-react'
 import { PriceBreakdown } from './price-breakdown'
@@ -102,7 +102,7 @@ export function BookingRequestCard({
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5">
             <div className="rounded-2xl bg-slate-50 p-2">
-              <Calendar className="h-5 w-5 text-teal-600" />
+              <Calendar className="h-5 w-5 text-brand" />
             </div>
             <span className="text-base font-bold leading-tight text-slate-900">
               {getUIText('chatBookingRequestCardTitle', language)}
@@ -146,7 +146,7 @@ export function BookingRequestCard({
             <Button
               onClick={handleAccept}
               disabled={updating}
-              className="h-12 min-h-[48px] w-full flex-1 rounded-2xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700 sm:w-auto"
+              className="h-12 min-h-[48px] w-full flex-1 rounded-2xl bg-brand text-base font-bold text-white shadow-sm hover:bg-brand-hover sm:w-auto"
             >
               {updating ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -177,7 +177,7 @@ export function BookingRequestCard({
 
         {userRole === 'RENTER' && currentStatus === 'CONFIRMED' && (
           <Link href={`/checkout/${message.bookingId}`} className="block w-full">
-            <Button className="h-12 min-h-[48px] w-full rounded-2xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700">
+            <Button className="h-12 min-h-[48px] w-full rounded-2xl bg-brand text-base font-bold text-white shadow-sm hover:bg-brand-hover">
               <CreditCard className="mr-2 h-5 w-5" />
               {getUIText('chatBookingCard_payNow', language)}
             </Button>

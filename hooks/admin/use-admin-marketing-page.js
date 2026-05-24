@@ -383,6 +383,7 @@ export function useAdminMarketingPage() {
 
   return {
     loading,
+    promoCodes,
     promoListFilter,
     setPromoListFilter,
     showCreateModal,

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useMemo } from 'react'
 import {
@@ -95,7 +95,7 @@ export default function AdminDisputeTimeline({
           if (row.kind === 'attachments') {
             return (
               <li key={`att-${idx}`} className="relative flex gap-3 pb-4 pl-1">
-                <div className="relative z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-teal-200 bg-white text-teal-700 shadow-sm">
+                <div className="relative z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-brand/25 bg-white text-brand-hover shadow-sm">
                   <Paperclip className="h-4 w-4" aria-hidden />
                 </div>
                 <div className="min-w-0 flex-1 pt-0.5">
@@ -112,7 +112,7 @@ export default function AdminDisputeTimeline({
                           href={href}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-teal-800 hover:bg-teal-50"
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-brand-hover hover:bg-brand/10"
                         >
                           <Link2 className="h-3.5 w-3.5" aria-hidden />
                           Видео
@@ -142,7 +142,7 @@ export default function AdminDisputeTimeline({
 
           return (
             <li key={ev.id || `${idx}-${row.at}`} className="relative flex gap-3 pb-4 pl-1">
-              <div className="relative z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white bg-teal-50 text-teal-800 shadow-sm">
+              <div className="relative z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white bg-brand/10 text-brand-hover shadow-sm">
                 <Icon className="h-4 w-4 shrink-0" aria-hidden />
               </div>
               <div className="min-w-0 flex-1 pt-0.5 border-b border-slate-100/80 pb-3 last:border-0">

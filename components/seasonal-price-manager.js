@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -215,7 +215,7 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
     return (
       <Card>
         <CardContent className="py-12 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand" />
         </CardContent>
       </Card>
     )
@@ -228,7 +228,7 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                <Calendar className="h-5 w-5 shrink-0 text-teal-600" />
+                <Calendar className="h-5 w-5 shrink-0 text-brand" />
                 {t('seasonalPricing')}
               </CardTitle>
               <CardDescription className="mt-2 space-y-1">
@@ -243,7 +243,7 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
             </div>
             <Button
               onClick={openCreateModal}
-              className="w-full shrink-0 bg-teal-600 hover:bg-teal-700 sm:w-auto"
+              className="w-full shrink-0 bg-brand hover:bg-brand-hover sm:w-auto"
             >
               <Plus className="mr-2 h-4 w-4" />
               {t('seasonalMgr_addSeasonBtn')}
@@ -287,7 +287,7 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
                             💰 {price.priceDaily?.toLocaleString(numberLocale)} {t('seasonalMgr_perDay')}
                           </span>
                           {price.priceMonthly && (
-                            <span className="font-medium text-teal-700">
+                            <span className="font-medium text-brand-hover">
                               📦 {price.priceMonthly?.toLocaleString(numberLocale)} {t('seasonalMgr_perMonth')}
                             </span>
                           )}
@@ -361,10 +361,10 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
                         head_cell:
                           'w-8 rounded-md text-[0.65rem] font-normal text-slate-500 sm:w-9 sm:text-[0.8rem]',
                         row: 'mt-2 flex w-full',
-                        cell: 'relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-teal-100 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md',
-                        day: 'h-8 w-8 rounded-md p-0 font-normal hover:bg-teal-50 aria-selected:opacity-100 sm:h-9 sm:w-9',
+                        cell: 'relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-brand/15 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md',
+                        day: 'h-8 w-8 rounded-md p-0 font-normal hover:bg-brand/10 aria-selected:opacity-100 sm:h-9 sm:w-9',
                         day_selected:
-                          'bg-teal-600 text-white hover:bg-teal-700 hover:text-white focus:bg-teal-600 focus:text-white',
+                          'bg-brand text-white hover:bg-brand-hover hover:text-white focus:bg-brand focus:text-white',
                         day_today: 'bg-slate-100 text-slate-900',
                         day_outside: 'text-slate-400 opacity-50',
                         day_disabled: 'text-slate-400 opacity-50',
@@ -481,7 +481,7 @@ export default function SeasonalPriceManager({ listingId, basePriceThb }) {
               <Button variant="outline" onClick={() => setModalOpen(false)} disabled={saving} className="w-full sm:w-auto">
                 {t('seasonalMgr_cancel')}
               </Button>
-              <Button onClick={handleSave} disabled={saving} className="w-full bg-teal-600 hover:bg-teal-700 sm:w-auto">
+              <Button onClick={handleSave} disabled={saving} className="w-full bg-brand hover:bg-brand-hover sm:w-auto">
                 {saving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

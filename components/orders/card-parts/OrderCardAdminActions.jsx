@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ export function OrderCardAdminActions({ conversationId, bookingId, language }) {
   return (
     <div className="flex flex-wrap gap-2 pt-1">
       {conversationId ? (
-        <Button asChild variant="outline" className="border-teal-200 text-teal-800 hover:bg-teal-50">
+        <Button asChild variant="outline" className="border-brand/25 text-brand-hover hover:bg-brand/10">
           <Link href={`/messages/${encodeURIComponent(conversationId)}`}>
             <MessageSquare className="h-4 w-4 mr-2" />
             {getUIText('bookingCard_openChat', language)}

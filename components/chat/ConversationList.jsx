@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * @file components/chat/ConversationList.jsx
@@ -452,7 +452,7 @@ export function ConversationListPanel({
           <div className="flex items-center gap-2 border-b border-slate-100 bg-brand/10 px-4 py-1.5">
             <Link
               href={catalogHref}
-              className="inline-flex min-w-0 flex-1 items-center gap-2 rounded-lg py-0.5 text-sm font-semibold text-teal-800 hover:text-teal-900"
+              className="inline-flex min-w-0 flex-1 items-center gap-2 rounded-lg py-0.5 text-sm font-semibold text-brand-hover hover:text-brand"
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand text-xs font-bold text-white">
                 G
@@ -509,7 +509,7 @@ export function ConversationListPanel({
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]">
         {isLoading && conversations.length === 0 && (
           <div className="p-6 flex justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-teal-500" />
+            <Loader2 className="h-5 w-5 animate-spin text-brand/70" />
           </div>
         )}
 
@@ -543,7 +543,7 @@ export function ConversationListPanel({
 
         {hasMore && (
           <div ref={sentinelRef} className="py-4 flex min-h-[2.5rem] justify-center">
-            {isLoadingMore && <Loader2 className="h-5 w-5 animate-spin text-teal-400" />}
+            {isLoadingMore && <Loader2 className="h-5 w-5 animate-spin text-brand/60" />}
           </div>
         )}
         {!hasMore && conversations.length > 0 && (

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * ChatVoicePlayer — аудиоплеер для голосовых сообщений в ленте чата.
@@ -29,11 +29,11 @@ export function ChatVoicePlayer({ url, durationSec = 0, isOwn = false, ownVarian
   const [total, setTotal] = useState(durationSec || 0)
   const rafRef = useRef(null)
 
-  const ownBg = ownVariant === 'indigo' ? 'bg-indigo-600' : 'bg-teal-600'
-  const ownTrack = ownVariant === 'indigo' ? 'bg-indigo-400' : 'bg-teal-400'
+  const ownBg = ownVariant === 'indigo' ? 'bg-indigo-600' : 'bg-brand'
+  const ownTrack = ownVariant === 'indigo' ? 'bg-indigo-400' : 'bg-brand/60'
   const ownThumb = 'bg-white'
   const guestBg = 'bg-white border border-slate-200 shadow-sm'
-  const guestTrack = 'bg-teal-200'
+  const guestTrack = 'bg-brand/25'
 
   const tick = useCallback(() => {
     const el = audioRef.current
@@ -107,7 +107,7 @@ export function ChatVoicePlayer({ url, durationSec = 0, isOwn = false, ownVarian
           'h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-colors',
           isOwn
             ? 'bg-white/20 hover:bg-white/30 text-white'
-            : 'bg-teal-50 hover:bg-teal-100 text-teal-700',
+            : 'bg-brand/10 hover:bg-brand/15 text-brand-hover',
         )}
         aria-label={playing ? 'Пауза' : 'Воспроизвести'}
       >
@@ -139,7 +139,7 @@ export function ChatVoicePlayer({ url, durationSec = 0, isOwn = false, ownVarian
           <div
             className={cn(
               'h-full rounded-full transition-[width] duration-100',
-              isOwn ? 'bg-white' : 'bg-teal-500',
+              isOwn ? 'bg-white' : 'bg-brand',
             )}
             style={{ width: `${pct}%` }}
           />

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 export function AirentoLogo({ compact = false, className = '', label = '', scrolled = false, hideLabelOnMobile = false }) {
   const showLabel = Boolean(String(label || '').trim())
@@ -34,7 +34,7 @@ export function AirentoLogo({ compact = false, className = '', label = '', scrol
       {showLabel ? (
         <div className={`flex flex-col ${hideLabelOnMobile ? 'hidden sm:flex' : ''}`}>
           <span
-            className={`font-black ${compact ? 'text-lg' : 'text-xl'} leading-none tracking-[0.08em] text-[#006666] transition-opacity duration-300`}
+            className={`font-black ${compact ? 'text-lg' : 'text-xl'} leading-none tracking-[0.08em] text-brand transition-opacity duration-300`}
             style={{ opacity: labelOpacity }}
           >
             {label}

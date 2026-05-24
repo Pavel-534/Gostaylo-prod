@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -110,7 +110,7 @@ export function ReferralProfileTabSettings({ data, t }) {
             </SelectContent>
           </Select>
         </div>
-        <Button className="bg-[#006666] hover:bg-[#005757]" disabled={saving} onClick={() => void saveSettings()}>
+        <Button variant="brand" disabled={saving} onClick={() => void saveSettings()}>
           {saving ? '…' : t('stage73_saveReportPrefs')}
         </Button>
       </CardContent>

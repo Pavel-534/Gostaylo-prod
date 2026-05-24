@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GoStayLo - Review Submission Modal (Phase 4 + Stage 26.0 i18n)
  */
 
@@ -31,7 +31,7 @@ function StarRating({ value, onChange, label }) {
           >
             <Star
               className={`h-8 w-8 transition-colors ${
-                star <= (value || 0) ? 'fill-teal-600 text-teal-600' : 'text-slate-300 hover:text-slate-400'
+                star <= (value || 0) ? 'fill-brand text-brand' : 'text-slate-300 hover:text-slate-400'
               }`}
             />
           </button>
@@ -141,8 +141,8 @@ export function ReviewModal({
       >
         {submitSuccess ? (
           <div className="p-12 text-center">
-            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-teal-100">
-              <CheckCircle className="h-10 w-10 text-teal-600" />
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-brand/15">
+              <CheckCircle className="h-10 w-10 text-brand" />
             </div>
             <h2 className="mb-2 text-2xl font-bold text-slate-900">{tx('reviewForm_successTitle')}</h2>
             <p className="text-slate-600">{tx('reviewForm_successBody')}</p>
@@ -162,15 +162,15 @@ export function ReviewModal({
               </div>
 
               {averageRating > 0 && (
-                <div className="mt-4 flex items-center gap-3 rounded-lg bg-teal-50 p-4">
-                  <div className="text-3xl font-bold text-teal-600">{averageRating.toFixed(1)}</div>
+                <div className="mt-4 flex items-center gap-3 rounded-lg bg-brand/10 p-4">
+                  <div className="text-3xl font-bold text-brand">{averageRating.toFixed(1)}</div>
                   <div className="flex-1">
                     <div className="mb-1 flex gap-0.5">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <Star
                           key={star}
                           className={`h-5 w-5 ${
-                            star <= Math.round(averageRating) ? 'fill-teal-600 text-teal-600' : 'text-slate-300'
+                            star <= Math.round(averageRating) ? 'fill-brand text-brand' : 'text-slate-300'
                           }`}
                         />
                       ))}
@@ -260,7 +260,7 @@ export function ReviewModal({
                 <Button type="button" variant="outline" onClick={onClose} className="flex-1" disabled={isSubmitting}>
                   {tx('reviewForm_cancel')}
                 </Button>
-                <Button type="submit" className="flex-1 bg-teal-600 hover:bg-teal-700" disabled={isSubmitting}>
+                <Button type="submit" variant="brand" className="flex-1" disabled={isSubmitting}>
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

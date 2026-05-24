@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Award, ShieldCheck, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -70,7 +70,7 @@ export function PartnerTrustBadge({
     <div className={cn('flex flex-wrap items-center gap-1.5', compact ? 'mt-0.5' : 'mt-1')}>
       <span className="text-xs text-slate-500">{getUIText('partnerTrust_newPartner', language)}</span>
       {showVerifiedCompanion ? (
-        <span className="inline-flex items-center gap-0.5 text-[10px] sm:text-xs text-teal-800 bg-teal-50 border border-teal-200 rounded px-1.5 py-0 font-medium">
+        <span className="inline-flex items-center gap-0.5 text-[10px] sm:text-xs text-brand-hover bg-brand/10 border border-brand/25 rounded px-1.5 py-0 font-medium">
           <ShieldCheck className="h-3 w-3" />
           {getUIText('partnerTrust_verified', language)}
         </span>
@@ -92,7 +92,7 @@ export function PartnerTrustBadge({
       {isStrong && tier !== 'TOP' && !topPartner ? (
         <Badge
           variant="secondary"
-          className="gap-0.5 bg-teal-50 text-teal-900 border-teal-200 font-medium text-[10px] sm:text-xs px-1.5 py-0 h-5 sm:h-6"
+          className="gap-0.5 bg-brand/10 text-brand border-brand/25 font-medium text-[10px] sm:text-xs px-1.5 py-0 h-5 sm:h-6"
         >
           <Sparkles className="h-3 w-3 shrink-0" />
           {getUIText('partnerTrust_reliableHost', language)}
@@ -104,7 +104,7 @@ export function PartnerTrustBadge({
         </span>
       ) : null}
       {showVerifiedCompanion ? (
-        <span className="inline-flex items-center gap-0.5 text-[10px] sm:text-xs text-teal-800 bg-teal-50 border border-teal-200 rounded px-1.5 py-0 font-medium">
+        <span className="inline-flex items-center gap-0.5 text-[10px] sm:text-xs text-brand-hover bg-brand/10 border border-brand/25 rounded px-1.5 py-0 font-medium">
           <ShieldCheck className="h-3 w-3" />
           {getUIText('partnerTrust_verified', language)}
         </span>
@@ -123,7 +123,7 @@ export function PartnerTrustBadge({
           <div
             role="button"
             tabIndex={0}
-            className={cn('inline-flex max-w-full cursor-help rounded-md outline-none focus-visible:ring-2 focus-visible:ring-teal-500')}
+            className={cn('inline-flex max-w-full cursor-help rounded-md outline-none focus-visible:ring-2 focus-visible:ring-brand')}
           >
             {node}
           </div>

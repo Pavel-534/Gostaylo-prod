@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CalendarHeader Component
  * Navigation, controls, and legend for Partner Calendar
  */
@@ -26,7 +26,7 @@ function LegendBody({ variant = 'inline' }) {
   return (
     <div className={`${wrap} text-xs`}>
       <div className="flex items-center gap-1.5">
-        <div className="w-3 h-3 rounded bg-teal-500 shrink-0" />
+        <div className="w-3 h-3 rounded bg-brand/100 shrink-0" />
         <span className="text-slate-600">Подтверждено</span>
       </div>
       <div className="flex items-center gap-1.5">
@@ -38,12 +38,12 @@ function LegendBody({ variant = 'inline' }) {
         <span className="text-slate-600">Заблокировано</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <div className="w-3 h-3 rounded border-2 border-dashed border-teal-400 shrink-0" />
+        <div className="w-3 h-3 rounded border-2 border-dashed border-brand/40 shrink-0" />
         <span className="text-slate-600">Check-in/out</span>
       </div>
       <div className="h-4 w-px bg-slate-300 hidden sm:block" aria-hidden />
       <div className="flex items-center gap-1.5">
-        <span className="font-bold text-teal-600">฿</span>
+        <span className="font-bold text-brand">฿</span>
         <span className="text-slate-600">Высокий сезон</span>
       </div>
       <div className="flex items-center gap-1.5">
@@ -78,7 +78,7 @@ export function CalendarHeader({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-teal-600" />
+            <CalendarDays className="h-6 w-6 text-brand" />
             Мастер-Календарь
           </h1>
           <p className="text-slate-600 mt-1">
@@ -92,13 +92,13 @@ export function CalendarHeader({
             variant="outline"
             size="sm"
             onClick={onPriceModalOpen}
-            className="bg-teal-600 text-white hover:bg-teal-700 border-0"
+            className="bg-brand text-white hover:bg-brand-hover border-0"
           >
             <DollarSign className="h-4 w-4 mr-1" />
             Установить цены
           </Button>
 
-          <Button variant="outline" size="sm" onClick={onToday} className="text-teal-600 border-teal-200 hover:bg-teal-50">
+          <Button variant="outline" size="sm" onClick={onToday} className="text-brand border-brand/25 hover:bg-brand/10">
             Сегодня
           </Button>
 

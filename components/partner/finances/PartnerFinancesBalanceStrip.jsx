@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Shield, Clock, Wallet, Banknote } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 const ACCENTS = {
   escrow: 'border-amber-200 bg-amber-50/80',
   thaw: 'border-sky-200 bg-sky-50/80',
-  available: 'border-teal-200 bg-teal-50/80',
+  available: 'border-brand/25 bg-brand/10',
   paid: 'border-slate-200 bg-slate-50/80',
 }
 

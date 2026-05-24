@@ -1,4 +1,4 @@
-import Image from 'next/image'
+﻿import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { MapPin, Calendar } from 'lucide-react'
 import { formatPrice } from '@/lib/currency'
@@ -51,7 +51,7 @@ export function ListingContextCard({ listing, checkIn, checkOut, className = '',
               </span>
             </div>
           )}
-          <div className="mt-2 font-semibold text-teal-600 text-sm">
+          <div className="mt-2 font-semibold text-brand text-sm">
             {formatPrice((listing.basePriceThb || listing.base_price_thb || 0) * days, 'THB', { THB: 1 }, language)}
           </div>
         </div>

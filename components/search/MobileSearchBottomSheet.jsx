@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * MobileSearchBottomSheet — FAB + Bottom Sheet поиск для мобильных.
@@ -214,7 +214,7 @@ export function MobileSearchBottomSheet({
                       'shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-150 active:scale-95',
                       active
                         ? 'border-brand bg-brand text-white shadow-[0_4px_12px_rgba(0,102,102,0.28)]'
-                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-teal-300 hover:bg-white',
+                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand/30 hover:bg-white',
                       tab.isPreview === true && 'opacity-50',
                     )}
                   >
@@ -233,7 +233,7 @@ export function MobileSearchBottomSheet({
           {/* Location — popular destinations grouped (Russia / Thailand / World) */}
           <div className="mb-5">
             <div className="mb-2 flex items-center gap-1.5">
-              <MapPin className="h-3 w-3 text-teal-600" />
+              <MapPin className="h-3 w-3 text-brand" />
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
                 {getUIText('popularDestinations', language)}
               </p>
@@ -247,8 +247,8 @@ export function MobileSearchBottomSheet({
                 className={cn(
                   'rounded-full border px-4 py-2 text-sm font-medium transition-all duration-150 active:scale-95',
                   (where === ALL_OPTION.value || !where)
-                    ? 'border-teal-600 bg-teal-50 text-teal-800'
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300',
+                    ? 'border-brand bg-brand/10 text-brand-hover'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-brand/30',
                 )}
               >
                 {ALL_OPTION.labels[language] || ALL_OPTION.labels.en}
@@ -271,8 +271,8 @@ export function MobileSearchBottomSheet({
                           className={cn(
                             'shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-150 active:scale-95',
                             active
-                              ? 'border-teal-600 bg-teal-50 text-teal-800'
-                              : 'border-slate-200 bg-white text-slate-600 hover:border-teal-300',
+                              ? 'border-brand bg-brand/10 text-brand-hover'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-brand/30',
                           )}
                         >
                           {loc.labels[language] || loc.labels.en}
@@ -288,13 +288,13 @@ export function MobileSearchBottomSheet({
           {/* Dates — two native inputs */}
           <div className="mb-5">
             <div className="mb-2 flex items-center gap-1.5">
-              <CalendarIcon className="h-3 w-3 text-teal-600" />
+              <CalendarIcon className="h-3 w-3 text-brand" />
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
                 {sectionLabel('Даты', 'Dates')}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <label className="relative flex flex-col rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 transition-colors focus-within:border-teal-400 focus-within:bg-white">
+              <label className="relative flex flex-col rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 transition-colors focus-within:border-brand/40 focus-within:bg-white">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                   {sectionLabel('Заезд', 'Check-in')}
                 </span>
@@ -307,7 +307,7 @@ export function MobileSearchBottomSheet({
                   className="mt-0.5 w-full bg-transparent text-sm font-semibold text-slate-800 outline-none"
                 />
               </label>
-              <label className="relative flex flex-col rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 transition-colors focus-within:border-teal-400 focus-within:bg-white">
+              <label className="relative flex flex-col rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 transition-colors focus-within:border-brand/40 focus-within:bg-white">
                 <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                   {sectionLabel('Выезд', 'Check-out')}
                 </span>
@@ -326,7 +326,7 @@ export function MobileSearchBottomSheet({
           {/* Guests */}
           <div className="mb-6">
             <div className="mb-2 flex items-center gap-1.5">
-              <Users className="h-3 w-3 text-teal-600" />
+              <Users className="h-3 w-3 text-brand" />
               <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
                 {sectionLabel('Гости', 'Guests')}
               </p>
@@ -341,7 +341,7 @@ export function MobileSearchBottomSheet({
                   onClick={() => setGuests?.(String(Math.max(1, parseInt(guests || '1', 10) - 1)))}
                   aria-label="Decrease guests"
                   data-testid="mobile-search-guests-dec"
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-lg text-slate-600 transition-colors hover:border-teal-400 hover:text-teal-700 active:scale-90 disabled:opacity-40"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-lg text-slate-600 transition-colors hover:border-brand/40 hover:text-brand-hover active:scale-90 disabled:opacity-40"
                   disabled={parseInt(guests || '1', 10) <= 1}
                 >
                   −
@@ -354,7 +354,7 @@ export function MobileSearchBottomSheet({
                   onClick={() => setGuests?.(String(Math.min(20, parseInt(guests || '1', 10) + 1)))}
                   aria-label="Increase guests"
                   data-testid="mobile-search-guests-inc"
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-lg text-slate-600 transition-colors hover:border-teal-400 hover:text-teal-700 active:scale-90"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-white text-lg text-slate-600 transition-colors hover:border-brand/40 hover:text-brand-hover active:scale-90"
                 >
                   +
                 </button>

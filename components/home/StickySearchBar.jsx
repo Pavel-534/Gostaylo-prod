@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * StickySearchBar — compact sticky поисковая панель + Summary Chips.
@@ -269,7 +269,7 @@ export function StickySearchBar({
 function Chip({ icon: Icon, children, onClick, onClear, testid, clearAriaLabel }) {
   return (
     <span
-      className="group inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50/80 pl-2.5 pr-1 py-1 text-xs font-semibold text-teal-800 shadow-sm transition-all hover:border-teal-400 hover:bg-teal-100 hover:shadow"
+      className="group inline-flex items-center gap-1.5 rounded-full border border-brand/25 bg-brand/10 pl-2.5 pr-1 py-1 text-xs font-semibold text-brand-hover shadow-sm transition-all hover:border-brand/40 hover:bg-brand/15 hover:shadow"
       data-testid={testid}
     >
       <button
@@ -277,14 +277,14 @@ function Chip({ icon: Icon, children, onClick, onClear, testid, clearAriaLabel }
         onClick={onClick}
         className="flex items-center gap-1.5 cursor-pointer focus:outline-none"
       >
-        <Icon className="h-3 w-3 text-teal-600" aria-hidden />
+        <Icon className="h-3 w-3 text-brand" aria-hidden />
         <span>{children}</span>
       </button>
       <button
         type="button"
         onClick={onClear}
         aria-label={clearAriaLabel}
-        className="flex h-5 w-5 items-center justify-center rounded-full text-teal-500 transition-colors hover:bg-teal-200 hover:text-teal-900"
+        className="flex h-5 w-5 items-center justify-center rounded-full text-brand/70 transition-colors hover:bg-brand/20 hover:text-brand"
       >
         <X className="h-3 w-3" aria-hidden />
       </button>

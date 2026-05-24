@@ -1,4 +1,4 @@
-import { Button } from '@/components/ui/button'
+﻿import { Button } from '@/components/ui/button'
 import OrderTypeIcon from '@/components/ui/OrderTypeIcon'
 
 const FILTERS = [
@@ -17,8 +17,8 @@ export default function OrderTypeFilter({ activeType = 'all', counters = {}, onC
           <Button
             key={item.id}
             type="button"
-            variant={active ? 'default' : 'outline'}
-            className={active ? 'bg-teal-600 hover:bg-teal-700' : ''}
+            variant={active ? 'brand' : 'outline'}
+            className={active ? '' : undefined}
             onClick={() => onChange?.(item.id)}
           >
             {item.icon ? <OrderTypeIcon type={item.icon} className="mr-2" /> : null}

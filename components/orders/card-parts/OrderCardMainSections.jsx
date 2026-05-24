@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { ProxiedImage } from '@/components/proxied-image'
 import { Car, Home, Key, Mail, Phone, Star } from 'lucide-react'
@@ -78,7 +78,7 @@ export function OrderCardMainSections({
                     key={url}
                     type="button"
                     onClick={() => onPhotoClick(idx)}
-                    className="relative aspect-[4/3] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm outline-none ring-offset-2 transition hover:ring-2 hover:ring-teal-400 focus-visible:ring-2 focus-visible:ring-teal-500 cursor-zoom-in"
+                    className="relative aspect-[4/3] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm outline-none ring-offset-2 transition hover:ring-2 hover:ring-brand/40 focus-visible:ring-2 focus-visible:ring-brand cursor-zoom-in"
                     aria-label={getUIText('orderCheckInPhotos_openLightbox', language)}
                   >
                     <ProxiedImage src={url} alt="" fill className="object-cover" sizes="120px" />
@@ -116,7 +116,7 @@ export function OrderCardMainSections({
       ) : null}
 
       {normalizedRole === 'renter' && ['PAID_ESCROW', 'CHECKED_IN', 'THAWED', 'COMPLETED', 'FINISHED'].includes(status) ? (
-        <div className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-900">
+        <div className="rounded-xl border border-brand/25 bg-brand/10 px-3 py-2 text-sm text-brand">
           {getUIText('orderEscrow_guestProtected', language)}
         </div>
       ) : null}

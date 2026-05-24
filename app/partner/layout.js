@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GoStayLo - Partner Dashboard Layout (World-Class UX)
  * 
  * Features:
@@ -168,7 +168,7 @@ export default function PartnerLayout({ children }) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-600 mx-auto mb-3"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand mx-auto mb-3"></div>
           <p className="text-slate-500 text-sm">{getUIText('loading', language)}</p>
         </div>
       </div>
@@ -194,7 +194,7 @@ export default function PartnerLayout({ children }) {
               <>
                 <Button 
                   onClick={handleLoginRedirect}
-                  className="bg-teal-600 hover:bg-teal-700 w-full"
+                  className="bg-brand hover:bg-brand-hover w-full"
                   data-testid="access-denied-login-btn"
                 >
                   <LogIn className="h-4 w-4 mr-2" />
@@ -205,7 +205,7 @@ export default function PartnerLayout({ children }) {
                 </p>
               </>
             ) : (
-              <Button asChild className="bg-teal-600 hover:bg-teal-700 w-full">
+              <Button asChild className="bg-brand hover:bg-brand-hover w-full">
                 <Link href="/profile" data-testid="access-denied-become-partner-btn">
                   {getUIText('partnerLayout_becomePartner', language)}
                 </Link>
@@ -241,7 +241,7 @@ export default function PartnerLayout({ children }) {
         <aside
           className={`${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-          } w-64 bg-white/95 backdrop-blur-sm border-r border-slate-200 transition-all duration-300 ease-out flex flex-col fixed h-screen z-50 lg:z-30 shadow-lg lg:shadow-sm lg:shadow-teal-900/5`}
+          } w-64 bg-white/95 backdrop-blur-sm border-r border-slate-200 transition-all duration-300 ease-out flex flex-col fixed h-screen z-50 lg:z-30 shadow-lg lg:shadow-sm lg:shadow-brand/5`}
         >
           {/* Logo & Close */}
           <div className="p-4 border-b border-slate-100 flex items-center justify-between">
@@ -249,7 +249,7 @@ export default function PartnerLayout({ children }) {
               <AirentoLogo compact label={getSiteDisplayName()} />
               <div className="hidden sm:block">
                 <h1 className="font-bold text-slate-900">{getSiteDisplayName()}</h1>
-                <p className="text-[10px] text-teal-600 font-semibold tracking-wide">
+                <p className="text-[10px] text-brand font-semibold tracking-wide">
                   {getUIText('partnerLayout_partnerPortalTagline', language)}
                 </p>
               </div>
@@ -269,7 +269,7 @@ export default function PartnerLayout({ children }) {
                 {user?.avatar ? (
                   <AvatarImage src={resolveAvatarDisplaySrc(user.avatar) || ''} alt="" className="object-cover" />
                 ) : null}
-                <AvatarFallback className="bg-teal-100 text-teal-700 text-sm font-semibold">
+                <AvatarFallback className="bg-brand/15 text-brand-hover text-sm font-semibold">
                   {user?.name?.[0]?.toUpperCase() || 'P'}
                 </AvatarFallback>
               </Avatar>
@@ -327,7 +327,7 @@ export default function PartnerLayout({ children }) {
                   }`}
                 >
                   <span className="relative shrink-0">
-                    <Icon className={`w-[18px] h-[18px] ${isActive ? 'text-teal-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                    <Icon className={`w-[18px] h-[18px] ${isActive ? 'text-brand' : 'text-slate-400 group-hover:text-slate-600'}`} />
                     {showUnreadDot && (
                       <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 ring-1 ring-white" />
                     )}
@@ -408,7 +408,7 @@ export default function PartnerLayout({ children }) {
             <div className="px-6 py-3 flex items-center justify-between">
               {/* Breadcrumbs */}
               <nav className="flex items-center text-sm" aria-label="Breadcrumb">
-                <Link href="/" className="text-slate-400 hover:text-teal-600 transition-colors">
+                <Link href="/" className="text-slate-400 hover:text-brand transition-colors">
                   <Home className="w-4 h-4" />
                 </Link>
               {breadcrumbs.map((crumb) => (
@@ -419,7 +419,7 @@ export default function PartnerLayout({ children }) {
                     ) : (
                       <Link 
                         href={crumb.href}
-                        className="text-slate-500 hover:text-teal-600 transition-colors"
+                        className="text-slate-500 hover:text-brand transition-colors"
                       >
                         {crumb.name}
                       </Link>
@@ -440,7 +440,7 @@ export default function PartnerLayout({ children }) {
                 </Button>
                 <div className="h-6 w-px bg-slate-200" />
                 <div className="flex items-center gap-2 text-sm">
-                  <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
+                  <div className="w-2 h-2 bg-brand rounded-full"></div>
                   <span className="text-slate-600">{user?.name}</span>
                 </div>
               </div>

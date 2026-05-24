@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * FooterSwitchers — компактные Language + Currency переключатели для футера.
@@ -40,10 +40,10 @@ export function FooterSwitchers({ className = '' }) {
         <button
           type="button"
           data-testid="footer-language-trigger"
-          className="flex items-center gap-2 rounded-full border border-slate-700/60 bg-slate-800/50 px-3 py-1.5 text-xs font-semibold text-slate-200 transition-all hover:border-teal-400/60 hover:bg-slate-800 hover:text-white"
+          className="flex items-center gap-2 rounded-full border border-slate-700/60 bg-slate-800/50 px-3 py-1.5 text-xs font-semibold text-slate-200 transition-all hover:border-brand/40 hover:bg-slate-800 hover:text-white"
           aria-label="Language"
         >
-          <Globe className="h-3.5 w-3.5 text-slate-400 group-hover:text-teal-400 transition-colors" />
+          <Globe className="h-3.5 w-3.5 text-slate-400 group-hover:text-brand/70 transition-colors" />
           <span className="uppercase tracking-wide">{language}</span>
           <ChevronUp className="h-3 w-3 text-slate-500" />
         </button>
@@ -61,7 +61,7 @@ export function FooterSwitchers({ className = '' }) {
                 className={cn(
                   'flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm transition-colors',
                   language === l.code
-                    ? 'bg-teal-500/15 text-teal-300'
+                    ? 'bg-brand/15 text-brand/70'
                     : 'text-slate-200 hover:bg-slate-800 hover:text-white',
                 )}
               >
@@ -78,10 +78,10 @@ export function FooterSwitchers({ className = '' }) {
         <button
           type="button"
           data-testid="footer-currency-trigger"
-          className="flex items-center gap-2 rounded-full border border-slate-700/60 bg-slate-800/50 px-3 py-1.5 text-xs font-semibold text-slate-200 transition-all hover:border-teal-400/60 hover:bg-slate-800 hover:text-white"
+          className="flex items-center gap-2 rounded-full border border-slate-700/60 bg-slate-800/50 px-3 py-1.5 text-xs font-semibold text-slate-200 transition-all hover:border-brand/40 hover:bg-slate-800 hover:text-white"
           aria-label="Currency"
         >
-          <span className="text-sm leading-none text-slate-400 group-hover:text-teal-400 transition-colors">
+          <span className="text-sm leading-none text-slate-400 group-hover:text-brand/70 transition-colors">
             {CURRENCIES.find((c) => c.code === currency)?.symbol || '฿'}
           </span>
           <span className="uppercase tracking-wide">{currency}</span>
@@ -100,7 +100,7 @@ export function FooterSwitchers({ className = '' }) {
                 className={cn(
                   'flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm transition-colors',
                   currency === c.code
-                    ? 'bg-teal-500/15 text-teal-300'
+                    ? 'bg-brand/15 text-brand/70'
                     : 'text-slate-200 hover:bg-slate-800 hover:text-white',
                 )}
               >

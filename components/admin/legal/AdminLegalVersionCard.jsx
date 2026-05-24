@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { Eye, FilePen, Rocket } from 'lucide-react'
@@ -60,7 +60,7 @@ export function AdminLegalVersionCard({
 
   return (
     <>
-      <Card className="border-teal-100 shadow-sm">
+      <Card className="border-brand/20 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center gap-2">
             <Icon className="h-5 w-5" style={{ color: MINT }} />

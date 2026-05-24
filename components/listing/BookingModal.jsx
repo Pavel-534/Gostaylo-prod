@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BookingModal Component
  * Booking confirmation form with guest details
  */
@@ -179,7 +179,8 @@ export function BookingModal({
               type="submit"
               disabled={submitting}
               data-testid="booking-modal-confirm"
-              className="w-full bg-teal-600 hover:bg-teal-700"
+              variant="brand"
+              className="w-full"
             >
               {submitting ? (
                 <>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * ChatActionBar — контекстная панель действий над полем ввода.
@@ -72,7 +72,7 @@ export function ChatActionBar({
           <Button
             asChild
             className={cn(
-              'h-12 min-h-[48px] w-full shrink-0 gap-2 rounded-2xl bg-teal-600 text-base font-bold text-white shadow-sm hover:bg-teal-700 sm:w-auto sm:min-w-[11rem]',
+              'h-12 min-h-[48px] w-full shrink-0 gap-2 rounded-2xl bg-brand text-base font-bold text-white shadow-sm hover:bg-brand-hover sm:w-auto sm:min-w-[11rem]',
               tactile,
               pressPay && 'opacity-70 scale-[0.98]',
             )}
@@ -148,7 +148,7 @@ export function ChatActionBar({
                 onPointerCancel={() => setPressConfirm(false)}
                 onPointerLeave={() => setPressConfirm(false)}
                 className={cn(
-                  'h-10 min-h-0 flex-1 gap-1.5 rounded-xl bg-teal-600 px-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 sm:h-11 sm:min-h-[44px] sm:flex-initial sm:rounded-2xl sm:px-4 sm:text-base',
+                  'h-10 min-h-0 flex-1 gap-1.5 rounded-xl bg-brand px-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-hover sm:h-11 sm:min-h-[44px] sm:flex-initial sm:rounded-2xl sm:px-4 sm:text-base',
                   tactile,
                   pressConfirm && 'opacity-70 scale-[0.98]',
                 )}

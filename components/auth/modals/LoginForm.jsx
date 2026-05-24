@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -53,7 +53,7 @@ export function LoginForm({
             <button
               type='button'
               onClick={onForgotPassword}
-              className='text-xs text-teal-600 hover:text-teal-700 hover:underline'
+              className='text-xs text-brand hover:text-brand-hover hover:underline'
             >
               {getUIText('auth_forgot_password', language)}
             </button>
@@ -87,7 +87,7 @@ export function LoginForm({
       </div>
 
       <div className='mt-2 flex-shrink-0 border-t border-slate-100 pt-3'>
-        <Button type='submit' className='h-12 w-full bg-teal-600 text-base font-medium hover:bg-teal-700' disabled={submitting}>
+        <Button type='submit' variant='brand' className='h-12 w-full text-base font-medium' disabled={submitting}>
           {submitting ? (
             <>
               <Loader2 className='mr-2 h-4 w-4 animate-spin' />

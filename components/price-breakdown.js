@@ -1,4 +1,4 @@
-import { formatPrice } from '@/lib/currency'
+﻿import { formatPrice } from '@/lib/currency'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Calendar, TrendingUp, TrendingDown, Info } from 'lucide-react'
@@ -90,7 +90,7 @@ export function PriceBreakdown({
         </div>
         <div className="border-t pt-3 flex items-center justify-between">
           <span className="font-semibold text-slate-900">{t('priceBreakdown_totalLabel', language)}</span>
-          <span className="text-2xl font-bold text-teal-600 tabular-nums">{fp(total)}</span>
+          <span className="text-2xl font-bold text-brand tabular-nums">{fp(total)}</span>
         </div>
         <div className="text-xs text-slate-500">
           {t('priceBreakdown_hostReceivesShort', language)} {fp(totalBase - serviceFee)}
@@ -108,11 +108,11 @@ export function PriceBreakdown({
     <div className={`space-y-4 ${className}`}>
       <div className="flex items-center justify-between">
         <h4 className="font-semibold text-slate-900 flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-teal-600" />
+          <Calendar className="h-4 w-4 text-brand" />
           {t('priceBreakdown_title', language)}
         </h4>
         {isSeasonalApplied && (
-          <Badge className="bg-teal-600 text-white text-xs rounded-xl">
+          <Badge className="bg-brand text-white text-xs rounded-xl">
             <TrendingUp className="h-3 w-3 mr-1" />
             {t('priceBreakdown_seasonalBadge', language)}
           </Badge>
@@ -211,7 +211,7 @@ export function PriceBreakdown({
       <div className="flex justify-between items-center gap-2">
         <span className="text-lg font-bold text-slate-900">{t('priceBreakdown_totalToPay', language)}</span>
         <div className="text-right">
-          <p className="text-2xl font-bold text-teal-700 tabular-nums">{fp(total)}</p>
+          <p className="text-2xl font-bold text-brand-hover tabular-nums">{fp(total)}</p>
           {isSeasonalApplied && (
             <p className="text-xs text-slate-500 mt-1">
               {interpolate(t('priceBreakdown_avgPerDayThb', language), {
@@ -222,14 +222,14 @@ export function PriceBreakdown({
         </div>
       </div>
 
-      <div className="bg-teal-50 border border-teal-200 rounded-2xl p-3">
+      <div className="bg-brand/10 border border-brand/25 rounded-2xl p-3">
         <div className="flex justify-between text-sm gap-2">
-          <span className="text-teal-900">{t('priceBreakdown_hostBlockTitle', language)}</span>
-          <span className="font-semibold text-teal-900 tabular-nums">
+          <span className="text-brand">{t('priceBreakdown_hostBlockTitle', language)}</span>
+          <span className="font-semibold text-brand tabular-nums">
             {fp(totalPrice - commission)}
           </span>
         </div>
-        <p className="text-xs text-teal-700 mt-1">
+        <p className="text-xs text-brand-hover mt-1">
           {interpolate(t('priceBreakdown_hostShareHint', language), { pct: 100 - ratePct })}
         </p>
       </div>

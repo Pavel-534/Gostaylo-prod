@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { format, addDays } from 'date-fns'
@@ -256,7 +256,7 @@ export function PartnerChatCalendarPeek({
                     <Button
                       type="button"
                       variant="outline"
-                      className="h-11 w-full gap-2 border-teal-200 text-teal-900 hover:bg-teal-50 sm:h-10 sm:w-auto sm:text-sm"
+                      className="h-11 w-full gap-2 border-brand/25 text-brand hover:bg-brand/10 sm:h-10 sm:w-auto sm:text-sm"
                       onClick={() => void openFinanceModal()}
                     >
                       <Receipt className="h-4 w-4 shrink-0" aria-hidden />
@@ -264,7 +264,7 @@ export function PartnerChatCalendarPeek({
                     </Button>
                   ) : null}
                   {mode === 'partner' ? (
-                    <Button asChild className="h-11 w-full bg-teal-600 text-base hover:bg-teal-700 sm:h-10 sm:w-auto sm:text-sm">
+                    <Button asChild className="h-11 w-full bg-brand text-base hover:bg-brand-hover sm:h-10 sm:w-auto sm:text-sm">
                       <Link href={`/partner/calendar?listingId=${encodeURIComponent(listingId)}&from=chat`}>
                         <ExternalLink className="mr-2 h-4 w-4" />
                         {t('chatCalendarPeek_openFullCalendar')}

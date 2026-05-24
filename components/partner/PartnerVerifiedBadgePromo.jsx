@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * Stage 88.0 — промо верификации платформы (**`profiles.is_verified`**): «Verified» на карте/в каталоге.
@@ -49,10 +49,10 @@ export function PartnerVerifiedBadgePromo({ language = 'ru' }) {
   if (loading || !show) return null
 
   return (
-    <Card className="border border-teal-200/80 bg-gradient-to-r from-teal-50 via-white to-emerald-50/90 shadow-sm">
+    <Card className="border border-brand/25 bg-gradient-to-r from-brand/10 via-white to-emerald-50/90 shadow-sm">
       <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand text-white">
             <ShieldCheck className="h-6 w-6" aria-hidden />
           </div>
           <div className="min-w-0 space-y-1">
@@ -65,7 +65,7 @@ export function PartnerVerifiedBadgePromo({ language = 'ru' }) {
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
-          <Button asChild size="sm" className="bg-teal-600 text-white hover:bg-teal-700">
+          <Button asChild size="sm" className="bg-brand text-white hover:bg-brand-hover">
             <Link href="/partner/settings?tab=verification">{getUIText('partnerVerifiedPromo_cta', language)}</Link>
           </Button>
           <Button asChild size="sm" variant="outline">

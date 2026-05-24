@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * ListingCard — карточка листинга в сетках и сайдбаре.
@@ -142,8 +142,8 @@ export function ListingCard({
         'transition-all duration-300 ease-out',
         'hover:-translate-y-1.5 hover:shadow-[0_16px_48px_rgba(0,102,102,0.14),0_4px_16px_rgba(0,0,0,0.06)]',
         isMapHighlighted
-          ? 'relative z-0 border-teal-500 shadow-lg ring-2 ring-teal-500/40 ring-offset-2 hover:z-20'
-          : 'relative z-0 border-slate-100 hover:border-teal-200/80 md:hover:z-20',
+          ? 'relative z-0 border-brand shadow-lg ring-2 ring-brand/40 ring-offset-2 hover:z-20'
+          : 'relative z-0 border-slate-100 hover:border-brand/25 md:hover:z-20',
         className
       )}
     >
@@ -187,13 +187,13 @@ export function ListingCard({
           <div className="mb-2 flex min-w-0 items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-semibold text-slate-900 line-clamp-1 text-base group-hover:text-teal-700 transition-colors">
+                <h3 className="font-semibold text-slate-900 line-clamp-1 text-base group-hover:text-brand-hover transition-colors">
                   {getListingText(listing, 'title', language) || title}
                 </h3>
                 {ownerVerified ? (
                   <Badge
                     variant="outline"
-                    className="shrink-0 border-teal-300 bg-teal-50 px-2 py-0 text-[10px] font-semibold uppercase tracking-wide text-teal-800"
+                    className="shrink-0 border-brand/30 bg-brand/10 px-2 py-0 text-[10px] font-semibold uppercase tracking-wide text-brand-hover"
                   >
                     {getUIText('listingCard_verifiedPartner', language)}
                   </Badge>

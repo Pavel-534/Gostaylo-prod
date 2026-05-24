@@ -17,6 +17,7 @@ import { useAdminMarketingPage } from '@/hooks/admin/use-admin-marketing-page';
 export default function AdminMarketingPageContent() {
   const {
     loading,
+    promoCodes,
     promoListFilter,
     setPromoListFilter,
     showCreateModal,

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * Правая панель «сделка» (Airbnb-style): превью листинга, даты, сумма/статус, ссылка на объявление.
@@ -114,7 +114,7 @@ export function DealDetailsCard({ listing = null, booking = null, language = 'ru
         <>
           <div className="space-y-2">
             <div className="flex items-start gap-2 text-sm">
-              <CalendarRange className="h-4 w-4 text-teal-600 shrink-0 mt-0.5" />
+              <CalendarRange className="h-4 w-4 text-brand shrink-0 mt-0.5" />
               <div className="min-w-0">
                 <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">
                   {isEn ? 'Check-in' : 'Заезд'}
@@ -123,7 +123,7 @@ export function DealDetailsCard({ listing = null, booking = null, language = 'ru
               </div>
             </div>
             <div className="flex items-start gap-2 text-sm">
-              <CalendarRange className="h-4 w-4 text-teal-600 shrink-0 mt-0.5" />
+              <CalendarRange className="h-4 w-4 text-brand shrink-0 mt-0.5" />
               <div className="min-w-0">
                 <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">
                   {isEn ? 'Check-out' : 'Выезд'}
@@ -163,7 +163,7 @@ export function DealDetailsCard({ listing = null, booking = null, language = 'ru
         <Button
           type="button"
           variant="outline"
-          className="w-full justify-center gap-2 border-teal-200 bg-teal-50/80 text-teal-900 hover:bg-teal-100 font-medium shadow-sm"
+          className="w-full justify-center gap-2 border-brand/25 bg-brand/10 text-brand hover:bg-brand/15 font-medium shadow-sm"
           onClick={onOpenCalendar}
         >
           <Calendar className="h-4 w-4 shrink-0" aria-hidden />

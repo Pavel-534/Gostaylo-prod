@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Clock, Loader2, Wallet } from 'lucide-react'
@@ -39,7 +39,7 @@ export function ReferralWithdrawableStrip({ walletData, t, locale, className = '
   if (loading) {
     return (
       <div
-        className={`rounded-xl border border-teal-200/80 bg-teal-50/60 px-4 py-4 flex items-center gap-2 text-teal-800 ${className}`}
+        className={`rounded-xl border border-brand/25 bg-brand/10 px-4 py-4 flex items-center gap-2 text-brand-hover ${className}`}
       >
         <Loader2 className="h-5 w-5 animate-spin shrink-0" aria-hidden />
         <span className="text-sm">{t?.('referralStage726_load') || 'Загрузка кошелька…'}</span>
@@ -51,17 +51,17 @@ export function ReferralWithdrawableStrip({ walletData, t, locale, className = '
 
   return (
     <div
-      className={`rounded-xl border border-teal-200 bg-gradient-to-br from-teal-50 via-white to-white px-4 py-4 text-teal-950 shadow-sm ${className}`}
+      className={`rounded-xl border border-brand/25 bg-gradient-to-br from-brand/10 via-white to-white px-4 py-4 text-brand shadow-sm ${className}`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3 min-w-0 flex-1">
-          <div className="rounded-lg bg-teal-100/80 p-2 shrink-0">
-            <Wallet className="h-5 w-5 text-teal-800" aria-hidden />
+          <div className="rounded-lg bg-brand/15 p-2 shrink-0">
+            <Wallet className="h-5 w-5 text-brand-hover" aria-hidden />
           </div>
           <div className="min-w-0 space-y-2 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm text-teal-800/90">{label}</p>
-              <p className="text-2xl sm:text-3xl font-black tabular-nums text-[#006666] tracking-tight">
+              <p className="text-sm text-brand-hover/90">{label}</p>
+              <p className="text-2xl sm:text-3xl font-black tabular-nums text-brand tracking-tight">
                 {formatThb(withdrawableThb, locale)} <span className="text-base font-semibold">THB</span>
               </p>
               {refStatus ? (
@@ -81,9 +81,9 @@ export function ReferralWithdrawableStrip({ walletData, t, locale, className = '
                 <span className="block text-slate-400">{t?.('stage1146_walletInternal') || 'На услуги'}</span>
                 <span className="font-semibold tabular-nums">{formatThb(internalThb, locale)}</span>
               </div>
-              <div className="rounded-md bg-teal-50/90 border border-teal-100 px-2 py-1.5 col-span-2 sm:col-span-1">
-                <span className="block text-teal-700/80">{label}</span>
-                <span className="font-semibold tabular-nums text-[#006666]">{formatThb(withdrawableThb, locale)}</span>
+              <div className="rounded-md bg-brand/10 border border-brand/20 px-2 py-1.5 col-span-2 sm:col-span-1">
+                <span className="block text-brand-hover/80">{label}</span>
+                <span className="font-semibold tabular-nums text-brand">{formatThb(withdrawableThb, locale)}</span>
               </div>
             </div>
           </div>
@@ -91,7 +91,8 @@ export function ReferralWithdrawableStrip({ walletData, t, locale, className = '
         <Button
           type="button"
           size="lg"
-          className="w-full sm:w-auto bg-[#006666] hover:bg-[#005757] text-white shrink-0 min-h-11"
+          variant="brand"
+          className="w-full sm:w-auto shrink-0 min-h-11"
           onClick={() => router.push('/profile/wallet')}
         >
           {payoutEligible && !refStatus

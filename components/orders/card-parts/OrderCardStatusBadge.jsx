@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Badge } from '@/components/ui/badge'
 import { getUIText } from '@/lib/translations'
@@ -9,7 +9,7 @@ const STATUS_CLASSNAMES = {
   AWAITING_PAYMENT: 'bg-orange-100 text-orange-800 border-orange-200',
   CONFIRMED: 'bg-green-100 text-green-700 border-green-200',
   PAID: 'bg-blue-100 text-blue-700 border-blue-200',
-  PAID_ESCROW: 'bg-teal-100 text-teal-800 border-teal-200',
+  PAID_ESCROW: 'bg-brand/15 text-brand-hover border-brand/25',
   CHECKED_IN: 'bg-cyan-100 text-cyan-800 border-cyan-200',
   THAWED: 'bg-indigo-100 text-indigo-800 border-indigo-200',
   COMPLETED: 'bg-slate-100 text-slate-700 border-slate-200',

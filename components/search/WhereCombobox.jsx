@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * Поле «Куда» в стиле Airbnb: ввод в строке + подсказки (RU/EN/ZH/TH).
@@ -237,14 +237,14 @@ export function WhereCombobox({
       {loading ? (
         <Loader2
           className={cn(
-            'text-teal-600 flex-shrink-0 animate-spin',
+            'text-brand flex-shrink-0 animate-spin',
             isFlat ? 'h-5 w-5' : 'h-4 w-4',
           )}
           aria-hidden
         />
       ) : (
         <MapPin
-          className={cn('text-teal-600 flex-shrink-0', isFlat ? 'h-5 w-5' : 'h-4 w-4')}
+          className={cn('text-brand flex-shrink-0', isFlat ? 'h-5 w-5' : 'h-4 w-4')}
           aria-hidden
         />
       )}
@@ -351,11 +351,11 @@ export function WhereCombobox({
                                 className={cn(
                                   'flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150',
                                   active
-                                    ? 'border-teal-400 bg-teal-50 text-teal-700'
-                                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-teal-300 hover:bg-teal-50/60 hover:text-teal-700',
+                                    ? 'border-brand/40 bg-brand/10 text-brand-hover'
+                                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand/30 hover:bg-brand/10 hover:text-brand-hover',
                                 )}
                               >
-                                <MapPin className="h-3 w-3 shrink-0 text-teal-500" aria-hidden />
+                                <MapPin className="h-3 w-3 shrink-0 text-brand/70" aria-hidden />
                                 {label}
                               </button>
                             )
@@ -377,7 +377,7 @@ export function WhereCombobox({
                       className={cn(
                         'w-full text-left px-3 py-2.5 text-sm rounded-lg border flex items-start gap-2 transition-colors',
                         value === opt.value
-                          ? 'border-teal-300 bg-teal-50 text-teal-900'
+                          ? 'border-brand/30 bg-brand/10 text-brand'
                           : 'border-slate-200 hover:bg-slate-50',
                       )}
                     >
@@ -417,8 +417,8 @@ export function WhereCombobox({
                         aria-selected={value === opt.value}
                         className={cn(
                           'w-full rounded-lg text-left px-3 py-2.5 text-sm flex items-start gap-2 transition-colors',
-                          active ? 'bg-teal-50 text-teal-900' : 'hover:bg-slate-50',
-                          value === opt.value && !active && 'bg-teal-50/60 text-teal-800'
+                          active ? 'bg-brand/10 text-brand' : 'hover:bg-slate-50',
+                          value === opt.value && !active && 'bg-brand/10 text-brand-hover'
                         )}
                         onMouseEnter={() => setHighlightedIndex(i)}
                         onMouseDown={(e) => e.preventDefault()}
@@ -456,11 +456,11 @@ export function WhereCombobox({
                             className={cn(
                               'flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-all duration-150',
                               active
-                                ? 'border-teal-400 bg-teal-50 text-teal-700'
-                                : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-teal-300 hover:bg-teal-50/60 hover:text-teal-700',
+                                ? 'border-brand/40 bg-brand/10 text-brand-hover'
+                                : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand/30 hover:bg-brand/10 hover:text-brand-hover',
                             )}
                           >
-                            <MapPin className="h-3 w-3 shrink-0 text-teal-500" aria-hidden />
+                            <MapPin className="h-3 w-3 shrink-0 text-brand/70" aria-hidden />
                             {label}
                           </button>
                         )

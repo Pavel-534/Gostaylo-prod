@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { Loader2, CheckCircle, Shield } from 'lucide-react'
@@ -65,7 +65,7 @@ export function KycUploader({
           </div>
         ) : uploading ? (
           <div className="space-y-2">
-            <Loader2 className="h-8 w-8 animate-spin text-teal-600 mx-auto" aria-hidden />
+            <Loader2 className="h-8 w-8 animate-spin text-brand mx-auto" aria-hidden />
             <p className="text-sm text-slate-500">{strings.uploading}</p>
           </div>
         ) : (

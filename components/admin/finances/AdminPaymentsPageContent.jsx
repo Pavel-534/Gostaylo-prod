@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -58,7 +58,7 @@ export default function AdminPaymentsPageContent() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 flex items-center gap-2">
-              <DollarSign className="h-8 w-8 text-teal-600" />
+              <DollarSign className="h-8 w-8 text-brand" />
               Платежи
             </h1>
             <p className="text-slate-600 mt-1">Верификация входящих платежей (crypto / card / МИР)</p>
@@ -91,10 +91,10 @@ export default function AdminPaymentsPageContent() {
 
         <Link
           href="/admin/settings/finances"
-          className="mb-6 flex items-center justify-between gap-4 rounded-xl border-2 border-teal-200 bg-gradient-to-r from-teal-50 to-slate-50 px-4 py-4 hover:border-teal-400 transition-colors"
+          className="mb-6 flex items-center justify-between gap-4 rounded-xl border-2 border-brand/25 bg-gradient-to-r from-brand/10 to-slate-50 px-4 py-4 hover:border-brand/40 transition-colors"
         >
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-teal-600 text-white shrink-0">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand text-white shrink-0">
               <Landmark className="h-6 w-6" />
             </div>
             <div>
@@ -104,7 +104,7 @@ export default function AdminPaymentsPageContent() {
               </p>
             </div>
           </div>
-          <ChevronRight className="h-5 w-5 text-teal-700 shrink-0" />
+          <ChevronRight className="h-5 w-5 text-brand-hover shrink-0" />
         </Link>
 
         {/* Stats Cards */}
@@ -365,7 +365,7 @@ export default function AdminPaymentsPageContent() {
                       </div>
                       <div>
                         <p className="text-slate-500">Сумма</p>
-                        <p className="font-bold text-teal-600">฿{selectedPayment.amount?.toLocaleString()}</p>
+                        <p className="font-bold text-brand">฿{selectedPayment.amount?.toLocaleString()}</p>
                       </div>
                     </div>
                   </CardContent>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * Stage 69.0 — двухшаговый выбор категории (вертикаль → подкатегории из `parent_id`).
@@ -99,7 +99,7 @@ export function PartnerCategoryPickerTwoStep({
             type="button"
             variant="ghost"
             size="sm"
-            className="gap-2 -ml-2 text-teal-700 hover:text-teal-900"
+            className="gap-2 -ml-2 text-brand-hover hover:text-brand"
             onClick={() => {
               setStep('root')
               setPickedRootId(null)
@@ -121,11 +121,11 @@ export function PartnerCategoryPickerTwoStep({
                   className={cn(
                     'flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-2xl border-2 px-4 py-4 text-center transition-all',
                     selected
-                      ? 'border-teal-600 bg-teal-50 shadow-md ring-2 ring-teal-200'
-                      : 'border-slate-200 bg-white hover:border-teal-300 hover:shadow-sm',
+                      ? 'border-brand bg-brand/10 shadow-md ring-2 ring-brand/20'
+                      : 'border-slate-200 bg-white hover:border-brand/30 hover:shadow-sm',
                   )}
                 >
-                  <Icon className="h-8 w-8 text-teal-600" aria-hidden />
+                  <Icon className="h-8 w-8 text-brand" aria-hidden />
                   <span className="text-sm font-semibold text-slate-900">
                     {getCategoryDisplayName(child)}
                   </span>
@@ -149,11 +149,11 @@ export function PartnerCategoryPickerTwoStep({
                 className={cn(
                   'flex min-h-[100px] flex-col items-center justify-center gap-2 rounded-2xl border-2 px-4 py-5 text-center transition-all',
                   selected && !hasKids
-                    ? 'border-teal-600 bg-teal-50 shadow-md ring-2 ring-teal-200'
-                    : 'border-slate-200 bg-white hover:border-teal-300 hover:shadow-sm',
+                    ? 'border-brand bg-brand/10 shadow-md ring-2 ring-brand/20'
+                    : 'border-slate-200 bg-white hover:border-brand/30 hover:shadow-sm',
                 )}
               >
-                <Icon className="h-10 w-10 text-teal-600" aria-hidden />
+                <Icon className="h-10 w-10 text-brand" aria-hidden />
                 <span className="text-base font-semibold text-slate-900">
                   {getCategoryDisplayName(root)}
                 </span>

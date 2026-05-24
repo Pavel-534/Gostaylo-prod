@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { Car, Home, MapPin, User } from 'lucide-react'
 import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-service-type'
@@ -9,7 +9,7 @@ import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-s
  */
 export function ListingCategoryIcon({ categorySlug, className, title }) {
   const kind = inferListingServiceTypeFromCategorySlug(categorySlug)
-  const cn = className || 'h-5 w-5 shrink-0 text-teal-700'
+  const cn = className || 'h-5 w-5 shrink-0 text-brand-hover'
   const tip = title || undefined
   if (kind === 'transport') return <Car className={cn} aria-hidden title={tip} />
   if (kind === 'service') return <User className={cn} aria-hidden title={tip} />

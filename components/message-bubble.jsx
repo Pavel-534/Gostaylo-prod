@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -250,7 +250,7 @@ export function MessageBubble({
               isOwn
                 ? ownVariant === 'indigo'
                   ? 'bg-indigo-100 text-indigo-700'
-                  : 'bg-teal-100 text-teal-700'
+                  : 'bg-brand/15 text-brand-hover'
                 : isAdmin
                   ? 'bg-indigo-100 text-indigo-700'
                   : 'bg-slate-200'
@@ -282,7 +282,7 @@ export function MessageBubble({
               : isOwn
                 ? ownVariant === 'indigo'
                   ? 'bg-indigo-600 text-white border-indigo-600 rounded-tr-none'
-                  : 'bg-teal-600 text-white border-teal-600 rounded-tr-none'
+                  : 'bg-brand text-white border-brand rounded-tr-none'
                 : isAdmin
                   ? 'bg-white text-slate-900 border-slate-200 rounded-tl-none'
                   : 'bg-white text-slate-900 border-slate-200 rounded-tl-none shadow-sm'

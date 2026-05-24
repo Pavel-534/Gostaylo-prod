@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * ListingMap — публичная карта объекта (круг 500 м или точный маркер по slug).
@@ -65,8 +65,8 @@ export function ListingMap({
         <h3 className="text-lg font-semibold text-slate-700 mb-2">{t('mapListing_exactHiddenTitle')}</h3>
         <p className="text-sm text-slate-500 text-center max-w-md">{t('mapListing_exactHiddenBody')}</p>
         {district && (
-          <div className="mt-4 px-4 py-2 bg-teal-50 border border-teal-200 rounded-lg">
-            <p className="text-sm font-medium text-teal-800">
+          <div className="mt-4 px-4 py-2 bg-brand/10 border border-brand/25 rounded-lg">
+            <p className="text-sm font-medium text-brand-hover">
               {t('mapListing_districtPrefix')} {district}
             </p>
           </div>
@@ -122,7 +122,7 @@ export function ListingMap({
                 <div className="p-2">
                   <h4 className="font-semibold text-slate-900">{title}</h4>
                   {district && <p className="text-sm text-slate-600 mt-1">{district}</p>}
-                  <p className="text-xs text-teal-600 mt-2 font-medium">{t('mapListing_exactPopup')}</p>
+                  <p className="text-xs text-brand mt-2 font-medium">{t('mapListing_exactPopup')}</p>
                 </div>
               </Popup>
             </Marker>

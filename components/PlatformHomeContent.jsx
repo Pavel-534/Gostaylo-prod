@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * PlatformHomeContent — домашняя страница: секции в `components/home/`, логика в `usePlatformHomePage`.
@@ -157,6 +157,7 @@ export function PlatformHomeContent() {
               onClick={submitComingSoonLead}
               disabled={waitingSubmitLoading || !String(waitingEmail || '').trim()}
               className="w-full"
+              variant="brand"
             >
               {waitingSubmitLoading
                 ? language === 'ru'
@@ -258,7 +259,7 @@ export function PlatformHomeContent() {
                   <li key={c.id}>
                     <Link
                       href={`/listings?category=${c.slug}`}
-                      className="hover:text-teal-400 transition-colors"
+                      className="hover:text-brand/80 transition-colors"
                     >
                       {getCategoryName(c.slug, language, c.name)}
                     </Link>
@@ -270,12 +271,12 @@ export function PlatformHomeContent() {
               <h4 className="font-semibold mb-3 text-sm">{getUIText('footerCompany', language)}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
                 <li>
-                  <Link href="/about" className="hover:text-teal-400 transition-colors">
+                  <Link href="/about" className="hover:text-brand/80 transition-colors">
                     {getUIText('aboutUs', language)}
                   </Link>
                 </li>
                 <li>
-                  <Link href="/help#contact" className="hover:text-teal-400 transition-colors">
+                  <Link href="/help#contact" className="hover:text-brand/80 transition-colors">
                     {getUIText('contactUs', language)}
                   </Link>
                 </li>
@@ -285,37 +286,37 @@ export function PlatformHomeContent() {
               <h4 className="font-semibold mb-3 text-sm">{getUIText('footerSupport', language)}</h4>
               <ul className="space-y-2 text-sm text-slate-400">
                 <li>
-                  <Link href="/help/" className="hover:text-teal-400 transition-colors">
+                  <Link href="/help/" className="hover:text-brand/80 transition-colors">
                     {getUIText('helpCenter', language)}
                   </Link>
                 </li>
                 <li>
-                  <a href={`mailto:${supportEmail}`} className="hover:text-teal-400 transition-colors">
+                  <a href={`mailto:${supportEmail}`} className="hover:text-brand/80 transition-colors">
                     {getUIText('contactUs', language)}
                   </a>
                 </li>
                 <li>
-                  <Link href="/terms/" className="hover:text-teal-400 transition-colors">
+                  <Link href="/terms/" className="hover:text-brand/80 transition-colors">
                     {getUIText('terms', language)}
                   </Link>
                 </li>
                 <li>
-                  <Link href="/legal/public-offer/" className="hover:text-teal-400 transition-colors">
+                  <Link href="/legal/public-offer/" className="hover:text-brand/80 transition-colors">
                     {getUIText('footerPublicOffer', language)}
                   </Link>
                 </li>
                 <li>
-                  <Link href="/legal/partner-terms/" className="hover:text-teal-400 transition-colors">
+                  <Link href="/legal/partner-terms/" className="hover:text-brand/80 transition-colors">
                     {getUIText('footerPartnerTerms', language)}
                   </Link>
                 </li>
                 <li>
-                  <Link href="/legal/privacy/" className="hover:text-teal-400 transition-colors">
+                  <Link href="/legal/privacy/" className="hover:text-brand/80 transition-colors">
                     {getUIText('privacyPolicy', language)}
                   </Link>
                 </li>
                 <li>
-                  <Link href="/legal/refund/" className="hover:text-teal-400 transition-colors">
+                  <Link href="/legal/refund/" className="hover:text-brand/80 transition-colors">
                     {getUIText('footerRefundPolicy', language)}
                   </Link>
                 </li>

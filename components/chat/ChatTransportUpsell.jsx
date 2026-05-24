@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * Upsell «Транспорт» в ленте чата (рентер), сразу под milestone подтверждения / оплаты.
@@ -19,7 +19,7 @@ export function ChatTransportUpsell({ href, language = 'ru', className }) {
       )}
     >
       <div className="flex items-start gap-2.5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-teal-600">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-slate-50 text-brand">
           <Car className="h-5 w-5" aria-hidden />
         </div>
         <div className="min-w-0 flex-1 pt-0.5">
@@ -31,11 +31,7 @@ export function ChatTransportUpsell({ href, language = 'ru', className }) {
               ? 'Посмотрите доступные варианты рядом с вашим жильём'
               : 'Browse options near your stay'}
           </p>
-          <Button
-            asChild
-            size="sm"
-              className="mt-2 h-10 w-full rounded-2xl bg-teal-600 text-xs hover:bg-teal-700"
-          >
+          <Button asChild variant="brand" size="sm" className="mt-2 h-10 w-full rounded-2xl text-xs">
             <Link href={href}>{ru ? 'Смотреть транспорт' : 'Browse transport'}</Link>
           </Button>
         </div>

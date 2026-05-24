@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ActionModals Component
  * Modals for blocking dates, creating bookings, and managing seasonal prices
  */
@@ -101,7 +101,7 @@ export function ActionModals({
                   onClick={() => setActionModal(prev => ({ ...prev, type: 'booking' }))}
                 >
                   <span className="flex w-full min-w-0 items-start gap-3 text-left">
-                    <User className="mt-0.5 shrink-0 text-teal-600" aria-hidden />
+                    <User className="mt-0.5 shrink-0 text-brand" aria-hidden />
                     <span className="min-w-0 flex-1">
                       <span className="block font-medium leading-snug">{t('partnerCal_bookingTitleBtn')}</span>
                       <span className="mt-0.5 block text-xs font-normal leading-snug text-slate-500">
@@ -206,7 +206,7 @@ export function ActionModals({
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5 text-teal-600" />
+                  <User className="h-5 w-5 text-brand" />
                   {t('partnerCal_bookingModalTitle')}
                 </DialogTitle>
                 <DialogDescription>
@@ -305,7 +305,7 @@ export function ActionModals({
                 <Button 
                   onClick={onBookingSubmit}
                   disabled={createBookingMutation.isPending || !bookingForm.guestName || !bookingForm.checkOut}
-                  className="bg-teal-600 hover:bg-teal-700"
+                  className="bg-brand hover:bg-brand-hover"
                 >
                   {createBookingMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -328,7 +328,7 @@ export function ActionModals({
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-teal-600" />
+              <DollarSign className="h-5 w-5 text-brand" />
               {t('partnerCal_seasonTitle')}
             </DialogTitle>
             <DialogDescription>
@@ -439,9 +439,9 @@ export function ActionModals({
             </div>
             
             {/* Info Box */}
-            <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 text-sm text-teal-900">
+            <div className="bg-brand/10 border border-brand/25 rounded-lg p-3 text-sm text-brand">
               <p className="font-medium mb-1">🔧 {t('partnerCal_conflictTitle')}</p>
-              <p className="text-xs text-teal-700">
+              <p className="text-xs text-brand-hover">
                 {t('partnerCal_conflictBody')}
               </p>
             </div>
@@ -457,7 +457,7 @@ export function ActionModals({
             <Button 
               onClick={onPriceSubmit}
               disabled={upsertSeasonalPriceMutation.isPending || !priceForm.priceDaily}
-              className="bg-teal-600 hover:bg-teal-700"
+              className="bg-brand hover:bg-brand-hover"
             >
               {upsertSeasonalPriceMutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -15,7 +15,7 @@ import { normalizeUiLocaleCode } from '@/lib/i18n/locale-resolver'
 import { useEffect, useMemo, useState } from 'react'
 
 const STEPS = [
-  { key: 'stage91_loyaltyStep1Title', bodyKey: 'stage91_loyaltyStep1Body', Icon: UserPlus, tone: 'bg-teal-600' },
+  { key: 'stage91_loyaltyStep1Title', bodyKey: 'stage91_loyaltyStep1Body', Icon: UserPlus, tone: 'bg-brand' },
   { key: 'stage91_loyaltyStep2Title', bodyKey: 'stage91_loyaltyStep2Body', Icon: Gift, tone: 'bg-emerald-600' },
   { key: 'stage91_loyaltyStep3Title', bodyKey: 'stage91_loyaltyStep3Body', Icon: Share2, tone: 'bg-slate-800' },
 ]
@@ -72,10 +72,10 @@ export function AboutLoyaltyClient({ welcomeBonusThb, brandDisplayName }) {
     <div className="min-h-screen bg-[#f7f9fb]">
       <div className="mx-auto max-w-3xl px-4 py-12 space-y-10">
         <header className="space-y-3 text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-teal-700">{brandDisplayName}</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-brand-hover">{brandDisplayName}</p>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900">{t('stage91_loyaltyPageTitle')}</h1>
           <p className="text-lg text-slate-600 leading-relaxed">{t('stage91_loyaltyPageLead')}</p>
-          <p className="text-sm text-slate-600 leading-relaxed max-w-xl mx-auto border border-teal-100 bg-teal-50/50 rounded-xl px-4 py-3">
+          <p className="text-sm text-slate-600 leading-relaxed max-w-xl mx-auto border border-brand/20 bg-brand/10 rounded-xl px-4 py-3">
             {t('stage91_loyaltyWithRefHint')}
           </p>
         </header>
@@ -110,7 +110,7 @@ export function AboutLoyaltyClient({ welcomeBonusThb, brandDisplayName }) {
         </ol>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-          <Button asChild className="bg-[#006666] hover:bg-[#005757] rounded-xl">
+          <Button asChild className="bg-brand hover:bg-brand-hover rounded-xl">
             <Link href="/?login=true">{t('stage91_loyaltyCtaRegister')}</Link>
           </Button>
           <Button asChild variant="outline" className="rounded-xl border-slate-300">

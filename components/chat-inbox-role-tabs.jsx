@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { cn } from '@/lib/utils'
 import { INBOX_TAB_HOSTING, INBOX_TAB_TRAVELING } from '@/lib/chat-inbox-tabs'
@@ -36,7 +36,7 @@ export function ChatInboxRoleTabs({
           'relative flex min-h-0 flex-1 flex-row items-center justify-center gap-1.5 rounded-lg px-2 text-center font-semibold transition-colors',
           dense ? 'py-1.5 text-[11px] sm:text-xs' : 'py-2 text-xs sm:text-sm',
           active
-            ? 'bg-teal-600 text-white shadow-sm'
+            ? 'bg-brand text-white shadow-sm'
             : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50',
         )}
       >

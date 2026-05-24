@@ -30,19 +30,29 @@ export default function SecurityPage() {
   const [leakData, setLeakData] = useState(null)
   const [leakError, setLeakError] = useState(false)
 
-  const loadBlacklist = async () => {
+  const loadBlacklist = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/blacklist')
-      if (res.ok) {
-        const data = await res.json()
-        setBlacklist(data.data)
+      const res = await fetch('/api/admin/blacklist', { credentials: 'include', cache: 'no-store' })
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json.data) {
+        setBlacklist({
+          wallets: Array.isArray(json.data.wallets) ? json.data.wallets : [],
+          phones: Array.isArray(json.data.phones) ? json.data.phones : [],
+        })
+      } else if (!res.ok) {
+        toast({
+          title: t('adminSecurity_toastError'),
+          description: json.error || String(res.status),
+          variant: 'destructive',
+        })
       }
     } catch (error) {
       console.error('Failed to load blacklist:', error)
+      toast({ title: t('adminSecurity_toastError'), variant: 'destructive' })
     } finally {
       setLoading(false)
     }
-  }
+  }, [t, toast])
 
   const loadLeakDashboard = useCallback(async () => {
     setLeakLoading(true)
@@ -66,8 +76,8 @@ export default function SecurityPage() {
   }, [])
 
   useEffect(() => {
-    loadBlacklist()
-  }, [])
+    void loadBlacklist()
+  }, [loadBlacklist])
 
   useEffect(() => {
     loadLeakDashboard()
@@ -83,6 +93,7 @@ export default function SecurityPage() {
       const res = await fetch('/api/admin/blacklist/wallet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(newWallet),
       })
 
@@ -107,6 +118,7 @@ export default function SecurityPage() {
       const res = await fetch('/api/admin/blacklist/phone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(newPhone),
       })
 
@@ -117,6 +129,29 @@ export default function SecurityPage() {
         loadBlacklist()
       }
     } catch (error) {
+      toast({ title: t('adminSecurity_toastError'), variant: 'destructive' })
+    }
+  }
+
+  const handleRemoveEntry = async (id) => {
+    if (!id) return
+    try {
+      const res = await fetch(`/api/admin/blacklist/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      if (res.ok) {
+        toast({ title: t('adminSecurity_toastRemoved') })
+        await loadBlacklist()
+      } else {
+        const json = await res.json().catch(() => ({}))
+        toast({
+          title: t('adminSecurity_toastError'),
+          description: json.error || String(res.status),
+          variant: 'destructive',
+        })
+      }
+    } catch {
       toast({ title: t('adminSecurity_toastError'), variant: 'destructive' })
     }
   }
@@ -198,9 +233,9 @@ export default function SecurityPage() {
                 <p className="py-6 text-center text-sm text-gray-500 sm:py-8">{t('adminSecurity_noWallets')}</p>
               ) : (
                 <div className="space-y-2 sm:space-y-3">
-                  {blacklist.wallets.map((wallet, idx) => (
+                  {blacklist.wallets.map((wallet) => (
                     <div
-                      key={idx}
+                      key={wallet.id || wallet.address}
                       className="flex items-start justify-between gap-2 rounded-lg border-2 border-red-200 bg-red-50 p-3 sm:p-4"
                     >
                       <div className="min-w-0 flex-1">
@@ -210,7 +245,16 @@ export default function SecurityPage() {
                           {new Date(wallet.addedAt).toLocaleDateString(language === 'ru' ? 'ru-RU' : language === 'th' ? 'th-TH' : 'en-US')}
                         </p>
                       </div>
-                      <Button size="sm" variant="ghost" className="flex-shrink-0"><Trash2 className="h-4 w-4 text-red-600" /></Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="flex-shrink-0"
+                        disabled={!wallet.id}
+                        onClick={() => void handleRemoveEntry(wallet.id)}
+                        aria-label={t('adminSecurity_remove')}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -243,9 +287,9 @@ export default function SecurityPage() {
                 <p className="py-6 text-center text-sm text-gray-500 sm:py-8">{t('adminSecurity_noPhones')}</p>
               ) : (
                 <div className="space-y-2 sm:space-y-3">
-                  {blacklist.phones.map((phone, idx) => (
+                  {blacklist.phones.map((phone) => (
                     <div
-                      key={idx}
+                      key={phone.id || phone.number}
                       className="flex items-start justify-between gap-2 rounded-lg border-2 border-orange-200 bg-orange-50 p-3 sm:p-4"
                     >
                       <div className="min-w-0 flex-1">
@@ -255,7 +299,16 @@ export default function SecurityPage() {
                           {new Date(phone.addedAt).toLocaleDateString(language === 'ru' ? 'ru-RU' : language === 'th' ? 'th-TH' : 'en-US')}
                         </p>
                       </div>
-                      <Button size="sm" variant="ghost" className="flex-shrink-0"><Trash2 className="h-4 w-4 text-orange-600" /></Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="flex-shrink-0"
+                        disabled={!phone.id}
+                        onClick={() => void handleRemoveEntry(phone.id)}
+                        aria-label={t('adminSecurity_remove')}
+                      >
+                        <Trash2 className="h-4 w-4 text-orange-600" />
+                      </Button>
                     </div>
                   ))}
                 </div>

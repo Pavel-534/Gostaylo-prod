@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GoStayLo - Master Calendar (God View)
  * Refactored for Clean Code Architecture - Phase 7.5
  * 
@@ -26,7 +26,7 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { detectLanguage, getUIText } from '@/lib/translations'
 import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-service-type'
 import { getPartnerCalendarDominantHint } from '@/lib/config/partner-category-sla-hints'
-import { usePartnerReputationHealthQuery } from '@/hooks/use-partner-reputation-health'
+import { LoadingPageShell } from '@/components/product/LoadingPageShell'
 
 // Day width options
 const DAY_WIDTHS = {
@@ -37,13 +37,7 @@ const DAY_WIDTHS = {
 
 export default function MasterCalendar() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
-        </div>
-      }
-    >
+    <Suspense fallback={<LoadingPageShell variant="inline" label="Loading…" />}>
       <MasterCalendarContent />
     </Suspense>
   )
@@ -308,14 +302,7 @@ function MasterCalendarContent() {
   
   // Loading state
   if (authLoading || (isLoading && partnerId)) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-teal-600 mx-auto mb-3" />
-          <p className="text-sm text-slate-500">Загрузка календаря...</p>
-        </div>
-      </div>
-    )
+    return <LoadingPageShell variant="inline" label="Загрузка календаря…" />
   }
   
   // Not authenticated
@@ -325,7 +312,7 @@ function MasterCalendarContent() {
         <Calendar className="h-12 w-12 text-slate-300 mb-4" />
         <h2 className="text-xl font-semibold text-slate-900 mb-2">Требуется авторизация</h2>
         <p className="text-slate-500 text-center mb-6">Войдите в систему для просмотра календаря</p>
-        <Button asChild className="bg-teal-600 hover:bg-teal-700">
+        <Button asChild variant="brand">
           <Link href="/profile?login=true">Войти</Link>
         </Button>
       </div>
@@ -351,7 +338,7 @@ function MasterCalendarContent() {
         <Calendar className="h-12 w-12 text-slate-300 mb-4" />
         <h2 className="text-xl font-semibold text-slate-900 mb-2">Нет объектов</h2>
         <p className="text-slate-500 text-center mb-6">Добавьте объекты для отображения в календаре</p>
-        <Button asChild className="bg-teal-600 hover:bg-teal-700">
+        <Button asChild variant="brand">
           <Link href="/partner/listings/new">
             <Plus className="h-4 w-4 mr-2" />
             Добавить объект
@@ -367,8 +354,8 @@ function MasterCalendarContent() {
   return (
     <div className="max-w-full overflow-hidden space-y-4 px-2 sm:px-0">
       <PartnerCalendarEducationCard variant="calendar-page" className="max-w-[1600px] mx-auto" />
-      <div className="max-w-[1600px] mx-auto flex gap-2 items-start rounded-xl border border-teal-100 bg-teal-50/50 px-3 py-2.5 text-xs text-teal-950">
-        <Sparkles className="h-4 w-4 shrink-0 text-teal-600 mt-0.5" aria-hidden />
+      <div className="max-w-[1600px] mx-auto flex gap-2 items-start rounded-xl border border-brand/20 bg-brand/10 px-3 py-2.5 text-xs text-brand">
+        <Sparkles className="h-4 w-4 shrink-0 text-brand mt-0.5" aria-hidden />
         <p className="leading-relaxed">{calendarDominantHint}</p>
       </div>
       {openedFromChat ? (
@@ -377,10 +364,10 @@ function MasterCalendarContent() {
         </div>
       ) : null}
       {filterListingId ? (
-        <div className="max-w-[1600px] mx-auto flex flex-wrap items-center gap-2 rounded-xl border border-teal-200 bg-teal-50/90 px-3 py-2.5 text-sm text-teal-900">
+        <div className="max-w-[1600px] mx-auto flex flex-wrap items-center gap-2 rounded-xl border border-brand/25 bg-brand/10 px-3 py-2.5 text-sm text-brand">
           <span className="font-medium">Режим: один объект</span>
-          <span className="text-teal-700/80">даты и цены только для выбранного листинга</span>
-          <Button asChild variant="outline" size="sm" className="h-8 text-xs border-teal-300 ml-auto">
+          <span className="text-brand-hover/80">даты и цены только для выбранного листинга</span>
+          <Button asChild variant="outline" size="sm" className="h-8 text-xs border-brand/30 ml-auto">
             <Link href="/partner/calendar">Все объекты</Link>
           </Button>
         </div>

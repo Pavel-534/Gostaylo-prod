@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ListingSidebar Component  
  * Extracted from /app/app/listings/page.js
  * Handles listings grid with infinite scroll
@@ -121,7 +121,7 @@ function ListingSidebarComponent({
               </p>
             )}
             {showBroaden && (
-              <Button asChild variant="outline" className="rounded-2xl border-teal-300 text-teal-800 hover:bg-teal-50">
+              <Button asChild variant="outline" className="rounded-2xl border-brand/30 text-brand-hover hover:bg-brand/10">
                 <Link href={transportBroadenHref}>{getUIText('transportBroadenCta', language)}</Link>
               </Button>
             )}
@@ -229,7 +229,7 @@ function ListingSidebarComponent({
               <Button 
                 variant="outline" 
                 onClick={onLoadMore}
-                className="border-teal-300 text-teal-700 hover:bg-teal-50"
+                className="border-brand/30 text-brand-hover hover:bg-brand/10"
               >
                 {getUIText('loadMore', language)} ({allListings.length - displayedCount} {getUIText('more', language)})
               </Button>

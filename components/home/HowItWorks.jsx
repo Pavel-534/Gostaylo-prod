@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * HowItWorks — секция «Как это работает» на главной.
@@ -10,6 +10,8 @@
 
 import { Search, ShieldCheck, Sunset } from 'lucide-react'
 import { getUIText } from '@/lib/translations'
+import { GSL_BRAND_SHADOW_SOFT_HOVER } from '@/lib/theme/product-ui'
+import { cn } from '@/lib/utils'
 
 const STEPS = [
   {
@@ -52,7 +54,7 @@ export function HowItWorks({ language = 'ru' }) {
 
           {/* Connector line (desktop only) */}
           <div
-            className="absolute left-[16.5%] right-[16.5%] top-[28px] hidden h-px bg-gradient-to-r from-teal-100 via-teal-300/60 to-teal-100 sm:block"
+            className="absolute left-[16.5%] right-[16.5%] top-[28px] hidden h-px bg-gradient-to-r from-brand/15 via-brand/30 to-brand/15 sm:block"
             aria-hidden
           />
 
@@ -64,7 +66,12 @@ export function HowItWorks({ language = 'ru' }) {
                 className="group flex flex-col items-center text-center"
               >
                 {/* Circle with icon */}
-                <div className="relative mb-6 flex h-14 w-14 items-center justify-center rounded-full border-2 border-teal-200 bg-white shadow-sm transition-all duration-300 group-hover:border-teal-400 group-hover:shadow-[0_8px_24px_rgba(0,102,102,0.16)]">
+                <div
+                  className={cn(
+                    'relative mb-6 flex h-14 w-14 items-center justify-center rounded-full border-2 border-brand/25 bg-white shadow-sm transition-all duration-300 group-hover:border-brand/40',
+                    GSL_BRAND_SHADOW_SOFT_HOVER,
+                  )}
+                >
                   <Icon className="h-6 w-6 text-brand transition-colors group-hover:text-brand-hover" />
                   {/* Step number — editorial accent */}
                   <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-brand text-[10px] font-black leading-none text-white">

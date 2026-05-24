@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
@@ -111,7 +111,7 @@ export function HomeHeroLuxe({
           className="object-cover object-center"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/50" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-teal-900/10 via-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand/10 via-black/30 to-transparent" />
       </div>
 
       <div className="relative z-20 mx-auto flex w-full max-w-6xl flex-col items-center px-4 sm:px-6">
@@ -182,7 +182,7 @@ export function HomeHeroLuxe({
             <button
               type="button"
               onClick={handleSearchClick}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition-colors hover:border-brand/40 hover:bg-brand/10 hover:text-brand-hover"
               aria-label={getUIText('findButton', language)}
             >
               <Search className="h-4 w-4" />
