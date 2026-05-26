@@ -17,6 +17,7 @@ import {
   buildModerationFacets,
   filterPendingModerationListings,
 } from '@/lib/admin/moderation-queue.js'
+import { readSystemSettingValue } from '@/lib/admin/system-settings-store'
 
 export const dynamic = 'force-dynamic'
 
@@ -85,11 +86,8 @@ export async function GET(request) {
     const facets = buildModerationFacets(baseListings)
     const listings = filterPendingModerationListings(baseListings, filters)
 
-    const settingsRes = await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.general&select=value`, {
-      headers: supabaseHeaders(),
-    })
-    const settings = await settingsRes.json()
-    const raw = parseFloat(settings?.[0]?.value?.defaultCommissionRate)
+    const generalSettings = (await readSystemSettingValue('general')) || {}
+    const raw = parseFloat(generalSettings?.defaultCommissionRate)
     const systemCommission =
       Number.isFinite(raw) && raw >= 0 ? raw : await resolveDefaultCommissionPercent()
 

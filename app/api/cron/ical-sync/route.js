@@ -16,6 +16,7 @@ import {
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 import { startOpsJobRun, finishOpsJobRun } from '@/lib/ops-job-runs'
 import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'
+import { upsertSystemSetting } from '@/lib/admin/system-settings-store.js'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -140,6 +141,18 @@ async function runSync() {
     void notifySystemAlert(
       `⏰ <b>Cron: ical-sync</b> — ошибки синхронизации (${results.errors})\n${lines}`,
     )
+  }
+
+  try {
+    await upsertSystemSetting('ical_sync_status', {
+      last_sync: new Date().toISOString(),
+      listings_synced: results.synced + results.errors,
+      success_count: results.synced,
+      error_count: results.errors,
+      skipped: results.skipped,
+    })
+  } catch (e) {
+    console.warn('[ICAL-SYNC] system_settings status:', e?.message || e)
   }
 
   return {

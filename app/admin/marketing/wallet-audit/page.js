@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatAdminUserLabel } from '@/lib/admin/format-admin-user-label';
 
 function formatDateTime(value) {
   const d = new Date(value || '');
@@ -239,12 +240,12 @@ export default function WalletAuditPage() {
                       {formatDateTime(row.created_at)}
                     </TableCell>
                     <TableCell className="min-w-[200px]">
-                      <div className="text-xs font-mono break-all">{row.user_id}</div>
-                      {row.profile?.email ? (
-                        <div className="text-xs text-muted-foreground truncate max-w-[220px]">
-                          {row.profile.email}
-                        </div>
-                      ) : null}
+                      <div className="text-sm font-medium text-slate-900">
+                        {formatAdminUserLabel(row.profile, row.user_id)}
+                      </div>
+                      <div className="text-[10px] font-mono text-muted-foreground break-all mt-0.5">
+                        {row.user_id}
+                      </div>
                     </TableCell>
                     <TableCell className="uppercase text-xs">{row.operation_type}</TableCell>
                     <TableCell className="text-right tabular-nums font-medium">

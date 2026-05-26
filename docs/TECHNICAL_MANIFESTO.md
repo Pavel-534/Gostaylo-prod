@@ -6,6 +6,10 @@
 
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
+**Stage 118.1 (2026-05-26):** Chat stress garbage — источник `tests/e2e/chat-stress.spec.ts` (`st…-seq-N` в первый чат партнёра); fixture-only + `E2E_CHAT_STRESS` tag; блок POST в production; `cleanup:test-data` удаляет `st%-seq-%` / `[E2E_CHAT_STRESS]`.
+
+**Stage 118.0 (2026-05-26):** Admin stabilization (этап 1) — `lib/admin/system-settings-store.js` (SSOT `system_settings` read/write server-only); cron `promote-ready-for-payout` + THAWED date fallback (`lib/booking/parse-iso-timestamp.js`, `partner-payout-eligibility.js`); iCal sync status via store; `referral-stats.service.js` fix (ROI analytics); admin tables `formatAdminUserLabel`; `npm run cleanup:test-data`.
+
 **Stage 116.2 (2026-05-24):** Listing publish quality checklist UI (`buildListingPublishQualityChecklist`); partner onboarding SSOT `GET /api/v2/partner/onboarding-status`; publish → **PENDING** via `PATCH /api/v2/partner/listings/[id]`.
 
 **Stage 116.1b (2026-05-24):** Rollback жёсткого REDACT — default **`CONTACT_SAFETY_MODE=ADVISORY`**; контакты видны, мягкое предупреждение (`show-contact-safety-warning.js`); strikes + понижение в поиске (`lib/contact-safety/partner-search-penalty.js`); админ `PATCH /api/v2/admin/users/[id]/contact-strikes`, дашборд `/admin/security`.

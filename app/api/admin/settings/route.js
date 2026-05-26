@@ -15,6 +15,7 @@ import { buildGeneralSettingsPatch } from '@/lib/admin/settings-handlers/general
 import { buildFinanceSettingsPatch } from '@/lib/admin/settings-handlers/finance-settings'
 import { buildMarketingSettingsPatch } from '@/lib/admin/settings-handlers/marketing-settings'
 import { buildChatSafetySettingsPatch } from '@/lib/admin/settings-handlers/chat-safety-settings'
+import { readSystemSettingsByKeys, upsertSystemSetting } from '@/lib/admin/system-settings-store'
 
 export const dynamic = 'force-dynamic'
 
@@ -99,21 +100,11 @@ export async function GET() {
   if (gate.error) return gate.error
 
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    if (!supabaseUrl || !serviceKey) {
-      return NextResponse.json({ data: mockSettings })
-    }
+    const byKey = await readSystemSettingsByKeys(['general'])
+    const data = byKey.general
+    if (!data?.value) return NextResponse.json({ data: mockSettings })
 
-    const res = await fetch(`${supabaseUrl}/rest/v1/system_settings?key=eq.general&select=*`, {
-      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Cache-Control': 'no-cache' },
-      cache: 'no-store',
-    })
-    const settingsData = await res.json()
-    if (!settingsData || settingsData.length === 0) return NextResponse.json({ data: mockSettings })
-    const data = settingsData[0]
-
-    const rawComm = parseFloat(data.value?.defaultCommissionRate)
+    const rawComm = parseFloat(data?.value?.defaultCommissionRate)
     const rawGuestFee = parseFloat(data.value?.guestServiceFeePercent ?? data.value?.serviceFeePercent)
     const rawHostCommission = parseFloat(data.value?.hostCommissionPercent)
     const rawInsurance = parseFloat(data.value?.insuranceFundPercent)
@@ -308,8 +299,8 @@ export async function PUT(request) {
       return NextResponse.json({ success: true, data: mockSettings })
     }
 
-    const { data: existing } = await supabase.from('system_settings').select('id, value').eq('key', 'general').single()
-    const prev = existing?.value || {}
+    const existingRows = await readSystemSettingsByKeys(['general'])
+    const prev = existingRows.general?.value || {}
 
     const buildPatchBySection = async () => {
       switch (section) {
@@ -355,22 +346,10 @@ export async function PUT(request) {
     }
 
     const newValue = { ...prev, ...result.patch }
-    let dbResult
-    if (existing) {
-      dbResult = await supabase
-        .from('system_settings')
-        .update({ value: newValue, updated_at: new Date().toISOString() })
-        .eq('key', 'general')
-    } else {
-      dbResult = await supabase.from('system_settings').insert({
-        id: `setting-${Date.now()}`,
-        key: 'general',
-        value: newValue,
-        updated_at: new Date().toISOString(),
-      })
-    }
-    if (dbResult.error) {
-      console.error('Failed to save settings:', dbResult.error)
+    try {
+      await upsertSystemSetting('general', newValue)
+    } catch (dbErr) {
+      console.error('Failed to save settings:', dbErr)
       return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 })
     }
     return NextResponse.json({ success: true, data: newValue })

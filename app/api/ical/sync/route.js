@@ -10,6 +10,7 @@ import {
   syncIcalSourceToCalendarBlocks,
   filterOccupancyRangesByEndDate,
 } from '@/lib/services/ical-calendar-blocks-sync'
+import { readSystemSettingsByKeys, upsertSystemSetting } from '@/lib/admin/system-settings-store'
 
 /**
  * GoStayLo - iCal Sync API Endpoint
@@ -252,14 +253,7 @@ export async function POST(request) {
         },
       }
 
-      const { error: updateErr } = await supabase
-        .from('system_settings')
-        .update(statusUpdate)
-        .eq('key', 'ical_sync_status')
-
-      if (updateErr) {
-        await supabase.from('system_settings').insert({ key: 'ical_sync_status', ...statusUpdate })
-      }
+      await upsertSystemSetting('ical_sync_status', statusUpdate.value)
 
       return NextResponse.json({
         success: true,
@@ -278,19 +272,9 @@ export async function POST(request) {
 
 export async function GET() {
   try {
-    const statusRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/system_settings?key=eq.ical_sync_status&select=value`,
-      { headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` } },
-    )
-    const statusData = await statusRes.json()
-    const status = statusData?.[0]?.value || {}
-
-    const settingsRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/system_settings?key=eq.ical_sync_settings&select=value`,
-      { headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` } },
-    )
-    const settingsData = await settingsRes.json()
-    const settings = settingsData?.[0]?.value || { frequency: '1h', enabled: true }
+    const byKey = await readSystemSettingsByKeys(['ical_sync_status', 'ical_sync_settings'])
+    const status = byKey.ical_sync_status?.value || {}
+    const settings = byKey.ical_sync_settings?.value || { frequency: '1h', enabled: true }
 
     return NextResponse.json({
       ok: true,

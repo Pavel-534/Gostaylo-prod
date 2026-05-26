@@ -16,6 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { toast } from 'sonner';
+import { formatAdminUserLabel } from '@/lib/admin/format-admin-user-label';
 
 function formatThb(value) {
   const n = Number(value);
@@ -24,10 +25,14 @@ function formatThb(value) {
 }
 
 function userLabel(row) {
-  const first = row?.profile?.firstName || '';
-  const last = row?.profile?.lastName || '';
-  const full = `${first} ${last}`.trim();
-  return full || row?.profile?.email || row?.userId || 'Unknown user';
+  const profile = row?.profile
+    ? {
+        first_name: row.profile.firstName ?? row.profile.first_name,
+        last_name: row.profile.lastName ?? row.profile.last_name,
+        email: row.profile.email,
+      }
+    : null
+  return formatAdminUserLabel(profile, row?.userId)
 }
 
 export default function MarketingPayoutsPage() {

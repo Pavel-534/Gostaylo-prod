@@ -52,12 +52,9 @@ async function countLeakEventsSince(sinceIso) {
 
 async function fetchSystemCommissionPercent() {
   try {
-    const settingsRes = await fetch(
-      `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/system_settings?key=eq.general&select=value`,
-      { headers: hdr, cache: 'no-store' },
-    )
-    const settingsData = await settingsRes.json()
-    const raw = parseFloat(settingsData?.[0]?.value?.defaultCommissionRate)
+    const { readSystemSettingValue } = await import('@/lib/admin/system-settings-store')
+    const general = (await readSystemSettingValue('general')) || {}
+    const raw = parseFloat(general?.defaultCommissionRate)
     if (Number.isFinite(raw) && raw >= 0 && raw <= 100) return raw
   } catch {
     // fall through

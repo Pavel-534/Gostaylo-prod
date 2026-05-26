@@ -66,6 +66,18 @@ try {
     }
   }
 
+  if (typeof report.chatStressGarbageCount === 'number') {
+    if (dryRun) {
+      console.log(
+        `[cleanup-test-data] Найдено ${report.chatStressGarbageCount} мусорных сообщений в чатах (st*-seq-* / E2E_CHAT_STRESS; будут удалены с --execute)`,
+      )
+    } else {
+      console.log(
+        `[cleanup-test-data] Удалено ${report.deleted?.chatStressMessages ?? report.chatStressGarbageCount ?? 0} мусорных сообщений из чатов`,
+      )
+    }
+  }
+
   if (typeof report.marketingReferralCount === 'number') {
     const ledgerDeleted =
       (report.deleted?.referral_ledger ?? 0) +

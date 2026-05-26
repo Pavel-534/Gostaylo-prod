@@ -152,14 +152,11 @@ export async function POST(request) {
     }
     
     // Get system default commission rate
-    const { data: settings } = await supabaseAdmin
-      .from('system_settings')
-      .select('value')
-      .eq('key', 'general')
-      .single();
-    
+    const { readSystemSettingValue } = await import('@/lib/admin/system-settings-store')
+    const generalSettings = (await readSystemSettingValue('general')) || {}
+
     const partnerComm = parseFloat(partner.custom_commission_rate);
-    const settingsComm = parseFloat(settings?.value?.defaultCommissionRate);
+    const settingsComm = parseFloat(generalSettings?.defaultCommissionRate);
     const commissionRate =
       Number.isFinite(partnerComm) && partnerComm >= 0
         ? partnerComm

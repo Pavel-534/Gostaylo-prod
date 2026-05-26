@@ -15,14 +15,14 @@ import {
   PLATFORM_SPLIT_FEE_DEFAULTS,
 } from '@/lib/services/currency.service'
 import { getSessionPayload } from '@/lib/services/session-service'
+import { readSystemSettingValue } from '@/lib/admin/system-settings-store'
+import { supabaseAdmin } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request) {
   try {
     const session = await getSessionPayload()
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     const { searchParams } = new URL(request.url)
     let partnerIdParam = searchParams.get('partnerId')
@@ -45,20 +45,7 @@ export async function GET(request) {
       }
     }
 
-    const settingsRes = await fetch(
-      `${supabaseUrl}/rest/v1/system_settings?key=eq.general&select=value`,
-      {
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-          'Cache-Control': 'no-cache',
-        },
-        cache: 'no-store',
-      },
-    )
-
-    const settingsData = await settingsRes.json()
-    const general = settingsData?.[0]?.value || {}
+    const general = (await readSystemSettingValue('general')) || {}
     const rawSystem = general?.hostCommissionPercent ?? general?.defaultCommissionRate
     const parsedSystem = parseFloat(rawSystem)
     const parsedGuestFee = parseFloat(general?.guestServiceFeePercent ?? general?.serviceFeePercent)
@@ -86,22 +73,14 @@ export async function GET(request) {
       Number.isFinite(parsedTax) && parsedTax >= 0 && parsedTax <= 100 ? parsedTax : 0
 
     let personalRate = null
-    if (partnerIdParam) {
-      const profileRes = await fetch(
-        `${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(partnerIdParam)}&select=custom_commission_rate`,
-        {
-          headers: {
-            apikey: serviceKey,
-            Authorization: `Bearer ${serviceKey}`,
-            'Cache-Control': 'no-cache',
-          },
-          cache: 'no-store',
-        },
-      )
-
-      const profileData = await profileRes.json()
-      if (profileData?.[0]?.custom_commission_rate !== null && profileData?.[0]?.custom_commission_rate !== undefined) {
-        const p = parseFloat(profileData[0].custom_commission_rate)
+    if (partnerIdParam && supabaseAdmin) {
+      const { data: profileRow } = await supabaseAdmin
+        .from('profiles')
+        .select('custom_commission_rate')
+        .eq('id', partnerIdParam)
+        .maybeSingle()
+      if (profileRow?.custom_commission_rate != null) {
+        const p = parseFloat(profileRow.custom_commission_rate)
         if (Number.isFinite(p) && p >= 0 && p <= 100) personalRate = p
       }
     }
