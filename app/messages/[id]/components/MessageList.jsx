@@ -38,11 +38,12 @@ export function MessageList({
         patterns={detectedPatterns}
         onDismiss={onDismissSafety}
         lang={language}
+        bookingStatus={booking?.status}
       />
 
       {threadLoading ? (
         <div className="flex flex-1 items-center justify-center gap-3 py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-brand" />
         </div>
       ) : (
         <ChatMessageList

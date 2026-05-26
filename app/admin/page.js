@@ -12,9 +12,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   Users, Building2, CreditCard, MessageSquare, 
-  TrendingUp, AlertTriangle, CheckCircle, Clock,
-  Shield, Settings, BarChart3, DollarSign
+  TrendingUp, CheckCircle, Clock,
+  Shield, BarChart3, DollarSign
 } from 'lucide-react';
+import { OwnerLaunchReadinessCard } from '@/components/admin/OwnerLaunchReadinessCard';
+import { OwnerPlatformStatusCard } from '@/components/admin/OwnerPlatformStatusCard';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -30,7 +32,7 @@ export default function AdminDashboard() {
       const res = await fetch('/api/v2/admin/stats', { credentials: 'include', cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
-        setStats(data);
+        setStats(data.data ?? data);
       }
     } catch (error) {
       console.error('[ADMIN STATS]', error);
@@ -92,6 +94,14 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {!loading && stats?.launchReadiness ? (
+        <OwnerLaunchReadinessCard launchReadiness={stats.launchReadiness} onRefresh={loadStats} />
+      ) : loading ? (
+        <div className="h-40 rounded-xl border-2 border-indigo-200 bg-indigo-50/50 animate-pulse" aria-hidden />
+      ) : null}
+
+      <OwnerPlatformStatusCard platformStatus={stats?.platformStatus} loading={loading} />
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -110,7 +120,7 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-600">Active Listings</CardTitle>
-            <Building2 className="h-4 w-4 text-teal-600" />
+            <Building2 className="h-4 w-4 text-brand" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.listings?.active || 0}</div>
@@ -127,10 +137,14 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              ฿{(stats?.finance?.monthlyRevenue || 0).toLocaleString()}
+              ฿{(
+                stats?.monthlyRevenue?.[stats.monthlyRevenue.length - 1]?.revenue ??
+                stats?.revenue?.total ??
+                0
+              ).toLocaleString()}
             </div>
             <p className="text-xs text-slate-500">
-              ฿{(stats?.finance?.commission || 0).toLocaleString()} commission
+              ฿{(stats?.revenue?.commission || 0).toLocaleString()} commission (all time)
             </p>
           </CardContent>
         </Card>
@@ -164,9 +178,9 @@ export default function AdminDashboard() {
         </Link>
 
         <Link href="/admin/moderation">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-teal-500">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-brand">
             <CardContent className="pt-6">
-              <Building2 className="h-8 w-8 text-teal-600 mb-2" />
+              <Building2 className="h-8 w-8 text-brand mb-2" />
               <h3 className="font-semibold">Listings</h3>
               <p className="text-sm text-slate-600">Review & approve</p>
             </CardContent>

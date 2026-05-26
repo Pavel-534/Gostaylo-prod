@@ -20,6 +20,11 @@ import {
 } from '@/components/ui/alert-dialog'
 import { cn } from '@/lib/utils'
 import { ProxiedImage } from '@/components/proxied-image'
+import {
+  buildListingPublishQualityChecklist,
+  listingQualityInputFromPartnerListing,
+} from '@/lib/partner/listing-quality-gates'
+import { PartnerListingPublishQualityModal } from '@/components/partner/PartnerListingPublishQualityModal'
 
 /**
  * Partner Listings Page (v2 API)
@@ -41,6 +46,7 @@ export default function PartnerListings() {
     /** @type {'all' | 'active' | 'draft' | 'pending' | 'rejected'} */ ('all')
   )
   const [visibilityBusyId, setVisibilityBusyId] = useState(null)
+  const [qualityModalListing, setQualityModalListing] = useState(null)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -90,9 +96,15 @@ export default function PartnerListings() {
           bookings_count: l.bookingsCount || 0,
           rating: l.rating || 0,
           category: l.category,
+          categorySlug: l.categorySlug || l.category?.slug || '',
+          categoryName: l.categoryName || l.category?.name || '',
+          wizardProfile: l.wizardProfile ?? l.category?.wizard_profile ?? null,
+          latitude: l.latitude,
+          longitude: l.longitude,
           created_at: l.createdAt,
           updated_at: l.updatedAt,
-          metadata: l.metadata || {}
+          metadata: l.metadata || {},
+          description: l.description ?? '',
         }))
         setListings(transformedListings)
       } else {
@@ -107,29 +119,15 @@ export default function PartnerListings() {
     }
   }
 
-  // Check if listing has all required data for publishing
-  function isReadyToPublish(listing) {
-    const hasPrice = listing.base_price_thb > 0
-    const hasImages = listing.images && listing.images.length > 0
-    return hasPrice && hasImages
+  function getPublishChecklist(listing) {
+    return buildListingPublishQualityChecklist(listingQualityInputFromPartnerListing(listing))
   }
 
-  // Get validation errors
-  function getValidationErrors(listing) {
-    const errors = []
-    if (!listing.base_price_thb || listing.base_price_thb <= 0) errors.push('Укажите цену')
-    if (!listing.images || listing.images.length === 0) errors.push('Добавьте фото')
-    return errors.join(', ')
-  }
-
-  // Publish listing to moderation
+  // Publish listing to moderation (SSOT quality gates — same as wizard)
   async function publishListing(listing) {
-    if (!isReadyToPublish(listing)) {
-      toast({
-        title: 'Невозможно опубликовать',
-        description: getValidationErrors(listing),
-        variant: 'destructive'
-      })
+    const checklist = getPublishChecklist(listing)
+    if (!checklist.ok) {
+      setQualityModalListing(listing)
       return
     }
 
@@ -153,7 +151,12 @@ export default function PartnerListings() {
       })
 
       const result = await updateRes.json()
-      if (!result.success) throw new Error(result.error || 'Failed to update listing')
+      if (!result.success) {
+        if (result.code === 'LISTING_QUALITY_GATE' || result.errors?.length) {
+          setQualityModalListing(listing)
+        }
+        throw new Error(result.error || 'Failed to update listing')
+      }
 
       // Send Telegram notification (optional - don't block on failure)
       try {
@@ -333,7 +336,7 @@ export default function PartnerListings() {
   if (loading || authLoading) {
     return (
       <div className='flex items-center justify-center min-h-[60vh]'>
-        <Loader2 className='h-8 w-8 animate-spin text-teal-600' />
+        <Loader2 className='h-8 w-8 animate-spin text-brand' />
       </div>
     )
   }
@@ -351,7 +354,7 @@ export default function PartnerListings() {
         </p>
         <Button
           onClick={() => openLoginModal('login')}
-          className='bg-teal-600 hover:bg-teal-700'
+          variant='brand'
           data-testid='login-prompt-btn'
         >
           <LogIn className='h-4 w-4 mr-2' />
@@ -373,7 +376,7 @@ export default function PartnerListings() {
           <Button 
             asChild 
             size='sm'
-            className='bg-teal-600 hover:bg-teal-700'
+            variant='brand'
             data-testid='add-listing-btn'
           >
             <Link href='/partner/listings/new'>
@@ -401,8 +404,8 @@ export default function PartnerListings() {
               className={cn(
                 'shrink-0 rounded-full px-3 py-1.5 text-xs font-medium border transition-colors',
                 listFilter === tab.id
-                  ? 'bg-teal-600 text-white border-teal-600'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-teal-300'
+                  ? 'bg-brand text-white border-brand'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-brand/40'
               )}
             >
               {tab.label}
@@ -448,7 +451,7 @@ export default function PartnerListings() {
               <p className='text-sm text-slate-500 mb-4 text-center'>
                 Добавьте первое предложение
               </p>
-              <Button asChild className='bg-teal-600 hover:bg-teal-700'>
+              <Button asChild variant='brand'>
                 <Link href='/partner/listings/new'>
                   <Plus className='h-4 w-4 mr-2' />
                   Создать листинг
@@ -467,7 +470,8 @@ export default function PartnerListings() {
             const status = getStatus(listing)
             const config = statusConfig[status] || statusConfig.INACTIVE
             const showPublishCta = status === 'INACTIVE' || status === 'REJECTED'
-            const ready = isReadyToPublish(listing)
+            const publishChecklist = getPublishChecklist(listing)
+            const ready = publishChecklist.ok
             const canHideFromSite =
               listing.status === 'ACTIVE' && listing.metadata?.is_draft !== true
             const canRestoreToSite =
@@ -550,12 +554,19 @@ export default function PartnerListings() {
                     <Button
                       onClick={(e) => {
                         e.preventDefault()
+                        if (!ready) {
+                          setQualityModalListing(listing)
+                          return
+                        }
                         publishListing(listing)
                       }}
-                      disabled={!ready || publishingId === listing.id}
-                      className={`flex-1 h-9 text-sm ${ready 
-                        ? 'bg-teal-600 hover:bg-teal-700 text-white' 
-                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                      disabled={publishingId === listing.id}
+                      variant={ready ? 'brand' : 'outline'}
+                      className={`flex-1 h-9 text-sm ${
+                        ready
+                          ? ''
+                          : 'bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300'
+                      }`}
                       data-testid={`publish-btn-${listing.id}`}
                     >
                       {publishingId === listing.id ? (
@@ -563,7 +574,7 @@ export default function PartnerListings() {
                       ) : !ready ? (
                         <>
                           <AlertCircle className='h-4 w-4 mr-1' />
-                          <span className='truncate'>Заполните данные</span>
+                          <span className='truncate'>Чек-лист</span>
                         </>
                       ) : (
                         <>
@@ -632,7 +643,8 @@ export default function PartnerListings() {
                   {canRestoreToSite && (
                     <Button
                       size='sm'
-                      className='h-9 bg-teal-600 hover:bg-teal-700 text-xs'
+                      variant='brand'
+                      className='h-9 text-xs'
                       disabled={visibilityBusyId === listing.id}
                       onClick={(e) => {
                         e.preventDefault()
@@ -687,6 +699,22 @@ export default function PartnerListings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <PartnerListingPublishQualityModal
+        open={!!qualityModalListing}
+        onOpenChange={(open) => {
+          if (!open) setQualityModalListing(null)
+        }}
+        listing={qualityModalListing}
+        onRetryPublish={
+          qualityModalListing
+            ? () => {
+                setQualityModalListing(null)
+                publishListing(qualityModalListing)
+              }
+            : undefined
+        }
+      />
     </div>
   )
 }

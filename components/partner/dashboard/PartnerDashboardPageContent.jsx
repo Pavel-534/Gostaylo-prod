@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils'
 import { getUIText } from '@/lib/translations'
 import { PartnerReputationSection } from '@/components/partner/PartnerReputationSection'
 import { PartnerVerifiedBadgePromo } from '@/components/partner/PartnerVerifiedBadgePromo'
+import { PartnerOnboardingChecklist } from '@/components/partner/PartnerOnboardingChecklist'
 import { PartnerDashboardWalletOverview } from '@/components/wallet/PartnerDashboardWalletOverview'
 import {
   WelcomePartnerModal,
@@ -73,6 +74,7 @@ export default function PartnerDashboardPageContent() {
   return (
     <div className="space-y-6">
       <PartnerDashboardWalletOverview />
+      <PartnerOnboardingChecklist language={language} />
 
       <PageSectionHeader
         title="Обзор бизнеса"

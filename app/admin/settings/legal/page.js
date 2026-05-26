@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -191,16 +191,16 @@ export default function AdminLegalSettingsPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 text-white">
           <Link
             href="/admin/settings"
-            className="inline-flex items-center text-sm text-teal-200/90 hover:text-white mb-2"
+            className="inline-flex items-center text-sm text-brand-muted/90 hover:text-white mb-2"
           >
             <ArrowLeft className="h-4 w-4 mr-1" />
             Настройки
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Scale className="h-8 w-8 text-teal-300" />
+            <Scale className="h-8 w-8 text-brand-muted" />
             Юридические документы
           </h1>
-          <p className="text-teal-100/80 text-sm mt-1 max-w-2xl">
+          <p className="text-brand-muted/80 text-sm mt-1 max-w-2xl">
             Черновик → проверка текста на сайте → публикация версии. Согласия и оплаты фиксируют
             номер активной версии.
           </p>
@@ -336,7 +336,7 @@ export default function AdminLegalSettingsPage() {
                 className="flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm hover:bg-slate-50"
               >
                 <span>{d.label}</span>
-                <ExternalLink className="h-4 w-4 text-teal-600 shrink-0" />
+                <ExternalLink className="h-4 w-4 text-brand shrink-0" />
               </a>
             ))}
           </CardContent>

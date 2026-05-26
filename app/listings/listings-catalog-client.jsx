@@ -521,18 +521,18 @@ function ListingsContent() {
             href="/"
             aria-label={getUIText('backToHome', language)}
             title={getUIText('backToHome', language)}
-            className="flex items-center gap-2 text-slate-600 hover:text-teal-600 transition-colors"
+            className="flex items-center gap-2 text-slate-600 hover:text-brand transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
             <span className="hidden sm:inline">{getUIText('backToHome', language)}</span>
           </Link>
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center text-white font-bold">
+            <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center text-white font-bold">
               {(getSiteDisplayName().trim().charAt(0) || 'P').toUpperCase()}
             </div>
             <span className="font-semibold text-lg hidden sm:inline">{getSiteDisplayName()}</span>
           </Link>
-          <Badge variant="secondary" className="bg-teal-100 text-teal-700">
+          <Badge variant="secondary" className="bg-brand/10 text-brand-hover">
             {loading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : `${allListings.length}`}
           </Badge>
         </div>

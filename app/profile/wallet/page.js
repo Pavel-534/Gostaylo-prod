@@ -114,6 +114,7 @@ export default function ProfileWalletPage() {
   const payout = walletData?.payout || null
   const balance = walletData?.wallet || {}
   const recentTransactions = Array.isArray(walletData?.recentTransactions) ? walletData.recentTransactions : []
+  const referralWithdrawRequested = payout?.referralWithdrawalStatus === 'withdrawable_referral'
   const blockers = Array.isArray(payout?.blockers) ? payout.blockers : []
   const payoutReason =
     blockers.includes('BELOW_MIN_PAYOUT')

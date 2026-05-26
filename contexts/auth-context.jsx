@@ -147,6 +147,28 @@ export function AuthProvider({ children }) {
     getCurrentUser,
   });
 
+  /** Выйти из client-side имперсонации (восстановить админа из localStorage). */
+  const returnToAdmin = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem('gostaylo_original_admin');
+      if (raw) {
+        const admin = normalizeAuthUser(JSON.parse(raw));
+        localStorage.removeItem('gostaylo_original_admin');
+        localStorage.setItem('gostaylo_user', JSON.stringify(admin));
+        setUser(admin);
+        window.dispatchEvent(new CustomEvent('auth-change', { detail: admin }));
+        window.location.href = '/admin/dashboard';
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+    void refreshUserFromServer().then(() => {
+      window.location.href = '/admin/dashboard';
+    });
+  }, [normalizeAuthUser, refreshUserFromServer]);
+
   useReferralCapture({
     language,
     setPromoCode,
@@ -228,6 +250,7 @@ export function AuthProvider({ children }) {
     logout,
     updateUser,
     refreshUserFromServer,
+    returnToAdmin,
   };
 
   return (

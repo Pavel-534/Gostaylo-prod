@@ -13,6 +13,7 @@ import { formatPrice, CURRENCIES } from '@/lib/currency';
 import { getStorefrontDisplayRateMap } from '@/lib/pricing/fx-display';
 import { getGuestDisplayPerNight } from '@/lib/pricing/guest-display-price';
 import { getCommissionRate } from '@/lib/commission/get-commission-rate-server.js';
+import { buildOgImageMetadata } from '@/lib/seo/resolve-og-image.js';
 
 function interpolate(template, vars) {
   return template.replace(/\{(\w+)\}/g, (_, k) => vars[k] || '');
@@ -24,9 +25,24 @@ export async function generateMetadata({ params }) {
 
   if (!listing) {
     const b = getSiteDisplayName();
+    const title = `Listing | ${b}`;
+    const description = `Premium rentals on ${b}`;
+    const ogImages = buildOgImageMetadata(null, baseUrl, title);
     return {
-      title: `Listing | ${b}`,
-      description: `Premium rentals on ${b}`,
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        type: 'website',
+        images: ogImages,
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+        images: ogImages.map((i) => i.url),
+      },
     };
   }
 
@@ -107,7 +123,7 @@ export async function generateMetadata({ params }) {
   }
 
   const imageUrl = listing.cover_image || listing.images?.[0];
-  const ogImage = imageUrl?.startsWith('http') ? imageUrl : imageUrl ? `${baseUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}` : null;
+  const ogImages = buildOgImageMetadata(imageUrl, baseUrl, metaTitle);
 
   return {
     title: metaTitle,
@@ -116,7 +132,7 @@ export async function generateMetadata({ params }) {
       title: metaTitle,
       description: metaDesc,
       type: 'website',
-      ...(ogImage && { images: [{ url: ogImage, width: 1200, height: 630 }] }),
+      images: ogImages,
       locale: lang === 'ru' ? 'ru_RU' : lang === 'zh' ? 'zh_CN' : lang === 'th' ? 'th_TH' : 'en_US',
       url: `${baseUrl.replace(/\/$/, '')}/listings/${params.id}/`
     },
@@ -124,7 +140,7 @@ export async function generateMetadata({ params }) {
       card: 'summary_large_image',
       title: metaTitle,
       description: metaDesc,
-      ...(ogImage && { images: [ogImage] })
+      images: ogImages.map((i) => i.url),
     }
   };
 }

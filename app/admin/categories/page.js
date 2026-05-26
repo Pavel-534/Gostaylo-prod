@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -470,7 +470,7 @@ export default function CategoriesPage() {
                       </h3>
                       <p className="font-mono text-xs text-gray-500">/{category.slug}</p>
                       <div className="mt-1 flex flex-wrap gap-1">
-                        <Badge variant="outline" className="text-[10px] text-teal-700 border-teal-300">
+                        <Badge variant="outline" className="text-[10px] text-brand-hover border-brand/30">
                           Интересуются: {Number(category.waitlistLeads || 0)}
                         </Badge>
                         {category.wizardProfile ? (

@@ -19,6 +19,7 @@ import { useCommission } from '@/hooks/use-commission'
 import { useListingPricing } from '@/hooks/pricing/useListingPricing'
 import { resolveListingGuestCapacity } from '@/lib/listing-guest-capacity'
 import { getBookingApiUserMessage } from '@/lib/booking-error-message'
+import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 
 /**
  * PDP: dates in URL, availability polling, commission/pricing, booking modal + POST /api/v2/bookings.
@@ -383,6 +384,11 @@ export function useListingBookingFlow({
         const data = await res.json()
 
         if (data.success) {
+          void trackProductEvent(ProductAnalyticsEvents.BOOKING_START, {
+            listing_id: listing?.id,
+            inquiry: Boolean(data.inquiry),
+            intent: bookingModalIntent,
+          })
           if (data.inquiry) {
             toast.success(getUIText('listingToast_bookingInquiry', language))
           } else {

@@ -472,10 +472,10 @@ export default function UserDetailPage() {
           </Card>
 
           {referralGamification ? (
-            <Card className="border border-teal-100 bg-teal-50/40">
+            <Card className="border border-brand/10 bg-brand/5">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Medal className="w-5 h-5 text-teal-600 shrink-0" />
+                  <Medal className="w-5 h-5 text-brand shrink-0" />
                   Реферальные медали
                 </CardTitle>
                 <CardDescription className="text-xs">
@@ -523,7 +523,7 @@ export default function UserDetailPage() {
           >
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-teal-600" />
+                <Shield className="w-5 h-5 text-brand" />
                 KYC / Verification
               </CardTitle>
               <CardDescription>
@@ -597,7 +597,7 @@ export default function UserDetailPage() {
                                 href={toAdminVerificationDocProxyUrl(kycUrl)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-teal-700 hover:underline text-xs font-medium"
+                                className="text-brand-hover hover:underline text-xs font-medium"
                               >
                                 Открыть KYC-документ
                               </a>
@@ -607,7 +607,7 @@ export default function UserDetailPage() {
                                 href={toAdminVerificationDocProxyUrl(doc.selfie_url)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-teal-700 hover:underline text-xs font-medium"
+                                className="text-brand-hover hover:underline text-xs font-medium"
                               >
                                 Селфи
                               </a>
@@ -636,7 +636,7 @@ export default function UserDetailPage() {
                       height={80}
                       className="rounded object-cover"
                     />
-                    <span className="text-xs text-teal-700 font-medium">Открыть документ профиля</span>
+                    <span className="text-xs text-brand-hover font-medium">Открыть документ профиля</span>
                   </a>
                   {user.verificationSubmittedAt ? (
                     <p className="text-xs text-slate-500">

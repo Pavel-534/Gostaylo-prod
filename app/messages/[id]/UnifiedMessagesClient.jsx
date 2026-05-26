@@ -11,7 +11,12 @@ import { useRouter } from 'next/navigation'
 import nextDynamic from 'next/dynamic'
 import { Archive, Loader2, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 import { detectUnsafePatterns } from '@/components/chat-safety'
+import {
+  showContactSafetyWarning,
+  shouldShowContactSafetyWarning,
+} from '@/lib/chat/show-contact-safety-warning'
 import { cn } from '@/lib/utils'
 import { useVoiceRecorder } from '@/hooks/use-voice-recorder'
 import {
@@ -98,6 +103,7 @@ export default function UnifiedMessagesClient({ params }) {
   const thread = useUnifiedMessagesThread({
     conversationId,
     user,
+    language,
     isPartnerAccount,
     viewerRoleForHook,
     markGlobalRead,
@@ -146,14 +152,19 @@ export default function UnifiedMessagesClient({ params }) {
 
   useEffect(() => {
     if (!messages.length || safetyWarningShown) return
+    if (!shouldShowContactSafetyWarning(booking?.status)) return
     const patterns = []
     messages.forEach((msg) => {
       const text = msg.message || msg.content || ''
       const result = detectUnsafePatterns(text)
       if (result.hasRisk) patterns.push(...result.patterns)
     })
-    if (patterns.length) setDetectedPatterns(patterns)
-  }, [messages, safetyWarningShown])
+    if (patterns.length) {
+      setDetectedPatterns(patterns)
+      showContactSafetyWarning({ language, toast, bookingStatus: booking?.status })
+      setSafetyWarningShown(true)
+    }
+  }, [messages, safetyWarningShown, booking?.status, language])
 
   const inboxListHref = '/messages/'
   const archivedHallHref = '/messages/archived/'
@@ -180,6 +191,7 @@ export default function UnifiedMessagesClient({ params }) {
   const outbound = useUnifiedMessagesOutbound({
     language,
     user,
+    booking,
     selectedConv,
     inbox,
     sendMessageText,

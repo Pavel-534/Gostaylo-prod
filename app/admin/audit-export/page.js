@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -61,7 +61,7 @@ export default function AuditExportPage() {
       <Card className="shadow-sm border-slate-200">
         <CardHeader className="space-y-1 pb-4">
           <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-            <FileSpreadsheet className="h-5 w-5 text-teal-600 shrink-0" />
+            <FileSpreadsheet className="h-5 w-5 text-brand shrink-0" />
             Выгрузка для разборов
           </CardTitle>
           <CardDescription className="text-sm leading-relaxed">
@@ -103,7 +103,7 @@ export default function AuditExportPage() {
                   {busy('audit_logs', 'csv') ? '…' : 'CSV'}
                 </Button>
                 <Button
-                  className="gap-2 h-11 justify-center bg-teal-600 hover:bg-teal-700"
+                  className="gap-2 h-11 justify-center "
                   disabled={busy('audit_logs', 'xlsx')}
                   onClick={() => download('audit_logs', 'xlsx')}
                 >
@@ -133,7 +133,7 @@ export default function AuditExportPage() {
                   {busy('bookings', 'csv') ? '…' : 'CSV'}
                 </Button>
                 <Button
-                  className="gap-2 h-11 justify-center bg-teal-600 hover:bg-teal-700"
+                  className="gap-2 h-11 justify-center "
                   disabled={busy('bookings', 'xlsx')}
                   onClick={() => download('bookings', 'xlsx')}
                 >

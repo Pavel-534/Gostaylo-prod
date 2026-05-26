@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
@@ -147,7 +147,7 @@ export default function AdminICalPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
       </div>
     )
   }
@@ -266,7 +266,7 @@ export default function AdminICalPage() {
               <Button 
                 onClick={triggerSyncAll}
                 disabled={syncing}
-                className="bg-teal-600 hover:bg-teal-700"
+                variant="brand"
               >
                 {syncing ? (
                   <>

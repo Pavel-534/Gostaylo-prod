@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { TrendingUp, Plus, Trash2, Calendar, AlertTriangle, Users, Zap, Type } from 'lucide-react';
-import { promoExpiryEndMs } from '@/lib/admin/marketing-promo-helpers';
+import { promoExpiryEndMs, isPlatformPromoCritical } from '@/lib/admin/marketing-promo-helpers';
 import { useAdminMarketingPage } from '@/hooks/admin/use-admin-marketing-page';
 
 export default function AdminMarketingPageContent() {

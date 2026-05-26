@@ -16,6 +16,7 @@ import { buildBookingFinancialSnapshotFromRow } from '@/lib/services/booking-fin
 import { transformPartnerBookingToClient } from '@/lib/partner/partner-booking-transform'
 import { runReferralPayoutOnBookingCompleted } from '@/lib/services/marketing/referral-completion-trigger.js'
 import { validatePartnerBookingStatusTransition } from '@/lib/booking/status-transitions.js'
+import { releaseInquirySoftHold } from '@/lib/booking/inquiry-soft-hold.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -165,9 +166,13 @@ export async function PUT(request, { params }) {
     if (newStatus === 'CONFIRMED') {
       const inv = await BookingService.verifyInventoryBeforePartnerConfirm(id)
       if (!inv.ok) {
+        const hasInquiryHoldConflict = Array.isArray(inv.conflicts) &&
+          inv.conflicts.some((c) => String(c?.source || c?.reason || '').includes('inquiry'))
         const msg =
           inv.error === 'INSUFFICIENT_CAPACITY'
-            ? 'Недостаточно свободных мест на эти даты (возможно, другая заявка заняла лимит).'
+            ? hasInquiryHoldConflict
+              ? 'Даты заняты другой заявкой (временный hold до оплаты). Подтвердите другую заявку или дождитесь истечения hold.'
+              : 'Недостаточно свободных мест на эти даты (возможно, другая заявка заняла лимит).'
             : inv.error || 'Inventory check failed'
         return NextResponse.json(
           {
@@ -205,6 +210,10 @@ export async function PUT(request, { params }) {
     
     const updated = await updateRes.json()
     console.log(`[BOOKING UPDATE] Success: ${id} -> ${newStatus}`)
+
+    if (newStatus === 'CONFIRMED' || newStatus === 'CANCELLED' || newStatus === 'DECLINED') {
+      await releaseInquirySoftHold(id)
+    }
 
     try {
       await syncBookingStatusToConversationChat({

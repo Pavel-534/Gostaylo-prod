@@ -22,6 +22,8 @@ const defaultChatSafety = {
   autoShadowbanEnabled: false,
   strikeThreshold: 5,
   estimatedBookingValueThb: 8000,
+  searchRankPenaltyEnabled: true,
+  searchRankPenaltyScore: 2_000_000,
 }
 
 let mockSettings = {

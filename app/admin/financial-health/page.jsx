@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -325,7 +325,7 @@ export default function AdminFinancialHealthPage() {
               {fmtThb(potThb)}
             </p>
           </div>
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-800 via-teal-700 to-emerald-600 p-8 text-white shadow-xl ring-1 ring-white/20">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-800 via-brand-hover to-emerald-600 p-8 text-white shadow-xl ring-1 ring-white/20">
             <Landmark className="absolute -right-2 -top-2 h-36 w-36 opacity-15" aria-hidden />
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/90">Страховой фонд</p>
             <h2 className="mt-1 text-2xl font-bold leading-tight">Insurance Fund</h2>

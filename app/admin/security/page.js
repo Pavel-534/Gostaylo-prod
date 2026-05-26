@@ -163,6 +163,56 @@ export default function SecurityPage() {
     return t('adminSafety_modeHint_ADVISORY')
   }
 
+  const banUser = async (userId) => {
+    if (!userId) return
+    if (!window.confirm(t('adminSecurity_banUser') + '?')) return
+    try {
+      const res = await fetch('/api/v2/admin/users/ban', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ userId }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json.success) {
+        toast({
+          title: t('adminSecurity_toastError'),
+          description: json.error || String(res.status),
+          variant: 'destructive',
+        })
+        return
+      }
+      toast({ title: t('adminSecurity_banOk') })
+      await loadLeakDashboard()
+    } catch {
+      toast({ title: t('adminSecurity_toastError'), variant: 'destructive' })
+    }
+  }
+
+  const patchUserStrikes = async (userId, body) => {
+    try {
+      const res = await fetch(`/api/v2/admin/users/${encodeURIComponent(userId)}/contact-strikes`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json.success) {
+        toast({
+          title: t('adminSecurity_toastError'),
+          description: json.error || String(res.status),
+          variant: 'destructive',
+        })
+        return
+      }
+      toast({ title: t('adminSecurity_strikeUpdated') })
+      await loadLeakDashboard()
+    } catch {
+      toast({ title: t('adminSecurity_toastError'), variant: 'destructive' })
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -352,6 +402,11 @@ export default function SecurityPage() {
                       {' · '}
                       Порог страйков: <strong>{leakData.chatSafetySettings.strikeThreshold}</strong>
                       {' · '}
+                      Понижение в поиске:{' '}
+                      <strong>
+                        {leakData.chatSafetySettings.searchRankPenaltyEnabled !== false ? 'ON' : 'OFF'}
+                      </strong>
+                      {' · '}
                       Средний чек (THB): <strong>{leakData.chatSafetySettings.estimatedBookingValueThb}</strong>
                     </CardDescription>
                   </CardHeader>
@@ -402,21 +457,52 @@ export default function SecurityPage() {
 
               <p className="text-xs leading-relaxed text-gray-500">{t('adminSecurity_potentialLossHint')}</p>
 
+              {leakData.summary ? (
+                <div className="grid gap-2 sm:grid-cols-3 text-sm">
+                  <Card className="border-slate-200">
+                    <CardContent className="p-3">
+                      <p className="text-xs text-slate-500">Со страйками</p>
+                      <p className="text-2xl font-bold tabular-nums">{leakData.summary.profilesWithStrikes ?? 0}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-red-200 bg-red-50/50">
+                    <CardContent className="p-3">
+                      <p className="text-xs text-slate-500">Активные (≥ порога)</p>
+                      <p className="text-2xl font-bold tabular-nums text-red-800">
+                        {leakData.summary.activeViolators ?? 0}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-amber-200 bg-amber-50/50">
+                    <CardContent className="p-3">
+                      <p className="text-xs text-slate-500">Попыток за 7 дней</p>
+                      <p className="text-2xl font-bold tabular-nums text-amber-900">
+                        {leakData.summary.weekAttempts ?? 0}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : null}
+
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">{t('adminSecurity_topViolators')}</CardTitle>
+                  <CardDescription className="text-xs text-slate-600">
+                    Страйки в профиле, последние срабатывания детектора, объявления партнёра
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="overflow-x-auto">
                   {!leakData.topViolators?.length ? (
                     <p className="py-6 text-center text-sm text-gray-500">{t('adminSecurity_noViolators')}</p>
                   ) : (
-                    <table className="w-full min-w-[640px] text-left text-sm">
+                    <table className="w-full min-w-[880px] text-left text-sm">
                       <thead>
-                        <tr className="border-b text-xs text-gray-500">
-                          <th className="pb-2 pr-2 font-medium">{t('adminSecurity_colUser')}</th>
-                          <th className="pb-2 pr-2 font-medium">{t('adminSecurity_colAttempts')}</th>
-                          <th className="pb-2 pr-2 font-medium">{t('adminSecurity_colStrikes')}</th>
-                          <th className="pb-2 font-medium">{t('adminSecurity_colLastChat')}</th>
+                        <tr className="border-b text-xs uppercase tracking-wide text-gray-500">
+                          <th className="pb-2 pr-3 font-medium">{t('adminSecurity_colUser')}</th>
+                          <th className="pb-2 pr-3 font-medium w-24">{t('adminSecurity_colStrikes')}</th>
+                          <th className="pb-2 pr-3 font-medium min-w-[200px]">{t('adminSecurity_colRecent')}</th>
+                          <th className="pb-2 pr-3 font-medium min-w-[180px]">{t('adminSecurity_colListings')}</th>
+                          <th className="pb-2 font-medium min-w-[200px]">{t('adminSecurity_colActions')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -425,6 +511,16 @@ export default function SecurityPage() {
                             <td className="max-w-[200px] py-2 pr-2 align-top break-words">
                               <div className="font-medium text-gray-900">{row.displayName || t('adminSecurity_unknownUser')}</div>
                               {row.email && <div className="text-xs text-gray-500">{row.email}</div>}
+                              {row.isBanned ? (
+                                <span className="mt-1 inline-block rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-900">
+                                  {t('adminSecurity_bannedBadge')}
+                                </span>
+                              ) : null}
+                              {row.searchPenalized ? (
+                                <span className="mt-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-900">
+                                  {t('adminSecurity_searchPenalized')}
+                                </span>
+                              ) : null}
                               <Link
                                 href={`/admin/users/${encodeURIComponent(row.userId)}`}
                                 className="mt-1 inline-flex items-center gap-1 text-xs text-sky-700 underline"
@@ -433,19 +529,100 @@ export default function SecurityPage() {
                                 {t('adminSecurity_openProfile')}
                               </Link>
                             </td>
-                            <td className="py-2 pr-2 align-top tabular-nums">{row.attemptCount}</td>
-                            <td className="py-2 pr-2 align-top tabular-nums">{row.strikes != null ? row.strikes : '—'}</td>
-                            <td className="py-2 align-top">
-                              {row.lastConversationId ? (
-                                <Link
-                                  href={`/messages/${encodeURIComponent(row.lastConversationId)}`}
-                                  className="inline-flex items-center gap-1 text-sky-700 underline"
-                                >
-                                  {t('adminSecurity_openChat')}
-                                </Link>
+                            <td className="py-3 pr-3 align-top">
+                              <span className="inline-flex min-w-[2.5rem] justify-center rounded-lg bg-slate-100 px-2 py-1 text-lg font-bold tabular-nums text-slate-900">
+                                {row.strikes != null ? row.strikes : '—'}
+                              </span>
+                              {row.attemptCount > 0 ? (
+                                <p className="mt-1 text-[10px] text-gray-500">
+                                  {row.attemptCount} {t('adminSecurity_attemptsLabel')} (90д)
+                                </p>
+                              ) : null}
+                            </td>
+                            <td className="max-w-[200px] py-2 pr-2 align-top text-xs">
+                              {row.recentEvents?.length ? (
+                                <ul className="space-y-1">
+                                  {row.recentEvents.map((ev) => (
+                                    <li key={ev.id}>
+                                      <span className="text-gray-500">
+                                        {ev.at
+                                          ? new Date(ev.at).toLocaleString(
+                                              language === 'ru' ? 'ru-RU' : 'en-US',
+                                              { dateStyle: 'short', timeStyle: 'short' },
+                                            )
+                                          : '—'}
+                                      </span>
+                                      {ev.conversationId ? (
+                                        <>
+                                          {' · '}
+                                          <Link
+                                            href={`/messages/${encodeURIComponent(ev.conversationId)}`}
+                                            className="text-sky-700 underline"
+                                          >
+                                            {t('adminSecurity_openChat')}
+                                          </Link>
+                                        </>
+                                      ) : null}
+                                    </li>
+                                  ))}
+                                </ul>
                               ) : (
                                 '—'
                               )}
+                            </td>
+                            <td className="max-w-[240px] py-3 pr-3 align-top text-xs">
+                              {row.listings?.length ? (
+                                <ul className="space-y-1.5">
+                                  {row.listings.slice(0, 5).map((l) => (
+                                    <li key={l.id}>
+                                      <Link
+                                        href={`/listings/${encodeURIComponent(l.id)}`}
+                                        className="font-medium text-sky-700 underline break-words"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                      >
+                                        {l.title || l.id}
+                                      </Link>
+                                      <span className="ml-1 text-gray-400">({l.status})</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <span className="text-gray-400">Нет объявлений</span>
+                              )}
+                            </td>
+                            <td className="py-3 align-top">
+                              <div className="flex flex-col gap-1.5 sm:flex-row sm:flex-wrap">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-9 text-xs font-semibold"
+                                  onClick={() => void patchUserStrikes(row.userId, { action: 'increment', delta: 1 })}
+                                >
+                                  {t('adminSecurity_strikeAdd')}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="secondary"
+                                  className="h-9 text-xs"
+                                  onClick={() => void patchUserStrikes(row.userId, { action: 'reset' })}
+                                >
+                                  {t('adminSecurity_strikeResetAll')}
+                                </Button>
+                                {!row.isBanned ? (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="destructive"
+                                    className="h-9 text-xs font-semibold"
+                                    onClick={() => void banUser(row.userId)}
+                                  >
+                                    {t('adminSecurity_banUser')}
+                                  </Button>
+                                ) : null}
+                              </div>
                             </td>
                           </tr>
                         ))}

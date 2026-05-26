@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { PLATFORM_SPLIT_FEE_DEFAULTS } from '@/lib/config/platform-split-fee-defaults.js';
 import { useState, useEffect } from 'react';
@@ -67,6 +67,8 @@ export default function SettingsPage() {
       autoShadowbanEnabled: false,
       strikeThreshold: 5,
       estimatedBookingValueThb: 8000,
+      searchRankPenaltyEnabled: true,
+      searchRankPenaltyScore: 2_000_000,
     },
   });
   const [saving, setSaving] = useState(false);
@@ -185,9 +187,9 @@ export default function SettingsPage() {
         <div className="flex flex-col sm:flex-row flex-wrap gap-3 mt-4">
           <Link
             href="/admin/settings/finances"
-            className="inline-flex items-center gap-2 rounded-lg border-2 border-teal-300 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-900 hover:bg-teal-100"
+            className="inline-flex items-center gap-2 rounded-lg border-2 border-brand/30 bg-brand/5 px-4 py-3 text-sm font-semibold text-brand-hover hover:bg-brand/10"
           >
-            <Landmark className="w-5 h-5 text-teal-700" />
+            <Landmark className="w-5 h-5 text-brand-hover" />
             FinTech-пульт (касса, пулы, ledger)
           </Link>
           <Link
@@ -548,7 +550,54 @@ export default function SettingsPage() {
               }}
               className="mt-2 max-w-[120px]"
             />
-            <p className="mt-1 text-xs text-gray-500">По умолчанию 5. Страйки не начисляются сообщениям от ADMIN/MODERATOR.</p>
+            <p className="mt-1 text-xs text-gray-500">
+              По умолчанию 5. При достижении порога — понижение объявлений в поиске (если включено ниже). Страйки не
+              начисляются ADMIN/MODERATOR.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 rounded-lg border border-amber-100 bg-amber-50/80 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <Label htmlFor="searchRankPenalty" className="text-sm font-semibold text-slate-900">
+                Понижение в поиске при пороге страйков
+              </Label>
+              <p className="mt-1 text-xs text-slate-600">
+                Объявления партнёра опускаются в выдаче; featured не применяется к нарушителям.
+              </p>
+            </div>
+            <Switch
+              id="searchRankPenalty"
+              checked={settings.chatSafety?.searchRankPenaltyEnabled !== false}
+              onCheckedChange={(checked) =>
+                setSettings({
+                  ...settings,
+                  chatSafety: { ...settings.chatSafety, searchRankPenaltyEnabled: checked },
+                })
+              }
+            />
+          </div>
+          <div>
+            <Label htmlFor="searchRankPenaltyScore" className="text-sm sm:text-base">
+              Сила штрафа в ранжировании (score)
+            </Label>
+            <Input
+              id="searchRankPenaltyScore"
+              type="number"
+              min={1000}
+              step={10000}
+              value={settings.chatSafety?.searchRankPenaltyScore ?? 2000000}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value)
+                setSettings({
+                  ...settings,
+                  chatSafety: {
+                    ...settings.chatSafety,
+                    searchRankPenaltyScore:
+                      Number.isFinite(v) && v > 0 ? v : settings.chatSafety.searchRankPenaltyScore,
+                  },
+                })
+              }}
+              className="mt-2 max-w-[160px]"
+            />
           </div>
           <div>
             <Label htmlFor="estBookingThb" className="text-sm sm:text-base">

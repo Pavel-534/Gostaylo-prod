@@ -3,7 +3,11 @@
 import { AlertTriangle, Shield, X } from 'lucide-react'
 import { useState } from 'react'
 import { detectContactSafety } from '@/lib/chat/contact-safety-detection'
-import { getSiteDisplayName } from '@/lib/site-url'
+import {
+  getContactSafetyWarningCopy,
+  getContactSafetyWarningTitle,
+  shouldShowContactSafetyWarning,
+} from '@/lib/chat/show-contact-safety-warning'
 
 /**
  * Detects potentially unsafe patterns in messages:
@@ -18,48 +22,48 @@ export function detectUnsafePatterns(text) {
   const patterns = det.matches.map((m) => ({ type: m.kind, value: m.value }))
   return {
     hasRisk: det.hasSafetyTrigger,
-    patterns
+    patterns,
   }
 }
 
 /**
  * Safety Banner Component
- * Shows when risky patterns are detected in messages
+ * Shows when risky patterns are detected in messages (pre-payment only).
  */
-export function SafetyBanner({ patterns = [], onDismiss, lang = 'ru' }) {
+export function SafetyBanner({
+  patterns = [],
+  onDismiss,
+  lang = 'ru',
+  bookingStatus = null,
+}) {
   const [dismissed, setDismissed] = useState(false)
-  
-  if (dismissed || patterns.length === 0) return null
-  
-  const brand = getSiteDisplayName()
-  const texts = {
-    ru: {
-      title: 'Безопасность превыше всего',
-      body: `Мы обнаружили контактные данные в сообщении. Всегда оплачивайте через ${brand} для защиты ваших средств. Избегайте прямых переводов незнакомым людям.`,
-      dismiss: 'Понятно',
-    },
-    en: {
-      title: 'Safety First',
-      body: `We detected contact information in the message. Always pay through ${brand} to protect your funds. Avoid direct transfers to strangers.`,
-      dismiss: 'Got it',
-    },
-  }
 
-  const t = texts[lang] || texts.en
-  
+  if (dismissed || patterns.length === 0) return null
+  if (!shouldShowContactSafetyWarning(bookingStatus)) return null
+
+  const title = getContactSafetyWarningTitle(lang)
+  const body = getContactSafetyWarningCopy(lang)
+  const dismiss =
+    lang === 'en' ? 'Understood' : lang === 'zh' ? '知道了' : lang === 'th' ? 'รับทราบ' : 'Понятно'
+
   return (
-    <div className='mx-4 mb-3 animate-in slide-in-from-top-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:mx-5'>
-      <div className='flex items-start gap-3'>
-        <Shield className='mt-0.5 h-5 w-5 flex-shrink-0 text-brand' />
-        <div className='flex-1'>
-          <h4 className='text-sm font-medium text-slate-900'>{t.title}</h4>
-          <p className='mt-1 text-xs text-slate-600'>{t.body}</p>
+    <div className="mx-4 mb-3 animate-in slide-in-from-top-2 rounded-2xl border-2 border-amber-300 bg-amber-50 p-3 sm:mx-5">
+      <div className="flex items-start gap-3">
+        <Shield className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-700" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <h4 className="text-sm font-semibold text-amber-950">{title}</h4>
+          <p className="mt-1 text-xs leading-relaxed text-amber-900">{body}</p>
         </div>
-        <button 
-          onClick={() => { setDismissed(true); onDismiss?.() }}
-          className='p-1 text-slate-500 hover:text-slate-700'
+        <button
+          type="button"
+          onClick={() => {
+            setDismissed(true)
+            onDismiss?.()
+          }}
+          className="p-1 text-amber-700 hover:text-amber-900"
+          aria-label={dismiss}
         >
-          <X className='h-4 w-4' />
+          <X className="h-4 w-4" />
         </button>
       </div>
     </div>
@@ -72,17 +76,19 @@ export function SafetyBanner({ patterns = [], onDismiss, lang = 'ru' }) {
  */
 export function RiskIndicator({ patterns = [], lang = 'ru' }) {
   if (patterns.length === 0) return null
-  
-  const tooltip = lang === 'ru' 
-    ? 'Обнаружены контактные данные'
-    : 'Contact info detected'
-  
+
+  const tooltip =
+    lang === 'ru'
+      ? 'Обнаружены контактные данные'
+      : lang === 'zh'
+        ? '检测到联系方式'
+        : lang === 'th'
+          ? 'พบข้อมูลติดต่อ'
+          : 'Contact info detected'
+
   return (
-    <div 
-      className='inline-flex items-center gap-1 text-amber-600 text-xs ml-2'
-      title={tooltip}
-    >
-      <AlertTriangle className='h-3 w-3' />
+    <div className="inline-flex items-center gap-1 text-amber-600 text-xs ml-2" title={tooltip}>
+      <AlertTriangle className="h-3 w-3" aria-hidden />
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { LEGAL_CONSENT_ERROR_CODE } from '@/lib/legal-consent'
+import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 
 export function useCheckoutConfirmFlow({
   bookingId,
@@ -64,6 +65,10 @@ export function useCheckoutConfirmFlow({
           toast.success(getUIText('checkout_toast_chainOk', language))
           await new Promise((r) => setTimeout(r, 500))
           if (verifyData.paymentSettled?.success === true) {
+            void trackProductEvent(ProductAnalyticsEvents.PAYMENT_SUCCESS, {
+              booking_id: bookingId,
+              method: paymentMethod,
+            })
             setPaymentSuccess(true)
             setCryptoModalOpen(false)
             await loadPaymentStatus()
@@ -99,6 +104,10 @@ export function useCheckoutConfirmFlow({
         }
         if (data.success) {
           toast.success(getUIText('checkout_toast_paymentOk', language))
+          void trackProductEvent(ProductAnalyticsEvents.PAYMENT_SUCCESS, {
+            booking_id: bookingId,
+            method: paymentMethod,
+          })
           setPaymentSuccess(true)
           setCryptoModalOpen(false)
           await loadPaymentStatus()
@@ -164,6 +173,10 @@ export function useCheckoutConfirmFlow({
       if (data.success) {
         toast.success(getUIText('checkout_toast_txFound', language))
         if (data.paymentSettled?.success === true) {
+          void trackProductEvent(ProductAnalyticsEvents.PAYMENT_SUCCESS, {
+            booking_id: bookingId,
+            method: 'CRYPTO',
+          })
           toast.success(language === 'ru' ? 'Платёж и эскроу обновлены' : 'Payment and escrow updated')
           setPaymentSuccess(true)
           setCryptoModalOpen(false)

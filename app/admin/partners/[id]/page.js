@@ -154,7 +154,7 @@ export default function PartnerApplicationDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
       </div>
     )
   }
@@ -219,15 +219,15 @@ export default function PartnerApplicationDetailPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <User className="h-4 w-4 text-teal-600" />
+              <User className="h-4 w-4 text-brand" />
               Информация о пользователе
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Avatar + Name */}
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center">
-                <User className="h-8 w-8 text-teal-600" />
+              <div className="w-16 h-16 bg-brand/10 rounded-full flex items-center justify-center">
+                <User className="h-8 w-8 text-brand" />
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-lg font-semibold text-slate-900">
@@ -260,7 +260,7 @@ export default function PartnerApplicationDetailPage() {
                     href={application.metadata.portfolio} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-sm text-teal-600 hover:underline break-all flex items-center gap-1"
+                    className="text-sm text-brand hover:underline break-all flex items-center gap-1"
                   >
                     {application.metadata.portfolio}
                     <ExternalLink className="h-3 w-3 flex-shrink-0" />
@@ -282,7 +282,7 @@ export default function PartnerApplicationDetailPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Briefcase className="h-4 w-4 text-teal-600" />
+              <Briefcase className="h-4 w-4 text-brand" />
               Опыт в аренде
             </CardTitle>
           </CardHeader>
@@ -299,7 +299,7 @@ export default function PartnerApplicationDetailPage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Shield className="h-4 w-4 text-teal-600" />
+              <Shield className="h-4 w-4 text-brand" />
               Документ для верификации
             </CardTitle>
           </CardHeader>
@@ -353,7 +353,7 @@ export default function PartnerApplicationDetailPage() {
                     href={toAdminVerificationDocProxyUrl(application.verification_doc_url)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="truncate hover:text-teal-600 transition-colors"
+                    className="truncate hover:text-brand transition-colors"
                   >
                     {application.verification_doc_url.split('/').pop()?.slice(0, 40)}
                   </a>

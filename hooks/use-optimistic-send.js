@@ -16,6 +16,7 @@
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { postChatMessage } from '@/lib/chat/post-chat-message'
+import { showContactSafetyWarning } from '@/lib/chat/show-contact-safety-warning'
 
 let _tempCounter = 0
 function tempId() {
@@ -42,7 +43,13 @@ function buildOptimisticMessage({ id, conversationId, userId, content, type = 't
   }
 }
 
-export function useOptimisticSend({ conversationId, userId, setMessages }) {
+export function useOptimisticSend({
+  conversationId,
+  userId,
+  setMessages,
+  bookingStatus = null,
+  language = 'ru',
+}) {
   const sendText = useCallback(
     async (content, extraBody = {}) => {
       if (!content?.trim() || !conversationId || !userId) return null
@@ -68,6 +75,9 @@ export function useOptimisticSend({ conversationId, userId, setMessages }) {
         })
 
         if (ok && real) {
+          if (real.hasSafetyTrigger || real.has_safety_trigger) {
+            showContactSafetyWarning({ language, toast, bookingStatus })
+          }
           const realId = real.id ?? real.messageId ?? null
           // 2. Заменяем оптимистичное реальным
           setMessages((prev) => {
@@ -122,7 +132,7 @@ export function useOptimisticSend({ conversationId, userId, setMessages }) {
         return null
       }
     },
-    [conversationId, userId, setMessages],
+    [conversationId, userId, setMessages, bookingStatus, language],
   )
 
   return { sendText }

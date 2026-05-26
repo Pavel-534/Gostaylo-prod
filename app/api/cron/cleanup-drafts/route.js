@@ -20,6 +20,7 @@ import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-
 import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js';
 import { supabaseAdmin } from '@/lib/supabase';
 import { BookingService } from '@/lib/services/booking.service';
+import { releaseInquirySoftHold } from '@/lib/booking/inquiry-soft-hold.js';
 import { NotificationEvents, NotificationService } from '@/lib/services/notification.service';
 import DisputeService, { extractDisputeEvidenceObjectPaths } from '@/lib/services/dispute.service';
 import { DRAFT_CLEANUP_STALE_BOOKING_STATUSES } from '@/lib/booking/status-sets.js';
@@ -180,6 +181,7 @@ async function processExpiredBookingRequests() {
       auto_expired_by_partner_sla_at: new Date().toISOString(),
     };
     await supabaseAdmin.from('bookings').update({ metadata: nextMeta }).eq('id', booking.id);
+    await releaseInquirySoftHold(booking.id);
     cancelled++;
 
     try {

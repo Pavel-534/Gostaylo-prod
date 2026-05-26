@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
@@ -282,7 +282,7 @@ export default function AdminDisputesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <Gavel className="h-7 w-7 text-teal-700" />
+            <Gavel className="h-7 w-7 text-brand-hover" />
             Центр споров
           </h1>
           <p className="text-slate-600 text-sm mt-1">Арбитраж по бронированиям: заморозка эскроу, возврат, закрытие.</p>
@@ -299,7 +299,7 @@ export default function AdminDisputesPage() {
             type="button"
             size="sm"
             variant={filter === f.id ? 'default' : 'outline'}
-            className={filter === f.id ? 'bg-teal-700 hover:bg-teal-800' : ''}
+            className={filter === f.id ? 'bg-brand hover:bg-brand-hover' : ''}
             onClick={() => setFilter(f.id)}
           >
             {f.label}
@@ -448,7 +448,7 @@ export default function AdminDisputesPage() {
                   <Button
                     type="button"
                     variant="secondary"
-                    className="bg-white border-teal-300 text-teal-900"
+                    className="bg-white border-brand/30 text-brand-hover"
                     disabled={terminal || actionBusy || inReview}
                     onClick={() => void postAction('take_in_review')}
                   >

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -153,7 +153,7 @@ export default function AdminPartnersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
       </div>
     )
   }
@@ -210,8 +210,8 @@ export default function AdminPartnersPage() {
                   <div className="flex flex-col gap-4">
                     {/* Header: Avatar + Name + Badge */}
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <User className="h-5 w-5 sm:h-6 sm:w-6 text-teal-600" />
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-brand/10 rounded-full flex items-center justify-center flex-shrink-0">
+                        <User className="h-5 w-5 sm:h-6 sm:w-6 text-brand" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-slate-900 text-sm sm:text-base">
@@ -254,12 +254,12 @@ export default function AdminPartnersPage() {
 
                     {app.verification_doc_url ? (
                       <div className="flex items-center gap-2 text-sm" onClick={(e) => e.stopPropagation()}>
-                        <ExternalLink className="h-4 w-4 text-teal-600 shrink-0" aria-hidden />
+                        <ExternalLink className="h-4 w-4 text-brand shrink-0" aria-hidden />
                         <a
                           href={toAdminVerificationDocProxyUrl(app.verification_doc_url)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-teal-700 hover:underline font-medium truncate"
+                          className="text-brand-hover hover:underline font-medium truncate"
                         >
                           Документ KYC (открыть)
                         </a>

@@ -16,6 +16,11 @@ import {
   mapCoverUrlAfterMigration,
   patchPartnerListingCoverImage,
 } from '@/lib/partner/migrate-external-images-client'
+import {
+  buildListingPublishQualityChecklist,
+  formatListingQualityChecklistLabel,
+  listingQualityInputFromWizardForm,
+} from '@/lib/partner/listing-quality-gates.js'
 
 async function resolvePartnerUserId() {
   let userId = localStorage.getItem('gostaylo_user_id')
@@ -32,6 +37,28 @@ async function resolvePartnerUserId() {
     /* ignore */
   }
   return null
+}
+
+function assertPublishQualityGate(w, t) {
+  const checklist = buildListingPublishQualityChecklist(
+    listingQualityInputFromWizardForm(w.formData, {
+      categorySlug: w.listingCategorySlug,
+      categoryName: w.formData.categoryName || '',
+      wizardProfile: w.listingCategoryWizardProfile,
+    }),
+  )
+  if (checklist.ok) return true
+  const failed = checklist.items
+    .filter((item) => !item.ok)
+    .map((item) => formatListingQualityChecklistLabel(item, t))
+  toast.error(
+    t('listingQuality_publishBlocked', 'Complete the checklist before publishing'),
+    {
+      description: failed.slice(0, 5).join(' · '),
+      duration: 12000,
+    },
+  )
+  return false
 }
 
 /**
@@ -143,10 +170,7 @@ export function useListingSave() {
   ])
 
   const publishFromDraft = useCallback(async () => {
-    if (!formData.title || !formData.basePriceThb || (formData.images || []).length === 0) {
-      toast.error(t('partnerEdit_validationPublish'))
-      return
-    }
+    if (!assertPublishQualityGate(w, t)) return
     if (!editId) return
     setPublishing(true)
     try {
@@ -218,7 +242,9 @@ export function useListingSave() {
         toast.success(t('partnerEdit_listingPublished'))
         router.push('/partner/listings')
       } else {
-        toast.error(result.error || t('partnerEdit_listingPublishErr'))
+        const msg = result.error || t('partnerEdit_listingPublishErr')
+        const extra = Array.isArray(result.errors) ? result.errors.join(' · ') : ''
+        toast.error(msg, extra ? { description: extra, duration: 12000 } : undefined)
       }
     } catch (error) {
       console.error(error)
@@ -366,6 +392,7 @@ export function useListingSave() {
       }
       return savePatchForEdit()
     }
+    if (!assertPublishQualityGate(w, t)) return
     setLoading(true)
     try {
       const userId = await resolvePartnerUserId()
@@ -408,13 +435,29 @@ export function useListingSave() {
         ...bookingDaysPayload,
         metadata: publishMeta,
       }
-      const method = isEditMode ? 'PUT' : 'POST'
-      const url = isEditMode ? `/api/v2/partner/listings/${editId}` : '/api/v2/listings'
-      const res = await fetch(url, {
-        method,
+      if (!editId) {
+        toast.error(t('listingQuality_saveDraftFirst', 'Save a draft before publishing'))
+        return
+      }
+      const res = await fetch(`/api/v2/partner/listings/${editId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          title: payload.title,
+          description: payload.description,
+          basePriceThb: payload.basePriceThb,
+          baseCurrency: payload.baseCurrency,
+          district: payload.district,
+          latitude: formData.latitude === '' || formData.latitude == null ? null : parseFloat(String(formData.latitude)),
+          longitude: formData.longitude === '' || formData.longitude == null ? null : parseFloat(String(formData.longitude)),
+          images: payload.images,
+          coverImage: buildCoverUrl(),
+          status: 'PENDING',
+          metadata: payload.metadata,
+          cancellationPolicy: formData.cancellationPolicy || 'moderate',
+          ...bookingDaysPayload,
+        }),
       })
       const data = await res.json()
       if (data.success) {
@@ -454,7 +497,9 @@ export function useListingSave() {
           router.push('/partner/listings')
         }
       } else {
-        toast.error(data.error || t('failedToLoadListing'))
+        const msg = data.error || t('failedToLoadListing')
+        const extra = Array.isArray(data.errors) ? data.errors.join(' · ') : ''
+        toast.error(msg, extra ? { description: extra, duration: 12000 } : undefined)
       }
     } catch (error) {
       toast.error(t('failedToLoadListing'))
@@ -462,6 +507,7 @@ export function useListingSave() {
       setLoading(false)
     }
   }, [
+    w,
     editId,
     formData,
     isEditMode,
@@ -469,6 +515,7 @@ export function useListingSave() {
     listingCategorySlug,
     listingCategoryWizardProfile,
     partnerCommissionRate,
+    w,
     publishFromDraft,
     router,
     serverListing,

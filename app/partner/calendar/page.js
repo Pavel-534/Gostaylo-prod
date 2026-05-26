@@ -27,6 +27,7 @@ import { detectLanguage, getUIText } from '@/lib/translations'
 import { inferListingServiceTypeFromCategorySlug } from '@/lib/partner/listing-service-type'
 import { getPartnerCalendarDominantHint } from '@/lib/config/partner-category-sla-hints'
 import { LoadingPageShell } from '@/components/product/LoadingPageShell'
+import { usePartnerReputationHealthQuery } from '@/hooks/use-partner-reputation-health'
 
 // Day width options
 const DAY_WIDTHS = {

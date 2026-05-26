@@ -9,7 +9,7 @@ const DealDetailsCard = nextDynamic(
     ssr: false,
     loading: () => (
       <div className="flex min-h-[12rem] w-full items-center justify-center rounded-xl border border-slate-100 bg-slate-50/80">
-        <Loader2 className="h-7 w-7 animate-spin text-teal-600" />
+        <Loader2 className="h-7 w-7 animate-spin text-brand" />
       </div>
     ),
   },

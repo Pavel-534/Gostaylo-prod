@@ -16,24 +16,39 @@ import { ProxiedImage } from '@/components/proxied-image'
 import { 
   CheckCircle, XCircle, Loader2, Building2, User, Clock, 
   AlertTriangle, MapPin, DollarSign, Percent,
-  X, Sparkles, ExternalLink, Phone, Mail, Pencil
+  X, Sparkles, ExternalLink, Phone, Mail, Pencil, Filter, Navigation
 } from 'lucide-react'
+import {
+  formatListingCoordinates,
+  formatModerationPartnerLabel,
+  formatModerationCreatedAt,
+  truncateModerationDescription,
+} from '@/lib/admin/moderation-queue.js'
 
 export default function ModerationPage() {
   const [pendingListings, setPendingListings] = useState([])
+  const [totalPending, setTotalPending] = useState(0)
+  const [facets, setFacets] = useState({ partners: [], categories: [] })
+  const [filters, setFilters] = useState({
+    partner: '',
+    category: '',
+    dateFrom: '',
+    dateTo: '',
+  })
   const [loading, setLoading] = useState(true)
   const [selectedListing, setSelectedListing] = useState(null)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [rejectingListing, setRejectingListing] = useState(null)
-  const [processing, setProcessing] = useState(false)
+  const [processingId, setProcessingId] = useState(null)
+  const processing = processingId != null
   const [editTextMode, setEditTextMode] = useState(false)
   const [draftTitle, setDraftTitle] = useState('')
   const [draftDescription, setDraftDescription] = useState('')
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [filters.partner, filters.category, filters.dateFrom, filters.dateTo])
 
   useEffect(() => {
     if (!selectedListing) return
@@ -45,11 +60,19 @@ export default function ModerationPage() {
   async function loadData() {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin/moderation')
+      const params = new URLSearchParams()
+      if (filters.partner.trim()) params.set('partner', filters.partner.trim())
+      if (filters.category) params.set('category', filters.category)
+      if (filters.dateFrom) params.set('dateFrom', filters.dateFrom)
+      if (filters.dateTo) params.set('dateTo', filters.dateTo)
+      const qs = params.toString()
+      const res = await fetch(`/api/admin/moderation${qs ? `?${qs}` : ''}`)
       const data = await res.json()
       
       if (data.success) {
         setPendingListings(data.listings || [])
+        setTotalPending(data.totalPending ?? data.listings?.length ?? 0)
+        if (data.facets) setFacets(data.facets)
       } else {
         throw new Error(data.error || 'Failed to load')
       }
@@ -61,14 +84,37 @@ export default function ModerationPage() {
     }
   }
 
-  async function handleApproveListing(listingId) {
-    const titleTrim = (draftTitle || '').trim()
+  function clearFilters() {
+    setFilters({ partner: '', category: '', dateFrom: '', dateTo: '' })
+  }
+
+  const coords = selectedListing
+    ? formatListingCoordinates(selectedListing.latitude, selectedListing.longitude)
+    : null
+
+  async function revalidateListingsCache(listingId) {
+    try {
+      await fetch('/api/admin/revalidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paths: ['/', '/listings', listingId ? `/listings/${listingId}` : null].filter(Boolean),
+        }),
+      })
+    } catch {
+      // non-blocking
+    }
+  }
+
+  async function handleApproveListing(listingId, overrides = {}) {
+    const titleTrim = String(overrides.title ?? draftTitle ?? '').trim()
+    const description = overrides.description ?? draftDescription ?? ''
     if (!titleTrim) {
       toast.error('Укажите заголовок объявления')
       return
     }
 
-    setProcessing(true)
+    setProcessingId(listingId)
     try {
       const res = await fetch('/api/admin/moderation', {
         method: 'PATCH',
@@ -77,16 +123,18 @@ export default function ModerationPage() {
           listingId,
           action: 'approve',
           title: titleTrim,
-          description: draftDescription ?? '',
+          description,
         }),
       })
 
       const data = await res.json()
       
       if (data.success) {
-        toast.success(data.notificationSent 
-          ? 'Объявление одобрено! Партнёр уведомлён в Telegram'
-          : 'Объявление одобрено!'
+        await revalidateListingsCache(listingId)
+        toast.success(
+          data.notificationSent
+            ? 'ACTIVE — в каталоге и поиске. Партнёр уведомлён в Telegram.'
+            : 'ACTIVE — объявление в каталоге и поиске.',
         )
         setSelectedListing(null)
         loadData()
@@ -96,14 +144,23 @@ export default function ModerationPage() {
     } catch (error) {
       toast.error('Не удалось одобрить объявление')
     } finally {
-      setProcessing(false)
+      setProcessingId(null)
     }
   }
 
-  async function openRejectModal(listing) {
+  async function openRejectModal(listing, e) {
+    e?.stopPropagation?.()
     setRejectingListing(listing)
     setRejectReason('')
     setShowRejectModal(true)
+  }
+
+  function onListApprove(listing, e) {
+    e.stopPropagation()
+    void handleApproveListing(listing.id, {
+      title: listing.title,
+      description: listing.description ?? '',
+    })
   }
 
   async function handleRejectListing() {
@@ -112,7 +169,7 @@ export default function ModerationPage() {
       return
     }
 
-    setProcessing(true)
+    setProcessingId(rejectingListing.id)
     try {
       const res = await fetch('/api/admin/moderation', {
         method: 'PATCH',
@@ -141,7 +198,7 @@ export default function ModerationPage() {
     } catch (error) {
       toast.error('Не удалось отклонить объявление')
     } finally {
-      setProcessing(false)
+      setProcessingId(null)
     }
   }
 
@@ -199,7 +256,82 @@ export default function ModerationPage() {
             </div>
             <div>
               <p className="text-3xl font-bold text-orange-600">{pendingListings.length}</p>
-              <p className="text-sm text-slate-600">Ожидают проверки</p>
+              <p className="text-sm text-slate-600">
+                {pendingListings.length !== totalPending
+                  ? `Показано из ${totalPending} на модерации`
+                  : 'Ожидают проверки'}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <Filter className="h-4 w-4" />
+            Фильтры
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            <div>
+              <Label htmlFor="mod-filter-partner" className="text-xs text-slate-500">
+                Партнёр
+              </Label>
+              <Input
+                id="mod-filter-partner"
+                placeholder="Имя, email, id…"
+                value={filters.partner}
+                onChange={(e) => setFilters((f) => ({ ...f, partner: e.target.value }))}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="mod-filter-category" className="text-xs text-slate-500">
+                Категория
+              </Label>
+              <select
+                id="mod-filter-category"
+                value={filters.category}
+                onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value }))}
+                className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="">Все</option>
+                {facets.categories?.map((c) => (
+                  <option key={c.slug} value={c.slug}>
+                    {c.name} ({c.count})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="mod-filter-from" className="text-xs text-slate-500">
+                Создано с
+              </Label>
+              <Input
+                id="mod-filter-from"
+                type="date"
+                value={filters.dateFrom}
+                onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="mod-filter-to" className="text-xs text-slate-500">
+                по
+              </Label>
+              <Input
+                id="mod-filter-to"
+                type="date"
+                value={filters.dateTo}
+                onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))}
+                className="mt-1"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button type="button" variant="outline" className="w-full" onClick={clearFilters}>
+                Сбросить
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -215,63 +347,111 @@ export default function ModerationPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-3">
           {pendingListings.map((listing) => (
-            <Card 
-              key={listing.id} 
-              className="bg-white overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+            <Card
+              key={listing.id}
+              className="overflow-hidden border-slate-200 hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer"
               onClick={() => setSelectedListing(listing)}
             >
-              {/* Image */}
-              <div className="relative aspect-[4/3] overflow-hidden">
-                {listing.images?.[0] ? (
-                  <ProxiedImage
-                    src={listing.images[0]}
-                    alt={listing.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-slate-200 flex items-center justify-center">
-                    <Building2 className="h-12 w-12 text-slate-400" />
+              <CardContent className="p-0">
+                <div className="flex flex-col sm:flex-row">
+                  <div className="relative w-full sm:w-44 md:w-52 shrink-0 aspect-[4/3] sm:aspect-auto sm:min-h-[140px] bg-slate-100">
+                    {listing.images?.[0] ? (
+                      <ProxiedImage
+                        src={listing.images[0]}
+                        alt={listing.title}
+                        fill
+                        className="object-cover"
+                        sizes="208px"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Building2 className="h-10 w-10 text-slate-400" />
+                      </div>
+                    )}
+                    <Badge className="absolute top-2 left-2 bg-orange-500 text-[10px]">
+                      PENDING
+                    </Badge>
                   </div>
-                )}
-                
-                {/* Badges */}
-                <div className="absolute top-2 left-2 flex gap-2">
-                  <Badge className="bg-orange-500">На проверке</Badge>
-                </div>
-                
-                {/* Photo count */}
-                <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                  {listing.images?.length || 0} фото
-                </div>
-              </div>
-              
-              {/* Content */}
-              <CardContent className="p-4">
-                <h3 className="font-semibold text-slate-900 line-clamp-1 mb-1">
-                  {listing.title || 'Без названия'}
-                </h3>
-                <p className="text-sm text-slate-600 flex items-center gap-1 mb-2">
-                  <MapPin className="h-3 w-3" />
-                  {listing.district || 'Район не указан'}
-                </p>
-                
-                {/* Owner info */}
-                <div className="flex items-center gap-2 mb-2 text-xs text-slate-500">
-                  <User className="h-3 w-3" />
-                  <span>{listing.owner?.first_name || listing.owner?.email || 'Партнёр'}</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <p className="font-bold text-indigo-600">
-                    ฿{listing.base_price_thb?.toLocaleString() || 0}/день
-                  </p>
-                  <Badge variant="outline" className="text-xs">
-                    {listing.effectiveCommission}% комиссия
-                  </Badge>
+
+                  <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 p-4 sm:flex-row sm:items-center">
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <h3 className="font-semibold text-slate-900 line-clamp-1 text-base md:text-lg">
+                        {listing.title || 'Без названия'}
+                      </h3>
+                      {truncateModerationDescription(listing.description) ? (
+                        <p className="text-sm text-slate-600 line-clamp-2">
+                          {truncateModerationDescription(listing.description)}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-amber-700">Нет описания</p>
+                      )}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                        <span className="inline-flex items-center gap-1">
+                          <User className="h-3.5 w-3.5" />
+                          {formatModerationPartnerLabel(listing)}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <Clock className="h-3.5 w-3.5" />
+                          {formatModerationCreatedAt(listing.created_at)}
+                        </span>
+                        {listing.categories?.name ? (
+                          <span>{listing.categories.name}</span>
+                        ) : null}
+                        <span className="inline-flex items-center gap-1">
+                          <MapPin className="h-3.5 w-3.5" />
+                          {listing.district || '—'}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-indigo-700">
+                        ฿{listing.base_price_thb?.toLocaleString() || 0}/день · {listing.effectiveCommission}%
+                        комиссия
+                      </p>
+                    </div>
+
+                    <div
+                      className="flex shrink-0 flex-col gap-2 sm:w-[200px]"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Button
+                        type="button"
+                        size="lg"
+                        className="h-12 w-full bg-green-600 hover:bg-green-700 text-base font-semibold shadow-sm"
+                        disabled={processingId != null}
+                        onClick={(e) => onListApprove(listing, e)}
+                      >
+                        {processingId === listing.id ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <>
+                            <CheckCircle className="h-5 w-5 mr-2" />
+                            Approve
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="lg"
+                        variant="destructive"
+                        className="h-12 w-full text-base font-semibold shadow-sm"
+                        disabled={processing}
+                        onClick={(e) => openRejectModal(listing, e)}
+                      >
+                        <XCircle className="h-5 w-5 mr-2" />
+                        Reject
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full text-slate-600"
+                        onClick={() => setSelectedListing(listing)}
+                      >
+                        Подробнее
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -356,7 +536,27 @@ export default function ModerationPage() {
                     <p className="text-slate-600 flex items-center gap-1 mt-1">
                       <MapPin className="h-4 w-4 shrink-0" />
                       {selectedListing.district || 'Район не указан'}
+                      {selectedListing.categories?.name
+                        ? ` · ${selectedListing.categories.name}`
+                        : ''}
                     </p>
+                    {coords ? (
+                      <p className="text-sm text-slate-600 flex items-center gap-2 mt-1 flex-wrap">
+                        <Navigation className="h-4 w-4 shrink-0 text-indigo-600" />
+                        <span className="font-mono text-xs">{coords.label}</span>
+                        <a
+                          href={`https://www.google.com/maps?q=${coords.lat},${coords.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo-600 text-xs underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Карта
+                        </a>
+                      </p>
+                    ) : (
+                      <p className="text-xs text-amber-700 mt-1">Координаты не указаны</p>
+                    )}
                     <div className="flex flex-wrap gap-2 pt-1">
                       {!editTextMode ? (
                         <Button
@@ -518,28 +718,28 @@ export default function ModerationPage() {
                 )}
 
                 {/* Actions */}
-                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t sticky bottom-0 bg-white/95 backdrop-blur py-3 -mx-4 px-4 md:-mx-6 md:px-6">
                   <Button
                     onClick={() => handleApproveListing(selectedListing.id)}
-                    className="flex-1 bg-green-600 hover:bg-green-700 h-12 text-base"
+                    className="flex-1 bg-green-600 hover:bg-green-700 h-14 text-lg font-semibold shadow-md"
                     disabled={processing}
                   >
                     {processing ? (
-                      <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
                     ) : (
-                      <CheckCircle className="h-5 w-5 mr-2" />
+                      <CheckCircle className="h-6 w-6 mr-2" />
                     )}
-                    Одобрить
+                    Approve → ACTIVE
                   </Button>
-                  
+
                   <Button
                     onClick={() => openRejectModal(selectedListing)}
                     variant="destructive"
-                    className="flex-1 h-12 text-base"
+                    className="flex-1 h-14 text-lg font-semibold shadow-md"
                     disabled={processing}
                   >
-                    <XCircle className="h-5 w-5 mr-2" />
-                    Отклонить
+                    <XCircle className="h-6 w-6 mr-2" />
+                    Reject
                   </Button>
                 </div>
               </div>

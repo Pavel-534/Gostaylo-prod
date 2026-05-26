@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import '@/lib/translations/register-chat-slice';
 import { useState, useEffect } from 'react';
@@ -60,7 +60,7 @@ export default function AdminLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, loading: authLoading, isAuthenticated, logout } = useAuth();
+  const { user, loading: authLoading, isAuthenticated, logout, updateUser } = useAuth();
   const isImpersonating = user?.is_impersonating === true;
 
   // Close sidebar on mobile when route changes
@@ -91,11 +91,29 @@ export default function AdminLayout({ children }) {
       router.replace(path ? `/login?redirect=${path}` : '/login');
       return;
     }
+    // Имперсонация — только localStorage; при заходе в /admin восстанавливаем админа.
+    if (typeof window !== 'undefined') {
+      const savedAdmin = localStorage.getItem('gostaylo_original_admin');
+      if (savedAdmin) {
+        try {
+          const admin = JSON.parse(savedAdmin);
+          const adminRole = String(admin?.role || '').toUpperCase();
+          if (['ADMIN', 'MODERATOR'].includes(adminRole)) {
+            localStorage.removeItem('gostaylo_original_admin');
+            localStorage.setItem('gostaylo_user', JSON.stringify(admin));
+            updateUser?.(admin);
+            return;
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+    }
     const role = String(user?.role || '').toUpperCase();
     if (!['ADMIN', 'MODERATOR'].includes(role)) {
       router.replace('/');
     }
-  }, [authLoading, isAuthenticated, user?.role, router]);
+  }, [authLoading, isAuthenticated, user?.role, router, updateUser]);
 
   const handleReturnToAdmin = () => router.push('/admin/users');
   const handleLogout = () => logout();
@@ -188,12 +206,12 @@ export default function AdminLayout({ children }) {
         <div className="p-5 border-b border-slate-700/50 flex items-center justify-between">
           <div className={`${!sidebarOpen && 'lg:hidden'}`}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/20">
+              <div className="w-10 h-10 bg-gradient-to-br from-brand/80 to-brand rounded-xl flex items-center justify-center shadow-lg shadow-brand/20">
                 <span className="text-white text-sm font-bold">FR</span>
               </div>
               <div>
                 <h1 className="text-lg font-bold tracking-tight">{getSiteDisplayName()}</h1>
-                <p className="text-[10px] text-teal-400 font-medium uppercase tracking-wider">
+                <p className="text-[10px] text-brand/80 font-medium uppercase tracking-wider">
                   {user?.isModerator ? 'Moderator' : 'Admin Panel'}
                 </p>
               </div>
@@ -231,7 +249,7 @@ export default function AdminLayout({ children }) {
                 }}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                   isActive
-                    ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-lg shadow-teal-500/30'
+                    ? 'bg-gradient-to-r from-brand to-brand-hover text-white shadow-lg shadow-brand/30'
                     : 'text-slate-300 hover:bg-white/5 hover:text-white active:scale-[0.98]'
                 }`}
               >
@@ -296,12 +314,12 @@ export default function AdminLayout({ children }) {
           {/* Normal Top Bar */}
           <div className="px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/" className="flex items-center gap-2 text-slate-600 hover:text-teal-600 transition-colors">
+              <Link href="/" className="flex items-center gap-2 text-slate-600 hover:text-brand transition-colors">
                 <Home className="w-4 h-4" />
                 <span className="text-sm font-medium">На сайт</span>
               </Link>
               <span className="text-slate-200">|</span>
-              <Link href="/" target="_blank" className="flex items-center gap-2 text-slate-600 hover:text-teal-600 transition-colors">
+              <Link href="/" target="_blank" className="flex items-center gap-2 text-slate-600 hover:text-brand transition-colors">
                 <ExternalLink className="w-4 h-4" />
                 <span className="text-sm">Новая вкладка</span>
               </Link>
@@ -309,7 +327,7 @@ export default function AdminLayout({ children }) {
             <div className="flex items-center gap-3">
               <HeaderWalletCompact />
               <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg">
-                <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-brand rounded-full animate-pulse"></div>
                 <span className="font-medium">{user?.isModerator ? 'Moderator' : 'Admin'}</span>
                 <span className="text-slate-400">•</span>
                 <span>{user?.name}</span>

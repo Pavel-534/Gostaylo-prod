@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -84,7 +84,7 @@ export default function AdminPayoutVerificationPage() {
       <Card className="rounded-2xl border-slate-200">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-teal-600" />
+            <ShieldCheck className="h-5 w-5 text-brand" />
             Ожидают верификации
             <Badge variant="secondary" className="ml-2">
               {rows.length}
@@ -144,7 +144,7 @@ export default function AdminPayoutVerificationPage() {
                         <td className="px-4 py-3">
                           <Button
                             size="sm"
-                            className="bg-teal-600 hover:bg-teal-700"
+                            variant="brand"
                             disabled={verifyingId === row.id}
                             onClick={() => void verify(row.id)}
                           >

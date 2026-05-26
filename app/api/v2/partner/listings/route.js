@@ -42,7 +42,7 @@ export async function GET(request) {
       .from('listings')
       .select(`
         *,
-        categories (id, name, slug, icon)
+        categories (id, name, slug, icon, wizard_profile)
       `)
       .eq('owner_id', partnerId)
       .in('status', ['ACTIVE', 'INACTIVE', 'PENDING', 'REJECTED'])
@@ -63,6 +63,7 @@ export async function GET(request) {
     const transformed = visible.map(l => ({
       id: l.id,
       title: l.title,
+      description: l.description ?? '',
       status: l.status,
       district: l.district,
       basePriceThb: parseFloat(l.base_price_thb) || 0,
@@ -79,6 +80,11 @@ export async function GET(request) {
       bookingsCount: l.bookings_count || 0,
       rating: parseFloat(l.rating) || 0,
       category: l.categories,
+      categorySlug: l.categories?.slug ?? '',
+      categoryName: l.categories?.name ?? '',
+      wizardProfile: l.categories?.wizard_profile ?? null,
+      latitude: l.latitude,
+      longitude: l.longitude,
       metadata: l.metadata || {},
       instantBooking: l.instant_booking === true,
       createdAt: l.created_at,

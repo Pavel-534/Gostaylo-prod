@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -168,7 +168,7 @@ export default function AdminSystemAiPage() {
         <div>
           <Link
             href="/admin/system"
-            className="mb-3 inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-teal-700"
+            className="mb-3 inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-brand-hover"
           >
             <ArrowLeft className="h-4 w-4" />
             Назад в System
@@ -381,9 +381,9 @@ export default function AdminSystemAiPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-xl sm:col-span-2 xl:col-span-4">
-          <div className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-teal-500/20 blur-2xl" />
+          <div className="pointer-events-none absolute -right-6 -top-6 h-32 w-32 rounded-full bg-brand/20 blur-2xl" />
           <CardHeader className="pb-2">
-            <div className="flex items-center gap-2 text-teal-300">
+            <div className="flex items-center gap-2 text-brand-muted">
               <TrendingUp className="h-4 w-4" />
               <span className="text-xs font-semibold uppercase tracking-wider">Всего</span>
             </div>
@@ -393,7 +393,7 @@ export default function AdminSystemAiPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <Loader2 className="h-8 w-8 animate-spin text-teal-400" />
+              <Loader2 className="h-8 w-8 animate-spin text-brand/80" />
             ) : (
               <>
                 <p className="text-3xl font-bold tabular-nums tracking-tight">
@@ -448,7 +448,7 @@ export default function AdminSystemAiPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-2 border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-white to-teal-50 shadow-md sm:col-span-1">
+        <Card className="border-2 border-emerald-200/80 bg-gradient-to-br from-emerald-50 via-white to-brand/5 shadow-md sm:col-span-1">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2 text-emerald-700">
               <Brain className="h-5 w-5" />

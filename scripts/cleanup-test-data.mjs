@@ -53,20 +53,55 @@ try {
     mode: dryRun ? 'dry-run' : 'execute',
     listingCount: report.listingCount,
     bookingCount: report.bookingCount,
+    testUserCount: report.testUserCount,
     storagePathsPlanned: report.storagePathsPlanned,
     deleted: report.deleted,
   })
 
-  if (report.candidates.length) {
-    console.log('[cleanup-test-data] candidates:')
+  if (typeof report.testUserCount === 'number') {
+    if (dryRun) {
+      console.log(`[cleanup-test-data] Найдено ${report.testUserCount} тестовых пользователей (будут удалены с --execute)`)
+    } else {
+      console.log(`[cleanup-test-data] Удалено ${report.deleted.testUsers ?? 0} тестовых пользователей (auth.users: ${report.deleted.authUsers ?? 0})`)
+    }
+  }
+
+  if (typeof report.marketingReferralCount === 'number') {
+    const ledgerDeleted =
+      (report.deleted?.referral_ledger ?? 0) +
+      (report.deleted?.marketing_promo_tank_ledger ?? 0) +
+      (report.deleted?.wallet_transactions ?? 0)
+    if (dryRun) {
+      console.log(
+        `[cleanup-test-data] Найдено ${report.marketingReferralCount} записей referral ledger / marketing budget (будут удалены с --execute)`,
+      )
+    } else {
+      console.log(
+        `[cleanup-test-data] Удалено ${ledgerDeleted} записей из referral ledger / marketing budget (referral: ${report.deleted?.referral_ledger ?? 0}, tank: ${report.deleted?.marketing_promo_tank_ledger ?? 0}, wallet: ${report.deleted?.wallet_transactions ?? 0})`,
+      )
+    }
+  }
+
+  if (report.candidates?.length) {
+    console.log('[cleanup-test-data] listing candidates:')
     for (const row of report.candidates.slice(0, 50)) {
       console.log(`  - ${row.id} [${row.status}] ${row.title}`)
     }
     if (report.candidates.length > 50) {
-      console.log(`  … +${report.candidates.length - 50} more`)
+      console.log(`  … +${report.candidates.length - 50} more listings`)
     }
   } else {
     console.log('[cleanup-test-data] no test listings matched')
+  }
+
+  if (report.testUserCandidates?.length) {
+    console.log('[cleanup-test-data] test user candidates:')
+    for (const row of report.testUserCandidates.slice(0, 50)) {
+      console.log(`  - ${row.id} ${row.email || ''} ${row.first_name || ''}`)
+    }
+    if (report.testUserCandidates.length > 50) {
+      console.log(`  … +${report.testUserCandidates.length - 50} more users`)
+    }
   }
 
   if (dryRun) {
@@ -81,6 +116,7 @@ try {
       finished_at: new Date().toISOString(),
       stats: {
         listingCount: report.listingCount,
+        testUserCount: report.testUserCount,
         deleted: report.deleted,
         protectListingIds,
       },

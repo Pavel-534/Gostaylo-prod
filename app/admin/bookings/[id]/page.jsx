@@ -151,7 +151,7 @@ export default function AdminBookingDetailPage() {
 
       {loading ? (
         <div className="flex justify-center py-16 text-slate-500">
-          <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
+          <Loader2 className="h-10 w-10 animate-spin text-brand" />
         </div>
       ) : !booking ? (
         <p className="text-slate-600">Бронь не найдена или нет доступа.</p>

@@ -3,6 +3,10 @@
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
+import {
+  showContactSafetyWarning,
+  shouldWarnContactSafetyForText,
+} from '@/lib/chat/show-contact-safety-warning'
 
 /**
  * Outbound chat UI handlers (Stage 110.7).
@@ -11,6 +15,7 @@ import { getUIText } from '@/lib/translations'
 export function useUnifiedMessagesOutbound({
   language,
   user,
+  booking = null,
   selectedConv,
   inbox,
   sendMessageText,
@@ -40,6 +45,9 @@ export function useUnifiedMessagesOutbound({
       if (!newMessage.trim() || !selectedConv || !user) return
       broadcastTypingStop()
       const text = newMessage.trim()
+      if (shouldWarnContactSafetyForText(text, booking?.status)) {
+        showContactSafetyWarning({ language, toast, bookingStatus: booking?.status })
+      }
       setNewMessage('')
       setSending(true)
       try {
@@ -53,6 +61,7 @@ export function useUnifiedMessagesOutbound({
       newMessage,
       selectedConv,
       user,
+      booking,
       sendMessageText,
       afterOutbound,
       broadcastTypingStop,

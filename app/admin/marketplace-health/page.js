@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { Loader2, Globe2, AlertCircle, ClipboardList, TrendingUp } from 'lucide-react'
@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 function pctColor(p) {
   if (p == null || Number.isNaN(p)) return 'bg-slate-200'
   if (p < 55) return 'bg-amber-500'
-  if (p < 75) return 'bg-teal-500'
+  if (p < 75) return 'bg-brand'
   return 'bg-emerald-600'
 }
 
@@ -112,7 +112,7 @@ export default function MarketplaceHealthPage() {
     <div className="p-4 lg:p-8 max-w-5xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-          <Globe2 className="h-7 w-7 text-teal-600" aria-hidden />
+          <Globe2 className="h-7 w-7 text-brand" aria-hidden />
           Marketplace Health
         </h1>
         <p className="text-slate-600 mt-1 text-sm sm:text-base">
@@ -121,7 +121,7 @@ export default function MarketplaceHealthPage() {
         </p>
       </div>
 
-      <Card className="border-teal-200/80 bg-gradient-to-br from-teal-50/90 to-white">
+      <Card className="border-brand/20 bg-gradient-to-br from-brand/10 to-white">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Pulse — верификации за {pulseDays} дней</CardTitle>
           <CardDescription>
@@ -140,12 +140,12 @@ export default function MarketplaceHealthPage() {
             <div className="flex flex-wrap gap-6 items-end">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Новых снимков каталога</p>
-                <p className="text-4xl font-bold tabular-nums text-teal-800 leading-tight">
+                <p className="text-4xl font-bold tabular-nums text-brand-hover leading-tight">
                   {snap7 != null ? snap7 : '—'}
                 </p>
                 <p className="text-xs text-slate-500 mt-1">Строк в снимках (телеметрия Verified-share)</p>
               </div>
-              <div className="border-l border-teal-200 pl-6 min-w-[8rem]">
+              <div className="border-l border-brand/20 pl-6 min-w-[8rem]">
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Авто VERIFIED (заявки)</p>
                 <p className="text-3xl font-semibold tabular-nums text-slate-800 leading-tight">
                   {auto7 != null ? auto7 : '—'}
@@ -183,7 +183,7 @@ export default function MarketplaceHealthPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <ClipboardList className="h-5 w-5 text-teal-700" aria-hidden />
+            <ClipboardList className="h-5 w-5 text-brand-hover" aria-hidden />
             Последние действия персонала
           </CardTitle>
           <CardDescription>

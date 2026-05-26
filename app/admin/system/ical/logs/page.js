@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -106,7 +106,7 @@ export default function ICalLogsPage() {
   if (loading && logs.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
       </div>
     )
   }
@@ -278,7 +278,7 @@ export default function ICalLogsPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className={`font-medium ${log.events_count > 0 ? 'text-teal-600' : 'text-slate-400'}`}>
+                          <span className={`font-medium ${log.events_count > 0 ? 'text-brand' : 'text-slate-400'}`}>
                             {log.events_count || 0}
                           </span>
                         </TableCell>

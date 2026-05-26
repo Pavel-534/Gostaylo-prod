@@ -5,6 +5,7 @@
  */
 
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { toPublicImageUrl, mapPublicImageUrls } from '@/lib/public-image-url'
 import { getPublicSiteUrl } from '@/lib/site-url.js'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
@@ -12,6 +13,10 @@ import { normalizePartnerListingMetadata } from '@/lib/partner/listing-wizard-me
 import { recordTeammateNewListingIfFirst } from '@/lib/referral/referral-feed-recorder'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { recordStaffListingModeration } from '@/lib/services/audit/staff-audit'
+import {
+  buildModerationFacets,
+  filterPendingModerationListings,
+} from '@/lib/admin/moderation-queue.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,9 +54,17 @@ function categorySlugFromListing(listing) {
   return String(m.category_slug || m.categorySlug || '').toLowerCase().trim()
 }
 
-export async function GET() {
+export async function GET(request) {
   const gate = await requireAdminStaff()
   if (gate.error) return gate.error
+
+  const { searchParams } = new URL(request.url)
+  const filters = {
+    partnerQ: searchParams.get('partner') || '',
+    categorySlug: searchParams.get('category') || '',
+    dateFrom: searchParams.get('dateFrom') || '',
+    dateTo: searchParams.get('dateTo') || '',
+  }
 
   try {
     const listingsRes = await fetch(
@@ -68,10 +81,9 @@ export async function GET() {
 
     const rawListings = await listingsRes.json()
 
-    const listings = (rawListings || []).filter((listing) => {
-      const isDraft = listing.metadata?.is_draft === true
-      return !isDraft
-    })
+    const baseListings = (rawListings || []).filter((listing) => listing.metadata?.is_draft !== true)
+    const facets = buildModerationFacets(baseListings)
+    const listings = filterPendingModerationListings(baseListings, filters)
 
     const settingsRes = await fetch(`${SUPABASE_URL}/rest/v1/system_settings?key=eq.general&select=value`, {
       headers: supabaseHeaders(),
@@ -93,6 +105,9 @@ export async function GET() {
       success: true,
       listings: listingsWithCommission,
       count: listingsWithCommission.length,
+      totalPending: baseListings.length,
+      facets,
+      filters,
     })
   } catch (error) {
     console.error('Moderation GET error:', error)
@@ -218,6 +233,13 @@ export async function PATCH(request) {
       void recordTeammateNewListingIfFirst(String(listingId)).catch((err) =>
         console.warn('[moderation] referral_team_events listing:', err?.message || err),
       )
+      try {
+        revalidatePath('/')
+        revalidatePath('/listings')
+        revalidatePath(`/listings/${listingId}`)
+      } catch (revalErr) {
+        console.warn('[moderation] revalidate:', revalErr?.message || revalErr)
+      }
     }
 
     const finalTitle = updateData.title ?? listing.title

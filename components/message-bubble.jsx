@@ -343,11 +343,12 @@ export function MessageBubble({
           />
         </div>
         {!isOwn && hasSafetyTrigger ? (
-          <div className="mt-2 w-full rounded-2xl border border-sky-200 bg-sky-50/80 px-3 py-2 text-slate-800">
+          <div className="mt-2 w-full rounded-2xl border-2 border-amber-300 bg-amber-50 px-3 py-2 text-amber-950">
             <div className="flex items-start gap-2">
-              <Shield className="mt-0.5 h-4 w-4 shrink-0 text-sky-700" aria-hidden />
+              <Shield className="mt-0.5 h-4 w-4 shrink-0 text-amber-800" aria-hidden />
               <div className="min-w-0 flex-1">
-                <p className="text-xs leading-relaxed break-words text-balance">
+                <p className="text-xs font-semibold">{getUIText('chatSafety_warningTitle', language)}</p>
+                <p className="mt-1 text-xs leading-relaxed break-words text-balance">
                   {getUIText('chatSafety_warningText', language)}
                 </p>
                 <button

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -125,7 +125,7 @@ export default function AdminHealthPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <Activity className="h-7 w-7 text-teal-600" />
+            <Activity className="h-7 w-7 text-brand" />
             Здоровье системы
           </h1>
           <p className="text-slate-500 text-sm mt-1">
@@ -159,7 +159,7 @@ export default function AdminHealthPage() {
 
       {loading && !data ? (
         <div className="flex items-center justify-center py-20 text-slate-500">
-          <Loader2 className="h-10 w-10 animate-spin text-teal-600" />
+          <Loader2 className="h-10 w-10 animate-spin text-brand" />
         </div>
       ) : null}
 
@@ -249,7 +249,7 @@ export default function AdminHealthPage() {
                     <li key={`${row.bookingId}-${row.at}`} className="flex flex-col sm:flex-row sm:items-baseline sm:gap-x-3 gap-0.5 rounded-lg bg-white/70 border border-rose-100/80 px-2 py-1.5">
                       <Link
                         href={`/admin/bookings/${encodeURIComponent(String(row.bookingId))}`}
-                        className="font-mono text-teal-700 hover:underline shrink-0"
+                        className="font-mono text-brand-hover hover:underline shrink-0"
                       >
                         {row.bookingId}
                       </Link>
@@ -265,11 +265,11 @@ export default function AdminHealthPage() {
       ) : null}
 
       {data ? (
-        <Card className="rounded-2xl border-slate-200 shadow-sm border-l-4 border-l-teal-500">
+        <Card className="rounded-2xl border-slate-200 shadow-sm border-l-4 border-l-brand">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <MessageCircleWarning className="h-5 w-5 text-teal-600" />
+                <MessageCircleWarning className="h-5 w-5 text-brand" />
                 SLA Telegram nudge
               </CardTitle>
               <StatusBadge status={slaNudgeJob?.lastStatus} />
@@ -300,7 +300,7 @@ export default function AdminHealthPage() {
               </p>
               <p>
                 <span className="text-slate-400">Записей в БД (7д):</span>{' '}
-                <span className="font-semibold text-teal-700">{slaNudge?.events7d ?? 0}</span>
+                <span className="font-semibold text-brand-hover">{slaNudge?.events7d ?? 0}</span>
               </p>
               <p>
                 <span className="text-slate-400">Уникальных партнёров (оценка, до 5k строк):</span>{' '}
@@ -329,7 +329,7 @@ export default function AdminHealthPage() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <CalendarSync className="h-5 w-5 text-teal-600" />
+                  <CalendarSync className="h-5 w-5 text-brand" />
                   Синхронизация iCal
                 </CardTitle>
                 <StatusBadge status={ical?.lastStatus} />
@@ -376,7 +376,7 @@ export default function AdminHealthPage() {
             <CardContent className="space-y-2 text-sm text-slate-600">
               <p>
                 <span className="text-slate-400">Доставлено (сумма за период):</span>{' '}
-                <span className="font-semibold text-teal-700 text-lg">{sweeper?.totals?.delivered ?? 0}</span>
+                <span className="font-semibold text-brand-hover text-lg">{sweeper?.totals?.delivered ?? 0}</span>
               </p>
               <p>
                 <span className="text-slate-400">Найдено «зависших» строк (сумма):</span>{' '}

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 /**
  * Error Boundary for /admin segment
@@ -30,7 +30,7 @@ export default function AdminError({ error, reset }) {
             Не удалось загрузить раздел. Попробуйте обновить страницу или вернуться в панель управления.
           </p>
           <div className="flex gap-3 justify-center">
-            <Button onClick={reset} variant="default" className="bg-teal-600 hover:bg-teal-700">
+            <Button onClick={reset} variant="brand">
               Попробовать снова
             </Button>
             <Button asChild variant="outline">

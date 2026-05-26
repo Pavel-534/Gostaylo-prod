@@ -1,60 +1,38 @@
 'use client'
 
 import { memo } from 'react'
-import { CheckCircle2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { ListingCard } from '@/components/listing-card'
+import { ListingPublishQualityChecklist } from '@/components/partner/listing/ListingPublishQualityChecklist'
 import { useListingWizard } from '../context/ListingWizardContext'
 
 function StepPreviewInner() {
   const w = useListingWizard()
-  const { t, formData, language, listingCategorySlug, canProceed, getCategoryName, pricingPreview } = w
+  const {
+    t,
+    formData,
+    language,
+    listingCategorySlug,
+    canProceed,
+    publishQualityChecklist,
+    getCategoryName,
+    pricingPreview,
+  } = w
   const name = getCategoryName(listingCategorySlug) || formData.categoryName
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="mb-2 text-2xl font-semibold">{t('livePreview')}</h2>
-        <p className="text-slate-600">{t('continueFilling')}</p>
+        <p className="text-slate-600">{t('listingQuality_previewHint', t('continueFilling'))}</p>
       </div>
-      <ul className="space-y-2 rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 text-sm text-slate-700">
-        <li className="flex items-start gap-2">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-          <span>
-            {t('listingTitleLabel')}: {formData.title ? `${formData.title.slice(0, 40)}${formData.title.length > 40 ? '…' : ''}` : '—'}
-          </span>
-        </li>
-        <li className="flex items-start gap-2">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-          <span>
-            {t('selectCategory')}: {name || '—'}
-          </span>
-        </li>
-        <li className="flex items-start gap-2">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-          <span>
-            {t('location')}: {formData.district || '—'}
-          </span>
-        </li>
-        <li className="flex items-start gap-2">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-          <span>
-            {t('gallery')}: {formData.images?.length || 0}
-          </span>
-        </li>
-        <li className="flex items-start gap-2">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-          <span>
-            {t('pricing')}: ฿
-            {(pricingPreview?.storefrontGuestDisplayThb ??
-              pricingPreview?.sitePriceSameCurrency ??
-              Number(formData.basePriceThb)) ||
-              0}
-          </span>
-        </li>
-      </ul>
+
+      <ListingPublishQualityChecklist checklist={publishQualityChecklist} t={t} />
+
       {!canProceed && (
-        <p className="text-sm text-amber-700">{t('continueFilling')}</p>
+        <p className="text-sm text-amber-800">{t('listingQuality_publishBlocked', t('continueFilling'))}</p>
       )}
+
       <Card className="border-slate-200 bg-white shadow-sm">
         <CardContent className="p-4 sm:p-5">
           <ListingCard

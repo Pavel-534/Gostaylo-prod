@@ -11,9 +11,9 @@ export default function MessagesThreadLoading() {
       <div className="h-10 rounded-lg bg-slate-200" />
       <div className="flex flex-1 flex-col gap-2 pt-4">
         <div className="h-12 max-w-[70%] rounded-2xl bg-slate-100" />
-        <div className="h-12 max-w-[55%] self-end rounded-2xl bg-teal-100/80" />
+        <div className="h-12 max-w-[55%] self-end rounded-2xl bg-brand/15" />
         <div className="h-24 max-w-[85%] rounded-2xl bg-slate-100" />
-        <div className="h-10 max-w-[40%] self-end rounded-2xl bg-teal-100/80" />
+        <div className="h-10 max-w-[40%] self-end rounded-2xl bg-brand/15" />
       </div>
     </div>
   )

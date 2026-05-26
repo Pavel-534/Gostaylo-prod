@@ -13,6 +13,11 @@ import {
   convertAmountThbToCurrency,
 } from '@/lib/services/currency.service'
 import { getChatSafetySettings } from '@/lib/chat-safety-settings'
+import { supabaseAdmin } from '@/lib/supabase'
+import {
+  groupRecentLeakEventsBySender,
+  mergeContactViolatorRows,
+} from '@/lib/admin/contact-leak-violators.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -76,17 +81,71 @@ async function fetchTopViolators(sinceIso, limit = 20) {
   return Array.isArray(rows) ? rows : []
 }
 
+async function fetchListingsByOwnerIds(ownerIds) {
+  const map = new Map()
+  const ids = [...new Set((ownerIds || []).filter(Boolean).map(String))]
+  if (!ids.length) return map
+  if (supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from('listings')
+      .select('id, title, status, owner_id')
+      .in('owner_id', ids)
+      .limit(300)
+    if (!error) {
+      for (const row of data || []) {
+        const oid = String(row.owner_id)
+        if (!map.has(oid)) map.set(oid, [])
+        map.get(oid).push({
+          id: row.id,
+          title: row.title,
+          status: row.status,
+        })
+      }
+      return map
+    }
+  }
+  return map
+}
+
+async function fetchRecentLeakEventsSince(sinceIso, limit = 250) {
+  if (!supabaseAdmin) return []
+  const { data, error } = await supabaseAdmin
+    .from('critical_signal_events')
+    .select('id, created_at, detail')
+    .eq('signal_key', 'CONTACT_LEAK_ATTEMPT')
+    .gte('created_at', sinceIso)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) {
+    console.warn('[contact-leak-dashboard] recent events', error.message)
+    return []
+  }
+  return data || []
+}
+
+async function fetchProfilesWithStrikes(limit = 50) {
+  if (!supabaseAdmin) return []
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .select('id, first_name, last_name, email, contact_leak_strikes, is_banned')
+    .gt('contact_leak_strikes', 0)
+    .order('contact_leak_strikes', { ascending: false })
+    .limit(limit)
+  if (error) return []
+  return data || []
+}
+
 async function fetchProfilesForIds(ids) {
   if (!ids.length || !SUPABASE_URL || !SERVICE_KEY) return new Map()
   const clean = ids.filter(Boolean).map((id) => String(id))
   const inList = clean.map((id) => encodeURIComponent(id)).join(',')
   let res = await fetch(
-    `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/profiles?id=in.(${inList})&select=id,first_name,last_name,email,contact_leak_strikes`,
+    `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/profiles?id=in.(${inList})&select=id,first_name,last_name,email,contact_leak_strikes,is_banned`,
     { headers: hdr, cache: 'no-store' },
   )
   if (!res.ok) {
     res = await fetch(
-      `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/profiles?id=in.(${inList})&select=id,first_name,last_name,email`,
+      `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/profiles?id=in.(${inList})&select=id,first_name,last_name,email,contact_leak_strikes`,
       { headers: hdr, cache: 'no-store' },
     )
   }
@@ -156,21 +215,65 @@ export async function GET() {
     commissionRatePct = commissionRatePctRaw
   }
 
-  const senderIds = topRaw.map((r) => r.sender_id).filter(Boolean)
-  const profiles = await fetchProfilesForIds(senderIds)
+  const [strikeProfiles, recentEvents] = await Promise.all([
+    fetchProfilesWithStrikes(50),
+    fetchRecentLeakEventsSince(weekStart, 300),
+  ])
+  const recentByUser = groupRecentLeakEventsBySender(recentEvents, 5)
 
-  const topViolators = topRaw.map((row) => {
-    const p = profiles.get(row.sender_id)
-    return {
-      userId: row.sender_id,
-      attemptCount: Number(row.attempt_count) || 0,
-      lastEventAt: row.last_event_at,
-      lastConversationId: row.last_conversation_id || null,
-      strikes: p?.contact_leak_strikes != null ? Number(p.contact_leak_strikes) : null,
-      displayName: displayNameFromProfile(p) || null,
-      email: p?.email || null,
+  const senderIds = [
+    ...new Set([
+      ...topRaw.map((r) => r.sender_id).filter(Boolean),
+      ...strikeProfiles.map((p) => p.id),
+      ...recentByUser.keys(),
+    ]),
+  ]
+
+  const [profiles, listingsByOwner] = await Promise.all([
+    fetchProfilesForIds(senderIds),
+    fetchListingsByOwnerIds(senderIds),
+  ])
+
+  for (const p of strikeProfiles) {
+    if (!profiles.has(p.id)) profiles.set(p.id, p)
+  }
+
+  const topViolators = mergeContactViolatorRows(
+    strikeProfiles,
+    topRaw,
+    profiles,
+    recentByUser,
+    listingsByOwner,
+    chatSafety,
+  ).map((row) => {
+    const top = topRaw.find((r) => r.sender_id === row.userId)
+    if (top) {
+      return {
+        ...row,
+        attemptCount: Number(top.attempt_count) || row.attemptCount,
+        lastEventAt: top.last_event_at || row.lastEventAt,
+        lastConversationId: top.last_conversation_id || row.lastConversationId,
+      }
     }
+    return row
   })
+
+  let activeViolators = 0
+  let profilesWithStrikes = 0
+  if (supabaseAdmin) {
+    const [{ count: av }, { count: ps }] = await Promise.all([
+      supabaseAdmin
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .gte('contact_leak_strikes', chatSafety.strikeThreshold),
+      supabaseAdmin
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .gt('contact_leak_strikes', 0),
+    ])
+    activeViolators = av ?? 0
+    profilesWithStrikes = ps ?? 0
+  }
 
   const mode = getContactSafetyMode()
 
@@ -186,6 +289,8 @@ export async function GET() {
         autoShadowbanEnabled: chatSafety.autoShadowbanEnabled,
         strikeThreshold: chatSafety.strikeThreshold,
         estimatedBookingValueThb: chatSafety.estimatedBookingValueThb,
+        searchRankPenaltyEnabled: chatSafety.searchRankPenaltyEnabled,
+        searchRankPenaltyScore: chatSafety.searchRankPenaltyScore,
       },
       periods: {
         day: { since: dayStart, count: day },
@@ -221,6 +326,12 @@ export async function GET() {
       },
       topViolators,
       topViolatorsSince: topSince,
+      summary: {
+        weekAttempts: week,
+        profilesWithStrikes,
+        activeViolators,
+        strikeThreshold: chatSafety.strikeThreshold,
+      },
     },
   })
 }

@@ -16,6 +16,9 @@ import { AppQueryProvider } from '@/components/providers/app-query-provider'
 import { getRequestSiteUrl } from '@/lib/server-site-url'
 import { getSiteDisplayName } from '@/lib/site-url'
 import GlobalSiteJsonLd from '@/components/seo/GlobalSiteJsonLd'
+import { ProductAnalyticsInit } from '@/components/analytics/ProductAnalyticsInit'
+import { buildOgImageMetadata } from '@/lib/seo/resolve-og-image.js'
+import { Suspense } from 'react'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-sans' })
 
@@ -53,20 +56,13 @@ export async function generateMetadata() {
       siteName: brand,
       locale: 'en_US',
       type: 'website',
-      images: [
-        {
-          url: '/og-image.png',
-          width: 1200,
-          height: 630,
-          alt: title,
-        },
-      ],
+      images: buildOgImageMetadata(null, siteUrl, title),
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description: 'Premium villas, yachts, transport and tours worldwide.',
-      images: ['/og-image.png'],
+      images: buildOgImageMetadata(null, siteUrl, title).map((i) => i.url),
     },
     appleWebApp: {
       capable: true,
@@ -114,6 +110,9 @@ button{font:inherit}
             <AppQueryProvider>
               <SupabaseRealtimeAuthSync />
               <PushClientInit />
+              <Suspense fallback={null}>
+                <ProductAnalyticsInit />
+              </Suspense>
               <PresenceProvider>
                 <ChatProvider>
                   <AppHeader />

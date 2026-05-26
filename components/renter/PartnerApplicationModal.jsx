@@ -8,6 +8,7 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { KycUploader } from '@/components/kyc-uploader'
 import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow'
+import { PARTNER_APPLICATION_MIN_EXPERIENCE } from '@/lib/partner/listing-quality-gates.js'
 
 export function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmitting }) {
   const { language } = useI18n()
@@ -42,6 +43,18 @@ export function PartnerApplicationModal({ isOpen, onClose, onSubmit, isSubmittin
     }
     if (!partnerLegalConsent) {
       toast.error(getUIText('partnerTermsConsentRequired', language))
+      return
+    }
+    const phoneDigits = String(formData.phone || '').replace(/\D/g, '')
+    if (phoneDigits.length < 8) {
+      toast.error(getUIText('partnerApplicationPhoneInvalid', language) || 'Укажите корректный телефон (мин. 8 цифр)')
+      return
+    }
+    if (String(formData.experience || '').trim().length < PARTNER_APPLICATION_MIN_EXPERIENCE) {
+      toast.error(
+        getUIText('partnerApplicationExperienceTooShort', language) ||
+          `Опишите опыт подробнее (минимум ${PARTNER_APPLICATION_MIN_EXPERIENCE} символов)`,
+      )
       return
     }
     onSubmit({ ...formData, verificationDocUrl: doc })

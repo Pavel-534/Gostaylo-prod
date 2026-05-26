@@ -5,6 +5,11 @@ import { getUIText, getCategoryName } from '@/lib/translations'
 import { amenitySlugsForPartnerCategory } from '@/lib/listing-wizard-amenities'
 import { isTransportListingCategory, isTourListingCategory } from '@/lib/listing-category-slug'
 import { isTransportWizardCategory } from '@/lib/config/category-wizard-profile-db'
+import {
+  buildListingPublishQualityChecklist,
+  listingProfileRequiresGeoCoordinates,
+  listingQualityInputFromWizardForm,
+} from '@/lib/partner/listing-quality-gates.js'
 import { categorySlugMatchesListingServiceType } from '@/lib/partner/listing-service-type'
 import { resolveCategoryDisplayName } from '@/lib/category-display-name'
 import { WIZARD_DISTRICTS } from '../wizard-constants'
@@ -80,13 +85,45 @@ export function useListingWizardDerived(state) {
   const coordsValid = useMemo(() => {
     const lat = formData.latitude
     const lng = formData.longitude
-    if (lat == null || lng == null) return true
+    const needsGeo = listingProfileRequiresGeoCoordinates(
+      listingCategoryWizardProfile,
+      listingCategorySlug,
+      formData.categoryName || '',
+    )
+    if (needsGeo) {
+      if (lat == null || lng == null || lat === '' || lng === '') return false
+    } else if (lat == null || lng == null) {
+      return true
+    }
     return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
-  }, [formData.latitude, formData.longitude])
+  }, [
+    formData.latitude,
+    formData.longitude,
+    formData.categoryName,
+    listingCategorySlug,
+    listingCategoryWizardProfile,
+  ])
 
   const canProceed = useMemo(
-    () => computeWizardCanProceed(currentStep, formData, coordsValid),
-    [currentStep, formData, coordsValid],
+    () =>
+      computeWizardCanProceed(currentStep, formData, coordsValid, {
+        categorySlug: listingCategorySlug,
+        categoryName: formData.categoryName || '',
+        wizardProfile: listingCategoryWizardProfile,
+      }),
+    [currentStep, formData, coordsValid, listingCategorySlug, listingCategoryWizardProfile],
+  )
+
+  const publishQualityChecklist = useMemo(
+    () =>
+      buildListingPublishQualityChecklist(
+        listingQualityInputFromWizardForm(formData, {
+          categorySlug: listingCategorySlug,
+          categoryName: formData.categoryName || '',
+          wizardProfile: listingCategoryWizardProfile,
+        }),
+      ),
+    [formData, listingCategorySlug, listingCategoryWizardProfile],
   )
 
   const pricingPreview = useMemo(
@@ -113,6 +150,7 @@ export function useListingWizardDerived(state) {
     amenitiesHintKey,
     coordsValid,
     canProceed,
+    publishQualityChecklist,
     pricingPreview,
     progress,
     WIZARD_DISTRICTS,

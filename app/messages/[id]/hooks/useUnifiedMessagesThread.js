@@ -15,6 +15,7 @@ import {
 export function useUnifiedMessagesThread({
   conversationId,
   user,
+  language = 'ru',
   isPartnerAccount,
   viewerRoleForHook,
   markGlobalRead,
@@ -50,6 +51,7 @@ export function useUnifiedMessagesThread({
   const thread = useChatThreadMessages({
     conversationId,
     userId: user?.id,
+    language,
     viewerRole: viewerRoleForHook,
     deferThreadRealtime: Boolean(conversationId),
     externalIsConnected: inbox.isMessagesRealtimeConnected,

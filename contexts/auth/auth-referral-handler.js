@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { getAuthErrorMessage, getUIText } from '@/lib/translations'
+import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 
 /** Persisted referral for landing `?ref=` + OAuth/email continuation (Stage 72.6). */
 export const PENDING_REF_COOKIE = 'gostaylo_pending_ref'
@@ -71,6 +72,9 @@ export function useReferralCapture({
       const picked = fromUrl || fromCookie || fromLs || ''
       if (!picked) return
       persistPendingReferralCode(picked)
+      void trackProductEvent(ProductAnalyticsEvents.REFERRAL_CAPTURED, {
+        source: fromUrl ? 'url' : fromCookie ? 'cookie' : 'localStorage',
+      })
       setPromoCode(String(picked).trim().toUpperCase())
       setPromoStatus('checking')
       setPromoMessage('')

@@ -15,6 +15,8 @@ import { scheduleListingEmbeddingRefresh } from '@/lib/ai/embeddings';
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service';
 import { isListingBaseCurrency, normalizeCurrencyCode } from '@/lib/finance/currency-codes';
 import { normalizeCancellationPolicy } from '@/lib/cancellation-refund-rules';
+import { validateListingPublishQuality } from '@/lib/partner/listing-quality-gates.js';
+import { resolveListingCategorySlug } from '@/lib/services/booking/query.service.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -196,7 +198,7 @@ export async function PATCH(request, context) {
   // First verify ownership
   const { data: existing } = await supabase
     .from('listings')
-    .select('owner_id, metadata, instant_booking')
+    .select('owner_id, metadata, instant_booking, title, description, images, latitude, longitude, district, base_price_thb, category_id, categories(slug, name, wizard_profile)')
     .eq('id', listingId)
     .single();
   
@@ -252,6 +254,46 @@ export async function PATCH(request, context) {
   }
   if (body.sync_settings !== undefined) {
     updateData.sync_settings = body.sync_settings;
+  }
+
+  const nextStatus = body.status !== undefined ? String(body.status).toUpperCase() : null;
+  const isPublishAttempt = nextStatus === 'PENDING' || nextStatus === 'ACTIVE';
+  if (isPublishAttempt) {
+    const mergedMeta =
+      body.metadata !== undefined
+        ? { ...(existing.metadata || {}), ...body.metadata }
+        : existing.metadata || {};
+    const cat = existing.categories || {};
+    let categorySlug = cat.slug || '';
+    if (!categorySlug && existing.category_id) {
+      categorySlug = (await resolveListingCategorySlug(existing.category_id)) || '';
+    }
+    const quality = validateListingPublishQuality({
+      title: body.title !== undefined ? body.title : existing.title,
+      description: body.description !== undefined ? body.description : existing.description,
+      images: body.images !== undefined ? body.images : existing.images,
+      latitude: body.latitude !== undefined ? body.latitude : existing.latitude,
+      longitude: body.longitude !== undefined ? body.longitude : existing.longitude,
+      district: body.district !== undefined ? body.district : existing.district,
+      metadata: mergedMeta,
+      categorySlug,
+      categoryName: cat.name || '',
+      wizardProfile: cat.wizard_profile ?? cat.wizardProfile ?? null,
+      basePriceThb:
+        body.basePriceThb !== undefined ? body.basePriceThb : existing.base_price_thb,
+    });
+    if (!quality.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: quality.errors[0] || 'Listing quality requirements not met',
+          code: quality.codes[0] || 'LISTING_QUALITY_GATE',
+          errors: quality.errors,
+          codes: quality.codes,
+        },
+        { status: 400 },
+      );
+    }
   }
   
   // Update

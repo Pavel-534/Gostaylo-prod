@@ -24,7 +24,7 @@ const PartnerChatComposer = nextDynamic(
         className="flex h-12 w-full min-w-0 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50"
         aria-hidden
       >
-        <Loader2 className="h-5 w-5 animate-spin text-teal-600" />
+        <Loader2 className="h-5 w-5 animate-spin text-brand" />
       </div>
     ),
   },
@@ -144,7 +144,7 @@ export function MessageInput({
                 className="block h-9 w-full max-w-full"
               />
             </div>
-            <span className="shrink-0 text-xs font-medium tabular-nums text-teal-700">
+            <span className="shrink-0 text-xs font-medium tabular-nums text-brand-hover">
               {voiceDurationLabel}
             </span>
             <Button
@@ -159,7 +159,8 @@ export function MessageInput({
             <Button
               type="button"
               disabled={voiceSending}
-              className="h-11 min-h-[44px] shrink-0 rounded-2xl bg-teal-600 px-4 hover:bg-teal-700"
+              variant="brand"
+              className="h-11 min-h-[44px] shrink-0 rounded-2xl px-4"
               onClick={() => void onGuestVoiceSend()}
             >
               {voiceSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
@@ -174,7 +175,8 @@ export function MessageInput({
             <Button
               type="button"
               size="icon"
-              className="h-11 w-11 shrink-0 rounded-2xl bg-teal-600 hover:bg-teal-700"
+              variant="brand"
+              className="h-11 w-11 shrink-0 rounded-2xl"
               onClick={onStopVoice}
             >
               <MicOff className="h-5 w-5 text-white" />
@@ -211,9 +213,10 @@ export function MessageInput({
             )}
             <Button
               type="submit"
+              variant="brand"
               disabled={!newMessage.trim() || sending}
               className={cn(
-                'h-10 w-10 min-h-0 min-w-0 shrink-0 self-end rounded-2xl bg-teal-600 hover:bg-teal-700',
+                'h-10 w-10 min-h-0 min-w-0 shrink-0 self-end rounded-2xl',
                 'sm:h-10 sm:w-auto sm:self-center sm:px-4',
               )}
             >

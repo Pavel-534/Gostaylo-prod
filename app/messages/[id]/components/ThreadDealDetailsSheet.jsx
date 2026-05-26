@@ -45,7 +45,7 @@ export function ThreadDealDetailsSheet({
                 onOpenSupport()
               }}
             >
-              <LifeBuoy className="h-4 w-4 shrink-0 text-teal-600" />
+              <LifeBuoy className="h-4 w-4 shrink-0 text-brand" />
               {getUIText('messengerThread_helpSupport', language)}
             </Button>
             <Button
@@ -57,7 +57,7 @@ export function ThreadDealDetailsSheet({
                 onOpenMediaGallery()
               }}
             >
-              <Images className="h-4 w-4 shrink-0 text-teal-600" />
+              <Images className="h-4 w-4 shrink-0 text-brand" />
               {getUIText('messengerThread_mediaInChat', language)}
             </Button>
             <Button
@@ -69,7 +69,7 @@ export function ThreadDealDetailsSheet({
                 onOpenSearch()
               }}
             >
-              <Search className="h-4 w-4 shrink-0 text-teal-600" />
+              <Search className="h-4 w-4 shrink-0 text-brand" />
               {getUIText('messengerThread_searchMessages', language)}
             </Button>
           </div>

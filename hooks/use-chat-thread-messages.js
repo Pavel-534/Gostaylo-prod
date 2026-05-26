@@ -104,6 +104,7 @@ export function useChatThreadMessages({
   conversationId,
   userId,
   viewerRole = null,
+  language = 'ru',
   onMarkRead = null,
   onNewMessage = null,
   deferThreadRealtime = false,
@@ -283,6 +284,8 @@ export function useChatThreadMessages({
     conversationId,
     userId,
     setMessages,
+    bookingStatus: booking?.status ?? null,
+    language,
   })
 
   // ── Загрузка треда ────────────────────────────────────────────────────────────

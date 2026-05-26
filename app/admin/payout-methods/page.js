@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -240,7 +240,7 @@ export default function AdminPayoutMethodsPage() {
             onChange={(e) => setForm((prev) => ({ ...prev, minPayout: e.target.value }))}
           />
           <div className='md:col-span-6 flex gap-2'>
-            <Button onClick={handleSave} disabled={saving || !form.name} className='bg-teal-600 hover:bg-teal-700'>
+            <Button onClick={handleSave} disabled={saving || !form.name} variant='brand'>
               {saving ? <Loader2 className='h-4 w-4 mr-2 animate-spin' /> : editingId ? <Save className='h-4 w-4 mr-2' /> : <Plus className='h-4 w-4 mr-2' />}
               {editingId ? 'Сохранить' : 'Добавить'}
             </Button>
@@ -261,7 +261,7 @@ export default function AdminPayoutMethodsPage() {
         <CardContent className='space-y-3'>
           {loading ? (
             <div className='py-4 flex items-center justify-center'>
-              <Loader2 className='h-5 w-5 animate-spin text-teal-600' />
+              <Loader2 className='h-5 w-5 animate-spin text-brand' />
             </div>
           ) : (
             methods.map((method) => (

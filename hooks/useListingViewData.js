@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import { detectLanguage, getUIText } from '@/lib/translations'
 import { fetchExchangeRates, FX_RATES_UPDATED_EVENT } from '@/lib/client-data'
+import { trackProductEvent, ProductAnalyticsEvents } from '@/lib/analytics/product-analytics.js'
 
 /**
  * PDP primary view data: listing + reviews load, locale/currency, favorites, recently viewed.
@@ -154,6 +155,10 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
 
   useEffect(() => {
     if (listing && !loading) {
+      void trackProductEvent(ProductAnalyticsEvents.LISTING_VIEW, {
+        listing_id: listing.id,
+        category_slug: listing.categorySlug || undefined,
+      })
       addToRecent({
         id: listing.id,
         title: listing.title,
