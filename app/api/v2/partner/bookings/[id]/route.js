@@ -6,7 +6,6 @@
 
 import { NextResponse } from 'next/server'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
-import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-sync'
 import { BookingService } from '@/lib/services/booking.service'
 import { attachPartnerTrustToBookings } from '@/lib/booking/attach-partner-trust-to-bookings'
 import { NotificationService, NotificationEvents } from '@/lib/services/notification.service'
@@ -14,7 +13,7 @@ import { supabaseAdmin, isSupabaseConfigured } from '@/lib/supabase'
 import { resolveDefaultCommissionPercent } from '@/lib/services/currency.service'
 import { buildBookingFinancialSnapshotFromRow } from '@/lib/services/booking-financial-read-model.service'
 import { transformPartnerBookingToClient } from '@/lib/partner/partner-booking-transform'
-import { runReferralPayoutOnBookingCompleted } from '@/lib/services/marketing/referral-completion-trigger.js'
+import { transitionBookingStatus } from '@/lib/services/booking/booking-status.service.js'
 import { validatePartnerBookingStatusTransition } from '@/lib/booking/status-transitions.js'
 import { releaseInquirySoftHold } from '@/lib/booking/inquiry-soft-hold.js'
 
@@ -185,47 +184,28 @@ export async function PUT(request, { params }) {
       }
     }
     
-    const updateData = transition.patch
+    const statusRes = await transitionBookingStatus(id, newStatus, {
+      scope: 'partner',
+      actorContext: {
+        actorId: userId,
+        actorRole: 'PARTNER',
+        trigger: 'partner_api_put',
+      },
+      metadata: { reason, declineReasonKey, declineReasonDetail },
+    })
 
-    // 4. Update in Supabase
-    const updateRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/bookings?id=eq.${id}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(updateData)
-      }
-    )
-    
-    if (!updateRes.ok) {
-      const error = await updateRes.text()
-      console.error('[BOOKING UPDATE] Error:', error)
-      return NextResponse.json({ status: 'error', error: 'Failed to update booking' }, { status: 500 })
+    if (!statusRes.success) {
+      return NextResponse.json(
+        { status: 'error', error: statusRes.error || 'Failed to update booking' },
+        { status: 400 },
+      )
     }
-    
-    const updated = await updateRes.json()
+
+    const updated = statusRes.booking
     console.log(`[BOOKING UPDATE] Success: ${id} -> ${newStatus}`)
 
     if (newStatus === 'CONFIRMED' || newStatus === 'CANCELLED' || newStatus === 'DECLINED') {
       await releaseInquirySoftHold(id)
-    }
-
-    try {
-      await syncBookingStatusToConversationChat({
-        bookingId: id,
-        previousStatus: currentBooking.status,
-        newStatus,
-        declineReasonKey,
-        declineReasonDetail,
-        reasonFreeText: reason,
-      })
-    } catch (e) {
-      console.error('[BOOKING UPDATE] chat sync', e)
     }
 
     if (newStatus === 'CONFIRMED') {
@@ -248,17 +228,9 @@ export async function PUT(request, { params }) {
       }
     }
 
-    if (newStatus === 'COMPLETED') {
-      try {
-        await runReferralPayoutOnBookingCompleted(id, { trigger: 'partner_status_completed' })
-      } catch (e) {
-        console.error('[BOOKING UPDATE] referral completion trigger', e)
-      }
-    }
-
     return NextResponse.json({
       status: 'success',
-      data: updated[0] || { id, status: newStatus },
+      data: updated || { id, status: newStatus },
       message: newStatus === 'CONFIRMED' ? 'Бронирование подтверждено' : 
                newStatus === 'CANCELLED' ? 'Бронирование отклонено' : 'Статус обновлён'
     })

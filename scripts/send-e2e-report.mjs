@@ -66,6 +66,7 @@ async function gatherOperationalBlock() {
   let fcmCleaned = null
   let sweeperSaved = null
   let tamperCount = null
+  let referralReconcileFixed = null
   let dbHealth = 'OK'
 
   try {
@@ -73,7 +74,13 @@ async function gatherOperationalBlock() {
       .from('ops_job_runs')
       .select('job_name,status,stats,error_message')
       .gte('started_at', sinceIso)
-      .in('job_name', ['push-token-hygiene', 'push-sweeper', 'ical-sync', 'payouts'])
+      .in('job_name', [
+        'push-token-hygiene',
+        'push-sweeper',
+        'ical-sync',
+        'payouts',
+        'referral-reconciliation',
+      ])
     if (error) {
       throw new Error(error.message || 'ops_job_runs query failed')
     }
@@ -84,6 +91,12 @@ async function gatherOperationalBlock() {
     sweeperSaved = rows
       .filter((r) => r.job_name === 'push-sweeper' && r.status === 'success')
       .reduce((acc, r) => acc + Number(r?.stats?.delivered || 0), 0)
+    referralReconcileFixed = rows
+      .filter((r) => r.job_name === 'referral-reconciliation' && r.status === 'success')
+      .reduce(
+        (acc, r) => acc + Number(r?.stats?.fixedByReconciliation ?? r?.stats?.revertedBookingCount ?? 0),
+        0,
+      )
     const hasOpsErrors = rows.some((r) => r.status === 'error')
     if (hasOpsErrors) dbHealth = 'DEGRADED'
   } catch {
@@ -114,6 +127,7 @@ async function gatherOperationalBlock() {
     `🧹 <b>Гигиена токенов:</b> Удалено <b>${fcmCleaned ?? 'n/a'}</b> неактивных устройств.`,
     `🧹 <b>Sweeper:</b> Спасено <b>${sweeperSaved ?? 'n/a'}</b> зависших пушей.`,
     `💰 <b>Безопасность:</b> Попыток подмены цены: <b>${tamperCount ?? 'n/a'}</b>.`,
+    `🔗 <b>Referral reconcile (24ч):</b> исправлено <b>${referralReconcileFixed ?? 'n/a'}</b> броней.`,
     `🏥 <b>Здоровье БД:</b> <b>${dbHealth === 'OK' ? 'OK' : 'DEGRADED'}</b>.`,
   ]
 }

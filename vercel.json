@@ -59,6 +59,10 @@
     {
       "path": "/api/cron/exchange-rates-refresh",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/referral-reconciliation",
+      "schedule": "30 4 * * *"
     }
   ]
 }

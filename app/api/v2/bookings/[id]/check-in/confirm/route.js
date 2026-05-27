@@ -5,8 +5,8 @@
  */
 
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
 import { validateAccess } from '@/lib/api/api-guard';
+import { transitionBookingStatus } from '@/lib/services/booking/booking-status.service.js'
 export const dynamic = 'force-dynamic';
 
 export async function POST(request, { params }) {
@@ -42,22 +42,27 @@ export async function POST(request, { params }) {
     }
     
     const checkedInAt = new Date().toISOString();
-    const { error: updateErr } = await supabaseAdmin
-      .from('bookings')
-      .update({
-        status: 'CHECKED_IN',
-        checked_in_at: checkedInAt,
+    const statusRes = await transitionBookingStatus(bookingId, 'CHECKED_IN', {
+      scope: 'system',
+      actorContext: {
+        actorId: session?.userId || null,
+        actorRole: session?.role || null,
+        trigger: 'checkin_confirm',
+      },
+      metadata: { checkedInAt, updatedAt: checkedInAt },
+      extraPatch: {
         metadata: {
           ...(booking.metadata || {}),
           checkedInAt,
+          /** legacy key: не означает реальную разморозку эскроу */
           fundsReleasedAt: checkedInAt,
           checkInConfirmedBy: session.userId,
         },
-      })
-      .eq('id', bookingId);
-    
-    if (updateErr) {
-      throw new Error('Failed to update booking');
+      },
+    })
+
+    if (!statusRes.success) {
+      throw new Error(statusRes.error || 'BOOKING_STATUS_TRANSITION_FAILED')
     }
     
     // Log funds release (in production, this would trigger actual fund transfer)

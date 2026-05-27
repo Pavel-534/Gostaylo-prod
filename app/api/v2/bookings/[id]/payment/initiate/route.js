@@ -9,6 +9,7 @@ import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-
 import { supabaseAdmin } from '@/lib/supabase'
 import PaymentIntentService from '@/lib/services/payment-intent.service'
 import WalletService from '@/lib/services/finance/wallet.service'
+import { transitionBookingStatus } from '@/lib/services/booking/booking-status.service.js'
 import { ensureProfileLegalConsentForPayment } from '@/lib/legal-consent'
 import { assertGuestPaymentOperationsAllowed } from '@/lib/payment/payment-production-guard.js'
 
@@ -198,22 +199,32 @@ export async function POST(request, { params }) {
       )
     }
 
-    await supabaseAdmin
-      .from('bookings')
-      .update({
-        status: 'AWAITING_PAYMENT',
+    const paymentInitiatedAt = new Date().toISOString()
+    const statusRes = await transitionBookingStatus(bookingId, 'AWAITING_PAYMENT', {
+      scope: 'system',
+      actorContext: { actorId: sessionUserId || null, actorRole: 'USER', trigger: 'payment_initiate' },
+      metadata: { updatedAt: paymentInitiatedAt },
+      extraPatch: {
         metadata: {
           ...(booking.metadata || {}),
           paymentIntentId: initiated.intent.id,
           paymentMethod: initiated.selectedMethod,
-          paymentInitiatedAt: new Date().toISOString(),
+          paymentInitiatedAt,
           invoiceId: invoiceId || null,
-          wallet_discount_thb: walletUseAppliedThb > 0 ? walletUseAppliedThb : booking?.metadata?.wallet_discount_thb || 0,
+          wallet_discount_thb:
+            walletUseAppliedThb > 0 ? walletUseAppliedThb : booking?.metadata?.wallet_discount_thb || 0,
           wallet_spend_transaction_id:
             walletSpendResult?.transactionId || booking?.metadata?.wallet_spend_transaction_id || null,
         },
-      })
-      .eq('id', bookingId)
+      },
+    })
+
+    if (!statusRes.success) {
+      return NextResponse.json(
+        { success: false, error: statusRes.error || 'BOOKING_STATUS_TRANSITION_FAILED' },
+        { status: 500 },
+      )
+    }
 
     if (initiated.isTestMode === true) {
       console.warn(`⚠️ ВНИМАНИЕ: Проведен тестовый платеж (MOCK_MODE) для брони ${bookingId}`)

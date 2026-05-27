@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import DisputeService from '@/lib/services/dispute.service'
 import { computeDisputeDeadlineIso } from '@/lib/config/dispute-sla'
+import { transitionBookingStatus } from '@/lib/services/booking/booking-status.service.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -171,6 +172,23 @@ export async function POST(request, { params }) {
         reason: reason || '',
         metadata: { lever: 'force_refund' },
       })
+
+      // Stage 119.3 — финальная герметизация: force_refund → REFUNDED через SSOT
+      const bookingId = String(dispute.booking_id || '').trim()
+      if (bookingId) {
+        const statusRes = await transitionBookingStatus(bookingId, 'REFUNDED', {
+          scope: 'system',
+          actorContext: { actorId: staff.id, actorRole: 'ADMIN', trigger: 'dispute_force_refund' },
+          metadata: { updatedAt: now },
+        })
+        if (!statusRes.success) {
+          return NextResponse.json(
+            { success: false, error: statusRes.error || 'BOOKING_REFUND_TRANSITION_FAILED' },
+            { status: 500 },
+          )
+        }
+      }
+
       const snapFr = await fetchDisputeSnapshot(disputeId)
       return NextResponse.json({ success: true, data: { disputeId, action: 'force_refund', dispute: snapFr } })
     }

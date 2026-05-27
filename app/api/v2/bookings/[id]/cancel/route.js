@@ -10,12 +10,11 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { LedgerService } from '@/lib/services/ledger.service';
 import EscrowService from '@/lib/services/escrow.service';
 import { NotificationService, NotificationEvents } from '@/lib/services/notification.service';
-import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-sync';
 import { computeRefundEstimateForBooking } from '@/lib/services/booking-refund-calculator.service';
 import { BookingService } from '@/lib/services/booking.service';
 import { revertPromoUsageAfterFullRefundCancel } from '@/lib/promo/revert-promo-usage-on-cancel.js';
 import { restoreWalletSpendOnBookingCancel } from '@/lib/services/booking/cancel-wallet-restore.service.js';
-import ReferralPnlService from '@/lib/services/marketing/referral-pnl.service.js';
+import { transitionBookingStatus } from '@/lib/services/booking/booking-status.service.js';
 import {
   BOOKING_LEDGER_REFUND_STATUSES,
   BOOKING_SIMPLE_CANCEL_STATUSES,
@@ -125,11 +124,15 @@ export async function POST(request, context) {
     const prevMeta =
       bookingBefore.metadata && typeof bookingBefore.metadata === 'object' ? bookingBefore.metadata : {};
     const cancelledAt = new Date().toISOString();
-    const { data: updated, error: upErr } = await supabaseAdmin
-      .from('bookings')
-      .update({
-        status: 'CANCELLED',
-        cancelled_at: cancelledAt,
+    const statusRes = await transitionBookingStatus(bookingId, 'CANCELLED', {
+      scope: 'cancel',
+      allowStaffCancelCompleted: wasCompleted && isStaff,
+      actorContext: {
+        actorId: userId,
+        trigger: wasCompleted ? 'staff_cancel_completed' : 'booking_cancel',
+      },
+      metadata: { reason, cancelledAt },
+      extraPatch: {
         metadata: {
           ...prevMeta,
           cancelled_by_user_id: userId,
@@ -143,25 +146,16 @@ export async function POST(request, context) {
               }
             : {}),
         },
-      })
-      .eq('id', bookingId)
-      .select()
-      .single();
+      },
+    });
 
-    if (upErr || !updated) {
-      return NextResponse.json({ success: false, error: upErr?.message || 'update_failed' }, { status: 500 });
+    if (!statusRes.success) {
+      return NextResponse.json(
+        { success: false, error: statusRes.error || 'update_failed' },
+        { status: 400 },
+      );
     }
-
-    try {
-      const referralRevert = await ReferralPnlService.revertReferralLedgerForBooking(bookingId, {
-        trigger: wasCompleted ? 'staff_cancel_completed' : 'booking_cancel',
-      });
-      if (referralRevert?.clawback?.failureCount > 0) {
-        console.warn('[cancel] referral clawback partial failures', referralRevert.clawback.failures);
-      }
-    } catch (e) {
-      console.warn('[cancel] referral ledger revert', e?.message);
-    }
+    const updated = statusRes.booking;
 
     let walletRestore = null;
     try {
@@ -183,17 +177,6 @@ export async function POST(request, context) {
       } catch (e) {
         console.warn('[cancel] promo usage revert', e?.message);
       }
-    }
-
-    try {
-      await syncBookingStatusToConversationChat({
-        bookingId,
-        previousStatus: bookingBefore.status,
-        newStatus: 'CANCELLED',
-        reasonFreeText: reason || undefined,
-      });
-    } catch (e) {
-      console.error('[cancel] chat sync', e);
     }
 
     try {

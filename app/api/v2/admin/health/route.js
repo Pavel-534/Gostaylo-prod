@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { formatEmergencyChecklistRu } from '@/lib/emergency-contact-admin-notify'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
+import { loadReferralReconciliationHealth } from '@/lib/admin/referral-reconciliation-health.js'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -65,6 +66,11 @@ function aggregateJob(rows, jobName) {
       sumRemoved += Number(s.skipped || 0)
       sumProbed += Number(s.errors || 0)
     }
+    if (jobName === 'referral-reconciliation') {
+      sumDelivered += Number(s.mismatchBookingCount || 0)
+      sumStuckFound += Number(s.mismatchLedgerRows || 0)
+      sumRemoved += Number(s.revertedBookingCount || 0)
+    }
   }
 
   return {
@@ -90,7 +96,13 @@ function aggregateJob(rows, jobName) {
                   skipped: sumRemoved,
                   errors: sumProbed,
                 }
-              : {},
+              : jobName === 'referral-reconciliation'
+                ? {
+                    mismatch_bookings: sumDelivered,
+                    mismatch_ledger_rows: sumStuckFound,
+                    reverted_bookings: sumRemoved,
+                  }
+                : {},
   }
 }
 
@@ -156,8 +168,15 @@ export async function GET(request) {
     tamperRecent = Array.isArray(recentRows) ? recentRows : []
   }
 
-  const jobNames = ['ical-sync', 'push-sweeper', 'push-token-hygiene', 'partner-sla-telegram-nudge']
+  const jobNames = [
+    'ical-sync',
+    'push-sweeper',
+    'push-token-hygiene',
+    'partner-sla-telegram-nudge',
+    'referral-reconciliation',
+  ]
   const jobs = Object.fromEntries(jobNames.map((name) => [name, aggregateJob(opsRows, name)]))
+  const referralReconciliation = await loadReferralReconciliationHealth()
 
   let slaNudge = {
     tablePresent: true,
@@ -272,6 +291,7 @@ export async function GET(request) {
       emergencyScanError,
       emergencyRecentBookings: emergencyRecentBookings.slice(0, 40),
     },
+    referralReconciliation,
     meta: {
       opsError,
       opsTablePresent: !opsFetchError || !String(opsFetchError.message || '').includes(OPS_MISSING),

@@ -19,16 +19,18 @@ import {
   loadFinancialCronHealth,
   maybeAlertStaleFinancialCrons,
 } from '@/lib/admin/financial-cron-health.js'
+import { loadReferralReconciliationHealth } from '@/lib/admin/referral-reconciliation-health.js'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request) {
   const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const scan = await runTreasuryMonitoringScan()
   const productionReadiness = await loadProductionPaymentReadiness()
   const cronHealth = await loadFinancialCronHealth(false)
+  const referralReconciliation = await loadReferralReconciliationHealth()
   await maybeAlertStaleFinancialCrons(cronHealth.jobs)
 
   return NextResponse.json({
@@ -37,6 +39,7 @@ export async function GET() {
       ops: scan.ops,
       productionReadiness,
       cronHealth,
+      referralReconciliation,
       thresholds: scan.thresholds,
       driftThb: scan.driftThb,
       pendingFiscalCount: scan.pendingFiscalCount,

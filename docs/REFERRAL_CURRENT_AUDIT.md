@@ -500,3 +500,35 @@ flowchart TB
 ---
 
 *Конец отчёта Stage 119.0.*
+
+---
+
+## Appendix C — Stage 119.1 Financial Lock (implemented)
+
+| Артефакт | Назначение |
+|----------|------------|
+| `lib/services/marketing/referral-lifecycle-hook.js` | SSOT: `onBookingStatusTransition`, `onDisputeResolved`, `runReferralCompletionPayout` |
+| `lib/services/marketing/referral-promo-tank-reversal.service.js` | `referral_boost_reversal`, `host_activation_reversal` |
+| `migrations/stage119_1_referral_financial_lock.sql` | `canceled_deficit`, wallet deficit RPC, promo entry types |
+| `lib/smoke/referral-lifecycle-smoke-step.js` | шаг в `smoke:full-financial` |
+
+## Appendix D — Stage 119.2 Stabilization (implemented)
+
+| Артефакт | Назначение |
+|----------|------------|
+| `lib/services/booking/booking-status.service.js` | `transitionBookingStatus` — SSOT PATCH + chat + referral hook |
+| `lib/cron/referral-reconciliation-job.js` | daily mismatch scan → clawback + `REFERRAL_RECONCILIATION_MISMATCH` |
+| `app/api/cron/referral-reconciliation/route.js` | cron entry, `ops_job_runs` job `referral-reconciliation` |
+| `lib/admin/referral-reconciliation-health.js` | блок в `/admin/health` |
+| `lib/e2e/stage72-referral-cashflow-fixture.js` | `lifecycle1192` — COMPLETED → dispute → CANCELLED |
+
+## Appendix E — Stage 119.3 Closing (implemented)
+
+| Артефакт | Назначение |
+|----------|------------|
+| `lib/services/booking/booking-status.service.js` | `skipDbUpdate` / `forceDownstream` для atomic RPC + webhooks |
+| `app/api/v2/admin/referral/reconciliation-run/route.js` | ручной запуск reconciliation |
+| `lib/cron/referral-reconciliation-run.js` | shared executor (cron + admin) |
+| `lib/services/marketing/referral-financial-telemetry.js` | structured logs clawback / promo reversal |
+| `POST …/check-in/confirm`, `…/payment/initiate` | через `transitionBookingStatus` |
+| `admin disputes force_refund` | `REFUNDED` через SSOT |

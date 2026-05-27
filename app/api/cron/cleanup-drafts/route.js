@@ -168,6 +168,7 @@ async function processExpiredBookingRequests() {
     const reasonCode = 'auto_expired_by_partner_sla';
     const statusResult = await BookingService.updateStatus(booking.id, 'CANCELLED', {
       reason: reasonCode,
+      referralTrigger: 'cron_cleanup_drafts_cancel',
     });
     if (!statusResult?.success) {
       errors++;

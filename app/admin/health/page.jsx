@@ -58,6 +58,8 @@ export default function AdminHealthPage() {
   const [adapterHealthError, setAdapterHealthError] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [reconcileBusy, setReconcileBusy] = useState(false)
+  const [reconcileMsg, setReconcileMsg] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -101,6 +103,33 @@ export default function AdminHealthPage() {
     void load()
   }, [load])
 
+  const runReferralReconcileNow = useCallback(async () => {
+    setReconcileBusy(true)
+    setReconcileMsg(null)
+    try {
+      const res = await fetch('/api/v2/admin/referral/reconciliation-run', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: false }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json.success) {
+        setReconcileMsg(json.error || `Ошибка ${res.status}`)
+        return
+      }
+      const d = json.data || {}
+      setReconcileMsg(
+        `Готово: mismatch броней ${d.mismatchBookingCount ?? 0}, исправлено ${d.fixedByReconciliation ?? d.revertedBookingCount ?? 0}`,
+      )
+      await load()
+    } catch (e) {
+      setReconcileMsg(e?.message || 'Сеть')
+    } finally {
+      setReconcileBusy(false)
+    }
+  }, [load])
+
   const ical = data?.jobs?.['ical-sync']
   const sweeper = data?.jobs?.['push-sweeper']
   const hygiene = data?.jobs?.['push-token-hygiene']
@@ -108,6 +137,8 @@ export default function AdminHealthPage() {
   const slaNudge = data?.slaNudge
   const security = data?.security
   const trustSafety = data?.trustSafety
+  const referralReconcile = data?.referralReconciliation
+  const referralReconcileJob = data?.jobs?.['referral-reconciliation']
   const adapterEntries = Object.entries(adapterHealth?.adapters || {})
   const hasAdapterProblems = adapterEntries.some(([, row]) => !row?.ready) || !adapterHealth?.global?.ready
 
@@ -222,6 +253,101 @@ export default function AdminHealthPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {data && referralReconcile ? (
+        <Card className="rounded-2xl border border-violet-100 bg-violet-50/30 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-violet-950">
+              <ShieldAlert className="h-5 w-5 text-violet-700" />
+              Referral reconciliation (FinTech lock)
+            </CardTitle>
+            <CardDescription className="text-violet-900/80">
+              Крон{' '}
+              <code className="text-xs bg-white/80 px-1 rounded">/api/cron/referral-reconciliation</code> —{' '}
+              {referralReconcile.scheduleUtc || '30 4 * * *'} UTC. Сверка earned/pending ledger vs
+              CANCELLED/REFUNDED брони.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-slate-500">Последний прогон (ops_job_runs)</span>
+              <StatusBadge status={referralReconcile.lastRun?.status || referralReconcileJob?.lastStatus} />
+            </div>
+            {referralReconcile.error ? (
+              <p className="text-red-600 text-xs">{referralReconcile.error}</p>
+            ) : null}
+            <p className="text-slate-600">
+              Старт: {formatDt(referralReconcile.lastRun?.startedAt || referralReconcileJob?.lastStartedAt)}
+            </p>
+            <p className="text-slate-600">
+              Исправлено reconciliation за 24 ч:{' '}
+              <strong className="text-violet-900">{referralReconcile.fixedLast24h ?? 0}</strong>
+              {referralReconcile.runCount24h != null ? (
+                <span className="text-slate-500"> (прогонов: {referralReconcile.runCount24h})</span>
+              ) : null}
+            </p>
+            {referralReconcile.lastRun?.stats ? (
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-700 rounded-xl border border-violet-100 bg-white/70 px-3 py-2">
+                <span>
+                  mismatch броней:{' '}
+                  <strong>{referralReconcile.lastRun.stats.mismatchBookingCount ?? '—'}</strong>
+                </span>
+                <span>
+                  строк ledger:{' '}
+                  <strong>{referralReconcile.lastRun.stats.mismatchLedgerRows ?? '—'}</strong>
+                </span>
+                <span>
+                  fixed: <strong>{referralReconcile.lastRun.stats.fixedByReconciliation ?? '—'}</strong>
+                </span>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500">Прогонов в окне 7д: {referralReconcileJob?.runCount ?? 0}</p>
+            )}
+            {Array.isArray(referralReconcile.lastRun?.mismatches) &&
+            referralReconcile.lastRun.mismatches.length > 0 ? (
+              <ul className="text-xs space-y-1 max-h-40 overflow-y-auto border border-violet-100 rounded-lg bg-white/80 p-2">
+                {referralReconcile.lastRun.mismatches.slice(0, 12).map((m) => (
+                  <li key={m.bookingId} className="flex flex-col gap-0.5">
+                    <Link
+                      href={m.adminPath || `/admin/bookings/${encodeURIComponent(String(m.bookingId))}`}
+                      className="font-mono text-brand hover:underline"
+                    >
+                      {m.bookingId}
+                    </Link>
+                    <span className="text-slate-500">
+                      {m.bookingStatus} · ledger rows: {m.ledgerRowCount}
+                      {Array.isArray(m.ledgerIds) && m.ledgerIds.length
+                        ? ` · ids: ${m.ledgerIds.slice(0, 3).join(', ')}`
+                        : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="rounded-lg"
+                disabled={reconcileBusy || loading}
+                onClick={() => void runReferralReconcileNow()}
+              >
+                {reconcileBusy ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Запустить reconciliation сейчас
+              </Button>
+              {reconcileMsg ? <span className="text-xs text-slate-600">{reconcileMsg}</span> : null}
+            </div>
+            {referralReconcile.lastRun?.errorMessage ? (
+              <p className="text-xs text-red-600 line-clamp-3">{referralReconcile.lastRun.errorMessage}</p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {data && trustSafety ? (
         <Card className="rounded-2xl border border-rose-100 bg-rose-50/40 shadow-sm">

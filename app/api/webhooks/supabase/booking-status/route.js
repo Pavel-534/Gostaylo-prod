@@ -9,6 +9,7 @@
 
 import { NextResponse } from 'next/server'
 import { syncBookingStatusToConversationChat } from '@/lib/booking-status-chat-sync'
+import { onBookingStatusTransition } from '@/lib/services/marketing/referral-lifecycle-hook.js'
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js'
 
 export const dynamic = 'force-dynamic'
@@ -66,7 +67,23 @@ export async function POST(request) {
       newStatus,
     })
 
-    return NextResponse.json({ ok: true, ...result })
+    const nextSt = String(newStatus || '').toUpperCase()
+    let referralLifecycle = null
+    if (['COMPLETED', 'CANCELLED', 'REFUNDED'].includes(nextSt)) {
+      try {
+        referralLifecycle = await onBookingStatusTransition({
+          bookingId,
+          previousStatus: previousStatus ?? '',
+          newStatus: nextSt,
+          trigger: 'supabase_booking_status_webhook',
+        })
+      } catch (e) {
+        console.error('[webhook booking-status] referral lifecycle', e)
+        referralLifecycle = { success: false, error: e?.message || String(e) }
+      }
+    }
+
+    return NextResponse.json({ ok: true, ...result, referralLifecycle })
   } catch (e) {
     console.error('[webhook booking-status]', e)
     void notifySystemAlert(
