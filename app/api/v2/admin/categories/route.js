@@ -5,12 +5,12 @@
 
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 
 async function requireAdmin() {
-  const access = await requireAccess({ roles: ['ADMIN'] })
+  const access = await requireAdminStaff(request)
   if (access.error) return { response: access.error }
   return { userId: access.profile.id }
 }
@@ -45,7 +45,7 @@ const WIZARD_PROFILE_OPTIONS = [
   'service_generic',
 ]
 
-export async function GET() {
+export async function GET(request) {
   const auth = await requireAdmin()
   if (auth.response) {
     return auth.response

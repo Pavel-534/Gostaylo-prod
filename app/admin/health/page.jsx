@@ -121,16 +121,22 @@ export default function AdminHealthPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <Activity className="h-7 w-7 text-brand" />
-            Здоровье системы
+            System Health
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            Автономный мониторинг cron и сигналов безопасности за последние {data?.windowDays ?? 7} дн.
+            Cron, платёжные адаптеры и сигналы безопасности за последние {data?.windowDays ?? 7} дн.
           </p>
+          <Link
+            href="/admin/marketplace-health"
+            className="inline-flex mt-2 text-xs font-medium text-brand hover:text-brand-hover underline-offset-2 hover:underline"
+          >
+            Marketplace Health →
+          </Link>
         </div>
         <Button
           type="button"

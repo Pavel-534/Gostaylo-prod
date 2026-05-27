@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import DisputeService from '@/lib/services/dispute.service'
 import { computeDisputeDeadlineIso } from '@/lib/config/dispute-sla'
 
@@ -36,7 +36,7 @@ const TERMINAL_STATUSES = new Set(['RESOLVED', 'CLOSED', 'REJECTED'])
 
 export async function POST(request, { params }) {
   try {
-    const access = await requireAccess({ roles: ['ADMIN'] })
+    const access = await requireAdminStaff(request)
     if (access.error) return access.error
     const staff = { id: String(access.profile?.id || '') }
 

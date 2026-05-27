@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
+import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
 
 function FieldHint({ children }) {
   return (
@@ -424,7 +425,9 @@ export default function MarketingSettingsPage() {
                         <tr key={row.id} className="border-b border-slate-100">
                           <td className="p-2 whitespace-nowrap">{row.created_at || '—'}</td>
                           <td className="p-2">{row.entry_type}</td>
-                          <td className="p-2 tabular-nums">{Number(row.amount_thb).toLocaleString('ru-RU')}</td>
+                          <td className="p-2">
+                            <AdminTableAmount value={row.amount_thb} showPlus={false} className="text-xs" />
+                          </td>
                           <td className="p-2 max-w-[200px] truncate" title={who}>
                             {who}
                           </td>

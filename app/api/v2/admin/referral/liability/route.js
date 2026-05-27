@@ -3,13 +3,13 @@
  * Stage 114.2 / 114.4 / 114.5 — FinTech snapshot + accounting (query: periodFrom, periodTo, status, type).
  */
 import { NextResponse } from 'next/server'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { loadReferralAccountingSnapshot } from '@/lib/admin/referral-accounting-snapshot.js'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request) {
-  const access = await requireAccess({ roles: ['ADMIN'] })
+  const access = await requireAdminStaff(request)
   if (access.error) return access.error
   try {
     const { searchParams } = new URL(request.url)

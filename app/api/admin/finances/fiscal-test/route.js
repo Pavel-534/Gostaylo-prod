@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
-import { requireAccess } from '@/lib/security/access-guard'
+﻿import { NextResponse } from 'next/server'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { computeFinalBreakdown } from '@/lib/pricing-engine/compute-breakdown.js'
 import { toFiscalKassaPayload } from '@/lib/pricing-engine/snapshot-adapter.js'
 import { isFiscalSandboxEnabled } from '@/lib/pricing-engine/fiscal-config.js'
@@ -9,7 +9,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 export const dynamic = 'force-dynamic'
 
 export async function POST() {
-  const gate = await requireAccess({ roles: ['ADMIN'] })
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   if (!supabaseAdmin) {

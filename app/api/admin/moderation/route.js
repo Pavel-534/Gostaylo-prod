@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin Moderation API
  * GET — pending listings (без черновиков)
  * PATCH — approve | reject | set_featured; при approve опционально title, description, metadata (нормализация SSOT).
@@ -56,7 +56,7 @@ function categorySlugFromListing(listing) {
 }
 
 export async function GET(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const { searchParams } = new URL(request.url)
@@ -114,7 +114,7 @@ export async function GET(request) {
 }
 
 export async function PATCH(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   try {

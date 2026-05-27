@@ -3,13 +3,13 @@
  */
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { requireAccess } from '@/lib/security/access-guard';
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { buildWalletReferenceLabels } from '@/lib/admin/wallet-transaction-reference-label';
 
 export const dynamic = 'force-dynamic';
 
 async function requireAdmin() {
-  const access = await requireAccess({ roles: ['ADMIN'] });
+  const access = await requireAdminStaff(request);
   if (access.error) return { error: access.error };
   return { ok: true };
 }

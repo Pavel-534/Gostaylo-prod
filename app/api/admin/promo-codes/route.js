@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GET/POST /api/admin/promo-codes — список и создание промокодов (ADMIN, SSOT с `PricingService.validatePromoCode`).
  */
 
@@ -10,7 +10,7 @@ import { buildPromoInsertFromAdminBody, mapPromoRowToAdminDto } from '@/lib/prom
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
@@ -57,7 +57,7 @@ export async function GET() {
 }
 
 export async function POST(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 500 })

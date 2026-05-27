@@ -14,9 +14,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatAdminUserLabel } from '@/lib/admin/format-admin-user-label';
+import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
+import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState';
 
 function formatDateTime(value) {
   const d = new Date(value || '');
@@ -219,7 +221,11 @@ export default function WalletAuditPage() {
           {loading ? (
             <p className="text-sm text-muted-foreground py-8 text-center">Загрузка…</p>
           ) : transactions.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">Нет записей.</p>
+            <FinTechEmptyState
+              icon={Wallet}
+              title="Журнал пуст"
+              description="За выбранный период нет движений по кошелькам. Измените фильтры или дождитесь новых операций."
+            />
           ) : (
             <Table>
               <TableHeader>
@@ -248,9 +254,7 @@ export default function WalletAuditPage() {
                       </div>
                     </TableCell>
                     <TableCell className="uppercase text-xs">{row.operation_type}</TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">
-                      {formatAmount(row.amount_thb)}
-                    </TableCell>
+                    <AdminTableAmount as="td" value={row.amount_thb} />
                     <TableCell className="text-xs max-w-[180px] break-words">
                       {txTypeLabel(row.tx_type)}
                     </TableCell>
@@ -266,9 +270,7 @@ export default function WalletAuditPage() {
                         '—'
                       )}
                     </TableCell>
-                    <TableCell className="text-right tabular-nums text-xs">
-                      {formatAmount(row.balance_after_thb)}
-                    </TableCell>
+                    <AdminTableAmount as="td" value={row.balance_after_thb} showPlus={false} className="text-xs text-slate-600" />
                   </TableRow>
                 ))}
               </TableBody>

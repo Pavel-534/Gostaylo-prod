@@ -1,4 +1,4 @@
-/**
+﻿/**
  * POST /api/admin/notification-outbox/process — ADMIN session; runs same worker as cron (Stage 59.0).
  */
 import { NextResponse } from 'next/server'
@@ -8,7 +8,7 @@ import { runNotificationOutboxWorker } from '@/lib/services/notifications/proces
 export const dynamic = 'force-dynamic'
 
 export async function POST() {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
   try {
     const result = await runNotificationOutboxWorker({ limit: 20 })

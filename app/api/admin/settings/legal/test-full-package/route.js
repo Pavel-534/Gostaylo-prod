@@ -1,10 +1,10 @@
-/**
+﻿/**
  * POST /api/admin/settings/legal/test-full-package
  * Полный финансовый smoke из админки (Stage 103).
  */
 
 import { NextResponse } from 'next/server'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { runFinancialSmoke } from '@/lib/smoke/financial-smoke-run.js'
 import { saveOwnerSmokeSnapshot } from '@/lib/owner/owner-pause-toolkit.js'
 
@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
 export async function POST(request) {
-  const gate = await requireAccess({ roles: ['ADMIN'] })
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   let body = {}

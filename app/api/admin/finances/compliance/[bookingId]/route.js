@@ -27,7 +27,7 @@ function buildCompliancePayload(booking, legs) {
 }
 
 export async function GET(request, { params }) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const { data: booking, error } = await supabaseAdmin

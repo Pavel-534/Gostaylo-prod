@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { supabaseAdmin } from '@/lib/supabase'
 import { loadFintechMovements, MOVEMENT_KINDS } from '@/lib/admin/fintech-movements-feed'
@@ -7,7 +7,7 @@ import { isFintechTestMovementRow } from '@/lib/admin/fintech-test-data-markers.
 export const dynamic = 'force-dynamic'
 
 export async function GET(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const { searchParams } = new URL(request.url)

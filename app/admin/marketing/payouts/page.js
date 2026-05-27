@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, RefreshCw, ShieldCheck, ShieldOff } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, RefreshCw, ShieldCheck, ShieldOff, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,9 @@ import {
 } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { formatAdminUserLabel } from '@/lib/admin/format-admin-user-label';
+import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
+import { AdminStatusPill } from '@/components/admin/AdminStatusPill';
+import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState';
 
 function formatThb(value) {
   const n = Number(value);
@@ -283,7 +286,11 @@ export default function MarketingPayoutsPage() {
           {loading ? (
             <p className="text-sm text-slate-500 py-10 text-center">Loading...</p>
           ) : rows.length === 0 ? (
-            <p className="text-sm text-slate-500 py-10 text-center">No payout candidates.</p>
+            <FinTechEmptyState
+              icon={Wallet}
+              title="Нет кандидатов на выплату"
+              description="Измените фильтры или обновите список — пользователи с доступным балансом появятся здесь."
+            />
           ) : (
             <Table>
               <TableHeader>
@@ -316,8 +323,8 @@ export default function MarketingPayoutsPage() {
                       <div className="font-medium">{userLabel(row)}</div>
                       <div className="text-xs text-slate-500 font-mono break-all">{row.userId}</div>
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">{formatThb(row.withdrawableBalanceThb)} THB</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatThb(row.internalCreditsThb)} THB</TableCell>
+                    <AdminTableAmount as="td" value={row.withdrawableBalanceThb} showPlus={false} />
+                    <AdminTableAmount as="td" value={row.internalCreditsThb} showPlus={false} className="text-slate-700" />
                     <TableCell>
                       {row.profileVerified ? (
                         <span className="inline-flex items-center gap-1 text-emerald-700 text-xs">
@@ -340,7 +347,7 @@ export default function MarketingPayoutsPage() {
                     </TableCell>
                     <TableCell className="text-xs">
                       {row.readyForPayout ? (
-                        <span className="text-emerald-700">Ready for payout</span>
+                        <AdminStatusPill status="READY" />
                       ) : (
                         <div className="space-y-1">
                           {(row.blockers || []).map((blocker) => (

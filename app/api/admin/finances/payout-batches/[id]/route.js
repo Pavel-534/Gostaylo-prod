@@ -5,7 +5,7 @@ import PayoutBatchService from '@/lib/services/payout-batch.service.js'
 export const dynamic = 'force-dynamic'
 
 export async function GET(_request, { params }) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const pack = await PayoutBatchService.getBatchWithItems(params.id)
@@ -14,7 +14,7 @@ export async function GET(_request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const body = await request.json().catch(() => ({}))

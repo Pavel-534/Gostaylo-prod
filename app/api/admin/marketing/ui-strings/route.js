@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { validateMarketingUiStringsPayload } from '@/lib/marketing/validate-marketing-ui-strings'
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 const SETTINGS_KEY = 'marketing_ui_strings'
 
 export async function GET() {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 500 })
@@ -28,7 +28,7 @@ export async function GET() {
 }
 
 export async function PUT(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 500 })

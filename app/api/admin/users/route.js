@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin User Update API
  * PATCH - Update user profile (commission, verification, role)
  * Stage 90.0 — guard **ADMIN** только (карточка пользователя недоступна модератору по layout).
@@ -11,7 +11,7 @@ import { recordStaffUserVerificationUpdate } from '@/lib/services/audit/staff-au
 export const dynamic = 'force-dynamic'
 
 export async function PATCH(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   try {

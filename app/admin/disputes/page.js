@@ -9,7 +9,7 @@ import UnifiedOrderCard from '@/components/orders/UnifiedOrderCard'
 import AdminDisputeChatPeek from '@/components/admin/AdminDisputeChatPeek'
 import AdminDisputeTimeline from '@/components/admin/AdminDisputeTimeline'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { AdminStatusPill } from '@/components/admin/AdminStatusPill'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -34,13 +34,6 @@ const FILTERS = [
 function typeLabel(t) {
   if (t === 'transport') return 'Транспорт'
   return 'Жильё'
-}
-
-function statusBadgeVariant(status, frozen) {
-  const s = String(status || '').toUpperCase()
-  if (['RESOLVED', 'CLOSED', 'REJECTED'].includes(s)) return 'secondary'
-  if (frozen && ['OPEN', 'IN_REVIEW'].includes(s)) return 'destructive'
-  return 'default'
 }
 
 function statusLabel(status, frozen) {
@@ -347,9 +340,7 @@ export default function AdminDisputesPage() {
                         {r.createdAt ? new Date(r.createdAt).toLocaleString('ru-RU') : '—'}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={statusBadgeVariant(r.status, r.freezePayment)}>
-                          {statusLabel(r.status, r.freezePayment)}
-                        </Badge>
+                        <AdminStatusPill status={statusLabel(r.status, r.freezePayment)} />
                       </TableCell>
                     </TableRow>
                   ))}

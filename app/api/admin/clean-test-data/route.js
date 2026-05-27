@@ -1,10 +1,10 @@
-/**
+﻿/**
  * POST /api/admin/clean-test-data
  * Stage 106.4 — удаление smoke / E2E / financial-test данных (только ADMIN).
  */
 
 import { NextResponse } from 'next/server'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { supabaseAdmin } from '@/lib/supabase'
 import {
   runFintechTestDataCleanup,
@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
 export async function POST(request) {
-  const gate = await requireAccess({ roles: ['ADMIN'] })
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   if (!supabaseAdmin) {

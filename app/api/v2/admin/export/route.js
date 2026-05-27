@@ -6,13 +6,13 @@
 import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { supabaseAdmin } from '@/lib/supabase';
-import { requireAccess } from '@/lib/security/access-guard';
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 async function verifyAdmin() {
-  const access = await requireAccess({ roles: ['ADMIN'] });
+  const access = await requireAdminStaff(request);
   if (access.error) return { error: access.error };
   return { ok: true };
 }

@@ -1,17 +1,17 @@
-/**
+﻿/**
  * GET /api/admin/settings/legal/consents?type=guest|partner|booking&version=&from=&to=&limit=
  */
 
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 
 const MAX_LIMIT = 100
 
 export async function GET(request) {
-  const gate = await requireAccess({ roles: ['ADMIN'] })
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   if (!supabaseAdmin) {

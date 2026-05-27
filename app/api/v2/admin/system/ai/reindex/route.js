@@ -6,14 +6,14 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { updateListingEmbedding, LISTING_STATUSES_ELIGIBLE_FOR_EMBEDDING } from '@/lib/ai/embeddings'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 
 const DEFAULT_LIMIT = 5
 
 async function verifyAdminOnly() {
-  const access = await requireAccess({ roles: ['ADMIN'] })
+  const access = await requireAdminStaff(request)
   if (access.error) return { error: access.error }
   return { ok: true }
 }

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Cache Revalidation API (Airbnb-style Smart Caching)
  * POST - Trigger on-demand revalidation for specific paths
  * 
@@ -13,7 +13,7 @@ import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 export const dynamic = 'force-dynamic'
 
 export async function POST(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   try {

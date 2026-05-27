@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GET /api/admin/metrics/overview
  * Stage 94 prep: агрегаты и счётчики таблиц только через service_role (без anon /_db).
  */
@@ -14,7 +14,7 @@ import {
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   if (!supabaseAdmin) {

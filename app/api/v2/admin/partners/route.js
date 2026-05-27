@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getPublicSiteUrl, getSiteDisplayName } from '@/lib/site-url.js';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
-import { requireAccess } from '@/lib/security/access-guard';
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { recordSystemAutoVerification } from '@/lib/services/audit/system-auto-verification';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +21,7 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
 /** Stage 90.1 — staff может одобрять заявки (тот же контур, что **`/api/admin/**`**). */
 async function verifyPartnerAdmin() {
-  const access = await requireAccess({ roles: ['ADMIN', 'MODERATOR'] });
+  const access = await requireAdminStaff(request);
   if (access.error) return { error: access.error };
   return { userId: String(access.profile?.id || ''), profile: access.profile };
 }

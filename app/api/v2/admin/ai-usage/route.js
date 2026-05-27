@@ -5,17 +5,17 @@
 
 import { NextResponse } from 'next/server'
 import { sumGlobalAiCostUsdForMonth } from '@/lib/ai/usage-log'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 
 async function verifyAdminOnly() {
-  const access = await requireAccess({ roles: ['ADMIN'] })
+  const access = await requireAdminStaff(request)
   if (access.error) return { error: access.error }
   return { ok: true }
 }
 
-export async function GET() {
+export async function GET(request) {
   const auth = await verifyAdminOnly()
   if (auth.error) return auth.error
 

@@ -13,7 +13,7 @@ import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request, { params }) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   try {

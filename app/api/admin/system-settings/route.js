@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin system_settings (service_role). Used by admin UI after RLS on system_settings.
  * GET ?keys=key1,key2  |  PATCH { key, value }
  */
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 const MAX_KEYS = 24;
 
 export async function GET(request) {
-  const gate = await requireAdminStaff();
+  const gate = await requireAdminStaff(request);
   if (gate.error) return gate.error;
 
   if (!supabaseAdmin) {
@@ -71,7 +71,7 @@ export async function GET(request) {
 }
 
 export async function PATCH(request) {
-  const gate = await requireAdminStaff();
+  const gate = await requireAdminStaff(request);
   if (gate.error) return gate.error;
 
   if (!supabaseAdmin) {

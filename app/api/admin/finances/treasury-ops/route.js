@@ -1,9 +1,9 @@
-/**
+﻿/**
  * GET / PATCH — Stage 105 treasury ops (manual mode, emergency pause).
  */
 
 import { NextResponse } from 'next/server'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import {
   loadTreasuryOpsSettings,
   setTreasuryEmergencyPause,
@@ -22,12 +22,8 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-async function requireAdminOnly() {
-  return requireAccess({ roles: ['ADMIN'] })
-}
-
 export async function GET() {
-  const gate = await requireAdminOnly()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const scan = await runTreasuryMonitoringScan()
@@ -56,7 +52,7 @@ export async function GET() {
 }
 
 export async function PATCH(request) {
-  const gate = await requireAdminOnly()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   let body = {}

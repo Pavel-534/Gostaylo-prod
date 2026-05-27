@@ -3,13 +3,13 @@
  * Stage 114.5 — hold / release_hold / reject (admin).
  */
 import { NextResponse } from 'next/server'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { applyReferralLedgerAdminAction } from '@/lib/admin/referral-ledger-admin.js'
 
 export const dynamic = 'force-dynamic'
 
 export async function PATCH(request, context) {
-  const access = await requireAccess({ roles: ['ADMIN'] })
+  const access = await requireAdminStaff(request)
   if (access.error) return access.error
 
   const params = await Promise.resolve(context.params)

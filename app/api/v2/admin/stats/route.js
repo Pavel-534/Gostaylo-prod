@@ -9,9 +9,9 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { buildAdminStatsPayload } from '@/lib/admin/admin-stats-payload'
 
-export async function GET() {
+export async function GET(request) {
   try {
-    const access = await requireAdminStaff()
+    const access = await requireAdminStaff(request)
     if (access.error) return access.error
 
     if (!supabaseAdmin) {

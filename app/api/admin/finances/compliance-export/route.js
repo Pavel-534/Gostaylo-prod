@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
-import { requireAccess } from '@/lib/security/access-guard'
+﻿import { NextResponse } from 'next/server'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { supabaseAdmin } from '@/lib/supabase'
 import {
   buildComplianceRegistryCsv,
@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic'
 const PAID_STATUSES = ['PAID_ESCROW', 'THAWED', 'READY_FOR_PAYOUT', 'COMPLETED', 'CONFIRMED']
 
 export async function GET(request) {
-  const gate = await requireAccess({ roles: ['ADMIN'] })
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const url = new URL(request.url)

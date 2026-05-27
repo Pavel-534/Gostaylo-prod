@@ -5,7 +5,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import LedgerService from '@/lib/services/ledger.service';
-import { requireAccess } from '@/lib/security/access-guard';
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic';
 
@@ -17,12 +17,12 @@ const SYSTEM_IDS = {
 };
 
 async function requireAdmin() {
-  const access = await requireAccess({ roles: ['ADMIN'] });
+  const access = await requireAdminStaff(request);
   if (access.error) return { error: access.error };
   return { userId: access.profile?.id || null };
 }
 
-export async function GET() {
+export async function GET(request) {
   const auth = await requireAdmin();
   if (auth.error) {
     return auth.error;

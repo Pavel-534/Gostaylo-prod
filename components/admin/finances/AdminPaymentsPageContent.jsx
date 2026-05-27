@@ -24,6 +24,8 @@ import {
   ChevronRight,
 } from 'lucide-react'
 import { PAYMENT_METHODS, STATUS_CONFIG, isTestPaymentRow } from '@/lib/admin/admin-payments-shared'
+import { AdminStatusPill } from '@/components/admin/AdminStatusPill'
+import { AdminTableAmount } from '@/components/admin/AdminTableAmount'
 import { useAdminPaymentsPage } from '@/hooks/admin/use-admin-payments-page'
 
 export default function AdminPaymentsPageContent() {
@@ -274,18 +276,13 @@ export default function AdminPaymentsPageContent() {
 
                           <div className="flex items-center gap-4">
                             <div className="text-right">
-                              <p className="font-bold text-lg text-slate-900">
-                                ฿{payment.amount?.toLocaleString() || 0}
-                              </p>
+                              <AdminTableAmount value={payment.amount} className="text-lg" />
                               <p className="text-xs text-slate-500">
                                 {new Date(payment.created_at).toLocaleDateString('ru-RU')}
                               </p>
                             </div>
 
-                            <Badge className={`${statusConfig.color} flex items-center gap-1`}>
-                              <StatusIcon className={`h-3 w-3 ${payment.status === 'VERIFYING' ? 'animate-spin' : ''}`} />
-                              {statusConfig.label}
-                            </Badge>
+                            <AdminStatusPill status={payment.status} />
 
                             {payment.payment_method === 'USDT_TRC20' && payment.txid && (
                               <Button

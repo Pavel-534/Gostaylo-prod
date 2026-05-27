@@ -1,9 +1,9 @@
-/**
+﻿/**
  * GET /api/admin/settings/legal — обзор версий и ссылок (ADMIN).
  */
 
 import { NextResponse } from 'next/server'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { LegalVersionsService } from '@/lib/services/legal-versions.service.js'
 import { LEGAL_PAGES } from '@/lib/services/legal-registry-pdf.service.js'
 import { getLegalPublisherDetails } from '@/lib/config/legal-details.js'
@@ -20,7 +20,7 @@ const LEGAL_DOC_LINKS = [
 ]
 
 export async function GET() {
-  const gate = await requireAccess({ roles: ['ADMIN'] })
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const registry = await LegalVersionsService.getRegistry()

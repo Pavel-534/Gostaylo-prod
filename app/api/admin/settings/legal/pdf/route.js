@@ -1,16 +1,16 @@
-/**
+﻿/**
  * GET /api/admin/settings/legal/pdf — справка PDF по активным версиям (ADMIN).
  */
 
 import { NextResponse } from 'next/server'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { LegalVersionsService } from '@/lib/services/legal-versions.service.js'
 import { renderLegalRegistryPdf } from '@/lib/services/legal-registry-pdf.service.js'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const gate = await requireAccess({ roles: ['ADMIN'] })
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const registry = await LegalVersionsService.getRegistry()

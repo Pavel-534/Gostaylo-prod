@@ -11,14 +11,14 @@ import {
   getSemanticSearchSiteEnabled,
   setSemanticSearchSiteEnabled,
 } from '@/lib/ai/site-search-settings'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 
 const PERIODS = new Set(['today', '7d', 'month', 'all'])
 
 async function verifyAdminOnly() {
-  const access = await requireAccess({ roles: ['ADMIN'] })
+  const access = await requireAdminStaff(request)
   if (access.error) return { error: access.error }
   return { ok: true }
 }

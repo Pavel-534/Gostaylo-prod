@@ -4,14 +4,14 @@
  */
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { buildReferralLedgerQuery } from '@/lib/admin/referral-ledger-query.js'
 import { referralLedgerToCsv } from '@/lib/admin/referral-ledger-export.js'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request) {
-  const access = await requireAccess({ roles: ['ADMIN'] })
+  const access = await requireAdminStaff(request)
   if (access.error) return access.error
 
   const { searchParams } = new URL(request.url)

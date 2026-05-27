@@ -19,6 +19,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
+import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
+import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState';
 
 function formatThb(value) {
   const n = Number(value);
@@ -254,7 +256,9 @@ export default function MarketingAnalyticsPage() {
                           <tr key={row.referrerId} className="border-b border-slate-100">
                             <td className="p-2 tabular-nums">{row.rank}</td>
                             <td className="p-2 font-medium">{row.displayNameFull}</td>
-                            <td className="p-2 tabular-nums">{formatThb(row.amountThb)}</td>
+                            <td className="p-2">
+                              <AdminTableAmount value={row.amountThb} showPlus={false} className="text-sm" />
+                            </td>
                             <td className="p-2">
                               <Link
                                 href={row.adminProfileUrl}
@@ -312,7 +316,11 @@ export default function MarketingAnalyticsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {cohortChartRows.length === 0 ? (
-                <p className="text-sm text-slate-500">No referral cohorts in the last 36 months.</p>
+                <FinTechEmptyState
+                  icon={TrendingUp}
+                  title="Нет когорт за 36 месяцев"
+                  description="Когда появятся реферальные регистрации, ROI по когортам отобразится здесь."
+                />
               ) : (
                 <>
                   <div className="h-[340px] w-full">

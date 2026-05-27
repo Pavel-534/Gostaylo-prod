@@ -3,12 +3,12 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { aggregateReferralLeaderboardFromDb } from '@/lib/referral/referral-leaderboard-db'
 import { utcCalendarMonthBounds, currentUtcYearMonth } from '@/lib/referral/utc-month-bounds'
 import { formatReferralDateDdMmYyyyInTimeZone } from '@/lib/referral/format-referral-datetime'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 
 async function requireAdmin() {
-  const access = await requireAccess({ roles: ['ADMIN'] })
+  const access = await requireAdminStaff(request)
   if (access.error) return { error: access.error }
   return { ok: true }
 }

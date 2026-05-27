@@ -1,16 +1,16 @@
-/**
+﻿/**
  * GET /api/admin/settings/legal/export-zip — ZIP всех юр. документов (Stage 106.2).
  */
 
 import { NextResponse } from 'next/server'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { buildLegalDocumentsExportZip } from '@/lib/services/legal-documents-export.service.js'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 export async function GET() {
-  const gate = await requireAccess({ roles: ['ADMIN'] })
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const built = await buildLegalDocumentsExportZip()

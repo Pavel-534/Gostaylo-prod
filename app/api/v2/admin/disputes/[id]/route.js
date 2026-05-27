@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { toUnifiedOrder } from '@/lib/models/unified-order'
 import { normalizeEmbeddedListingBooking } from '@/lib/services/booking/query.service'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import DisputeService from '@/lib/services/dispute.service'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(_request, { params }) {
   try {
-    const access = await requireAccess({ roles: ['ADMIN'] })
+    const access = await requireAdminStaff(request)
     if (access.error) return access.error
 
     const disputeId = String(params?.id || '').trim()

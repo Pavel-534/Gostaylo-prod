@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { supabaseAdmin } from '@/lib/supabase'
 import PayoutBatchService from '@/lib/services/payout-batch.service.js'
@@ -7,7 +7,7 @@ import { filterPayoutBatchesExcludeTest } from '@/lib/admin/fintech-test-data-cl
 export const dynamic = 'force-dynamic'
 
 export async function GET(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const { searchParams } = new URL(request.url)
@@ -21,7 +21,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const body = await request.json().catch(() => ({}))

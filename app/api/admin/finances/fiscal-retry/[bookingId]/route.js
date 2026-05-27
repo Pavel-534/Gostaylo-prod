@@ -5,7 +5,7 @@ import { retryPendingFiscalReceipt } from '@/lib/services/fiscal-kassa.service.j
 export const dynamic = 'force-dynamic'
 
 export async function POST(_request, { params }) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const result = await retryPendingFiscalReceipt(params.bookingId)

@@ -6,6 +6,14 @@
 
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
+**Stage 118.6 (2026-05-27):** Индексы admin search (`stage118_6_admin_global_search_indexes.sql`, pg_trgm); request-scoped cache роли (`lib/security/request-access-cache.js`); план **`docs/REFERRAL_PROGRAM_2_0_PLAN.md`**.
+
+**Stage 118.5 (2026-05-27):** RBAC на **`/api/v2/admin/**`** (47 маршрутов) через `admin-api-access.ts` + `ADMIN_V2_PREFIX_MENU_HREF`; меню «Контроль» — один **System Health** (Marketplace Health → «Операции»); глобальный поиск с ранжированием и премиум-дропдауном; финальная унификация таблиц/empty states.
+
+**Stage 118.4 (2026-05-27):** Admin SSOT расширен: `quickActions` в `admin-menu.ts`; API RBAC `lib/admin/admin-api-access.ts` + `requireAdminStaff(request)` на всех `app/api/admin/**`; `GET /api/admin/search` + `AdminGlobalSearch`; `AdminTableAmount`, `AdminStatusPill`; удалён `admin-quick-actions.js`.
+
+**Stage 118.3 (2026-05-26):** Admin menu SSOT `lib/admin/admin-menu.ts` + `admin-menu-icons.js`; RBAC `allowedRoles`; breadcrumbs + `AdminQuickActionsBar` (smoke/prepare-pause через `admin-fintech-api-client`); `max-w-7xl` shell; `format-signed-thb.js`, `CategoryAdminIcon`, `FinTechEmptyState` в wallet-audit / payout-verification.
+
 **Stage 118.1 (2026-05-26):** Chat stress garbage — источник `tests/e2e/chat-stress.spec.ts` (`st…-seq-N` в первый чат партнёра); fixture-only + `E2E_CHAT_STRESS` tag; блок POST в production; `cleanup:test-data` удаляет `st%-seq-%` / `[E2E_CHAT_STRESS]`.
 
 **Stage 118.0 (2026-05-26):** Admin stabilization (этап 1) — `lib/admin/system-settings-store.js` (SSOT `system_settings` read/write server-only); cron `promote-ready-for-payout` + THAWED date fallback (`lib/booking/parse-iso-timestamp.js`, `partner-payout-eligibility.js`); iCal sync status via store; `referral-stats.service.js` fix (ROI analytics); admin tables `formatAdminUserLabel`; `npm run cleanup:test-data`.

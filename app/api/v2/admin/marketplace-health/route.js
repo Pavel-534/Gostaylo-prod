@@ -5,7 +5,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { supabaseAdmin } from '@/lib/supabase'
 import { loadStaffAuditFeed } from '@/lib/services/audit/staff-audit'
 import { loadMarketingReferralRoiStats } from '@/lib/admin/marketing-referral-roi'
@@ -22,8 +22,8 @@ function emptyHintLabel() {
   return '(no location hint)'
 }
 
-export async function GET() {
-  const access = await requireAccess({ roles: ['ADMIN', 'MODERATOR'] })
+export async function GET(request) {
+  const access = await requireAdminStaff(request)
   if (access.error) return access.error
 
   const since = new Date()

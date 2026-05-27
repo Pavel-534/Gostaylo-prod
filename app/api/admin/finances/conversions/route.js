@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getRawRateMap } from '@/lib/services/pricing/pricing-fx-helpers.js'
@@ -38,7 +38,7 @@ function thbToCurrency(amountThb, rateToThb) {
 }
 
 export async function GET(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const { searchParams } = new URL(request.url)
@@ -152,7 +152,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const body = await request.json().catch(() => ({}))

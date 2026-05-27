@@ -8,14 +8,14 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { verifyTelegramBanLinkToken } from '@/lib/auth/telegram-ban-link'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 
 const BAN_DURATION = '876600h' // ~100 years
 
 async function verifyAdminSession() {
-  const access = await requireAccess({ roles: ['ADMIN'] })
+  const access = await requireAdminStaff(request)
   if (access.error) return { error: access.error }
   return { adminId: access.profile?.id || null }
 }

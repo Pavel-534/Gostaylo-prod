@@ -20,6 +20,7 @@ import { Plus, Layers, Languages, Globe, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { categoryTranslations, supportedLanguages, getCategoryName } from '@/lib/translations';
 import { resolveCategoryDisplayName } from '@/lib/category-display-name';
+import { CategoryAdminIcon } from '@/components/admin/category/CategoryAdminIcon';
 
 const WIZARD_OPTIONS = [
   { value: '_none', label: '— (наследовать / эвристика)' },
@@ -452,18 +453,7 @@ export default function CategoriesPage() {
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xl sm:h-12 sm:w-12 sm:text-2xl ${
-                        category.isActive
-                          ? 'bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg'
-                          : 'bg-gray-400'
-                      }`}
-                    >
-                      {category.icon === 'Home' ? '🏠'
-                        : category.icon === 'Car' ? '🚗'
-                          : category.icon === 'Map' ? '🗺️'
-                            : category.icon === 'Anchor' ? '⚓' : category.icon}
-                    </div>
+                    <CategoryAdminIcon icon={category.icon} active={category.isActive} />
                     <div className="min-w-0 flex-1">
                       <h3 className="truncate text-sm font-bold text-gray-900 sm:text-base">
                         {resolveCategoryDisplayName(category, 'ru', getCategoryName)}

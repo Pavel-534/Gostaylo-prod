@@ -14,8 +14,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileDown, Filter, ArrowLeft } from 'lucide-react';
+import { FileDown, Filter, ArrowLeft, ScrollText } from 'lucide-react';
 import { toast } from 'sonner';
+import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
+import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState';
 
 function formatDateTime(value) {
   const d = new Date(value || '');
@@ -300,19 +302,20 @@ export default function MarketingTankAuditPage() {
                     <TableCell>{formatDateTime(row.created_at)}</TableCell>
                     <TableCell>{toTypeLabel(row.entry_type)}</TableCell>
                     <TableCell className="font-mono text-xs">{row.booking_id || '—'}</TableCell>
-                    <TableCell
-                      className={`text-right font-semibold ${amount >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}
-                    >
-                      {amount >= 0 ? '+' : '-'}฿{formatAmount(Math.abs(amount))}
-                    </TableCell>
+                    <AdminTableAmount as="td" value={amount} />
                     <TableCell className="font-mono text-[11px] text-slate-500">{row.id}</TableCell>
                   </TableRow>
                 );
               })}
               {!events.length && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-slate-500 py-8">
-                    События не найдены
+                  <TableCell colSpan={5} className="p-0 border-0">
+                    <FinTechEmptyState
+                      icon={ScrollText}
+                      title="События не найдены"
+                      description="Измените фильтры или период — записи marketing promo tank появятся здесь."
+                      className="m-4 border-0 bg-transparent"
+                    />
                   </TableCell>
                 </TableRow>
               )}

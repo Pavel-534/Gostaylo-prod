@@ -21,6 +21,11 @@ export default function UsersPage() {
 
   useEffect(() => {
     loadUsers();
+    const onRefresh = () => {
+      void loadUsers();
+    };
+    window.addEventListener('admin:users-refresh', onRefresh);
+    return () => window.removeEventListener('admin:users-refresh', onRefresh);
   }, []);
 
   useEffect(() => {

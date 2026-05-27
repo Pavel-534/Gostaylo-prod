@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GET /api/admin/promo-codes/analytics/top-partners — партнёры с наибольшим числом PARTNER-промокодов (Stage 33).
  */
 
@@ -9,7 +9,7 @@ import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
   if (!supabaseAdmin) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 500 })

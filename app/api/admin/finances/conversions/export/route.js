@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { supabaseAdmin } from '@/lib/supabase'
 import { buildTreasuryConversionsCsv } from '@/lib/admin/treasury-conversions-csv'
@@ -14,7 +14,7 @@ function toIsoDayEnd(day) {
 }
 
 export async function GET(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const { searchParams } = new URL(request.url)

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GET /api/admin/activity/recent?limit=8
  * Последние записи activity_log (service_role).
  */
@@ -10,7 +10,7 @@ import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   if (!supabaseAdmin) {

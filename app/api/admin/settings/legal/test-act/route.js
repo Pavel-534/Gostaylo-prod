@@ -1,11 +1,11 @@
-/**
+﻿/**
  * POST /api/admin/settings/legal/test-act — сгенерировать тестовый PDF-акт (smoke / демо).
  * Body: { partnerId?: string, amountThb?: number }
  */
 
 import { NextResponse } from 'next/server'
 import { randomUUID } from 'node:crypto'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { supabaseAdmin } from '@/lib/supabase'
 import { generatePayoutRequestDocuments } from '@/lib/services/payout-document.service.js'
 import { createStorageSignedUrl } from '@/lib/storage/storage-upload.server.js'
@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic'
 const BUCKET = 'payout-documents'
 
 export async function POST(request) {
-  const gate = await requireAccess({ roles: ['ADMIN'] })
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   if (!supabaseAdmin) {

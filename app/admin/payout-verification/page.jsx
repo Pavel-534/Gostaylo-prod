@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, RefreshCw, ShieldCheck, User } from 'lucide-react';
 import { toast } from 'sonner';
+import { FinTechEmptyState } from '@/components/admin/finances/FinTechEmptyState';
 
 function partnerLabel(row) {
   const p = row.partner;
@@ -84,7 +85,7 @@ export default function AdminPayoutVerificationPage() {
       <Card className="rounded-2xl border-slate-200">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-brand" />
+            <ShieldCheck className="h-5 w-5 text-emerald-700" />
             Ожидают верификации
             <Badge variant="secondary" className="ml-2">
               {rows.length}
@@ -99,7 +100,11 @@ export default function AdminPayoutVerificationPage() {
               Загрузка…
             </div>
           ) : rows.length === 0 ? (
-            <p className="text-slate-500 py-8 text-center">Нет неверифицированных профилей.</p>
+            <FinTechEmptyState
+              icon={ShieldCheck}
+              title="Очередь пуста"
+              description="Все профили выплат верифицированы. Новые заявки появятся здесь автоматически."
+            />
           ) : (
             <div className="overflow-x-auto rounded-lg border border-slate-200">
               <table className="w-full text-sm text-left">
@@ -126,7 +131,7 @@ export default function AdminPayoutVerificationPage() {
                       <tr key={row.id} className="hover:bg-slate-50/80">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-slate-400 shrink-0" />
+                            <User className="h-4 w-4 text-slate-600 shrink-0" />
                             <div>
                               <div className="font-medium text-slate-900">{partnerLabel(row)}</div>
                               <div className="text-xs text-slate-500 font-mono">{row.partnerId}</div>

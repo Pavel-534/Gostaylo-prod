@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin Users List API  
  * GET - Fetch all users (bypasses RLS using SERVICE_ROLE_KEY)
  */
@@ -9,7 +9,7 @@ import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   try {

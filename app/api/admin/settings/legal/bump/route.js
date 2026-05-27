@@ -1,16 +1,16 @@
-/**
+﻿/**
  * POST /api/admin/settings/legal/bump
  * Body: { "doc": "guest" | "partner" }
  */
 
 import { NextResponse } from 'next/server'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { LegalVersionsService } from '@/lib/services/legal-versions.service.js'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request) {
-  const gate = await requireAccess({ roles: ['ADMIN'] })
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   let body

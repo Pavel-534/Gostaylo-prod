@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+﻿import { NextResponse } from 'next/server'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { computeFinalBreakdown } from '@/lib/pricing-engine/compute-breakdown.js'
 import { toPartnerVisibleBreakdown, toFiscalKassaPayload } from '@/lib/pricing-engine/snapshot-adapter.js'
@@ -6,7 +6,7 @@ import { toPartnerVisibleBreakdown, toFiscalKassaPayload } from '@/lib/pricing-e
 export const dynamic = 'force-dynamic'
 
 export async function POST(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const body = await request.json().catch(() => ({}))

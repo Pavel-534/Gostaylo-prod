@@ -5,7 +5,7 @@ import PayoutBatchService from '@/lib/services/payout-batch.service.js'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request, { params }) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const format = new URL(request.url).searchParams.get('format') === 'csv' ? 'csv' : 'json'

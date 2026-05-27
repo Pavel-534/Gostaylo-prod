@@ -11,7 +11,7 @@ import {
   insertIcalSyncLog,
   syncIcalSourceToCalendarBlocks,
 } from '@/lib/services/ical-calendar-blocks-sync'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -26,7 +26,7 @@ function getSupabase() {
 }
 
 async function verifyAdmin() {
-  const access = await requireAccess({ roles: ['ADMIN'] })
+  const access = await requireAdminStaff(request)
   if (access.error) return { err: access.error }
   return { profile: access.profile }
 }

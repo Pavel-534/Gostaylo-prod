@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { movementKindLabel } from '@/lib/admin/fintech-movement-labels'
 import { fmtThb } from '@/lib/admin/fintech-console-shared'
+import { AdminTableAmount } from '@/components/admin/AdminTableAmount'
 import { fetchFintechMovements } from '@/lib/admin/admin-fintech-api-client'
 
 const NAVY = '#0F172A'
@@ -199,7 +200,7 @@ export function FinTechMovementJournal({ excludeTest = true, ownerSimple = false
                 {!ownerSimple && <p className="text-xs text-slate-600 mt-0.5">{row.subtitle}</p>}
                 <div className="flex flex-wrap gap-3 text-xs mt-1 text-slate-500">
                   {row.amountThb != null ? (
-                    <span className="font-semibold text-slate-800">{fmtThb(row.amountThb)}</span>
+                    <AdminTableAmount value={row.amountThb} showPlus={false} className="text-xs inline" />
                   ) : null}
                   {row.currency && !ownerSimple ? <span>{row.currency}</span> : null}
                   {row.reference && !ownerSimple ? (

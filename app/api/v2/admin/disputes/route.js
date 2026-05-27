@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { toUnifiedOrder } from '@/lib/models/unified-order'
 import { normalizeEmbeddedListingBooking } from '@/lib/services/booking/query.service'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,7 +59,7 @@ function mapListRow(row) {
 
 export async function GET(request) {
   try {
-    const access = await requireAccess({ roles: ['ADMIN'] })
+    const access = await requireAdminStaff(request)
     if (access.error) return access.error
 
     const { searchParams } = new URL(request.url)

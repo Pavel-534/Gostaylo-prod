@@ -5,7 +5,7 @@
  */
 
 import { NextResponse } from 'next/server'
-import { requireAccess } from '@/lib/security/access-guard'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { getContactSafetyMode } from '@/lib/contact-safety-mode'
 import {
   resolveDefaultCommissionPercent,
@@ -179,12 +179,12 @@ function buildDisplayLosses(lossThb, fxMap) {
   return out
 }
 
-export async function GET() {
+export async function GET(request) {
   if (!SUPABASE_URL || !SERVICE_KEY) {
     return NextResponse.json({ success: false, error: 'Server misconfigured' }, { status: 500 })
   }
 
-  const gate = await requireAccess({ roles: ['ADMIN'] })
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   const now = Date.now()

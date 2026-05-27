@@ -16,6 +16,7 @@ import {
 import { Loader2, RefreshCw, Landmark, PiggyBank, Wallet, Building2, FileSpreadsheet, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { fmtAdminPayoutAmount, fmtThbAdmin } from '@/lib/admin/format-payout-display';
+import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
 
 function fmtThb(n) {
   return fmtThbAdmin(n);
@@ -265,8 +266,8 @@ export default function AdminFinancialHealthPage() {
                     <tr key={p.id}>
                       <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">{p.id}</td>
                       <td className="px-3 py-2 text-slate-700">{p.partnerId}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">
-                        <div>{fmtThbAdmin(p.grossAmount ?? p.finalAmount ?? p.amount)}</div>
+                      <td className="px-3 py-2 text-right">
+                        <AdminTableAmount value={p.grossAmount ?? p.finalAmount ?? p.amount} showPlus={false} />
                         {p.amountInPayoutCurrency != null && String(p.payoutCurrency || '').toUpperCase() !== 'THB' ? (
                           <div className="text-xs text-slate-500">{fmtPayoutAmount(p)}</div>
                         ) : null}

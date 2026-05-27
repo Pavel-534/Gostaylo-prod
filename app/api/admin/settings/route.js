@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin Settings API (modular handlers)
  * GET - Fetch system settings
  * PUT - Update system settings by section
@@ -96,7 +96,7 @@ async function loadTierPayoutAudit() {
 }
 
 export async function GET() {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   try {
@@ -240,7 +240,7 @@ export async function GET() {
 }
 
 export async function PUT(request) {
-  const gate = await requireAdminStaff()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   try {

@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server'
-import { requireAccess } from '@/lib/security/access-guard'
+﻿import { NextResponse } from 'next/server'
+import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { supabaseAdmin } from '@/lib/supabase'
 import {
   isPricingEngineV2EnabledFromEnv,
@@ -19,12 +19,8 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-async function requireAdminOnly() {
-  return requireAccess({ roles: ['ADMIN'] })
-}
-
 export async function GET(request) {
-  const gate = await requireAdminOnly()
+  const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
   if (!supabaseAdmin) {
