@@ -9,6 +9,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { formatEmergencyChecklistRu } from '@/lib/emergency-contact-admin-notify'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { loadReferralReconciliationHealth } from '@/lib/admin/referral-reconciliation-health.js'
+import { loadReferralUnlockHealth } from '@/lib/admin/referral-unlock-health.js'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -71,6 +72,11 @@ function aggregateJob(rows, jobName) {
       sumStuckFound += Number(s.mismatchLedgerRows || 0)
       sumRemoved += Number(s.revertedBookingCount || 0)
     }
+    if (jobName === 'referral-unlock') {
+      sumDelivered += Number(s.unlockedCount || 0)
+      sumStuckFound += Number(s.bookingCount || 0)
+      sumRemoved += Number(s.unlockedAmountThb || 0)
+    }
   }
 
   return {
@@ -102,7 +108,13 @@ function aggregateJob(rows, jobName) {
                     mismatch_ledger_rows: sumStuckFound,
                     reverted_bookings: sumRemoved,
                   }
-                : {},
+                : jobName === 'referral-unlock'
+                  ? {
+                      unlocked_rows: sumDelivered,
+                      bookings_processed: sumStuckFound,
+                      unlocked_amount_thb: sumRemoved,
+                    }
+                  : {},
   }
 }
 
@@ -174,9 +186,13 @@ export async function GET(request) {
     'push-token-hygiene',
     'partner-sla-telegram-nudge',
     'referral-reconciliation',
+    'referral-unlock',
   ]
   const jobs = Object.fromEntries(jobNames.map((name) => [name, aggregateJob(opsRows, name)]))
-  const referralReconciliation = await loadReferralReconciliationHealth()
+  const [referralReconciliation, referralUnlock] = await Promise.all([
+    loadReferralReconciliationHealth(),
+    loadReferralUnlockHealth(),
+  ])
 
   let slaNudge = {
     tablePresent: true,
@@ -292,6 +308,7 @@ export async function GET(request) {
       emergencyRecentBookings: emergencyRecentBookings.slice(0, 40),
     },
     referralReconciliation,
+    referralUnlock,
     meta: {
       opsError,
       opsTablePresent: !opsFetchError || !String(opsFetchError.message || '').includes(OPS_MISSING),

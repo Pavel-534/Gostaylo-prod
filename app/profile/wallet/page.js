@@ -22,6 +22,7 @@ import { useWalletMeQuery, invalidateWalletMeQuery } from '@/lib/hooks/use-walle
 import { useReferralMeQuery } from '@/lib/hooks/use-referral-me'
 import { normalizeReferralDisplayCurrency } from '@/lib/finance/referral-display-currency'
 import { REFERRAL_DISPLAY_CURRENCY_CODES } from '@/lib/finance/referral-display-currency'
+import { ReferralHeldBalanceStrip } from '@/components/referral/ReferralHeldBalanceStrip'
 
 function formatThb(value, locale = 'ru-RU') {
   const n = Number(value)
@@ -133,6 +134,13 @@ export default function ProfileWalletPage() {
         subtitle={t('referralStage726_unifiedBalanceSubtitle')}
       />
 
+      <ReferralHeldBalanceStrip
+        data={referralData}
+        walletData={walletData}
+        t={t}
+        locale={locale}
+      />
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className={`lg:col-span-2 ${GSL_CARD} gsl-card-hover`}>
             <CardHeader className="pb-3">
@@ -155,9 +163,16 @@ export default function ProfileWalletPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-xl border border-slate-200 p-4 bg-slate-50"><p className="text-xs text-slate-500 uppercase">Всего</p><p className="text-3xl font-black text-brand">{formatThb(balance.balance_thb, locale)} THB</p></div>
-                <div className="rounded-xl border border-slate-200 p-4 bg-slate-50"><p className="text-xs text-slate-500 uppercase">Доступно к выводу</p><p className="text-3xl font-black text-brand">{formatThb(balance.withdrawable_balance_thb, locale)} THB</p></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="rounded-xl border border-slate-200 p-4 bg-slate-50"><p className="text-xs text-slate-500 uppercase">Всего</p><p className="text-3xl font-black text-brand">{formatThb(balance.balance_thb, locale)} ฿</p></div>
+                <div className="rounded-xl border border-slate-200 p-4 bg-slate-50"><p className="text-xs text-slate-500 uppercase">Доступно к выводу</p><p className="text-3xl font-black text-brand">{formatThb(balance.withdrawable_balance_thb, locale)} ฿</p></div>
+                <div className="rounded-xl border border-amber-200/80 p-4 bg-amber-50/50">
+                  <p className="text-xs text-amber-900/70 uppercase">{t('stage121_heldTitle')}</p>
+                  <p className="text-3xl font-black text-amber-950 tabular-nums">
+                    {formatThb(walletData?.balances?.heldReferralBalanceThb ?? referralData?.stats?.heldReferralBalanceThb ?? 0, locale)} ฿
+                  </p>
+                  <p className="text-[11px] text-amber-900/65 mt-1">{t('stage121_heldWalletHint')}</p>
+                </div>
                 <div className="rounded-xl border border-slate-200 p-4 bg-slate-50"><p className="text-xs text-slate-500 uppercase">Статус выплат</p><p className={`text-sm font-medium ${payout?.payoutEligible ? 'text-emerald-700' : 'text-slate-700'}`}>{payout?.payoutEligible ? 'Доступен вывод' : payoutReason}</p></div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

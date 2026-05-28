@@ -90,7 +90,7 @@ Admin UI: расширить `/admin/marketing/analytics` вкладкой **Fun
 ## Миграционная стратегия
 
 1. **Phase A** — ✅ **DONE (120.0–120.6):** `referral_attributions`, track API, E2E smoke 12c, денежный пульт `/admin/marketing/attribution`, SSOT `lib/finance/reporting.service.js`, promo tank balance, clawback/gross/net, cohort CSV, anti-fraud v1.
-2. **Phase B** — воронки (**B1 ✅ 121.0b**), hold-периоды, кампании, A/B, anti-fraud v2 (см. ниже).
+2. **Phase B** — ✅ **DONE (121.0b–123.3):** воронка 2.0, hold-периоды, кампании, A/B rules (production-ready), anti-fraud v2 + manual review queue + fraud KPI/deep-links.
 3. **Phase C** — ROI MV + site-wide Financial Intelligence Dashboard.
 4. **Phase D** — deprecate дублирующие поля в `metadata` JSON.
 
@@ -104,17 +104,17 @@ Admin UI: расширить `/admin/marketing/analytics` вкладкой **Fun
 | Денежная аналитика | `lib/finance/reporting.service.js` | ✅ |
 | Admin UI | `/admin/marketing/attribution` | ✅ |
 
-### Phase B — план (следующий этап)
+### Phase B — итог (закрыт, 2026-05-28)
 
 | # | Направление | Содержание |
 |---|-------------|------------|
 | B1 | **Воронка 2.0** | ✅ `computeReferralFunnelBundle` + вкладка «Воронка 2.0» (`/admin/marketing/attribution`); UTM/referrer breakdown; CR→1-я бронь в таблице |
-| B2 | **Hold-период** | ✅ Core 121.1b + UI/cron 121.2 (`/profile/referral`, `vercel.json`, admin ledger drill-down) |
-| B3 | **Кампании** | `referral_codes.campaign_slug`, лимиты, сроки; отчёт ROI по кампании |
-| B4 | **A/B правил** | `referral_reward_rules` versioned; shadow mode перед prod rollout |
-| B5 | **Anti-fraud v2** | Device graph, velocity, manual review queue в админке |
-| B6 | **Уровни рефереров** | Ambassador tiers v2: payout ratio из БД, sync с leaderboard |
-| B7 | **Dual-write events** | `referral_events` журнал из pnl/ledger (audit trail 1C-style) |
+| B2 | **Hold-период** | ✅ 121.1b–121.3: core + `/profile/referral` + `/profile/wallet` + cron `ops_job_runs` + `/admin/health` блок unlock |
+| B3 | **Кампании** | ✅ Stage 122.0–122.3 |
+| B4 | **A/B правил** | ✅ Stage 123.0–123.1: versioned rules + shadow + production rollout-флаг (`apply_split_in_production`) + facade `resolveReferralAccrualPolicy()` + ledger `rule_version/reward_rule_id` |
+| B5 | **Anti-fraud v2** | ✅ Device graph, velocity, strict self-referral/chain, pattern checks, manual review queue `/admin/marketing/fraud-queue`, fraud markers в attribution+ledger |
+| B6 | **Fraud observability polish** | ✅ KPI suspicious count/% в attribution + campaign card, deep-link расследование (queue → attribution / ledger / profile) |
+| B7 | **Phase B hardening** | ✅ build + smoke, docs sync, финализация SSOT |
 
 ## Риски
 

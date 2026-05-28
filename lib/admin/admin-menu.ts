@@ -7,7 +7,47 @@
 export const ADMIN_ROLES = ['ADMIN', 'MODERATOR'] as const
 export type AdminRole = (typeof ADMIN_ROLES)[number]
 
-/** @typedef {'LayoutDashboard' | 'Shield' | 'Wallet' | 'Users' | 'Landmark' | 'Settings' | 'Layers' | 'TrendingUp' | 'ShieldAlert' | 'Database' | 'UserCog' | 'Server' | 'MessageSquare' | 'FileDown' | 'Sparkles' | 'Activity' | 'Scale' | 'BadgeCheck' | 'Gavel' | 'Ticket' | 'Mail' | 'Globe2'} AdminMenuIconKey */
+export type AdminMenuIconKey =
+  | 'LayoutDashboard'
+  | 'Shield'
+  | 'Wallet'
+  | 'Users'
+  | 'Landmark'
+  | 'Settings'
+  | 'Layers'
+  | 'TrendingUp'
+  | 'ShieldAlert'
+  | 'Database'
+  | 'UserCog'
+  | 'Server'
+  | 'MessageSquare'
+  | 'FileDown'
+  | 'Sparkles'
+  | 'Activity'
+  | 'Scale'
+  | 'BadgeCheck'
+  | 'Gavel'
+  | 'Ticket'
+  | 'Mail'
+  | 'Globe2'
+  | 'Megaphone'
+
+export type AdminMenuItem = {
+  title: string
+  href: string
+  icon: AdminMenuIconKey
+  allowedRoles: AdminRole[]
+  emphasize?: boolean
+  navExact?: boolean
+}
+
+export type AdminMenuGroup = {
+  key: string
+  title: string
+  emphasize?: boolean
+  items: AdminMenuItem[]
+  quickActions?: AdminQuickActionDef[]
+}
 
 export type AdminQuickActionKind =
   | 'link'
@@ -26,26 +66,7 @@ export type AdminQuickActionDef = {
   allowedRoles?: AdminRole[]
 }
 
-/**
- * @typedef {Object} AdminMenuItem
- * @property {string} title
- * @property {string} href
- * @property {AdminMenuIconKey} icon
- * @property {AdminRole[]} allowedRoles
- * @property {boolean} [emphasize] — визуальный акцент (FinTech)
- */
-
-/**
- * @typedef {Object} AdminMenuGroup
- * @property {string} key
- * @property {string} title
- * @property {boolean} [emphasize]
- * @property {AdminMenuItem[]} items
- * @property {AdminQuickActionDef[]} [quickActions]
- */
-
-/** @type {AdminMenuGroup[]} */
-export const ADMIN_MENU_GROUPS = [
+export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
   {
     key: 'dashboard',
     title: 'Dashboard',
@@ -182,48 +203,49 @@ export const ADMIN_MENU_GROUPS = [
   },
   {
     key: 'growth',
-    title: 'Маркетинг & Рост',
-    quickActions: [
-      { id: 'growth-analytics', label: 'ROI Analytics', kind: 'link', href: '/admin/marketing/analytics', variant: 'brand', allowedRoles: ['ADMIN'] },
-      {
-        id: 'growth-attribution',
-        label: 'Денежный пульт',
-        kind: 'link',
-        href: '/admin/marketing/attribution',
-        variant: 'outline',
-        allowedRoles: ['ADMIN'],
-      },
-      { id: 'growth-pool', label: 'Бюджет и бонусы', kind: 'link', href: '/admin/marketing/settings', variant: 'outline', allowedRoles: ['ADMIN'] },
-      { id: 'growth-wallet-audit', label: 'Wallet Audit', kind: 'link', href: '/admin/marketing/wallet-audit', variant: 'outline', allowedRoles: ['ADMIN'] },
-    ],
+    title: 'Маркетинг & Промо',
+    quickActions: [],
     items: [
       {
-        title: 'Кампании и промо',
+        title: 'Обзор',
         href: '/admin/marketing',
-        icon: 'TrendingUp',
+        icon: 'LayoutDashboard',
+        allowedRoles: ['ADMIN'],
+        navExact: true,
+      },
+      {
+        title: 'Кампании',
+        href: '/admin/marketing/campaigns',
+        icon: 'Megaphone',
         allowedRoles: ['ADMIN'],
       },
       {
-        title: 'Рефералка & ROI Analytics',
-        href: '/admin/marketing/analytics',
-        icon: 'TrendingUp',
+        title: 'A/B правила',
+        href: '/admin/marketing/reward-rules',
+        icon: 'Sparkles',
         allowedRoles: ['ADMIN'],
       },
       {
-        title: 'Рефералка & Деньги',
-        href: '/admin/marketing/attribution',
-        icon: 'Activity',
-        allowedRoles: ['ADMIN'],
-      },
-      {
-        title: 'Бюджет и бонусы',
+        title: 'Настройки',
         href: '/admin/marketing/settings',
         icon: 'Layers',
         allowedRoles: ['ADMIN'],
       },
       {
-        title: 'Wallet Audit Trail',
-        href: '/admin/marketing/wallet-audit',
+        title: 'Fraud Queue',
+        href: '/admin/marketing/fraud-queue',
+        icon: 'ShieldAlert',
+        allowedRoles: ['ADMIN'],
+      },
+      {
+        title: 'Аналитика',
+        href: '/admin/marketing/attribution',
+        icon: 'Activity',
+        allowedRoles: ['ADMIN'],
+      },
+      {
+        title: 'Бюджет и аудит',
+        href: '/admin/marketing/budget',
         icon: 'Wallet',
         allowedRoles: ['ADMIN'],
       },
@@ -357,17 +379,19 @@ export function getAdminRestrictedPrefixesForRole(role) {
   return Array.from(new Set(restricted)).sort((a, b) => b.length - a.length)
 }
 
-/**
- * @param {string} pathname
- * @param {string} href
- */
-export function isAdminNavHrefActive(pathname, href) {
+export function isAdminNavHrefActive(
+  pathname: string,
+  href: string,
+  options: { exact?: boolean } = {},
+) {
   const clean = String(href || '').replace(/\/+$/, '')
   const p = String(pathname || '').replace(/\/+$/, '')
+  const exact = options.exact === true
   if (!clean) return false
   if (p === clean) return true
+  if (exact) return false
   if (clean === '/admin/dashboard') return false
-  return p.startsWith(clean)
+  return p.startsWith(`${clean}/`)
 }
 
 /**
@@ -377,18 +401,47 @@ export function isAdminNavHrefActive(pathname, href) {
  */
 export function resolveAdminBreadcrumb(pathname, groups = ADMIN_MENU_GROUPS) {
   const p = String(pathname || '')
+  /** Longest-prefix match — корректно для /admin/marketing/* vs /admin/marketing. */
+  let best = null
+  let bestLen = -1
   for (const g of groups) {
     for (const it of g.items) {
-      if (isAdminNavHrefActive(p, it.href)) {
-        return { groupKey: g.key, group: g.title, page: it.title }
+      if (isAdminNavHrefActive(p, it.href, { exact: it.navExact === true })) {
+        const len = String(it.href || '').length
+        if (len > bestLen) {
+          bestLen = len
+          best = { groupKey: g.key, group: g.title, page: it.title }
+        }
       }
     }
   }
+  if (best) return best
   if (p.startsWith('/admin/messages')) {
     return { groupKey: 'ops', group: 'Операции', page: 'Сообщения' }
   }
   if (p.startsWith('/admin/settings/legal')) {
     return { groupKey: 'settings', group: 'Настройки', page: 'Юридические документы' }
+  }
+  if (p.startsWith('/admin/marketing/promos')) {
+    return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'Промокоды' }
+  }
+  if (p.startsWith('/admin/marketing/budget')) {
+    return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'Бюджет и аудит' }
+  }
+  if (p.startsWith('/admin/marketing/analytics')) {
+    return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'ROI & когорты' }
+  }
+  if (p.startsWith('/admin/marketing/payouts')) {
+    return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'Referral Payouts' }
+  }
+  if (p.startsWith('/admin/marketing/wallet-audit')) {
+    return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'Wallet Audit' }
+  }
+  if (p.startsWith('/admin/marketing/audit')) {
+    return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'Promo Tank Audit' }
+  }
+  if (p.match(/^\/admin\/marketing\/campaigns\/[^/]+/)) {
+    return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'Кампания' }
   }
   return null
 }

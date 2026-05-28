@@ -170,7 +170,9 @@ export default function AdminLayout({ children }) {
                 <div className="space-y-1">
                   {group.items.map((item) => {
                     const Icon = resolveAdminMenuIcon(item.icon);
-                    const active = isAdminNavHrefActive(pathname, item.href);
+                    const active = isAdminNavHrefActive(pathname, item.href, {
+                      exact: item.navExact === true,
+                    });
                     const emphasized = item.emphasize === true;
                     return (
                       <Link

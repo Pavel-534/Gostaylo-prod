@@ -43,6 +43,51 @@ function pct(value) {
   return `${Number(value || 0).toFixed(2)}%`;
 }
 
+/** Процент без ведущего нуля: type=number + value=0 даёт «02» при наборе «2». */
+function PercentInput({ id, label, hint, value, onChange, min = 0, max = 100 }) {
+  const [text, setText] = useState(() => (value === 0 ? '' : String(value)));
+
+  useEffect(() => {
+    if (typeof document !== 'undefined' && document.activeElement?.id === id) return;
+    setText(value === 0 ? '' : String(value));
+  }, [value, id]);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center gap-1.5">
+        <Label htmlFor={id}>{label}</Label>
+        {hint ? <FieldHint>{hint}</FieldHint> : null}
+      </div>
+      <Input
+        id={id}
+        type="text"
+        inputMode="decimal"
+        autoComplete="off"
+        placeholder="0"
+        value={text}
+        onChange={(e) => {
+          const t = e.target.value.replace(',', '.').trim();
+          if (t === '') {
+            setText('');
+            onChange(0);
+            return;
+          }
+          if (!/^\d{0,3}(\.\d{0,2})?$/.test(t)) return;
+          setText(t);
+          const n = parseFloat(t);
+          if (Number.isFinite(n)) onChange(clamp(n, min, max));
+        }}
+        onBlur={() => {
+          const n = parseFloat(text);
+          const v = Number.isFinite(n) ? clamp(n, min, max) : 0;
+          onChange(v);
+          setText(v === 0 ? '' : String(v));
+        }}
+      />
+    </div>
+  );
+}
+
 export default function MarketingSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -298,6 +343,20 @@ export default function MarketingSettingsPage() {
           <p className="text-sm text-slate-600 mt-1">
             Здесь задаётся общий бюджет на акции, размер реферальных выплат и защита от убытков по марже.
           </p>
+          <nav className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-sm" aria-label="Разделы страницы">
+            <a href="#referral-hold" className="text-emerald-800 font-medium hover:underline">
+              Период охлаждения
+            </a>
+            <a href="#marketing-pool" className="text-slate-600 hover:underline">
+              Бюджет пула
+            </a>
+            <a href="#referral-bonuses" className="text-slate-600 hover:underline">
+              Все бонусы
+            </a>
+            <a href="#safety-limits" className="text-slate-600 hover:underline">
+              Лимиты
+            </a>
+          </nav>
         </div>
         <Button onClick={() => void handleSave()} disabled={saving}>
           <Save className="h-4 w-4 mr-2" />
@@ -305,7 +364,49 @@ export default function MarketingSettingsPage() {
         </Button>
       </div>
 
-      <Card>
+      <Card id="referral-hold" className="scroll-mt-4 border-emerald-300 bg-emerald-50/40 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-emerald-950">Период охлаждения реферального бонуса</CardTitle>
+          <CardDescription>
+            После завершения брони бонус виден пригласившему, но на кошелёк попадёт только через указанное число дней
+            (на случай отмены или спора). Поставьте <strong>0</strong>, чтобы зачислять сразу.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-4">
+          <div className="space-y-2 w-full max-w-[220px]">
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="referralHoldDaysTop" className="text-base font-medium">
+                Дней ожидания
+              </Label>
+              <FieldHint>
+                Типичные значения: 14 → 7 → 3 по мере зрелости программы. Изменение влияет только на новые начисления
+                после сохранения.
+              </FieldHint>
+            </div>
+            <Input
+              id="referralHoldDaysTop"
+              type="number"
+              min={0}
+              max={90}
+              step={1}
+              className="text-lg font-semibold bg-white"
+              value={form.referralHoldDays}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  referralHoldDays: clamp(e.target.value, 0, 90),
+                }))
+              }
+            />
+          </div>
+          <p className="text-sm text-emerald-900/80 pb-2">
+            После сохранения новые бонусы будут ждать <strong>{form.referralHoldDays} дн.</strong> перед зачислением на
+            кошелёк. Нажмите «Сохранить» справа вверху.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card id="marketing-pool" className="scroll-mt-4">
         <CardHeader>
           <CardTitle>Маркетинговый бюджет (пул)</CardTitle>
           <CardDescription>
@@ -442,7 +543,7 @@ export default function MarketingSettingsPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="referral-bonuses" className="scroll-mt-4">
         <CardHeader>
           <CardTitle>Бонусы</CardTitle>
           <CardDescription>
@@ -576,48 +677,33 @@ export default function MarketingSettingsPage() {
         <CardHeader>
           <CardTitle>Экономика сети</CardTitle>
           <CardDescription>
-            Учёт эквайринга и операционного резерва при расчёте «сколько можно потратить на бонусы».
+            Дополнительные расходы платформы с каждой брони — уменьшают «чистую маржу», из которой считается потолок
+            реферальных бонусов. Применяется при каждом начислении по рефералке (после COMPLETED) и в проверке ниже
+            «Лимиты безопасности».
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="acquiringFeePercent">Комиссия эквайринга, %</Label>
-            <Input
-              id="acquiringFeePercent"
-              type="number"
-              min={0}
-              max={100}
-              step={0.1}
-              value={form.acquiringFeePercent}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  acquiringFeePercent: clamp(e.target.value, 0, 100),
-                }))
-              }
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="operationalReservePercent">Операционный резерв, %</Label>
-            <Input
-              id="operationalReservePercent"
-              type="number"
-              min={0}
-              max={100}
-              step={0.1}
-              value={form.operationalReservePercent}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  operationalReservePercent: clamp(e.target.value, 0, 100),
-                }))
-              }
-            />
-          </div>
+          <PercentInput
+            id="acquiringFeePercent"
+            label="Комиссия эквайринга, %"
+            hint="Оценка комиссии банка/платёжки от валовой выручки платформы (сервисный сбор гостя + комиссия хоста). Например: 2 = 2% с этой суммы вычитается до расчёта бонуса."
+            value={form.acquiringFeePercent}
+            onChange={(v) => setForm((prev) => ({ ...prev, acquiringFeePercent: v }))}
+          />
+          <PercentInput
+            id="operationalReservePercent"
+            label="Операционный резерв, %"
+            hint="Заклад на поддержку, споры, ручные операции — тоже % от валовой выручки платформы по брони. Вместе с эквайрингом уменьшает сумму, которую можно отдать рефереру."
+            value={form.operationalReservePercent}
+            onChange={(v) => setForm((prev) => ({ ...prev, operationalReservePercent: v }))}
+          />
         </CardContent>
       </Card>
 
-      <Card className={mlmTotalPercent > 100 ? 'border-red-300' : 'border-emerald-300'}>
+      <Card
+        id="safety-limits"
+        className={`scroll-mt-4 ${mlmTotalPercent > 100 ? 'border-red-300' : 'border-emerald-300'}`}
+      >
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShieldAlert className={`h-4 w-4 ${mlmTotalPercent > 100 ? 'text-red-600' : 'text-emerald-600'}`} />
@@ -638,7 +724,15 @@ export default function MarketingSettingsPage() {
           {lastBudget ? (
             <>
               <p>Маржа платформы с брони: <strong>{pct(lastBudget.platformMarginPercent)}</strong></p>
-              <p>Фиксированные издержки (эквайринг, резерв, налог): <strong>{pct(lastBudget.fixedCostPercent)}</strong></p>
+              <p>
+                Фиксированные издержки (страхфонд + эквайринг + операц. резерв + налог):{' '}
+                <strong>{pct(lastBudget.fixedCostPercent)}</strong>
+              </p>
+              <p className="text-xs text-slate-500">
+                Сейчас в форме: эквайринг {pct(form.acquiringFeePercent)}, операц. резерв{' '}
+                {pct(form.operationalReservePercent)}. Страховой фонд и налог берутся из общих финансовых настроек
+                (после «Сохранить» цифры в строке выше обновятся).
+              </p>
               <p>Планируемые реферальные выплаты: <strong>{pct(lastBudget.projectedReferralPercent)}</strong></p>
               <p>Всего расходов от маржи: <strong>{pct(lastBudget.projectedTotalBurnPercent)}</strong></p>
             </>

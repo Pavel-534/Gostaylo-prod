@@ -1,0 +1,24 @@
+{
+  "components\\push-client-init.jsx -> firebase/messaging": {
+    "id": "components\\push-client-init.jsx -> firebase/messaging",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_firebase_messaging_dist_esm_index_esm_js.js"
+    ]
+  },
+  "lib\\analytics\\product-analytics.js -> posthog-js": {
+    "id": "lib\\analytics\\product-analytics.js -> posthog-js",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_posthog-js_dist_module_js.js"
+    ]
+  },
+  "lib\\auth.js -> @/lib/auth/browser-auth-cleanup": {
+    "id": "lib\\auth.js -> @/lib/auth/browser-auth-cleanup",
+    "files": [
+      "static/chunks/_app-pages-browser_lib_auth_browser-auth-cleanup_js.js"
+    ]
+  },
+  "lib\\auth.js -> @/lib/supabase/oauth-browser-client": {
+    "id": "lib\\auth.js -> @/lib/supabase/oauth-browser-client",
+    "files": []
+  }
+}

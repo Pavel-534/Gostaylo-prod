@@ -16,6 +16,10 @@ export function ReferralProfileTabSettings({ data, t }) {
   const [monthlyGoal, setMonthlyGoal] = useState('10000')
   const [reportTimezone, setReportTimezone] = useState('Asia/Bangkok')
   const [displayCurrency, setDisplayCurrency] = useState('THB')
+  const [campaignLoading, setCampaignLoading] = useState(false)
+  const [campaignSaving, setCampaignSaving] = useState(false)
+  const [campaignOptions, setCampaignOptions] = useState([])
+  const [campaignSlug, setCampaignSlug] = useState('__none__')
 
   const timezoneOptions = useMemo(() => {
     try {
@@ -33,6 +37,27 @@ export function ReferralProfileTabSettings({ data, t }) {
     setReportTimezone(String(reportPrefs?.ianaTimezone || reportPrefs?.statsCalendarIana || 'Asia/Bangkok'))
     setDisplayCurrency(normalizeReferralDisplayCurrency(data?.stats?.referralDisplayCurrency || 'THB'))
   }, [data])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      setCampaignLoading(true)
+      try {
+        const res = await fetch('/api/v2/referral/campaign-binding', { credentials: 'include', cache: 'no-store' })
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok || !json?.success) return
+        if (cancelled) return
+        const options = Array.isArray(json?.data?.campaigns) ? json.data.campaigns : []
+        setCampaignOptions(options)
+        setCampaignSlug(json?.data?.campaignSlug || '__none__')
+      } finally {
+        if (!cancelled) setCampaignLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function saveSettings() {
     const goalNum = Number(monthlyGoal || 0)
@@ -59,6 +84,27 @@ export function ReferralProfileTabSettings({ data, t }) {
       toast.error(e?.message || t('stage73_profileSaveErr'))
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function saveCampaignBinding() {
+    setCampaignSaving(true)
+    try {
+      const res = await fetch('/api/v2/referral/campaign-binding', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignSlug: campaignSlug === '__none__' ? null : campaignSlug,
+        }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.success) throw new Error(json?.error || 'CAMPAIGN_BIND_SAVE_FAILED')
+      toast.success('Кампания для вашей реферальной ссылки обновлена')
+    } catch (e) {
+      toast.error(e?.message || 'Не удалось сохранить кампанию')
+    } finally {
+      setCampaignSaving(false)
     }
   }
 
@@ -113,6 +159,28 @@ export function ReferralProfileTabSettings({ data, t }) {
         <Button variant="brand" disabled={saving} onClick={() => void saveSettings()}>
           {saving ? '…' : t('stage73_saveReportPrefs')}
         </Button>
+        <div className="space-y-2 rounded-lg border border-slate-200 p-3">
+          <Label>Кампания для реферальной ссылки</Label>
+          <Select value={campaignSlug} onValueChange={setCampaignSlug} disabled={campaignLoading}>
+            <SelectTrigger>
+              <SelectValue placeholder="Без кампании" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Без кампании</SelectItem>
+              {campaignOptions.map((row) => (
+                <SelectItem key={row.slug} value={row.slug}>
+                  {row.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-slate-500">
+            Если выбрана активная кампания, для новых начислений применяется её hold override и лимиты бюджета.
+          </p>
+          <Button variant="outline" disabled={campaignSaving || campaignLoading} onClick={() => void saveCampaignBinding()}>
+            {campaignSaving ? 'Сохраняем...' : 'Сохранить кампанию ссылки'}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   )

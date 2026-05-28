@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   ArrowDown,
-  ArrowLeft,
   ArrowUp,
   ArrowUpDown,
   Banknote,
@@ -14,7 +14,9 @@ import {
   HelpCircle,
   LineChart,
   RefreshCw,
+  Megaphone,
   RotateCcw,
+  X,
 } from 'lucide-react';
 import {
   CartesianGrid,
@@ -112,6 +114,7 @@ function buildQueryParams({
   ledgerStatus,
   referrerId,
   utmSource,
+  campaignSlug,
   minMarginThb,
   profitabilityFilter,
   limit,
@@ -124,6 +127,7 @@ function buildQueryParams({
   const rid = String(referrerId || '').trim();
   if (rid) params.set('referrerId', rid);
   if (utmSource && utmSource !== 'all') params.set('utmSource', utmSource);
+  if (campaignSlug && campaignSlug !== 'all') params.set('campaignSlug', campaignSlug);
   const mm = String(minMarginThb ?? '').trim();
   if (mm !== '') params.set('minMarginThb', mm);
   if (profitabilityFilter && profitabilityFilter !== 'all') {
@@ -187,6 +191,10 @@ function KpiCard({ def, metrics, referrerTotal }) {
         <span className="text-sm font-normal text-slate-500"> / {referrerTotal}</span>
       </span>
     );
+  } else if (def.format === 'number') {
+    valueNode = <span className="text-xl tabular-nums font-bold text-slate-900">{Number(raw || 0)}</span>;
+  } else if (def.format === 'percent') {
+    valueNode = <span className="text-xl tabular-nums font-bold text-slate-900">{formatPct(raw)}</span>;
   } else if (def.signed) {
     valueNode = (
       <span className={marginToneClass(raw)}>
@@ -217,7 +225,7 @@ function KpiCard({ def, metrics, referrerTotal }) {
         {def.subKey ? (
           <p className="text-xs text-muted-foreground">
             {def.subLabel}:{' '}
-            {def.subKey === 'promoTankSpentPct' ? formatPct(subRaw) : (
+            {def.subKey === 'promoTankSpentPct' || def.subKey === 'suspiciousConversionPct' ? formatPct(subRaw) : (
               <AdminTableAmount value={subRaw} showPlus={false} className="inline text-xs" />
             )}
           </p>
@@ -228,6 +236,7 @@ function KpiCard({ def, metrics, referrerTotal }) {
 }
 
 export default function ReferralAttributionAdminPage() {
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [dateFrom, setDateFrom] = useState(defaultDateFrom);
@@ -237,6 +246,7 @@ export default function ReferralAttributionAdminPage() {
   const [ledgerStatus, setLedgerStatus] = useState('all');
   const [referrerId, setReferrerId] = useState('');
   const [utmSource, setUtmSource] = useState('all');
+  const [campaignSlug, setCampaignSlug] = useState('all');
   const [minMarginThb, setMinMarginThb] = useState('');
   const [profitabilityFilter, setProfitabilityFilter] = useState('all');
   const [showClicksJournal, setShowClicksJournal] = useState(false);
@@ -250,6 +260,7 @@ export default function ReferralAttributionAdminPage() {
   const [ledgerLoading, setLedgerLoading] = useState(false);
   const [ledgerData, setLedgerData] = useState(null);
   const [mainTab, setMainTab] = useState('money');
+  const [deepLinkAttributionId, setDeepLinkAttributionId] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -261,6 +272,7 @@ export default function ReferralAttributionAdminPage() {
         ledgerStatus,
         referrerId,
         utmSource,
+        campaignSlug,
         minMarginThb,
         profitabilityFilter,
         limit: 500,
@@ -280,16 +292,39 @@ export default function ReferralAttributionAdminPage() {
     } finally {
       setLoading(false);
     }
-  }, [dateFrom, dateTo, status, ledgerStatus, referrerId, utmSource, minMarginThb, profitabilityFilter]);
+  }, [dateFrom, dateTo, status, ledgerStatus, referrerId, utmSource, campaignSlug, minMarginThb, profitabilityFilter]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const fromQuery = String(searchParams.get('campaignSlug') || '').trim();
+    if (fromQuery) setCampaignSlug(fromQuery);
+    const fromReferrerQuery = String(searchParams.get('referrerId') || '').trim();
+    if (fromReferrerQuery) setReferrerId(fromReferrerQuery);
+    const fromAttributionQuery = String(searchParams.get('attributionId') || '').trim();
+    if (fromAttributionQuery) {
+      setShowClicksJournal(true);
+      setDeepLinkAttributionId(fromAttributionQuery);
+    }
+  }, [searchParams]);
+
   const metrics = data?.metrics || {};
   const rows = Array.isArray(data?.rows) ? data.rows : [];
   const referrerRows = Array.isArray(data?.referrerMonetaryRows) ? data.referrerMonetaryRows : [];
   const utmOptions = Array.isArray(data?.utmSourceOptions) ? data.utmSourceOptions : [];
+  const campaignOptions = Array.isArray(data?.campaignOptions) ? data.campaignOptions : [];
+  const campaignRows = Array.isArray(data?.campaignRows) ? data.campaignRows : [];
+
+  useEffect(() => {
+    if (!deepLinkAttributionId) return;
+    const exists = rows.some((row) => String(row?.id || '') === deepLinkAttributionId);
+    if (!exists) return;
+    const row = rows.find((x) => String(x?.id || '') === deepLinkAttributionId);
+    void openLedger(deepLinkAttributionId, row?.click_id || '');
+    setDeepLinkAttributionId('');
+  }, [deepLinkAttributionId, rows]);
 
   const chartRows = useMemo(() => {
     return (data?.chartDaily || []).map((row) => ({
@@ -341,6 +376,7 @@ export default function ReferralAttributionAdminPage() {
         ledgerStatus,
         referrerId,
         utmSource,
+        campaignSlug,
         minMarginThb,
         profitabilityFilter,
         limit: 500,
@@ -415,18 +451,11 @@ export default function ReferralAttributionAdminPage() {
       <div className="mx-auto max-w-[1400px] space-y-6 p-4 md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <Link
-              href="/admin/marketing/analytics"
-              className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              ROI Analytics
-            </Link>
             <h1 className="text-2xl font-bold" style={{ color: FINTECH_NAVY }}>
-              Рефералка &amp; Деньги
+              Аналитика рефералки
             </h1>
             <p className="mt-1 max-w-2xl text-sm text-slate-600">
-              Phase A — деньги и маржа · B1 — воронка · B2 — hold earned_held перед зачислением на кошелёк.
+              Денежный пульт, воронка 2.0, фильтры и экспорты. ROI по когортам — в разделе «Бюджет и аудит».
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -437,6 +466,9 @@ export default function ReferralAttributionAdminPage() {
             <Button type="button" variant="outline" size="sm" onClick={() => void downloadCsv('cohort-csv', 'CSV: когорты')}>
               <Download className="mr-2 h-4 w-4" />
               Когорты
+            </Button>
+            <Button asChild type="button" variant="outline" size="sm">
+              <Link href="/admin/marketing/campaigns">Кампании</Link>
             </Button>
             <Button type="button" variant="brand" onClick={() => void load()} disabled={loading}>
               <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -460,6 +492,63 @@ export default function ReferralAttributionAdminPage() {
           </TabsContent>
 
           <TabsContent value="money" className="mt-0 space-y-6">
+        <Card
+          className={
+            campaignSlug !== 'all'
+              ? 'border-2 border-brand bg-gradient-to-r from-brand/10 via-brand/5 to-white shadow-md'
+              : 'border-2 border-dashed border-slate-300 bg-slate-50/80 shadow-sm'
+          }
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Megaphone className="h-5 w-5 text-brand shrink-0" />
+              Реферальная кампания
+            </CardTitle>
+            <CardDescription>
+              {campaignSlug !== 'all'
+                ? `Показаны только данные кампании «${campaignSlug}» — KPI, рефереры и экспорт CSV учитывают этот slug.`
+                : 'Выберите кампанию, чтобы сузить денежный пульт и таблицу метрик по кампаниям.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[min(100%,280px)] flex-1">
+              <Label className="text-slate-800 font-medium">Кампания</Label>
+              <Select value={campaignSlug} onValueChange={setCampaignSlug}>
+                <SelectTrigger className="mt-1 h-11 border-slate-300 bg-white font-medium">
+                  <SelectValue placeholder="Все кампании" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все кампании</SelectItem>
+                  {campaignOptions.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {campaignSlug !== 'all' ? (
+              <>
+                <Button asChild type="button" variant="brand" size="sm" className="h-11">
+                  <Link href={`/admin/marketing/campaigns/${encodeURIComponent(campaignSlug)}`}>
+                    Карточка кампании
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-11"
+                  onClick={() => setCampaignSlug('all')}
+                >
+                  <X className="mr-1 h-4 w-4" />
+                  Сбросить
+                </Button>
+              </>
+            ) : null}
+          </CardContent>
+        </Card>
+
         <Card className="border-brand/20 bg-gradient-to-br from-brand/5 to-white shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Период и фильтры</CardTitle>
@@ -479,7 +568,7 @@ export default function ReferralAttributionAdminPage() {
                 </Button>
               ))}
             </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
               <div>
                 <Label htmlFor="attr-from">С</Label>
                 <Input
@@ -558,6 +647,73 @@ export default function ReferralAttributionAdminPage() {
                 </Select>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-cyan-200/70 bg-cyan-50/20 shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-base">Метрики по кампаниям</CardTitle>
+              <CardDescription>Клики, регистрации, первые/повторные брони, earned, расход бюджета и ROI.</CardDescription>
+            </div>
+            <Badge variant="outline">{campaignRows.length} камп.</Badge>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            {!campaignRows.length ? (
+              <p className="text-sm text-slate-500">Нет данных по кампаниям за выбранный период.</p>
+            ) : (
+              <Table className="min-w-[880px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Campaign</TableHead>
+                    <TableHead className="text-right">Clicks</TableHead>
+                    <TableHead className="text-right">Registrations</TableHead>
+                    <TableHead className="text-right">First</TableHead>
+                    <TableHead className="text-right">Repeat</TableHead>
+                    <TableHead className="text-right">Suspicious</TableHead>
+                    <TableHead className="text-right">Earned</TableHead>
+                    <TableHead className="text-right">Spend</TableHead>
+                    <TableHead className="text-right">ROI</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {campaignRows.map((row) => (
+                    <TableRow key={row.campaignSlug}>
+                      <TableCell className="font-mono text-xs">
+                        {row.campaignSlug && row.campaignSlug !== '(default)' ? (
+                          <Link
+                            href={`/admin/marketing/campaigns/${encodeURIComponent(row.campaignSlug)}`}
+                            className="text-brand hover:underline"
+                          >
+                            {row.campaignSlug}
+                          </Link>
+                        ) : (
+                          row.campaignSlug
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">{row.clicksCount || 0}</TableCell>
+                      <TableCell className="text-right tabular-nums">{row.signupsCount || 0}</TableCell>
+                      <TableCell className="text-right tabular-nums">{row.firstBookingsCount || 0}</TableCell>
+                      <TableCell className="text-right tabular-nums">{row.repeatBookingsCount || 0}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {Number(row.suspiciousConversionsCount || 0) > 0 ? (
+                          <Badge variant="outline" className="border-amber-300 text-amber-900">
+                            {row.suspiciousConversionsCount}
+                          </Badge>
+                        ) : (
+                          <span className="text-slate-400">0</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right"><AdminTableAmount value={row.earnedThb || 0} showPlus={false} /></TableCell>
+                      <TableCell className="text-right"><AdminTableAmount value={row.spendThb || 0} showPlus={false} /></TableCell>
+                      <TableCell className={`text-right ${roiToneClass(row.roiIndex)}`}>
+                        {row.roiIndex != null ? Number(row.roiIndex).toFixed(2) : '—'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
 

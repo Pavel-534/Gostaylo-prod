@@ -1,8 +1,8 @@
 'use client';
 
-import AdminMarketingPageContent from '@/components/admin/marketing/AdminMarketingPageContent';
+import MarketingDashboard from '@/components/admin/marketing/MarketingDashboard';
 
-/** Stage 111.0 — тонкая оболочка; логика в useAdminMarketingPage, UI в AdminMarketingPageContent. */
-export default function MarketingPage() {
-  return <AdminMarketingPageContent />;
+/** Stage 124.0 — главный обзор маркетинга и рефералки. */
+export default function MarketingDashboardPage() {
+  return <MarketingDashboard />;
 }

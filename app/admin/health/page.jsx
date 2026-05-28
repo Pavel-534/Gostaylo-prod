@@ -139,6 +139,8 @@ export default function AdminHealthPage() {
   const trustSafety = data?.trustSafety
   const referralReconcile = data?.referralReconciliation
   const referralReconcileJob = data?.jobs?.['referral-reconciliation']
+  const referralUnlock = data?.referralUnlock
+  const referralUnlockJob = data?.jobs?.['referral-unlock']
   const adapterEntries = Object.entries(adapterHealth?.adapters || {})
   const hasAdapterProblems = adapterEntries.some(([, row]) => !row?.ready) || !adapterHealth?.global?.ready
 
@@ -253,6 +255,67 @@ export default function AdminHealthPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {data && referralUnlock ? (
+        <Card className="rounded-2xl border border-amber-100 bg-amber-50/30 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-amber-950">
+              <Activity className="h-5 w-5 text-amber-700" />
+              Referral unlock (холд → кошелёк)
+            </CardTitle>
+            <CardDescription className="text-amber-900/80">
+              Крон{' '}
+              <code className="text-xs bg-white/80 px-1 rounded">/api/cron/referral-unlock</code> —{' '}
+              {referralUnlock.scheduleUtc || '15 5 * * *'} UTC. Разблокировка{' '}
+              <code className="text-xs">earned_held</code> после <code className="text-xs">unlock_at</code>.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-slate-500">Последний прогон</span>
+              <StatusBadge status={referralUnlock.lastRun?.status || referralUnlockJob?.lastStatus} />
+            </div>
+            {referralUnlock.error ? <p className="text-red-600 text-xs">{referralUnlock.error}</p> : null}
+            <p className="text-slate-600">
+              Старт: {formatDt(referralUnlock.lastRun?.startedAt || referralUnlockJob?.lastStartedAt)}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <div className="rounded-xl border border-amber-100 bg-white/70 px-3 py-2">
+                <p className="text-slate-500">За 24 ч</p>
+                <p className="text-slate-800 mt-1">
+                  Строк ledger: <strong>{referralUnlock.last24h?.unlockedCount ?? 0}</strong>
+                </p>
+                <p className="text-slate-800">
+                  Сумма: <strong>{Number(referralUnlock.last24h?.unlockedAmountThb ?? 0).toLocaleString('ru-RU')} ฿</strong>
+                </p>
+                <p className="text-slate-500 mt-0.5">прогонов: {referralUnlock.last24h?.runCount ?? 0}</p>
+              </div>
+              <div className="rounded-xl border border-amber-100 bg-white/70 px-3 py-2">
+                <p className="text-slate-500">Сегодня (UTC)</p>
+                <p className="text-slate-800 mt-1">
+                  Строк ledger: <strong>{referralUnlock.todayUtc?.unlockedCount ?? 0}</strong>
+                </p>
+                <p className="text-slate-800">
+                  Сумма: <strong>{Number(referralUnlock.todayUtc?.unlockedAmountThb ?? 0).toLocaleString('ru-RU')} ฿</strong>
+                </p>
+                <p className="text-slate-500 mt-0.5">прогонов: {referralUnlock.todayUtc?.runCount ?? 0}</p>
+              </div>
+            </div>
+            {referralUnlock.lastRun?.stats ? (
+              <p className="text-xs text-slate-600">
+                Последний прогон: броней {referralUnlock.lastRun.stats.bookingCount ?? '—'}, строк{' '}
+                {referralUnlock.lastRun.stats.unlockedCount ?? '—'},{' '}
+                {Number(referralUnlock.lastRun.stats.unlockedAmountThb ?? 0).toLocaleString('ru-RU')} ฿
+              </p>
+            ) : (
+              <p className="text-xs text-slate-500">Прогонов в окне 7д: {referralUnlockJob?.runCount ?? 0}</p>
+            )}
+            {referralUnlock.lastRun?.errorMessage ? (
+              <p className="text-xs text-red-600 line-clamp-3">{referralUnlock.lastRun.errorMessage}</p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {data && referralReconcile ? (
         <Card className="rounded-2xl border border-violet-100 bg-violet-50/30 shadow-sm">

@@ -21,6 +21,7 @@ export async function GET(request) {
     const ledgerStatus = searchParams.get('ledgerStatus') || null;
     const referrerId = searchParams.get('referrerId') || null;
     const utmSource = searchParams.get('utmSource') || null;
+    const campaignSlug = searchParams.get('campaignSlug') || null;
     const minMarginThb = searchParams.get('minMarginThb') || null;
     const profitabilityFilter = searchParams.get('profitabilityFilter') || 'all';
     const limit = searchParams.get('limit') || '80';
@@ -33,6 +34,7 @@ export async function GET(request) {
       ledgerStatus,
       referrerId,
       utmSource,
+      campaignSlug,
       minMarginThb,
       profitabilityFilter,
       tableLimit: limit,

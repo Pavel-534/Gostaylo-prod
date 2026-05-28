@@ -61,29 +61,13 @@ export default function AdminMarketingPageContent() {
       {/* Header - Mobile Responsive */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Маркетинг</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">Управление промокодами и акциями</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-950">Промокоды</h1>
+          <p className="text-sm text-slate-600 mt-1">PLATFORM-коды и партнёрские акции на чекауте</p>
         </div>
-        <div className="flex w-full sm:w-auto gap-2">
-          <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link href="/admin/marketing/settings">Referral Settings</Link>
-          </Button>
-          <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link href="/admin/marketing/payouts">Payouts</Link>
-          </Button>
-          <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link href="/admin/marketing/analytics">ROI Analytics</Link>
-          </Button>
-          <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link href="/admin/marketing/audit">Marketing Budget (Pool) audit</Link>
-          </Button>
-          <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link href="/admin/marketing/wallet-audit">Wallet Audit</Link>
-          </Button>
-          <Button onClick={() => setShowCreateModal(true)} className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 w-full sm:w-auto">
-            <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />Создать промокод
-          </Button>
-        </div>
+        <Button onClick={() => setShowCreateModal(true)} className="bg-brand hover:bg-brand-hover w-full sm:w-auto">
+          <Plus className="w-4 h-4 mr-2" />
+          Создать промокод
+        </Button>
       </div>
 
       {criticalPlatformPromos.length > 0 ? (

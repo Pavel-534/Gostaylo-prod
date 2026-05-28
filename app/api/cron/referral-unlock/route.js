@@ -3,7 +3,7 @@
  */
 import { NextResponse } from 'next/server';
 import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js';
-import { runReferralUnlockJob } from '@/lib/cron/referral-unlock-job.js';
+import { executeReferralUnlockRun } from '@/lib/cron/referral-unlock-run.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +14,14 @@ async function handle(request) {
     const url = new URL(request.url);
     const dryRun = url.searchParams.get('dryRun') === '1' || url.searchParams.get('dryRun') === 'true';
     const limit = Number(url.searchParams.get('limit') || 200);
-    const result = await runReferralUnlockJob({ dryRun, limit });
-    return NextResponse.json({ success: result.success !== false, ...result });
+    const exec = await executeReferralUnlockRun({ dryRun, limit, trigger: 'cron' });
+    if (!exec.success) {
+      return NextResponse.json(
+        { success: false, error: exec.error, ...(exec.result || {}) },
+        { status: 500 },
+      );
+    }
+    return NextResponse.json({ success: true, ...exec.result });
   } catch (e) {
     return NextResponse.json(
       { success: false, error: e?.message || 'Internal error' },

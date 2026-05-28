@@ -38,6 +38,9 @@ const PDF_TRACE_INCLUDES = [
 ]
 
 const nextConfig = {
+  /** Dev/build isolation: avoids .next race when local dev server is running during `next build`. */
+  distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
+
   /** pdfkit не должен попадать в webpack-chunk (иначе ENOENT Helvetica.afm на Vercel) */
   serverExternalPackages: ['pdfkit'],
 

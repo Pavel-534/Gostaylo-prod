@@ -1,0 +1,16 @@
+{
+  "/api/v2/chat/conversations/route": "app/api/v2/chat/conversations/route.js",
+  "/api/v2/push/route": "app/api/v2/push/route.js",
+  "/api/v2/auth/realtime-token/route": "app/api/v2/auth/realtime-token/route.js",
+  "/api/v2/admin/referral/attribution/route": "app/api/v2/admin/referral/attribution/route.js",
+  "/api/v2/admin/referral/campaigns/route": "app/api/v2/admin/referral/campaigns/route.js",
+  "/manifest.webmanifest/route": "app/manifest.webmanifest/route.js",
+  "/api/v2/admin/referral/reward-rules/route": "app/api/v2/admin/referral/reward-rules/route.js",
+  "/api/v2/admin/referral/fraud-queue/route": "app/api/v2/admin/referral/fraud-queue/route.js",
+  "/api/v2/presence/last-seen/route": "app/api/v2/presence/last-seen/route.js",
+  "/admin/marketing/page": "app/admin/marketing/page.js",
+  "/admin/marketing/settings/page": "app/admin/marketing/settings/page.js",
+  "/admin/marketing/reward-rules/page": "app/admin/marketing/reward-rules/page.js",
+  "/admin/marketing/campaigns/page": "app/admin/marketing/campaigns/page.js",
+  "/admin/marketing/attribution/page": "app/admin/marketing/attribution/page.js"
+}
