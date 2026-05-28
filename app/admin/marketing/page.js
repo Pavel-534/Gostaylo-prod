@@ -2,7 +2,7 @@
 
 import MarketingDashboard from '@/components/admin/marketing/MarketingDashboard';
 
-/** Stage 124.0 — главный обзор маркетинга и рефералки. */
+/** Stage 124.2 — главный обзор маркетинга и рефералки (точка входа). */
 export default function MarketingDashboardPage() {
   return <MarketingDashboard />;
 }

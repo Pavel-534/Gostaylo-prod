@@ -197,11 +197,11 @@ export default function ReferralRewardRulesAdminPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Link
-            href="/admin/marketing/campaigns"
+            href="/admin/marketing/rules"
             className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-brand"
           >
             <ArrowLeft className="h-4 w-4" />
-            Кампании
+            Правила и настройки
           </Link>
           <h1 className="text-2xl font-bold text-slate-950">A/B правила начислений</h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-600">

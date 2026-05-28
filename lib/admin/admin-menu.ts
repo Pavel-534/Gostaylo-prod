@@ -194,8 +194,8 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         allowedRoles: ['ADMIN'],
       },
       {
-        title: 'Выплаты партнёрам',
-        href: '/admin/marketing/payouts',
+        title: 'Реф. бюджет',
+        href: '/admin/marketing/budget',
         icon: 'Wallet',
         allowedRoles: ['ADMIN'],
       },
@@ -220,27 +220,21 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         allowedRoles: ['ADMIN'],
       },
       {
-        title: 'A/B правила',
-        href: '/admin/marketing/reward-rules',
+        title: 'Аналитика',
+        href: '/admin/marketing/attribution',
+        icon: 'Activity',
+        allowedRoles: ['ADMIN'],
+      },
+      {
+        title: 'Правила и настройки',
+        href: '/admin/marketing/rules',
         icon: 'Sparkles',
         allowedRoles: ['ADMIN'],
       },
       {
-        title: 'Настройки',
-        href: '/admin/marketing/settings',
-        icon: 'Layers',
-        allowedRoles: ['ADMIN'],
-      },
-      {
-        title: 'Fraud Queue',
+        title: 'Фрод-очередь',
         href: '/admin/marketing/fraud-queue',
         icon: 'ShieldAlert',
-        allowedRoles: ['ADMIN'],
-      },
-      {
-        title: 'Аналитика',
-        href: '/admin/marketing/attribution',
-        icon: 'Activity',
         allowedRoles: ['ADMIN'],
       },
       {
@@ -424,6 +418,12 @@ export function resolveAdminBreadcrumb(pathname, groups = ADMIN_MENU_GROUPS) {
   }
   if (p.startsWith('/admin/marketing/promos')) {
     return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'Промокоды' }
+  }
+  if (p.startsWith('/admin/marketing/rules') || p.startsWith('/admin/marketing/reward-rules')) {
+    return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'Правила и настройки' }
+  }
+  if (p.startsWith('/admin/marketing/settings') && !p.includes('/admin/marketing/settings/')) {
+    return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'Глобальные настройки' }
   }
   if (p.startsWith('/admin/marketing/budget')) {
     return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'Бюджет и аудит' }

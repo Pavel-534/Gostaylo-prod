@@ -334,9 +334,9 @@ export default function MarketingSettingsPage() {
       <div className="flex items-center justify-between gap-3">
         <div>
           <Button variant="ghost" size="sm" asChild className="-ml-2 mb-1">
-            <Link href="/admin/marketing">
+            <Link href="/admin/marketing/rules">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              К маркетингу
+              Правила и настройки
             </Link>
           </Button>
           <h1 className="text-2xl font-bold text-slate-900">Маркетинговый бюджет и бонусы</h1>
