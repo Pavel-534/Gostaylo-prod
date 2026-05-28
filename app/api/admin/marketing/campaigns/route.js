@@ -49,7 +49,7 @@ async function writeCampaigns(campaigns) {
   if (error) throw error
 }
 
-export async function GET() {
+export async function GET(request) {
   const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
   if (!supabaseAdmin) {

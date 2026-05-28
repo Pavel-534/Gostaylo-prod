@@ -9,7 +9,7 @@ import { buildLegalDocumentsExportZip } from '@/lib/services/legal-documents-exp
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-export async function GET() {
+export async function GET(request) {
   const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 

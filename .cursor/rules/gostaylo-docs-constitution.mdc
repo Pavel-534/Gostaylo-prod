@@ -29,5 +29,6 @@ alwaysApply: true
 - Узкий diff; не удалять чужие комментарии без причины.
 - Пуши: `lib/services/push.service.js`, `POST /api/v2/push`, `components/push-client-init.jsx`, `public/firebase-messaging-sw.js`.
 - Не размножать хардкод комиссий/курсов — только БД, env, `currency-last-resort.js` по ADR.
+- **Новая таблица в `public`:** в миграции обязательно **GRANT → RLS → POLICY** (шаблон `migrations/_template_new_public_table.sql`, правило `gostaylo-supabase-migrations.mdc`). С 2026-10-30 Supabase не выдаёт grants на новые таблицы автоматически.
 
-Подробности — **`AGENTS.md`**, **`.cursorrules`**.
+Подробности — **`AGENTS.md`**, **`.cursorrules`**, **`migrations/README.md`**.

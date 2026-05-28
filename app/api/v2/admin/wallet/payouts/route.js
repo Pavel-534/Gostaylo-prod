@@ -11,7 +11,7 @@ function round2(value) {
   return Math.round(n * 100) / 100;
 }
 
-async function requireAdmin() {
+async function requireAdmin(request) {
   const access = await requireAdminStaff(request);
   if (access.error) return { error: access.error };
   return { ok: true };
@@ -70,7 +70,7 @@ function toPayoutCandidateRow(wallet, profile, minPayoutThb) {
 }
 
 export async function GET(request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin(request);
   if (auth.error) {
     return auth.error;
   }
@@ -154,7 +154,7 @@ export async function GET(request) {
 }
 
 export async function PATCH(request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin(request);
   if (auth.error) {
     return auth.error;
   }

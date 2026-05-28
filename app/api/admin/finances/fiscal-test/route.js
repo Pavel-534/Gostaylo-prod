@@ -8,7 +8,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST() {
+export async function POST(request) {
   const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 

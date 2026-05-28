@@ -32,6 +32,7 @@
 
 ## Быстрые ссылки
 
+- Supabase: новая таблица — **`migrations/_template_new_public_table.sql`**, **`migrations/README.md`** (GRANT + RLS; deadline платформы 2026-10-30)
 - Сквозной продуктовый поток + backlog PR — **`docs/PRODUCT_FLOW_MAP.md`**
 - Каталог: query-параметры поиска → файлы — **`docs/SEARCH_FILTERS_QUERY_MAP.md`**
 - Пуши: `lib/services/push.service.js`, `components/push-client-init.jsx`, `public/firebase-messaging-sw.js`

@@ -89,10 +89,32 @@ Admin UI: расширить `/admin/marketing/analytics` вкладкой **Fun
 
 ## Миграционная стратегия
 
-1. **Phase A** — `referral_attributions` + API click (без смены ledger).
-2. **Phase B** — `referral_events` dual-write из `referral-pnl.service.js`.
-3. **Phase C** — ROI MV + admin funnel UI.
+1. **Phase A** — ✅ **DONE (120.0–120.6):** `referral_attributions`, track API, E2E smoke 12c, денежный пульт `/admin/marketing/attribution`, SSOT `lib/finance/reporting.service.js`, promo tank balance, clawback/gross/net, cohort CSV, anti-fraud v1.
+2. **Phase B** — воронки (**B1 ✅ 121.0b**), hold-периоды, кампании, A/B, anti-fraud v2 (см. ниже).
+3. **Phase C** — ROI MV + site-wide Financial Intelligence Dashboard.
 4. **Phase D** — deprecate дублирующие поля в `metadata` JSON.
+
+### Phase A — итог (Go, 2026-05-27)
+
+| Контур | SSOT | Статус |
+|--------|------|--------|
+| Клики / атрибуция | `lib/referral/attribution.service.js` | ✅ |
+| Начисления | `referral-ledger.service.js` + `referral-pnl.service.js` | ✅ без изменений |
+| Promo tank | `referral-promo-tank.service.js` | ✅ |
+| Денежная аналитика | `lib/finance/reporting.service.js` | ✅ |
+| Admin UI | `/admin/marketing/attribution` | ✅ |
+
+### Phase B — план (следующий этап)
+
+| # | Направление | Содержание |
+|---|-------------|------------|
+| B1 | **Воронка 2.0** | ✅ `computeReferralFunnelBundle` + вкладка «Воронка 2.0» (`/admin/marketing/attribution`); UTM/referrer breakdown; CR→1-я бронь в таблице |
+| B2 | **Hold-период** | ✅ Core 121.1b + UI/cron 121.2 (`/profile/referral`, `vercel.json`, admin ledger drill-down) |
+| B3 | **Кампании** | `referral_codes.campaign_slug`, лимиты, сроки; отчёт ROI по кампании |
+| B4 | **A/B правил** | `referral_reward_rules` versioned; shadow mode перед prod rollout |
+| B5 | **Anti-fraud v2** | Device graph, velocity, manual review queue в админке |
+| B6 | **Уровни рефереров** | Ambassador tiers v2: payout ratio из БД, sync с leaderboard |
+| B7 | **Dual-write events** | `referral_events` журнал из pnl/ledger (audit trail 1C-style) |
 
 ## Риски
 

@@ -15,6 +15,7 @@ import { ReferralProfileTabTeam } from '@/components/referral/ReferralProfileTab
 import { ReferralProfileTabHistory } from '@/components/referral/ReferralProfileTabHistory'
 import { ReferralProfileTabSettings } from '@/components/referral/ReferralProfileTabSettings'
 import { ReferralWithdrawableStrip } from '@/components/referral/ReferralWithdrawableStrip'
+import { ReferralHeldBalanceStrip } from '@/components/referral/ReferralHeldBalanceStrip'
 import { ReferralPageSkeleton } from '@/components/referral/ReferralPageSkeleton'
 import { ProfileHubNav } from '@/components/product/ProfileHubNav'
 import { ProductPageShell } from '@/components/product/ProductPageShell'
@@ -65,7 +66,15 @@ export function ReferralProfilePage() {
 
       <ReferralWithdrawableStrip walletData={walletData} t={t} locale={locale} loading={walletLoading} />
 
-      <Tabs defaultValue="link" className="space-y-6">
+      <ReferralHeldBalanceStrip
+        data={data}
+        walletData={walletData}
+        t={t}
+        locale={locale}
+        className="mt-3"
+      />
+
+      <Tabs defaultValue="link" className="space-y-6 mt-6">
         <TabsList className="flex w-full overflow-x-auto sm:flex-wrap h-auto gap-1 gsl-card p-1 shadow-sm scrollbar-thin snap-x snap-mandatory [-webkit-overflow-scrolling:touch]">
           <TabsTrigger value="link" className={TAB_ACTIVE}>
             {t('stage1143_tabLink')}

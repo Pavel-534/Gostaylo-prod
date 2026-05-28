@@ -9,7 +9,7 @@ import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic'
 
-async function requireAdmin() {
+async function requireAdmin(request) {
   const access = await requireAdminStaff(request)
   if (access.error) return { response: access.error }
   return { userId: access.profile.id }
@@ -46,7 +46,7 @@ const WIZARD_PROFILE_OPTIONS = [
 ]
 
 export async function GET(request) {
-  const auth = await requireAdmin()
+  const auth = await requireAdmin(request)
   if (auth.response) {
     return auth.response
   }
@@ -87,7 +87,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const auth = await requireAdmin()
+  const auth = await requireAdmin(request)
   if (auth.response) {
     return auth.response
   }
@@ -151,7 +151,7 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
-  const auth = await requireAdmin()
+  const auth = await requireAdmin(request)
   if (auth.response) {
     return auth.response
   }

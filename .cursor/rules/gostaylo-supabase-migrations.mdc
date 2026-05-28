@@ -1,0 +1,37 @@
+---
+description: Supabase — новые таблицы в public: GRANT + RLS + политики (Data API, октябрь 2026)
+alwaysApply: true
+---
+
+# Supabase: миграции и Data API
+
+## Когда создаёте таблицу в `public`
+
+Всегда в **одной миграции** (см. `migrations/_template_new_public_table.sql`, `migrations/README.md`):
+
+1. **`CREATE TABLE`**
+2. **`GRANT`** — явно для `anon` / `authenticated` / `service_role` (с 2026-10-30 на существующих проектах без grant таблица не видна PostgREST / supabase-js)
+3. **`ALTER TABLE … ENABLE ROW LEVEL SECURITY`**
+4. **`CREATE POLICY`** — `current_profile_id()` / `is_admin()` / `auth.role() = 'service_role'`
+
+**GRANT** (доступ к таблице) и **RLS** (какие строки) — разные слои. Оба нужны.
+
+## Профили по умолчанию
+
+| Тип | GRANT | RLS |
+|-----|-------|-----|
+| Финансы, ledger, внутренние очереди | только `service_role` | ON, без политик для anon |
+| Личные данные пользователя | `authenticated` + `service_role` | own row: `user_id::text = current_profile_id()` |
+| Публичный справочник | `SELECT` → anon, authenticated | read active + staff mutate |
+
+Не полагайтесь на «автоматический» grant при `CREATE TABLE`.
+
+## Типы и SSOT
+
+- FK на `profiles` / `listings` / `bookings` — **TEXT** в проде (`docs/TECHNICAL_MANIFESTO.md` §0).
+- Серверные API — `supabaseAdmin`; anon key в браузере не должен читать `payouts`, `ledger_*`, токены.
+- После RLS-изменений — Security Advisor в дашборде; референс sweep: `migrations/stage121_0_rls_security_sweep.sql`.
+
+## Доки в PR
+
+Новая таблица / политики → обновить `docs/TECHNICAL_MANIFESTO.md` (и паспорт при существенном изменении схемы).

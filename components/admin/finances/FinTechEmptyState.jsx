@@ -1,11 +1,12 @@
 ﻿'use client'
 
+import { Inbox } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
- * @param {{ icon: import('react').ComponentType<{ className?: string }>, title: string, description: string, className?: string }} props
+ * @param {{ icon?: import('react').ComponentType<{ className?: string }>, title: string, description: string, className?: string }} props
  */
-export function FinTechEmptyState({ icon: Icon, title, description, className }) {
+export function FinTechEmptyState({ icon: Icon = Inbox, title, description, className }) {
   return (
     <div
       className={cn(

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 const COLS =
   'id,name,is_default,is_active,guest_fee_pct,host_fee_pct,fx_markup_pct,ru_agent_share_pct,kr_service_share_pct,insurance_fund_pct,tax_rate_pct,metadata'
 
-export async function GET() {
+export async function GET(request) {
   const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 

@@ -16,14 +16,14 @@ const SYSTEM_IDS = {
   processingPot: 'la-sys-processing-pot',
 };
 
-async function requireAdmin() {
+async function requireAdmin(request) {
   const access = await requireAdminStaff(request);
   if (access.error) return { error: access.error };
   return { userId: access.profile?.id || null };
 }
 
 export async function GET(request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin(request);
   if (auth.error) {
     return auth.error;
   }

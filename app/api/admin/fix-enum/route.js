@@ -98,7 +98,7 @@ ALTER TYPE booking_status ADD VALUE IF NOT EXISTS 'PAID_ESCROW';
   }
 }
 
-export async function GET() {
+export async function GET(request) {
   const staff = await requireAdminStaff(request)
   if (staff.error) return staff.error
 

@@ -33,6 +33,27 @@ export function persistPendingReferralCode(codeRaw) {
   }
 }
 
+/** Stage 120.0 — server-side click attribution (cookie gostaylo_ref, HttpOnly). */
+export function trackReferralClick(codeRaw, landingPath = '') {
+  const code = String(codeRaw || '').trim().toUpperCase()
+  if (!code || typeof window === 'undefined') return
+  try {
+    const fp = getStableReferralFingerprint()
+    const qs = new URLSearchParams({ code })
+    const path = String(landingPath || window.location.pathname || '').trim()
+    if (path) qs.set('path', path.slice(0, 500))
+    if (fp) qs.set('fingerprint', fp)
+    const params = new URLSearchParams(window.location.search)
+    for (const key of ['utm_source', 'utm_medium', 'utm_campaign']) {
+      const v = params.get(key)
+      if (v) qs.set(key, v)
+    }
+    void fetch(`/api/v2/referral/track?${qs.toString()}`, { credentials: 'same-origin' })
+  } catch {
+    /* ignore */
+  }
+}
+
 export function getStableReferralFingerprint() {
   if (typeof window === 'undefined') return null
   try {
@@ -72,6 +93,7 @@ export function useReferralCapture({
       const picked = fromUrl || fromCookie || fromLs || ''
       if (!picked) return
       persistPendingReferralCode(picked)
+      trackReferralClick(picked, window.location.pathname || '/')
       void trackProductEvent(ProductAnalyticsEvents.REFERRAL_CAPTURED, {
         source: fromUrl ? 'url' : fromCookie ? 'cookie' : 'localStorage',
       })

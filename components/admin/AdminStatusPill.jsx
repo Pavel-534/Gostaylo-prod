@@ -11,6 +11,8 @@ const STATUS_STYLES = {
   COMPLETED: 'bg-emerald-50 text-emerald-800 border-emerald-200',
   CONFIRMED: 'bg-emerald-50 text-emerald-800 border-emerald-200',
   PENDING: 'bg-amber-50 text-amber-900 border-amber-200',
+  EARNED_HELD: 'bg-amber-50 text-amber-950 border-amber-300',
+  EARNED: 'bg-emerald-50 text-emerald-800 border-emerald-200',
   PROCESSING: 'bg-amber-50 text-amber-900 border-amber-200',
   REVIEW: 'bg-amber-50 text-amber-900 border-amber-200',
   IN_REVIEW: 'bg-amber-50 text-amber-900 border-amber-200',

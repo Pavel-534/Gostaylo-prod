@@ -95,7 +95,7 @@ async function loadTierPayoutAudit() {
   }
 }
 
-export async function GET() {
+export async function GET(request) {
   const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 
@@ -135,6 +135,10 @@ export async function GET() {
     const rawMlmLevel1Percent = asNumber(data.value?.mlm_level1_percent ?? data.value?.mlmLevel1Percent)
     const rawMlmLevel2Percent = asNumber(data.value?.mlm_level2_percent ?? data.value?.mlmLevel2Percent)
     const rawPayoutToInternalRatio = asNumber(data.value?.payout_to_internal_ratio ?? data.value?.payoutToInternalRatio)
+    const rawReferralHoldDays = parseInt(
+      String(data.value?.referral_hold_days ?? data.value?.referralHoldDays ?? ''),
+      10,
+    )
     const rawChatMult = parseFloat(data.value?.chatInvoiceRateMultiplier)
     const rawTax = parseFloat(data.value?.taxRatePercent)
     const rawCs = data.value?.chatSafety
@@ -191,6 +195,10 @@ export async function GET() {
         Number.isFinite(rawPayoutToInternalRatio) && rawPayoutToInternalRatio >= 0 && rawPayoutToInternalRatio <= 100
           ? rawPayoutToInternalRatio
           : 70,
+      referralHoldDays:
+        Number.isFinite(rawReferralHoldDays) && rawReferralHoldDays >= 0 && rawReferralHoldDays <= 90
+          ? rawReferralHoldDays
+          : 14,
       welcomeBonusAmount: Number.isFinite(rawWelcomeBonusAmount) && rawWelcomeBonusAmount >= 0 ? rawWelcomeBonusAmount : 0,
       referralMonthlyGoalThb:
         Number.isFinite(rawReferralMonthlyGoalThb) && rawReferralMonthlyGoalThb > 0
@@ -352,7 +360,24 @@ export async function PUT(request) {
       console.error('Failed to save settings:', dbErr)
       return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 })
     }
-    return NextResponse.json({ success: true, data: newValue })
+    const guestFee = parseFloat(newValue?.guestServiceFeePercent ?? newValue?.guest_service_fee_percent)
+    const hostComm = parseFloat(newValue?.hostCommissionPercent ?? newValue?.host_commission_percent)
+    const insurance = parseFloat(newValue?.insuranceFundPercent ?? newValue?.insurance_fund_percent)
+    const tax = parseFloat(newValue?.taxRatePercent)
+    const budget = ReferralPnlService.computePlatformMarginBudget({
+      guestServiceFeePercent: Number.isFinite(guestFee) ? guestFee : PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
+      hostCommissionPercent: Number.isFinite(hostComm) ? hostComm : PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
+      insuranceFundPercent: Number.isFinite(insurance) ? insurance : PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
+      acquiringFeePercent: parseFloat(newValue?.acquiring_fee_percent ?? newValue?.acquiringFeePercent) || 0,
+      operationalReservePercent:
+        parseFloat(newValue?.operational_reserve_percent ?? newValue?.operationalReservePercent) || 0,
+      taxRatePercent: Number.isFinite(tax) && tax >= 0 ? tax : 0,
+      referralReinvestmentPercent:
+        parseFloat(newValue?.referral_reinvestment_percent ?? newValue?.referralReinvestmentPercent) || 70,
+      mlmLevel1Percent: parseFloat(newValue?.mlm_level1_percent ?? newValue?.mlmLevel1Percent) || 70,
+      mlmLevel2Percent: parseFloat(newValue?.mlm_level2_percent ?? newValue?.mlmLevel2Percent) || 30,
+    })
+    return NextResponse.json({ success: true, data: newValue, budget })
   } catch (error) {
     console.error('Settings PUT error:', error)
     return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 })

@@ -20,6 +20,7 @@ import ReferralGuardService, {
 } from '@/lib/services/marketing/referral-guard.service';
 import WalletService from '@/lib/services/finance/wallet.service';
 import { computeInviteTreeFields } from '@/lib/referral/referral-network.js';
+import ReferralAttributionService from '@/lib/referral/attribution.service.js';
 import { notifyTeammateJoined } from '@/lib/services/marketing/referral-notification.service.js';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 import {
@@ -215,8 +216,8 @@ export async function POST(request) {
   } catch {
     cookieReferral = String(cookieReferralRaw || '').trim();
   }
-  const mergedReferralInput = String(referredBy || cookieReferral || '').trim();
-  
+  let mergedReferralInput = String(referredBy || cookieReferral || '').trim();
+
   if (!email) {
     return authErrorJson(AuthErrorCode.AUTH_EMAIL_REQUIRED, 400);
   }
@@ -234,7 +235,22 @@ export async function POST(request) {
   }
   
   const normalizedEmail = email.toLowerCase().trim();
-  
+  const normalizedFingerprintEarly = String(referralFingerprint || '').trim().slice(0, 160);
+
+  if (!mergedReferralInput) {
+    try {
+      const fromAttribution = await ReferralAttributionService.resolveCodeForSignup({
+        request,
+        fingerprint: normalizedFingerprintEarly || null,
+      });
+      if (fromAttribution?.code) {
+        mergedReferralInput = fromAttribution.code;
+      }
+    } catch (attrErr) {
+      console.warn('[REGISTER] attribution resolve:', attrErr?.message || attrErr);
+    }
+  }
+
   // Check existing
   const { data: existing } = await supabase
     .from('profiles')
@@ -248,9 +264,22 @@ export async function POST(request) {
   
   // Optional referral pre-validation (for onboarding UX + anti-fraud gate).
   const normalizedReferredBy = mergedReferralInput.toUpperCase();
-  const normalizedFingerprint = String(referralFingerprint || '').trim().slice(0, 160);
+  const normalizedFingerprint = normalizedFingerprintEarly;
   let prevalidatedReferral = null;
   if (normalizedReferredBy) {
+    const convertGate = await ReferralAttributionService.assertConvertAllowed({
+      request,
+      fingerprint: normalizedFingerprint || null,
+    });
+    if (!convertGate.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error_code: convertGate.error || AuthErrorCode.AUTH_REFERRAL_VALIDATION_FAILED,
+        },
+        { status: convertGate.status || 429 },
+      );
+    }
     const guard = await ReferralGuardService.validateActivation({
       code: normalizedReferredBy,
       candidateEmail: normalizedEmail,
@@ -336,8 +365,9 @@ export async function POST(request) {
     console.warn('[REGISTER] referral_codes sync warning:', syncError?.message || syncError);
   }
 
-  // Handle referral relation using Stage 71 tables.
-  if (normalizedReferredBy && prevalidatedReferral?.referrerId) {
+  // Handle referral relation using Stage 71 tables (first-touch: never overwrite existing referee).
+  const refereeAlreadyReferred = await ReferralAttributionService.refereeAlreadyReferred(user.id);
+  if (normalizedReferredBy && prevalidatedReferral?.referrerId && !refereeAlreadyReferred) {
     try {
       const nowIso = new Date().toISOString();
       const tree = await computeInviteTreeFields(supabase, prevalidatedReferral.referrerId);
@@ -365,6 +395,11 @@ export async function POST(request) {
       void notifyTeammateJoined({
         referrerId: prevalidatedReferral.referrerId,
         refereeId: user.id,
+      });
+      void ReferralAttributionService.markConvertedOnSignup({
+        profileId: user.id,
+        request,
+        fingerprint: normalizedFingerprint || null,
       });
     } catch (e) {
       console.warn('[REGISTER] referral relation warning:', e?.message || e);

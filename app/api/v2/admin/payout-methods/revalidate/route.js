@@ -5,14 +5,14 @@ import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-async function requireAdmin() {
+async function requireAdmin(request) {
   const access = await requireAdminStaff(request)
   if (access.error) return { error: access.error }
   return { ok: true }
 }
 
 export async function POST(request) {
-  const auth = await requireAdmin()
+  const auth = await requireAdmin(request)
   if (auth.error) {
     return auth.error
   }

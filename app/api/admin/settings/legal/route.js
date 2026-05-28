@@ -19,7 +19,7 @@ const LEGAL_DOC_LINKS = [
   { id: 'terms', label: 'Пользовательское соглашение', path: '/terms/' },
 ]
 
-export async function GET() {
+export async function GET(request) {
   const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
 

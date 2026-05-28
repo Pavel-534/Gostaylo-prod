@@ -7,7 +7,7 @@ import { runNotificationOutboxWorker } from '@/lib/services/notifications/proces
 
 export const dynamic = 'force-dynamic'
 
-export async function POST() {
+export async function POST(request) {
   const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
   try {

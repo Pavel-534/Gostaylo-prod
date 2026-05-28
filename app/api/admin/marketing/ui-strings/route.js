@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 const SETTINGS_KEY = 'marketing_ui_strings'
 
-export async function GET() {
+export async function GET(request) {
   const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
   if (!supabaseAdmin) {

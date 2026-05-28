@@ -7,7 +7,7 @@ import { getNotificationOutboxStats } from '@/lib/services/notifications/notific
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request) {
   const gate = await requireAdminStaff(request)
   if (gate.error) return gate.error
   const stats = await getNotificationOutboxStats()

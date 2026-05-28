@@ -185,7 +185,15 @@ export const ADMIN_MENU_GROUPS = [
     title: 'Маркетинг & Рост',
     quickActions: [
       { id: 'growth-analytics', label: 'ROI Analytics', kind: 'link', href: '/admin/marketing/analytics', variant: 'brand', allowedRoles: ['ADMIN'] },
-      { id: 'growth-pool', label: 'Marketing Budget', kind: 'link', href: '/admin/marketing/settings', variant: 'outline', allowedRoles: ['ADMIN'] },
+      {
+        id: 'growth-attribution',
+        label: 'Денежный пульт',
+        kind: 'link',
+        href: '/admin/marketing/attribution',
+        variant: 'outline',
+        allowedRoles: ['ADMIN'],
+      },
+      { id: 'growth-pool', label: 'Бюджет и бонусы', kind: 'link', href: '/admin/marketing/settings', variant: 'outline', allowedRoles: ['ADMIN'] },
       { id: 'growth-wallet-audit', label: 'Wallet Audit', kind: 'link', href: '/admin/marketing/wallet-audit', variant: 'outline', allowedRoles: ['ADMIN'] },
     ],
     items: [
@@ -202,7 +210,13 @@ export const ADMIN_MENU_GROUPS = [
         allowedRoles: ['ADMIN'],
       },
       {
-        title: 'Marketing Budget (Pool)',
+        title: 'Рефералка & Деньги',
+        href: '/admin/marketing/attribution',
+        icon: 'Activity',
+        allowedRoles: ['ADMIN'],
+      },
+      {
+        title: 'Бюджет и бонусы',
         href: '/admin/marketing/settings',
         icon: 'Layers',
         allowedRoles: ['ADMIN'],

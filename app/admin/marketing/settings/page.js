@@ -63,6 +63,7 @@ export default function MarketingSettingsPage() {
     mlmLevel1Percent: 70,
     mlmLevel2Percent: 30,
     payoutToInternalRatio: 70,
+    referralHoldDays: 14,
   });
   const [lastBudget, setLastBudget] = useState(null);
   const [payoutStats, setPayoutStats] = useState(null);
@@ -105,6 +106,7 @@ export default function MarketingSettingsPage() {
             0,
             100,
           ),
+          referralHoldDays: clamp(s.referralHoldDays ?? s.referral_hold_days ?? 14, 0, 90),
         });
         setLastBudget(s.referralSafetyBudget || null);
         if (statsRes.ok && statsJson?.success) {
@@ -126,7 +128,7 @@ export default function MarketingSettingsPage() {
           setTankLog(logJson.data);
         }
       } catch (error) {
-        if (!cancelled) toast.error(error?.message || 'Failed to load marketing settings');
+        if (!cancelled) toast.error(error?.message || 'Не удалось загрузить настройки маркетинга');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -162,6 +164,8 @@ export default function MarketingSettingsPage() {
         mlm_level1_percent: clamp(form.mlmLevel1Percent, 0, 100),
         mlm_level2_percent: clamp(form.mlmLevel2Percent, 0, 100),
         payout_to_internal_ratio: clamp(form.payoutToInternalRatio, 0, 100),
+        referralHoldDays: clamp(form.referralHoldDays, 0, 90),
+        referral_hold_days: clamp(form.referralHoldDays, 0, 90),
       };
       const res = await fetch('/api/admin/settings', {
         method: 'PUT',
@@ -175,9 +179,9 @@ export default function MarketingSettingsPage() {
       }
       setSnapshot(json?.data || payload);
       setLastBudget(json?.budget || null);
-      toast.success('Marketing safety settings saved');
+      toast.success('Настройки сохранены');
     } catch (error) {
-      toast.error(error?.message || 'Failed to save');
+      toast.error(error?.message || 'Не удалось сохранить');
     } finally {
       setSaving(false);
     }
@@ -229,7 +233,7 @@ export default function MarketingSettingsPage() {
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || 'TOPUP_FAILED');
       }
-      toast.success('Marketing Budget (Pool) пополнен');
+      toast.success('Бюджет пополнен');
       setTopupAmount('');
       setTopupNote('');
       await refreshTankData();
@@ -240,7 +244,7 @@ export default function MarketingSettingsPage() {
       const statsJson = await statsRes.json().catch(() => ({}));
       if (statsRes.ok && statsJson?.success) setPayoutStats(statsJson?.data || null);
     } catch (err) {
-      toast.error(err?.message || 'Top-up failed');
+      toast.error(err?.message || 'Не удалось пополнить бюджет');
     } finally {
       setTopupBusy(false);
     }
@@ -265,18 +269,18 @@ export default function MarketingSettingsPage() {
       if (!res.ok || json?.success === false) {
         throw new Error(json?.error || json?.data?.error || 'RETRY_FAILED');
       }
-      toast.success('Retry выполнен (см. ответ в консоли / data)');
+      toast.success('Начисление отправлено повторно');
       setRetryBookingId('');
       await refreshTankData();
     } catch (err) {
-      toast.error(err?.message || 'Retry failed');
+      toast.error(err?.message || 'Не удалось повторить начисление');
     } finally {
       setRetryBusy(false);
     }
   }
 
   if (loading) {
-    return <div className="text-sm text-slate-500">Loading marketing safety settings...</div>;
+    return <div className="text-sm text-slate-500">Загрузка настроек…</div>;
   }
 
   return (
@@ -287,66 +291,60 @@ export default function MarketingSettingsPage() {
           <Button variant="ghost" size="sm" asChild className="-ml-2 mb-1">
             <Link href="/admin/marketing">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to marketing
+              К маркетингу
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold text-slate-900">Marketing safety settings</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Маркетинговый бюджет и бонусы</h1>
           <p className="text-sm text-slate-600 mt-1">
-            Stage 72.3 / 91.2: бонус активации партнёра, доли Direct / Sub-Referral, защита маржи.
-          </p>
-          <p className="text-xs text-emerald-700 mt-1">
-            Ваши основные аккаунты (pavel_534 и др.) защищены от автоматической очистки.
+            Здесь задаётся общий бюджет на акции, размер реферальных выплат и защита от убытков по марже.
           </p>
         </div>
         <Button onClick={() => void handleSave()} disabled={saving}>
           <Save className="h-4 w-4 mr-2" />
-          {saving ? 'Saving...' : 'Save settings'}
+          {saving ? 'Сохранение…' : 'Сохранить'}
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Marketing Budget (Pool) — виртуальный бюджет</CardTitle>
+          <CardTitle>Маркетинговый бюджет (пул)</CardTitle>
           <CardDescription>
-            SSOT баланса: <code className="text-xs">system_settings.general.marketing_promo_pot</code> + журнал{' '}
-            <code className="text-xs">marketing_promo_tank_ledger</code>.
+            Отдельный «кошелёк» платформы на бонусы и акции. Баланс виден ниже; все движения пишутся в журнал.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-slate-700">
           <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3 space-y-2">
-            <p className="font-medium text-slate-900">Откуда берутся деньги в пуле</p>
+            <p className="font-medium text-slate-900">Откуда пополняется бюджет</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>
-                <strong>Organic top-up</strong> — доля от чистой маржи завершённых <em>нереферальных</em> броней (
-                <code>organic_to_promo_pot_percent</code>), начисляется в{' '}
-                <code>ReferralPnlService.distribute</code>.
+                <strong>Автоматически</strong> — небольшая доля маржи с обычных (не по рефералке) завершённых броней.
               </li>
               <li>
-                <strong>Manual top-up</strong> — ручное пополнение админом (кнопка ниже); в леджере{' '}
-                <code>manual_topup</code> с <code>metadata.admin_user_id</code> / <code>admin_email</code>.
+                <strong>Вручную</strong> — вы вводите сумму и нажимаете «Пополнить» (ниже); в журнале будет видно, кто
+                пополнил.
               </li>
               <li>
-                <strong>Welcome return</strong> — истёкший welcome-бонус возвращается в бак (
-                <code>welcome_bonus_return</code>, cron).
+                <strong>Возврат приветственного бонуса</strong> — если гость не использовал welcome-бонус в срок, сумма
+                возвращается в пул по расписанию.
               </li>
             </ul>
             <p className="text-slate-600">
-              <strong>Списания:</strong> Turbo boost (<code>referral_boost_debit</code>), бонус активации партнёра (
-              <code>host_activation_bonus_debit</code>), ручной debit (<code>manual_debit</code>).
+              <strong>На что тратится:</strong> усиленные реферальные акции, разовый бонус за активацию нового партнёра,
+              при необходимости — ручное списание.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <span>
-              Текущий баланс (monitor):{' '}
-              <strong>{promoPotThb != null ? `${Number(promoPotThb).toLocaleString('ru-RU')} THB` : '—'}</strong>
+              Сейчас в пуле:{' '}
+              <strong>{promoPotThb != null ? `${Number(promoPotThb).toLocaleString('ru-RU')} ฿` : '—'}</strong>
             </span>
             <Button type="button" variant="outline" size="sm" onClick={() => void refreshTankData()}>
-              {tankLogLoading ? '…' : 'Обновить пул / лог'}
+              {tankLogLoading ? '…' : 'Обновить баланс и журнал'}
             </Button>
           </div>
           <form className="grid gap-3 sm:grid-cols-3 border-t border-slate-100 pt-4" onSubmit={handleManualTopup}>
             <div className="space-y-2">
-              <Label htmlFor="manualTopupAmount">Manual top-up (THB)</Label>
+              <Label htmlFor="manualTopupAmount">Сумма пополнения (฿)</Label>
               <Input
                 id="manualTopupAmount"
                 type="number"
@@ -358,7 +356,7 @@ export default function MarketingSettingsPage() {
               />
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="manualTopupNote">Комментарий (в metadata)</Label>
+              <Label htmlFor="manualTopupNote">Комментарий (для журнала)</Label>
               <Input
                 id="manualTopupNote"
                 value={topupNote}
@@ -368,19 +366,18 @@ export default function MarketingSettingsPage() {
             </div>
             <div className="sm:col-span-3">
               <Button type="submit" disabled={topupBusy}>
-                {topupBusy ? 'Пополнение…' : 'Пополнить Marketing Budget (Pool)'}
+                {topupBusy ? 'Пополнение…' : 'Пополнить бюджет'}
               </Button>
             </div>
           </form>
           <div className="border-t border-slate-100 pt-4 space-y-2">
-            <p className="font-medium text-slate-900">Retry host activation (после пополнения бака)</p>
+            <p className="font-medium text-slate-900">Повторить бонус за активацию партнёра</p>
             <p className="text-xs text-slate-600">
-              Если бронь в <code>metadata.host_activation_promo_tank.status = pending_tank_refill</code>, введите её ID
-              и нажмите Retry.
+              Если бонус не прошёл из‑за пустого пула, пополните бюджет, укажите номер брони и нажмите «Повторить».
             </p>
             <div className="flex flex-wrap gap-2 items-end">
               <div className="flex-1 min-w-[200px] space-y-2">
-                <Label htmlFor="retryBookingId">booking_id</Label>
+                <Label htmlFor="retryBookingId">Номер брони (ID)</Label>
                 <Input
                   id="retryBookingId"
                   value={retryBookingId}
@@ -389,12 +386,12 @@ export default function MarketingSettingsPage() {
                 />
               </div>
               <Button type="button" variant="secondary" disabled={retryBusy} onClick={handleRetryHostActivation}>
-                {retryBusy ? '…' : 'Retry host activation'}
+                {retryBusy ? '…' : 'Повторить начисление'}
               </Button>
             </div>
           </div>
           <div>
-            <p className="font-medium text-slate-900 mb-2">Лог ручных движений бака (кто пополнил)</p>
+            <p className="font-medium text-slate-900 mb-2">Журнал ручных пополнений и списаний</p>
             <div className="rounded-md border border-slate-200 overflow-x-auto max-h-64 overflow-y-auto text-xs">
               <table className="w-full border-collapse">
                 <thead>
@@ -410,7 +407,7 @@ export default function MarketingSettingsPage() {
                   {(tankLog || []).length === 0 ? (
                     <tr>
                       <td colSpan={5} className="p-3 text-slate-500">
-                        Нет записей. Выполните top-up или откройте /admin/marketing/audit.
+                        Пока пусто. Пополните бюджет или откройте раздел «Аудит пула» в маркетинге.
                       </td>
                     </tr>
                   ) : (
@@ -448,16 +445,17 @@ export default function MarketingSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Бонусы</CardTitle>
-          <CardDescription>Настройки выплат за рекомендации и активацию партнера.</CardDescription>
+          <CardDescription>
+            Сколько отдавать за приглашённых гостей и партнёров и как долго держать бонус до зачисления на кошелёк.
+          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">
-              <Label htmlFor="referralReinvestmentPercent">Referral reinvestment %</Label>
+              <Label htmlFor="referralReinvestmentPercent">Доля маржи на реферальные выплаты, %</Label>
               <FieldHint>
-                Ограничивает долю чистой маржи заказа, которую можно направить в реферальный пул. Чем ниже процент,
-                тем меньше маркетинг «съедает» прибыль при тех же бронях — движок дополнительно режет выплаты
-                safety-lock&apos;ом к валовой марже платформы.
+                Максимум прибыли с одной брони, который можно раздать по рефералке. Чем ниже — тем меньше расход на
+                маркетинг при тех же продажах. Система дополнительно не даст уйти в минус по общей марже.
               </FieldHint>
             </div>
             <Input
@@ -476,7 +474,30 @@ export default function MarketingSettingsPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="partnerActivationBonus">Partner activation bonus (THB)</Label>
+            <div className="flex items-center gap-1.5">
+              <Label htmlFor="referralHoldDays">Период охлаждения бонуса, дней</Label>
+              <FieldHint>
+                После завершения брони бонус виден пригласившему, но на кошелёк попадёт только через столько дней (на
+                случай отмены или спора). 0 — зачисление сразу после завершения брони.
+              </FieldHint>
+            </div>
+            <Input
+              id="referralHoldDays"
+              type="number"
+              min={0}
+              max={90}
+              step={1}
+              value={form.referralHoldDays}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  referralHoldDays: clamp(e.target.value, 0, 90),
+                }))
+              }
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="partnerActivationBonus">Бонус за активацию нового партнёра (฿)</Label>
             <Input
               id="partnerActivationBonus"
               type="number"
@@ -492,7 +513,7 @@ export default function MarketingSettingsPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="mlmLevel1Percent">Direct Referral Bonus %</Label>
+            <Label htmlFor="mlmLevel1Percent">Доля бонуса — прямое приглашение, %</Label>
             <Input
               id="mlmLevel1Percent"
               type="number"
@@ -509,7 +530,7 @@ export default function MarketingSettingsPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="mlmLevel2Percent">Sub-Referral Bonus %</Label>
+            <Label htmlFor="mlmLevel2Percent">Доля бонуса — вторая линия, %</Label>
             <Input
               id="mlmLevel2Percent"
               type="number"
@@ -527,10 +548,10 @@ export default function MarketingSettingsPage() {
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">
-              <Label htmlFor="payoutToInternalRatio">Payout to internal ratio %</Label>
+              <Label htmlFor="payoutToInternalRatio">Сколько можно вывести с кошелька, %</Label>
               <FieldHint>
-                Доля реферального начисления, которую можно вывести наружу (остальное уходит во внутренние кредиты для
-                оплат на платформе). Повышает удержание гостей и снижает cash-out давление на маржу после акций.
+                Остаток бонуса можно тратить только на брони на сайте. Чем ниже процент вывода — тем меньше «ухода»
+                денег с платформы и тем сильнее удержание гостей.
               </FieldHint>
             </div>
             <Input
@@ -554,11 +575,13 @@ export default function MarketingSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Экономика сети</CardTitle>
-          <CardDescription>Комиссии и резервы, влияющие на маржу и устойчивость программы.</CardDescription>
+          <CardDescription>
+            Учёт эквайринга и операционного резерва при расчёте «сколько можно потратить на бонусы».
+          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="acquiringFeePercent">Acquiring fee %</Label>
+            <Label htmlFor="acquiringFeePercent">Комиссия эквайринга, %</Label>
             <Input
               id="acquiringFeePercent"
               type="number"
@@ -575,7 +598,7 @@ export default function MarketingSettingsPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="operationalReservePercent">Operational reserve %</Label>
+            <Label htmlFor="operationalReservePercent">Операционный резерв, %</Label>
             <Input
               id="operationalReservePercent"
               type="number"
@@ -601,23 +624,26 @@ export default function MarketingSettingsPage() {
             Лимиты безопасности
           </CardTitle>
           <CardDescription>
-            Сохранение заблокировано, если сумма Direct + Sub-Referral выше 100% или если выплаты и издержки
-            превышают доступную маржу платформы.
+            Сохранение не пройдёт, если сумма долей по двум линиям больше 100% или если бонусы съедают всю маржу
+            платформы.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-slate-700 space-y-1">
           <p>
-            Direct + Sub (итого): <strong>{pct(mlmTotalPercent)}</strong>
+            Прямая + вторая линия (в сумме): <strong>{pct(mlmTotalPercent)}</strong>
+            {mlmTotalPercent > 100 ? (
+              <span className="text-red-600 ml-1">— слишком много, уменьшите доли</span>
+            ) : null}
           </p>
           {lastBudget ? (
             <>
-              <p>Platform margin: <strong>{pct(lastBudget.platformMarginPercent)}</strong></p>
-              <p>Fixed costs: <strong>{pct(lastBudget.fixedCostPercent)}</strong></p>
-              <p>Projected referral payouts: <strong>{pct(lastBudget.projectedReferralPercent)}</strong></p>
-              <p>Projected total burn: <strong>{pct(lastBudget.projectedTotalBurnPercent)}</strong></p>
+              <p>Маржа платформы с брони: <strong>{pct(lastBudget.platformMarginPercent)}</strong></p>
+              <p>Фиксированные издержки (эквайринг, резерв, налог): <strong>{pct(lastBudget.fixedCostPercent)}</strong></p>
+              <p>Планируемые реферальные выплаты: <strong>{pct(lastBudget.projectedReferralPercent)}</strong></p>
+              <p>Всего расходов от маржи: <strong>{pct(lastBudget.projectedTotalBurnPercent)}</strong></p>
             </>
           ) : (
-            <p>Budget snapshot will appear after first successful save.</p>
+            <p>Цифры появятся после первого успешного сохранения.</p>
           )}
         </CardContent>
       </Card>
@@ -625,26 +651,26 @@ export default function MarketingSettingsPage() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-slate-500">Total paid out</CardTitle>
+            <CardTitle className="text-xs text-slate-500">Уже выплачено по рефералке</CardTitle>
           </CardHeader>
           <CardContent className="text-xl font-semibold">
-            {Number(payoutStats?.totalPaidOutThb || 0).toLocaleString('ru-RU')} THB
+            {Number(payoutStats?.totalPaidOutThb || 0).toLocaleString('ru-RU')} ฿
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-slate-500">Marketing Budget (Pool)</CardTitle>
+            <CardTitle className="text-xs text-slate-500">Баланс маркетингового пула</CardTitle>
           </CardHeader>
           <CardContent className="text-xl font-semibold">
-            {Number(payoutStats?.currentPromoTankBalanceThb || 0).toLocaleString('ru-RU')} THB
+            {Number(payoutStats?.currentPromoTankBalanceThb || 0).toLocaleString('ru-RU')} ฿
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-slate-500">Forecast debits</CardTitle>
+            <CardTitle className="text-xs text-slate-500">Резерв на 10 активаций партнёров</CardTitle>
           </CardHeader>
           <CardContent className="text-xl font-semibold">
-            {Number(payoutStats?.forecastDebitNext10HostActivationsThb || 0).toLocaleString('ru-RU')} THB
+            {Number(payoutStats?.forecastDebitNext10HostActivationsThb || 0).toLocaleString('ru-RU')} ฿
           </CardContent>
         </Card>
       </div>

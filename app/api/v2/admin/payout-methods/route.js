@@ -7,14 +7,14 @@ import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-async function requireAdmin() {
+async function requireAdmin(request) {
   const access = await requireAdminStaff(request)
   if (access.error) return { error: access.error }
   return { userId: access.profile?.id || null }
 }
 
 export async function GET(request) {
-  const auth = await requireAdmin()
+  const auth = await requireAdmin(request)
   if (auth.error) {
     return auth.error
   }
@@ -31,7 +31,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const auth = await requireAdmin()
+  const auth = await requireAdmin(request)
   if (auth.error) {
     return auth.error
   }
@@ -65,7 +65,7 @@ export async function POST(request) {
 }
 
 export async function PUT(request) {
-  const auth = await requireAdmin()
+  const auth = await requireAdmin(request)
   if (auth.error) {
     return auth.error
   }
@@ -106,7 +106,7 @@ export async function PUT(request) {
 }
 
 export async function DELETE(request) {
-  const auth = await requireAdmin()
+  const auth = await requireAdmin(request)
   if (auth.error) {
     return auth.error
   }

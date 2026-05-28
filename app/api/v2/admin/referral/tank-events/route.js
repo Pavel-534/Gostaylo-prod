@@ -4,7 +4,7 @@ import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 
 export const dynamic = 'force-dynamic';
 
-async function requireAdmin() {
+async function requireAdmin(request) {
   const access = await requireAdminStaff(request);
   if (access.error) return { error: access.error };
   return { ok: true };
@@ -30,7 +30,7 @@ function applyTypeFilter(query, type) {
 }
 
 export async function GET(request) {
-  const auth = await requireAdmin();
+  const auth = await requireAdmin(request);
   if (auth.error) {
     return auth.error;
   }

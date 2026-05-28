@@ -18,6 +18,7 @@ import {
 } from '@/lib/referral/referral-stories-copy';
 import { normalizeReferralDisplayCurrency } from '@/lib/finance/referral-display-currency';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
+import { getUserHeldReferralSummary } from '@/lib/services/marketing/referral-hold.service.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -152,6 +153,16 @@ export async function GET(request) {
     if (status === 'pending') pendingThb += amount;
     if (status === 'earned') earnedThb += amount;
   }
+
+  const heldSummary = await getUserHeldReferralSummary(profile.id);
+  const heldThb = Number(heldSummary.heldReferralBalanceThb) || 0;
+  const nearestUnlockAt = heldSummary.nearestUnlockAt || null;
+  const referralHoldDays = Math.max(
+    0,
+    Math.floor(
+      Number(general?.referral_hold_days ?? general?.referralHoldDays ?? 14) || 14,
+    ),
+  );
 
   const statsTz = resolveReferralStatsTimeZone(profile);
   const currentYm = currentYearMonthKeyInTimeZone(statsTz);
@@ -407,6 +418,10 @@ export async function GET(request) {
         referralDisplayCurrency,
         pendingThb: Math.round(pendingThb * 100) / 100,
         earnedThb: Math.round(earnedThb * 100) / 100,
+        heldReferralBalanceThb: Math.round(heldThb * 100) / 100,
+        nearestUnlockAt,
+        heldRowCount: heldSummary.heldRowCount || 0,
+        referralHoldDays,
         friendsInvited,
         /** Партнёры с активацией (та же метрика, что tier / Stories unlock). */
         directPartnersInvited: directPartnersCount,
