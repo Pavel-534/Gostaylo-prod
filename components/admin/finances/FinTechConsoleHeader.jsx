@@ -1,7 +1,7 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
-import { ArrowLeft, Landmark, RefreshCw } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Landmark, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { GSL_FINTECH_HERO_GRADIENT } from '@/lib/theme/product-ui'
@@ -31,6 +31,17 @@ export function FinTechConsoleHeader({ dash, statCards, loading, onRefresh }) {
             <div className="mt-3">
               <FinTechConsoleHeaderAlerts alerts={dash?.alerts} />
             </div>
+            <Link
+              href="/admin/finance/intelligence"
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white/15 border border-white/25 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-white/25 hover:border-white/40"
+            >
+              <Landmark className="h-4 w-4 text-amber-200" />
+              Financial Intelligence
+              <span className="text-white/70 font-normal hidden sm:inline">
+                — GMV, margin, escrow, P&L
+              </span>
+              <ArrowRight className="h-4 w-4 ml-1 text-white/80" />
+            </Link>
           </div>
           <Button
             variant="secondary"

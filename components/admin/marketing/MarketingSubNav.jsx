@@ -8,6 +8,7 @@ import {
   Megaphone,
   ShieldAlert,
   Sparkles,
+  TrendingUp,
   Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -15,6 +16,7 @@ import { cn } from '@/lib/utils';
 /** Stage 124.2 — топ-навигация (6 пунктов), иконки + горизонтальный скролл на узких экранах. */
 export const MARKETING_SUB_NAV = [
   { href: '/admin/marketing', label: 'Обзор', exact: true, icon: LayoutDashboard },
+  { href: '/admin/marketing/roi', label: 'ROI', icon: TrendingUp },
   { href: '/admin/marketing/campaigns', label: 'Кампании', icon: Megaphone },
   { href: '/admin/marketing/attribution', label: 'Аналитика', icon: Activity },
   { href: '/admin/marketing/rules', label: 'Правила', icon: Sparkles },

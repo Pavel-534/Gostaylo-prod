@@ -176,6 +176,13 @@ export const ADMIN_MENU_GROUPS: AdminMenuGroup[] = [
         emphasize: true,
       },
       {
+        title: 'Financial Intelligence',
+        href: '/admin/finance/intelligence',
+        icon: 'TrendingUp',
+        allowedRoles: ['ADMIN'],
+        emphasize: true,
+      },
+      {
         title: 'Платежи',
         href: '/admin/finances',
         icon: 'Wallet',
@@ -442,6 +449,12 @@ export function resolveAdminBreadcrumb(pathname, groups = ADMIN_MENU_GROUPS) {
   }
   if (p.match(/^\/admin\/marketing\/campaigns\/[^/]+/)) {
     return { groupKey: 'growth', group: 'Маркетинг & Промо', page: 'Кампания' }
+  }
+  if (p.match(/^\/admin\/finance\/intelligence\/bookings\/[^/]+/)) {
+    return { groupKey: 'fin', group: 'Финансы', page: 'Booking P&L' }
+  }
+  if (p.startsWith('/admin/finance/intelligence')) {
+    return { groupKey: 'fin', group: 'Финансы', page: 'Financial Intelligence' }
   }
   return null
 }

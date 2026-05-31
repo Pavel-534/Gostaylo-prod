@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getRawRateMap } from '@/lib/services/pricing/pricing-fx-helpers.js'
@@ -266,6 +266,15 @@ export async function POST(request) {
   if (entriesError) {
     await supabaseAdmin.from('ledger_journals').delete().eq('id', journalId)
     return NextResponse.json({ success: false, error: entriesError.message }, { status: 500 })
+  }
+
+  try {
+    const { invalidateFinancialIntelligenceCache } = await import(
+      '@/lib/analytics/core/invalidate-financial-intelligence.js'
+    )
+    await invalidateFinancialIntelligenceCache()
+  } catch (e) {
+    console.warn('[treasury/conversions] cache invalidate', e?.message || e)
   }
 
   return NextResponse.json({

@@ -38,6 +38,14 @@ export async function PATCH(request, { params }) {
     if (r.error === 'open_partner_payout_requests') {
       return NextResponse.json({ success: false, ...r }, { status: 409 })
     }
+    try {
+      const { invalidateFinancialIntelligenceCache } = await import(
+        '@/lib/analytics/core/invalidate-financial-intelligence.js'
+      )
+      await invalidateFinancialIntelligenceCache()
+    } catch (e) {
+      console.warn('[payout-batches/settled] cache invalidate', e?.message || e)
+    }
     return NextResponse.json({ success: r.success !== false, ...r })
   }
   return NextResponse.json({ success: false, error: 'unknown_action' }, { status: 400 })

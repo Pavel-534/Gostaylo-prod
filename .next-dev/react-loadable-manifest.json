@@ -1,4 +1,16 @@
 {
+  "components\\kyc-uploader.jsx -> @/lib/services/media/compress-image-browser": {
+    "id": "components\\kyc-uploader.jsx -> @/lib/services/media/compress-image-browser",
+    "files": [
+      "static/chunks/_app-pages-browser_lib_services_media_compress-image-browser_js.js"
+    ]
+  },
+  "components\\kyc-uploader.jsx -> @/lib/storage/storage-upload.client": {
+    "id": "components\\kyc-uploader.jsx -> @/lib/storage/storage-upload.client",
+    "files": [
+      "static/chunks/_app-pages-browser_lib_storage_storage-upload_client_js.js"
+    ]
+  },
   "components\\push-client-init.jsx -> firebase/messaging": {
     "id": "components\\push-client-init.jsx -> firebase/messaging",
     "files": [
@@ -20,5 +32,11 @@
   "lib\\auth.js -> @/lib/supabase/oauth-browser-client": {
     "id": "lib\\auth.js -> @/lib/supabase/oauth-browser-client",
     "files": []
+  },
+  "lib\\services\\media\\compress-image-browser.js -> browser-image-compression": {
+    "id": "lib\\services\\media\\compress-image-browser.js -> browser-image-compression",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_browser-image-compression_dist_browser-image-compression_mjs.js"
+    ]
   }
 }

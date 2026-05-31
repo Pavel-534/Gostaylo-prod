@@ -54,6 +54,7 @@ const nextConfig = {
       '/api/admin/smoke/financial-run': PDF_TRACE_INCLUDES,
       '/api/v2/partner/finances-statement-pdf': PDF_TRACE_INCLUDES,
       '/api/admin/finances/payout-batches/[id]/bank-package': PDF_TRACE_INCLUDES,
+      '/api/admin/finance/intelligence/pdf': PDF_TRACE_INCLUDES,
     },
   },
 
