@@ -20,6 +20,8 @@ import {
 
   Loader2,
 
+  Megaphone,
+
   RefreshCw,
 
   Scale,
@@ -435,6 +437,8 @@ export function BookingPlPage({ bookingId }) {
 
               {referralAttributionId ? (
 
+                <>
+
                 <DeepLinkCard
 
                   href={`/admin/marketing/attribution?attributionId=${encodeURIComponent(referralAttributionId)}`}
@@ -446,6 +450,20 @@ export function BookingPlPage({ bookingId }) {
                   description="Атрибуция и начисления"
 
                 />
+
+                <DeepLinkCard
+
+                  href="/admin/marketing/roi#owner-guide"
+
+                  icon={Megaphone}
+
+                  title="Referral ROI"
+
+                  description="Окупаемость кампаний и программы"
+
+                />
+
+                </>
 
               ) : (
 

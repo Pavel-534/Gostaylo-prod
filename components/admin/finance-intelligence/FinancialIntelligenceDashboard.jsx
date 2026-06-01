@@ -13,6 +13,7 @@ import {
   HelpCircle,
   Landmark,
   List,
+  Megaphone,
   PiggyBank,
   RefreshCw,
   Scale,
@@ -491,6 +492,17 @@ export function FinancialIntelligenceDashboard() {
                 triggerClassName="h-9 bg-white/10 text-white border-white/20 hover:bg-white/20"
               />
               <Button
+                asChild
+                variant="secondary"
+                size="sm"
+                className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+              >
+                <Link href="/admin/marketing/roi#owner-guide">
+                  <Megaphone className="h-4 w-4 mr-1" />
+                  Referral ROI
+                </Link>
+              </Button>
+              <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => openBookings({})}
@@ -818,6 +830,7 @@ export function FinancialIntelligenceDashboard() {
           <ReferralEconomicsWidget
             referralPeriod={referralPeriod}
             periodInsights={report?.periodInsights}
+            roiHighlights={report?.referral?.roiHighlights}
             loading={loading}
           />
         </section>

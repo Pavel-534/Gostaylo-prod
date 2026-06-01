@@ -2,11 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
+  AlertTriangle,
+  Download,
+  FileSpreadsheet,
   HelpCircle,
   Landmark,
   Megaphone,
+  Octagon,
   RefreshCw,
   TrendingDown,
   TrendingUp,
@@ -30,6 +35,10 @@ import {
 } from '@/components/ui/tooltip';
 import { AdminTableAmount } from '@/components/admin/AdminTableAmount';
 import { MarketingSubNav } from '@/components/admin/marketing/MarketingSubNav';
+import { OwnerDigestSettingsPanel } from '@/components/admin/marketing/OwnerDigestSettingsPanel';
+import { RoiFraudModeToggle } from '@/components/admin/marketing/RoiFraudModeToggle';
+import { RoiOwnerGuideCard } from '@/components/admin/marketing/RoiOwnerGuideCard';
+import { campaignRoiDetailPath } from '@/lib/admin/marketing-roi-routes';
 import { roiToneClass } from '@/lib/admin/referral-monetary-kpi';
 import { cn } from '@/lib/utils';
 import { GSL_FINTECH_HERO_GRADIENT } from '@/lib/theme/product-ui';
@@ -67,8 +76,53 @@ function KpiHint({ text }) {
   );
 }
 
+function budgetRowClass(level) {
+  if (level === 'critical') return 'bg-rose-50/80';
+  if (level === 'warning') return 'bg-amber-50/60';
+  return '';
+}
+
+export function BudgetAlertBanner({ alerts }) {
+  if (!alerts?.length) return null;
+  return (
+    <div className="space-y-2">
+      {alerts.map((alert) => {
+        const isCritical = alert.level === 'critical';
+        const inner = (
+          <div
+            className={cn(
+              'rounded-xl border px-4 py-3 text-sm flex gap-3 items-start',
+              isCritical
+                ? 'border-rose-300 bg-rose-50 text-rose-950'
+                : 'border-amber-300 bg-amber-50 text-amber-950',
+            )}
+            role="alert"
+          >
+            {isCritical ? (
+              <Octagon className="h-5 w-5 shrink-0 text-rose-600 mt-0.5" />
+            ) : (
+              <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" />
+            )}
+            <p>{alert.message}</p>
+          </div>
+        );
+        return alert.href ? (
+          <Link key={`${alert.type}-${alert.campaignSlug || alert.message}`} href={alert.href}>
+            {inner}
+          </Link>
+        ) : (
+          <div key={`${alert.type}-${alert.campaignSlug || alert.message}`}>{inner}</div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ReferralRoiDashboard() {
+  const router = useRouter();
   const [period, setPeriod] = useState('30d');
+  const [chartGranularity, setChartGranularity] = useState('day');
+  const [roiFraudMode, setRoiFraudMode] = useState('standard');
   const [loading, setLoading] = useState(true);
   const [report, setReport] = useState(null);
 
@@ -93,12 +147,39 @@ export function ReferralRoiDashboard() {
     load();
   }, [load]);
 
+  const fraudAdjusted = report?.fraudAdjusted || {};
+  const isFraudMode = roiFraudMode === 'fraud_adjusted';
+
   const overall = report?.overall || {};
+  const displayRoi = isFraudMode ? fraudAdjusted.roiIndex : overall.roiIndex;
+  const displaySpend = isFraudMode ? fraudAdjusted.spendThb : overall.earnedBonusesThb;
+  const displayCommission = isFraudMode ? fraudAdjusted.commissionThb : overall.referredCommissionThb;
+  const displayNet = isFraudMode ? fraudAdjusted.netEffectThb : overall.netMarginThb;
+
   const vs = overall.vsPrevious || {};
   const roiDelta = vs.roiDeltaPct;
   const roiImproved = roiDelta != null && roiDelta > 0;
 
-  const chartData = useMemo(() => report?.roiChartDaily || [], [report]);
+  const chartData = useMemo(() => {
+    const daily = isFraudMode ? report?.roiChartDailyAdjusted : report?.roiChartDaily;
+    const weekly = isFraudMode ? report?.roiChartWeeklyAdjusted : report?.roiChartWeekly;
+    if (chartGranularity === 'week') return weekly || [];
+    return daily || [];
+  }, [report, chartGranularity, isFraudMode]);
+
+  const fraudBySlug = useMemo(() => {
+    const map = new Map();
+    for (const row of report?.campaignsFraudAdjusted || []) {
+      map.set(row.campaignSlug, row);
+    }
+    return map;
+  }, [report?.campaignsFraudAdjusted]);
+  const cacOverall = report?.cacSummary?.overall || {};
+  const cacBySource = report?.cacSummary?.bySource || [];
+
+  const handleExport = (format) => {
+    window.location.href = `/api/admin/marketing/roi/export?period=${period}&format=${format}`;
+  };
 
   return (
     <TooltipProvider>
@@ -120,6 +201,9 @@ export function ReferralRoiDashboard() {
                 </h1>
                 <p className="text-white/70 text-sm mt-1 max-w-xl">
                   Окупаемость кампаний и реферальной программы: затраты promo tank vs комиссия платформы.
+                  <Link href="#owner-guide" className="block mt-1 text-white/90 underline underline-offset-2 hover:text-white">
+                    Как пользоваться аналитикой →
+                  </Link>
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -149,6 +233,24 @@ export function ReferralRoiDashboard() {
                   Обновить
                 </Button>
                 <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleExport('csv')}
+                  className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  CSV
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleExport('xlsx')}
+                  className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-1" />
+                  Excel
+                </Button>
+                <Button
                   asChild
                   variant="secondary"
                   size="sm"
@@ -169,17 +271,48 @@ export function ReferralRoiDashboard() {
         </div>
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-8 space-y-6">
+          <BudgetAlertBanner alerts={report?.realtimeAlerts || report?.budgetAlerts} />
+
+          <RoiOwnerGuideCard />
+
+          {report?.businessSummary?.bullets?.length ? (
+            <Card className="border-sky-200/80 shadow-sm bg-gradient-to-br from-sky-50/90 to-white">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base text-sky-950">Что это значит для бизнеса</CardTitle>
+                <CardDescription className="text-sky-900/70">
+                  Краткие выводы за выбранный период (read-only)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="list-disc pl-5 space-y-1.5 text-sm text-slate-700">
+                  {report.businessSummary.bullets.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ) : null}
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <RoiFraudModeToggle
+              mode={roiFraudMode}
+              onChange={setRoiFraudMode}
+              suspiciousCount={fraudAdjusted.suspiciousBookingsCount || 0}
+            />
+            {isFraudMode && fraudAdjusted.ownerNote ? (
+              <p className="text-xs text-slate-600 max-w-xl">{fraudAdjusted.ownerNote}</p>
+            ) : null}
+          </div>
+
           <Card className="border-emerald-200/80 shadow-md overflow-hidden">
             <CardHeader className="pb-2 bg-gradient-to-br from-emerald-50/80 to-white">
               <CardDescription className="text-xs uppercase tracking-wide text-emerald-900/70 flex items-center gap-1">
-                Общий Referral ROI за период
+                {isFraudMode ? 'Referral ROI (без подозрительных броней)' : 'Общий Referral ROI за период'}
                 <KpiHint text="ROI = комиссия платформы с реферальных броней ÷ расход promo tank (earned бонусы). >1 — программа окупается." />
               </CardDescription>
               <CardTitle className="text-3xl font-bold tabular-nums flex flex-wrap items-baseline gap-2">
-                <span className={cn(roiToneClass(overall.roiIndex))}>
-                  {Number.isFinite(Number(overall.roiIndex))
-                    ? Number(overall.roiIndex).toFixed(2)
-                    : '—'}
+                <span className={cn(roiToneClass(displayRoi))}>
+                  {Number.isFinite(Number(displayRoi)) ? Number(displayRoi).toFixed(2) : '—'}
                 </span>
                 {roiDelta != null ? (
                   <span
@@ -194,24 +327,26 @@ export function ReferralRoiDashboard() {
                   </span>
                 ) : null}
               </CardTitle>
-              <p className="text-sm text-slate-600">{report?.profitImpact?.ownerNote}</p>
+              <p className="text-sm text-slate-600">
+                {isFraudMode ? fraudAdjusted.ownerNote : report?.profitImpact?.ownerNote}
+              </p>
             </CardHeader>
             <CardContent className="pt-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
                   {
                     label: 'Расход (promo)',
-                    value: overall.earnedBonusesThb,
+                    value: displaySpend,
                     hint: 'Σ earned бонусов за период',
                   },
                   {
                     label: 'Комиссия',
-                    value: overall.referredCommissionThb,
+                    value: displayCommission,
                     hint: 'Комиссия с броней реферальной воронки',
                   },
                   {
                     label: 'Net-маржа',
-                    value: overall.netMarginThb,
+                    value: displayNet,
                     hint: 'Комиссия − бонусы − clawback',
                     signed: true,
                   },
@@ -233,11 +368,93 @@ export function ReferralRoiDashboard() {
             </CardContent>
           </Card>
 
+          <Card id="cac" className="border-indigo-200/80 shadow-sm scroll-mt-24">
+            <CardHeader className="pb-2 bg-gradient-to-br from-indigo-50/80 to-white">
+              <CardDescription className="text-xs uppercase tracking-wide text-indigo-900/70 flex items-center gap-1">
+                Стоимость привлечения (CAC)
+                <KpiHint text="CAC = расход promo tank ÷ число первых броней от реферера за период. Сравнивайте с ROI: при ROI ≥ 1 комиссия покрывает расход." />
+              </CardDescription>
+              <CardTitle className="text-2xl font-bold tabular-nums flex flex-wrap items-baseline gap-3">
+                <span>
+                  {cacOverall.cacThb != null
+                    ? `฿${Number(cacOverall.cacThb).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}`
+                    : '—'}
+                </span>
+                <span className="text-sm font-normal text-slate-500">
+                  · {cacOverall.guestsAcquired ?? 0} гостей · ROI{' '}
+                  <span className={cn('font-semibold', roiToneClass(cacOverall.roiIndex))}>
+                    {cacOverall.roiIndex != null ? Number(cacOverall.roiIndex).toFixed(2) : '—'}
+                  </span>
+                </span>
+              </CardTitle>
+              <p className="text-sm text-slate-600">{cacOverall.ownerNote}</p>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                {cacBySource.length ? (
+                  cacBySource.map((row) => (
+                    <div
+                      key={row.id}
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-2"
+                    >
+                      <div className="text-[10px] uppercase text-slate-500">{row.label}</div>
+                      <div className="flex items-baseline justify-between gap-2 mt-1">
+                        <span className="font-semibold tabular-nums">
+                          {row.cacThb != null
+                            ? `฿${Number(row.cacThb).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}`
+                            : '—'}
+                        </span>
+                        <span className={cn('text-xs font-bold tabular-nums', roiToneClass(row.roiIndex))}>
+                          ROI {row.roiIndex != null ? Number(row.roiIndex).toFixed(2) : '—'}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        {row.guestsAcquired ?? 0} гостей · расход ฿
+                        {(row.spendThb || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-slate-500 col-span-full">Нет данных по источникам за период</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2 border-slate-200/80 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-base">Динамика ROI</CardTitle>
-                <CardDescription>Комиссия, расход promo и net-эффект по дням</CardDescription>
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-base">Динамика ROI</CardTitle>
+                    <CardDescription>
+                      {chartGranularity === 'week'
+                        ? 'Сводка по неделям (ISO)'
+                        : 'Комиссия, расход promo и ROI по дням'}
+                      <KpiHint text="Переключите на «Недели», чтобы сгладить шум и видеть тренд. ROI = комиссия ÷ расход." />
+                    </CardDescription>
+                  </div>
+                  <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+                    {[
+                      { id: 'day', label: 'Дни' },
+                      { id: 'week', label: 'Недели' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setChartGranularity(opt.id)}
+                        className={cn(
+                          'px-2.5 py-1 text-xs font-medium rounded-md transition',
+                          chartGranularity === opt.id
+                            ? 'bg-white text-slate-900 shadow-sm'
+                            : 'text-slate-600 hover:text-slate-900',
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="h-72">
                 {chartData.length > 0 && !loading ? (
@@ -309,7 +526,8 @@ export function ReferralRoiDashboard() {
             <CardHeader>
               <CardTitle className="text-base">Кампании</CardTitle>
               <CardDescription>
-                Сортировка по ROI · затраты promo tank · LTV = комиссия / привлечённых гостей
+                Клик по строке — детали кампании и список броней с переходом в P&L
+                <KpiHint text="LTV ≈ комиссия / число гостей. % бюджета — lifetime spend vs лимит кампании." />
               </CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto">
@@ -318,51 +536,69 @@ export function ReferralRoiDashboard() {
                   <TableRow>
                     <TableHead>Кампания</TableHead>
                     <TableHead className="text-right">ROI</TableHead>
+                    <TableHead className="text-right">CAC</TableHead>
                     <TableHead className="text-right">Расход</TableHead>
                     <TableHead className="text-right">Комиссия</TableHead>
                     <TableHead className="text-right">Net</TableHead>
                     <TableHead className="text-right">Гости</TableHead>
                     <TableHead className="text-right">LTV</TableHead>
+                    <TableHead className="text-right">Бюджет</TableHead>
+                    <TableHead className="text-right">% бюджета</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-slate-500">
+                      <TableCell colSpan={10} className="text-center text-slate-500">
                         Загрузка…
                       </TableCell>
                     </TableRow>
                   ) : (report?.campaigns || []).length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-slate-500">
+                      <TableCell colSpan={10} className="text-center text-slate-500">
                         Нет кампаний с активностью за период
                       </TableCell>
                     </TableRow>
                   ) : (
-                    report.campaigns.map((row) => (
-                      <TableRow key={row.campaignSlug}>
+                    report.campaigns.map((row) => {
+                      const adj = fraudBySlug.get(row.campaignSlug);
+                      const rowRoi = isFraudMode ? adj?.roiIndex : row.roiIndex;
+                      const rowSpend = isFraudMode ? adj?.spendThb : row.spendThb;
+                      const rowCommission = isFraudMode ? adj?.commissionThb : row.commissionThb;
+                      const rowNet = isFraudMode ? adj?.netEffectThb : row.netEffectThb;
+                      return (
+                      <TableRow
+                        key={row.campaignSlug}
+                        className={cn(
+                          'cursor-pointer hover:bg-indigo-50/40 transition-colors',
+                          budgetRowClass(row.budgetAlertLevel),
+                        )}
+                        onClick={() =>
+                          router.push(`${campaignRoiDetailPath(row.campaignSlug)}?period=${period}`)
+                        }
+                      >
                         <TableCell>
-                          <Link
-                            href={`/admin/marketing/campaigns/${encodeURIComponent(row.campaignSlug === '(default)' ? '' : row.campaignSlug)}`}
-                            className="font-medium text-indigo-700 hover:underline"
-                          >
-                            {row.campaignSlug}
-                          </Link>
+                          <span className="font-medium text-indigo-700">{row.campaignSlug}</span>
                           <div className="text-[10px] text-slate-400">
                             {row.clicksCount} кликов · {row.signupsCount} рег.
                           </div>
                         </TableCell>
-                        <TableCell className={cn('text-right font-bold tabular-nums', roiToneClass(row.roiIndex))}>
-                          {row.roiIndex != null ? row.roiIndex.toFixed(2) : '—'}
+                        <TableCell className={cn('text-right font-bold tabular-nums', roiToneClass(rowRoi))}>
+                          {rowRoi != null ? rowRoi.toFixed(2) : '—'}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          ฿{(row.spendThb || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+                          {row.cacThb != null
+                            ? `฿${row.cacThb.toLocaleString('ru-RU', { maximumFractionDigits: 0 })}`
+                            : '—'}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          ฿{(row.commissionThb || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+                          ฿{(rowSpend || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                          <AdminTableAmount value={row.netEffectThb} showPlus className="inline font-medium" />
+                          ฿{(rowCommission || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          <AdminTableAmount value={rowNet} showPlus className="inline font-medium" />
                         </TableCell>
                         <TableCell className="text-right">{row.firstBookingsCount || row.signupsCount || 0}</TableCell>
                         <TableCell className="text-right tabular-nums">
@@ -370,13 +606,30 @@ export function ReferralRoiDashboard() {
                             ? `฿${row.ltvThb.toLocaleString('ru-RU', { maximumFractionDigits: 0 })}`
                             : '—'}
                         </TableCell>
+                        <TableCell className="text-right tabular-nums text-slate-600">
+                          {row.maxBudgetThb != null
+                            ? `฿${row.maxBudgetThb.toLocaleString('ru-RU', { maximumFractionDigits: 0 })}`
+                            : '∞'}
+                        </TableCell>
+                        <TableCell
+                          className={cn(
+                            'text-right tabular-nums font-medium',
+                            row.budgetAlertLevel === 'critical' && 'text-rose-700',
+                            row.budgetAlertLevel === 'warning' && 'text-amber-700',
+                          )}
+                        >
+                          {row.budgetUsagePct != null ? `${row.budgetUsagePct}%` : '—'}
+                        </TableCell>
                       </TableRow>
-                    ))
+                    );
+                    })
                   )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
+
+          <OwnerDigestSettingsPanel />
 
           {report?.generatedAt ? (
             <p className="text-xs text-slate-400 text-center">

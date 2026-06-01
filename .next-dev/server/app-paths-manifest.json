@@ -1,5 +1,10 @@
 {
-  "/api/v2/auth/realtime-token/route": "app/api/v2/auth/realtime-token/route.js",
-  "/api/v2/chat/conversations/route": "app/api/v2/chat/conversations/route.js",
-  "/api/v2/push/route": "app/api/v2/push/route.js"
+  "/api/v2/push/route": "app/api/v2/push/route.js",
+  "/manifest.webmanifest/route": "app/manifest.webmanifest/route.js",
+  "/api/admin/marketing/owner-digest/route": "app/api/admin/marketing/owner-digest/route.js",
+  "/api/admin/marketing/roi/route": "app/api/admin/marketing/roi/route.js",
+  "/admin/finance/intelligence/page": "app/admin/finance/intelligence/page.js",
+  "/admin/settings/finances/page": "app/admin/settings/finances/page.js",
+  "/admin/marketing/page": "app/admin/marketing/page.js",
+  "/admin/marketing/roi/page": "app/admin/marketing/roi/page.js"
 }

@@ -1,25 +1,9 @@
 {
   "pages": {
-    "/login/page": [
+    "/admin/settings/finances/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/login/page.js"
-    ],
-    "/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/layout.css",
-      "static/chunks/app/layout.js"
-    ],
-    "/profile/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/profile/page.js"
-    ],
-    "/admin/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/admin/page.js"
+      "static/chunks/app/admin/settings/finances/page.js"
     ],
     "/admin/layout": [
       "static/chunks/webpack.js",
@@ -31,15 +15,31 @@
       "static/chunks/main-app.js",
       "static/chunks/app/admin/error.js"
     ],
+    "/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/layout.css",
+      "static/chunks/app/layout.js"
+    ],
     "/admin/finance/intelligence/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/admin/finance/intelligence/page.js"
     ],
-    "/admin/settings/finances/page": [
+    "/admin/marketing/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/settings/finances/page.js"
+      "static/chunks/app/admin/marketing/page.js"
+    ],
+    "/admin/marketing/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/marketing/layout.js"
+    ],
+    "/admin/marketing/roi/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/marketing/roi/page.js"
     ]
   }
 }

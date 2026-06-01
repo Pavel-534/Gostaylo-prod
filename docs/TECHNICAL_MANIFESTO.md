@@ -7,7 +7,27 @@
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
 **Stage 118.6 (2026-05-27):** Индексы admin search (`stage118_6_admin_global_search_indexes.sql`, pg_trgm); request-scoped cache роли (`lib/security/request-access-cache.js`); план **`docs/REFERRAL_PROGRAM_2_0_PLAN.md`**.
+**Stage 124.17 (2026-06-01):** Официальное закрытие Phase D + tech-debt review и **2–3 мес. roadmap** — `docs/PHASE_D_CLOSURE_AND_ROADMAP.md`.
+**Stage 124.16 (2026-06-01):** **Phase D завершена (124.11–124.16).** Карточка владельца «Как пользоваться аналитикой» на ROI-пульте (`REFERRAL_ROI_OWNER_GUIDE`, `RoiOwnerGuideCard`); навигация FI ↔ ROI ↔ fraud-queue; документация owner playbook ниже.
+**Stage 124.15 (2026-06-01):** LTV/retention на странице кампании (`buildCampaignLtvRetentionBlock`); fraud-adjusted ROI; блок «Что это значит для бизнеса» (`buildRoiBusinessSummary`).
+**Stage 124.14 (2026-06-01):** ROI drill-down `/admin/marketing/roi/[campaignSlug]` — `referral-campaign-roi.report`, таблица броней → FI P&L; weekly rollup на графике ROI-пульта.
+**Stage 124.13 (2026-05-31):** Owner Digest — еженедельный email/Telegram (`owner-marketing-digest.report`, cron `owner-marketing-digest`, `GET/PUT/POST /api/admin/marketing/owner-digest`); realtime алерты ROI ниже 1 + бюджет; настройки на `/admin/marketing/roi`.
+**Stage 124.12 (2026-05-31):** Phase D — CAC по каналам/кампаниям, бюджетные алерты (% бюджета кампании + promo tank burn), экспорт ROI CSV/Excel (`referral-roi-export`, `GET /api/admin/marketing/roi/export`); FI widget — CAC, расход, топ/анти-топ кампании.
 **Stage 124.11 (2026-05-29):** Phase D start — Referral ROI dashboard `/admin/marketing/roi`; SSOT `referral-roi.report` + `campaign-performance.metrics`; API `GET /api/admin/marketing/roi`; FI widget Referral Economics → ROI-пульт.
+
+### Phase D (124.11–124.17) — статус и roadmap
+
+- **Закрыта:** 124.11–124.16 (ROI, digest, drill-down, LTV, fraud-adjusted, owner guide).
+- **124.17:** итог + debt review + roadmap → **`docs/PHASE_D_CLOSURE_AND_ROADMAP.md`** (не новый код).
+
+### Как владелец использует аналитику (playbook)
+
+1. **Financial Intelligence** (`/admin/finance/intelligence`) — оборот, чистая прибыль, эскроу, реферальный долг; виджет Referral Economics → ROI-пульт.
+2. **Referral ROI-пульт** (`/admin/marketing/roi`, якорь `#owner-guide`) — ROI, CAC, алерты, fraud-adjusted, экспорт, Owner Digest.
+3. **Кампания** (`/admin/marketing/roi/[campaignSlug]`) — LTV, retention, брони за период.
+4. **P&L брони** (`/admin/finance/intelligence/bookings/[id]`) — money-flow одной сделки.
+
+SSOT копирайта карточки: `lib/analytics/owner/referral-roi-owner-guide.js`. Отчёты: `lib/analytics/reports/referral-roi.report.js`, `referral-campaign-roi.report.js`, `owner-marketing-digest.report.js`. Cron digest: `POST /api/cron/owner-marketing-digest` (пн 07:00 UTC).
 
 **Stage 124.10 (2026-05-29):** FI Phase C closure — smoke 12d/12e fixed; bank reconciliation DB + history API; owner tooltips.
 
