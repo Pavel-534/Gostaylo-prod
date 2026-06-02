@@ -39,6 +39,7 @@ export function useCheckoutConfirmFlow({
           const verifyRes = await fetch('/api/v2/payments/verify-tron', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
               txid: transactionId,
               bookingId,
@@ -223,6 +224,7 @@ export function useCheckoutConfirmFlow({
       const res = await fetch('/api/v2/payments/submit-txid', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           bookingId,
           txid: txId,

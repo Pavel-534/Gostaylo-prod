@@ -38,6 +38,7 @@ export function FinTechCronHealthPanel({ cronHealth, ownerMode = true, loading =
   const jobs = cronHealth?.jobs || []
   const anyStale = jobs.some((j) => j.stale)
   const anyError = jobs.some((j) => j.lastStatus === 'error')
+  const okCount = jobs.filter((j) => !j.stale && j.lastStatus !== 'error').length
 
   return (
     <Card
@@ -55,6 +56,13 @@ export function FinTechCronHealthPanel({ cronHealth, ownerMode = true, loading =
           {ownerMode
             ? 'Фоновые процессы, которые размораживают оплаты и готовят выплаты. Если давно не работали — деньги могут задержаться.'
             : 'Последние прогоны из ops_job_runs (внешний cron, см. CRON_EXTERNAL_FINANCIAL.md).'}
+          {jobs.length > 0 && !loading ? (
+            <span className="block mt-1 text-slate-600">
+              {okCount}/{jobs.length} в норме
+              {anyError ? ' · есть ошибки' : ''}
+              {anyStale && !anyError ? ' · есть просроченные' : ''}
+            </span>
+          ) : null}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -70,7 +78,7 @@ export function FinTechCronHealthPanel({ cronHealth, ownerMode = true, loading =
         ) : cronHealth?.loadError ? (
           <p className="text-sm text-red-700">{cronHealth.loadError}</p>
         ) : (
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {jobs.map((job) => {
               const badge = statusBadge(job)
               const Icon = job.stale ? AlertTriangle : CheckCircle2
@@ -97,8 +105,19 @@ export function FinTechCronHealthPanel({ cronHealth, ownerMode = true, loading =
                     {!ownerMode && job.jobName ? (
                       <p className="text-[10px] font-mono text-slate-400 mt-0.5">{job.jobName}</p>
                     ) : null}
-                    {job.lastErrorMessage && !ownerMode ? (
-                      <p className="text-xs text-red-600 mt-1 truncate">{job.lastErrorMessage}</p>
+                    {job.lastStatus === 'error' && job.lastErrorMessage ? (
+                      <p
+                        className="text-xs text-red-700 mt-1 line-clamp-2"
+                        title={job.lastErrorMessage}
+                      >
+                        {ownerMode ? 'Ошибка: ' : ''}
+                        {job.lastErrorMessage}
+                      </p>
+                    ) : null}
+                    {ownerMode && job.jobName && job.stale && job.status !== 'missing' ? (
+                      <p className="text-[11px] text-amber-800 mt-0.5">
+                        Код: <span className="font-mono">{job.jobName}</span>
+                      </p>
                     ) : null}
                     <Badge className={cn('mt-2 text-[10px]', badge.className)}>{badge.text}</Badge>
                   </div>

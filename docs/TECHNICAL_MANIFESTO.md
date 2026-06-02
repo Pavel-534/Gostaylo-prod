@@ -7,6 +7,7 @@
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
 **Stage 118.6 (2026-05-27):** Индексы admin search (`stage118_6_admin_global_search_indexes.sql`, pg_trgm); request-scoped cache роли (`lib/security/request-access-cache.js`); план **`docs/REFERRAL_PROGRAM_2_0_PLAN.md`**.
+**Stage 124.20 (2026-06-01):** MIR smoke — `lib/smoke/checkout-mir-escrow-step.js` (отдельная RUB-бронь, `initiate` MIR + YooKassa webhook RUB, ledger/fiscal checks); шаг **6b** в `smoke:full-financial` (SKIP без `YOOKASSA_*`). Shared: `checkout-acquiring-smoke-shared.js`. **Stage 124.19:** smoke **6** HTTP CARD+webhook; Cron Health 7 jobs; owner checklist. **Stage 124.18:** `stage124_18_awaiting_payment_escrow_rpc.sql`; FSM; payment security guards.
 **Stage 124.17 (2026-06-01):** Официальное закрытие Phase D + tech-debt review и **2–3 мес. roadmap** — `docs/PHASE_D_CLOSURE_AND_ROADMAP.md`.
 **Stage 124.16 (2026-06-01):** **Phase D завершена (124.11–124.16).** Карточка владельца «Как пользоваться аналитикой» на ROI-пульте (`REFERRAL_ROI_OWNER_GUIDE`, `RoiOwnerGuideCard`); навигация FI ↔ ROI ↔ fraud-queue; документация owner playbook ниже.
 **Stage 124.15 (2026-06-01):** LTV/retention на странице кампании (`buildCampaignLtvRetentionBlock`); fraud-adjusted ROI; блок «Что это значит для бизнеса» (`buildRoiBusinessSummary`).

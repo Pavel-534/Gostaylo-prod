@@ -4,9 +4,32 @@
 **Когда:** после успешной симуляции Stage 104 (`npm run smoke:full-financial:all`) и настройки мониторинга Stage 105.  
 **SSOT:** `ARCHITECTURAL_DECISIONS.md`, ADR-097, `lib/treasury/payout-rails.js`, `lib/treasury/treasury-ops-config.js`.
 
+> **Stage 124.18–124.19 (2026-06-01):** checkout `AWAITING_PAYMENT` + RPC; auth на `submit-txid` / `verify-tron`; webhook guards; smoke шаг **6** = HTTP `initiate` → mock webhook → `PAID_ESCROW`. Миграция `stage124_18_awaiting_payment_escrow_rpc.sql` — на FannRent применена; на **prod** — проверить отдельно, если другой проект Supabase.
+
 > **Stage 108–112.3 final (2026-05-21) — pre-launch hardening завершён.** Код: perimeter prod 404, booking guard, FinTech/home/chat/partner API clients, `components/` без fetch (кроме deprecated bell). Go/No-Go **9/10** — **`docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`**. Осталось внешнее: ЮKassa, ОсОО, договоры (§B–D), деплой prod + verify/smoke на prod.
 
-**Быстрый Go/No-Go (15 мин):** [`docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`](GO_NO_GO_FIRST_REAL_PAYMENT.md)
+**Быстрый Go/No-Go (15 мин):** [`docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`](GO_NO_GO_FIRST_PAYMENT.md)
+
+---
+
+## Для владельца: что сделать перед первым реальным платежом
+
+Короткий список без терминала. Детали — разделы A–G ниже.
+
+| # | Действие | Где / как проверить |
+|---|----------|---------------------|
+| 1 | **Деплой** последнего кода (Stage 124.18+) на production | Vercel / ваш CI |
+| 2 | **Миграция БД** `stage124_18_awaiting_payment_escrow_rpc` на prod Supabase (если prod ≠ dev) | Supabase → Migrations или SQL из `migrations/` |
+| 3 | Открыть **`/admin/settings/finances`** → карточка **«Статус готовности к реальным платежам»** — все обязательные пункты **зелёные** | FinTech-пульт |
+| 4 | **«Запустить полный smoke»** или попросить разработчика `npm run smoke:full-financial` — шаг **6** (HTTP checkout) зелёный | FinTech / терминал |
+| 5 | **Cron Health** на том же экране: 7 задач, без «Давно не бегал» / «Ошибка»; настроить **cron-job.org** для `promote-ready-for-payout` (hourly) | `docs/CRON_EXTERNAL_FINANCIAL.md` |
+| 6 | **Emergency Pause** выключен; **TREASURY_MANUAL_MODE=1** на prod; mock/sandbox оплаты **выключены** | FinTech → казначейство / env |
+| 7 | **ЮKassa**: боевые ключи, webhook `POST …/api/webhooks/payments/confirm`, `YOOKASSA_WEBHOOK_SECRET` в Vercel | §B, §E |
+| 8 | **Онлайн-касса**: `FISCAL_PROVIDER_URL` боевой, не sandbox | §A2, §B3 |
+| 9 | **Юридическое**: оферта/политики опубликованы (`/admin/settings/legal` → ZIP при необходимости) | §C |
+| 10 | **Пилот**: одна тестовая оплата MIR/RUB на минимальную сумму → бронь `PAID_ESCROW`, чек fiscal, уведомление в TG FINANCE | §E |
+
+**Не включайте** приём live-платежей, пока пункты 3–6 и 7–8 не закрыты, даже если код «зелёный».
 
 ---
 
@@ -54,9 +77,11 @@
 
 ### A1. Симуляция и мониторинг
 
-- [ ] `npm run smoke:full-financial:rub` — **PASS** (15/15)
-- [ ] `npm run smoke:full-financial:intl` — **PASS** (15/15)
+- [ ] `npm run smoke:full-financial:rub` — **PASS** (в т.ч. шаг **6. HTTP checkout: initiate → webhook → PAID_ESCROW**)
+- [ ] `npm run smoke:full-financial:intl` — **PASS**
 - [ ] `npm run smoke:full-financial:all` — шаг **«16. Два рельса одновременно»** — **PASS**
+- [ ] Dev env: `PAYMENT_ACQUIRING_WEBHOOK_SECRET` (шаг 6 CARD) · для **шага 6b MIR**: `YOOKASSA_SHOP_ID`, `YOOKASSA_SECRET_KEY`, `YOOKASSA_WEBHOOK_SECRET` (без них — SKIP)
+- [ ] Миграция **124.18** на prod БД (enum `AWAITING_PAYMENT` + RPC whitelist)
 - [ ] `/admin/settings/finances` → **Мониторинг**: пороги понятны, алерты приходят в TG (топик FINANCE)
 - [ ] `TELEGRAM_BOT_TOKEN` + `TELEGRAM_ADMIN_GROUP_ID` заданы на prod
 - [ ] `TREASURY_MANUAL_MODE` не снят без решения (по умолчанию **true** — авто-пулы выключены)
@@ -82,6 +107,8 @@
 - [ ] `escrow-thaw` — hourly
 - [ ] `promote-ready-for-payout` — hourly  
   См. `docs/CRON_EXTERNAL_FINANCIAL.md`
+- [ ] `payout-batch-pools` — пн/чт (или по runbook)
+- [ ] FinTech **Cron Health**: `escrow-thaw`, `promote-ready-for-payout`, `payout-batch-pools`, `financial-health-monitor`, `exchange-rates-refresh`, `referral-reconciliation`, `referral-unlock` — без stale/error
 - [ ] Auto-создание пулов **не** включено (ручные пулы из FinTech)
 
 ### A4. База и миграции
@@ -179,4 +206,4 @@
 - `docs/PRE_LAUNCH_CHECKLIST.md` — soft launch  
 - `docs/CRON_EXTERNAL_FINANCIAL.md` — cron  
 
-*Stage 105 · 2026-05-19 · обновлено 112.0 (2026-05-21)*
+*Stage 105 · 2026-05-19 · обновлено 124.19 (2026-06-01)*

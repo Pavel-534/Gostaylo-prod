@@ -26,6 +26,7 @@ import {
   normalizeProviderStatus,
 } from '@/lib/services/payment-adapters/status-normalizer';
 import { verifyWebhookPaidAmount } from '@/lib/services/payment-adapters/acquirer-charge-amount.js';
+import { assertWebhookGuestPaymentAllowed } from '@/lib/payment/webhook-guest-payment-gate.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -152,6 +153,21 @@ export async function POST(request) {
   );
   if (!bookingId) {
     return NextResponse.json({ success: false, error: 'Missing bookingId' }, { status: 400 });
+  }
+
+  const guestGate = await assertWebhookGuestPaymentAllowed({
+    bookingId,
+    channel: 'payments/confirm',
+  });
+  if (!guestGate.allowed) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: guestGate.message,
+        code: guestGate.code || 'PAYMENT_BLOCKED',
+      },
+      { status: 403 },
+    );
   }
   if (!isIntentPaidStatus(normalizedStatus)) {
     return NextResponse.json({

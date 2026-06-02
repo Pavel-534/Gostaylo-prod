@@ -8,19 +8,28 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { assertCronAuthorized } from '@/lib/cron/verify-cron-secret.js'
 import { executeReferralReconciliationRun } from '@/lib/cron/referral-reconciliation-run.js'
+import { startOpsJobRun, finishOpsJobRun } from '@/lib/ops-job-runs'
 
 export async function POST(request) {
   const denied = assertCronAuthorized(request)
   if (denied) return denied
 
-  const exec = await executeReferralReconciliationRun({ trigger: 'cron' })
-  if (!exec.success) {
-    return NextResponse.json(
-      { success: false, error: exec.error, ...(exec.result || {}) },
-      { status: 500 },
-    )
+  const run = await startOpsJobRun('referral-reconciliation')
+  try {
+    const exec = await executeReferralReconciliationRun({ trigger: 'cron' })
+    if (!exec.success) {
+      await finishOpsJobRun(run, { status: 'error', errorMessage: exec.error })
+      return NextResponse.json(
+        { success: false, error: exec.error, ...(exec.result || {}) },
+        { status: 500 },
+      )
+    }
+    await finishOpsJobRun(run, { status: 'success', stats: exec.result || {} })
+    return NextResponse.json({ success: true, ...exec.result })
+  } catch (e) {
+    await finishOpsJobRun(run, { status: 'error', errorMessage: e?.message })
+    return NextResponse.json({ success: false, error: e?.message }, { status: 500 })
   }
-  return NextResponse.json({ success: true, ...exec.result })
 }
 
 export async function GET(request) {

@@ -8,6 +8,7 @@ import PaymentIntentService from '@/lib/services/payment-intent.service';
 import { applyInvoicePostPaymentEffects } from '@/lib/services/invoice-extension.service';
 import EscrowService from '@/lib/services/escrow.service';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
+import { assertWebhookGuestPaymentAllowed } from '@/lib/payment/webhook-guest-payment-gate.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,6 +80,21 @@ export async function POST(request) {
         `🔌 <b>Webhook: crypto/confirm</b> — нет txid/bookingId\n<code>${escapeSystemAlertHtml(JSON.stringify(body).slice(0, 500))}</code>`,
       );
       return NextResponse.json({ success: false, error: 'Missing txid or bookingId' }, { status: 400 });
+    }
+
+    const guestGate = await assertWebhookGuestPaymentAllowed({
+      bookingId,
+      channel: 'crypto/confirm',
+    });
+    if (!guestGate.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: guestGate.message,
+          code: guestGate.code || 'PAYMENT_BLOCKED',
+        },
+        { status: 403 },
+      );
     }
 
     if (targetWallet && String(targetWallet) !== String(GOSTAYLO_WALLET)) {

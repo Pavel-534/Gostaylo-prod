@@ -26,7 +26,11 @@ const STAFF_ROLES = new Set(['ADMIN', 'MODERATOR']);
  * @param {{ userId?: string | null, role?: string | null } | null} session
  */
 function assertBookingTronAmountAccess(booking, session) {
-  if (!booking?.renter_id) return { ok: true };
+  if (!booking?.renter_id) {
+    const role = String(session?.role || '').toUpperCase();
+    if (STAFF_ROLES.has(role)) return { ok: true };
+    return { ok: false, status: 401, error: 'Authentication required', code: 'UNAUTHORIZED' };
+  }
   const uid = session?.userId ? String(session.userId) : '';
   if (!uid) {
     return { ok: false, status: 401, error: 'Authentication required', code: 'UNAUTHORIZED' };
@@ -97,19 +101,52 @@ export async function POST(request) {
     let expectedAmount = expectedAmountUsdt != null && expectedAmountUsdt !== '' ? parseFloat(expectedAmountUsdt) : null;
     if (expectedAmount != null && !Number.isFinite(expectedAmount)) expectedAmount = null;
 
-    if (bookingId && expectedAmount == null) {
-      const resolved = await resolveExpectedUsdtFromBooking(String(bookingId));
-      if (!resolved.ok) {
+    let bookingForSettlement = null;
+    if (bookingId) {
+      const { data: bookingRow, error: bookingReadErr } = await supabaseAdmin
+        .from('bookings')
+        .select('id, renter_id, price_thb, commission_thb, rounding_diff_pot, pricing_snapshot')
+        .eq('id', String(bookingId))
+        .maybeSingle();
+
+      if (bookingReadErr) {
+        return NextResponse.json(
+          { success: false, error: bookingReadErr.message, status: 'ERROR' },
+          { status: 500 },
+        );
+      }
+      if (!bookingRow?.id) {
+        return NextResponse.json(
+          { success: false, error: 'Booking not found', status: 'NOT_FOUND' },
+          { status: 404 },
+        );
+      }
+
+      const session = await getSessionPayload();
+      const access = assertBookingTronAmountAccess(bookingRow, session);
+      if (!access.ok) {
         return NextResponse.json(
           {
             success: false,
-            error: resolved.error,
-            status: resolved.code || 'ERROR',
+            error: access.error,
+            status: access.code || 'FORBIDDEN',
+            code: access.code,
           },
-          { status: resolved.status || 500 },
+          { status: access.status || 403 },
         );
       }
-      expectedAmount = resolved.expectedAmount;
+      bookingForSettlement = bookingRow;
+
+      if (expectedAmount == null) {
+        const totalThb = getGuestPayableRoundedThb(bookingRow);
+        if (!Number.isFinite(totalThb) || totalThb <= 0) {
+          return NextResponse.json(
+            { success: false, error: 'Booking has no payable amount', status: 'INVALID' },
+            { status: 400 },
+          );
+        }
+        expectedAmount = await thbToUsdt(totalThb);
+      }
     }
 
     if (expectedAmount == null && expectedAmountThb != null && expectedAmountThb !== '') {
@@ -123,30 +160,23 @@ export async function POST(request) {
     const badge = getStatusBadge(result.status);
 
     let paymentSettled = null;
-    if (bookingId && result.success) {
-      const { data: rentRow } = await supabaseAdmin
-        .from('bookings')
-        .select('renter_id')
-        .eq('id', String(bookingId))
-        .maybeSingle();
-      if (rentRow?.renter_id) {
-        const session = await getSessionPayload();
-        const consent = await ensureProfileLegalConsentForPayment(
-          session?.userId ? String(session.userId) : null,
-          body?.acceptedLegalTerms ?? body?.accepted_legal_terms,
-          String(bookingId),
+    if (bookingId && result.success && bookingForSettlement) {
+      const session = await getSessionPayload();
+      const consent = await ensureProfileLegalConsentForPayment(
+        session?.userId ? String(session.userId) : null,
+        body?.acceptedLegalTerms ?? body?.accepted_legal_terms,
+        String(bookingId),
+      );
+      if (!consent.ok) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: consent.error,
+            status: consent.code || 'LEGAL_CONSENT_REQUIRED',
+            code: consent.code,
+          },
+          { status: consent.status || 403 },
         );
-        if (!consent.ok) {
-          return NextResponse.json(
-            {
-              success: false,
-              error: consent.error,
-              status: consent.code || 'LEGAL_CONSENT_REQUIRED',
-              code: consent.code,
-            },
-            { status: consent.status || 403 },
-          );
-        }
       }
 
       const { data: pendingPay } = await supabaseAdmin
