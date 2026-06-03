@@ -50,7 +50,7 @@ This document is the **project manifesto**: how we build, what is allowed, and w
 - SSOT верификации: **`lib/auth/verify-app-session-jwt.js`** — **`verifyAppSessionJwt(token, secret)`** с **`jsonwebtoken.verify(..., { algorithms: ['HS256'] })`** (совместимо с **`lib/auth/app-session-issue.js`**).
 - Читать сессию из cookie на Route Handlers: **`getSessionPayload()`** / **`requirePartnerSession()`** в **`lib/services/session-service.js`**; для админских health/security-хелперов — **`verifyAppSessionJwt`** + **`tryGetJwtSecret()`** из **`lib/auth/jwt-secret.js`**. Новые маршруты **не** должны вызывать «голый» **`jwt.verify`** для **`gostaylo_session`**.
 - Edge **`middleware.ts`** по-прежнему может использовать **`jose`** для тех же HS256-токенов — это отдельный рантайм; не смешивать с Node-SSOT без причины.
-- **Logout:** **`POST /api/v2/auth/logout`** сбрасывает **`gostaylo_session`** и sidecar-куки **`gostaylo_pending_ref`** / **`gostaylo_oauth_legal`** (**`clearAuthSidecarCookies`**). Клиентский **`signOut`** (`lib/auth.js`) после ответа сервера очищает связанный **`localStorage`** / **`sb-*-auth-token`** (**`lib/auth/browser-auth-cleanup.js`**) и вызывает Supabase **`auth.signOut({ scope: 'local' })`**.
+- **Logout:** **`POST /api/v2/auth/logout`** сбрасывает **`gostaylo_session`** и sidecar-куки **`gostaylo_pending_ref`** / **`gostaylo_oauth_legal`** (**`clearAuthSidecarCookies`**). Клиентский **`signOut`** (`lib/auth.js`) после ответа сервера вызывает **`clearBrowserPersistedAuthState`** (**`lib/auth/browser-auth-cleanup.js`**): **`invalidateAllClientRequests`**, **`clearClientQueryCache`** (TanStack Query — Stage 128.0), **`localStorage`** / **`sb-*-auth-token`**, затем Supabase **`auth.signOut({ scope: 'local' })`**. Все UI-выходы идут через **`signOut`** / **`useAuth().logout`**.
 
 ### Политика пароля (регистрация и сброс)
 
@@ -307,3 +307,29 @@ Re-read this file when:
 ---
 
 *SSOT: this file only. Cursor entrypoint: `.cursorrules`.*
+
+## ADR-128: Stage 128.0 — Client-Side Data Layer (TanStack Query Foundation)
+
+**Status:** Iteration 0 **Done** (2026-06-01); Iterations 1+ planned  
+**Date:** 2026-05-17 (opened), 2026-06-01 (Iteration 0 shipped)  
+**Author:** Pavel + engineering
+
+### Context
+В проекте уже частично используется TanStack Query (`AppQueryProvider`, partner/wallet hooks), но основная публичная часть (Главная, Каталог) работает на самодельных кэшах (`useEffect` + `searchCache` Map + `dedupeClientRequest`). При logout TanStack Query **не** очищался — риск показа wallet/inbox/partner-данных следующему пользователю на том же браузере.
+
+### Decision (Iteration 0 — shipped)
+1. **`clearClientQueryCache()`** в **`lib/query-client.js`**, вызывается из **`clearBrowserPersistedAuthState`** (единая точка с dedupe). Все выходы: **`signOut`** → cleanup; UI: **`useAuth().logout`**, partner/admin layouts, renter profile.
+2. **`lib/query-keys.js`** — SSOT factory **`queryKeys`** + **`queryScopeId`** / **`PUBLIC_SCOPE`** для будущей миграции (существующие ключи в хуках пока не переносились).
+3. **`lib/api/query-fetch.js`** — **`queryFetchJson`**, **`QueryFetchError`** (`credentials: 'include'`, `cache: 'no-store'`, контракт `{ success, data, error_code }`).
+
+**Не тронуто в 128.0:** каталог, главная, checkout, платежи, удаление `searchCache` / dedupe TTL.
+
+### Next (Iteration 1+)
+- Публичный каталог + home на RQ (см. **`docs/proposals/TANSTACK_QUERY_MIGRATION_PLAN.md`**).
+- Постепенный перенос legacy ключей (`['wallet-me']`, `partnerBookingsKeys` в хуках) на **`queryKeys`**.
+- Новые authenticated `queryFn` — через **`queryFetchJson`** + scoped keys.
+
+### Why
+- Безопасность данных (приоритет №1)
+- Единая конвенция перед массовой миграцией
+- Минимальный diff перед MIR / каталог-итерацией
