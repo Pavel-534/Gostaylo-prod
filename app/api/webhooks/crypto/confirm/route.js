@@ -2,15 +2,33 @@ import { NextResponse } from 'next/server';
 import { timingSafeEqual } from 'crypto';
 import { supabaseAdmin } from '@/lib/supabase';
 import { verifyTronTransaction, GOSTAYLO_WALLET } from '@/lib/services/tron.service';
-import { resolveThbPerUsdt } from '@/lib/services/currency.service';
+import { getExpectedUsdtForBooking } from '@/lib/booking-price-integrity';
 import { PaymentsV3Service } from '@/lib/services/payments-v3.service';
 import PaymentIntentService from '@/lib/services/payment-intent.service';
 import { applyInvoicePostPaymentEffects } from '@/lib/services/invoice-extension.service';
 import EscrowService from '@/lib/services/escrow.service';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 import { assertWebhookGuestPaymentAllowed } from '@/lib/payment/webhook-guest-payment-gate.js';
+import { isPaymentAcquiringWebhookIdempotentBookingStatus } from '@/lib/booking/status-sets.js';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * Crypto/Tron retries after successful capture: `bookings.status` is SSOT (PAID_ESCROW+ / COMPLETED).
+ * Same idempotent set as acquiring webhook — skip verifyTron, confirmPayment, moveToEscrow.
+ */
+function idempotentPaidBookingResponse(booking) {
+  const bookingId = String(booking.id);
+  const status = String(booking.status || '').toUpperCase();
+  return NextResponse.json({
+    success: true,
+    bookingId,
+    idempotent: true,
+    alreadyProcessed: true,
+    bookingStatus: status,
+    ...(status === 'PAID_ESCROW' ? { alreadyEscrowed: true } : {}),
+  });
+}
 
 function getConfiguredSecret() {
   return String(process.env.CRYPTO_WEBHOOK_SHARED_SECRET || '').trim();
@@ -36,16 +54,6 @@ function verifySharedSecret(request, body) {
     return { ok: false, error: 'invalid_secret' };
   }
   return { ok: true };
-}
-
-async function expectedUsdtForBooking(booking) {
-  const priceThb = parseFloat(booking.price_thb) || 0;
-  const serviceFee = parseFloat(booking.commission_thb) || 0;
-  const rounding = parseFloat(booking.rounding_diff_pot) || 0;
-  const totalThb = priceThb + serviceFee + rounding;
-  const rate = await resolveThbPerUsdt();
-  if (!Number.isFinite(rate) || rate <= 0) return null;
-  return Math.round((totalThb / rate) * 100) / 100;
 }
 
 export async function POST(request) {
@@ -113,7 +121,11 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
     }
 
-    const expectedFromDb = await expectedUsdtForBooking(booking);
+    if (isPaymentAcquiringWebhookIdempotentBookingStatus(booking.status)) {
+      return idempotentPaidBookingResponse(booking);
+    }
+
+    const expectedFromDb = await getExpectedUsdtForBooking(booking);
     const expectedUsdt =
       expectedAmount != null && String(expectedAmount).trim() !== ''
         ? parseFloat(expectedAmount)

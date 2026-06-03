@@ -42,6 +42,7 @@ export function FinTechCronHealthPanel({ cronHealth, ownerMode = true, loading =
 
   return (
     <Card
+      id="fintech-cron-health"
       className={cn(
         'border shadow-sm',
         anyStale || anyError ? 'border-amber-300 bg-amber-50/40' : 'border-slate-200',

@@ -460,7 +460,7 @@ npm run smoke:full-financial -- --rail=intl --amount=12000 --guest-currency=USDT
 ## 13. Мониторинг и Emergency Pause (Stage 105)
 
 - **Пороги алертов (env):** `TREASURY_ALERT_PAYMENT_THB_MIN`, `TREASURY_ALERT_READY_POOL_THB_MIN`, `TREASURY_ALERT_LEDGER_DRIFT_THB_MIN` (default 0.5 ฿).
-- **Telegram:** топик **FINANCE** (как обычные платежи) + запись в `system_settings.general.treasury_ops_alerts`.
+- **Telegram:** топик **FINANCE** (как обычные платежи) + append-only запись в **`critical_signal_events`** (Stage 125.5; не `system_settings`).
 - **Админка:** `/admin/settings/finances` → вкладка **Мониторинг**; карточка **Emergency Pause** блокирует новые брони и выплаты.
 - **Ручной режим:** `TREASURY_MANUAL_MODE=1` (default) — cron `payout-batch-pools` не создаёт пулы без явного снятия флага.
 

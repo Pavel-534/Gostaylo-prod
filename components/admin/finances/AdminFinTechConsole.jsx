@@ -32,6 +32,8 @@ import {
   persistFintechRealDataOnlyPreference,
 } from '@/components/admin/finances/TestDataToolbar'
 import { LaunchReadinessCard } from '@/components/admin/finances/LaunchReadinessCard'
+import { PreLiveReadinessCard } from '@/components/admin/finances/PreLiveReadinessCard'
+import { ControlledLivePanel } from '@/components/admin/finances/ControlledLivePanel'
 import { FinTechCronHealthPanel } from '@/components/admin/finances/FinTechCronHealthPanel'
 import { FinTechTreasuryHeroDashboard } from '@/components/admin/finances/FinTechTreasuryHeroDashboard'
 import { FinTechEmergencyPauseCard } from '@/components/admin/finances/FinTechEmergencyPauseCard'
@@ -57,6 +59,7 @@ export function AdminFinTechConsole() {
         statCards={c.statCards}
         loading={c.loading}
         onRefresh={c.load}
+        liveMonitoring={c.liveMonitoring}
       />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
@@ -88,6 +91,16 @@ export function AdminFinTechConsole() {
         </Card>
 
         <LaunchReadinessCard readiness={c.productionReadiness} onRefresh={c.load} />
+        <PreLiveReadinessCard
+          preLiveReadiness={c.preLiveReadiness}
+          cronHealth={c.cronHealth}
+          onRefresh={c.load}
+        />
+        <ControlledLivePanel
+          liveMonitoring={c.liveMonitoring}
+          treasuryOps={c.treasuryOps}
+          onRefresh={c.load}
+        />
         <ReferralLiabilityPanel toast={c.toast} />
         <FinTechCronHealthPanel cronHealth={c.cronHealth} ownerMode={c.ownerMode} loading={c.loading} />
         <FinTechTreasuryHeroDashboard

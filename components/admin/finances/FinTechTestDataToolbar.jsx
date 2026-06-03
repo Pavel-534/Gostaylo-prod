@@ -232,7 +232,7 @@ export function FinTechTestDataToolbar({
                 ) : null}
                 <ul className="list-disc pl-5 space-y-1 text-xs">
                   <li>Маркеры: stage, smoke, E2E, lst-stage, pb-stage, lj-payout-settled</li>
-                  <li>ledger_journals, ledger_entries, treasury_ops_alerts</li>
+                  <li>ledger_journals, ledger_entries, treasury alerts (critical_signal_events)</li>
                   <li>Пустые и полностью тестовые пулы выплат</li>
                 </ul>
                 <p className="font-semibold text-red-800">Боевые брони и lj-cap реальных гостей не трогаем. Необратимо.</p>

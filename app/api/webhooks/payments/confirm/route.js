@@ -27,8 +27,26 @@ import {
 } from '@/lib/services/payment-adapters/status-normalizer';
 import { verifyWebhookPaidAmount } from '@/lib/services/payment-adapters/acquirer-charge-amount.js';
 import { assertWebhookGuestPaymentAllowed } from '@/lib/payment/webhook-guest-payment-gate.js';
+import { isPaymentAcquiringWebhookIdempotentBookingStatus } from '@/lib/booking/status-sets.js';
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * PSP retries after successful capture: booking row is SSOT (PAID_ESCROW+ pipeline / COMPLETED).
+ * We return HTTP 2xx without markPaid / moveToEscrow — intent status may lag or differ on duplicate events.
+ */
+function idempotentPaidBookingResponse(booking) {
+  const bookingId = String(booking.id);
+  const status = String(booking.status || '').toUpperCase();
+  return NextResponse.json({
+    success: true,
+    bookingId,
+    idempotent: true,
+    alreadyProcessed: true,
+    bookingStatus: status,
+    ...(status === 'PAID_ESCROW' ? { alreadyEscrowed: true } : {}),
+  });
+}
 
 function parsePayload(json, adapterKey) {
   if (json?.object?.metadata && json.object?.amount) {
@@ -187,13 +205,8 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Booking not found' }, { status: 404 });
   }
 
-  if (booking.status === 'PAID_ESCROW') {
-    return NextResponse.json({
-      success: true,
-      bookingId,
-      alreadyEscrowed: true,
-      idempotent: true,
-    });
+  if (isPaymentAcquiringWebhookIdempotentBookingStatus(booking.status)) {
+    return idempotentPaidBookingResponse(booking);
   }
 
   let payId = paymentId;
@@ -312,16 +325,6 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'INTENT_BOOKING_MISMATCH' }, { status: 400 });
   }
 
-  if (String(intent.status || '').toUpperCase() === 'PAID' && booking.status === 'PAID_ESCROW') {
-    return NextResponse.json({
-      success: true,
-      intentId: intent.id,
-      bookingId,
-      alreadyProcessed: true,
-      idempotent: true,
-    });
-  }
-
   const marked = await PaymentIntentService.markPaid(intent.id, {
     source: 'payment_acquiring_webhook',
     gatewayRef,
@@ -340,14 +343,13 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: marked.error || 'intent_mark_failed' }, { status: 500 });
   }
 
-  if (marked.alreadyPaid && booking.status === 'PAID_ESCROW') {
-    return NextResponse.json({
-      success: true,
-      intentId: intent.id,
-      bookingId,
-      alreadyProcessed: true,
-      idempotent: true,
-    });
+  const { data: bookingAfterMark } = await supabaseAdmin
+    .from('bookings')
+    .select('*')
+    .eq('id', bookingId)
+    .maybeSingle();
+  if (bookingAfterMark && isPaymentAcquiringWebhookIdempotentBookingStatus(bookingAfterMark.status)) {
+    return idempotentPaidBookingResponse(bookingAfterMark);
   }
 
   const captureGuestTotalThb = Number(intent.amountThb);

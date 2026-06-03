@@ -84,6 +84,7 @@ test.describe('Checkout mock smoke (CARD + CRYPTO)', () => {
       )
     })
 
+    // E2E UI mock only (127.1) — not a DB UPDATE; real capture uses EscrowService.moveToEscrow
     await page.route('**/api/v2/bookings/**/payment/confirm', async (route) => {
       await route.fulfill(
         jsonResponse({

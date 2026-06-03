@@ -66,9 +66,18 @@ export async function POST(request) {
     const result = await PaymentsV3Service.submitTxid(bookingId, txid, paymentMethod);
 
     if (!result.success) {
+      const status =
+        result.statusCode ||
+        (result.error === 'payment_already_finalized' || result.error === 'booking_payment_past_escrow'
+          ? 409
+          : 400);
       return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 400 }
+        {
+          success: false,
+          error: result.error,
+          ...(result.message ? { message: result.message } : {}),
+        },
+        { status },
       );
     }
 

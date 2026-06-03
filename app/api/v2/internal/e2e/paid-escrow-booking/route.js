@@ -1,6 +1,8 @@
 /**
  * POST /api/v2/internal/e2e/paid-escrow-booking
- * Creates booking fixture and forces status to PAID_ESCROW.
+ * Creates booking fixture and moves to PAID_ESCROW via EscrowService.moveToEscrow (RPC).
+ *
+ * ⚠️ E2E FIXTURE ONLY — not a production payment path. Requires E2E_FIXTURE_SECRET.
  *
  * Header: x-e2e-fixture-secret: <E2E_FIXTURE_SECRET>
  * Body: { partnerEmail?, renterEmail? }
@@ -8,6 +10,7 @@
 
 import { NextResponse } from 'next/server'
 import { createPendingChatBookingFixture } from '@/lib/e2e/create-pending-chat-booking-fixture'
+import EscrowService from '@/lib/services/escrow.service'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
@@ -53,19 +56,21 @@ export async function POST(request) {
       .eq('id', bookingId)
       .maybeSingle()
 
-    const { error: updateErr } = await supabaseAdmin
-      .from('bookings')
-      .update({
-        status: 'PAID_ESCROW',
-        metadata: {
-          ...(existing?.metadata || {}),
-          e2eFixture: 'paid-escrow-booking',
-        },
-      })
-      .eq('id', bookingId)
+    if (existing?.metadata && typeof existing.metadata === 'object') {
+      await supabaseAdmin
+        .from('bookings')
+        .update({
+          metadata: { ...existing.metadata, e2eFixture: 'paid-escrow-booking' },
+        })
+        .eq('id', bookingId)
+    }
 
-    if (updateErr) {
-      throw new Error(`Failed to update booking status: ${updateErr.message || 'unknown error'}`)
+    const escrow = await EscrowService.moveToEscrow(bookingId, {
+      source: 'e2e_paid_escrow_fixture',
+      txId: null,
+    })
+    if (!escrow?.success) {
+      throw new Error(escrow?.error || 'moveToEscrow failed for e2e fixture')
     }
 
     return NextResponse.json({

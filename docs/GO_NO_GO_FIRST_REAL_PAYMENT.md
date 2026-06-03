@@ -2,8 +2,8 @@
 
 **Для кого:** владелец / финоператор + ответственный за деплой.  
 **Время:** ~15 минут (UI) + ~10 минут (терминал, опционально).  
-**Обновлено:** 2026-05-21 (Stage 114.7 referral launch readiness)  
-**Полный чеклист:** `docs/PRE_REAL_PAYMENTS_CHECKLIST.md` · **Операции выплат:** `docs/CONCIERGE_LAUNCH_TREASURY_RUNBOOK.md`
+**Обновлено:** 2026-06-03 (Stage 126.0 Controlled Live)  
+**Полный чеклист:** `docs/PRE_REAL_PAYMENTS_CHECKLIST.md` · **Controlled Live runbook:** `docs/CONTROLLED_LIVE_RUNBOOK.md` · **Операции выплат:** `docs/CONCIERGE_LAUNCH_TREASURY_RUNBOOK.md`
 
 ---
 
@@ -11,8 +11,8 @@
 
 | Балл | Смысл |
 |------|--------|
-| **9 / 10** | Код, симуляция и периметр prod готовы к первому live-платежу (Concierge). |
-| −1 | Внешние блокеры: ЮKassa, ОсОО, договоры, `verify:schema-103-2` + smoke на **production**, cron на prod. |
+| **10 / 10** | Фаза 1 закрыта (125.8); Controlled Live UI (126.0). Go по коду + FinTech. |
+| −1 | Внешние блокеры: ЮKassa, касса, деплой prod, cron prod, owner Live Mode activation. |
 
 **Go по коду** — после зелёного smoke и карточки готовности на prod. **No-Go по бизнесу** — пока §B–E в `PRE_REAL_PAYMENTS_CHECKLIST.md` не закрыты.
 
@@ -22,19 +22,20 @@
 
 | # | Проверка | Как проверить |
 |---|----------|----------------|
-| 1 | **Smoke 15/15** | `npm run smoke:full-financial` (локально) или кнопка на `/admin/settings/finances` |
-| 2 | **Schema 103.2** | `npm run verify:schema-103-2` на **production** env |
-| 3 | **Готовность в UI** | `/admin/settings/finances` → карточка «Статус готовности» — обязательные поля **зелёные** |
-| 4 | **Concierge режим** | `TREASURY_MANUAL_MODE=1` (или не задан — default ручной); авто-пулы **выключены** |
-| 5 | **Касса** | `FISCAL_PROVIDER_URL` — боевой провайдер, не пусто |
-| 6 | **ЮKassa** | `YOOKASSA_*` + webhook secret; на prod **нет** mock/shadow acquirer |
-| 7 | **Cron** | `escrow-thaw`, `promote-ready-for-payout` — hourly (см. `docs/CRON_EXTERNAL_FINANCIAL.md`) |
-| 8 | **TG FINANCE** | `TELEGRAM_BOT_TOKEN` + `TELEGRAM_ADMIN_GROUP_ID` на prod |
-| 9 | **Emergency Pause** | Протестирован: вкл → новая оплата блокируется → выкл |
-| 10 | **Юридическое** | ОсОО, оферта, партнёрские договоры — §B–D в `PRE_REAL_PAYMENTS_CHECKLIST.md` |
-| 11 | **Booking IDOR** | `POST /api/v2/bookings` только с сессией (`booking-create-guard`) |
-| 12 | **Prod perimeter** | На prod **404**: `/api/v2/test/notifications*`, `/api/db/migrate`, `/api/db/seed` |
-| 13 | **Referral program** | FinTech: accounting KPI зелёные; очередь `withdrawable_referral` обрабатывается **вручную** (без автобанка) |
+| 1 | **Smoke 25/25** | `npm run smoke:full-financial` или кнопка на FinTech |
+| 2 | **Pre-Live Readiness** | `/admin/settings/finances` — Фаза 1 + ops зелёные |
+| 3 | **Controlled Live** | Кнопка «Перейти в Live Mode» (после пунктов 1–2) |
+| 4 | **Schema 103.2** | `npm run verify:schema-103-2` на **production** env |
+| 5 | **Concierge режим** | `TREASURY_MANUAL_MODE=1`; авто-пулы **выключены** |
+| 6 | **Касса** | `FISCAL_PROVIDER_URL` — боевой провайдер, не пусто |
+| 7 | **ЮKassa** | `YOOKASSA_*` + webhook secret; на prod **нет** mock/shadow acquirer |
+| 8 | **Cron** | `escrow-thaw`, `promote-ready-for-payout` — hourly (см. `docs/CRON_EXTERNAL_FINANCIAL.md`) |
+| 9 | **TG FINANCE** | `TELEGRAM_BOT_TOKEN` + `TELEGRAM_ADMIN_GROUP_ID` на prod |
+| 10 | **Emergency Pause** | Протестирован: вкл → новая оплата блокируется → выкл |
+| 11 | **Юридическое** | ОсОО, оферта, партнёрские договоры — §B–D в `PRE_REAL_PAYMENTS_CHECKLIST.md` |
+| 12 | **Booking IDOR** | `POST /api/v2/bookings` только с сессией (`booking-create-guard`) |
+| 13 | **Prod perimeter** | На prod **404**: `/api/v2/test/notifications*`, `/api/db/migrate`, `/api/db/seed` |
+| 14 | **Referral program** | FinTech: accounting KPI зелёные; очередь `withdrawable_referral` обрабатывается **вручную** (без автобанка) |
 
 **Решение:** можно принимать **первый реальный платёж** гостя (MIR/CARD) при включённом Concierge и ручном контроле исходящих.
 

@@ -32,6 +32,7 @@ const STATUS_OPTIONS = [
 ];
 
 const FILTER_PRESETS = [
+  { id: 'real-live', label: 'Real Payments Only' },
   { id: 'period', label: 'За период' },
   { id: 'aging7', label: 'Застряли >7 дн.' },
   { id: 'referral', label: 'С рефералом' },
@@ -46,6 +47,16 @@ function fmtBookingId(id) {
 
 function applyPreset(presetId) {
   switch (presetId) {
+    case 'real-live':
+      return {
+        pipelineOnly: true,
+        escrowAgingMinDays: null,
+        hasReferral: null,
+        categorySlug: null,
+        partnerId: null,
+        partnerPipelineOnly: false,
+        status: '',
+      };
     case 'aging7':
       return {
         pipelineOnly: true,
@@ -243,7 +254,7 @@ export function IntelligenceBookingsSheet({
         <SheetHeader>
           <SheetTitle>{sheetTitle}</SheetTitle>
           <SheetDescription>
-            Клик по строке → подробный P&amp;L брони
+            Real Payments Only — smoke/E2E скрыты. Клик по строке → P&amp;L брони.
           </SheetDescription>
         </SheetHeader>
 

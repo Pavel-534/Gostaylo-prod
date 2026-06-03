@@ -670,6 +670,22 @@ enum ListingStatus {
   REJECTED
 }
 
+/// ⚠️ WARNING (Stage 127.1): Prisma enum is NOT runtime SSOT — Postgres `booking_status` is wider.
+/// This file documents a legacy subset only. Do not add new code based on this enum alone.
+///
+/// **Canonical codes (app + migrations):** see `lib/booking/status-sets.js`, `lib/config/app-constants.js` → BOOKING_STATUS.
+///
+/// | Prisma value | In Prisma | In Postgres / app today |
+/// |--------------|-----------|------------------------|
+/// | PENDING, INQUIRY, CONFIRMED, PAID, CANCELLED, COMPLETED, REFUNDED | yes | yes (legacy subset) |
+/// | AWAITING_PAYMENT | no | yes — checkout link after partner confirm |
+/// | PAID_ESCROW | no | yes — guest paid, funds in escrow (capture RPC) |
+/// | CHECKED_IN | no | yes — partner marked guest arrival (≠ THAWED) |
+/// | THAWED | no | yes — escrow thaw cron released hold |
+/// | READY_FOR_PAYOUT | no | yes — eligible for payout batch |
+/// | DECLINED | no | yes — partner declined request |
+///
+/// Payment capture → PAID_ESCROW only via `EscrowService.moveToEscrow` (Stage 125.3 FSM guard).
 enum BookingStatus {
   PENDING
   INQUIRY

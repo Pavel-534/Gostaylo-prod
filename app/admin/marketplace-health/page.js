@@ -62,8 +62,9 @@ function MarketingRoiBlock({ roi }) {
         </div>
       </div>
       <p className="text-xs text-slate-500">
-        Приглашённых профилей (referee): {roi.refereeCount ?? '—'} · строк броней в выборке:{' '}
-        {roi.bookingRowsScanned ?? '—'} · строк бонусов в журнале: {roi.bonusLedgerRows ?? '—'}
+        {roi.estimateNote || 'Период 30d — SSOT с /admin/marketing/roi'}
+        {roi.periodPreset ? ` (${roi.periodPreset})` : ''} · referee: {roi.refereeCount ?? '—'} · броней в
+        периоде: {roi.bookingRowsScanned ?? '—'}
       </p>
     </div>
   )

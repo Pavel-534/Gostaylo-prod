@@ -15,6 +15,9 @@ import {
   TREASURY_ALERT_TYPES,
 } from '@/lib/treasury/treasury-monitoring-alerts.js'
 import { loadProductionPaymentReadiness } from '@/lib/payment/production-readiness.js'
+import { loadPreLiveReadiness } from '@/lib/payment/pre-live-readiness.js'
+import { activateControlledLive } from '@/lib/treasury/controlled-live.js'
+import { loadLiveMonitoringMetrics } from '@/lib/treasury/live-monitoring-metrics.js'
 import {
   loadFinancialCronHealth,
   maybeAlertStaleFinancialCrons,
@@ -30,6 +33,15 @@ export async function GET(request) {
   const scan = await runTreasuryMonitoringScan()
   const productionReadiness = await loadProductionPaymentReadiness()
   const cronHealth = await loadFinancialCronHealth(false)
+  const preLiveReadiness = await loadPreLiveReadiness({
+    productionReadiness,
+    cronHealth,
+    scan,
+  })
+  const liveMonitoring = await loadLiveMonitoringMetrics({
+    driftThb: scan.driftThb,
+    pendingFiscalCount: scan.pendingFiscalCount,
+  })
   const referralReconciliation = await loadReferralReconciliationHealth()
   await maybeAlertStaleFinancialCrons(cronHealth.jobs)
 
@@ -38,6 +50,8 @@ export async function GET(request) {
     data: {
       ops: scan.ops,
       productionReadiness,
+      preLiveReadiness,
+      liveMonitoring,
       cronHealth,
       referralReconciliation,
       thresholds: scan.thresholds,
@@ -95,6 +109,19 @@ export async function PATCH(request) {
     const r = await setTreasuryManualMode(Boolean(body.treasuryManualMode))
     if (!r.success) {
       return NextResponse.json({ success: false, error: r.error }, { status: 500 })
+    }
+  }
+
+  if (body.activateControlledLive === true) {
+    const r = await activateControlledLive({
+      startedBy: gate.profile?.id || null,
+      reason: body.reason,
+    })
+    if (!r.success) {
+      return NextResponse.json(
+        { success: false, error: r.error, message: r.message },
+        { status: r.error === 'emergency_pause_active' ? 409 : 500 },
+      )
     }
   }
 

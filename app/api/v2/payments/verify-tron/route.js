@@ -8,12 +8,13 @@
  */
 
 import { NextResponse } from 'next/server';
-import { verifyTronTransaction, getStatusBadge, GOSTAYLO_WALLET, thbToUsdt } from '@/lib/services/tron.service';
+import { verifyTronTransaction, getStatusBadge, GOSTAYLO_WALLET } from '@/lib/services/tron.service';
 import { supabaseAdmin } from '@/lib/supabase';
 import { PaymentsV3Service } from '@/lib/services/payments-v3.service';
 import { getSessionPayload } from '@/lib/services/session-service';
 import { ensureProfileLegalConsentForPayment } from '@/lib/legal-consent';
-import { getGuestPayableRoundedThb } from '@/lib/booking-guest-total';
+import { guestPayableRoundedThbFromBooking } from '@/lib/booking-price-integrity';
+import { getExpectedUsdtForBooking } from '@/lib/booking-price-integrity';
 import { withCorrelationFromRequest } from '@/lib/request-correlation.js';
 import { assertGuestPaymentOperationsAllowed } from '@/lib/payment/payment-production-guard.js';
 
@@ -44,7 +45,7 @@ function assertBookingTronAmountAccess(booking, session) {
 async function resolveExpectedUsdtFromBooking(bookingId) {
   const { data: booking, error } = await supabaseAdmin
     .from('bookings')
-    .select('price_thb, commission_thb, rounding_diff_pot, pricing_snapshot, renter_id')
+    .select('price_thb, commission_thb, rounding_diff_pot, pricing_snapshot, renter_id, currency')
     .eq('id', bookingId)
     .single();
 
@@ -63,12 +64,15 @@ async function resolveExpectedUsdtFromBooking(bookingId) {
     };
   }
 
-  const totalThb = getGuestPayableRoundedThb(booking);
+  const totalThb = guestPayableRoundedThbFromBooking(booking);
   if (!Number.isFinite(totalThb) || totalThb <= 0) {
     return { ok: false, error: 'Booking has no payable amount', status: 400 };
   }
 
-  const expectedAmount = await thbToUsdt(totalThb);
+  const expectedAmount = await getExpectedUsdtForBooking(booking);
+  if (expectedAmount == null) {
+    return { ok: false, error: 'Could not resolve USDT amount', status: 400 };
+  }
   return { ok: true, expectedAmount, guestPayableThb: totalThb };
 }
 

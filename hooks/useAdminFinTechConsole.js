@@ -62,6 +62,8 @@ export function useAdminFinTechConsole() {
   const [treasuryOps, setTreasuryOps] = useState(null)
   const [cronHealth, setCronHealth] = useState(null)
   const [productionReadiness, setProductionReadiness] = useState(null)
+  const [preLiveReadiness, setPreLiveReadiness] = useState(null)
+  const [liveMonitoring, setLiveMonitoring] = useState(null)
   const [monthMargin, setMonthMargin] = useState(null)
   const [monthlyExporting, setMonthlyExporting] = useState(false)
   const [realDataOnly, setRealDataOnly] = useState(() => readFintechRealDataOnlyPreference(true))
@@ -78,6 +80,8 @@ export function useAdminFinTechConsole() {
       setTreasuryOps(bundle.treasuryOps)
       setCronHealth(bundle.cronHealth)
       setProductionReadiness(bundle.productionReadiness)
+      setPreLiveReadiness(bundle.preLiveReadiness)
+      setLiveMonitoring(bundle.liveMonitoring)
       setMonthMargin(bundle.monthMargin)
       setProfiles(bundle.profiles)
       setSimProfileId((prev) => prev || bundle.profiles?.[0]?.id || '')
@@ -549,6 +553,8 @@ export function useAdminFinTechConsole() {
     setRealDataOnly,
     handleTestDataCleaned,
     productionReadiness,
+    preLiveReadiness,
+    liveMonitoring,
     cronHealth,
     treasuryOps,
     dataRefreshKey,
