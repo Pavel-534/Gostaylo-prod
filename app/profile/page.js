@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, Suspense } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,6 +19,11 @@ import { ProfilePreferences } from '@/app/profile/components/ProfilePreferences'
 import { getSiteDisplayName } from '@/lib/site-url'
 import { LegalConsentCheckboxRow } from '@/components/legal/LegalConsentCheckboxRow'
 import { useI18n } from '@/contexts/i18n-context'
+import {
+  useProfileMeQuery,
+  usePartnerApplicationStatusQuery,
+} from '@/lib/hooks/use-profile-queries'
+import { queryKeys } from '@/lib/query-keys'
 
 const KYC_LABELS = {
   label: 'Документ (паспорт/ID)',
@@ -51,6 +57,16 @@ function ProfileContent() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const { user: authUser, loading: authLoading, isAuthenticated, openLoginModal, refreshUserFromServer } = useAuth()
+  const queryClient = useQueryClient()
+  const profileId = authUser?.id ?? null
+  const { data: profileFromQuery } = useProfileMeQuery({
+    enabled: !authLoading && isAuthenticated && !!profileId,
+    profileId,
+  })
+  const { data: partnerApplicationStatus } = usePartnerApplicationStatusQuery({
+    enabled: !authLoading && isAuthenticated && !!profileId,
+    profileId,
+  })
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showPartnerModal, setShowPartnerModal] = useState(false)
@@ -77,18 +93,14 @@ function ProfileContent() {
       onKycSaved: async () => {
         setPendingInlineKycUrl(null)
         setPendingNeedsKyc(false)
-        try {
-          const st = await fetch('/api/v2/partner/application-status', { credentials: 'include' })
-          const j = await st.json().catch(() => ({}))
-          if (j.success && j.status === 'PENDING') {
-            setPendingNeedsKyc(!j.hasVerificationDoc)
-          }
-        } catch {
-          /* ignore */
+        if (profileId) {
+          await queryClient.invalidateQueries({
+            queryKey: queryKeys.profile.partnerApplicationStatus(profileId),
+          })
         }
       },
     }),
-    [],
+    [profileId, queryClient],
   )
 
   const { submitPartnerApplication, savePendingKyc, applyingPartner, savingPendingKyc } = useProfileUpdate({
@@ -98,9 +110,13 @@ function ProfileContent() {
   })
 
   useEffect(() => {
+    if (profileFromQuery) setUser(profileFromQuery)
+  }, [profileFromQuery])
+
+  useEffect(() => {
     if (!authLoading) {
       if (isAuthenticated && authUser) {
-        setUser(authUser)
+        if (!profileFromQuery) setUser(authUser)
         setPartnerForm({
           phone: authUser.phone || '',
           socialLink: '',
@@ -121,40 +137,35 @@ function ProfileContent() {
 
   useEffect(() => {
     if (authLoading || !isAuthenticated || !authUser?.id) return
-    refreshUserFromServer()
-  }, [authLoading, isAuthenticated, authUser?.id, refreshUserFromServer])
+    refreshUserFromServer().then(() => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.profile.me(authUser.id) })
+    })
+  }, [authLoading, isAuthenticated, authUser?.id, refreshUserFromServer, queryClient])
 
   useEffect(() => {
-    async function checkPendingApplication() {
-      if (user && user.role !== 'PARTNER') {
-        try {
-          const res = await fetch(`/api/v2/partner/application-status`, { credentials: 'include' })
-          const result = await res.json()
-          if (result.success) {
-            if (result.status === 'PENDING') {
-              setIsPendingPartner(true)
-              setIsRejectedPartner(false)
-              setPendingNeedsKyc(!result.hasVerificationDoc)
-            } else if (result.status === 'REJECTED') {
-              setIsRejectedPartner(true)
-              setRejectionReason(result.rejectionReason || 'Заявка не соответствует требованиям')
-              setIsPendingPartner(false)
-              setPendingNeedsKyc(false)
-            } else {
-              setIsPendingPartner(false)
-              setIsRejectedPartner(false)
-              setPendingNeedsKyc(false)
-            }
-          }
-        } catch {
-          setIsPendingPartner(false)
-          setIsRejectedPartner(false)
-          setPendingNeedsKyc(false)
-        }
-      }
+    if (!user || user.role === 'PARTNER') {
+      setIsPendingPartner(false)
+      setIsRejectedPartner(false)
+      setPendingNeedsKyc(false)
+      return
     }
-    if (user) checkPendingApplication()
-  }, [user])
+    const result = partnerApplicationStatus
+    if (!result || result.success === false) return
+    if (result.status === 'PENDING') {
+      setIsPendingPartner(true)
+      setIsRejectedPartner(false)
+      setPendingNeedsKyc(!result.hasVerificationDoc)
+    } else if (result.status === 'REJECTED') {
+      setIsRejectedPartner(true)
+      setRejectionReason(result.rejectionReason || 'Заявка не соответствует требованиям')
+      setIsPendingPartner(false)
+      setPendingNeedsKyc(false)
+    } else {
+      setIsPendingPartner(false)
+      setIsRejectedPartner(false)
+      setPendingNeedsKyc(false)
+    }
+  }, [user, partnerApplicationStatus])
 
   useEffect(() => {
     if (user?.role === 'PARTNER') {

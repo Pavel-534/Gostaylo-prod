@@ -45,6 +45,8 @@ function ListingSidebarComponent({
   transportBroadenHref = null,
   highlightedListingId = null,
   catalogCategories = null,
+  onListingPointerEnter = null,
+  onListingPointerLeave = null,
 }) {
   useEffect(() => {
     if (!highlightedListingId) return;
@@ -197,6 +199,8 @@ function ListingSidebarComponent({
               key={listing.id}
               className="animate-in fade-in slide-in-from-bottom-4 duration-300"
               style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
+              onMouseEnter={() => onListingPointerEnter?.(listing.id)}
+              onMouseLeave={() => onListingPointerLeave?.(listing.id)}
             >
               <ListingCard 
                 listing={listing}

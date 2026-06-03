@@ -308,28 +308,60 @@ Re-read this file when:
 
 *SSOT: this file only. Cursor entrypoint: `.cursorrules`.*
 
-## ADR-128: Stage 128.0 — Client-Side Data Layer (TanStack Query Foundation)
+## ADR-128: Stage 128.x — Client-Side Data Layer (TanStack Query)
 
-**Status:** Iteration 0 **Done** (2026-06-01); Iterations 1+ planned  
-**Date:** 2026-05-17 (opened), 2026-06-01 (Iteration 0 shipped)  
+**Status:** Iteration 0–2 **Done** (128.3); **Foundation CLOSED — PAUSED (128.4, 2026-06-01)**. RQ Iteration 1–2 завершены. Следующие итерации (чат, админка) — **после первых MIR** и стабилизации ops. Приоритет №1: Controlled Live / реальные платежи.  
+**Date:** 2026-05-17 (opened)  
 **Author:** Pavel + engineering
 
 ### Context
-В проекте уже частично используется TanStack Query (`AppQueryProvider`, partner/wallet hooks), но основная публичная часть (Главная, Каталог) работает на самодельных кэшах (`useEffect` + `searchCache` Map + `dedupeClientRequest`). При logout TanStack Query **не** очищался — риск показа wallet/inbox/partner-данных следующему пользователю на том же браузере.
+В проекте уже частично используется TanStack Query (`AppQueryProvider`, partner/wallet hooks), но основная публичная часть (Главная, Каталог) работала на самодельных кэшах (`useEffect` + `searchCache` Map + `dedupeClientRequest`). При logout TanStack Query не очищался (закрыто в 128.0).
 
-### Decision (Iteration 0 — shipped)
-1. **`clearClientQueryCache()`** в **`lib/query-client.js`**, вызывается из **`clearBrowserPersistedAuthState`** (единая точка с dedupe). Все выходы: **`signOut`** → cleanup; UI: **`useAuth().logout`**, partner/admin layouts, renter profile.
-2. **`lib/query-keys.js`** — SSOT factory **`queryKeys`** + **`queryScopeId`** / **`PUBLIC_SCOPE`** для будущей миграции (существующие ключи в хуках пока не переносились).
-3. **`lib/api/query-fetch.js`** — **`queryFetchJson`**, **`QueryFetchError`** (`credentials: 'include'`, `cache: 'no-store'`, контракт `{ success, data, error_code }`).
+### Decision (Iteration 0 — shipped, Stage 128.0)
+1. **`clearClientQueryCache()`** в **`clearBrowserPersistedAuthState`** при logout.
+2. **`lib/query-keys.js`**, **`lib/api/query-fetch.js`**.
 
-**Не тронуто в 128.0:** каталог, главная, checkout, платежи, удаление `searchCache` / dedupe TTL.
+### Decision (Iteration 1 — shipped, Stage 128.1)
+1. **Главная** (`hooks/home/use-platform-home-page.js`): live-счётчик — **`useHomeLiveCountQuery`** (`queryKeys.home.liveCount`); категории — RQ (unified key в **128.2**).
+2. **Каталог** (`lib/hooks/useListingsSearch.js`): удалён module-level **`searchCache`**; поиск — **`useQuery`** + **`queryKeys.catalog.search`** (`PUBLIC_SCOPE`, сегмент **`displayCurrency`**) + **`keepPreviousData`**; fetch — **`lib/catalog/fetch-catalog-search.js`**, **`build-catalog-search-params.js`**.
+3. **FX (частично):** сегмент **`displayCurrency`** в ключе поиска; полный SSOT display FX — **128.3** (`useFxRatesQuery`).
 
-### Next (Iteration 1+)
-- Публичный каталог + home на RQ (см. **`docs/proposals/TANSTACK_QUERY_MIGRATION_PLAN.md`**).
-- Постепенный перенос legacy ключей (`['wallet-me']`, `partnerBookingsKeys` в хуках) на **`queryKeys`**.
-- Новые authenticated `queryFn` — через **`queryFetchJson`** + scoped keys.
+**Не тронуто в 128.1:** checkout capture, платежи, escrow, smoke financial, featured grid (→ **128.3**).
+
+### Decision (Iteration 1b — shipped, Stage 128.2)
+1. **`queryKeys.public.categories()`** — единый ключ для главной и каталога (`usePublicCategoriesQuery`); переход главная → каталог без повторного GET `/api/v2/categories`.
+2. **Hover prefetch PDP:** `useListingDetailPrefetch` + `queryKeys.listing.detail(id)` + `fetchListingDetail` (`queryFetchJson`); debounce 120ms; `useListingViewData` читает кэш prefetch при открытии карточки.
+
+### Decision (Iteration 2 — shipped, Stage 128.3)
+1. **FX SSOT (UI):** `useFxRatesQuery()` (`lib/hooks/use-fx-rates-query.js`) — обёртка над **`fetchExchangeRates`** (не второй источник курсов) + `queryKeys.fx.rates`; `staleTime` 2h; синхронизация через `FX_RATES_UPDATED_EVENT`; **`invalidateExchangeRatesCache()`** сбрасывает localStorage **и** RQ.
+2. **Featured grid:** `useQuery` + `queryKeys.home.featured` + `keepPreviousData` (`lib/home/fetch-home-featured.js`).
+3. **Профили:** `useProfileMeQuery` (`/api/v2/auth/me`), `usePartnerApplicationStatusQuery`; scoped keys `queryKeys.profile.*`; logout → `clearClientQueryCache` (128.0).
+4. **Checkout preview only:** `useCheckoutPricing` → `useFxRatesQuery` (не платёжное ядро).
+
+**Не тронуто:** чат, платежное ядро/smoke, админка; legacy **`fetchExchangeRates`** в чат-invoice, about/loyalty, partner wizard.
+
+### Decision (128.4 — foundation closed, PAUSE)
+1. **RQ Iteration 1–2 завершены** (128.0–128.3): публичная витрина + профиль на TanStack Query; фундамент (`query-keys`, `queryFetchJson`, logout `clearClientQueryCache`) — **закрыт**.
+2. **Пауза TanStack Query** до стабилизации первых MIR: Iteration 3 (чат) и 4 (админка) **не начинать** без явного решения после ops checklist.
+3. **Logout (проверено):** `signOut` → `clearBrowserPersistedAuthState` → `invalidateAllClientRequests()` + `queryClient.clear()` — сбрасывает RQ-кэш **catalog / FX / profile / wallet / partner** (все ключи). FX **localStorage** bundle (`gostaylo_cache_v4_*`) **намеренно сохраняется** — публичные retail-курсы, не PII; in-memory RQ-слой FX очищается.
+4. **Приоритет команды:** ops, cron, staging-тесты, `PRE_REAL_PAYMENTS_CHECKLIST` / Controlled Live runbook — см. Stage 126–127.
+
+### Next (Iteration 3+ — frozen until MIR)
+| Приоритет | Область | Заметки |
+|-----------|---------|---------|
+| **3 — чат** | Inbox/thread HTTP на RQ + `setQueryData` на Realtime | Не длинный `staleTime`; не переписывать optimistic UI в одном PR |
+| **Polish** | Оставшиеся `fetchExchangeRates` (чат-invoice, wizard, loyalty) | Тот же retail-кэш через `useFxRatesQuery` |
+| **2b (остаток)** | Partner/renter dashboards с остаточным `useEffect` | Расширить паттерн `use-partner-*` |
+| **4 — админка** | FI/ROI lazy tabs | Параллельно серверные summary endpoints (RQ не спасёт тяжёлые отчёты) |
+
+Детальный роадмап — **`docs/proposals/TANSTACK_QUERY_MIGRATION_PLAN.md`**. **128.4:** roadmap в режиме **PAUSED**; возобновление — после MIR.
+
+### Documentation (обязательно при изменениях 128.x+)
+Любой shipped increment **128.x** синхронизирует в **той же сессии / PR**:
+- **`docs/TECHNICAL_MANIFESTO.md`** — code-truth (хуки, ключи, файлы);
+- **`docs/ARCHITECTURAL_PASSPORT.md`** — версия в шапке, Performance & Caching, доменные §;
+- этот ADR — **Status** и **Next**.
 
 ### Why
-- Безопасность данных (приоритет №1)
-- Единая конвенция перед массовой миграцией
-- Минимальный diff перед MIR / каталог-итерацией
+- Мгновенный back-navigation и плавная смена фильтров (placeholder / stale cache).
+- Снижение дублирующих search-запросов; единый SSOT fetch для каталога и FX display на мигрированных экранах.

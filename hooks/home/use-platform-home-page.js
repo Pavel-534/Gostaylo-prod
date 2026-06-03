@@ -7,16 +7,16 @@ import { toast } from 'sonner'
 import { useAuth } from '@/contexts/auth-context'
 import { useI18n } from '@/contexts/i18n-context'
 import { useCurrency } from '@/contexts/currency-context'
-import { fetchCategories, fetchExchangeRates, FX_RATES_UPDATED_EVENT } from '@/lib/client-data'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
+import { usePublicCategoriesQuery } from '@/lib/hooks/use-public-catalog-queries'
+import { useHomeLiveCountQuery } from '@/lib/hooks/use-home-live-count-query'
+import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 import { fetchAuthMe } from '@/lib/api/auth-client'
-import {
-  fetchHomeFeaturedSearch,
-  fetchHomeListingsAvailableCount,
-  submitHomeWaitingListLead,
-} from '@/lib/home/platform-home-api-client'
+import { submitHomeWaitingListLead } from '@/lib/home/platform-home-api-client'
+import { buildHomeFeaturedKeyParams, fetchHomeFeatured } from '@/lib/home/fetch-home-featured'
+import { queryKeys } from '@/lib/query-keys'
 import { getUIText } from '@/lib/translations'
 import { getPublicSupportEmail } from '@/lib/config/public-support-email'
-import { isTransportIntervalWizardProfile } from '@/lib/config/category-wizard-profile-db'
 import { hasCategoryParent } from '@/lib/config/category-hierarchy'
 import { useHomeFilters } from '@/components/home/useHomeFilters'
 import {
@@ -39,7 +39,8 @@ export function usePlatformHomePage() {
   const { currency } = useCurrency()
   const supportEmail = getPublicSupportEmail()
 
-  const [categories, setCategories] = useState([])
+  const categoriesQuery = usePublicCategoriesQuery()
+  const { data: categories = [] } = categoriesQuery
   const isAdminUser = String(authUser?.role || '').toUpperCase() === 'ADMIN'
   const [comingSoonCategory, setComingSoonCategory] = useState(null)
   const [waitingEmail, setWaitingEmail] = useState('')
@@ -78,16 +79,78 @@ export function usePlatformHomePage() {
     [categories, selectedCategory],
   )
 
-  const [listings, setListings] = useState([])
-  const [exchangeRates, setExchangeRates] = useState({})
-  const [loading, setLoading] = useState(true)
-  const [listingsLoading, setListingsLoading] = useState(false)
+  const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
+  const [semanticCommitTick, setSemanticCommitTick] = useState(0)
+  const featuredEnabled = selectedCategoryRow?.isComingSoon !== true
+
+  const featuredKeyParams = useMemo(() => {
+    let useSemantic = false
+    if (pendingHomeSemanticRef.current && semanticSiteEnabled && smartSearchOn) {
+      useSemantic = true
+      pendingHomeSemanticRef.current = false
+    }
+    const textQuery = useSemantic
+      ? String(searchQuery || '').trim()
+      : String(debouncedSearchQuery || '').trim()
+    return buildHomeFeaturedKeyParams({
+      selectedCategory,
+      where: debouncedWhere,
+      dateRange: debouncedDateRange,
+      guests: debouncedGuests,
+      checkInTime,
+      checkOutTime,
+      transportSearchMode,
+      textQuery,
+      useSemantic,
+    })
+  }, [
+    selectedCategory,
+    debouncedWhere,
+    debouncedDateRange,
+    debouncedGuests,
+    checkInTime,
+    checkOutTime,
+    transportSearchMode,
+    debouncedSearchQuery,
+    searchQuery,
+    smartSearchOn,
+    semanticSiteEnabled,
+    semanticCommitTick,
+    pendingHomeSemanticRef,
+  ])
+
+  const featuredQuery = useQuery({
+    queryKey: queryKeys.home.featured(featuredKeyParams),
+    queryFn: () => fetchHomeFeatured(featuredKeyParams),
+    enabled: featuredEnabled,
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  })
+
+  const listings = featuredEnabled ? (featuredQuery.data?.listings ?? []) : []
+  const listingsLoading =
+    featuredEnabled && featuredQuery.isFetching && !featuredQuery.isPending
+  const loading =
+    categoriesQuery.isPending ||
+    (featuredEnabled && featuredQuery.isPending && !featuredQuery.isPlaceholderData)
 
   // Mobile floating search sheet
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
 
-  const [liveCount, setLiveCount] = useState(null)
-  const [countLoading, setCountLoading] = useState(false)
+  const liveCountQuery = useHomeLiveCountQuery({
+    dateRange,
+    where,
+    guests,
+    selectedCategory,
+    searchQuery,
+    checkInTime,
+    checkOutTime,
+    categories,
+    displayCurrency: currency,
+  })
+  const liveCount = liveCountQuery.data ?? null
+  const countLoading = liveCountQuery.isFetching
 
   const [mediaFallback, setMediaFallback] = useState({})
   const markMediaFailed = useCallback((key) => {
@@ -124,98 +187,6 @@ export function usePlatformHomePage() {
     }
   }, [searchParams, language, openLoginModal])
 
-  useEffect(() => {
-    Promise.all([fetchCategories(), fetchExchangeRates()])
-      .then(([cats, rates]) => {
-        setCategories(cats)
-        setExchangeRates(rates)
-      })
-      .catch(console.error)
-  }, [])
-
-  useEffect(() => {
-    const onFxUpdated = (e) => {
-      if (e?.detail && typeof e.detail === 'object') setExchangeRates(e.detail)
-    }
-    window.addEventListener(FX_RATES_UPDATED_EVENT, onFxUpdated)
-    return () => window.removeEventListener(FX_RATES_UPDATED_EVENT, onFxUpdated)
-  }, [])
-
-  // Свежие курсы при возврате на вкладку (Ctrl+F5 не чистит localStorage — фоновая revalidate + force).
-  useEffect(() => {
-    const refreshRates = () => {
-      fetchExchangeRates({ force: true })
-        .then(setExchangeRates)
-        .catch(console.error)
-    }
-    const onVis = () => {
-      if (document.visibilityState === 'visible') refreshRates()
-    }
-    document.addEventListener('visibilitychange', onVis)
-    return () => document.removeEventListener('visibilitychange', onVis)
-  }, [])
-
-  const fetchListingsData = useCallback(
-    async (showLoading = true) => {
-      if (selectedCategoryRow?.isComingSoon === true) {
-        setListings([])
-        setLoading(false)
-        setListingsLoading(false)
-        return 0
-      }
-      if (showLoading) setListingsLoading(true)
-
-      try {
-        const params = new URLSearchParams({ limit: '12', featured: 'true' })
-        params.set('softAvailability', '0')
-        if (selectedCategory && selectedCategory !== 'all') params.set('category', selectedCategory)
-        if (where && where !== 'all') params.set('where', where)
-        if (dateRange.from && dateRange.to && !isSameDay(dateRange.from, dateRange.to)) {
-          params.set('checkIn', format(dateRange.from, 'yyyy-MM-dd'))
-          params.set('checkOut', format(dateRange.to, 'yyyy-MM-dd'))
-          if (transportSearchMode) {
-            params.set('checkInTime', checkInTime)
-            params.set('checkOutTime', checkOutTime)
-          }
-        }
-        if (guests && guests !== '1') params.set('guests', guests)
-        const useSem = pendingHomeSemanticRef.current && semanticSiteEnabled && smartSearchOn
-        const qt = (useSem ? searchQuery : debouncedSearchQuery).trim()
-        if (pendingHomeSemanticRef.current) pendingHomeSemanticRef.current = false
-        if (qt.length >= 2) {
-          params.set('q', qt)
-          if (useSem) params.set('semantic', '1')
-        }
-
-        const { ok, listings: rows, available } = await fetchHomeFeaturedSearch(params)
-        if (ok) {
-          setListings(rows)
-          return available
-        }
-      } catch (error) {
-        console.error('Listings fetch error:', error)
-      } finally {
-        setListingsLoading(false)
-        setLoading(false)
-      }
-      return 0
-    },
-    [
-      selectedCategory,
-      where,
-      dateRange,
-      guests,
-      debouncedSearchQuery,
-      searchQuery,
-      semanticSiteEnabled,
-      smartSearchOn,
-      transportSearchMode,
-      checkInTime,
-      checkOutTime,
-      pendingHomeSemanticRef,
-      selectedCategoryRow?.isComingSoon,
-    ],
-  )
   const handleHomeSearchSubmit = useCallback(() => {
     if (selectedCategoryRow?.isComingSoon === true) {
       setComingSoonCategory(selectedCategoryRow)
@@ -225,63 +196,15 @@ export function usePlatformHomePage() {
       setAiGridPending(true)
     }
     pendingHomeSemanticRef.current = true
-    fetchListingsData(false)
+    setSemanticCommitTick((t) => t + 1)
   }, [
     smartSearchOn,
     semanticSiteEnabled,
     searchQuery,
-    fetchListingsData,
     setAiGridPending,
     pendingHomeSemanticRef,
     selectedCategoryRow,
   ])
-
-
-  const skipDebouncedListingsRef = useRef(true)
-
-  useEffect(() => {
-    fetchListingsData()
-  }, [fetchListingsData])
-
-  useEffect(() => {
-    if (skipDebouncedListingsRef.current) {
-      skipDebouncedListingsRef.current = false
-      return
-    }
-    fetchListingsData(false)
-  }, [debouncedDateRange, debouncedWhere, debouncedGuests, debouncedSearchQuery, fetchListingsData])
-
-  const fetchLiveCount = useCallback(
-    async (dr, w, g, cat) => {
-      setCountLoading(true)
-      try {
-        const params = new URLSearchParams({ limit: '50' })
-        params.set('softAvailability', '0')
-        if (cat && cat !== 'all') params.set('category', cat)
-        if (w && w !== 'all') params.set('where', w)
-        if (dr?.from && dr?.to && !isSameDay(dr.from, dr.to)) {
-          params.set('checkIn', format(dr.from, 'yyyy-MM-dd'))
-          params.set('checkOut', format(dr.to, 'yyyy-MM-dd'))
-          const wpRow = categories.find((c) => String(c.slug) === String(cat))
-          if (isTransportIntervalWizardProfile(wpRow?.wizardProfile ?? wpRow?.wizard_profile, cat)) {
-            params.set('checkInTime', checkInTime)
-            params.set('checkOutTime', checkOutTime)
-          }
-        }
-        if (g && g !== '1') params.set('guests', g)
-        const qt = (searchQuery || '').trim()
-        if (qt.length >= 2) params.set('q', qt)
-
-        const { ok, available } = await fetchHomeListingsAvailableCount(params)
-        if (ok) setLiveCount(available)
-      } catch (e) {
-        console.error('Live count error:', e)
-      } finally {
-        setCountLoading(false)
-      }
-    },
-    [searchQuery, checkInTime, checkOutTime, categories],
-  )
 
   const handleSearch = useCallback(() => {
     if (selectedCategoryRow?.isComingSoon === true) {
@@ -369,12 +292,6 @@ export function usePlatformHomePage() {
     },
     [setDateRange],
   )
-
-  useEffect(() => {
-    if (dateRange.from && dateRange.to) {
-      fetchLiveCount(dateRange, where, guests, selectedCategory)
-    }
-  }, [debouncedSearchQuery, dateRange, where, guests, selectedCategory, fetchLiveCount])
 
   const nights = useMemo(
     () => (dateRange.from && dateRange.to ? differenceInDays(dateRange.to, dateRange.from) : 0),

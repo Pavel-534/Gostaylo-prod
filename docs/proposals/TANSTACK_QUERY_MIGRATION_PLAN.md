@@ -1,14 +1,45 @@
 # План перехода на TanStack Query (React Query v5)
 
-**Статус:** предложение (аудит без изменений кода)  
-**Дата:** 2026-06-01  
-**Контекст:** Stage 127.x — Payment Core перед первым MIR; TanStack Query — отдельный трек Performance & UX, не смешивать с платёжным hardening в одном релизе.
+**Статус:** **PAUSED (Stage 128.4, 2026-06-01)** — фундамент и Iterations 0–2 **закрыты** (128.0–128.3). RQ Iteration 1–2 завершены. **Следующие итерации — после первых MIR.**  
+**Дата:** 2026-06-01 (128.4 — closure + pause)  
+**Контекст:** Приоритет №1 — Controlled Live / первые реальные платежи (ops, cron, staging, чеклисты). TanStack Query — отдельный трек; **не смешивать** с payment hardening.  
+**SSOT прогресса:** **`ARCHITECTURAL_DECISIONS.md`** § ADR-128; code-truth — **`docs/TECHNICAL_MANIFESTO.md`** §1.2b, **`docs/ARCHITECTURAL_PASSPORT.md`** § Stage 128.x.
 
 ---
 
-## Резюме для принятия решения
+## Прогресс (128.0–128.4)
 
-TanStack Query **уже частично внедрён** (`@tanstack/react-query` ^5.90.21, `AppQueryProvider` в корневом `app/layout.js`, дефолты в `lib/query-client.js`). Покрытие узкое (~13 хуков/страниц), в то время как **бóльшая часть UI** по-прежнему на `useEffect` + `fetch` или на **параллельных слоях кэша** (`dedupeClientRequest`, `searchCache` в `useListingsFetch`).
+| Iteration | Stage | Статус | Ключевые артефакты |
+|-----------|-------|--------|-------------------|
+| 0 | 128.0 | **Closed** | `clearClientQueryCache`, `lib/query-keys.js`, `lib/api/query-fetch.js` |
+| 1 | 128.1 | **Closed** | catalog search RQ (без `searchCache`), `useHomeLiveCountQuery` |
+| 1b | 128.2 | **Closed** | `usePublicCategoriesQuery`, `useListingDetailPrefetch` |
+| 2 | 128.3 | **Closed** | `useFxRatesQuery`, featured RQ, `useProfileMeQuery` |
+| — | 128.4 | **Closed** | Foundation sign-off, logout verify, **PAUSE** до MIR |
+| 3 | — | **Frozen** | чат inbox/thread + Realtime `setQueryData` |
+| 4 | — | **Frozen** | админка FI/ROI lazy load |
+
+---
+
+## Logout — проверка кэша (128.4)
+
+Цепочка: **`signOut`** (`lib/auth.js`) → **`POST /api/v2/auth/logout`** → **`clearBrowserPersistedAuthState`** (`lib/auth/browser-auth-cleanup.js`).
+
+| Слой | Catalog / home | FX display | Profile / wallet |
+|------|----------------|------------|------------------|
+| **TanStack Query** | `queryKeys.catalog.*`, `public.categories`, `home.*`, `listing.detail` — **`queryClient.clear()`** | `queryKeys.fx.*` — **`queryClient.clear()`** | `queryKeys.profile.*`, `wallet-me`, `referral` — **`queryClient.clear()`** |
+| **dedupeClientRequest** | categories/search in-flight TTL — **`invalidateAllClientRequests()`** | — | `auth:me` — **`invalidateAllClientRequests()`** |
+| **localStorage FX bundle** | — | **`gostaylo_cache_v4_exchange_rates_*`** — **не очищается** (публичные курсы; by design) | auth keys — очищаются |
+
+**Вывод:** сессионные и пользовательские данные в RQ/dedupe **не переживают logout**. FX localStorage — общий справочник, не утечка между аккаунтами.
+
+---
+
+## Резюме (после 128.4)
+
+**Публичная витрина на RQ — готова:** главная (categories, featured, live count, FX), каталог (search + keepPreviousData, categories, FX, PDP prefetch), checkout preview FX, `/profile` (me + partner status). Partner/wallet/referral hooks — ранее.
+
+**Не мигрировано (намеренно, до post-MIR):** чат, админка FI/ROI, платёжное ядро, legacy `fetchExchangeRates` в invoice/wizard/loyalty.
 
 **Максимальный бизнес-эффект** даст миграция:
 
@@ -25,9 +56,9 @@ TanStack Query **уже частично внедрён** (`@tanstack/react-quer
 | P1 Ops | Внешний cron thaw/promote | Эскроу / выплаты |
 | P1 Arch | Двойной платёжный путь (legacy vs intent) | Риск расхождения FSM |
 | P2 Perf | `marketplace-health` и FI executive summary тянут **полный** `buildReferralRoiReport` | Таймауты Supabase, не «медленный React» |
-| P2 Security | Logout чистит `dedupeClientRequest`, но **не** `queryClient` | Утечка кэша между сессиями при росте RQ |
+| P2 Security | Logout чистит `dedupeClientRequest` **и** `queryClient` | Закрыто в **128.0** (`clearClientQueryCache`) |
 
-**Рекомендация по срокам:** начать Итерацию 1 **после** стабилизации MIR + ops checklist; в Итерации 0 (до кода) — закрыть `queryClient.clear()` на logout и зафиксировать конвенцию query keys.
+**Рекомендация (128.4):** **Пауза RQ активна.** Iterations 3–4 — только после первых MIR + owner sign-off по ops checklist. Не открывать параллельные RQ-PR в окне Controlled Live.
 
 ---
 
@@ -50,26 +81,16 @@ TanStack Query **уже частично внедрён** (`@tanstack/react-quer
 
 ---
 
-### 1.2 Высокий ROI — публичный каталог и главная
+### 1.2 Публичный каталог и главная — **мигрировано (128.1–128.3)**
 
-#### `hooks/home/use-platform-home-page.js`
+| Компонент | Было | Сейчас (RQ) |
+|-----------|------|-------------|
+| `use-platform-home-page.js` | `useEffect` + local state | `usePublicCategoriesQuery`, `useFxRatesQuery`, featured `useQuery`, `useHomeLiveCountQuery` |
+| `useListingsSearch.js` | module `searchCache` Map | `useQuery` + `keepPreviousData`, `queryKeys.catalog.search` |
+| `listings-catalog-client.jsx` | дубли categories/FX | shared categories + FX hooks, `useListingDetailPrefetch` |
+| PDP | cold fetch | prefetch cache → `useListingViewData` |
 
-- **Нагрузка:** categories (`fetchCategories`), FX (`fetchExchangeRates` + event `FX_RATES_UPDATED_EVENT`), featured search (`fetchHomeFeaturedSearch`), live count (`fetchHomeListingsAvailableCount`), опционально `fetchAuthMe`.
-- **Паттерн:** несколько `useEffect`, debounced refetch через `useHomeFilters`, локальный state (`listings`, `exchangeRates`, `liveCount`, loading-флаги).
-- **Клиенты:** `lib/home/platform-home-api-client.js` (частично `dedupeClientRequest`, TTL in-flight из `TTL_HOME_SEARCH_INFLIGHT_MS`).
-- **Эффект RQ:** один `useQuery` на «срез» поиска (query key = hash параметров фильтра), `useQuery` для categories/FX с длинным staleTime; при смене валюты — `invalidateQueries` по префиксу `home` или отдельный key segment `currency`.
-
-#### `app/listings/listings-catalog-client.jsx` + `lib/hooks/useListingsSearch.js`
-
-- **SSOT поиска:** `useListingsFetch` — прямой `fetch` на `LISTINGS_SEARCH_API_PATH`, **собственный** `Map` кэш (`CACHE_TTL` 5m, max 50 ключей), debounce 300ms, race через `requestIdRef`, semantic/AI ветки.
-- **Дополнительно:** 16 `useEffect` в catalog client (синхронизация URL ↔ state, FX, infinite scroll через `useIntersectionObserver`).
-- **Дублирование:** логика пересекается с главной (те же endpoints search, те же категории/курсы).
-- **Эффект RQ:** замена `searchCache` на `queryKey: ['listings-search', serializedParams]`; `placeholderData` / `keepPreviousData` для плавных переходов фильтров; **удалить** дублирующий Map после стабилизации.
-
-#### Карточки листингов / детальная страница
-
-- Публичные данные часто идут через **Server Components** + клиентские доп. запросы; при миграции каталога — рассмотреть `prefetchQuery` на hover (опционально, Итерация 1b).
-- `lib/api/catalog-public-client.js` — уже `dedupeClientRequest` + ключи из `CACHE_KEY` (`categories`, `site-features`, …): **не дублировать** TTL в dedupe и RQ; выбрать один слой (см. §2.3).
+*(Исторический аудит «до миграции» — см. git history Stage 128.1.)*
 
 ---
 
@@ -294,13 +315,13 @@ getQueryClient().clear() // или removeQueries + resetQueries
 
 ## 4. Поэтапный роадмап внедрения
 
-### Итерация 0 — Фундамент (1–2 PR, низкий UX-риск)
+### Итерация 0 — Фундамент (1–2 PR, низкий UX-риск) — **Done (128.0)**
 
 **Цель:** безопасность и конвенции до массовой миграции.
 
-- [ ] `queryClient.clear()` на logout / session expiry (вместе с `invalidateAllClientRequests`).
-- [ ] Документировать query key factory в `lib/query-keys.js` (или по доменам).
-- [ ] `queryFetchJson` + единый mapper ошибок (`error_code`).
+- [x] `queryClient.clear()` на logout / session expiry (вместе с `invalidateAllClientRequests`).
+- [x] Документировать query key factory в `lib/query-keys.js` (или по доменам).
+- [x] `queryFetchJson` + единый mapper ошибок (`error_code`).
 - [ ] React Query Devtools (dev only).
 - [ ] Чеклист PR: «новый authenticated fetch → RQ + scoped key».
 
@@ -308,37 +329,45 @@ getQueryClient().clear() // или removeQueries + resetQueries
 
 ---
 
-### Итерация 1 — Публичный каталог и главная (высокий UX, низкий security risk)
+### Итерация 1 — Публичный каталог и главная (высокий UX, низкий security risk) — **Done (128.1 + 128.2 prefetch)**
 
 **Цель:** снизить дубли search/categories/FX; убрать `searchCache` Map.
 
-1. `useQuery` для `fetchCategories`, `fetchExchangeRates` (shared с catalog).
-2. `usePlatformHomePage` → разбить на:
-   - `useHomeCategoriesQuery`
-   - `useHomeFeaturedQuery(filtersKey)`
-   - `useHomeLiveCountQuery(filtersKey)` (опционально `enabled: false` до стабильных фильтров)
-3. `useListingsFetch` → `useListingsSearchQuery` с `placeholderData: keepPreviousData`, debounce через `useDebouncedValue` + `queryKey` от debounced params.
-4. Удалить module-level `searchCache` после метрик (Network: duplicate search ↓).
-5. Согласовать с `catalog-public-client` — один RQ key для categories.
+1. [x] `useQuery` для categories — **`usePublicCategoriesQuery`** (128.2 unified key).
+2. [x] `usePlatformHomePage` → **`useHomeLiveCountQuery`**, featured — **128.3**.
+3. [x] `useListingsFetch` → `useQuery` + `keepPreviousData`, debounced `queryKey`.
+4. [x] Удалён module-level `searchCache`.
+5. [x] Единый RQ key для categories (главная ↔ каталог).
+6. [x] Hover PDP prefetch (128.2).
 
 **Критерий готовности:** back navigation catalog ↔ listing ↔ catalog без лишнего skeleton; Supabase/API search QPS ↓ на типичном сценарии фильтрации.
 
 ---
 
-### Итерация 2 — Профили, настройки, partner/renter dashboards
+### Итерация 2 — Профили, FX display, featured — **Closed (128.3)**
 
-**Цель:** согласовать с уже мигрированными partner hooks.
+**Цель:** согласовать с уже мигрированными partner hooks; SSOT display FX в RQ.
 
-- `app/profile/page.js` → `useProfileMeQuery`, `usePartnerApplicationStatusQuery`.
-- Расширить паттерн `use-partner-bookings` на страницы с остаточным `useEffect` (`app/partner/bookings/page.js`, dashboard).
-- `app/profile/wallet/page.js` — только `useWalletMeQuery`, убрать дублирующий fetch.
-- `fetchAuthMe`: либо оставить dedupe в AuthProvider, либо один `useAuthMeQuery` с синхронизацией в context (осторожно с циклами).
-
-**Критерий готовности:** logout не оставляет profile/wallet в кэше; partner sees fresh bookings after action via `invalidateQueries`.
+- [x] `app/profile/page.js` → `useProfileMeQuery`, `usePartnerApplicationStatusQuery`.
+- [x] `useFxRatesQuery` — главная, каталог, checkout preview, PDP.
+- [x] Featured grid → `queryKeys.home.featured` + `keepPreviousData`.
+- [x] Logout не оставляет profile/wallet в RQ (128.0 + verify 128.4).
+- [ ] Расширить `use-partner-*` на dashboard/bookings — **deferred post-MIR**.
+- [ ] `useAuthMeQuery` в AuthProvider — **deferred post-MIR**.
+- [x] `app/profile/wallet/page.js` — `useWalletMeQuery` (ранее).
 
 ---
 
-### Итерация 3 — Чат и инвойсы (фоновое revalidating)
+### Stage 128.4 — Closure & PAUSE
+
+- [x] Migration plan: итерации 0–2 отмечены **Closed**.
+- [x] Logout verify: RQ + dedupe (см. § Logout выше).
+- [x] ADR-128: foundation closed, pause until MIR.
+- **Не делать до post-MIR:** Iteration 3 (чат), Iteration 4 (админка), новые RQ-хуки вне hotfix.
+
+---
+
+### Итерация 3 — Чат и инвойсы — **Frozen (post-MIR)**
 
 **Цель:** меньше polling, сохранить Realtime UX.
 
@@ -351,7 +380,7 @@ getQueryClient().clear() // или removeQueries + resetQueries
 
 ---
 
-### Итерация 4 — Админка и FinTech (perf + UX)
+### Итерация 4 — Админка и FinTech — **Frozen (post-MIR)**
 
 **Цель:** снизить повторные тяжёлые fetch; **параллельно** серверные оптимизации.
 
@@ -369,8 +398,8 @@ getQueryClient().clear() // или removeQueries + resetQueries
 1. **Payment / MIR (127.x)** — не смешивать с RQ в одном релизе; regression risk.
 2. **ROI в marketplace-health** — полный отчёт в page load (127.0 унификация SSOT) — оптимизировать API, не только клиент.
 3. **Financial Intelligence executive path** — тот же класс проблем.
-4. **Двойной кэш** (dedupe + Map + RQ) — технический долг; Итерация 1 должна **убирать**, а не добавлять третий слой.
-5. **Logout / cache clear** — security P2, блокер перед Итерацией 2.
+4. **Двойной кэш** (dedupe + RQ) — на публичной витрине **снят** (128.1–128.3); остаток — чат/FinTech до post-MIR.
+5. **Logout / cache clear** — **закрыто** (128.0 + verify 128.4).
 6. **Bundle size** — следить, чтобы server-only модули (`currency.service`, полный `booking-price-integrity` server path) не попали в client query modules (паттерн `webpackIgnore` из 127.x).
 
 ---
@@ -397,8 +426,10 @@ getQueryClient().clear() // или removeQueries + resetQueries
 
 ---
 
-## 8. Итоговая рекомендация
+## 8. Итоговая рекомендация (128.4)
 
-**Да, переход на TanStack Query оправдан** — инфраструктура уже есть, узкое покрытие создаёт непоследовательный UX и тройное кэширование. **Но** приоритет №1 перед масштабированием RQ — `queryClient.clear()` на logout и серверная лёгкость FI/ROI. Первый заметный UX-выигрыш — **Итерация 1 (главная + каталог)** без touch payment paths.
+**Фундамент RQ закрыт.** Iterations 0–2 дали UX на публичной витрине без touch payment paths.
 
-Оценка трудозатрат (грубо): Итерация 0 — 0.5–1 дн.; 1 — 2–4 дн.; 2 — 3–5 дн.; 3 — 4–6 дн.; 4 — 5–10 дн. + backend для admin perf.
+**Решение (128.4): PAUSE** — не начинать Iteration 3–4 до первых MIR и owner sign-off по ops. Приоритет №1: Controlled Live, cron, staging checkout/MIR, `PRE_REAL_PAYMENTS_CHECKLIST`.
+
+Возобновление RQ: после стабильных первых реальных платежей → Iteration 3 (чат) или polish FX legacy paths.

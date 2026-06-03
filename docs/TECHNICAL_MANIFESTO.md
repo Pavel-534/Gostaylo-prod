@@ -7,6 +7,11 @@
 **Financial model version:** **3.8.0** (ADR-097 production + Concierge treasury UI/docs, Stage 100.3–100.5).
 
 **Stage 118.6 (2026-05-27):** Индексы admin search (`stage118_6_admin_global_search_indexes.sql`, pg_trgm); request-scoped cache роли (`lib/security/request-access-cache.js`); план **`docs/REFERRAL_PROGRAM_2_0_PLAN.md`**.
+**Stage 128.4 (2026-06-01):** RQ foundation **closed**, **PAUSED** до первых MIR. Iterations 0–2 shipped (128.0–128.3); logout verify — `queryClient.clear()` + `invalidateAllClientRequests()` (profile/catalog/FX RQ); FX localStorage bundle — public, by design. Roadmap frozen: Iteration 3 (чат), 4 (админка). SSOT: ADR-128, `TANSTACK_QUERY_MIGRATION_PLAN.md`.
+**Stage 128.3 (2026-06-01):** TanStack Query Iteration 2 — **`useFxRatesQuery`** (SSOT display FX UI поверх **`fetchExchangeRates`**, `staleTime` 2h, sync **`FX_RATES_UPDATED_EVENT`**, **`invalidateExchangeRatesCache`** → RQ); featured grid → **`useQuery`** + **`queryKeys.home.featured`** + **`keepPreviousData`**; профили → **`useProfileMeQuery`**, **`usePartnerApplicationStatusQuery`** (`app/profile/page.js`). Не тронуто: чат, платёжное ядро, smoke, админка.
+**Stage 128.2 (2026-06-01):** **`queryKeys.public.categories()`** + **`usePublicCategoriesQuery`** (единый кэш главная ↔ каталог); hover PDP prefetch — **`useListingDetailPrefetch`**, **`queryKeys.listing.detail`**, **`useListingViewData`** читает prefetch cache.
+**Stage 128.1 (2026-06-01):** Каталог на RQ — удалён module-level **`searchCache`**; **`useListingsSearch`** → **`useQuery`** + **`queryKeys.catalog.search`** + **`keepPreviousData`**; главная — **`useHomeLiveCountQuery`**; fetch — **`lib/catalog/fetch-catalog-search.js`**, **`build-catalog-search-params.js`**.
+**Stage 128.0 (2026-06-01):** TanStack Query foundation — **`clearClientQueryCache()`** в **`clearBrowserPersistedAuthState`**; **`lib/query-keys.js`**, **`lib/api/query-fetch.js`**. ADR-128 в **`ARCHITECTURAL_DECISIONS.md`**.
 **Stage 127.2 (2026-06-03):** `PaymentsV3Service.confirmPayment` — idempotent short-circuit when `payments.status` is `CONFIRMED`/`COMPLETED` (`alreadyConfirmed`, no `moveToEscrow`); smoke **6c**.
 **Stage 127.1 (2026-06-03):** Pre-flight — smoke 12c ledger poll (500ms×2 backoff); E2E `paid-escrow-booking` → `moveToEscrow`; `getExpectedUsdtForBooking` re-export from `booking-price-integrity.js` (dynamic import); Prisma `BookingStatus` drift warning.
 **Stage 127.0 (2026-06-03):** Payment core hardening — `payments/confirm` idempotent re-check after `markPaid` (full escrow pipeline); **`getExpectedUsdtForBooking`** in `lib/services/currency.service.js` (THB via `guestPayableRoundedThbFromBooking`, crypto webhook / production guard / verify-tron); marketplace-health ROI → **`buildReferralRoiReport`** (30d SSOT).
@@ -83,7 +88,7 @@ SSOT копирайта карточки: `lib/analytics/owner/referral-roi-owne
 
 **Stage 113.1 (2026-05-21):** Pre-deploy micro cleanup — удалён неиспользуемый `components/notification-bell.js`; dedup на `admin-settings-api-client`, `marketing-api-client`, `partner-bookings-client`, `catalog-public` (geo/ui-strings); `components/` без прямого `fetch`. Build + smoke 15/15.
 
-**Stage 113.0 (2026-05-21):** API client performance — `client-request-dedup` + `client-fetch-policy` (in-flight dedup, короткие TTL); охват: `fetchAuthMe`, chat inbox/favorites/provider list, catalog public, home search/count, FinTech bundle, partner calendar/reputation, categories; logout → `invalidateAllClientRequests`. Без новых тяжёлых deps.
+**Stage 113.0 (2026-05-21):** API client performance — `client-request-dedup` + `client-fetch-policy` (in-flight dedup, короткие TTL); охват: `fetchAuthMe`, chat inbox/favorites/provider list, catalog public, home search/count, FinTech bundle, partner calendar/reputation, categories; logout → `invalidateAllClientRequests` (+ **`clearClientQueryCache`** с **128.0**). Без новых тяжёлых deps.
 
 **Stage 112.3 final (2026-05-21):** Last pre-launch pass — `admin-settings-api-client` (marketing cockpit); partner Airbnb import + reputation → `partner-listing-client`; Go/No-Go **9/10**, сводка 109–113.x. Ранее: 112.0 archive clients; 111.1b/c prod perimeter; 112.1–112.3 API clients. Build + smoke 15/15.
 
@@ -600,7 +605,7 @@ SSOT копирайта карточки: `lib/analytics/owner/referral-roi-owne
 | Курсы для витрины (карточки, каталог, карта) | Таблица **`exchange_rates`** (`rate_to_thb` = THB за **1** единицу валюты), затем **розничный множитель** `general.chatInvoiceRateMultiplier` (деление `rate_to_thb` на множитель) | **`lib/services/currency.service.js`** → **`getDisplayRateMap`**, TTL **6 ч** (`EXCHANGE_RATES_DB_TTL_MS`), при необходимости ExchangeRate-API v6 + upsert в БД |
 | Курсы при создании брони (`price_paid` / `exchange_rate`) | Тот же канон, что витрина | **`PricingService.getExchangeRates()`** → **`CurrencyService.getDisplayRateMap`** (не «сырой» обходной SELECT без TTL/API) |
 | Публичный API курсов | — | **`GET /api/v2/exchange-rates`** → `rateMap`, `retailMode`, `retailMarkupMultiplier`; default **`retail=1`** (витрина); **`retail=0`** — mid; SSOT парсинг — **`lib/pricing/fx-display.js`** |
-| Клиентский кеш | localStorage, согласованный с TTL сервера | **`lib/client-data.js`** — **`fetchExchangeRates`** |
+| Клиентский кеш | localStorage v3 (TTL 2h) + TanStack Query на мигрированных экранах | **`lib/client-data.js`** — **`fetchExchangeRates`**; UI SSOT — **`useFxRatesQuery`** (`lib/hooks/use-fx-rates-query.js`) |
 | USDT (платежи, уведомления) | `exchange_rates` → API → env / settings | **`resolveThbPerUsdt()`**, аварии — **`lib/services/currency-last-resort.js`** |
 | Комиссия платформы | `system_settings` / env | **`resolveDefaultCommissionPercent()`** |
 | Множитель курса для счетов в чате THB↔USDT | админка **`/admin/settings`** / env | **`getEffectiveRate`** + **`resolveChatInvoiceRateMultiplier`** |
@@ -616,10 +621,27 @@ SSOT копирайта карточки: `lib/analytics/owner/referral-roi-owne
 
 - **`formatPrice(amountThb, currency, exchangeRates, language)`** в **`lib/currency.js`** — для валюты ≠ THB **делит** сумму в THB на **`exchangeRates[currency]`**, **только если** в переданной карте есть конечный положительный курс. Иначе отображается число в THB с символом выбранной валюты (без выдуманного кросса). Четвёртый аргумент — язык UI для **`toLocaleString`** (группировка разрядов). **Таблицы курсов в `lib/currency.js` нет** (удалены неиспользуемые конвертеры с литералами).
 - E2E: **`priceRawForTest(amountThb, currency, exchangeRates)`** — «голое» число для **`data-test-*`** (USD — **2** знака; прочие витринные валюты кроме JPY — целые после конвертации).
-- Витрина: **`fetchExchangeRates({ retail: true })`** или **`hooks/use-currency.js`** (`/api/v2/exchange-rates?retail=1`); формат цены — **`lib/pricing/fx-display.js`**.
+- Витрина (главная, каталог, PDP, checkout preview): **`useFxRatesQuery({ retail: true })`** — обёртка над **`fetchExchangeRates`** + RQ-кэш; legacy paths — прямой **`fetchExchangeRates`** или **`hooks/use-currency.js`**; формат цены — **`lib/pricing/fx-display.js`**.
+- Выбор валюты UI (**`CurrencyProvider`**, `contexts/currency-context.jsx`) — отдельно от rate map; не дублирует серверный канон курсов.
 - Партнёрский финкабинет использует **`/api/v2/exchange-rates?retail=0`** (конвертация без наценки, только прямой курс из `exchange_rates`/FX API).
 - Значение по умолчанию **`{ THB: 1 }`** у пропа `exchangeRates` — это **нейтральный множитель для THB**, не курс «доллара».
 - Гео-подсказка валюты: **`GET /api/v2/geo`** использует **`getDisplayRateMap`** (тот же канон, без отдельного Forex-модуля).
+
+### 1.2b Client data layer — TanStack Query (Stage 128.x)
+
+| Что | SSOT | Примечание |
+|-----|------|------------|
+| Query client + logout | **`lib/query-client.js`** — `getQueryClient`, **`clearClientQueryCache`** | вызывается из **`lib/auth/browser-auth-cleanup.js`** |
+| Key factories | **`lib/query-keys.js`** — `PUBLIC_SCOPE`, `queryScopeId`, `queryKeys.*` | scoped auth keys включают profile id |
+| Browser `queryFn` | **`lib/api/query-fetch.js`** — **`queryFetchJson`** | cookie-сессия; не заменяет server fetch |
+| Публичные категории | **`usePublicCategoriesQuery`** | ключ **`queryKeys.public.categories()`**, stale 5m |
+| Каталог search | **`lib/hooks/useListingsSearch.js`** | **`queryKeys.catalog.search`**, **`keepPreviousData`**; без **`searchCache`** |
+| FX display (UI) | **`useFxRatesQuery`** | обёртка **`fetchExchangeRates`**; не второй источник курсов |
+| Featured / live count | **`use-platform-home-page.js`**, **`use-home-live-count-query.js`** | **`queryKeys.home.featured`**, **`queryKeys.home.liveCount`** |
+| PDP prefetch | **`use-listing-detail-prefetch.js`**, **`fetch-listing-detail.js`** | debounce 120ms; **`queryKeys.listing.detail`** |
+| Профиль | **`use-profile-queries.js`** | **`useProfileMeQuery`** → **`fetchAuthMe`**; partner status scoped key |
+
+Legacy **`dedupeClientRequest`** (**Stage 113.0**) остаётся на чате, FinTech и прочих не мигрированных путях. **128.4:** RQ roadmap **PAUSED** до MIR — **`docs/proposals/TANSTACK_QUERY_MIGRATION_PLAN.md`**.
 
 ### 1.3 Удалено (не возвращать)
 

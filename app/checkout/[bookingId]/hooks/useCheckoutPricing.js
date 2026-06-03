@@ -10,7 +10,7 @@ import { buildGuestPriceBreakdownFromCheckoutTotals } from '@/lib/booking/guest-
 import { getGuestPayableRoundedThb } from '@/lib/booking-guest-total'
 import { interpolateTemplate } from './interpolate.js'
 import { getInvoiceGuestAmountPresentation } from '@/lib/pricing/fx-display-client'
-import { fetchExchangeRates, FX_RATES_UPDATED_EVENT } from '@/lib/client-data'
+import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 
 /**
  * Курсы, комиссия, промокод и производные суммы для чекаута.
@@ -35,31 +35,11 @@ export function useCheckoutPricing({
   const searchParams = useSearchParams()
   const commissionFromApi = useCommission()
   const { roundingMode } = usePricingEngineConfig()
-  const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
-  const [thbPerUsdt, setThbPerUsdt] = useState(null)
+  const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
+  const thbPerUsdt = exchangeRates?.USDT != null ? exchangeRates.USDT : null
   const [promoCode, setPromoCode] = useState('')
   const [promoDiscount, setPromoDiscount] = useState(null)
   const [promoLoading, setPromoLoading] = useState(false)
-
-  useEffect(() => {
-    fetchExchangeRates({ retail: true })
-      .then((rateMap) => {
-        setExchangeRates(rateMap)
-        if (rateMap.USDT != null) setThbPerUsdt(rateMap.USDT)
-      })
-      .catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    const onFx = (e) => {
-      const rateMap = e?.detail
-      if (!rateMap || typeof rateMap !== 'object') return
-      setExchangeRates(rateMap)
-      if (rateMap.USDT != null) setThbPerUsdt(rateMap.USDT)
-    }
-    window.addEventListener(FX_RATES_UPDATED_EVENT, onFx)
-    return () => window.removeEventListener(FX_RATES_UPDATED_EVENT, onFx)
-  }, [])
 
   useEffect(() => {
     const pm = searchParams.get('pm')

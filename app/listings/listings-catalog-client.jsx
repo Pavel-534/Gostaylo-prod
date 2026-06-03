@@ -12,13 +12,15 @@ import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { ListingsCatalogSkeleton } from '@/components/listings-catalog-skeleton'
 import { format, parseISO, differenceInDays } from 'date-fns'
-import { fetchExchangeRates, FX_RATES_UPDATED_EVENT } from '@/lib/client-data'
+import { useFxRatesQuery } from '@/lib/hooks/use-fx-rates-query'
 import { FilterBar } from '@/components/search/FilterBar'
 import { ListingSidebar } from '@/components/search/ListingSidebar'
 import { SearchMapWrapper } from '@/components/search/SearchMapWrapper'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
 import { useDebounce, useIntersectionObserver, useListingsFetch } from '@/lib/hooks/useListingsSearch'
+import { usePublicCategoriesQuery } from '@/lib/hooks/use-public-catalog-queries'
+import { useListingDetailPrefetch } from '@/lib/hooks/use-listing-detail-prefetch'
 import { detectLanguage, DEFAULT_UI_LANGUAGE, getUIText } from '@/lib/translations'
 import { normalizeListingCategorySlugForSearch } from '@/lib/listing-category-slug'
 import { effectiveCategoryWizardProfileRaw } from '@/lib/config/category-hierarchy'
@@ -115,9 +117,10 @@ function ListingsContent() {
   }, [guests, guestsBreakdown])
 
   const [language, setLanguage] = useState(DEFAULT_UI_LANGUAGE)
-  const [catalogCategories, setCatalogCategories] = useState([])
+  const { data: catalogCategories = [] } = usePublicCategoriesQuery()
+  const { prefetchListingDetail, cancelListingDetailPrefetch } = useListingDetailPrefetch()
   const [currency, setCurrency] = useState('THB')
-  const [exchangeRates, setExchangeRates] = useState({ THB: 1 })
+  const { data: exchangeRates = { THB: 1 } } = useFxRatesQuery({ retail: true })
   const [showMap, setShowMap] = useState(false)
   const [userFavorites, setUserFavorites] = useState(new Set())
   const [userBookings, setUserBookings] = useState([])
@@ -141,18 +144,6 @@ function ListingsContent() {
     return true
   })
   const [semanticSiteEnabled, setSemanticSiteEnabled] = useState(true)
-
-  useEffect(() => {
-    fetch('/api/v2/categories', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.success && Array.isArray(j.data)) {
-          const activeOnly = j.data.filter((c) => c && c.isActive !== false)
-          setCatalogCategories(activeOnly)
-        }
-      })
-      .catch(() => {})
-  }, [])
 
   /** Slug → эффективный `wizard_profile` (колонка или наследование от родителя, Stage 68.0). */
   const wizardProfileBySlug = useMemo(() => {
@@ -284,7 +275,6 @@ function ListingsContent() {
     meta,
     error,
     isTransitioning,
-    fetchListings,
     commitSemanticSearch,
     loadMore,
     retry,
@@ -304,6 +294,7 @@ function ListingsContent() {
     semanticSiteEnabled,
     initialSemanticFromUrl,
     itemsPerPage: ITEMS_PER_PAGE,
+    displayCurrency: currency,
   })
 
   const handleCatalogSearchSubmit = useCallback(() => {
@@ -332,8 +323,6 @@ function ListingsContent() {
     const storedCurrency = localStorage.getItem('gostaylo_currency')
     if (storedCurrency) setCurrency(storedCurrency)
 
-    fetchExchangeRates().then(setExchangeRates).catch(console.error)
-
     if (user?.id) {
       fetch(`/api/v2/renter/favorites?userId=${user.id}`)
         .then((res) => res.json())
@@ -354,14 +343,6 @@ function ListingsContent() {
   }, [user?.id])
 
   useEffect(() => {
-    const onFxUpdated = (e) => {
-      if (e?.detail && typeof e.detail === 'object') setExchangeRates(e.detail)
-    }
-    window.addEventListener(FX_RATES_UPDATED_EVENT, onFxUpdated)
-    return () => window.removeEventListener(FX_RATES_UPDATED_EVENT, onFxUpdated)
-  }, [])
-
-  useEffect(() => {
     const handler = (e) => setCurrency(e.detail)
     window.addEventListener('currency-change', handler)
     return () => window.removeEventListener('currency-change', handler)
@@ -372,23 +353,6 @@ function ListingsContent() {
     window.addEventListener('language-change', handler)
     return () => window.removeEventListener('language-change', handler)
   }, [])
-
-  useEffect(() => {
-    fetchListings(true)
-  }, [])
-
-  useEffect(() => {
-    if (!loading) fetchListings(false)
-  }, [
-    debouncedWhere,
-    selectedCategory,
-    debouncedDateRange,
-    debouncedGuests,
-    debouncedSearchQuery,
-    appliedBbox,
-    extraFilters,
-    wizardProfileBySlug,
-  ])
 
   useEffect(() => {
     if (skipNextUrlPushRef.current) {
@@ -604,6 +568,8 @@ function ListingsContent() {
               transportBroadenHref={transportBroadenHref}
               highlightedListingId={mapSelectedListingId}
               catalogCategories={catalogCategories}
+              onListingPointerEnter={prefetchListingDetail}
+              onListingPointerLeave={cancelListingDetailPrefetch}
             />
           </div>
 
