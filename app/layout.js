@@ -19,6 +19,8 @@ import GlobalSiteJsonLd from '@/components/seo/GlobalSiteJsonLd'
 import { ProductAnalyticsInit } from '@/components/analytics/ProductAnalyticsInit'
 import { buildOgImageMetadata } from '@/lib/seo/resolve-og-image.js'
 import { Suspense } from 'react'
+import { cookies, headers } from 'next/headers'
+import { getLangFromRequest } from '@/lib/translations'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-sans' })
 
@@ -41,17 +43,29 @@ export const viewport = {
 export async function generateMetadata() {
   const siteUrl = await getRequestSiteUrl()
   const brand = getSiteDisplayName()
-  const title = `${brand} - Premium Global Rentals`
-  const description = `Premium villas, yachts, transport and tours worldwide. Book your perfect stay with ${brand}.`
+  const cookieStore = await cookies()
+  const headersList = await headers()
+  const lang = getLangFromRequest(cookieStore, headersList)
+  const title =
+    lang === 'ru' ? `${brand} — аренда по всему миру` : `${brand} - Rentals Worldwide`
+  const description =
+    lang === 'ru'
+      ? `${brand} — бронирование жилья, транспорта, яхт и туров с онлайн-предоплатой и защитой эскроу до заселения.`
+      : `${brand} — book homes, transport, yachts and tours with secure online prepayment and escrow until check-in.`
+  const ogDescription =
+    lang === 'ru'
+      ? `Аренда с онлайн-бронированием и безопасной предоплатой (эскроу).`
+      : `Rentals with online booking and secure prepayment (escrow).`
   return {
     metadataBase: new URL(siteUrl),
     title,
     description,
-    keywords: 'rentals, villas, yachts, phuket, thailand, luxury, vacation, holiday',
+    keywords:
+      'бронирование, аренда жилья, транспорт, яхты, онлайн оплата, эскроу, rentals, villas, yachts, booking, escrow',
     authors: [{ name: brand }],
     openGraph: {
       title,
-      description: `Premium villas, yachts, transport and tours worldwide. Book your perfect stay.`,
+      description: ogDescription,
       url: siteUrl,
       siteName: brand,
       locale: 'en_US',
@@ -61,7 +75,7 @@ export async function generateMetadata() {
     twitter: {
       card: 'summary_large_image',
       title,
-      description: 'Premium villas, yachts, transport and tours worldwide.',
+      description: ogDescription,
       images: buildOgImageMetadata(null, siteUrl, title).map((i) => i.url),
     },
     appleWebApp: {

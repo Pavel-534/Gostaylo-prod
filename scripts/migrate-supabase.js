@@ -189,7 +189,7 @@ async function seedData() {
         value: {
           defaultCommissionRate: 15,
           maintenanceMode: false,
-          heroTitle: 'Luxury Rentals in Phuket',
+          heroTitle: 'Rentals in Phuket',
           heroSubtitle: 'Villas, Bikes, Yachts & Tours',
           serviceFeePercent: 5
         }

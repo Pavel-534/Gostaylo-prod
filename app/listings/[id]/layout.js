@@ -26,7 +26,7 @@ export async function generateMetadata({ params }) {
   if (!listing) {
     const b = getSiteDisplayName();
     const title = `Listing | ${b}`;
-    const description = `Premium rentals on ${b}`;
+    const description = `Rentals on ${b}`;
     const ogImages = buildOgImageMetadata(null, baseUrl, title);
     return {
       title,

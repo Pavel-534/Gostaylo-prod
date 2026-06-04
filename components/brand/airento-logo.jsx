@@ -40,7 +40,7 @@ export function AirentoLogo({ compact = false, className = '', label = '', scrol
             {label}
           </span>
           <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500/90">
-            premium rentals
+            rentals
           </span>
         </div>
       ) : null}

@@ -1,7 +1,7 @@
 {
-  "name": "GoStayLo - Premium Global Rentals",
+  "name": "GoStayLo - Rentals Worldwide",
   "short_name": "GoStayLo",
-  "description": "Premium villas, yachts, transport and tours worldwide. Book your perfect stay with GoStayLo.",
+  "description": "Rent villas, cars, yachts and tours worldwide. Book your stay with GoStayLo.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

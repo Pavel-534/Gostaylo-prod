@@ -85,6 +85,10 @@ export function BookingActionButtons({
         <ArrowRight className="ml-2 h-4 w-4" />
       </Button>
 
+      <p className="text-xs leading-relaxed text-slate-500 text-center px-1">
+        {tx('listingBookingPayHint')}
+      </p>
+
       {sharedMode && (onPrivateTripClick || onSpecialPriceClick) && (
         <div className="grid gap-2">
           {onPrivateTripClick && (

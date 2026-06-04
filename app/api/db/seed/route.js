@@ -172,7 +172,7 @@ export async function POST(request) {
       hostCommissionPercent: PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
       insuranceFundPercent: PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
       maintenanceMode: false,
-      heroTitle: 'Luxury Rentals in Phuket',
+      heroTitle: 'Rentals in Phuket',
       heroSubtitle: 'Villas, Bikes, Yachts & Tours',
       serviceFeePercent: PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
     }

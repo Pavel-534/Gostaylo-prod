@@ -6,9 +6,9 @@ export default function manifest() {
   const brand = getSiteDisplayName()
   const short = brand.length > 12 ? brand.slice(0, 12) : brand
   return {
-    name: `${brand} — Premium Global Rentals`,
+    name: `${brand} — Rentals Worldwide`,
     short_name: short,
-    description: `Premium villas, yachts, transport and tours worldwide. Book with ${brand}.`,
+    description: `Rent villas, cars, yachts and tours worldwide. Book with ${brand}.`,
     start_url: '/',
     display: 'standalone',
     background_color: '#0f172a',

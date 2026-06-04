@@ -53,7 +53,7 @@ let mockSettings = {
   settlementPayoutHourLocal: 18,
   chatInvoiceRateMultiplier: platformDefaultChatInvoiceRateMultiplier(),
   maintenanceMode: false,
-  heroTitle: 'Luxury Rentals in Phuket',
+  heroTitle: 'Rentals in Phuket',
   heroSubtitle: 'Villas, Bikes, Yachts & Tours',
   sitePhone: '',
   chatSafety: { ...defaultChatSafety },

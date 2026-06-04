@@ -47,6 +47,9 @@ export function HowItWorks({ language = 'ru' }) {
           <h2 className="font-serif text-[34px] font-semibold leading-tight tracking-[-0.01em] text-slate-900 sm:text-[44px]">
             {getUIText('howItWorksTitle', language)}
           </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
+            {getUIText('howItWorksModelNote', language)}
+          </p>
         </div>
 
         {/* Steps */}

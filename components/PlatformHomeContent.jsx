@@ -291,6 +291,14 @@ export function PlatformHomeContent() {
                   </Link>
                 </li>
                 <li>
+                  <Link
+                    href="/help/escrow-protection"
+                    className="hover:text-brand/80 transition-colors"
+                  >
+                    {getUIText('footerEscrowPaymentLink', language)}
+                  </Link>
+                </li>
+                <li>
                   <a href={`mailto:${supportEmail}`} className="hover:text-brand/80 transition-colors">
                     {getUIText('contactUs', language)}
                   </a>

@@ -447,6 +447,7 @@ export function MobileBookingBar({
             disabled={!dateRange?.from || !dateRange?.to || !canInstantBook || availabilityLoading}
             variant="brand"
             data-testid="listing-book-now"
+            title={tx('listingBookingPayHint')}
             className="h-12 min-w-[7.5rem] px-4 text-sm sm:text-base"
           >
             {exclusiveDatesUnavailable

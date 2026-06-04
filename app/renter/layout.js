@@ -259,7 +259,7 @@ export default function RenterLayout({ children }) {
         {/* Footer */}
         <footer className="bg-white border-t mt-12">
           <div className="container mx-auto px-4 py-6 text-center text-sm text-slate-600">
-            <p>© 2026 {getSiteDisplayName()}. Luxury rentals in Phuket.</p>
+            <p>© 2026 {getSiteDisplayName()}. Rentals worldwide.</p>
           </div>
         </footer>
       </div>

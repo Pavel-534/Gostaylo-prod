@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { useCurrency } from '@/contexts/currency-context'
-import { CheckCircle2, CreditCard, Wallet, ArrowLeft } from 'lucide-react'
+import { CheckCircle2, CreditCard, Wallet, ArrowLeft, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { getUIText } from '@/lib/translations'
 import { CancelBookingDialog } from '@/components/renter/cancel-booking-dialog'
@@ -105,6 +105,20 @@ function CheckoutPageInner({ params: paramsProp }) {
         </Link>
 
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">{getUIText('checkout_title', c.language)}</h1>
+
+        <div className="rounded-xl border border-sky-200 bg-sky-50/80 px-4 py-3 flex gap-3 items-start">
+          <Shield className="h-5 w-5 text-sky-700 shrink-0 mt-0.5" aria-hidden />
+          <div className="text-sm text-slate-800 space-y-1">
+            <p className="font-semibold text-slate-900">{getUIText('checkout_escrowInfoTitle', c.language)}</p>
+            <p className="leading-relaxed">{getUIText('checkout_escrowInfoBody', c.language)}</p>
+            <Link
+              href="/help/escrow-protection"
+              className="inline-block font-medium text-brand hover:text-brand-hover underline underline-offset-2"
+            >
+              {getUIText('checkout_escrowInfoLink', c.language)}
+            </Link>
+          </div>
+        </div>
 
         {p.booking?.status === 'CONFIRMED' && (
           <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 flex items-start gap-3">

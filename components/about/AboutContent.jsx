@@ -28,7 +28,7 @@ const STR = {
     principlesH2: 'Что для нас важно',
     principles: [
       { title: 'Прозрачность', desc: 'Без скрытых комиссий и комиссионеров. Только проверенные партнёры.' },
-      { title: 'Премиум-сервис', desc: 'Курируем каждый объект, чтобы аренда оставалась впечатлением, а не сделкой.' },
+      { title: 'Забота о гостях', desc: 'Проверяем объекты, чтобы аренда была понятной и без лишних сюрпризов.' },
       { title: 'Безопасность', desc: 'Escrow-защита платежей и круглосуточная поддержка на 4 языках.' },
       { title: 'Глобальный охват', desc: 'Гости и партнёры со всего мира — Россия, Таиланд, Бали, Дубай и далее.' },
     ],
@@ -51,7 +51,7 @@ const STR = {
     principlesH2: 'What we care about',
     principles: [
       { title: 'Transparency', desc: 'No hidden fees or middlemen. Verified partners only.' },
-      { title: 'Premium service', desc: 'Every listing is curated so renting stays an experience, not a transaction.' },
+      { title: 'Guest-first service', desc: 'We verify listings so renting feels clear and hassle-free.' },
       { title: 'Safety', desc: 'Escrow-protected payments and 24/7 support in 4 languages.' },
       { title: 'Global reach', desc: 'Guests and hosts worldwide — Russia, Thailand, Bali, Dubai and beyond.' },
     ],
@@ -97,7 +97,7 @@ const STR = {
     principlesH2: 'สิ่งที่เราใส่ใจ',
     principles: [
       { title: 'ความโปร่งใส', desc: 'ไม่มีค่าธรรมเนียมแฝงหรือคนกลาง พาร์ทเนอร์ที่ตรวจสอบแล้วเท่านั้น' },
-      { title: 'บริการระดับพรีเมียม', desc: 'เราคัดสรรทุกที่พักเพื่อให้การเช่ายังคงเป็นประสบการณ์ ไม่ใช่แค่ธุรกรรม' },
+      { title: 'ดูแลผู้เช่า', desc: 'เราตรวจสอบที่พักเพื่อให้การเช่าเข้าใจง่ายและไม่มีความเสี่ยงที่ไม่คาดคิด' },
       { title: 'ความปลอดภัย', desc: 'การชำระเงินผ่านเอสโครว์ พร้อมการสนับสนุน 24/7 ใน 4 ภาษา' },
       { title: 'ครอบคลุมทั่วโลก', desc: 'แขกและเจ้าของจากทั่วโลก — รัสเซีย ไทย บาหลี ดูไบ และอื่น ๆ' },
     ],

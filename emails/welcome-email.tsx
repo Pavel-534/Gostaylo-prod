@@ -34,7 +34,7 @@ export default function WelcomeEmail({
         <Container style={container}>
           <Section style={logoSection}>
             <Heading style={mainHeading}>{brand}</Heading>
-            <Text style={tagline}>Premium rentals in Phuket</Text>
+            <Text style={tagline}>Rentals in Phuket</Text>
           </Section>
 
           {/* Welcome Message */}

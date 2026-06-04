@@ -223,7 +223,7 @@ export default function SettingsPage() {
               id="heroTitle"
               value={settings.heroTitle}
               onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })}
-              placeholder="Luxury Rentals in Phuket"
+              placeholder="Rentals in Phuket"
               className="mt-2 text-sm sm:text-lg font-semibold"
             />
           </div>
@@ -245,7 +245,7 @@ export default function SettingsPage() {
           <div className="p-4 sm:p-6 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl shadow-lg">
             <div className="text-center text-white">
               <h2 className="text-xl sm:text-2xl lg:text-4xl font-bold mb-2 sm:mb-3">
-                {settings.heroTitle || 'Luxury Rentals in Phuket'}
+                {settings.heroTitle || 'Rentals in Phuket'}
               </h2>
               <p className="text-sm sm:text-base lg:text-xl opacity-90">
                 {settings.heroSubtitle || 'Villas, Bikes, Yachts & Tours'}
