@@ -56,8 +56,8 @@ code {
         --card-foreground: 222.2 84% 4.9%;
         --popover: 0 0% 100%;
         --popover-foreground: 222.2 84% 4.9%;
-        /* Согласовано с lib/theme/constants.js (фирменный teal) */
-        --primary: 174 84% 32%;
+        /* Stage 129.0 — synced with lib/theme/tokens.cjs (brand #006666) */
+        --primary: 180 100% 20%;
         --primary-foreground: 0 0% 100%;
         --secondary: 210 40% 96.1%;
         --secondary-foreground: 222.2 47.4% 11.2%;
@@ -158,10 +158,10 @@ code {
   }
 }
 
-/* Stage 115.0 — Product UI cohesion (SSOT: lib/theme/product-ui.js) */
+/* Stage 115.0 / 129.0 — Product UI cohesion (SSOT: lib/theme/tokens.cjs, product-ui.js) */
 @layer components {
   .gsl-page {
-    @apply min-h-screen bg-[#f7f9fb] text-slate-900;
+    @apply min-h-screen bg-brand-surface text-slate-900;
   }
   .gsl-page-container {
     @apply mx-auto max-w-6xl px-3 sm:px-4 py-6 sm:py-10;
@@ -176,19 +176,19 @@ code {
     @apply flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white/80 p-2 backdrop-blur-sm shadow-sm;
   }
   .gsl-hub-nav-active {
-    @apply bg-[#006666] text-white hover:bg-[#005757] shadow-[0_4px_12px_rgba(0,102,102,0.2)];
+    @apply bg-brand text-white hover:bg-brand-hover shadow-brand-sm;
   }
   .gsl-hub-nav-idle {
     @apply text-slate-700 hover:bg-slate-50;
   }
   .gsl-nav-item-active {
-    @apply bg-teal-50 text-[#006666] font-semibold;
+    @apply bg-brand-muted text-brand font-semibold;
   }
   .gsl-nav-item-idle {
     @apply text-slate-600 hover:bg-slate-50 hover:text-slate-900;
   }
   .gsl-btn-brand {
-    @apply bg-[#006666] text-white hover:bg-[#005757] shadow-[0_6px_18px_rgba(0,102,102,0.22)];
+    @apply bg-brand text-white hover:bg-brand-hover shadow-brand;
   }
   .gsl-shimmer {
     @apply relative overflow-hidden;

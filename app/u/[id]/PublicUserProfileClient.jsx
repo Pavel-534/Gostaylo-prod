@@ -215,7 +215,7 @@ export default function PublicUserProfileClient({
 
   if (isAmbassadorLanding) {
     return (
-      <div className="min-h-screen bg-[#f7f9fb]">
+      <div className="min-h-screen bg-brand-surface">
         <AmbassadorPublicLanding
           landing={landingMeta}
           profile={profile}
@@ -238,7 +238,7 @@ export default function PublicUserProfileClient({
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
                           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                            <User className="h-5 w-5 text-[#006666]" />
+                            <User className="h-5 w-5 text-brand" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2 mb-1">

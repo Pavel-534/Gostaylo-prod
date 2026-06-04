@@ -1,5 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 const { FONT_STACK_PARTS } = require('./lib/theme/font-stack.cjs')
+const { toTailwindExtend } = require('./lib/theme/tokens.cjs')
+require('./lib/site-brand.cjs') // white-label display name SSOT (see lib/site-url.js)
+
+const tokenExtend = toTailwindExtend()
 
 module.exports = {
   darkMode: ["class"],
@@ -24,13 +28,8 @@ module.exports = {
         serif: ['var(--font-serif)', '"Cormorant Garamond"', 'Georgia', 'Cambria', 'serif'],
       },
       colors: {
-        // GoStayLo brand colors - modern travel
-        brand: {
-          DEFAULT: '#006666',
-          hover: '#005757',
-          surface: '#f7f9fb',
-          muted: '#e6f4f3',
-        },
+        // Visual brand palette — colors: lib/theme/tokens.cjs; display name: lib/site-url.js → getSiteDisplayName()
+        brand: tokenExtend.colors.brand,
         teal: {
           50: '#f0fdfa',
           100: '#ccfbf1',
@@ -111,6 +110,12 @@ module.exports = {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)'
+      },
+      boxShadow: {
+        ...tokenExtend.boxShadow,
+      },
+      fontSize: {
+        ...tokenExtend.fontSize,
       },
       keyframes: {
         'accordion-down': {

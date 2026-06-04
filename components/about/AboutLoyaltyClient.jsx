@@ -69,7 +69,7 @@ export function AboutLoyaltyClient({ welcomeBonusThb, brandDisplayName }) {
   )
 
   return (
-    <div className="min-h-screen bg-[#f7f9fb]">
+    <div className="min-h-screen bg-brand-surface">
       <div className="mx-auto max-w-3xl px-4 py-12 space-y-10">
         <header className="space-y-3 text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-brand-hover">{brandDisplayName}</p>

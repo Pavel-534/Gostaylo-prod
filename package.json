@@ -28,7 +28,8 @@
     "smoke:full-financial": "node scripts/smoke-full-financial.mjs",
     "smoke:full-financial:rub": "node scripts/smoke-full-financial.mjs --rail=rub",
     "smoke:full-financial:intl": "node scripts/smoke-full-financial.mjs --rail=intl",
-    "smoke:full-financial:all": "node scripts/smoke-full-financial.mjs --rail=all"
+    "smoke:full-financial:all": "node scripts/smoke-full-financial.mjs --rail=all",
+    "export-tokens": "node scripts/export-figma-tokens.mjs"
   },
   "dependencies": {
     "@changey/react-leaflet-markercluster": "^4.0.0-rc1",

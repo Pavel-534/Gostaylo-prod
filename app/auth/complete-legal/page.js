@@ -150,7 +150,8 @@ export default function CompleteLegalPage() {
           type='button'
           disabled={busy || !checked}
           onClick={() => void submit()}
-          className='mt-6 w-full h-11 bg-[#006666] hover:bg-[#005555] rounded-xl transition-all'
+          variant="brand"
+          className="mt-6 w-full h-11 rounded-xl"
         >
           {busy ? (
             <>

@@ -18,11 +18,36 @@
       "assets": [],
       "env": {
         "__NEXT_BUILD_ID": "development",
-        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "VnzqVEtTbuezUh1ygKX7QKX0Y4rKbNnCe8CAyw5sWjc="
+        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "JXLfDhg4zMmdJi+kfI9zifNKjfKDvvFnChSiaKTpMVc="
       }
     }
   },
-  "functions": {},
+  "functions": {
+    "/api/v2/geo/whoami/route": {
+      "files": [
+        "server/middleware-build-manifest.js",
+        "server/middleware-react-loadable-manifest.js",
+        "server/next-font-manifest.js",
+        "server/interception-route-rewrite-manifest.js",
+        "server/edge-runtime-webpack.js",
+        "server/app/api/v2/geo/whoami/route.js"
+      ],
+      "name": "app/api/v2/geo/whoami/route",
+      "page": "/api/v2/geo/whoami/route",
+      "matchers": [
+        {
+          "regexp": "^/api/v2/geo/whoami$",
+          "originalSource": "/api/v2/geo/whoami"
+        }
+      ],
+      "wasm": [],
+      "assets": [],
+      "env": {
+        "__NEXT_BUILD_ID": "development",
+        "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "JXLfDhg4zMmdJi+kfI9zifNKjfKDvvFnChSiaKTpMVc="
+      }
+    }
+  },
   "sortedMiddleware": [
     "/"
   ]

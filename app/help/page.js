@@ -60,7 +60,7 @@ export default function HelpPage() {
           </p>
           <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-slate-900 leading-[1.05] mb-5">
             Мы на связи —<br />
-            <span className="text-[#006666]">24 / 7, на 4 языках.</span>
+            <span className="text-brand">24 / 7, на 4 языках.</span>
           </h1>
           <p className="text-lg sm:text-xl text-slate-600 leading-relaxed max-w-2xl">
             Найдите ответ ниже или напишите в поддержку — отвечаем в среднем за 12 минут.
@@ -73,7 +73,7 @@ export default function HelpPage() {
         {SECTIONS.map(({ icon: Icon, title, items, cta }) => (
           <div key={title}>
             <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-[#006666]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-muted text-brand">
                 <Icon className="h-5 w-5" />
               </div>
               <h2 className="font-serif text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">
@@ -100,7 +100,7 @@ export default function HelpPage() {
               <div className="mt-4">
                 <Link
                   href={cta.href}
-                  className="inline-flex items-center text-sm font-semibold text-[#006666] hover:underline"
+                  className="inline-flex items-center text-sm font-semibold text-brand hover:underline"
                 >
                   {cta.label}
                 </Link>
@@ -128,7 +128,7 @@ export default function HelpPage() {
           </ul>
           <Link
             href="/help#contact"
-            className="inline-flex items-center text-sm font-semibold text-[#006666] hover:underline"
+            className="inline-flex items-center text-sm font-semibold text-brand hover:underline"
           >
             Запросить полную версию →
           </Link>
@@ -137,7 +137,7 @@ export default function HelpPage() {
 
       {/* Contact */}
       <section id="contact" className="container mx-auto px-4 py-16 sm:py-20 max-w-3xl text-center">
-        <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-[#006666] text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)]">
+        <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-brand text-white shadow-brand-icon">
           <Mail className="h-5 w-5" />
         </div>
         <h2 className="font-serif text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900 mb-3">
@@ -149,7 +149,7 @@ export default function HelpPage() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <a
             href={`mailto:${supportEmail}`}
-            className="inline-flex items-center justify-center rounded-2xl bg-[#006666] px-7 py-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)] transition-all hover:bg-[#005555] active:scale-[0.98]"
+            className="inline-flex items-center justify-center rounded-2xl bg-brand px-7 py-4 text-sm font-semibold text-white shadow-brand-icon transition-all hover:bg-brand-hover active:scale-[0.98]"
           >
             {supportEmail}
           </a>

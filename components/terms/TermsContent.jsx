@@ -248,7 +248,7 @@ export default function TermsContent() {
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href="/legal/public-offer/"
-              className="inline-flex items-center justify-center rounded-2xl bg-brand px-7 py-4 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(0,102,102,0.32)] transition-all hover:bg-[#005555] active:scale-[0.98]"
+              className="inline-flex items-center justify-center rounded-2xl bg-brand px-7 py-4 text-sm font-semibold text-white shadow-brand-icon transition-all hover:bg-brand-hover active:scale-[0.98]"
             >
               {s.fullOfferCta}
             </Link>

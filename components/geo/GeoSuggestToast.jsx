@@ -205,7 +205,7 @@ export default function GeoSuggestToast() {
                 type="button"
                 onClick={handleAccept}
                 data-testid="geo-suggest-accept"
-                className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(0,102,102,0.28)] transition-all hover:bg-[#005555] active:scale-95"
+                className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-brand-md transition-all hover:bg-brand-hover active:scale-95"
               >
                 {s.primary} →
               </button>

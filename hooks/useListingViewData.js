@@ -172,7 +172,6 @@ export function useListingViewData(listingId, { user, openLoginModal, addToRecen
     currency,
     setCurrency,
     exchangeRates,
-    setExchangeRates,
     isFavorite,
     favoriteLoading,
     handleFavoriteClick,

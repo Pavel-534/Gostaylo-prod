@@ -9,7 +9,7 @@ import { CATEGORY_CARD_IMAGES, HOME_CATEGORY_ICONS } from './home-constants'
 
 export function CategoryBar({ language, categories, mediaFallback, onCategorySelect, markMediaFailed }) {
   return (
-    <section className="py-14 sm:py-[5rem] bg-[#f7f9fb]">
+    <section className="py-14 sm:py-[5rem] bg-brand-surface">
       <div className="container mx-auto px-6">
         <h2 className="text-[32px] leading-10 tracking-[-0.01em] font-semibold text-slate-900 mb-8 text-center sm:text-left">
           {getUIText('categories', language)}
@@ -26,7 +26,7 @@ export function CategoryBar({ language, categories, mediaFallback, onCategorySel
                 className="block"
               >
                 <Card
-                  className="group cursor-pointer overflow-hidden rounded-2xl transition-all border border-slate-200 bg-white shadow-[0_8px_18px_rgba(15,23,42,0.05),0_2px_6px_rgba(0,102,102,0.07)] hover:shadow-[0_24px_50px_rgba(0,102,102,0.16),0_10px_24px_rgba(15,23,42,0.1)] hover:border-brand hover:-translate-y-1"
+                  className="group cursor-pointer overflow-hidden rounded-2xl transition-all border border-slate-200 bg-white shadow-sm hover:shadow-brand hover:border-brand hover:-translate-y-1"
                 >
                   <div className="relative h-32 sm:h-44 overflow-hidden">
                     <Image
@@ -42,7 +42,7 @@ export function CategoryBar({ language, categories, mediaFallback, onCategorySel
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/78 via-slate-900/20 to-transparent" />
                     <div className="absolute bottom-3 left-3 right-3">
                       <div className="flex items-center gap-1.5 text-white">
-                        <Icon className="h-4 w-4 text-[#a2f0ef]" />
+                        <Icon className="h-4 w-4 text-teal-200" />
                         <h3 className="text-[15px] sm:text-base font-semibold leading-tight tracking-[-0.01em]">
                           {getCategoryName(cat.slug, language, cat.name)}
                         </h3>

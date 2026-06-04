@@ -46,3 +46,15 @@
 ## Нельзя
 
 - Размножать хардкод комиссий (**15%** и т.п.) и курсов (**35.5** и т.п.) — только БД, env, **`currency-last-resort.js`** по правилам ADR.
+
+## UI / Design System Rules (Stage 129+)
+
+- **Запрещено** в `app/` и `components/` (кроме SVG logo, OG-изображений, email HTML):
+  - произвольные Tailwind hex: `bg-[#…]`, `text-[#…]`, `border-[#…]`;
+  - inline `style={{ color: … }}` / `style={{ backgroundColor: … }}` для product UI.
+- **Primary / CTA:** только `<Button variant="brand">` (или класс `.gsl-btn-brand` в legacy `.gsl-*` слое).
+- **Новые экраны:** `ProductPageShell` / `gsl-page` + `PageSectionHeader` из `components/product/*`.
+- **Loading / empty:** `LoadingPageShell`, `components/empty-state.jsx`, skeleton с `gsl-shimmer` — не ad-hoc спиннеры.
+- **Новые цвета и визуальные токены:** только через **`lib/theme/tokens.ts`** / **`lib/theme/tokens.cjs`** → `tailwind.config.js` и `app/globals.css`.
+- **FinTech Mint/Navy:** `brand-mint` / `brand-navy` в Tailwind; не дублировать hex в admin panels (миграция — UI-1+).
+- **Типографика:** `font-sans` включает `var(--font-sans)` (Inter из `app/layout.js`); не обходить через inline `fontFamily`.

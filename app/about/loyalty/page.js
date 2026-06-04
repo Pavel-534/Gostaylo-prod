@@ -81,7 +81,7 @@ export default async function AboutLoyaltyPage() {
   const welcomeBonusThb = await getCachedWelcomeBonusAmountThb()
   const brandDisplayName = getSiteDisplayName()
   return (
-    <Suspense fallback={<div className="min-h-[40vh] bg-[#f7f9fb]" aria-hidden />}>
+    <Suspense fallback={<div className="min-h-[40vh] bg-brand-surface" aria-hidden />}>
       <AboutLoyaltyClient welcomeBonusThb={welcomeBonusThb} brandDisplayName={brandDisplayName} />
     </Suspense>
   )
