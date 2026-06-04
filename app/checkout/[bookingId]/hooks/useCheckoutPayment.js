@@ -5,6 +5,7 @@ import { useCheckoutLoadState } from './useCheckoutLoadState.js'
 import { useCheckoutWalletFlow } from './useCheckoutWalletFlow.js'
 import { useCheckoutIntentFlow } from './useCheckoutIntentFlow.js'
 import { useCheckoutConfirmFlow } from './useCheckoutConfirmFlow.js'
+import { useCheckoutPaymentReturn } from './useCheckoutPaymentReturn.js'
 
 /**
  * @param {object} opts
@@ -87,6 +88,14 @@ export function useCheckoutPayment({ bookingId, invoiceIdParam, user, authLoadin
     }
     run()
   }, [loadState.loadPaymentStatus, intentFlow.loadPaymentIntent])
+
+  useCheckoutPaymentReturn({
+    bookingId,
+    language: loadState.language,
+    loadPaymentStatus: loadState.loadPaymentStatus,
+    loadPaymentIntent: intentFlow.loadPaymentIntent,
+    setPaymentSuccess,
+  })
 
   return {
     language: loadState.language,

@@ -34,6 +34,7 @@ import {
 import { LaunchReadinessCard } from '@/components/admin/finances/LaunchReadinessCard'
 import { PreLiveReadinessCard } from '@/components/admin/finances/PreLiveReadinessCard'
 import { ControlledLivePanel } from '@/components/admin/finances/ControlledLivePanel'
+import { YookassaOpsCard } from '@/components/admin/finances/YookassaOpsCard'
 import { FinTechCronHealthPanel } from '@/components/admin/finances/FinTechCronHealthPanel'
 import { FinTechTreasuryHeroDashboard } from '@/components/admin/finances/FinTechTreasuryHeroDashboard'
 import { FinTechEmergencyPauseCard } from '@/components/admin/finances/FinTechEmergencyPauseCard'
@@ -101,6 +102,7 @@ export function AdminFinTechConsole() {
           treasuryOps={c.treasuryOps}
           onRefresh={c.load}
         />
+        <YookassaOpsCard yookassaOps={c.yookassaOps} />
         <ReferralLiabilityPanel toast={c.toast} />
         <FinTechCronHealthPanel cronHealth={c.cronHealth} ownerMode={c.ownerMode} loading={c.loading} />
         <FinTechTreasuryHeroDashboard

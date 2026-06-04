@@ -23,6 +23,7 @@ import {
   maybeAlertStaleFinancialCrons,
 } from '@/lib/admin/financial-cron-health.js'
 import { loadReferralReconciliationHealth } from '@/lib/admin/referral-reconciliation-health.js'
+import { loadYookassaOpsStatus } from '@/lib/payment/yookassa-ops-status.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,6 +44,7 @@ export async function GET(request) {
     pendingFiscalCount: scan.pendingFiscalCount,
   })
   const referralReconciliation = await loadReferralReconciliationHealth()
+  const yookassaOps = await loadYookassaOpsStatus()
   await maybeAlertStaleFinancialCrons(cronHealth.jobs)
 
   return NextResponse.json({
@@ -50,6 +52,7 @@ export async function GET(request) {
     data: {
       ops: scan.ops,
       productionReadiness,
+      yookassaOps,
       preLiveReadiness,
       liveMonitoring,
       cronHealth,

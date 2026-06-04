@@ -25,9 +25,15 @@ import {
   isIntentPaidStatus,
   normalizeProviderStatus,
 } from '@/lib/services/payment-adapters/status-normalizer';
-import { verifyWebhookPaidAmount } from '@/lib/services/payment-adapters/acquirer-charge-amount.js';
+import {
+  resolveAcquirerChargeAmount,
+  verifyWebhookPaidAmount,
+} from '@/lib/services/payment-adapters/acquirer-charge-amount.js';
+import { ADAPTER_KEYS } from '@/lib/services/payment-adapters/constants';
 import { assertWebhookGuestPaymentAllowed } from '@/lib/payment/webhook-guest-payment-gate.js';
 import { isPaymentAcquiringWebhookIdempotentBookingStatus } from '@/lib/booking/status-sets.js';
+import { formatRubAmountValue, getPayment } from '@/lib/payments/yookassa.js';
+import { touchControlledLiveMirFirstPaymentAlert } from '@/lib/payment/controlled-live-mir-guard.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -122,6 +128,132 @@ async function resolvePaymentIntentForWebhook({ bookingId, intentIdFromPayload, 
   return { intent: null, error: null };
 }
 
+/**
+ * Stage 130.2 — YooKassa: GET payment verify + strict RUB amount + metadata (after IP allowlist).
+ */
+function isSmokeYookassaGatewayRef(gatewayRef) {
+  return (
+    process.env.SMOKE_FINANCIAL_RUN === '1' && String(gatewayRef || '').startsWith('smoke-yk-')
+  );
+}
+
+async function verifyYookassaGatewayPayment({
+  gatewayRef,
+  bookingId,
+  intentIdFromPayload,
+  paymentIdFromPayload,
+  booking,
+  webhookAmount,
+  webhookCurrency,
+}) {
+  if (!gatewayRef) {
+    return { ok: false, error: 'YOOKASSA_VERIFY_FAILED', code: 'missing_gateway_ref' };
+  }
+
+  const expectedBookingId = String(bookingId);
+  const expectedIntentId = String(intentIdFromPayload || '');
+
+  if (!expectedIntentId) {
+    return {
+      ok: false,
+      error: 'YOOKASSA_VERIFY_FAILED',
+      code: 'missing_payment_intent_id',
+    };
+  }
+
+  const smokeGateway = isSmokeYookassaGatewayRef(gatewayRef);
+  let verified = null;
+
+  if (!smokeGateway) {
+    verified = await getPayment(gatewayRef);
+    if (!verified.ok || verified.status !== 'succeeded' || !verified.paid) {
+      return {
+        ok: false,
+        error: 'YOOKASSA_VERIFY_FAILED',
+        code: verified.code || 'payment_not_succeeded',
+        verified,
+      };
+    }
+
+    const md = verified.metadata || {};
+    const metaBookingId = String(md.booking_id || md.bookingId || '');
+    const metaIntentId = String(md.payment_intent_id || md.paymentIntentId || '');
+
+    if (!metaBookingId || metaBookingId !== expectedBookingId) {
+      return {
+        ok: false,
+        error: 'YOOKASSA_VERIFY_FAILED',
+        code: 'metadata_booking_mismatch',
+        expected: { booking_id: expectedBookingId },
+        received: { booking_id: metaBookingId },
+      };
+    }
+    if (!metaIntentId || metaIntentId !== expectedIntentId) {
+      return {
+        ok: false,
+        error: 'YOOKASSA_VERIFY_FAILED',
+        code: 'metadata_intent_mismatch',
+        expected: { payment_intent_id: expectedIntentId },
+        received: { payment_intent_id: metaIntentId },
+      };
+    }
+  }
+
+  const { intent, error: intentResolveError } = await resolvePaymentIntentForWebhook({
+    bookingId,
+    intentIdFromPayload: expectedIntentId,
+    paymentIdFromPayload,
+  });
+  if (intentResolveError) {
+    return { ok: false, error: intentResolveError, code: 'intent_resolve' };
+  }
+
+  let expectedRubFormatted;
+  try {
+    const charge = resolveAcquirerChargeAmount({
+      booking,
+      intent,
+      adapterKey: ADAPTER_KEYS.MIR_RU,
+    });
+    expectedRubFormatted = formatRubAmountValue(charge.acquirerAmount ?? charge.amount);
+  } catch (e) {
+    return {
+      ok: false,
+      error: e?.code || 'ACQUIRER_RUB_AMOUNT_UNAVAILABLE',
+      code: 'expected_rub_unavailable',
+    };
+  }
+
+  const receivedRubFormatted = smokeGateway
+    ? formatRubAmountValue(webhookAmount)
+    : formatRubAmountValue(verified?.amount?.value);
+
+  const receivedCurrency = smokeGateway
+    ? String(webhookCurrency || 'RUB').toUpperCase()
+    : String(verified?.amount?.currency || 'RUB').toUpperCase();
+
+  if (receivedCurrency !== 'RUB') {
+    return {
+      ok: false,
+      error: 'YOOKASSA_AMOUNT_MISMATCH',
+      code: 'currency_not_rub',
+      expected: { amount: expectedRubFormatted, currency: 'RUB' },
+      received: { amount: receivedRubFormatted, currency: receivedCurrency },
+    };
+  }
+
+  if (!expectedRubFormatted || !receivedRubFormatted || receivedRubFormatted !== expectedRubFormatted) {
+    return {
+      ok: false,
+      error: 'YOOKASSA_AMOUNT_MISMATCH',
+      expected: { amount: expectedRubFormatted, currency: 'RUB' },
+      received: { amount: receivedRubFormatted, currency: receivedCurrency },
+    };
+  }
+
+  return { ok: true, verified, intent, smokeGateway };
+}
+
 export async function POST(request) {
   const rawBody = await request.text();
   let json;
@@ -176,6 +308,7 @@ export async function POST(request) {
   const guestGate = await assertWebhookGuestPaymentAllowed({
     bookingId,
     channel: 'payments/confirm',
+    paymentMethod: adapterKey === 'MIR_RU' ? 'MIR' : null,
   });
   if (!guestGate.allowed) {
     return NextResponse.json(
@@ -207,6 +340,41 @@ export async function POST(request) {
 
   if (isPaymentAcquiringWebhookIdempotentBookingStatus(booking.status)) {
     return idempotentPaidBookingResponse(booking);
+  }
+
+  if (adapterKey === ADAPTER_KEYS.MIR_RU) {
+    void touchControlledLiveMirSoftLimit({ booking })
+    const ykVerify = await verifyYookassaGatewayPayment({
+      gatewayRef,
+      bookingId,
+      intentIdFromPayload: intentId,
+      paymentIdFromPayload: paymentId,
+      booking,
+      webhookAmount: amount,
+      webhookCurrency: currency,
+    });
+    if (!ykVerify.ok) {
+      void recordTreasuryWebhookError({
+        error: ykVerify.error || 'yookassa_verify_failed',
+        bookingId,
+        context: `code=${ykVerify.code || ''} expected=${JSON.stringify(ykVerify.expected || {})} received=${JSON.stringify(ykVerify.received || {})}`,
+      });
+      if (ykVerify.error === 'YOOKASSA_AMOUNT_MISMATCH') {
+        void notifySystemAlert(
+          `💳 <b>Webhook YooKassa</b> — сумма не совпала\nbooking: <code>${escapeSystemAlertHtml(bookingId)}</code>\nexpected RUB: <b>${escapeSystemAlertHtml(String(ykVerify.expected?.amount || ''))}</b>\ngot: <b>${escapeSystemAlertHtml(String(ykVerify.received?.amount || ''))}</b>`,
+        );
+      }
+      return NextResponse.json(
+        {
+          success: false,
+          error: ykVerify.error,
+          code: ykVerify.code || null,
+          expected: ykVerify.expected || null,
+          received: ykVerify.received || null,
+        },
+        { status: 400 },
+      );
+    }
   }
 
   let payId = paymentId;
@@ -374,6 +542,18 @@ export async function POST(request) {
     gatewayRef,
     source: 'payment_acquiring_webhook',
   });
+
+  if (adapterKey === ADAPTER_KEYS.MIR_RU) {
+    void touchControlledLiveMirFirstPaymentAlert({
+      booking: bookingAfterMark || booking,
+      payment: {
+        payment_method: 'MIR',
+        method: 'MIR',
+        source: 'payment_acquiring_webhook',
+        amount: captureGuestTotalThb,
+      },
+    })
+  }
 
   return NextResponse.json({
     success: true,

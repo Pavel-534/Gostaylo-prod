@@ -366,6 +366,26 @@ export function useListingBookingFlow({
           if (ft != null && Number.isFinite(Number(ft))) {
             payload.clientQuotedGuestTotalThb = Math.round(Number(ft))
           }
+
+          try {
+            const quoteQs = new URLSearchParams({
+              checkIn: payload.checkIn,
+              checkOut: payload.checkOut,
+              guestsCount: String(guests),
+              currency: payload.currency || 'THB',
+            })
+            const quoteRes = await fetch(
+              `/api/v2/listings/${encodeURIComponent(listing.id)}/booking-quote?${quoteQs}`,
+              { cache: 'no-store' },
+            )
+            const quoteJson = await quoteRes.json().catch(() => ({}))
+            if (quoteRes.ok && quoteJson?.success && quoteJson?.data) {
+              payload.clientQuotedSubtotalThb = quoteJson.data.clientQuotedSubtotalThb
+              payload.clientQuotedGuestTotalThb = quoteJson.data.clientQuotedGuestTotalThb
+            }
+          } catch {
+            /* keep client-side attestation if quote unavailable */
+          }
         }
         if (bookingModalIntent === 'private') payload.privateTrip = true
         if (bookingModalIntent === 'special') payload.negotiationRequest = true

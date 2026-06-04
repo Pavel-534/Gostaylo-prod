@@ -10,6 +10,10 @@
 
 > **Stage 127.0 (2026-06-03):** Payment Core hardening — idempotent `payments/confirm` на весь escrow pipeline; USDT SSOT `getExpectedUsdtForBooking`; ROI marketplace-health = `buildReferralRoiReport` (30d). Smoke **25/25** обязателен после деплоя.
 
+> **Stage 130.4 (2026-06-01):** Controlled Live MIR — soft limit `CONTROLLED_LIVE_MAX_THB_PER_DAY`, TG первая MIR, FinTech **YooKassa Status**, smoke assert **`test: true`** + GET verify; webhook IP: `x-vercel-forwarded-for` → `x-forwarded-for`. Go/No-Go: **`docs/GO_NO_GO_FIRST_REAL_PAYMENT.md`** §MIR.
+>
+> **Stage 130.3 (2026-06-01):** ЮKassa — smoke live-initiate при `YOOKASSA_SHOP_ID`+`SECRET`; checkout return `?payment=return`; blueprint **`docs/YOOKASSA_BLUEPRINT_130.1.md`**. Staging env — §E0.
+
 > **Stage 126.3 (2026-06-03):** Подготовка к первой MIR — усиленные TG-алерты, баннер **CONTROLLED LIVE: ACTIVE** на FinTech, FI пресет **Real Payments Only**. Runbook: [`docs/CONTROLLED_LIVE_RUNBOOK.md`](CONTROLLED_LIVE_RUNBOOK.md).
 
 > **Stage 126.2 (2026-06-03):** Минимализм — без отдельного Live Payments log и digest-cron; FI + TG по событиям.
@@ -298,17 +302,91 @@
 
 ---
 
-## E. ЮKassa и первый live-платёж
+## E. ЮKassa (MIR/RUB) и первый live-платёж
+
+**SSOT кода:** `lib/payments/yookassa.js` · `mir-ru.adapter.js` · `POST /api/webhooks/payments/confirm` · blueprint **`docs/YOOKASSA_BLUEPRINT_130.1.md`**.  
+**Схема 3.0:** escrow/ledger/fiscal **не** в ЮKassa API — только acquirer + redirect + webhook; чек **Fiscal A** post-escrow.
+
+### E0. Staging / test shop (130.2–130.4)
+
+**Vercel → Environment Variables** (Preview / staging host):
+
+| Variable | Значение | Примечание |
+|----------|----------|------------|
+| `YOOKASSA_SHOP_ID` | ID **тестового** магазина | live initiate |
+| `YOOKASSA_SECRET_KEY` | secret test shop | Basic Auth |
+| `YOOKASSA_API_URL` | `https://api.yookassa.ru/v3` | опционально |
+| `YOOKASSA_WEBHOOK_SECRET` | HMAC для webhook | или `PAYMENT_ACQUIRING_WEBHOOK_SECRET` |
+| `YOOKASSA_WEBHOOK_ENFORCE_IP` | `1` | IP allowlist (`lib/payment/webhook-ip-allowlist.js`: Vercel `x-vercel-forwarded-for`, затем `x-forwarded-for`) |
+| `PAYMENT_ACQUIRER_RUB_ENABLED` | `1` | RUB charge MIR |
+| `PAYMENT_ACQUIRER_RUB_SHADOW` | `0` | не shadow на staging |
+| `NEXT_PUBLIC_APP_URL` | `https://<staging-host>` | `return_url` per-booking |
+| `NEXT_PUBLIC_APP_NAME` / `NEXT_PUBLIC_SITE_NAME` | бренд в description | |
+| `CONTROLLED_LIVE_MAX_THB_PER_DAY` | пилот, напр. `50000` | soft TG warn, не блок checkout |
+| `SMOKE_FINANCIAL_RUN` | `1` только локально/CI smoke | не на prod runtime |
+
+**Webhook URL** (кабинет ЮKassa → Уведомления):
+
+```text
+https://<host>/api/webhooks/payments/confirm
+```
+
+События: **`payment.succeeded`** (обязательно), `payment.canceled` (рекомендуется).
+
+**FinTech:** `/admin/settings/finances` → карточка **YooKassa Status** (`configured`, recent intents: `yookassa_payment_id`, `yookassa_test`, `yookassa_idempotence_key`).
+
+#### Smoke 6b (автоматический)
+
+`SMOKE_FINANCIAL_RUN=1` + `npm run smoke:full-financial`:
+
+| Условие | Поведение |
+|---------|-----------|
+| Нет `YOOKASSA_*` | SKIP или mock initiate + mock webhook |
+| Есть `YOOKASSA_SHOP_ID` + `SECRET` | **Live initiate** → реальный `confirmation_url` (не `pay.mock.gostaylo`) |
+| После live initiate | Assert **`yookassa_test: true`** в `provider_payload` + **GET** `/v3/payments/{id}` → `test: true` |
+| Завершение escrow в smoke | Signed webhook `smoke-yk-*` (GET verify bypass **только** smoke) → `PAID_ESCROW` + ledger |
+
+#### Ручной E2E test card (staging)
+
+1. Создать тестовую бронь (min RUB), checkout → **MIR**.
+2. Redirect на ЮKassa → карта **`5555555555554444`**, срок/CVC по [доке ЮKassa](https://yookassa.ru/developers/payment-acceptance/testing-and-going-live/testing).
+3. Return: `?payment=return&intent=<intentId>` — poll статуса (хук `useCheckoutPaymentReturn`).
+4. Webhook с prod IP → **GET verify** обязателен (не `smoke-yk-*`).
+5. Проверить: `PAID_ESCROW`, ledger balanced, fiscal post-escrow, TG FINANCE.
+
+### E1. Controlled Live перед первой **боевой** MIR
+
+| ☐ | Проверка |
+|---|----------|
+| ☐ | Pre-Live + smoke 25/25 PASS |
+| ☐ | **Live Mode** ACTIVE на FinTech |
+| ☐ | `CONTROLLED_LIVE_MAX_THB_PER_DAY` задан (пилот) |
+| ☐ | `TREASURY_MANUAL_MODE=1`, mock/sandbox **выкл** на prod |
+| ☐ | Go/No-Go MIR: [`GO_NO_GO_FIRST_REAL_PAYMENT.md`](GO_NO_GO_FIRST_REAL_PAYMENT.md) |
+
+При первой успешной MIR: TG **первая оплата** + **ПЛАТЁЖ** (`controlled-live-mir-guard.js`).
+
+### E2. Prod keys и webhook
+
+| ☐ | Действие |
+|---|----------|
+| ☐ | Боевой `YOOKASSA_SHOP_ID` / `SECRET` на **production** env |
+| ☐ | Webhook URL → **prod** host, секрет совпадает с env |
+| ☐ | `YOOKASSA_WEBHOOK_ENFORCE_IP=1` (или default on prod) |
+| ☐ | `PAYMENT_ACQUIRER_RUB_ENABLED=1`, `PAYMENT_ACQUIRER_RUB_SHADOW=0` |
+| ☐ | FinTech **YooKassa Status** = Configured, `yookassa_test` = **false** на live intent |
+
+### E3–E7 — первый боевой платёж (чеклист)
 
 | Шаг | Действие | ☐ |
 |-----|----------|---|
-| E1 | Боевые ключи ЮKassa, webhook на prod URL | ☐ |
-| E2 | Тестовая оплата MIR/RUB на минимальную сумму | ☐ |
-| E3 | Webhook → `PAID_ESCROW` + ledger THB | ☐ |
-| E4 | Чек fiscal (не `PENDING_FISCAL`) | ☐ |
-| E5 | TG: «ПЛАТЁЖ ПОЛУЧЕН» | ☐ |
-| E6 | Сверка PSP ↔ snapshot RUB ↔ escrow THB | ☐ |
-| E7 | Повтор webhook от PSP → 2xx, без дубля (125.1) | ☐ |
+| E3 | Пилот: **минимальная** сумма, одна бронь, FI → Real Payments Only | ☐ |
+| E4 | Webhook → `PAID_ESCROW` + ledger THB; GET verify на prod | ☐ |
+| E5 | Fiscal post-escrow (не `receipt` в createPayment) | ☐ |
+| E6 | TG: платёж + первая MIR; сверка RUB PSP ↔ snapshot ↔ escrow | ☐ |
+| E7 | Повтор webhook → 2xx idempotent (125.1) | ☐ |
+
+**Не включайте live MIR**, пока E0 smoke + E1 не зелёные.
 
 ---
 
@@ -340,4 +418,4 @@
 - [`docs/PHASE_D_CLOSURE_AND_ROADMAP.md`](PHASE_D_CLOSURE_AND_ROADMAP.md) — roadmap после Фазы 1  
 - [`docs/CONTROLLED_LIVE_RUNBOOK.md`](CONTROLLED_LIVE_RUNBOOK.md) — ежедневный чек-лист первых 2 недель live  
 
-*Stage 105 · обновлено **126.3** (2026-06-03) — Фаза 1 закрыта, подготовка к первой MIR*
+*Stage 105 · обновлено **130.4** (2026-06-01) — ЮKassa Controlled Live + полный §E MIR*

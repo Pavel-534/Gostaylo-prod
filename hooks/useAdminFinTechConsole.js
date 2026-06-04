@@ -60,6 +60,7 @@ export function useAdminFinTechConsole() {
   const [poolRail, setPoolRail] = useState('TBANK_RU')
   const [batchRailFilter, setBatchRailFilter] = useState('ALL')
   const [treasuryOps, setTreasuryOps] = useState(null)
+  const [yookassaOps, setYookassaOps] = useState(null)
   const [cronHealth, setCronHealth] = useState(null)
   const [productionReadiness, setProductionReadiness] = useState(null)
   const [preLiveReadiness, setPreLiveReadiness] = useState(null)
@@ -78,6 +79,7 @@ export function useAdminFinTechConsole() {
       const bundle = await fetchFintechConsoleBundle({ from, to, excludeTest: realDataOnly })
       if (bundle.dashboard) setDash(bundle.dashboard)
       setTreasuryOps(bundle.treasuryOps)
+      setYookassaOps(bundle.yookassaOps)
       setCronHealth(bundle.cronHealth)
       setProductionReadiness(bundle.productionReadiness)
       setPreLiveReadiness(bundle.preLiveReadiness)
@@ -557,6 +559,7 @@ export function useAdminFinTechConsole() {
     liveMonitoring,
     cronHealth,
     treasuryOps,
+    yookassaOps,
     dataRefreshKey,
     monthMargin,
     v2Pending,

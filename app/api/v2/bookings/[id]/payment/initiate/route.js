@@ -74,18 +74,6 @@ export async function POST(request, { params }) {
       return NextResponse.json({ success: false, error: 'Booking is cancelled' }, { status: 400 })
     }
 
-    const paymentGate = await assertGuestPaymentOperationsAllowed()
-    if (!paymentGate.allowed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: paymentGate.message,
-          code: paymentGate.code,
-        },
-        { status: 403 },
-      )
-    }
-
     let invoice = null
     if (invoiceId) {
       const { data: inv, error: invErr } = await supabaseAdmin
@@ -170,6 +158,21 @@ export async function POST(request, { params }) {
           },
         }
       }
+    }
+
+    const paymentGate = await assertGuestPaymentOperationsAllowed({
+      booking: bookingForIntent,
+      paymentMethod: method,
+    })
+    if (!paymentGate.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: paymentGate.message,
+          code: paymentGate.code,
+        },
+        { status: 403 },
+      )
     }
 
     const intentRes = await PaymentIntentService.resolveOrCreateForCheckout({

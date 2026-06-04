@@ -2,8 +2,8 @@
 
 **Для кого:** владелец / финоператор + ответственный за деплой.  
 **Время:** ~15 минут (UI) + ~10 минут (терминал, опционально).  
-**Обновлено:** 2026-06-03 (Stage 126.0 Controlled Live)  
-**Полный чеклист:** `docs/PRE_REAL_PAYMENTS_CHECKLIST.md` · **Controlled Live runbook:** `docs/CONTROLLED_LIVE_RUNBOOK.md` · **Операции выплат:** `docs/CONCIERGE_LAUNCH_TREASURY_RUNBOOK.md`
+**Обновлено:** 2026-06-01 (Stage 130.4 — первый живой MIR)  
+**Полный чеклист:** `docs/PRE_REAL_PAYMENTS_CHECKLIST.md` (§E MIR) · **Blueprint:** `docs/YOOKASSA_BLUEPRINT_130.1.md` · **Controlled Live:** `docs/CONTROLLED_LIVE_RUNBOOK.md` · **Выплаты:** `docs/CONCIERGE_LAUNCH_TREASURY_RUNBOOK.md`
 
 ---
 
@@ -38,6 +38,34 @@
 | 14 | **Referral program** | FinTech: accounting KPI зелёные; очередь `withdrawable_referral` обрабатывается **вручную** (без автобанка) |
 
 **Решение:** можно принимать **первый реальный платёж** гостя (MIR/CARD) при включённом Concierge и ручном контроле исходящих.
+
+---
+
+## Go / No-Go — первый **живой MIR** (Stage 130.4)
+
+Используйте этот блок, если первый платёж — именно **MIR/RUB через ЮKassa** (не CARD Intl, не crypto).
+
+| # | Go (все «да») | Как проверить |
+|---|----------------|---------------|
+| M1 | Smoke **6b** PASS с `YOOKASSA_*` (test shop) | `npm run smoke:full-financial` — live initiate + `test: true` assert |
+| M2 | Staging ручной E2E (карта 5555…) → `PAID_ESCROW` | `PRE_REAL_PAYMENTS_CHECKLIST.md` §E0 |
+| M3 | FinTech **YooKassa Status** = Configured | `/admin/settings/finances` |
+| M4 | Webhook prod URL + secret + IP enforce | Vercel env + кабинет ЮKassa |
+| M5 | **Live Mode** + `CONTROLLED_LIVE_MAX_THB_PER_DAY` | FinTech Controlled Live |
+| M6 | Боевые ключи: intent **`yookassa_test: false`** на пилоте | Recent intents в FinTech |
+| M7 | Fiscal A: `FISCAL_PROVIDER_URL` боевой, sandbox выкл | Pre-Live Readiness |
+| M8 | Пилот: min сумма, одна бронь, TG настроен | §126.3 в PRE_REAL |
+| M9 | Emergency Pause протестирован | вкл → 403 initiate → выкл |
+
+| No-Go MIR | Действие |
+|-----------|----------|
+| Smoke 6b FAIL / нет `test: true` на test shop | Не переключать prod keys |
+| `yookassa_test: true` на **боевом** shop | Неверный магазин / ключи |
+| Webhook 403 `ip_not_allowlisted` | Проверить Vercel forwarding + `YOOKASSA_WEBHOOK_ENFORCE_IP` |
+| GET verify FAIL на prod | Не принимать платежи до исправления |
+| Нет TG FINANCE | Риск слепого пилота |
+
+**После первой live MIR (1 ч):** webhook в логах · intent `yookassa_payment_id` · ledger drift OK · fiscal · TG «первая оплата».
 
 ---
 
