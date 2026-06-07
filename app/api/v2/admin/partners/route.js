@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { getPublicSiteUrl, getSiteDisplayName } from '@/lib/site-url.js';
+import { getNoreplyFromAddress } from '@/lib/email-env';
 import { notifySystemAlert, escapeSystemAlertHtml } from '@/lib/services/system-alert-notify.js';
 import { requireAdminStaff } from '@/lib/security/admin-staff-access'
 import { recordSystemAutoVerification } from '@/lib/services/audit/system-auto-verification';
@@ -41,7 +42,7 @@ async function sendEmail(to, subject, html) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: `${getSiteDisplayName()} <noreply@gostaylo.com>`,
+        from: getNoreplyFromAddress(),
         to: [to],
         subject,
         html

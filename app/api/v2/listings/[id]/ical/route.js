@@ -12,7 +12,7 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
 import { listingDateToday, toListingDate } from '@/lib/listing-date';
-import { getSiteDisplayName } from '@/lib/site-url';
+import { getSiteDisplayName, getSiteEmailDomain } from '@/lib/site-url';
 import { ICAL_EXPORT_BOOKING_STATUSES } from '@/lib/booking/status-sets.js';
 
 export const dynamic = 'force-dynamic';
@@ -126,6 +126,7 @@ export async function GET(request, { params }) {
   // Build iCal content
   const now = formatICalDate(new Date());
   const brand = getSiteDisplayName();
+  const uidDomain = getSiteEmailDomain();
   const prodVendor = String(brand).replace(/[^\w.-]/g, '').slice(0, 40) || 'Platform';
   const calName = `${brand} - ${listing.title}`;
   
@@ -145,7 +146,7 @@ export async function GET(request, { params }) {
     const endInc = toListingDate(farEnd) || todayYmd;
     ical.push(
       'BEGIN:VEVENT',
-      `UID:listing-unavailable-${listingId}@gostaylo.com`,
+      `UID:listing-unavailable-${listingId}@${uidDomain}`,
       `DTSTAMP:${now}`,
       `DTSTART;VALUE=DATE:${formatICalDateOnly(todayYmd)}`,
       `DTEND;VALUE=DATE:${icalExclusiveEndFromInclusive(endInc)}`,
@@ -158,7 +159,7 @@ export async function GET(request, { params }) {
   }
 
   (bookings || []).forEach((booking) => {
-    const uid = `booking-${booking.id}@gostaylo.com`;
+    const uid = `booking-${booking.id}@${uidDomain}`;
     const st = String(booking.status || '').toUpperCase();
     const summaryGuest =
       st === 'PENDING' || st === 'PAID_ESCROW' ? 'Guest' : booking.guest_name || 'Guest';
@@ -183,7 +184,7 @@ export async function GET(request, { params }) {
   });
   
   (blocks || []).forEach((block) => {
-    const uid = `block-${block.id}@gostaylo.com`;
+    const uid = `block-${block.id}@${uidDomain}`;
     const src = block.source ? String(block.source) : '';
     ical.push(
       'BEGIN:VEVENT',
@@ -200,7 +201,7 @@ export async function GET(request, { params }) {
   });
 
   (seasonalRows || []).forEach((sp) => {
-    const uid = `season-${sp.id}@gostaylo.com`;
+    const uid = `season-${sp.id}@${uidDomain}`;
     const label = sp.label || sp.season_type || 'Season';
     const price =
       sp.price_daily != null && !Number.isNaN(parseFloat(sp.price_daily))

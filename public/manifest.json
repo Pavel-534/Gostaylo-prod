@@ -1,7 +1,7 @@
 {
-  "name": "GoStayLo - Rentals Worldwide",
-  "short_name": "GoStayLo",
-  "description": "Rent villas, cars, yachts and tours worldwide. Book your stay with GoStayLo.",
+  "name": "Airento — Rentals Worldwide",
+  "short_name": "Airento",
+  "description": "Rent villas, cars, yachts and tours worldwide. Book with Airento.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",

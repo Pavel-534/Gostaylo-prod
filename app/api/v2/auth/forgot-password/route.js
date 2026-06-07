@@ -11,12 +11,10 @@ import jwt from 'jsonwebtoken';
 import { rateLimitCheck } from '@/lib/rate-limit';
 import { getTransactionalFromAddress } from '@/lib/email-env';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
-import { getSiteDisplayName } from '@/lib/site-url';
+import { getSiteDisplayName, getPublicSiteUrl } from '@/lib/site-url';
 import { AuthErrorCode, authErrorJson } from '@/lib/auth/auth-error-codes';
 
 export const dynamic = 'force-dynamic';
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
 
 export async function POST(request) {
   const rl = rateLimitCheck(request, 'auth');
@@ -80,7 +78,7 @@ export async function POST(request) {
     { expiresIn: '1h', algorithm: 'HS256' },
   );
   
-  const resetUrl = `${BASE_URL}/reset-password?token=${resetToken}`;
+  const resetUrl = `${getPublicSiteUrl()}/reset-password?token=${resetToken}`;
   const siteName = getSiteDisplayName();
 
   // Send email via Resend

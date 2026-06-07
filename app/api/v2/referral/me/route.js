@@ -7,7 +7,7 @@ import { buildReferralTeamMembers } from '@/lib/referral/build-referral-team';
 import { yearMonthKeyInTimeZone, currentYearMonthKeyInTimeZone } from '@/lib/referral/tz-year-month';
 import { resolveReferralStatsTimeZone } from '@/lib/referral/resolve-referral-stats-timezone';
 import { buildReferralEarningsSparklineThb } from '@/lib/referral/sparkline-earnings';
-import { getSiteDisplayName } from '@/lib/site-url';
+import { getSiteDisplayName, getPublicSiteUrl } from '@/lib/site-url';
 import { ambassadorLandingShortLabel, buildAmbassadorLandingUrl } from '@/lib/referral/public-landing-url';
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter';
 import { buildReferralGamificationForUser } from '@/lib/referral/build-referral-gamification-for-user';
@@ -242,7 +242,7 @@ export async function GET(request) {
     Math.round((monthlyEarnedThb / Math.max(monthlyGoalThb, 1)) * 1000) / 10,
   );
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || '';
+  const baseUrl = getPublicSiteUrl();
   const referralLink = `${String(baseUrl).replace(/\/$/, '')}/?ref=${encodeURIComponent(code)}`;
   /** Короткая визитка `/u/[id]` — QR/PDF/Stories (Stage 74.3). */
   const referralLandingUrl = buildAmbassadorLandingUrl(profile.id);

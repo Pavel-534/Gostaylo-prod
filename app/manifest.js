@@ -5,10 +5,12 @@ import { getSiteDisplayName } from '@/lib/site-url'
 export default function manifest() {
   const brand = getSiteDisplayName()
   const short = brand.length > 12 ? brand.slice(0, 12) : brand
+  const defaultName = brand === 'Platform' ? 'Airento' : brand
+  const defaultShort = defaultName.length > 12 ? defaultName.slice(0, 12) : defaultName
   return {
-    name: `${brand} — Rentals Worldwide`,
-    short_name: short,
-    description: `Rent villas, cars, yachts and tours worldwide. Book with ${brand}.`,
+    name: `${defaultName} — Rentals Worldwide`,
+    short_name: defaultShort,
+    description: `Rent villas, cars, yachts and tours worldwide. Book with ${defaultName}.`,
     start_url: '/',
     display: 'standalone',
     background_color: '#0f172a',

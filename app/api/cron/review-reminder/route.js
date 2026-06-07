@@ -4,7 +4,7 @@
  *
  * Vercel Cron: e.g. 08:00 UTC (~15:00 Bangkok) — same auth pattern as other crons.
  *
- * Внешние планировщики (cron-job.org): **канонический хост без www** (`https://gostaylo.com/...`).
+ * Внешние планировщики (cron-job.org): **канонический хост без www** (`getPublicSiteUrl()` / `https://airento.ru/...`).
  * Авторизация: `Authorization: Bearer <CRON_SECRET>` (токен без лишних пробелов) или `x-cron-secret: <CRON_SECRET>`.
  * **GET и POST** при успешной авторизации выполняют одну и ту же рассылку (удобно, если планировщик шлёт только GET).
  */

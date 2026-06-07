@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+import { getPublicSiteUrl } from '@/lib/site-url'
 
 export const runtime = 'nodejs'
 
@@ -11,11 +12,7 @@ export const contentType = 'image/png'
 export default async function Image({ params }) {
   const id = params?.id != null ? String(params.id).trim() : ''
   let displayName = 'Partner'
-  const raw =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    'https://gostaylo.ru'
-  const base = String(raw).replace(/\/$/, '')
+  const base = getPublicSiteUrl()
 
   if (id && base) {
     try {

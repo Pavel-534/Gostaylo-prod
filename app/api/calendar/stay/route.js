@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getPublicSiteUrl } from '@/lib/site-url'
+import { getPublicSiteUrl, getSiteEmailDomain } from '@/lib/site-url'
 import { buildStayIcsBody } from '@/lib/calendar/stay-ics'
 import { verifyCalendarStayToken, resolveBookingCalendarStay } from '@/lib/calendar/calendar-stay-token'
 
@@ -31,7 +31,7 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  const site = getPublicSiteUrl().replace(/^https?:\/\//, '').replace(/\/$/, '') || 'gostaylo'
+  const site = getPublicSiteUrl().replace(/^https?:\/\//, '').replace(/\/$/, '') || getSiteEmailDomain()
   const body = buildStayIcsBody({
     title: resolved.title,
     location: resolved.location,
@@ -50,7 +50,7 @@ export async function GET(request) {
     status: 200,
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="gostaylo-stay.ics"',
+      'Content-Disposition': 'attachment; filename="airento-stay.ics"',
       'Cache-Control': 'private, no-store',
     },
   })

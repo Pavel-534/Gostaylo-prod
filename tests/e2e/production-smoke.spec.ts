@@ -1,5 +1,5 @@
 /**
- * Production smoke: https://gostaylo.com (или PRODUCTION_SMOKE_URL).
+ * Production smoke: https://airento.ru (или PRODUCTION_SMOKE_URL).
  * Включается только при RUN_PRODUCTION_SMOKE=1 — не бьём прод при обычном `npx playwright test`.
  *
  * Без фикстур internal/e2e (нет POST броней) — только чтение каталога и UI чата под E2E-партнёром.

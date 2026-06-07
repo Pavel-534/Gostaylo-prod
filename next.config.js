@@ -26,17 +26,7 @@ function supabaseHostname(url) {
 const publicSupabaseHost = supabaseHostname(supabasePublicUrl)
 const serverSupabaseHost = supabaseHostname(supabaseServerUrl)
 
-/** Next/Image: листинги и OG могут ссылаться на прод-домены бренда */
-const SITE_IMAGE_HOSTS = [
-  'www.gostaylo.com',
-  'gostaylo.com',
-  'www.gostaylo.ru',
-  'gostaylo.ru',
-  'www.airento.ru',
-  'airento.ru',
-  'www.airento.com',
-  'airento.com',
-]
+const { SITE_IMAGE_HOSTS } = require('./lib/site-url.cjs')
 
 const PDF_TRACE_INCLUDES = [
   './lib/assets/fonts/partner-pdf/**/*',

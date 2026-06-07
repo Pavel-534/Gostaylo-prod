@@ -12,7 +12,7 @@ import jwt from 'jsonwebtoken';
 import { rateLimitCheck } from '@/lib/rate-limit';
 import { getTransactionalFromAddress } from '@/lib/email-env';
 import { getJwtSecret } from '@/lib/auth/jwt-secret';
-import { getSiteDisplayName } from '@/lib/site-url';
+import { getSiteDisplayName, getPublicSiteUrl } from '@/lib/site-url';
 import { PricingService } from '@/lib/services/pricing.service';
 import { LegalVersionsService } from '@/lib/services/legal-versions.service.js'
 import ReferralGuardService, {
@@ -29,8 +29,6 @@ import {
 } from '@/lib/auth/password-policy';
 
 export const dynamic = 'force-dynamic';
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.gostaylo.com';
 
 function makeId(prefix) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -62,7 +60,7 @@ async function sendVerificationEmail(user, token) {
     return { success: false, error_code: AuthErrorCode.AUTH_EMAIL_SERVICE_NOT_CONFIGURED };
   }
   
-  const verifyUrl = `${BASE_URL}/api/v2/auth/verify?token=${token}`;
+  const verifyUrl = `${getPublicSiteUrl()}/api/v2/auth/verify?token=${token}`;
   const siteName = getSiteDisplayName();
 
   try {

@@ -16,7 +16,7 @@ const E2E_HEADERS =
     : undefined
 
 const PRODUCTION_SMOKE_URL =
-  process.env.PRODUCTION_SMOKE_URL || 'https://gostaylo.com'
+  process.env.PRODUCTION_SMOKE_URL || 'https://airento.ru'
 
 /** Прод-smoke не входит в обычный прогон — только при RUN_PRODUCTION_SMOKE=1. */
 const productionSmokeProjects =
