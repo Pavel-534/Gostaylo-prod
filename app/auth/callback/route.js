@@ -16,7 +16,7 @@ import {
   attachGostayloSessionCookie,
   signJwtForProfile,
 } from '@/lib/auth/app-session-issue';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin, getSupabaseServerUrl } from '@/lib/supabase';
 import { upsertOAuthProfile } from '@/lib/services/auth/oauth-profile-sync.service';
 import { safeInternalPath } from '@/lib/security/safe-internal-path';
 
@@ -44,9 +44,20 @@ function redirectToOAuthError(origin, reason) {
   );
 }
 
+/** Канонический origin за reverse-proxy (VPS / Cloudflare → Vercel). */
+function getRequestOrigin(request) {
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const host = forwardedHost?.split(',')[0]?.trim() || request.headers.get('host');
+  const proto = (request.headers.get('x-forwarded-proto') || 'https').split(',')[0].trim();
+  if (host) {
+    return `${proto}://${host}`.replace(/\/$/, '');
+  }
+  return new URL(request.url).origin;
+}
+
 export async function GET(request) {
   const urlObj = new URL(request.url);
-  const origin = urlObj.origin;
+  const origin = getRequestOrigin(request);
   const code = urlObj.searchParams.get('code');
   const rawNext = urlObj.searchParams.get('next');
   const canonicalCallbackUrl = new URL(OAUTH_CALLBACK_PATH, origin).href;
@@ -56,10 +67,11 @@ export async function GET(request) {
     codeLength: code?.length ?? 0,
     next: rawNext,
     canonicalCallbackUrl,
-    host: request.headers.get('host') || '(missing)',
+    host: request.headers.get('x-forwarded-host') || request.headers.get('host') || '(missing)',
+    forwardedProto: request.headers.get('x-forwarded-proto') || '(missing)',
   });
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseUrl = getSupabaseServerUrl();
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!supabaseUrl || !anonKey) {
     return redirectToOAuthError(origin, 'config');

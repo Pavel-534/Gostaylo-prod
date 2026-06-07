@@ -29,16 +29,15 @@ In **Authentication → Providers**:
 Names follow Supabase / Next patterns; confirm against your project settings after enabling providers.
 
 ```bash
-# Supabase (already present for DB)
-NEXT_PUBLIC_SUPABASE_URL=
+# Supabase — Split URL (Stage 130.8)
+NEXT_PUBLIC_SUPABASE_URL=https://airento.ru/supabase   # browser / Realtime
+SUPABASE_SERVER_URL=https://<project-ref>.supabase.co  # server (API, admin, OAuth token exchange)
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 
-# Optional explicit site URL for OAuth redirects
-NEXT_PUBLIC_BASE_URL=https://www.gostaylo.com
-
-# Google OAuth (when using Supabase Auth in app)
-# NEXT_PUBLIC_GOOGLE_CLIENT_ID=   # if client-side PKCE flow
+# Site origin (letters, OAuth redirectTo context)
+NEXT_PUBLIC_APP_URL=https://airento.ru
+NEXT_PUBLIC_BASE_URL=https://airento.ru
 ```
 
 Keep secrets out of client bundles unless using public anon flows documented by Supabase.

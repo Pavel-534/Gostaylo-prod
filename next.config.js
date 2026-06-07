@@ -11,25 +11,31 @@ try {
   /* optional dev tool */
 }
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabasePublicUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseServerUrl = process.env.SUPABASE_SERVER_URL || supabasePublicUrl
 
-function supabaseHostname() {
-  if (!supabaseUrl) return null
+function supabaseHostname(url) {
+  if (!url) return null
   try {
-    return new URL(supabaseUrl).hostname
+    return new URL(url).hostname
   } catch {
     return null
   }
 }
 
-const host = supabaseHostname()
+const publicSupabaseHost = supabaseHostname(supabasePublicUrl)
+const serverSupabaseHost = supabaseHostname(supabaseServerUrl)
 
-/** Next/Image: листинги и OG могут ссылаться на оба прод-домена */
+/** Next/Image: листинги и OG могут ссылаться на прод-домены бренда */
 const SITE_IMAGE_HOSTS = [
   'www.gostaylo.com',
   'gostaylo.com',
   'www.gostaylo.ru',
   'gostaylo.ru',
+  'www.airento.ru',
+  'airento.ru',
+  'www.airento.com',
+  'airento.com',
 ]
 
 const PDF_TRACE_INCLUDES = [
@@ -119,20 +125,34 @@ const nextConfig = {
         hostname,
         pathname: '/**',
       })),
-      ...(host
-        ? [
-            {
-              protocol: 'https',
-              hostname: host,
-              pathname: '/storage/v1/object/public/**',
-            },
-            {
-              protocol: 'https',
-              hostname: host,
-              pathname: '/storage/v1/object/sign/**',
-            },
-          ]
-        : []),
+      ...[publicSupabaseHost, serverSupabaseHost]
+        .filter(Boolean)
+        .flatMap((hostname) => [
+          {
+            protocol: 'https',
+            hostname,
+            pathname: '/storage/v1/object/public/**',
+          },
+          {
+            protocol: 'https',
+            hostname,
+            pathname: '/storage/v1/object/sign/**',
+          },
+          ...(hostname === publicSupabaseHost && supabasePublicUrl?.includes('/supabase')
+            ? [
+                {
+                  protocol: 'https',
+                  hostname,
+                  pathname: '/supabase/storage/v1/object/public/**',
+                },
+                {
+                  protocol: 'https',
+                  hostname,
+                  pathname: '/supabase/storage/v1/object/sign/**',
+                },
+              ]
+            : []),
+        ]),
     ],
   },
 
@@ -166,8 +186,8 @@ const nextConfig = {
   },
 
   async rewrites() {
-    if (!supabaseUrl) return []
-    const base = supabaseUrl.replace(/\/$/, '')
+    if (!supabaseServerUrl) return []
+    const base = supabaseServerUrl.replace(/\/$/, '')
     return [
       {
         source: '/_db/:path*',
