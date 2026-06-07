@@ -120,14 +120,19 @@ export function PaymentMethods({ p, c, paymentMethodOptions }) {
       </Card>
 
       {p.checkoutNeedsLegalConsent ? (
-        <LegalConsentCheckboxRow
-          variant="checkout"
-          language={c.language}
-          checked={Boolean(p.checkoutLegalConsent)}
-          onCheckedChange={p.setCheckoutLegalConsent}
-          id="checkout-legal-consent"
-          className="rounded-xl border border-slate-200 bg-white px-3 py-3"
-        />
+        <div className="space-y-2">
+          <p className="text-sm text-slate-600 leading-snug px-0.5">
+            {getUIText('checkout_legalPrepayHint', c.language)}
+          </p>
+          <LegalConsentCheckboxRow
+            variant="checkout"
+            language={c.language}
+            checked={Boolean(p.checkoutLegalConsent)}
+            onCheckedChange={p.setCheckoutLegalConsent}
+            id="checkout-legal-consent"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-3"
+          />
+        </div>
       ) : null}
 
       <Button

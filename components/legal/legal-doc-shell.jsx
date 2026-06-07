@@ -11,7 +11,7 @@ import { getSiteDisplayName } from '@/lib/site-url'
  * Inter через font-sans, slate-50 фон, slate-900 текст, просторные отступы.
  * Футер и mailto поддержки локализуются через getUIText.
  */
-export function LegalDocShell({ eyebrow = 'Legal', title, lead, publisher, children }) {
+export function LegalDocShell({ eyebrow = 'Legal', title, lead, introBlock, publisher, children }) {
   const brand = getSiteDisplayName()
   const { language } = useI18n()
   const supportEmail = publisher?.email ?? getPublicSupportEmail()
@@ -29,6 +29,12 @@ export function LegalDocShell({ eyebrow = 'Legal', title, lead, publisher, child
         <h1 className="text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">{title}</h1>
         {lead ? (
           <p className="mt-6 text-lg leading-relaxed text-slate-600">{lead}</p>
+        ) : null}
+
+        {introBlock ? (
+          <div className="mt-6 rounded-xl border border-teal-100 bg-teal-50/60 px-5 py-4 text-[15px] leading-relaxed text-slate-700">
+            {introBlock}
+          </div>
         ) : null}
 
         <PublisherCard publisher={{ ...publisher, email: supportEmail }} />
