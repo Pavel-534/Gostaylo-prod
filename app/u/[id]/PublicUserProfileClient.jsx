@@ -18,7 +18,9 @@ import { persistPendingReferralFromLanding } from '@/lib/referral/persist-pendin
 import { ReviewPhotosGallery } from '@/components/review-photos-gallery'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
 import { PartnerTrustBadge } from '@/components/trust/PartnerTrustBadge'
+import { Suspense } from 'react'
 import { AmbassadorPublicLanding } from '@/components/referral/AmbassadorPublicLanding'
+import { ReferralVanityWelcomeBanner } from '@/components/referral/ReferralVanityWelcomeBanner'
 import { AmbassadorLandingSkeleton } from '@/components/referral/AmbassadorLandingSkeleton'
 import { fetchReferralLandingMeta } from '@/lib/api/referral-landing-meta-client'
 import { toast } from 'sonner'
@@ -214,8 +216,21 @@ export default function PublicUserProfileClient({
   const isAmbassadorLanding = Boolean(landingMeta?.isAmbassador && landingMeta?.referralCode)
 
   if (isAmbassadorLanding) {
+    const ambassadorDisplayName =
+      landingMeta?.marketingDisplayName ||
+      [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') ||
+      'амбассадора'
     return (
       <div className="min-h-screen bg-brand-surface">
+        <div className="mx-auto max-w-4xl px-4 pt-6">
+          <Suspense fallback={null}>
+            <ReferralVanityWelcomeBanner
+              ambassadorName={ambassadorDisplayName}
+              welcomeBonusThb={landingMeta?.welcomeBonusThb ?? 500}
+              persistSession
+            />
+          </Suspense>
+        </div>
         <AmbassadorPublicLanding
           landing={landingMeta}
           profile={profile}

@@ -22,8 +22,17 @@ function formatThb(value, locale = 'ru-RU') {
  */
 export function ReferralEarningsEstimator({ referralEstimator, t, locale = 'ru-RU' }) {
   const welcome = Math.round(Number(referralEstimator?.welcomeBonusThb ?? 500)) || 500
-  const reinvest = Math.min(95, Math.max(0, Number(referralEstimator?.referralReinvestmentPercent ?? 70)))
-  const split = Math.min(1, Math.max(0, Number(referralEstimator?.referralSplitRatio ?? 0.5)))
+  const reinvest = Math.min(95, Math.max(0, Number(referralEstimator?.referralReinvestmentPercent ?? 45)))
+  const split = Math.min(
+    1,
+    Math.max(
+      0,
+      Number(
+        referralEstimator?.referralSplitRatio ??
+          (Number(referralEstimator?.ambassadorGuestPoolL1Percent ?? 45) / 100),
+      ),
+    ),
+  )
 
   const [friends, setFriends] = useState([5])
   const [avgBooking, setAvgBooking] = useState([15000])

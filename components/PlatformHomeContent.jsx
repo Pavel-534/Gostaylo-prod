@@ -16,6 +16,7 @@ import { TrustBar } from '@/components/home/TrustBar'
 import { PartnerCTA } from '@/components/home/PartnerCTA'
 import { MobileSearchFAB, MobileSearchBottomSheet } from '@/components/search/MobileSearchBottomSheet'
 import { FooterSwitchers } from '@/components/FooterSwitchers'
+import { ReferralVanityWelcomeHost } from '@/components/referral/ReferralVanityWelcomeBanner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -72,6 +73,7 @@ export function PlatformHomeContent() {
 
   return (
     <div className="min-h-screen bg-white font-sans antialiased text-slate-900">
+      <ReferralVanityWelcomeHost />
       <HomeHeroLuxe
         language={language}
         categoryTabs={heroTabs}

@@ -23,6 +23,7 @@ import { useReferralMeQuery } from '@/lib/hooks/use-referral-me'
 import { normalizeReferralDisplayCurrency } from '@/lib/finance/referral-display-currency'
 import { REFERRAL_DISPLAY_CURRENCY_CODES } from '@/lib/finance/referral-display-currency'
 import { ReferralHeldBalanceStrip } from '@/components/referral/ReferralHeldBalanceStrip'
+import { ReferralWithdrawalWaterfall } from '@/components/referral/ReferralWithdrawalWaterfall'
 
 function formatThb(value, locale = 'ru-RU') {
   const n = Number(value)
@@ -118,13 +119,16 @@ export default function ProfileWalletPage() {
   const referralWithdrawRequested = payout?.referralWithdrawalStatus === 'withdrawable_referral'
   const blockers = Array.isArray(payout?.blockers) ? payout.blockers : []
   const payoutReason =
-    blockers.includes('BELOW_MIN_PAYOUT')
-      ? `Минимальный порог ${formatThb(payout?.minPayoutThb ?? walletData?.policy?.walletMinPayoutThb ?? 1000, locale)} THB`
-      : blockers.includes('PROFILE_NOT_VERIFIED')
-        ? 'Требуется KYC (верификация профиля)'
-        : blockers.includes('WALLET_NOT_CLEARED_FOR_PAYOUT')
-          ? 'Нужен админ-допуск: «Доступен вывод»'
-          : 'Готов к выводу'
+    blockers.includes('REFERRAL_RU_PAYOUT_PROFILE_REQUIRED') ||
+    blockers.includes('REFERRAL_RU_PAYOUT_PROFILE_INCOMPLETE')
+      ? 'Укажите реквизиты карты / счёта РФ ниже'
+      : blockers.includes('BELOW_MIN_PAYOUT')
+        ? `Минимальный порог ${formatThb(payout?.minPayoutThb ?? walletData?.policy?.walletMinPayoutThb ?? 1000, locale)} THB`
+        : blockers.includes('PROFILE_NOT_VERIFIED')
+          ? 'Требуется KYC (верификация профиля)'
+          : blockers.includes('WALLET_NOT_CLEARED_FOR_PAYOUT')
+            ? 'Нужен админ-допуск: «Доступен вывод»'
+            : 'Готов к выводу в ₽'
 
   return (
     <ProductPageShell containerClassName="space-y-8 sm:space-y-10">
@@ -179,18 +183,17 @@ export default function ProfileWalletPage() {
                 <div className="rounded-xl border border-slate-200 p-4"><div className="flex gap-2 items-center"><TrendingUp className="h-4 w-4 text-brand" /><p className="font-medium text-sm">Финансовая аналитика</p></div><p className="text-xs text-slate-500 mt-2">Вывод из доступного баланса после всех проверок.</p></div>
                 <div className="rounded-xl border border-slate-200 p-4"><div className="flex gap-2 items-center"><Clock3 className="h-4 w-4 text-brand" /><p className="font-medium text-sm">Порог вывода</p></div><p className="text-xs text-slate-500 mt-2">{formatThb(payout?.minPayoutThb ?? walletData?.policy?.walletMinPayoutThb ?? 1000, locale)} THB</p></div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="brand"
-                  disabled={!payout?.payoutEligible || withdrawRequesting || referralWithdrawRequested}
-                  onClick={() => void requestReferralWithdrawal()}
-                >
-                  {referralWithdrawRequested
-                    ? 'Заявка на вывод реферальных отправлена'
-                    : withdrawRequesting
-                      ? 'Отправка…'
-                      : t('stage1143_oneClickWithdraw')}
-                </Button>
+              <ReferralWithdrawalWaterfall
+                maxWithdrawableThb={Number(balance.withdrawable_balance_thb ?? 0)}
+                minPayoutThb={Number(payout?.minPayoutThb ?? walletData?.policy?.walletMinPayoutThb ?? 1000)}
+                payoutEligible={payout?.payoutEligible === true}
+                referralWithdrawRequested={referralWithdrawRequested}
+                withdrawRequesting={withdrawRequesting}
+                onRequestWithdraw={requestReferralWithdrawal}
+                locale={locale}
+                className="w-full"
+              />
+              <div className="flex flex-wrap gap-2 pt-2">
                 <Button variant="outline" onClick={() => router.push('/partner/finances')}>
                   Партнёрский вывод
                 </Button>

@@ -12,6 +12,7 @@ import { ReferralBadgesGrid } from '@/components/referral/ReferralBadgesGrid'
 import { ReferralMonthlyGoalCard } from '@/components/referral/ReferralMonthlyGoalCard'
 import { ReferralYourStatusCard } from '@/components/referral/ReferralYourStatusCard'
 import { ReferralMiniSparkline } from '@/components/referral/ReferralMiniSparkline'
+import { ReferralTeamMetricsStrip } from '@/components/referral/ReferralTeamMetricsStrip'
 
 function formatThb(value, locale = 'ru-RU') {
   const n = Number(value)
@@ -57,7 +58,15 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
         badgesEarned={data?.referralGamification?.badgesEarned}
         brandName={data?.brandName}
         displayName={data?.marketingCard?.displayName}
-        turboMultiplier={data?.turbo?.enabled ? data?.turbo?.promoBoostPerBookingThb : 1}
+        turboBoostThb={
+          data?.turbo?.enabled ? data?.turbo?.newReferrerBonusWithBoostThb ?? data?.turbo?.promoBoostPerBookingThb : 0
+        }
+      />
+
+      <ReferralTeamMetricsStrip
+        friendsInvited={totalReferrals}
+        directPartnersInvited={directPartnersInvited}
+        t={t}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -95,10 +104,6 @@ export function ReferralProfileTabEarnings({ data, walletData, t, locale }) {
             <p className="text-xs uppercase tracking-wider text-slate-500">{t('stage1143_earningsTotal')}</p>
             <p className="text-4xl font-black text-brand mt-2">{formatThb(walletTotal, locale)} THB</p>
             <div className="mt-6 flex gap-8 flex-wrap">
-              <div>
-                <p className="text-xs text-slate-400">{t('stage1143_invitesTotal')}</p>
-                <p className="text-2xl font-semibold">{totalReferrals}</p>
-              </div>
               <div>
                 <p className="text-xs text-slate-400">{t('stage1143_pending')}</p>
                 <p className="text-2xl font-semibold text-slate-500">{formatThb(pending, locale)} THB</p>

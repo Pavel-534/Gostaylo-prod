@@ -12,6 +12,12 @@ import { BADGE_PROGRESSION_ORDER } from '@/lib/referral/referral-badges'
 import { cn } from '@/lib/utils'
 import { getSiteDisplayName } from '@/lib/site-url'
 
+function round2Display(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n) || n <= 0) return 0
+  return Math.round(n * 100) / 100
+}
+
 const MEDAL_ROW_CN = {
   fast_start: 'border-amber-300 bg-amber-50 text-amber-950',
   network_builder: 'border-brand/30 bg-brand/10 text-brand',
@@ -32,6 +38,8 @@ export function ReferralYourStatusCard({
   /** Подсказка SSOT (бат / конвертация) — Stage 76.1 */
   ledgerFootnote = '',
   turboMultiplier = 1,
+  /** Stage 131.5 — additive THB boost per booking (not a multiplier). */
+  turboBoostThb = 0,
 }) {
   const amb = ambassador
   const shareCardRef = useRef(null)
@@ -39,8 +47,8 @@ export function ReferralYourStatusCard({
 
   const earned = Array.isArray(badgesEarned) ? badgesEarned.map((id) => String(id)) : []
   const orderedMedals = BADGE_PROGRESSION_ORDER.filter((id) => earned.includes(id))
-  const turboX = Number(turboMultiplier || 1)
-  const turboActive = Number.isFinite(turboX) && turboX > 1
+  const boostThb = round2Display(turboBoostThb)
+  const turboActive = boostThb > 0
 
   const brandChip = useMemo(() => {
     const b = String(brandName || '').trim()
@@ -162,14 +170,14 @@ export function ReferralYourStatusCard({
                       <button
                         type="button"
                         className="rounded-full border border-brand/30 bg-brand/10 px-2 py-0.5 text-xs font-semibold text-brand-hover shadow-sm transition hover:bg-brand/15 animate-[pulse_2.8s_ease-in-out_infinite]"
-                        aria-label={`Turbo x${turboX.toFixed(2).replace(/\.00$/, '')}`}
+                        aria-label={`Turbo +${boostThb} THB`}
                       >
-                        Ваш ускоритель бонусов: Turbo x{turboX.toFixed(2).replace(/\.00$/, '')}
+                        Turbo +{boostThb.toLocaleString(locale)} THB / бронь
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      Ваши бонусы увеличиваются в {turboX.toFixed(2).replace(/\.00$/, '')} раз благодаря активной
-                      акции!
+                      Акция Turbo: дополнительно +{boostThb.toLocaleString(locale)} THB к вашей доле с каждой
+                      завершённой брони приглашённого.
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

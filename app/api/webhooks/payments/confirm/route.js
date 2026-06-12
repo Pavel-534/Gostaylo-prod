@@ -33,7 +33,7 @@ import { ADAPTER_KEYS } from '@/lib/services/payment-adapters/constants';
 import { assertWebhookGuestPaymentAllowed } from '@/lib/payment/webhook-guest-payment-gate.js';
 import { isPaymentAcquiringWebhookIdempotentBookingStatus } from '@/lib/booking/status-sets.js';
 import { formatRubAmountValue, getPayment } from '@/lib/payments/yookassa.js';
-import { touchControlledLiveMirFirstPaymentAlert } from '@/lib/payment/controlled-live-mir-guard.js';
+import { touchControlledLiveMirFirstPaymentAlert, touchControlledLiveMirSoftLimit } from '@/lib/payment/controlled-live-mir-guard.js';
 
 export const dynamic = 'force-dynamic';
 

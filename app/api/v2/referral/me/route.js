@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 import { getSessionPayload } from '@/lib/services/session-service';
 import { supabaseAdmin } from '@/lib/supabase';
 import { PricingService } from '@/lib/services/pricing.service';
+import { SystemConfigService } from '@/lib/services/finance/system-config.service.js';
 import ReferralPnlService from '@/lib/services/marketing/referral-pnl.service';
 import { buildReferralTeamMembers } from '@/lib/referral/build-referral-team';
 import { yearMonthKeyInTimeZone, currentYearMonthKeyInTimeZone } from '@/lib/referral/tz-year-month';
 import { resolveReferralStatsTimeZone } from '@/lib/referral/resolve-referral-stats-timezone';
 import { buildReferralEarningsSparklineThb } from '@/lib/referral/sparkline-earnings';
 import { getSiteDisplayName, getPublicSiteUrl } from '@/lib/site-url';
-import { ambassadorLandingShortLabel, buildAmbassadorLandingUrl } from '@/lib/referral/public-landing-url';
+import { ambassadorLandingShortLabel, buildAmbassadorLandingUrl, buildVanityGoUrl } from '@/lib/referral/public-landing-url';
 import { formatPrivacyDisplayNameForParticipant } from '@/lib/utils/name-formatter';
 import { buildReferralGamificationForUser } from '@/lib/referral/build-referral-gamification-for-user';
 import {
@@ -110,6 +111,17 @@ export async function GET(request) {
     .split(',')[0]
     .trim();
   const code = await getOrCreateReferralCode(profile.id, profile.referral_code, ownerIp);
+
+  const { data: vanityRow } = await supabaseAdmin
+    .from('referral_codes')
+    .select('custom_vanity_code')
+    .eq('user_id', profile.id)
+    .maybeSingle();
+  const vanityCode =
+    vanityRow?.custom_vanity_code != null && String(vanityRow.custom_vanity_code).trim()
+      ? String(vanityRow.custom_vanity_code).trim().toLowerCase()
+      : null;
+  const vanityUrl = vanityCode ? buildVanityGoUrl(vanityCode) : null;
 
   const { searchParams } = new URL(request.url)
   const includeTeam = searchParams.get('includeTeam') !== '0'
@@ -356,12 +368,14 @@ export async function GET(request) {
         Math.max(0, Number(general?.welcome_bonus_amount ?? general?.welcomeBonusAmount ?? 500)),
       ) * 100,
     ) / 100;
+  const fintechCfg = await SystemConfigService.getFintechConfig();
   const referralReinvestmentPercentForEstimator = Math.min(
     95,
-    Math.max(
-      0,
-      Number(general?.referral_reinvestment_percent ?? general?.referralReinvestmentPercent ?? 70),
-    ),
+    Math.max(0, Number(fintechCfg?.referralReinvestmentPercent ?? 45)),
+  );
+  const ambassadorGuestPoolL1Percent = Math.min(
+    100,
+    Math.max(0, Number(fintechCfg?.ambassadorGuestPoolL1Percent ?? 45)),
   );
 
   return NextResponse.json({
@@ -370,6 +384,8 @@ export async function GET(request) {
       code,
       referralLink,
       referralLandingUrl,
+      vanityCode,
+      vanityUrl,
       referralLandingShortDisplay,
       shareMessage,
       brandName,
@@ -470,7 +486,10 @@ export async function GET(request) {
       referralEstimator: {
         welcomeBonusThb: welcomeBonusFromGeneral,
         referralReinvestmentPercent: referralReinvestmentPercentForEstimator,
-        referralSplitRatio,
+        referralSplitRatio: ambassadorGuestPoolL1Percent / 100,
+        ambassadorGuestPoolL1Percent,
+        ambassadorGuestPoolL2Percent: Number(fintechCfg?.ambassadorGuestPoolL2Percent ?? 12),
+        ambassadorGuestPoolRefereePercent: Number(fintechCfg?.ambassadorGuestPoolRefereePercent ?? 43),
       },
     },
   });

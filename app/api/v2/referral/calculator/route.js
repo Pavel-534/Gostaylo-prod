@@ -13,12 +13,15 @@ export async function GET(request) {
     const subtotalThb = searchParams.get('subtotalThb') ?? searchParams.get('subtotal')
     const guestServiceFeePercent =
       searchParams.get('guestFeePercent') ?? searchParams.get('guestServiceFeePercent')
-    const fxMarkupThb = searchParams.get('fxMarkupThb')
+    const guestPaymentMode =
+      searchParams.get('guestPaymentMode') ?? searchParams.get('paymentMode') ?? 'THB'
+    const fxMarkupPct = searchParams.get('fxMarkupPct')
 
     const data = await computePublicReferralCalculatorEstimate({
       subtotalThb,
       guestServiceFeePercent,
-      fxMarkupThb: fxMarkupThb ? Number(fxMarkupThb) : 0,
+      guestPaymentMode,
+      fxMarkupPct: fxMarkupPct != null ? Number(fxMarkupPct) : undefined,
     })
 
     return NextResponse.json({ success: true, data })

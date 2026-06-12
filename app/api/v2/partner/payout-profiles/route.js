@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getUserIdFromSession, verifyPartnerAccess } from '@/lib/services/session-service'
 import { PayoutRailsService } from '@/lib/services/payout-rails.service'
+import { ReferralFraudGate } from '@/lib/services/marketing/referral-fraud-gate.service.js'
+import { computePayoutFingerprint } from '@/lib/referral/payout-profile-fingerprint.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -51,6 +53,18 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Payout method is not available' }, { status: 400 })
     }
 
+    const profileData = body.data && typeof body.data === 'object' ? body.data : {}
+    const fingerprintGate = await ReferralFraudGate.evaluatePayoutProfileSave({
+      partnerId: auth.userId,
+      profileData,
+    })
+    if (!fingerprintGate.ok) {
+      return NextResponse.json(
+        { success: false, error: fingerprintGate.error || 'PAYOUT_FINGERPRINT_COLLISION' },
+        { status: 403 },
+      )
+    }
+
     const profileId = body.id || PayoutRailsService.makeProfileId()
     const isDefault = body.isDefault === true || body.is_default === true
     if (isDefault) {
@@ -65,7 +79,8 @@ export async function POST(request) {
       id: profileId,
       partner_id: auth.userId,
       method_id: methodId,
-      data: body.data && typeof body.data === 'object' ? body.data : {},
+      data: profileData,
+      payout_fingerprint: fingerprintGate.fingerprint || computePayoutFingerprint(profileData),
       is_verified: false,
       is_default: isDefault,
     }
@@ -139,9 +154,23 @@ export async function PUT(request) {
         .eq('is_default', true)
     }
 
+    const nextData = body.data && typeof body.data === 'object' ? body.data : existing.data || {}
+    const fingerprintGate = await ReferralFraudGate.evaluatePayoutProfileSave({
+      partnerId: auth.userId,
+      profileData: nextData,
+      profileId,
+    })
+    if (!fingerprintGate.ok) {
+      return NextResponse.json(
+        { success: false, error: fingerprintGate.error || 'PAYOUT_FINGERPRINT_COLLISION' },
+        { status: 403 },
+      )
+    }
+
     const patch = {
       method_id: nextMethodId,
-      data: body.data && typeof body.data === 'object' ? body.data : existing.data,
+      data: nextData,
+      payout_fingerprint: fingerprintGate.fingerprint || computePayoutFingerprint(nextData),
       is_default: isDefault ? true : Boolean(existing.is_default),
       updated_at: new Date().toISOString(),
     }

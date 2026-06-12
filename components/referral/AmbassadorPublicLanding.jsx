@@ -12,7 +12,6 @@ import {
   Sparkles,
   TrendingUp,
   UserPlus,
-  Users,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -23,6 +22,7 @@ import { useI18n } from '@/contexts/i18n-context'
 import { getUIText } from '@/lib/translations'
 import { persistPendingReferralFromLanding } from '@/lib/referral/persist-pending-ref-client'
 import { ReferralEarningsEstimator } from '@/components/referral/ReferralEarningsEstimator'
+import { ReferralTeamMetricsStrip } from '@/components/referral/ReferralTeamMetricsStrip'
 import { ReferralAmbassadorLevels } from '@/components/referral/ReferralAmbassadorLevels'
 import { ReferralBadgesGrid } from '@/components/referral/ReferralBadgesGrid'
 import { resolveAvatarDisplaySrc } from '@/lib/image-display-url'
@@ -163,18 +163,6 @@ export function AmbassadorPublicLanding({
                       tip: t('stage1147_statMonthTooltip'),
                       className: '',
                     },
-                    {
-                      key: 'team',
-                      label: t('stage1143_statTeam'),
-                      value: (
-                        <span className="flex items-center justify-center lg:justify-start gap-1">
-                          <Users className="h-4 w-4" />
-                          {Number(landing?.friendsInvited || 0)}
-                        </span>
-                      ),
-                      tip: t('stage1147_statTeamTooltip'),
-                      className: 'col-span-2 sm:col-span-1',
-                    },
                   ].map((stat) => (
                     <Tooltip key={stat.key}>
                       <TooltipTrigger asChild>
@@ -192,6 +180,13 @@ export function AmbassadorPublicLanding({
                   ))}
                 </div>
               </TooltipProvider>
+              <ReferralTeamMetricsStrip
+                friendsInvited={landing?.friendsInvited}
+                directPartnersInvited={landing?.directPartnersInvited}
+                variant="dark"
+                t={t}
+                className="max-w-md mx-auto lg:mx-0"
+              />
               {geoHintLine ? (
                 <p className="text-sm text-white/90 bg-white/10 rounded-lg px-3 py-2 border border-white/10">{geoHintLine}</p>
               ) : null}

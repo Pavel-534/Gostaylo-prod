@@ -16,6 +16,12 @@ import { buildFinanceSettingsPatch } from '@/lib/admin/settings-handlers/finance
 import { buildMarketingSettingsPatch } from '@/lib/admin/settings-handlers/marketing-settings'
 import { buildChatSafetySettingsPatch } from '@/lib/admin/settings-handlers/chat-safety-settings'
 import { readSystemSettingsByKeys, upsertSystemSetting } from '@/lib/admin/system-settings-store'
+import { SystemConfigService } from '@/lib/services/finance/system-config.service.js'
+import {
+  overlayFintechOnAdminSettings,
+  stripFintechKeysFromGeneralValue,
+  syncMarketingPatchToFintech,
+} from '@/lib/services/finance/referral-fintech-admin-sync.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -240,7 +246,22 @@ export async function GET(request) {
     })
     settings.referralSafetyBudget.tierPayoutAudit = await loadTierPayoutAudit()
 
-    return NextResponse.json({ data: settings })
+    const fintechPolicy = await SystemConfigService.getFintechConfig()
+    const mergedSettings = overlayFintechOnAdminSettings(settings, fintechPolicy)
+    mergedSettings.referralSafetyBudget = ReferralPnlService.computePlatformMarginBudget({
+      guestServiceFeePercent: mergedSettings.guestServiceFeePercent,
+      hostCommissionPercent: mergedSettings.hostCommissionPercent,
+      insuranceFundPercent: mergedSettings.insuranceFundPercent,
+      acquiringFeePercent: fintechPolicy.acquiringFeePercent,
+      operationalReservePercent: fintechPolicy.operationalReservePercent,
+      taxRatePercent: mergedSettings.taxRatePercent,
+      referralReinvestmentPercent: fintechPolicy.referralReinvestmentPercent,
+      mlmLevel1Percent: fintechPolicy.mlmLevel1Percent,
+      mlmLevel2Percent: fintechPolicy.mlmLevel2Percent,
+    })
+    mergedSettings.referralSafetyBudget.tierPayoutAudit = settings.referralSafetyBudget.tierPayoutAudit
+
+    return NextResponse.json({ data: mergedSettings })
   } catch (error) {
     console.error('Settings GET error:', error)
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 })
@@ -340,7 +361,11 @@ export async function PUT(request) {
           })
           if (!marketingPatch.ok) return marketingPatch
           const chatPatch = buildChatSafetySettingsPatch(body, prev)
-          return { ok: true, patch: { ...generalPatch, ...financePatch, ...marketingPatch.patch, ...chatPatch } }
+          return {
+            ok: true,
+            patch: { ...generalPatch, ...financePatch, ...marketingPatch.patch, ...chatPatch },
+            fintechPatch: marketingPatch.fintechPatch,
+          }
         }
       }
     }
@@ -353,7 +378,29 @@ export async function PUT(request) {
       )
     }
 
-    const newValue = { ...prev, ...result.patch }
+    const staffId = gate.profile?.id || null
+    const touchesMarketing =
+      section === 'marketing' ||
+      section === 'all' ||
+      result.fintechPatch != null
+
+    if (touchesMarketing && result.fintechPatch) {
+      const fintechSync = await syncMarketingPatchToFintech(result.fintechPatch, staffId)
+      if (!fintechSync.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: fintechSync.error || 'FINTECH_SYNC_FAILED',
+            message: fintechSync.message || 'Failed to sync fintech settings',
+            details: fintechSync.details || null,
+          },
+          { status: 400 },
+        )
+      }
+    }
+
+    const generalPatch = stripFintechKeysFromGeneralValue(result.patch)
+    const newValue = stripFintechKeysFromGeneralValue({ ...prev, ...generalPatch })
     try {
       await upsertSystemSetting('general', newValue)
     } catch (dbErr) {
@@ -364,20 +411,20 @@ export async function PUT(request) {
     const hostComm = parseFloat(newValue?.hostCommissionPercent ?? newValue?.host_commission_percent)
     const insurance = parseFloat(newValue?.insuranceFundPercent ?? newValue?.insurance_fund_percent)
     const tax = parseFloat(newValue?.taxRatePercent)
+    const fintechPolicy = await SystemConfigService.getFintechConfig()
     const budget = ReferralPnlService.computePlatformMarginBudget({
       guestServiceFeePercent: Number.isFinite(guestFee) ? guestFee : PLATFORM_SPLIT_FEE_DEFAULTS.guestServiceFeePercent,
       hostCommissionPercent: Number.isFinite(hostComm) ? hostComm : PLATFORM_SPLIT_FEE_DEFAULTS.hostCommissionPercentFromGeneral,
       insuranceFundPercent: Number.isFinite(insurance) ? insurance : PLATFORM_SPLIT_FEE_DEFAULTS.insuranceFundPercent,
-      acquiringFeePercent: parseFloat(newValue?.acquiring_fee_percent ?? newValue?.acquiringFeePercent) || 0,
-      operationalReservePercent:
-        parseFloat(newValue?.operational_reserve_percent ?? newValue?.operationalReservePercent) || 0,
+      acquiringFeePercent: fintechPolicy.acquiringFeePercent,
+      operationalReservePercent: fintechPolicy.operationalReservePercent,
       taxRatePercent: Number.isFinite(tax) && tax >= 0 ? tax : 0,
-      referralReinvestmentPercent:
-        parseFloat(newValue?.referral_reinvestment_percent ?? newValue?.referralReinvestmentPercent) || 70,
-      mlmLevel1Percent: parseFloat(newValue?.mlm_level1_percent ?? newValue?.mlmLevel1Percent) || 70,
-      mlmLevel2Percent: parseFloat(newValue?.mlm_level2_percent ?? newValue?.mlmLevel2Percent) || 30,
+      referralReinvestmentPercent: fintechPolicy.referralReinvestmentPercent,
+      mlmLevel1Percent: fintechPolicy.mlmLevel1Percent,
+      mlmLevel2Percent: fintechPolicy.mlmLevel2Percent,
     })
-    return NextResponse.json({ success: true, data: newValue, budget })
+    const responseData = overlayFintechOnAdminSettings(newValue, fintechPolicy)
+    return NextResponse.json({ success: true, data: responseData, budget })
   } catch (error) {
     console.error('Settings PUT error:', error)
     return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 })
