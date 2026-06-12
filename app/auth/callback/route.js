@@ -19,6 +19,7 @@ import {
 import { supabaseAdmin, getSupabaseServerUrl } from '@/lib/supabase';
 import { upsertOAuthProfile } from '@/lib/services/auth/oauth-profile-sync.service';
 import { safeInternalPath } from '@/lib/security/safe-internal-path';
+import { isRussia } from '@/lib/geo';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,6 +57,11 @@ function getRequestOrigin(request) {
 }
 
 export async function GET(request) {
+  if (isRussia(request)) {
+    const origin = getRequestOrigin(request);
+    return redirectToOAuthError(origin, 'region_restricted');
+  }
+
   const urlObj = new URL(request.url);
   const origin = getRequestOrigin(request);
   const code = urlObj.searchParams.get('code');

@@ -12,6 +12,10 @@ import WalletService from '@/lib/services/finance/wallet.service'
 import { transitionBookingStatus } from '@/lib/services/booking/booking-status.service.js'
 import { ensureProfileLegalConsentForPayment } from '@/lib/legal-consent'
 import { assertGuestPaymentOperationsAllowed } from '@/lib/payment/payment-production-guard.js'
+import {
+  buildFintechSnapshotPayload,
+  readFintechSnapshotFromBooking,
+} from '@/lib/services/finance/fintech-snapshot.service.js'
 
 export const dynamic = 'force-dynamic'
 
@@ -203,6 +207,9 @@ export async function POST(request, { params }) {
     }
 
     const paymentInitiatedAt = new Date().toISOString()
+    const existingSnapshot = readFintechSnapshotFromBooking(booking)
+    const fintechSnapshot =
+      existingSnapshot || (await buildFintechSnapshotPayload())
     const statusRes = await transitionBookingStatus(bookingId, 'AWAITING_PAYMENT', {
       scope: 'system',
       actorContext: { actorId: sessionUserId || null, actorRole: 'USER', trigger: 'payment_initiate' },
@@ -210,6 +217,7 @@ export async function POST(request, { params }) {
       extraPatch: {
         metadata: {
           ...(booking.metadata || {}),
+          fintech_snapshot: existingSnapshot || fintechSnapshot,
           paymentIntentId: initiated.intent.id,
           paymentMethod: initiated.selectedMethod,
           paymentInitiatedAt,

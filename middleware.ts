@@ -13,6 +13,13 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
+import {
+  GEO_COOKIE_MAX_AGE_SEC,
+  IS_RUSSIA_COOKIE,
+  IS_RUSSIA_HEADER,
+  getCountryCodeFromHeaders,
+  isRussiaCountry,
+} from '@/lib/geo';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const SUPABASE_URL = process.env.SUPABASE_SERVER_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -105,7 +112,55 @@ function redirectToLogin(request: NextRequest, pathname: string): NextResponse {
   const dest = pathname + request.nextUrl.search;
   const url = new URL('/login', request.url);
   url.searchParams.set('redirect', dest);
-  return NextResponse.redirect(url);
+  return withGeo(request, NextResponse.redirect(url));
+}
+
+/**
+ * Ставит cookie + request header для RU (скрытие Google OAuth в UI).
+ * На localhost без geo-заголовков cookie не перезаписывается.
+ */
+function withGeo(request: NextRequest, response: NextResponse): NextResponse {
+  const country = getCountryCodeFromHeaders(request.headers);
+  if (!country) return response;
+
+  const ru = isRussiaCountry(country);
+  const reqHeaders = new Headers(request.headers);
+  if (ru) {
+    reqHeaders.set(IS_RUSSIA_HEADER, '1');
+  } else {
+    reqHeaders.delete(IS_RUSSIA_HEADER);
+  }
+
+  response.cookies.set(IS_RUSSIA_COOKIE, ru ? '1' : '0', {
+    path: '/',
+    maxAge: GEO_COOKIE_MAX_AGE_SEC,
+    sameSite: 'lax',
+  });
+
+  return response;
+}
+
+function nextWithGeo(request: NextRequest, init?: Parameters<typeof NextResponse.next>[0]): NextResponse {
+  const country = getCountryCodeFromHeaders(request.headers);
+  const ru = country ? isRussiaCountry(country) : null;
+  const reqHeaders = new Headers(init?.request?.headers || request.headers);
+  if (ru === true) reqHeaders.set(IS_RUSSIA_HEADER, '1');
+  else if (ru === false) reqHeaders.delete(IS_RUSSIA_HEADER);
+
+  const res = NextResponse.next({
+    ...init,
+    request: { ...init?.request, headers: reqHeaders },
+  });
+
+  if (country) {
+    res.cookies.set(IS_RUSSIA_COOKIE, ru ? '1' : '0', {
+      path: '/',
+      maxAge: GEO_COOKIE_MAX_AGE_SEC,
+      sameSite: 'lax',
+    });
+  }
+
+  return res;
 }
 
 export async function middleware(request: NextRequest) {
@@ -120,18 +175,18 @@ export async function middleware(request: NextRequest) {
         : globalThis.crypto.randomUUID();
     const reqHeaders = new Headers(request.headers);
     reqHeaders.set('x-correlation-id', id);
-    const res = NextResponse.next({ request: { headers: reqHeaders } });
+    const res = nextWithGeo(request, { request: { headers: reqHeaders } });
     res.headers.set('x-correlation-id', id);
     return res;
   }
 
   const legacy = legacyMessagesRedirect(request);
-  if (legacy) return legacy;
+  if (legacy) return withGeo(request, legacy);
 
   const matchedRoute = Object.keys(PROTECTED_ROUTES).find((route) => pathname.startsWith(route));
 
   if (!matchedRoute) {
-    return NextResponse.next();
+    return nextWithGeo(request);
   }
 
   if (!JWT_SECRET) {
@@ -164,7 +219,7 @@ export async function middleware(request: NextRequest) {
 
   if (!roleOk) {
     // Сессия есть, но роль не подходит для зоны — на главную (не путать с «нет сессии»)
-    return NextResponse.redirect(new URL('/', request.url));
+    return withGeo(request, NextResponse.redirect(new URL('/', request.url)));
   }
 
   if (decoded.role === 'MODERATOR') {
@@ -176,11 +231,11 @@ export async function middleware(request: NextRequest) {
       '/admin/settings',
     ];
     if (restrictedPaths.some((path) => pathname.startsWith(path))) {
-      return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+      return withGeo(request, NextResponse.redirect(new URL('/admin/dashboard', request.url)));
     }
   }
 
-  return NextResponse.next();
+  return nextWithGeo(request);
 }
 
 export const config = {
@@ -189,6 +244,10 @@ export const config = {
     '/admin/:path*',
     '/partner/:path*',
     '/renter/:path*',
-    // /messages — не в matcher: здесь не ставим guard; редиректы только с /partner|/renter (см. legacyMessagesRedirect).
+    /*
+     * Публичные страницы — geo cookie для скрытия Google OAuth у пользователей из RU.
+     * /messages — не в matcher: здесь не ставим guard; редиректы только с /partner|/renter.
+     */
+    '/((?!_next/static|_next/image|favicon.ico|icons/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|eot)$).*)',
   ],
 };

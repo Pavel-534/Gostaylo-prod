@@ -9,6 +9,7 @@ import { getUIText } from '@/lib/translations'
 import { LoginForm } from '@/components/auth/modals/LoginForm'
 import { RegisterForm } from '@/components/auth/modals/RegisterForm'
 import { PasswordResetForm } from '@/components/auth/modals/PasswordResetForm'
+import { useGeo } from '@/contexts/geo-context'
 
 function GoogleBrandGlyph({ className = 'h-5 w-5' }) {
   return (
@@ -51,6 +52,9 @@ export function AuthModalShell(props) {
     registerProps,
     resetProps,
   } = props
+
+  const { isRussia } = useGeo()
+  const showGoogleOAuth = !isRussia
 
   return (
     <Dialog open={loginModalOpen} onOpenChange={setLoginModalOpen}>
@@ -155,27 +159,29 @@ export function AuthModalShell(props) {
               <RegisterForm {...registerProps} language={language} />
             )}
 
-            <div className='mx-auto mt-4 w-full max-w-[280px] flex-shrink-0 pb-1'>
-              <div className='relative flex w-full items-center justify-center py-2'>
-                <span className='absolute inset-x-0 top-1/2 h-px bg-slate-100' aria-hidden />
-                <span className='relative bg-white px-3 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400'>
-                  {getUIText('auth_oauthDivider', language)}
-                </span>
+            {showGoogleOAuth ? (
+              <div className='mx-auto mt-4 w-full max-w-[280px] flex-shrink-0 pb-1'>
+                <div className='relative flex w-full items-center justify-center py-2'>
+                  <span className='absolute inset-x-0 top-1/2 h-px bg-slate-100' aria-hidden />
+                  <span className='relative bg-white px-3 text-center text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400'>
+                    {getUIText('auth_oauthDivider', language)}
+                  </span>
+                </div>
+                <button
+                  type='button'
+                  onClick={() => void startGoogleOAuth()}
+                  disabled={googleOAuthBusy || submitting || (authMode === 'register' && !registerLegalConsent)}
+                  className='flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200/90 bg-white px-4 text-sm font-medium text-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.05)] ring-1 ring-slate-100/80 transition hover:border-brand/30 hover:bg-slate-50/90 hover:shadow-[0_4px_14px_rgba(0,102,102,0.08)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-45'
+                >
+                  {googleOAuthBusy ? (
+                    <Loader2 className='h-4 w-4 shrink-0 animate-spin text-slate-600' />
+                  ) : (
+                    <GoogleBrandGlyph className='h-5 w-5 shrink-0' />
+                  )}
+                  {getUIText('auth_continueGoogle', language)}
+                </button>
               </div>
-              <button
-                type='button'
-                onClick={() => void startGoogleOAuth()}
-                disabled={googleOAuthBusy || submitting || (authMode === 'register' && !registerLegalConsent)}
-                className='flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-slate-200/90 bg-white px-4 text-sm font-medium text-slate-800 shadow-[0_1px_2px_rgba(15,23,42,0.05)] ring-1 ring-slate-100/80 transition hover:border-brand/30 hover:bg-slate-50/90 hover:shadow-[0_4px_14px_rgba(0,102,102,0.08)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-45'
-              >
-                {googleOAuthBusy ? (
-                  <Loader2 className='h-4 w-4 shrink-0 animate-spin text-slate-600' />
-                ) : (
-                  <GoogleBrandGlyph className='h-5 w-5 shrink-0' />
-                )}
-                {getUIText('auth_continueGoogle', language)}
-              </button>
-            </div>
+            ) : null}
           </>
         )}
       </DialogContent>

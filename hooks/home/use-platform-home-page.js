@@ -314,13 +314,13 @@ export function usePlatformHomePage() {
   }, [categoryBarRoots])
 
   // SSOT: white-label копии главной берутся из env (NEXT_PUBLIC_HOME_*) — `lib/config/home-page-copy.js`.
-  // `'AUTO'` → локализованная строка через `getUIText(key, language)` (меняется при переключении языка).
+  // Пустой env → режим AUTO: `homeHeroHeadline` через `getUIText(key, language)`.
   const heroTitle = useMemo(() => {
-    const raw = getHomeHeroTitleRaw()
+    const raw = getHomeHeroTitleRaw() ?? HOME_COPY_AUTO_TOKEN
     const resolved = resolveHomeCopy(
       raw,
       (k) => getUIText(k, language),
-      'heroTitle',
+      'homeHeroHeadline',
       AUTO_HERO_TITLE_FALLBACK,
     )
     if (raw === HOME_COPY_AUTO_TOKEN) {
@@ -328,7 +328,7 @@ export function usePlatformHomePage() {
       return t.length > 0 ? resolved.trim() : AUTO_HERO_TITLE_FALLBACK
     }
     const finalTitle = typeof resolved === 'string' ? resolved.trim() : ''
-    return finalTitle.length > 0 ? finalTitle : 'Легкая и удобная аренда по всему миру'
+    return finalTitle.length > 0 ? finalTitle : AUTO_HERO_TITLE_FALLBACK
   }, [language])
   const topListingsTitle = useMemo(() => {
     const raw = getHomeTopListingsTitleRaw()

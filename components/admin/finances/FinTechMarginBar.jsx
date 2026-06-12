@@ -98,6 +98,69 @@ export function ReferralMarginWaterfall({ commissionThb, bonusesThb, clawbackThb
 }
 
 /**
+ * Stage 131.0 — Ambassador owner waterfall (admin-only; includes owner retained).
+ */
+export function AmbassadorOwnerWaterfallBar({
+  guestPaymentThb,
+  platformGrossThb,
+  deductions = {},
+  adjustedNetThb,
+  referralPoolThb,
+  ownerRetainedThb,
+  split = {},
+  className,
+}) {
+  const gross = Math.max(0, Number(platformGrossThb) || 0)
+  const guestPay = Math.max(0, Number(guestPaymentThb) || 0)
+  const acq = Math.max(0, Number(deductions.acquiringFeeThb) || 0)
+  const usn = Math.max(0, Number(deductions.usnProvisionThb) || 0)
+  const vat = Math.max(0, Number(deductions.vatProvisionThb) || 0)
+  const bank = Math.max(0, Number(deductions.reserveBankThb) || 0)
+  const ops = Math.max(0, Number(deductions.operationalReserveThb) || 0)
+  const ins = Math.max(0, Number(deductions.insuranceReserveThb) || 0)
+  const deductionsTotal = acq + usn + vat + bank + ops + ins
+  const adjusted = Number.isFinite(Number(adjustedNetThb))
+    ? Number(adjustedNetThb)
+    : Math.max(0, gross - deductionsTotal)
+  const pool = Math.max(0, Number(referralPoolThb) || 0)
+  const retained = Math.max(0, Number(ownerRetainedThb) || Math.max(0, adjusted - pool))
+
+  return (
+    <div className={cn('space-y-4', className)}>
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch lg:flex-wrap">
+        <StepBox label="Guest payment" amount={guestPay} tone="in" />
+        <FlowArrow />
+        <StepBox label="Platform gross" amount={gross} tone="in" />
+        <FlowMinus />
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:flex-1">
+          <StepBox label="Acquiring" amount={acq} tone="loss" className="min-w-[100px]" />
+          <StepBox label="УСН" amount={usn} tone="out" className="min-w-[90px]" />
+          <StepBox label="НДС" amount={vat} tone="out" className="min-w-[90px]" />
+          <StepBox label="Банк" amount={bank} tone="out" className="min-w-[90px]" />
+          {ins > 0 ? <StepBox label="Insurance" amount={ins} tone="out" className="min-w-[90px]" /> : null}
+          {ops > 0 ? <StepBox label="Ops reserve" amount={ops} tone="out" className="min-w-[90px]" /> : null}
+        </div>
+        <FlowArrow />
+        <StepBox label="Adjusted net" amount={adjusted} tone="gain" />
+        <FlowMinus />
+        <StepBox label="Referral pool" amount={pool} tone="in" />
+        <FlowArrow />
+        <StepBox label="Owner retained" amount={retained} tone="gain" />
+      </div>
+      {pool > 0 ? (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+          <StepBox label="L1" amount={split.l1AmountThb} tone="in" className="max-w-[140px]" />
+          {(Number(split.l2AmountThb) || 0) > 0 ? (
+            <StepBox label="L2" amount={split.l2AmountThb} tone="in" className="max-w-[140px]" />
+          ) : null}
+          <StepBox label="Guest cashback" amount={split.refereeAmountThb} tone="in" className="max-w-[160px]" />
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/**
  * Visual margin waterfall: accepted → payouts + losses → net (FinTech-пульт).
  */
 export function FinTechMarginBar({ acceptedThb, paidOutThb, lossesThb, netMarginThb, className, variant = 'default' }) {

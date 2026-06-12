@@ -21,6 +21,8 @@ import { buildOgImageMetadata } from '@/lib/seo/resolve-og-image.js'
 import { Suspense } from 'react'
 import { cookies, headers } from 'next/headers'
 import { getLangFromRequest } from '@/lib/translations'
+import { GeoProvider } from '@/contexts/geo-context'
+import { IS_RUSSIA_COOKIE, getIsRussiaFromRequest } from '@/lib/geo'
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-sans' })
 
@@ -92,6 +94,12 @@ export async function generateMetadata() {
 
 export default async function RootLayout({ children }) {
   const appleTitle = getSiteDisplayName()
+  const cookieStore = await cookies()
+  const headersList = await headers()
+  const initialIsRussia = getIsRussiaFromRequest({
+    headers: headersList,
+    cookieValue: cookieStore.get(IS_RUSSIA_COOKIE)?.value,
+  })
   return (
     <html lang="ru">
       <head>
@@ -120,6 +128,7 @@ button{font:inherit}
       <body className={`${inter.variable} ${cormorant.variable} font-sans`}>
         <I18nProvider>
           <CurrencyProvider>
+          <GeoProvider initialIsRussia={initialIsRussia}>
           <AuthProvider>
             <AppQueryProvider>
               <SupabaseRealtimeAuthSync />
@@ -154,6 +163,7 @@ button{font:inherit}
               </PresenceProvider>
             </AppQueryProvider>
           </AuthProvider>
+          </GeoProvider>
           </CurrencyProvider>
         </I18nProvider>
       </body>

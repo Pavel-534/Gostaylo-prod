@@ -55,6 +55,8 @@ function StepGeneralInfoInner() {
     aiDescQuota,
     handleAiImproveDescription,
     updateMetadata,
+    isEditMode,
+    editId,
   } = w
 
   const checkInPhotosRef = useRef(null)

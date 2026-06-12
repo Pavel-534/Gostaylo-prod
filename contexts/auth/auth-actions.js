@@ -13,6 +13,7 @@ import {
   readPendingRefFromCookie,
   getStableReferralFingerprint,
 } from '@/contexts/auth/auth-referral-handler'
+import { useGeo } from '@/contexts/geo-context'
 
 const OAUTH_RETURN_TO_LS = 'gostaylo_oauth_return_to'
 
@@ -42,7 +43,18 @@ export function useAuthActions(params) {
     setForgotPasswordSent,
   } = params
 
+  const { isRussia } = useGeo()
+
   const startGoogleOAuth = useCallback(async () => {
+    if (isRussia) {
+      const msg =
+        language === 'ru'
+          ? 'Вход через Google недоступен в вашем регионе. Используйте email и пароль.'
+          : 'Google sign-in is not available in your region. Use email and password.'
+      setError(msg)
+      toast.error(msg)
+      return
+    }
     if (authMode === 'register' && !registerLegalConsent) {
       setError(getUIText('auth_registerLegalRequired', language))
       return
@@ -98,6 +110,7 @@ export function useAuthActions(params) {
       setGoogleOAuthBusy(false)
     }
   }, [
+    isRussia,
     authMode,
     registerLegalConsent,
     setError,

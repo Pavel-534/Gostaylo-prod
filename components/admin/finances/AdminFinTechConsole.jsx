@@ -46,6 +46,8 @@ import { MovementsJournal } from '@/components/admin/finances/MovementsJournal'
 import { FinTechExportsPanel } from '@/components/admin/finances/FinTechExportsPanel'
 import { FiscalSandboxReceiptDialog } from '@/components/admin/finances/FiscalSandboxReceiptDialog'
 import { ReferralLiabilityPanel } from '@/components/admin/finances/ReferralLiabilityPanel'
+import { FinTechAmbassadorSettingsPanel } from '@/components/admin/finances/FinTechAmbassadorSettingsPanel'
+import { FinTechShadowL2LiabilityPanel } from '@/components/admin/finances/FinTechShadowL2LiabilityPanel'
 
 /**
  * Stage 109.0 — FinTech-пульт: композиция панелей (логика в useAdminFinTechConsole).
@@ -104,6 +106,8 @@ export function AdminFinTechConsole() {
         />
         <YookassaOpsCard yookassaOps={c.yookassaOps} />
         <ReferralLiabilityPanel toast={c.toast} />
+        <FinTechAmbassadorSettingsPanel toast={c.toast} ownerMode={c.ownerMode} />
+        {!c.ownerMode && <FinTechShadowL2LiabilityPanel ownerMode={c.ownerMode} />}
         <FinTechCronHealthPanel cronHealth={c.cronHealth} ownerMode={c.ownerMode} loading={c.loading} />
         <FinTechTreasuryHeroDashboard
           dash={c.dash}
